@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2017-2023 Daniel Alievsky, AlgART Laboratory (http://algart.net)
+ * Copyright (c) 2023-2023 Daniel Alievsky, AlgART Laboratory (http://algart.net)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -64,16 +64,17 @@ import java.util.stream.Collectors;
  * However, you should not modify objects, passed to the methods of this class from a parallel thread;
  * first of all, it concerns the {@link TiffIFD} arguments of many methods.
  * The same is true for the result of {@link #getStream()} method.</p>
- *
- * @author Curtis Rueden
- * @author Eric Kjellman
- * @author Melissa Linkert
- * @author Chris Allan
- * @author Denial Alievsky
  */
 public class TiffReader extends AbstractContextual implements Closeable {
-    // Below is a copy of SCIFIO license (placed here to avoid autocorrection by IntelliJ IDEA)
+    // Creating this class started from reworking SCIFIO TiffParser class.
+    // Below is a copy of list of its authors and of the SCIFIO license for that class.
+    // (It is placed here to avoid autocorrection by IntelliJ IDEA)
     /*
+     * @author Curtis Rueden
+     * @author Eric Kjellman
+     * @author Melissa Linkert
+     * @author Chris Allan
+     *
      * #%L
      * SCIFIO library for reading and converting scientific file formats.
      * %%
