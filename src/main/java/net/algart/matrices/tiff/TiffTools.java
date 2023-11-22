@@ -56,7 +56,7 @@ public class TiffTools {
     private static final boolean OPTIMIZE_SEPARATING_WHOLE_BYTES = true;
     // - should be true for good performance; false value can help while debugging
     static final boolean BUILT_IN_TIMING = getBooleanProperty(
-            "net.algart.matrices.io.formats.tiff.timing");
+            "net.algart.matrices.tiff.timing");
 
     /**
      * Bit order mapping for reversed fill order.
