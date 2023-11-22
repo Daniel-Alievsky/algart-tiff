@@ -73,13 +73,23 @@
         <!--        </dependency>-->
     </dependencies>
 
-    <repositories>
-        <repository>
-            <!-- Repository of SCIFIO -->
-            <id>scijava.public</id>
-            <url>https://maven.scijava.org/content/groups/public</url>
-        </repository>
-    </repositories>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.3.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
     <profiles>
         <profile>
@@ -141,4 +151,12 @@
             </distributionManagement>
         </profile>
     </profiles>
+
+    <repositories>
+        <repository>
+            <!-- Repository of SCIFIO -->
+            <id>scijava.public</id>
+            <url>https://maven.scijava.org/content/groups/public</url>
+        </repository>
+    </repositories>
 </project>

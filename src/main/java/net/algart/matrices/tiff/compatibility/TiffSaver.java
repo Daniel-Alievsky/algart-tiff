@@ -104,7 +104,7 @@ public class TiffSaver extends TiffWriter {
     /**
      * Writes the TIFF file header.
      *
-     * <p>Use {@link #startWriting()} instead.
+     * <p>Use {@link #startNewFile()} instead.
      */
     @Deprecated
     public void writeHeader() throws IOException {
