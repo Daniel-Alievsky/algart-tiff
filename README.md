@@ -38,4 +38,4 @@ You can use this library with the following Maven dependency in your POM:
 </dependencies>
 ```
 
-  
+Note that our library depends on SCIFIO, version 0.46.0. For this moment, SCIFIO modules are not deployed in Maven Central. Instead, SCIFIO uses its own repository [maven.scijava.org](https://maven.scijava.org/). However, for using AlgART-TIFF, it should not make any difference: in any case, all necessary JARs are downloaded automatically.   
