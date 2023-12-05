@@ -648,7 +648,9 @@ public class TiffWriter extends AbstractContextual implements Closeable {
             // - if no pixels are updated, no need to expand the map and to check correct expansion
             return;
         }
-        map.expandDimensions(fromX + sizeX, fromY + sizeY);
+        final int toX = fromX + sizeX;
+        final int toY = fromY + sizeY;
+        map.expandDimensions(toX, toY);
 
         final int mapTileSizeX = map.tileSizeX();
         final int mapTileSizeY = map.tileSizeY();
@@ -657,17 +659,19 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         final int samplesPerPixel = map.tileSamplesPerPixel();
         final int bytesPerPixel = map.tileBytesPerPixel();
 
-        final int toX = fromX + sizeX;
-        final int toY = fromY + sizeY;
-        final int minXIndex = fromX / mapTileSizeX;
-        final int minYIndex = fromY / mapTileSizeY;
+        final int minXIndex =  Math.max(0, TiffReader.divFloor(fromX, mapTileSizeX));
+        final int minYIndex =  Math.max(0, TiffReader.divFloor(fromY, mapTileSizeY));
         if (minXIndex >= map.gridTileCountX() || minYIndex >= map.gridTileCountY()) {
             throw new AssertionError("Map was not expanded/checked properly: minimal tile index (" +
                     minXIndex + "," + minYIndex + ") is out of tile grid 0<=x<" +
                     map.gridTileCountX() + ", 0<=y<" + map.gridTileCountY() + "; map: " + map);
         }
-        final int maxXIndex = Math.min(map.gridTileCountX() - 1, (toX - 1) / mapTileSizeX);
-        final int maxYIndex = Math.min(map.gridTileCountY() - 1, (toY - 1) / mapTileSizeY);
+        final int maxXIndex = Math.min(map.gridTileCountX() - 1,TiffReader.divFloor(toX - 1, mapTileSizeX));
+        final int maxYIndex = Math.min(map.gridTileCountY() - 1, TiffReader.divFloor(toY - 1, mapTileSizeY));
+        if (minYIndex > maxYIndex || minXIndex > maxXIndex) {
+            // - possible when fromX < 0 or fromY < 0
+            return;
+        }
 
         final int tileChunkedRowSizeInBytes = mapTileSizeX * bytesPerPixel;
         final int samplesChunkedRowSizeInBytes = sizeX * bytesPerPixel;
@@ -752,78 +756,6 @@ public class TiffWriter extends AbstractContextual implements Closeable {
                 }
             }
         }
-
-        /* // The following code did properly work only starting from tile boundaries.
-
-        final int dimX = map.dimX();
-        final int dimY = map.dimY();
-        final int tileCountXInRegion = (sizeX + mapTileSizeX - 1) / mapTileSizeX;
-        final int tileCountYInRegion = (sizeY + mapTileSizeY - 1) / mapTileSizeY;
-        assert tileCountXInRegion <= sizeX;
-        assert tileCountYInRegion <= sizeY;
-
-        for (int p = 0, tileIndex = 0; p < numberOfSeparatedPlanes; p++) {
-            // - in a rare case PlanarConfiguration=2 (RRR...GGG...BBB...),
-            // this order provides increasing tile offsets while simple usage of this class
-            // (this is not required, but provides more efficient per-plane reading)
-            for (int yIndex = 0; yIndex < tileCountYInRegion; yIndex++) {
-                final int yOffset = yIndex * mapTileSizeY;
-                assert (long) fromY + (long) yOffset < dimY : "region must  be checked before calling splitTiles";
-                final int y = fromY + yOffset;
-                for (int xIndex = 0; xIndex < tileCountXInRegion; xIndex++, tileIndex++) {
-                    final int xOffset = xIndex * mapTileSizeX;
-                    assert (long) fromX + (long) xOffset < dimX : "region must be checked before calling splitTiles";
-                    final int x = fromX + xOffset;
-                    final TiffTile tile = map.getOrNewMultiplane(p, x / mapTileSizeX, y / mapTileSizeY);
-                    tile.cropToMap(true);
-                    // - In stripped image, we should correct the height of the last row.
-                    // It is important for writing: without this correction, GIMP and other libtiff-based programs
-                    // will report about an error (see libtiff, tif_jpeg.c, assigning segment_width/segment_height)
-                    // However, if tiling is requested via TILE_WIDTH/TILE_LENGTH tags, we SHOULD NOT do this.
-                    tile.fillEmpty(tileInitializer);
-                    final int partSizeY = Math.min(sizeY - yOffset, tile.getSizeY());
-                    final int partSizeX = Math.min(sizeX - xOffset, tile.getSizeX());
-                    final byte[] data = tile.getDecoded();
-                    // - if the tile already exists, we will accurately update its content
-                    if (!planarSeparated && !autoInterleave) {
-                        // - Source data are already interleaved (like RGBRGB...): maybe, external code prefers
-                        // to use interleaved form, for example, OpenCV library.
-                        final int tileRowSizeInBytes = mapTileSizeX * bytesPerPixel;
-                        final int partSizeXInBytes = partSizeX * bytesPerPixel;
-                        for (int yInTile = 0; yInTile < partSizeY; yInTile++) {
-                            final int i = yInTile + yOffset;
-                            final int tileOffset = yInTile * tileRowSizeInBytes;
-                            final int samplesOffset = (i * sizeX + xOffset) * bytesPerPixel;
-                            System.arraycopy(samples, samplesOffset, data, tileOffset, partSizeXInBytes);
-                        }
-                    } else {
-                        // - Source data are separated to channel planes: standard form, more convenient for image
-                        // processing; this form is used for results of TiffReader by default (unless
-                        // you specify another behaviour by setInterleaveResults method).
-                        // Here are 2 possible cases:
-                        //      planarSeparated=false (most typical): results in the file should be interleaved;
-                        // we must prepare a single tile, but with SEPARATED data (they will be interleaved later);
-                        //      planarSeparated=true (rare): for 3 channels (RGB) we must prepare 3 separate tiles;
-                        // in this case samplesPerPixel=1.
-                        final int channelSize = tile.getSizeInPixels() * bytesPerSample;
-                        final int separatedPlaneSize = sizeX * sizeY * bytesPerSample;
-                        final int tileRowSizeInBytes = mapTileSizeX * bytesPerSample;
-                        final int partSizeXInBytes = partSizeX * bytesPerSample;
-                        int tileChannelOffset = 0;
-                        for (int s = 0; s < samplesPerPixel; s++, tileChannelOffset += channelSize) {
-                            final int channelOffset = (p + s) * separatedPlaneSize;
-                            for (int yInTile = 0; yInTile < partSizeY; yInTile++) {
-                                final int i = yInTile + yOffset;
-                                final int tileOffset = tileChannelOffset + yInTile * tileRowSizeInBytes;
-                                final int samplesOffset = channelOffset + (i * sizeX + xOffset) * bytesPerSample;
-                                System.arraycopy(samples, samplesOffset, data, tileOffset, partSizeXInBytes);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-         */
     }
 
     public void updateImage(TiffMap map, Object samplesArray) {

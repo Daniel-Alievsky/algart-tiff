@@ -519,7 +519,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
         List<TiffIFD> ifdList = allIFDs();
         if (ifdIndex < 0 || ifdIndex >= ifdList.size()) {
             throw new IndexOutOfBoundsException(
-                    "IFD index " + ifdIndex + " is out of bounds 0 <= i < " + ifdList.size());
+                    "IFD index " + ifdIndex + " is out of bounds 0 <= index < " + ifdList.size());
         }
         return newMap(ifdList.get(ifdIndex));
     }
@@ -544,6 +544,10 @@ public class TiffReader extends AbstractContextual implements Closeable {
 
     public List<TiffMap> allMaps() throws IOException, FormatException {
         return allIFDs().stream().map(this::newMap).collect(Collectors.toList());
+    }
+
+    public int numberOfIFDs() throws IOException, FormatException {
+        return allIFDs().size();
     }
 
     /**
@@ -1369,7 +1373,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
             throws FormatException, IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(resultSamples, "Null result samples");
-        assert fromX >= 0 && fromY >= 0 && sizeX >= 0 && sizeY >= 0;
+        assert sizeX >= 0 && sizeY >= 0;
         // Note: we cannot process image larger than 2^31 x 2^31 pixels,
         // though TIFF supports maximal sizes 2^32 x 2^32
         // (IFD.getImageWidth/getImageLength do not allow so large results)
@@ -1387,14 +1391,17 @@ public class TiffReader extends AbstractContextual implements Closeable {
         final int toX = Math.min(fromX + sizeX, cropTilesToImageBoundaries ? map.dimX() : Integer.MAX_VALUE);
         final int toY = Math.min(fromY + sizeY, cropTilesToImageBoundaries ? map.dimY() : Integer.MAX_VALUE);
         // - crop by image sizes to avoid reading unpredictable content of the boundary tiles outside the image
-        final int minXIndex = fromX / mapTileSizeX;
-        final int minYIndex = fromY / mapTileSizeY;
+        final int minXIndex = Math.max(0, divFloor(fromX, mapTileSizeX));
+        final int minYIndex = Math.max(0, divFloor(fromY,  mapTileSizeY));
         if (minXIndex >= map.gridTileCountX() || minYIndex >= map.gridTileCountY() || toX < fromX || toY < fromY) {
             return;
         }
-        final int maxXIndex = Math.min(map.gridTileCountX() - 1, (toX - 1) / mapTileSizeX);
-        final int maxYIndex = Math.min(map.gridTileCountY() - 1, (toY - 1) / mapTileSizeY);
-        assert minYIndex <= maxYIndex && minXIndex <= maxXIndex;
+        final int maxXIndex = Math.min(map.gridTileCountX() - 1, divFloor (toX - 1, mapTileSizeX));
+        final int maxYIndex = Math.min(map.gridTileCountY() - 1, divFloor(toY - 1, mapTileSizeY));
+        if (minYIndex > maxYIndex || minXIndex > maxXIndex) {
+            // - possible when fromX < 0 or fromY < 0
+            return;
+        }
         final int tileOneChannelRowSizeInBytes = mapTileSizeX * bytesPerSample;
         final int samplesOneChannelRowSizeInBytes = sizeX * bytesPerSample;
 
@@ -1787,6 +1794,11 @@ public class TiffReader extends AbstractContextual implements Closeable {
         LOG.log(System.Logger.Level.TRACE, () -> String.format(
                 "Reading IFD entry: %s - %s", result, TiffIFD.ifdTagName(result.tag(), true)));
         return result;
+    }
+
+    static int divFloor(int a, int b) {
+        assert b > 0;
+        return a >= 0 ? a / b : (a - b + 1) / b;
     }
 
     private static String prettyFileName(String format, DataHandle<Location> handle) {

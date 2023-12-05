@@ -113,7 +113,7 @@ public class TiffReaderTest {
 //                reader.setCropTilesToImageBoundaries(false);
                 final long positionOfLastOffset = reader.positionOfLastIFDOffset();
                 assert positionOfLastOffset == -1 : "constructor should not set positionOfLastOffset";
-                final List<TiffMap> maps = reader.allMaps();
+                final int numberOfIFDS = reader.numberOfIFDs();
                 long t3 = System.nanoTime();
                 System.out.printf(
                         "Opening %s by %s: %.3f ms opening, %.3f ms reading IFDs (position of first IFD offset: %d)%n",
@@ -121,20 +121,20 @@ public class TiffReaderTest {
                         (t2 - t1) * 1e-6,
                         (t3 - t2) * 1e-6,
                         positionOfLastOffset);
-                if (maps.isEmpty()) {
+                if (numberOfIFDS == 0) {
                     System.out.println("No IFDs");
                     return;
                 }
-                if (ifdIndex >= maps.size()) {
-                    System.out.printf("%nNo IFD #%d, using last IFD #%d instead%n%n", ifdIndex, maps.size() - 1);
-                    ifdIndex = maps.size() - 1;
+                if (ifdIndex >= numberOfIFDS) {
+                    System.out.printf("%nNo IFD #%d, using last IFD #%d instead%n%n", ifdIndex, numberOfIFDS - 1);
+                    ifdIndex = numberOfIFDS - 1;
                 }
                 final TiffMap map;
                 if (compatibility) {
                     //noinspection deprecation
                     map = reader.newMap(TiffParser.toTiffIFD(((TiffParser) reader).getIFDs().get(ifdIndex)));
                 } else {
-                    map = maps.get(ifdIndex);
+                    map = reader.map(ifdIndex);
                 }
                 if (w < 0) {
                     w = Math.min(map.dimX(), MAX_IMAGE_DIM);
@@ -148,7 +148,7 @@ public class TiffReaderTest {
                 for (int test = 1; test <= numberOfTests; test++) {
                     if (test == 1 && repeat == 1) {
                         System.out.printf("Reading data %dx%dx%d from %s%n",
-                                w, h, bandCount, new TiffInfo().ifdInfo(map.ifd(), ifdIndex, maps.size()));
+                                w, h, bandCount, new TiffInfo().ifdInfo(map.ifd(), ifdIndex, numberOfIFDS));
                     }
                     t1 = System.nanoTime();
 //                    map.ifd().put(258, new double[] {3});

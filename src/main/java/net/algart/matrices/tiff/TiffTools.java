@@ -870,15 +870,20 @@ public class TiffTools {
     }
 
     public static void checkRequestedArea(long fromX, long fromY, long sizeX, long sizeY) {
-        if (fromX < 0 || fromY < 0) {
-            throw new IllegalArgumentException("Negative fromX = " + fromX + " or fromY = " + fromY);
-        }
         if (sizeX < 0 || sizeY < 0) {
             throw new IllegalArgumentException("Negative sizeX = " + sizeX + " or sizeY = " + sizeY);
         }
-        if (sizeX > Integer.MAX_VALUE - fromX || sizeY > Integer.MAX_VALUE - fromY) {
+        if (fromX != (int) fromX || fromY != (int) fromY) {
+            throw new IllegalArgumentException("Too large absolute values of fromX = " + fromX +
+                    " or fromY = " + fromY + " (out of -2^31..2^31-1 ranges)");
+        }
+        if (sizeX > Integer.MAX_VALUE || sizeY > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Too large sizeX = " + sizeX + " or sizeY = " + sizeY + " (>2^31-1)");
+        }
+        if (sizeX >= Integer.MAX_VALUE - fromX || sizeY >= Integer.MAX_VALUE - fromY) {
+            // - Note: >= instead of > ! This allows to use "toX = fromX + sizeX" without overflow
             throw new IllegalArgumentException("Requested area [" + fromX + ".." + (fromX + sizeX - 1) +
-                    " x " + fromY + ".." + (fromY + sizeY - 1) + " is out of 0..2^31-1 ranges");
+                    " x " + fromY + ".." + (fromY + sizeY - 1) + " is out of 0..2^31-2 ranges");
         }
     }
 
@@ -1158,19 +1163,6 @@ public class TiffTools {
                     " = " + product + " >= 2^31" + postfix.get());
         }
         return (int) result;
-    }
-
-    static void checkRequestedArea(long fromX, long fromY, long sizeX, long sizeY, long imageDimX, long imageDimY) {
-        checkRequestedArea(fromX, fromY, sizeX, sizeY);
-        if (imageDimX < 0 || imageDimY < 0) {
-            throw new IllegalArgumentException("Negative imageDimX = " + imageDimX +
-                    " or imageDimY = " + imageDimY);
-        }
-        if (fromX > imageDimX - sizeX || fromY > imageDimY - sizeY) {
-            throw new IllegalArgumentException("Requested area [" + fromX + ".." + (fromX + sizeX - 1) +
-                    " x " + fromY + ".." + (fromY + sizeY - 1) + "] is out of image ranges " +
-                    imageDimX + "x" + imageDimY);
-        }
     }
 
     static boolean getBooleanProperty(String propertyName) {

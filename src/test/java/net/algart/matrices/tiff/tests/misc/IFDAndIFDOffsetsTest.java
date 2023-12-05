@@ -47,9 +47,13 @@ public class IFDAndIFDOffsetsTest {
         System.out.printf("Reading IFD #%d from %s...%n", ifdIndex, file);
 
         TiffReader reader = new TiffReader(null, file, false);
-        reader.allMaps();
-        reader.readIFDOffsets();
+        int n1 = reader.allMaps().size();
+        int n2 = reader.readIFDOffsets().length;
         // - should not throw exception for invalid file
+        if (n1 != n2) {
+            throw new AssertionError();
+        }
+        System.out.println("Analysing...");
         reader.readFirstIFDOffset();
         // - should throw exception for invalid file
         for (int test = 1; test <= 10; test++) {

@@ -302,18 +302,14 @@ public final class TiffMap {
      * Replaces total image sizes to maximums from their current values and <tt>newMinimalDimX/Y</tt>.
      *
      * <p>Note: if both new x/y-sizes are not greater than existing ones, this method does nothing
-     * and can be called even if not {@link #isResizable()}.
+     * and can be called even if not {@link #isResizable()}.</p>
+     *
+     * <p>Also note: negative arguments are allowed, but have no effect (as if they would be zero).</p>
      *
      * @param newMinimalDimX new minimal value for {@link #dimX() sizeX}.
      * @param newMinimalDimY new minimal value for {@link #dimY() sizeY}.
      */
     public void expandDimensions(int newMinimalDimX, int newMinimalDimY) {
-        if (newMinimalDimX < 0) {
-            throw new IllegalArgumentException("Negative new minimal x-size: " + newMinimalDimX);
-        }
-        if (newMinimalDimY < 0) {
-            throw new IllegalArgumentException("Negative new minimal y-size: " + newMinimalDimY);
-        }
         if (newMinimalDimX > dimX || newMinimalDimY > dimY) {
             setDimensions(Math.max(dimX, newMinimalDimX), Math.max(dimY, newMinimalDimY));
         }
