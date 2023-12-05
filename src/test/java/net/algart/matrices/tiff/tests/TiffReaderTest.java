@@ -144,15 +144,15 @@ public class TiffReaderTest {
                 }
                 final int bandCount = map.numberOfChannels();
 
-                Object array = null;
+                Matrix<PArray> matrix = null;
                 for (int test = 1; test <= numberOfTests; test++) {
                     if (test == 1 && repeat == 1) {
                         System.out.printf("Reading data %dx%dx%d from %s%n",
                                 w, h, bandCount, new TiffInfo().ifdInfo(map.ifd(), ifdIndex, numberOfIFDS));
                     }
                     t1 = System.nanoTime();
-//                    map.ifd().put(258, new double[] {3});
-                    array = reader.readImage(map, x, y, w, h);
+//                    map.ifd().put(258, new double[] {3}); // - should lead to exception
+                    matrix = reader.readMatrix(map, x, y, w, h);
                     t2 = System.nanoTime();
                     System.out.printf(Locale.US, "Test #%d: %dx%d loaded in %.3f ms%n",
                             test, w, h, (t2 - t1) * 1e-6);
@@ -160,69 +160,60 @@ public class TiffReaderTest {
                 }
 
                 System.out.printf("Saving result image into %s...%n", resultFile);
-                writeImageFile(resultFile, array, w, h, bandCount, interleave);
+                writeImageFile(resultFile, matrix, interleave);
                 reader.close();
             }
             System.out.printf("Done repeat %d/%d%n%n", repeat, numberOfCompleteRepeats);
         }
     }
 
-    static void writeImageFile(Path resultFile, Object array, int w, int h, int bandCount) throws IOException {
-        writeImageFile(resultFile, array, w, h, bandCount, false);
+    static void writeImageFile(Path file, Matrix<PArray> matrix) throws IOException {
+        writeImageFile(file, matrix, false);
     }
 
-    private static void writeImageFile(
-            Path resultFile, Object array, int w, int h, int bandCount, boolean interleaved) throws IOException {
+    private static void writeImageFile(Path file, Matrix<PArray> matrix, boolean interleaved) throws IOException {
         List<Matrix<? extends PArray>> image = interleaved ?
-                interleavedArrayToImage(array, w, h, bandCount) :
-                separatedArrayToImage(array, w, h, bandCount);
+                interleavedToImage(matrix) :
+                separatedToImage(matrix);
         if (image != null) {
-            ExternalAlgorithmCaller.writeImage(resultFile.toFile(), image);
+            ExternalAlgorithmCaller.writeImage(file.toFile(), image);
         }
     }
 
-    private static List<Matrix<? extends PArray>> separatedArrayToImage(
-            Object data, int sizeX, int sizeY, int bandCount) {
-        data = intsToBytes(data);
-        Matrix<UpdatablePArray> matrix = Matrices.matrix(
-                (UpdatablePArray) SimpleMemoryModel.asUpdatableArray(data),
-                sizeX, sizeY, bandCount);
+    private static List<Matrix<? extends PArray>> separatedToImage(Matrix<PArray> matrix) {
         if (matrix.size() == 0) {
             return null;
             // - provided for testing only (BufferedImage cannot have zero sizes)
         }
+        matrix = intsToBytes(matrix);
         List<Matrix<? extends PArray>> channels = new ArrayList<>();
-        for (int k = 0; k < bandCount; k++) {
-            UpdatablePArray array = matrix.subMatr(0, 0, k, sizeX, sizeY, 1).array();
-            channels.add(Matrices.matrix(array, sizeX, sizeY));
+        for (long k = 0; k < matrix.dim(2); k++) {
+            channels.add(matrix.subMatr(0, 0, k, matrix.dimX(), matrix.dimY(), 1));
         }
         return channels;
     }
 
-    private static List<Matrix<? extends PArray>>  interleavedArrayToImage(
-            Object data, int sizeX, int sizeY, int bandCount) {
-        data = intsToBytes(data);
-        Matrix<UpdatablePArray> matrix = Matrices.matrix(
-                (UpdatablePArray) SimpleMemoryModel.asUpdatableArray(data),
-                bandCount, sizeX, sizeY);
+    private static List<Matrix<? extends PArray>> interleavedToImage(Matrix<PArray> matrix) {
         if (matrix.size() == 0) {
             return null;
             // - provided for testing only (BufferedImage cannot have zero sizes)
         }
-        return ImageConversions.unpack2DBandsFromSequentialSamples(null, matrix);
+        return ImageConversions.unpack2DBandsFromSequentialSamples(null, intsToBytes(matrix));
     }
 
-    private static Object intsToBytes(Object data) {
-        if (data instanceof int[] ints) {
+    private static Matrix<PArray> intsToBytes(Matrix<PArray> matrix) {
+        if (matrix.elementType() == int.class) {
             // - standard method SMat.toBufferedImage uses AlgART interpretation: 2^31 is white;
             // it is incorrect for TIFF files
+            final int[] ints = new int[(int) matrix.size()];
+            matrix.array().getData(0, ints);
             byte[] bytes = new byte[ints.length];
             for (int k = 0; k < bytes.length; k++) {
                 bytes[k] = (byte) (ints[k] >>> 24);
             }
-            data = bytes;
+            return matrix.matrix(SimpleMemoryModel.asUpdatableByteArray(bytes));
         }
-        return data;
+        return matrix;
     }
 
 }

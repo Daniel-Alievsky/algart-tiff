@@ -287,15 +287,15 @@ public class TiffWriterTest {
                         samplesArray = TiffTools.toInterleavedSamples(
                                 (byte[]) samplesArray, map.numberOfChannels(), 1, w * h);
                     }
-                    writer.writeImage(map, samplesArray, x, y, w, h);
+                    writer.writeJavaArray(map, samplesArray, x, y, w, h);
                     if (thoroughTesting) {
                         long length = writer.getStream().length();
-                        // writer.writeImage(map, samplesArray, x, y, w, h);
+                        // writer.writeJavaArray(map, samplesArray, x, y, w, h);
                         // - usually not a problem to call twice, but file space will be used twice;
                         // if we have partially filled tiles on existing map, then preserveOldAccurately mode
                         // will not work properly (without 2nd preloadPartiallyOverwrittenTiles)
-                        writer.complete(map); // - called inside writeImage, but not a problem to call twice
-                        writer.complete(map); // - called inside writeImage, but not a problem to call twice
+                        writer.complete(map); // - called inside write, but not a problem to call twice
+                        writer.complete(map); // - called inside write, but not a problem to call twice
                         if (writer.getStream().length() != length) {
                             throw new AssertionError("File increased!");
                         }

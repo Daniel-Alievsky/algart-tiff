@@ -690,7 +690,7 @@ public class TiffParser extends TiffReader {
 
     /**
      * This function is deprecated, because almost identical behaviour is implemented by
-     * {@link #readImage(TiffMap, int, int, int, int)}.
+     * {@link #readSamples(TiffMap, int, int, int, int)}.
      */
     @Deprecated
     public byte[] getSamples(final IFD ifd, final byte[] buf, final int x,

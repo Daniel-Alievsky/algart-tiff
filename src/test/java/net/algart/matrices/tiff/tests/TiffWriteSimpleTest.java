@@ -78,7 +78,7 @@ public class TiffWriteSimpleTest {
             if (samples instanceof byte[] bytes) {
                 Arrays.fill(bytes, (byte) 70);
             }
-            writer.updateImage(map, samples);
+            writer.updateJavaArray(map, samples);
             // writer.writeForward(map); // - uncomment to write IFD BEFORE image
             writer.complete(map);
             // writer.writeSamples(map, samples); // - equivalent to previous 3 methods

@@ -32,6 +32,7 @@ import io.scif.codec.PassthroughCodec;
 import io.scif.formats.tiff.TiffCompression;
 import io.scif.formats.tiff.TiffConstants;
 import io.scif.formats.tiff.TiffRational;
+import net.algart.arrays.*;
 import net.algart.matrices.tiff.codecs.CodecTiming;
 import net.algart.matrices.tiff.codecs.ExtendedJPEGCodec;
 import net.algart.matrices.tiff.codecs.ExtendedJPEGCodecOptions;
@@ -53,6 +54,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -1202,17 +1204,17 @@ public class TiffReader extends AbstractContextual implements Closeable {
         return samples;
     }
 
-    public Object readImage(TiffMap map) throws FormatException, IOException {
+    public Object readJavaArray(TiffMap map) throws FormatException, IOException {
         Objects.requireNonNull(map, "Null TIFF map");
-        return readImage(map, 0, 0, map.dimX(), map.dimY());
+        return readJavaArray(map, 0, 0, map.dimX(), map.dimY());
     }
 
-    public Object readImage(TiffMap map, int fromX, int fromY, int sizeX, int sizeY)
+    public Object readJavaArray(TiffMap map, int fromX, int fromY, int sizeX, int sizeY)
             throws IOException, FormatException {
-        return readImage(map, fromX, fromY, sizeX, sizeY, false);
+        return readJavaArray(map, fromX, fromY, sizeX, sizeY, false);
     }
 
-    public Object readImage(TiffMap map, int fromX, int fromY, int sizeX, int sizeY, boolean storeTilesInMap)
+    public Object readJavaArray(TiffMap map, int fromX, int fromY, int sizeX, int sizeY, boolean storeTilesInMap)
             throws IOException, FormatException {
         Objects.requireNonNull(map, "Null TIFF map");
         final byte[] samples = readSamples(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
@@ -1223,7 +1225,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
                     " bytes/sample, to \"" + sampleType.elementType() + "\" " + sampleType.bytesPerSample() +
                     "-byte Java type: unpacking unusual prevision mode is disabled");
         }
-        final Object samplesArray = TiffTools.bytesToArray(samples, sampleType, isLittleEndian());
+        final Object samplesArray = TiffTools.bytesToJavaArray(samples, sampleType, isLittleEndian());
         if (TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t2 = debugTime();
             LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
@@ -1238,6 +1240,25 @@ public class TiffReader extends AbstractContextual implements Closeable {
                                     samples.length / 1048576.0 / ((t2 - t1) * 1e-9))));
         }
         return samplesArray;
+    }
+
+    public Matrix<PArray> readMatrix(TiffMap map) throws FormatException, IOException {
+        Objects.requireNonNull(map, "Null TIFF map");
+        return readMatrix(map, 0, 0, map.dimX(), map.dimY());
+    }
+
+    public Matrix<PArray> readMatrix(TiffMap map, int fromX, int fromY, int sizeX, int sizeY)
+            throws IOException, FormatException {
+        return readMatrix(map, fromX, fromY, sizeX, sizeY, false);
+    }
+
+    public Matrix<PArray> readMatrix(TiffMap map, int fromX, int fromY, int sizeX, int sizeY, boolean storeTilesInMap)
+            throws IOException, FormatException {
+        final Object samplesArray = readJavaArray(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
+        final UpdatablePArray updatableArray = (UpdatablePArray) SimpleMemoryModel.asUpdatableArray(samplesArray);
+        return interleaveResults ?
+                Matrices.matrix(updatableArray, map.numberOfChannels(), sizeX, sizeY) :
+                Matrices.matrix(updatableArray, sizeX, sizeY, map.numberOfChannels());
     }
 
     @Override

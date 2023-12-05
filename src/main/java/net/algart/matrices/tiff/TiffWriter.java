@@ -33,6 +33,8 @@ import io.scif.codec.CodecOptions;
 import io.scif.formats.tiff.TiffCompression;
 import io.scif.formats.tiff.TiffConstants;
 import io.scif.formats.tiff.TiffRational;
+import net.algart.arrays.Matrix;
+import net.algart.arrays.PArray;
 import net.algart.matrices.tiff.codecs.CodecTiming;
 import net.algart.matrices.tiff.codecs.ExtendedJPEGCodec;
 import net.algart.matrices.tiff.codecs.ExtendedJPEGCodecOptions;
@@ -240,7 +242,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
     /**
      * Sets auto-interleave mode.
      *
-     * <p>If set, then the samples array in <tt>writeImage</tt> methods is always supposed to be unpacked.
+     * <p>If set, then the samples array in <tt>write...</tt> methods is always supposed to be unpacked.
      * For multichannel images it means the samples order like RRR..GGG..BBB...: standard form, supposed by
      * {@link io.scif.Plane} class and returned by {@link TiffReader}. If the desired IFD format is
      * chunked, i.e. {@link TiffIFD#PLANAR_CONFIGURATION} is {@link TiffIFD#PLANAR_CONFIGURATION_CHUNKED}
@@ -298,7 +300,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
      * to encode a new copy of some existing TIFF file.</p>
      *
      * <p>Note that this flag is passed to {@link #correctIFDForWriting(TiffIFD, boolean)} method,
-     * called inside <tt>writeSamples</tt>/<tt>writeImage</tt> methods.
+     * called inside <tt>writeSamples</tt>/<tt>writeJavaArray</tt> methods.
      *
      * @param smartIFDCorrection <tt>true</tt> means that we enable smart correction of the specified IFD
      *                           and do not require strictly accurate, fully supported IFD settings.
@@ -629,19 +631,20 @@ public class TiffWriter extends AbstractContextual implements Closeable {
 
     public void updateSamples(TiffMap map, byte[] samples) {
         Objects.requireNonNull(map, "Null TIFF map");
-        updateImage(map, samples, 0, 0, map.dimX(), map.dimY());
+        updateJavaArray(map, samples, 0, 0, map.dimX(), map.dimY());
     }
 
-    public void updateSamples(
-            final TiffMap map,
-            final byte[] samples,
-            final int fromX,
-            final int fromY,
-            final int sizeX,
-            final int sizeY) {
+    public void updateSamples(TiffMap map, byte[] samples, long fromX, long fromY, long sizeX, long sizeY) {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(samples, "Null samples");
-        final boolean planarSeparated = map.isPlanarSeparated();
+        TiffTools.checkRequestedArea(fromX, fromY, sizeX, sizeY);
+        assert fromX == (int) fromX && fromY == (int) fromY && sizeX == (int) sizeX && sizeY == (int) sizeY;
+        updateSamples(map, samples, (int) fromX, (int) fromY, (int) sizeX, (int) sizeY);
+    }
+
+    public void updateSamples(TiffMap map, byte[] samples, int fromX, int fromY, int sizeX, int sizeY) {
+        Objects.requireNonNull(map, "Null TIFF map");
+        Objects.requireNonNull(samples, "Null samples");
         TiffTools.checkRequestedArea(fromX, fromY, sizeX, sizeY);
         TiffTools.checkRequestedAreaInArray(samples, sizeX, sizeY, map.totalBytesPerPixel());
         if (sizeX == 0 || sizeY == 0) {
@@ -678,7 +681,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         final int tileOneChannelRowSizeInBytes = mapTileSizeX * bytesPerSample;
         final int samplesOneChannelRowSizeInBytes = sizeX * bytesPerSample;
 
-        final boolean autoInterleave = this.autoInterleaveSource;
+        final boolean sourceIsInterleaved = !map.isPlanarSeparated() && !this.autoInterleaveSource;
         for (int p = 0; p < numberOfSeparatedPlanes; p++) {
             // - for a rare case PlanarConfiguration=2 (RRR...GGG...BBB...)
             for (int yIndex = minYIndex; yIndex <= maxYIndex; yIndex++) {
@@ -718,7 +721,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
                     // C) planarSeparated=true, autoInterleave is ignored:
                     //      source pixels are RRR...GGG..BBB..., we will have separate RRR tiles, GGG tiles, BBB tiles
                     //      (actually each tile is monochrome).
-                    if (!planarSeparated && !autoInterleave) {
+                    if (sourceIsInterleaved) {
 //                        System.out.printf("!!!Chunked: %d%n", samplesPerPixel);
                         // - Case A: source data are already interleaved (like RGBRGB...): maybe, external code
                         // prefers to use interleaved form, for example, OpenCV library.
@@ -758,18 +761,12 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         }
     }
 
-    public void updateImage(TiffMap map, Object samplesArray) {
+    public void updateJavaArray(TiffMap map, Object samplesArray) {
         Objects.requireNonNull(map, "Null TIFF map");
-        updateImage(map, samplesArray, 0, 0, map.dimX(), map.dimY());
+        updateJavaArray(map, samplesArray, 0, 0, map.dimX(), map.dimY());
     }
 
-    public void updateImage(
-            final TiffMap map,
-            final Object samplesArray,
-            final int fromX,
-            final int fromY,
-            final int sizeX,
-            final int sizeY) {
+    public void updateJavaArray(TiffMap map, Object samplesArray, int fromX, int fromY, int sizeX, int sizeY) {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(samplesArray, "Null samplesArray");
         final Class<?> elementType = samplesArray.getClass().getComponentType();
@@ -781,7 +778,22 @@ public class TiffWriter extends AbstractContextual implements Closeable {
             throw new IllegalArgumentException("Invalid element type of samples array: " + elementType +
                     ", but the specified TIFF map stores " + map.elementType());
         }
-        final byte[] samples = TiffTools.arrayToBytes(samplesArray, isLittleEndian());
+        final byte[] samples = TiffTools.javaArrayToBytes(samplesArray, isLittleEndian());
+        updateSamples(map, samples, fromX, fromY, sizeX, sizeY);
+    }
+
+    public void updateMatrix(TiffMap map, Matrix<? extends PArray> matrix, int fromX, int fromY) {
+        Objects.requireNonNull(map, "Null TIFF map");
+        Objects.requireNonNull(matrix, "Null matrix");
+        final boolean sourceIsInterleaved = !map.isPlanarSeparated() && !this.autoInterleaveSource;
+        long sizeX = matrix.dim(sourceIsInterleaved ? 1 : 0);
+        long sizeY = matrix.dim(sourceIsInterleaved ? 2 : 1);
+        final Class<?> elementType = matrix.elementType();
+        if (elementType != map.elementType()) {
+            throw new IllegalArgumentException("Invalid element type of matrix: " + elementType +
+                    ", but the specified TIFF map stores " + map.elementType());
+        }
+        final byte[] samples = TiffTools.arrayToBytes(matrix.array(), isLittleEndian());
         updateSamples(map, samples, fromX, fromY, sizeX, sizeY);
     }
 
@@ -1149,38 +1161,22 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         long t4 = debugTime();
         complete(map);
         if (TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
-            long t5 = debugTime();
-            long sizeOf = map.totalSizeInBytes();
-            LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
-                    "%s wrote %dx%dx%d samples (%.3f MB) in %.3f ms = " +
-                            "%.3f copying data + %.3f writing IFD " +
-                            "+ %.3f/%.3f encoding/writing " +
-                            "(%.3f prepare + %.3f customize + %.3f encode + %.3f write), %.3f MB/s",
-                    getClass().getSimpleName(),
-                    map.numberOfChannels(), sizeX, sizeY, sizeOf / 1048576.0,
-                    (t5 - t1) * 1e-6,
-                    (t2 - t1) * 1e-6, (t3 - t2) * 1e-6,
-                    (t4 - t3) * 1e-6, (t5 - t4) * 1e-6,
-                    timePreparingEncoding * 1e-6,
-                    timeCustomizingEncoding * 1e-6,
-                    timeEncoding * 1e-6,
-                    timeWriting * 1e-6,
-                    sizeOf / 1048576.0 / ((t5 - t1) * 1e-9)));
+            logWriting(map, sizeX, sizeY, t1, t2, t3, t4);
         }
     }
 
-    public void writeImage(TiffMap map, Object samplesArray) throws FormatException, IOException {
+    public void writeJavaArray(TiffMap map, Object samplesArray) throws FormatException, IOException {
         Objects.requireNonNull(map, "Null TIFF map");
-        writeImage(map, samplesArray, 0, 0, map.dimX(), map.dimY());
+        writeJavaArray(map, samplesArray, 0, 0, map.dimX(), map.dimY());
     }
 
-    public void writeImage(TiffMap map, Object samplesArray, int fromX, int fromY, int sizeX, int sizeY)
+    public void writeJavaArray(TiffMap map, Object samplesArray, int fromX, int fromY, int sizeX, int sizeY)
             throws FormatException, IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(samplesArray, "Null samplesArray");
         clearTime();
         long t1 = debugTime();
-        updateImage(map, samplesArray, fromX, fromY, sizeX, sizeY);
+        updateJavaArray(map, samplesArray, fromX, fromY, sizeX, sizeY);
         long t2 = debugTime();
         writeForward(map);
         long t3 = debugTime();
@@ -1188,28 +1184,29 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         long t4 = debugTime();
         complete(map);
         if (TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
-            long t5 = debugTime();
-            long sizeOf = map.totalSizeInBytes();
-            LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
-                    "%s wrote %dx%dx%d samples (%.3f MB) in %.3f ms = " +
-                            "%.3f conversion/copying data + %.3f writing IFD " +
-                            "+ %.3f/%.3f encoding/writing " +
-                            "(%.3f prepare + %.3f customize + %.3f encode " +
-                            " (= %.3f main + %.3f bridge + %.3f additional) " +
-                            "+ %.3f write), %.3f MB/s",
-                    getClass().getSimpleName(),
-                    map.numberOfChannels(), sizeX, sizeY, sizeOf / 1048576.0,
-                    (t5 - t1) * 1e-6,
-                    (t2 - t1) * 1e-6, (t3 - t2) * 1e-6,
-                    (t4 - t3) * 1e-6, (t5 - t4) * 1e-6,
-                    timePreparingEncoding * 1e-6,
-                    timeCustomizingEncoding * 1e-6,
-                    timeEncoding * 1e-6,
-                    timeEncodingMain * 1e-6,
-                    timeEncodingBridge * 1e-6,
-                    timeEncodingAdditional * 1e-6,
-                    timeWriting * 1e-6,
-                    sizeOf / 1048576.0 / ((t5 - t1) * 1e-9)));
+            logWriting(map, sizeX, sizeY, t1, t2, t3, t4);
+        }
+    }
+
+    public void writeMatrix(TiffMap map, Matrix<? extends PArray> matrix, int fromX, int fromY)
+            throws FormatException, IOException {
+        Objects.requireNonNull(map, "Null TIFF map");
+        Objects.requireNonNull(matrix, "Null matrix");
+        clearTime();
+        long t1 = debugTime();
+        updateMatrix(map, matrix, fromX, fromY);
+        long t2 = debugTime();
+        writeForward(map);
+        long t3 = debugTime();
+        encode(map);
+        long t4 = debugTime();
+        complete(map);
+        if (TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+            final boolean sourceIsInterleaved = !map.isPlanarSeparated() && !this.autoInterleaveSource;
+            final int sizeX = (int) matrix.dim(sourceIsInterleaved ? 1 : 0);
+            final int sizeY = (int) matrix.dim(sourceIsInterleaved ? 2 : 1);
+            // - already checked that they are actually "int"
+            logWriting(map, sizeX, sizeY, t1, t2, t3, t4);
         }
     }
 
@@ -1687,6 +1684,31 @@ public class TiffWriter extends AbstractContextual implements Closeable {
             result = jpegOptions;
         }
         return result;
+    }
+
+    private void logWriting(TiffMap map, int sizeX, int sizeY, long t1, long t2, long t3, long t4) {
+        long t5 = debugTime();
+        long sizeOf = map.totalSizeInBytes();
+        LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
+                "%s wrote %dx%dx%d samples (%.3f MB) in %.3f ms = " +
+                        "%.3f conversion/copying data + %.3f writing IFD " +
+                        "+ %.3f/%.3f encoding/writing " +
+                        "(%.3f prepare + %.3f customize + %.3f encode " +
+                        " (= %.3f main + %.3f bridge + %.3f additional) " +
+                        "+ %.3f write), %.3f MB/s",
+                getClass().getSimpleName(),
+                map.numberOfChannels(), sizeX, sizeY, sizeOf / 1048576.0,
+                (t5 - t1) * 1e-6,
+                (t2 - t1) * 1e-6, (t3 - t2) * 1e-6,
+                (t4 - t3) * 1e-6, (t5 - t4) * 1e-6,
+                timePreparingEncoding * 1e-6,
+                timeCustomizingEncoding * 1e-6,
+                timeEncoding * 1e-6,
+                timeEncodingMain * 1e-6,
+                timeEncodingBridge * 1e-6,
+                timeEncodingAdditional * 1e-6,
+                timeWriting * 1e-6,
+                sizeOf / 1048576.0 / ((t5 - t1) * 1e-9)));
     }
 
     private static void checkPhotometricInterpretation(

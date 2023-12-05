@@ -25,7 +25,13 @@
 package net.algart.matrices.tiff;
 
 import io.scif.FormatException;
-import io.scif.formats.tiff.*;
+import io.scif.formats.tiff.IFD;
+import io.scif.formats.tiff.PhotoInterp;
+import io.scif.formats.tiff.TiffCompression;
+import io.scif.formats.tiff.TiffRational;
+import net.algart.arrays.PArray;
+import net.algart.arrays.SimpleMemoryModel;
+import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import org.scijava.io.handle.BytesHandle;
@@ -90,7 +96,7 @@ public class TiffTools {
     private TiffTools() {
     }
 
-    public static TiffSampleType arrayToSampleType(Object javaArray, boolean signedIntegers) {
+    public static TiffSampleType javaArrayToSampleType(Object javaArray, boolean signedIntegers) {
         Objects.requireNonNull(javaArray, "Null Java array");
         Class<?> elementType = javaArray.getClass().getComponentType();
         if (elementType == null) {
@@ -100,7 +106,11 @@ public class TiffTools {
         return TiffSampleType.valueOf(elementType, signedIntegers);
     }
 
-    public static Object bytesToArray(byte[] bytes, TiffSampleType sampleType, boolean littleEndian) {
+    public static UpdatablePArray bytesToArray(byte[] bytes, TiffSampleType sampleType, boolean littleEndian) {
+        return (UpdatablePArray) SimpleMemoryModel.asUpdatableArray(bytesToJavaArray(bytes, sampleType, littleEndian));
+    }
+
+    public static Object bytesToJavaArray(byte[] bytes, TiffSampleType sampleType, boolean littleEndian) {
         Objects.requireNonNull(bytes, "Null bytes");
         Objects.requireNonNull(sampleType, "Null sampleType");
         switch (sampleType) {
@@ -163,9 +173,16 @@ public class TiffTools {
         return doubleValues;
     }
 
-    public static byte[] arrayToBytes(Object javaArray, boolean littleEndian) {
-        final TiffSampleType sampleType = arrayToSampleType(javaArray, false);
-        // - note: signed and unsigned values correspond to the same element types
+    public static byte[] arrayToBytes(PArray array, boolean littleEndian) {
+        Objects.requireNonNull(array, "Null array");
+        final Object javaArray = net.algart.arrays.Arrays.toJavaArray(array);
+        return javaArrayToBytes(javaArray, littleEndian);
+    }
+
+    public static byte[] javaArrayToBytes(Object javaArray, boolean littleEndian) {
+        final TiffSampleType sampleType = javaArrayToSampleType(javaArray, false);
+        // - note: signed and unsigned values correspond to the same element types,
+        // so, the "signedIntegers" argument is not important
         switch (sampleType) {
             case INT8, UINT8 -> {
                 return (byte[]) javaArray;

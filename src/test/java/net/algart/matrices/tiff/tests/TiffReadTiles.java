@@ -26,6 +26,9 @@ package net.algart.matrices.tiff.tests;
 
 import io.scif.FormatException;
 import io.scif.formats.tiff.TiffCompression;
+import net.algart.arrays.Matrices;
+import net.algart.arrays.Matrix;
+import net.algart.arrays.PArray;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffTools;
 import net.algart.matrices.tiff.tiles.TiffMap;
@@ -72,11 +75,11 @@ public class TiffReadTiles {
             if (h < 0) {
                 h = Math.min(map.dimY(), MAX_IMAGE_DIM);
             }
-            Object array = null;
+            Matrix<PArray> matrix = null;
             for (int test = 1; test <= numberOfTests; test++) {
                 System.out.printf("Reading image from %s...%n", tiffFile);
                 long t1 = System.nanoTime();
-                array = reader.readImage(map, x, y, w, h, true);
+                matrix = reader.readMatrix(map, x, y, w, h, true);
                 long t2 = System.nanoTime();
                 System.out.printf(Locale.US, "Test #%d: %dx%d loaded in %.3f ms%n",
                         test, w, h, (t2 - t1) * 1e-6);
@@ -85,17 +88,14 @@ public class TiffReadTiles {
 
             final Path imageFile = resultFolder.resolve("result.bmp");
             System.out.printf("Saving result image into %s...%n", imageFile);
-            TiffReaderTest.writeImageFile(imageFile, array, w, h, map.numberOfChannels());
-            for (TiffTile tile : map.tiles()) {
-                if (!tile.isEmpty()) {
-                    final Path tileFile = tilePath(tile, resultFolder);
-                    System.out.printf("Saving tile %s in %s...%n", tile, tileFile);
-                    Object tileArray = TiffTools.bytesToArray(
-                            tile.getDecodedData(), tile.sampleType(), reader.isLittleEndian());
+            TiffReaderTest.writeImageFile(imageFile, matrix);
+            for (TiffTile t : map.tiles()) {
+                if (!t.isEmpty()) {
+                    final Path tileFile = tilePath(t, resultFolder);
+                    System.out.printf("Saving tile %s in %s...%n", t, tileFile);
+                    PArray a = TiffTools.bytesToArray(t.getDecodedData(), t.sampleType(), reader.isLittleEndian());
                     TiffReaderTest.writeImageFile(
-                            tileFile, tileArray,
-                            tile.getSizeX(), tile.getSizeY(), tile.samplesPerPixel()
-                    );
+                            tileFile, Matrices.matrix(a, t.getSizeX(), t.getSizeY(), t.samplesPerPixel()));
                 }
             }
         }
