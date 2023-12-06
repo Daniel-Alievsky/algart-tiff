@@ -240,7 +240,7 @@ public class TiffParser extends TiffReader {
      * Use {@link #exifIFDs()} instead.
      */
     @Deprecated
-    public IFDList getExifIFDs() throws FormatException, IOException {
+    public IFDList getExifIFDs() throws IOException, FormatException {
         final IFDList ifds = getIFDs();
         final IFDList exif = new IFDList();
         for (final IFD ifd : ifds) {
@@ -659,7 +659,7 @@ public class TiffParser extends TiffReader {
 
     @Deprecated
     public byte[] getTile(final IFD ifd, byte[] buf, int row, final int col)
-            throws FormatException, IOException {
+            throws IOException, FormatException {
         TiffMap map = new TiffMap(toTiffIFD(ifd));
         int planeIndex = 0;
         if (map.isPlanarSeparated()) {
@@ -681,7 +681,7 @@ public class TiffParser extends TiffReader {
 
     @Deprecated
     public byte[] getSamples(final IFD ifd, final byte[] buf)
-            throws FormatException, IOException {
+            throws IOException, FormatException {
         final long width = ifd.getImageWidth();
         final long length = ifd.getImageLength();
         return getSamples(ifd, buf, 0, 0, width, length);
@@ -714,7 +714,7 @@ public class TiffParser extends TiffReader {
     @Deprecated
     public byte[] getSamples(final IFD ifd, final byte[] buf, final int x,
                              final int y, final long width, final long height, final int overlapX,
-                             final int overlapY) throws FormatException, IOException {
+                             final int overlapY) throws IOException, FormatException {
         final DataHandle<Location> in = getStream();
         // get internal non-IFD entries
         in.setLittleEndian(ifd.isLittleEndian());

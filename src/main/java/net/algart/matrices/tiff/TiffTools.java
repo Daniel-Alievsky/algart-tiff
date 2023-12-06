@@ -29,9 +29,7 @@ import io.scif.formats.tiff.IFD;
 import io.scif.formats.tiff.PhotoInterp;
 import io.scif.formats.tiff.TiffCompression;
 import io.scif.formats.tiff.TiffRational;
-import net.algart.arrays.PArray;
-import net.algart.arrays.SimpleMemoryModel;
-import net.algart.arrays.UpdatablePArray;
+import net.algart.arrays.*;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import org.scijava.io.handle.BytesHandle;
@@ -175,7 +173,10 @@ public class TiffTools {
 
     public static byte[] arrayToBytes(PArray array, boolean littleEndian) {
         Objects.requireNonNull(array, "Null array");
-        final Object javaArray = net.algart.arrays.Arrays.toJavaArray(array);
+        final Object javaArray =
+                array instanceof DirectAccessible da && da.hasJavaArray() && da.javaArrayOffset() == 0 ?
+                        da.javaArray() :
+                        net.algart.arrays.Arrays.toJavaArray(array);
         return javaArrayToBytes(javaArray, littleEndian);
     }
 
@@ -223,11 +224,31 @@ public class TiffTools {
         throw new AssertionError("(should be already checked in arrayToSampleType)");
     }
 
+    public static Matrix<UpdatablePArray> asMatrix(
+            Object javaArray,
+            int sizeX,
+            int sizeY,
+            int numberOfChannels,
+            boolean interleavedSamples) {
+        javaArrayToSampleType(javaArray, false);
+        // - checks that javaArray is a array of supported primitive types
+        if (sizeX < 0 || sizeY < 0) {
+            throw new IllegalArgumentException("Negative sizeX = " + sizeX + " or sizeY = " + sizeY);
+        }
+        if (numberOfChannels <= 0) {
+            throw new IllegalArgumentException("Zero or negative numberOfChannels = " + numberOfChannels);
+        }
+        final UpdatablePArray array = (UpdatablePArray) SimpleMemoryModel.asUpdatableArray(javaArray);
+        return interleavedSamples ?
+                Matrices.matrix(array, numberOfChannels, sizeX, sizeY) :
+                Matrices.matrix(array, sizeX, sizeY, numberOfChannels);
+    }
+
     public static byte[] toInterleavedSamples(
-            final byte[] bytes,
-            final int numberOfChannels,
-            final int bytesPerSample,
-            final int numberOfPixels) {
+            byte[] bytes,
+            int numberOfChannels,
+            int bytesPerSample,
+            int numberOfPixels) {
         Objects.requireNonNull(bytes, "Null bytes");
         if (numberOfChannels <= 0) {
             throw new IllegalArgumentException("Zero or negative numberOfChannels = " + numberOfChannels);
@@ -277,10 +298,10 @@ public class TiffTools {
     }
 
     public static byte[] toSeparatedSamples(
-            final byte[] bytes,
-            final int numberOfChannels,
-            final int bytesPerSample,
-            final int numberOfPixels) {
+            byte[] bytes,
+            int numberOfChannels,
+            int bytesPerSample,
+            int numberOfPixels) {
         Objects.requireNonNull(bytes, "Null bytes");
         if (numberOfChannels <= 0) {
             throw new IllegalArgumentException("Zero or negative numberOfChannels = " + numberOfChannels);

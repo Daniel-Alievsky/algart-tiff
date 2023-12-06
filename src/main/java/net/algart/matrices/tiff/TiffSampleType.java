@@ -93,8 +93,7 @@ public enum TiffSampleType {
         } else if (elementType == double.class) {
             return DOUBLE;
         } else {
-            throw new IllegalArgumentException("Element type " + elementType +
-                    " cannot be converted to TIFF sample type");
+            throw new IllegalArgumentException("Element type " + elementType + " is not a supported TIFF sample type");
         }
     }
 }

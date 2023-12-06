@@ -29,6 +29,7 @@ import io.scif.SCIFIO;
 import io.scif.formats.tiff.FillOrder;
 import io.scif.formats.tiff.IFD;
 import io.scif.formats.tiff.TiffCompression;
+import net.algart.arrays.*;
 import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.tiles.TiffMap;
@@ -283,11 +284,15 @@ public class TiffWriterTest {
                     }
 
                     Object samplesArray = makeSamples(ifdIndex, map.numberOfChannels(), map.sampleType(), w, h);
-                    if (interleaveOutside && map.bytesPerSample() == 1) {
+                    final boolean interleaved = interleaveOutside && map.bytesPerSample() == 1;
+                    if (interleaved) {
                         samplesArray = TiffTools.toInterleavedSamples(
                                 (byte[]) samplesArray, map.numberOfChannels(), 1, w * h);
                     }
-                    writer.writeJavaArray(map, samplesArray, x, y, w, h);
+                    Matrix<UpdatablePArray> matrix = TiffTools.asMatrix(
+                            samplesArray, w, h, map.numberOfChannels(), interleaved);
+                    writer.writeMatrix(map, matrix);
+//                    writer.writeJavaArray(map, samplesArray, x, y, w, h); // - alternate way to write this matrix
                     if (thoroughTesting) {
                         long length = writer.getStream().length();
                         // writer.writeJavaArray(map, samplesArray, x, y, w, h);

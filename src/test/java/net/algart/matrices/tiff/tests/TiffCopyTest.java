@@ -128,7 +128,7 @@ public class TiffCopyTest {
     }
 
     static void copyImage(TiffIFD readIFD, TiffIFD writeIFD, TiffReader reader, TiffWriter writer)
-            throws FormatException, IOException {
+            throws IOException, FormatException {
         final TiffMap readMap = reader.newMap(readIFD);
         final TiffMap writeMap = writer.newMap(writeIFD, false);
         writer.writeForward(writeMap);

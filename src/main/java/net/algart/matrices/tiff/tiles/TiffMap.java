@@ -286,7 +286,13 @@ public final class TiffMap {
         setDimensions(dimX, dimY, true);
     }
 
-    public void checkDimensions() {
+    public void checkZeroDimensions() {
+        if (dimX == 0 || dimY == 0) {
+            throw new IllegalStateException("Zero map dimensions " + dimX + "x" + dimY + " are not allowed here");
+        }
+    }
+
+    public void checkTooSmallDimensionsForGivenGrid() {
         final int tileCountX = (int) ((long) dimX + (long) tileSizeX - 1) / tileSizeX;
         final int tileCountY = (int) ((long) dimY + (long) tileSizeY - 1) / tileSizeY;
         assert tileCountX <= this.gridTileCountX && tileCountY <= this.gridTileCountY :

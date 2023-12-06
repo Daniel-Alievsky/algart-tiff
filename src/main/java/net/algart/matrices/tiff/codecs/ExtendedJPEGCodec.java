@@ -90,7 +90,7 @@ public class ExtendedJPEGCodec extends AbstractCodec implements CodecTiming {
     }
 
     @Override
-    public byte[] decompress(final DataHandle<Location> in, CodecOptions options) throws FormatException, IOException {
+    public byte[] decompress(final DataHandle<Location> in, CodecOptions options) throws IOException, FormatException {
         final long offset = in.offset();
         long t1 = timing ? System.nanoTime() : 0;
         JPEGTools.ImageInformation info;

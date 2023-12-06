@@ -252,7 +252,7 @@ public class TiffReadWriteTest {
             final int pixelType, int bandCount,
             final int lefTopX, final int leftTopY,
             final int width, final int height,
-            final boolean lastImageInTiff) throws FormatException, IOException {
+            final boolean lastImageInTiff) throws IOException, FormatException {
         ifd.remove(IFD.STRIP_OFFSETS);
         ifd.remove(IFD.STRIP_BYTE_COUNTS);
         ifd.remove(IFD.TILE_OFFSETS);

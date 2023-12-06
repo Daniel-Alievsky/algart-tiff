@@ -147,7 +147,7 @@ public class TiffSaver extends TiffWriter {
      * {@link TiffIFD#setNextIFDOffset(long)} and {@link TiffIFD#setFileOffsetForWriting(long)}.
      */
     @Deprecated
-    public void writeIFD(final IFD ifd, final long nextOffset) throws FormatException, IOException {
+    public void writeIFD(final IFD ifd, final long nextOffset) throws IOException, FormatException {
         TiffIFD extended = net.algart.matrices.tiff.compatibility.TiffParser.toTiffIFD(ifd);
         extended.setFileOffsetForWriting(getStream().offset());
         extended.setNextIFDOffset(nextOffset);
@@ -301,7 +301,7 @@ public class TiffSaver extends TiffWriter {
      */
     @Deprecated
     public void overwriteLastIFDOffset(final DataHandle<Location> handle)
-            throws FormatException, IOException {
+            throws IOException, FormatException {
         if (handle == null) throw new FormatException("Output cannot be null");
         final io.scif.formats.tiff.TiffParser parser = new io.scif.formats.tiff.TiffParser(getContext(), handle);
         parser.getIFDOffsets();
@@ -321,7 +321,7 @@ public class TiffSaver extends TiffWriter {
      */
     @Deprecated
     public void overwriteIFDValue(final DataHandle<Location> raf, final int ifd,
-                                  final int tag, final Object value) throws FormatException, IOException {
+                                  final int tag, final Object value) throws IOException, FormatException {
         if (raf == null) throw new FormatException("Output cannot be null");
 //        log.debug("overwriteIFDValue (ifd=" + ifd + "; tag=" + tag + "; value=" +
 //                value + ")");
@@ -439,7 +439,7 @@ public class TiffSaver extends TiffWriter {
      */
     @Deprecated
     public void overwriteComment(final DataHandle<Location> in,
-                                 final Object value) throws FormatException, IOException {
+                                 final Object value) throws IOException, FormatException {
         overwriteIFDValue(in, 0, IFD.IMAGE_DESCRIPTION, value);
     }
 
@@ -448,7 +448,7 @@ public class TiffSaver extends TiffWriter {
      *
      */
     public void writeImage(final byte[][] buf, final IFDList ifds,
-                           final int pixelType) throws FormatException, IOException {
+                           final int pixelType) throws IOException, FormatException {
         if (ifds == null) {
             throw new FormatException("IFD cannot be null");
         }
@@ -466,7 +466,7 @@ public class TiffSaver extends TiffWriter {
      *
      */
     public void writeImage(final byte[] buf, final IFD ifd, final int no,
-                           final int pixelType, final boolean last) throws FormatException, IOException {
+                           final int pixelType, final boolean last) throws IOException, FormatException {
         if (ifd == null) {
             throw new FormatException("IFD cannot be null");
         }
@@ -493,7 +493,7 @@ public class TiffSaver extends TiffWriter {
      */
     public void writeImage(final byte[] buf, final IFD ifd, final long planeIndex,
                            final int pixelType, final int x, final int y, final int w, final int h,
-                           final boolean last) throws FormatException, IOException {
+                           final boolean last) throws IOException, FormatException {
         writeImage(buf, ifd, planeIndex, pixelType, x, y, w, h, last, null, false);
     }
 
@@ -501,7 +501,7 @@ public class TiffSaver extends TiffWriter {
     public void writeImage(final byte[] buf, final IFD ifd, final long planeIndex,
                            final int pixelType, final int x, final int y, final int w, final int h,
                            final boolean last, Integer nChannels, final boolean copyDirectly)
-            throws FormatException, IOException {
+            throws IOException, FormatException {
         {
             log.debug("Attempting to write image.");
             // b/c method is public should check parameters again
@@ -621,7 +621,7 @@ public class TiffSaver extends TiffWriter {
 
     private void writeImageIFD(IFD ifd, final long planeIndex,
                                final byte[][] strips, final int nChannels, final boolean last, final int x,
-                               final int y) throws FormatException, IOException {
+                               final int y) throws IOException, FormatException {
         DataHandle<Location> out = getStream();
         log.debug("Attempting to write image IFD.");
         final int tilesPerRow = (int) ifd.getTilesPerRow();

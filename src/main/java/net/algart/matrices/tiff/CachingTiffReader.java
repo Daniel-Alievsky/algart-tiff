@@ -82,7 +82,7 @@ public class CachingTiffReader extends TiffReader {
     }
 
     @Override
-    public TiffTile readTile(TiffTileIndex tileIndex) throws FormatException, IOException {
+    public TiffTile readTile(TiffTileIndex tileIndex) throws IOException, FormatException {
         if (maxCachingMemory == 0) {
             return getTileWithoutCache(tileIndex);
         }
@@ -90,7 +90,7 @@ public class CachingTiffReader extends TiffReader {
     }
 
 
-    private TiffTile getTileWithoutCache(TiffTileIndex tileIndex) throws FormatException, IOException {
+    private TiffTile getTileWithoutCache(TiffTileIndex tileIndex) throws IOException, FormatException {
         return super.readTile(tileIndex);
     }
 
@@ -128,7 +128,7 @@ public class CachingTiffReader extends TiffReader {
             this.tileIndex = Objects.requireNonNull(tileIndex, "Null tileIndex");
         }
 
-        TiffTile readIfNecessary() throws FormatException, IOException {
+        TiffTile readIfNecessary() throws IOException, FormatException {
             synchronized (onlyThisTileLock) {
                 final var cachedData = cached();
                 if (cachedData != null) {

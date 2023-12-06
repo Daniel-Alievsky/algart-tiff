@@ -612,7 +612,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
     /**
      * Returns EXIF IFDs.
      */
-    public List<TiffIFD> exifIFDs() throws FormatException, IOException {
+    public List<TiffIFD> exifIFDs() throws IOException, FormatException {
         final List<TiffIFD> ifds = allIFDs();
         final List<TiffIFD> result = new ArrayList<>();
         for (final TiffIFD ifd : ifds) {
@@ -806,7 +806,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
      * @param tileIndex position of the file
      * @return loaded tile.
      */
-    public TiffTile readTile(TiffTileIndex tileIndex) throws FormatException, IOException {
+    public TiffTile readTile(TiffTileIndex tileIndex) throws IOException, FormatException {
         TiffTile tile = readEncodedTile(tileIndex);
         if (tile.isEmpty()) {
             return tile;
@@ -815,7 +815,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
         return tile;
     }
 
-    public TiffTile readEncodedTile(TiffTileIndex tileIndex) throws FormatException, IOException {
+    public TiffTile readEncodedTile(TiffTileIndex tileIndex) throws IOException, FormatException {
         Objects.requireNonNull(tileIndex, "Null tileIndex");
         long t1 = debugTime();
         final TiffIFD ifd = tileIndex.ifd();
@@ -1114,11 +1114,11 @@ public class TiffReader extends AbstractContextual implements Closeable {
         // - building grid is useful to perform loops on all tiles
     }
 
-    public byte[] readSamples(TiffMap map) throws FormatException, IOException {
+    public byte[] readSamples(TiffMap map) throws IOException, FormatException {
         return readSamples(map, false);
     }
 
-    public byte[] readSamples(TiffMap map, boolean storeTilesInMap) throws FormatException, IOException {
+    public byte[] readSamples(TiffMap map, boolean storeTilesInMap) throws IOException, FormatException {
         return readSamples(map, 0, 0, map.dimX(), map.dimY(), storeTilesInMap);
     }
 
@@ -1135,7 +1135,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
     }
 
     public byte[] readSamples(TiffMap map, int fromX, int fromY, int sizeX, int sizeY, boolean storeTilesInMap)
-            throws FormatException, IOException {
+            throws IOException, FormatException {
         Objects.requireNonNull(map, "Null TIFF map");
         long t1 = debugTime();
         clearTiming();
@@ -1204,7 +1204,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
         return samples;
     }
 
-    public Object readJavaArray(TiffMap map) throws FormatException, IOException {
+    public Object readJavaArray(TiffMap map) throws IOException, FormatException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readJavaArray(map, 0, 0, map.dimX(), map.dimY());
     }
@@ -1242,7 +1242,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
         return samplesArray;
     }
 
-    public Matrix<PArray> readMatrix(TiffMap map) throws FormatException, IOException {
+    public Matrix<PArray> readMatrix(TiffMap map) throws IOException, FormatException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readMatrix(map, 0, 0, map.dimX(), map.dimY());
     }
@@ -1391,7 +1391,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
             int sizeX,
             int sizeY,
             boolean storeTilesInMap)
-            throws FormatException, IOException {
+            throws IOException, FormatException {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(resultSamples, "Null result samples");
         assert sizeX >= 0 && sizeY >= 0;
