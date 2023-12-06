@@ -45,7 +45,7 @@ public class TiffWriteSimpleTest {
         if (args.length < 1) {
             System.out.println("Usage:");
             System.out.println("    " + TiffWriteSimpleTest.class.getName() +
-                    "target.tiff");
+                    " target.tiff");
             return;
         }
         final Path targetFile = Paths.get(args[0]);
@@ -78,7 +78,7 @@ public class TiffWriteSimpleTest {
             if (samples instanceof byte[] bytes) {
                 Arrays.fill(bytes, (byte) 70);
             }
-            writer.updateJavaArray(map, samples);
+            writer.updateJavaArray(map, samples, 0, 0, map.dimX(), map.dimY());
             // writer.writeForward(map); // - uncomment to write IFD BEFORE image
             writer.complete(map);
             // writer.writeSamples(map, samples); // - equivalent to previous 3 methods

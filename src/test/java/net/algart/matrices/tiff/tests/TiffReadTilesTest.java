@@ -41,14 +41,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
 
-public class TiffReadTiles {
+public class TiffReadTilesTest {
     private static final int MAX_IMAGE_DIM = 8000;
 
     public static void main(String[] args) throws IOException, FormatException {
         int startArgIndex = 0;
         if (args.length < startArgIndex + 3) {
             System.out.println("Usage:");
-            System.out.println("    " + TiffReadTiles.class.getName() +
+            System.out.println("    " + TiffReadTilesTest.class.getName() +
                     " some_tiff_file result_folder ifdIndex " +
                     "[x y width height [number_of_tests]");
             return;
@@ -75,7 +75,7 @@ public class TiffReadTiles {
             if (h < 0) {
                 h = Math.min(map.dimY(), MAX_IMAGE_DIM);
             }
-            Matrix<PArray> matrix = null;
+            Matrix<? extends PArray> matrix = null;
             for (int test = 1; test <= numberOfTests; test++) {
                 System.out.printf("Reading image from %s...%n", tiffFile);
                 long t1 = System.nanoTime();

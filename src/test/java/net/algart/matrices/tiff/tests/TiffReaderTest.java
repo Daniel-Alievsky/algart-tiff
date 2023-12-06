@@ -144,7 +144,7 @@ public class TiffReaderTest {
                 }
                 final int bandCount = map.numberOfChannels();
 
-                Matrix<PArray> matrix = null;
+                Matrix<? extends PArray> matrix = null;
                 for (int test = 1; test <= numberOfTests; test++) {
                     if (test == 1 && repeat == 1) {
                         System.out.printf("Reading data %dx%dx%d from %s%n",
@@ -167,11 +167,12 @@ public class TiffReaderTest {
         }
     }
 
-    static void writeImageFile(Path file, Matrix<PArray> matrix) throws IOException {
+    static void writeImageFile(Path file, Matrix<? extends PArray> matrix) throws IOException {
         writeImageFile(file, matrix, false);
     }
 
-    private static void writeImageFile(Path file, Matrix<PArray> matrix, boolean interleaved) throws IOException {
+    private static void writeImageFile(Path file, Matrix<? extends PArray> matrix, boolean interleaved)
+            throws IOException {
         List<Matrix<? extends PArray>> image = interleaved ?
                 interleavedToImage(matrix) :
                 separatedToImage(matrix);
@@ -180,7 +181,7 @@ public class TiffReaderTest {
         }
     }
 
-    private static List<Matrix<? extends PArray>> separatedToImage(Matrix<PArray> matrix) {
+    private static List<Matrix<? extends PArray>> separatedToImage(Matrix<? extends PArray> matrix) {
         if (matrix.size() == 0) {
             return null;
             // - provided for testing only (BufferedImage cannot have zero sizes)
@@ -193,7 +194,7 @@ public class TiffReaderTest {
         return channels;
     }
 
-    private static List<Matrix<? extends PArray>> interleavedToImage(Matrix<PArray> matrix) {
+    private static List<Matrix<? extends PArray>> interleavedToImage(Matrix<? extends PArray> matrix) {
         if (matrix.size() == 0) {
             return null;
             // - provided for testing only (BufferedImage cannot have zero sizes)
@@ -201,9 +202,9 @@ public class TiffReaderTest {
         return ImageConversions.unpack2DBandsFromSequentialSamples(null, intsToBytes(matrix));
     }
 
-    private static Matrix<PArray> intsToBytes(Matrix<PArray> matrix) {
+    private static Matrix<? extends PArray> intsToBytes(Matrix<? extends PArray> matrix) {
         if (matrix.elementType() == int.class) {
-            // - standard method SMat.toBufferedImage uses AlgART interpretation: 2^31 is white;
+            // - standard method ExternalAlgorithmCaller.writeImage uses AlgART interpretation: 2^31 is white;
             // it is incorrect for TIFF files
             final int[] ints = new int[(int) matrix.size()];
             matrix.array().getData(0, ints);

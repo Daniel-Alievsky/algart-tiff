@@ -1242,23 +1242,26 @@ public class TiffReader extends AbstractContextual implements Closeable {
         return samplesArray;
     }
 
-    public Matrix<PArray> readMatrix(TiffMap map) throws IOException, FormatException {
+    public Matrix<UpdatablePArray> readMatrix(TiffMap map) throws IOException, FormatException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readMatrix(map, 0, 0, map.dimX(), map.dimY());
     }
 
-    public Matrix<PArray> readMatrix(TiffMap map, int fromX, int fromY, int sizeX, int sizeY)
+    public Matrix<UpdatablePArray> readMatrix(TiffMap map, int fromX, int fromY, int sizeX, int sizeY)
             throws IOException, FormatException {
         return readMatrix(map, fromX, fromY, sizeX, sizeY, false);
     }
 
-    public Matrix<PArray> readMatrix(TiffMap map, int fromX, int fromY, int sizeX, int sizeY, boolean storeTilesInMap)
+    public Matrix<UpdatablePArray> readMatrix(
+            TiffMap map,
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY,
+            boolean storeTilesInMap)
             throws IOException, FormatException {
         final Object samplesArray = readJavaArray(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
-        final UpdatablePArray updatableArray = (UpdatablePArray) SimpleMemoryModel.asUpdatableArray(samplesArray);
-        return interleaveResults ?
-                Matrices.matrix(updatableArray, map.numberOfChannels(), sizeX, sizeY) :
-                Matrices.matrix(updatableArray, sizeX, sizeY, map.numberOfChannels());
+        return TiffTools.asMatrix(samplesArray, sizeX, sizeY, map.numberOfChannels(), interleaveResults);
     }
 
     @Override

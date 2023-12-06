@@ -629,11 +629,6 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         timeWriting += t2 - t1;
     }
 
-    public void updateSamples(TiffMap map, byte[] samples) {
-        Objects.requireNonNull(map, "Null TIFF map");
-        updateJavaArray(map, samples, 0, 0, map.dimX(), map.dimY());
-    }
-
     public void updateSamples(TiffMap map, byte[] samples, long fromX, long fromY, long sizeX, long sizeY) {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(samples, "Null samples");
@@ -759,11 +754,6 @@ public class TiffWriter extends AbstractContextual implements Closeable {
                 }
             }
         }
-    }
-
-    public void updateJavaArray(TiffMap map, Object samplesArray) {
-        Objects.requireNonNull(map, "Null TIFF map");
-        updateJavaArray(map, samplesArray, 0, 0, map.dimX(), map.dimY());
     }
 
     public void updateJavaArray(TiffMap map, Object samplesArray, int fromX, int fromY, int sizeX, int sizeY) {
@@ -1120,7 +1110,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
     public void complete(final TiffMap map) throws IOException, FormatException {
         Objects.requireNonNull(map, "Null TIFF map");
         final boolean resizable = map.isResizable();
-        map.checkTooSmallDimensionsForGivenGrid();
+        map.checkTooSmallDimensionsForCurrentGrid();
 
         encode(map);
         // - encode tiles, which are not encoded yet
