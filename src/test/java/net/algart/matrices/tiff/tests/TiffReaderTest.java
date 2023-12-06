@@ -190,6 +190,8 @@ public class TiffReaderTest {
         List<Matrix<? extends PArray>> channels = new ArrayList<>();
         for (long k = 0; k < matrix.dim(2); k++) {
             channels.add(matrix.subMatr(0, 0, k, matrix.dimX(), matrix.dimY(), 1));
+            // - not absolutely correct (every channel will be 3-dimensional),
+            // but works well for ExternalAlgorithmCaller.writeImage
         }
         return channels;
     }
