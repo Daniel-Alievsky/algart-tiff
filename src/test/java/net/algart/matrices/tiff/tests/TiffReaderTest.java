@@ -189,9 +189,9 @@ public class TiffReaderTest {
         matrix = intsToBytes(matrix);
         List<Matrix<? extends PArray>> channels = new ArrayList<>();
         for (long k = 0; k < matrix.dim(2); k++) {
-            channels.add(matrix.subMatr(0, 0, k, matrix.dimX(), matrix.dimY(), 1));
-            // - not absolutely correct (every channel will be 3-dimensional),
-            // but works well for ExternalAlgorithmCaller.writeImage
+            Matrix<? extends PArray> subMatrix = matrix.subMatr(0, 0, k, matrix.dimX(), matrix.dimY(), 1);
+            Matrix<? extends PArray> reduced = Matrices.matrix(subMatrix.array(), matrix.dimX(), matrix.dimY());
+            channels.add(reduced);
         }
         return channels;
     }
