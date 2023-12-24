@@ -629,22 +629,23 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         timeWriting += t2 - t1;
     }
 
-    public void updateSamples(TiffMap map, byte[] samples, long fromX, long fromY, long sizeX, long sizeY) {
+    public List<TiffTile> updateSamples(TiffMap map, byte[] samples, long fromX, long fromY, long sizeX, long sizeY) {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(samples, "Null samples");
         TiffTools.checkRequestedArea(fromX, fromY, sizeX, sizeY);
         assert fromX == (int) fromX && fromY == (int) fromY && sizeX == (int) sizeX && sizeY == (int) sizeY;
-        updateSamples(map, samples, (int) fromX, (int) fromY, (int) sizeX, (int) sizeY);
+        return updateSamples(map, samples, (int) fromX, (int) fromY, (int) sizeX, (int) sizeY);
     }
 
-    public void updateSamples(TiffMap map, byte[] samples, int fromX, int fromY, int sizeX, int sizeY) {
+    public List<TiffTile> updateSamples(TiffMap map, byte[] samples, int fromX, int fromY, int sizeX, int sizeY) {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(samples, "Null samples");
         TiffTools.checkRequestedArea(fromX, fromY, sizeX, sizeY);
         TiffTools.checkRequestedAreaInArray(samples, sizeX, sizeY, map.totalBytesPerPixel());
+        List<TiffTile> updatedTiles = new ArrayList<>();
         if (sizeX == 0 || sizeY == 0) {
             // - if no pixels are updated, no need to expand the map and to check correct expansion
-            return;
+            return updatedTiles;
         }
         final int toX = fromX + sizeX;
         final int toY = fromY + sizeY;
@@ -668,7 +669,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         final int maxYIndex = Math.min(map.gridTileCountY() - 1, TiffReader.divFloor(toY - 1, mapTileSizeY));
         if (minYIndex > maxYIndex || minXIndex > maxXIndex) {
             // - possible when fromX < 0 or fromY < 0
-            return;
+            return updatedTiles;
         }
 
         final int tileChunkedRowSizeInBytes = mapTileSizeX * bytesPerPixel;
@@ -751,12 +752,20 @@ public class TiffWriter extends AbstractContextual implements Closeable {
                             }
                         }
                     }
+                    updatedTiles.add(tile);
                 }
             }
         }
+        return updatedTiles;
     }
 
-    public void updateJavaArray(TiffMap map, Object samplesArray, int fromX, int fromY, int sizeX, int sizeY) {
+    public List<TiffTile> updateJavaArray(
+            TiffMap map,
+            Object samplesArray,
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY) {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(samplesArray, "Null samplesArray");
         final Class<?> elementType = samplesArray.getClass().getComponentType();
@@ -769,10 +778,10 @@ public class TiffWriter extends AbstractContextual implements Closeable {
                     ", but the specified TIFF map stores " + map.elementType());
         }
         final byte[] samples = TiffTools.javaArrayToBytes(samplesArray, isLittleEndian());
-        updateSamples(map, samples, fromX, fromY, sizeX, sizeY);
+        return updateSamples(map, samples, fromX, fromY, sizeX, sizeY);
     }
 
-    public void updateMatrix(TiffMap map, Matrix<? extends PArray> matrix, int fromX, int fromY) {
+    public List<TiffTile> updateMatrix(TiffMap map, Matrix<? extends PArray> matrix, int fromX, int fromY) {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(matrix, "Null matrix");
         final boolean sourceInterleaved = isSourceProbablyInterleaved(map);
@@ -791,7 +800,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         final long sizeX = matrix.dim(sourceInterleaved ? 1 : 0);
         final long sizeY = matrix.dim(sourceInterleaved ? 2 : 1);
         final byte[] samples = TiffTools.arrayToBytes(matrix.array(), isLittleEndian());
-        updateSamples(map, samples, fromX, fromY, sizeX, sizeY);
+        return updateSamples(map, samples, fromX, fromY, sizeX, sizeY);
     }
 
     public void encode(TiffTile tile) throws FormatException {

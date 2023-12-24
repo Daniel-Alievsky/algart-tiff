@@ -30,16 +30,19 @@ import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffPhotometricInterpretation;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tiles.TiffMap;
+import net.algart.matrices.tiff.tiles.TiffTile;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class TiffWriteSimpleTest {
-    private final static int IMAGE_WIDTH = 100;
-    private final static int IMAGE_HEIGHT = 100;
+    private final static int IMAGE_WIDTH = 1000;
+    private final static int IMAGE_HEIGHT = 1000;
 
     public static void main(String[] args) throws IOException, FormatException {
         if (args.length < 1) {
@@ -60,6 +63,7 @@ public class TiffWriteSimpleTest {
             final int[] bitsPerSample = {8};
             ifd.putImageDimensions(IMAGE_WIDTH, IMAGE_HEIGHT);
             ifd.putNumberOfChannels(bitsPerSample.length);
+            ifd.putTileSizes(256, 256);
             ifd.putCompression(TiffCompression.LZW);
             ifd.putPhotometricInterpretation(TiffPhotometricInterpretation.WHITE_IS_ZERO);
             ifd.put(TiffIFD.BITS_PER_SAMPLE, bitsPerSample);
@@ -78,7 +82,12 @@ public class TiffWriteSimpleTest {
             if (samples instanceof byte[] bytes) {
                 Arrays.fill(bytes, (byte) 70);
             }
-            writer.updateJavaArray(map, samples, 0, 0, map.dimX(), map.dimY());
+            final List<TiffTile> updated = writer.updateJavaArray(
+                    map, samples, 0, 0, map.dimX() / 2, map.dimY() / 2);
+            // - filling only 1/4 of map
+            System.out.printf("Updated:%n  %s%n", updated.stream().map(TiffTile::toString).collect(
+                    Collectors.joining("%n  ".formatted())));
+
             // writer.writeForward(map); // - uncomment to write IFD BEFORE image
             writer.complete(map);
             // writer.writeSamples(map, samples); // - equivalent to previous 3 methods
