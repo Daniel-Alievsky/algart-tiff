@@ -36,8 +36,8 @@ import io.scif.formats.tiff.TiffRational;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
 import net.algart.matrices.tiff.codecs.CodecTiming;
-import net.algart.matrices.tiff.codecs.ExtendedJPEGCodec;
-import net.algart.matrices.tiff.codecs.ExtendedJPEGCodecOptions;
+import net.algart.matrices.tiff.codecs.JPEGCodec;
+import net.algart.matrices.tiff.codecs.JPEGCodecOptions;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIO;
@@ -1703,8 +1703,8 @@ public class TiffWriter extends AbstractContextual implements Closeable {
 
     private CodecOptions buildWritingOptions(KnownCompression known, TiffTile tile, Codec customCodec) {
         CodecOptions result = known.writeOptions(tile, this.codecOptions);
-        if (customCodec instanceof ExtendedJPEGCodec) {
-            ExtendedJPEGCodecOptions jpegOptions = new ExtendedJPEGCodecOptions(result);
+        if (customCodec instanceof JPEGCodec) {
+            JPEGCodecOptions jpegOptions = new JPEGCodecOptions(result);
             jpegOptions.setQuality(jpegQuality);
             if (tile.ifd().optInt(TiffIFD.PHOTOMETRIC_INTERPRETATION, -1) ==
                     TiffPhotometricInterpretation.RGB.code()) {

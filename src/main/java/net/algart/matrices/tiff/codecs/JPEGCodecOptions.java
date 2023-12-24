@@ -29,7 +29,7 @@ import net.algart.matrices.tiff.TiffPhotometricInterpretation;
 
 import java.util.Objects;
 
-public class ExtendedJPEGCodecOptions extends CodecOptions {
+public class JPEGCodecOptions extends CodecOptions {
     /**
      * Value of TIFF tag PhotometricInterpretation (READ/WRITE).
      */
@@ -39,9 +39,9 @@ public class ExtendedJPEGCodecOptions extends CodecOptions {
      */
     private int[] yCbCrSubsampling = {2, 2};
 
-    public ExtendedJPEGCodecOptions(final CodecOptions options) {
+    public JPEGCodecOptions(final CodecOptions options) {
         super(options);
-        if (options instanceof ExtendedJPEGCodecOptions extended) {
+        if (options instanceof JPEGCodecOptions extended) {
             photometricInterpretation = extended.photometricInterpretation;
             yCbCrSubsampling = extended.yCbCrSubsampling == null ? null : extended.yCbCrSubsampling.clone();
         }
@@ -51,7 +51,7 @@ public class ExtendedJPEGCodecOptions extends CodecOptions {
         return photometricInterpretation;
     }
 
-    public ExtendedJPEGCodecOptions setPhotometricInterpretation(
+    public JPEGCodecOptions setPhotometricInterpretation(
             TiffPhotometricInterpretation photometricInterpretation) {
         this.photometricInterpretation = Objects.requireNonNull(photometricInterpretation,
                 "Null photometricInterpretation");
@@ -62,7 +62,7 @@ public class ExtendedJPEGCodecOptions extends CodecOptions {
         return yCbCrSubsampling.clone();
     }
 
-    public ExtendedJPEGCodecOptions setYCbCrSubsampling(int[] yCbCrSubsampling) {
+    public JPEGCodecOptions setYCbCrSubsampling(int[] yCbCrSubsampling) {
         this.yCbCrSubsampling = Objects.requireNonNull(yCbCrSubsampling, "Null yCbCrSubsampling").clone();
         return this;
     }
@@ -71,7 +71,7 @@ public class ExtendedJPEGCodecOptions extends CodecOptions {
         return quality;
     }
 
-    public ExtendedJPEGCodecOptions setQuality(double quality) {
+    public JPEGCodecOptions setQuality(double quality) {
         this.quality = quality;
         return this;
     }

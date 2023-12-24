@@ -26,7 +26,6 @@ package net.algart.matrices.tiff.codecs;
 
 import io.scif.FormatException;
 import io.scif.codec.CodecOptions;
-import io.scif.codec.JPEG2000Codec;
 import io.scif.codec.JPEG2000CodecOptions;
 import io.scif.gui.AWTImageTools;
 import io.scif.media.imageio.plugins.jpeg2000.J2KImageReadParam;
@@ -42,7 +41,7 @@ import java.io.InputStream;
 // This class needs to avoid the bug in SCIFIO: https://github.com/scifio/scifio/issues/495
 // This is a temporary solution, for decompression only:
 // compression will not work without setting private field jaiIIOService
-public class ExtendedJPEG2000Codec extends JPEG2000Codec {
+public class JPEG2000Codec extends io.scif.codec.JPEG2000Codec {
 
     // Almost exact copy of super.decompress
     // We do not override compress method, hoping for fixing that bug soon

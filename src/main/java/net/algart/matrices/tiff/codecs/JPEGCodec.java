@@ -40,7 +40,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
 
-public class ExtendedJPEGCodec extends AbstractCodec implements CodecTiming {
+public class JPEGCodec extends AbstractCodec implements CodecTiming {
     private static final boolean OPTIMIZE_SEPARATING_BGR = true;
 
     private long timeMain = 0;
@@ -73,7 +73,7 @@ public class ExtendedJPEGCodec extends AbstractCodec implements CodecTiming {
                 options.bitsPerSample / 8, false, options.littleEndian, options.signed);
 
         long t2 = timing ? System.nanoTime() : 0;
-        final TiffPhotometricInterpretation colorSpace = options instanceof ExtendedJPEGCodecOptions extended ?
+        final TiffPhotometricInterpretation colorSpace = options instanceof JPEGCodecOptions extended ?
                 extended.getPhotometricInterpretation() :
                 TiffPhotometricInterpretation.Y_CB_CR;
 
@@ -117,7 +117,7 @@ public class ExtendedJPEGCodec extends AbstractCodec implements CodecTiming {
         boolean completeDecoding = false;
         TiffPhotometricInterpretation declaredColorSpace = null;
         int[] declaredSubsampling = null;
-        if (options instanceof ExtendedJPEGCodecOptions extended) {
+        if (options instanceof JPEGCodecOptions extended) {
             declaredColorSpace = extended.getPhotometricInterpretation();
             declaredSubsampling = extended.getYCbCrSubsampling();
             completeDecoding = JPEGTools.completeDecodingYCbCrNecessary(info, declaredColorSpace, declaredSubsampling);

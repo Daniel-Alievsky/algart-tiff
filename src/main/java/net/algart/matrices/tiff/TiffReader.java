@@ -34,8 +34,8 @@ import io.scif.formats.tiff.TiffConstants;
 import io.scif.formats.tiff.TiffRational;
 import net.algart.arrays.*;
 import net.algart.matrices.tiff.codecs.CodecTiming;
-import net.algart.matrices.tiff.codecs.ExtendedJPEGCodec;
-import net.algart.matrices.tiff.codecs.ExtendedJPEGCodecOptions;
+import net.algart.matrices.tiff.codecs.JPEGCodec;
+import net.algart.matrices.tiff.codecs.JPEGCodecOptions;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIO;
@@ -1350,8 +1350,8 @@ public class TiffReader extends AbstractContextual implements Closeable {
 
     private CodecOptions buildReadingOptions(TiffTile tile, Codec customCodec) throws FormatException {
         TiffIFD ifd = tile.ifd();
-        CodecOptions codecOptions = customCodec instanceof ExtendedJPEGCodec ?
-                new ExtendedJPEGCodecOptions(this.codecOptions)
+        CodecOptions codecOptions = customCodec instanceof JPEGCodec ?
+                new JPEGCodecOptions(this.codecOptions)
                         .setPhotometricInterpretation(ifd.getPhotometricInterpretation())
                         .setYCbCrSubsampling(ifd.getYCbCrSubsampling()) :
                 new CodecOptions(this.codecOptions);
@@ -1374,7 +1374,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
             // - old-style unpackBytes does not "understand" already-separated tiles
         } else {
             codecOptions.interleaved =
-                    !(customCodec instanceof ExtendedJPEGCodec || ifd.getCompression() == TiffCompression.JPEG);
+                    !(customCodec instanceof JPEGCodec || ifd.getCompression() == TiffCompression.JPEG);
         }
         // - ExtendedJPEGCodec or standard codec JPEFCodec (it may be chosen below by scifio.codec(),
         // but we are sure that JPEG compression will be served by it even in future versions):

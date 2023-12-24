@@ -26,8 +26,8 @@ package net.algart.matrices.tiff;
 
 import io.scif.codec.*;
 import io.scif.formats.tiff.TiffCompression;
-import net.algart.matrices.tiff.codecs.ExtendedJPEG2000Codec;
-import net.algart.matrices.tiff.codecs.ExtendedJPEGCodec;
+import net.algart.matrices.tiff.codecs.JPEG2000Codec;
+import net.algart.matrices.tiff.codecs.JPEGCodec;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import org.scijava.Context;
 
@@ -49,17 +49,17 @@ enum KnownCompression {
             KnownCompression::writeOptionsStandard),
     LZW(TiffCompression.LZW, LZWCodec::new, null, KnownCompression::writeOptionsStandard),
     DEFLATE(TiffCompression.DEFLATE, ZlibCodec::new, null, KnownCompression::writeOptionsStandard),
-    JPEG(TiffCompression.JPEG, null, ExtendedJPEGCodec::new, KnownCompression::writeOptionsStandard),
+    JPEG(TiffCompression.JPEG, null, JPEGCodec::new, KnownCompression::writeOptionsStandard),
     // OLD_JPEG(TiffCompression.OLD_JPEG, null, ExtendedJPEGCodec::new, true),
     // - OLD_JPEG does not work: see https://github.com/scifio/scifio/issues/510
     PACK_BITS(TiffCompression.PACK_BITS, null, null, KnownCompression::writeOptionsStandard),
-    JPEG_2000(TiffCompression.JPEG_2000, null, ExtendedJPEG2000Codec::new,
+    JPEG_2000(TiffCompression.JPEG_2000, null, JPEG2000Codec::new,
             KnownCompression::writeJpeg200Options),
-    JPEG_2000_LOSSY(TiffCompression.JPEG_2000_LOSSY, null, ExtendedJPEG2000Codec::new,
+    JPEG_2000_LOSSY(TiffCompression.JPEG_2000_LOSSY, null, JPEG2000Codec::new,
             KnownCompression::writeJpeg200NotLossLessOptions),
-    ALT_JPEG_2000(TiffCompression.ALT_JPEG2000, null, ExtendedJPEG2000Codec::new,
+    ALT_JPEG_2000(TiffCompression.ALT_JPEG2000, null, JPEG2000Codec::new,
             KnownCompression::writeJpeg200Options),
-    OLYMPUS_JPEG2000(TiffCompression.OLYMPUS_JPEG2000, null, ExtendedJPEG2000Codec::new,
+    OLYMPUS_JPEG2000(TiffCompression.OLYMPUS_JPEG2000, null, JPEG2000Codec::new,
             KnownCompression::writeJpeg200Options),
     NIKON(TiffCompression.NIKON, null, null, KnownCompression::writeOptionsStandard),
     LURAWAVE(TiffCompression.LURAWAVE, null, null, KnownCompression::writeOptionsStandard);
