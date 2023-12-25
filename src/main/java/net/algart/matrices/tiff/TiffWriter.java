@@ -658,14 +658,14 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         final int samplesPerPixel = map.tileSamplesPerPixel();
         final int bytesPerPixel = map.tileBytesPerPixel();
 
-        final int minXIndex =  Math.max(0, TiffReader.divFloor(fromX, mapTileSizeX));
-        final int minYIndex =  Math.max(0, TiffReader.divFloor(fromY, mapTileSizeY));
+        final int minXIndex = Math.max(0, TiffReader.divFloor(fromX, mapTileSizeX));
+        final int minYIndex = Math.max(0, TiffReader.divFloor(fromY, mapTileSizeY));
         if (minXIndex >= map.gridTileCountX() || minYIndex >= map.gridTileCountY()) {
             throw new AssertionError("Map was not expanded/checked properly: minimal tile index (" +
                     minXIndex + "," + minYIndex + ") is out of tile grid 0<=x<" +
                     map.gridTileCountX() + ", 0<=y<" + map.gridTileCountY() + "; map: " + map);
         }
-        final int maxXIndex = Math.min(map.gridTileCountX() - 1,TiffReader.divFloor(toX - 1, mapTileSizeX));
+        final int maxXIndex = Math.min(map.gridTileCountX() - 1, TiffReader.divFloor(toX - 1, mapTileSizeX));
         final int maxYIndex = Math.min(map.gridTileCountY() - 1, TiffReader.divFloor(toY - 1, mapTileSizeY));
         if (minYIndex > maxYIndex || minXIndex > maxXIndex) {
             // - possible when fromX < 0 or fromY < 0
@@ -1203,7 +1203,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
      * this method always use the actual sizes of the passed matrix and, so, <i>does not require</i>
      * the map to have correct non-zero dimensions (a situation, possible for resizable maps).</p>
      *
-     * @param map TIFF map.
+     * @param map    TIFF map.
      * @param matrix matrix of pixels.
      * @throws IOException     in a case of any I/O errors.
      * @throws FormatException in a case of invalid TIFF IFD.

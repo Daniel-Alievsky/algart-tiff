@@ -40,7 +40,7 @@ import java.io.IOException;
  * Decompresses lossless JPEG images.
  *
  * Note: the only change in comparison with SCIFIO codec is removing usage of the Context
- * (direct "new HuffmanCodec()" call).
+ * (direct "new HuffmanCodec()" call). - Daniel Alievsky
  *
  * @author Melissa Linkert
  */
