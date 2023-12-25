@@ -387,14 +387,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         return this;
     }
 
-    public TiffWriter setJpegCodecQuality() {
-        if (codecOptions == null) {
-            throw new IllegalStateException("Codec options was not set yet");
-        }
-        return setJpegQuality(codecOptions.quality);
-    }
-
-    public boolean isMissingTilesAllowed() {
+   public boolean isMissingTilesAllowed() {
         return missingTilesAllowed;
     }
 

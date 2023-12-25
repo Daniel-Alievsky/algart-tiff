@@ -29,7 +29,8 @@ import io.scif.SCIFIO;
 import io.scif.formats.tiff.FillOrder;
 import io.scif.formats.tiff.IFD;
 import io.scif.formats.tiff.TiffCompression;
-import net.algart.arrays.*;
+import net.algart.arrays.Matrix;
+import net.algart.arrays.UpdatablePArray;
 import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.tiles.TiffMap;
@@ -197,7 +198,7 @@ public class TiffWriterTest {
                     writer.setLittleEndian(true);
                 }
                 writer.setJpegInPhotometricRGB(jpegRGB);
-//                writer.setJpegQuality(0.1);
+//                writer.setJpegQuality(0.5);
 //                writer.setPredefinedPhotoInterpretation(PhotoInterp.Y_CB_CR);
 //                writer.setByteFiller((byte) 0xE0);
                 writer.setTileInitializer(TiffWriterTest::customFillEmptyTile);
