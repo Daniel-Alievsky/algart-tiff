@@ -72,7 +72,13 @@ enum KnownCompression {
 
     private final TiffCompression compression;
     private final Supplier<Codec> noContext;
+    // - Note: noContext codec will be used directly ONLY if there is no available context!
+    // In other case, it will be ignored, and the codec will be created via SCIFIO context-based mechanism
+    // inside TiffCompression.decompress method.
+    // It is important, because noContext codecs are not the part of this module,
+    // they can be changed in future versions of SCIFIO libraries.
     private final Supplier<Codec> extended;
+    // - This "extended" codec is implemented inside this module, and we are sure that it does not need the context.
     private final BiFunction<TiffTile, CodecOptions, CodecOptions> writeOptions;
 
     KnownCompression(
