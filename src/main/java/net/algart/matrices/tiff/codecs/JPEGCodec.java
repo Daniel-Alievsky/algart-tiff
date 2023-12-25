@@ -48,8 +48,8 @@ public class JPEGCodec extends AbstractCodec implements CodecTiming {
     private long timeAdditional = 0;
     private boolean timing = false;
 
-    @Parameter
-    private CodecService codecService;
+//    @Parameter
+//    private CodecService codecService;
 
     @Override
     public byte[] compress(byte[] data, CodecOptions options) throws FormatException {
@@ -98,13 +98,15 @@ public class JPEGCodec extends AbstractCodec implements CodecTiming {
             info = JPEGTools.readJPEG(input);
         } catch (final IOException exc) {
             // probably a lossless JPEG; delegate to LosslessJPEGCodec
-            if (codecService == null) {
-                throw new IllegalStateException(
-                        "Decompressing unusual JPEG (probably lossless) requires specifying non-null SCIFIO context");
-            }
             in.seek(offset);
-            final Codec codec = codecService.getCodec(LosslessJPEGCodec.class);
-            return codec.decompress(in, options);
+            return (new LosslessJPEGCodec()).decompress(in, options);
+            // Legacy solution, requiring Context
+//            if (codecService == null) {
+//                throw new IllegalStateException(
+//                        "Decompressing unusual JPEG (probably lossless) requires specifying non-null SCIFIO context");
+//            }
+//            final Codec codec = codecService.getCodec(io.scif.codec.LosslessJPEGCodec.class);
+//            return codec.decompress(in, options);
         }
         if (info == null) {
             throw new FormatException("Cannot read JPEG image: unknown format");
