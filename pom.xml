@@ -10,7 +10,7 @@
 
     <name>AlgART TIFF support</name>
     <description>Full support of TIFF files: reading, writing, editing</description>
-    <url>http://algart.net/java/AlgART/</url>
+    <url>http://algart.net/java/AlgART-TIFF/</url>
 
     <licenses>
         <license>
