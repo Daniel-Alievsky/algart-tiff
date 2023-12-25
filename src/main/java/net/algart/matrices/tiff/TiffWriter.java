@@ -824,7 +824,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
 
         Codec codec = null;
         if (extendedCodec) {
-            codec = known.extendedCodec(scifio == null ? null : scifio.getContext());
+            codec = known.extendedCodec();
         }
         if (codec == null && scifio == null) {
             codec = known.noContextCodec();

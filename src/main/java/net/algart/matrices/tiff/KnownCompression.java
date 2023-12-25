@@ -52,7 +52,8 @@ enum KnownCompression {
     JPEG(TiffCompression.JPEG, null, JPEGCodec::new, KnownCompression::writeOptionsStandard),
     // OLD_JPEG(TiffCompression.OLD_JPEG, null, ExtendedJPEGCodec::new, true),
     // - OLD_JPEG does not work: see https://github.com/scifio/scifio/issues/510
-    PACK_BITS(TiffCompression.PACK_BITS, null, null, KnownCompression::writeOptionsStandard),
+    PACK_BITS(TiffCompression.PACK_BITS, PackbitsCodec::new, null, KnownCompression::writeOptionsStandard),
+
     JPEG_2000(TiffCompression.JPEG_2000, null, JPEG2000Codec::new,
             KnownCompression::writeJpeg200Options),
     JPEG_2000_LOSSY(TiffCompression.JPEG_2000_LOSSY, null, JPEG2000Codec::new,
@@ -94,21 +95,10 @@ enum KnownCompression {
     }
 
     /**
-     * Extended codec must either be able to work without context, or inform when it actually requires it.
-     *
-     * @param context SCIFIO context, may be <tt>null</tt>.
-     * @return extended codec.
+     * Extended codec (must be able to work without context).
      */
-    public Codec extendedCodec(Context context) {
-        if (extended == null) {
-            return null;
-        } else {
-            Codec codec = extended.get();
-            if (context != null) {
-                codec.setContext(context);
-            }
-            return codec;
-        }
+    public Codec extendedCodec() {
+        return extended == null ? null : extended.get();
     }
 
     public CodecOptions writeOptions(TiffTile tile, CodecOptions defaultOptions) {

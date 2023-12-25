@@ -881,7 +881,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
         final KnownCompression known = KnownCompression.valueOfOrNull(compression);
         Codec codec = null;
         if (extendedCodec && known != null) {
-            codec = known.extendedCodec(scifio == null ? null : scifio.getContext());
+            codec = known.extendedCodec();
         }
         if (codec == null && scifio == null && known != null) {
             codec = known.noContextCodec();
