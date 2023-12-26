@@ -98,6 +98,7 @@ public class TiffCopyTest {
                 writer.setLittleEndian(reader.isLittleEndian());
                 // writer.setJpegInPhotometricRGB(true);
                 // - should not be important for copying, when PhotometricInterpretation is already specified
+//                writer.setQuality(0.3);
                 writer.startNewFile();
 
                 final List<TiffIFD> ifds = reader.allIFDs();
