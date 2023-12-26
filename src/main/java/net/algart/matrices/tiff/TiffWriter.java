@@ -36,8 +36,6 @@ import io.scif.formats.tiff.TiffRational;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
 import net.algart.matrices.tiff.codecs.CodecTiming;
-import net.algart.matrices.tiff.codecs.JPEGCodec;
-import net.algart.matrices.tiff.codecs.JPEGCodecOptions;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIO;
@@ -49,7 +47,6 @@ import org.scijava.io.handle.DataHandles;
 import org.scijava.io.location.BytesLocation;
 import org.scijava.io.location.Location;
 
-import javax.imageio.ImageWriteParam;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -127,8 +124,8 @@ public class TiffWriter extends AbstractContextual implements Closeable {
     private boolean smartIFDCorrection = false;
     private CodecOptions codecOptions;
     private boolean extendedCodec = true;
+    private Double quality = null;
     private boolean jpegInPhotometricRGB = false;
-    private double jpegQuality = 1.0;
     private boolean missingTilesAllowed = false;
     private byte byteFiller = 0;
     private Consumer<TiffTile> tileInitializer = this::fillEmptyTile;
@@ -347,6 +344,46 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         return jpegInPhotometricRGB;
     }
 
+    public boolean hasQuality() {
+        return quality != null;
+    }
+
+    public Double getQuality() {
+        return quality;
+    }
+
+    /**
+     * Sets the compression quality for JPEG tiles/strips to some non-negative value.
+     *
+     * <p>Possible values are format-specific. For JPEG, it should between 0.0 and 1.0 (1.0 means the best quality).
+     * For JPEG-2000, maximal possible value is <tt>Double.MAX_VALUE</tt>, that means loss-less compression.
+     *
+     * <p>If this method was not called (or after {@link #removeQuality()}), the compression quality is not specified.
+     * In this case, some default quality will be used. In particular, it will be 1.0 for JPEG (maximal JPEG quality),
+     * 10 for JPEG-2000 (compression code 33003) or alternative JPEG-200 (code 33005),
+     * <tt>Double.MAX_VALUE</tt> for lose-less JPEG-2000 ({@link TiffCompression#JPEG_2000_LOSSY}, code 33004).
+     * Note that the only difference between lose-less JPEG-2000 and the standard JPEG-2000 is this defaults:
+     * if this method is called, both compressions work identically (but write different TIFF compression tags).
+     *
+     * <p>Note: {@link CodecOptions#quality}, that can be set via {@link #setCodecOptions(CodecOptions)}
+     * method, is ignored, if this value is set to non-<tt>null</tt> value.
+     *
+     * @param quality floating-point value, the desired quality level.
+     * @return a reference to this object.
+     */
+    public TiffWriter setQuality(double quality) {
+        if (quality < 0.0) {
+            throw new IllegalArgumentException("Negative quality " + quality + " is not allowed");
+        }
+        this.quality = quality;
+        return this;
+    }
+
+    public TiffWriter removeQuality() {
+        this.quality = null;
+        return this;
+    }
+
     /**
      * Sets whether you need to compress JPEG tiles/stripes with photometric interpretation RGB.
      * Default value is <tt>false</tt>, that means using YCbCr photometric interpretation &mdash;
@@ -366,25 +403,6 @@ public class TiffWriter extends AbstractContextual implements Closeable {
 
     public boolean compressJPEGInPhotometricRGB() {
         return extendedCodec && jpegInPhotometricRGB;
-    }
-
-    public double getJpegQuality() {
-        return jpegQuality;
-    }
-
-    /**
-     * Sets the compression quality for JPEG tiles/strips to a value between {@code 0} and {@code 1}.
-     * Default value is <tt>1.0</tt>, like in {@link ImageWriteParam#setCompressionQuality(float)} method.
-     *
-     * <p>Note that {@link CodecOptions#quality} is ignored by default, unless you call {@link #setJpegCodecQuality()}.
-     * In any case, the quality, specified by this method, overrides the settings in {@link CodecOptions}.
-     *
-     * @param jpegQuality quality a {@code float} between {@code 0} and {@code 1} indicating the desired quality level.
-     * @return a reference to this object.
-     */
-    public TiffWriter setJpegQuality(double jpegQuality) {
-        this.jpegQuality = jpegQuality;
-        return this;
     }
 
    public boolean isMissingTilesAllowed() {
@@ -823,7 +841,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
             codec = known.noContextCodec();
             // - if there is no SCIFIO context, let's create codec directly: it's better than do nothing
         }
-        CodecOptions codecOptions = buildWritingOptions(known, tile, codec);
+        CodecOptions codecOptions = buildWritingOptions(known, tile);
         long t3 = debugTime();
         byte[] data = tile.getDecodedData();
         if (codec != null) {
@@ -1694,16 +1712,10 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         }
     }
 
-    private CodecOptions buildWritingOptions(KnownCompression known, TiffTile tile, Codec customCodec) {
+    private CodecOptions buildWritingOptions(KnownCompression known, TiffTile tile) {
         CodecOptions result = known.writeOptions(tile, this.codecOptions);
-        if (customCodec instanceof JPEGCodec) {
-            JPEGCodecOptions jpegOptions = new JPEGCodecOptions(result);
-            jpegOptions.setQuality(jpegQuality);
-            if (tile.ifd().optInt(TiffIFD.PHOTOMETRIC_INTERPRETATION, -1) ==
-                    TiffPhotometricInterpretation.RGB.code()) {
-                jpegOptions.setPhotometricInterpretation(TiffPhotometricInterpretation.RGB);
-            }
-            result = jpegOptions;
+        if (quality != null) {
+            result.quality = quality;
         }
         return result;
     }

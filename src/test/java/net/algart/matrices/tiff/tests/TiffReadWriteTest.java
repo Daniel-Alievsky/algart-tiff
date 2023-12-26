@@ -112,7 +112,7 @@ public class TiffReadWriteTest {
                 TiffWriter writer = new TiffWriter(context, targetFile);
                 writer.setBigTiff(bigTiff);
                 writer.setLittleEndian(true);
-                writer.setJpegInPhotometricRGB(jpegRGB).setJpegQuality(0.8);
+                writer.setJpegInPhotometricRGB(jpegRGB).setQuality(0.8);
                 writer.startNewFile();
 
                 TiffParser parser = null;

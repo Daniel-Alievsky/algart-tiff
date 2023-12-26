@@ -28,8 +28,8 @@ import io.scif.codec.*;
 import io.scif.formats.tiff.TiffCompression;
 import net.algart.matrices.tiff.codecs.JPEG2000Codec;
 import net.algart.matrices.tiff.codecs.JPEGCodec;
+import net.algart.matrices.tiff.codecs.JPEGCodecOptions;
 import net.algart.matrices.tiff.tiles.TiffTile;
-import org.scijava.Context;
 
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -46,24 +46,25 @@ import java.util.function.Supplier;
  */
 enum KnownCompression {
     UNCOMPRESSED(TiffCompression.UNCOMPRESSED, PassthroughCodec::new, null,
-            KnownCompression::writeOptionsStandard),
-    LZW(TiffCompression.LZW, LZWCodec::new, null, KnownCompression::writeOptionsStandard),
-    DEFLATE(TiffCompression.DEFLATE, ZlibCodec::new, null, KnownCompression::writeOptionsStandard),
-    JPEG(TiffCompression.JPEG, null, JPEGCodec::new, KnownCompression::writeOptionsStandard),
+            KnownCompression::standardWriteOptions),
+    LZW(TiffCompression.LZW, LZWCodec::new, null, KnownCompression::standardWriteOptions),
+    DEFLATE(TiffCompression.DEFLATE, ZlibCodec::new, null, KnownCompression::standardWriteOptions),
+    JPEG(TiffCompression.JPEG, null, JPEGCodec::new, KnownCompression::jpegWriteOptions),
     // OLD_JPEG(TiffCompression.OLD_JPEG, null, ExtendedJPEGCodec::new, true),
     // - OLD_JPEG does not work: see https://github.com/scifio/scifio/issues/510
-    PACK_BITS(TiffCompression.PACK_BITS, PackbitsCodec::new, null, KnownCompression::writeOptionsStandard),
+    PACK_BITS(TiffCompression.PACK_BITS, PackbitsCodec::new, null, KnownCompression::standardWriteOptions),
 
     JPEG_2000(TiffCompression.JPEG_2000, null, JPEG2000Codec::new,
-            KnownCompression::writeJpeg200Options),
+            KnownCompression::jpeg2000LosslessWriteOptions),
     JPEG_2000_LOSSY(TiffCompression.JPEG_2000_LOSSY, null, JPEG2000Codec::new,
-            KnownCompression::writeJpeg200NotLossLessOptions),
+            (tile, defaultOptions) -> jpeg2000WriteOptions(tile, defaultOptions, false)),
     ALT_JPEG_2000(TiffCompression.ALT_JPEG2000, null, JPEG2000Codec::new,
-            KnownCompression::writeJpeg200Options),
+            KnownCompression::jpeg2000LosslessWriteOptions),
     OLYMPUS_JPEG2000(TiffCompression.OLYMPUS_JPEG2000, null, JPEG2000Codec::new,
-            KnownCompression::writeJpeg200Options),
-    NIKON(TiffCompression.NIKON, null, null, KnownCompression::writeOptionsStandard),
-    LURAWAVE(TiffCompression.LURAWAVE, null, null, KnownCompression::writeOptionsStandard);
+            KnownCompression::jpeg2000LosslessWriteOptions),
+
+    NIKON(TiffCompression.NIKON, null, null, KnownCompression::standardWriteOptions),
+    LURAWAVE(TiffCompression.LURAWAVE, null, null, KnownCompression::standardWriteOptions);
 
     private static final Map<Integer, TiffCompression> tiffCompressionMap = new HashMap<>();
     static {
@@ -125,7 +126,7 @@ enum KnownCompression {
         return null;
     }
 
-    public static CodecOptions writeOptionsStandard(TiffTile tile, CodecOptions defaultOptions) {
+    public static CodecOptions standardWriteOptions(TiffTile tile, CodecOptions defaultOptions) {
         Objects.requireNonNull(tile, "Null tile");
         final CodecOptions options = new CodecOptions(
                 defaultOptions == null ? CodecOptions.getDefaultOptions() : defaultOptions);
@@ -139,9 +140,31 @@ enum KnownCompression {
         return options;
     }
 
-    public static JPEG2000CodecOptions writeJpeg200Options(TiffTile tile, CodecOptions defaultOptions) {
-        final CodecOptions options = writeOptionsStandard(tile, defaultOptions);
-        options.lossless = true;
+    public static JPEGCodecOptions jpegWriteOptions(TiffTile tile, CodecOptions defaultOptions) {
+        final CodecOptions options = standardWriteOptions(tile, defaultOptions);
+        final JPEGCodecOptions result = JPEGCodecOptions.getDefaultOptions(options);
+        if (result.quality > 1.0) {
+            // - for JPEG, maximal possible quality is 1.0
+            // (for comparison, maximal quality in JPEG-2000 is Double.MAX_VALUE)
+            result.quality = 1.0;
+        }
+        if (tile.ifd().optInt(TiffIFD.PHOTOMETRIC_INTERPRETATION, -1) ==
+                TiffPhotometricInterpretation.RGB.code()) {
+            result.setPhotometricInterpretation(TiffPhotometricInterpretation.RGB);
+        }
+        return result;
+    }
+
+    public static JPEG2000CodecOptions jpeg2000LosslessWriteOptions(TiffTile tile, CodecOptions defaultOptions) {
+        return jpeg2000WriteOptions(tile, defaultOptions, true);
+    }
+
+    public static JPEG2000CodecOptions jpeg2000WriteOptions(
+            TiffTile tile,
+            CodecOptions defaultOptions,
+            boolean lossless) {
+        final CodecOptions options = standardWriteOptions(tile, defaultOptions);
+        options.lossless = lossless;
         final JPEG2000CodecOptions result = JPEG2000CodecOptions.getDefaultOptions(options);
         if (defaultOptions instanceof JPEG2000CodecOptions options2000) {
             result.numDecompositionLevels = options2000.numDecompositionLevels;
@@ -150,15 +173,10 @@ enum KnownCompression {
                 result.codeBlockSize = options2000.codeBlockSize;
             }
             if (options2000.quality > 0.0) {
+                // - i.e. if it is specified
                 result.quality = options2000.quality;
             }
         }
-        return result;
-    }
-
-    public static JPEG2000CodecOptions writeJpeg200NotLossLessOptions(TiffTile tile, CodecOptions defaultOptions) {
-        final JPEG2000CodecOptions result = writeJpeg200Options(tile, defaultOptions);
-        result.lossless = false;
         return result;
     }
 }

@@ -39,12 +39,22 @@ public class JPEGCodecOptions extends CodecOptions {
      */
     private int[] yCbCrSubsampling = {2, 2};
 
-    public JPEGCodecOptions(final CodecOptions options) {
+    private JPEGCodecOptions(CodecOptions options) {
         super(options);
         if (options instanceof JPEGCodecOptions extended) {
-            photometricInterpretation = extended.photometricInterpretation;
-            yCbCrSubsampling = extended.yCbCrSubsampling == null ? null : extended.yCbCrSubsampling.clone();
+            this.yCbCrSubsampling = extended.yCbCrSubsampling == null ? null : extended.yCbCrSubsampling.clone();
         }
+        if (options == null || options.quality == 0.0) {
+            // - 0.0 means that it was probably not specified
+            this.quality = 1.0;
+            // - our JPEGCodec class sets the quality, and we MUST specify correct default value,
+            // if it was not specified yet via usual CodecOptions object
+            // (because default 0.0 value will lead to VERY bad quality)
+        }
+    }
+
+    public static JPEGCodecOptions getDefaultOptions(CodecOptions options) {
+        return new JPEGCodecOptions(options);
     }
 
     public TiffPhotometricInterpretation getPhotometricInterpretation() {
@@ -64,15 +74,6 @@ public class JPEGCodecOptions extends CodecOptions {
 
     public JPEGCodecOptions setYCbCrSubsampling(int[] yCbCrSubsampling) {
         this.yCbCrSubsampling = Objects.requireNonNull(yCbCrSubsampling, "Null yCbCrSubsampling").clone();
-        return this;
-    }
-
-    public double getQuality() {
-        return quality;
-    }
-
-    public JPEGCodecOptions setQuality(double quality) {
-        this.quality = quality;
         return this;
     }
 }

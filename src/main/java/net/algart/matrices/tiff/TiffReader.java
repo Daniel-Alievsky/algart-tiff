@@ -1351,7 +1351,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
     private CodecOptions buildReadingOptions(TiffTile tile, Codec customCodec) throws FormatException {
         TiffIFD ifd = tile.ifd();
         CodecOptions codecOptions = customCodec instanceof JPEGCodec ?
-                new JPEGCodecOptions(this.codecOptions)
+                JPEGCodecOptions.getDefaultOptions(this.codecOptions)
                         .setPhotometricInterpretation(ifd.getPhotometricInterpretation())
                         .setYCbCrSubsampling(ifd.getYCbCrSubsampling()) :
                 new CodecOptions(this.codecOptions);

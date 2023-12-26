@@ -110,6 +110,14 @@ public class TiffWriterTest {
             color = true;
             startArgIndex++;
         }
+        Double quality = null;
+        if (args.length > startArgIndex && args[startArgIndex].toLowerCase().startsWith("-quality=")) {
+            final String s = args[startArgIndex].toLowerCase().substring("-quality=".length());
+            if (!s.equals("null")) {
+                quality = Double.parseDouble(s);
+            }
+            startArgIndex++;
+        }
         boolean jpegRGB = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-jpegRGB")) {
             jpegRGB = true;
@@ -148,10 +156,10 @@ public class TiffWriterTest {
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
             System.out.println("    " + TiffWriterTest.class.getName() +
-                    " [-resizable] [-append] [-bigTiff] [-color] [-jpegRGB] [-singleStrip] " +
+                    " [-resizable] [-append] [-bigTiff] [-color] [-jpegRGB] [-quality=N] [-singleStrip] " +
                     "[-tiled] [-planarSeparated] " +
                     "target.tiff unit8|int8|uint16|int16|uint32|int32|float|double [number_of_images [compression]]" +
-                    "[x y width height [number_of_tests]]");
+                    "[x y width height [number_of_tests [1st_IFD_index_to_overwrite]]");
             return;
         }
         final Path targetFile = Paths.get(args[startArgIndex++]);
@@ -197,8 +205,10 @@ public class TiffWriterTest {
                 if (littleEndian) {
                     writer.setLittleEndian(true);
                 }
+                if (quality != null) {
+                    writer.setQuality(quality);
+                }
                 writer.setJpegInPhotometricRGB(jpegRGB);
-//                writer.setJpegQuality(0.5);
 //                writer.setPredefinedPhotoInterpretation(PhotoInterp.Y_CB_CR);
 //                writer.setByteFiller((byte) 0xE0);
                 writer.setTileInitializer(TiffWriterTest::customFillEmptyTile);
