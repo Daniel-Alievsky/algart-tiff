@@ -32,6 +32,7 @@ import net.algart.external.ImageConversions;
 import net.algart.matrices.tiff.CachingTiffReader;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.compatibility.TiffParser;
+import net.algart.matrices.tiff.executable.TiffInfo;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import org.scijava.Context;
 

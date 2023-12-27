@@ -4,12 +4,6 @@
     <module name="algart-tiff" />
     <option name="PROGRAM_PARAMETERS" value="-nocontext -color -quality=null -jpegRGB -tiled /tmp/test.tiff uint8 1 JPEG 0 0 -1 -1 5  " />
     <option name="VM_PARAMETERS" value="-ea -esa -Dnet.algart.matrices.tiff.timing=true -Djava.util.logging.config.file=\SciChains\conf\logging.properties" />
-    <extension name="coverage">
-      <pattern>
-        <option name="PATTERN" value="net.algart.matrices.tiff.tests.*" />
-        <option name="ENABLED" value="true" />
-      </pattern>
-    </extension>
     <method v="2">
       <option name="Make" enabled="true" />
     </method>

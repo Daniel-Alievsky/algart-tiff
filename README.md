@@ -6,8 +6,12 @@
 
 AlgART-TIFF is a Java library providing complete read/write support of TIFF files. 
 
-It is based on popular [SCIFIO](https://github.com/scifio/scifio) library, 
-but replaces its part, connected with TIFF support, with a new powerful classes `TiffReader`/`TiffWriter`and a set of tool classes for TIFF processing. 
+It is based on [SCIFIO](https://github.com/scifio/scifio) library, 
+but replaces its part, connected with TIFF support, with new powerful classes 
+`TiffReader`/`TiffWriter`and a set of tool classes for TIFF processing.
+
+Main AlgART-TIFF functions are available in [SciChains](http://scichains.com) visual constructor
+via [scichains-map](https://github.com/scichains/scichains-maps) library.
 
 ## Key features
 

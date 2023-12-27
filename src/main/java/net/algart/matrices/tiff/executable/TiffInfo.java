@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.tests;
+package net.algart.matrices.tiff.executable;
 
 import io.scif.FormatException;
 import io.scif.formats.tiff.IFD;
