@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
-import io.scif.FormatException;
 import io.scif.formats.tiff.IFD;
 import net.algart.arrays.JArrays;
 import net.algart.matrices.tiff.TiffIFD;
@@ -35,7 +34,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class IFDTileOffsetsTest {
-    public static void main(String[] args) throws IOException, FormatException {
+    public static void main(String[] args) throws IOException {
         if (args.length < 2) {
             System.out.println("Usage:");
             System.out.println("    " + IFDTileOffsetsTest.class.getName() + " tiff_file.tiff ifdIndex");

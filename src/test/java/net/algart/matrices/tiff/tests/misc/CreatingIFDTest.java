@@ -24,7 +24,7 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
-import io.scif.FormatException;
+import net.algart.matrices.tiff.TiffException;
 import io.scif.formats.tiff.TiffCompression;
 import net.algart.matrices.tiff.TiffIFD;
 
@@ -35,7 +35,7 @@ public class CreatingIFDTest {
         System.out.printf("Json:%n----%n%s%n----%n%n", ifd.toString(TiffIFD.StringFormat.JSON));
     }
 
-    public static void main(String[] args) throws FormatException {
+    public static void main(String[] args) throws TiffException {
         TiffIFD ifd = new TiffIFD();
         showIFD(ifd, "Empty");
 

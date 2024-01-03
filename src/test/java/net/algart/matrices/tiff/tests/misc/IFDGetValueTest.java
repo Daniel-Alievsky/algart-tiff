@@ -24,7 +24,7 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
-import io.scif.FormatException;
+import net.algart.matrices.tiff.TiffException;
 import io.scif.formats.tiff.IFD;
 import net.algart.matrices.tiff.TiffIFD;
 
@@ -42,13 +42,13 @@ public class IFDGetValueTest {
             opt = ifd.getValue(tag, requiredClass);
             System.out.printf("getValue: %s [%s]%n",
                     opt, opt.map(o -> o.getClass().getSimpleName()).orElse("n/a"));
-        } catch (FormatException e) {
+        } catch (TiffException e) {
             System.out.printf("getValue: %s%n", e);
         }
         try {
             Object v = ifd.reqValue(tag, requiredClass);
             System.out.printf("reqValue: %s [%s]%n", v, v.getClass().getSimpleName());
-        } catch (FormatException e) {
+        } catch (TiffException e) {
             System.out.printf("reqValue: %s%n", e);
         }
         System.out.printf("optType: %s%n", ifd.optType(tag));

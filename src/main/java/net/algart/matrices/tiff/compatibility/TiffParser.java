@@ -31,9 +31,7 @@ import io.scif.codec.CodecOptions;
 import io.scif.common.Constants;
 import io.scif.enumeration.EnumException;
 import io.scif.formats.tiff.*;
-import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.TiffTools;
+import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIndex;
@@ -105,9 +103,19 @@ public class TiffParser extends TiffReader {
         this.log = scifio.log();
     }
 
-    public static TiffIFD toTiffIFD(IFD ifd) throws FormatException {
+    public static TiffIFD toTiffIFD(IFD ifd) {
         Objects.requireNonNull(ifd, "Null IFD");
-        return TiffIFD.valueOf(ifd).setBigTiff(ifd.isBigTiff()).setLittleEndian(ifd.isLittleEndian());
+        boolean bigTiff = false;
+        try {
+            bigTiff = ifd.isBigTiff();
+        } catch (FormatException ignored) {
+        }
+        boolean littleEndian = false;
+        try {
+            littleEndian = ifd.isLittleEndian();
+        } catch (FormatException ignored) {
+        }
+        return TiffIFD.valueOf(ifd).setBigTiff(bigTiff).setLittleEndian(littleEndian);
     }
 
     public IFD toScifioIFD(TiffIFD ifd) {
@@ -398,8 +406,7 @@ public class TiffParser extends TiffReader {
             TiffIFDEntry entry = null;
             try {
                 entry = readTiffIFDEntry();
-            }
-            catch (final EnumException e) {
+            } catch (final EnumException e) {
                 log.debug("", e);
             }
             if (entry == null) break;
@@ -439,8 +446,7 @@ public class TiffParser extends TiffReader {
 
             if (pointer != in.offset() && !doCaching) {
                 value = entry;
-            }
-            else value = getIFDValue(entry);
+            } else value = getIFDValue(entry);
 
             if (value != null && !ifd.containsKey(new Integer(tag))) {
                 ifd.put(new Integer(tag), value);
@@ -937,17 +943,16 @@ public class TiffParser extends TiffReader {
 
     @Override
     protected CodecOptions correctReadingOptions(CodecOptions codecOptions, TiffTile tile, Codec customCodec)
-            throws FormatException {
-        IFD ifd = toScifioIFD(tile.ifd());
-        codecOptions.ycbcr = ifd.getPhotometricInterpretation() == PhotoInterp.Y_CB_CR &&
-                ifd.getIFDIntValue(IFD.Y_CB_CR_SUB_SAMPLING) == 1 &&
+            throws TiffException {
+        TiffIFD ifd = tile.ifd();
+        codecOptions.ycbcr = ifd.getPhotometricInterpretation() == TiffPhotometricInterpretation.Y_CB_CR &&
+                toScifioIFD(ifd).getIFDIntValue(IFD.Y_CB_CR_SUB_SAMPLING) == 1 &&
                 ycbcrCorrection;
         return codecOptions;
     }
 
     @Deprecated
-    private byte[] adjustFillOrder(final IFD ifd, final byte[] buf)
-            throws FormatException {
+    private byte[] adjustFillOrder(final IFD ifd, final byte[] buf) throws TiffException {
         TiffTools.invertFillOrderIfRequested(toTiffIFD(ifd), buf);
         return buf;
     }

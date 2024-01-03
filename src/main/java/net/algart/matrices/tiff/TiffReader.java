@@ -174,31 +174,31 @@ public class TiffReader extends AbstractContextual implements Closeable {
     private long timeDecodingAdditional = 0;
     private long timeCompleteDecoding = 0;
 
-    public TiffReader(Path file) throws IOException, FormatException {
+    public TiffReader(Path file) throws IOException {
         this(null, file);
     }
 
-    public TiffReader(Path file, boolean requireValidTiff) throws IOException, FormatException {
+    public TiffReader(Path file, boolean requireValidTiff) throws IOException {
         this(null, file, requireValidTiff);
     }
 
-    public TiffReader(DataHandle<Location> in) throws IOException, FormatException {
+    public TiffReader(DataHandle<Location> in) throws IOException {
         this(null, in);
     }
 
-    public TiffReader(DataHandle<Location> in, boolean requireValidTiff) throws IOException, FormatException {
+    public TiffReader(DataHandle<Location> in, boolean requireValidTiff) throws IOException {
         this(null, in, requireValidTiff);
     }
 
-    public TiffReader(Context context, Path file) throws IOException, FormatException {
+    public TiffReader(Context context, Path file) throws IOException {
         this(context, file, true);
     }
 
-    public TiffReader(Context context, Path file, boolean requireValidTiff) throws IOException, FormatException {
+    public TiffReader(Context context, Path file, boolean requireValidTiff) throws IOException {
         this(context, TiffTools.getExistingFileHandle(file), requireValidTiff);
     }
 
-    public TiffReader(Context context, DataHandle<Location> in) throws IOException, FormatException {
+    public TiffReader(Context context, DataHandle<Location> in) throws IOException {
         this(context, in, true);
     }
 
@@ -213,18 +213,14 @@ public class TiffReader extends AbstractContextual implements Closeable {
      *                         will possibly not work.
      * @param in               input stream.
      * @param requireValidTiff whether the input file must exist and be a readable TIFF-file with a correct header.
-     * @throws IOException     in a case of any problems with the input file
-     * @throws FormatException if the file is not a correct TIFF file
+     * @throws TiffException if the file is not a correct TIFF file
+     * @throws IOException   in a case of any problems with the input file
      */
-    public TiffReader(Context context, DataHandle<Location> in, boolean requireValidTiff)
-            throws IOException, FormatException {
+    public TiffReader(Context context, DataHandle<Location> in, boolean requireValidTiff) throws IOException {
         this(context, in, null);
         this.requireValidTiff = requireValidTiff;
         if (requireValidTiff && openingException != null) {
             if (openingException instanceof IOException e) {
-                throw e;
-            }
-            if (openingException instanceof FormatException e) {
                 throw e;
             }
             if (openingException instanceof RuntimeException e) {
@@ -339,7 +335,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
      * scaling has no sense.
      *
      * @param autoScaleWhenIncreasingBitDepth whether do we need to scale pixel samples, represented with <i>k</i>
-     *                                       bits/sample, <i>k</i>%8&nbsp;&ne;&nbsp;0, when increasing bit depth
+     *                                        bits/sample, <i>k</i>%8&nbsp;&ne;&nbsp;0, when increasing bit depth
      *                                        to nearest <i>n</i> bits/sample, where
      *                                        <i>n</i>&nbsp;&gt;&nbsp;<i>k</i> and <i>n</i> is divided by 8.
      * @return a reference to this object.
@@ -517,7 +513,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
         return positionOfLastIFDOffset;
     }
 
-    public TiffMap map(int ifdIndex) throws IOException, FormatException {
+    public TiffMap map(int ifdIndex) throws IOException {
         List<TiffIFD> ifdList = allIFDs();
         if (ifdIndex < 0 || ifdIndex >= ifdList.size()) {
             throw new IndexOutOfBoundsException(
@@ -530,7 +526,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
      * Reads 1st IFD (#0). If you really needs access only to 1st IFD,
      * this method may work faster than {@link #map(int)}.
      */
-    public TiffIFD firstIFD() throws IOException, FormatException {
+    public TiffIFD firstIFD() throws IOException {
         TiffIFD firstIFD = this.firstIFD;
         if (cachingIFDs && firstIFD != null) {
             return this.firstIFD;
@@ -544,11 +540,11 @@ public class TiffReader extends AbstractContextual implements Closeable {
     }
 
 
-    public List<TiffMap> allMaps() throws IOException, FormatException {
+    public List<TiffMap> allMaps() throws IOException {
         return allIFDs().stream().map(this::newMap).collect(Collectors.toList());
     }
 
-    public int numberOfIFDs() throws IOException, FormatException {
+    public int numberOfIFDs() throws IOException {
         return allIFDs().size();
     }
 
@@ -558,7 +554,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
      * <p>Note: if this TIFF file is not valid ({@link #isValid()} returns <tt>false</tt>), this method
      * returns an empty list and does not throw an exception. For valid TIFF, result cannot be empty.
      */
-    public List<TiffIFD> allIFDs() throws IOException, FormatException {
+    public List<TiffIFD> allIFDs() throws IOException {
         long t1 = debugTime();
         List<TiffIFD> ifds;
         synchronized (fileLock) {
@@ -584,7 +580,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
                     //     fillInIFD(ifd);
                     // }
                     subOffsets = ifd.getLongArray(TiffIFD.SUB_IFD);
-                } catch (final FormatException ignored) {
+                } catch (final TiffException ignored) {
                 }
                 if (subOffsets != null) {
                     for (final long subOffset : subOffsets) {
@@ -612,7 +608,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
     /**
      * Returns EXIF IFDs.
      */
-    public List<TiffIFD> exifIFDs() throws IOException, FormatException {
+    public List<TiffIFD> exifIFDs() throws IOException {
         final List<TiffIFD> ifds = allIFDs();
         final List<TiffIFD> result = new ArrayList<>();
         for (final TiffIFD ifd : ifds) {
@@ -631,7 +627,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
      * Gets offset to the first IFD.
      * Updates {@link #positionOfLastIFDOffset()} to the position of first offset (4, for Bit-TIFF 8).
      */
-    public long readFirstIFDOffset() throws IOException, FormatException {
+    public long readFirstIFDOffset() throws IOException {
         synchronized (fileLock) {
             in.seek(bigTiff ? 8 : 4);
             return readFirstOffsetFromCurrentPosition(true, this.bigTiff);
@@ -645,7 +641,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
      * @param ifdIndex index of IFD (0, 1, ...).
      * @return offset of this IFD in the file or <tt>-1</tt> if the index is too high.
      */
-    public long readSingleIFDOffset(int ifdIndex) throws IOException, FormatException {
+    public long readSingleIFDOffset(int ifdIndex) throws IOException {
         if (ifdIndex < 0) {
             throw new IllegalArgumentException("Negative ifdIndex = " + ifdIndex);
         }
@@ -673,7 +669,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
     /**
      * Gets the offsets to every IFD in the file.
      */
-    public long[] readIFDOffsets() throws IOException, FormatException {
+    public long[] readIFDOffsets() throws IOException {
         synchronized (fileLock) {
             if (!requireValidTiff && !valid) {
                 return new long[0];
@@ -686,7 +682,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
                 in.seek(offset);
                 final boolean wasNotPresent = ifdOffsets.add(offset);
                 if (!wasNotPresent) {
-                    throw new FormatException("TIFF file is broken - infinite loop of IFD offsets is detected " +
+                    throw new TiffException("TIFF file is broken - infinite loop of IFD offsets is detected " +
                             "for offset " + offset + " (the stored ifdOffsets sequence is " +
                             ifdOffsets.stream().map(Object::toString).collect(Collectors.joining(", ")) +
                             ", " + offset + ", ...)");
@@ -701,7 +697,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
         }
     }
 
-    public TiffIFD readSingleIFD(int ifdIndex) throws IOException, FormatException, NoSuchElementException {
+    public TiffIFD readSingleIFD(int ifdIndex) throws IOException, NoSuchElementException {
         long startOffset = readSingleIFDOffset(ifdIndex);
         if (startOffset < 0) {
             throw new NoSuchElementException("No IFD #" + ifdIndex + " in TIFF" + prettyInName()
@@ -714,12 +710,11 @@ public class TiffReader extends AbstractContextual implements Closeable {
      * Reads the IFD stored at the given offset.
      * Never returns <tt>null</tt>.
      */
-    public TiffIFD readIFDAt(long startOffset) throws IOException, FormatException {
+    public TiffIFD readIFDAt(long startOffset) throws IOException {
         return readIFDAt(startOffset, null, true);
     }
 
-    public TiffIFD readIFDAt(final long startOffset, Integer subIFDType, boolean readNextOffset)
-            throws IOException, FormatException {
+    public TiffIFD readIFDAt(final long startOffset, Integer subIFDType, boolean readNextOffset) throws IOException {
         if (startOffset < 0) {
             throw new IllegalArgumentException("Negative file offset = " + startOffset);
         }
@@ -732,7 +727,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
         final TiffIFD ifd;
         synchronized (fileLock) {
             if (startOffset >= in.length()) {
-                throw new FormatException("TIFF IFD offset " + startOffset + " is outside the file");
+                throw new TiffException("TIFF IFD offset " + startOffset + " is outside the file");
             }
             final Map<Integer, Object> map = new LinkedHashMap<>();
             final Map<Integer, TiffIFD.TiffEntry> detailedEntries = new LinkedHashMap<>();
@@ -741,7 +736,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
             in.seek(startOffset);
             final long numberOfEntries = bigTiff ? in.readLong() : in.readUnsignedShort();
             if (numberOfEntries < 0 || numberOfEntries > MAX_NUMBER_OF_IFD_ENTRIES) {
-                throw new FormatException("Too large number of IFD entries: " +
+                throw new TiffException("Too large number of IFD entries: " +
                         (numberOfEntries < 0 ? ">= 2^63" : numberOfEntries + " > " + MAX_NUMBER_OF_IFD_ENTRIES));
                 // - theoretically BigTIFF allows to have more entries, but we prefer to make some restriction;
                 // in any case, billions if detailedEntries will probably lead to OutOfMemoryError or integer overflow
@@ -806,7 +801,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
      * @param tileIndex position of the file
      * @return loaded tile.
      */
-    public TiffTile readTile(TiffTileIndex tileIndex) throws IOException, FormatException {
+    public TiffTile readTile(TiffTileIndex tileIndex) throws IOException {
         TiffTile tile = readEncodedTile(tileIndex);
         if (tile.isEmpty()) {
             return tile;
@@ -815,7 +810,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
         return tile;
     }
 
-    public TiffTile readEncodedTile(TiffTileIndex tileIndex) throws IOException, FormatException {
+    public TiffTile readEncodedTile(TiffTileIndex tileIndex) throws IOException {
         Objects.requireNonNull(tileIndex, "Null tileIndex");
         long t1 = debugTime();
         final TiffIFD ifd = tileIndex.ifd();
@@ -850,14 +845,14 @@ public class TiffReader extends AbstractContextual implements Closeable {
             if (missingTilesAllowed) {
                 return result;
             } else {
-                throw new FormatException("Zero tile/strip " + (byteCount == 0 ? "byte-count" : "offset")
+                throw new TiffException("Zero tile/strip " + (byteCount == 0 ? "byte-count" : "offset")
                         + " is not allowed in a valid TIFF file (tile " + tileIndex + ")");
             }
         }
 
         synchronized (fileLock) {
             if (offset >= in.length()) {
-                throw new FormatException("Offset of TIFF tile/strip " + offset + " is out of file length (tile " +
+                throw new TiffException("Offset of TIFF tile/strip " + offset + " is out of file length (tile " +
                         tileIndex + ")");
                 // - note: old SCIFIO code allowed such offsets and returned zero-filled tile
             }
@@ -869,7 +864,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
     }
 
     // Note: result is usually interleaved (RGBRGB...) or monochrome; it is always so in UNCOMPRESSED, LZW, DEFLATE
-    public void decode(TiffTile tile) throws FormatException {
+    public void decode(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         long t1 = debugTime();
         prepareEncodedTileForDecoding(tile);
@@ -901,7 +896,13 @@ public class TiffReader extends AbstractContextual implements Closeable {
                 throw new IllegalStateException(
                         "Compression type " + compression + " requires specifying non-null SCIFIO context");
             }
-            tile.setPartiallyDecodedData(compression.decompress(scifio.codec(), encodedData, codecOptions));
+            byte[] decodedData;
+            try {
+                decodedData = compression.decompress(scifio.codec(), encodedData, codecOptions);
+            } catch (Exception e) {
+                throw new TiffException(e.getMessage(), e);
+            }
+            tile.setPartiallyDecodedData(decodedData);
         }
         tile.setInterleaved(codecOptions.interleaved);
         long t3 = debugTime();
@@ -921,7 +922,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
         timeCompleteDecoding += t4 - t3;
     }
 
-    public void prepareEncodedTileForDecoding(TiffTile tile) throws FormatException {
+    public void prepareEncodedTileForDecoding(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         if (tile.isEmpty()) {
             // - unlike full decoding, here it is better not to throw exception for empty tile
@@ -951,7 +952,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
                 // - the same check is performed inside Java API ImageIO (JPEGImageReaderSpi),
                 // and we prefer to repeat it here for better diagnostics
                 if (compression == TiffCompression.JPEG) {
-                    throw new FormatException(
+                    throw new TiffException(
                             "Invalid TIFF image: it is declared as JPEG, but the data are not actually JPEG");
                 } else {
                     throw new UnsupportedTiffFormatException(
@@ -961,11 +962,11 @@ public class TiffReader extends AbstractContextual implements Closeable {
             }
             if (jpegTable != null) {
                 if (jpegTable.length <= 4) {
-                    throw new FormatException("Too short JPEGTables tag: only " + jpegTable.length + " bytes");
+                    throw new TiffException("Too short JPEGTables tag: only " + jpegTable.length + " bytes");
                 }
                 if ((long) jpegTable.length + (long) data.length - 4 >= Integer.MAX_VALUE) {
                     // - very improbable
-                    throw new FormatException(
+                    throw new TiffException(
                             "Too large tile/strip at " + tile.index() + ": JPEG table length " +
                                     (jpegTable.length - 2) + " + number of bytes " +
                                     (data.length - 2) + " > 2^31-1");
@@ -1042,9 +1043,8 @@ public class TiffReader extends AbstractContextual implements Closeable {
      * (but 8 bytes/sample is allowed: it is probably <tt>double</tt> precision).</p>
      *
      * @param tile the tile that should be corrected.
-     * @throws FormatException
      */
-    public void completeDecoding(TiffTile tile) throws FormatException {
+    public void completeDecoding(TiffTile tile) throws TiffException {
         // scifio.tiff().undifference(tile.getDecodedData(), tile.ifd());
         // - this solution requires using SCIFIO context class; it is better to avoid this
         TiffTools.unsubtractPredictionIfRequested(tile);
@@ -1114,11 +1114,11 @@ public class TiffReader extends AbstractContextual implements Closeable {
         // - building grid is useful to perform loops on all tiles
     }
 
-    public byte[] readSamples(TiffMap map) throws IOException, FormatException {
+    public byte[] readSamples(TiffMap map) throws IOException {
         return readSamples(map, false);
     }
 
-    public byte[] readSamples(TiffMap map, boolean storeTilesInMap) throws IOException, FormatException {
+    public byte[] readSamples(TiffMap map, boolean storeTilesInMap) throws IOException {
         return readSamples(map, 0, 0, map.dimX(), map.dimY(), storeTilesInMap);
     }
 
@@ -1129,13 +1129,12 @@ public class TiffReader extends AbstractContextual implements Closeable {
      *
      * @return loaded samples in a normalized form of byte sequence.
      */
-    public byte[] readSamples(TiffMap map, int fromX, int fromY, int sizeX, int sizeY)
-            throws IOException, FormatException {
+    public byte[] readSamples(TiffMap map, int fromX, int fromY, int sizeX, int sizeY) throws IOException {
         return readSamples(map, fromX, fromY, sizeX, sizeY, false);
     }
 
     public byte[] readSamples(TiffMap map, int fromX, int fromY, int sizeX, int sizeY, boolean storeTilesInMap)
-            throws IOException, FormatException {
+            throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         long t1 = debugTime();
         clearTiming();
@@ -1204,18 +1203,17 @@ public class TiffReader extends AbstractContextual implements Closeable {
         return samples;
     }
 
-    public Object readJavaArray(TiffMap map) throws IOException, FormatException {
+    public Object readJavaArray(TiffMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readJavaArray(map, 0, 0, map.dimX(), map.dimY());
     }
 
-    public Object readJavaArray(TiffMap map, int fromX, int fromY, int sizeX, int sizeY)
-            throws IOException, FormatException {
+    public Object readJavaArray(TiffMap map, int fromX, int fromY, int sizeX, int sizeY) throws IOException {
         return readJavaArray(map, fromX, fromY, sizeX, sizeY, false);
     }
 
     public Object readJavaArray(TiffMap map, int fromX, int fromY, int sizeX, int sizeY, boolean storeTilesInMap)
-            throws IOException, FormatException {
+            throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         final byte[] samples = readSamples(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
         long t1 = debugTime();
@@ -1242,13 +1240,13 @@ public class TiffReader extends AbstractContextual implements Closeable {
         return samplesArray;
     }
 
-    public Matrix<UpdatablePArray> readMatrix(TiffMap map) throws IOException, FormatException {
+    public Matrix<UpdatablePArray> readMatrix(TiffMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readMatrix(map, 0, 0, map.dimX(), map.dimY());
     }
 
     public Matrix<UpdatablePArray> readMatrix(TiffMap map, int fromX, int fromY, int sizeX, int sizeY)
-            throws IOException, FormatException {
+            throws IOException {
         return readMatrix(map, fromX, fromY, sizeX, sizeY, false);
     }
 
@@ -1259,7 +1257,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
             int sizeX,
             int sizeY,
             boolean storeTilesInMap)
-            throws IOException, FormatException {
+            throws IOException {
         final Object samplesArray = readJavaArray(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
         return TiffTools.asMatrix(samplesArray, sizeX, sizeY, map.numberOfChannels(), interleaveResults);
     }
@@ -1276,7 +1274,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
      * You can add here some additional customizations.
      */
     protected CodecOptions correctReadingOptions(CodecOptions codecOptions, TiffTile tile, Codec customCodec)
-            throws FormatException {
+            throws TiffException {
         return codecOptions;
     }
 
@@ -1302,12 +1300,12 @@ public class TiffReader extends AbstractContextual implements Closeable {
                 testHeader(bigTiffReference);
                 return null;
             }
-        } catch (IOException | FormatException e) {
+        } catch (IOException e) {
             return e;
         }
     }
 
-    private void testHeader(AtomicBoolean bigTiffReference) throws IOException, FormatException {
+    private void testHeader(AtomicBoolean bigTiffReference) throws IOException {
         final long savedOffset = in.offset();
         try {
             in.seek(0);
@@ -1315,7 +1313,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
             if (length < MINIMAL_ALLOWED_TIFF_FILE_LENGTH) {
                 // - sometimes we can meet 8-byte "TIFF-files" (or 16-byte "Big-TIFF"), containing only header
                 // and no actual data (for example, results of debugging writing algorithm)
-                throw new FormatException("Too short TIFF file" + prettyInName() + ": only " + length +
+                throw new TiffException("Too short TIFF file" + prettyInName() + ": only " + length +
                         " bytes (we require minimum " + MINIMAL_ALLOWED_TIFF_FILE_LENGTH + " bytes for valid TIFF)");
             }
             final int endianOne = in.read();
@@ -1324,7 +1322,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
             final boolean littleEndian = endianOne == TiffConstants.LITTLE && endianTwo == TiffConstants.LITTLE; // II
             final boolean bigEndian = endianOne == TiffConstants.BIG && endianTwo == TiffConstants.BIG; // MM
             if (!littleEndian && !bigEndian) {
-                throw new FormatException("The file" + prettyInName() + " is not TIFF");
+                throw new TiffException("The file" + prettyInName() + " is not TIFF");
             }
 
             // check magic number (42)
@@ -1333,7 +1331,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
             final boolean bigTiff = magic == TiffConstants.BIG_TIFF_MAGIC_NUMBER;
             bigTiffReference.set(bigTiff);
             if (magic != TiffConstants.MAGIC_NUMBER && magic != TiffConstants.BIG_TIFF_MAGIC_NUMBER) {
-                throw new FormatException("The file" + prettyInName() + " is not TIFF");
+                throw new TiffException("The file" + prettyInName() + " is not TIFF");
             }
             if (bigTiff) {
                 in.seek(8);
@@ -1348,7 +1346,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
         }
     }
 
-    private CodecOptions buildReadingOptions(TiffTile tile, Codec customCodec) throws FormatException {
+    private CodecOptions buildReadingOptions(TiffTile tile, Codec customCodec) throws TiffException {
         TiffIFD ifd = tile.ifd();
         CodecOptions codecOptions = customCodec instanceof JPEGCodec ?
                 JPEGCodecOptions.getDefaultOptions(this.codecOptions)
@@ -1394,7 +1392,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
             int sizeX,
             int sizeY,
             boolean storeTilesInMap)
-            throws IOException, FormatException {
+            throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(resultSamples, "Null result samples");
         assert sizeX >= 0 && sizeY >= 0;
@@ -1416,11 +1414,11 @@ public class TiffReader extends AbstractContextual implements Closeable {
         final int toY = Math.min(fromY + sizeY, cropTilesToImageBoundaries ? map.dimY() : Integer.MAX_VALUE);
         // - crop by image sizes to avoid reading unpredictable content of the boundary tiles outside the image
         final int minXIndex = Math.max(0, divFloor(fromX, mapTileSizeX));
-        final int minYIndex = Math.max(0, divFloor(fromY,  mapTileSizeY));
+        final int minYIndex = Math.max(0, divFloor(fromY, mapTileSizeY));
         if (minXIndex >= map.gridTileCountX() || minYIndex >= map.gridTileCountY() || toX < fromX || toY < fromY) {
             return;
         }
-        final int maxXIndex = Math.min(map.gridTileCountX() - 1, divFloor (toX - 1, mapTileSizeX));
+        final int maxXIndex = Math.min(map.gridTileCountX() - 1, divFloor(toX - 1, mapTileSizeX));
         final int maxYIndex = Math.min(map.gridTileCountY() - 1, divFloor(toY - 1, mapTileSizeY));
         if (minYIndex > maxYIndex || minXIndex > maxXIndex) {
             // - possible when fromX < 0 or fromY < 0
@@ -1476,7 +1474,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
         }
     }
 
-    private static int cachedByteCountWithCompatibilityTrick(TiffIFD ifd, int index) throws FormatException {
+    private static int cachedByteCountWithCompatibilityTrick(TiffIFD ifd, int index) throws TiffException {
         final boolean tiled = ifd.hasTileInformation();
         final int tag = tiled ? TiffIFD.TILE_BYTE_COUNTS : TiffIFD.STRIP_BYTE_COUNTS;
         Object value = ifd.get(tag);
@@ -1494,7 +1492,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
 
     // Unlike AbstractCodec.decompress, this method does not require using "handles" field, annotated as @Parameter
     // This function is not universal, it cannot be applied to any codec!
-    private static byte[] codecDecompress(byte[] data, Codec codec, CodecOptions options) throws FormatException {
+    private static byte[] codecDecompress(byte[] data, Codec codec, CodecOptions options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(codec, "Null codec");
         if (codec instanceof PassthroughCodec) {
@@ -1503,8 +1501,8 @@ public class TiffReader extends AbstractContextual implements Closeable {
         }
         try (DataHandle<Location> handle = TiffTools.getBytesHandle(new BytesLocation(data))) {
             return codec.decompress(handle, options);
-        } catch (final IOException e) {
-            throw new FormatException(e);
+        } catch (IOException | FormatException e) {
+            throw new TiffException(e.getMessage(), e);
         }
     }
 
@@ -1513,28 +1511,28 @@ public class TiffReader extends AbstractContextual implements Closeable {
     }
 
     private long readFirstOffsetFromCurrentPosition(boolean updatePositionOfLastOffset, boolean bigTiff)
-            throws IOException, FormatException {
+            throws IOException {
         final long offset = readNextOffset(updatePositionOfLastOffset, true, bigTiff);
         if (offset == 0) {
-            throw new FormatException("Invalid TIFF" + prettyInName() +
+            throw new TiffException("Invalid TIFF" + prettyInName() +
                     ": zero first offset (TIFF must contain at least one IFD!)");
         }
         return offset;
     }
 
-    private void skipIFDEntries(long fileLength) throws IOException, FormatException {
+    private void skipIFDEntries(long fileLength) throws IOException {
         final long offset = in.offset();
         final int bytesPerEntry = bigTiff ? TiffConstants.BIG_TIFF_BYTES_PER_ENTRY : TiffConstants.BYTES_PER_ENTRY;
         final long numberOfEntries = bigTiff ? in.readLong() : in.readUnsignedShort();
         if (numberOfEntries < 0 || numberOfEntries > Integer.MAX_VALUE / bytesPerEntry) {
-            throw new FormatException(
+            throw new TiffException(
                     "Too large number of IFD entries in Big TIFF: " +
                             (numberOfEntries < 0 ? ">= 2^63" : numberOfEntries + "") +
                             " (it is not supported, probably file is broken)");
         }
         final long skippedIFDBytes = numberOfEntries * bytesPerEntry;
         if (offset + skippedIFDBytes >= fileLength) {
-            throw new FormatException(
+            throw new TiffException(
                     "Invalid TIFF" + prettyInName() + ": position of next IFD offset " +
                             (offset + skippedIFDBytes) + " after " + numberOfEntries +
                             " entries is outside the file (probably file is broken)");
@@ -1542,7 +1540,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
         in.skipBytes((int) skippedIFDBytes);
     }
 
-    private long readNextOffset(boolean updatePositionOfLastOffset) throws IOException, FormatException {
+    private long readNextOffset(boolean updatePositionOfLastOffset) throws IOException {
         return readNextOffset(updatePositionOfLastOffset, this.requireValidTiff, this.bigTiff);
     }
 
@@ -1552,7 +1550,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
      * from the previous offset.
      */
     private long readNextOffset(boolean updatePositionOfLastOffset, boolean requireValidTiff, boolean bigTiff)
-            throws IOException, FormatException {
+            throws IOException {
         final long fileLength = in.length();
         final long filePosition = in.offset();
         long offset;
@@ -1581,12 +1579,12 @@ public class TiffReader extends AbstractContextual implements Closeable {
         if (requireValidTiff) {
             if (offset < 0) {
                 // - possibly in Big-TIFF only
-                throw new FormatException("Invalid TIFF" + prettyInName() +
+                throw new TiffException("Invalid TIFF" + prettyInName() +
                         ": negative 64-bit offset " + offset + " at file position " + filePosition +
                         ", probably the file is corrupted");
             }
             if (offset >= fileLength) {
-                throw new FormatException("Invalid TIFF" + prettyInName() + ": offset " + offset +
+                throw new TiffException("Invalid TIFF" + prettyInName() + ": offset " + offset +
                         " at file position " + filePosition + " is outside the file, probably the is corrupted");
             }
         }
@@ -1596,8 +1594,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
         return offset;
     }
 
-    private static Object readIFDValueAtEntryOffset(DataHandle<?> in, TiffIFD.TiffEntry entry)
-            throws IOException, FormatException {
+    private static Object readIFDValueAtEntryOffset(DataHandle<?> in, TiffIFD.TiffEntry entry) throws IOException {
         final int type = entry.type();
         final int count = entry.valueCount();
         final long offset = entry.valueOffset();
@@ -1781,22 +1778,22 @@ public class TiffReader extends AbstractContextual implements Closeable {
         }
     }
 
-    private static byte[] readIFDBytes(DataHandle<?> in, long length) throws IOException, FormatException {
+    private static byte[] readIFDBytes(DataHandle<?> in, long length) throws IOException {
         if (length > Integer.MAX_VALUE) {
-            throw new FormatException("Too large IFD value: " + length + " >= 2^31 bytes");
+            throw new TiffException("Too large IFD value: " + length + " >= 2^31 bytes");
         }
         byte[] bytes = new byte[(int) length];
         in.readFully(bytes);
         return bytes;
     }
 
-    private TiffIFD.TiffEntry readIFDEntry() throws IOException, FormatException {
+    private TiffIFD.TiffEntry readIFDEntry() throws IOException {
         final int entryTag = in.readUnsignedShort();
         final int entryType = in.readUnsignedShort();
 
         final long valueCount = bigTiff ? in.readLong() : ((long) in.readInt()) & 0xFFFFFFFFL;
         if (valueCount < 0 || valueCount > Integer.MAX_VALUE) {
-            throw new FormatException("Invalid TIFF: very large number of IFD values in array " +
+            throw new TiffException("Invalid TIFF: very large number of IFD values in array " +
                     (valueCount < 0 ? " >= 2^63" : valueCount + " >= 2^31") + " is not supported");
         }
         final int bytesPerElement = TiffIFD.entryTypeSize(entryType);
@@ -1807,10 +1804,10 @@ public class TiffReader extends AbstractContextual implements Closeable {
                 readNextOffset(false) :
                 in.offset();
         if (valueOffset < 0) {
-            throw new FormatException("Invalid TIFF: negative offset of IFD values " + valueOffset);
+            throw new TiffException("Invalid TIFF: negative offset of IFD values " + valueOffset);
         }
         if (valueOffset > in.length() - valueLength) {
-            throw new FormatException("Invalid TIFF: offset of IFD values " + valueOffset +
+            throw new TiffException("Invalid TIFF: offset of IFD values " + valueOffset +
                     " + total lengths of values " + valueLength + " = " + valueCount + "*" + bytesPerElement +
                     " is outside the file length " + in.length());
         }

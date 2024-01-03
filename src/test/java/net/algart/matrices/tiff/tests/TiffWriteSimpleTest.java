@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.tests;
 
-import io.scif.FormatException;
 import io.scif.formats.tiff.TiffCompression;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffPhotometricInterpretation;
@@ -44,7 +43,7 @@ public class TiffWriteSimpleTest {
     private final static int IMAGE_WIDTH = 1000;
     private final static int IMAGE_HEIGHT = 1000;
 
-    public static void main(String[] args) throws IOException, FormatException {
+    public static void main(String[] args) throws IOException {
         if (args.length < 1) {
             System.out.println("Usage:");
             System.out.println("    " + TiffWriteSimpleTest.class.getName() +

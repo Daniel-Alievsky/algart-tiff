@@ -24,22 +24,22 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
-import io.scif.FormatException;
 import io.scif.formats.tiff.TiffCompression;
+import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffSampleType;
 
 import java.util.Arrays;
 
 public class StrangeIFDBitsPerSampleTest {
-    private static void showIFD(TiffIFD ifd, String name, boolean exceptionExpected) throws FormatException {
+    private static void showIFD(TiffIFD ifd, String name, boolean exceptionExpected) throws TiffException {
         System.out.printf("%s%nBrief:%n----%n%s%n----%nNormal:%n----%n%s%n----%n%n",
                 name, ifd, ifd.toString(TiffIFD.StringFormat.NORMAL_SORTED));
         boolean exceptionOccurred = false;
         try {
             TiffSampleType sampleType = ifd.sampleType();
             System.out.printf("Sample type: %s, %s%n", sampleType, sampleType.prettyName());
-        } catch (FormatException e) {
+        } catch (TiffException e) {
             if (!exceptionExpected) {
                 throw e;
             }
@@ -48,7 +48,7 @@ public class StrangeIFDBitsPerSampleTest {
         }
         try {
             System.out.printf("Bits per sample: %s%n", Arrays.toString(ifd.getBitsPerSample()));
-        } catch (FormatException e) {
+        } catch (TiffException e) {
             if (!exceptionExpected) {
                 throw e;
             }
@@ -61,7 +61,7 @@ public class StrangeIFDBitsPerSampleTest {
         }
     }
 
-    public static void main(String[] args) throws FormatException {
+    public static void main(String[] args) throws TiffException {
         TiffIFD ifd = new TiffIFD();
         showIFD(ifd, "Empty", false);
 

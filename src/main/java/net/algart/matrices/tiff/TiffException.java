@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023-2023 Daniel Alievsky, AlgART Laboratory (http://algart.net)
+ * Copyright (c) 2023-2024 Daniel Alievsky, AlgART Laboratory (http://algart.net)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,24 +22,28 @@
  * SOFTWARE.
  */
 
+//
+// Source code recreated from a .class file by IntelliJ IDEA
+// (powered by FernFlower decompiler)
+//
+
 package net.algart.matrices.tiff;
 
-import java.io.Serial;
+import java.io.IOException;
 
-public class UnsupportedTiffFormatException extends TiffException {
-    @Serial
-    private static final long serialVersionUID = -7512224420930943208L;
-
-    public UnsupportedTiffFormatException() {
-        super();
+public class TiffException extends IOException {
+    public TiffException() {
     }
 
-    public UnsupportedTiffFormatException(final String s) {
+    public TiffException(String s) {
         super(s);
     }
 
-    public UnsupportedTiffFormatException(final String s, final Throwable cause) {
+    public TiffException(String s, Throwable cause) {
         super(s, cause);
     }
 
+    public TiffException(Throwable cause) {
+        super(cause);
+    }
 }

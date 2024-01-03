@@ -24,7 +24,7 @@
 
 package net.algart.matrices.tiff.tiles;
 
-import io.scif.FormatException;
+import net.algart.matrices.tiff.TiffException;
 import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
 
@@ -393,7 +393,7 @@ public final class TiffTile {
         try {
             samples = TiffTools.unpackUnusualPrecisions(
                     samples, ifd(), samplesPerPixel, sizeX * sizeY, true);
-        } catch (FormatException e) {
+        } catch (TiffException e) {
             throw new IllegalStateException("Illegal IFD inside the tile map", e);
         }
         return samples;

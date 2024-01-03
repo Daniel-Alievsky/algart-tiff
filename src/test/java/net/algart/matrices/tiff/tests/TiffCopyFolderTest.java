@@ -24,9 +24,8 @@
 
 package net.algart.matrices.tiff.tests;
 
-import io.scif.FormatException;
 import io.scif.SCIFIO;
-import io.scif.UnsupportedCompressionException;
+import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import org.scijava.Context;
 
@@ -37,7 +36,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class TiffCopyFolderTest {
-    public static void main(String[] args) throws IOException, FormatException {
+    public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         boolean noContext = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-noContext")) {
@@ -79,9 +78,9 @@ public class TiffCopyFolderTest {
                     }
                     try {
                         TiffCopyTest.copyTiff(context, file, targetFolder.resolve(fileName), bigTiff, uncompressed);
-                    } catch (UnsupportedTiffFormatException | UnsupportedCompressionException e) {
+                    } catch (UnsupportedTiffFormatException e) {
                         System.out.println("  Cannot copy: " + e.getMessage());
-                    } catch (FormatException e) {
+                    } catch (TiffException e) {
                         System.out.println("  Format error! " + e.getMessage());
                     }
                 }

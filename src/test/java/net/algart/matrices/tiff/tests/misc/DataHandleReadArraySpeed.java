@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
-import io.scif.FormatException;
 import org.scijava.Context;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.DataHandleService;
@@ -85,7 +84,7 @@ public class DataHandleReadArraySpeed {
                 (t3 - t2) * 1e-6, (size * elementSize) / 1048576.0 / ((t3 - t2) * 1e-9));
     }
 
-    public static void main(String[] args) throws IOException, FormatException {
+    public static void main(String[] args) throws IOException {
         if (args.length < 1) {
             System.out.println("Usage:");
             System.out.println("    " + DataHandleReadArraySpeed.class.getName() + " any_file");

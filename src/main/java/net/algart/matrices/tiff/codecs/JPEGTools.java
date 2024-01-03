@@ -24,7 +24,7 @@
 
 package net.algart.matrices.tiff.codecs;
 
-import io.scif.FormatException;
+import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffPhotometricInterpretation;
 import org.scijava.util.Bytes;
 import org.w3c.dom.NamedNodeMap;
@@ -164,7 +164,7 @@ public class JPEGTools {
             ImageInformation imageInformation,
             TiffPhotometricInterpretation declaredColorSpace,
             int[] declaredSubsampling)
-            throws FormatException {
+            throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(imageInformation, "Null image information");
         Objects.requireNonNull(declaredColorSpace, "Null color space");
@@ -178,7 +178,7 @@ public class JPEGTools {
 
         if (data[0].length != bandLength) {
             // - should not occur
-            throw new FormatException("Cannot correct unpacked JPEG: number of bytes per sample in JPEG " +
+            throw new TiffException("Cannot correct unpacked JPEG: number of bytes per sample in JPEG " +
                     "must be 1, but actually we have " +
                     (double) data[0].length / (double) bandLength + " bytes/sample");
         }

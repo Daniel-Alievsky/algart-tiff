@@ -277,7 +277,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
      * palette via the corresponding TIFF entry, or may specify 1000000 bits/pixel etc.</p>
      *
      * <p>If the settings in the specified IFD are absolutely incorrect, this class always throws
-     * {@link FormatException}. If the settings look possible in principle, but this class does not support
+     * {@link TiffException}. If the settings look possible in principle, but this class does not support
      * writing in this mode, the behaviour depends on the flag, setting by this method.</p>
      *
      * <p>If this mode is set to <tt>true</tt> (the "smart" IFD correction), the writer may try to change IFD to
@@ -405,7 +405,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         return extendedCodec && jpegInPhotometricRGB;
     }
 
-   public boolean isMissingTilesAllowed() {
+    public boolean isMissingTilesAllowed() {
         return missingTilesAllowed;
     }
 
@@ -461,7 +461,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         return positionOfLastIFDOffset;
     }
 
-    public void startExistingFile() throws IOException, FormatException {
+    public void startExistingFile() throws IOException {
         synchronized (fileLock) {
             ifdOffsets.clear();
             final TiffReader reader = new TiffReader(null, out, true);
@@ -621,7 +621,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
     }
 
 
-    public void writeTile(TiffTile tile) throws IOException, FormatException {
+    public void writeTile(TiffTile tile) throws IOException {
         encode(tile);
         writeEncodedTile(tile, true);
     }
@@ -814,7 +814,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         return updateSamples(map, samples, fromX, fromY, sizeX, sizeY);
     }
 
-    public void encode(TiffTile tile) throws FormatException {
+    public void encode(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         if (tile.isEmpty()) {
             return;
@@ -828,7 +828,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         TiffCompression compression = tile.ifd().getCompression();
         final KnownCompression known = KnownCompression.valueOfOrNull(compression);
         if (known == null) {
-            throw new UnsupportedCompressionException("Writing TIFF with compression \"" +
+            throw new UnsupportedTiffFormatException("Writing TIFF with compression \"" +
                     compression.getCodecName() + "\" (TIFF code " + compression.getCode() + ") is not supported");
         }
         // - don't try to write unknown compressions: they may require additional processing
@@ -849,13 +849,23 @@ public class TiffWriter extends AbstractContextual implements Closeable {
                 timing.setTiming(TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG);
                 timing.clearTiming();
             }
-            tile.setEncodedData(codec.compress(data, codecOptions));
+            try {
+                tile.setEncodedData(codec.compress(data, codecOptions));
+            } catch (FormatException e) {
+                throw new TiffException(e.getMessage(), e);
+            }
         } else {
             if (scifio == null) {
                 throw new IllegalStateException(
                         "Compression type " + compression + " requires specifying non-null SCIFIO context");
             }
-            tile.setEncodedData(compression.compress(scifio.codec(), data, codecOptions));
+            final byte[] encodedData;
+            try {
+                encodedData = compression.compress(scifio.codec(), data, codecOptions);
+            } catch (FormatException e) {
+                throw new TiffException(e.getMessage(), e);
+            }
+            tile.setEncodedData(encodedData);
         }
         TiffTools.invertFillOrderIfRequested(tile);
         long t4 = debugTime();
@@ -872,7 +882,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         }
     }
 
-    public void encode(TiffMap map) throws FormatException {
+    public void encode(TiffMap map) throws TiffException {
         Objects.requireNonNull(map, "Null TIFF map");
         for (TiffTile tile : map.tiles()) {
             if (!tile.isEncoded()) {
@@ -881,11 +891,11 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         }
     }
 
-    public void correctIFDForWriting(TiffIFD ifd) throws FormatException {
+    public void correctIFDForWriting(TiffIFD ifd) throws TiffException {
         correctIFDForWriting(ifd, smartIFDCorrection);
     }
 
-    public void correctIFDForWriting(TiffIFD ifd, boolean smartCorrection) throws FormatException {
+    public void correctIFDForWriting(TiffIFD ifd, boolean smartCorrection) throws TiffException {
         final int samplesPerPixel = ifd.getSamplesPerPixel();
         if (!ifd.containsKey(TiffIFD.BITS_PER_SAMPLE)) {
             ifd.put(TiffIFD.BITS_PER_SAMPLE, new int[]{8});
@@ -896,7 +906,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         final TiffSampleType sampleType;
         try {
             sampleType = ifd.sampleType();
-        } catch (FormatException e) {
+        } catch (TiffException e) {
             throw new UnsupportedTiffFormatException("Cannot write TIFF, because " +
                     "requested combination of number of bits per sample and sample format is not supported: " +
                     e.getMessage());
@@ -939,10 +949,10 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         // in simple formats like UNCOMPRESSED or LZW: maybe, the client knows how to process it
         if (jpeg) {
             if (samplesPerPixel != 1 && samplesPerPixel != 3) {
-                throw new FormatException("JPEG compression for " + samplesPerPixel + " channels is not supported");
+                throw new TiffException("JPEG compression for " + samplesPerPixel + " channels is not supported");
             }
             if (sampleType != TiffSampleType.UINT8) {
-                throw new FormatException("JPEG compression is supported for 8-bit unsigned samples only, but " +
+                throw new TiffException("JPEG compression is supported for 8-bit unsigned samples only, but " +
                         (sampleType == TiffSampleType.INT8 ? "signed 8-bit samples requested" :
                                 "requested number of bits/samples is " + Arrays.toString(ifd.getBitsPerSample())));
             }
@@ -967,7 +977,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
                         TiffPhotometricInterpretation.BLACK_IS_ZERO;
             } else {
                 if (newPhotometric == TiffPhotometricInterpretation.RGB_PALETTE && !hasColorMap) {
-                    throw new FormatException("Cannot write TIFF image: newPhotometric interpretation \"" +
+                    throw new TiffException("Cannot write TIFF image: newPhotometric interpretation \"" +
                             newPhotometric.prettyName() + "\" requires also \"ColorMap\" tag");
                 }
             }
@@ -1008,7 +1018,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
     }
 
     public TiffMap newMap(TiffIFD ifd, int numberOfChannels, Class<?> elementType, boolean signedIntegers)
-            throws FormatException {
+            throws TiffException {
         return newMap(ifd, numberOfChannels, elementType, signedIntegers, false);
     }
 
@@ -1018,7 +1028,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
             Class<?> elementType,
             boolean signedIntegers,
             boolean resizable)
-            throws FormatException {
+            throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         ifd.putPixelInformation(numberOfChannels, elementType, signedIntegers);
         return newMap(ifd, resizable);
@@ -1031,7 +1041,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
      * @param resizable if <tt>true</tt>, IFD dimensions may not be specified yet.
      * @return map for writing further data.
      */
-    public TiffMap newMap(TiffIFD ifd, boolean resizable) throws FormatException {
+    public TiffMap newMap(TiffIFD ifd, boolean resizable) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         if (ifd.isFrozen()) {
             throw new IllegalStateException("IFD is already frozen for usage while writing TIFF; " +
@@ -1051,7 +1061,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         return map;
     }
 
-    public TiffMap newMap(TiffIFD ifd) throws FormatException {
+    public TiffMap newMap(TiffIFD ifd) throws TiffException {
         return newMap(ifd, false);
     }
 
@@ -1070,7 +1080,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
      * @param ifd IFD of some existing image, probably loaded from the current TIFF file.
      * @return map for writing further data.
      */
-    public TiffMap existingMap(TiffIFD ifd) throws FormatException {
+    public TiffMap existingMap(TiffIFD ifd) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         correctIFDForWriting(ifd);
         final TiffMap map = new TiffMap(ifd);
@@ -1127,7 +1137,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         }
     }
 
-    public void complete(final TiffMap map) throws IOException, FormatException {
+    public void complete(final TiffMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         final boolean resizable = map.isResizable();
         map.checkTooSmallDimensionsForCurrentGrid();
@@ -1158,14 +1168,14 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         // between IFD and newly written TIFF tiles).
     }
 
-    public void writeSamples(final TiffMap map, byte[] samples) throws IOException, FormatException {
+    public void writeSamples(final TiffMap map, byte[] samples) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         map.checkZeroDimensions();
         writeSamples(map, samples, 0, 0, map.dimX(), map.dimY());
     }
 
     public void writeSamples(TiffMap map, byte[] samples, int fromX, int fromY, int sizeX, int sizeY)
-            throws IOException, FormatException {
+            throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(samples, "Null samples");
 
@@ -1183,14 +1193,14 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         }
     }
 
-    public void writeJavaArray(TiffMap map, Object samplesArray) throws IOException, FormatException {
+    public void writeJavaArray(TiffMap map, Object samplesArray) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         map.checkZeroDimensions();
         writeJavaArray(map, samplesArray, 0, 0, map.dimX(), map.dimY());
     }
 
     public void writeJavaArray(TiffMap map, Object samplesArray, int fromX, int fromY, int sizeX, int sizeY)
-            throws IOException, FormatException {
+            throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(samplesArray, "Null samplesArray");
         clearTime();
@@ -1216,16 +1226,15 @@ public class TiffWriter extends AbstractContextual implements Closeable {
      *
      * @param map    TIFF map.
      * @param matrix matrix of pixels.
-     * @throws IOException     in a case of any I/O errors.
-     * @throws FormatException in a case of invalid TIFF IFD.
+     * @throws TiffException in a case of invalid TIFF IFD.
+     * @throws IOException   in a case of any I/O errors.
      */
-    public void writeMatrix(TiffMap map, Matrix<? extends PArray> matrix) throws IOException, FormatException {
+    public void writeMatrix(TiffMap map, Matrix<? extends PArray> matrix) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         writeMatrix(map, matrix, 0, 0);
     }
 
-    public void writeMatrix(TiffMap map, Matrix<? extends PArray> matrix, int fromX, int fromY)
-            throws IOException, FormatException {
+    public void writeMatrix(TiffMap map, Matrix<? extends PArray> matrix, int fromX, int fromY) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(matrix, "Null matrix");
         clearTime();
@@ -1260,7 +1269,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         }
     }
 
-    protected void prepareDecodedTileForEncoding(TiffTile tile) throws FormatException {
+    protected void prepareDecodedTileForEncoding(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         if (autoInterleaveSource) {
             tile.interleaveSamples();
@@ -1569,7 +1578,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
                 updatePositionOfLastIFDOffset);
     }
 
-    private void completeWritingMap(TiffMap map) throws IOException, FormatException {
+    private void completeWritingMap(TiffMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         final long[] offsets = new long[map.numberOfGridTiles()];
         final long[] byteCounts = new long[map.numberOfGridTiles()];
@@ -1751,10 +1760,10 @@ public class TiffWriter extends AbstractContextual implements Closeable {
             TiffPhotometricInterpretation photometricInterpretation,
             EnumSet<TiffPhotometricInterpretation> allowed,
             String whatToWrite)
-            throws FormatException {
+            throws TiffException {
         if (photometricInterpretation != null) {
             if (!allowed.contains(photometricInterpretation)) {
-                throw new FormatException("Writing " + whatToWrite + " with photometric interpretation \"" +
+                throw new TiffException("Writing " + whatToWrite + " with photometric interpretation \"" +
                         photometricInterpretation + "\" is not supported (only " +
                         allowed.stream().map(photometric -> "\"" + photometric.prettyName() + "\"")
                                 .collect(Collectors.joining(", ")) +

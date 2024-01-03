@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.tests;
 
-import io.scif.FormatException;
 import io.scif.formats.tiff.TiffCompression;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffPhotometricInterpretation;
@@ -37,7 +36,7 @@ import java.nio.file.Paths;
 import java.util.List;
 
 public class TiffFalsifyJPEGColorSpace {
-    public static void main(String[] args) throws IOException, FormatException {
+    public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         if (args.length < startArgIndex + 4) {
             System.out.println("Usage:");

@@ -24,9 +24,11 @@
 
 package net.algart.matrices.tiff.tests;
 
-import io.scif.FormatException;
 import io.scif.SCIFIO;
-import net.algart.arrays.*;
+import net.algart.arrays.Matrices;
+import net.algart.arrays.Matrix;
+import net.algart.arrays.PArray;
+import net.algart.arrays.SimpleMemoryModel;
 import net.algart.external.ExternalAlgorithmCaller;
 import net.algart.external.ImageConversions;
 import net.algart.matrices.tiff.CachingTiffReader;
@@ -46,7 +48,7 @@ import java.util.Locale;
 public class TiffReaderTest {
     private static final int MAX_IMAGE_DIM = 8000;
 
-    public static void main(String[] args) throws IOException, FormatException {
+    public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         boolean noContext = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-noContext")) {

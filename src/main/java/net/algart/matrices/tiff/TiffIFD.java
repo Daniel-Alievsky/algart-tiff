@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff;
 
-import io.scif.FormatException;
 import io.scif.formats.tiff.OnDemandLongArray;
 import io.scif.formats.tiff.TiffCompression;
 import io.scif.formats.tiff.TiffRational;
@@ -461,13 +460,13 @@ public class TiffIFD {
         return map.size();
     }
 
-    public int sizeOfRegionBasedOnType(long sizeX, long sizeY) throws FormatException {
+    public int sizeOfRegionBasedOnType(long sizeX, long sizeY) throws TiffException {
         return TiffTools.checkedMul(sizeX, sizeY, getSamplesPerPixel(), sampleType().bytesPerSample(),
                 "sizeX", "sizeY", "samples per pixel", "bytes per sample (type-based)",
                 () -> "Invalid requested area: ", () -> "");
     }
 
-    public int sizeOfRegion(long sizeX, long sizeY) throws FormatException {
+    public int sizeOfRegion(long sizeX, long sizeY) throws TiffException {
         return TiffTools.checkedMul(sizeX, sizeY, getSamplesPerPixel(), equalBytesPerSample(),
                 "sizeX", "sizeY", "samples per pixel", "bytes per sample",
                 () -> "Invalid requested area: ", () -> "");
@@ -491,22 +490,22 @@ public class TiffIFD {
         return Optional.of(requiredClass.cast(value));
     }
 
-    public <R> Optional<R> getValue(int tag, Class<? extends R> requiredClass) throws FormatException {
+    public <R> Optional<R> getValue(int tag, Class<? extends R> requiredClass) throws TiffException {
         Objects.requireNonNull(requiredClass, "Null requiredClass");
         Object value = get(tag);
         if (value == null) {
             return Optional.empty();
         }
         if (!requiredClass.isInstance(value)) {
-            throw new FormatException("TIFF tag " + ifdTagName(tag, true) +
+            throw new TiffException("TIFF tag " + ifdTagName(tag, true) +
                     " has wrong type: " + value.getClass().getSimpleName() +
                     " instead of expected " + requiredClass.getSimpleName());
         }
         return Optional.of(requiredClass.cast(value));
     }
 
-    public <R> R reqValue(int tag, Class<? extends R> requiredClass) throws FormatException {
-        return getValue(tag, requiredClass).orElseThrow(() -> new FormatException(
+    public <R> R reqValue(int tag, Class<? extends R> requiredClass) throws TiffException {
+        return getValue(tag, requiredClass).orElseThrow(() -> new TiffException(
                 "TIFF tag " + ifdTagName(tag, true) + " is required, but it is absent"));
     }
 
@@ -519,11 +518,11 @@ public class TiffIFD {
         return optValue(tag, Boolean.class).orElse(defaultValue);
     }
 
-    public int reqInt(int tag) throws FormatException {
+    public int reqInt(int tag) throws TiffException {
         return checkedIntValue(reqValue(tag, Number.class), tag);
     }
 
-    public int getInt(int tag, int defaultValue) throws FormatException {
+    public int getInt(int tag, int defaultValue) throws TiffException {
         return checkedIntValue(getValue(tag, Number.class).orElse(defaultValue), tag);
     }
 
@@ -531,11 +530,11 @@ public class TiffIFD {
         return truncatedIntValue(optValue(tag, Number.class).orElse(defaultValue));
     }
 
-    public long reqLong(int tag) throws FormatException {
+    public long reqLong(int tag) throws TiffException {
         return reqValue(tag, Number.class).longValue();
     }
 
-    public long getLong(int tag, int defaultValue) throws FormatException {
+    public long getLong(int tag, int defaultValue) throws TiffException {
         return getValue(tag, Number.class).orElse(defaultValue).longValue();
     }
 
@@ -543,7 +542,7 @@ public class TiffIFD {
         return optValue(tag, Number.class).orElse(defaultValue).longValue();
     }
 
-    public long[] getLongArray(int tag) throws FormatException {
+    public long[] getLongArray(int tag) throws TiffException {
         final Object value = get(tag);
         long[] results = null;
         if (value instanceof long[]) {
@@ -561,14 +560,14 @@ public class TiffIFD {
                 results[i] = integers[i];
             }
         } else if (value != null) {
-            throw new FormatException("TIFF tag " + ifdTagName(tag, true) +
+            throw new TiffException("TIFF tag " + ifdTagName(tag, true) +
                     " has wrong type: " + value.getClass().getSimpleName() +
                     " instead of expected Number, Number[], long[] or int[]");
         }
         return results;
     }
 
-    public int[] getIntArray(int tag) throws FormatException {
+    public int[] getIntArray(int tag) throws TiffException {
         final Object value = get(tag);
         int[] results = null;
         if (value instanceof int[]) {
@@ -586,14 +585,14 @@ public class TiffIFD {
                 results[i] = checkedIntValue(numbers[i].longValue(), tag);
             }
         } else if (value != null) {
-            throw new FormatException("TIFF tag " + ifdTagName(tag, true) +
+            throw new TiffException("TIFF tag " + ifdTagName(tag, true) +
                     " has wrong type: " + value.getClass().getSimpleName() +
                     " instead of expected Number, Number[], long[] or int[]");
         }
         return results;
     }
 
-    public int getSamplesPerPixel() throws FormatException {
+    public int getSamplesPerPixel() throws TiffException {
         int compressionValue = getInt(COMPRESSION, 0);
         if (compressionValue == TiffCompression.OLD_JPEG.getCode()) {
             return 3;
@@ -601,28 +600,28 @@ public class TiffIFD {
         }
         final int samplesPerPixel = getInt(SAMPLES_PER_PIXEL, 1);
         if (samplesPerPixel < 1) {
-            throw new FormatException("TIFF tag SamplesPerPixel contains illegal zero or negative value: " +
+            throw new TiffException("TIFF tag SamplesPerPixel contains illegal zero or negative value: " +
                     samplesPerPixel);
         }
         if (samplesPerPixel > MAX_NUMBER_OF_CHANNELS) {
-            throw new FormatException("TIFF tag SamplesPerPixel contains too large value: " +
+            throw new TiffException("TIFF tag SamplesPerPixel contains too large value: " +
                     samplesPerPixel + " (maximal support number of channels is " + MAX_NUMBER_OF_CHANNELS + ")");
         }
         return samplesPerPixel;
     }
 
-    public int[] getBitsPerSample() throws FormatException {
+    public int[] getBitsPerSample() throws TiffException {
         int[] bitsPerSample = getIntArray(BITS_PER_SAMPLE);
         if (bitsPerSample == null) {
             bitsPerSample = new int[]{1};
             // - In the following loop, this array will be appended to necessary length.
         }
         if (bitsPerSample.length == 0) {
-            throw new FormatException("Zero length of BitsPerSample array");
+            throw new TiffException("Zero length of BitsPerSample array");
         }
         for (int i = 0; i < bitsPerSample.length; i++) {
             if (bitsPerSample[i] <= 0) {
-                throw new FormatException("Zero or negative BitsPerSample[" + i + "] = " + bitsPerSample[i]);
+                throw new TiffException("Zero or negative BitsPerSample[" + i + "] = " + bitsPerSample[i]);
             }
         }
         final int samplesPerPixel = getSamplesPerPixel();
@@ -638,7 +637,7 @@ public class TiffIFD {
         return bitsPerSample;
     }
 
-    public int[] getBytesPerSample() throws FormatException {
+    public int[] getBytesPerSample() throws TiffException {
         final int[] bitsPerSample = getBitsPerSample();
         final int[] result = new int[bitsPerSample.length];
         for (int i = 0; i < result.length; i++) {
@@ -649,20 +648,20 @@ public class TiffIFD {
         return result;
     }
 
-    public TiffSampleType sampleType() throws FormatException {
+    public TiffSampleType sampleType() throws TiffException {
         TiffSampleType result = sampleType(true);
         assert result != null;
         return result;
     }
 
-    public TiffSampleType sampleType(boolean requireNonNullResult) throws FormatException {
+    public TiffSampleType sampleType(boolean requireNonNullResult) throws TiffException {
         final int bytesPerSample;
         if (requireNonNullResult) {
             bytesPerSample = equalBytesPerSample();
         } else {
             try {
                 bytesPerSample = equalBytesPerSample();
-            } catch (FormatException e) {
+            } catch (TiffException e) {
                 return null;
             }
         }
@@ -671,7 +670,7 @@ public class TiffIFD {
             sampleFormats = new int[]{SAMPLE_FORMAT_UINT};
         }
         if (sampleFormats.length == 0) {
-            throw new FormatException("Zero length of SampleFormat array");
+            throw new TiffException("Zero length of SampleFormat array");
         }
         for (int v : sampleFormats) {
             if (v != sampleFormats[0]) {
@@ -750,7 +749,7 @@ public class TiffIFD {
         return result;
     }
 
-    public long[] getTileOrStripByteCounts() throws FormatException {
+    public long[] getTileOrStripByteCounts() throws TiffException {
         final boolean tiled = hasTileInformation();
         final int tag = tiled ? TILE_BYTE_COUNTS : STRIP_BYTE_COUNTS;
         long[] counts = getLongArray(tag);
@@ -759,17 +758,17 @@ public class TiffIFD {
             // - rare situation, when tile byte counts are actually stored in StripByteCounts
         }
         if (counts == null) {
-            throw new FormatException("Invalid IFD: no required StripByteCounts/TileByteCounts tag");
+            throw new TiffException("Invalid IFD: no required StripByteCounts/TileByteCounts tag");
         }
         final long numberOfTiles = (long) getTileCountX() * (long) getTileCountY();
         if (counts.length < numberOfTiles) {
-            throw new FormatException("StripByteCounts/TileByteCounts length (" + counts.length +
+            throw new TiffException("StripByteCounts/TileByteCounts length (" + counts.length +
                     ") does not match expected number of strips/tiles (" + numberOfTiles + ")");
         }
         return counts;
     }
 
-    public long[] cachedTileOrStripByteCounts() throws FormatException {
+    public long[] cachedTileOrStripByteCounts() throws TiffException {
         long[] result = this.cachedTileOrStripByteCounts;
         if (result == null) {
             this.cachedTileOrStripByteCounts = result = getTileOrStripByteCounts();
@@ -777,30 +776,30 @@ public class TiffIFD {
         return result;
     }
 
-    public int cachedTileOrStripByteCount(int index) throws FormatException {
+    public int cachedTileOrStripByteCount(int index) throws TiffException {
         long[] byteCounts = cachedTileOrStripByteCounts();
         if (index < 0) {
             throw new IllegalArgumentException("Negative index = " + index);
         }
         if (index >= byteCounts.length) {
-            throw new FormatException((hasTileInformation() ?
+            throw new TiffException((hasTileInformation() ?
                     "Tile index is too big for TileByteCounts" :
                     "Strip index is too big for StripByteCounts") +
                     "array: it contains only " + byteCounts.length + " elements");
         }
         long result = byteCounts[index];
         if (result < 0) {
-            throw new FormatException(
+            throw new TiffException(
                     "Negative value " + result + " in " +
                             (hasTileInformation() ? "TileByteCounts" : "StripByteCounts") + " array");
         }
         if (result > Integer.MAX_VALUE) {
-            throw new FormatException("Too large tile/strip #" + index + ": " + result + " bytes > 2^31-1");
+            throw new TiffException("Too large tile/strip #" + index + ": " + result + " bytes > 2^31-1");
         }
         return (int) result;
     }
 
-    public long[] getTileOrStripOffsets() throws FormatException {
+    public long[] getTileOrStripOffsets() throws TiffException {
         final boolean tiled = hasTileInformation();
         final int tag = tiled ? TILE_OFFSETS : STRIP_OFFSETS;
         long[] offsets;
@@ -813,7 +812,7 @@ public class TiffIFD {
                     offsets[q] = compressedOffsets.get(q);
                 }
             } catch (final IOException e) {
-                throw new FormatException("Failed to retrieve offset", e);
+                throw new TiffException("Failed to retrieve offset", e);
             }
         } else {
             offsets = getLongArray(tag);
@@ -823,11 +822,11 @@ public class TiffIFD {
             offsets = getLongArray(STRIP_OFFSETS);
         }
         if (offsets == null) {
-            throw new FormatException("Invalid IFD: no required StripOffsets/TileOffsets tag");
+            throw new TiffException("Invalid IFD: no required StripOffsets/TileOffsets tag");
         }
         final long numberOfTiles = (long) getTileCountX() * (long) getTileCountY();
         if (offsets.length < numberOfTiles) {
-            throw new FormatException("StripByteCounts/TileByteCounts length (" + offsets.length +
+            throw new TiffException("StripByteCounts/TileByteCounts length (" + offsets.length +
                     ") does not match expected number of strips/tiles (" + numberOfTiles + ")");
         }
         // Note: old getStripOffsets method also performed correction:
@@ -839,7 +838,7 @@ public class TiffIFD {
         return offsets;
     }
 
-    public long[] cachedTileOrStripOffsets() throws FormatException {
+    public long[] cachedTileOrStripOffsets() throws TiffException {
         long[] result = this.cachedTileOrStripOffsets;
         if (result == null) {
             this.cachedTileOrStripOffsets = result = getTileOrStripOffsets();
@@ -847,20 +846,20 @@ public class TiffIFD {
         return result;
     }
 
-    public long cachedTileOrStripOffset(int index) throws FormatException {
+    public long cachedTileOrStripOffset(int index) throws TiffException {
         long[] offsets = cachedTileOrStripOffsets();
         if (index < 0) {
             throw new IllegalArgumentException("Negative index = " + index);
         }
         if (index >= offsets.length) {
-            throw new FormatException((hasTileInformation() ?
+            throw new TiffException((hasTileInformation() ?
                     "Tile index is too big for TileOffsets" :
                     "Strip index is too big for StripOffsets") +
                     "array: it contains only " + offsets.length + " elements");
         }
         final long result = offsets[index];
         if (result < 0) {
-            throw new FormatException(
+            throw new TiffException(
                     "Negative value " + result + " in " +
                             (hasTileInformation() ? "TileOffsets" : "StripOffsets") + " array");
         }
@@ -876,7 +875,7 @@ public class TiffIFD {
         return code == -1 ? Optional.empty() : Optional.ofNullable(KnownCompression.compressionOfCodeOrNull(code));
     }
 
-    public TiffCompression getCompression() throws FormatException {
+    public TiffCompression getCompression() throws TiffException {
         final int code = getInt(COMPRESSION, TiffCompression.UNCOMPRESSED.getCode());
         final TiffCompression result = KnownCompression.compressionOfCodeOrNull(code);
         if (result == null) {
@@ -886,7 +885,7 @@ public class TiffIFD {
     }
 
     public TiffPhotometricInterpretation getPhotometricInterpretation()
-            throws FormatException {
+            throws TiffException {
         if (!containsKey(PHOTOMETRIC_INTERPRETATION)
                 && getInt(COMPRESSION, 0) == TiffCompression.OLD_JPEG.getCode()) {
             return TiffPhotometricInterpretation.RGB;
@@ -895,7 +894,7 @@ public class TiffIFD {
         return TiffPhotometricInterpretation.valueOfCodeOrUnknown(code);
     }
 
-    public int[] getYCbCrSubsampling() throws FormatException {
+    public int[] getYCbCrSubsampling() throws TiffException {
         final Object value = get(Y_CB_CR_SUB_SAMPLING);
         if (value == null) {
             return new int[]{2, 2};
@@ -909,23 +908,23 @@ public class TiffIFD {
                 result[k] = shorts[k];
             }
         } else {
-            throw new FormatException("TIFF tag YCbCrSubSampling has the wrong type " +
+            throw new TiffException("TIFF tag YCbCrSubSampling has the wrong type " +
                     value.getClass().getSimpleName() + ": must be int[] or short[]");
         }
         if (result.length < 2) {
-            throw new FormatException("TIFF tag YCbCrSubSampling contains only " + result.length +
+            throw new TiffException("TIFF tag YCbCrSubSampling contains only " + result.length +
                     " elements: " + Arrays.toString(result) + "; it must contain at least 2 numbers");
         }
         for (int v : result) {
             if (v != 1 && v != 2 && v != 4) {
-                throw new FormatException("TIFF tag YCbCrSubSampling must contain only values 1, 2 or 4, " +
+                throw new TiffException("TIFF tag YCbCrSubSampling must contain only values 1, 2 or 4, " +
                         "but it is " + Arrays.toString(result));
             }
         }
         return Arrays.copyOf(result, 2);
     }
 
-    public int[] getYCbCrSubsamplingLogarithms() throws FormatException {
+    public int[] getYCbCrSubsamplingLogarithms() throws TiffException {
         int[] result = getYCbCrSubsampling();
         for (int k = 0; k < result.length; k++) {
             final int v = result[k];
@@ -936,27 +935,27 @@ public class TiffIFD {
     }
 
 
-    public int getPlanarConfiguration() throws FormatException {
+    public int getPlanarConfiguration() throws TiffException {
         final int result = getInt(PLANAR_CONFIGURATION, 1);
         if (result != 1 && result != 2) {
-            throw new FormatException("TIFF tag PlanarConfiguration must contain only values 1 or 2, " +
+            throw new TiffException("TIFF tag PlanarConfiguration must contain only values 1 or 2, " +
                     "but it is " + result);
         }
         return result;
     }
 
-    public boolean isPlanarSeparated() throws FormatException {
+    public boolean isPlanarSeparated() throws TiffException {
         return getPlanarConfiguration() == PLANAR_CONFIGURATION_SEPARATE;
     }
 
-    public boolean isChunked() throws FormatException {
+    public boolean isChunked() throws TiffException {
         return getPlanarConfiguration() == PLANAR_CONFIGURATION_CHUNKED;
     }
 
-    public boolean isReversedBits() throws FormatException {
+    public boolean isReversedBits() throws TiffException {
         final int result = getInt(FILL_ORDER, 1);
         if (result != 1 && result != 2) {
-            throw new FormatException("TIFF tag FillOrder must contain only values 1 or 2, " +
+            throw new TiffException("TIFF tag FillOrder must contain only values 1 or 2, " +
                     "but it is " + result);
         }
         return result == 2;
@@ -966,25 +965,25 @@ public class TiffIFD {
         return containsKey(IMAGE_WIDTH) && containsKey(IMAGE_LENGTH);
     }
 
-    public int getImageDimX() throws FormatException {
+    public int getImageDimX() throws TiffException {
         final int imageWidth = reqInt(IMAGE_WIDTH);
         if (imageWidth <= 0) {
-            throw new FormatException("Zero or negative image width = " + imageWidth);
+            throw new TiffException("Zero or negative image width = " + imageWidth);
             // - impossible in a correct TIFF
         }
         return imageWidth;
     }
 
-    public int getImageDimY() throws FormatException {
+    public int getImageDimY() throws TiffException {
         final int imageLength = reqInt(IMAGE_LENGTH);
         if (imageLength <= 0) {
-            throw new FormatException("Zero or negative image height = " + imageLength);
+            throw new TiffException("Zero or negative image height = " + imageLength);
             // - impossible in a correct TIFF
         }
         return imageLength;
     }
 
-    public int getStripRows() throws FormatException {
+    public int getStripRows() throws TiffException {
         final long[] rowsPerStrip = getLongArray(ROWS_PER_STRIP);
         final int imageDimY = getImageDimY();
         if (rowsPerStrip == null || rowsPerStrip.length == 0) {
@@ -997,7 +996,7 @@ public class TiffIFD {
         for (int i = 0; i < rowsPerStrip.length; i++) {
             int rows = (int) Math.min(rowsPerStrip[i], imageDimY);
             if (rows <= 0) {
-                throw new FormatException("Zero or negative RowsPerStrip[" + i + "] = " + rows);
+                throw new TiffException("Zero or negative RowsPerStrip[" + i + "] = " + rows);
             }
             rowsPerStrip[i] = rows;
         }
@@ -1005,7 +1004,7 @@ public class TiffIFD {
         assert result > 0 : result + " was not checked in the loop above?";
         for (int i = 1; i < rowsPerStrip.length; i++) {
             if (result != rowsPerStrip[i]) {
-                throw new FormatException("Non-uniform RowsPerStrip is not supported");
+                throw new TiffException("Non-uniform RowsPerStrip is not supported");
             }
         }
         return result;
@@ -1018,15 +1017,15 @@ public class TiffIFD {
      * <p>Note: result is always positive!
      *
      * @return tile width.
-     * @throws FormatException in a case of incorrect IFD.
+     * @throws TiffException in a case of incorrect IFD.
      */
-    public int getTileSizeX() throws FormatException {
+    public int getTileSizeX() throws TiffException {
         if (hasTileInformation()) {
             // - Note: we refuse to handle situation, when TileLength presents, but TileWidth not, or vice versa
             final int tileWidth = reqInt(TILE_WIDTH);
             // - TIFF allows to use values <= 2^32-1, but in any case we cannot allocate Java array for such tile
             if (tileWidth <= 0) {
-                throw new FormatException("Zero or negative tile width = " + tileWidth);
+                throw new TiffException("Zero or negative tile width = " + tileWidth);
                 // - impossible in a correct TIFF
             }
             return tileWidth;
@@ -1044,14 +1043,14 @@ public class TiffIFD {
      * <p>Note: result is always positive!
      *
      * @return tile/strip height.
-     * @throws FormatException in a case of incorrect IFD.
+     * @throws TiffException in a case of incorrect IFD.
      */
-    public int getTileSizeY() throws FormatException {
+    public int getTileSizeY() throws TiffException {
         if (hasTileInformation()) {
             // - Note: we refuse to handle situation, when TileLength presents, but TileWidth not, or vice versa
             final int tileLength = reqInt(TILE_LENGTH);
             if (tileLength <= 0) {
-                throw new FormatException("Zero or negative tile length (height) = " + tileLength);
+                throw new TiffException("Zero or negative tile length (height) = " + tileLength);
                 // - impossible in a correct TIFF
             }
             return tileLength;
@@ -1063,10 +1062,10 @@ public class TiffIFD {
         // it allows to avoid additional checks in a calling code
     }
 
-    public int getTileCountX() throws FormatException {
+    public int getTileCountX() throws TiffException {
         int tileSizeX = getTileSizeX();
         if (tileSizeX <= 0) {
-            throw new FormatException("Zero or negative tile width = " + tileSizeX);
+            throw new TiffException("Zero or negative tile width = " + tileSizeX);
         }
         final long imageWidth = getImageDimX();
         final long n = (imageWidth + (long) tileSizeX - 1) / tileSizeX;
@@ -1074,10 +1073,10 @@ public class TiffIFD {
         return (int) n;
     }
 
-    public int getTileCountY() throws FormatException {
+    public int getTileCountY() throws TiffException {
         int tileSizeY = getTileSizeY();
         if (tileSizeY <= 0) {
-            throw new FormatException("Zero or negative tile height = " + tileSizeY);
+            throw new TiffException("Zero or negative tile height = " + tileSizeY);
         }
         final long imageLength = getImageDimY();
         final long n = (imageLength + (long) tileSizeY - 1) / tileSizeY;
@@ -1097,10 +1096,10 @@ public class TiffIFD {
      * create TIFF files with different number of bits per channel.
      *
      * @return bits per sample, if this value is the same for all channels, or empty value in other case.
-     * @throws FormatException in a case of any problems while parsing IFD, in particular,
+     * @throws TiffException in a case of any problems while parsing IFD, in particular,
      *                         if <tt>BitsPerSample</tt> tag contains zero or negative values.
      */
-    public OptionalInt tryEqualBitDepth() throws FormatException {
+    public OptionalInt tryEqualBitDepth() throws TiffException {
         final int[] bitsPerSample = getBitsPerSample();
         final int bits0 = bitsPerSample[0];
         for (int i = 1; i < bitsPerSample.length; i++) {
@@ -1111,7 +1110,7 @@ public class TiffIFD {
         return OptionalInt.of(bits0);
     }
 
-    public OptionalInt tryEqualBitDepthAlignedByBytes() throws FormatException {
+    public OptionalInt tryEqualBitDepthAlignedByBytes() throws TiffException {
         OptionalInt result = tryEqualBitDepth();
         return result.isPresent() && (result.getAsInt() & 7) == 0 ? result : OptionalInt.empty();
     }
@@ -1127,15 +1126,15 @@ public class TiffIFD {
      * However, equality of number of <i>bits</i> is not required.
      *
      * @return number of bytes per each sample.
-     * @throws FormatException if &#8968;bitsPerSample/8&#8969; values are different for some channels.
+     * @throws TiffException if &#8968;bitsPerSample/8&#8969; values are different for some channels.
      */
-    public int equalBytesPerSample() throws FormatException {
+    public int equalBytesPerSample() throws TiffException {
         final int[] bytesPerSample = getBytesPerSample();
         final int bytes0 = bytesPerSample[0];
         // - for example, if we have 5 bits R + 6 bits G + 4 bits B, it will be ceil(6/8) = 1 byte;
         // usually the same for all components
         if (bytes0 < 1) {
-            throw new FormatException("Invalid format: zero or negative bytes per sample = " + bytes0);
+            throw new TiffException("Invalid format: zero or negative bytes per sample = " + bytes0);
         }
         for (int k = 1; k < bytesPerSample.length; k++) {
             if (bytesPerSample[k] != bytes0) {
@@ -1150,26 +1149,26 @@ public class TiffIFD {
         return bytes0;
     }
 
-    public boolean isOrdinaryBitDepth() throws FormatException {
+    public boolean isOrdinaryBitDepth() throws TiffException {
         final int bits = tryEqualBitDepth().orElse(-1);
         return bits == 8 || bits == 16 || bits == 32 || bits == 64;
     }
 
-    public boolean isStandardYCbCrNonJpeg() throws FormatException {
+    public boolean isStandardYCbCrNonJpeg() throws TiffException {
         TiffCompression compression = getCompression();
         return isStandard(compression) && !isJpeg(compression) &&
                 getPhotometricInterpretation() == TiffPhotometricInterpretation.Y_CB_CR;
     }
 
-    public boolean isStandardCompression() throws FormatException {
+    public boolean isStandardCompression() throws TiffException {
         return isStandard(getCompression());
     }
 
-    public boolean isJpeg() throws FormatException {
+    public boolean isJpeg() throws TiffException {
         return isJpeg(getCompression());
     }
 
-    public boolean isStandardInvertedCompression() throws FormatException {
+    public boolean isStandardInvertedCompression() throws TiffException {
         TiffCompression compression = getCompression();
         return isStandard(compression) && !isJpeg(compression) && getPhotometricInterpretation().isInvertedBrightness();
     }
@@ -1234,7 +1233,7 @@ public class TiffIFD {
         final int samplesPerPixel;
         try {
             samplesPerPixel = getSamplesPerPixel();
-        } catch (FormatException e) {
+        } catch (TiffException e) {
             throw new IllegalStateException("Cannot set TIFF samples type: SamplesPerPixel tag is invalid", e);
         }
         put(BITS_PER_SAMPLE, nInts(samplesPerPixel, 8 * bytesPerSample));
@@ -1299,14 +1298,14 @@ public class TiffIFD {
      * (see https://download.osgeo.org/libtiff/ ).
      *
      * @return whether this IFD contain tile size information.
-     * @throws FormatException if one of tags <tt>TileWidth</tt> and <tt>TileLength</tt> is present in IFD,
+     * @throws TiffException if one of tags <tt>TileWidth</tt> and <tt>TileLength</tt> is present in IFD,
      *                         but the second is absent.
      */
-    public boolean hasTileInformation() throws FormatException {
+    public boolean hasTileInformation() throws TiffException {
         final boolean hasWidth = containsKey(TILE_WIDTH);
         final boolean hasLength = containsKey(TILE_LENGTH);
         if (hasWidth != hasLength) {
-            throw new FormatException("Inconsistent tiling information: tile width (TileWidth tag) is " +
+            throw new TiffException("Inconsistent tiling information: tile width (TileWidth tag) is " +
                     (hasWidth ? "" : "NOT ") + "specified, but tile height (TileLength tag) is " +
                     (hasLength ? "" : "NOT ") + "specified");
         }
@@ -1408,7 +1407,7 @@ public class TiffIFD {
             tileCountX = getTileCountX();
             tileCountY = getTileCountY();
             numberOfSeparatedPlanes = isPlanarSeparated() ? getSamplesPerPixel() : 1;
-        } catch (FormatException e) {
+        } catch (TiffException e) {
             throw new IllegalStateException("Illegal IFD: " + e.getMessage(), e);
         }
         final long totalCount = tileCountX * tileCountY * numberOfSeparatedPlanes;
@@ -1768,7 +1767,7 @@ public class TiffIFD {
     }
 
     // - For compatibility with old TiffParser feature (can be removed in future versions)
-    private OnDemandLongArray getOnDemandStripOffsets() throws FormatException {
+    private OnDemandLongArray getOnDemandStripOffsets() throws TiffException {
         final int tag = hasTileInformation() ? TILE_OFFSETS : STRIP_OFFSETS;
         final Object offsets = get(tag);
         if (offsets instanceof OnDemandLongArray) {
@@ -1808,15 +1807,15 @@ public class TiffIFD {
         return (int) result;
     }
 
-    private static int checkedIntValue(Number value, int tag) throws FormatException {
+    private static int checkedIntValue(Number value, int tag) throws TiffException {
         Objects.requireNonNull(value);
         long result = value.longValue();
         if (result > Integer.MAX_VALUE) {
-            throw new FormatException("Very large " + ifdTagName(tag, true) +
+            throw new TiffException("Very large " + ifdTagName(tag, true) +
                     " = " + value + " >= 2^31 is not supported");
         }
         if (result < Integer.MIN_VALUE) {
-            throw new FormatException("Very large (by absolute value) negative " + ifdTagName(tag, true) +
+            throw new TiffException("Very large (by absolute value) negative " + ifdTagName(tag, true) +
                     " = " + value + " < -2^31 is not supported");
         }
         return (int) result;

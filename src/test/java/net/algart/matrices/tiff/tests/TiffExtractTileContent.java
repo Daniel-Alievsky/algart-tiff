@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.tests;
 
-import io.scif.FormatException;
 import io.scif.SCIFIO;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.executable.TiffInfo;
@@ -39,7 +38,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class TiffExtractTileContent {
-    public static void main(String[] args) throws IOException, FormatException {
+    public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         if (args.length < startArgIndex + 5) {
             System.out.println("Usage:");
@@ -75,7 +74,7 @@ public class TiffExtractTileContent {
                 try {
                     tile = reader.readTile(tileIndex);
                     System.out.printf("Decoding the same (for verification): %s%n", tile);
-                } catch (FormatException | IOException e) {
+                } catch (IOException e) {
                     System.err.printf("Cannot decode tile: %s%n", e);
                 }
             }

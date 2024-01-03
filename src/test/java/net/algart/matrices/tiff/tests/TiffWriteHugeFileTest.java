@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.tests;
 
-import io.scif.FormatException;
 import io.scif.formats.tiff.TiffCompression;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
@@ -40,7 +39,7 @@ public class TiffWriteHugeFileTest {
     private final static int IMAGE_WIDTH = 10 * 1024;
     private final static int IMAGE_HEIGHT = 10 * 1024;
 
-    public static void main(String[] args) throws IOException, FormatException {
+    public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         boolean bigTiff = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-bigTiff")) {

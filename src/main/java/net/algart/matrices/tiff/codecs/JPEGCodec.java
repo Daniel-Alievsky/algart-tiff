@@ -25,13 +25,13 @@
 package net.algart.matrices.tiff.codecs;
 
 import io.scif.FormatException;
+import net.algart.matrices.tiff.TiffException;
 import io.scif.codec.*;
 import io.scif.gui.AWTImageTools;
 import net.algart.matrices.tiff.TiffPhotometricInterpretation;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.DataHandleInputStream;
 import org.scijava.io.location.Location;
-import org.scijava.plugin.Parameter;
 
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
@@ -111,7 +111,7 @@ public class JPEGCodec extends AbstractCodec implements CodecTiming {
 //            return codec.decompress(in, options);
         }
         if (info == null) {
-            throw new FormatException("Cannot read JPEG image: unknown format");
+            throw new TiffException("Cannot read JPEG image: unknown format");
             // - for example, OLD_JPEG
         }
 

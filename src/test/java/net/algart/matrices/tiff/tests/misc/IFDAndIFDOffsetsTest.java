@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
-import io.scif.FormatException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 
@@ -35,7 +34,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class IFDAndIFDOffsetsTest {
-    public static void main(String[] args) throws IOException, FormatException {
+    public static void main(String[] args) throws IOException {
         if (args.length < 2) {
             System.out.println("Usage:");
             System.out.println("    " + IFDAndIFDOffsetsTest.class.getName() + " tiff_file.tiff ifdIndex");

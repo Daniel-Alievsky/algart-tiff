@@ -24,7 +24,7 @@
 
 package net.algart.matrices.tiff.tiles;
 
-import io.scif.FormatException;
+import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.*;
 
 import java.util.*;
@@ -111,7 +111,7 @@ public final class TiffMap {
             this.bytesPerSample = ifd.equalBytesPerSample();
             // - so, we allow only EQUAL number of bytes/sample (but number if bits/sample can be different)
             if ((long) numberOfChannels * (long) bytesPerSample > MAX_TOTAL_BYTES_PER_PIXEL) {
-                throw new FormatException("Very large number of bytes per pixel " + numberOfChannels + " * " +
+                throw new TiffException("Very large number of bytes per pixel " + numberOfChannels + " * " +
                         bytesPerSample + " > " + MAX_TOTAL_BYTES_PER_PIXEL + " is not supported");
             }
             this.tileBytesPerPixel = tileSamplesPerPixel * bytesPerSample;
@@ -127,18 +127,18 @@ public final class TiffMap {
                 setDimensions(ifd.getImageDimX(), ifd.getImageDimY(), false);
             }
             if ((long) tileSizeX * (long) tileSizeY > Integer.MAX_VALUE) {
-                throw new FormatException("Very large TIFF tile " + tileSizeX + "x" + tileSizeY +
+                throw new TiffException("Very large TIFF tile " + tileSizeX + "x" + tileSizeY +
                         " >= 2^31 pixels is not supported");
                 // - note that it is also checked deeper in the next operator
             }
             this.tileSizeInPixels = tileSizeX * tileSizeY;
             if ((long) tileSizeInPixels * (long) tileBytesPerPixel > Integer.MAX_VALUE) {
-                throw new FormatException("Very large TIFF tile " + tileSizeX + "x" + tileSizeY +
+                throw new TiffException("Very large TIFF tile " + tileSizeX + "x" + tileSizeY +
                         ", " + tileSamplesPerPixel + " channels per " + bytesPerSample +
                         " bytes >= 2^31 bytes is not supported");
             }
             this.tileSizeInBytes = tileSizeInPixels * tileBytesPerPixel;
-        } catch (FormatException e) {
+        } catch (TiffException e) {
             throw new IllegalArgumentException("Illegal IFD: " + e.getMessage(), e);
         }
     }
@@ -352,21 +352,21 @@ public final class TiffMap {
     }
 
     public void checkPixelCompatibility(int numberOfChannels, Class<?> elementType, boolean signedIntegers)
-            throws FormatException {
+            throws TiffException {
         checkPixelCompatibility(numberOfChannels, TiffSampleType.valueOf(elementType, signedIntegers));
     }
 
-    public void checkPixelCompatibility(int numberOfChannels, TiffSampleType sampleType) throws FormatException {
+    public void checkPixelCompatibility(int numberOfChannels, TiffSampleType sampleType) throws TiffException {
         Objects.requireNonNull(sampleType, "Null sampleType");
         if (numberOfChannels <= 0) {
             throw new IllegalArgumentException("Zero or negative numberOfChannels = " + numberOfChannels);
         }
         if (numberOfChannels != this.numberOfChannels) {
-            throw new FormatException("Number of channel mismatch: expected " + numberOfChannels +
+            throw new TiffException("Number of channel mismatch: expected " + numberOfChannels +
                     " channels, but TIFF image contains " + this.numberOfChannels + " channels");
         }
         if (sampleType != this.sampleType) {
-            throw new FormatException(
+            throw new TiffException(
                     "Sample type mismatch: expected elements are " + sampleType.prettyName()
                             + ", but TIFF image contains elements " + this.sampleType.prettyName());
         }

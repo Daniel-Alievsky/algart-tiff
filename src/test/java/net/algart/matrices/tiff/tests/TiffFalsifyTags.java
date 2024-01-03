@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.tests;
 
-import io.scif.FormatException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffPhotometricInterpretation;
 import net.algart.matrices.tiff.TiffReader;
@@ -35,7 +34,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class TiffFalsifyTags {
-    public static void main(String[] args) throws IOException, FormatException {
+    public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         if (args.length < startArgIndex + 4) {
             System.out.println("Usage:");

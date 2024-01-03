@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff;
 
-import io.scif.FormatException;
 import io.scif.formats.tiff.IFD;
 import io.scif.formats.tiff.PhotoInterp;
 import io.scif.formats.tiff.TiffCompression;
@@ -350,7 +349,7 @@ public class TiffTools {
         return separatedBytes;
     }
 
-    public static void invertFillOrderIfRequested(TiffTile tile) throws FormatException {
+    public static void invertFillOrderIfRequested(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         invertFillOrderIfRequested(tile.ifd(), tile.getData());
     }
@@ -361,9 +360,9 @@ public class TiffTools {
      *
      * @param ifd   IFD
      * @param bytes bytes
-     * @throws FormatException in a case of error in IFD
+     * @throws TiffException in a case of error in IFD
      */
-    public static void invertFillOrderIfRequested(TiffIFD ifd, final byte[] bytes) throws FormatException {
+    public static void invertFillOrderIfRequested(TiffIFD ifd, final byte[] bytes) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         if (ifd.isReversedBits()) {
             // swap bits order of all bytes
@@ -374,7 +373,7 @@ public class TiffTools {
     }
 
     // Analog of the function DefaultTiffService.undifference
-    public static void subtractPredictionIfRequested(TiffTile tile) throws FormatException {
+    public static void subtractPredictionIfRequested(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         final byte[] data = tile.getDecodedData();
         final int predictor = tile.ifd().getInt(IFD.PREDICTOR, TiffIFD.PREDICTOR_NONE);
@@ -409,12 +408,12 @@ public class TiffTools {
                 }
             }
         } else if (predictor != TiffIFD.PREDICTOR_NONE) {
-            throw new FormatException("Unsupported TIFF Predictor tag: " + predictor);
+            throw new TiffException("Unsupported TIFF Predictor tag: " + predictor);
         }
     }
 
     // Analog of the function DefaultTiffService.difference
-    public static void unsubtractPredictionIfRequested(TiffTile tile) throws FormatException {
+    public static void unsubtractPredictionIfRequested(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         final byte[] data = tile.getDecodedData();
         final int predictor = tile.ifd().getInt(IFD.PREDICTOR, TiffIFD.PREDICTOR_NONE);
@@ -449,11 +448,11 @@ public class TiffTools {
                 }
             }
         } else if (predictor != TiffIFD.PREDICTOR_NONE) {
-            throw new FormatException("Unsupported TIFF Predictor tag: " + predictor);
+            throw new TiffException("Unsupported TIFF Predictor tag: " + predictor);
         }
     }
 
-    public static boolean separateUnpackedSamples(TiffTile tile) throws FormatException {
+    public static boolean separateUnpackedSamples(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile);
         final TiffIFD ifd = tile.ifd();
 
@@ -480,7 +479,7 @@ public class TiffTools {
             // LZWCodec creates result array on the base of options.maxBytes field.)
             // In comparison, further adjustNumberOfPixels throws IllegalArgumentException
             // in the same situation, when its argument is false.
-            throw new FormatException("Too large decoded TIFF data: " + tile.getStoredDataLength() +
+            throw new TiffException("Too large decoded TIFF data: " + tile.getStoredDataLength() +
                     " bytes, its is greater than one " +
                     (tile.map().isTiled() ? "tile" : "strip") + " (" + tile.map().tileSizeInBytes() + " bytes); "
                     + "probably TIFF file is corrupted or format is not properly supported");
@@ -504,7 +503,7 @@ public class TiffTools {
 
     }
 
-    public static boolean separateYCbCrToRGB(TiffTile tile) throws FormatException {
+    public static boolean separateYCbCrToRGB(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile);
         final TiffIFD ifd = tile.ifd();
 
@@ -529,7 +528,7 @@ public class TiffTools {
         }
 
         if (map.tileSamplesPerPixel() != 3) {
-            throw new FormatException("TIFF YCbCr photometric interpretation requires 3 channels, but " +
+            throw new TiffException("TIFF YCbCr photometric interpretation requires 3 channels, but " +
                     "there are " + map.tileSamplesPerPixel() + " channels in SamplesPerPixel TIFF tag");
         }
 
@@ -641,7 +640,7 @@ public class TiffTools {
             TiffTile tile,
             boolean scaleWhenIncreasingBitDepth,
             boolean correctInvertedBrightness)
-            throws FormatException {
+            throws TiffException {
         Objects.requireNonNull(tile);
         final TiffIFD ifd = tile.ifd();
 
@@ -665,7 +664,7 @@ public class TiffTools {
         final boolean invertedBrightness = photometricInterpretation.isInvertedBrightness();
         if (tile.isFloatingPoint() && OPTIMIZE_SEPARATING_WHOLE_BYTES) {
             // - TIFF with float/double samples must not require bit unpacking or inverting brightness
-            throw new FormatException("Invalid TIFF image: floating-point values, compression \"" +
+            throw new TiffException("Invalid TIFF image: floating-point values, compression \"" +
                     ifd.getCompression().getCodecName() + "\", photometric interpretation \"" +
                     photometricInterpretation.prettyName() + "\", " +
                     Arrays.toString(ifd.getBitsPerSample()) + " bits per sample");
@@ -770,7 +769,7 @@ public class TiffTools {
             final TiffIFD ifd,
             final int numberOfChannels,
             final int numberOfPixels,
-            boolean scaleUnsignedInt24) throws FormatException {
+            boolean scaleUnsignedInt24) throws TiffException {
         Objects.requireNonNull(samples, "Null samples");
         Objects.requireNonNull(ifd, "Null IFD");
         if (numberOfChannels <= 0) {
@@ -947,7 +946,7 @@ public class TiffTools {
     // Almost exact copy of old TiffParser.unpackBytes method
     static void unpackBytesLegacy(
             final byte[] samples, final int startIndex,
-            final byte[] bytes, final TiffIFD ifd) throws FormatException {
+            final byte[] bytes, final TiffIFD ifd) throws TiffException {
         final boolean planar = ifd.getPlanarConfiguration() == 2;
 
         final TiffCompression compression = ifd.getCompression();
@@ -1143,7 +1142,7 @@ public class TiffTools {
             long v1, long v2, long v3,
             String n1, String n2, String n3,
             Supplier<String> prefix,
-            Supplier<String> postfix) throws FormatException {
+            Supplier<String> postfix) throws TiffException {
         return checkedMul(new long[]{v1, v2, v3}, new String[]{n1, n2, n3}, prefix, postfix);
     }
 
@@ -1151,7 +1150,7 @@ public class TiffTools {
             long v1, long v2, long v3, long v4,
             String n1, String n2, String n3, String n4,
             Supplier<String> prefix,
-            Supplier<String> postfix) throws FormatException {
+            Supplier<String> postfix) throws TiffException {
         return checkedMul(new long[]{v1, v2, v3, v4}, new String[]{n1, n2, n3, n4}, prefix, postfix);
     }
 
@@ -1162,7 +1161,7 @@ public class TiffTools {
             Supplier<String> postfix) {
         try {
             return checkedMul(values, names, prefix, postfix);
-        } catch (FormatException e) {
+        } catch (TiffException e) {
             throw new IllegalArgumentException(e.getMessage());
         }
     }
@@ -1171,7 +1170,7 @@ public class TiffTools {
             long[] values,
             String[] names,
             Supplier<String> prefix,
-            Supplier<String> postfix) throws FormatException {
+            Supplier<String> postfix) throws TiffException {
         Objects.requireNonNull(values);
         Objects.requireNonNull(prefix);
         Objects.requireNonNull(postfix);
@@ -1185,7 +1184,7 @@ public class TiffTools {
         for (int i = 0; i < values.length; i++) {
             long m = values[i];
             if (m < 0) {
-                throw new FormatException(prefix.get() + "negative " + names[i] + " = " + m + postfix.get());
+                throw new TiffException(prefix.get() + "negative " + names[i] + " = " + m + postfix.get());
             }
             result *= m;
             product *= m;
@@ -1195,7 +1194,7 @@ public class TiffTools {
             }
         }
         if (overflow) {
-            throw new FormatException(prefix.get() + "too large " + String.join(" * ", names) +
+            throw new TiffException(prefix.get() + "too large " + String.join(" * ", names) +
                     " = " + Arrays.stream(values).mapToObj(String::valueOf).collect(
                     Collectors.joining(" * ")) +
                     " = " + product + " >= 2^31" + postfix.get());
@@ -1211,7 +1210,7 @@ public class TiffTools {
         }
     }
 
-    private static void debugPrintBits(TiffTile tile) throws FormatException {
+    private static void debugPrintBits(TiffTile tile) throws TiffException {
         if (tile.index().yIndex() != 0) {
             return;
         }
@@ -1256,7 +1255,7 @@ public class TiffTools {
     }
 
     private static boolean isSimpleRearrangingBytesEnough(TiffIFD ifd, AtomicBoolean simpleLossless)
-            throws FormatException {
+            throws TiffException {
         TiffCompression compression = ifd.getCompression();
         final boolean advancedFormat = !TiffIFD.isStandard(compression) || TiffIFD.isJpeg(compression);
         if (simpleLossless != null) {
@@ -1375,7 +1374,7 @@ public class TiffTools {
         return (value & 0x8000) << 16 | (exponent | mantissa) << 13;
     }
 
-    private static void checkInterleaved(TiffTile tile) throws FormatException {
+    private static void checkInterleaved(TiffTile tile) throws TiffException {
         if (!tile.isInterleaved()) {
             throw new IllegalArgumentException("Tile data must be interleaved for correct completing " +
                     "to decode " + tile.ifd().getCompression() + " (separated data are allowed for codecs " +

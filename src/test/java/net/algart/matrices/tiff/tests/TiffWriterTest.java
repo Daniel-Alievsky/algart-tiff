@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.tests;
 
-import io.scif.FormatException;
 import io.scif.SCIFIO;
 import io.scif.formats.tiff.FillOrder;
 import io.scif.formats.tiff.IFD;
@@ -48,7 +47,7 @@ public class TiffWriterTest {
     private final static int IMAGE_WIDTH = 1011;
     private final static int IMAGE_HEIGHT = 1051;
 
-    public static void main(String[] args) throws IOException, FormatException {
+    public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         boolean noContext = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-noContext")) {
@@ -342,7 +341,7 @@ public class TiffWriterTest {
             TiffWriter writer,
             TiffMap map,
             int fromX, int fromY, int sizeX, int sizeY)
-            throws IOException, FormatException {
+            throws IOException {
         final TiffReader reader = new TiffReader(null, writer.getStream());
         final IRectangularArea areaToWrite = IRectangularArea.valueOf(
                 fromX, fromY, fromX + sizeX - 1, fromY + sizeY - 1);

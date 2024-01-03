@@ -24,7 +24,7 @@
 
 package net.algart.matrices.tiff.tests;
 
-import io.scif.FormatException;
+import net.algart.matrices.tiff.TiffException;
 import io.scif.formats.tiff.TiffCompression;
 import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
@@ -44,7 +44,7 @@ import java.util.Locale;
 public class TiffReadTilesTest {
     private static final int MAX_IMAGE_DIM = 8000;
 
-    public static void main(String[] args) throws IOException, FormatException {
+    public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         if (args.length < startArgIndex + 3) {
             System.out.println("Usage:");
@@ -101,7 +101,7 @@ public class TiffReadTilesTest {
         }
     }
 
-    private static Path tilePath(TiffTile tile, Path resultFolder) throws FormatException {
+    private static Path tilePath(TiffTile tile, Path resultFolder) throws TiffException {
         final TiffTileIndex i = tile.index();
         return resultFolder.resolve("tile_x" + i.xIndex() +
                 "_y" + i.yIndex() +

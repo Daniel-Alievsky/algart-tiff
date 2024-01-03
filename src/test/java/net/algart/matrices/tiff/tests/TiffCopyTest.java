@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.tests;
 
-import io.scif.FormatException;
 import io.scif.SCIFIO;
 import io.scif.formats.tiff.TiffCompression;
 import net.algart.matrices.tiff.TiffIFD;
@@ -42,7 +41,7 @@ import java.nio.file.Paths;
 import java.util.List;
 
 public class TiffCopyTest {
-    public static void main(String[] args) throws IOException, FormatException {
+    public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         boolean noContext = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-noContext")) {
@@ -83,7 +82,7 @@ public class TiffCopyTest {
             int firstIFDIndex, int lastIFDIndex,
             boolean enforceBigTiff,
             boolean uncompressedTarget)
-            throws IOException, FormatException {
+            throws IOException {
         try (TiffReader reader = new TiffReader(context, sourceFile, false)) {
             if (!reader.isValid()) {
                 System.out.printf("Skipping %s: not a TIFF%n", sourceFile);
@@ -124,12 +123,12 @@ public class TiffCopyTest {
     static void copyTiff(
             Context context, Path sourceFile, Path targetFile,
             boolean enforceBigTiff, boolean uncompressedTarget)
-            throws IOException, FormatException {
+            throws IOException {
         copyTiff(context, sourceFile, targetFile, 0, Integer.MAX_VALUE, enforceBigTiff, uncompressedTarget);
     }
 
     static void copyImage(TiffIFD readIFD, TiffIFD writeIFD, TiffReader reader, TiffWriter writer)
-            throws IOException, FormatException {
+            throws IOException {
         final TiffMap readMap = reader.newMap(readIFD);
         final TiffMap writeMap = writer.newMap(writeIFD, false);
         writer.writeForward(writeMap);

@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff;
 
-import io.scif.FormatException;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIndex;
 import org.scijava.Context;
@@ -57,21 +56,19 @@ public class CachingTiffReader extends TiffReader {
     private long currentCacheMemory = 0;
     private final Object tileCacheLock = new Object();
 
-    public CachingTiffReader (Context context, Path file) throws IOException, FormatException {
+    public CachingTiffReader (Context context, Path file) throws IOException {
         super(context, file);
     }
 
-    public CachingTiffReader(Context context, Path file, boolean requireValidTiff)
-            throws IOException, FormatException {
+    public CachingTiffReader(Context context, Path file, boolean requireValidTiff) throws IOException {
         super(context, file, requireValidTiff);
     }
 
-    public CachingTiffReader(Context context, DataHandle<Location> in) throws IOException, FormatException {
+    public CachingTiffReader(Context context, DataHandle<Location> in) throws IOException {
         super(context, in);
     }
 
-    public CachingTiffReader(Context context, DataHandle<Location> in, boolean requireValidTiff)
-            throws IOException, FormatException {
+    public CachingTiffReader(Context context, DataHandle<Location> in, boolean requireValidTiff) throws IOException {
         super(context, in, requireValidTiff);
     }
 
@@ -92,7 +89,7 @@ public class CachingTiffReader extends TiffReader {
     }
 
     @Override
-    public TiffTile readTile(TiffTileIndex tileIndex) throws IOException, FormatException {
+    public TiffTile readTile(TiffTileIndex tileIndex) throws IOException {
         if (maxCachingMemory == 0) {
             return getTileWithoutCache(tileIndex);
         }
@@ -100,7 +97,7 @@ public class CachingTiffReader extends TiffReader {
     }
 
 
-    private TiffTile getTileWithoutCache(TiffTileIndex tileIndex) throws IOException, FormatException {
+    private TiffTile getTileWithoutCache(TiffTileIndex tileIndex) throws IOException {
         return super.readTile(tileIndex);
     }
 
@@ -138,7 +135,7 @@ public class CachingTiffReader extends TiffReader {
             this.tileIndex = Objects.requireNonNull(tileIndex, "Null tileIndex");
         }
 
-        TiffTile readIfNecessary() throws IOException, FormatException {
+        TiffTile readIfNecessary() throws IOException {
             synchronized (onlyThisTileLock) {
                 final var cachedData = cached();
                 if (cachedData != null) {

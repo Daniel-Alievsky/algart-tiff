@@ -24,7 +24,7 @@
 
 package net.algart.matrices.tiff.executable;
 
-import io.scif.FormatException;
+import net.algart.matrices.tiff.TiffException;
 import io.scif.formats.tiff.IFD;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
@@ -39,7 +39,7 @@ public class TiffInfo {
     boolean strict = false;
     TiffIFD.StringFormat stringFormat = TiffIFD.StringFormat.NORMAL;
 
-    public static void main(String[] args) throws IOException, FormatException {
+    public static void main(String[] args) throws IOException {
         TiffInfo info = new TiffInfo();
         int startArgIndex = 0;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-strict")) {
@@ -78,12 +78,11 @@ public class TiffInfo {
         }
     }
 
-    public void showTiffInfo(Path tiffFile) throws IOException, FormatException {
+    public void showTiffInfo(Path tiffFile) throws IOException {
         showTiffInfo(tiffFile, 0, Integer.MAX_VALUE);
     }
 
-    public void showTiffInfo(Path tiffFile, int firstIFDIndex, int lastIFDIndex)
-            throws IOException, FormatException {
+    public void showTiffInfo(Path tiffFile, int firstIFDIndex, int lastIFDIndex) throws IOException {
         try (TiffReader reader = new TiffReader(tiffFile, false)) {
             if (!reader.isValid()) {
                 System.out.printf("%nFile %s: not TIFF%n", tiffFile);
