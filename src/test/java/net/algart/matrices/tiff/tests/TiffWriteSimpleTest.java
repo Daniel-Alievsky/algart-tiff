@@ -40,8 +40,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class TiffWriteSimpleTest {
-    private final static int IMAGE_WIDTH = 1000;
-    private final static int IMAGE_HEIGHT = 1000;
+    private final static int IMAGE_WIDTH = 2000;
+    private final static int IMAGE_HEIGHT = 2000;
 
     public static void main(String[] args) throws IOException {
         if (args.length < 1) {
@@ -55,7 +55,7 @@ public class TiffWriteSimpleTest {
         System.out.println("Writing TIFF " + targetFile);
         try (final TiffWriter writer = new TiffWriter(targetFile)) {
             writer.setByteFiller((byte) 0xB0);
-            writer.createTiff();
+            writer.create();
             writer.setSmartIFDCorrection(true);
             // writer.startNewFile(); // - not a problem to call twice
             TiffIFD ifd = new TiffIFD();
@@ -74,22 +74,26 @@ public class TiffWriteSimpleTest {
 
             TiffMap map = writer.newMap(ifd);
             // map = writer.newMap(ifd); - will throw an exception
-            System.out.printf("Saved IFD:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.NORMAL));
+            System.out.printf("IFD to save:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.NORMAL));
 
             final Object samples = Array.newInstance(map.elementType(),
                     IMAGE_WIDTH * IMAGE_HEIGHT * bitsPerSample.length);
             if (samples instanceof byte[] bytes) {
                 Arrays.fill(bytes, (byte) 70);
             }
+            // writer.writeForward(map); // - uncomment to write IFD BEFORE image
             final List<TiffTile> updated = writer.updateJavaArray(
                     map, samples, 0, 0, map.dimX() / 2, map.dimY() / 2);
             // - filling only 1/4 of map
             System.out.printf("Updated:%n  %s%n", updated.stream().map(TiffTile::toString).collect(
                     Collectors.joining("%n  ".formatted())));
+            writer.writeCompletedTiles(updated);
+            // - frees the memory (almost do not affect results)
 
-            // writer.writeForward(map); // - uncomment to write IFD BEFORE image
             writer.complete(map);
             // writer.writeSamples(map, samples); // - equivalent to previous 3 methods
+
+            System.out.printf("%nActually saved IFD:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.DETAILED));
         }
         System.out.println("Done");
     }

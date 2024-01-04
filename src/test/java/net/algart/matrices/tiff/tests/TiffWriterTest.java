@@ -257,7 +257,7 @@ public class TiffWriterTest {
                     ifd.putPixelInformation(numberOfChannels, sampleType);
                     final boolean overwriteExisting = randomAccess && k == 0;
                     if (k == 0) {
-                        writer.openTiff(!randomAccess);
+                        writer.open(!randomAccess);
                     }
                     final TiffMap map;
                     if (overwriteExisting) {

@@ -53,6 +53,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -166,6 +167,16 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         this(context, deleteFileIfRequested(file, deleteExistingFile));
     }
 
+    /**
+     * Creates new TIFF writer.
+     *
+     * <p>Note: unlike classes like <tt>java.io.FileWriter</tt>, this constructor does not actually create file.
+     * You <b>must</b> call one of methods {@link #create()} or {@link #open(boolean)} after creating this object
+     * by the constructor.
+     *
+     * @param context SCIFIO context; may be <tt>null</tt> for most compressions.
+     * @param out output TIFF file.
+     */
     public TiffWriter(Context context, DataHandle<Location> out) {
         Objects.requireNonNull(out, "Null \"out\" data handle (output stream)");
         if (context != null) {
@@ -461,15 +472,15 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         return positionOfLastIFDOffset;
     }
 
-    public void openTiff() throws IOException {
-        openTiff(false);
+    public void open() throws IOException {
+        open(false);
     }
 
-    public void openTiff(boolean createIfNotExists) throws IOException {
+    public void open(boolean createIfNotExists) throws IOException {
         synchronized (fileLock) {
             if (!out.exists()) {
                 if (createIfNotExists) {
-                    createTiff();
+                    create();
                     return;
                 } else {
                     throw new FileNotFoundException("Output TIFF file " +
@@ -491,7 +502,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         }
     }
 
-    public void createTiff() throws IOException {
+    public void create() throws IOException {
         synchronized (fileLock) {
             ifdOffsets.clear();
             out.seek(0);
@@ -562,7 +573,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
      *     <li>It updates the offset, stored in the file at {@link #positionOfLastIFDOffset()}, with start offset of
      *     this IFD (i.e. <tt>startOffset</tt> or position of the file end). This action is performed <b>only</b>
      *     if this start offset is really new for this file, i.e. if it did not present in an existing file
-     *     while opening it by {@link #openTiff()} method and if some IFD was not already written
+     *     while opening it by {@link #open()} method and if some IFD was not already written
      *     at this position by methods of this object.</li>
      *     <li>It replaces the internal field, returned by {@link #positionOfLastIFDOffset()}, with
      *     the position of the next IFD offset, written as a part of this IFD.
@@ -638,6 +649,31 @@ public class TiffWriter extends AbstractContextual implements Closeable {
     public void writeTile(TiffTile tile) throws IOException {
         encode(tile);
         writeEncodedTile(tile, true);
+    }
+
+    public void writeTiles(Collection<TiffTile> tiles) throws IOException {
+        writeTiles(tiles, tile -> true);
+    }
+
+    public void writeCompletedTiles(Collection<TiffTile> tiles) throws IOException {
+        writeTiles(tiles, TiffTile::isCompleted);
+    }
+
+    public void writeTiles(Collection<TiffTile> tiles, Predicate<TiffTile> needToWrite) throws IOException {
+        Objects.requireNonNull(tiles, "Null tiles");
+        Objects.requireNonNull(needToWrite, "Null needToWrite");
+        for (TiffTile tile : tiles) {
+            if (needToWrite.test(tile)) {
+                writeTile(tile);
+            }
+        }
+    }
+
+    public void writeFullTiles(Collection<TiffTile> tiles) throws IOException {
+        Objects.requireNonNull(tiles, "Null tiles");
+        for (TiffTile tile : tiles) {
+            writeTile(tile);
+        }
     }
 
     public void writeEncodedTile(TiffTile tile, boolean freeAfterWriting) throws IOException {
@@ -1309,7 +1345,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
 
     private void checkVirginFile() throws IOException {
         if (positionOfLastIFDOffset < 0) {
-            throw new IllegalStateException("Writing to this TIFF file is not started yet");
+            throw new IllegalStateException("TIFF file is not yet created / opened for writing");
         }
         final boolean exists = out.exists();
         if (!exists || out.length() < (bigTiff ? 16 : 8)) {

@@ -281,6 +281,10 @@ public final class TiffTile {
         return this;
     }
 
+    public boolean isCompleted() {
+        return !hasUnset();
+    }
+
     public boolean hasUnset() {
         return unsetArea == null || !unsetArea.isEmpty();
     }
@@ -620,7 +624,8 @@ public final class TiffTile {
                 (isEmpty() ?
                         ", " + sizeX + "x" + sizeY :
                         ", actual sizes " + sizeX + "x" + sizeY + " (" +
-                                storedNumberOfPixels + " pixels, " + storedDataLength + " bytes)") +
+                                storedNumberOfPixels + " pixels, " + storedDataLength + " bytes)" +
+                                (isCompleted() ? ", completed" : ", partial")) +
                 ", index " + index +
                 (hasStoredDataFileOffset() ? " at file offset " + storedDataFileOffset : "");
     }
