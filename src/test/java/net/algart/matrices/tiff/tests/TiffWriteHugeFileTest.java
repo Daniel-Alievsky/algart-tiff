@@ -60,7 +60,7 @@ public class TiffWriteHugeFileTest {
         try (final TiffWriter writer = new TiffWriter(targetFile)) {
             writer.setBigTiff(bigTiff);
             writer.setLittleEndian(true);
-            writer.startNewFile();
+            writer.createTiff();
             for (int k = 1; k <= numberOfImages; k++) {
                 TiffIFD ifd = new TiffIFD().putImageDimensions(IMAGE_WIDTH, IMAGE_HEIGHT);
                 ifd.putTileSizes(1024, 1024);

@@ -255,15 +255,11 @@ public class TiffWriterTest {
                         // - unusual mode: no special putXxx method
                     }
                     ifd.putPixelInformation(numberOfChannels, sampleType);
+                    final boolean overwriteExisting = randomAccess && k == 0;
                     if (k == 0) {
-                        if (existingFile) {
-                            writer.startExistingFile();
-                        } else {
-                            writer.startNewFile();
-                        }
+                        writer.openTiff(!randomAccess);
                     }
                     final TiffMap map;
-                    boolean overwriteExisting = randomAccess && k == 0;
                     if (overwriteExisting) {
                         // - Ignoring previous IFD. It has no sense for k > 0:
                         // after writing first IFD (at firstIfdIndex), new number of IFD

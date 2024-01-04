@@ -63,7 +63,7 @@ public class TiffFalsifyJPEGColorSpace {
 
             writer.setBigTiff(reader.isBigTiff());
             writer.setLittleEndian(reader.isLittleEndian());
-            writer.startNewFile();
+            writer.createTiff();
 
             System.out.printf("Transforming to %s...%n", targetFile);
             final List<TiffIFD> ifds = reader.allIFDs();

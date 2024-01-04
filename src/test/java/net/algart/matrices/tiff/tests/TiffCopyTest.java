@@ -98,7 +98,7 @@ public class TiffCopyTest {
                 // writer.setJpegInPhotometricRGB(true);
                 // - should not be important for copying, when PhotometricInterpretation is already specified
 //                writer.setQuality(0.3);
-                writer.startNewFile();
+                writer.createTiff();
 
                 final List<TiffIFD> ifds = reader.allIFDs();
                 lastIFDIndex = Math.min(lastIFDIndex, ifds.size() - 1);

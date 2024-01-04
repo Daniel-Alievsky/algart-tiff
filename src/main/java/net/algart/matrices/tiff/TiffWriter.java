@@ -27,7 +27,6 @@ package net.algart.matrices.tiff;
 
 import io.scif.FormatException;
 import io.scif.SCIFIO;
-import io.scif.UnsupportedCompressionException;
 import io.scif.codec.Codec;
 import io.scif.codec.CodecOptions;
 import io.scif.formats.tiff.TiffCompression;
@@ -48,6 +47,7 @@ import org.scijava.io.location.BytesLocation;
 import org.scijava.io.location.Location;
 
 import java.io.Closeable;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -461,8 +461,21 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         return positionOfLastIFDOffset;
     }
 
-    public void startExistingFile() throws IOException {
+    public void openTiff() throws IOException {
+        openTiff(false);
+    }
+
+    public void openTiff(boolean createIfNotExists) throws IOException {
         synchronized (fileLock) {
+            if (!out.exists()) {
+                if (createIfNotExists) {
+                    createTiff();
+                    return;
+                } else {
+                    throw new FileNotFoundException("Output TIFF file " +
+                            TiffReader.prettyFileName("%s", out) + " does not exist");
+                }
+            }
             ifdOffsets.clear();
             final TiffReader reader = new TiffReader(null, out, true);
             // - note: we should NOT call reader.close() method
@@ -474,10 +487,11 @@ public class TiffWriter extends AbstractContextual implements Closeable {
             seekToEnd();
             // - ready to write after the end of the file
             // (not necessary, but can help to avoid accidental bugs)
+
         }
     }
 
-    public void startNewFile() throws IOException {
+    public void createTiff() throws IOException {
         synchronized (fileLock) {
             ifdOffsets.clear();
             out.seek(0);
@@ -548,7 +562,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
      *     <li>It updates the offset, stored in the file at {@link #positionOfLastIFDOffset()}, with start offset of
      *     this IFD (i.e. <tt>startOffset</tt> or position of the file end). This action is performed <b>only</b>
      *     if this start offset is really new for this file, i.e. if it did not present in an existing file
-     *     while opening it by {@link #startExistingFile()} method and if some IFD was not already written
+     *     while opening it by {@link #openTiff()} method and if some IFD was not already written
      *     at this position by methods of this object.</li>
      *     <li>It replaces the internal field, returned by {@link #positionOfLastIFDOffset()}, with
      *     the position of the next IFD offset, written as a part of this IFD.
@@ -571,7 +585,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
                 startOffset = out.length();
             }
             if (!bigTiff && startOffset > MAXIMAL_ALLOWED_32BIT_IFD_OFFSET) {
-                throw new IOException("Attempt to write too large TIFF file without big-TIFF mode: " +
+                throw new TiffException("Attempt to write too large TIFF file without big-TIFF mode: " +
                         "offset of new IFD will be " + startOffset + " > " + MAXIMAL_ALLOWED_32BIT_IFD_OFFSET);
             }
             ifd.setFileOffsetForWriting(startOffset);
@@ -1640,7 +1654,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
             if (value < Integer.MIN_VALUE || value > 0xFFFFFFFFL) {
                 // - note: positive values in range 0x80000000..0xFFFFFFFF are mostly probably unsigned integers,
                 // not signed values with overflow
-                throw new IOException("Attempt to write 64-bit value as 32-bit: " + value);
+                throw new TiffException("Attempt to write 64-bit value as 32-bit: " + value);
             }
             handle.writeInt((int) value);
         }
@@ -1656,14 +1670,14 @@ public class TiffWriter extends AbstractContextual implements Closeable {
 
     private static void writeUnsignedShort(DataHandle<Location> handle, int value) throws IOException {
         if (value < 0 || value > 0xFFFF) {
-            throw new IOException("Attempt to write 32-bit value as 16-bit: " + value);
+            throw new TiffException("Attempt to write 32-bit value as 16-bit: " + value);
         }
         handle.writeShort(value);
     }
 
     private static void writeUnsignedByte(DataHandle<Location> handle, int value) throws IOException {
         if (value < 0 || value > 0xFF) {
-            throw new IOException("Attempt to write 16/32-bit value as 8-bit: " + value);
+            throw new TiffException("Attempt to write 16/32-bit value as 8-bit: " + value);
         }
         handle.writeByte(value);
     }
@@ -1676,7 +1690,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
             out.writeLong(offset);
         } else {
             if (offset > 0xFFFFFFF0L) {
-                throw new IOException("Attempt to write too large 64-bit offset as unsigned 32-bit: " + offset
+                throw new TiffException("Attempt to write too large 64-bit offset as unsigned 32-bit: " + offset
                         + " > 2^32-16; such large files should be written in Big-TIFF mode");
             }
             out.writeInt((int) offset);

@@ -226,7 +226,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
             if (openingException instanceof RuntimeException e) {
                 throw e;
             }
-            throw new IOException(openingException);
+            throw new TiffException(openingException);
         }
     }
 
@@ -657,7 +657,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
                 skipIFDEntries(fileLength);
                 final long newOffset = readNextOffset(true);
                 if (newOffset == offset) {
-                    throw new IOException("TIFF file is broken - infinite loop of IFD offsets is detected " +
+                    throw new TiffException("TIFF file is broken - infinite loop of IFD offsets is detected " +
                             "for offset " + offset);
                 }
                 offset = newOffset;
@@ -1822,7 +1822,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
         return a >= 0 ? a / b : (a - b + 1) / b;
     }
 
-    private static String prettyFileName(String format, DataHandle<Location> handle) {
+    static String prettyFileName(String format, DataHandle<Location> handle) {
         if (handle == null) {
             return "";
         }
