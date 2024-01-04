@@ -29,6 +29,7 @@ import io.scif.FormatException;
 import io.scif.SCIFIO;
 import io.scif.codec.Codec;
 import io.scif.codec.CodecOptions;
+import io.scif.formats.tiff.IFD;
 import io.scif.formats.tiff.TiffCompression;
 import io.scif.formats.tiff.TiffConstants;
 import io.scif.formats.tiff.TiffRational;
@@ -877,21 +878,23 @@ public class TiffWriter extends AbstractContextual implements Closeable {
 
         TiffCompression compression = tile.ifd().getCompression();
         final KnownCompression known = KnownCompression.valueOfOrNull(compression);
-        if (known == null) {
-            throw new UnsupportedTiffFormatException("Writing TIFF with compression \"" +
-                    compression.getCodecName() + "\" (TIFF code " + compression.getCode() + ") is not supported");
-        }
-        // - don't try to write unknown compressions: they may require additional processing
+        
+        // Deprecated solution: we didn't try to write unknown compressions, 
+        // but it does not allow to use new versions of SCIFIO TiffCompression without rewriting this library.
+        // if (known == null) {
+        //    throw new UnsupportedTiffFormatException("Writing TIFF with compression \"" +
+        //             compression.getCodecName() + "\" (TIFF code " + compression.getCode() + ") is not supported");
+        // }
 
         Codec codec = null;
-        if (extendedCodec) {
+        if (extendedCodec && known != null) {
             codec = known.extendedCodec();
         }
-        if (codec == null && scifio == null) {
+        if (codec == null && scifio == null && known != null) {
             codec = known.noContextCodec();
             // - if there is no SCIFIO context, let's create codec directly: it's better than do nothing
         }
-        CodecOptions codecOptions = buildWritingOptions(known, tile);
+        CodecOptions codecOptions = buildWritingOptions(known, compression, tile);
         long t3 = debugTime();
         byte[] data = tile.getDecodedData();
         if (codec != null) {
@@ -1771,12 +1774,36 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         }
     }
 
-    private CodecOptions buildWritingOptions(KnownCompression known, TiffTile tile) {
-        CodecOptions result = known.writeOptions(tile, this.codecOptions);
+    private CodecOptions buildWritingOptions(KnownCompression known, TiffCompression compression, TiffTile tile) 
+            throws TiffException {
+        CodecOptions result = writeOptions(known, compression, tile);
         if (quality != null) {
             result.quality = quality;
         }
         return result;
+    }
+
+    private CodecOptions writeOptions(KnownCompression known, TiffCompression compression, TiffTile tile)
+            throws TiffException {
+        if (known != null) {
+            return known.writeOptions(tile, this.codecOptions);
+        } else {
+            try {
+                TiffIFD ifd = tile.ifd();
+                IFD scifioIFD = new IFD(null);
+                scifioIFD.putAll(ifd.map());
+                scifioIFD.put(IFD.LITTLE_ENDIAN, ifd.isLittleEndian());
+                scifioIFD.put(IFD.BIG_TIFF, ifd.isBigTiff());
+                if (!ifd.hasImageDimensions()) {
+                    scifioIFD.put(IFD.IMAGE_WIDTH, 1024);
+                    scifioIFD.put(IFD.IMAGE_LENGTH, 1024);
+                    // - some dummy dimensions for resizable map (when dimensions are not set yet)
+                }
+                return compression.getCompressionCodecOptions(scifioIFD, this.codecOptions);
+            } catch (FormatException e) {
+                throw new TiffException(e.getMessage(), e);
+            }
+        }
     }
 
     private void logWriting(TiffMap map, String name, int sizeX, int sizeY, long t1, long t2, long t3, long t4) {
