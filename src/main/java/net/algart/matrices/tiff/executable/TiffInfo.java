@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023-2023 Daniel Alievsky, AlgART Laboratory (http://algart.net)
+ * Copyright (c) 2023-2024 Daniel Alievsky, AlgART Laboratory (http://algart.net)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,8 +24,8 @@
 
 package net.algart.matrices.tiff.executable;
 
-import net.algart.matrices.tiff.TiffException;
 import io.scif.formats.tiff.IFD;
+import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 
@@ -100,10 +100,10 @@ public class TiffInfo {
                         final TiffIFD ifd = ifdList.get(k);
                         System.out.println(ifdInfo(ifd, k, ifdCount));
                         if (!(ifd.containsKey(IFD.STRIP_BYTE_COUNTS) || ifd.containsKey(IFD.TILE_BYTE_COUNTS))) {
-                            throw new IOException("Invalid IFD: does not contain StripByteCounts/TileByteCounts tag");
+                            throw new TiffException("Invalid IFD: doesn't contain StripByteCounts/TileByteCounts tag");
                         }
                         if (!(ifd.containsKey(IFD.STRIP_OFFSETS) || ifd.containsKey(IFD.TILE_OFFSETS))) {
-                            throw new IOException("Invalid IFD: does not contain StripOffsets/TileOffsets tag");
+                            throw new TiffException("Invalid IFD: doesn't contain StripOffsets/TileOffsets tag");
                         }
                     }
                 }
