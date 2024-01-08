@@ -38,7 +38,7 @@ import java.io.IOException;
  * compression or decompression.
  */
 @Plugin(type = Codec.class)
-public class PassthroughCodec extends AbstractCodec {
+public class UncompressedCodec extends AbstractCodec {
 	// (It is placed here to avoid autocorrection by IntelliJ IDEA)
 	/*
 	 * #%L

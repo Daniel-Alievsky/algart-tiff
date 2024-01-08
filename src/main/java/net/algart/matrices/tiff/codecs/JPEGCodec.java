@@ -25,8 +25,8 @@
 package net.algart.matrices.tiff.codecs;
 
 import io.scif.FormatException;
+import io.scif.codec.CodecOptions;
 import net.algart.matrices.tiff.TiffException;
-import io.scif.codec.*;
 import io.scif.gui.AWTImageTools;
 import net.algart.matrices.tiff.TiffPhotometricInterpretation;
 import org.scijava.io.handle.DataHandle;

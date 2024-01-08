@@ -45,10 +45,12 @@ import java.util.function.Supplier;
  * <p>{@link TiffReader} tries to read any compression, but may use special logic for compressions from this list.
  */
 enum KnownCompression {
-    UNCOMPRESSED(TiffCompression.UNCOMPRESSED, PassthroughCodec::new, null,
+    UNCOMPRESSED(TiffCompression.UNCOMPRESSED, UncompressedCodec::new, null,
             KnownCompression::standardWriteOptions),
     LZW(TiffCompression.LZW, LZWCodec::new, null, KnownCompression::standardWriteOptions),
     DEFLATE(TiffCompression.DEFLATE, ZlibCodec::new, null, KnownCompression::standardWriteOptions),
+    PROPRIETARY_DEFLATE(TiffCompression.PROPRIETARY_DEFLATE,
+            ZlibCodec::new, null, KnownCompression::standardWriteOptions),
     JPEG(TiffCompression.JPEG, null, JPEGCodec::new, KnownCompression::jpegWriteOptions),
     // OLD_JPEG(TiffCompression.OLD_JPEG, null, ExtendedJPEGCodec::new, true),
     // - OLD_JPEG does not work: see https://github.com/scifio/scifio/issues/510
@@ -72,20 +74,17 @@ enum KnownCompression {
     }
 
     private final TiffCompression compression;
-    private final Supplier<Codec> noContext;
-    // - Note: noContext codec will be used directly ONLY if there is no available context!
-    // In other case, it will be ignored, and the codec will be created via SCIFIO context-based mechanism
-    // inside TiffCompression.decompress method.
-    // It is important, because noContext codecs are not the part of this module,
-    // they can be changed in future versions of SCIFIO libraries.
-    private final Supplier<Codec> extended;
+    private final Supplier<? extends Codec> noContext;
+    // - Note: noContext codec should be implemented inside this module:
+    // we must be sure that it does not use SCIFIO context
+    private final Supplier<? extends Codec> extended;
     // - This "extended" codec is implemented inside this module, and we are sure that it does not need the context.
     private final BiFunction<TiffTile, CodecOptions, CodecOptions> writeOptions;
 
     KnownCompression(
             TiffCompression compression,
-            Supplier<Codec> noContext,
-            Supplier<Codec> extended,
+            Supplier<AbstractCodec> noContext,
+            Supplier<AbstractCodec> extended,
             BiFunction<TiffTile, CodecOptions, CodecOptions> writeOptions) {
         this.compression = Objects.requireNonNull(compression);
         this.noContext = noContext;

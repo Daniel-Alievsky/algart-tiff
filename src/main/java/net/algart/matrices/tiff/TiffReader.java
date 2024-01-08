@@ -28,14 +28,11 @@ import io.scif.FormatException;
 import io.scif.SCIFIO;
 import io.scif.codec.Codec;
 import io.scif.codec.CodecOptions;
-import net.algart.matrices.tiff.codecs.PassthroughCodec;
+import net.algart.matrices.tiff.codecs.*;
 import io.scif.formats.tiff.TiffCompression;
 import io.scif.formats.tiff.TiffConstants;
 import io.scif.formats.tiff.TiffRational;
 import net.algart.arrays.*;
-import net.algart.matrices.tiff.codecs.CodecTiming;
-import net.algart.matrices.tiff.codecs.JPEGCodec;
-import net.algart.matrices.tiff.codecs.JPEGCodecOptions;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIO;
@@ -877,10 +874,11 @@ public class TiffReader extends AbstractContextual implements Closeable {
         Codec codec = null;
         if (extendedCodec && known != null) {
             codec = known.extendedCodec();
+            // - we are sure that this codec does not require SCIFIO context
         }
-        if (codec == null && scifio == null && known != null) {
+        if (codec == null && known != null) {
             codec = known.noContextCodec();
-            // - if there is no SCIFIO context, let's create codec directly: it's better than do nothing
+            // - we are sure that this codec does not require SCIFIO context
         }
         final CodecOptions codecOptions = buildReadingOptions(tile, codec);
 
@@ -1495,13 +1493,11 @@ public class TiffReader extends AbstractContextual implements Closeable {
     private static byte[] codecDecompress(byte[] data, Codec codec, CodecOptions options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(codec, "Null codec");
-        if (codec instanceof PassthroughCodec) {
-            // - PassthroughCodec does not support decompress(DataHandle) method, called below
-            return data;
-        }
-        try (DataHandle<Location> handle = TiffTools.getBytesHandle(new BytesLocation(data))) {
-            return codec.decompress(handle, options);
-        } catch (IOException | FormatException e) {
+        assert codec instanceof AbstractCodec :
+                "Known codec " + codec.getClass() + " is not inherited from " + AbstractCodec.class;
+        try {
+            return codec.decompress(data, options);
+        } catch (FormatException e) {
             throw new TiffException(e.getMessage(), e);
         }
     }

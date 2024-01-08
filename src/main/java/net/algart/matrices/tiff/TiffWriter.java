@@ -889,10 +889,11 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         Codec codec = null;
         if (extendedCodec && known != null) {
             codec = known.extendedCodec();
+            // - we are sure that this codec does not require SCIFIO context
         }
-        if (codec == null && scifio == null && known != null) {
+        if (codec == null && known != null) {
             codec = known.noContextCodec();
-            // - if there is no SCIFIO context, let's create codec directly: it's better than do nothing
+            // - we are sure that this codec does not require SCIFIO context
         }
         CodecOptions codecOptions = buildWritingOptions(known, compression, tile);
         long t3 = debugTime();

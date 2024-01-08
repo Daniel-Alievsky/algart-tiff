@@ -29,14 +29,13 @@ import io.scif.AbstractSCIFIOPlugin;
 import io.scif.FormatException;
 import io.scif.codec.Codec;
 import io.scif.codec.CodecOptions;
+import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
-import org.scijava.io.handle.DataHandleService;
 import org.scijava.io.location.BytesLocation;
 import org.scijava.io.location.Location;
-import org.scijava.plugin.Parameter;
 
 import java.io.IOException;
-import java.util.Random;
+import java.util.Objects;
 
 /**
  * BaseCodec contains default implementation and testing for classes
@@ -78,10 +77,6 @@ public abstract class AbstractCodec extends AbstractSCIFIOPlugin implements Code
 	 * POSSIBILITY OF SUCH DAMAGE.
 	 * #L%
 	 */
-
-
-	@Parameter
-	private DataHandleService handles;
 
 	// -- BaseCodec API methods --
 
@@ -127,7 +122,7 @@ public abstract class AbstractCodec extends AbstractSCIFIOPlugin implements Code
 	public byte[] decompress(final byte[] data, final CodecOptions options)
 		throws FormatException
 	{
-		try (DataHandle<Location> handle = handles.create(new BytesLocation(data))) {
+		try (DataHandle<Location> handle = getBytesHandle(new BytesLocation(data))) {
 			return decompress(handle, options);
 		}
 		catch (final IOException e) {
@@ -162,6 +157,13 @@ public abstract class AbstractCodec extends AbstractSCIFIOPlugin implements Code
 			curPos += aData.length;
 		}
 		return decompress(toDecompress, options);
+	}
+
+	@SuppressWarnings("rawtypes, unchecked")
+	private static DataHandle<Location> getBytesHandle(BytesLocation bytesLocation) {
+		Objects.requireNonNull(bytesLocation, "Null bytesLocation");
+		BytesHandle bytesHandle = new BytesHandle(bytesLocation);
+		return (DataHandle) bytesHandle;
 	}
 
 }
