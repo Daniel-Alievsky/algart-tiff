@@ -24,7 +24,7 @@
 
 package net.algart.matrices.tiff.codecs;
 
-public interface CodecTiming {
+public interface TiffCodecTiming {
     void setTiming(boolean timing);
 
     void clearTiming();

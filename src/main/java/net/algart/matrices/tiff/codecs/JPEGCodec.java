@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.codecs;
 
-import io.scif.FormatException;
 import io.scif.codec.CodecOptions;
 import net.algart.matrices.tiff.TiffException;
 import io.scif.gui.AWTImageTools;
@@ -40,7 +39,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
 
-public class JPEGCodec extends AbstractCodec implements CodecTiming {
+public class JPEGCodec extends AbstractCodec implements TiffCodecTiming {
     private static final boolean OPTIMIZE_SEPARATING_BGR = true;
 
     private long timeMain = 0;

@@ -882,7 +882,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
 
         long t2 = debugTime();
         if (codec != null) {
-            if (codec instanceof CodecTiming timing) {
+            if (codec instanceof TiffCodecTiming timing) {
                 timing.setTiming(TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG);
                 timing.clearTiming();
             }
@@ -908,7 +908,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
 
         timeCustomizingDecoding += t2 - t1;
         timeDecoding += t3 - t2;
-        if (codec instanceof CodecTiming timing) {
+        if (codec instanceof TiffCodecTiming timing) {
             timeDecodingMain += timing.timeMain();
             timeDecodingBridge += timing.timeBridge();
             timeDecodingAdditional += timing.timeAdditional();

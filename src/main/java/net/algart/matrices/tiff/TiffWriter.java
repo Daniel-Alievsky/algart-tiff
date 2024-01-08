@@ -35,7 +35,7 @@ import io.scif.formats.tiff.TiffConstants;
 import io.scif.formats.tiff.TiffRational;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
-import net.algart.matrices.tiff.codecs.CodecTiming;
+import net.algart.matrices.tiff.codecs.TiffCodecTiming;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIO;
@@ -899,7 +899,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         long t3 = debugTime();
         byte[] data = tile.getDecodedData();
         if (codec != null) {
-            if (codec instanceof CodecTiming timing) {
+            if (codec instanceof TiffCodecTiming timing) {
                 timing.setTiming(TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG);
                 timing.clearTiming();
             }
@@ -923,7 +923,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         timePreparingEncoding += t2 - t1;
         timeCustomizingEncoding += t3 - t2;
         timeEncoding += t4 - t3;
-        if (codec instanceof CodecTiming timing) {
+        if (codec instanceof TiffCodecTiming timing) {
             timeEncodingMain += timing.timeMain();
             timeEncodingBridge += timing.timeBridge();
             timeEncodingAdditional += timing.timeAdditional();
