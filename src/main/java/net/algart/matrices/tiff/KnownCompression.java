@@ -24,11 +24,11 @@
 
 package net.algart.matrices.tiff;
 
-import io.scif.codec.*;
+import io.scif.codec.Codec;
+import io.scif.codec.CodecOptions;
+import io.scif.codec.JPEG2000CodecOptions;
 import io.scif.formats.tiff.TiffCompression;
-import net.algart.matrices.tiff.codecs.JPEG2000Codec;
-import net.algart.matrices.tiff.codecs.JPEGCodec;
-import net.algart.matrices.tiff.codecs.JPEGCodecOptions;
+import net.algart.matrices.tiff.codecs.*;
 import net.algart.matrices.tiff.tiles.TiffTile;
 
 import java.util.EnumSet;

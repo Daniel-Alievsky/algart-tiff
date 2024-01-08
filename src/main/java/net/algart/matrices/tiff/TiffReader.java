@@ -28,7 +28,7 @@ import io.scif.FormatException;
 import io.scif.SCIFIO;
 import io.scif.codec.Codec;
 import io.scif.codec.CodecOptions;
-import io.scif.codec.PassthroughCodec;
+import net.algart.matrices.tiff.codecs.PassthroughCodec;
 import io.scif.formats.tiff.TiffCompression;
 import io.scif.formats.tiff.TiffConstants;
 import io.scif.formats.tiff.TiffRational;

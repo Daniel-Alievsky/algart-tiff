@@ -25,7 +25,6 @@
 package net.algart.matrices.tiff.codecs;
 
 import io.scif.FormatException;
-import io.scif.codec.AbstractCodec;
 import io.scif.codec.CodecOptions;
 import io.scif.codec.JPEG2000CodecOptions;
 import io.scif.gui.AWTImageTools;
