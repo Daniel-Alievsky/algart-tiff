@@ -24,9 +24,8 @@
 
 package net.algart.matrices.tiff;
 
-import io.scif.FormatException;
 import io.scif.SCIFIO;
-import io.scif.codec.Codec;
+import net.algart.matrices.tiff.codecs.TiffCodec;
 import io.scif.codec.CodecOptions;
 import net.algart.matrices.tiff.codecs.*;
 import io.scif.formats.tiff.TiffCompression;
@@ -41,7 +40,6 @@ import org.scijava.AbstractContextual;
 import org.scijava.Context;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.ReadBufferDataHandle;
-import org.scijava.io.location.BytesLocation;
 import org.scijava.io.location.Location;
 
 import java.io.Closeable;
@@ -871,7 +869,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
         final TiffCompression compression = ifd.getCompression();
 
         final KnownCompression known = KnownCompression.valueOfOrNull(compression);
-        Codec codec = null;
+        TiffCodec codec = null;
         if (extendedCodec && known != null) {
             codec = known.extendedCodec();
             // - we are sure that this codec does not require SCIFIO context
@@ -888,7 +886,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
                 timing.setTiming(TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG);
                 timing.clearTiming();
             }
-            tile.setPartiallyDecodedData(codecDecompress(encodedData, codec, codecOptions));
+            tile.setPartiallyDecodedData(codec.decompress(encodedData, codecOptions));
         } else {
             if (scifio == null) {
                 throw new IllegalStateException(
@@ -984,7 +982,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
     }
 
     /**
-     * Completes decoding tile after decoding by some {@link Codec}. This method is automatically called
+     * Completes decoding tile after decoding by some {@link TiffCodec}. This method is automatically called
      * at the end of {@link #decode(TiffTile)} method.
      *
      * <p>First of all, this method always rearranges data in the file: if the codec returned
@@ -1271,7 +1269,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
      * This method is called before using codec options for decompression.
      * You can add here some additional customizations.
      */
-    protected CodecOptions correctReadingOptions(CodecOptions codecOptions, TiffTile tile, Codec customCodec)
+    protected CodecOptions correctReadingOptions(CodecOptions codecOptions, TiffTile tile, TiffCodec customCodec)
             throws TiffException {
         return codecOptions;
     }
@@ -1344,7 +1342,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
         }
     }
 
-    private CodecOptions buildReadingOptions(TiffTile tile, Codec customCodec) throws TiffException {
+    private CodecOptions buildReadingOptions(TiffTile tile, TiffCodec customCodec) throws TiffException {
         TiffIFD ifd = tile.ifd();
         CodecOptions codecOptions = customCodec instanceof JPEGCodec ?
                 JPEGCodecOptions.getDefaultOptions(this.codecOptions)
@@ -1490,17 +1488,6 @@ public class TiffReader extends AbstractContextual implements Closeable {
 
     // Unlike AbstractCodec.decompress, this method does not require using "handles" field, annotated as @Parameter
     // This function is not universal, it cannot be applied to any codec!
-    private static byte[] codecDecompress(byte[] data, Codec codec, CodecOptions options) throws TiffException {
-        Objects.requireNonNull(data, "Null data");
-        Objects.requireNonNull(codec, "Null codec");
-        assert codec instanceof AbstractCodec :
-                "Known codec " + codec.getClass() + " is not inherited from " + AbstractCodec.class;
-        try {
-            return codec.decompress(data, options);
-        } catch (FormatException e) {
-            throw new TiffException(e.getMessage(), e);
-        }
-    }
 
     private String prettyInName() {
         return prettyFileName(" %s", in);

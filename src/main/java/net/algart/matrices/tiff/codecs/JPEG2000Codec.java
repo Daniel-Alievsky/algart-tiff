@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.codecs;
 
-import io.scif.FormatException;
 import io.scif.codec.CodecOptions;
 import io.scif.codec.JPEG2000CodecOptions;
 import io.scif.gui.AWTImageTools;
@@ -33,6 +32,7 @@ import io.scif.media.imageio.plugins.jpeg2000.J2KImageReadParam;
 import io.scif.media.imageio.plugins.jpeg2000.J2KImageWriteParam;
 import io.scif.media.imageioimpl.plugins.jpeg2000.J2KImageReader;
 import io.scif.media.imageioimpl.plugins.jpeg2000.J2KImageWriter;
+import net.algart.matrices.tiff.TiffException;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.location.Location;
 import org.scijava.util.Bytes;
@@ -80,9 +80,7 @@ public class JPEG2000Codec extends AbstractCodec {
 
 
     // Copy of equivalent SCIFIO method, not using jaiIIOService field
-    public byte[] compress(final byte[] data, final CodecOptions options)
-            throws FormatException
-    {
+    public byte[] compress(final byte[] data, final CodecOptions options) throws TiffException {
         if (data == null || data.length == 0) return data;
 
         JPEG2000CodecOptions j2kOptions;
@@ -179,7 +177,7 @@ public class JPEG2000Codec extends AbstractCodec {
             writeImage(out, img, j2kOptions);
         }
         catch (final IOException e) {
-            throw new FormatException("Could not compress JPEG-2000 data.", e);
+            throw new TiffException("Could not compress JPEG-2000 data.", e);
         }
 
         return out.toByteArray();
@@ -188,7 +186,7 @@ public class JPEG2000Codec extends AbstractCodec {
     // Almost exact copy of equivalent SCIFIO method
     @Override
     public byte[] decompress(final DataHandle<Location> in, CodecOptions options)
-            throws FormatException, IOException
+            throws IOException
     {
         if (in == null) {
             throw new IllegalArgumentException("No data to decompress.");
@@ -211,7 +209,7 @@ public class JPEG2000Codec extends AbstractCodec {
 
     // Copy of equivalent SCIFIO method, not using jaiIIOService field
     @Override
-    public byte[] decompress(byte[] buf, CodecOptions options) throws FormatException {
+    public byte[] decompress(byte[] buf, CodecOptions options) throws TiffException {
         if (!(options instanceof JPEG2000CodecOptions)) {
             options = JPEG2000CodecOptions.getDefaultOptions(options);
         }
@@ -237,11 +235,11 @@ public class JPEG2000Codec extends AbstractCodec {
             b = null;
         }
         catch (final IOException e) {
-            throw new FormatException("Could not decompress JPEG2000 image. Please " +
+            throw new TiffException("Could not decompress JPEG2000 image. Please " +
                 "make sure that jai_imageio.jar is installed.", e);
         }
 //        catch (final ServiceException e) {
-//            throw new FormatException("Could not decompress JPEG2000 image. Please " +
+//            throw new TiffException("Could not decompress JPEG2000 image. Please " +
 //                "make sure that jai_imageio.jar is installed.", e);
 //        }
 

@@ -27,7 +27,7 @@ package net.algart.matrices.tiff;
 
 import io.scif.FormatException;
 import io.scif.SCIFIO;
-import io.scif.codec.Codec;
+import net.algart.matrices.tiff.codecs.TiffCodec;
 import io.scif.codec.CodecOptions;
 import io.scif.formats.tiff.IFD;
 import io.scif.formats.tiff.TiffCompression;
@@ -886,7 +886,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         //             compression.getCodecName() + "\" (TIFF code " + compression.getCode() + ") is not supported");
         // }
 
-        Codec codec = null;
+        TiffCodec codec = null;
         if (extendedCodec && known != null) {
             codec = known.extendedCodec();
             // - we are sure that this codec does not require SCIFIO context
@@ -903,11 +903,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
                 timing.setTiming(TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG);
                 timing.clearTiming();
             }
-            try {
-                tile.setEncodedData(codec.compress(data, codecOptions));
-            } catch (FormatException e) {
-                throw new TiffException(e.getMessage(), e);
-            }
+            tile.setEncodedData(codec.compress(data, codecOptions));
         } else {
             if (scifio == null) {
                 throw new IllegalStateException(

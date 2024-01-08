@@ -24,17 +24,14 @@
 
 package net.algart.matrices.tiff.codecs;
 
-import io.scif.FormatException;
-import io.scif.codec.Codec;
 import io.scif.codec.CodecOptions;
+import net.algart.matrices.tiff.TiffException;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.location.Location;
-import org.scijava.plugin.Plugin;
 
 import java.io.IOException;
 import java.util.Arrays;
 
-@Plugin(type = Codec.class)
 public class LZWCodec extends AbstractCodec {
 	// (It is placed here to avoid autocorrection by IntelliJ IDEA)
 	/*
@@ -91,15 +88,13 @@ public class LZWCodec extends AbstractCodec {
 		0x1f, 0x3f, 0x7f };
 
 	@Override
-	public byte[] compress(final byte[] input, final CodecOptions options)
-		throws FormatException
-	{
+	public byte[] compress(final byte[] input, final CodecOptions options) throws TiffException {
 		if (input == null || input.length == 0) return input;
 
 		// Output buffer (see class comments for justification of size).
 		final long bufferSize = ((long) input.length * 141) / 100 + 3;
 		if (bufferSize > Integer.MAX_VALUE) {
-			throw new FormatException("Output buffer is greater than 2 GB");
+			throw new TiffException("Output buffer is greater than 2 GB");
 		}
 		final byte[] output = new byte[(int) bufferSize];
 
@@ -247,12 +242,10 @@ public class LZWCodec extends AbstractCodec {
 	 * The CodecOptions parameter should have the following fields set:
 	 * {@link CodecOptions#maxBytes maxBytes}
 	 *
-	 * @see Codec#decompress(DataHandle, CodecOptions)
+	 * @see TiffCodec#decompress(DataHandle, CodecOptions)
 	 */
 	@Override
-	public byte[] decompress(final DataHandle<Location> in, CodecOptions options)
-		throws FormatException, IOException
-	{
+	public byte[] decompress(final DataHandle<Location> in, CodecOptions options) throws IOException {
 		if (in == null || in.length() == 0) return null;
 		if (options == null) options = CodecOptions.getDefaultOptions();
 
@@ -397,7 +390,7 @@ public class LZWCodec extends AbstractCodec {
 			while (currOutPos < output.length && in.offset() < in.length());
 		}
 		catch (final ArrayIndexOutOfBoundsException e) {
-			throw new FormatException("Invalid LZW data", e);
+			throw new TiffException("Invalid LZW data", e);
 		}
 		return output;
 	}

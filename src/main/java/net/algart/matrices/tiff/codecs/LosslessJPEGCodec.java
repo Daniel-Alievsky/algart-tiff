@@ -25,8 +25,9 @@
 package net.algart.matrices.tiff.codecs;
 
 import io.scif.FormatException;
-import io.scif.UnsupportedCompressionException;
 import io.scif.codec.*;
+import net.algart.matrices.tiff.TiffException;
+import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.location.Location;
 import org.scijava.plugin.Parameter;
@@ -154,11 +155,8 @@ public class LosslessJPEGCodec extends AbstractCodec {
 	// -- Codec API methods --
 
 	@Override
-	public byte[] compress(final byte[] data, final CodecOptions options)
-		throws FormatException
-	{
-		throw new UnsupportedCompressionException(
-			"Lossless JPEG compression not supported");
+	public byte[] compress(final byte[] data, final CodecOptions options) throws TiffException {
+		throw new UnsupportedTiffFormatException("Lossless JPEG compression not supported");
 	}
 
 	/**
@@ -166,12 +164,10 @@ public class LosslessJPEGCodec extends AbstractCodec {
 	 * {@link CodecOptions#interleaved interleaved}
 	 * {@link CodecOptions#littleEndian littleEndian}
 	 *
-	 * @see Codec#decompress(DataHandle, CodecOptions)
+	 * @see TiffCodec#decompress(DataHandle, CodecOptions)
 	 */
 	@Override
-	public byte[] decompress(final DataHandle<Location> in, CodecOptions options)
-		throws FormatException, IOException
-	{
+	public byte[] decompress(final DataHandle<Location> in, CodecOptions options) throws IOException {
 		if (in == null) throw new IllegalArgumentException(
 			"No data to decompress.");
 		if (options == null) options = CodecOptions.getDefaultOptions();
@@ -238,14 +234,17 @@ public class LosslessJPEGCodec extends AbstractCodec {
 						int v = 0;
 
 						if (huffmanOptions.table != null) {
-							v = huffman.getSample(bb, huffmanOptions);
-							if (nextSample == 0) {
+                            try {
+                                v = huffman.getSample(bb, huffmanOptions);
+                            } catch (FormatException e) {
+                                throw new TiffException(e.getMessage(), e);
+                            }
+                            if (nextSample == 0) {
 								v += (int) Math.pow(2, bitsPerSample - 1);
 							}
 						}
 						else {
-							throw new UnsupportedCompressionException(
-								"Arithmetic coding not supported");
+							throw new UnsupportedTiffFormatException("Arithmetic coding not supported");
 						}
 
 						// apply predictor to the sample
@@ -333,8 +332,7 @@ public class LosslessJPEGCodec extends AbstractCodec {
 					buf = new byte[width * height * nComponents * bytesPerSample];
 				}
 				else if (code == SOF11) {
-					throw new UnsupportedCompressionException(
-						"Arithmetic coding is not yet supported");
+					throw new UnsupportedTiffFormatException("Arithmetic coding is not yet supported");
 				}
 				else if (code == DHT) {
 					if (huffmanTables == null) {
@@ -352,7 +350,7 @@ public class LosslessJPEGCodec extends AbstractCodec {
 
 					for (int i = 0; i < nCodes.length; i++) {
 						for (int j = 0; j < nCodes[i]; j++) {
-							table.add(new Short((short) (in.read() & 0xff)));
+							table.add((short) (in.read() & 0xff));
 						}
 					}
 					huffmanTables[destination] = new short[table.size()];

@@ -52,7 +52,7 @@ public class JPEGCodec extends AbstractCodec implements CodecTiming {
 //    private CodecService codecService;
 
     @Override
-    public byte[] compress(byte[] data, CodecOptions options) throws FormatException {
+    public byte[] compress(byte[] data, CodecOptions options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
         if (data.length == 0) {
@@ -61,10 +61,10 @@ public class JPEGCodec extends AbstractCodec implements CodecTiming {
         long t1 = timing ? System.nanoTime() : 0;
 
         if (options.channels != 1 && options.channels != 3) {
-            throw new FormatException("JPEG compression for " + options.channels + " channels is not supported");
+            throw new TiffException("JPEG compression for " + options.channels + " channels is not supported");
         }
         if (options.bitsPerSample != 8) {
-            throw new FormatException("JPEG compression for " + options.bitsPerSample +
+            throw new TiffException("JPEG compression for " + options.bitsPerSample +
                     "-bit data is not supported (only 8-bit samples allowed)");
         }
         final ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -82,7 +82,7 @@ public class JPEGCodec extends AbstractCodec implements CodecTiming {
         try {
             JPEGTools.writeJPEG(image, output, colorSpace, jpegQuality);
         } catch (final IOException e) {
-            throw new FormatException("Cannot compress JPEG data", e);
+            throw new TiffException("Cannot compress JPEG data", e);
         }
         byte[] result = output.toByteArray();
         long t3 = timing ? System.nanoTime() : 0;
@@ -92,7 +92,7 @@ public class JPEGCodec extends AbstractCodec implements CodecTiming {
     }
 
     @Override
-    public byte[] decompress(final DataHandle<Location> in, CodecOptions options) throws IOException, FormatException {
+    public byte[] decompress(final DataHandle<Location> in, CodecOptions options) throws IOException {
         final long offset = in.offset();
         long t1 = timing ? System.nanoTime() : 0;
         JPEGTools.ImageInformation info;

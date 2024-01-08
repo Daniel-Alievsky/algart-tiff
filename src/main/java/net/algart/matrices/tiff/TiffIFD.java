@@ -1374,7 +1374,7 @@ public class TiffIFD {
             throw new IllegalArgumentException("Zero or negative image height (y-dimension): " + dimY);
         }
         if (!containsKey(TILE_WIDTH) || !containsKey(TILE_LENGTH)) {
-            // - we prefer not to throw FormatException here, like in hasTileInformation method
+            // - we prefer not to throw exception here, like in hasTileInformation method
             checkImmutable("Image dimensions cannot be updated in non-tiled TIFF");
         }
         clearCache();

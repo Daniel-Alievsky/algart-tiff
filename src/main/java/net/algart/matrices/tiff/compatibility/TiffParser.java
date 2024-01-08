@@ -26,7 +26,7 @@ package net.algart.matrices.tiff.compatibility;
 
 import io.scif.FormatException;
 import io.scif.SCIFIO;
-import io.scif.codec.Codec;
+import net.algart.matrices.tiff.codecs.TiffCodec;
 import io.scif.codec.CodecOptions;
 import io.scif.common.Constants;
 import io.scif.enumeration.EnumException;
@@ -942,7 +942,7 @@ public class TiffParser extends TiffReader {
     }
 
     @Override
-    protected CodecOptions correctReadingOptions(CodecOptions codecOptions, TiffTile tile, Codec customCodec)
+    protected CodecOptions correctReadingOptions(CodecOptions codecOptions, TiffTile tile, TiffCodec customCodec)
             throws TiffException {
         TiffIFD ifd = tile.ifd();
         codecOptions.ycbcr = ifd.getPhotometricInterpretation() == TiffPhotometricInterpretation.Y_CB_CR &&

@@ -24,20 +24,14 @@
 
 package net.algart.matrices.tiff.codecs;
 
-import io.scif.FormatException;
-import io.scif.codec.Codec;
 import io.scif.codec.CodecOptions;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.location.Location;
-import org.scijava.plugin.Plugin;
-
-import java.io.IOException;
 
 /**
  * A codec which just returns the exact data it was given, performing no
  * compression or decompression.
  */
-@Plugin(type = Codec.class)
 public class UncompressedCodec extends AbstractCodec {
 	// (It is placed here to avoid autocorrection by IntelliJ IDEA)
 	/*
@@ -69,23 +63,17 @@ public class UncompressedCodec extends AbstractCodec {
 	 * #L%
 	 */
 	@Override
-	public byte[] decompress(final byte[] data, final CodecOptions options)
-		throws FormatException
-	{
+	public byte[] decompress(final byte[] data, final CodecOptions options) {
 		return data;
 	}
 
 	@Override
-	public byte[] decompress(final DataHandle<Location> in,
-		final CodecOptions options) throws FormatException, IOException
-	{
-		throw new RuntimeException("Not implemented.");
+	public byte[] decompress(final DataHandle<Location> in, final CodecOptions options) {
+		throw new UnsupportedOperationException("Not implemented.");
 	}
 
 	@Override
-	public byte[] compress(final byte[] data, final CodecOptions options)
-		throws FormatException
-	{
+	public byte[] compress(byte[] data, CodecOptions options) {
 		return data;
 	}
 

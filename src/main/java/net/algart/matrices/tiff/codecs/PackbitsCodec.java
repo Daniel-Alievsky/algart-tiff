@@ -24,13 +24,11 @@
 
 package net.algart.matrices.tiff.codecs;
 
-import io.scif.FormatException;
-import io.scif.UnsupportedCompressionException;
-import io.scif.codec.Codec;
 import io.scif.codec.CodecOptions;
+import net.algart.matrices.tiff.TiffException;
+import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.location.Location;
-import org.scijava.plugin.Plugin;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -41,7 +39,6 @@ import java.io.IOException;
  *
  * @author Melissa Linkert
  */
-@Plugin(type = Codec.class)
 public class PackbitsCodec extends AbstractCodec {
 	// (It is placed here to avoid autocorrection by IntelliJ IDEA)
 	/*
@@ -73,24 +70,19 @@ public class PackbitsCodec extends AbstractCodec {
 	 * #L%
 	 */
 	@Override
-	public byte[] compress(final byte[] data, final CodecOptions options)
-		throws FormatException
-	{
+	public byte[] compress(final byte[] data, final CodecOptions options) throws TiffException {
 		// TODO: Add compression support.
-		throw new UnsupportedCompressionException(
-			"Packbits Compression not currently supported");
+		throw new UnsupportedTiffFormatException("Packbits Compression not currently supported");
 	}
 
 	/**
 	 * The CodecOptions parameter should have the following fields set:
 	 * {@link CodecOptions#maxBytes maxBytes}
 	 *
-	 * @see Codec#decompress(DataHandle, CodecOptions)
+	 * @see TiffCodec#decompress(DataHandle, CodecOptions)
 	 */
 	@Override
-	public byte[] decompress(final DataHandle<Location> in, CodecOptions options)
-		throws FormatException, IOException
-	{
+	public byte[] decompress(final DataHandle<Location> in, CodecOptions options) throws IOException {
 		if (options == null) options = CodecOptions.getDefaultOptions();
 		if (in == null) throw new IllegalArgumentException(
 			"No data to decompress.");

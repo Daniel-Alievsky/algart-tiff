@@ -1,4 +1,3 @@
-
 /*
  * The MIT License (MIT)
  *
@@ -27,32 +26,46 @@ package net.algart.matrices.tiff.codecs;
 
 import io.scif.codec.CodecOptions;
 import net.algart.matrices.tiff.TiffException;
-import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
-import org.scijava.io.location.BytesLocation;
 import org.scijava.io.location.Location;
 
 import java.io.IOException;
-import java.util.Objects;
 
-public abstract class AbstractCodec implements TiffCodec {
-	@Override
-	public byte[] decompress(byte[] data, CodecOptions options)
-		throws TiffException
-	{
-		try (DataHandle<Location> handle = getBytesHandle(new BytesLocation(data))) {
-			return decompress(handle, options);
-		}
-		catch (final IOException e) {
-			throw new TiffException(e);
-		}
-	}
+/**
+ * This class is an analog of SCIFIO Codec interface, simplifying to use for TIFF encoding inside this library
+ */
+public interface TiffCodec {
 
-	@SuppressWarnings("rawtypes, unchecked")
-	private static DataHandle<Location> getBytesHandle(BytesLocation bytesLocation) {
-		Objects.requireNonNull(bytesLocation, "Null bytesLocation");
-		BytesHandle bytesHandle = new BytesHandle(bytesLocation);
-		return (DataHandle) bytesHandle;
-	}
+	/**
+	 * Compresses a block of data.
+	 *
+	 * @param data The data to be compressed.
+	 * @param options Options to be used during compression, if appropriate.
+	 * @return The compressed data.
+	 * @throws TiffException If input is not a compressed data block of the
+	 *           appropriate type.
+	 */
+	byte[] compress(byte[] data, CodecOptions options) throws TiffException;
+
+	/**
+	 * Decompresses a block of data.
+	 *
+	 * @param data the data to be decompressed
+	 * @param options Options to be used during decompression.
+	 * @return the decompressed data.
+	 * @throws TiffException If data is not valid.
+	 */
+	byte[] decompress(byte[] data, CodecOptions options) throws TiffException;
+
+	/**
+	 * Decompresses data from the given DataHandle.
+	 *
+	 * @param in The stream from which to read compressed data.
+	 * @param options Options to be used during decompression.
+	 * @return The decompressed data.
+	 * @throws TiffException If data is not valid compressed data for this
+	 *           decompressor.
+	 */
+	byte[] decompress(DataHandle<Location> in, CodecOptions options) throws IOException;
 
 }

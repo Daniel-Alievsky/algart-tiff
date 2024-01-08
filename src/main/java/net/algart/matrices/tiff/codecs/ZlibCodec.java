@@ -24,14 +24,11 @@
 
 package net.algart.matrices.tiff.codecs;
 
-import io.scif.FormatException;
 import io.scif.codec.ByteVector;
-import io.scif.codec.Codec;
 import io.scif.codec.CodecOptions;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.DataHandleInputStream;
 import org.scijava.io.location.Location;
-import org.scijava.plugin.Plugin;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -43,7 +40,6 @@ import java.util.zip.InflaterInputStream;
  *
  * @author Melissa Linkert
  */
-@Plugin(type = Codec.class)
 public class ZlibCodec extends AbstractCodec {
 	// (It is placed here to avoid autocorrection by IntelliJ IDEA)
 	/*
@@ -75,11 +71,9 @@ public class ZlibCodec extends AbstractCodec {
 	 * #L%
 	 */
 	@Override
-	public byte[] compress(final byte[] data, final CodecOptions options)
-		throws FormatException
-	{
-		if (data == null || data.length == 0) throw new IllegalArgumentException(
-			"No data to compress");
+	public byte[] compress(final byte[] data, final CodecOptions options) {
+		if (data == null || data.length == 0)
+			throw new IllegalArgumentException("No data to compress");
 		final Deflater deflater = new Deflater();
 		deflater.setInput(data);
 		deflater.finish();
@@ -94,9 +88,7 @@ public class ZlibCodec extends AbstractCodec {
 	}
 
 	@Override
-	public byte[] decompress(final DataHandle<Location> in,
-		final CodecOptions options) throws FormatException, IOException
-	{
+	public byte[] decompress(final DataHandle<Location> in, CodecOptions options) throws IOException {
 		final InflaterInputStream i = new InflaterInputStream(
 			new DataHandleInputStream<>(in));
 		final ByteVector bytes = new ByteVector();
@@ -107,7 +99,8 @@ public class ZlibCodec extends AbstractCodec {
 			while ((r = i.read(buf, 0, buf.length)) > 0)
 				bytes.add(buf, 0, r);
 		}
-		catch (final EOFException e) {}
+		catch (final EOFException ignored) {
+		}
 		return bytes.toByteArray();
 	}
 

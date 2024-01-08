@@ -24,7 +24,7 @@
 
 package net.algart.matrices.tiff;
 
-import io.scif.codec.Codec;
+import net.algart.matrices.tiff.codecs.TiffCodec;
 import io.scif.codec.CodecOptions;
 import io.scif.codec.JPEG2000CodecOptions;
 import io.scif.formats.tiff.TiffCompression;
@@ -74,10 +74,10 @@ enum KnownCompression {
     }
 
     private final TiffCompression compression;
-    private final Supplier<? extends Codec> noContext;
+    private final Supplier<? extends TiffCodec> noContext;
     // - Note: noContext codec should be implemented inside this module:
     // we must be sure that it does not use SCIFIO context
-    private final Supplier<? extends Codec> extended;
+    private final Supplier<? extends TiffCodec> extended;
     // - This "extended" codec is implemented inside this module, and we are sure that it does not need the context.
     private final BiFunction<TiffTile, CodecOptions, CodecOptions> writeOptions;
 
@@ -96,14 +96,14 @@ enum KnownCompression {
         return compression;
     }
 
-    public Codec noContextCodec() {
+    public TiffCodec noContextCodec() {
         return noContext == null ? null : noContext.get();
     }
 
     /**
      * Extended codec (must be able to work without context).
      */
-    public Codec extendedCodec() {
+    public TiffCodec extendedCodec() {
         return extended == null ? null : extended.get();
     }
 
