@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff;
 
-import net.algart.matrices.tiff.codecs.TiffCodec;
 import io.scif.codec.CodecOptions;
 import io.scif.codec.JPEG2000CodecOptions;
 import io.scif.formats.tiff.TiffCompression;
@@ -45,59 +44,50 @@ import java.util.function.Supplier;
  * <p>{@link TiffReader} tries to read any compression, but may use special logic for compressions from this list.
  */
 enum KnownCompression {
-    UNCOMPRESSED(TiffCompression.UNCOMPRESSED, UncompressedCodec::new, null,
-            KnownCompression::standardWriteOptions),
-    LZW(TiffCompression.LZW, LZWCodec::new, null, KnownCompression::standardWriteOptions),
-    DEFLATE(TiffCompression.DEFLATE, ZlibCodec::new, null, KnownCompression::standardWriteOptions),
+    UNCOMPRESSED(TiffCompression.UNCOMPRESSED, UncompressedCodec::new, KnownCompression::standardWriteOptions),
+    LZW(TiffCompression.LZW, LZWCodec::new, KnownCompression::standardWriteOptions),
+    DEFLATE(TiffCompression.DEFLATE, ZlibCodec::new, KnownCompression::standardWriteOptions),
     PROPRIETARY_DEFLATE(TiffCompression.PROPRIETARY_DEFLATE,
-            ZlibCodec::new, null, KnownCompression::standardWriteOptions),
-    JPEG(TiffCompression.JPEG, null, JPEGCodec::new, KnownCompression::jpegWriteOptions),
-    // OLD_JPEG(TiffCompression.OLD_JPEG, null, ExtendedJPEGCodec::new, true),
+            ZlibCodec::new, KnownCompression::standardWriteOptions),
+    JPEG(TiffCompression.JPEG, JPEGCodec::new, KnownCompression::jpegWriteOptions),
+    // OLD_JPEG(TiffCompression.OLD_JPEG, ExtendedJPEGCodec::new, true),
     // - OLD_JPEG does not work: see https://github.com/scifio/scifio/issues/510
-    PACK_BITS(TiffCompression.PACK_BITS, PackbitsCodec::new, null, KnownCompression::standardWriteOptions),
+    PACK_BITS(TiffCompression.PACK_BITS, PackbitsCodec::new, KnownCompression::standardWriteOptions),
 
-    JPEG_2000(TiffCompression.JPEG_2000, null, JPEG2000Codec::new,
+    JPEG_2000(TiffCompression.JPEG_2000, JPEG2000Codec::new,
             KnownCompression::jpeg2000LosslessWriteOptions),
-    JPEG_2000_LOSSY(TiffCompression.JPEG_2000_LOSSY, null, JPEG2000Codec::new,
+    JPEG_2000_LOSSY(TiffCompression.JPEG_2000_LOSSY, JPEG2000Codec::new,
             (tile, defaultOptions) -> jpeg2000WriteOptions(tile, defaultOptions, false)),
-    ALT_JPEG_2000(TiffCompression.ALT_JPEG2000, null, JPEG2000Codec::new,
+    ALT_JPEG_2000(TiffCompression.ALT_JPEG2000, JPEG2000Codec::new,
             KnownCompression::jpeg2000LosslessWriteOptions),
-    OLYMPUS_JPEG2000(TiffCompression.OLYMPUS_JPEG2000, null, JPEG2000Codec::new,
+    OLYMPUS_JPEG2000(TiffCompression.OLYMPUS_JPEG2000, JPEG2000Codec::new,
             KnownCompression::jpeg2000LosslessWriteOptions),
 
-    NIKON(TiffCompression.NIKON, null, null, KnownCompression::standardWriteOptions),
-    LURAWAVE(TiffCompression.LURAWAVE, null, null, KnownCompression::standardWriteOptions);
+    NIKON(TiffCompression.NIKON, null, KnownCompression::standardWriteOptions),
+    LURAWAVE(TiffCompression.LURAWAVE, null, KnownCompression::standardWriteOptions);
 
     private static final Map<Integer, TiffCompression> tiffCompressionMap = new HashMap<>();
+
     static {
         EnumSet.allOf(TiffCompression.class).forEach(v -> tiffCompressionMap.put(v.getCode(), v));
     }
 
     private final TiffCompression compression;
-    private final Supplier<TiffCodec> noContext;
-    // - Note: noContext codec should be implemented inside this module:
-    // we must be sure that it does not use SCIFIO context
     private final Supplier<TiffCodec> extended;
-    // - This "extended" codec is implemented inside this module, and we are sure that it does not need the context.
+    // - This "extended" codec is implemented inside this module, and we are sure that it does not need SCIFIO context.
     private final BiFunction<TiffTile, CodecOptions, CodecOptions> writeOptions;
 
     KnownCompression(
             TiffCompression compression,
-            Supplier<TiffCodec> noContext,
             Supplier<TiffCodec> extended,
             BiFunction<TiffTile, CodecOptions, CodecOptions> writeOptions) {
         this.compression = Objects.requireNonNull(compression);
-        this.noContext = noContext;
         this.extended = extended;
         this.writeOptions = Objects.requireNonNull(writeOptions);
     }
 
     public TiffCompression compression() {
         return compression;
-    }
-
-    public TiffCodec noContextCodec() {
-        return noContext == null ? null : noContext.get();
     }
 
     /**

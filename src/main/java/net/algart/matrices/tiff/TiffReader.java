@@ -874,10 +874,6 @@ public class TiffReader extends AbstractContextual implements Closeable {
             codec = known.extendedCodec();
             // - we are sure that this codec does not require SCIFIO context
         }
-        if (codec == null && known != null) {
-            codec = known.noContextCodec();
-            // - we are sure that this codec does not require SCIFIO context
-        }
         final CodecOptions codecOptions = buildReadingOptions(tile, codec);
 
         long t2 = debugTime();
