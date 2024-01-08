@@ -74,17 +74,17 @@ enum KnownCompression {
     }
 
     private final TiffCompression compression;
-    private final Supplier<? extends TiffCodec> noContext;
+    private final Supplier<TiffCodec> noContext;
     // - Note: noContext codec should be implemented inside this module:
     // we must be sure that it does not use SCIFIO context
-    private final Supplier<? extends TiffCodec> extended;
+    private final Supplier<TiffCodec> extended;
     // - This "extended" codec is implemented inside this module, and we are sure that it does not need the context.
     private final BiFunction<TiffTile, CodecOptions, CodecOptions> writeOptions;
 
     KnownCompression(
             TiffCompression compression,
-            Supplier<AbstractCodec> noContext,
-            Supplier<AbstractCodec> extended,
+            Supplier<TiffCodec> noContext,
+            Supplier<TiffCodec> extended,
             BiFunction<TiffTile, CodecOptions, CodecOptions> writeOptions) {
         this.compression = Objects.requireNonNull(compression);
         this.noContext = noContext;

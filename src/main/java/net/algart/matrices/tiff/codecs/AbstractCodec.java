@@ -35,16 +35,14 @@ import org.scijava.io.location.Location;
 import java.io.IOException;
 import java.util.Objects;
 
-public abstract class AbstractCodec implements TiffCodec {
+abstract class AbstractCodec implements TiffCodec {
 	@Override
-	public byte[] decompress(byte[] data, CodecOptions options)
-		throws TiffException
-	{
+	public byte[] decompress(byte[] data, CodecOptions options) throws TiffException {
 		try (DataHandle<Location> handle = getBytesHandle(new BytesLocation(data))) {
 			return decompress(handle, options);
-		}
-		catch (final IOException e) {
-			throw new TiffException(e);
+		} catch (IOException e) {
+			throw e instanceof TiffException tiffException ? tiffException : new TiffException(e);
+			// - last variant is very improbable
 		}
 	}
 
@@ -54,5 +52,4 @@ public abstract class AbstractCodec implements TiffCodec {
 		BytesHandle bytesHandle = new BytesHandle(bytesLocation);
 		return (DataHandle) bytesHandle;
 	}
-
 }
