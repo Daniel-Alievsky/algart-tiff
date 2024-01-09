@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.tests;
 
-import io.scif.formats.tiff.TiffCompression;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tiles.TiffMap;
@@ -62,10 +61,11 @@ public class TiffWriteHugeFileTest {
             writer.setLittleEndian(true);
             writer.create();
             for (int k = 1; k <= numberOfImages; k++) {
-                TiffIFD ifd = new TiffIFD().putImageDimensions(IMAGE_WIDTH, IMAGE_HEIGHT);
+                TiffIFD ifd = writer.newIFD(true);
+                ifd.putImageDimensions(IMAGE_WIDTH, IMAGE_HEIGHT);
                 ifd.putTileSizes(1024, 1024);
-                ifd.putCompression(TiffCompression.UNCOMPRESSED);
-                final TiffMap map = writer.newMap(ifd, 3, byte.class, false);
+                ifd.putPixelInformation(3, byte.class);
+                final TiffMap map = writer.newMap(ifd, false);
 
                 final byte[] samples = new byte[IMAGE_WIDTH * IMAGE_HEIGHT * 3];
                 Arrays.fill(samples, (byte) (10 * k));

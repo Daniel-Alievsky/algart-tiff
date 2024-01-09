@@ -239,6 +239,10 @@ public class TiffIFD {
     public static final int TILE_DEPTH = 32998;
     public static final int STO_NITS = 37439;
 
+    public static final int DEFAULT_TILE_SIZE_X = 256;
+    public static final int DEFAULT_TILE_SIZE_Y = 256;
+    public static final int DEFAULT_STRIP_SIZE = 128;
+
     /**
      * Contiguous (chunked) samples format (PlanarConfiguration), for example: RGBRGBRGB....
      */
@@ -261,7 +265,7 @@ public class TiffIFD {
     public static final int PREDICTOR_NONE = 1;
     public static final int PREDICTOR_HORIZONTAL = 2;
     public static final int PREDICTOR_FLOATING_POINT = 3;
-    // - value 3 is not supported by TiffParser/TiffSaver
+    // - value 3 is not supported!
 
     public static final int FILETYPE_REDUCED_IMAGE = 1;
 
@@ -1328,6 +1332,10 @@ public class TiffIFD {
         return this;
     }
 
+    public TiffIFD putDefaultTileSizes() {
+        return putTileSizes(DEFAULT_TILE_SIZE_X, DEFAULT_TILE_SIZE_Y);
+    }
+
     public TiffIFD removeTileInformation() {
         remove(TILE_WIDTH);
         remove(TILE_LENGTH);
@@ -1338,12 +1346,25 @@ public class TiffIFD {
         return containsKey(ROWS_PER_STRIP);
     }
 
+    public TiffIFD putOrRemoveStripSize(Integer stripSizeY) {
+        if (stripSizeY == null) {
+            remove(ROWS_PER_STRIP);
+        } else {
+            putStripSize(stripSizeY);
+        }
+        return this;
+    }
+
     public TiffIFD putStripSize(int stripSizeY) {
         if (stripSizeY <= 0) {
             throw new IllegalArgumentException("Zero or negative strip y-size");
         }
         put(ROWS_PER_STRIP, new long[]{stripSizeY});
         return this;
+    }
+
+    public TiffIFD putDefaultStripSize() {
+        return putStripSize(DEFAULT_STRIP_SIZE);
     }
 
     public TiffIFD removeStripInformation() {

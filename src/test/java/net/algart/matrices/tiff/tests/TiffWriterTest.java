@@ -26,7 +26,6 @@ package net.algart.matrices.tiff.tests;
 
 import io.scif.SCIFIO;
 import io.scif.formats.tiff.FillOrder;
-import io.scif.formats.tiff.IFD;
 import io.scif.formats.tiff.TiffCompression;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
@@ -222,21 +221,21 @@ public class TiffWriterTest {
                         ifd.putImageDimensions(IMAGE_WIDTH, IMAGE_HEIGHT);
                     }
                     if (longTags) {
-                        ifd.put(IFD.IMAGE_WIDTH, (long) IMAGE_WIDTH);
-                        ifd.put(IFD.IMAGE_LENGTH, (long) IMAGE_HEIGHT);
+                        ifd.put(TiffIFD.IMAGE_WIDTH, (long) IMAGE_WIDTH);
+                        ifd.put(TiffIFD.IMAGE_LENGTH, (long) IMAGE_HEIGHT);
                     }
-                    // ifd.put(IFD.JPEG_TABLES, new byte[]{1, 2, 3, 4, 5});
+                    // ifd.put(TiffIFD.JPEG_TABLES, new byte[]{1, 2, 3, 4, 5});
                     // - some invalid field: must not affect non-JPEG formats
                     if (tiled) {
                         ifd.putTileSizes(112, 64);
                         if (longTags) {
-                            ifd.put(IFD.TILE_WIDTH, (long) ifd.getTileSizeX());
-                            ifd.put(IFD.TILE_LENGTH, (long) ifd.getTileSizeY());
+                            ifd.put(TiffIFD.TILE_WIDTH, (long) ifd.getTileSizeX());
+                            ifd.put(TiffIFD.TILE_LENGTH, (long) ifd.getTileSizeY());
                         }
                     } else if (!singleStrip) {
                         ifd.putStripSize(100);
                         if (longTags) {
-                            ifd.put(IFD.ROWS_PER_STRIP, 100L);
+                            ifd.put(TiffIFD.ROWS_PER_STRIP, 100L);
                         }
                     }
                     ifd.putCompression(compression == null ? null : TiffCompression.valueOf(compression));
@@ -246,12 +245,12 @@ public class TiffWriterTest {
 //                    }
                     ifd.putPlanarSeparated(planarSeparated);
                     if (predict) {
-                        ifd.put(IFD.PREDICTOR, TiffIFD.PREDICTOR_HORIZONTAL);
+                        ifd.put(TiffIFD.PREDICTOR, TiffIFD.PREDICTOR_HORIZONTAL);
                         // - unusual mode: no special putXxx method;
                         // should not be used for compressions besides LZW/DEFLATE
                     }
                     if (reverseBits) {
-                        ifd.put(IFD.FILL_ORDER, FillOrder.REVERSED.getCode());
+                        ifd.put(TiffIFD.FILL_ORDER, FillOrder.REVERSED.getCode());
                         // - unusual mode: no special putXxx method
                     }
                     ifd.putPixelInformation(numberOfChannels, sampleType);

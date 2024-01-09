@@ -364,6 +364,10 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         return quality;
     }
 
+    public TiffWriter setOrRemoveQuality(Double quality) {
+        return quality == null ? removeQuality() : setQuality(quality);
+    }
+
     /**
      * Sets the compression quality for JPEG tiles/strips to some non-negative value.
      *
@@ -379,6 +383,10 @@ public class TiffWriter extends AbstractContextual implements Closeable {
      *
      * <p>Note: {@link CodecOptions#quality}, that can be set via {@link #setCodecOptions(CodecOptions)}
      * method, is ignored, if this value is set to non-<tt>null</tt> value.
+     *
+     * <p>Please <b>remember</b> that this parameter may be different for different IFDs.
+     * In this case, you need to call this method every time before creating new IFD,
+     * not only once for all TIFF file!
      *
      * @param quality floating-point value, the desired quality level.
      * @return a reference to this object.
@@ -404,6 +412,14 @@ public class TiffWriter extends AbstractContextual implements Closeable {
      * it will override recommendation of this flag.
      *
      * <p>This parameter is ignored (as if it is <tt>false</tt>), unless {@link #isExtendedCodec()}.
+     *
+     * <p>This flag affects results of {@link #newMap(TiffIFD, boolean)} method: it helps to choose
+     * correct photometric interpretation tag. After creating TIFF map and storing information in IFD object,
+     * this object no longer uses this flag.
+     *
+     * <p>Please <b>remember</b> that this parameter may be different for different IFDs.
+     * In this case, you need to call this method every time before creating new IFD,
+     * not only once for all TIFF file!
      *
      * @param jpegInPhotometricRGB whether you want to compress JPEG in RGB encoding.
      * @return a reference to this object.
@@ -1063,21 +1079,15 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         // - not used, but helps to provide better TiffIFD.toString
     }
 
-    public TiffMap newMap(TiffIFD ifd, int numberOfChannels, Class<?> elementType, boolean signedIntegers)
-            throws TiffException {
-        return newMap(ifd, numberOfChannels, elementType, signedIntegers, false);
-    }
-
-    public TiffMap newMap(
-            TiffIFD ifd,
-            int numberOfChannels,
-            Class<?> elementType,
-            boolean signedIntegers,
-            boolean resizable)
-            throws TiffException {
-        Objects.requireNonNull(ifd, "Null IFD");
-        ifd.putPixelInformation(numberOfChannels, elementType, signedIntegers);
-        return newMap(ifd, resizable);
+    public TiffIFD newIFD(boolean tiled) {
+        final TiffIFD ifd = new TiffIFD();
+        ifd.putCompression(TiffCompression.UNCOMPRESSED);
+        if (tiled) {
+            ifd.putDefaultTileSizes();
+        } else {
+            ifd.putDefaultStripSize();
+        }
+        return ifd;
     }
 
     /**
