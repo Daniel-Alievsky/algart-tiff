@@ -413,10 +413,6 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         return this;
     }
 
-    public boolean compressJPEGInPhotometricRGB() {
-        return extendedCodec && jpegInPhotometricRGB;
-    }
-
     public boolean isMissingTilesAllowed() {
         return missingTilesAllowed;
     }

@@ -54,14 +54,14 @@ enum KnownCompression {
     // - OLD_JPEG does not work: see https://github.com/scifio/scifio/issues/510
     PACK_BITS(TiffCompression.PACK_BITS, PackbitsCodec::new, KnownCompression::standardWriteOptions),
 
-    JPEG_2000(TiffCompression.JPEG_2000, JPEG2000Codec::new,
+    JPEG_2000_LOSSLESS(TiffCompression.JPEG_2000, JPEG2000Codec::new,
             KnownCompression::jpeg2000LosslessWriteOptions),
-    JPEG_2000_LOSSY(TiffCompression.JPEG_2000_LOSSY, JPEG2000Codec::new,
+    JPEG_2000_LOSSLESS_ALTERNATIVE(TiffCompression.ALT_JPEG2000, JPEG2000Codec::new,
+            KnownCompression::jpeg2000LosslessWriteOptions),
+    JPEG_2000_LOSSLESS_OLYMPUS(TiffCompression.OLYMPUS_JPEG2000, JPEG2000Codec::new,
+            KnownCompression::jpeg2000LosslessWriteOptions),
+    JPEG_2000_NORMAL(TiffCompression.JPEG_2000_LOSSY, JPEG2000Codec::new,
             (tile, defaultOptions) -> jpeg2000WriteOptions(tile, defaultOptions, false)),
-    ALT_JPEG_2000(TiffCompression.ALT_JPEG2000, JPEG2000Codec::new,
-            KnownCompression::jpeg2000LosslessWriteOptions),
-    OLYMPUS_JPEG2000(TiffCompression.OLYMPUS_JPEG2000, JPEG2000Codec::new,
-            KnownCompression::jpeg2000LosslessWriteOptions),
 
     NIKON(TiffCompression.NIKON, null, KnownCompression::standardWriteOptions),
     LURAWAVE(TiffCompression.LURAWAVE, null, KnownCompression::standardWriteOptions);
