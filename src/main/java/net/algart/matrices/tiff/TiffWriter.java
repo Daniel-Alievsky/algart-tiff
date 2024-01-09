@@ -473,6 +473,10 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         return positionOfLastIFDOffset;
     }
 
+    public int numberOfIFDs() {
+        return ifdOffsets.size();
+    }
+
     public void open() throws IOException {
         open(false);
     }

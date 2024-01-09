@@ -327,6 +327,7 @@ public class TiffWriterTest {
                             System.out.printf("All %d tiles are completely filled%n", map.size());
                         }
                     }
+                    System.out.printf("%d ready IFDs%n", writer.numberOfIFDs());
                 }
             }
         }
