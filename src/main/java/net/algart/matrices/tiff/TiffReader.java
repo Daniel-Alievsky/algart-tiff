@@ -895,7 +895,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
             }
             tile.setPartiallyDecodedData(decodedData);
         }
-        tile.setInterleaved(options.interleaved);
+        tile.setInterleaved(options.isInterleaved());
         long t3 = debugTime();
 
         completeDecoding(tile);

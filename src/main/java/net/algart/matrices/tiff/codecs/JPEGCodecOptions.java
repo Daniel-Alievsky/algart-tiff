@@ -40,7 +40,7 @@ public class JPEGCodecOptions extends TiffCodec.Options {
     private int[] yCbCrSubsampling = {2, 2};
 
     public JPEGCodecOptions() {
-        setQuality(1.0);
+        this.quality = 1.0;
         // - our JPEGCodec class sets the quality, and we MUST specify correct default value
         // (because default 0.0 value will lead to VERY bad quality)
     }
@@ -49,7 +49,7 @@ public class JPEGCodecOptions extends TiffCodec.Options {
         JPEGCodecOptions result = new JPEGCodecOptions();
         result.setTo(options);
         if (options.quality == 0.0) {
-            result.setQuality(1.0);
+            result.quality = 1.0;
         }
         return result;
     }

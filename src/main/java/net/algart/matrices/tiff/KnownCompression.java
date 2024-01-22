@@ -132,7 +132,7 @@ enum KnownCompression {
     public static JPEGCodecOptions jpegWriteOptions(TiffTile tile, TiffCodec.Options defaultOptions) {
         final TiffCodec.Options options = standardWriteOptions(tile, defaultOptions);
         final JPEGCodecOptions result = JPEGCodecOptions.getDefaultOptions(options);
-        if (result.quality > 1.0) {
+        if (result.getQuality() > 1.0) {
             // - for JPEG, maximal possible quality is 1.0
             // (for comparison, maximal quality in JPEG-2000 is Double.MAX_VALUE)
             result.setQuality(1.0);
@@ -161,9 +161,9 @@ enum KnownCompression {
             if (options2000.getCodeBlockSize() != null) {
                 result.setCodeBlockSize(options2000.getCodeBlockSize());
             }
-            if (options2000.quality > 0.0) {
+            if (options2000.getQuality() > 0.0) {
                 // - i.e. if it is specified
-                result.setQuality(options2000.quality);
+                result.setQuality(options2000.getQuality());
             }
         }
         return result;

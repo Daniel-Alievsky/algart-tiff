@@ -47,12 +47,12 @@ public interface TiffCodec {
         int channels = 0;
         int bitsPerSample = 0;
         boolean littleEndian = false;
-        public boolean interleaved = false;
+        boolean interleaved = false;
         boolean signed = false;
         int maxBytes = 0;
         boolean lossless = true;
         ColorModel colorModel = null;
-        public double quality = 0.0;
+        double quality = 0.0;
 
         // -- Constructors --
 
@@ -75,9 +75,17 @@ public interface TiffCodec {
             return this;
         }
 
+        public int getWidth() {
+            return width;
+        }
+
         public Options setWidth(int width) {
             this.width = width;
             return this;
+        }
+
+        public int getHeight() {
+            return height;
         }
 
         public Options setHeight(int height) {
@@ -85,9 +93,17 @@ public interface TiffCodec {
             return this;
         }
 
+        public int getChannels() {
+            return channels;
+        }
+
         public Options setChannels(int channels) {
             this.channels = channels;
             return this;
+        }
+
+        public int getBitsPerSample() {
+            return bitsPerSample;
         }
 
         public Options setBitsPerSample(int bitsPerSample) {
@@ -95,9 +111,17 @@ public interface TiffCodec {
             return this;
         }
 
+        public boolean isLittleEndian() {
+            return littleEndian;
+        }
+
         public Options setLittleEndian(boolean littleEndian) {
             this.littleEndian = littleEndian;
             return this;
+        }
+
+        public boolean isInterleaved() {
+            return interleaved;
         }
 
         public Options setInterleaved(boolean interleaved) {
@@ -105,9 +129,17 @@ public interface TiffCodec {
             return this;
         }
 
+        public boolean isSigned() {
+            return signed;
+        }
+
         public Options setSigned(boolean signed) {
             this.signed = signed;
             return this;
+        }
+
+        public int getMaxBytes() {
+            return maxBytes;
         }
 
         public Options setMaxBytes(int maxBytes) {
@@ -115,14 +147,26 @@ public interface TiffCodec {
             return this;
         }
 
+        public boolean isLossless() {
+            return lossless;
+        }
+
         public Options setLossless(boolean lossless) {
             this.lossless = lossless;
             return this;
         }
 
+        public ColorModel getColorModel() {
+            return colorModel;
+        }
+
         public Options setColorModel(ColorModel colorModel) {
             this.colorModel = colorModel;
             return this;
+        }
+
+        public double getQuality() {
+            return quality;
         }
 
         public Options setQuality(double quality) {

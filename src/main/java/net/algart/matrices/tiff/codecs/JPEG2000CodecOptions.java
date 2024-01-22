@@ -100,7 +100,7 @@ public class JPEG2000CodecOptions extends TiffCodec.Options {
 		final JPEG2000CodecOptions j2kOptions = new JPEG2000CodecOptions();
 		j2kOptions.setTo(options);
 
-		j2kOptions.setQuality(j2kOptions.lossless ? Double.MAX_VALUE : 10);
+		j2kOptions.setQuality(j2kOptions.isLossless() ? Double.MAX_VALUE : 10);
 		j2kOptions.codeBlockSize = new int[] { 64, 64 };
 
 		return j2kOptions;
