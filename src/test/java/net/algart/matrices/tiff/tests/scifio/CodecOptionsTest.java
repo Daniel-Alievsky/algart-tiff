@@ -25,14 +25,14 @@
 package net.algart.matrices.tiff.tests.scifio;
 
 import io.scif.codec.CodecOptions;
-import net.algart.matrices.tiff.codecs.JPEGCodecOptions;
+import net.algart.matrices.tiff.codecs.JPEGCodec;
 import net.algart.matrices.tiff.codecs.TiffCodec;
 
 import java.awt.image.ColorModel;
 
 public class CodecOptionsTest {
     public static void main(String[] args) {
-        TiffCodec.Options options = new JPEGCodecOptions()
+        TiffCodec.Options options = new JPEGCodec.JPEGOptions()
                 .setBitsPerSample(1)
                 .setHeight(2048)
                 .setSigned(true)

@@ -36,10 +36,71 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Objects;
 
 public class JPEGCodec extends AbstractCodec implements TiffCodecTiming {
     private static final boolean OPTIMIZE_SEPARATING_BGR = true;
+
+    public static class JPEGOptions extends Options {
+        /**
+         * Value of TIFF tag PhotometricInterpretation (READ/WRITE).
+         */
+        private TiffPhotometricInterpretation photometricInterpretation = TiffPhotometricInterpretation.Y_CB_CR;
+        /**
+         * Value of TIFF tag YCbCrSubSampling (READ).
+         */
+        private int[] yCbCrSubsampling = {2, 2};
+
+        public JPEGOptions() {
+            this.quality = 1.0;
+            // - our JPEGCodec class sets the quality, and we MUST specify correct default value
+            // (because default 0.0 value will lead to VERY bad quality)
+        }
+
+        public static JPEGOptions getDefaultOptions(Options options) {
+            JPEGOptions result = new JPEGOptions();
+            result.setTo(options);
+            if (options.quality == 0.0) {
+                result.quality = 1.0;
+            }
+            return result;
+        }
+
+        public TiffPhotometricInterpretation getPhotometricInterpretation() {
+            return photometricInterpretation;
+        }
+
+        public JPEGOptions setPhotometricInterpretation(
+                TiffPhotometricInterpretation photometricInterpretation) {
+            this.photometricInterpretation = Objects.requireNonNull(photometricInterpretation,
+                    "Null photometricInterpretation");
+            return this;
+        }
+
+        public int[] getYCbCrSubsampling() {
+            return yCbCrSubsampling.clone();
+        }
+
+        public JPEGOptions setYCbCrSubsampling(int[] yCbCrSubsampling) {
+            this.yCbCrSubsampling = Objects.requireNonNull(yCbCrSubsampling, "Null yCbCrSubsampling").clone();
+            return this;
+        }
+
+        @Override
+        public String toString() {
+            return super.toString() +
+                    ", photometricInterpretation=" + photometricInterpretation +
+                    ", yCbCrSubsampling=" + Arrays.toString(yCbCrSubsampling);
+        }
+
+        @Override
+        public JPEGOptions clone() {
+            JPEGOptions result = (JPEGOptions) super.clone();
+            result.yCbCrSubsampling = this.yCbCrSubsampling.clone();
+            return result;
+        }
+    }
 
     private long timeMain = 0;
     private long timeBridge = 0;
@@ -58,8 +119,8 @@ public class JPEGCodec extends AbstractCodec implements TiffCodecTiming {
         }
         long t1 = timing ? System.nanoTime() : 0;
 
-        if (options.channels != 1 && options.channels != 3) {
-            throw new TiffException("JPEG compression for " + options.channels + " channels is not supported");
+        if (options.numberOfChannels != 1 && options.numberOfChannels != 3) {
+            throw new TiffException("JPEG compression for " + options.numberOfChannels + " channels is not supported");
         }
         if (options.bitsPerSample != 8) {
             throw new TiffException("JPEG compression for " + options.bitsPerSample +
@@ -67,11 +128,11 @@ public class JPEGCodec extends AbstractCodec implements TiffCodecTiming {
         }
         final ByteArrayOutputStream output = new ByteArrayOutputStream();
         final BufferedImage image = AWTImageTools.makeImage(data, options.width,
-                options.height, options.channels, options.interleaved,
+                options.height, options.numberOfChannels, options.interleaved,
                 options.bitsPerSample / 8, false, options.littleEndian, options.signed);
 
         long t2 = timing ? System.nanoTime() : 0;
-        final TiffPhotometricInterpretation colorSpace = options instanceof JPEGCodecOptions extended ?
+        final TiffPhotometricInterpretation colorSpace = options instanceof JPEGOptions extended ?
                 extended.getPhotometricInterpretation() :
                 TiffPhotometricInterpretation.Y_CB_CR;
         final double jpegQuality = Math.min(options.quality, 1.0);
@@ -114,12 +175,12 @@ public class JPEGCodec extends AbstractCodec implements TiffCodecTiming {
         }
 
         if (options == null) {
-            options = new JPEGCodecOptions();
+            options = new JPEGOptions();
         }
         boolean completeDecoding = false;
         TiffPhotometricInterpretation declaredColorSpace = null;
         int[] declaredSubsampling = null;
-        if (options instanceof JPEGCodecOptions extended) {
+        if (options instanceof JPEGOptions extended) {
             declaredColorSpace = extended.getPhotometricInterpretation();
             declaredSubsampling = extended.getYCbCrSubsampling();
             completeDecoding = JPEGTools.completeDecodingYCbCrNecessary(info, declaredColorSpace, declaredSubsampling);

@@ -76,7 +76,7 @@ public class PackbitsCodec extends AbstractCodec {
 
 	/**
 	 * The Options parameter should have the following fields set:
-	 * {@link Options#getMaxBytes()}  maxBytes}
+	 * {@link Options#getMaxSizeInBytes()}  maxBytes}
 	 */
 	@Override
 	public byte[] decompress(final DataHandle<Location> in, Options options) throws IOException {
@@ -87,7 +87,7 @@ public class PackbitsCodec extends AbstractCodec {
 		// Adapted from the TIFF 6.0 specification, page 42.
 		final ByteArrayOutputStream output = new ByteArrayOutputStream(1024);
 		int nread = 0;
-        while (output.size() < options.maxBytes) {
+        while (output.size() < options.maxSizeInBytes) {
             final byte n = (byte) (in.read() & 0xff);
             nread++;
             if (n >= 0) { // 0 <= n <= 127

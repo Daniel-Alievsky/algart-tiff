@@ -32,7 +32,6 @@ import io.scif.formats.tiff.TiffRational;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.codecs.JPEGCodec;
-import net.algart.matrices.tiff.codecs.JPEGCodecOptions;
 import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.codecs.TiffCodecTiming;
 import net.algart.matrices.tiff.tiles.TiffMap;
@@ -1334,7 +1333,7 @@ public class TiffReader implements Closeable {
     private TiffCodec.Options buildReadingOptions(TiffTile tile, TiffCodec customCodec) throws TiffException {
         TiffIFD ifd = tile.ifd();
         TiffCodec.Options codecOptions = customCodec instanceof JPEGCodec ?
-                JPEGCodecOptions.getDefaultOptions(this.codecOptions)
+                JPEGCodec.JPEGOptions.getDefaultOptions(this.codecOptions)
                         .setPhotometricInterpretation(ifd.getPhotometricInterpretation())
                         .setYCbCrSubsampling(ifd.getYCbCrSubsampling()) :
                 this.codecOptions.clone();
@@ -1351,7 +1350,7 @@ public class TiffReader implements Closeable {
         // If it will be invalid (too large) value, returned decoded data will be too large,
         // and this class will throw an exception "data may be lost" in further
         // tile.completeNumberOfPixels() call.
-        codecOptions.setMaxBytes(Math.max(samplesLength, tile.getStoredDataLength()));
+        codecOptions.setMaxSizeInBytes(Math.max(samplesLength, tile.getStoredDataLength()));
         if (USE_LEGACY_UNPACK_BYTES) {
             codecOptions.setInterleaved(true);
             // - old-style unpackBytes does not "understand" already-separated tiles

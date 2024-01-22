@@ -44,12 +44,12 @@ public interface TiffCodec {
     class Options implements Cloneable {
         int width = 0;
         int height = 0;
-        int channels = 0;
+        int numberOfChannels = 0;
         int bitsPerSample = 0;
         boolean littleEndian = false;
         boolean interleaved = false;
         boolean signed = false;
-        int maxBytes = 0;
+        int maxSizeInBytes = 0;
         boolean lossless = true;
         ColorModel colorModel = null;
         double quality = 0.0;
@@ -63,12 +63,12 @@ public interface TiffCodec {
             Objects.requireNonNull(options, "Null options");
             this.width = options.width;
             this.height = options.height;
-            this.channels = options.channels;
+            this.numberOfChannels = options.numberOfChannels;
             this.bitsPerSample = options.bitsPerSample;
             this.littleEndian = options.littleEndian;
             this.interleaved = options.interleaved;
             this.signed = options.signed;
-            this.maxBytes = options.maxBytes;
+            this.maxSizeInBytes = options.maxSizeInBytes;
             this.lossless = options.lossless;
             this.colorModel = options.colorModel;
             this.quality = options.quality;
@@ -93,12 +93,12 @@ public interface TiffCodec {
             return this;
         }
 
-        public int getChannels() {
-            return channels;
+        public int getNumberOfChannels() {
+            return numberOfChannels;
         }
 
-        public Options setChannels(int channels) {
-            this.channels = channels;
+        public Options setNumberOfChannels(int numberOfChannels) {
+            this.numberOfChannels = numberOfChannels;
             return this;
         }
 
@@ -138,12 +138,12 @@ public interface TiffCodec {
             return this;
         }
 
-        public int getMaxBytes() {
-            return maxBytes;
+        public int getMaxSizeInBytes() {
+            return maxSizeInBytes;
         }
 
-        public Options setMaxBytes(int maxBytes) {
-            this.maxBytes = maxBytes;
+        public Options setMaxSizeInBytes(int maxSizeInBytes) {
+            this.maxSizeInBytes = maxSizeInBytes;
             return this;
         }
 
@@ -197,12 +197,12 @@ public interface TiffCodec {
             }
             setField(oldStyleClass, result, "width", width);
             setField(oldStyleClass, result, "height", height);
-            setField(oldStyleClass, result, "channels", channels);
+            setField(oldStyleClass, result, "channels", numberOfChannels);
             setField(oldStyleClass, result, "bitsPerSample", bitsPerSample);
             setField(oldStyleClass, result, "littleEndian", littleEndian);
             setField(oldStyleClass, result, "interleaved", interleaved);
             setField(oldStyleClass, result, "signed", signed);
-            setField(oldStyleClass, result, "maxBytes", maxBytes);
+            setField(oldStyleClass, result, "maxBytes", maxSizeInBytes);
             setField(oldStyleClass, result, "lossless", lossless);
             setField(oldStyleClass, result, "colorModel", colorModel);
             setField(oldStyleClass, result, "quality", quality);
@@ -213,12 +213,12 @@ public interface TiffCodec {
             Objects.requireNonNull(oldStyleOptions, "Null oldStyleOptions");
             width = getField(oldStyleOptions, Integer.class, "width");
             height = getField(oldStyleOptions, Integer.class, "height");
-            channels = getField(oldStyleOptions, Integer.class, "channels");
+            numberOfChannels = getField(oldStyleOptions, Integer.class, "channels");
             bitsPerSample = getField(oldStyleOptions, Integer.class, "bitsPerSample");
             littleEndian = getField(oldStyleOptions, Boolean.class, "littleEndian");
             interleaved = getField(oldStyleOptions, Boolean.class, "interleaved");
             signed = getField(oldStyleOptions, Boolean.class, "signed");
-            maxBytes = getField(oldStyleOptions, Integer.class, "maxBytes");
+            maxSizeInBytes = getField(oldStyleOptions, Integer.class, "maxBytes");
             lossless = getField(oldStyleOptions, Boolean.class, "lossless");
             colorModel = getField(oldStyleOptions, ColorModel.class, "colorModel");
             quality = getField(oldStyleOptions, Double.class, "quality");
@@ -229,12 +229,12 @@ public interface TiffCodec {
             return "Options: " +
                     "width=" + width +
                     ", height=" + height +
-                    ", channels=" + channels +
+                    ", numberOfChannels=" + numberOfChannels +
                     ", bitsPerSample=" + bitsPerSample +
                     ", littleEndian=" + littleEndian +
                     ", interleaved=" + interleaved +
                     ", signed=" + signed +
-                    ", maxBytes=" + maxBytes +
+                    ", maxSizeInBytes=" + maxSizeInBytes +
                     ", lossless=" + lossless +
                     ", colorModel=" + colorModel +
                     ", quality=" + quality;

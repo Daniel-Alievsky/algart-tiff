@@ -30,18 +30,33 @@
 package net.algart.matrices.tiff.codecs;
 
 import io.scif.FormatException;
-import io.scif.UnsupportedCompressionException;
-import io.scif.codec.AbstractCodec;
 import io.scif.codec.*;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.location.Location;
-import org.scijava.plugin.Plugin;
 
+import java.awt.image.ColorModel;
 import java.io.IOException;
 import java.util.HashMap;
 
 // Reduced version of analogous SCIFIO class (for compatibility).
 class HuffmanCodec {
+	// Reduced version of analogous SCIFIO class (for compatibility).
+	static class HuffmanCodecOptions {
+		int width;
+		int height;
+		int channels;
+		int bitsPerSample;
+		boolean littleEndian;
+		boolean interleaved;
+		boolean signed;
+		int maxBytes;
+		boolean lossless;
+		ColorModel colorModel;
+		double quality;
+		boolean ycbcr;
+
+		short[] table;
+	}
 
 	// -- Constants --
 
@@ -173,5 +188,4 @@ class HuffmanCodec {
 		}
 
 	}
-
 }

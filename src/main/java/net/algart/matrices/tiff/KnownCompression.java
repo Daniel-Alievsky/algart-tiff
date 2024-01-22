@@ -122,16 +122,16 @@ enum KnownCompression {
         options.setWidth(tile.getSizeX());
         options.setHeight(tile.getSizeY());
         options.setBitsPerSample(8 * tile.bytesPerSample());
-        options.setChannels(tile.samplesPerPixel());
+        options.setNumberOfChannels(tile.samplesPerPixel());
         options.setLittleEndian(tile.isLittleEndian());
         options.setInterleaved(true);
         options.setSigned(false);
         return options;
     }
 
-    public static JPEGCodecOptions jpegWriteOptions(TiffTile tile, TiffCodec.Options defaultOptions) {
+    public static JPEGCodec.JPEGOptions jpegWriteOptions(TiffTile tile, TiffCodec.Options defaultOptions) {
         final TiffCodec.Options options = standardWriteOptions(tile, defaultOptions);
-        final JPEGCodecOptions result = JPEGCodecOptions.getDefaultOptions(options);
+        final JPEGCodec.JPEGOptions result = JPEGCodec.JPEGOptions.getDefaultOptions(options);
         if (result.getQuality() > 1.0) {
             // - for JPEG, maximal possible quality is 1.0
             // (for comparison, maximal quality in JPEG-2000 is Double.MAX_VALUE)
@@ -144,18 +144,18 @@ enum KnownCompression {
         return result;
     }
 
-    public static JPEG2000CodecOptions jpeg2000LosslessWriteOptions(TiffTile tile, TiffCodec.Options defaultOptions) {
+    public static JPEG2000Codec.JPEG2000Options jpeg2000LosslessWriteOptions(TiffTile tile, TiffCodec.Options defaultOptions) {
         return jpeg2000WriteOptions(tile, defaultOptions, true);
     }
 
-    public static JPEG2000CodecOptions jpeg2000WriteOptions(
+    public static JPEG2000Codec.JPEG2000Options jpeg2000WriteOptions(
             TiffTile tile,
             TiffCodec.Options defaultOptions,
             boolean lossless) {
         final TiffCodec.Options options = standardWriteOptions(tile, defaultOptions);
         options.setLossless(lossless);
-        final JPEG2000CodecOptions result = JPEG2000CodecOptions.getDefaultOptions(options);
-        if (defaultOptions instanceof JPEG2000CodecOptions options2000) {
+        final JPEG2000Codec.JPEG2000Options result = JPEG2000Codec.JPEG2000Options.getDefaultOptions(options);
+        if (defaultOptions instanceof JPEG2000Codec.JPEG2000Options options2000) {
             result.setNumDecompositionLevels(options2000.getNumDecompositionLevels());
             result.setResolution(options2000.getResolution());
             if (options2000.getCodeBlockSize() != null) {

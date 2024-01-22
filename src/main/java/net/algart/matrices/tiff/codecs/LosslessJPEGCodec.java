@@ -219,7 +219,7 @@ public class LosslessJPEGCodec extends AbstractCodec {
 
 				final BitBuffer bb = new BitBuffer(toDecode);
 				final HuffmanCodec huffman = new HuffmanCodec();
-				final HuffmanCodecOptions huffmanOptions = new HuffmanCodecOptions();
+				final HuffmanCodec.HuffmanCodecOptions huffmanOptions = new HuffmanCodec.HuffmanCodecOptions();
 				huffmanOptions.bitsPerSample = bitsPerSample;
 				huffmanOptions.maxBytes = buf.length / nComponents;
 
