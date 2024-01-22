@@ -83,7 +83,7 @@ public class TiffCopyTest {
             boolean enforceBigTiff,
             boolean uncompressedTarget)
             throws IOException {
-        try (TiffReader reader = new TiffReader(context, sourceFile, false)) {
+        try (TiffReader reader = new TiffReader(sourceFile, false).setContext(context)) {
             if (!reader.isValid()) {
                 System.out.printf("Skipping %s: not a TIFF%n", sourceFile);
                 return;
@@ -91,7 +91,7 @@ public class TiffCopyTest {
             System.out.printf("Copying %s to %s...%n", sourceFile, targetFile);
             reader.setByteFiller((byte) 0xC0);
             boolean ok = false;
-            try (TiffWriter writer = new TiffWriter(context, targetFile)) {
+            try (TiffWriter writer = new TiffWriter(targetFile).setContext(context)) {
                 writer.setSmartIFDCorrection(true);
                 writer.setBigTiff(enforceBigTiff || reader.isBigTiff());
                 writer.setLittleEndian(reader.isLittleEndian());

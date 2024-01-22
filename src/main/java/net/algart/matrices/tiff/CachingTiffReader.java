@@ -56,20 +56,20 @@ public class CachingTiffReader extends TiffReader {
     private long currentCacheMemory = 0;
     private final Object tileCacheLock = new Object();
 
-    public CachingTiffReader (Context context, Path file) throws IOException {
-        super(context, file);
+    public CachingTiffReader(Path file) throws IOException {
+        super(file);
     }
 
-    public CachingTiffReader(Context context, Path file, boolean requireValidTiff) throws IOException {
-        super(context, file, requireValidTiff);
+    public CachingTiffReader(Path file, boolean requireValidTiff) throws IOException {
+        super(file, requireValidTiff);
     }
 
-    public CachingTiffReader(Context context, DataHandle<Location> in) throws IOException {
-        super(context, in);
+    public CachingTiffReader(DataHandle<Location> in) throws IOException {
+        super(in);
     }
 
-    public CachingTiffReader(Context context, DataHandle<Location> in, boolean requireValidTiff) throws IOException {
-        super(context, in, requireValidTiff);
+    public CachingTiffReader(DataHandle<Location> in, boolean requireValidTiff) throws IOException {
+        super(in, requireValidTiff);
     }
 
     public long getMaxCachingMemory() {

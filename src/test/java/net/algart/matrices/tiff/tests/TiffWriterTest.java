@@ -192,7 +192,8 @@ public class TiffWriterTest {
         final SCIFIO scifio = new SCIFIO();
         for (int test = 1; test <= numberOfTests; test++) {
             try (final Context context = noContext ? null : scifio.getContext();
-                 final TiffWriter writer = new TiffWriter(context, targetFile, !existingFile)) {
+                 final TiffWriter writer = new TiffWriter(targetFile, !existingFile)) {
+                writer.setContext(context);
 //                 TiffWriter writer = new TiffSaver(context, targetFile.toString())) {
 //                writer.setExtendedCodec(false);
                 if (interleaveOutside && sampleType.bytesPerSample() == 1) {
@@ -267,7 +268,7 @@ public class TiffWriterTest {
                         // but following images will be written with new properties.
                         // Note: it seems that we need to "flush" current writer.getStream(),
                         // but DataHandle has not any analogs of flush() method.
-                        try (TiffReader reader = new TiffReader(null, targetFile, false)) {
+                        try (TiffReader reader = new TiffReader(targetFile, false)) {
                             ifd = reader.readSingleIFD(ifdIndex);
                             ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
                         }
@@ -338,7 +339,7 @@ public class TiffWriterTest {
             TiffMap map,
             int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        final TiffReader reader = new TiffReader(null, writer.getStream());
+        final TiffReader reader = new TiffReader(writer.getStream());
         final IRectangularArea areaToWrite = IRectangularArea.valueOf(
                 fromX, fromY, fromX + sizeX - 1, fromY + sizeY - 1);
         for (TiffTile tile : map.tiles()) {

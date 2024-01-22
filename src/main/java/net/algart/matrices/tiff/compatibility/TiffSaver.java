@@ -68,8 +68,7 @@ public class TiffSaver extends TiffWriter {
 
     @Deprecated
     public TiffSaver(final Context ctx, final Location loc) {
-        super(Objects.requireNonNull(ctx, "Null context"),
-                ctx.getService(DataHandleService.class).create(loc));
+        super(Objects.requireNonNull(ctx, "Null context").getService(DataHandleService.class).create(loc));
         scifio = new SCIFIO(ctx);
         log = scifio.log();
         this.dataHandleService = ctx.getService(DataHandleService.class);

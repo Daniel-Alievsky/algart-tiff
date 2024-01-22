@@ -94,7 +94,9 @@ public class TiffParser extends TiffReader {
      */
     @Deprecated
     public TiffParser(final Context context, final DataHandle<Location> in) {
-        super(Objects.requireNonNull(context, "Null context"), in, null);
+        super(in, null);
+        Objects.requireNonNull(context, "Null context");
+        setContext(context);
         // Disable new features of TiffReader for compatibility:
         this.setAutoUnpackUnusualPrecisions(false);
         this.setCropTilesToImageBoundaries(false);

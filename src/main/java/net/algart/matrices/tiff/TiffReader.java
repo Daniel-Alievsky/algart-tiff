@@ -25,18 +25,20 @@
 package net.algart.matrices.tiff;
 
 import io.scif.SCIFIO;
-import net.algart.matrices.tiff.codecs.TiffCodec;
 import io.scif.codec.CodecOptions;
-import net.algart.matrices.tiff.codecs.*;
 import io.scif.formats.tiff.TiffCompression;
 import io.scif.formats.tiff.TiffConstants;
 import io.scif.formats.tiff.TiffRational;
-import net.algart.arrays.*;
+import net.algart.arrays.Matrix;
+import net.algart.arrays.UpdatablePArray;
+import net.algart.matrices.tiff.codecs.JPEGCodec;
+import net.algart.matrices.tiff.codecs.JPEGCodecOptions;
+import net.algart.matrices.tiff.codecs.TiffCodec;
+import net.algart.matrices.tiff.codecs.TiffCodecTiming;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIO;
 import net.algart.matrices.tiff.tiles.TiffTileIndex;
-import org.scijava.AbstractContextual;
 import org.scijava.Context;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.ReadBufferDataHandle;
@@ -45,11 +47,11 @@ import org.scijava.io.location.Location;
 import java.io.Closeable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -62,7 +64,7 @@ import java.util.stream.Collectors;
  * first of all, it concerns the {@link TiffIFD} arguments of many methods.
  * The same is true for the result of {@link #getStream()} method.</p>
  */
-public class TiffReader extends AbstractContextual implements Closeable {
+public class TiffReader implements Closeable {
     // Creating this class started from reworking SCIFIO TiffParser class.
     // Below is a copy of list of its authors and of the SCIFIO license for that class.
     // (It is placed here to avoid autocorrection by IntelliJ IDEA)
@@ -135,6 +137,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
     private boolean cachingIFDs = true;
     private boolean missingTilesAllowed = false;
     private byte byteFiller = 0;
+    private volatile Context context = null;
 
     private final Exception openingException;
     private final DataHandle<Location> in;
@@ -150,7 +153,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
      * Cached first IFD in the current file.
      */
     private volatile TiffIFD firstIFD;
-    private final SCIFIO scifio;
+    private volatile Object scifio = null;
 
     private final Object fileLock = new Object();
 
@@ -167,31 +170,15 @@ public class TiffReader extends AbstractContextual implements Closeable {
     private long timeCompleteDecoding = 0;
 
     public TiffReader(Path file) throws IOException {
-        this(null, file);
+        this(file, true);
     }
 
     public TiffReader(Path file, boolean requireValidTiff) throws IOException {
-        this(null, file, requireValidTiff);
+        this(TiffTools.getExistingFileHandle(file), requireValidTiff);
     }
 
     public TiffReader(DataHandle<Location> in) throws IOException {
-        this(null, in);
-    }
-
-    public TiffReader(DataHandle<Location> in, boolean requireValidTiff) throws IOException {
-        this(null, in, requireValidTiff);
-    }
-
-    public TiffReader(Context context, Path file) throws IOException {
-        this(context, file, true);
-    }
-
-    public TiffReader(Context context, Path file, boolean requireValidTiff) throws IOException {
-        this(context, TiffTools.getExistingFileHandle(file), requireValidTiff);
-    }
-
-    public TiffReader(Context context, DataHandle<Location> in) throws IOException {
-        this(context, in, true);
+        this(in, true);
     }
 
     /**
@@ -201,15 +188,13 @@ public class TiffReader extends AbstractContextual implements Closeable {
      * in a case of incorrect TIFF header or some other I/O errors.
      * If it is <tt>false</tt>, exceptions will be ignored, but {@link #isValid()} method will return <tt>false</tt>.
      *
-     * @param context          SCIFIO context; may be <tt>null</tt>, but in this case some codecs
-     *                         will possibly not work.
      * @param in               input stream.
      * @param requireValidTiff whether the input file must exist and be a readable TIFF-file with a correct header.
      * @throws TiffException if the file is not a correct TIFF file
      * @throws IOException   in a case of any problems with the input file
      */
-    public TiffReader(Context context, DataHandle<Location> in, boolean requireValidTiff) throws IOException {
-        this(context, in, null);
+    public TiffReader(DataHandle<Location> in, boolean requireValidTiff) throws IOException {
+        this(in, null);
         this.requireValidTiff = requireValidTiff;
         if (requireValidTiff && openingException != null) {
             if (openingException instanceof IOException e) {
@@ -225,25 +210,14 @@ public class TiffReader extends AbstractContextual implements Closeable {
     /**
      * Universal constructor, helping to make subclasses with constructors, which not throw exceptions.
      *
-     * @param context          SCIFIO context; may be <tt>null</tt>, but in this case some codecs
-     *                         will possibly not work.
      * @param in               input stream.
      * @param exceptionHandler if not <tt>null</tt>, it will be called in a case of some checked exception;
      *                         for example, it may log it. But usually it is better idea to use the main
-     *                         constructor {@link #TiffReader(Context, DataHandle, boolean)} with catching exception.
+     *                         constructor {@link #TiffReader(DataHandle, boolean)} with catching exception.
      */
-    protected TiffReader(
-            Context context,
-            DataHandle<Location> in,
-            Consumer<Exception> exceptionHandler) {
+    protected TiffReader(DataHandle<Location> in, Consumer<Exception> exceptionHandler) {
         Objects.requireNonNull(in, "Null in stream");
         this.requireValidTiff = false;
-        if (context != null) {
-            setContext(context);
-            scifio = new SCIFIO(context);
-        } else {
-            scifio = null;
-        }
         this.in = in instanceof ReadBufferDataHandle ? in : new ReadBufferDataHandle<>(in);
         AtomicBoolean bigTiff = new AtomicBoolean(false);
         this.openingException = startReading(bigTiff);
@@ -459,6 +433,16 @@ public class TiffReader extends AbstractContextual implements Closeable {
      */
     public TiffReader setByteFiller(byte byteFiller) {
         this.byteFiller = byteFiller;
+        return this;
+    }
+
+    public Context getContext() {
+        return context;
+    }
+
+    public TiffReader setContext(Context context) {
+        this.scifio = null;
+        this.context = context;
         return this;
     }
 
@@ -883,13 +867,14 @@ public class TiffReader extends AbstractContextual implements Closeable {
         } else {
             final CodecOptions codecOptions = options.toOldStyleOptions(CodecOptions.class);
             correctReadingOptions(codecOptions, tile, codec);
+            Object scifio = scifio();
             if (scifio == null) {
                 throw new IllegalStateException(
                         "Compression type " + compression + " requires specifying non-null SCIFIO context");
             }
             byte[] decodedData;
             try {
-                decodedData = compression.decompress(scifio.codec(), encodedData, codecOptions);
+                decodedData = compression.decompress(((SCIFIO) scifio).codec(), encodedData, codecOptions);
             } catch (Exception e) {
                 throw new TiffException(e.getMessage(), e);
             }
@@ -1268,6 +1253,14 @@ public class TiffReader extends AbstractContextual implements Closeable {
     //TODO!! for external TiffCompression only (CodecOptions will be replaced with Object)
             throws TiffException {
         return codecOptions;
+    }
+
+    Object scifio() {
+        Object scifio = this.scifio;
+        if (scifio == null) {
+            this.scifio = scifio = createScifio(context);
+        }
+        return scifio;
     }
 
     private void clearTiming() {
@@ -1814,6 +1807,24 @@ public class TiffReader extends AbstractContextual implements Closeable {
             return "";
         }
         return format.formatted(uri);
+    }
+
+    static Object createScifio(Context context) {
+        if (context == null) {
+            return null;
+        }
+        final Class<?> scifioClass;
+        try {
+            scifioClass = Class.forName("io.scif.SCIFIO");
+        } catch (ClassNotFoundException e) {
+            throw new IllegalStateException("Operation is not allowed: SCIFIO library is not installed", e);
+        }
+        try {
+            return scifioClass.getConstructor(Context.class).newInstance(context);
+        } catch (InstantiationException | IllegalAccessException |
+                 InvocationTargetException | NoSuchMethodException e) {
+            throw new IllegalStateException("SCIFIO library cannot be called, probably due to versions mismatch", e);
+        }
     }
 
     private static long debugTime() {

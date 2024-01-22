@@ -110,9 +110,11 @@ public class TiffReadWriteTest {
         for (int test = 1; test <= numberOfTests; test++) {
             System.out.printf("Test #%d%n", test);
             try (Context context = noContext ? null : scifio.getContext()) {
-                TiffReader reader = new TiffReader(context, sourceFile);
+                TiffReader reader = new TiffReader(sourceFile);
+                reader.setContext(context);
                 reader.setByteFiller((byte) 0xC0);
-                TiffWriter writer = new TiffWriter(context, targetFile);
+                TiffWriter writer = new TiffWriter(targetFile);
+                writer.setContext(context);
                 writer.setBigTiff(bigTiff);
                 writer.setLittleEndian(true);
                 writer.setJpegInPhotometricRGB(jpegRGB).setQuality(0.8);

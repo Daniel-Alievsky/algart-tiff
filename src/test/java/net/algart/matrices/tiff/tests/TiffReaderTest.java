@@ -100,9 +100,10 @@ public class TiffReaderTest {
                 long t1 = System.nanoTime();
                 final TiffReader reader = compatibility ?
                         new TiffParser(context, tiffFile) : cache ?
-                        new CachingTiffReader(context, tiffFile)
-                                .setMaxCachingMemory(tiny ? 1000000 : CachingTiffReader.DEFAULT_MAX_CACHING_MEMORY) :
-                        new TiffReader(context, tiffFile);
+                        new CachingTiffReader(tiffFile)
+                                .setMaxCachingMemory(tiny ? 1000000 : CachingTiffReader.DEFAULT_MAX_CACHING_MEMORY):
+                        new TiffReader(tiffFile);
+                reader.setContext(context);
                 long t2 = System.nanoTime();
 //                reader.setExtendedCodec(false);
 //                reader.setCachingIFDs(false);

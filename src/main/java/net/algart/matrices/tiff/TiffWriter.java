@@ -65,7 +65,7 @@ import java.util.stream.Collectors;
  * in particular, it concerns the {@link TiffIFD} arguments and Java-arrays with samples.
  * The same is true for the result of {@link #getStream()} method.</p>
  */
-public class TiffWriter extends AbstractContextual implements Closeable {
+public class TiffWriter implements Closeable {
     // Creating this class started from reworking SCIFIO TiffSaver class.
     // Below is a copy of list of its authors and of the SCIFIO license for that class.
     // (It is placed here to avoid autocorrection by IntelliJ IDEA)
@@ -131,9 +131,10 @@ public class TiffWriter extends AbstractContextual implements Closeable {
     private boolean missingTilesAllowed = false;
     private byte byteFiller = 0;
     private Consumer<TiffTile> tileInitializer = this::fillEmptyTile;
+    private volatile Context context = null;
 
     private final DataHandle<Location> out;
-    private final SCIFIO scifio;
+    private volatile Object scifio = null;
 
     private final Object fileLock = new Object();
 
@@ -149,23 +150,11 @@ public class TiffWriter extends AbstractContextual implements Closeable {
     private long timeEncodingAdditional = 0;
 
     public TiffWriter(Path file) throws IOException {
-        this(null, file, false);
+        this(file, false);
     }
 
     public TiffWriter(Path file, boolean deleteExistingFile) throws IOException {
-        this(null, file, deleteExistingFile);
-    }
-
-    public TiffWriter(DataHandle<Location> out) {
-        this(null, out);
-    }
-
-    public TiffWriter(Context context, Path file) throws IOException {
-        this(context, file, false);
-    }
-
-    public TiffWriter(Context context, Path file, boolean deleteExistingFile) throws IOException {
-        this(context, deleteFileIfRequested(file, deleteExistingFile));
+        this(deleteFileIfRequested(file, deleteExistingFile));
     }
 
     /**
@@ -175,29 +164,11 @@ public class TiffWriter extends AbstractContextual implements Closeable {
      * You <b>must</b> call one of methods {@link #create()} or {@link #open(boolean)} after creating this object
      * by the constructor.
      *
-     * @param context SCIFIO context; may be <tt>null</tt> for most compressions.
      * @param out output TIFF file.
      */
-    public TiffWriter(Context context, DataHandle<Location> out) {
+    public TiffWriter(DataHandle<Location> out) {
         Objects.requireNonNull(out, "Null \"out\" data handle (output stream)");
-        if (context != null) {
-            setContext(context);
-            scifio = new SCIFIO(context);
-        } else {
-            scifio = null;
-        }
         this.out = out;
-    }
-
-
-    /**
-     * Gets the stream from which TIFF data is being saved.
-     */
-    public DataHandle<Location> getStream() {
-        synchronized (fileLock) {
-            // - we prefer not to return this stream in the middle of I/O operations
-            return out;
-        }
     }
 
     /**
@@ -473,6 +444,26 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         return this;
     }
 
+    public Context getContext() {
+        return context;
+    }
+
+    public TiffWriter setContext(Context context) {
+        this.scifio = null;
+        this.context = context;
+        return this;
+    }
+
+    /**
+     * Gets the stream from which TIFF data is being saved.
+     */
+    public DataHandle<Location> getStream() {
+        synchronized (fileLock) {
+            // - we prefer not to return this stream in the middle of I/O operations
+            return out;
+        }
+    }
+
     /**
      * Returns position in the file of the last IFD offset, written by methods of this object.
      * It is updated by {@link #rewriteIFD(TiffIFD, boolean)}.
@@ -505,7 +496,7 @@ public class TiffWriter extends AbstractContextual implements Closeable {
                 }
             }
             ifdOffsets.clear();
-            final TiffReader reader = new TiffReader(null, out, true);
+            final TiffReader reader = new TiffReader(out, true);
             // - note: we should NOT call reader.close() method
             final long[] offsets = reader.readIFDOffsets();
             final long readerPositionOfLastOffset = reader.positionOfLastIFDOffset();
@@ -921,13 +912,14 @@ public class TiffWriter extends AbstractContextual implements Closeable {
             tile.setEncodedData(codec.compress(data, options));
         } else {
             CodecOptions codecOptions = buildWritingOptions(known, compression, tile);
+            Object scifio = scifio();
             if (scifio == null) {
                 throw new IllegalStateException(
                         "Compression type " + compression + " requires specifying non-null SCIFIO context");
             }
             final byte[] encodedData;
             try {
-                encodedData = compression.compress(scifio.codec(), data, codecOptions);
+                encodedData = compression.compress(((SCIFIO) scifio).codec(), data, codecOptions);
             } catch (FormatException e) {
                 throw new TiffException(e.getMessage(), e);
             }
@@ -1341,6 +1333,14 @@ public class TiffWriter extends AbstractContextual implements Closeable {
         // scifio.tiff().difference(tile.getDecodedData(), ifd);
         // - this solution requires using SCIFIO context class; it is better to avoid this
         TiffTools.subtractPredictionIfRequested(tile);
+    }
+
+    Object scifio() {
+        Object scifio = this.scifio;
+        if (scifio == null) {
+            this.scifio = scifio = TiffReader.createScifio(context);
+        }
+        return scifio;
     }
 
     private void clearTime() {

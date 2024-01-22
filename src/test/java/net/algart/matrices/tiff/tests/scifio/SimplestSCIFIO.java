@@ -33,5 +33,6 @@ public class SimplestSCIFIO {
     public static void main(String[] args) throws Exception {
         SCIFIO scifio = new SCIFIO();
         Context context = scifio.getContext();
+        System.out.println(context);
     }
 }

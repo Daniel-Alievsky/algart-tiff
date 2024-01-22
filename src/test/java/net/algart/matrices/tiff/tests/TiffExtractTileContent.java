@@ -58,7 +58,7 @@ public class TiffExtractTileContent {
 
         final SCIFIO scifio = new SCIFIO();
         try (final Context context = scifio.getContext()) {
-            final TiffReader reader = new TiffReader(context, tiffFile);
+            final TiffReader reader = new TiffReader(tiffFile).setContext(context);
             System.out.printf("Opening %s by %s...%n", tiffFile, reader);
             final TiffMap map = reader.map(ifdIndex);
             System.out.printf("TIFF map #%d: %s%n", ifdIndex, map);
