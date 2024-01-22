@@ -116,7 +116,8 @@ public class TiffReader implements Closeable {
     // now acceleration for 23220 int32 values is 0.2 ms instead of 0.4 ms.
 
     static final boolean USE_LEGACY_UNPACK_BYTES = false;
-    // - Should be false for better performance; necessary for debugging needs only.
+    // - Should be false for better performance; necessary for debugging needs only
+    // (together with uncommenting unpackBytesLegacy call)
     static final boolean THOROUGHLY_TEST_Y_CB_CR_LOOP = false;
 
     private static final int MINIMAL_ALLOWED_TIFF_FILE_LENGTH = 8 + 2 + 12 + 4;
@@ -1026,7 +1027,8 @@ public class TiffReader implements Closeable {
 
         if (USE_LEGACY_UNPACK_BYTES) {
             byte[] samples = new byte[tile.map().tileSizeInBytes()];
-            TiffTools.unpackBytesLegacy(samples, 0, tile.getDecodedData(), tile.ifd());
+            // TiffTools.unpackBytesLegacy(samples, 0, tile.getDecodedData(), tile.ifd());
+            // - uncomment this to perform debugging
             tile.setDecodedData(samples);
             tile.setInterleaved(false);
         } else {

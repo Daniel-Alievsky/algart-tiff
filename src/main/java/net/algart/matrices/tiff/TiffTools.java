@@ -24,8 +24,6 @@
 
 package net.algart.matrices.tiff;
 
-import io.scif.formats.tiff.IFD;
-import io.scif.formats.tiff.PhotoInterp;
 import io.scif.formats.tiff.TiffCompression;
 import io.scif.formats.tiff.TiffRational;
 import net.algart.arrays.*;
@@ -376,7 +374,7 @@ public class TiffTools {
     public static void subtractPredictionIfRequested(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         final byte[] data = tile.getDecodedData();
-        final int predictor = tile.ifd().getInt(IFD.PREDICTOR, TiffIFD.PREDICTOR_NONE);
+        final int predictor = tile.ifd().getInt(TiffIFD.PREDICTOR, TiffIFD.PREDICTOR_NONE);
         if (predictor == TiffIFD.PREDICTOR_HORIZONTAL) {
             final boolean little = tile.isLittleEndian();
             final int bytes = tile.bytesPerSample();
@@ -416,7 +414,7 @@ public class TiffTools {
     public static void unsubtractPredictionIfRequested(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         final byte[] data = tile.getDecodedData();
-        final int predictor = tile.ifd().getInt(IFD.PREDICTOR, TiffIFD.PREDICTOR_NONE);
+        final int predictor = tile.ifd().getInt(TiffIFD.PREDICTOR, TiffIFD.PREDICTOR_NONE);
         if (predictor == TiffIFD.PREDICTOR_HORIZONTAL) {
             final boolean little = tile.isLittleEndian();
             final int bytes = tile.bytesPerSample();
@@ -543,13 +541,13 @@ public class TiffTools {
         double lumaRed = 0.299;
         double lumaGreen = 0.587;
         double lumaBlue = 0.114;
-        int[] reference = ifd.getIntArray(IFD.REFERENCE_BLACK_WHITE);
+        int[] reference = ifd.getIntArray(TiffIFD.REFERENCE_BLACK_WHITE);
         if (reference == null) {
             reference = new int[]{0, 255, 128, 255, 128, 255};
             // - original SCIFIO code used here zero-filled array, this is incorrect
         }
         final int[] subsamplingLog = ifd.getYCbCrSubsamplingLogarithms();
-        final TiffRational[] coefficients = ifd.getValue(IFD.Y_CB_CR_COEFFICIENTS, TiffRational[].class)
+        final TiffRational[] coefficients = ifd.getValue(TiffIFD.Y_CB_CR_COEFFICIENTS, TiffRational[].class)
                 .orElse(new TiffRational[0]);
         if (coefficients.length >= 3) {
             lumaRed = coefficients[0].doubleValue();
@@ -944,6 +942,7 @@ public class TiffTools {
     }
 
     // Almost exact copy of old TiffParser.unpackBytes method
+    /*
     static void unpackBytesLegacy(
             final byte[] samples, final int startIndex,
             final byte[] bytes, final TiffIFD ifd) throws TiffException {
@@ -1022,7 +1021,7 @@ public class TiffTools {
         }
         final int[] subsampling = ifd.getIntArray(IFD.Y_CB_CR_SUB_SAMPLING);
         final TiffRational[] coefficients = ifd.optValue(
-                IFD.Y_CB_CR_COEFFICIENTS, TiffRational[].class).orElse(null);
+                TiffIFD.Y_CB_CR_COEFFICIENTS, TiffRational[].class).orElse(null);
         if (coefficients != null) {
             lumaRed = coefficients[0].floatValue();
             lumaGreen = coefficients[1].floatValue();
@@ -1107,6 +1106,7 @@ public class TiffTools {
             }
         }
     }
+     */
 
     static DataHandle<Location> getFileHandle(Path file) {
         Objects.requireNonNull(file, "Null file");
