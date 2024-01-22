@@ -24,12 +24,12 @@
 
 package net.algart.matrices.tiff.codecs;
 
-import io.scif.codec.CodecOptions;
 import net.algart.matrices.tiff.TiffPhotometricInterpretation;
 
+import java.util.Arrays;
 import java.util.Objects;
 
-public class JPEGCodecOptions extends CodecOptions {
+public class JPEGCodecOptions extends TiffCodec.Options {
     /**
      * Value of TIFF tag PhotometricInterpretation (READ/WRITE).
      */
@@ -39,22 +39,19 @@ public class JPEGCodecOptions extends CodecOptions {
      */
     private int[] yCbCrSubsampling = {2, 2};
 
-    private JPEGCodecOptions(CodecOptions options) {
-        super(options);
-        if (options instanceof JPEGCodecOptions extended) {
-            this.yCbCrSubsampling = extended.yCbCrSubsampling == null ? null : extended.yCbCrSubsampling.clone();
-        }
-        if (options == null || options.quality == 0.0) {
-            // - 0.0 means that it was probably not specified
-            this.quality = 1.0;
-            // - our JPEGCodec class sets the quality, and we MUST specify correct default value,
-            // if it was not specified yet via usual CodecOptions object
-            // (because default 0.0 value will lead to VERY bad quality)
-        }
+    public JPEGCodecOptions() {
+        setQuality(1.0);
+        // - our JPEGCodec class sets the quality, and we MUST specify correct default value
+        // (because default 0.0 value will lead to VERY bad quality)
     }
 
-    public static JPEGCodecOptions getDefaultOptions(CodecOptions options) {
-        return new JPEGCodecOptions(options);
+    public static JPEGCodecOptions getDefaultOptions(TiffCodec.Options options) {
+        JPEGCodecOptions result = new JPEGCodecOptions();
+        result.setTo(options);
+        if (options.quality == 0.0) {
+            result.setQuality(1.0);
+        }
+        return result;
     }
 
     public TiffPhotometricInterpretation getPhotometricInterpretation() {
@@ -75,5 +72,19 @@ public class JPEGCodecOptions extends CodecOptions {
     public JPEGCodecOptions setYCbCrSubsampling(int[] yCbCrSubsampling) {
         this.yCbCrSubsampling = Objects.requireNonNull(yCbCrSubsampling, "Null yCbCrSubsampling").clone();
         return this;
+    }
+
+    @Override
+    public String toString() {
+        return super.toString() +
+                ", photometricInterpretation=" + photometricInterpretation +
+                ", yCbCrSubsampling=" + Arrays.toString(yCbCrSubsampling);
+    }
+
+    @Override
+    public JPEGCodecOptions clone() {
+        JPEGCodecOptions result = (JPEGCodecOptions) super.clone();
+        result.yCbCrSubsampling = this.yCbCrSubsampling.clone();
+        return result;
     }
 }

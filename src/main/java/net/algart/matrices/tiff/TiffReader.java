@@ -154,10 +154,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
 
     private final Object fileLock = new Object();
 
-    /**
-     * Codec options to be used when decoding compressed pixel data.
-     */
-    CodecOptions codecOptions = CodecOptions.getDefaultOptions();
+    private TiffCodec.Options codecOptions = new TiffCodec.Options();
 
     private volatile long positionOfLastIFDOffset = -1;
 
@@ -389,7 +386,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
      *
      * @return See above.
      */
-    public CodecOptions getCodecOptions() {
+    public TiffCodec.Options getCodecOptions() {
         return codecOptions;
     }
 
@@ -399,7 +396,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
      * @param codecOptions Codec options to use.
      * @return a reference to this object.
      */
-    public TiffReader setCodecOptions(final CodecOptions codecOptions) {
+    public TiffReader setCodecOptions(TiffCodec.Options codecOptions) {
         this.codecOptions = codecOptions;
         return this;
     }
@@ -874,7 +871,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
             codec = known.extendedCodec();
             // - we are sure that this codec does not require SCIFIO context
         }
-        final CodecOptions codecOptions = buildReadingOptions(tile, codec);
+        final TiffCodec.Options options = buildReadingOptions(tile, codec);
 
         long t2 = debugTime();
         if (codec != null) {
@@ -882,8 +879,10 @@ public class TiffReader extends AbstractContextual implements Closeable {
                 timing.setTiming(TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG);
                 timing.clearTiming();
             }
-            tile.setPartiallyDecodedData(codec.decompress(encodedData, codecOptions));
+            tile.setPartiallyDecodedData(codec.decompress(encodedData, options));
         } else {
+            final CodecOptions codecOptions = options.toOldStyleOptions(CodecOptions.class);
+            correctReadingOptions(codecOptions, tile, codec);
             if (scifio == null) {
                 throw new IllegalStateException(
                         "Compression type " + compression + " requires specifying non-null SCIFIO context");
@@ -896,7 +895,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
             }
             tile.setPartiallyDecodedData(decodedData);
         }
-        tile.setInterleaved(codecOptions.interleaved);
+        tile.setInterleaved(options.interleaved);
         long t3 = debugTime();
 
         completeDecoding(tile);
@@ -1266,6 +1265,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
      * You can add here some additional customizations.
      */
     protected CodecOptions correctReadingOptions(CodecOptions codecOptions, TiffTile tile, TiffCodec customCodec)
+    //TODO!! for external TiffCompression only (CodecOptions will be replaced with Object)
             throws TiffException {
         return codecOptions;
     }
@@ -1338,14 +1338,14 @@ public class TiffReader extends AbstractContextual implements Closeable {
         }
     }
 
-    private CodecOptions buildReadingOptions(TiffTile tile, TiffCodec customCodec) throws TiffException {
+    private TiffCodec.Options buildReadingOptions(TiffTile tile, TiffCodec customCodec) throws TiffException {
         TiffIFD ifd = tile.ifd();
-        CodecOptions codecOptions = customCodec instanceof JPEGCodec ?
+        TiffCodec.Options codecOptions = customCodec instanceof JPEGCodec ?
                 JPEGCodecOptions.getDefaultOptions(this.codecOptions)
                         .setPhotometricInterpretation(ifd.getPhotometricInterpretation())
                         .setYCbCrSubsampling(ifd.getYCbCrSubsampling()) :
-                new CodecOptions(this.codecOptions);
-        codecOptions.littleEndian = ifd.isLittleEndian();
+                this.codecOptions.clone();
+        codecOptions.setLittleEndian(ifd.isLittleEndian());
         final int samplesLength = tile.getSizeInBytes();
         // - Note: it may be LESS than a usual number of samples in the tile/strip.
         // Current readEncodedTile() always returns full-size tile without cropping
@@ -1358,13 +1358,13 @@ public class TiffReader extends AbstractContextual implements Closeable {
         // If it will be invalid (too large) value, returned decoded data will be too large,
         // and this class will throw an exception "data may be lost" in further
         // tile.completeNumberOfPixels() call.
-        codecOptions.maxBytes = Math.max(samplesLength, tile.getStoredDataLength());
+        codecOptions.setMaxBytes(Math.max(samplesLength, tile.getStoredDataLength()));
         if (USE_LEGACY_UNPACK_BYTES) {
-            codecOptions.interleaved = true;
+            codecOptions.setInterleaved(true);
             // - old-style unpackBytes does not "understand" already-separated tiles
         } else {
-            codecOptions.interleaved =
-                    !(customCodec instanceof JPEGCodec || ifd.getCompression() == TiffCompression.JPEG);
+            codecOptions.setInterleaved(
+                    !(customCodec instanceof JPEGCodec || ifd.getCompression() == TiffCompression.JPEG));
         }
         // - ExtendedJPEGCodec or standard codec JPEFCodec (it may be chosen below by scifio.codec(),
         // but we are sure that JPEG compression will be served by it even in future versions):
@@ -1372,7 +1372,7 @@ public class TiffReader extends AbstractContextual implements Closeable {
         // which suppose that data are interleaved according TIFF format specification).
         // Value "true" is necessary for other codecs, that work with high-level classes (like JPEG or JPEG-2000) and
         // need to be instructed to interleave results (unlike LZW or DECOMPRESSED, which work with data "as-is").
-        return correctReadingOptions(codecOptions, tile, customCodec);
+        return codecOptions;
     }
 
     // Note: this method does not store tile in the tile map.

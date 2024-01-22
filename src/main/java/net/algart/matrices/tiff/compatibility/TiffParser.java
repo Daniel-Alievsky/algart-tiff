@@ -67,6 +67,8 @@ public class TiffParser extends TiffReader {
     private boolean ycbcrCorrection = true;
 
     private boolean equalStrips = false;
+    /** Codec options to be used when decoding compressed pixel data. */
+    private CodecOptions codecOptions = CodecOptions.getDefaultOptions();
 
     private IFDList ifdList;
     private IFD firstIFD;
@@ -160,6 +162,11 @@ public class TiffParser extends TiffReader {
     public void setDoCaching(final boolean cachingIFDs) {
         super.setCachingIFDs(cachingIFDs);
     }
+
+    public void setCodecOptions(final CodecOptions codecOptions) {
+        this.codecOptions = codecOptions;
+    }
+
 
     @Deprecated
     /** Use {@link #allIFDs()} instead. */
@@ -767,7 +774,7 @@ public class TiffParser extends TiffReader {
         // read in image strips
         final TiffCompression compression = ifd.getCompression();
 
-        CodecOptions codecOptions = this.getCodecOptions();
+        CodecOptions codecOptions = this.codecOptions;
         if (compression == TiffCompression.JPEG_2000 ||
                 compression == TiffCompression.JPEG_2000_LOSSY) {
             codecOptions = compression.getCompressionCodecOptions(ifd, codecOptions);

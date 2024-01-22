@@ -155,22 +155,20 @@ public class LosslessJPEGCodec extends AbstractCodec {
 	// -- Codec API methods --
 
 	@Override
-	public byte[] compress(final byte[] data, final CodecOptions options) throws TiffException {
+	public byte[] compress(final byte[] data, final Options options) throws TiffException {
 		throw new UnsupportedTiffFormatException("Lossless JPEG compression not supported");
 	}
 
 	/**
-	 * The CodecOptions parameter should have the following fields set:
-	 * {@link CodecOptions#interleaved interleaved}
-	 * {@link CodecOptions#littleEndian littleEndian}
-	 *
-	 * @see TiffCodec#decompress(DataHandle, CodecOptions)
+	 * The Options parameter should have the following fields set:
+	 * {@link Options#isInterleaved()}
+	 * {@link Options#isLittleEndian()}
 	 */
 	@Override
-	public byte[] decompress(final DataHandle<Location> in, CodecOptions options) throws IOException {
+	public byte[] decompress(final DataHandle<Location> in, Options options) throws IOException {
 		if (in == null) throw new IllegalArgumentException(
 			"No data to decompress.");
-		if (options == null) options = CodecOptions.getDefaultOptions();
+		if (options == null) options = new Options();
 		byte[] buf = new byte[0];
 
 		int width = 0, height = 0;
@@ -375,7 +373,7 @@ public class LosslessJPEGCodec extends AbstractCodec {
 			buf = newBuf;
 		}
 
-		if (options.littleEndian && bytesPerSample > 1) {
+        if (options.littleEndian && bytesPerSample > 1) {
 			// data is stored in big endian order
 			// reverse the bytes in each sample
 			final byte[] newBuf = new byte[buf.length];

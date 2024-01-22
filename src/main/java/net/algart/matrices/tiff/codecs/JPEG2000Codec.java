@@ -24,8 +24,6 @@
 
 package net.algart.matrices.tiff.codecs;
 
-import io.scif.codec.CodecOptions;
-import io.scif.codec.JPEG2000CodecOptions;
 import io.scif.gui.AWTImageTools;
 import io.scif.gui.UnsignedIntBuffer;
 import io.scif.media.imageio.plugins.jpeg2000.J2KImageReadParam;
@@ -80,14 +78,13 @@ public class JPEG2000Codec extends AbstractCodec {
 
 
     // Copy of equivalent SCIFIO method, not using jaiIIOService field
-    public byte[] compress(final byte[] data, final CodecOptions options) throws TiffException {
+    public byte[] compress(final byte[] data, final Options options) throws TiffException {
         if (data == null || data.length == 0) return data;
 
         JPEG2000CodecOptions j2kOptions;
         if (options instanceof JPEG2000CodecOptions) {
             j2kOptions = (JPEG2000CodecOptions) options;
-        }
-        else {
+        } else {
             j2kOptions = JPEG2000CodecOptions.getDefaultOptions(options);
         }
 
@@ -114,8 +111,7 @@ public class JPEG2000Codec extends AbstractCodec {
                         b[c][q] = data[next++];
                     }
                 }
-            }
-            else {
+            } else {
                 for (int c = 0; c < j2kOptions.channels; c++) {
                     System.arraycopy(data, c * plane, b[c], 0, plane);
                 }
@@ -124,8 +120,7 @@ public class JPEG2000Codec extends AbstractCodec {
             img = AWTImageTools.constructImage(b.length, DataBuffer.TYPE_BYTE,
                     j2kOptions.width, j2kOptions.height, false, true, buffer,
                     j2kOptions.colorModel);
-        }
-        else if (j2kOptions.bitsPerSample == 16) {
+        } else if (j2kOptions.bitsPerSample == 16) {
             final short[][] s = new short[j2kOptions.channels][plane];
             if (j2kOptions.interleaved) {
                 for (int q = 0; q < plane; q++) {
@@ -134,8 +129,7 @@ public class JPEG2000Codec extends AbstractCodec {
                         next += 2;
                     }
                 }
-            }
-            else {
+            } else {
                 for (int c = 0; c < j2kOptions.channels; c++) {
                     for (int q = 0; q < plane; q++) {
                         s[c][q] = Bytes.toShort(data, next, 2, j2kOptions.littleEndian);
@@ -147,8 +141,7 @@ public class JPEG2000Codec extends AbstractCodec {
             img = AWTImageTools.constructImage(s.length, DataBuffer.TYPE_USHORT,
                     j2kOptions.width, j2kOptions.height, false, true, buffer,
                     j2kOptions.colorModel);
-        }
-        else if (j2kOptions.bitsPerSample == 32) {
+        } else if (j2kOptions.bitsPerSample == 32) {
             final int[][] s = new int[j2kOptions.channels][plane];
             if (j2kOptions.interleaved) {
                 for (int q = 0; q < plane; q++) {
@@ -157,8 +150,7 @@ public class JPEG2000Codec extends AbstractCodec {
                         next += 4;
                     }
                 }
-            }
-            else {
+            } else {
                 for (int c = 0; c < j2kOptions.channels; c++) {
                     for (int q = 0; q < plane; q++) {
                         s[c][q] = Bytes.toInt(data, next, 4, j2kOptions.littleEndian);
@@ -173,10 +165,10 @@ public class JPEG2000Codec extends AbstractCodec {
                     j2kOptions.colorModel);
         }
 
+
         try {
             writeImage(out, img, j2kOptions);
-        }
-        catch (final IOException e) {
+        } catch (final IOException e) {
             throw new TiffException("Could not compress JPEG-2000 data.", e);
         }
 
@@ -185,9 +177,7 @@ public class JPEG2000Codec extends AbstractCodec {
 
     // Almost exact copy of equivalent SCIFIO method
     @Override
-    public byte[] decompress(final DataHandle<Location> in, CodecOptions options)
-            throws IOException
-    {
+    public byte[] decompress(final DataHandle<Location> in, Options options) throws IOException {
         if (in == null) {
             throw new IllegalArgumentException("No data to decompress.");
         }
@@ -199,8 +189,7 @@ public class JPEG2000Codec extends AbstractCodec {
         final long fp = in.offset();
         if (options.maxBytes == 0) {
             buf = new byte[(int) (in.length() - fp)];
-        }
-        else {
+        } else {
             buf = new byte[(int) (options.maxBytes - fp)];
         }
         in.read(buf);
@@ -209,12 +198,11 @@ public class JPEG2000Codec extends AbstractCodec {
 
     // Copy of equivalent SCIFIO method, not using jaiIIOService field
     @Override
-    public byte[] decompress(byte[] buf, CodecOptions options) throws TiffException {
+    public byte[] decompress(byte[] buf, Options options) throws TiffException {
         if (!(options instanceof JPEG2000CodecOptions)) {
             options = JPEG2000CodecOptions.getDefaultOptions(options);
-        }
-        else {
-            options = new JPEG2000CodecOptions(options);
+        } else {
+            options = options.clone();
         }
 
         byte[][] single = null;
@@ -224,7 +212,7 @@ public class JPEG2000Codec extends AbstractCodec {
         try {
             final ByteArrayInputStream bis = new ByteArrayInputStream(buf);
             b = (WritableRaster) readRaster(bis,
-                (JPEG2000CodecOptions) options);
+                    (JPEG2000CodecOptions) options);
             // - instead of:
             // b = (WritableRaster) this.jaiIIOService.readRaster(bis,
             //        (JPEG2000CodecOptions) options);
@@ -233,10 +221,9 @@ public class JPEG2000Codec extends AbstractCodec {
 
             bis.close();
             b = null;
-        }
-        catch (final IOException e) {
+        } catch (final IOException e) {
             throw new TiffException("Could not decompress JPEG2000 image. Please " +
-                "make sure that jai_imageio.jar is installed.", e);
+                    "make sure that jai_imageio.jar is installed.", e);
         }
 //        catch (final ServiceException e) {
 //            throw new TiffException("Could not decompress JPEG2000 image. Please " +
@@ -254,11 +241,10 @@ public class JPEG2000Codec extends AbstractCodec {
                     }
                 }
             }
-        }
-        else {
+        } else {
             for (int i = 0; i < single.length; i++) {
                 System.arraycopy(single[i], 0, rtn, i * single[0].length,
-                    single[i].length);
+                        single[i].length);
             }
         }
         single = null;
@@ -267,7 +253,7 @@ public class JPEG2000Codec extends AbstractCodec {
     }
 
     private static void writeImage(final OutputStream out, final BufferedImage img,
-                           final JPEG2000CodecOptions options) throws IOException {
+                                   final JPEG2000CodecOptions options) throws IOException {
         final ImageOutputStream ios = ImageIO.createImageOutputStream(out);
 
         final J2KImageWriter writer = new J2KImageWriter(null);
@@ -283,12 +269,13 @@ public class JPEG2000Codec extends AbstractCodec {
         param.setCompressionType("JPEG2000");
         param.setLossless(options.lossless);
         param.setFilter(filter);
-        param.setCodeBlockSize(options.codeBlockSize);
+        param.setCodeBlockSize(options.getCodeBlockSize());
         param.setEncodingRate(options.quality);
-        if (options.tileWidth > 0 && options.tileHeight > 0) {
-            param.setTiling(options.tileWidth, options.tileHeight,
-                    options.tileGridXOffset, options.tileGridYOffset);
-        }
+//      TIFF provides its own tile subsystem
+//        if (options.tileWidth > 0 && options.tileHeight > 0) {
+//            param.setTiling(options.tileWidth, options.tileHeight,
+//                    options.tileGridXOffset, options.tileGridYOffset);
+//        }
         if (options.numDecompositionLevels != null) {
             param.setNumDecompositionLevels(options.numDecompositionLevels);
         }
@@ -302,7 +289,7 @@ public class JPEG2000Codec extends AbstractCodec {
         reader.setInput(mciis, false, true);
         final J2KImageReadParam param = (J2KImageReadParam) reader.getDefaultReadParam();
         if (options.resolution != null) {
-            param.setResolution(options.resolution.intValue());
+            param.setResolution(options.resolution);
         }
         return reader.readRaster(0, param);
     }

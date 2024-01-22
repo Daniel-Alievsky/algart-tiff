@@ -24,9 +24,8 @@
 
 package net.algart.matrices.tiff.codecs;
 
-import io.scif.codec.CodecOptions;
-import net.algart.matrices.tiff.TiffException;
 import io.scif.gui.AWTImageTools;
+import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffPhotometricInterpretation;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.DataHandleInputStream;
@@ -51,7 +50,7 @@ public class JPEGCodec extends AbstractCodec implements TiffCodecTiming {
 //    private CodecService codecService;
 
     @Override
-    public byte[] compress(byte[] data, CodecOptions options) throws TiffException {
+    public byte[] compress(byte[] data, Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
         if (data.length == 0) {
@@ -91,7 +90,7 @@ public class JPEGCodec extends AbstractCodec implements TiffCodecTiming {
     }
 
     @Override
-    public byte[] decompress(final DataHandle<Location> in, CodecOptions options) throws IOException {
+    public byte[] decompress(final DataHandle<Location> in, Options options) throws IOException {
         final long offset = in.offset();
         long t1 = timing ? System.nanoTime() : 0;
         JPEGTools.ImageInformation info;
@@ -115,7 +114,7 @@ public class JPEGCodec extends AbstractCodec implements TiffCodecTiming {
         }
 
         if (options == null) {
-            options = CodecOptions.getDefaultOptions();
+            options = new JPEGCodecOptions();
         }
         boolean completeDecoding = false;
         TiffPhotometricInterpretation declaredColorSpace = null;

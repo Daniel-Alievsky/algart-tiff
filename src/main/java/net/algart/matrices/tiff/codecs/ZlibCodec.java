@@ -25,7 +25,6 @@
 package net.algart.matrices.tiff.codecs;
 
 import io.scif.codec.ByteVector;
-import io.scif.codec.CodecOptions;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.DataHandleInputStream;
 import org.scijava.io.location.Location;
@@ -71,7 +70,7 @@ public class ZlibCodec extends AbstractCodec {
 	 * #L%
 	 */
 	@Override
-	public byte[] compress(final byte[] data, final CodecOptions options) {
+	public byte[] compress(final byte[] data, final Options options) {
 		if (data == null || data.length == 0)
 			throw new IllegalArgumentException("No data to compress");
 		final Deflater deflater = new Deflater();
@@ -88,7 +87,7 @@ public class ZlibCodec extends AbstractCodec {
 	}
 
 	@Override
-	public byte[] decompress(final DataHandle<Location> in, CodecOptions options) throws IOException {
+	public byte[] decompress(final DataHandle<Location> in, Options options) throws IOException {
 		final InflaterInputStream i = new InflaterInputStream(
 			new DataHandleInputStream<>(in));
 		final ByteVector bytes = new ByteVector();

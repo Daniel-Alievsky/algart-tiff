@@ -25,7 +25,6 @@
 
 package net.algart.matrices.tiff.codecs;
 
-import io.scif.codec.CodecOptions;
 import net.algart.matrices.tiff.TiffException;
 import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
@@ -37,7 +36,7 @@ import java.util.Objects;
 
 abstract class AbstractCodec implements TiffCodec {
 	@Override
-	public byte[] decompress(byte[] data, CodecOptions options) throws TiffException {
+	public byte[] decompress(byte[] data, Options options) throws TiffException {
 		try (DataHandle<Location> handle = getBytesHandle(new BytesLocation(data))) {
 			return decompress(handle, options);
 		} catch (IOException e) {

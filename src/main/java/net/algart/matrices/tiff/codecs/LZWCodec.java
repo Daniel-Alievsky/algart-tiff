@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.codecs;
 
-import io.scif.codec.CodecOptions;
 import net.algart.matrices.tiff.TiffException;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.location.Location;
@@ -88,7 +87,7 @@ public class LZWCodec extends AbstractCodec {
 		0x1f, 0x3f, 0x7f };
 
 	@Override
-	public byte[] compress(final byte[] input, final CodecOptions options) throws TiffException {
+	public byte[] compress(final byte[] input, final Options options) throws TiffException {
 		if (input == null || input.length == 0) return input;
 
 		// Output buffer (see class comments for justification of size).
@@ -239,18 +238,16 @@ public class LZWCodec extends AbstractCodec {
 	}
 
 	/**
-	 * The CodecOptions parameter should have the following fields set:
-	 * {@link CodecOptions#maxBytes maxBytes}
-	 *
-	 * @see TiffCodec#decompress(DataHandle, CodecOptions)
+	 * The Options parameter should have the following fields set:
+	 * {@link Options#getMaxBytes()}
 	 */
 	@Override
-	public byte[] decompress(final DataHandle<Location> in, CodecOptions options) throws IOException {
+	public byte[] decompress(final DataHandle<Location> in, Options options) throws IOException {
 		if (in == null || in.length() == 0) return null;
-		if (options == null) options = CodecOptions.getDefaultOptions();
+		if (options == null) options = new Options();
 
 		// Output buffer
-		final byte[] output = new byte[options.maxBytes];
+        final byte[] output = new byte[options.maxBytes];
 		// Position in output buffer to write next byte to
 		int currOutPos = 0;
 

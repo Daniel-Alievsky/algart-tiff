@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.codecs;
 
-import io.scif.codec.CodecOptions;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.location.Location;
 
@@ -63,18 +62,17 @@ public class UncompressedCodec extends AbstractCodec {
 	 * #L%
 	 */
 	@Override
-	public byte[] decompress(final byte[] data, final CodecOptions options) {
+	public byte[] decompress(final byte[] data, final Options options) {
 		return data;
 	}
 
 	@Override
-	public byte[] decompress(final DataHandle<Location> in, final CodecOptions options) {
+	public byte[] decompress(final DataHandle<Location> in, final Options options) {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
 	@Override
-	public byte[] compress(byte[] data, CodecOptions options) {
+	public byte[] compress(byte[] data, Options options) {
 		return data;
 	}
-
 }

@@ -57,6 +57,7 @@ public class TiffSaver extends TiffWriter {
     private final DataHandleService dataHandleService;
 
     private boolean sequentialWrite = false;
+    private CodecOptions options;
     private SCIFIO scifio;
     private LogService log;
 
@@ -99,6 +100,10 @@ public class TiffSaver extends TiffWriter {
      */
     public void setWritingSequentially(final boolean sequential) {
         sequentialWrite = sequential;
+    }
+
+    public void setCodecOptions(final CodecOptions options) {
+        this.options = options;
     }
 
     /**
@@ -599,7 +604,7 @@ public class TiffSaver extends TiffWriter {
                 strips[strip] = stripBuf[strip].toByteArray();
                 scifio.tiff().difference(strips[strip], ifd);
                 final CodecOptions codecOptions = compression.getCompressionCodecOptions(
-                        ifd, getCodecOptions());
+                        ifd, options);
                 codecOptions.height = tileHeight;
                 codecOptions.width = tileWidth;
                 codecOptions.channels = interleaved ? nChannels : 1;

@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.codecs;
 
-import io.scif.codec.CodecOptions;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import org.scijava.io.handle.DataHandle;
@@ -70,44 +69,41 @@ public class PackbitsCodec extends AbstractCodec {
 	 * #L%
 	 */
 	@Override
-	public byte[] compress(final byte[] data, final CodecOptions options) throws TiffException {
+	public byte[] compress(final byte[] data, final Options options) throws TiffException {
 		// TODO: Add compression support.
 		throw new UnsupportedTiffFormatException("Packbits Compression not currently supported");
 	}
 
 	/**
-	 * The CodecOptions parameter should have the following fields set:
-	 * {@link CodecOptions#maxBytes maxBytes}
-	 *
-	 * @see TiffCodec#decompress(DataHandle, CodecOptions)
+	 * The Options parameter should have the following fields set:
+	 * {@link Options#getMaxBytes()}  maxBytes}
 	 */
 	@Override
-	public byte[] decompress(final DataHandle<Location> in, CodecOptions options) throws IOException {
-		if (options == null) options = CodecOptions.getDefaultOptions();
+	public byte[] decompress(final DataHandle<Location> in, Options options) throws IOException {
+		if (options == null) options = new Options();
 		if (in == null) throw new IllegalArgumentException(
 			"No data to decompress.");
 		final long fp = in.offset();
 		// Adapted from the TIFF 6.0 specification, page 42.
 		final ByteArrayOutputStream output = new ByteArrayOutputStream(1024);
 		int nread = 0;
-		while (output.size() < options.maxBytes) {
-			final byte n = (byte) (in.read() & 0xff);
-			nread++;
-			if (n >= 0) { // 0 <= n <= 127
-				byte[] b = new byte[n + 1];
-				in.read(b);
-				nread += n + 1;
-				output.write(b);
-				b = null;
-			}
-			else if (n != -128) { // -127 <= n <= -1
-				final int len = -n + 1;
-				final byte inp = (byte) (in.read() & 0xff);
-				nread++;
-				for (int i = 0; i < len; i++)
-					output.write(inp);
-			}
-		}
+        while (output.size() < options.maxBytes) {
+            final byte n = (byte) (in.read() & 0xff);
+            nread++;
+            if (n >= 0) { // 0 <= n <= 127
+                byte[] b = new byte[n + 1];
+                in.read(b);
+                nread += n + 1;
+                output.write(b);
+                b = null;
+            } else if (n != -128) { // -127 <= n <= -1
+                final int len = -n + 1;
+                final byte inp = (byte) (in.read() & 0xff);
+                nread++;
+                for (int i = 0; i < len; i++)
+                    output.write(inp);
+            }
+        }
 		if (fp + nread < in.length()) in.seek(fp + nread);
 		return output.toByteArray();
 	}

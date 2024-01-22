@@ -24,8 +24,6 @@
 
 package net.algart.matrices.tiff;
 
-import io.scif.codec.CodecOptions;
-import io.scif.codec.JPEG2000CodecOptions;
 import io.scif.formats.tiff.TiffCompression;
 import net.algart.matrices.tiff.codecs.*;
 import net.algart.matrices.tiff.tiles.TiffTile;
@@ -75,12 +73,12 @@ enum KnownCompression {
     private final TiffCompression compression;
     private final Supplier<TiffCodec> extended;
     // - This "extended" codec is implemented inside this module, and we are sure that it does not need SCIFIO context.
-    private final BiFunction<TiffTile, CodecOptions, CodecOptions> writeOptions;
+    private final BiFunction<TiffTile, TiffCodec.Options, TiffCodec.Options> writeOptions;
 
     KnownCompression(
             TiffCompression compression,
             Supplier<TiffCodec> extended,
-            BiFunction<TiffTile, CodecOptions, CodecOptions> writeOptions) {
+            BiFunction<TiffTile, TiffCodec.Options, TiffCodec.Options> writeOptions) {
         this.compression = Objects.requireNonNull(compression);
         this.extended = extended;
         this.writeOptions = Objects.requireNonNull(writeOptions);
@@ -97,7 +95,7 @@ enum KnownCompression {
         return extended == null ? null : extended.get();
     }
 
-    public CodecOptions writeOptions(TiffTile tile, CodecOptions defaultOptions) {
+    public TiffCodec.Options writeOptions(TiffTile tile, TiffCodec.Options defaultOptions) {
         return writeOptions.apply(tile, defaultOptions);
     }
 
@@ -115,27 +113,29 @@ enum KnownCompression {
         return null;
     }
 
-    public static CodecOptions standardWriteOptions(TiffTile tile, CodecOptions defaultOptions) {
+    public static TiffCodec.Options standardWriteOptions(TiffTile tile, TiffCodec.Options defaultOptions) {
         Objects.requireNonNull(tile, "Null tile");
-        final CodecOptions options = new CodecOptions(
-                defaultOptions == null ? CodecOptions.getDefaultOptions() : defaultOptions);
-        options.width = tile.getSizeX();
-        options.height = tile.getSizeY();
-        options.bitsPerSample = 8 * tile.bytesPerSample();
-        options.channels = tile.samplesPerPixel();
-        options.littleEndian = tile.isLittleEndian();
-        options.interleaved = true;
-        options.signed = false;
+        final TiffCodec.Options options = new TiffCodec.Options();
+        if (defaultOptions != null) {
+            options.setTo(defaultOptions);
+        }
+        options.setWidth(tile.getSizeX());
+        options.setHeight(tile.getSizeY());
+        options.setBitsPerSample(8 * tile.bytesPerSample());
+        options.setChannels(tile.samplesPerPixel());
+        options.setLittleEndian(tile.isLittleEndian());
+        options.setInterleaved(true);
+        options.setSigned(false);
         return options;
     }
 
-    public static JPEGCodecOptions jpegWriteOptions(TiffTile tile, CodecOptions defaultOptions) {
-        final CodecOptions options = standardWriteOptions(tile, defaultOptions);
+    public static JPEGCodecOptions jpegWriteOptions(TiffTile tile, TiffCodec.Options defaultOptions) {
+        final TiffCodec.Options options = standardWriteOptions(tile, defaultOptions);
         final JPEGCodecOptions result = JPEGCodecOptions.getDefaultOptions(options);
         if (result.quality > 1.0) {
             // - for JPEG, maximal possible quality is 1.0
             // (for comparison, maximal quality in JPEG-2000 is Double.MAX_VALUE)
-            result.quality = 1.0;
+            result.setQuality(1.0);
         }
         if (tile.ifd().optInt(TiffIFD.PHOTOMETRIC_INTERPRETATION, -1) ==
                 TiffPhotometricInterpretation.RGB.code()) {
@@ -144,26 +144,26 @@ enum KnownCompression {
         return result;
     }
 
-    public static JPEG2000CodecOptions jpeg2000LosslessWriteOptions(TiffTile tile, CodecOptions defaultOptions) {
+    public static JPEG2000CodecOptions jpeg2000LosslessWriteOptions(TiffTile tile, TiffCodec.Options defaultOptions) {
         return jpeg2000WriteOptions(tile, defaultOptions, true);
     }
 
     public static JPEG2000CodecOptions jpeg2000WriteOptions(
             TiffTile tile,
-            CodecOptions defaultOptions,
+            TiffCodec.Options defaultOptions,
             boolean lossless) {
-        final CodecOptions options = standardWriteOptions(tile, defaultOptions);
-        options.lossless = lossless;
+        final TiffCodec.Options options = standardWriteOptions(tile, defaultOptions);
+        options.setLossless(lossless);
         final JPEG2000CodecOptions result = JPEG2000CodecOptions.getDefaultOptions(options);
         if (defaultOptions instanceof JPEG2000CodecOptions options2000) {
-            result.numDecompositionLevels = options2000.numDecompositionLevels;
-            result.resolution = options2000.resolution;
-            if (options2000.codeBlockSize != null) {
-                result.codeBlockSize = options2000.codeBlockSize;
+            result.setNumDecompositionLevels(options2000.getNumDecompositionLevels());
+            result.setResolution(options2000.getResolution());
+            if (options2000.getCodeBlockSize() != null) {
+                result.setCodeBlockSize(options2000.getCodeBlockSize());
             }
             if (options2000.quality > 0.0) {
                 // - i.e. if it is specified
-                result.quality = options2000.quality;
+                result.setQuality(options2000.quality);
             }
         }
         return result;
