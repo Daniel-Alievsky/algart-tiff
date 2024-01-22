@@ -124,7 +124,7 @@ public class TiffWriter implements Closeable {
     private boolean bigTiff = false;
     private boolean autoInterleaveSource = true;
     private boolean smartIFDCorrection = false;
-    private TiffCodec.Options codecOptions;
+    private TiffCodec.Options codecOptions = new TiffCodec.Options();
     private boolean extendedCodec = true;
     private Double quality = null;
     private boolean jpegInPhotometricRGB = false;
@@ -298,11 +298,11 @@ public class TiffWriter implements Closeable {
     /**
      * Sets the codec options.
      *
-     * @param options The value to set.
+     * @param codecOptions The value to set.
      * @return a reference to this object.
      */
-    public TiffWriter setCodecOptions(final TiffCodec.Options options) {
-        this.codecOptions = options;
+    public TiffWriter setCodecOptions(final TiffCodec.Options codecOptions) {
+        this.codecOptions = Objects.requireNonNull(codecOptions, "Null codecOptions");
         return this;
     }
 

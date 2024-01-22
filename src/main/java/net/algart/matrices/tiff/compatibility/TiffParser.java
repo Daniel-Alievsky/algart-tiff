@@ -167,6 +167,7 @@ public class TiffParser extends TiffReader {
 
     public void setCodecOptions(final CodecOptions codecOptions) {
         this.codecOptions = codecOptions;
+        getCodecOptions().setToOldStyleOptions(codecOptions);
     }
 
 

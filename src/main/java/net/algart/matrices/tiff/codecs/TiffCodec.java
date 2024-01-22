@@ -175,6 +175,7 @@ public interface TiffCodec {
         }
 
         public Object toOldStyleOptions(String oldStyleClassName) {
+            Objects.requireNonNull(oldStyleClassName, "Null oldStyleClassName");
             final Class<?> c;
             try {
                 c = Class.forName(oldStyleClassName);
@@ -185,6 +186,7 @@ public interface TiffCodec {
         }
 
         public <T> T toOldStyleOptions(Class<T> oldStyleClass) {
+            Objects.requireNonNull(oldStyleClass, "Null oldStyleClass");
             final T result;
             try {
                 result = oldStyleClass.getConstructor().newInstance();
@@ -205,6 +207,21 @@ public interface TiffCodec {
             setField(oldStyleClass, result, "colorModel", colorModel);
             setField(oldStyleClass, result, "quality", quality);
             return result;
+        }
+
+        public void setToOldStyleOptions(Object oldStyleOptions) {
+            Objects.requireNonNull(oldStyleOptions, "Null oldStyleOptions");
+            width = getField(oldStyleOptions, Integer.class, "width");
+            height = getField(oldStyleOptions, Integer.class, "height");
+            channels = getField(oldStyleOptions, Integer.class, "channels");
+            bitsPerSample = getField(oldStyleOptions, Integer.class, "bitsPerSample");
+            littleEndian = getField(oldStyleOptions, Boolean.class, "littleEndian");
+            interleaved = getField(oldStyleOptions, Boolean.class, "interleaved");
+            signed = getField(oldStyleOptions, Boolean.class, "signed");
+            maxBytes = getField(oldStyleOptions, Integer.class, "maxBytes");
+            lossless = getField(oldStyleOptions, Boolean.class, "lossless");
+            colorModel = getField(oldStyleOptions, ColorModel.class, "colorModel");
+            quality = getField(oldStyleOptions, Double.class, "quality");
         }
 
         @Override
@@ -231,12 +248,29 @@ public interface TiffCodec {
             }
         }
 
-        private <T> void setField(Class<T> oldStyleClass, Object result, String fieldName, Object value) {
+        private static void setField(Class<?> oldStyleClass, Object result, String fieldName, Object value) {
             try {
                 oldStyleClass.getField(fieldName).set(result, value);
             } catch (IllegalAccessException | NoSuchFieldException e) {
                 throw new IllegalArgumentException("Cannot set field \"" + fieldName + "\" in the class " +
                         oldStyleClass.getName() + ": " + e);
+            }
+        }
+
+        private static <T> T getField(Object options, Class<T> fieldType, String fieldName) {
+            final Class<?> oldStyleClass = options.getClass();
+            Object result;
+            try {
+                result = oldStyleClass.getField(fieldName).get(options);
+            } catch (IllegalAccessException | NoSuchFieldException e) {
+                throw new IllegalArgumentException("Cannot get field \"" + fieldName + "\" in the class " +
+                        oldStyleClass.getName() + ": " + e);
+            }
+            try {
+                return fieldType.cast(result);
+            } catch (ClassCastException e) {
+                throw new IllegalArgumentException("Invalid type of the field \"" + fieldName + "\" in the class " +
+                        oldStyleClass.getName() + ": " + result.getClass() + " instead of required " + fieldType);
             }
         }
     }

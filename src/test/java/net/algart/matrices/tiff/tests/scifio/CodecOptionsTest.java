@@ -32,7 +32,7 @@ import java.awt.image.ColorModel;
 
 public class CodecOptionsTest {
     public static void main(String[] args) {
-        final TiffCodec.Options options = new JPEGCodecOptions()
+        TiffCodec.Options options = new JPEGCodecOptions()
                 .setBitsPerSample(1)
                 .setHeight(2048)
                 .setSigned(true)
@@ -53,5 +53,8 @@ public class CodecOptionsTest {
         System.out.println("  lossless=" + oldStyleOptions.lossless);
         System.out.println("  colorModel=" + oldStyleOptions.colorModel);
         System.out.println("  quality=" + oldStyleOptions.quality);
+        options = new TiffCodec.Options();
+        options.setToOldStyleOptions(oldStyleOptions);
+        System.out.println("Back to Options: %s" + options);
     }
 }
