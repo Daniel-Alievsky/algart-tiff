@@ -26,6 +26,8 @@ package net.algart.matrices.tiff;
 
 import io.scif.formats.tiff.TiffCompression;
 import net.algart.matrices.tiff.codecs.*;
+import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
+import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffTile;
 
 import java.util.EnumSet;
@@ -137,9 +139,9 @@ enum KnownCompression {
             // (for comparison, maximal quality in JPEG-2000 is Double.MAX_VALUE)
             result.setQuality(1.0);
         }
-        if (tile.ifd().optInt(TiffIFD.PHOTOMETRIC_INTERPRETATION, -1) ==
-                TiffPhotometricInterpretation.RGB.code()) {
-            result.setPhotometricInterpretation(TiffPhotometricInterpretation.RGB);
+        if (tile.ifd().optInt(Tags.PHOTOMETRIC_INTERPRETATION, -1) ==
+                TagPhotometricInterpretation.RGB.code()) {
+            result.setPhotometricInterpretation(TagPhotometricInterpretation.RGB);
         }
         return result;
     }

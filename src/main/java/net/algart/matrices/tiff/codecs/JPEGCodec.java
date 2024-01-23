@@ -26,7 +26,7 @@ package net.algart.matrices.tiff.codecs;
 
 import io.scif.gui.AWTImageTools;
 import net.algart.matrices.tiff.TiffException;
-import net.algart.matrices.tiff.TiffPhotometricInterpretation;
+import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.DataHandleInputStream;
 import org.scijava.io.location.Location;
@@ -46,7 +46,7 @@ public class JPEGCodec extends AbstractCodec implements TiffCodecTiming {
         /**
          * Value of TIFF tag PhotometricInterpretation (READ/WRITE).
          */
-        private TiffPhotometricInterpretation photometricInterpretation = TiffPhotometricInterpretation.Y_CB_CR;
+        private TagPhotometricInterpretation photometricInterpretation = TagPhotometricInterpretation.Y_CB_CR;
         /**
          * Value of TIFF tag YCbCrSubSampling (READ).
          */
@@ -67,12 +67,12 @@ public class JPEGCodec extends AbstractCodec implements TiffCodecTiming {
             return result;
         }
 
-        public TiffPhotometricInterpretation getPhotometricInterpretation() {
+        public TagPhotometricInterpretation getPhotometricInterpretation() {
             return photometricInterpretation;
         }
 
         public JPEGOptions setPhotometricInterpretation(
-                TiffPhotometricInterpretation photometricInterpretation) {
+                TagPhotometricInterpretation photometricInterpretation) {
             this.photometricInterpretation = Objects.requireNonNull(photometricInterpretation,
                     "Null photometricInterpretation");
             return this;
@@ -132,9 +132,9 @@ public class JPEGCodec extends AbstractCodec implements TiffCodecTiming {
                 options.bitsPerSample / 8, false, options.littleEndian, options.signed);
 
         long t2 = timing ? System.nanoTime() : 0;
-        final TiffPhotometricInterpretation colorSpace = options instanceof JPEGOptions extended ?
+        final TagPhotometricInterpretation colorSpace = options instanceof JPEGOptions extended ?
                 extended.getPhotometricInterpretation() :
-                TiffPhotometricInterpretation.Y_CB_CR;
+                TagPhotometricInterpretation.Y_CB_CR;
         final double jpegQuality = Math.min(options.quality, 1.0);
             // - for JPEG, maximal possible quality is 1.0, but it is better to allow greater qualities
             // (for comparison, maximal quality in JPEG-2000 is Double.MAX_VALUE)
@@ -178,7 +178,7 @@ public class JPEGCodec extends AbstractCodec implements TiffCodecTiming {
             options = new JPEGOptions();
         }
         boolean completeDecoding = false;
-        TiffPhotometricInterpretation declaredColorSpace = null;
+        TagPhotometricInterpretation declaredColorSpace = null;
         int[] declaredSubsampling = null;
         if (options instanceof JPEGOptions extended) {
             declaredColorSpace = extended.getPhotometricInterpretation();

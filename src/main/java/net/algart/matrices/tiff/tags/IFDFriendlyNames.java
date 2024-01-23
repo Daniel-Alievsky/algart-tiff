@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff;
+package net.algart.matrices.tiff.tags;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

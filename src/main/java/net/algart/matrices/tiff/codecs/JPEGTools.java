@@ -25,7 +25,7 @@
 package net.algart.matrices.tiff.codecs;
 
 import net.algart.matrices.tiff.TiffException;
-import net.algart.matrices.tiff.TiffPhotometricInterpretation;
+import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 import org.scijava.util.Bytes;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
@@ -82,15 +82,15 @@ public class JPEGTools {
     public static void writeJPEG(
             BufferedImage image,
             OutputStream out,
-            TiffPhotometricInterpretation colorSpace,
+            TagPhotometricInterpretation colorSpace,
             double quality) throws IOException {
         Objects.requireNonNull(image, "Null image");
         Objects.requireNonNull(out, "Null output stream");
         Objects.requireNonNull(colorSpace, "Null color space");
-        if (colorSpace != TiffPhotometricInterpretation.Y_CB_CR && colorSpace != TiffPhotometricInterpretation.RGB) {
+        if (colorSpace != TagPhotometricInterpretation.Y_CB_CR && colorSpace != TagPhotometricInterpretation.RGB) {
             throw new IllegalArgumentException("Unsupported color space: " + colorSpace);
         }
-        final boolean enforceRGB = colorSpace == TiffPhotometricInterpretation.RGB;
+        final boolean enforceRGB = colorSpace == TagPhotometricInterpretation.RGB;
 
         final ImageOutputStream ios = ImageIO.createImageOutputStream(out);
         final ImageWriter jpegWriter = getJPEGWriter();
@@ -144,14 +144,14 @@ public class JPEGTools {
 
     public static boolean completeDecodingYCbCrNecessary(
             ImageInformation imageInformation,
-            TiffPhotometricInterpretation declaredColorSpace,
+            TagPhotometricInterpretation declaredColorSpace,
             int[] declaredSubsampling) {
         Objects.requireNonNull(imageInformation, "Null image information");
         Objects.requireNonNull(declaredColorSpace, "Null color space");
         Objects.requireNonNull(declaredSubsampling, "Null declared subsampling");
         final String colorSpace = tryToFindColorSpace(imageInformation.metadata);
         return "RGB".equalsIgnoreCase(colorSpace)
-                && declaredColorSpace == TiffPhotometricInterpretation.Y_CB_CR
+                && declaredColorSpace == TagPhotometricInterpretation.Y_CB_CR
                 && declaredSubsampling.length >= 2
                 && declaredSubsampling[0] == 1 && declaredSubsampling[1] == 1
                 && imageInformation.bufferedImage.getRaster().getNumBands() == 3;
@@ -162,7 +162,7 @@ public class JPEGTools {
     public static void completeDecodingYCbCr(
             byte[][] data,
             ImageInformation imageInformation,
-            TiffPhotometricInterpretation declaredColorSpace,
+            TagPhotometricInterpretation declaredColorSpace,
             int[] declaredSubsampling)
             throws TiffException {
         Objects.requireNonNull(data, "Null data");

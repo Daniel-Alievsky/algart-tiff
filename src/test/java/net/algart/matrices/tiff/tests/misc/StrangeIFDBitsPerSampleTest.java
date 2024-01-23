@@ -28,6 +28,7 @@ import io.scif.formats.tiff.TiffCompression;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffSampleType;
+import net.algart.matrices.tiff.tags.Tags;
 
 import java.util.Arrays;
 
@@ -67,37 +68,37 @@ public class StrangeIFDBitsPerSampleTest {
 
 //        ifd.put(DetailedIFD.SAMPLES_PER_PIXEL, 3); // - should not be necessary for exception on -1
 
-        ifd.put(TiffIFD.BITS_PER_SAMPLE, new int[] {1, 8});
-        ifd.put(TiffIFD.COMPRESSION, TiffCompression.OLD_JPEG.getCode());
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[] {1, 8});
+        ifd.put(Tags.COMPRESSION, TiffCompression.OLD_JPEG.getCode());
         showIFD(ifd, "Old JPEG", false);
 
-        ifd.remove(TiffIFD.COMPRESSION);
-        ifd.put(TiffIFD.BITS_PER_SAMPLE, new int[] {1, -1, 1, 2});
+        ifd.remove(Tags.COMPRESSION);
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[] {1, -1, 1, 2});
         showIFD(ifd, "BitsPerSample (negative)", true);
 
-        ifd.put(TiffIFD.BITS_PER_SAMPLE, new int[] {1, 11, 1, 2});
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[] {1, 11, 1, 2});
         showIFD(ifd, "BitsPerSample (different)", true);
 
-        ifd.put(TiffIFD.BITS_PER_SAMPLE, new int[] {11, 11, 12, 15});
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[] {11, 11, 12, 15});
         showIFD(ifd, "BitsPerSample (normal)", false);
 
-        ifd.put(TiffIFD.BITS_PER_SAMPLE, new int[] {111, 111, 112});
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[] {111, 111, 112});
         showIFD(ifd, "BitsPerSample (large)", true);
 
-        ifd.put(TiffIFD.BITS_PER_SAMPLE, new int[] {40});
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[] {40});
         showIFD(ifd, "BitsPerSample (5 bytes)", true);
 
 
         ifd.putPixelInformation(1, byte.class);
         showIFD(ifd, "1-byte", false);
 
-        ifd.put(TiffIFD.SAMPLE_FORMAT, new int[] {1, 3, 1});
+        ifd.put(Tags.SAMPLE_FORMAT, new int[] {1, 3, 1});
         showIFD(ifd, "Different sample format", true);
 
-        ifd.put(TiffIFD.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_COMPLEX_INT);
+        ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_COMPLEX_INT);
         showIFD(ifd, "Complex", true);
 
-        ifd.put(TiffIFD.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_VOID);
+        ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_VOID);
         showIFD(ifd, "Void", false);
     }
 }

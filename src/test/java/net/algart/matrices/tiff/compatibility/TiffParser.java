@@ -26,12 +26,16 @@ package net.algart.matrices.tiff.compatibility;
 
 import io.scif.FormatException;
 import io.scif.SCIFIO;
-import net.algart.matrices.tiff.codecs.TiffCodec;
 import io.scif.codec.CodecOptions;
 import io.scif.common.Constants;
 import io.scif.enumeration.EnumException;
 import io.scif.formats.tiff.*;
-import net.algart.matrices.tiff.*;
+import net.algart.matrices.tiff.TiffException;
+import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.TiffReader;
+import net.algart.matrices.tiff.TiffTools;
+import net.algart.matrices.tiff.codecs.TiffCodec;
+import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIndex;
@@ -955,7 +959,7 @@ public class TiffParser extends TiffReader {
     protected CodecOptions correctReadingOptions(CodecOptions codecOptions, TiffTile tile, TiffCodec customCodec)
             throws TiffException {
         TiffIFD ifd = tile.ifd();
-        codecOptions.ycbcr = ifd.getPhotometricInterpretation() == TiffPhotometricInterpretation.Y_CB_CR &&
+        codecOptions.ycbcr = ifd.getPhotometricInterpretation() == TagPhotometricInterpretation.Y_CB_CR &&
                 toScifioIFD(ifd).getIFDIntValue(IFD.Y_CB_CR_SUB_SAMPLING) == 1 &&
                 ycbcrCorrection;
         return codecOptions;

@@ -36,11 +36,12 @@ import io.scif.formats.tiff.TiffRational;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
 import net.algart.matrices.tiff.codecs.TiffCodecTiming;
+import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
+import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIO;
 import net.algart.matrices.tiff.tiles.TiffTileIndex;
-import org.scijava.AbstractContextual;
 import org.scijava.Context;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.DataHandles;
@@ -225,17 +226,17 @@ public class TiffWriter implements Closeable {
      * <p>If set, then the samples array in <tt>write...</tt> methods is always supposed to be unpacked.
      * For multichannel images it means the samples order like RRR..GGG..BBB...: standard form, supposed by
      * {@link io.scif.Plane} class and returned by {@link TiffReader}. If the desired IFD format is
-     * chunked, i.e. {@link TiffIFD#PLANAR_CONFIGURATION} is {@link TiffIFD#PLANAR_CONFIGURATION_CHUNKED}
+     * chunked, i.e. {@link Tags#PLANAR_CONFIGURATION} is {@link TiffIFD#PLANAR_CONFIGURATION_CHUNKED}
      * (that is the typical usage), then the passes samples are automatically re-packed into chunked (interleaved)
      * form RGBRGBRGB...
      *
-     * <p>If this mode is not set, as well as if {@link TiffIFD#PLANAR_CONFIGURATION} is
+     * <p>If this mode is not set, as well as if {@link Tags#PLANAR_CONFIGURATION} is
      * {@link TiffIFD#PLANAR_CONFIGURATION_SEPARATE}, the passed data are encoded as-as, i.e. as unpacked
      * RRR...GGG..BBB...  for {@link TiffIFD#PLANAR_CONFIGURATION_SEPARATE} or as interleaved RGBRGBRGB...
      * for {@link TiffIFD#PLANAR_CONFIGURATION_CHUNKED}.
      *
      * <p>Note that this flag is ignored if the result data in the file should not be interleaved,
-     * i.e. for 1-channel images and if {@link TiffIFD#PLANAR_CONFIGURATION} is
+     * i.e. for 1-channel images and if {@link Tags#PLANAR_CONFIGURATION} is
      * {@link TiffIFD#PLANAR_CONFIGURATION_SEPARATE}.
      *
      * @param autoInterleaveSource new auto-interleave mode. Default value is <tt>true</tt>.
@@ -255,8 +256,8 @@ public class TiffWriter implements Closeable {
      *
      * <p>IFD, offered by the user for writing TIFF image (usually with help of {@link #newMap(TiffIFD)} method),
      * may contain specification, which are incorrect or not supported by this class. For example,
-     * the user may specify {@link TiffIFD#putPhotometricInterpretation(TiffPhotometricInterpretation)
-     * photometric interpretation} {@link TiffPhotometricInterpretation#RGB_PALETTE}, but not provide actual
+     * the user may specify {@link TiffIFD#putPhotometricInterpretation(TagPhotometricInterpretation)
+     * photometric interpretation} {@link TagPhotometricInterpretation#RGB_PALETTE}, but not provide actual
      * palette via the corresponding TIFF entry, or may specify 1000000 bits/pixel etc.</p>
      *
      * <p>If the settings in the specified IFD are absolutely incorrect, this class always throws
@@ -955,8 +956,8 @@ public class TiffWriter implements Closeable {
 
     public void correctIFDForWriting(TiffIFD ifd, boolean smartCorrection) throws TiffException {
         final int samplesPerPixel = ifd.getSamplesPerPixel();
-        if (!ifd.containsKey(TiffIFD.BITS_PER_SAMPLE)) {
-            ifd.put(TiffIFD.BITS_PER_SAMPLE, new int[]{8});
+        if (!ifd.containsKey(Tags.BITS_PER_SAMPLE)) {
+            ifd.put(Tags.BITS_PER_SAMPLE, new int[]{8});
             // - Default value of BitsPerSample is 1 bit/pixel, but it is a rare case,
             // not supported at all by SCIFIO library FormatTools; so, we set another default 8 bits/pixel
             // Note: we do not change SAMPLE_FORMAT tag here!
@@ -991,17 +992,17 @@ public class TiffWriter implements Closeable {
             ifd.putSampleType(sampleType);
         }
 
-        if (!ifd.containsKey(TiffIFD.COMPRESSION)) {
-            ifd.put(TiffIFD.COMPRESSION, TiffCompression.UNCOMPRESSED.getCode());
+        if (!ifd.containsKey(Tags.COMPRESSION)) {
+            ifd.put(Tags.COMPRESSION, TiffCompression.UNCOMPRESSED.getCode());
             // - We prefer explicitly specify this case
         }
         final TiffCompression compression = ifd.getCompression();
         // - UnsupportedTiffFormatException for unknown compression
 
         final boolean jpeg = compression == TiffCompression.JPEG;
-        final TiffPhotometricInterpretation suggestedPhotometric =
-                ifd.containsKey(TiffIFD.PHOTOMETRIC_INTERPRETATION) ? ifd.getPhotometricInterpretation() : null;
-        TiffPhotometricInterpretation newPhotometric = suggestedPhotometric;
+        final TagPhotometricInterpretation suggestedPhotometric =
+                ifd.containsKey(Tags.PHOTOMETRIC_INTERPRETATION) ? ifd.getPhotometricInterpretation() : null;
+        TagPhotometricInterpretation newPhotometric = suggestedPhotometric;
         // - note: it is possible, that we DO NOT KNOW this newPhotometric interpretation;
         // in this case, newPhotometric will be UNKNOWN, but we should not prevent writing such image
         // in simple formats like UNCOMPRESSED or LZW: maybe, the client knows how to process it
@@ -1015,33 +1016,33 @@ public class TiffWriter implements Closeable {
                                 "requested number of bits/samples is " + Arrays.toString(ifd.getBitsPerSample())));
             }
             if (newPhotometric == null) {
-                newPhotometric = samplesPerPixel == 1 ? TiffPhotometricInterpretation.BLACK_IS_ZERO :
+                newPhotometric = samplesPerPixel == 1 ? TagPhotometricInterpretation.BLACK_IS_ZERO :
                         (jpegInPhotometricRGB || !ifd.isChunked()) ?
-                                TiffPhotometricInterpretation.RGB : TiffPhotometricInterpretation.Y_CB_CR;
+                                TagPhotometricInterpretation.RGB : TagPhotometricInterpretation.Y_CB_CR;
             } else {
                 checkPhotometricInterpretation(newPhotometric,
-                        samplesPerPixel == 1 ? EnumSet.of(TiffPhotometricInterpretation.BLACK_IS_ZERO) :
+                        samplesPerPixel == 1 ? EnumSet.of(TagPhotometricInterpretation.BLACK_IS_ZERO) :
                                 extendedCodec ?
-                                        EnumSet.of(TiffPhotometricInterpretation.Y_CB_CR,
-                                                TiffPhotometricInterpretation.RGB) :
-                                        EnumSet.of(TiffPhotometricInterpretation.Y_CB_CR),
+                                        EnumSet.of(TagPhotometricInterpretation.Y_CB_CR,
+                                                TagPhotometricInterpretation.RGB) :
+                                        EnumSet.of(TagPhotometricInterpretation.Y_CB_CR),
                         "JPEG " + samplesPerPixel + "-channel image");
             }
         } else if (samplesPerPixel == 1) {
-            final boolean hasColorMap = ifd.containsKey(TiffIFD.COLOR_MAP);
+            final boolean hasColorMap = ifd.containsKey(Tags.COLOR_MAP);
             if (newPhotometric == null) {
                 newPhotometric = hasColorMap ?
-                        TiffPhotometricInterpretation.RGB_PALETTE :
-                        TiffPhotometricInterpretation.BLACK_IS_ZERO;
+                        TagPhotometricInterpretation.RGB_PALETTE :
+                        TagPhotometricInterpretation.BLACK_IS_ZERO;
             } else {
-                if (newPhotometric == TiffPhotometricInterpretation.RGB_PALETTE && !hasColorMap) {
+                if (newPhotometric == TagPhotometricInterpretation.RGB_PALETTE && !hasColorMap) {
                     throw new TiffException("Cannot write TIFF image: newPhotometric interpretation \"" +
                             newPhotometric.prettyName() + "\" requires also \"ColorMap\" tag");
                 }
             }
         } else if (samplesPerPixel == 3) {
             if (newPhotometric == null) {
-                newPhotometric = TiffPhotometricInterpretation.RGB;
+                newPhotometric = TagPhotometricInterpretation.RGB;
             } else {
                 if (ifd.isStandardYCbCrNonJpeg()) {
                     if (!smartCorrection) {
@@ -1055,7 +1056,7 @@ public class TiffWriter implements Closeable {
                         // Note that for JPEG we have no this problem: we CAN encode JPEG as YCbCr.
                         // For other models (like CMYK or CIE Lab), we ignore newPhotometric interpretation
                         // and suppose that the user herself prepared channels in the necessary model.
-                        newPhotometric = TiffPhotometricInterpretation.RGB;
+                        newPhotometric = TagPhotometricInterpretation.RGB;
                     }
                 }
             }
@@ -1547,13 +1548,13 @@ public class TiffWriter implements Closeable {
                     // - it is probable for the following tags, if they are added
                     // manually via DetailedIFD.put with "long" argument
                     switch (tag) {
-                        case TiffIFD.IMAGE_WIDTH,
-                                TiffIFD.IMAGE_LENGTH,
-                                TiffIFD.TILE_WIDTH,
-                                TiffIFD.TILE_LENGTH,
-                                TiffIFD.IMAGE_DEPTH,
-                                TiffIFD.ROWS_PER_STRIP,
-                                TiffIFD.NEW_SUBFILE_TYPE -> {
+                        case Tags.IMAGE_WIDTH,
+                                Tags.IMAGE_LENGTH,
+                                Tags.TILE_WIDTH,
+                                Tags.TILE_LENGTH,
+                                Tags.IMAGE_DEPTH,
+                                Tags.ROWS_PER_STRIP,
+                                Tags.NEW_SUBFILE_TYPE -> {
                             out.writeShort(TiffIFD.TIFF_LONG);
                             writeIntOrLong(out, q.length);
                             out.writeInt((int) v);
@@ -1842,8 +1843,8 @@ public class TiffWriter implements Closeable {
     }
 
     private static void checkPhotometricInterpretation(
-            TiffPhotometricInterpretation photometricInterpretation,
-            EnumSet<TiffPhotometricInterpretation> allowed,
+            TagPhotometricInterpretation photometricInterpretation,
+            EnumSet<TagPhotometricInterpretation> allowed,
             String whatToWrite)
             throws TiffException {
         if (photometricInterpretation != null) {

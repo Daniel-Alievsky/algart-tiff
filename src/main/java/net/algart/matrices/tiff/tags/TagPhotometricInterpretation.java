@@ -22,12 +22,12 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff;
+package net.algart.matrices.tiff.tags;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public enum TiffPhotometricInterpretation {
+public enum TagPhotometricInterpretation {
 
     WHITE_IS_ZERO(0, "White-is-zero"),
     BLACK_IS_ZERO(1, "Black-is-zero"),
@@ -44,21 +44,21 @@ public enum TiffPhotometricInterpretation {
     private int code;
     private String name;
 
-    private static final Map<Integer, TiffPhotometricInterpretation> lookup = new HashMap<>();
+    private static final Map<Integer, TagPhotometricInterpretation> lookup = new HashMap<>();
     static {
-        for (TiffPhotometricInterpretation v : TiffPhotometricInterpretation.values()) {
+        for (TagPhotometricInterpretation v : TagPhotometricInterpretation.values()) {
             if (v.code >= 0) {
                 lookup.put(v.code, v);
             }
         }
     }
 
-    TiffPhotometricInterpretation(int code, String name) {
+    TagPhotometricInterpretation(int code, String name) {
         this.code = code;
         this.name = name;
     }
 
-    public static TiffPhotometricInterpretation valueOfCodeOrUnknown(int code) {
+    public static TagPhotometricInterpretation valueOfCodeOrUnknown(int code) {
         return lookup.getOrDefault(code, UNKNOWN);
     }
 
@@ -83,7 +83,7 @@ public enum TiffPhotometricInterpretation {
         return this == UNKNOWN;
     }
 
-    public TiffPhotometricInterpretation checkUnknown() {
+    public TagPhotometricInterpretation checkUnknown() {
         if (this == UNKNOWN) {
             throw new IllegalArgumentException("Unknown TIFF photometric interpretation is not allowed");
         }

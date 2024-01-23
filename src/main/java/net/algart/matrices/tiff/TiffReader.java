@@ -34,6 +34,7 @@ import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.codecs.JPEGCodec;
 import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.codecs.TiffCodecTiming;
+import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIO;
@@ -555,12 +556,12 @@ public class TiffReader implements Closeable {
                     // if (!cachingIFDs && ifd.containsKey(IFD.SUB_IFD)) {
                     //     fillInIFD(ifd);
                     // }
-                    subOffsets = ifd.getLongArray(TiffIFD.SUB_IFD);
+                    subOffsets = ifd.getLongArray(Tags.SUB_IFD);
                 } catch (final TiffException ignored) {
                 }
                 if (subOffsets != null) {
                     for (final long subOffset : subOffsets) {
-                        final TiffIFD sub = readIFDAt(subOffset, TiffIFD.SUB_IFD, false);
+                        final TiffIFD sub = readIFDAt(subOffset, Tags.SUB_IFD, false);
                         if (sub != null) {
                             ifds.add(sub);
                         }
@@ -588,9 +589,9 @@ public class TiffReader implements Closeable {
         final List<TiffIFD> ifds = allIFDs();
         final List<TiffIFD> result = new ArrayList<>();
         for (final TiffIFD ifd : ifds) {
-            final long offset = ifd.getLong(TiffIFD.EXIF, 0);
+            final long offset = ifd.getLong(Tags.EXIF, 0);
             if (offset != 0) {
-                final TiffIFD exifIFD = readIFDAt(offset, TiffIFD.EXIF, false);
+                final TiffIFD exifIFD = readIFDAt(offset, Tags.EXIF, false);
                 if (exifIFD != null) {
                     result.add(exifIFD);
                 }
@@ -909,7 +910,7 @@ public class TiffReader implements Closeable {
         final TiffCompression compression = ifd.getCompression();
         if (TiffIFD.isJpeg(compression)) {
             final byte[] data = tile.getEncodedData();
-            final byte[] jpegTable = ifd.getValue(TiffIFD.JPEG_TABLES, byte[].class).orElse(null);
+            final byte[] jpegTable = ifd.getValue(Tags.JPEG_TABLES, byte[].class).orElse(null);
             // Structure of data:
             //      FF D8 (SOI, start of image)
             //      FF C0 (SOF0, start of frame, or some other marker)
@@ -1462,7 +1463,7 @@ public class TiffReader implements Closeable {
 
     private static int cachedByteCountWithCompatibilityTrick(TiffIFD ifd, int index) throws TiffException {
         final boolean tiled = ifd.hasTileInformation();
-        final int tag = tiled ? TiffIFD.TILE_BYTE_COUNTS : TiffIFD.STRIP_BYTE_COUNTS;
+        final int tag = tiled ? Tags.TILE_BYTE_COUNTS : Tags.STRIP_BYTE_COUNTS;
         Object value = ifd.get(tag);
         if (value instanceof long[] byteCounts &&
                 byteCounts.length == 1 &&
@@ -1786,7 +1787,7 @@ public class TiffReader implements Closeable {
         }
         final TiffIFD.TiffEntry result = new TiffIFD.TiffEntry(entryTag, entryType, (int) valueCount, valueOffset);
         LOG.log(System.Logger.Level.TRACE, () -> String.format(
-                "Reading IFD entry: %s - %s", result, TiffIFD.ifdTagName(result.tag(), true)));
+                "Reading IFD entry: %s - %s", result, Tags.tiffTagName(result.tag(), true)));
         return result;
     }
 

@@ -27,6 +27,8 @@ package net.algart.matrices.tiff;
 import io.scif.formats.tiff.OnDemandLongArray;
 import io.scif.formats.tiff.TiffCompression;
 import io.scif.formats.tiff.TiffRational;
+import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
+import net.algart.matrices.tiff.tags.Tags;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
@@ -96,148 +98,6 @@ public class TiffIFD {
     public static final int TIFF_LONG8 = 16;
     public static final int TIFF_SLONG8 = 17;
     public static final int TIFF_IFD8 = 18;
-
-    public static final int NEW_SUBFILE_TYPE = 254;
-    public static final int SUBFILE_TYPE = 255;
-    public static final int IMAGE_WIDTH = 256;
-    public static final int IMAGE_LENGTH = 257;
-    public static final int BITS_PER_SAMPLE = 258;
-    public static final int COMPRESSION = 259;
-    public static final int PHOTOMETRIC_INTERPRETATION = 262;
-    public static final int THRESHHOLDING = 263;
-    public static final int CELL_WIDTH = 264;
-    public static final int CELL_LENGTH = 265;
-    public static final int FILL_ORDER = 266;
-    public static final int DOCUMENT_NAME = 269;
-    public static final int IMAGE_DESCRIPTION = 270;
-    public static final int MAKE = 271;
-    public static final int MODEL = 272;
-    public static final int STRIP_OFFSETS = 273;
-    public static final int ORIENTATION = 274;
-    public static final int SAMPLES_PER_PIXEL = 277;
-    public static final int ROWS_PER_STRIP = 278;
-    public static final int STRIP_BYTE_COUNTS = 279;
-    public static final int MIN_SAMPLE_VALUE = 280;
-    public static final int MAX_SAMPLE_VALUE = 281;
-    public static final int X_RESOLUTION = 282;
-    public static final int Y_RESOLUTION = 283;
-    public static final int PLANAR_CONFIGURATION = 284;
-    public static final int PAGE_NAME = 285;
-    public static final int X_POSITION = 286;
-    public static final int Y_POSITION = 287;
-    public static final int FREE_OFFSETS = 288;
-    public static final int FREE_BYTE_COUNTS = 289;
-    public static final int GRAY_RESPONSE_UNIT = 290;
-    public static final int GRAY_RESPONSE_CURVE = 291;
-    public static final int T4_OPTIONS = 292;
-    public static final int T6_OPTIONS = 293;
-    public static final int RESOLUTION_UNIT = 296;
-    public static final int PAGE_NUMBER = 297;
-    public static final int TRANSFER_FUNCTION = 301;
-    public static final int SOFTWARE = 305;
-    public static final int DATE_TIME = 306;
-    public static final int ARTIST = 315;
-    public static final int HOST_COMPUTER = 316;
-    public static final int PREDICTOR = 317;
-    public static final int WHITE_POINT = 318;
-    public static final int PRIMARY_CHROMATICITIES = 319;
-    public static final int COLOR_MAP = 320;
-    public static final int HALFTONE_HINTS = 321;
-    public static final int TILE_WIDTH = 322;
-    public static final int TILE_LENGTH = 323;
-    public static final int TILE_OFFSETS = 324;
-    public static final int TILE_BYTE_COUNTS = 325;
-    public static final int SUB_IFD = 330;
-    public static final int INK_SET = 332;
-    public static final int INK_NAMES = 333;
-    public static final int NUMBER_OF_INKS = 334;
-    public static final int DOT_RANGE = 336;
-    public static final int TARGET_PRINTER = 337;
-    public static final int EXTRA_SAMPLES = 338;
-    public static final int SAMPLE_FORMAT = 339;
-    public static final int S_MIN_SAMPLE_VALUE = 340;
-    public static final int S_MAX_SAMPLE_VALUE = 341;
-    public static final int TRANSFER_RANGE = 342;
-    public static final int JPEG_TABLES = 347;
-    public static final int JPEG_PROC = 512;
-    public static final int JPEG_INTERCHANGE_FORMAT = 513;
-    public static final int JPEG_INTERCHANGE_FORMAT_LENGTH = 514;
-    public static final int JPEG_RESTART_INTERVAL = 515;
-    public static final int JPEG_LOSSLESS_PREDICTORS = 517;
-    public static final int JPEG_POINT_TRANSFORMS = 518;
-    public static final int JPEG_Q_TABLES = 519;
-    public static final int JPEG_DC_TABLES = 520;
-    public static final int JPEG_AC_TABLES = 521;
-    public static final int Y_CB_CR_COEFFICIENTS = 529;
-    public static final int Y_CB_CR_SUB_SAMPLING = 530;
-    public static final int Y_CB_CR_POSITIONING = 531;
-    public static final int REFERENCE_BLACK_WHITE = 532;
-    public static final int COPYRIGHT = 33432;
-    public static final int EXIF = 34665;
-
-    /*
-     * EXIF tags.
-     */
-    public static final int EXPOSURE_TIME = 33434;
-    public static final int F_NUMBER = 33437;
-    public static final int EXPOSURE_PROGRAM = 34850;
-    public static final int SPECTRAL_SENSITIVITY = 34852;
-    public static final int ISO_SPEED_RATINGS = 34855;
-    public static final int OECF = 34856;
-    public static final int EXIF_VERSION = 36864;
-    public static final int DATE_TIME_ORIGINAL = 36867;
-    public static final int DATE_TIME_DIGITIZED = 36868;
-    public static final int COMPONENTS_CONFIGURATION = 37121;
-    public static final int COMPRESSED_BITS_PER_PIXEL = 37122;
-    public static final int SHUTTER_SPEED_VALUE = 37377;
-    public static final int APERTURE_VALUE = 37378;
-    public static final int BRIGHTNESS_VALUE = 37379;
-    public static final int EXPOSURE_BIAS_VALUE = 37380;
-    public static final int MAX_APERTURE_VALUE = 37381;
-    public static final int SUBJECT_DISTANCE = 37382;
-    public static final int METERING_MODE = 37383;
-    public static final int LIGHT_SOURCE = 37384;
-    public static final int FLASH = 37385;
-    public static final int FOCAL_LENGTH = 37386;
-    public static final int MAKER_NOTE = 37500;
-    public static final int USER_COMMENT = 37510;
-    public static final int SUB_SEC_TIME = 37520;
-    public static final int SUB_SEC_TIME_ORIGINAL = 37521;
-    public static final int SUB_SEC_TIME_DIGITIZED = 37522;
-    public static final int FLASH_PIX_VERSION = 40960;
-    public static final int COLOR_SPACE = 40961;
-    public static final int PIXEL_X_DIMENSION = 40962;
-    public static final int PIXEL_Y_DIMENSION = 40963;
-    public static final int RELATED_SOUND_FILE = 40964;
-    public static final int FLASH_ENERGY = 41483;
-    public static final int SPATIAL_FREQUENCY_RESPONSE = 41484;
-    public static final int FOCAL_PLANE_X_RESOLUTION = 41486;
-    public static final int FOCAL_PLANE_Y_RESOLUTION = 41487;
-    public static final int FOCAL_PLANE_RESOLUTION_UNIT = 41488;
-    public static final int SUBJECT_LOCATION = 41492;
-    public static final int EXPOSURE_INDEX = 41493;
-    public static final int SENSING_METHOD = 41495;
-    public static final int FILE_SOURCE = 41728;
-    public static final int SCENE_TYPE = 41729;
-    public static final int CFA_PATTERN = 41730;
-    public static final int CUSTOM_RENDERED = 41985;
-    public static final int EXPOSURE_MODE = 41986;
-    public static final int WHITE_BALANCE = 41987;
-    public static final int DIGITAL_ZOOM_RATIO = 41988;
-    public static final int FOCAL_LENGTH_35MM_FILM = 41989;
-    public static final int SCENE_CAPTURE_TYPE = 41990;
-    public static final int GAIN_CONTROL = 41991;
-    public static final int CONTRAST = 41992;
-    public static final int SATURATION = 41993;
-    public static final int SHARPNESS = 41994;
-    public static final int SUBJECT_DISTANCE_RANGE = 41996;
-
-    public static final int ICC_PROFILE = 34675;
-    public static final int MATTEING = 32995;
-    public static final int DATA_TYPE = 32996;
-    public static final int IMAGE_DEPTH = 32997;
-    public static final int TILE_DEPTH = 32998;
-    public static final int STO_NITS = 37439;
 
     public static final int DEFAULT_TILE_SIZE_X = 256;
     public static final int DEFAULT_TILE_SIZE_Y = 256;
@@ -501,7 +361,7 @@ public class TiffIFD {
             return Optional.empty();
         }
         if (!requiredClass.isInstance(value)) {
-            throw new TiffException("TIFF tag " + ifdTagName(tag, true) +
+            throw new TiffException("TIFF tag " + Tags.tiffTagName(tag, true) +
                     " has wrong type: " + value.getClass().getSimpleName() +
                     " instead of expected " + requiredClass.getSimpleName());
         }
@@ -510,7 +370,7 @@ public class TiffIFD {
 
     public <R> R reqValue(int tag, Class<? extends R> requiredClass) throws TiffException {
         return getValue(tag, requiredClass).orElseThrow(() -> new TiffException(
-                "TIFF tag " + ifdTagName(tag, true) + " is required, but it is absent"));
+                "TIFF tag " + Tags.tiffTagName(tag, true) + " is required, but it is absent"));
     }
 
     public OptionalInt optType(int tag) {
@@ -564,7 +424,7 @@ public class TiffIFD {
                 results[i] = integers[i];
             }
         } else if (value != null) {
-            throw new TiffException("TIFF tag " + ifdTagName(tag, true) +
+            throw new TiffException("TIFF tag " + Tags.tiffTagName(tag, true) +
                     " has wrong type: " + value.getClass().getSimpleName() +
                     " instead of expected Number, Number[], long[] or int[]");
         }
@@ -589,7 +449,7 @@ public class TiffIFD {
                 results[i] = checkedIntValue(numbers[i].longValue(), tag);
             }
         } else if (value != null) {
-            throw new TiffException("TIFF tag " + ifdTagName(tag, true) +
+            throw new TiffException("TIFF tag " + Tags.tiffTagName(tag, true) +
                     " has wrong type: " + value.getClass().getSimpleName() +
                     " instead of expected Number, Number[], long[] or int[]");
         }
@@ -597,12 +457,12 @@ public class TiffIFD {
     }
 
     public int getSamplesPerPixel() throws TiffException {
-        int compressionValue = getInt(COMPRESSION, 0);
+        int compressionValue = getInt(Tags.COMPRESSION, 0);
         if (compressionValue == TiffCompression.OLD_JPEG.getCode()) {
             return 3;
             // always 3 channels: RGB
         }
-        final int samplesPerPixel = getInt(SAMPLES_PER_PIXEL, 1);
+        final int samplesPerPixel = getInt(Tags.SAMPLES_PER_PIXEL, 1);
         if (samplesPerPixel < 1) {
             throw new TiffException("TIFF tag SamplesPerPixel contains illegal zero or negative value: " +
                     samplesPerPixel);
@@ -615,7 +475,7 @@ public class TiffIFD {
     }
 
     public int[] getBitsPerSample() throws TiffException {
-        int[] bitsPerSample = getIntArray(BITS_PER_SAMPLE);
+        int[] bitsPerSample = getIntArray(Tags.BITS_PER_SAMPLE);
         if (bitsPerSample == null) {
             bitsPerSample = new int[]{1};
             // - In the following loop, this array will be appended to necessary length.
@@ -669,7 +529,7 @@ public class TiffIFD {
                 return null;
             }
         }
-        int[] sampleFormats = getIntArray(SAMPLE_FORMAT);
+        int[] sampleFormats = getIntArray(Tags.SAMPLE_FORMAT);
         if (sampleFormats == null) {
             sampleFormats = new int[]{SAMPLE_FORMAT_UINT};
         }
@@ -755,10 +615,10 @@ public class TiffIFD {
 
     public long[] getTileOrStripByteCounts() throws TiffException {
         final boolean tiled = hasTileInformation();
-        final int tag = tiled ? TILE_BYTE_COUNTS : STRIP_BYTE_COUNTS;
+        final int tag = tiled ? Tags.TILE_BYTE_COUNTS : Tags.STRIP_BYTE_COUNTS;
         long[] counts = getLongArray(tag);
         if (tiled && counts == null) {
-            counts = getLongArray(STRIP_BYTE_COUNTS);
+            counts = getLongArray(Tags.STRIP_BYTE_COUNTS);
             // - rare situation, when tile byte counts are actually stored in StripByteCounts
         }
         if (counts == null) {
@@ -805,7 +665,7 @@ public class TiffIFD {
 
     public long[] getTileOrStripOffsets() throws TiffException {
         final boolean tiled = hasTileInformation();
-        final int tag = tiled ? TILE_OFFSETS : STRIP_OFFSETS;
+        final int tag = tiled ? Tags.TILE_OFFSETS : Tags.STRIP_OFFSETS;
         long[] offsets;
         final OnDemandLongArray compressedOffsets = getOnDemandStripOffsets();
         // - compatibility with old TiffParser feature (can be removed in future versions)
@@ -823,7 +683,7 @@ public class TiffIFD {
         }
         if (tiled && offsets == null) {
             // - rare situation, when tile offsets are actually stored in StripOffsets
-            offsets = getLongArray(STRIP_OFFSETS);
+            offsets = getLongArray(Tags.STRIP_OFFSETS);
         }
         if (offsets == null) {
             throw new TiffException("Invalid IFD: no required StripOffsets/TileOffsets tag");
@@ -871,16 +731,16 @@ public class TiffIFD {
     }
 
     public Optional<String> optDescription() {
-        return optValue(IMAGE_DESCRIPTION, String.class);
+        return optValue(Tags.IMAGE_DESCRIPTION, String.class);
     }
 
     public Optional<TiffCompression> optCompression() {
-        final int code = optInt(COMPRESSION, -1);
+        final int code = optInt(Tags.COMPRESSION, -1);
         return code == -1 ? Optional.empty() : Optional.ofNullable(KnownCompression.compressionOfCodeOrNull(code));
     }
 
     public TiffCompression getCompression() throws TiffException {
-        final int code = getInt(COMPRESSION, TiffCompression.UNCOMPRESSED.getCode());
+        final int code = getInt(Tags.COMPRESSION, TiffCompression.UNCOMPRESSED.getCode());
         final TiffCompression result = KnownCompression.compressionOfCodeOrNull(code);
         if (result == null) {
             throw new UnsupportedTiffFormatException("Unknown TIFF compression code: " + code);
@@ -888,18 +748,18 @@ public class TiffIFD {
         return result;
     }
 
-    public TiffPhotometricInterpretation getPhotometricInterpretation()
+    public TagPhotometricInterpretation getPhotometricInterpretation()
             throws TiffException {
-        if (!containsKey(PHOTOMETRIC_INTERPRETATION)
-                && getInt(COMPRESSION, 0) == TiffCompression.OLD_JPEG.getCode()) {
-            return TiffPhotometricInterpretation.RGB;
+        if (!containsKey(Tags.PHOTOMETRIC_INTERPRETATION)
+                && getInt(Tags.COMPRESSION, 0) == TiffCompression.OLD_JPEG.getCode()) {
+            return TagPhotometricInterpretation.RGB;
         }
-        final int code = reqInt(PHOTOMETRIC_INTERPRETATION);
-        return TiffPhotometricInterpretation.valueOfCodeOrUnknown(code);
+        final int code = reqInt(Tags.PHOTOMETRIC_INTERPRETATION);
+        return TagPhotometricInterpretation.valueOfCodeOrUnknown(code);
     }
 
     public int[] getYCbCrSubsampling() throws TiffException {
-        final Object value = get(Y_CB_CR_SUB_SAMPLING);
+        final Object value = get(Tags.Y_CB_CR_SUB_SAMPLING);
         if (value == null) {
             return new int[]{2, 2};
         }
@@ -940,7 +800,7 @@ public class TiffIFD {
 
 
     public int getPlanarConfiguration() throws TiffException {
-        final int result = getInt(PLANAR_CONFIGURATION, 1);
+        final int result = getInt(Tags.PLANAR_CONFIGURATION, 1);
         if (result != 1 && result != 2) {
             throw new TiffException("TIFF tag PlanarConfiguration must contain only values 1 or 2, " +
                     "but it is " + result);
@@ -957,7 +817,7 @@ public class TiffIFD {
     }
 
     public boolean isReversedBits() throws TiffException {
-        final int result = getInt(FILL_ORDER, 1);
+        final int result = getInt(Tags.FILL_ORDER, 1);
         if (result != 1 && result != 2) {
             throw new TiffException("TIFF tag FillOrder must contain only values 1 or 2, " +
                     "but it is " + result);
@@ -966,11 +826,11 @@ public class TiffIFD {
     }
 
     public boolean hasImageDimensions() {
-        return containsKey(IMAGE_WIDTH) && containsKey(IMAGE_LENGTH);
+        return containsKey(Tags.IMAGE_WIDTH) && containsKey(Tags.IMAGE_LENGTH);
     }
 
     public int getImageDimX() throws TiffException {
-        final int imageWidth = reqInt(IMAGE_WIDTH);
+        final int imageWidth = reqInt(Tags.IMAGE_WIDTH);
         if (imageWidth <= 0) {
             throw new TiffException("Zero or negative image width = " + imageWidth);
             // - impossible in a correct TIFF
@@ -979,7 +839,7 @@ public class TiffIFD {
     }
 
     public int getImageDimY() throws TiffException {
-        final int imageLength = reqInt(IMAGE_LENGTH);
+        final int imageLength = reqInt(Tags.IMAGE_LENGTH);
         if (imageLength <= 0) {
             throw new TiffException("Zero or negative image height = " + imageLength);
             // - impossible in a correct TIFF
@@ -988,7 +848,7 @@ public class TiffIFD {
     }
 
     public int getStripRows() throws TiffException {
-        final long[] rowsPerStrip = getLongArray(ROWS_PER_STRIP);
+        final long[] rowsPerStrip = getLongArray(Tags.ROWS_PER_STRIP);
         final int imageDimY = getImageDimY();
         if (rowsPerStrip == null || rowsPerStrip.length == 0) {
             // - zero rowsPerStrip.length is possible only as a result of manual modification of this IFD
@@ -1026,7 +886,7 @@ public class TiffIFD {
     public int getTileSizeX() throws TiffException {
         if (hasTileInformation()) {
             // - Note: we refuse to handle situation, when TileLength presents, but TileWidth not, or vice versa
-            final int tileWidth = reqInt(TILE_WIDTH);
+            final int tileWidth = reqInt(Tags.TILE_WIDTH);
             // - TIFF allows to use values <= 2^32-1, but in any case we cannot allocate Java array for such tile
             if (tileWidth <= 0) {
                 throw new TiffException("Zero or negative tile width = " + tileWidth);
@@ -1052,7 +912,7 @@ public class TiffIFD {
     public int getTileSizeY() throws TiffException {
         if (hasTileInformation()) {
             // - Note: we refuse to handle situation, when TileLength presents, but TileWidth not, or vice versa
-            final int tileLength = reqInt(TILE_LENGTH);
+            final int tileLength = reqInt(Tags.TILE_LENGTH);
             if (tileLength <= 0) {
                 throw new TiffException("Zero or negative tile length (height) = " + tileLength);
                 // - impossible in a correct TIFF
@@ -1161,7 +1021,7 @@ public class TiffIFD {
     public boolean isStandardYCbCrNonJpeg() throws TiffException {
         TiffCompression compression = getCompression();
         return isStandard(compression) && !isJpeg(compression) &&
-                getPhotometricInterpretation() == TiffPhotometricInterpretation.Y_CB_CR;
+                getPhotometricInterpretation() == TagPhotometricInterpretation.Y_CB_CR;
     }
 
     public boolean isStandardCompression() throws TiffException {
@@ -1178,7 +1038,7 @@ public class TiffIFD {
     }
 
     public boolean isThumbnail() {
-        return (optInt(NEW_SUBFILE_TYPE, 0) & FILETYPE_REDUCED_IMAGE) != 0;
+        return (optInt(Tags.NEW_SUBFILE_TYPE, 0) & FILETYPE_REDUCED_IMAGE) != 0;
     }
 
     public TiffIFD putImageDimensions(int dimX, int dimY) {
@@ -1188,8 +1048,8 @@ public class TiffIFD {
     }
 
     public TiffIFD removeImageDimensions() {
-        remove(IMAGE_WIDTH);
-        remove(IMAGE_LENGTH);
+        remove(Tags.IMAGE_WIDTH);
+        remove(Tags.IMAGE_LENGTH);
         return this;
     }
 
@@ -1225,7 +1085,7 @@ public class TiffIFD {
             throw new IllegalArgumentException("Very large number of channels " + numberOfChannels + " > " +
                     MAX_NUMBER_OF_CHANNELS + " is not supported");
         }
-        put(SAMPLES_PER_PIXEL, numberOfChannels);
+        put(Tags.SAMPLES_PER_PIXEL, numberOfChannels);
         return this;
     }
 
@@ -1240,13 +1100,13 @@ public class TiffIFD {
         } catch (TiffException e) {
             throw new IllegalStateException("Cannot set TIFF samples type: SamplesPerPixel tag is invalid", e);
         }
-        put(BITS_PER_SAMPLE, nInts(samplesPerPixel, 8 * bytesPerSample));
+        put(Tags.BITS_PER_SAMPLE, nInts(samplesPerPixel, 8 * bytesPerSample));
         if (floatingPoint) {
-            put(SAMPLE_FORMAT, nInts(samplesPerPixel, SAMPLE_FORMAT_IEEEFP));
+            put(Tags.SAMPLE_FORMAT, nInts(samplesPerPixel, SAMPLE_FORMAT_IEEEFP));
         } else if (signed) {
-            put(SAMPLE_FORMAT, nInts(samplesPerPixel, SAMPLE_FORMAT_INT));
+            put(Tags.SAMPLE_FORMAT, nInts(samplesPerPixel, SAMPLE_FORMAT_INT));
         } else {
-            remove(SAMPLE_FORMAT);
+            remove(Tags.SAMPLE_FORMAT);
         }
         return this;
     }
@@ -1260,24 +1120,24 @@ public class TiffIFD {
             compression = TiffCompression.UNCOMPRESSED;
         }
         if (compression == null) {
-            remove(COMPRESSION);
+            remove(Tags.COMPRESSION);
         } else {
-            put(COMPRESSION, compression.getCode());
+            put(Tags.COMPRESSION, compression.getCode());
         }
         return this;
     }
 
-    public TiffIFD putPhotometricInterpretation(TiffPhotometricInterpretation photometricInterpretation) {
+    public TiffIFD putPhotometricInterpretation(TagPhotometricInterpretation photometricInterpretation) {
         Objects.requireNonNull(photometricInterpretation, "Null photometricInterpretation");
-        put(PHOTOMETRIC_INTERPRETATION, photometricInterpretation.code());
+        put(Tags.PHOTOMETRIC_INTERPRETATION, photometricInterpretation.code());
         return this;
     }
 
     public TiffIFD putPlanarSeparated(boolean planarSeparated) {
         if (planarSeparated) {
-            put(PLANAR_CONFIGURATION, PLANAR_CONFIGURATION_SEPARATE);
+            put(Tags.PLANAR_CONFIGURATION, PLANAR_CONFIGURATION_SEPARATE);
         } else {
-            remove(PLANAR_CONFIGURATION);
+            remove(Tags.PLANAR_CONFIGURATION);
         }
         return this;
     }
@@ -1306,8 +1166,8 @@ public class TiffIFD {
      *                         but the second is absent.
      */
     public boolean hasTileInformation() throws TiffException {
-        final boolean hasWidth = containsKey(TILE_WIDTH);
-        final boolean hasLength = containsKey(TILE_LENGTH);
+        final boolean hasWidth = containsKey(Tags.TILE_WIDTH);
+        final boolean hasLength = containsKey(Tags.TILE_LENGTH);
         if (hasWidth != hasLength) {
             throw new TiffException("Inconsistent tiling information: tile width (TileWidth tag) is " +
                     (hasWidth ? "" : "NOT ") + "specified, but tile height (TileLength tag) is " +
@@ -1327,8 +1187,8 @@ public class TiffIFD {
             throw new IllegalArgumentException("Illegal tile sizes " + tileSizeX + "x" + tileSizeY
                     + ": they must be multiples of 16");
         }
-        put(TILE_WIDTH, tileSizeX);
-        put(TILE_LENGTH, tileSizeY);
+        put(Tags.TILE_WIDTH, tileSizeX);
+        put(Tags.TILE_LENGTH, tileSizeY);
         return this;
     }
 
@@ -1337,18 +1197,18 @@ public class TiffIFD {
     }
 
     public TiffIFD removeTileInformation() {
-        remove(TILE_WIDTH);
-        remove(TILE_LENGTH);
+        remove(Tags.TILE_WIDTH);
+        remove(Tags.TILE_LENGTH);
         return this;
     }
 
     public boolean hasStripInformation() {
-        return containsKey(ROWS_PER_STRIP);
+        return containsKey(Tags.ROWS_PER_STRIP);
     }
 
     public TiffIFD putOrRemoveStripSize(Integer stripSizeY) {
         if (stripSizeY == null) {
-            remove(ROWS_PER_STRIP);
+            remove(Tags.ROWS_PER_STRIP);
         } else {
             putStripSize(stripSizeY);
         }
@@ -1359,7 +1219,7 @@ public class TiffIFD {
         if (stripSizeY <= 0) {
             throw new IllegalArgumentException("Zero or negative strip y-size");
         }
-        put(ROWS_PER_STRIP, new long[]{stripSizeY});
+        put(Tags.ROWS_PER_STRIP, new long[]{stripSizeY});
         return this;
     }
 
@@ -1368,15 +1228,15 @@ public class TiffIFD {
     }
 
     public TiffIFD removeStripInformation() {
-        remove(ROWS_PER_STRIP);
+        remove(Tags.ROWS_PER_STRIP);
         return this;
     }
 
     public void removeDataPositioning() {
-        remove(STRIP_OFFSETS);
-        remove(STRIP_BYTE_COUNTS);
-        remove(TILE_OFFSETS);
-        remove(TILE_BYTE_COUNTS);
+        remove(Tags.STRIP_OFFSETS);
+        remove(Tags.STRIP_BYTE_COUNTS);
+        remove(Tags.TILE_OFFSETS);
+        remove(Tags.TILE_BYTE_COUNTS);
     }
 
     /**
@@ -1394,15 +1254,15 @@ public class TiffIFD {
         if (dimY <= 0) {
             throw new IllegalArgumentException("Zero or negative image height (y-dimension): " + dimY);
         }
-        if (!containsKey(TILE_WIDTH) || !containsKey(TILE_LENGTH)) {
+        if (!containsKey(Tags.TILE_WIDTH) || !containsKey(Tags.TILE_LENGTH)) {
             // - we prefer not to throw exception here, like in hasTileInformation method
             checkImmutable("Image dimensions cannot be updated in non-tiled TIFF");
         }
         clearCache();
-        removeEntries(IMAGE_WIDTH, IMAGE_LENGTH);
+        removeEntries(Tags.IMAGE_WIDTH, Tags.IMAGE_LENGTH);
         // - to avoid illegal detection of the type
-        map.put(IMAGE_WIDTH, dimX);
-        map.put(IMAGE_LENGTH, dimY);
+        map.put(Tags.IMAGE_WIDTH, dimX);
+        map.put(Tags.IMAGE_LENGTH, dimY);
         return this;
     }
 
@@ -1442,13 +1302,13 @@ public class TiffIFD {
                     (numberOfSeparatedPlanes == 1 ? "" : " x " + numberOfSeparatedPlanes + " separated channels"));
         }
         clearCache();
-        removeEntries(TILE_OFFSETS, STRIP_OFFSETS, TILE_BYTE_COUNTS, STRIP_BYTE_COUNTS);
+        removeEntries(Tags.TILE_OFFSETS, Tags.STRIP_OFFSETS, Tags.TILE_BYTE_COUNTS, Tags.STRIP_BYTE_COUNTS);
         // - to avoid illegal detection of the type
-        map.put(tiled ? TILE_OFFSETS : STRIP_OFFSETS, offsets);
-        map.put(tiled ? TILE_BYTE_COUNTS : STRIP_BYTE_COUNTS, byteCounts);
+        map.put(tiled ? Tags.TILE_OFFSETS : Tags.STRIP_OFFSETS, offsets);
+        map.put(tiled ? Tags.TILE_BYTE_COUNTS : Tags.STRIP_BYTE_COUNTS, byteCounts);
         // Just in case, let's also remove extra tags:
-        map.remove(tiled ? STRIP_OFFSETS : TILE_OFFSETS);
-        map.remove(tiled ? STRIP_BYTE_COUNTS : TILE_BYTE_COUNTS);
+        map.remove(tiled ? Tags.STRIP_OFFSETS : Tags.TILE_OFFSETS);
+        map.remove(tiled ? Tags.STRIP_BYTE_COUNTS : Tags.TILE_BYTE_COUNTS);
     }
 
     public Object put(int key, Object value) {
@@ -1488,7 +1348,7 @@ public class TiffIFD {
         sb.append(json ?
                 "{\n" :
                 "IFD");
-        final String ifdTypeName = subIFDType == null ? "main" : ifdTagName(subIFDType, false);
+        final String ifdTypeName = subIFDType == null ? "main" : Tags.tiffTagName(subIFDType, false);
         sb.append((json ?
                 "  \"ifdType\" : \"%s\",\n" :
                 " (%s)").formatted(ifdTypeName));
@@ -1609,7 +1469,7 @@ public class TiffIFD {
         for (Integer tag : keySequence) {
             final Object v = this.get(tag);
             boolean manyValues = v != null && v.getClass().isArray();
-            String tagName = ifdTagName(tag, !json);
+            String tagName = Tags.tiffTagName(tag, !json);
             if (json) {
                 sb.append(firstEntry ? "" : ",\n");
                 firstEntry = false;
@@ -1632,9 +1492,9 @@ public class TiffIFD {
                 Object additional = null;
                 try {
                     switch (tag) {
-                        case PHOTOMETRIC_INTERPRETATION -> additional = getPhotometricInterpretation().prettyName();
-                        case COMPRESSION -> additional = prettyCompression(getCompression());
-                        case PLANAR_CONFIGURATION -> {
+                        case Tags.PHOTOMETRIC_INTERPRETATION -> additional = getPhotometricInterpretation().prettyName();
+                        case Tags.COMPRESSION -> additional = prettyCompression(getCompression());
+                        case Tags.PLANAR_CONFIGURATION -> {
                             if (v instanceof Number number) {
                                 switch (number.intValue()) {
                                     case PLANAR_CONFIGURATION_CHUNKED -> additional = "chunky";
@@ -1642,7 +1502,7 @@ public class TiffIFD {
                                 }
                             }
                         }
-                        case SAMPLE_FORMAT -> {
+                        case Tags.SAMPLE_FORMAT -> {
                             if (v instanceof Number number) {
                                 switch (number.intValue()) {
                                     case SAMPLE_FORMAT_UINT -> additional = "unsigned integer";
@@ -1654,12 +1514,12 @@ public class TiffIFD {
                                 }
                             }
                         }
-                        case FILL_ORDER -> {
+                        case Tags.FILL_ORDER -> {
                             additional = !isReversedBits() ?
                                     "default bits order: highest first (big-endian, 7-6-5-4-3-2-1-0)" :
                                     "reversed bits order: lowest first (little-endian, 0-1-2-3-4-5-6-7)";
                         }
-                        case PREDICTOR -> {
+                        case Tags.PREDICTOR -> {
                             if (v instanceof Number number) {
                                 switch (number.intValue()) {
                                     case PREDICTOR_NONE -> additional = "none";
@@ -1789,7 +1649,7 @@ public class TiffIFD {
 
     // - For compatibility with old TiffParser feature (can be removed in future versions)
     private OnDemandLongArray getOnDemandStripOffsets() throws TiffException {
-        final int tag = hasTileInformation() ? TILE_OFFSETS : STRIP_OFFSETS;
+        final int tag = hasTileInformation() ? Tags.TILE_OFFSETS : Tags.STRIP_OFFSETS;
         final Object offsets = get(tag);
         if (offsets instanceof OnDemandLongArray) {
             return (OnDemandLongArray) offsets;
@@ -1797,24 +1657,6 @@ public class TiffIFD {
         return null;
     }
 
-
-    /**
-     * Returns user-friendly name of the given TIFF tag.
-     * It is used, in particular, in {@link #toString()} function.
-     *
-     * @param tag            entry Tag value.
-     * @param includeNumeric include numeric value into the result.
-     * @return user-friendly name in a style of Java constant
-     */
-    public static String ifdTagName(int tag, boolean includeNumeric) {
-        String name = Objects.requireNonNullElse(
-                IFDFriendlyNames.IFD_TAG_NAMES.get(tag),
-                "UnknownTag" + tag);
-        if (!includeNumeric) {
-            return name;
-        }
-        return "%s (%d or 0x%X)".formatted(name, tag, tag);
-    }
 
     private static int truncatedIntValue(Number value) {
         Objects.requireNonNull(value);
@@ -1832,11 +1674,12 @@ public class TiffIFD {
         Objects.requireNonNull(value);
         long result = value.longValue();
         if (result > Integer.MAX_VALUE) {
-            throw new TiffException("Very large " + ifdTagName(tag, true) +
+            throw new TiffException("Very large " + Tags.tiffTagName(tag, true) +
                     " = " + value + " >= 2^31 is not supported");
         }
         if (result < Integer.MIN_VALUE) {
-            throw new TiffException("Very large (by absolute value) negative " + ifdTagName(tag, true) +
+            throw new TiffException("Very large (by absolute value) negative " +
+                    Tags.tiffTagName(tag, true) +
                     " = " + value + " < -2^31 is not supported");
         }
         return (int) result;

@@ -27,13 +27,14 @@ package net.algart.matrices.tiff.tests.misc;
 import net.algart.matrices.tiff.TiffException;
 import io.scif.formats.tiff.IFD;
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.tags.Tags;
 
 import java.util.Optional;
 
 public class IFDGetValueTest {
     static void showTag(TiffIFD ifd, int tag, Class<?> requiredClass) {
         System.out.printf("Tag %s, required class %s:%n",
-                TiffIFD.ifdTagName(tag, true),
+                Tags.tiffTagName(tag, true),
                 requiredClass.getSimpleName());
         Optional<?> opt = ifd.optValue(tag, requiredClass);
         System.out.printf("optValue: %s [%s]%n",

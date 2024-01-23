@@ -27,7 +27,7 @@ package net.algart.matrices.tiff;
 /**
  * A class for reading arbitrary numbers of bits from a byte array.
  */
-public abstract class BitsUnpacker {
+abstract class BitsUnpacker {
     static final int[] BACK_MASK = {0x00, // 00000000
             0x01, // 00000001
             0x03, // 00000011

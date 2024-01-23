@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.tiles;
 
-import net.algart.matrices.tiff.TiffException;
 import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
 
