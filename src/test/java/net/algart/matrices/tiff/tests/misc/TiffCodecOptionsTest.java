@@ -24,21 +24,25 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
+import net.algart.matrices.tiff.codecs.JPEG2000Codec;
 import net.algart.matrices.tiff.codecs.JPEGCodec;
 import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 
 public class TiffCodecOptionsTest {
     public static void main(String[] args) {
-        TiffCodec.Options options = new JPEGCodec.JPEGOptions()
-                .setPhotometricInterpretation(TagPhotometricInterpretation.CMYK)
+        TiffCodec.Options options = new JPEG2000Codec.JPEG2000Options()
+//                .setCodeBlockSize(new int[] {16, 16})
                 .setBitsPerSample(1)
-                .setHeight(2048);
+//                .setQuality(null)
+                .setSizes(2048, 1024);
         System.out.println(options);
         System.out.println("Clone:");
         System.out.println(options.clone());
         options.setQuality(null);
         System.out.println("No quality:");
         System.out.println(options);
+        System.out.println("Clone:");
+        System.out.println(options.clone());
     }
 }

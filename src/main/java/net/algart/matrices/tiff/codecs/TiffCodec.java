@@ -48,7 +48,6 @@ public interface TiffCodec {
         int bitsPerSample = 0;
         boolean littleEndian = false;
         boolean interleaved = false;
-        boolean signed = false;
         int maxSizeInBytes = 0;
         private Double quality = null;
 
@@ -60,6 +59,9 @@ public interface TiffCodec {
         }
 
         public Options setWidth(int width) {
+            if (width < 0) {
+                throw new IllegalArgumentException("Negative width = " + width);
+            }
             this.width = width;
             return this;
         }
@@ -69,8 +71,15 @@ public interface TiffCodec {
         }
 
         public Options setHeight(int height) {
+            if (height < 0) {
+                throw new IllegalArgumentException("Negative height = " + height);
+            }
             this.height = height;
             return this;
+        }
+
+        public Options setSizes(int width, int height) {
+            return setWidth(width).setHeight(height);
         }
 
         public int getNumberOfChannels() {
@@ -78,6 +87,9 @@ public interface TiffCodec {
         }
 
         public Options setNumberOfChannels(int numberOfChannels) {
+            if (numberOfChannels < 0) {
+                throw new IllegalArgumentException("Negative numberOfChannels = " + numberOfChannels);
+            }
             this.numberOfChannels = numberOfChannels;
             return this;
         }
@@ -87,6 +99,9 @@ public interface TiffCodec {
         }
 
         public Options setBitsPerSample(int bitsPerSample) {
+            if (bitsPerSample < 0) {
+                throw new IllegalArgumentException("Negative bitsPerSample = " + bitsPerSample);
+            }
             this.bitsPerSample = bitsPerSample;
             return this;
         }
@@ -109,22 +124,20 @@ public interface TiffCodec {
             return this;
         }
 
-        public boolean isSigned() {
-            return signed;
-        }
-
-        public Options setSigned(boolean signed) {
-            this.signed = signed;
-            return this;
-        }
-
         public int getMaxSizeInBytes() {
             return maxSizeInBytes;
         }
 
         public Options setMaxSizeInBytes(int maxSizeInBytes) {
+            if (maxSizeInBytes < 0) {
+                throw new IllegalArgumentException("Negative maxSizeInBytes = " + maxSizeInBytes);
+            }
             this.maxSizeInBytes = maxSizeInBytes;
             return this;
+        }
+
+        public boolean hasQuality() {
+            return quality != null;
         }
 
         public Double getQuality() {
@@ -138,7 +151,7 @@ public interface TiffCodec {
 
         public double quality() {
             if (quality == null) {
-                throw new IllegalStateException("Quality is required, but it is not set");
+                throw new IllegalStateException("Quality is required, but is not set");
             }
             return quality;
         }
@@ -151,13 +164,12 @@ public interface TiffCodec {
             setBitsPerSample(options.bitsPerSample);
             setLittleEndian(options.littleEndian);
             setInterleaved(options.interleaved);
-            setSigned(options.signed);
             setMaxSizeInBytes(options.maxSizeInBytes);
             setQuality(options.quality);
             return this;
         }
 
-        public Object toOldStyleOptions(String oldStyleClassName) {
+        public final Object toOldStyleOptions(String oldStyleClassName) {
             Objects.requireNonNull(oldStyleClassName, "Null oldStyleClassName");
             final Class<?> c;
             try {
@@ -184,31 +196,23 @@ public interface TiffCodec {
             setField(oldStyleClass, result, "bitsPerSample", bitsPerSample);
             setField(oldStyleClass, result, "littleEndian", littleEndian);
             setField(oldStyleClass, result, "interleaved", interleaved);
-            setField(oldStyleClass, result, "signed", signed);
             setField(oldStyleClass, result, "maxBytes", maxSizeInBytes);
-            setField(oldStyleClass, result, "quality", quality);
-            if (this instanceof JPEG2000Codec.JPEG2000Options jpeg2000Options) {
-                setField(oldStyleClass, result, "lossless", jpeg2000Options.lossless);
-                setField(oldStyleClass, result, "colorModel", jpeg2000Options.colorModel);
+            if (quality != null) {
+                setField(oldStyleClass, result, "quality", quality);
             }
             return result;
         }
 
         public void setToOldStyleOptions(Object oldStyleOptions) {
             Objects.requireNonNull(oldStyleOptions, "Null oldStyleOptions");
-            width = getField(oldStyleOptions, Integer.class, "width");
-            height = getField(oldStyleOptions, Integer.class, "height");
-            numberOfChannels = getField(oldStyleOptions, Integer.class, "channels");
-            bitsPerSample = getField(oldStyleOptions, Integer.class, "bitsPerSample");
-            littleEndian = getField(oldStyleOptions, Boolean.class, "littleEndian");
-            interleaved = getField(oldStyleOptions, Boolean.class, "interleaved");
-            signed = getField(oldStyleOptions, Boolean.class, "signed");
-            maxSizeInBytes = getField(oldStyleOptions, Integer.class, "maxBytes");
-            quality = getField(oldStyleOptions, Double.class, "quality");
-            if (this instanceof JPEG2000Codec.JPEG2000Options jpeg2000Options) {
-                jpeg2000Options.lossless = getField(oldStyleOptions, Boolean.class, "lossless");
-                jpeg2000Options.colorModel = getField(oldStyleOptions, ColorModel.class, "colorModel");
-            }
+            setWidth(getField(oldStyleOptions, Integer.class, "width"));
+            setHeight(getField(oldStyleOptions, Integer.class, "height"));
+            setNumberOfChannels(getField(oldStyleOptions, Integer.class, "channels"));
+            setBitsPerSample(getField(oldStyleOptions, Integer.class, "bitsPerSample"));
+            setLittleEndian(getField(oldStyleOptions, Boolean.class, "littleEndian"));
+            setInterleaved(getField(oldStyleOptions, Boolean.class, "interleaved"));
+            setMaxSizeInBytes(getField(oldStyleOptions, Integer.class, "maxBytes"));
+            setQuality(getField(oldStyleOptions, Double.class, "quality"));
         }
 
         @Override
@@ -220,7 +224,6 @@ public interface TiffCodec {
                     ", bitsPerSample=" + bitsPerSample +
                     ", littleEndian=" + littleEndian +
                     ", interleaved=" + interleaved +
-                    ", signed=" + signed +
                     ", maxSizeInBytes=" + maxSizeInBytes +
                     ", quality=" + quality;
         }
@@ -237,7 +240,7 @@ public interface TiffCodec {
             return result;
         }
 
-        private static void setField(Class<?> oldStyleClass, Object result, String fieldName, Object value) {
+        static void setField(Class<?> oldStyleClass, Object result, String fieldName, Object value) {
             try {
                 oldStyleClass.getField(fieldName).set(result, value);
             } catch (IllegalAccessException | NoSuchFieldException e) {
@@ -246,7 +249,7 @@ public interface TiffCodec {
             }
         }
 
-        private static <T> T getField(Object options, Class<T> fieldType, String fieldName) {
+        static <T> T getField(Object options, Class<T> fieldType, String fieldName) {
             final Class<?> oldStyleClass = options.getClass();
             Object result;
             try {

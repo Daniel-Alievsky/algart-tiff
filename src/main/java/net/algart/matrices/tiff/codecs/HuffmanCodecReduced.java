@@ -39,7 +39,7 @@ import java.io.IOException;
 import java.util.HashMap;
 
 // Reduced version of analogous SCIFIO class (for compatibility).
-class HuffmanCodec {
+class HuffmanCodecReduced {
 	// Reduced version of analogous SCIFIO class (for compatibility).
 	static class HuffmanCodecOptions {
 		int width;

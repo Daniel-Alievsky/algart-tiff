@@ -37,7 +37,7 @@ public class CodecOptionsTest {
                 .setLossless(false)
                 .setBitsPerSample(1)
                 .setHeight(2048)
-                .setSigned(true);
+                .setInterleaved(true);
         System.out.println(options);
         final CodecOptions oldStyleOptions = options.toOldStyleOptions(CodecOptions.class);
         System.out.println("Old-style options: " + oldStyleOptions);

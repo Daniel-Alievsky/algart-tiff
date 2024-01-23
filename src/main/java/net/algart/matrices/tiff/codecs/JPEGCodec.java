@@ -56,15 +56,6 @@ public class JPEGCodec extends AbstractCodec implements TiffCodecTiming {
             setQuality(1.0);
         }
 
-        @Override
-        public JPEGOptions setQuality(Double quality) {
-            if (quality == null) {
-                quality = 1.0;
-            }
-            super.setQuality(quality);
-            return this;
-        }
-
         public TagPhotometricInterpretation getPhotometricInterpretation() {
             return photometricInterpretation;
         }
@@ -92,6 +83,10 @@ public class JPEGCodec extends AbstractCodec implements TiffCodecTiming {
             if (options instanceof JPEGOptions o) {
                 this.photometricInterpretation = o.photometricInterpretation;
                 this.yCbCrSubsampling = o.yCbCrSubsampling.clone();
+            } else {
+                if (!hasQuality()) {
+                    setQuality(1.0);
+                }
             }
             return this;
         }
@@ -131,7 +126,10 @@ public class JPEGCodec extends AbstractCodec implements TiffCodecTiming {
         final ByteArrayOutputStream output = new ByteArrayOutputStream();
         final BufferedImage image = AWTImageTools.makeImage(data, options.width,
                 options.height, options.numberOfChannels, options.interleaved,
-                options.bitsPerSample / 8, false, options.littleEndian, options.signed);
+                options.bitsPerSample / 8, false, options.littleEndian,
+                false);
+        // - original SCIFIO codec io.scif.codec.JPEGCodec supports any "signed" parameter,
+        // loaded from CodecOptions class, but in does not make sense in TIFF
 
         long t2 = timing ? System.nanoTime() : 0;
         final TagPhotometricInterpretation colorSpace = options instanceof JPEGOptions extended ?

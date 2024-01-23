@@ -118,16 +118,12 @@ enum KnownCompression {
     public static TiffCodec.Options standardWriteOptions(TiffTile tile, TiffCodec.Options defaultOptions) {
         Objects.requireNonNull(tile, "Null tile");
         final TiffCodec.Options options = new TiffCodec.Options();
-        if (defaultOptions != null) {
-            options.setTo(defaultOptions);
-        }
-        options.setWidth(tile.getSizeX());
-        options.setHeight(tile.getSizeY());
+        options.setTo(defaultOptions);
+        options.setSizes(tile.getSizeX(), tile.getSizeY());
         options.setBitsPerSample(8 * tile.bytesPerSample());
         options.setNumberOfChannels(tile.samplesPerPixel());
         options.setLittleEndian(tile.isLittleEndian());
         options.setInterleaved(true);
-        options.setSigned(false);
         return options;
     }
 
@@ -146,7 +142,9 @@ enum KnownCompression {
         return result;
     }
 
-    public static JPEG2000Codec.JPEG2000Options jpeg2000LosslessWriteOptions(TiffTile tile, TiffCodec.Options defaultOptions) {
+    public static JPEG2000Codec.JPEG2000Options jpeg2000LosslessWriteOptions(
+            TiffTile tile,
+            TiffCodec.Options defaultOptions) {
         return jpeg2000WriteOptions(tile, defaultOptions, true);
     }
 
@@ -155,18 +153,6 @@ enum KnownCompression {
             TiffCodec.Options defaultOptions,
             boolean lossless) {
         final TiffCodec.Options options = standardWriteOptions(tile, defaultOptions);
-        final JPEG2000Codec.JPEG2000Options result = JPEG2000Codec.JPEG2000Options.getDefaultOptions(options, lossless);
-        if (defaultOptions instanceof JPEG2000Codec.JPEG2000Options options2000) {
-            result.setNumDecompositionLevels(options2000.getNumDecompositionLevels());
-            result.setResolution(options2000.getResolution());
-            if (options2000.getCodeBlockSize() != null) {
-                result.setCodeBlockSize(options2000.getCodeBlockSize());
-            }
-            if (options2000.getQuality() != null) {
-                // - i.e. if it is specified
-                result.setQuality(options2000.quality());
-            }
-        }
-        return result;
+        return new JPEG2000Codec.JPEG2000Options().setTo(options, lossless);
     }
 }
