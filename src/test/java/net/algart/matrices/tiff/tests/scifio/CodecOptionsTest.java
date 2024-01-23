@@ -25,19 +25,20 @@
 package net.algart.matrices.tiff.tests.scifio;
 
 import io.scif.codec.CodecOptions;
-import net.algart.matrices.tiff.codecs.JPEGCodec;
+import net.algart.matrices.tiff.codecs.JPEG2000Codec;
 import net.algart.matrices.tiff.codecs.TiffCodec;
 
 import java.awt.image.ColorModel;
 
 public class CodecOptionsTest {
     public static void main(String[] args) {
-        TiffCodec.Options options = new JPEGCodec.JPEGOptions()
+        TiffCodec.Options options = new JPEG2000Codec.JPEG2000Options()
+                .setColorModel(ColorModel.getRGBdefault())
+                .setLossless(false)
                 .setBitsPerSample(1)
                 .setHeight(2048)
-                .setSigned(true)
-                .setColorModel(ColorModel.getRGBdefault());
-        System.out.println("Options: %s" + options);
+                .setSigned(true);
+        System.out.println(options);
         final CodecOptions oldStyleOptions = options.toOldStyleOptions(CodecOptions.class);
         System.out.println("Old-style options: " + oldStyleOptions);
         System.out.println("  width=" + oldStyleOptions.width);
@@ -53,8 +54,9 @@ public class CodecOptionsTest {
         System.out.println("  lossless=" + oldStyleOptions.lossless);
         System.out.println("  colorModel=" + oldStyleOptions.colorModel);
         System.out.println("  quality=" + oldStyleOptions.quality);
-        options = new TiffCodec.Options();
+        options = new JPEG2000Codec.JPEG2000Options();
         options.setToOldStyleOptions(oldStyleOptions);
-        System.out.println("Back to Options: %s" + options);
+        System.out.println("Back to Options class");
+        System.out.println(options);
     }
 }

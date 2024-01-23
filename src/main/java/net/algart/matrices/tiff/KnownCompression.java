@@ -155,8 +155,7 @@ enum KnownCompression {
             TiffCodec.Options defaultOptions,
             boolean lossless) {
         final TiffCodec.Options options = standardWriteOptions(tile, defaultOptions);
-        options.setLossless(lossless);
-        final JPEG2000Codec.JPEG2000Options result = JPEG2000Codec.JPEG2000Options.getDefaultOptions(options);
+        final JPEG2000Codec.JPEG2000Options result = JPEG2000Codec.JPEG2000Options.getDefaultOptions(options, lossless);
         if (defaultOptions instanceof JPEG2000Codec.JPEG2000Options options2000) {
             result.setNumDecompositionLevels(options2000.getNumDecompositionLevels());
             result.setResolution(options2000.getResolution());

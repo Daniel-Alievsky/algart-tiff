@@ -50,29 +50,9 @@ public interface TiffCodec {
         boolean interleaved = false;
         boolean signed = false;
         int maxSizeInBytes = 0;
-        boolean lossless = true;
-        ColorModel colorModel = null;
         double quality = 0.0;
 
-        // -- Constructors --
-
         public Options() {
-        }
-
-        public Options setTo(Options options) {
-            Objects.requireNonNull(options, "Null options");
-            this.width = options.width;
-            this.height = options.height;
-            this.numberOfChannels = options.numberOfChannels;
-            this.bitsPerSample = options.bitsPerSample;
-            this.littleEndian = options.littleEndian;
-            this.interleaved = options.interleaved;
-            this.signed = options.signed;
-            this.maxSizeInBytes = options.maxSizeInBytes;
-            this.lossless = options.lossless;
-            this.colorModel = options.colorModel;
-            this.quality = options.quality;
-            return this;
         }
 
         public int getWidth() {
@@ -147,30 +127,26 @@ public interface TiffCodec {
             return this;
         }
 
-        public boolean isLossless() {
-            return lossless;
-        }
-
-        public Options setLossless(boolean lossless) {
-            this.lossless = lossless;
-            return this;
-        }
-
-        public ColorModel getColorModel() {
-            return colorModel;
-        }
-
-        public Options setColorModel(ColorModel colorModel) {
-            this.colorModel = colorModel;
-            return this;
-        }
-
         public double getQuality() {
             return quality;
         }
 
         public Options setQuality(double quality) {
             this.quality = quality;
+            return this;
+        }
+
+        public Options setTo(Options options) {
+            Objects.requireNonNull(options, "Null options");
+            this.width = options.width;
+            this.height = options.height;
+            this.numberOfChannels = options.numberOfChannels;
+            this.bitsPerSample = options.bitsPerSample;
+            this.littleEndian = options.littleEndian;
+            this.interleaved = options.interleaved;
+            this.signed = options.signed;
+            this.maxSizeInBytes = options.maxSizeInBytes;
+            this.quality = options.quality;
             return this;
         }
 
@@ -203,9 +179,11 @@ public interface TiffCodec {
             setField(oldStyleClass, result, "interleaved", interleaved);
             setField(oldStyleClass, result, "signed", signed);
             setField(oldStyleClass, result, "maxBytes", maxSizeInBytes);
-            setField(oldStyleClass, result, "lossless", lossless);
-            setField(oldStyleClass, result, "colorModel", colorModel);
             setField(oldStyleClass, result, "quality", quality);
+            if (this instanceof JPEG2000Codec.JPEG2000Options jpeg2000Options) {
+                setField(oldStyleClass, result, "lossless", jpeg2000Options.lossless);
+                setField(oldStyleClass, result, "colorModel", jpeg2000Options.colorModel);
+            }
             return result;
         }
 
@@ -219,9 +197,11 @@ public interface TiffCodec {
             interleaved = getField(oldStyleOptions, Boolean.class, "interleaved");
             signed = getField(oldStyleOptions, Boolean.class, "signed");
             maxSizeInBytes = getField(oldStyleOptions, Integer.class, "maxBytes");
-            lossless = getField(oldStyleOptions, Boolean.class, "lossless");
-            colorModel = getField(oldStyleOptions, ColorModel.class, "colorModel");
             quality = getField(oldStyleOptions, Double.class, "quality");
+            if (this instanceof JPEG2000Codec.JPEG2000Options jpeg2000Options) {
+                jpeg2000Options.lossless = getField(oldStyleOptions, Boolean.class, "lossless");
+                jpeg2000Options.colorModel = getField(oldStyleOptions, ColorModel.class, "colorModel");
+            }
         }
 
         @Override
@@ -235,17 +215,19 @@ public interface TiffCodec {
                     ", interleaved=" + interleaved +
                     ", signed=" + signed +
                     ", maxSizeInBytes=" + maxSizeInBytes +
-                    ", lossless=" + lossless +
-                    ", colorModel=" + colorModel +
                     ", quality=" + quality;
         }
 
         public Options clone() {
+            final Options result;
             try {
-                return (Options) super.clone();
+                result = (Options) super.clone();
             } catch (CloneNotSupportedException e) {
                 throw new AssertionError(e);
             }
+            result.setTo(this);
+            // - performs necessary cloning of mutable fields like Java arrays
+            return result;
         }
 
         private static void setField(Class<?> oldStyleClass, Object result, String fieldName, Object value) {

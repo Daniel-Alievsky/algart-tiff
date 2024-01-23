@@ -82,7 +82,8 @@ public class JPEG2000Codec extends AbstractCodec {
      */
     public static class JPEG2000Options extends Options {
 
-        // -- Fields --
+        boolean lossless = true;
+        ColorModel colorModel = null;
 
         /**
          * The maximum code-block size to use per tile-component as it would be
@@ -115,6 +116,24 @@ public class JPEG2000Codec extends AbstractCodec {
             super();
         }
 
+        public boolean isLossless() {
+            return lossless;
+        }
+
+        public JPEG2000Options setLossless(boolean lossless) {
+            this.lossless = lossless;
+            return this;
+        }
+
+        public ColorModel getColorModel() {
+            return colorModel;
+        }
+
+        public JPEG2000Options setColorModel(ColorModel colorModel) {
+            this.colorModel = colorModel;
+            return this;
+        }
+
         public int[] getCodeBlockSize() {
             return codeBlockSize == null ? null : codeBlockSize.clone();
         }
@@ -142,11 +161,12 @@ public class JPEG2000Codec extends AbstractCodec {
             return this;
         }
 
-        public static JPEG2000Options getDefaultOptions(final Options options) {
+        public static JPEG2000Options getDefaultOptions(final Options options, boolean lossless) {
             final JPEG2000Options j2kOptions = new JPEG2000Options();
             j2kOptions.setTo(options);
 
-            j2kOptions.setQuality(j2kOptions.isLossless() ? Double.MAX_VALUE : 10);
+            j2kOptions.setLossless(lossless);
+            j2kOptions.setQuality(lossless ? Double.MAX_VALUE : 10);
             j2kOptions.codeBlockSize = new int[] { 64, 64 };
 
             return j2kOptions;
@@ -155,6 +175,8 @@ public class JPEG2000Codec extends AbstractCodec {
         @Override
         public String toString() {
             return super.toString() +
+                    ", lossless=" + lossless +
+                    ", colorModel=" + colorModel +
                     ", codeBlockSize=" + Arrays.toString(codeBlockSize) +
                     ", numDecompositionLevels=" + numDecompositionLevels +
                     ", resolution=" + resolution;
@@ -176,7 +198,7 @@ public class JPEG2000Codec extends AbstractCodec {
         if (options instanceof JPEG2000Options) {
             j2kOptions = (JPEG2000Options) options;
         } else {
-            j2kOptions = JPEG2000Options.getDefaultOptions(options);
+            j2kOptions = JPEG2000Options.getDefaultOptions(options, true);
         }
 
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -256,7 +278,6 @@ public class JPEG2000Codec extends AbstractCodec {
                     j2kOptions.colorModel);
         }
 
-
         try {
             writeImage(out, img, j2kOptions);
         } catch (final IOException e) {
@@ -273,7 +294,7 @@ public class JPEG2000Codec extends AbstractCodec {
             throw new IllegalArgumentException("No data to decompress.");
         }
         if (!(options instanceof JPEG2000Options)) {
-            options = JPEG2000Options.getDefaultOptions(options);
+            options = JPEG2000Options.getDefaultOptions(options, true);
         }
 
         byte[] buf = null;
@@ -291,7 +312,7 @@ public class JPEG2000Codec extends AbstractCodec {
     @Override
     public byte[] decompress(byte[] buf, Options options) throws TiffException {
         if (!(options instanceof JPEG2000Options)) {
-            options = JPEG2000Options.getDefaultOptions(options);
+            options = JPEG2000Options.getDefaultOptions(options, true);
         } else {
             options = options.clone();
         }
