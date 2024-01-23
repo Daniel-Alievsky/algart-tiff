@@ -53,7 +53,7 @@ public class JPEGCodec extends AbstractCodec implements TiffCodecTiming {
         private int[] yCbCrSubsampling = {2, 2};
 
         public JPEGOptions() {
-            quality = 1.0;
+            setQuality(1.0);
         }
 
         @Override

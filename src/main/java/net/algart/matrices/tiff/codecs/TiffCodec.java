@@ -50,7 +50,7 @@ public interface TiffCodec {
         boolean interleaved = false;
         boolean signed = false;
         int maxSizeInBytes = 0;
-        Double quality = null;
+        private Double quality = null;
 
         public Options() {
         }
