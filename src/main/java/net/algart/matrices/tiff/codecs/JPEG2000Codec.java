@@ -382,7 +382,7 @@ public class JPEG2000Codec extends AbstractCodec {
         param.setLossless(options.lossless);
         param.setFilter(filter);
         param.setCodeBlockSize(options.getCodeBlockSize());
-        param.setEncodingRate(options.quality);
+        param.setEncodingRate(options.quality());
 //      TIFF provides its own tile subsystem
 //        if (options.tileWidth > 0 && options.tileHeight > 0) {
 //            param.setTiling(options.tileWidth, options.tileHeight,

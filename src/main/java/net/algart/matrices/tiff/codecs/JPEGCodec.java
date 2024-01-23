@@ -53,18 +53,16 @@ public class JPEGCodec extends AbstractCodec implements TiffCodecTiming {
         private int[] yCbCrSubsampling = {2, 2};
 
         public JPEGOptions() {
-            this.quality = 1.0;
-            // - our JPEGCodec class sets the quality, and we MUST specify correct default value
-            // (because default 0.0 value will lead to VERY bad quality)
+            quality = 1.0;
         }
 
-        public static JPEGOptions getDefaultOptions(Options options) {
-            JPEGOptions result = new JPEGOptions();
-            result.setTo(options);
-            if (options.quality == 0.0) {
-                result.quality = 1.0;
+        @Override
+        public JPEGOptions setQuality(Double quality) {
+            if (quality == null) {
+                quality = 1.0;
             }
-            return result;
+            super.setQuality(quality);
+            return this;
         }
 
         public TagPhotometricInterpretation getPhotometricInterpretation() {
@@ -87,18 +85,22 @@ public class JPEGCodec extends AbstractCodec implements TiffCodecTiming {
             return this;
         }
 
+
+        @Override
+        public JPEGOptions setTo(Options options) {
+            super.setTo(options);
+            if (options instanceof JPEGOptions o) {
+                this.photometricInterpretation = o.photometricInterpretation;
+                this.yCbCrSubsampling = o.yCbCrSubsampling.clone();
+            }
+            return this;
+        }
+
         @Override
         public String toString() {
             return super.toString() +
                     ", photometricInterpretation=" + photometricInterpretation +
                     ", yCbCrSubsampling=" + Arrays.toString(yCbCrSubsampling);
-        }
-
-        @Override
-        public JPEGOptions clone() {
-            JPEGOptions result = (JPEGOptions) super.clone();
-            result.yCbCrSubsampling = this.yCbCrSubsampling.clone();
-            return result;
         }
     }
 
@@ -135,7 +137,7 @@ public class JPEGCodec extends AbstractCodec implements TiffCodecTiming {
         final TagPhotometricInterpretation colorSpace = options instanceof JPEGOptions extended ?
                 extended.getPhotometricInterpretation() :
                 TagPhotometricInterpretation.Y_CB_CR;
-        final double jpegQuality = Math.min(options.quality, 1.0);
+        final double jpegQuality = Math.min(options.quality(), 1.0);
             // - for JPEG, maximal possible quality is 1.0, but it is better to allow greater qualities
             // (for comparison, maximal quality in JPEG-2000 is Double.MAX_VALUE)
         try {

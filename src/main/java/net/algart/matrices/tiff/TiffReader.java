@@ -1335,10 +1335,11 @@ public class TiffReader implements Closeable {
 
     private TiffCodec.Options buildReadingOptions(TiffTile tile, TiffCodec customCodec) throws TiffException {
         TiffIFD ifd = tile.ifd();
-        TiffCodec.Options codecOptions = customCodec instanceof JPEGCodec ?
-                JPEGCodec.JPEGOptions.getDefaultOptions(this.codecOptions)
-                        .setPhotometricInterpretation(ifd.getPhotometricInterpretation())
-                        .setYCbCrSubsampling(ifd.getYCbCrSubsampling()) :
+        TiffCodec.Options codecOptions;
+        codecOptions = customCodec instanceof JPEGCodec ? new JPEGCodec.JPEGOptions()
+                .setTo(this.codecOptions)
+                .setPhotometricInterpretation(ifd.getPhotometricInterpretation())
+                .setYCbCrSubsampling(ifd.getYCbCrSubsampling()) :
                 this.codecOptions.clone();
         codecOptions.setLittleEndian(ifd.isLittleEndian());
         final int samplesLength = tile.getSizeInBytes();

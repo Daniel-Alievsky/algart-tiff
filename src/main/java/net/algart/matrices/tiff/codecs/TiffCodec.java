@@ -50,7 +50,7 @@ public interface TiffCodec {
         boolean interleaved = false;
         boolean signed = false;
         int maxSizeInBytes = 0;
-        double quality = 0.0;
+        Double quality = null;
 
         public Options() {
         }
@@ -127,26 +127,33 @@ public interface TiffCodec {
             return this;
         }
 
-        public double getQuality() {
+        public Double getQuality() {
             return quality;
         }
 
-        public Options setQuality(double quality) {
+        public Options setQuality(Double quality) {
             this.quality = quality;
             return this;
         }
 
+        public double quality() {
+            if (quality == null) {
+                throw new IllegalStateException("Quality is required, but it is not set");
+            }
+            return quality;
+        }
+
         public Options setTo(Options options) {
             Objects.requireNonNull(options, "Null options");
-            this.width = options.width;
-            this.height = options.height;
-            this.numberOfChannels = options.numberOfChannels;
-            this.bitsPerSample = options.bitsPerSample;
-            this.littleEndian = options.littleEndian;
-            this.interleaved = options.interleaved;
-            this.signed = options.signed;
-            this.maxSizeInBytes = options.maxSizeInBytes;
-            this.quality = options.quality;
+            setWidth(options.width);
+            setHeight(options.height);
+            setNumberOfChannels(options.numberOfChannels);
+            setBitsPerSample(options.bitsPerSample);
+            setLittleEndian(options.littleEndian);
+            setInterleaved(options.interleaved);
+            setSigned(options.signed);
+            setMaxSizeInBytes(options.maxSizeInBytes);
+            setQuality(options.quality);
             return this;
         }
 
