@@ -32,11 +32,11 @@ import io.scif.codec.CodecOptions;
 import io.scif.formats.tiff.IFD;
 import io.scif.formats.tiff.TiffCompression;
 import io.scif.formats.tiff.TiffConstants;
-import io.scif.formats.tiff.TiffRational;
+import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
-import net.algart.matrices.tiff.codecs.TiffCodecTiming;
 import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
+import net.algart.matrices.tiff.tags.TagTypes;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
@@ -906,7 +906,7 @@ public class TiffWriter implements Closeable {
             if (quality != null) {
                 options.setQuality(quality);
             }
-            if (codec instanceof TiffCodecTiming timing) {
+            if (codec instanceof TiffCodec.Timing timing) {
                 timing.setTiming(TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG);
                 timing.clearTiming();
             }
@@ -932,7 +932,7 @@ public class TiffWriter implements Closeable {
         timePreparingEncoding += t2 - t1;
         timeCustomizingEncoding += t3 - t2;
         timeEncoding += t4 - t3;
-        if (codec instanceof TiffCodecTiming timing) {
+        if (codec instanceof TiffCodec.Timing timing) {
             timeEncodingMain += timing.timeMain();
             timeEncodingBridge += timing.timeBridge();
             timeEncodingAdditional += timing.timeAdditional();
@@ -1447,8 +1447,8 @@ public class TiffWriter implements Closeable {
             value = new int[]{(Integer) value};
         } else if (value instanceof Long) {
             value = new long[]{(Long) value};
-        } else if (value instanceof TiffRational) {
-            value = new TiffRational[]{(TiffRational) value};
+        } else if (value instanceof TagRational) {
+            value = new TagRational[]{(TagRational) value};
         } else if (value instanceof Float) {
             value = new float[]{(Float) value};
         } else if (value instanceof Double) {
@@ -1461,7 +1461,7 @@ public class TiffWriter implements Closeable {
         // write directory entry to output buffers
         writeUnsignedShort(out, tag);
         if (value instanceof byte[] q) {
-            out.writeShort(TiffIFD.TIFF_UNDEFINED);
+            out.writeShort(TagTypes.UNDEFINED);
             // - Most probable type. Maybe in future we will support here some algorithm,
             // determining necessary type on the base of the tag value.
             writeIntOrLong(out, q.length);
@@ -1478,7 +1478,7 @@ public class TiffWriter implements Closeable {
             }
         } else if (value instanceof short[]) { // suppose BYTE (unsigned 8-bit)
             final short[] q = (short[]) value;
-            out.writeShort(TiffIFD.TIFF_BYTE);
+            out.writeShort(TagTypes.BYTE);
             writeIntOrLong(out, q.length);
             if (q.length <= dataLength) {
                 for (short s : q) {
@@ -1495,7 +1495,7 @@ public class TiffWriter implements Closeable {
             }
         } else if (value instanceof String) { // suppose ASCII
             final char[] q = ((String) value).toCharArray();
-            out.writeShort(TiffIFD.TIFF_ASCII);
+            out.writeShort(TagTypes.ASCII);
             writeIntOrLong(out, q.length + 1);
             // - with concluding zero byte
             if (q.length < dataLength) {
@@ -1518,13 +1518,13 @@ public class TiffWriter implements Closeable {
                 // - we should allow to use usual int values for 32-bit tags, to avoid a lot of obvious bugs
                 final int v = q[0];
                 if (v >= 0xFFFF) {
-                    out.writeShort(TiffIFD.TIFF_LONG);
+                    out.writeShort(TagTypes.LONG);
                     writeIntOrLong(out, q.length);
                     writeIntOrLong(out, v);
                     return;
                 }
             }
-            out.writeShort(TiffIFD.TIFF_SHORT);
+            out.writeShort(TagTypes.SHORT);
             writeIntOrLong(out, q.length);
             if (q.length <= dataLength / 2) {
                 for (int intValue : q) {
@@ -1555,7 +1555,7 @@ public class TiffWriter implements Closeable {
                                 Tags.IMAGE_DEPTH,
                                 Tags.ROWS_PER_STRIP,
                                 Tags.NEW_SUBFILE_TYPE -> {
-                            out.writeShort(TiffIFD.TIFF_LONG);
+                            out.writeShort(TagTypes.LONG);
                             writeIntOrLong(out, q.length);
                             out.writeInt((int) v);
                             out.writeInt(0);
@@ -1565,7 +1565,7 @@ public class TiffWriter implements Closeable {
                     }
                 }
             }
-            final int type = bigTiff ? TiffIFD.TIFF_LONG8 : TiffIFD.TIFF_LONG;
+            final int type = bigTiff ? TagTypes.LONG8 : TagTypes.LONG;
             out.writeShort(type);
             writeIntOrLong(out, q.length);
 
@@ -1583,23 +1583,23 @@ public class TiffWriter implements Closeable {
                     writeIntOrLong(extraBuffer, longValue);
                 }
             }
-        } else if (value instanceof TiffRational[]) {
-            final TiffRational[] q = (TiffRational[]) value;
-            out.writeShort(TiffIFD.TIFF_RATIONAL);
+        } else if (value instanceof TagRational[]) {
+            final TagRational[] q = (TagRational[]) value;
+            out.writeShort(TagTypes.RATIONAL);
             writeIntOrLong(out, q.length);
             if (bigTiff && q.length == 1) {
                 out.writeInt((int) q[0].getNumerator());
                 out.writeInt((int) q[0].getDenominator());
             } else {
                 writeOffset(bufferOffsetInResultFile + extraBuffer.offset());
-                for (TiffRational tiffRational : q) {
-                    extraBuffer.writeInt((int) tiffRational.getNumerator());
-                    extraBuffer.writeInt((int) tiffRational.getDenominator());
+                for (TagRational tagRational : q) {
+                    extraBuffer.writeInt((int) tagRational.getNumerator());
+                    extraBuffer.writeInt((int) tagRational.getDenominator());
                 }
             }
         } else if (value instanceof float[]) {
             final float[] q = (float[]) value;
-            out.writeShort(TiffIFD.TIFF_FLOAT);
+            out.writeShort(TagTypes.FLOAT);
             writeIntOrLong(out, q.length);
             if (q.length <= dataLength / 4) {
                 for (float floatValue : q) {
@@ -1617,7 +1617,7 @@ public class TiffWriter implements Closeable {
             }
         } else if (value instanceof double[]) {
             final double[] q = (double[]) value;
-            out.writeShort(TiffIFD.TIFF_DOUBLE);
+            out.writeShort(TagTypes.DOUBLE);
             writeIntOrLong(out, q.length);
             writeOffset(bufferOffsetInResultFile + extraBuffer.offset());
             for (final double doubleValue : q) {

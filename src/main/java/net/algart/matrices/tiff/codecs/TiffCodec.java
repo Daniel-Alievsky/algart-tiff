@@ -28,7 +28,6 @@ import net.algart.matrices.tiff.TiffException;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.location.Location;
 
-import java.awt.image.ColorModel;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Objects;
@@ -37,6 +36,17 @@ import java.util.Objects;
  * This class is an analog of SCIFIO Codec interface, simplifying to use for TIFF encoding inside this library
  */
 public interface TiffCodec {
+    interface Timing {
+        void setTiming(boolean timing);
+
+        void clearTiming();
+
+        long timeMain();
+
+        long timeBridge();
+
+        long timeAdditional();
+    }
 
     /**
      * Options for compressing and decompressing data.

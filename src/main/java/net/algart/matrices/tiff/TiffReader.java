@@ -28,12 +28,12 @@ import io.scif.SCIFIO;
 import io.scif.codec.CodecOptions;
 import io.scif.formats.tiff.TiffCompression;
 import io.scif.formats.tiff.TiffConstants;
-import io.scif.formats.tiff.TiffRational;
+import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.codecs.JPEGCodec;
 import net.algart.matrices.tiff.codecs.TiffCodec;
-import net.algart.matrices.tiff.codecs.TiffCodecTiming;
+import net.algart.matrices.tiff.tags.TagTypes;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
@@ -860,7 +860,7 @@ public class TiffReader implements Closeable {
 
         long t2 = debugTime();
         if (codec != null) {
-            if (codec instanceof TiffCodecTiming timing) {
+            if (codec instanceof TiffCodec.Timing timing) {
                 timing.setTiming(TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG);
                 timing.clearTiming();
             }
@@ -889,7 +889,7 @@ public class TiffReader implements Closeable {
 
         timeCustomizingDecoding += t2 - t1;
         timeDecoding += t3 - t2;
-        if (codec instanceof TiffCodecTiming timing) {
+        if (codec instanceof TiffCodec.Timing timing) {
             timeDecodingMain += timing.timeMain();
             timeDecodingBridge += timing.timeBridge();
             timeDecodingAdditional += timing.timeAdditional();
@@ -1579,7 +1579,7 @@ public class TiffReader implements Closeable {
 
         in.seek(offset);
         switch (type) {
-            case TiffIFD.TIFF_BYTE -> {
+            case TagTypes.BYTE -> {
                 // 8-bit unsigned integer
                 if (count == 1) {
                     return (short) in.readByte();
@@ -1593,7 +1593,7 @@ public class TiffReader implements Closeable {
                 }
                 return shorts;
             }
-            case TiffIFD.TIFF_ASCII -> {
+            case TagTypes.ASCII -> {
                 // 8-bit byte that contain a 7-bit ASCII code;
                 // the last byte must be NUL (binary zero)
                 final byte[] ascii = new byte[count];
@@ -1626,7 +1626,7 @@ public class TiffReader implements Closeable {
                 }
                 return strings != null ? strings : s != null ? s : "";
             }
-            case TiffIFD.TIFF_SHORT -> {
+            case TagTypes.SHORT -> {
                 // 16-bit (2-byte) unsigned integer
                 if (count == 1) {
                     return in.readUnsignedShort();
@@ -1647,7 +1647,7 @@ public class TiffReader implements Closeable {
                     return shorts;
                 }
             }
-            case TiffIFD.TIFF_LONG, TiffIFD.TIFF_IFD -> {
+            case TagTypes.LONG, TagTypes.IFD -> {
                 // 32-bit (4-byte) unsigned integer
                 if (count == 1) {
                     return in.readInt() & 0xFFFFFFFFL;
@@ -1665,7 +1665,7 @@ public class TiffReader implements Closeable {
                     return longs;
                 }
             }
-            case TiffIFD.TIFF_LONG8, TiffIFD.TIFF_SLONG8, TiffIFD.TIFF_IFD8 -> {
+            case TagTypes.LONG8, TagTypes.SLONG8, TagTypes.IFD8 -> {
                 if (count == 1) {
                     return in.readLong();
                 }
@@ -1680,18 +1680,18 @@ public class TiffReader implements Closeable {
                     return longs;
                 }
             }
-            case TiffIFD.TIFF_RATIONAL, TiffIFD.TIFF_SRATIONAL -> {
+            case TagTypes.RATIONAL, TagTypes.SRATIONAL -> {
                 // Two LONGs or SLONGs: the first represents the numerator of a fraction; the second, the denominator
                 if (count == 1) {
-                    return new TiffRational(in.readInt(), in.readInt());
+                    return new TagRational(in.readInt(), in.readInt());
                 }
-                final TiffRational[] rationals = new TiffRational[count];
+                final TagRational[] rationals = new TagRational[count];
                 for (int j = 0; j < count; j++) {
-                    rationals[j] = new TiffRational(in.readInt(), in.readInt());
+                    rationals[j] = new TagRational(in.readInt(), in.readInt());
                 }
                 return rationals;
             }
-            case TiffIFD.TIFF_SBYTE, TiffIFD.TIFF_UNDEFINED -> {
+            case TagTypes.SBYTE, TagTypes.UNDEFINED -> {
                 // SBYTE: An 8-bit signed (twos-complement) integer
                 // UNDEFINED: An 8-bit byte that may contain anything,
                 // depending on the definition of the field
@@ -1702,7 +1702,7 @@ public class TiffReader implements Closeable {
                 in.read(sbytes);
                 return sbytes;
             }
-            case TiffIFD.TIFF_SSHORT -> {
+            case TagTypes.SSHORT -> {
                 // A 16-bit (2-byte) signed (twos-complement) integer
                 if (count == 1) {
                     return in.readShort();
@@ -1713,7 +1713,7 @@ public class TiffReader implements Closeable {
                 }
                 return sshorts;
             }
-            case TiffIFD.TIFF_SLONG -> {
+            case TagTypes.SLONG -> {
                 // A 32-bit (4-byte) signed (twos-complement) integer
                 if (count == 1) {
                     return in.readInt();
@@ -1724,7 +1724,7 @@ public class TiffReader implements Closeable {
                 }
                 return slongs;
             }
-            case TiffIFD.TIFF_FLOAT -> {
+            case TagTypes.FLOAT -> {
                 // Single precision (4-byte) IEEE format
                 if (count == 1) {
                     return in.readFloat();
@@ -1735,7 +1735,7 @@ public class TiffReader implements Closeable {
                 }
                 return floats;
             }
-            case TiffIFD.TIFF_DOUBLE -> {
+            case TagTypes.DOUBLE -> {
                 // Double precision (8-byte) IEEE format
                 if (count == 1) {
                     return in.readDouble();
@@ -1771,7 +1771,7 @@ public class TiffReader implements Closeable {
             throw new TiffException("Invalid TIFF: very large number of IFD values in array " +
                     (valueCount < 0 ? " >= 2^63" : valueCount + " >= 2^31") + " is not supported");
         }
-        final int bytesPerElement = TiffIFD.entryTypeSize(entryType);
+        final int bytesPerElement = TagTypes.sizeOfType(entryType);
         // - will be zero for unknown type; in this case we will set valueOffset=in.offset() below
         final long valueLength = valueCount * (long) bytesPerElement;
         final int threshold = bigTiff ? 8 : 4;

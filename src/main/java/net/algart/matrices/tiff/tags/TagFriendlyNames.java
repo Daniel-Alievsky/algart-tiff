@@ -28,11 +28,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-class IFDFriendlyNames {
-    private IFDFriendlyNames() {
+class TagFriendlyNames {
+    private TagFriendlyNames() {
     }
 
-    static final Map<Integer, String> IFD_TAG_NAMES = buildTagNames();
+    static final Map<Integer, String> TAG_NAMES = buildTagNames();
 
     private static Map<Integer, String> buildTagNames() {
         final Map<Integer, String> result = new LinkedHashMap<>();

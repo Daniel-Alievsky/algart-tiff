@@ -32,6 +32,7 @@ import io.scif.formats.tiff.*;
 import io.scif.util.FormatTools;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
+import net.algart.matrices.tiff.tags.TagRational;
 import org.scijava.Context;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.DataHandleService;
@@ -173,8 +174,8 @@ public class TiffSaver extends TiffWriter {
             value = new int[]{((Integer) value).intValue()};
         } else if (value instanceof Long) {
             value = new long[]{((Long) value).longValue()};
-        } else if (value instanceof TiffRational) {
-            value = new TiffRational[]{(TiffRational) value};
+        } else if (value instanceof TagRational) {
+            value = new TagRational[]{(TagRational) value};
         } else if (value instanceof Float) {
             value = new float[]{((Float) value).floatValue()};
         } else if (value instanceof Double) {
@@ -254,8 +255,8 @@ public class TiffSaver extends TiffWriter {
                     writeIntValue(extraOut, q[i]);
                 }
             }
-        } else if (value instanceof TiffRational[]) { // RATIONAL
-            final TiffRational[] q = (TiffRational[]) value;
+        } else if (value instanceof TagRational[]) { // RATIONAL
+            final TagRational[] q = (TagRational[]) value;
             out.writeShort(IFDType.RATIONAL.getCode()); // type
             writeIntValue(out, q.length);
             if (bigTiff && q.length == 1) {
@@ -762,10 +763,10 @@ public class TiffSaver extends TiffWriter {
         ifd.putIFDValue(IFD.SAMPLES_PER_PIXEL, nChannels);
 
         if (ifd.get(IFD.X_RESOLUTION) == null) {
-            ifd.putIFDValue(IFD.X_RESOLUTION, new TiffRational(1, 1));
+            ifd.putIFDValue(IFD.X_RESOLUTION, new TagRational(1, 1));
         }
         if (ifd.get(IFD.Y_RESOLUTION) == null) {
-            ifd.putIFDValue(IFD.Y_RESOLUTION, new TiffRational(1, 1));
+            ifd.putIFDValue(IFD.Y_RESOLUTION, new TagRational(1, 1));
         }
         if (ifd.get(IFD.SOFTWARE) == null) {
             ifd.putIFDValue(IFD.SOFTWARE, "SCIFIO");

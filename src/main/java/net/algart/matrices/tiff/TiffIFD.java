@@ -26,8 +26,9 @@ package net.algart.matrices.tiff;
 
 import io.scif.formats.tiff.OnDemandLongArray;
 import io.scif.formats.tiff.TiffCompression;
-import io.scif.formats.tiff.TiffRational;
+import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
+import net.algart.matrices.tiff.tags.TagTypes;
 import net.algart.matrices.tiff.tags.Tags;
 
 import java.io.IOException;
@@ -78,26 +79,6 @@ public class TiffIFD {
     public static final int MAX_NUMBER_OF_CHANNELS = 512;
 
     public static final int LAST_IFD_OFFSET = 0;
-
-    /*
-     * TIFF entry data types:
-     */
-    public static final int TIFF_BYTE = 1;
-    public static final int TIFF_ASCII = 2;
-    public static final int TIFF_SHORT = 3;
-    public static final int TIFF_LONG = 4;
-    public static final int TIFF_RATIONAL = 5;
-    public static final int TIFF_SBYTE = 6;
-    public static final int TIFF_UNDEFINED = 7;
-    public static final int TIFF_SSHORT = 8;
-    public static final int TIFF_SLONG = 9;
-    public static final int TIFF_SRATIONAL = 10;
-    public static final int TIFF_FLOAT = 11;
-    public static final int TIFF_DOUBLE = 12;
-    public static final int TIFF_IFD = 13;
-    public static final int TIFF_LONG8 = 16;
-    public static final int TIFF_SLONG8 = 17;
-    public static final int TIFF_IFD8 = 18;
 
     public static final int DEFAULT_TILE_SIZE_X = 256;
     public static final int DEFAULT_TILE_SIZE_Y = 256;
@@ -1478,7 +1459,7 @@ public class TiffIFD {
                     sb.append("[");
                     appendIFDArray(sb, v, false, true);
                     sb.append("]");
-                } else if (v instanceof TiffRational) {
+                } else if (v instanceof TagRational) {
                     sb.append("\"").append(v).append("\"");
                 } else if (v instanceof Number || v instanceof Boolean) {
                     sb.append(v);
@@ -1545,7 +1526,7 @@ public class TiffIFD {
                 if (entries != null) {
                     final TiffEntry tiffEntry = entries.get(tag);
                     if (tiffEntry != null) {
-                        sb.append(" : ").append(entryTypeToString(tiffEntry.type()));
+                        sb.append(" : ").append(TagTypes.typeToString(tiffEntry.type()));
                         int valueCount = tiffEntry.valueCount();
                         if (valueCount != 1) {
                             sb.append("[").append(valueCount).append("]");
@@ -1564,50 +1545,6 @@ public class TiffIFD {
             sb.append("\n  }\n}");
         }
         return sb.toString();
-    }
-
-    public static String entryTypeToString(int ifdEntryType) {
-        return switch (ifdEntryType) {
-            case TIFF_BYTE -> "BYTE";
-            case TIFF_ASCII -> "ASCII";
-            case TIFF_SHORT -> "SHORT";
-            case TIFF_LONG -> "LONG";
-            case TIFF_RATIONAL -> "RATIONAL";
-            case TIFF_SBYTE -> "SBYTE";
-            case TIFF_UNDEFINED -> "UNDEFINED";
-            case TIFF_SSHORT -> "SSHORT";
-            case TIFF_SLONG -> "SLONG";
-            case TIFF_SRATIONAL -> "SRATIONAL";
-            case TIFF_FLOAT -> "FLOAT";
-            case TIFF_DOUBLE -> "DOUBLE";
-            case TIFF_IFD -> "IFD";
-            case TIFF_LONG8 -> "LONG8";
-            case TIFF_SLONG8 -> "SLONG8";
-            case TIFF_IFD8 -> "IFD8";
-            default -> "Unknown type";
-        };
-    }
-
-    public static int entryTypeSize(int ifdEntryType) {
-        return switch (ifdEntryType) {
-            case TIFF_BYTE -> 1;
-            case TIFF_ASCII -> 1;
-            case TIFF_SHORT -> 2;
-            case TIFF_LONG -> 4;
-            case TIFF_RATIONAL -> 8;
-            case TIFF_SBYTE -> 1;
-            case TIFF_UNDEFINED -> 1;
-            case TIFF_SSHORT -> 2;
-            case TIFF_SLONG -> 4;
-            case TIFF_SRATIONAL -> 8;
-            case TIFF_FLOAT -> 4;
-            case TIFF_DOUBLE -> 8;
-            case TIFF_IFD -> 4;
-            case TIFF_LONG8 -> 8;
-            case TIFF_SLONG8 -> 8;
-            case TIFF_IFD8 -> 8;
-            default -> 0;
-        };
     }
 
     public static boolean isStandard(TiffCompression compression) {
@@ -1738,7 +1675,7 @@ public class TiffIFD {
             if (mask != 0) {
                 o = ((Number) o).intValue() & mask;
             }
-            if (jsonMode && o instanceof TiffRational) {
+            if (jsonMode && o instanceof TagRational) {
                 sb.append("\"").append(o).append("\"");
             } else {
                 sb.append(o);

@@ -39,7 +39,7 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Objects;
 
-public class JPEGCodec extends AbstractCodec implements TiffCodecTiming {
+public class JPEGCodec extends AbstractCodec implements TiffCodec.Timing {
     private static final boolean OPTIMIZE_SEPARATING_BGR = true;
 
     public static class JPEGOptions extends Options {

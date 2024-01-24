@@ -27,6 +27,9 @@ package net.algart.matrices.tiff.tags;
 import java.util.Objects;
 
 public class Tags {
+    private Tags() {
+    }
+
     public static final int NEW_SUBFILE_TYPE = 254;
     public static final int SUBFILE_TYPE = 255;
     public static final int IMAGE_WIDTH = 256;
@@ -179,7 +182,7 @@ public class Tags {
      */
     public static String tiffTagName(int tag, boolean includeNumeric) {
         String name = Objects.requireNonNullElse(
-                IFDFriendlyNames.IFD_TAG_NAMES.get(tag),
+                TagFriendlyNames.TAG_NAMES.get(tag),
                 "UnknownTag" + tag);
         if (!includeNumeric) {
             return name;

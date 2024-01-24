@@ -25,7 +25,7 @@
 package net.algart.matrices.tiff;
 
 import io.scif.formats.tiff.TiffCompression;
-import io.scif.formats.tiff.TiffRational;
+import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.arrays.*;
 import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 import net.algart.matrices.tiff.tags.Tags;
@@ -503,6 +503,7 @@ public class TiffTools {
 
     }
 
+    // Note: this method may be tested with the images ycbcr-cat.tif and dscf0013.tif
     public static boolean separateYCbCrToRGB(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile);
         final TiffIFD ifd = tile.ifd();
@@ -549,8 +550,8 @@ public class TiffTools {
             // - original SCIFIO code used here zero-filled array, this is incorrect
         }
         final int[] subsamplingLog = ifd.getYCbCrSubsamplingLogarithms();
-        final TiffRational[] coefficients = ifd.getValue(Tags.Y_CB_CR_COEFFICIENTS, TiffRational[].class)
-                .orElse(new TiffRational[0]);
+        final TagRational[] coefficients = ifd.getValue(Tags.Y_CB_CR_COEFFICIENTS, TagRational[].class)
+                .orElse(new TagRational[0]);
         if (coefficients.length >= 3) {
             lumaRed = coefficients[0].doubleValue();
             lumaGreen = coefficients[1].doubleValue();
