@@ -883,7 +883,7 @@ public class TiffWriter implements Closeable {
 
         tile.checkStoredNumberOfPixels();
 
-        TiffCompression compression = tile.ifd().getCompression();
+        TiffCompression compression = tile.ifd().getTiffCompression();
         final KnownCompression known = KnownCompression.valueOfOrNull(compression);
         
         // Deprecated solution: we didn't try to write unknown compressions, 
@@ -995,7 +995,7 @@ public class TiffWriter implements Closeable {
             ifd.put(Tags.COMPRESSION, TiffCompression.UNCOMPRESSED.getCode());
             // - We prefer explicitly specify this case
         }
-        final TiffCompression compression = ifd.getCompression();
+        final TiffCompression compression = ifd.getTiffCompression();
         // - UnsupportedTiffFormatException for unknown compression
 
         final boolean jpeg = compression == TiffCompression.JPEG;
@@ -1338,7 +1338,7 @@ public class TiffWriter implements Closeable {
     Object scifio() {
         Object scifio = this.scifio;
         if (scifio == null) {
-            this.scifio = scifio = TiffReader.createScifio(context);
+            this.scifio = scifio = SCIFIOBridge.createScifio(context);
         }
         return scifio;
     }

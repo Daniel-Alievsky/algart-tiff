@@ -720,7 +720,11 @@ public class TiffIFD {
         return code == -1 ? Optional.empty() : Optional.ofNullable(KnownCompression.compressionOfCodeOrNull(code));
     }
 
-    public TiffCompression getCompression() throws TiffException {
+    public int getCompression() throws TiffException {
+        return getInt(Tags.COMPRESSION, TiffCompression.UNCOMPRESSED.getCode());
+    }
+
+    public TiffCompression getTiffCompression() throws TiffException {
         final int code = getInt(Tags.COMPRESSION, TiffCompression.UNCOMPRESSED.getCode());
         final TiffCompression result = KnownCompression.compressionOfCodeOrNull(code);
         if (result == null) {
@@ -1000,21 +1004,21 @@ public class TiffIFD {
     }
 
     public boolean isStandardYCbCrNonJpeg() throws TiffException {
-        TiffCompression compression = getCompression();
+        TiffCompression compression = getTiffCompression();
         return isStandard(compression) && !isJpeg(compression) &&
                 getPhotometricInterpretation() == TagPhotometricInterpretation.Y_CB_CR;
     }
 
     public boolean isStandardCompression() throws TiffException {
-        return isStandard(getCompression());
+        return isStandard(getTiffCompression());
     }
 
     public boolean isJpeg() throws TiffException {
-        return isJpeg(getCompression());
+        return isJpeg(getTiffCompression());
     }
 
     public boolean isStandardInvertedCompression() throws TiffException {
-        TiffCompression compression = getCompression();
+        TiffCompression compression = getTiffCompression();
         return isStandard(compression) && !isJpeg(compression) && getPhotometricInterpretation().isInvertedBrightness();
     }
 
@@ -1474,7 +1478,7 @@ public class TiffIFD {
                 try {
                     switch (tag) {
                         case Tags.PHOTOMETRIC_INTERPRETATION -> additional = getPhotometricInterpretation().prettyName();
-                        case Tags.COMPRESSION -> additional = prettyCompression(getCompression());
+                        case Tags.COMPRESSION -> additional = prettyCompression(getTiffCompression());
                         case Tags.PLANAR_CONFIGURATION -> {
                             if (v instanceof Number number) {
                                 switch (number.intValue()) {

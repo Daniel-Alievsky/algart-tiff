@@ -72,7 +72,7 @@ public class TiffFalsifyJPEGColorSpace {
             for (int i = firstIFDIndex; i <= lastIFDIndex; i++) {
                 final TiffIFD readIFD = ifds.get(i);
                 final TiffIFD writeIFD = new TiffIFD(readIFD);
-                if (readIFD.getCompression() != TiffCompression.JPEG) {
+                if (readIFD.getTiffCompression() != TiffCompression.JPEG) {
                     System.out.printf("\rCopying #%d/%d: %s%n", i, ifds.size(), readIFD);
                     TiffCopyTest.copyImage(readIFD, writeIFD, reader, writer);
                     continue;

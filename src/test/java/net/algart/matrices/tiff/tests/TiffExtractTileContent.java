@@ -67,7 +67,7 @@ public class TiffExtractTileContent {
             reader.prepareEncodedTileForDecoding(tile);
             System.out.printf("Loaded tile:%n    %s%n", tile);
             if (!tile.isEmpty()) {
-                System.out.printf("    Compression format: %s%n", map.ifd().getCompression().getCodecName());
+                System.out.printf("    Compression format: %s%n", map.ifd().getTiffCompression().getCodecName());
                 byte[] bytes = tile.getData();
                 System.out.printf("Tile saved in %s%n", resultFile);
                 Files.write(resultFile, bytes);

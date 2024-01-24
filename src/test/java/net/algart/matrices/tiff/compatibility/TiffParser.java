@@ -956,14 +956,22 @@ public class TiffParser extends TiffReader {
         return new TiffIFDEntry(entryTag, entryType, valueCount, offset);
     }
 
+    // Note: this method may be tested with the image jpeg_ycbcr_encoded_as_rgb.tiff
     @Override
-    protected CodecOptions correctReadingOptions(CodecOptions codecOptions, TiffTile tile, TiffCodec customCodec)
-            throws TiffException {
-        TiffIFD ifd = tile.ifd();
-        codecOptions.ycbcr = ifd.getPhotometricInterpretation() == TagPhotometricInterpretation.Y_CB_CR &&
+    protected Object buildAlienOptions(TiffTile tile, TiffCodec.Options options) throws TiffException {
+        final Object alien = super.buildAlienOptions(tile, options);
+        final TiffIFD ifd = tile.ifd();
+        if (ifd.getPhotometricInterpretation() == TagPhotometricInterpretation.Y_CB_CR &&
                 toScifioIFD(ifd).getIFDIntValue(IFD.Y_CB_CR_SUB_SAMPLING) == 1 &&
-                ycbcrCorrection;
-        return codecOptions;
+                ycbcrCorrection) {
+            if (alien instanceof CodecOptions) {
+                ((CodecOptions) alien).ycbcr = true;
+            } else {
+                throw new AssertionError("Incompatible versions: " +
+                        "TiffReader.buildAlienOptions does not return SCIFIO CodecOptions class");
+            }
+        }
+        return alien;
     }
 
     @Deprecated

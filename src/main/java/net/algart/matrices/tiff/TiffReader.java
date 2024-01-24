@@ -24,14 +24,12 @@
 
 package net.algart.matrices.tiff;
 
-import io.scif.SCIFIO;
-import io.scif.codec.CodecOptions;
 import io.scif.formats.tiff.TiffCompression;
-import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.codecs.JPEGCodec;
 import net.algart.matrices.tiff.codecs.TiffCodec;
+import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.matrices.tiff.tags.TagTypes;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffMap;
@@ -845,11 +843,7 @@ public class TiffReader implements Closeable {
         long t1 = debugTime();
         prepareEncodedTileForDecoding(tile);
 
-        TiffIFD ifd = tile.ifd();
-        byte[] encodedData = tile.getEncodedData();
-        final TiffCompression compression = ifd.getCompression();
-
-        final KnownCompression known = KnownCompression.valueOfOrNull(compression);
+        final KnownCompression known = KnownCompression.valueOfOrNull(tile.ifd().getTiffCompression());
         TiffCodec codec = null;
         if (extendedCodec && known != null) {
             codec = known.extendedCodec();
@@ -863,21 +857,10 @@ public class TiffReader implements Closeable {
                 timing.setTiming(TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG);
                 timing.clearTiming();
             }
-            tile.setPartiallyDecodedData(codec.decompress(encodedData, options));
+            tile.setPartiallyDecodedData(codec.decompress(tile.getEncodedData(), options));
         } else {
-            final CodecOptions codecOptions = options.toOldStyleOptions(CodecOptions.class);
-            correctReadingOptions(codecOptions, tile, codec);
-            Object scifio = scifio();
-            if (scifio == null) {
-                throw new IllegalStateException(
-                        "Compression type " + compression + " requires specifying non-null SCIFIO context");
-            }
-            byte[] decodedData;
-            try {
-                decodedData = compression.decompress(((SCIFIO) scifio).codec(), encodedData, codecOptions);
-            } catch (Exception e) {
-                throw new TiffException(e.getMessage(), e);
-            }
+            Object alienOptions = buildAlienOptions(tile, options);
+            byte[] decodedData = decompressAlienFormat(tile, alienOptions);
             tile.setPartiallyDecodedData(decodedData);
         }
         tile.setInterleaved(options.isInterleaved());
@@ -906,7 +889,7 @@ public class TiffReader implements Closeable {
         }
         TiffTools.invertFillOrderIfRequested(tile);
         TiffIFD ifd = tile.ifd();
-        final TiffCompression compression = ifd.getCompression();
+        final TiffCompression compression = ifd.getTiffCompression();
         if (TiffIFD.isJpeg(compression)) {
             final byte[] data = tile.getEncodedData();
             final byte[] jpegTable = ifd.getValue(Tags.JPEG_TABLES, byte[].class).orElse(null);
@@ -1246,20 +1229,37 @@ public class TiffReader implements Closeable {
         }
     }
 
-    /**
-     * This method is called before using codec options for decompression.
-     * You can add here some additional customizations.
-     */
-    protected CodecOptions correctReadingOptions(CodecOptions codecOptions, TiffTile tile, TiffCodec customCodec)
-    //TODO!! for external TiffCompression only (CodecOptions will be replaced with Object)
-            throws TiffException {
-        return codecOptions;
+    protected Object buildAlienOptions(TiffTile tile, TiffCodec.Options options) throws TiffException {
+        return options.toOldStyleOptions(SCIFIOBridge.codecOptionsClass());
     }
+
+    protected byte[] decompressAlienFormat(TiffTile tile, Object alienOptions) throws TiffException {
+        final byte[] encodedData = tile.getEncodedData();
+        final int compressionCode = tile.ifd().getCompression();
+        Object scifio = scifio();
+        if (scifio == null) {
+            throw new IllegalStateException(
+                    "Compression type " + compressionCode + " requires specifying non-null SCIFIO context");
+        }
+        Object compression;
+        try {
+            compression = SCIFIOBridge.getTiffCompression(compressionCode);
+        } catch (InvocationTargetException e) {
+            throw new UnsupportedTiffFormatException("TIFF compression code " + compressionCode +
+                    " is unknown and is not correctly recognized by the external SCIFIO subsystem", e);
+        }
+        try {
+            return SCIFIOBridge.callDecompress(scifio, compression, encodedData, alienOptions);
+        } catch (InvocationTargetException e) {
+            throw new TiffException(e.getMessage(), e.getCause());
+        }
+    }
+
 
     Object scifio() {
         Object scifio = this.scifio;
         if (scifio == null) {
-            this.scifio = scifio = createScifio(context);
+            this.scifio = scifio = SCIFIOBridge.createScifio(context);
         }
         return scifio;
     }
@@ -1361,7 +1361,7 @@ public class TiffReader implements Closeable {
             // - old-style unpackBytes does not "understand" already-separated tiles
         } else {
             codecOptions.setInterleaved(
-                    !(customCodec instanceof JPEGCodec || ifd.getCompression() == TiffCompression.JPEG));
+                    !(customCodec instanceof JPEGCodec || ifd.getTiffCompression() == TiffCompression.JPEG));
         }
         // - ExtendedJPEGCodec or standard codec JPEFCodec (it may be chosen below by scifio.codec(),
         // but we are sure that JPEG compression will be served by it even in future versions):
@@ -1811,24 +1811,6 @@ public class TiffReader implements Closeable {
             return "";
         }
         return format.formatted(uri);
-    }
-
-    static Object createScifio(Context context) {
-        if (context == null) {
-            return null;
-        }
-        final Class<?> scifioClass;
-        try {
-            scifioClass = Class.forName("io.scif.SCIFIO");
-        } catch (ClassNotFoundException e) {
-            throw new IllegalStateException("Operation is not allowed: SCIFIO library is not installed", e);
-        }
-        try {
-            return scifioClass.getConstructor(Context.class).newInstance(context);
-        } catch (InstantiationException | IllegalAccessException |
-                 InvocationTargetException | NoSuchMethodException e) {
-            throw new IllegalStateException("SCIFIO library cannot be called, probably due to versions mismatch", e);
-        }
     }
 
     private static long debugTime() {

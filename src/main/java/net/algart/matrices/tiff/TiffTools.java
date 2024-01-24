@@ -675,7 +675,7 @@ public class TiffTools {
         if (tile.isFloatingPoint() && OPTIMIZE_SEPARATING_WHOLE_BYTES) {
             // - TIFF with float/double samples must not require bit unpacking or inverting brightness
             throw new TiffException("Invalid TIFF image: floating-point values, compression \"" +
-                    ifd.getCompression().getCodecName() + "\", photometric interpretation \"" +
+                    ifd.getTiffCompression().getCodecName() + "\", photometric interpretation \"" +
                     photometricInterpretation.prettyName() + "\", " +
                     Arrays.toString(ifd.getBitsPerSample()) + " bits per sample");
         }
@@ -1268,7 +1268,7 @@ public class TiffTools {
 
     private static boolean isSimpleRearrangingBytesEnough(TiffIFD ifd, AtomicBoolean simpleLossless)
             throws TiffException {
-        TiffCompression compression = ifd.getCompression();
+        TiffCompression compression = ifd.getTiffCompression();
         final boolean advancedFormat = !TiffIFD.isStandard(compression) || TiffIFD.isJpeg(compression);
         if (simpleLossless != null) {
             simpleLossless.set(!advancedFormat);
@@ -1285,7 +1285,7 @@ public class TiffTools {
         if (bits != 8 && bits != 16 && bits != 24 && bits != 32 && bits != 64) {
             // - should not occur: the same check is performed in TiffIFD.sampleType(), called while creating TiffMap
             throw new UnsupportedTiffFormatException("Not supported TIFF format: compression \"" +
-                    ifd.getCompression().getCodecName() + "\", " + bits + " bits per every sample");
+                    ifd.getTiffCompression().getCodecName() + "\", " + bits + " bits per every sample");
         }
         if (ifd.getPhotometricInterpretation() == TagPhotometricInterpretation.Y_CB_CR) {
             // - convertYCbCrToRGB function performs necessary repacking itself
@@ -1389,7 +1389,7 @@ public class TiffTools {
     private static void checkInterleaved(TiffTile tile) throws TiffException {
         if (!tile.isInterleaved()) {
             throw new IllegalArgumentException("Tile data must be interleaved for correct completing " +
-                    "to decode " + tile.ifd().getCompression() + " (separated data are allowed for codecs " +
+                    "to decode " + tile.ifd().getTiffCompression() + " (separated data are allowed for codecs " +
                     "like JPEG, that must fully decode data themselves, but not for this " +
                     "compression): " + tile);
         }
