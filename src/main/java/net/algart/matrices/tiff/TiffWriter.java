@@ -31,7 +31,6 @@ import net.algart.matrices.tiff.codecs.TiffCodec;
 import io.scif.codec.CodecOptions;
 import io.scif.formats.tiff.IFD;
 import io.scif.formats.tiff.TiffCompression;
-import io.scif.formats.tiff.TiffConstants;
 import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
@@ -516,17 +515,17 @@ public class TiffWriter implements Closeable {
             ifdOffsets.clear();
             out.seek(0);
             if (isLittleEndian()) {
-                out.writeByte(TiffConstants.LITTLE);
-                out.writeByte(TiffConstants.LITTLE);
+                out.writeByte(TiffTools.FILE_PREFIX_LITTLE_ENDIAN);
+                out.writeByte(TiffTools.FILE_PREFIX_LITTLE_ENDIAN);
             } else {
-                out.writeByte(TiffConstants.BIG);
-                out.writeByte(TiffConstants.BIG);
+                out.writeByte(TiffTools.FILE_PREFIX_BIG_ENDIAN);
+                out.writeByte(TiffTools.FILE_PREFIX_BIG_ENDIAN);
             }
             // write magic number
             if (bigTiff) {
-                out.writeShort(TiffConstants.BIG_TIFF_MAGIC_NUMBER);
+                out.writeShort(TiffTools.FILE_BIG_TIFF_MAGIC_NUMBER);
             } else {
-                out.writeShort(TiffConstants.MAGIC_NUMBER);
+                out.writeShort(TiffTools.FILE_USUAL_MAGIC_NUMBER);
             }
 
             // write the offset to the first IFD
@@ -1376,7 +1375,7 @@ public class TiffWriter implements Closeable {
             // - theoretically BigTIFF allows to write more, but we prefer to make some restriction and
             // guarantee 32-bit number of bytes
         }
-        final int bytesPerEntry = bigTiff ? TiffConstants.BIG_TIFF_BYTES_PER_ENTRY : TiffConstants.BYTES_PER_ENTRY;
+        final int bytesPerEntry = bigTiff ? TiffTools.BIG_TIFF_BYTES_PER_ENTRY : TiffTools.BYTES_PER_ENTRY;
         return (bigTiff ? 8 + 8 : 2 + 4) + bytesPerEntry * numberOfEntries;
         // - includes starting number of entries (2 or 8) and ending next offset (4 or 8)
     }

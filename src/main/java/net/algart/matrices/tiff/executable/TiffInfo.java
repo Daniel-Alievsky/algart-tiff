@@ -71,10 +71,10 @@ public class TiffInfo {
             Arrays.sort(files);
             System.out.printf("Testing %d files%n", files.length);
             for (File f : files) {
-                info.showTiffInfo(f.toPath(), firstIFDIndex, lastIFDIndex);
+                info.showTiffInfoAndPrintException(f.toPath(), firstIFDIndex, lastIFDIndex);
             }
         } else {
-            info.showTiffInfo(Paths.get(fileName), firstIFDIndex, lastIFDIndex);
+            info.showTiffInfoAndPrintException(Paths.get(fileName), firstIFDIndex, lastIFDIndex);
         }
     }
 
@@ -82,7 +82,15 @@ public class TiffInfo {
         showTiffInfo(tiffFile, 0, Integer.MAX_VALUE);
     }
 
-    public void showTiffInfo(Path tiffFile, int firstIFDIndex, int lastIFDIndex) throws IOException {
+    private void showTiffInfoAndPrintException(Path tiffFile, int firstIFDIndex, int lastIFDIndex) {
+        try {
+            showTiffInfo(tiffFile, firstIFDIndex, lastIFDIndex);
+        } catch (IOException e) {
+            System.err.printf("%nFile %s is invalid: %s%n", tiffFile, e.getMessage());
+        }
+    }
+
+    private void showTiffInfo(Path tiffFile, int firstIFDIndex, int lastIFDIndex) throws IOException {
         try (TiffReader reader = new TiffReader(tiffFile, false)) {
             if (!reader.isValid()) {
                 System.out.printf("%nFile %s: not TIFF%n", tiffFile);

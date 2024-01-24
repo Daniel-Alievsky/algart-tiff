@@ -27,7 +27,6 @@ package net.algart.matrices.tiff;
 import io.scif.SCIFIO;
 import io.scif.codec.CodecOptions;
 import io.scif.formats.tiff.TiffCompression;
-import io.scif.formats.tiff.TiffConstants;
 import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
@@ -719,7 +718,7 @@ public class TiffReader implements Closeable {
                 // in any case, billions if detailedEntries will probably lead to OutOfMemoryError or integer overflow
             }
 
-            final int bytesPerEntry = bigTiff ? TiffConstants.BIG_TIFF_BYTES_PER_ENTRY : TiffConstants.BYTES_PER_ENTRY;
+            final int bytesPerEntry = bigTiff ? TiffTools.BIG_TIFF_BYTES_PER_ENTRY : TiffTools.BYTES_PER_ENTRY;
             final int baseOffset = bigTiff ? 8 : 2;
 
             for (long i = 0; i < numberOfEntries; i++) {
@@ -1306,8 +1305,10 @@ public class TiffReader implements Closeable {
             final int endianOne = in.read();
             final int endianTwo = in.read();
             // byte order must be II or MM
-            final boolean littleEndian = endianOne == TiffConstants.LITTLE && endianTwo == TiffConstants.LITTLE; // II
-            final boolean bigEndian = endianOne == TiffConstants.BIG && endianTwo == TiffConstants.BIG; // MM
+            final boolean littleEndian = endianOne == TiffTools.FILE_PREFIX_LITTLE_ENDIAN &&
+                    endianTwo == TiffTools.FILE_PREFIX_LITTLE_ENDIAN; // II
+            final boolean bigEndian = endianOne == TiffTools.FILE_PREFIX_BIG_ENDIAN &&
+                    endianTwo == TiffTools.FILE_PREFIX_BIG_ENDIAN; // MM
             if (!littleEndian && !bigEndian) {
                 throw new TiffException("The file" + prettyInName() + " is not TIFF");
             }
@@ -1315,9 +1316,9 @@ public class TiffReader implements Closeable {
             // check magic number (42)
             in.setLittleEndian(littleEndian);
             final short magic = in.readShort();
-            final boolean bigTiff = magic == TiffConstants.BIG_TIFF_MAGIC_NUMBER;
+            final boolean bigTiff = magic == TiffTools.FILE_BIG_TIFF_MAGIC_NUMBER;
             bigTiffReference.set(bigTiff);
-            if (magic != TiffConstants.MAGIC_NUMBER && magic != TiffConstants.BIG_TIFF_MAGIC_NUMBER) {
+            if (magic != TiffTools.FILE_USUAL_MAGIC_NUMBER && magic != TiffTools.FILE_BIG_TIFF_MAGIC_NUMBER) {
                 throw new TiffException("The file" + prettyInName() + " is not TIFF");
             }
             if (bigTiff) {
@@ -1497,7 +1498,7 @@ public class TiffReader implements Closeable {
 
     private void skipIFDEntries(long fileLength) throws IOException {
         final long offset = in.offset();
-        final int bytesPerEntry = bigTiff ? TiffConstants.BIG_TIFF_BYTES_PER_ENTRY : TiffConstants.BYTES_PER_ENTRY;
+        final int bytesPerEntry = bigTiff ? TiffTools.BIG_TIFF_BYTES_PER_ENTRY : TiffTools.BYTES_PER_ENTRY;
         final long numberOfEntries = bigTiff ? in.readLong() : in.readUnsignedShort();
         if (numberOfEntries < 0 || numberOfEntries > Integer.MAX_VALUE / bytesPerEntry) {
             throw new TiffException(

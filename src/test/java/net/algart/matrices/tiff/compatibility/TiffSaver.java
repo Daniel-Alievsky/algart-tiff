@@ -31,6 +31,7 @@ import io.scif.formats.tiff.TiffParser;
 import io.scif.formats.tiff.*;
 import io.scif.util.FormatTools;
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.TiffTools;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagRational;
 import org.scijava.Context;
@@ -120,16 +121,16 @@ public class TiffSaver extends TiffWriter {
         synchronized (this) {
             out.seek(0);
             if (isLittleEndian()) {
-                out.writeByte(TiffConstants.LITTLE);
-                out.writeByte(TiffConstants.LITTLE);
+                out.writeByte(TiffTools.FILE_PREFIX_LITTLE_ENDIAN);
+                out.writeByte(TiffTools.FILE_PREFIX_LITTLE_ENDIAN);
             } else {
-                out.writeByte(TiffConstants.BIG);
-                out.writeByte(TiffConstants.BIG);
+                out.writeByte(TiffTools.FILE_PREFIX_BIG_ENDIAN);
+                out.writeByte(TiffTools.FILE_PREFIX_BIG_ENDIAN);
             }
             // write magic number
             if (bigTiff) {
-                out.writeShort(TiffConstants.BIG_TIFF_MAGIC_NUMBER);
-            } else out.writeShort(TiffConstants.MAGIC_NUMBER);
+                out.writeShort(TiffTools.FILE_BIG_TIFF_MAGIC_NUMBER);
+            } else out.writeShort(TiffTools.FILE_USUAL_MAGIC_NUMBER);
 
             // write the offset to the first IFD
 
@@ -347,8 +348,8 @@ public class TiffSaver extends TiffWriter {
 
         final long offset = bigTiff ? 8 : 4; // offset to the IFD
 
-        final int bytesPerEntry = bigTiff ? TiffConstants.BIG_TIFF_BYTES_PER_ENTRY
-                : TiffConstants.BYTES_PER_ENTRY;
+        final int bytesPerEntry = bigTiff ? TiffTools.BIG_TIFF_BYTES_PER_ENTRY
+                : TiffTools.BYTES_PER_ENTRY;
 
         raf.seek(offset);
 

@@ -56,10 +56,19 @@ import java.util.stream.Collectors;
  * @author Daniel Alievsky
  */
 public class TiffTools {
+    /** The number of bytes in each IFD entry. */
+    public static final int BYTES_PER_ENTRY = 12;
+    /** The number of bytes in each IFD entry of a BigTIFF file. */
+    public static final int BIG_TIFF_BYTES_PER_ENTRY = 20;
+    // TIFF header constants
+    public static final int FILE_USUAL_MAGIC_NUMBER = 42;
+    public static final int FILE_BIG_TIFF_MAGIC_NUMBER = 43;
+    public static final int FILE_PREFIX_LITTLE_ENDIAN = 0x49;
+    public static final int FILE_PREFIX_BIG_ENDIAN = 0x4d;
+
     private static final boolean OPTIMIZE_SEPARATING_WHOLE_BYTES = true;
     // - should be true for good performance; false value can help while debugging
-    static final boolean BUILT_IN_TIMING = getBooleanProperty(
-            "net.algart.matrices.tiff.timing");
+    static final boolean BUILT_IN_TIMING = getBooleanProperty("net.algart.matrices.tiff.timing");
 
     /**
      * Bit order mapping for reversed fill order.

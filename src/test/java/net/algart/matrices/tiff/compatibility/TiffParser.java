@@ -305,10 +305,10 @@ public class TiffParser extends TiffReader {
         in.seek(0);
         final int endianOne = in.read();
         final int endianTwo = in.read();
-        final boolean littleEndian = endianOne == TiffConstants.LITTLE &&
-                endianTwo == TiffConstants.LITTLE; // II
-        final boolean bigEndian = endianOne == TiffConstants.BIG &&
-                endianTwo == TiffConstants.BIG; // MM
+        final boolean littleEndian = endianOne == TiffTools.FILE_PREFIX_LITTLE_ENDIAN &&
+                endianTwo == TiffTools.FILE_PREFIX_LITTLE_ENDIAN; // II
+        final boolean bigEndian = endianOne == TiffTools.FILE_PREFIX_BIG_ENDIAN &&
+                endianTwo == TiffTools.FILE_PREFIX_BIG_ENDIAN; // MM
         if (!littleEndian && !bigEndian) return null;
 
         // check magic number (42)
@@ -316,8 +316,8 @@ public class TiffParser extends TiffReader {
         final short magic = in.readShort();
         // bigTiff = magic == TiffConstants.BIG_TIFF_MAGIC_NUMBER;
         // - already set by the constructor
-        if (magic != TiffConstants.MAGIC_NUMBER &&
-                magic != TiffConstants.BIG_TIFF_MAGIC_NUMBER) {
+        if (magic != TiffTools.FILE_USUAL_MAGIC_NUMBER &&
+                magic != TiffTools.FILE_BIG_TIFF_MAGIC_NUMBER) {
             return null;
         }
 
@@ -333,8 +333,8 @@ public class TiffParser extends TiffReader {
         final DataHandle<Location> in = getStream();
         final boolean bigTiff = isBigTiff();
 
-        final int bytesPerEntry = bigTiff ? TiffConstants.BIG_TIFF_BYTES_PER_ENTRY
-                : TiffConstants.BYTES_PER_ENTRY;
+        final int bytesPerEntry = bigTiff ? TiffTools.BIG_TIFF_BYTES_PER_ENTRY
+                : TiffTools.BYTES_PER_ENTRY;
 
         final Vector<Long> offsets = new Vector<>();
         long offset = getFirstOffset();
@@ -411,8 +411,8 @@ public class TiffParser extends TiffReader {
         if (numEntries == 0 || numEntries == 1) return ifd;
         //?? Why numEntries == 1 should lead to EMPTY IFD?
 
-        final int bytesPerEntry = bigTiff ? TiffConstants.BIG_TIFF_BYTES_PER_ENTRY
-                : TiffConstants.BYTES_PER_ENTRY;
+        final int bytesPerEntry = bigTiff ? TiffTools.BIG_TIFF_BYTES_PER_ENTRY
+                : TiffTools.BYTES_PER_ENTRY;
         final int baseOffset = bigTiff ? 8 : 2;
 
         for (int i = 0; i < numEntries; i++) {
@@ -666,8 +666,8 @@ public class TiffParser extends TiffReader {
         for (int i = 0; i < numEntries; i++) {
             in.seek(offset + // The beginning of the IFD
                     (bigTiff ? 8 : 2) + // The width of the initial numEntries field
-                    (bigTiff ? TiffConstants.BIG_TIFF_BYTES_PER_ENTRY
-                            : TiffConstants.BYTES_PER_ENTRY) * (long) i);
+                    (bigTiff ? TiffTools.BIG_TIFF_BYTES_PER_ENTRY
+                            : TiffTools.BYTES_PER_ENTRY) * (long) i);
 
             final TiffIFDEntry entry = readTiffIFDEntry();
             if (entry.getTag() == tag) {
