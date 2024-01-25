@@ -130,7 +130,7 @@ public class TiffReader implements Closeable {
     private boolean autoUnpackUnusualPrecisions = true;
     private boolean autoScaleWhenIncreasingBitDepth = true;
     private boolean autoCorrectInvertedBrightness = false;
-    private boolean extendedCodec = true;
+    private boolean enforceUseExternalCodec = false;
     private boolean cropTilesToImageBoundaries = true;
     private boolean cachingIFDs = true;
     private boolean missingTilesAllowed = false;
@@ -334,12 +334,12 @@ public class TiffReader implements Closeable {
         return this;
     }
 
-    public boolean isExtendedCodec() {
-        return extendedCodec;
+    public boolean isEnforceUseExternalCodec() {
+        return enforceUseExternalCodec;
     }
 
-    public TiffReader setExtendedCodec(boolean extendedCodec) {
-        this.extendedCodec = extendedCodec;
+    public TiffReader setEnforceUseExternalCodec(boolean enforceUseExternalCodec) {
+        this.enforceUseExternalCodec = enforceUseExternalCodec;
         return this;
     }
 
@@ -845,11 +845,11 @@ public class TiffReader implements Closeable {
 
         final KnownCompression known = KnownCompression.valueOfOrNull(tile.ifd().getTiffCompression());
         TiffCodec codec = null;
-        if (extendedCodec && known != null) {
+        if (!enforceUseExternalCodec && known != null) {
             codec = known.extendedCodec();
             // - we are sure that this codec does not require SCIFIO context
         }
-        final TiffCodec.Options options = buildReadingOptions(tile, codec);
+        final TiffCodec.Options options = buildOptions(tile, codec);
 
         long t2 = debugTime();
         if (codec != null) {
@@ -859,8 +859,8 @@ public class TiffReader implements Closeable {
             }
             tile.setPartiallyDecodedData(codec.decompress(tile.getEncodedData(), options));
         } else {
-            Object alienOptions = buildAlienOptions(tile, options);
-            byte[] decodedData = decompressAlienFormat(tile, alienOptions);
+            Object externalOptions = buildExternalOptions(tile, options);
+            byte[] decodedData = decompressExternalFormat(tile, externalOptions);
             tile.setPartiallyDecodedData(decodedData);
         }
         tile.setInterleaved(options.isInterleaved());
@@ -1229,11 +1229,11 @@ public class TiffReader implements Closeable {
         }
     }
 
-    protected Object buildAlienOptions(TiffTile tile, TiffCodec.Options options) throws TiffException {
+    protected Object buildExternalOptions(TiffTile tile, TiffCodec.Options options) throws TiffException {
         return options.toOldStyleOptions(SCIFIOBridge.codecOptionsClass());
     }
 
-    protected byte[] decompressAlienFormat(TiffTile tile, Object alienOptions) throws TiffException {
+    protected byte[] decompressExternalFormat(TiffTile tile, Object externalOptions) throws TiffException {
         final byte[] encodedData = tile.getEncodedData();
         final int compressionCode = tile.ifd().getCompression();
         Object scifio = scifio();
@@ -1249,7 +1249,7 @@ public class TiffReader implements Closeable {
                     " is unknown and is not correctly recognized by the external SCIFIO subsystem", e);
         }
         try {
-            return SCIFIOBridge.callDecompress(scifio, compression, encodedData, alienOptions);
+            return SCIFIOBridge.callDecompress(scifio, compression, encodedData, externalOptions);
         } catch (InvocationTargetException e) {
             throw new TiffException(e.getMessage(), e.getCause());
         }
@@ -1334,7 +1334,7 @@ public class TiffReader implements Closeable {
         }
     }
 
-    private TiffCodec.Options buildReadingOptions(TiffTile tile, TiffCodec customCodec) throws TiffException {
+    private TiffCodec.Options buildOptions(TiffTile tile, TiffCodec customCodec) throws TiffException {
         TiffIFD ifd = tile.ifd();
         TiffCodec.Options codecOptions;
         codecOptions = customCodec instanceof JPEGCodec ? new JPEGCodec.JPEGOptions()

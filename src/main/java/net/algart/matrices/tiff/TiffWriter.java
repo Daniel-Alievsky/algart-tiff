@@ -911,7 +911,7 @@ public class TiffWriter implements Closeable {
             }
             tile.setEncodedData(codec.compress(data, options));
         } else {
-            CodecOptions codecOptions = buildWritingOptions(known, compression, tile);
+            CodecOptions codecOptions = buildOptions(known, compression, tile);
             Object scifio = scifio();
             if (scifio == null) {
                 throw new IllegalStateException(
@@ -1781,7 +1781,7 @@ public class TiffWriter implements Closeable {
         }
     }
 
-    private CodecOptions buildWritingOptions(KnownCompression known, TiffCompression compression, TiffTile tile)
+    private CodecOptions buildOptions(KnownCompression known, TiffCompression compression, TiffTile tile)
             throws TiffException {
         CodecOptions result = writeOptions(known, compression, tile);
         if (quality != null) {

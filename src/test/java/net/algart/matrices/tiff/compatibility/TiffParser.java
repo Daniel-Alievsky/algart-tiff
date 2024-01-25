@@ -105,7 +105,7 @@ public class TiffParser extends TiffReader {
         // Disable new features of TiffReader for compatibility:
         this.setAutoUnpackUnusualPrecisions(false);
         this.setCropTilesToImageBoundaries(false);
-        this.setExtendedCodec(false);
+        this.setEnforceUseExternalCodec(true);
         this.setMissingTilesAllowed(true);
         // - This is an interesting undocumented feature: old TiffParser really supported missing tiles!
         this.scifio = new SCIFIO(context);
@@ -958,20 +958,20 @@ public class TiffParser extends TiffReader {
 
     // Note: this method may be tested with the image jpeg_ycbcr_encoded_as_rgb.tiff
     @Override
-    protected Object buildAlienOptions(TiffTile tile, TiffCodec.Options options) throws TiffException {
-        final Object alien = super.buildAlienOptions(tile, options);
+    protected Object buildExternalOptions(TiffTile tile, TiffCodec.Options options) throws TiffException {
+        final Object external = super.buildExternalOptions(tile, options);
         final TiffIFD ifd = tile.ifd();
         if (ifd.getPhotometricInterpretation() == TagPhotometricInterpretation.Y_CB_CR &&
                 toScifioIFD(ifd).getIFDIntValue(IFD.Y_CB_CR_SUB_SAMPLING) == 1 &&
                 ycbcrCorrection) {
-            if (alien instanceof CodecOptions) {
-                ((CodecOptions) alien).ycbcr = true;
+            if (external instanceof CodecOptions) {
+                ((CodecOptions) external).ycbcr = true;
             } else {
                 throw new AssertionError("Incompatible versions: " +
-                        "TiffReader.buildAlienOptions does not return SCIFIO CodecOptions class");
+                        "TiffReader.buildExternalOptions does not return SCIFIO CodecOptions class");
             }
         }
-        return alien;
+        return external;
     }
 
     @Deprecated
