@@ -197,7 +197,7 @@ public class TiffWriterTest {
                  final TiffWriter writer = new TiffWriter(targetFile, !existingFile)) {
                 writer.setContext(context);
 //                 TiffWriter writer = new TiffSaver(context, targetFile.toString())) {
-//                writer.setExtendedCodec(false);
+//                writer.setEnforceUseExternalCodec(true);
                 if (interleaveOutside && sampleType.bytesPerSample() == 1) {
                     writer.setAutoInterleaveSource(false);
                 }

@@ -27,8 +27,17 @@ package net.algart.matrices.tiff;
 import org.scijava.Context;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.Map;
 
 class SCIFIOBridge {
+    static Class<?> codecOptionsClass() {
+        return scifioClass("io.scif.codec.CodecOptions");
+    }
+
+    static Class<?> scifioIFDClass() {
+        return scifioClass("io.scif.formats.tiff.IFD");
+    }
+
     static Object createScifio(Context context) {
         if (context == null) {
             return null;
@@ -47,8 +56,25 @@ class SCIFIOBridge {
         }
     }
 
-    static Object getTiffCompression(int compressionCode)
-            throws InvocationTargetException {
+    static Map<Integer, Object> createIFD(Class<?> ifdClass) {
+        final Class<?> logServiceClass = scifioClass("org.scijava.log.LogService");
+        final Object result;
+        try {
+            result = ifdClass.getConstructor(logServiceClass).newInstance(new Object[] {null});
+        } catch (InstantiationException | IllegalAccessException |
+                 InvocationTargetException | NoSuchMethodException e) {
+            throw new IllegalStateException("SCIFIO IFD object cannot be created, " +
+                    "probably due to version mismatch", e);
+        }
+        if (!(result instanceof Map)) {
+            throw new IllegalStateException("SCIFIO IFD object is not Map and cannot be used, " +
+                    "probably due to version mismatch: it is " + result);
+        }
+        //noinspection unchecked
+        return (Map<Integer, Object>) result;
+    }
+
+    static Object createTiffCompression(int compressionCode) throws InvocationTargetException {
         final Class<?> tiffCompressionClass;
         try {
             tiffCompressionClass = Class.forName("io.scif.formats.tiff.TiffCompression");
@@ -60,17 +86,38 @@ class SCIFIOBridge {
         try {
             return tiffCompressionClass.getMethod( "get", int.class).invoke(null, compressionCode);
         } catch (IllegalAccessException | NoSuchMethodException e) {
-            throw new IllegalStateException("SCIFIO TiffCompression class cannot be created, " +
+            throw new IllegalStateException("SCIFIO TiffCompression object cannot be created, " +
                     "probably due to version mismatch", e);
         }
+    }
+
+    static Object getCompressionCodecOptions(Object tiffCompression, Object ifd, Object options)
+            throws InvocationTargetException {        
+        final Class<?> scifioIFDClass = scifioIFDClass();
+        final Class<?> codecOptionsClass = codecOptionsClass();
+
+        // public CodecOptions getCompressionCodecOptions(final IFD ifd, CodecOptions opt) throws FormatException
+        final Object result;
+        try {
+            result = tiffCompression.getClass()
+                    .getMethod("getCompressionCodecOptions", scifioIFDClass, codecOptionsClass)
+                    .invoke(tiffCompression, ifd, options);
+        } catch (IllegalAccessException | NoSuchMethodException e) {
+            throw new IllegalStateException("SCIFIO TiffCompression.getCompressionCodecOptions method " +
+                    "cannot be called, " +
+                    "probably due to version mismatch", e);
+        }
+        return result;
     }
 
     static byte[] callDecompress(Object scifio, Object tiffCompression, byte[] input, Object options)
             throws InvocationTargetException {
         final Object codecService = scifioCodecService(scifio);
-        final Class<?> codecServiceClass = codecServiceClass();
+        final Class<?> codecServiceClass = scifioClass("io.scif.codec.CodecService");
         final Class<?> codecOptionsClass = codecOptionsClass();
 
+        // public byte[] decompress(CodecService codecService, byte[] input, CodecOptions options)
+        // throws FormatException
         final Object result;
         try {
             result = tiffCompression.getClass()
@@ -87,20 +134,34 @@ class SCIFIOBridge {
         return (byte[]) result;
     }
 
-    static Class<?> codecOptionsClass() {
+    static byte[] callCompress(Object scifio, Object tiffCompression, byte[] input, Object options)
+            throws InvocationTargetException {
+        final Object codecService = scifioCodecService(scifio);
+        final Class<?> codecServiceClass = scifioClass("io.scif.codec.CodecService");
+        final Class<?> codecOptionsClass = codecOptionsClass();
+
+        // public byte[] compress(CodecService codecService, byte[] input, CodecOptions options) throws FormatException
+        final Object result;
         try {
-            return Class.forName("io.scif.codec.CodecOptions");
-        } catch (ClassNotFoundException e) {
-            throw new IllegalStateException("SCIFIO CodecOptions class cannot be found, " +
+            result = tiffCompression.getClass()
+                    .getMethod("compress", codecServiceClass, byte[].class, codecOptionsClass)
+                    .invoke(tiffCompression, codecService, input, options);
+        } catch (IllegalAccessException | NoSuchMethodException e) {
+            throw new IllegalStateException("SCIFIO TiffCompression.compress method cannot be called, " +
                     "probably due to version mismatch", e);
         }
+        if (result != null && !(result instanceof byte[])) {
+            throw new IllegalStateException("SCIFIO TiffCompression.compress method returns invalid result " +
+                    result + ", probably due to version mismatch");
+        }
+        return (byte[]) result;
     }
 
-    private static Class<?> codecServiceClass() {
+    private static Class<?> scifioClass(String className) {
         try {
-            return Class.forName("io.scif.codec.CodecService");
+            return Class.forName(className);
         } catch (ClassNotFoundException e) {
-            throw new IllegalStateException("SCIFIO CodecService class cannot be found, " +
+            throw new IllegalStateException("SCIFIO class \"" + className + "\" cannot be found, " +
                     "probably due to version mismatch", e);
         }
     }

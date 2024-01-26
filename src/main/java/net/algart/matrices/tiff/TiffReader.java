@@ -1237,14 +1237,14 @@ public class TiffReader implements Closeable {
     protected byte[] decompressExternalFormat(TiffTile tile, Object externalOptions) throws TiffException {
         final byte[] encodedData = tile.getEncodedData();
         final int compressionCode = tile.ifd().getCompression();
-        Object scifio = scifio();
+        final Object scifio = scifio();
         if (scifio == null) {
             throw new IllegalStateException(
                     "Compression type " + compressionCode + " requires specifying non-null SCIFIO context");
         }
-        Object compression;
+        final Object compression;
         try {
-            compression = SCIFIOBridge.getTiffCompression(compressionCode);
+            compression = SCIFIOBridge.createTiffCompression(compressionCode);
         } catch (InvocationTargetException e) {
             throw new UnsupportedTiffFormatException("TIFF compression code " + compressionCode +
                     " is unknown and is not correctly recognized by the external SCIFIO subsystem", e);

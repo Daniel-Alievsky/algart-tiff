@@ -77,7 +77,7 @@ public class TiffSaver extends TiffWriter {
         // Disable new features of TiffWriter for compatibility:
         this.setWritingSequentially(false);
         this.setAutoInterleaveSource(false);
-        this.setExtendedCodec(false);
+        this.setEnforceUseExternalCodec(true);
     }
 
     /**

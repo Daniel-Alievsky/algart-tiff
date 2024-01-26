@@ -25,10 +25,6 @@
 
 package net.algart.matrices.tiff;
 
-import io.scif.FormatException;
-import io.scif.SCIFIO;
-import io.scif.codec.CodecOptions;
-import io.scif.formats.tiff.IFD;
 import io.scif.formats.tiff.TiffCompression;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
@@ -126,7 +122,7 @@ public class TiffWriter implements Closeable {
     private boolean autoInterleaveSource = true;
     private boolean smartIFDCorrection = false;
     private TiffCodec.Options codecOptions = new TiffCodec.Options();
-    private boolean extendedCodec = true;
+    private boolean enforceUseExternalCodec = false;
     private Double quality = null;
     private boolean jpegInPhotometricRGB = false;
     private boolean missingTilesAllowed = false;
@@ -307,20 +303,12 @@ public class TiffWriter implements Closeable {
         return this;
     }
 
-    public boolean isExtendedCodec() {
-        return extendedCodec;
+    public boolean isEnforceUseExternalCodec() {
+        return enforceUseExternalCodec;
     }
 
-    /**
-     * Sets whether you need special optimized codecs for some cases, including JPEG compression type.
-     * Must be <tt>true</tt> if you want to use any of the further parameters.
-     * Default value is <tt>false</tt>.
-     *
-     * @param extendedCodec whether you want to use special optimized codecs.
-     * @return a reference to this object.
-     */
-    public TiffWriter setExtendedCodec(boolean extendedCodec) {
-        this.extendedCodec = extendedCodec;
+    public TiffWriter setEnforceUseExternalCodec(boolean enforceUseExternalCodec) {
+        this.enforceUseExternalCodec = enforceUseExternalCodec;
         return this;
     }
 
@@ -384,7 +372,8 @@ public class TiffWriter implements Closeable {
      * If photometric interpretation in already specified IFD and if it is RGB or YCbCr,
      * it will override recommendation of this flag.
      *
-     * <p>This parameter is ignored (as if it is <tt>false</tt>), unless {@link #isExtendedCodec()}.
+     * <p>This parameter is ignored (as if it is <tt>false</tt>), when {@link #isEnforceUseExternalCodec()}
+     * return <tt>true</tt>.
      *
      * <p>This flag affects results of {@link #newMap(TiffIFD, boolean)} method: it helps to choose
      * correct photometric interpretation tag. After creating TIFF map and storing information in IFD object,
@@ -896,7 +885,7 @@ public class TiffWriter implements Closeable {
         // }
 
         TiffCodec codec = null;
-        if (extendedCodec && known != null) {
+        if (!enforceUseExternalCodec && known != null) {
             codec = known.extendedCodec();
             // - we are sure that this codec does not require SCIFIO context
         }
@@ -1011,7 +1000,7 @@ public class TiffWriter implements Closeable {
             } else {
                 checkPhotometricInterpretation(newPhotometric,
                         samplesPerPixel == 1 ? EnumSet.of(TagPhotometricInterpretation.BLACK_IS_ZERO) :
-                                extendedCodec ?
+                                !enforceUseExternalCodec ?
                                         EnumSet.of(TagPhotometricInterpretation.Y_CB_CR,
                                                 TagPhotometricInterpretation.RGB) :
                                         EnumSet.of(TagPhotometricInterpretation.Y_CB_CR),
@@ -1316,36 +1305,35 @@ public class TiffWriter implements Closeable {
     }
 
     protected byte[] compressExternalFormat(TiffTile tile, Object externalOptions) throws TiffException {
-        byte[] data = tile.getDecodedData();
+        final byte[] decodedData = tile.getDecodedData();
         final int compressionCode = tile.ifd().getCompression();
-        Object scifio = scifio();
+        final Object scifio = scifio();
         if (scifio == null) {
             throw new IllegalStateException(
                     "Compression type " + compressionCode + " requires specifying non-null SCIFIO context");
         }
-        Object compression;
+        final Object compression;
         try {
-            compression = SCIFIOBridge.getTiffCompression(compressionCode);
+            compression = SCIFIOBridge.createTiffCompression(compressionCode);
         } catch (InvocationTargetException e) {
             throw new UnsupportedTiffFormatException("TIFF compression code " + compressionCode +
                     " is unknown and is not correctly recognized by the external SCIFIO subsystem", e);
         }
         try {
-            TiffIFD ifd = tile.ifd();
-            Map<Integer, Object> scifioIFD = new IFD(null);
-            //TODO!! reflection will not be necessary
+            final TiffIFD ifd = tile.ifd();
+            final Class<?> scifioIFDClass = SCIFIOBridge.scifioIFDClass();
+            final Map<Integer, Object> scifioIFD = SCIFIOBridge.createIFD(scifioIFDClass);
             scifioIFD.putAll(ifd.map());
-            scifioIFD.put(IFD.LITTLE_ENDIAN, ifd.isLittleEndian());
-            scifioIFD.put(IFD.BIG_TIFF, ifd.isBigTiff());
-            scifioIFD.put(IFD.IMAGE_WIDTH, tile.getSizeX());
-            scifioIFD.put(IFD.IMAGE_LENGTH, tile.getSizeY());
+            scifioIFD.put(0, ifd.isLittleEndian()); // IFD.LITTLE_ENDIAN
+            scifioIFD.put(1, ifd.isBigTiff());      // IFD.BIG_TIFF
+            scifioIFD.put(Tags.IMAGE_WIDTH, tile.getSizeX());
+            scifioIFD.put(Tags.IMAGE_LENGTH, tile.getSizeY());
             // - correct dimensions (especially useful for resizable map, when dimensions are not set yet)
-            CodecOptions scifioOptions = (CodecOptions) externalOptions;
-            scifioOptions = ((TiffCompression) compression).getCompressionCodecOptions((IFD) scifioIFD, scifioOptions);
-            return((TiffCompression) compression).compress(
-                    ((SCIFIO) scifio).codec(), data, scifioOptions);
-        } catch (FormatException e) {
-            throw new TiffException(e.getMessage(), e);
+            externalOptions = SCIFIOBridge.getCompressionCodecOptions(compression, scifioIFD, externalOptions);
+            return SCIFIOBridge.callCompress(scifio, compression, decodedData, externalOptions);
+        } catch (InvocationTargetException e) {
+            throw new TiffException("TIFF compression code " + compressionCode + " is unknown and " +
+                    "cannot be correctly processed for compression by the external SCIFIO subsystem", e);
         }
 
     }
