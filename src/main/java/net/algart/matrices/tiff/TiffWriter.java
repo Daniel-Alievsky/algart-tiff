@@ -1332,7 +1332,8 @@ public class TiffWriter implements Closeable {
         }
         try {
             TiffIFD ifd = tile.ifd();
-            IFD scifioIFD = new IFD(null);
+            Map<Integer, Object> scifioIFD = new IFD(null);
+            //TODO!! reflection will not be necessary
             scifioIFD.putAll(ifd.map());
             scifioIFD.put(IFD.LITTLE_ENDIAN, ifd.isLittleEndian());
             scifioIFD.put(IFD.BIG_TIFF, ifd.isBigTiff());
@@ -1340,7 +1341,7 @@ public class TiffWriter implements Closeable {
             scifioIFD.put(IFD.IMAGE_LENGTH, tile.getSizeY());
             // - correct dimensions (especially useful for resizable map, when dimensions are not set yet)
             CodecOptions scifioOptions = (CodecOptions) externalOptions;
-            scifioOptions = ((TiffCompression) compression).getCompressionCodecOptions(scifioIFD, scifioOptions);
+            scifioOptions = ((TiffCompression) compression).getCompressionCodecOptions((IFD) scifioIFD, scifioOptions);
             return((TiffCompression) compression).compress(
                     ((SCIFIO) scifio).codec(), data, scifioOptions);
         } catch (FormatException e) {
