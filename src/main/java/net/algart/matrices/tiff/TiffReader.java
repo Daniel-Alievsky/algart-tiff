@@ -843,16 +843,17 @@ public class TiffReader implements Closeable {
         long t1 = debugTime();
         prepareEncodedTileForDecoding(tile);
 
-        final KnownCompression known = KnownCompression.valueOfOrNull(tile.ifd().getTiffCompression());
+        final KnownCompression compression = KnownCompression.valueOfOrNull(tile.ifd().getTiffCompression());
         TiffCodec codec = null;
-        if (!enforceUseExternalCodec && known != null) {
-            codec = known.extendedCodec();
+        if (!enforceUseExternalCodec && compression != null) {
+            codec = compression.extendedCodec();
             // - we are sure that this codec does not require SCIFIO context
         }
         final TiffCodec.Options options = buildOptions(tile, codec);
 
         long t2 = debugTime();
         if (codec != null) {
+            // options = compression.readOptions(tile, options); // TODO!!
             if (codec instanceof TiffCodec.Timing timing) {
                 timing.setTiming(TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG);
                 timing.clearTiming();
@@ -1334,15 +1335,15 @@ public class TiffReader implements Closeable {
         }
     }
 
-    private TiffCodec.Options buildOptions(TiffTile tile, TiffCodec customCodec) throws TiffException {
+    private TiffCodec.Options buildOptions(TiffTile tile, TiffCodec codec) throws TiffException {
         TiffIFD ifd = tile.ifd();
-        TiffCodec.Options codecOptions;
-        codecOptions = customCodec instanceof JPEGCodec ? new JPEGCodec.JPEGOptions()
+        TiffCodec.Options options;
+        options = codec instanceof JPEGCodec ? new JPEGCodec.JPEGOptions()
                 .setTo(this.codecOptions)
                 .setPhotometricInterpretation(ifd.getPhotometricInterpretation())
                 .setYCbCrSubsampling(ifd.getYCbCrSubsampling()) :
                 this.codecOptions.clone();
-        codecOptions.setLittleEndian(ifd.isLittleEndian());
+        options.setLittleEndian(ifd.isLittleEndian());
         final int samplesLength = tile.getSizeInBytes();
         // - Note: it may be LESS than a usual number of samples in the tile/strip.
         // Current readEncodedTile() always returns full-size tile without cropping
@@ -1351,17 +1352,17 @@ public class TiffReader implements Closeable {
         // last and usual strips in stripped image, and its behaviour could be described by the following assignment:
         //      final int samplesLength = tile.map().tileSizeInBytes();
         // For many codecs (like DEFLATE or JPEG) this is not important, but at least
-        // LZWCodec creates result array on the base of codecOptions.maxBytes.
+        // LZWCodec creates result array on the base of options.maxSizeInBytes.
         // If it will be invalid (too large) value, returned decoded data will be too large,
         // and this class will throw an exception "data may be lost" in further
         // tile.completeNumberOfPixels() call.
-        codecOptions.setMaxSizeInBytes(Math.max(samplesLength, tile.getStoredDataLength()));
+        options.setMaxSizeInBytes(Math.max(samplesLength, tile.getStoredDataLength()));
         if (USE_LEGACY_UNPACK_BYTES) {
-            codecOptions.setInterleaved(true);
+            options.setInterleaved(true);
             // - old-style unpackBytes does not "understand" already-separated tiles
         } else {
-            codecOptions.setInterleaved(
-                    !(customCodec instanceof JPEGCodec || ifd.getTiffCompression() == TiffCompression.JPEG));
+            options.setInterleaved(
+                    !(codec instanceof JPEGCodec || ifd.getTiffCompression() == TiffCompression.JPEG));
         }
         // - ExtendedJPEGCodec or standard codec JPEFCodec (it may be chosen below by scifio.codec(),
         // but we are sure that JPEG compression will be served by it even in future versions):
@@ -1369,7 +1370,7 @@ public class TiffReader implements Closeable {
         // which suppose that data are interleaved according TIFF format specification).
         // Value "true" is necessary for other codecs, that work with high-level classes (like JPEG or JPEG-2000) and
         // need to be instructed to interleave results (unlike LZW or DECOMPRESSED, which work with data "as-is").
-        return codecOptions;
+        return options;
     }
 
     // Note: this method does not store tile in the tile map.

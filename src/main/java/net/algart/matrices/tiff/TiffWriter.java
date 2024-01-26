@@ -27,14 +27,14 @@ package net.algart.matrices.tiff;
 
 import io.scif.FormatException;
 import io.scif.SCIFIO;
-import net.algart.matrices.tiff.codecs.TiffCodec;
 import io.scif.codec.CodecOptions;
 import io.scif.formats.tiff.IFD;
 import io.scif.formats.tiff.TiffCompression;
-import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
+import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
+import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.matrices.tiff.tags.TagTypes;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffMap;
@@ -50,6 +50,7 @@ import org.scijava.io.location.Location;
 import java.io.Closeable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -352,8 +353,9 @@ public class TiffWriter implements Closeable {
      * Note that the only difference between lose-less JPEG-2000 and the standard JPEG-2000 is this defaults:
      * if this method is called, both compressions work identically (but write different TIFF compression tags).
      *
-     * <p>Note: {@link CodecOptions#quality}, that can be set via {@link #setCodecOptions(CodecOptions)}
-     * method, is ignored, if this value is set to non-<tt>null</tt> value.
+     * <p>Note: the {@link TiffCodec.Options#setQuality(Double) quality}, that can be set via
+     * {@link #setCodecOptions(TiffCodec.Options)} method, is ignored,
+     * if this value is set to non-<tt>null</tt> value.
      *
      * <p>Please <b>remember</b> that this parameter may be different for different IFDs.
      * In this case, you need to call this method every time before creating new IFD,
@@ -898,31 +900,19 @@ public class TiffWriter implements Closeable {
             codec = known.extendedCodec();
             // - we are sure that this codec does not require SCIFIO context
         }
+        TiffCodec.Options options = buildOptions(tile, codec);
         long t3 = debugTime();
         byte[] data = tile.getDecodedData();
         if (codec != null) {
-            TiffCodec.Options options = known.writeOptions(tile, this.codecOptions);
-            if (quality != null) {
-                options.setQuality(quality);
-            }
+            options = known.customizeForWriting(tile, options);
             if (codec instanceof TiffCodec.Timing timing) {
                 timing.setTiming(TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG);
                 timing.clearTiming();
             }
             tile.setEncodedData(codec.compress(data, options));
         } else {
-            CodecOptions codecOptions = buildOptions(known, compression, tile);
-            Object scifio = scifio();
-            if (scifio == null) {
-                throw new IllegalStateException(
-                        "Compression type " + compression + " requires specifying non-null SCIFIO context");
-            }
-            final byte[] encodedData;
-            try {
-                encodedData = compression.compress(((SCIFIO) scifio).codec(), data, codecOptions);
-            } catch (FormatException e) {
-                throw new TiffException(e.getMessage(), e);
-            }
+            Object externalOptions = buildExternalOptions(tile, options);
+            byte[] encodedData = compressExternalFormat(tile, externalOptions);
             tile.setEncodedData(encodedData);
         }
         TiffTools.invertFillOrderIfRequested(tile);
@@ -1319,6 +1309,44 @@ public class TiffWriter implements Closeable {
         synchronized (fileLock) {
             out.close();
         }
+    }
+
+    protected Object buildExternalOptions(TiffTile tile, TiffCodec.Options options) throws TiffException {
+        return options.toOldStyleOptions(SCIFIOBridge.codecOptionsClass());
+    }
+
+    protected byte[] compressExternalFormat(TiffTile tile, Object externalOptions) throws TiffException {
+        byte[] data = tile.getDecodedData();
+        final int compressionCode = tile.ifd().getCompression();
+        Object scifio = scifio();
+        if (scifio == null) {
+            throw new IllegalStateException(
+                    "Compression type " + compressionCode + " requires specifying non-null SCIFIO context");
+        }
+        Object compression;
+        try {
+            compression = SCIFIOBridge.getTiffCompression(compressionCode);
+        } catch (InvocationTargetException e) {
+            throw new UnsupportedTiffFormatException("TIFF compression code " + compressionCode +
+                    " is unknown and is not correctly recognized by the external SCIFIO subsystem", e);
+        }
+        try {
+            TiffIFD ifd = tile.ifd();
+            IFD scifioIFD = new IFD(null);
+            scifioIFD.putAll(ifd.map());
+            scifioIFD.put(IFD.LITTLE_ENDIAN, ifd.isLittleEndian());
+            scifioIFD.put(IFD.BIG_TIFF, ifd.isBigTiff());
+            scifioIFD.put(IFD.IMAGE_WIDTH, tile.getSizeX());
+            scifioIFD.put(IFD.IMAGE_LENGTH, tile.getSizeY());
+            // - correct dimensions (especially useful for resizable map, when dimensions are not set yet)
+            CodecOptions scifioOptions = (CodecOptions) externalOptions;
+            scifioOptions = ((TiffCompression) compression).getCompressionCodecOptions(scifioIFD, scifioOptions);
+            return((TiffCompression) compression).compress(
+                    ((SCIFIO) scifio).codec(), data, scifioOptions);
+        } catch (FormatException e) {
+            throw new TiffException(e.getMessage(), e);
+        }
+
     }
 
     protected void prepareDecodedTileForEncoding(TiffTile tile) throws TiffException {
@@ -1781,37 +1809,17 @@ public class TiffWriter implements Closeable {
         }
     }
 
-    private CodecOptions buildOptions(KnownCompression known, TiffCompression compression, TiffTile tile)
-            throws TiffException {
-        CodecOptions result = writeOptions(known, compression, tile);
-        if (quality != null) {
-            result.quality = quality;
+    private TiffCodec.Options buildOptions(TiffTile tile, TiffCodec codec) throws TiffException {
+        TiffCodec.Options result = this.codecOptions.clone();
+        result.setSizes(tile.getSizeX(), tile.getSizeY());
+        result.setBitsPerSample(8 * tile.bytesPerSample());
+        result.setNumberOfChannels(tile.samplesPerPixel());
+        result.setLittleEndian(tile.isLittleEndian());
+        result.setInterleaved(true);
+        if (this.quality != null) {
+            result.setQuality(this.quality);
         }
         return result;
-    }
-
-    private CodecOptions writeOptions(KnownCompression known, TiffCompression compression, TiffTile tile)
-            throws TiffException {
-        if (known != null) {
-            return known.writeOptions(tile, this.codecOptions).toOldStyleOptions(CodecOptions.class);
-        } else {
-            try {
-                TiffIFD ifd = tile.ifd();
-                IFD scifioIFD = new IFD(null);
-                scifioIFD.putAll(ifd.map());
-                scifioIFD.put(IFD.LITTLE_ENDIAN, ifd.isLittleEndian());
-                scifioIFD.put(IFD.BIG_TIFF, ifd.isBigTiff());
-                if (!ifd.hasImageDimensions()) {
-                    scifioIFD.put(IFD.IMAGE_WIDTH, 1024);
-                    scifioIFD.put(IFD.IMAGE_LENGTH, 1024);
-                    // - some dummy dimensions for resizable map (when dimensions are not set yet)
-                }
-                CodecOptions scifioOptions = this.codecOptions.toOldStyleOptions(CodecOptions.class);
-                return compression.getCompressionCodecOptions(scifioIFD, scifioOptions);
-            } catch (FormatException e) {
-                throw new TiffException(e.getMessage(), e);
-            }
-        }
     }
 
     private void logWriting(TiffMap map, String name, int sizeX, int sizeY, long t1, long t2, long t3, long t4) {

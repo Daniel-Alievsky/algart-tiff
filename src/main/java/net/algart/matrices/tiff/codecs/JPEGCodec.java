@@ -84,7 +84,12 @@ public class JPEGCodec extends AbstractCodec implements TiffCodec.Timing {
                 this.photometricInterpretation = o.photometricInterpretation;
                 this.yCbCrSubsampling = o.yCbCrSubsampling.clone();
             } else {
-                if (!hasQuality()) {
+                Double quality = getQuality();
+                if (quality == null) {
+                    setQuality(1.0);
+                } else if (quality > 1.0) {
+                    // - for JPEG, maximal possible quality is 1.0
+                    // (for comparison, maximal quality in JPEG-2000 is Double.MAX_VALUE)
                     setQuality(1.0);
                 }
             }

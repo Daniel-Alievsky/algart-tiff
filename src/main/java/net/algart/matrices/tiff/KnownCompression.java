@@ -44,27 +44,26 @@ import java.util.function.Supplier;
  * <p>{@link TiffReader} tries to read any compression, but may use special logic for compressions from this list.
  */
 enum KnownCompression {
-    UNCOMPRESSED(TiffCompression.UNCOMPRESSED, UncompressedCodec::new, KnownCompression::standardWriteOptions),
-    LZW(TiffCompression.LZW, LZWCodec::new, KnownCompression::standardWriteOptions),
-    DEFLATE(TiffCompression.DEFLATE, ZlibCodec::new, KnownCompression::standardWriteOptions),
-    PROPRIETARY_DEFLATE(TiffCompression.PROPRIETARY_DEFLATE,
-            ZlibCodec::new, KnownCompression::standardWriteOptions),
-    JPEG(TiffCompression.JPEG, JPEGCodec::new, KnownCompression::jpegWriteOptions),
+    UNCOMPRESSED(TiffCompression.UNCOMPRESSED, UncompressedCodec::new, null),
+    LZW(TiffCompression.LZW, LZWCodec::new, null),
+    DEFLATE(TiffCompression.DEFLATE, ZlibCodec::new, null),
+    PROPRIETARY_DEFLATE(TiffCompression.PROPRIETARY_DEFLATE, ZlibCodec::new, null),
+    JPEG(TiffCompression.JPEG, JPEGCodec::new, KnownCompression::customizeForWritingJpeg),
     // OLD_JPEG(TiffCompression.OLD_JPEG, ExtendedJPEGCodec::new, true),
     // - OLD_JPEG does not work: see https://github.com/scifio/scifio/issues/510
-    PACK_BITS(TiffCompression.PACK_BITS, PackbitsCodec::new, KnownCompression::standardWriteOptions),
+    PACK_BITS(TiffCompression.PACK_BITS, PackbitsCodec::new, null),
 
     JPEG_2000_LOSSLESS(TiffCompression.JPEG_2000, JPEG2000Codec::new,
-            KnownCompression::jpeg2000LosslessWriteOptions),
+            KnownCompression::customizeForWritingJpeg2000Lossless),
     JPEG_2000_LOSSLESS_ALTERNATIVE(TiffCompression.ALT_JPEG2000, JPEG2000Codec::new,
-            KnownCompression::jpeg2000LosslessWriteOptions),
+            KnownCompression::customizeForWritingJpeg2000Lossless),
     JPEG_2000_LOSSLESS_OLYMPUS(TiffCompression.OLYMPUS_JPEG2000, JPEG2000Codec::new,
-            KnownCompression::jpeg2000LosslessWriteOptions),
+            KnownCompression::customizeForWritingJpeg2000Lossless),
     JPEG_2000_NORMAL(TiffCompression.JPEG_2000_LOSSY, JPEG2000Codec::new,
-            (tile, defaultOptions) -> jpeg2000WriteOptions(tile, defaultOptions, false)),
+            (tile, defaultOptions) -> customizeForWritingJpeg2000(tile, defaultOptions, false)),
 
-    NIKON(TiffCompression.NIKON, null, KnownCompression::standardWriteOptions),
-    LURAWAVE(TiffCompression.LURAWAVE, null, KnownCompression::standardWriteOptions);
+    NIKON(TiffCompression.NIKON, null, null),
+    LURAWAVE(TiffCompression.LURAWAVE, null, null);
 
     private static final Map<Integer, TiffCompression> tiffCompressionMap = new HashMap<>();
 
@@ -75,15 +74,15 @@ enum KnownCompression {
     private final TiffCompression compression;
     private final Supplier<TiffCodec> extended;
     // - This "extended" codec is implemented inside this module, and we are sure that it does not need SCIFIO context.
-    private final BiFunction<TiffTile, TiffCodec.Options, TiffCodec.Options> writeOptions;
+    private final BiFunction<TiffTile, TiffCodec.Options, TiffCodec.Options> customizeForWriting;
 
     KnownCompression(
             TiffCompression compression,
             Supplier<TiffCodec> extended,
-            BiFunction<TiffTile, TiffCodec.Options, TiffCodec.Options> writeOptions) {
+            BiFunction<TiffTile, TiffCodec.Options, TiffCodec.Options> customizeForWriting) {
         this.compression = Objects.requireNonNull(compression);
         this.extended = extended;
-        this.writeOptions = Objects.requireNonNull(writeOptions);
+        this.customizeForWriting = customizeForWriting;
     }
 
     public TiffCompression compression() {
@@ -97,8 +96,8 @@ enum KnownCompression {
         return extended == null ? null : extended.get();
     }
 
-    public TiffCodec.Options writeOptions(TiffTile tile, TiffCodec.Options defaultOptions) {
-        return writeOptions.apply(tile, defaultOptions);
+    public TiffCodec.Options customizeForWriting(TiffTile tile, TiffCodec.Options defaultOptions) {
+        return customizeForWriting == null ? defaultOptions : customizeForWriting.apply(tile, defaultOptions);
     }
 
     public static TiffCompression compressionOfCodeOrNull(int code) {
@@ -115,26 +114,8 @@ enum KnownCompression {
         return null;
     }
 
-    public static TiffCodec.Options standardWriteOptions(TiffTile tile, TiffCodec.Options defaultOptions) {
-        Objects.requireNonNull(tile, "Null tile");
-        final TiffCodec.Options options = new TiffCodec.Options();
-        options.setTo(defaultOptions);
-        options.setSizes(tile.getSizeX(), tile.getSizeY());
-        options.setBitsPerSample(8 * tile.bytesPerSample());
-        options.setNumberOfChannels(tile.samplesPerPixel());
-        options.setLittleEndian(tile.isLittleEndian());
-        options.setInterleaved(true);
-        return options;
-    }
-
-    public static JPEGCodec.JPEGOptions jpegWriteOptions(TiffTile tile, TiffCodec.Options defaultOptions) {
-        final TiffCodec.Options options = standardWriteOptions(tile, defaultOptions);
-        final JPEGCodec.JPEGOptions result = new JPEGCodec.JPEGOptions().setTo(options);
-        if (result.quality() > 1.0) {
-            // - for JPEG, maximal possible quality is 1.0
-            // (for comparison, maximal quality in JPEG-2000 is Double.MAX_VALUE)
-            result.setQuality(1.0);
-        }
+    public static JPEGCodec.JPEGOptions customizeForWritingJpeg(TiffTile tile, TiffCodec.Options defaultOptions) {
+        final JPEGCodec.JPEGOptions result = new JPEGCodec.JPEGOptions().setTo(defaultOptions);
         if (tile.ifd().optInt(Tags.PHOTOMETRIC_INTERPRETATION, -1) ==
                 TagPhotometricInterpretation.RGB.code()) {
             result.setPhotometricInterpretation(TagPhotometricInterpretation.RGB);
@@ -142,17 +123,16 @@ enum KnownCompression {
         return result;
     }
 
-    public static JPEG2000Codec.JPEG2000Options jpeg2000LosslessWriteOptions(
-            TiffTile tile,
-            TiffCodec.Options defaultOptions) {
-        return jpeg2000WriteOptions(tile, defaultOptions, true);
-    }
-
-    public static JPEG2000Codec.JPEG2000Options jpeg2000WriteOptions(
+    public static JPEG2000Codec.JPEG2000Options customizeForWritingJpeg2000(
             TiffTile tile,
             TiffCodec.Options defaultOptions,
             boolean lossless) {
-        final TiffCodec.Options options = standardWriteOptions(tile, defaultOptions);
-        return new JPEG2000Codec.JPEG2000Options().setTo(options, lossless);
+        return new JPEG2000Codec.JPEG2000Options().setTo(defaultOptions, lossless);
+    }
+
+    private static JPEG2000Codec.JPEG2000Options customizeForWritingJpeg2000Lossless(
+            TiffTile tile,
+            TiffCodec.Options defaultOptions) {
+        return customizeForWritingJpeg2000(tile, defaultOptions, true);
     }
 }
