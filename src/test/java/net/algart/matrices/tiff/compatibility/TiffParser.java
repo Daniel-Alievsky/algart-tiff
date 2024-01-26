@@ -956,13 +956,15 @@ public class TiffParser extends TiffReader {
         return new TiffIFDEntry(entryTag, entryType, valueCount, offset);
     }
 
+    // Note: this logic cannot be implemented in the superclass, because it does not contain "ycbcrCorrection" flag.
     // Note: this method may be tested with the image jpeg_ycbcr_encoded_as_rgb.tiff
     @Override
     protected Object buildExternalOptions(TiffTile tile, TiffCodec.Options options) throws TiffException {
         final Object external = super.buildExternalOptions(tile, options);
         final TiffIFD ifd = tile.ifd();
+        int[] declaredSubsampling = ifd.getYCbCrSubsampling();
         if (ifd.getPhotometricInterpretation() == TagPhotometricInterpretation.Y_CB_CR &&
-                toScifioIFD(ifd).getIFDIntValue(IFD.Y_CB_CR_SUB_SAMPLING) == 1 &&
+                declaredSubsampling.length >= 2 && declaredSubsampling[0] == 1 && declaredSubsampling[1] == 1 &&
                 ycbcrCorrection) {
             if (external instanceof CodecOptions) {
                 ((CodecOptions) external).ycbcr = true;

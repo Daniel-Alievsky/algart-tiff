@@ -49,7 +49,7 @@ class SCIFIOBridge {
 
     static Object getTiffCompression(int compressionCode)
             throws InvocationTargetException {
-        Class<?> tiffCompressionClass;
+        final Class<?> tiffCompressionClass;
         try {
             tiffCompressionClass = Class.forName("io.scif.formats.tiff.TiffCompression");
         } catch (ClassNotFoundException e1) {
@@ -67,15 +67,15 @@ class SCIFIOBridge {
 
     static byte[] callDecompress(Object scifio, Object tiffCompression, byte[] input, Object options)
             throws InvocationTargetException {
-        Object codec = scifioCodec(scifio);
-        Class<?> codecServiceClass = codecServiceClass();
-        Class<?> codecOptionsClass = codecOptionsClass();
+        final Object codecService = scifioCodecService(scifio);
+        final Class<?> codecServiceClass = codecServiceClass();
+        final Class<?> codecOptionsClass = codecOptionsClass();
 
-        Object result;
+        final Object result;
         try {
             result = tiffCompression.getClass()
                     .getMethod("decompress", codecServiceClass, byte[].class, codecOptionsClass)
-                    .invoke(tiffCompression, codec, input, options);
+                    .invoke(tiffCompression, codecService, input, options);
         } catch (IllegalAccessException | NoSuchMethodException e) {
             throw new IllegalStateException("SCIFIO TiffCompression.decompress method cannot be called, " +
                     "probably due to version mismatch", e);
@@ -105,7 +105,7 @@ class SCIFIOBridge {
         }
     }
 
-    private static Object scifioCodec(Object scifio) {
+    private static Object scifioCodecService(Object scifio) {
         try {
             return scifio.getClass().getMethod("codec").invoke(scifio);
         } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
@@ -113,5 +113,4 @@ class SCIFIOBridge {
                     "probably due to version mismatch", e);
         }
     }
-
 }
