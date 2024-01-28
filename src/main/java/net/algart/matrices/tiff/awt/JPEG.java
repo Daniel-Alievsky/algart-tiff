@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.codecs;
+package net.algart.matrices.tiff.awt;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
@@ -42,14 +42,14 @@ import java.io.OutputStream;
 import java.util.Iterator;
 import java.util.Objects;
 
-public class JPEGTools {
+public class JPEG {
     private static final boolean USE_LEGACY_DECODE_Y_CB_CR = false;
     // - Should be false for correct behaviour and better performance; necessary for debugging needs only.
 
     public record ImageInformation(BufferedImage bufferedImage, IIOMetadata metadata) {
     }
 
-    private JPEGTools() {
+    private JPEG() {
     }
 
     /**
@@ -61,7 +61,7 @@ public class JPEGTools {
         if (stream == null) {
             throw new IIOException("Cannot decompress JPEG tile");
         }
-        ImageReader reader = JPEGTools.getImageReaderOrNull(stream);
+        ImageReader reader = JPEG.getImageReaderOrNull(stream);
         if (reader == null) {
             return null;
         }

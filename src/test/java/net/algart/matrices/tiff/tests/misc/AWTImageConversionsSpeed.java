@@ -24,11 +24,11 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
-import io.scif.gui.AWTImageTools;
+import net.algart.matrices.tiff.awt.AWTImages;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.external.BufferedImageToMatrixConverter;
-import net.algart.matrices.tiff.codecs.JPEGTools;
+import net.algart.matrices.tiff.awt.JPEG;
 
 import javax.imageio.IIOException;
 import javax.imageio.ImageIO;
@@ -80,13 +80,13 @@ public class AWTImageConversionsSpeed {
         for (int test = 1; test <= numberOfTests; test++) {
             System.out.printf("%nDecoding test %d%n", test);
             long t1 = System.nanoTime();
-            data = AWTImageTools.getPixelBytes(bi, true);
+            data = AWTImages.getPixelBytes(bi, true);
             long t2 = System.nanoTime();
             BufferedImageToMatrixConverter converter = new BufferedImageToMatrixConverter.ToPacked3D(true);
             Matrix<? extends UpdatablePArray> matrix = converter.toMatrix(bi);
             long t3 = System.nanoTime();
-            byte[] bgr = JPEGTools.quickBGRPixelBytes(bi);
-            bgr = JPEGTools.separateBGR(bgr, bgr.length / 3);
+            byte[] bgr = JPEG.quickBGRPixelBytes(bi);
+            bgr = JPEG.separateBGR(bgr, bgr.length / 3);
             long t4 = System.nanoTime();
             byte[][] quickData = separateToArrays(bgr);
             bytesPerSample = data[0].length / (dimX * dimY);
@@ -101,7 +101,7 @@ public class AWTImageConversionsSpeed {
             }
             System.out.printf(Locale.US,
                     "Decoding image %dx%dx%d, %d samples per %d bytes: " +
-                            "%.3f ms AWTImageTools (%.3f MB/sec), %.3f ms AlgART, " +
+                            "%.3f ms AWTImages (%.3f MB/sec), %.3f ms AlgART, " +
                             "%.3f ms quickPixelBytes (%.3f MB/sec)%n",
                     dimX, dimY, data.length, size / bytesPerSample, bytesPerSample,
                     (t2 - t1) * 1e-6, size / 1048576.0 / ((t2 - t1) * 1e-9),
@@ -114,13 +114,13 @@ public class AWTImageConversionsSpeed {
         for (int test = 1; test <= numberOfTests; test++) {
             System.out.printf("%nEncoding test %d%n", test);
             long t1 = System.nanoTime();
-            bi = AWTImageTools.makeImage(
+            bi = AWTImages.makeImage(
                     data, dimX, dimY, bytesPerSample, floatingPoint, false, false);
             long t2 = System.nanoTime();
             final int size = data.length * data[0].length;
             System.out.printf(Locale.US,
                     "Encoding image %dx%dx%d, %d samples per %d bytes: " +
-                            "%.3f ms AWTImageTools (%.3f MB/sec)%n",
+                            "%.3f ms AWTImages (%.3f MB/sec)%n",
                     dimX, dimY, data.length, size / bytesPerSample, bytesPerSample,
                     (t2 - t1) * 1e-6, size / 1048576.0 / ((t2 - t1) * 1e-9));
         }

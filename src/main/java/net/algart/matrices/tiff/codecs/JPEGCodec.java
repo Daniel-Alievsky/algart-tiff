@@ -24,8 +24,9 @@
 
 package net.algart.matrices.tiff.codecs;
 
-import io.scif.gui.AWTImageTools;
 import net.algart.matrices.tiff.TiffException;
+import net.algart.matrices.tiff.awt.AWTImages;
+import net.algart.matrices.tiff.awt.JPEG;
 import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.DataHandleInputStream;
@@ -129,7 +130,7 @@ public class JPEGCodec extends AbstractCodec implements TiffCodec.Timing {
                     "-bit data is not supported (only 8-bit samples allowed)");
         }
         final ByteArrayOutputStream output = new ByteArrayOutputStream();
-        final BufferedImage image = AWTImageTools.makeImage(data, options.width,
+        final BufferedImage image = AWTImages.makeImage(data, options.width,
                 options.height, options.numberOfChannels, options.interleaved,
                 options.bitsPerSample / 8, false, options.littleEndian,
                 false);
@@ -144,7 +145,7 @@ public class JPEGCodec extends AbstractCodec implements TiffCodec.Timing {
             // - for JPEG, maximal possible quality is 1.0, but it is better to allow greater qualities
             // (for comparison, maximal quality in JPEG-2000 is Double.MAX_VALUE)
         try {
-            JPEGTools.writeJPEG(image, output, colorSpace, jpegQuality);
+            JPEG.writeJPEG(image, output, colorSpace, jpegQuality);
         } catch (final IOException e) {
             throw new TiffException("Cannot compress JPEG data", e);
         }
@@ -159,9 +160,9 @@ public class JPEGCodec extends AbstractCodec implements TiffCodec.Timing {
     public byte[] decompress(final DataHandle<Location> in, Options options) throws IOException {
         final long offset = in.offset();
         long t1 = timing ? System.nanoTime() : 0;
-        JPEGTools.ImageInformation info;
+        JPEG.ImageInformation info;
         try (InputStream input = new BufferedInputStream(new DataHandleInputStream<>(in), 8192)) {
-            info = JPEGTools.readJPEG(input);
+            info = JPEG.readJPEG(input);
         } catch (final IOException exc) {
             // probably a lossless JPEG; delegate to LosslessJPEGCodec
             in.seek(offset);
@@ -188,7 +189,7 @@ public class JPEGCodec extends AbstractCodec implements TiffCodec.Timing {
         if (options instanceof JPEGOptions extended) {
             declaredColorSpace = extended.getPhotometricInterpretation();
             declaredSubsampling = extended.getYCbCrSubsampling();
-            completeDecoding = JPEGTools.completeDecodingYCbCrNecessary(info, declaredColorSpace, declaredSubsampling);
+            completeDecoding = JPEG.completeDecodingYCbCrNecessary(info, declaredColorSpace, declaredSubsampling);
         }
         BufferedImage bi = info.bufferedImage();
         long t2 = timing ? System.nanoTime() : 0;
@@ -196,18 +197,18 @@ public class JPEGCodec extends AbstractCodec implements TiffCodec.Timing {
 
         final byte[] quickResult = options.interleaved || completeDecoding || !OPTIMIZE_SEPARATING_BGR?
                 null :
-                JPEGTools.quickBGRPixelBytes(bi);
-        final byte[][] data = quickResult != null ? null : AWTImageTools.getPixelBytes(bi, options.littleEndian);
+                JPEG.quickBGRPixelBytes(bi);
+        final byte[][] data = quickResult != null ? null : AWTImages.getPixelBytes(bi, options.littleEndian);
         long t3 = timing ? System.nanoTime() : 0;
 
         if (completeDecoding) {
-            JPEGTools.completeDecodingYCbCr(data, info, declaredColorSpace, declaredSubsampling);
+            JPEG.completeDecodingYCbCr(data, info, declaredColorSpace, declaredSubsampling);
         }
         timeBridge += t3 - t2;
 
         final byte[] result;
         if (quickResult != null) {
-            result = JPEGTools.separateBGR(quickResult, bi.getWidth() * bi.getHeight());
+            result = JPEG.separateBGR(quickResult, bi.getWidth() * bi.getHeight());
         } else {
             int bandSize = data[0].length;
             if (data.length == 1) {

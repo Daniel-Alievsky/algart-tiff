@@ -22,23 +22,19 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.codecs;
+package net.algart.matrices.tiff.awt;
 
-import org.scijava.io.handle.DataHandle;
-import org.scijava.io.handle.DataHandleInputStream;
-import org.scijava.io.location.Location;
-
-import java.io.EOFException;
-import java.io.IOException;
-import java.util.zip.Deflater;
-import java.util.zip.InflaterInputStream;
+import java.awt.image.DataBuffer;
+import java.awt.image.DataBufferShort;
 
 /**
- * This class implements ZLIB decompression.
- *
- * @author Melissa Linkert
+ * DataBuffer that stores signed shorts. SignedShortBuffer serves the same
+ * purpose as java.awt.image.DataBufferShort; the only difference is that
+ * SignedShortBuffer's getType() method returns DataBuffer.TYPE_USHORT. This is
+ * a workaround for the fact that java.awt.image.BufferedImage does not support
+ * DataBuffers with type DataBuffer.TYPE_SHORT.
  */
-public class ZlibCodec extends AbstractCodec {
+public class SignedShortBuffer extends DataBuffer {
 	// (It is placed here to avoid autocorrection by IntelliJ IDEA)
 	/*
 	 * #%L
@@ -69,107 +65,62 @@ public class ZlibCodec extends AbstractCodec {
 	 * #L%
 	 */
 
-	static class ByteVector {
-		private byte[] data;
+	private final DataBufferShort helper;
 
-		private int size;
+	// -- Constructors --
 
-		public ByteVector() {
-			data = new byte[10];
-			size = 0;
-		}
+	public SignedShortBuffer(final int size) {
+		super(DataBuffer.TYPE_USHORT, size);
+		helper = new DataBufferShort(size);
+	}
 
-		public ByteVector(final int initialSize) {
-			data = new byte[initialSize];
-			size = 0;
-		}
+	public SignedShortBuffer(final int size, final int numbanks) {
+		super(DataBuffer.TYPE_USHORT, size, numbanks);
+		helper = new DataBufferShort(size, numbanks);
+	}
 
-		public ByteVector(final byte[] byteBuffer) {
-			data = byteBuffer;
-			size = 0;
-		}
+	public SignedShortBuffer(final short[] data, final int size) {
+		super(DataBuffer.TYPE_USHORT, size);
+		helper = new DataBufferShort(data, size);
+	}
 
-		public void add(final byte x) {
-			while (size >= data.length)
-				doubleCapacity();
-			data[size++] = x;
-		}
+	public SignedShortBuffer(final short[] data, final int size,
+		final int offset)
+	{
+		super(DataBuffer.TYPE_USHORT, size, 1, offset);
+		helper = new DataBufferShort(data, size, offset);
+	}
 
-		public int size() {
-			return size;
-		}
+	public SignedShortBuffer(final short[][] data, final int size) {
+		super(DataBuffer.TYPE_USHORT, size, data.length);
+		helper = new DataBufferShort(data, size);
+	}
 
-		public byte get(final int index) {
-			return data[index];
-		}
+	public SignedShortBuffer(final short[][] data, final int size,
+		final int[] offsets)
+	{
+		super(DataBuffer.TYPE_USHORT, size, data.length, offsets);
+		helper = new DataBufferShort(data, size, offsets);
+	}
 
-		public void add(final byte[] array) {
-			add(array, 0, array.length);
-		}
+	// -- DataBuffer API methods --
 
-		public void add(final byte[] array, final int off, final int len) {
-			while (data.length < size + len)
-				doubleCapacity();
-			if (len == 1) data[size] = array[off];
-			else if (len < 35) {
-				// for loop is faster for small number of elements
-				for (int i = 0; i < len; i++)
-					data[size + i] = array[off + i];
-			}
-			else System.arraycopy(array, off, data, size, len);
-			size += len;
-		}
+	public short[] getData() {
+		return helper.getData();
+	}
 
-		void doubleCapacity() {
-			final byte[] tmp = new byte[data.length * 2 + 1];
-			System.arraycopy(data, 0, tmp, 0, data.length);
-			data = tmp;
-		}
-
-		public void clear() {
-			size = 0;
-		}
-
-		public byte[] toByteArray() {
-			final byte[] bytes = new byte[size];
-			System.arraycopy(data, 0, bytes, 0, size);
-			return bytes;
-		}
-
+	public short[] getData(final int bank) {
+		return helper.getData(bank);
 	}
 
 	@Override
-	public byte[] compress(final byte[] data, final Options options) {
-		if (data == null || data.length == 0)
-			throw new IllegalArgumentException("No data to compress");
-		final Deflater deflater = new Deflater();
-		deflater.setInput(data);
-		deflater.finish();
-		final byte[] buf = new byte[8192];
-		final ByteVector bytes = new ByteVector();
-		int r = 0;
-		// compress until eof reached
-		while ((r = deflater.deflate(buf, 0, buf.length)) > 0) {
-			bytes.add(buf, 0, r);
-		}
-		return bytes.toByteArray();
+	public int getElem(final int bank, final int i) {
+		return helper.getElem(bank, i);
 	}
 
 	@Override
-	public byte[] decompress(final DataHandle<Location> in, Options options) throws IOException {
-		final InflaterInputStream i = new InflaterInputStream(
-			new DataHandleInputStream<>(in));
-		final ByteVector bytes = new ByteVector();
-		final byte[] buf = new byte[8192];
-		int r = 0;
-		// read until eof reached
-		try {
-			while ((r = i.read(buf, 0, buf.length)) > 0)
-				bytes.add(buf, 0, r);
-		}
-		catch (final EOFException ignored) {
-		}
-		return bytes.toByteArray();
+	public void setElem(final int bank, final int i, final int val) {
+		helper.setElem(bank, i, val);
 	}
 
 }

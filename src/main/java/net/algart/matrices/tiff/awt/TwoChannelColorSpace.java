@@ -22,23 +22,16 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.codecs;
+package net.algart.matrices.tiff.awt;
 
-import org.scijava.io.handle.DataHandle;
-import org.scijava.io.handle.DataHandleInputStream;
-import org.scijava.io.location.Location;
-
-import java.io.EOFException;
-import java.io.IOException;
-import java.util.zip.Deflater;
-import java.util.zip.InflaterInputStream;
+import java.awt.color.ColorSpace;
 
 /**
- * This class implements ZLIB decompression.
+ * ColorSpace for 2-channel images.
  *
  * @author Melissa Linkert
  */
-public class ZlibCodec extends AbstractCodec {
+public class TwoChannelColorSpace extends ColorSpace {
 	// (It is placed here to avoid autocorrection by IntelliJ IDEA)
 	/*
 	 * #%L
@@ -69,107 +62,67 @@ public class ZlibCodec extends AbstractCodec {
 	 * #L%
 	 */
 
-	static class ByteVector {
-		private byte[] data;
+	// -- Constants --
 
-		private int size;
+	public static final int CS_2C = -1;
 
-		public ByteVector() {
-			data = new byte[10];
-			size = 0;
-		}
+	private static final int NUM_COMPONENTS = 2;
 
-		public ByteVector(final int initialSize) {
-			data = new byte[initialSize];
-			size = 0;
-		}
+	// -- Constructor --
 
-		public ByteVector(final byte[] byteBuffer) {
-			data = byteBuffer;
-			size = 0;
-		}
+	protected TwoChannelColorSpace(final int type, final int components) {
+		super(type, components);
+	}
 
-		public void add(final byte x) {
-			while (size >= data.length)
-				doubleCapacity();
-			data[size++] = x;
-		}
+	// -- ColorSpace API methods --
 
-		public int size() {
-			return size;
-		}
-
-		public byte get(final int index) {
-			return data[index];
-		}
-
-		public void add(final byte[] array) {
-			add(array, 0, array.length);
-		}
-
-		public void add(final byte[] array, final int off, final int len) {
-			while (data.length < size + len)
-				doubleCapacity();
-			if (len == 1) data[size] = array[off];
-			else if (len < 35) {
-				// for loop is faster for small number of elements
-				for (int i = 0; i < len; i++)
-					data[size + i] = array[off + i];
-			}
-			else System.arraycopy(array, off, data, size, len);
-			size += len;
-		}
-
-		void doubleCapacity() {
-			final byte[] tmp = new byte[data.length * 2 + 1];
-			System.arraycopy(data, 0, tmp, 0, data.length);
-			data = tmp;
-		}
-
-		public void clear() {
-			size = 0;
-		}
-
-		public byte[] toByteArray() {
-			final byte[] bytes = new byte[size];
-			System.arraycopy(data, 0, bytes, 0, size);
-			return bytes;
-		}
-
+	@Override
+	public float[] fromCIEXYZ(final float[] color) {
+		final ColorSpace rgb = ColorSpace.getInstance(ColorSpace.CS_sRGB);
+		return rgb.fromCIEXYZ(toRGB(color));
 	}
 
 	@Override
-	public byte[] compress(final byte[] data, final Options options) {
-		if (data == null || data.length == 0)
-			throw new IllegalArgumentException("No data to compress");
-		final Deflater deflater = new Deflater();
-		deflater.setInput(data);
-		deflater.finish();
-		final byte[] buf = new byte[8192];
-		final ByteVector bytes = new ByteVector();
-		int r = 0;
-		// compress until eof reached
-		while ((r = deflater.deflate(buf, 0, buf.length)) > 0) {
-			bytes.add(buf, 0, r);
+	public float[] fromRGB(final float[] rgb) {
+		return new float[] { rgb[0], rgb[1] };
+	}
+
+	public static ColorSpace getInstance(final int colorSpace) {
+		if (colorSpace == CS_2C) {
+			return new TwoChannelColorSpace(ColorSpace.TYPE_2CLR, NUM_COMPONENTS);
 		}
-		return bytes.toByteArray();
+		return ColorSpace.getInstance(colorSpace);
 	}
 
 	@Override
-	public byte[] decompress(final DataHandle<Location> in, Options options) throws IOException {
-		final InflaterInputStream i = new InflaterInputStream(
-			new DataHandleInputStream<>(in));
-		final ByteVector bytes = new ByteVector();
-		final byte[] buf = new byte[8192];
-		int r = 0;
-		// read until eof reached
-		try {
-			while ((r = i.read(buf, 0, buf.length)) > 0)
-				bytes.add(buf, 0, r);
-		}
-		catch (final EOFException ignored) {
-		}
-		return bytes.toByteArray();
+	public String getName(final int idx) {
+		return idx == 0 ? "Red" : "Green";
+	}
+
+	@Override
+	public int getNumComponents() {
+		return NUM_COMPONENTS;
+	}
+
+	@Override
+	public int getType() {
+		return ColorSpace.TYPE_2CLR;
+	}
+
+	@Override
+	public boolean isCS_sRGB() {
+		return false;
+	}
+
+	@Override
+	public float[] toCIEXYZ(final float[] color) {
+		final ColorSpace rgb = ColorSpace.getInstance(ColorSpace.CS_sRGB);
+		return rgb.toCIEXYZ(toRGB(color));
+	}
+
+	@Override
+	public float[] toRGB(final float[] color) {
+		return new float[] { color[0], color[1], 0 };
 	}
 
 }

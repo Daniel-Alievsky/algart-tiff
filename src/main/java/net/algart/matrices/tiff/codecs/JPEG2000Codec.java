@@ -24,13 +24,13 @@
 
 package net.algart.matrices.tiff.codecs;
 
-import io.scif.gui.AWTImageTools;
-import io.scif.gui.UnsignedIntBuffer;
 import io.scif.media.imageio.plugins.jpeg2000.J2KImageReadParam;
 import io.scif.media.imageio.plugins.jpeg2000.J2KImageWriteParam;
 import io.scif.media.imageioimpl.plugins.jpeg2000.J2KImageReader;
 import io.scif.media.imageioimpl.plugins.jpeg2000.J2KImageWriter;
 import net.algart.matrices.tiff.TiffException;
+import net.algart.matrices.tiff.awt.AWTImages;
+import net.algart.matrices.tiff.awt.UnsignedIntBuffer;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.location.Location;
 import org.scijava.util.Bytes;
@@ -237,7 +237,7 @@ public class JPEG2000Codec extends AbstractCodec {
         int next = 0;
 
         // NB: Construct BufferedImages manually, rather than using
-        // AWTImageTools.makeImage. The AWTImageTools.makeImage methods
+        // AWTImages.makeImage. The AWTImages.makeImage methods
         // construct
         // images that are not properly handled by the JPEG2000 writer.
         // Specifically, 8-bit multi-channel images are constructed with type
@@ -260,7 +260,7 @@ public class JPEG2000Codec extends AbstractCodec {
                 }
             }
             final DataBuffer buffer = new DataBufferByte(b, plane);
-            img = AWTImageTools.constructImage(b.length, DataBuffer.TYPE_BYTE,
+            img = AWTImages.constructImage(b.length, DataBuffer.TYPE_BYTE,
                     jpeg2000Options.width, jpeg2000Options.height, false, true, buffer,
                     jpeg2000Options.colorModel);
         } else if (jpeg2000Options.bitsPerSample == 16) {
@@ -281,7 +281,7 @@ public class JPEG2000Codec extends AbstractCodec {
                 }
             }
             final DataBuffer buffer = new DataBufferUShort(s, plane);
-            img = AWTImageTools.constructImage(s.length, DataBuffer.TYPE_USHORT,
+            img = AWTImages.constructImage(s.length, DataBuffer.TYPE_USHORT,
                     jpeg2000Options.width, jpeg2000Options.height, false, true, buffer,
                     jpeg2000Options.colorModel);
         } else if (jpeg2000Options.bitsPerSample == 32) {
@@ -303,7 +303,7 @@ public class JPEG2000Codec extends AbstractCodec {
             }
 
             final DataBuffer buffer = new UnsignedIntBuffer(s, plane);
-            img = AWTImageTools.constructImage(s.length, DataBuffer.TYPE_INT,
+            img = AWTImages.constructImage(s.length, DataBuffer.TYPE_INT,
                     jpeg2000Options.width, jpeg2000Options.height, false, true, buffer,
                     jpeg2000Options.colorModel);
         }
@@ -351,7 +351,7 @@ public class JPEG2000Codec extends AbstractCodec {
             // - instead of:
             // b = (WritableRaster) this.jaiIIOService.readRaster(bis,
             //        (JPEG2000CodecOptions) options);
-            single = AWTImageTools.getPixelBytes(b, jpeg2000Options.littleEndian);
+            single = AWTImages.getPixelBytes(b, jpeg2000Options.littleEndian);
             bpp = single[0].length / (b.getWidth() * b.getHeight());
 
             bis.close();
