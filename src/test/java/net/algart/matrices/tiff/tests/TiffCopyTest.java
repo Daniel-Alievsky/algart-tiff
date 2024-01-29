@@ -27,6 +27,7 @@ package net.algart.matrices.tiff.tests;
 import io.scif.SCIFIO;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
+import net.algart.matrices.tiff.TiffTools;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.TiffMap;
@@ -64,10 +65,9 @@ public class TiffCopyTest {
                 Integer.MAX_VALUE;
         final int numberOfTests = startArgIndex + 2 < args.length ? Integer.parseInt(args[startArgIndex + 2]) : 1;
 
-        final SCIFIO scifio = new SCIFIO();
         for (int test = 1; test <= numberOfTests; test++) {
             System.out.printf("Test #%d%n", test);
-            try (Context context = noContext ? null : scifio.getContext()) {
+            try (Context context = noContext ? null : TiffTools.newSCIFIOContext()) {
                 copyTiff(
                         context, sourceFile, targetFile, firstIFDIndex, lastIFDIndex,
                         false, false);

@@ -27,6 +27,7 @@ package net.algart.matrices.tiff.tests.misc;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tags.Tags;
 
 public class CreatingIFDTest {
     private static void showIFD(TiffIFD ifd, String name) {
@@ -42,7 +43,9 @@ public class CreatingIFDTest {
         ifd.putPixelInformation(1, byte.class);
         showIFD(ifd, "Pixel information");
 
-//        ifd.put(TiffIFD.COMPRESSION, 22222);
+        ifd.put(Tags.COMPRESSION, 22222);
+        showIFD(ifd, "Unknown compression");
+
         ifd.putCompression(TagCompression.JPEG_OLD_STYLE);
         // - 3 channels, not 1
         showIFD(ifd, "Compression");

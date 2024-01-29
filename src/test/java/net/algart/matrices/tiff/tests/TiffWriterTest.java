@@ -240,7 +240,7 @@ public class TiffWriterTest {
                     try {
                         ifd.putCompression(compression == null ? null : TagCompression.valueOf(compression));
                     } catch (IllegalArgumentException e) {
-                        ifd.putCompression(Integer.parseInt(compression));
+                        ifd.putCompressionCode(Integer.parseInt(compression));
                     }
 //                    if (jpegRGB) {
                         // - alternative for setJpegInPhotometricRGB

@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff;
 
-import io.scif.formats.tiff.TiffCompression;
 import net.algart.matrices.tiff.tags.*;
 
 import java.lang.reflect.Array;
@@ -699,6 +698,10 @@ public class TiffIFD {
         return optValue(Tags.IMAGE_DESCRIPTION, String.class);
     }
 
+    public int getCompressionCode() throws TiffException {
+        return getInt(Tags.COMPRESSION, TagCompression.UNCOMPRESSED.code());
+    }
+
     // Note: there is no getCompression() method, which ALWAYS returns some compression:
     // we cannot be sure that we know all possible compressions!
     public Optional<TagCompression> optCompression() {
@@ -706,17 +709,13 @@ public class TiffIFD {
         return code == -1 ? Optional.empty() : Optional.ofNullable(TagCompression.valueOfCodeOrNull(code));
     }
 
-    public int getCompressionCode() throws TiffException {
-        return getInt(Tags.COMPRESSION, TagCompression.UNCOMPRESSED.code());
-    }
-
-    public TiffCompression getTiffCompression() throws TiffException {
-        final int code = getInt(Tags.COMPRESSION, TiffCompression.UNCOMPRESSED.getCode());
-        final TiffCompression result = TagCompression.compressionOfCodeOrNull(code);
-        if (result == null) {
-            throw new UnsupportedTiffFormatException("Unknown TIFF compression code: " + code);
+    public String compressionPrettyName() {
+        final int code = optInt(Tags.COMPRESSION, -1);
+        if (code == -1) {
+            return "unspecified compression";
         }
-        return result;
+        final TagCompression compression = TagCompression.valueOfCodeOrNull(code);
+        return compression == null ? "unsupported compression " + code : compression.prettyName();
     }
 
     public TagPhotometricInterpretation getPhotometricInterpretation() throws TiffException {
@@ -1095,12 +1094,12 @@ public class TiffIFD {
         if (compression == null) {
             remove(Tags.COMPRESSION);
         } else {
-            putCompression(compression.code());
+            putCompressionCode(compression.code());
         }
         return this;
     }
 
-    public TiffIFD putCompression(int compression) {
+    public TiffIFD putCompressionCode(int compression) {
         put(Tags.COMPRESSION, compression);
         return this;
     }
@@ -1472,7 +1471,8 @@ public class TiffIFD {
                     switch (tag) {
                         case Tags.PHOTOMETRIC_INTERPRETATION ->
                                 additional = getPhotometricInterpretation().prettyName();
-                        case Tags.COMPRESSION -> additional = prettyCompression(getTiffCompression());
+                        case Tags.COMPRESSION ->
+                                additional = compressionPrettyName();
                         case Tags.PLANAR_CONFIGURATION -> {
                             if (v instanceof Number number) {
                                 switch (number.intValue()) {
@@ -1599,15 +1599,6 @@ public class TiffIFD {
         final int[] result = new int[count];
         Arrays.fill(result, filler);
         return result;
-    }
-
-    private static String prettyCompression(TiffCompression compression) {
-        if (compression == null) {
-            return "No compression?";
-        }
-        final String s = compression.toString();
-        final String codecName = compression.getCodecName();
-        return s.equals(codecName) ? s : s + " (" + codecName + ")";
     }
 
     private static String remainderToString(long a, long b) {

@@ -25,7 +25,6 @@
 
 package net.algart.matrices.tiff;
 
-import io.scif.formats.tiff.TiffCompression;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
 import net.algart.matrices.tiff.codecs.TiffCodec;
@@ -334,7 +333,7 @@ public class TiffWriter implements Closeable {
      * <p>If this method was not called (or after {@link #removeQuality()}), the compression quality is not specified.
      * In this case, some default quality will be used. In particular, it will be 1.0 for JPEG (maximal JPEG quality),
      * 10 for JPEG-2000 (compression code 33003) or alternative JPEG-200 (code 33005),
-     * <tt>Double.MAX_VALUE</tt> for lose-less JPEG-2000 ({@link TiffCompression#JPEG_2000_LOSSY}, code 33004).
+     * <tt>Double.MAX_VALUE</tt> for lose-less JPEG-2000 ({@link TagCompression#JPEG_2000_LOSSY}, code 33004).
      * Note that the only difference between lose-less JPEG-2000 and the standard JPEG-2000 is this defaults:
      * if this method is called, both compressions work identically (but write different TIFF compression tags).
      *
@@ -872,14 +871,6 @@ public class TiffWriter implements Closeable {
         tile.checkStoredNumberOfPixels();
 
         final TagCompression compression = TagCompression.valueOfCodeOrNull(tile.ifd().getCompressionCode());
-
-        // Deprecated solution: we didn't try to write unknown compressions, 
-        // but it does not allow to use new versions of SCIFIO TiffCompression without rewriting this library.
-        // if (compression == null) {
-        //    throw new UnsupportedTiffFormatException("Writing TIFF with compression \"" +
-        //             compression.getCodecName() + "\" (TIFF code " + compression.getCode() + ") is not supported");
-        // }
-
         TiffCodec codec = null;
         if (!enforceUseExternalCodec && compression != null) {
             codec = compression.codec();
@@ -969,7 +960,7 @@ public class TiffWriter implements Closeable {
         }
 
         if (!ifd.containsKey(Tags.COMPRESSION)) {
-            ifd.put(Tags.COMPRESSION, TiffCompression.UNCOMPRESSED.getCode());
+            ifd.put(Tags.COMPRESSION, TagCompression.UNCOMPRESSED.code());
             // - We prefer explicitly specify this case
         }
         final TagCompression compression = ifd.optCompression().orElse(null);

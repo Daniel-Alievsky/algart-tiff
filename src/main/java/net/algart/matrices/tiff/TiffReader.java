@@ -24,10 +24,8 @@
 
 package net.algart.matrices.tiff;
 
-import io.scif.formats.tiff.TiffCompression;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
-import net.algart.matrices.tiff.codecs.JPEGCodec;
 import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagRational;
@@ -959,14 +957,14 @@ public class TiffReader implements Closeable {
      * {@link TiffTile#isInterleaved() interleaved} data, this method
      * {@link TiffTile#separateSamplesIfNecessary() separates} them.
      * Interleaved data are the standard for internal pixel storage for simple formats like
-     * {@link TiffCompression#LZW} and may be  returned by complex codecs like {@link TiffCompression#JPEG_2000}.
+     * {@link TagCompression#LZW} and may be returned by complex codecs like {@link TagCompression#JPEG_2000_LOSSLESS}.
      *
      * <p>This method does 3 other corrections for some standard compression algorithms:
      * <ul>
-     * <li>{@link TiffCompression#UNCOMPRESSED},</li>
-     * <li>{@link TiffCompression#LZW},</li>
-     * <li>{@link TiffCompression#DEFLATE},</li>
-     * <li>{@link TiffCompression#PACK_BITS}.</li>
+     * <li>{@link TagCompression#UNCOMPRESSED},</li>
+     * <li>{@link TagCompression#LZW},</li>
+     * <li>{@link TagCompression#DEFLATE},</li>
+     * <li>{@link TagCompression#PACK_BITS}.</li>
      * </ul>
      *
      * <p>1st correction: unpacking. TIFF supports storing pixel samples in any number of bits,
@@ -988,7 +986,7 @@ public class TiffReader implements Closeable {
      *
      * <p>However, the API of this class suppose that all returned images are RGB, RGBA or usual monochrome.
      * Complex codecs like JPEG perform necessary conversion themselves, but the simple codecs like
-     * {@link TiffCompression#UNCOMPRESSED} do not this correction. This is performed by this method.
+     * {@link TagCompression#UNCOMPRESSED} do not this correction. This is performed by this method.
      * For CMYK or WhiteIsZero it means inversion of the pixel samples: v is transformed to MAX&minus;v,
      * where MAX is the maximal possible value (255 for 8-bit).</p>
      *

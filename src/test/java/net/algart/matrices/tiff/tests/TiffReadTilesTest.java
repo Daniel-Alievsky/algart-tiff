@@ -106,6 +106,6 @@ public class TiffReadTilesTest {
         return resultFolder.resolve("tile_x" + i.xIndex() +
                 "_y" + i.yIndex() +
                 (tile.isPlanarSeparated() ? "_p" + i.channelPlane() : "") +
-                "." + ((tile.ifd().getTiffCompression() == TiffCompression.JPEG) ? "jpg" : "bmp"));
+                "." + ((tile.ifd().isJpeg()) ? "jpg" : "bmp"));
     }
 }

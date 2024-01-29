@@ -676,7 +676,7 @@ public class TiffTools {
         if (tile.isFloatingPoint() && OPTIMIZE_SEPARATING_WHOLE_BYTES) {
             // - TIFF with float/double samples must not require bit unpacking or inverting brightness
             throw new TiffException("Invalid TIFF image: floating-point values, compression \"" +
-                    ifd.getTiffCompression().getCodecName() + "\", photometric interpretation \"" +
+                    ifd.compressionPrettyName() + "\", photometric interpretation \"" +
                     photometricInterpretation.prettyName() + "\", " +
                     Arrays.toString(ifd.getBitsPerSample()) + " bits per sample");
         }
@@ -1290,7 +1290,7 @@ public class TiffTools {
         if (bits != 8 && bits != 16 && bits != 24 && bits != 32 && bits != 64) {
             // - should not occur: the same check is performed in TiffIFD.sampleType(), called while creating TiffMap
             throw new UnsupportedTiffFormatException("Not supported TIFF format: compression \"" +
-                    ifd.getTiffCompression().getCodecName() + "\", " + bits + " bits per every sample");
+                    ifd.compressionPrettyName() + "\", " + bits + " bits per every sample");
         }
         if (ifd.getPhotometricInterpretation() == TagPhotometricInterpretation.Y_CB_CR) {
             // - convertYCbCrToRGB function performs necessary repacking itself
@@ -1394,7 +1394,7 @@ public class TiffTools {
     private static void checkInterleaved(TiffTile tile) throws TiffException {
         if (!tile.isInterleaved()) {
             throw new IllegalArgumentException("Tile data must be interleaved for correct completing " +
-                    "to decode " + tile.ifd().getTiffCompression() + " (separated data are allowed for codecs " +
+                    "to decode " + tile.ifd().compressionPrettyName() + " (separated data are allowed for codecs " +
                     "like JPEG, that must fully decode data themselves, but not for this " +
                     "compression): " + tile);
         }

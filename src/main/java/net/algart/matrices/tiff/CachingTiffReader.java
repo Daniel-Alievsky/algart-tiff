@@ -26,7 +26,6 @@ package net.algart.matrices.tiff;
 
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIndex;
-import org.scijava.Context;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.location.Location;
 
