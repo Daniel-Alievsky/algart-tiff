@@ -47,13 +47,6 @@
             <artifactId>algart</artifactId>
             <version>1.3.1</version>
         </dependency>
-        <!-- SCientific Image Format Input and Output: -->
-        <dependency>
-            <groupId>io.scif</groupId>
-            <artifactId>scifio</artifactId>
-            <version>0.46.0</version>
-        </dependency>
-        <!-- Enforce usage of the later scijava-common:  -->
         <dependency>
             <groupId>io.scif</groupId>
             <artifactId>scifio-jai-imageio</artifactId>
@@ -63,6 +56,13 @@
             <groupId>org.scijava</groupId>
             <artifactId>scijava-common</artifactId>
             <version>2.97.0</version>
+        </dependency>
+        <!-- SCIFIO library is used for testing, but not necessary for the main library code -->
+        <dependency>
+            <groupId>io.scif</groupId>
+            <artifactId>scifio</artifactId>
+            <version>0.46.0</version>
+            <scope>test</scope>
         </dependency>
         <!-- Note: the following dependencies MUST NOT affect to correct reading/writing JPEG -->
         <!-- You may uncomment them for testing this fact! -->
