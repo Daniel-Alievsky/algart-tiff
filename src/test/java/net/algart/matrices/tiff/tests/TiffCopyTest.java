@@ -25,10 +25,10 @@
 package net.algart.matrices.tiff.tests;
 
 import io.scif.SCIFIO;
-import io.scif.formats.tiff.TiffCompression;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
+import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIndex;
@@ -106,7 +106,7 @@ public class TiffCopyTest {
                     final TiffIFD readIFD = ifds.get(ifdIndex);
                     final TiffIFD writeIFD = new TiffIFD(readIFD);
                     if (uncompressedTarget) {
-                        writeIFD.putCompression(TiffCompression.UNCOMPRESSED);
+                        writeIFD.putCompression(TagCompression.UNCOMPRESSED);
                     }
                     System.out.printf("\r  Copying #%d/%d: %s%n", ifdIndex, ifds.size(), readIFD);
                     copyImage(readIFD, writeIFD, reader, writer);

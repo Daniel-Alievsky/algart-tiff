@@ -26,10 +26,7 @@ package net.algart.matrices.tiff;
 
 import io.scif.formats.tiff.OnDemandLongArray;
 import io.scif.formats.tiff.TiffCompression;
-import net.algart.matrices.tiff.tags.TagRational;
-import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
-import net.algart.matrices.tiff.tags.TagTypes;
-import net.algart.matrices.tiff.tags.Tags;
+import net.algart.matrices.tiff.tags.*;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
@@ -95,6 +92,9 @@ public class TiffIFD {
      * that Baseline TIFF readers are not required to support it.
      */
     public static final int PLANAR_CONFIGURATION_SEPARATE = 2;
+
+    public static final int FILL_ORDER_NORMAL = 1;
+    public static final int FILL_ORDER_REVERSED = 2;
 
     public static final int SAMPLE_FORMAT_UINT = 1;
     public static final int SAMPLE_FORMAT_INT = 2;
@@ -715,28 +715,27 @@ public class TiffIFD {
         return optValue(Tags.IMAGE_DESCRIPTION, String.class);
     }
 
-    public Optional<TiffCompression> optCompression() {
+    public Optional<TagCompression> optCompression() {
         final int code = optInt(Tags.COMPRESSION, -1);
-        return code == -1 ? Optional.empty() : Optional.ofNullable(KnownCompression.compressionOfCodeOrNull(code));
+        return code == -1 ? Optional.empty() : Optional.ofNullable(TagCompression.valueOfCodeOrNull(code));
     }
 
-    public int getCompression() throws TiffException {
-        return getInt(Tags.COMPRESSION, TiffCompression.UNCOMPRESSED.getCode());
+    public int getCompressionCode() throws TiffException {
+        return getInt(Tags.COMPRESSION, TagCompression.UNCOMPRESSED.code());
     }
 
     public TiffCompression getTiffCompression() throws TiffException {
         final int code = getInt(Tags.COMPRESSION, TiffCompression.UNCOMPRESSED.getCode());
-        final TiffCompression result = KnownCompression.compressionOfCodeOrNull(code);
+        final TiffCompression result = TagCompression.compressionOfCodeOrNull(code);
         if (result == null) {
             throw new UnsupportedTiffFormatException("Unknown TIFF compression code: " + code);
         }
         return result;
     }
 
-    public TagPhotometricInterpretation getPhotometricInterpretation()
-            throws TiffException {
+    public TagPhotometricInterpretation getPhotometricInterpretation() throws TiffException {
         if (!containsKey(Tags.PHOTOMETRIC_INTERPRETATION)
-                && getInt(Tags.COMPRESSION, 0) == TiffCompression.OLD_JPEG.getCode()) {
+                && getInt(Tags.COMPRESSION, 0) == TagCompression.JPEG_OLD_STYLE.code()) {
             return TagPhotometricInterpretation.RGB;
         }
         final int code = reqInt(Tags.PHOTOMETRIC_INTERPRETATION);
@@ -801,13 +800,13 @@ public class TiffIFD {
         return getPlanarConfiguration() == PLANAR_CONFIGURATION_CHUNKED;
     }
 
-    public boolean isReversedBits() throws TiffException {
+    public boolean isReversedFillOrder() throws TiffException {
         final int result = getInt(Tags.FILL_ORDER, 1);
-        if (result != 1 && result != 2) {
+        if (result != FILL_ORDER_NORMAL && result != FILL_ORDER_REVERSED) {
             throw new TiffException("TIFF tag FillOrder must contain only values 1 or 2, " +
                     "but it is " + result);
         }
-        return result == 2;
+        return result == FILL_ORDER_REVERSED;
     }
 
     public boolean hasImageDimensions() {
@@ -1096,19 +1095,24 @@ public class TiffIFD {
         return this;
     }
 
-    public TiffIFD putCompression(TiffCompression compression) {
+    public TiffIFD putCompression(TagCompression compression) {
         return putCompression(compression, false);
     }
 
-    public TiffIFD putCompression(TiffCompression compression, boolean putAlsoDefaultUncompressed) {
+    public TiffIFD putCompression(TagCompression compression, boolean putAlsoDefaultUncompressed) {
         if (compression == null && putAlsoDefaultUncompressed) {
-            compression = TiffCompression.UNCOMPRESSED;
+            compression = TagCompression.UNCOMPRESSED;
         }
         if (compression == null) {
             remove(Tags.COMPRESSION);
         } else {
-            put(Tags.COMPRESSION, compression.getCode());
+            putCompression(compression.code());
         }
+        return this;
+    }
+
+    public TiffIFD putCompression(int compression) {
+        put(Tags.COMPRESSION, compression);
         return this;
     }
 
@@ -1500,7 +1504,7 @@ public class TiffIFD {
                             }
                         }
                         case Tags.FILL_ORDER -> {
-                            additional = !isReversedBits() ?
+                            additional = !isReversedFillOrder() ?
                                     "default bits order: highest first (big-endian, 7-6-5-4-3-2-1-0)" :
                                     "reversed bits order: lowest first (little-endian, 0-1-2-3-4-5-6-7)";
                         }

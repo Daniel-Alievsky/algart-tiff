@@ -31,6 +31,7 @@ import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
+import org.scijava.Context;
 import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.FileHandle;
@@ -373,7 +374,7 @@ public class TiffTools {
      */
     public static void invertFillOrderIfRequested(TiffIFD ifd, final byte[] bytes) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
-        if (ifd.isReversedBits()) {
+        if (ifd.isReversedFillOrder()) {
             // swap bits order of all bytes
             for (int i = 0; i < bytes.length; i++) {
                 bytes[i] = REVERSE[bytes[i] & 0xFF];
@@ -951,6 +952,10 @@ public class TiffTools {
             throw new IllegalArgumentException("Requested area " + sizeX + "x" + sizeY +
                     " is too large for array of " + arrayLength + " elements, " + pixelLength + " per pixel");
         }
+    }
+
+    public static Context newSCIFIOContext() {
+        return SCIFIOBridge.getDefaultScifioContext();
     }
 
     // Almost exact copy of old TiffParser.unpackBytes method

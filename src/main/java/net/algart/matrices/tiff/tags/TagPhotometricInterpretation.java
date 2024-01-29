@@ -24,8 +24,9 @@
 
 package net.algart.matrices.tiff.tags;
 
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public enum TagPhotometricInterpretation {
 
@@ -41,17 +42,12 @@ public enum TagPhotometricInterpretation {
 	CFA_ARRAY(32803, "Color filter array"),
     UNKNOWN(-1, "unknown");
 
-    private int code;
-    private String name;
+    private final int code;
+    private final String name;
 
-    private static final Map<Integer, TagPhotometricInterpretation> lookup = new HashMap<>();
-    static {
-        for (TagPhotometricInterpretation v : TagPhotometricInterpretation.values()) {
-            if (v.code >= 0) {
-                lookup.put(v.code, v);
-            }
-        }
-    }
+    private static final Map<Integer, TagPhotometricInterpretation> LOOKUP =
+            Arrays.stream(values()).filter(v -> v.code >= 0)
+                    .collect(Collectors.toMap(TagPhotometricInterpretation::code, v -> v));
 
     TagPhotometricInterpretation(int code, String name) {
         this.code = code;
@@ -59,7 +55,7 @@ public enum TagPhotometricInterpretation {
     }
 
     public static TagPhotometricInterpretation valueOfCodeOrUnknown(int code) {
-        return lookup.getOrDefault(code, UNKNOWN);
+        return LOOKUP.getOrDefault(code, UNKNOWN);
     }
 
     public int code() {

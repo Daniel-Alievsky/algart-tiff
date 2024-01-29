@@ -24,14 +24,11 @@
 
 package net.algart.matrices.tiff.tests;
 
-import io.scif.SCIFIO;
-import io.scif.formats.tiff.FillOrder;
-import io.scif.formats.tiff.TiffCompression;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
-import net.algart.matrices.tiff.TiffSampleType;
+import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
@@ -191,9 +188,8 @@ public class TiffWriterTest {
                 randomAccess ? "from " + firstIfdIndex : "sequentially",
                 numberOfTests);
 
-        final SCIFIO scifio = new SCIFIO();
         for (int test = 1; test <= numberOfTests; test++) {
-            try (final Context context = noContext ? null : scifio.getContext();
+            try (final Context context = noContext ? null : TiffTools.newSCIFIOContext();
                  final TiffWriter writer = new TiffWriter(targetFile, !existingFile)) {
                 writer.setContext(context);
 //                 TiffWriter writer = new TiffSaver(context, targetFile.toString())) {
@@ -241,7 +237,11 @@ public class TiffWriterTest {
                             ifd.put(Tags.ROWS_PER_STRIP, 100L);
                         }
                     }
-                    ifd.putCompression(compression == null ? null : TiffCompression.valueOf(compression));
+                    try {
+                        ifd.putCompression(compression == null ? null : TagCompression.valueOf(compression));
+                    } catch (IllegalArgumentException e) {
+                        ifd.putCompression(Integer.parseInt(compression));
+                    }
 //                    if (jpegRGB) {
                         // - alternative for setJpegInPhotometricRGB
 //                        ifd.putPhotometricInterpretation(PhotoInterp.RGB);
@@ -253,7 +253,7 @@ public class TiffWriterTest {
                         // should not be used for compressions besides LZW/DEFLATE
                     }
                     if (reverseBits) {
-                        ifd.put(Tags.FILL_ORDER, FillOrder.REVERSED.getCode());
+                        ifd.put(Tags.FILL_ORDER, TiffIFD.FILL_ORDER_REVERSED);
                         // - unusual mode: no special putXxx method
                     }
                     ifd.putPixelInformation(numberOfChannels, sampleType);

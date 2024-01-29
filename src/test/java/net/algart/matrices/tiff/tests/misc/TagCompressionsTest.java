@@ -24,38 +24,27 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
-import net.algart.matrices.tiff.TiffException;
-import net.algart.matrices.tiff.TiffIFD;
+import io.scif.formats.tiff.TiffCompression;
 import net.algart.matrices.tiff.tags.TagCompression;
 
-public class CreatingIFDTest {
-    private static void showIFD(TiffIFD ifd, String name) {
-        System.out.printf("%s%nBrief:%n----%n%s%n----%n", name, ifd);
-        System.out.printf("Normal:%n----%n%s%n----%n%n", ifd.toString(TiffIFD.StringFormat.NORMAL_SORTED));
-        System.out.printf("Json:%n----%n%s%n----%n%n", ifd.toString(TiffIFD.StringFormat.JSON));
-    }
+public class TagCompressionsTest {
+    public static void main(String[] args) {
+        System.out.printf("%s:%n%n", TagCompression.class.getName());
+        for (TagCompression v : TagCompression.values()) {
+            TiffCompression compression = TiffCompression.get(v.code());
+            if (v.code() != compression.getCode()) {
+                throw new AssertionError();
+            }
+            System.out.printf("%s (%d, \"%s\", %s); corresponding SCIFIO compression:%n  %s (%d, \"%s\")%n",
+                    v, v.code(), v.prettyName(), v.codec(),
+                    compression, compression.getCode(), compression.getCodecName());
+        }
 
-    public static void main(String[] args) throws TiffException {
-        TiffIFD ifd = new TiffIFD();
-        showIFD(ifd, "Empty");
-
-        ifd.putPixelInformation(1, byte.class);
-        showIFD(ifd, "Pixel information");
-
-//        ifd.put(TiffIFD.COMPRESSION, 22222);
-        ifd.putCompression(TagCompression.JPEG_OLD_STYLE);
-        // - 3 channels, not 1
-        showIFD(ifd, "Compression");
-
-        ifd.putImageDimensions(3000, 3000);
-        // ifd.put(IFD.IMAGE_WIDTH, 3e20);
-        // - previous operator enforces exception while showing IFD
-        showIFD(ifd, "Dimensions");
-
-        ifd.put(1577, true);
-        ifd.put(1578, 56.0);
-        ifd.put(1579, 'c');
-        ifd.put(1580, "String\nСтрока");
-        showIFD(ifd, "Unknown tags");
+        System.out.printf("%n%n%s:%n%n", TiffCompression.class.getName());
+        for (TiffCompression v : TiffCompression.values()) {
+            TagCompression compression = TagCompression.valueOfCodeOrNull(v.getCode());
+            System.out.printf("%s (%d, \"%s\"); corresponding compression:%n  %s%n",
+                    v, v.getCode(), v.getCodecName(), compression);
+        }
     }
 }

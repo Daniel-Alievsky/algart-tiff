@@ -30,6 +30,12 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 
 class SCIFIOBridge {
+    private static final Class<?> SCIFIO_CLASS = findScifioClass();
+
+    static boolean isScifioInstalled() {
+        return SCIFIO_CLASS != null;
+    }
+
     static Class<?> codecOptionsClass() {
         return scifioClass("io.scif.codec.CodecOptions");
     }
@@ -38,20 +44,30 @@ class SCIFIOBridge {
         return scifioClass("io.scif.formats.tiff.IFD");
     }
 
-    static Object createScifio(Context context) {
+    static Object createScifioFromContext(Context context) {
         if (context == null) {
             return null;
         }
-        final Class<?> scifioClass;
-        try {
-            scifioClass = Class.forName("io.scif.SCIFIO");
-        } catch (ClassNotFoundException e) {
-            throw new UnsupportedOperationException("Operation is not allowed: SCIFIO library is not installed", e);
+        if (SCIFIO_CLASS == null) {
+            throw new UnsupportedOperationException("SCIFIO library is not installed");
         }
         try {
-            return scifioClass.getConstructor(Context.class).newInstance(context);
+            return SCIFIO_CLASS.getConstructor(Context.class).newInstance(context);
         } catch (InstantiationException | IllegalAccessException |
                  InvocationTargetException | NoSuchMethodException e) {
+            throw new IllegalStateException("SCIFIO library cannot be called, probably due to version mismatch", e);
+        }
+    }
+
+    static Context getDefaultScifioContext() {
+        if (SCIFIO_CLASS == null) {
+            throw new UnsupportedOperationException("Cannot create SCIFIO context: SCIFIO library is not installed");
+        }
+        try {
+            final Object scifio = SCIFIO_CLASS.getConstructor().newInstance();
+            return (Context) SCIFIO_CLASS.getMethod("getContext").invoke(scifio);
+        } catch (InstantiationException | IllegalAccessException |
+                 InvocationTargetException | NoSuchMethodException | ClassCastException e) {
             throw new IllegalStateException("SCIFIO library cannot be called, probably due to version mismatch", e);
         }
     }
@@ -60,7 +76,7 @@ class SCIFIOBridge {
         final Class<?> logServiceClass = scifioClass("org.scijava.log.LogService");
         final Object result;
         try {
-            result = ifdClass.getConstructor(logServiceClass).newInstance(new Object[] {null});
+            result = ifdClass.getConstructor(logServiceClass).newInstance(new Object[]{null});
         } catch (InstantiationException | IllegalAccessException |
                  InvocationTargetException | NoSuchMethodException e) {
             throw new IllegalStateException("SCIFIO IFD object cannot be created, " +
@@ -84,7 +100,7 @@ class SCIFIOBridge {
                     "(SCIFIO library is probably not installed correctly or has incompatible version)", e1);
         }
         try {
-            return tiffCompressionClass.getMethod( "get", int.class).invoke(null, compressionCode);
+            return tiffCompressionClass.getMethod("get", int.class).invoke(null, compressionCode);
         } catch (IllegalAccessException | NoSuchMethodException e) {
             throw new IllegalStateException("SCIFIO TiffCompression object cannot be created, " +
                     "probably due to version mismatch", e);
@@ -92,7 +108,7 @@ class SCIFIOBridge {
     }
 
     static Object getCompressionCodecOptions(Object tiffCompression, Object ifd, Object options)
-            throws InvocationTargetException {        
+            throws InvocationTargetException {
         final Class<?> scifioIFDClass = scifioIFDClass();
         final Class<?> codecOptionsClass = codecOptionsClass();
 
@@ -172,6 +188,14 @@ class SCIFIOBridge {
         } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             throw new IllegalStateException("SCIFIO codec method cannot be called, " +
                     "probably due to version mismatch", e);
+        }
+    }
+
+    private static Class<?> findScifioClass() {
+        try {
+            return Class.forName("io.scif.SCIFIO");
+        } catch (ClassNotFoundException e) {
+            return null;
         }
     }
 }

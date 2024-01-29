@@ -24,10 +24,10 @@
 
 package net.algart.matrices.tiff.tests;
 
-import io.scif.formats.tiff.TiffCompression;
 import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 import net.algart.matrices.tiff.TiffWriter;
+import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
@@ -64,7 +64,7 @@ public class TiffWriteSimpleTest {
             ifd.putImageDimensions(IMAGE_WIDTH, IMAGE_HEIGHT);
             ifd.putNumberOfChannels(bitsPerSample.length);
             ifd.putTileSizes(256, 256);
-            ifd.putCompression(TiffCompression.LZW);
+            ifd.putCompression(TagCompression.LZW);
             ifd.putPhotometricInterpretation(TagPhotometricInterpretation.WHITE_IS_ZERO);
             ifd.put(Tags.BITS_PER_SAMPLE, bitsPerSample);
             ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_INT);

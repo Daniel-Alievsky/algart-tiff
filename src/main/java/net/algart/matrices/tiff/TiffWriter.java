@@ -29,10 +29,7 @@ import io.scif.formats.tiff.TiffCompression;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
 import net.algart.matrices.tiff.codecs.TiffCodec;
-import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
-import net.algart.matrices.tiff.tags.TagRational;
-import net.algart.matrices.tiff.tags.TagTypes;
-import net.algart.matrices.tiff.tags.Tags;
+import net.algart.matrices.tiff.tags.*;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIO;
@@ -874,26 +871,25 @@ public class TiffWriter implements Closeable {
 
         tile.checkStoredNumberOfPixels();
 
-        TiffCompression compression = tile.ifd().getTiffCompression();
-        final KnownCompression known = KnownCompression.valueOfOrNull(compression);
-        
+        final TagCompression compression = TagCompression.valueOfCodeOrNull(tile.ifd().getCompressionCode());
+
         // Deprecated solution: we didn't try to write unknown compressions, 
         // but it does not allow to use new versions of SCIFIO TiffCompression without rewriting this library.
-        // if (known == null) {
+        // if (compression == null) {
         //    throw new UnsupportedTiffFormatException("Writing TIFF with compression \"" +
         //             compression.getCodecName() + "\" (TIFF code " + compression.getCode() + ") is not supported");
         // }
 
         TiffCodec codec = null;
-        if (!enforceUseExternalCodec && known != null) {
-            codec = known.extendedCodec();
+        if (!enforceUseExternalCodec && compression != null) {
+            codec = compression.codec();
             // - we are sure that this codec does not require SCIFIO context
         }
         TiffCodec.Options options = buildOptions(tile, codec);
         long t3 = debugTime();
         byte[] data = tile.getDecodedData();
         if (codec != null) {
-            options = known.customizeForWriting(tile, options);
+            options = compression.customizeForWriting(tile, options);
             if (codec instanceof TiffCodec.Timing timing) {
                 timing.setTiming(TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG);
                 timing.clearTiming();
@@ -1056,7 +1052,7 @@ public class TiffWriter implements Closeable {
 
     public TiffIFD newIFD(boolean tiled) {
         final TiffIFD ifd = new TiffIFD();
-        ifd.putCompression(TiffCompression.UNCOMPRESSED);
+        ifd.putCompression(TagCompression.UNCOMPRESSED);
         if (tiled) {
             ifd.putDefaultTileSizes();
         } else {
@@ -1301,12 +1297,20 @@ public class TiffWriter implements Closeable {
     }
 
     protected Object buildExternalOptions(TiffTile tile, TiffCodec.Options options) throws TiffException {
+        Objects.requireNonNull(tile, "Null tile");
+        Objects.requireNonNull(options, "Null options");
+        if (!SCIFIOBridge.isScifioInstalled()) {
+            throw new UnsupportedTiffFormatException("TIFF compression with code " + tile.ifd().getCompressionCode() +
+                    " cannot be processed");
+        }
         return options.toOldStyleOptions(SCIFIOBridge.codecOptionsClass());
     }
 
     protected byte[] compressExternalFormat(TiffTile tile, Object externalOptions) throws TiffException {
+        Objects.requireNonNull(tile, "Null tile");
+        Objects.requireNonNull(externalOptions, "Null externalOptions");
         final byte[] decodedData = tile.getDecodedData();
-        final int compressionCode = tile.ifd().getCompression();
+        final int compressionCode = tile.ifd().getCompressionCode();
         final Object scifio = scifio();
         if (scifio == null) {
             throw new IllegalStateException(
@@ -1355,7 +1359,7 @@ public class TiffWriter implements Closeable {
     Object scifio() {
         Object scifio = this.scifio;
         if (scifio == null) {
-            this.scifio = scifio = SCIFIOBridge.createScifio(context);
+            this.scifio = scifio = SCIFIOBridge.createScifioFromContext(context);
         }
         return scifio;
     }

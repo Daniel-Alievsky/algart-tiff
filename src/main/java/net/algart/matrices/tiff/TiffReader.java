@@ -29,6 +29,7 @@ import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.codecs.JPEGCodec;
 import net.algart.matrices.tiff.codecs.TiffCodec;
+import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.matrices.tiff.tags.TagTypes;
 import net.algart.matrices.tiff.tags.Tags;
@@ -843,10 +844,10 @@ public class TiffReader implements Closeable {
         long t1 = debugTime();
         prepareEncodedTileForDecoding(tile);
 
-        final KnownCompression compression = KnownCompression.valueOfOrNull(tile.ifd().getTiffCompression());
+        final TagCompression compression = TagCompression.valueOfCodeOrNull(tile.ifd().getCompressionCode());
         TiffCodec codec = null;
         if (!enforceUseExternalCodec && compression != null) {
-            codec = compression.extendedCodec();
+            codec = compression.codec();
             // - we are sure that this codec does not require SCIFIO context
         }
         final TiffCodec.Options options = buildOptions(tile, codec);
@@ -1231,12 +1232,20 @@ public class TiffReader implements Closeable {
     }
 
     protected Object buildExternalOptions(TiffTile tile, TiffCodec.Options options) throws TiffException {
+        Objects.requireNonNull(tile, "Null tile");
+        Objects.requireNonNull(options, "Null options");
+        if (!SCIFIOBridge.isScifioInstalled()) {
+            throw new UnsupportedTiffFormatException("TIFF compression with code " + tile.ifd().getCompressionCode() +
+                    " cannot be decompressed");
+        }
         return options.toOldStyleOptions(SCIFIOBridge.codecOptionsClass());
     }
 
     protected byte[] decompressExternalFormat(TiffTile tile, Object externalOptions) throws TiffException {
+        Objects.requireNonNull(tile, "Null tile");
+        Objects.requireNonNull(externalOptions, "Null externalOptions");
         final byte[] encodedData = tile.getEncodedData();
-        final int compressionCode = tile.ifd().getCompression();
+        final int compressionCode = tile.ifd().getCompressionCode();
         final Object scifio = scifio();
         if (scifio == null) {
             throw new IllegalStateException(
@@ -1260,7 +1269,7 @@ public class TiffReader implements Closeable {
     Object scifio() {
         Object scifio = this.scifio;
         if (scifio == null) {
-            this.scifio = scifio = SCIFIOBridge.createScifio(context);
+            this.scifio = scifio = SCIFIOBridge.createScifioFromContext(context);
         }
         return scifio;
     }
