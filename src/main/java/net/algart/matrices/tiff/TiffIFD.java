@@ -24,11 +24,9 @@
 
 package net.algart.matrices.tiff;
 
-import io.scif.formats.tiff.OnDemandLongArray;
 import io.scif.formats.tiff.TiffCompression;
 import net.algart.matrices.tiff.tags.*;
 
-import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.*;
 
@@ -647,21 +645,7 @@ public class TiffIFD {
     public long[] getTileOrStripOffsets() throws TiffException {
         final boolean tiled = hasTileInformation();
         final int tag = tiled ? Tags.TILE_OFFSETS : Tags.STRIP_OFFSETS;
-        long[] offsets;
-        final OnDemandLongArray compressedOffsets = getOnDemandStripOffsets();
-        // - compatibility with old TiffParser feature (can be removed in future versions)
-        if (compressedOffsets != null) {
-            offsets = new long[(int) compressedOffsets.size()];
-            try {
-                for (int q = 0; q < offsets.length; q++) {
-                    offsets[q] = compressedOffsets.get(q);
-                }
-            } catch (final IOException e) {
-                throw new TiffException("Failed to retrieve offset", e);
-            }
-        } else {
-            offsets = getLongArray(tag);
-        }
+        long[] offsets = getLongArray(tag);
         if (tiled && offsets == null) {
             // - rare situation, when tile offsets are actually stored in StripOffsets
             offsets = getLongArray(Tags.STRIP_OFFSETS);
@@ -1583,17 +1567,6 @@ public class TiffIFD {
             }
         }
     }
-
-    // - For compatibility with old TiffParser feature (can be removed in future versions)
-    private OnDemandLongArray getOnDemandStripOffsets() throws TiffException {
-        final int tag = hasTileInformation() ? Tags.TILE_OFFSETS : Tags.STRIP_OFFSETS;
-        final Object offsets = get(tag);
-        if (offsets instanceof OnDemandLongArray) {
-            return (OnDemandLongArray) offsets;
-        }
-        return null;
-    }
-
 
     private static int truncatedIntValue(Number value) {
         Objects.requireNonNull(value);
