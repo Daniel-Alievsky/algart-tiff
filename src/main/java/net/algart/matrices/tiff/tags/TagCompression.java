@@ -25,32 +25,39 @@
 package net.algart.matrices.tiff.tags;
 
 import io.scif.formats.tiff.TiffCompression;
+import net.algart.matrices.tiff.TiffException;
+import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.codecs.*;
 import net.algart.matrices.tiff.tiles.TiffTile;
 
 import java.util.*;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public enum TagCompression {
-    UNCOMPRESSED(1, "Uncompressed", UncompressedCodec::new, null),
-    LZW(5, "LZW", LZWCodec::new, null),
-    DEFLATE(8, "ZLib-Deflate", ZlibCodec::new, null),
-    DEFLATE_PROPRIETARY(32946, "ZLib-Deflate proprietary", ZlibCodec::new, null),
-    JPEG(7, "JPEG", JPEGCodec::new, TagCompression::customizeForWritingJpeg),
-    JPEG_OLD_STYLE(6, "Old-style JPEG", null, null),
-    // - OLD_JPEG does not work: see https://github.com/scifio/scifio/issues/510
-    PACK_BITS(32773, "PackBits", PackbitsCodec::new, null),
+    UNCOMPRESSED(1, "Uncompressed", UncompressedCodec::new),
+    LZW(5, "LZW", LZWCodec::new),
+    DEFLATE(8, "ZLib-Deflate", ZlibCodec::new),
+    DEFLATE_PROPRIETARY(32946, "ZLib-Deflate proprietary", ZlibCodec::new),
+    JPEG(7, "JPEG", JPEGCodec::new) {
+        @Override
+        public TiffCodec.Options customizeReading(TiffTile tile, TiffCodec.Options options) throws TiffException {
+            return customizeReadingJpeg(tile, options);
+        }
 
-    JPEG_2000_LOSSLESS(33003, "JPEG-2000", JPEG2000Codec::new,
-            TagCompression::customizeForWritingJpeg2000Lossless),
-    JPEG_2000_LOSSY(33004, "JPEG-2000 lossy", JPEG2000Codec::new,
-            (tile, defaultOptions) -> customizeForWritingJpeg2000(tile, defaultOptions, false)),
-    JPEG_2000_LOSSLESS_ALTERNATIVE(33005, "JPEG-2000 alternative", JPEG2000Codec::new,
-            TagCompression::customizeForWritingJpeg2000Lossless),
-    JPEG_2000_LOSSLESS_OLYMPUS(34712, "JPEG-2000 Olympus", JPEG2000Codec::new,
-            TagCompression::customizeForWritingJpeg2000Lossless);
+        @Override
+        public TiffCodec.Options customizeWriting(TiffTile tile, TiffCodec.Options options) throws TiffException {
+            return customizeWritingJpeg(tile, options);
+        }
+    },
+    JPEG_OLD_STYLE(6, "Old-style JPEG", null),
+    // - OLD_JPEG does not work: see https://github.com/scifio/scifio/issues/510
+    PACK_BITS(32773, "PackBits", PackbitsCodec::new),
+
+    JPEG_2000_LOSSLESS(33003, "JPEG-2000", JPEG2000Codec::new),
+    JPEG_2000_LOSSY(33004, "JPEG-2000 lossy", JPEG2000Codec::new),
+    JPEG_2000_LOSSLESS_ALTERNATIVE(33005, "JPEG-2000 alternative", JPEG2000Codec::new),
+    JPEG_2000_LOSSLESS_OLYMPUS(34712, "JPEG-2000 Olympus", JPEG2000Codec::new);
 
     private static final Map<Integer, TagCompression> LOOKUP =
             Arrays.stream(values()).collect(Collectors.toMap(TagCompression::code, v -> v));
@@ -64,18 +71,11 @@ public enum TagCompression {
     private final int code;
     private final String name;
     private final Supplier<TiffCodec> codec;
-    // - This "extended" codec is implemented inside this module, and we are sure that it does not need SCIFIO context.
-    private final BiFunction<TiffTile, TiffCodec.Options, TiffCodec.Options> customizeForWriting;
 
-    TagCompression(
-            int code,
-            String name,
-            Supplier<TiffCodec> codec,
-            BiFunction<TiffTile, TiffCodec.Options, TiffCodec.Options> customizeForWriting) {
+    TagCompression(int code, String name, Supplier<TiffCodec> codec) {
         this.code = code;
         this.name = Objects.requireNonNull(name);
         this.codec = codec;
-        this.customizeForWriting = customizeForWriting;
     }
 
     public int code() {
@@ -97,13 +97,29 @@ public enum TagCompression {
         return this == JPEG || this == JPEG_OLD_STYLE;
     }
 
+    public boolean isJpeg2000() {
+        return this == JPEG_2000_LOSSLESS || this == JPEG_2000_LOSSLESS_ALTERNATIVE ||
+                this == JPEG_2000_LOSSLESS_OLYMPUS || this == JPEG_2000_LOSSY;
+    }
+
+    public boolean isJpeg2000Lossy() {
+        return this == JPEG_2000_LOSSY;
+    }
+
     public boolean isStandard() {
-        return code <= 10 || this == TagCompression.PACK_BITS;
+        return code <= 10 || this == PACK_BITS;
         // - actually maximal supported standard compression is DEFLATE=8
     }
 
-    public TiffCodec.Options customizeForWriting(TiffTile tile, TiffCodec.Options defaultOptions) {
-        return customizeForWriting == null ? defaultOptions : customizeForWriting.apply(tile, defaultOptions);
+    public TiffCodec.Options customizeReading(TiffTile tile, TiffCodec.Options options) throws TiffException {
+        return options;
+    }
+
+    public TiffCodec.Options customizeWriting(TiffTile tile, TiffCodec.Options options) throws TiffException {
+        if (isJpeg2000()) {
+            return customizeWritingJpeg2000(tile, options, !isJpeg2000Lossy());
+        }
+        return options;
     }
 
     public static TagCompression valueOfCodeOrNull(int code) {
@@ -114,8 +130,21 @@ public enum TagCompression {
         return tiffCompressionMap.get(code);
     }
 
-    public static JPEGCodec.JPEGOptions customizeForWritingJpeg(TiffTile tile, TiffCodec.Options defaultOptions) {
-        final JPEGCodec.JPEGOptions result = new JPEGCodec.JPEGOptions().setTo(defaultOptions);
+    // Note: corrections, performed by this method, may be tested with the image jpeg_ycbcr_encoded_as_rgb.tiff
+    public static TiffCodec.Options customizeReadingJpeg(TiffTile tile, TiffCodec.Options options)
+            throws TiffException {
+        TiffIFD ifd = tile.ifd();
+        return new JPEGCodec.JPEGOptions()
+                .setPhotometricInterpretation(ifd.getPhotometricInterpretation())
+                .setYCbCrSubsampling(ifd.getYCbCrSubsampling())
+                .setInterleaved(false);
+        // JPEGCodec works faster in with non-interleaved data, and in any case it is better
+        // because TiffReader needs non-interleaved results.
+    }
+
+    public static TiffCodec.Options customizeWritingJpeg(TiffTile tile, TiffCodec.Options options)
+            throws TiffException {
+        final JPEGCodec.JPEGOptions result = new JPEGCodec.JPEGOptions().setTo(options);
         if (tile.ifd().optInt(Tags.PHOTOMETRIC_INTERPRETATION, -1) ==
                 TagPhotometricInterpretation.RGB.code()) {
             result.setPhotometricInterpretation(TagPhotometricInterpretation.RGB);
@@ -123,16 +152,10 @@ public enum TagCompression {
         return result;
     }
 
-    public static JPEG2000Codec.JPEG2000Options customizeForWritingJpeg2000(
+    public static JPEG2000Codec.JPEG2000Options customizeWritingJpeg2000(
             TiffTile tile,
             TiffCodec.Options defaultOptions,
             boolean lossless) {
         return new JPEG2000Codec.JPEG2000Options().setTo(defaultOptions, lossless);
-    }
-
-    private static JPEG2000Codec.JPEG2000Options customizeForWritingJpeg2000Lossless(
-            TiffTile tile,
-            TiffCodec.Options defaultOptions) {
-        return customizeForWritingJpeg2000(tile, defaultOptions, true);
     }
 }

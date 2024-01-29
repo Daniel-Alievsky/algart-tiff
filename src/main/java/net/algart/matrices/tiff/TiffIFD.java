@@ -437,7 +437,7 @@ public class TiffIFD {
 
     public int getSamplesPerPixel() throws TiffException {
         int compressionValue = getInt(Tags.COMPRESSION, 0);
-        if (compressionValue == TiffCompression.OLD_JPEG.getCode()) {
+        if (compressionValue == TagCompression.JPEG_OLD_STYLE.code()) {
             return 3;
             // always 3 channels: RGB
         }

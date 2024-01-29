@@ -850,19 +850,24 @@ public class TiffReader implements Closeable {
             codec = compression.codec();
             // - we are sure that this codec does not require SCIFIO context
         }
-        final TiffCodec.Options options = buildOptions(tile, codec);
-
+        TiffCodec.Options options = buildOptions(tile, codec);
         long t2 = debugTime();
+
         if (codec != null) {
-            // options = compression.readOptions(tile, options); // TODO!!
+            options = compression.customizeReading(tile, options);
+            if (USE_LEGACY_UNPACK_BYTES) {
+                options.setInterleaved(true);
+                // - old-style unpackBytes does not "understand" already-separated tiles
+            }
             if (codec instanceof TiffCodec.Timing timing) {
                 timing.setTiming(TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG);
                 timing.clearTiming();
             }
-            tile.setPartiallyDecodedData(codec.decompress(tile.getEncodedData(), options));
+            final byte[] decodedData = codec.decompress(tile.getEncodedData(), options);
+            tile.setPartiallyDecodedData(decodedData);
         } else {
             Object externalOptions = buildExternalOptions(tile, options);
-            byte[] decodedData = decompressExternalFormat(tile, externalOptions);
+            final byte[] decodedData = decompressExternalFormat(tile, externalOptions);
             tile.setPartiallyDecodedData(decodedData);
         }
         tile.setInterleaved(options.isInterleaved());
@@ -1346,12 +1351,7 @@ public class TiffReader implements Closeable {
 
     private TiffCodec.Options buildOptions(TiffTile tile, TiffCodec codec) throws TiffException {
         TiffIFD ifd = tile.ifd();
-        TiffCodec.Options options;
-        options = codec instanceof JPEGCodec ? new JPEGCodec.JPEGOptions()
-                .setTo(this.codecOptions)
-                .setPhotometricInterpretation(ifd.getPhotometricInterpretation())
-                .setYCbCrSubsampling(ifd.getYCbCrSubsampling()) :
-                this.codecOptions.clone();
+        TiffCodec.Options options = this.codecOptions.clone();
         options.setLittleEndian(ifd.isLittleEndian());
         final int samplesLength = tile.getSizeInBytes();
         // - Note: it may be LESS than a usual number of samples in the tile/strip.
@@ -1366,19 +1366,11 @@ public class TiffReader implements Closeable {
         // and this class will throw an exception "data may be lost" in further
         // tile.completeNumberOfPixels() call.
         options.setMaxSizeInBytes(Math.max(samplesLength, tile.getStoredDataLength()));
-        if (USE_LEGACY_UNPACK_BYTES) {
-            options.setInterleaved(true);
-            // - old-style unpackBytes does not "understand" already-separated tiles
-        } else {
-            options.setInterleaved(
-                    !(codec instanceof JPEGCodec || ifd.getTiffCompression() == TiffCompression.JPEG));
-        }
-        // - ExtendedJPEGCodec or standard codec JPEFCodec (it may be chosen below by scifio.codec(),
-        // but we are sure that JPEG compression will be served by it even in future versions):
-        // they "understand" this settings well (unlike LZW or DECOMPRESSED codecs,
-        // which suppose that data are interleaved according TIFF format specification).
-        // Value "true" is necessary for other codecs, that work with high-level classes (like JPEG or JPEG-2000) and
-        // need to be instructed to interleave results (unlike LZW or DECOMPRESSED, which work with data "as-is").
+        options.setInterleaved(true);
+        // - Value "true" is necessary for most codecs, that work with high-level classes (like JPEG or JPEG-2000) and
+        // need to be instructed to interleave results (unlike LZW or DECOMPRESSED, which work with data "as-is"
+        // and suppose that data are interleaved according TIFF format specification).
+        // For JPEG, TagCompression overrides this value to false, because it works faster in this mode.
         return options;
     }
 

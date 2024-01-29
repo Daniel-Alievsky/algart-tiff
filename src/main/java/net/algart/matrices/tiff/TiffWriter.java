@@ -887,17 +887,19 @@ public class TiffWriter implements Closeable {
         }
         TiffCodec.Options options = buildOptions(tile, codec);
         long t3 = debugTime();
+
         byte[] data = tile.getDecodedData();
         if (codec != null) {
-            options = compression.customizeForWriting(tile, options);
+            options = compression.customizeWriting(tile, options);
             if (codec instanceof TiffCodec.Timing timing) {
                 timing.setTiming(TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG);
                 timing.clearTiming();
             }
-            tile.setEncodedData(codec.compress(data, options));
+            final byte[] encodedData = codec.compress(data, options);
+            tile.setEncodedData(encodedData);
         } else {
             Object externalOptions = buildExternalOptions(tile, options);
-            byte[] encodedData = compressExternalFormat(tile, externalOptions);
+            final byte[] encodedData = compressExternalFormat(tile, externalOptions);
             tile.setEncodedData(encodedData);
         }
         TiffTools.invertFillOrderIfRequested(tile);
