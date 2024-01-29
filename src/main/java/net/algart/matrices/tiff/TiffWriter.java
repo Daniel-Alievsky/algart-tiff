@@ -970,10 +970,9 @@ public class TiffWriter implements Closeable {
             ifd.put(Tags.COMPRESSION, TiffCompression.UNCOMPRESSED.getCode());
             // - We prefer explicitly specify this case
         }
-        final TiffCompression compression = ifd.getTiffCompression();
-        // - UnsupportedTiffFormatException for unknown compression
+        final TagCompression compression = ifd.optCompression().orElse(null);
 
-        final boolean jpeg = compression == TiffCompression.JPEG;
+        final boolean jpeg = compression == TagCompression.JPEG;
         final TagPhotometricInterpretation suggestedPhotometric =
                 ifd.containsKey(Tags.PHOTOMETRIC_INTERPRETATION) ? ifd.getPhotometricInterpretation() : null;
         TagPhotometricInterpretation newPhotometric = suggestedPhotometric;
@@ -1022,7 +1021,9 @@ public class TiffWriter implements Closeable {
                     if (!smartCorrection) {
                         throw new UnsupportedTiffFormatException("Cannot write TIFF: encoding YCbCr " +
                                 "photometric interpretation is not supported for compression \"" +
-                                compression.getCodecName() + "\"");
+                                (compression == null ? "??? : " : compression.prettyName()) + "\"");
+                        // - compression == null is added just in case (it is impossible when isStandardYCbCrNonJpeg,
+                        // excepting the case of correction from a parallel thread)
                     } else {
                         // - In this case, we automatically decode YCbCr into RGB while reading;
                         // we cannot encode pixels back to YCbCr,

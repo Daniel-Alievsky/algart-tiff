@@ -891,8 +891,8 @@ public class TiffReader implements Closeable {
         }
         TiffTools.invertFillOrderIfRequested(tile);
         TiffIFD ifd = tile.ifd();
-        final TiffCompression compression = ifd.getTiffCompression();
-        if (TiffIFD.isJpeg(compression)) {
+        final TagCompression compression = ifd.optCompression().orElse(null);
+        if (compression != null && compression.isJpeg()) {
             final byte[] data = tile.getEncodedData();
             final byte[] jpegTable = ifd.getValue(Tags.JPEG_TABLES, byte[].class).orElse(null);
             // Structure of data:
@@ -912,12 +912,12 @@ public class TiffReader implements Closeable {
             if (data.length < 2 || data[0] != (byte) 0xFF || data[1] != (byte) 0xD8) {
                 // - the same check is performed inside Java API ImageIO (JPEGImageReaderSpi),
                 // and we prefer to repeat it here for better diagnostics
-                if (compression == TiffCompression.JPEG) {
+                if (compression == TagCompression.JPEG) {
                     throw new TiffException(
                             "Invalid TIFF image: it is declared as JPEG, but the data are not actually JPEG");
                 } else {
                     throw new UnsupportedTiffFormatException(
-                            "Unsupported format of TIFF image: it is declared as \"" + compression.getCodecName() +
+                            "Unsupported format of TIFF image: it is declared as \"" + compression.prettyName() +
                                     "\", but the data are not actually JPEG");
                 }
             }

@@ -24,10 +24,10 @@
 
 package net.algart.matrices.tiff;
 
-import io.scif.formats.tiff.TiffCompression;
-import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.arrays.*;
+import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
+import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
@@ -1273,13 +1273,13 @@ public class TiffTools {
 
     private static boolean isSimpleRearrangingBytesEnough(TiffIFD ifd, AtomicBoolean simpleLossless)
             throws TiffException {
-        TiffCompression compression = ifd.getTiffCompression();
-        final boolean advancedFormat = !TiffIFD.isStandard(compression) || TiffIFD.isJpeg(compression);
+        final TagCompression compression = ifd.optCompression().orElse(null);
+        final boolean advancedFormat = compression != null && (!compression.isStandard() || compression.isJpeg());
         if (simpleLossless != null) {
             simpleLossless.set(!advancedFormat);
         }
         if (advancedFormat) {
-            // JPEG codec and all non-standard codecs like JPEG2000 should perform all necessary
+            // JPEG codec and all non-standard codecs like JPEG-2000 should perform all necessary
             // bits unpacking or color space corrections themselves
             return true;
         }

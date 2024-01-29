@@ -93,6 +93,15 @@ public enum TagCompression {
         return codec == null ? null : codec.get();
     }
 
+    public boolean isJpeg() {
+        return this == JPEG || this == JPEG_OLD_STYLE;
+    }
+
+    public boolean isStandard() {
+        return code <= 10 || this == TagCompression.PACK_BITS;
+        // - actually maximal supported standard compression is DEFLATE=8
+    }
+
     public TiffCodec.Options customizeForWriting(TiffTile tile, TiffCodec.Options defaultOptions) {
         return customizeForWriting == null ? defaultOptions : customizeForWriting.apply(tile, defaultOptions);
     }

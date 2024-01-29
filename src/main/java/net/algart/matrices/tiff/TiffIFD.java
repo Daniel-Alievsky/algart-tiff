@@ -715,6 +715,8 @@ public class TiffIFD {
         return optValue(Tags.IMAGE_DESCRIPTION, String.class);
     }
 
+    // Note: there is no getCompression() method, which ALWAYS returns some compression:
+    // we cannot be sure that we know all possible compressions!
     public Optional<TagCompression> optCompression() {
         final int code = optInt(Tags.COMPRESSION, -1);
         return code == -1 ? Optional.empty() : Optional.ofNullable(TagCompression.valueOfCodeOrNull(code));
@@ -945,7 +947,7 @@ public class TiffIFD {
      *
      * @return bits per sample, if this value is the same for all channels, or empty value in other case.
      * @throws TiffException in a case of any problems while parsing IFD, in particular,
-     *                         if <tt>BitsPerSample</tt> tag contains zero or negative values.
+     *                       if <tt>BitsPerSample</tt> tag contains zero or negative values.
      */
     public OptionalInt tryEqualBitDepth() throws TiffException {
         final int[] bitsPerSample = getBitsPerSample();
@@ -1003,22 +1005,25 @@ public class TiffIFD {
     }
 
     public boolean isStandardYCbCrNonJpeg() throws TiffException {
-        TiffCompression compression = getTiffCompression();
-        return isStandard(compression) && !isJpeg(compression) &&
+        final TagCompression compression = optCompression().orElse(null);
+        return compression != null && compression.isStandard() && !compression.isJpeg() &&
                 getPhotometricInterpretation() == TagPhotometricInterpretation.Y_CB_CR;
     }
 
-    public boolean isStandardCompression() throws TiffException {
-        return isStandard(getTiffCompression());
+    public boolean isStandardCompression() {
+        final TagCompression compression = optCompression().orElse(null);
+        return compression != null && compression.isStandard();
     }
 
-    public boolean isJpeg() throws TiffException {
-        return isJpeg(getTiffCompression());
+    public boolean isJpeg() {
+        final TagCompression compression = optCompression().orElse(null);
+        return compression != null && compression.isJpeg();
     }
 
     public boolean isStandardInvertedCompression() throws TiffException {
-        TiffCompression compression = getTiffCompression();
-        return isStandard(compression) && !isJpeg(compression) && getPhotometricInterpretation().isInvertedBrightness();
+        final TagCompression compression = optCompression().orElse(null);
+        return compression != null && compression.isStandard() && !compression.isJpeg() &&
+                getPhotometricInterpretation().isInvertedBrightness();
     }
 
     public boolean isThumbnail() {
@@ -1152,7 +1157,7 @@ public class TiffIFD {
      *
      * @return whether this IFD contain tile size information.
      * @throws TiffException if one of tags <tt>TileWidth</tt> and <tt>TileLength</tt> is present in IFD,
-     *                         but the second is absent.
+     *                       but the second is absent.
      */
     public boolean hasTileInformation() throws TiffException {
         final boolean hasWidth = containsKey(Tags.TILE_WIDTH);
@@ -1481,7 +1486,8 @@ public class TiffIFD {
                 Object additional = null;
                 try {
                     switch (tag) {
-                        case Tags.PHOTOMETRIC_INTERPRETATION -> additional = getPhotometricInterpretation().prettyName();
+                        case Tags.PHOTOMETRIC_INTERPRETATION ->
+                                additional = getPhotometricInterpretation().prettyName();
                         case Tags.COMPRESSION -> additional = prettyCompression(getTiffCompression());
                         case Tags.PLANAR_CONFIGURATION -> {
                             if (v instanceof Number number) {
@@ -1553,20 +1559,6 @@ public class TiffIFD {
             sb.append("\n  }\n}");
         }
         return sb.toString();
-    }
-
-    public static boolean isStandard(TiffCompression compression) {
-        Objects.requireNonNull(compression, "Null compression");
-        return compression.getCode() <= 10 || compression == TiffCompression.PACK_BITS;
-        // - actually maximal supported standard TiffCompression is DEFLATE=8
-    }
-
-    public static boolean isJpeg(TiffCompression compression) {
-        Objects.requireNonNull(compression, "Null compression");
-        return compression == TiffCompression.JPEG
-                || compression == TiffCompression.OLD_JPEG
-                || compression == TiffCompression.ALT_JPEG;
-        // - actually only TiffCompression.JPEG is surely supported
     }
 
     private void clearCache() {
