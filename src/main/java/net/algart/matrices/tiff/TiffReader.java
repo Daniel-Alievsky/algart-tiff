@@ -358,7 +358,7 @@ public class TiffReader implements Closeable {
      * @return See above.
      */
     public TiffCodec.Options getCodecOptions() {
-        return codecOptions;
+        return codecOptions.clone();
     }
 
     /**
@@ -368,7 +368,7 @@ public class TiffReader implements Closeable {
      * @return a reference to this object.
      */
     public TiffReader setCodecOptions(TiffCodec.Options codecOptions) {
-        this.codecOptions = Objects.requireNonNull(codecOptions, "Null codecOptions");
+        this.codecOptions = Objects.requireNonNull(codecOptions, "Null codecOptions").clone();
         return this;
     }
 

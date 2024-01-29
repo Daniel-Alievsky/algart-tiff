@@ -285,7 +285,7 @@ public class TiffWriter implements Closeable {
     }
 
     public TiffCodec.Options getCodecOptions() {
-        return codecOptions;
+        return codecOptions.clone();
     }
 
     /**
@@ -295,7 +295,7 @@ public class TiffWriter implements Closeable {
      * @return a reference to this object.
      */
     public TiffWriter setCodecOptions(final TiffCodec.Options codecOptions) {
-        this.codecOptions = Objects.requireNonNull(codecOptions, "Null codecOptions");
+        this.codecOptions = Objects.requireNonNull(codecOptions, "Null codecOptions").clone();
         return this;
     }
 
