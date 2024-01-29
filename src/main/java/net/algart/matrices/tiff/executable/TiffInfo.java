@@ -24,10 +24,10 @@
 
 package net.algart.matrices.tiff.executable;
 
-import io.scif.formats.tiff.IFD;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
+import net.algart.matrices.tiff.tags.Tags;
 
 import java.io.File;
 import java.io.IOException;
@@ -107,10 +107,10 @@ public class TiffInfo {
                     if (k >= firstIFDIndex && k <= lastIFDIndex) {
                         final TiffIFD ifd = ifdList.get(k);
                         System.out.println(ifdInfo(ifd, k, ifdCount));
-                        if (!(ifd.containsKey(IFD.STRIP_BYTE_COUNTS) || ifd.containsKey(IFD.TILE_BYTE_COUNTS))) {
+                        if (!(ifd.containsKey(Tags.STRIP_BYTE_COUNTS) || ifd.containsKey(Tags.TILE_BYTE_COUNTS))) {
                             throw new TiffException("Invalid IFD: doesn't contain StripByteCounts/TileByteCounts tag");
                         }
-                        if (!(ifd.containsKey(IFD.STRIP_OFFSETS) || ifd.containsKey(IFD.TILE_OFFSETS))) {
+                        if (!(ifd.containsKey(Tags.STRIP_OFFSETS) || ifd.containsKey(Tags.TILE_OFFSETS))) {
                             throw new TiffException("Invalid IFD: doesn't contain StripOffsets/TileOffsets tag");
                         }
                     }

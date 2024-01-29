@@ -24,8 +24,8 @@
 
 package net.algart.matrices.tiff.tests;
 
-import io.scif.SCIFIO;
 import net.algart.matrices.tiff.TiffException;
+import net.algart.matrices.tiff.TiffTools;
 import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import org.scijava.Context;
 
@@ -65,8 +65,7 @@ public class TiffCopyFolderTest {
 
         System.out.printf("Copying all TIFF files from %s to %s...%n", sourceFolder, targetFolder);
 
-        final SCIFIO scifio = new SCIFIO();
-        try (Context context = noContext ? null : scifio.getContext()) {
+        try (Context context = noContext ? null : TiffTools.newSCIFIOContext()) {
             try (DirectoryStream<Path> files = Files.newDirectoryStream(sourceFolder)) {
                 for (Path file : files) {
                     if (!Files.isRegularFile(file)) {

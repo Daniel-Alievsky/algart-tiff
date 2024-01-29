@@ -24,13 +24,14 @@
 
 package net.algart.matrices.tiff.tags;
 
-import io.scif.formats.tiff.TiffCompression;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.codecs.*;
 import net.algart.matrices.tiff.tiles.TiffTile;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -61,12 +62,6 @@ public enum TagCompression {
 
     private static final Map<Integer, TagCompression> LOOKUP =
             Arrays.stream(values()).collect(Collectors.toMap(TagCompression::code, v -> v));
-
-    private static final Map<Integer, TiffCompression> tiffCompressionMap = new HashMap<>();
-
-    static {
-        EnumSet.allOf(TiffCompression.class).forEach(v -> tiffCompressionMap.put(v.getCode(), v));
-    }
 
     private final int code;
     private final String name;
@@ -124,10 +119,6 @@ public enum TagCompression {
 
     public static TagCompression valueOfCodeOrNull(int code) {
         return LOOKUP.get(code);
-    }
-
-    public static TiffCompression compressionOfCodeOrNull(int code) {
-        return tiffCompressionMap.get(code);
     }
 
     // Note: corrections, performed by this method, may be tested with the image jpeg_ycbcr_encoded_as_rgb.tiff

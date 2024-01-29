@@ -24,10 +24,10 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
-import io.scif.formats.tiff.IFD;
 import net.algart.arrays.JArrays;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
+import net.algart.matrices.tiff.tags.Tags;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -52,9 +52,9 @@ public class IFDTileOffsetsTest {
                 ifdIndex,
                 ifd.toString(TiffIFD.StringFormat.NORMAL_SORTED),
                 (t2 - t1) * 1e-3);
-        IFDGetValueTest.showTag(ifd, IFD.IMAGE_WIDTH, Number.class);
-        IFDGetValueTest.showTag(ifd, IFD.IMAGE_LENGTH, Number.class);
-        IFDGetValueTest.showTag(ifd, IFD.SAMPLES_PER_PIXEL, Integer.class);
+        IFDGetValueTest.showTag(ifd, Tags.IMAGE_WIDTH, Number.class);
+        IFDGetValueTest.showTag(ifd, Tags.IMAGE_LENGTH, Number.class);
+        IFDGetValueTest.showTag(ifd, Tags.SAMPLES_PER_PIXEL, Integer.class);
 
         for (int test = 1; test <= 10; test++) {
             System.out.printf("%nTest %d:%n", test);

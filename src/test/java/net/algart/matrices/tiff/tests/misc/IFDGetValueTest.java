@@ -25,7 +25,6 @@
 package net.algart.matrices.tiff.tests.misc;
 
 import net.algart.matrices.tiff.TiffException;
-import io.scif.formats.tiff.IFD;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.tags.Tags;
 
@@ -59,13 +58,13 @@ public class IFDGetValueTest {
     public static void main(String[] args) {
         TiffIFD ifd = new TiffIFD();
         ifd.putPixelInformation(3, byte.class);
-        showTag(ifd, IFD.SAMPLES_PER_PIXEL, Integer.class);
-        showTag(ifd, IFD.BITS_PER_SAMPLE, Integer.class);
-        showTag(ifd, IFD.BITS_PER_SAMPLE, int[].class);
+        showTag(ifd, Tags.SAMPLES_PER_PIXEL, Integer.class);
+        showTag(ifd, Tags.BITS_PER_SAMPLE, Integer.class);
+        showTag(ifd, Tags.BITS_PER_SAMPLE, int[].class);
 
         System.out.println();
         ifd.putImageDimensions(3000, 3000);
-        showTag(ifd, IFD.IMAGE_WIDTH, Number.class);
-        showTag(ifd, IFD.IMAGE_WIDTH, Long.class);
+        showTag(ifd, Tags.IMAGE_WIDTH, Number.class);
+        showTag(ifd, Tags.IMAGE_WIDTH, Long.class);
     }
 }

@@ -55,6 +55,11 @@
         </dependency>
         <!-- Enforce usage of the later scijava-common:  -->
         <dependency>
+            <groupId>io.scif</groupId>
+            <artifactId>scifio-jai-imageio</artifactId>
+            <version>1.1.1</version>
+        </dependency>
+        <dependency>
             <groupId>org.scijava</groupId>
             <artifactId>scijava-common</artifactId>
             <version>2.97.0</version>
