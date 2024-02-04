@@ -22,36 +22,34 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.tests.scifio;
+package net.algart.matrices.tiff.tests.scifio.pure;
 
 import io.scif.SCIFIO;
 import io.scif.formats.tiff.TiffParser;
-import org.scijava.Context;
-import org.scijava.io.handle.DataHandle;
-import org.scijava.io.location.BytesLocation;
 import org.scijava.io.location.FileLocation;
-import org.scijava.io.location.Location;
 
-import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
 
-public class FileHandleGenericsBug {
-    public static void main(String[] args) {
+public class PureScifioIfdOffsets {
+    public static void main(String[] args) throws IOException {
         if (args.length < 1) {
             System.out.println("Usage:");
-            System.out.println("    " + FileHandleGenericsBug.class.getName() + " some_tiff_file");
+            System.out.println("    " + PureScifioIfdOffsets.class.getName() + " tiff_file.tiff");
             return;
         }
-        final File file = new File(args[0]);
 
-        Context context = new SCIFIO().getContext();
-        TiffParser parser = new TiffParser(context, new FileLocation(file));
-        DataHandle<Location> stream = parser.getStream();
-        System.out.println("Successfully opened: " + stream.getLocation());
+        final Path file = Paths.get(args[0]);
 
-        BytesLocation bytesLocation = new BytesLocation(1000);
-        stream.set(bytesLocation); // - crash!! java.lang.ClassCastException
+        TiffParser parser = new TiffParser(new SCIFIO().getContext(), new FileLocation(file.toFile()));
+        parser.setUse64BitOffsets(false);
+        long[] ifdOffsets = parser.getIFDOffsets();
+        System.out.printf("Usual offset: %d, %s%n", ifdOffsets.length, Arrays.toString(ifdOffsets));
 
-        System.out.println("This operator will not be performed");
-        context.close();
+        parser.setUse64BitOffsets(true);
+        ifdOffsets = parser.getIFDOffsets();
+        System.out.printf("fakeBigTiff: %d, %s%n", ifdOffsets.length, Arrays.toString(ifdOffsets));
     }
 }

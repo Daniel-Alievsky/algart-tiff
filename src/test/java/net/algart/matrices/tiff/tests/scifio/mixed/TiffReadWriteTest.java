@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.tests;
+package net.algart.matrices.tiff.tests.scifio.mixed;
 
 import io.scif.FormatException;
 import io.scif.SCIFIO;
@@ -35,7 +35,7 @@ import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffTools;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.compatibility.TiffParser;
-import net.algart.matrices.tiff.tests.scifio.PureScifioTiffReadWriteTest;
+import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import org.scijava.Context;
 import org.scijava.io.handle.DataHandle;
@@ -50,6 +50,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class TiffReadWriteTest {
     private static final int MAX_IMAGE_DIM = 8000;
@@ -226,7 +227,7 @@ public class TiffReadWriteTest {
                             compareResults(buf2, bytes, "Old parser");
                             differ = true;
                         }
-                        writerIFD = TiffIFD.valueOf(PureScifioTiffReadWriteTest.removeUndesirableTags(scifioIFD));
+                        writerIFD = TiffIFD.valueOf(removeUndesirableTags(scifioIFD));
                         if (singleStrip) {
                             writerIFD.putStripSize(h);
                             // - not remove! Removing means default value!
@@ -315,4 +316,16 @@ public class TiffReadWriteTest {
         }
     }
 
+    private static IFD removeUndesirableTags(IFD ifd) {
+        IFD newIFD = new IFD(ifd, null);
+        for (Map.Entry<Integer, Object> entry : ifd.entrySet()) {
+            switch (entry.getKey()) {
+                case IFD.JPEG_TABLES, Tags.ICC_PROFILE -> {
+                    System.out.println("Removing " + entry);
+                    newIFD.remove(entry.getKey());
+                }
+            }
+        }
+        return newIFD;
+    }
 }

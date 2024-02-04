@@ -25,9 +25,7 @@
 package net.algart.matrices.tiff.tests.misc;
 
 import net.algart.matrices.tiff.codecs.JPEG2000Codec;
-import net.algart.matrices.tiff.codecs.JPEGCodec;
 import net.algart.matrices.tiff.codecs.TiffCodec;
-import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 
 public class TiffCodecOptionsTest {
     public static void main(String[] args) {

@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.tests;
+package net.algart.matrices.tiff.tests.io;
 
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;

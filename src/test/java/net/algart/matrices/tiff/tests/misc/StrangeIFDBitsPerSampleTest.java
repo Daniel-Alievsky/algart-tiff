@@ -24,10 +24,10 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
-import io.scif.formats.tiff.TiffCompression;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffSampleType;
+import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.Tags;
 
 import java.util.Arrays;
@@ -69,7 +69,7 @@ public class StrangeIFDBitsPerSampleTest {
 //        ifd.put(Tags.SAMPLES_PER_PIXEL, 3); // - should not be necessary for exception on -1
 
         ifd.put(Tags.BITS_PER_SAMPLE, new int[] {1, 8});
-        ifd.put(Tags.COMPRESSION, TiffCompression.OLD_JPEG.getCode());
+        ifd.put(Tags.COMPRESSION, TagCompression.JPEG_OLD_STYLE.code());
         showIFD(ifd, "Old JPEG", false);
 
         ifd.remove(Tags.COMPRESSION);

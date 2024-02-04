@@ -22,12 +22,12 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.tests;
+package net.algart.matrices.tiff.tests.io;
 
 import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
+import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 
 import java.io.IOException;
 import java.nio.file.Path;

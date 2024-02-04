@@ -22,29 +22,17 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.tests.misc;
+package net.algart.matrices.tiff.tests.scifio.pure;
 
-import io.scif.formats.tiff.TiffCompression;
-import net.algart.matrices.tiff.tags.TagCompression;
+import io.scif.SCIFIO;
+import org.scijava.Context;
 
-public class TagCompressionsTest {
-    public static void main(String[] args) {
-        System.out.printf("%s:%n%n", TagCompression.class.getName());
-        for (TagCompression v : TagCompression.values()) {
-            TiffCompression compression = TiffCompression.get(v.code());
-            if (v.code() != compression.getCode()) {
-                throw new AssertionError();
-            }
-            System.out.printf("%s (%d, \"%s\", %s); corresponding SCIFIO compression:%n  %s (%d, \"%s\")%n",
-                    v, v.code(), v.prettyName(), v.codec(),
-                    compression, compression.getCode(), compression.getCodecName());
-        }
+public class SimplestSCIFIO {
+    private static final int MAX_IMAGE_SIZE = 6000;
 
-        System.out.printf("%n%n%s:%n%n", TiffCompression.class.getName());
-        for (TiffCompression v : TiffCompression.values()) {
-            TagCompression compression = TagCompression.valueOfCodeOrNull(v.getCode());
-            System.out.printf("%s (%d, \"%s\"); corresponding compression:%n  %s%n",
-                    v, v.getCode(), v.getCodecName(), compression);
-        }
+    public static void main(String[] args) throws Exception {
+        SCIFIO scifio = new SCIFIO();
+        Context context = scifio.getContext();
+        System.out.println(context);
     }
 }

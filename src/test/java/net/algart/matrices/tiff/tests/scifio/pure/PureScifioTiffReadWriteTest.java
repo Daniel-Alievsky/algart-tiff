@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.tests.scifio;
+package net.algart.matrices.tiff.tests.scifio.pure;
 
 import io.scif.FormatException;
 import io.scif.SCIFIO;
@@ -92,7 +92,7 @@ public class PureScifioTiffReadWriteTest {
         System.out.println("Done");
     }
 
-    public static IFD removeUndesirableTags(IFD ifd) {
+    private static IFD removeUndesirableTags(IFD ifd) {
         IFD newIFD = new IFD(ifd, null);
         for (Map.Entry<Integer, Object> entry : ifd.entrySet()) {
             switch (entry.getKey()) {

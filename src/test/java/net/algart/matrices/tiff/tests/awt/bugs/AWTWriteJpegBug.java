@@ -32,6 +32,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 
+// See https://bugs.java.com/bugdatabase/view_bug?bug_id=JDK-8313303
 public class AWTWriteJpegBug {
     public static final boolean ENFORCE_BUG_1 = false;
     public static final boolean ENFORCE_BUG_2 = false;

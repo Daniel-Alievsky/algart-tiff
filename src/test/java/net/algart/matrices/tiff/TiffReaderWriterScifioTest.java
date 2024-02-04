@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff;
 
-import io.scif.SCIFIO;
 import org.scijava.Context;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.location.BytesLocation;
@@ -62,7 +61,7 @@ public class TiffReaderWriterScifioTest {
             DataHandle<Location> bytesHandle = TiffTools.getBytesHandle(new BytesLocation(10));
             TiffReader reader = new TiffReader(bytesHandle, false);
             checkContext(reader);
-            Context context = new SCIFIO().context();
+            Context context = TiffTools.newSCIFIOContext();
             reader.setContext(context);
             checkContext(reader);
             reader.setContext(context);

@@ -22,13 +22,12 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.tests;
+package net.algart.matrices.tiff.tests.io;
 
-import net.algart.matrices.tiff.TiffException;
-import io.scif.formats.tiff.TiffCompression;
 import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
+import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffTools;
 import net.algart.matrices.tiff.tiles.TiffMap;
@@ -88,13 +87,13 @@ public class TiffReadTilesTest {
 
             final Path imageFile = resultFolder.resolve("result.bmp");
             System.out.printf("Saving result image into %s...%n", imageFile);
-            TiffReaderTest.writeImageFile(imageFile, matrix);
+            TiffTestTools.writeImageFile(imageFile, matrix);
             for (TiffTile t : map.tiles()) {
                 if (!t.isEmpty()) {
                     final Path tileFile = tilePath(t, resultFolder);
                     System.out.printf("Saving tile %s in %s...%n", t, tileFile);
                     PArray a = TiffTools.bytesToArray(t.getDecodedData(), t.sampleType(), reader.isLittleEndian());
-                    TiffReaderTest.writeImageFile(
+                    TiffTestTools.writeImageFile(
                             tileFile, Matrices.matrix(a, t.getSizeX(), t.getSizeY(), t.samplesPerPixel()));
                 }
             }

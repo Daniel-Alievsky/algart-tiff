@@ -24,16 +24,17 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
-import net.algart.matrices.tiff.awt.AWTImages;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.external.BufferedImageToMatrixConverter;
+import net.algart.matrices.tiff.awt.AWTImages;
 import net.algart.matrices.tiff.awt.JPEG;
 
 import javax.imageio.IIOException;
 import javax.imageio.ImageIO;
 import javax.imageio.stream.ImageInputStream;
-import java.awt.image.*;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBuffer;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;

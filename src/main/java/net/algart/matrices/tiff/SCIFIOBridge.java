@@ -64,6 +64,7 @@ class SCIFIOBridge {
             throw new UnsupportedOperationException("Cannot create SCIFIO context: SCIFIO library is not installed");
         }
         try {
+            // return new SCIFIO().context();
             final Object scifio = SCIFIO_CLASS.getConstructor().newInstance();
             return (Context) SCIFIO_CLASS.getMethod("getContext").invoke(scifio);
         } catch (InstantiationException | IllegalAccessException |

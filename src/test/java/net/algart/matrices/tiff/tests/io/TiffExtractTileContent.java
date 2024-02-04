@@ -22,15 +22,13 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.tests;
+package net.algart.matrices.tiff.tests.io;
 
-import io.scif.SCIFIO;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.executable.TiffInfo;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIndex;
-import org.scijava.Context;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -56,27 +54,24 @@ public class TiffExtractTileContent {
 
         new TiffInfo().showTiffInfo(tiffFile);
 
-        final SCIFIO scifio = new SCIFIO();
-        try (final Context context = scifio.getContext()) {
-            final TiffReader reader = new TiffReader(tiffFile).setContext(context);
-            System.out.printf("Opening %s by %s...%n", tiffFile, reader);
-            final TiffMap map = reader.map(ifdIndex);
-            System.out.printf("TIFF map #%d: %s%n", ifdIndex, map);
-            final TiffTileIndex tileIndex = map.multiplaneIndex(separatedPlaneIndex, col, row);
-            TiffTile tile = reader.readEncodedTile(tileIndex);
-            reader.prepareEncodedTileForDecoding(tile);
-            System.out.printf("Loaded tile:%n    %s%n", tile);
-            if (!tile.isEmpty()) {
-                System.out.printf("    Compression format: %s%n", map.ifd().compressionPrettyName());
-                byte[] bytes = tile.getData();
-                System.out.printf("Tile saved in %s%n", resultFile);
-                Files.write(resultFile, bytes);
-                try {
-                    tile = reader.readTile(tileIndex);
-                    System.out.printf("Decoding the same (for verification): %s%n", tile);
-                } catch (IOException e) {
-                    System.err.printf("Cannot decode tile: %s%n", e);
-                }
+        final TiffReader reader = new TiffReader(tiffFile);
+        System.out.printf("Opening %s by %s...%n", tiffFile, reader);
+        final TiffMap map = reader.map(ifdIndex);
+        System.out.printf("TIFF map #%d: %s%n", ifdIndex, map);
+        final TiffTileIndex tileIndex = map.multiplaneIndex(separatedPlaneIndex, col, row);
+        TiffTile tile = reader.readEncodedTile(tileIndex);
+        reader.prepareEncodedTileForDecoding(tile);
+        System.out.printf("Loaded tile:%n    %s%n", tile);
+        if (!tile.isEmpty()) {
+            System.out.printf("    Compression format: %s%n", map.ifd().compressionPrettyName());
+            byte[] bytes = tile.getData();
+            System.out.printf("Tile saved in %s%n", resultFile);
+            Files.write(resultFile, bytes);
+            try {
+                tile = reader.readTile(tileIndex);
+                System.out.printf("Decoding the same (for verification): %s%n", tile);
+            } catch (IOException e) {
+                System.err.printf("Cannot decode tile: %s%n", e);
             }
         }
         System.out.println("Done");

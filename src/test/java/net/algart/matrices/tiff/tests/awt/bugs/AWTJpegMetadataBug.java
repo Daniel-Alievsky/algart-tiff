@@ -45,6 +45,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.Iterator;
 
+// See https://bugs.java.com/bugdatabase/view_bug?bug_id=JDK-8318972
 public class AWTJpegMetadataBug {
     public static final boolean NEED_JCS_RGB = false;
     // Please set to "false" to enforce bug.
