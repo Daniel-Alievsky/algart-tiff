@@ -217,7 +217,7 @@ public class TiffWriter implements Closeable {
      *
      * <p>If set, then the samples array in <tt>write...</tt> methods is always supposed to be unpacked.
      * For multichannel images it means the samples order like RRR..GGG..BBB...: standard form, supposed by
-     * {@link io.scif.Plane} class and returned by {@link TiffReader}. If the desired IFD format is
+     * <tt>io.scif.Plane</tt> class and returned by {@link TiffReader}. If the desired IFD format is
      * chunked, i.e. {@link Tags#PLANAR_CONFIGURATION} is {@link TiffIFD#PLANAR_CONFIGURATION_CHUNKED}
      * (that is the typical usage), then the passes samples are automatically re-packed into chunked (interleaved)
      * form RGBRGBRGB...
