@@ -26,6 +26,7 @@ package net.algart.matrices.tiff.tests;
 
 import io.scif.FormatException;
 import io.scif.SCIFIO;
+import io.scif.codec.CodecOptions;
 import io.scif.formats.tiff.IFD;
 import io.scif.formats.tiff.PhotoInterp;
 import io.scif.formats.tiff.TiffCompression;
@@ -122,7 +123,7 @@ public class TiffReadWriteTest {
 
                 TiffParser parser = null;
                 io.scif.formats.tiff.TiffParser originalParser = null;
-                io.scif.formats.tiff.TiffSaver sequentialTiffSaver = null;
+                io.scif.formats.tiff.TiffSaver tiffSaver = null;
                 if (compatibility) {
                     if (context == null) {
                         throw new UnsupportedEncodingException(
@@ -134,12 +135,15 @@ public class TiffReadWriteTest {
 
                     Files.deleteIfExists(targetExperimentalFile);
                     // - strange, but necessary
-                    sequentialTiffSaver = new io.scif.formats.tiff.TiffSaver(context,
+                    tiffSaver = new io.scif.formats.tiff.TiffSaver(context,
                             new FileLocation(targetExperimentalFile.toFile()));
-                    sequentialTiffSaver.setWritingSequentially(true);
-                    sequentialTiffSaver.setBigTiff(writer.isBigTiff());
-                    sequentialTiffSaver.setLittleEndian(writer.isLittleEndian());
-                    sequentialTiffSaver.writeHeader();
+                    tiffSaver.setWritingSequentially(true);
+                    tiffSaver.setBigTiff(writer.isBigTiff());
+                    tiffSaver.setLittleEndian(writer.isLittleEndian());
+                    CodecOptions codecOptions = new CodecOptions();
+                    codecOptions.maxBytes = 1000;
+                    tiffSaver.setCodecOptions(codecOptions);
+                    tiffSaver.writeHeader();
                 }
                 System.out.printf("Writing %s%s...%n", targetFile, bigTiff ? " (big TIFF)" : "");
                 final List<TiffIFD> ifds = reader.allIFDs();
@@ -230,7 +234,7 @@ public class TiffReadWriteTest {
                         writerIFD.putImageDimensions(w, h);
                         // Note: as a result, last strip in this file will be too large!
                         // It is a minor inconsistency, but detected by GIMP and other programs.
-                        writeSeveralTilesOrStrips(sequentialTiffSaver, buf2,
+                        writeSeveralTilesOrStrips(tiffSaver, buf2,
                                 parser.toScifioIFD(writerIFD), readerIFD.sampleType().code(), bandCount,
                                 START_X, START_Y, paddedW, paddedH, ifdIndex == lastIFDIndex);
                         System.out.printf("Effective IFD (compatibility):%n%s%n", writerIFD);
@@ -243,7 +247,7 @@ public class TiffReadWriteTest {
                 writer.close();
                 if (compatibility) {
                     parser.close();
-                    sequentialTiffSaver.getStream().close();
+                    tiffSaver.getStream().close();
                 }
             }
         }

@@ -790,7 +790,7 @@ public class TiffReader implements Closeable {
         final int index = tileIndex.linearIndex();
         // - also checks that tile index is not out of image bounds
         final long offset = ifd.cachedTileOrStripOffset(index);
-        assert offset >= 0 : "offset " + offset + " was not checked in DetailedIFD";
+        assert offset >= 0 : "offset " + offset + " was not checked in TiffIFD";
         final int byteCount = cachedByteCountWithCompatibilityTrick(ifd, index);
 
         /*
@@ -1041,13 +1041,13 @@ public class TiffReader implements Closeable {
         final TiffTileIndex tileIndex = tile.tileIndex();
         final int tileSizeX = tileIndex.tileSizeX();
         final int tileSizeY = tileIndex.tileSizeY();
-        DetailedIFD ifd = tile.ifd();
+        TiffIFD ifd = tile.ifd();
         final int samplesPerPixel = ifd.getSamplesPerPixel();
         final int planarConfig = ifd.getPlanarConfiguration();
         final int bytesPerSample = ifd.getBytesPerSampleBasedOnBits();
-        final int effectiveChannels = planarConfig == DetailedIFD.PLANAR_CONFIG_SEPARATE ? 1 : samplesPerPixel;
+        final int effectiveChannels = planarConfig == TiffIFD.PLANAR_CONFIG_SEPARATE ? 1 : samplesPerPixel;
         assert samples.length == ((long) tileSizeX * (long) tileSizeY * bytesPerSample * effectiveChannels);
-        if (planarConfig == DetailedIFD.PLANAR_CONFIG_SEPARATE && !ifd.isTiled() && ifd.getSamplesPerPixel() > 1) {
+        if (planarConfig == TiffIFD.PLANAR_CONFIG_SEPARATE && !ifd.isTiled() && ifd.getSamplesPerPixel() > 1) {
             final OnDemandLongArray onDemandOffsets = ifd.getOnDemandStripOffsets();
             final long[] offsets = onDemandOffsets != null ? null : ifd.getStripOffsets();
             final long numberOfStrips = onDemandOffsets != null ? onDemandOffsets.size() : offsets.length;

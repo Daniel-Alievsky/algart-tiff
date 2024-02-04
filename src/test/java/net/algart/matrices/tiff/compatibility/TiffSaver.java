@@ -33,6 +33,7 @@ import io.scif.util.FormatTools;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffTools;
 import net.algart.matrices.tiff.TiffWriter;
+import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.tags.TagRational;
 import org.scijava.Context;
 import org.scijava.io.handle.DataHandle;
@@ -63,12 +64,10 @@ public class TiffSaver extends TiffWriter {
     private SCIFIO scifio;
     private LogService log;
 
-    @Deprecated
     public TiffSaver(final Context ctx, final String filename) throws IOException {
         this(ctx, new FileLocation(filename));
     }
 
-    @Deprecated
     public TiffSaver(final Context ctx, final Location loc) {
         super(Objects.requireNonNull(ctx, "Null context").getService(DataHandleService.class).create(loc));
         scifio = new SCIFIO(ctx);
@@ -87,7 +86,6 @@ public class TiffSaver extends TiffWriter {
      * @param bytes In memory byte array handle that we may use to create extra
      *              input or output streams as required.
      */
-    @Deprecated
     public TiffSaver(final DataHandle<Location> out, final BytesLocation bytes) {
         this(new Context(), (Location) out);
         // Note: it the old SCIFIO TiffSaver class, "bytes" parameter was stored in a field,
@@ -103,8 +101,15 @@ public class TiffSaver extends TiffWriter {
         sequentialWrite = sequential;
     }
 
-    public void setCodecOptions(final CodecOptions options) {
-        this.options = options;
+    public void setCodecOptions(final CodecOptions codecOptions) {
+        this.options = codecOptions;
+        TiffCodec.Options options = getCodecOptions();
+        options.setToOldStyleOptions(codecOptions);
+        // - Not too important, but also does not create problems.
+        // In particular, default quality=null may be replaced with quality=0.0,
+        // but this is not a problem for old SCIFIO codecs.
+        //noinspection resource
+        setCodecOptions(options);
     }
 
     /**
@@ -154,10 +159,10 @@ public class TiffSaver extends TiffWriter {
      */
     @Deprecated
     public void writeIFD(final IFD ifd, final long nextOffset) throws IOException, FormatException {
-        TiffIFD extended = net.algart.matrices.tiff.compatibility.TiffParser.toTiffIFD(ifd);
-        extended.setFileOffsetForWriting(getStream().offset());
-        extended.setNextIFDOffset(nextOffset);
-        rewriteIFD(extended, true);
+        TiffIFD tiffIFD = net.algart.matrices.tiff.compatibility.TiffParser.toTiffIFD(ifd);
+        tiffIFD.setFileOffsetForWriting(getStream().offset());
+        tiffIFD.setNextIFDOffset(nextOffset);
+        rewriteIFD(tiffIFD, true);
     }
 
     @Deprecated
@@ -541,7 +546,8 @@ public class TiffSaver extends TiffWriter {
                 tileHeight = (int) ifd.getTileLength();
                 final int tilesPerRow = (int) ifd.getTilesPerRow();
                 final int rowsPerStrip = (int) ifd.getRowsPerStrip()[0];
-                int stripSize = rowsPerStrip * tileWidth * bytesPerPixel;
+                int stripSize = tileHeight * tileWidth * bytesPerPixel;
+                // int stripSize = rowsPerStrip * tileWidth * bytesPerPixel; // SCIFIO BUG!!
                 nStrips = ((w + tileWidth - 1) / tileWidth) * ((h + tileHeight - 1) /
                         tileHeight);
 
@@ -559,7 +565,8 @@ public class TiffSaver extends TiffWriter {
 
                 // write pixel strips to output buffers
                 final int effectiveStrips = !interleaved ? nStrips / nChannels : nStrips;
-                if (effectiveStrips == 1 && copyDirectly) {
+                if (nStrips == 1 && copyDirectly) {
+                // if (effectiveStrips == 1 && copyDirectly) { // SCIFIO BUG!!
                     stripOut[0].write(buf);
                 } else {
                     for (int strip = 0; strip < effectiveStrips; strip++) {
@@ -567,21 +574,25 @@ public class TiffSaver extends TiffWriter {
                         final int yOffset = (strip / tilesPerRow) * tileHeight;
                         for (int row = 0; row < tileHeight; row++) {
                             for (int col = 0; col < tileWidth; col++) {
+                                int i = row + yOffset , j = col + xOffset;
                                 final int ndx = ((row + yOffset) * w + col + xOffset) *
                                         bytesPerPixel;
                                 for (int c = 0; c < nChannels; c++) {
                                     for (int n = 0; n < bps[c] / 8; n++) {
                                         if (interleaved) {
                                             off = ndx * nChannels + c * bytesPerPixel + n;
-                                            if (row >= h || col >= w) {
+                                            // if (row >= h || col >= w) { SCIFIO BUG!!
+                                            if (i >= h || j >= w) {
                                                 stripOut[strip].writeByte(0);
                                             } else {
                                                 stripOut[strip].writeByte(buf[off]);
                                             }
                                         } else {
                                             off = c * blockSize + ndx + n;
-                                            if (row >= h || col >= w) {
-                                                stripOut[strip].writeByte(0);
+                                            if (i >= h || j >= w) {
+                                            // if (row >= h || col >= w) { // SCIFIO BUG!!
+                                                stripOut[c * (nStrips / nChannels) + strip].writeByte(0);
+                                                // stripOut[strip].writeByte(0); // SCIFIO BUG!!
                                             } else {
                                                 stripOut[c * (nStrips / nChannels) + strip].writeByte(
                                                         buf[off]);
@@ -721,7 +732,19 @@ public class TiffSaver extends TiffWriter {
             ifd.putIFDValue(IFD.STRIP_BYTE_COUNTS, toPrimitiveArray(byteCounts));
             ifd.putIFDValue(IFD.STRIP_OFFSETS, toPrimitiveArray(offsets));
         }
-        final long endFP = out.offset();
+        long endFP = out.offset();
+
+        ////////////////////
+        // SCIFIO BUG!! Original SCIFIO code does not contain the following check,
+        // but this TiffSaver inherits writing IFD from TiffWriter and cannot work
+        // with an invalid (odd) start offset of IFD in the file
+        if ((endFP & 0x1) != 0) {
+            out.writeByte(0);
+            endFP = out.offset();
+            // - Well-formed IFD requires even offsets
+        }
+        ////////////////////
+
         if (log.isDebug()) {
             log.debug("Offset before IFD write: " + out.offset() + " Seeking to: " +
                     fp);
@@ -738,6 +761,13 @@ public class TiffSaver extends TiffWriter {
         if (log.isDebug()) {
             log.debug("Offset after IFD write: " + out.offset());
         }
+
+        ////////////////////
+        // SCIFIO BUG!! Original SCIFIO code does not contain the following operator, and
+        // writeImage method does not work properly when it is called several times.
+        out.seek(endFP);
+        // - restoring correct file pointer at the end of tile
+        ////////////////////
     }
 
     private void makeValidIFD(final IFD ifd, final int pixelType,
@@ -758,7 +788,12 @@ public class TiffSaver extends TiffWriter {
         final boolean indexed = nChannels == 1 && ifd.getIFDValue(
                 IFD.COLOR_MAP) != null;
         final PhotoInterp pi = indexed ? PhotoInterp.RGB_PALETTE : nChannels == 1
-                ? PhotoInterp.BLACK_IS_ZERO : PhotoInterp.RGB;
+                ? PhotoInterp.BLACK_IS_ZERO
+                : ifd.getIFDValue(IFD.COMPRESSION).equals(TiffCompression.JPEG.getCode()) ? PhotoInterp.Y_CB_CR
+                : PhotoInterp.RGB;
+        // final PhotoInterp pi = indexed ? PhotoInterp.RGB_PALETTE : nChannels == 1
+        //        ? PhotoInterp.BLACK_IS_ZERO : PhotoInterp.RGB;
+        // - SCIFIO BUG!! Writing JPEG in RGB format is not actually supported by SCIFIO code
         ifd.putIFDValue(IFD.PHOTOMETRIC_INTERPRETATION, pi.getCode());
 
         ifd.putIFDValue(IFD.SAMPLES_PER_PIXEL, nChannels);

@@ -50,10 +50,7 @@ import org.scijava.util.IntRect;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Vector;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -124,10 +121,22 @@ public class TiffParser extends TiffReader {
             littleEndian = ifd.isLittleEndian();
         } catch (FormatException ignored) {
         }
-        return TiffIFD.valueOf(ifd).setBigTiff(bigTiff).setLittleEndian(littleEndian);
+        final Map<Integer, Object> ifdEntries = new LinkedHashMap<>();
+        for (Map.Entry<Integer, Object> entry : ifd.entrySet()) {
+            final Integer key = entry.getKey();
+            if (key.equals(IFD.LITTLE_ENDIAN) || key.equals(IFD.BIG_TIFF) || key.equals(IFD.REUSE)) {
+                continue;
+            }
+            ifdEntries.put(key, entry.getValue());
+        }
+        return TiffIFD.valueOf(ifdEntries).setBigTiff(bigTiff).setLittleEndian(littleEndian);
     }
 
     public IFD toScifioIFD(TiffIFD ifd) {
+        return toScifioIFD(ifd, log);
+    }
+
+    public static IFD toScifioIFD(TiffIFD ifd, LogService log) {
         IFD result = new IFD(log);
         result.putAll(ifd.map());
         result.put(IFD.LITTLE_ENDIAN, ifd.isLittleEndian());
@@ -174,6 +183,7 @@ public class TiffParser extends TiffReader {
         this.codecOptions = codecOptions;
         TiffCodec.Options options = getCodecOptions();
         options.setToOldStyleOptions(codecOptions);
+        // - not too important, but also does not create problems
         //noinspection resource
         setCodecOptions(options);
     }

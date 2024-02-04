@@ -24,10 +24,15 @@
 
 package net.algart.matrices.tiff.tests;
 
+import io.scif.FormatException;
+import io.scif.codec.CodecOptions;
+import io.scif.util.FormatTools;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
+import net.algart.matrices.tiff.compatibility.TiffParser;
+import net.algart.matrices.tiff.compatibility.TiffSaver;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffMap;
@@ -35,6 +40,7 @@ import net.algart.matrices.tiff.tiles.TiffTile;
 import org.scijava.Context;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -45,7 +51,7 @@ public class TiffWriterTest {
     private final static int IMAGE_WIDTH = 1011;
     private final static int IMAGE_HEIGHT = 1051;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, FormatException {
         int startArgIndex = 0;
         boolean noContext = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-noContext")) {
@@ -150,6 +156,14 @@ public class TiffWriterTest {
             thoroughTesting = true;
             startArgIndex++;
         }
+        boolean compatibility = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-compatibility")) {
+            jpegRGB = false;
+            resizable = false;
+            // - TiffSaver does not support these features
+            compatibility = true;
+            startArgIndex++;
+        }
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
             System.out.println("    " + TiffWriterTest.class.getName() +
@@ -189,8 +203,13 @@ public class TiffWriterTest {
                 numberOfTests);
 
         for (int test = 1; test <= numberOfTests; test++) {
+            if (compatibility && !existingFile) {
+                Files.deleteIfExists(targetFile);
+            }
             try (final Context context = noContext ? null : TiffTools.newSCIFIOContext();
-                 final TiffWriter writer = new TiffWriter(targetFile, !existingFile)) {
+                 final TiffWriter writer = compatibility ?
+                         new TiffSaver(context, targetFile.toString()) :
+                         new TiffWriter(targetFile, !existingFile)) {
                 writer.setContext(context);
 //                 TiffWriter writer = new TiffSaver(context, targetFile.toString())) {
 //                writer.setEnforceUseExternalCodec(true);
@@ -210,6 +229,12 @@ public class TiffWriterTest {
 //                writer.setByteFiller((byte) 0xE0);
                 writer.setTileInitializer(TiffWriterTest::customFillEmptyTile);
                 writer.setMissingTilesAllowed(allowMissing);
+                if (writer instanceof TiffSaver saver) {
+                    CodecOptions codecOptions = new CodecOptions();
+                    codecOptions.bitsPerSample = 16;
+                    saver.setCodecOptions(codecOptions);
+                    // - should not have effect
+                }
                 System.out.printf("%nTest #%d/%d: %s %s...%n",
                         test, numberOfTests,
                         existingFile ? "writing to" : "creating", targetFile);
@@ -292,14 +317,19 @@ public class TiffWriterTest {
                     }
 
                     Object samplesArray = makeSamples(ifdIndex, map.numberOfChannels(), map.sampleType(), w, h);
-                    final boolean interleaved = interleaveOutside && map.bytesPerSample() == 1;
+                    final boolean interleaved = !writer.isAutoInterleaveSource() && map.bytesPerSample() == 1;
                     if (interleaved) {
                         samplesArray = TiffTools.toInterleavedSamples(
                                 (byte[]) samplesArray, map.numberOfChannels(), 1, w * h);
                     }
                     Matrix<UpdatablePArray> matrix = TiffTools.asMatrix(
-                            samplesArray, w, h, map.numberOfChannels(), interleaved);
-                    writer.writeMatrix(map, matrix);
+                            samplesArray, w, h,  map.numberOfChannels(), interleaved);
+                    if (writer instanceof TiffSaver saver && samplesArray instanceof byte[] bytes) {
+                        saver.writeImage(bytes, TiffParser.toScifioIFD(map.ifd(), null),
+                                ifdIndex, FormatTools.UINT8, k == numberOfImages - 1);
+                    } else {
+                        writer.writeMatrix(map, matrix);
+                    }
 //                    writer.writeJavaArray(map, samplesArray, x, y, w, h); // - alternate way to write this matrix
                     if (thoroughTesting) {
                         long length = writer.getStream().length();

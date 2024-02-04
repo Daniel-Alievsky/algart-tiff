@@ -544,7 +544,7 @@ public class TiffWriter implements Closeable {
             throw new IllegalArgumentException("Offset for writing IFD is not specified");
         }
         final long offset = ifd.getFileOffsetForWriting();
-        assert (offset & 0x1) == 0 : "DetailedIFD.setFileOffsetForWriting() has not check offset parity: " + offset;
+        assert (offset & 0x1) == 0 : "TiffIFD.setFileOffsetForWriting() has not check offset parity: " + offset;
 
         writeIFDAt(ifd, offset, updateIFDLinkages);
     }
@@ -837,25 +837,35 @@ public class TiffWriter implements Closeable {
         return updateSamples(map, samples, fromX, fromY, sizeX, sizeY);
     }
 
-    public List<TiffTile> updateMatrix(TiffMap map, Matrix<? extends PArray> matrix, int fromX, int fromY) {
+    public List<TiffTile> updateMatrix(TiffMap map, Matrix<? extends PArray> m, int fromX, int fromY) {
         Objects.requireNonNull(map, "Null TIFF map");
-        Objects.requireNonNull(matrix, "Null matrix");
+        Objects.requireNonNull(m, "Null matrix");
         final boolean sourceInterleaved = isSourceProbablyInterleaved(map);
-        final Class<?> elementType = matrix.elementType();
+        final Class<?> elementType = m.elementType();
         if (elementType != map.elementType()) {
             throw new IllegalArgumentException("Invalid element type of the matrix: " + elementType +
                     ", because the specified TIFF map stores " + map.elementType() + " elements");
         }
+        if (m.dimCount() != 3 && !(m.dimCount() == 2 && map.numberOfChannels() == 1)) {
+            throw new IllegalArgumentException("Illegal number of matrix dimensions " + m.dimCount() +
+                    ": it must be 3-dimensional dimX*dimY*C, " +
+                    "where C is the number of channels (z-dimension), " +
+                    "or 3-dimensional C*dimX*dimY for interleaved case, " +
+                    "or may be 2-dimensional in a case of monochrome TIFF image");
+        }
         final int dimChannelsIndex = sourceInterleaved ? 0 : 2;
-        final long numberOfChannels = matrix.dim(dimChannelsIndex);
+        final long numberOfChannels = m.dim(dimChannelsIndex);
         if (numberOfChannels != map.numberOfChannels()) {
             throw new IllegalArgumentException("Invalid number of channels in the matrix: " + numberOfChannels +
-                    " (dimension #" + dimChannelsIndex +
-                    "), because the specified TIFF map stores " + map.numberOfChannels() + " channels");
+                    " (matrix " + m.dim(0) + "*" + m.dim(1) + "*" + m.dim(2) + "), " +
+                    (m.dim(2 - dimChannelsIndex) == map.numberOfChannels() ?
+                            "probably because of invalid interleaving mode: TIFF image is " +
+                                    (sourceInterleaved ? "" : "NOT ") + "interleaved" :
+                            "because the specified TIFF map stores " + map.numberOfChannels() + " channels"));
         }
-        final long sizeX = matrix.dim(sourceInterleaved ? 1 : 0);
-        final long sizeY = matrix.dim(sourceInterleaved ? 2 : 1);
-        final byte[] samples = TiffTools.arrayToBytes(matrix.array(), isLittleEndian());
+        final long sizeX = m.dim(sourceInterleaved ? 1 : 0);
+        final long sizeY = m.dim(sourceInterleaved ? 2 : 1);
+        final byte[] samples = TiffTools.arrayToBytes(m.array(), isLittleEndian());
         return updateSamples(map, samples, fromX, fromY, sizeX, sizeY);
     }
 
@@ -1490,8 +1500,7 @@ public class TiffWriter implements Closeable {
                 writeOffset(bufferOffsetInResultFile + extraBuffer.offset());
                 extraBuffer.write(q);
             }
-        } else if (value instanceof short[]) { // suppose BYTE (unsigned 8-bit)
-            final short[] q = (short[]) value;
+        } else if (value instanceof short[] q) { // suppose BYTE (unsigned 8-bit)
             out.writeShort(TagTypes.BYTE);
             writeIntOrLong(out, q.length);
             if (q.length <= dataLength) {
@@ -1526,8 +1535,7 @@ public class TiffWriter implements Closeable {
                 }
                 extraBuffer.writeByte(0); // concluding zero byte
             }
-        } else if (value instanceof int[]) { // suppose SHORT (unsigned 16-bit)
-            final int[] q = (int[]) value;
+        } else if (value instanceof int[] q) { // suppose SHORT (unsigned 16-bit)
             if (q.length == 1) {
                 // - we should allow to use usual int values for 32-bit tags, to avoid a lot of obvious bugs
                 final int v = q[0];
@@ -1553,14 +1561,13 @@ public class TiffWriter implements Closeable {
                     extraBuffer.writeShort(intValue);
                 }
             }
-        } else if (value instanceof long[]) { // suppose LONG (unsigned 32-bit) or LONG8 for BitTIFF
-            final long[] q = (long[]) value;
+        } else if (value instanceof long[] q) { // suppose LONG (unsigned 32-bit) or LONG8 for BitTIFF
             if (AVOID_LONG8_FOR_ACTUAL_32_BITS && q.length == 1 && bigTiff) {
                 // - note: inside TIFF, long[1] is saved in the same way as Long; we have a difference in Java only
                 final long v = q[0];
                 if (v == (int) v) {
                     // - it is probable for the following tags, if they are added
-                    // manually via DetailedIFD.put with "long" argument
+                    // manually via TiffIFD.put with "long" argument
                     switch (tag) {
                         case Tags.IMAGE_WIDTH,
                                 Tags.IMAGE_LENGTH,
@@ -1597,8 +1604,7 @@ public class TiffWriter implements Closeable {
                     writeIntOrLong(extraBuffer, longValue);
                 }
             }
-        } else if (value instanceof TagRational[]) {
-            final TagRational[] q = (TagRational[]) value;
+        } else if (value instanceof TagRational[] q) {
             out.writeShort(TagTypes.RATIONAL);
             writeIntOrLong(out, q.length);
             if (bigTiff && q.length == 1) {
@@ -1611,8 +1617,7 @@ public class TiffWriter implements Closeable {
                     extraBuffer.writeInt((int) tagRational.getDenominator());
                 }
             }
-        } else if (value instanceof float[]) {
-            final float[] q = (float[]) value;
+        } else if (value instanceof float[] q) {
             out.writeShort(TagTypes.FLOAT);
             writeIntOrLong(out, q.length);
             if (q.length <= dataLength / 4) {
@@ -1629,8 +1634,7 @@ public class TiffWriter implements Closeable {
                     extraBuffer.writeFloat(floatValue);
                 }
             }
-        } else if (value instanceof double[]) {
-            final double[] q = (double[]) value;
+        } else if (value instanceof double[] q) {
             out.writeShort(TagTypes.DOUBLE);
             writeIntOrLong(out, q.length);
             writeOffset(bufferOffsetInResultFile + extraBuffer.offset());
@@ -1639,7 +1643,7 @@ public class TiffWriter implements Closeable {
             }
         } else if (!(value instanceof TiffIFD.UnsupportedTypeValue)) {
             // - for unsupported type, we don't know the sense of its valueOrOffset field; it is better to skip it
-            throw new UnsupportedOperationException("Unknown IFD value type ("
+            throw new UnsupportedOperationException("Unknown IFD tag " + tag + " value type ("
                     + value.getClass().getSimpleName() + "): " + value);
         }
     }

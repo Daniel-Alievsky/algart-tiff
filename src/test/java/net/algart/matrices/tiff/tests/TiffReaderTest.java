@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff.tests;
 
+import io.scif.codec.CodecOptions;
 import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
@@ -113,6 +114,13 @@ public class TiffReaderTest {
                 reader.setAutoCorrectInvertedBrightness(true);
                 reader.setMissingTilesAllowed(true);
                 reader.setByteFiller((byte) 0x80);
+                if (reader instanceof TiffParser parser) {
+                    CodecOptions codecOptions = new CodecOptions();
+                    codecOptions.maxBytes = 1000;
+                    parser.setCodecOptions(codecOptions);
+                    assert reader.getCodecOptions().getMaxSizeInBytes() == 1000;
+                }
+
 //                ((TiffParser) reader).setAssumeEqualStrips(true);
 //                reader.setCropTilesToImageBoundaries(false);
                 final long positionOfLastOffset = reader.positionOfLastIFDOffset();
