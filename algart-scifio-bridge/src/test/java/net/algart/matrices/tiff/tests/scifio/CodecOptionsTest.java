@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.tests.scifio.pure;
+package net.algart.matrices.tiff.tests.scifio;
 
 import io.scif.codec.CodecOptions;
 import net.algart.matrices.tiff.codecs.JPEG2000Codec;

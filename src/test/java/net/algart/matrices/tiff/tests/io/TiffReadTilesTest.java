@@ -27,6 +27,7 @@ package net.algart.matrices.tiff.tests.io;
 import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
+import net.algart.external.ExternalAlgorithmCaller;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffTools;
@@ -38,6 +39,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Locale;
 
 public class TiffReadTilesTest {
@@ -87,13 +89,13 @@ public class TiffReadTilesTest {
 
             final Path imageFile = resultFolder.resolve("result.bmp");
             System.out.printf("Saving result image into %s...%n", imageFile);
-            TiffTestTools.writeImageFile(imageFile, matrix);
+            writeImageFile(imageFile, matrix);
             for (TiffTile t : map.tiles()) {
                 if (!t.isEmpty()) {
                     final Path tileFile = tilePath(t, resultFolder);
                     System.out.printf("Saving tile %s in %s...%n", t, tileFile);
                     PArray a = TiffTools.bytesToArray(t.getDecodedData(), t.sampleType(), reader.isLittleEndian());
-                    TiffTestTools.writeImageFile(
+                    writeImageFile(
                             tileFile, Matrices.matrix(a, t.getSizeX(), t.getSizeY(), t.samplesPerPixel()));
                 }
             }
@@ -106,5 +108,13 @@ public class TiffReadTilesTest {
                 "_y" + i.yIndex() +
                 (tile.isPlanarSeparated() ? "_p" + i.channelPlane() : "") +
                 "." + ((tile.ifd().isJpeg()) ? "jpg" : "bmp"));
+    }
+
+    private static void writeImageFile(Path file, Matrix<? extends PArray> matrix) throws IOException {
+        if (matrix.size() > 0) {
+            // - BufferedImage cannot have zero sizes
+            List<Matrix<? extends PArray>> image = TiffTools.splitChannels(matrix);
+            ExternalAlgorithmCaller.writeImage(file.toFile(), image);
+        }
     }
 }

@@ -24,19 +24,18 @@
 
 package net.algart.matrices.tiff.tests.io;
 
-import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
 import net.algart.arrays.SimpleMemoryModel;
 import net.algart.external.ExternalAlgorithmCaller;
 import net.algart.external.ImageConversions;
+import net.algart.matrices.tiff.TiffTools;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 
-public class TiffTestTools {
+class TiffTestTools {
     private TiffTestTools() {
     }
 
@@ -46,35 +45,13 @@ public class TiffTestTools {
 
     public static void writeImageFile(Path file, Matrix<? extends PArray> matrix, boolean interleaved)
             throws IOException {
-        List<Matrix<? extends PArray>> image = interleaved ?
-                interleavedToImage(matrix) :
-                separatedToImage(matrix);
-        if (image != null) {
+        if (matrix.size() > 0) {
+            // - BufferedImage cannot have zero sizes
+            List<Matrix<? extends PArray>> image = interleaved ?
+                    ImageConversions.unpack2DBandsFromSequentialSamples(null, intsToBytes(matrix)) :
+                    TiffTools.splitChannels(intsToBytes(matrix));
             ExternalAlgorithmCaller.writeImage(file.toFile(), image);
         }
-    }
-
-    private static List<Matrix<? extends PArray>> separatedToImage(Matrix<? extends PArray> matrix) {
-        if (matrix.size() == 0) {
-            return null;
-            // - provided for testing only (BufferedImage cannot have zero sizes)
-        }
-        matrix = intsToBytes(matrix);
-        List<Matrix<? extends PArray>> channels = new ArrayList<>();
-        for (long k = 0; k < matrix.dim(2); k++) {
-            Matrix<? extends PArray> subMatrix = matrix.subMatr(0, 0, k, matrix.dimX(), matrix.dimY(), 1);
-            Matrix<? extends PArray> reduced = Matrices.matrix(subMatrix.array(), matrix.dimX(), matrix.dimY());
-            channels.add(reduced);
-        }
-        return channels;
-    }
-
-    private static List<Matrix<? extends PArray>> interleavedToImage(Matrix<? extends PArray> matrix) {
-        if (matrix.size() == 0) {
-            return null;
-            // - provided for testing only (BufferedImage cannot have zero sizes)
-        }
-        return ImageConversions.unpack2DBandsFromSequentialSamples(null, intsToBytes(matrix));
     }
 
     private static Matrix<? extends PArray> intsToBytes(Matrix<? extends PArray> matrix) {

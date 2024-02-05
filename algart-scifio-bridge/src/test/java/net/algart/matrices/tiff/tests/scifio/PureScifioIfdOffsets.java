@@ -22,29 +22,34 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.tests.scifio.mixed;
+package net.algart.matrices.tiff.tests.scifio;
 
-import io.scif.formats.tiff.TiffCompression;
-import net.algart.matrices.tiff.tags.TagCompression;
+import io.scif.SCIFIO;
+import io.scif.formats.tiff.TiffParser;
+import org.scijava.io.location.FileLocation;
 
-public class TagCompressionsTest {
-    public static void main(String[] args) {
-        System.out.printf("%s:%n%n", TagCompression.class.getName());
-        for (TagCompression v : TagCompression.values()) {
-            TiffCompression compression = TiffCompression.get(v.code());
-            if (v.code() != compression.getCode()) {
-                throw new AssertionError();
-            }
-            System.out.printf("%s (%d, \"%s\", %s); corresponding SCIFIO compression:%n  %s (%d, \"%s\")%n",
-                    v, v.code(), v.prettyName(), v.codec(),
-                    compression, compression.getCode(), compression.getCodecName());
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+
+public class PureScifioIfdOffsets {
+    public static void main(String[] args) throws IOException {
+        if (args.length < 1) {
+            System.out.println("Usage:");
+            System.out.println("    " + PureScifioIfdOffsets.class.getName() + " tiff_file.tiff");
+            return;
         }
 
-        System.out.printf("%n%n%s:%n%n", TiffCompression.class.getName());
-        for (TiffCompression v : TiffCompression.values()) {
-            TagCompression compression = TagCompression.valueOfCodeOrNull(v.getCode());
-            System.out.printf("%s (%d, \"%s\"); corresponding compression:%n  %s%n",
-                    v, v.getCode(), v.getCodecName(), compression);
-        }
+        final Path file = Paths.get(args[0]);
+
+        TiffParser parser = new TiffParser(new SCIFIO().getContext(), new FileLocation(file.toFile()));
+        parser.setUse64BitOffsets(false);
+        long[] ifdOffsets = parser.getIFDOffsets();
+        System.out.printf("Usual offset: %d, %s%n", ifdOffsets.length, Arrays.toString(ifdOffsets));
+
+        parser.setUse64BitOffsets(true);
+        ifdOffsets = parser.getIFDOffsets();
+        System.out.printf("fakeBigTiff: %d, %s%n", ifdOffsets.length, Arrays.toString(ifdOffsets));
     }
 }

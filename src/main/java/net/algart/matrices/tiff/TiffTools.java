@@ -45,7 +45,9 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
@@ -251,6 +253,34 @@ public class TiffTools {
         return interleavedSamples ?
                 Matrices.matrix(array, numberOfChannels, sizeX, sizeY) :
                 Matrices.matrix(array, sizeX, sizeY, numberOfChannels);
+    }
+
+    public static List<Matrix<? extends PArray>> splitChannels(Matrix<? extends PArray> matrix) {
+        Objects.requireNonNull(matrix, "Null matrix");
+        long[] dimensions = matrix.dimensions();
+        if (dimensions.length <= 1) {
+            throw new IllegalArgumentException("Matrix with packed channels must have at least 2 dimensions");
+        }
+        long numberOfChannels = dimensions[dimensions.length - 1];
+        if (numberOfChannels == 0) {
+            throw new IllegalArgumentException("Zero number of channels - last dimension of " + matrix);
+        }
+        if (numberOfChannels > 1024) {
+            throw new IllegalArgumentException("Too large number of channels (the last dimension): " +
+                    "probably this matrix does not consists of several color channels - " + matrix);
+        }
+        final long[] reducedDimensions = java.util.Arrays.copyOf(dimensions, dimensions.length - 1);
+        dimensions[reducedDimensions.length] = 1;
+        final long[] position = new long[dimensions.length];
+        // - zero-filled by Java
+        List<Matrix<? extends PArray>> channels = new ArrayList<>();
+        for (long k = 0; k < numberOfChannels; k++) {
+            position[position.length - 1] = k;
+            final Matrix<? extends PArray> subMatrix = matrix.subMatr(position, dimensions);
+            final Matrix<? extends PArray> reduced = Matrices.matrix(subMatrix.array(), reducedDimensions);
+            channels.add(reduced);
+        }
+        return channels;
     }
 
     public static byte[] toInterleavedSamples(

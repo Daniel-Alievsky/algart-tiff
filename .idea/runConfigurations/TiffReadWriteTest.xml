@@ -1,7 +1,7 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="TiffReadWriteTest" type="Application" factoryName="Application" nameIsGenerated="true">
-    <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.tests.scifio.mixed.TiffReadWriteTest" />
-    <module name="algart-tiff" />
+  <configuration default="false" name="TiffReadWriteTest" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.tests.io.TiffReadWriteTest" />
+    <module name="algart-scifio-bridge" />
     <option name="PROGRAM_PARAMETERS" value="-compatibility src/test/java/resources/demo/images/tiff/openslide/CMU-1-Small-Region.svs /tmp/copy.tiff" />
     <option name="VM_PARAMETERS" value="-ea -esa -Dnet.algart.matrices.tiff.timing=true -Djava.util.logging.config.file=\SciChains\conf\logging.properties" />
     <method v="2">

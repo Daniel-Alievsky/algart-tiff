@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.tests.scifio.mixed;
+package net.algart.matrices.tiff.tests.io;
 
 import io.scif.FormatException;
 import io.scif.SCIFIO;

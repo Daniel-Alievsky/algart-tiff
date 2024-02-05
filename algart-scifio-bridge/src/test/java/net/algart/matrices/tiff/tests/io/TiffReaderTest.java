@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.tests.scifio.mixed;
+package net.algart.matrices.tiff.tests.io;
 
 import io.scif.codec.CodecOptions;
 import net.algart.arrays.Matrix;
@@ -32,7 +32,6 @@ import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffTools;
 import net.algart.matrices.tiff.compatibility.TiffParser;
 import net.algart.matrices.tiff.executable.TiffInfo;
-import net.algart.matrices.tiff.tests.io.TiffTestTools;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import org.scijava.Context;
 
@@ -152,7 +151,7 @@ public class TiffReaderTest {
                 final int bandCount = map.numberOfChannels();
 
                 Matrix<? extends PArray> matrix = null;
-                for (int test = 1; test <= numberOfTests; test++) {
+                for (int test = 1; test <= Math.max(1, numberOfTests); test++) {
                     if (test == 1 && repeat == 1) {
                         System.out.printf("Reading data %dx%dx%d from %s%n",
                                 w, h, bandCount, new TiffInfo().ifdInfo(map.ifd(), ifdIndex, numberOfIFDS));

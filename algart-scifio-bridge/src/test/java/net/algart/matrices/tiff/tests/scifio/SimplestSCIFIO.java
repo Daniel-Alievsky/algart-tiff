@@ -22,36 +22,17 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.tests.scifio.pure;
+package net.algart.matrices.tiff.tests.scifio;
 
 import io.scif.SCIFIO;
-import io.scif.formats.tiff.TiffParser;
 import org.scijava.Context;
-import org.scijava.io.handle.DataHandle;
-import org.scijava.io.location.BytesLocation;
-import org.scijava.io.location.FileLocation;
-import org.scijava.io.location.Location;
 
-import java.io.File;
+public class SimplestSCIFIO {
+    private static final int MAX_IMAGE_SIZE = 6000;
 
-public class FileHandleGenericsBug {
-    public static void main(String[] args) {
-        if (args.length < 1) {
-            System.out.println("Usage:");
-            System.out.println("    " + FileHandleGenericsBug.class.getName() + " some_tiff_file");
-            return;
-        }
-        final File file = new File(args[0]);
-
-        Context context = new SCIFIO().getContext();
-        TiffParser parser = new TiffParser(context, new FileLocation(file));
-        DataHandle<Location> stream = parser.getStream();
-        System.out.println("Successfully opened: " + stream.getLocation());
-
-        BytesLocation bytesLocation = new BytesLocation(1000);
-        stream.set(bytesLocation); // - crash!! java.lang.ClassCastException
-
-        System.out.println("This operator will not be performed");
-        context.close();
+    public static void main(String[] args) throws Exception {
+        SCIFIO scifio = new SCIFIO();
+        Context context = scifio.getContext();
+        System.out.println(context);
     }
 }
