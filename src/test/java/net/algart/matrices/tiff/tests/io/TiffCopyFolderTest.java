@@ -38,11 +38,6 @@ import java.nio.file.Paths;
 public class TiffCopyFolderTest {
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
-        boolean noContext = false;
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-noContext")) {
-            noContext = true;
-            startArgIndex++;
-        }
         boolean bigTiff = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-bigTiff")) {
             bigTiff = true;
@@ -65,23 +60,21 @@ public class TiffCopyFolderTest {
 
         System.out.printf("Copying all TIFF files from %s to %s...%n", sourceFolder, targetFolder);
 
-        try (Context context = noContext ? null : TiffTools.newSCIFIOContext()) {
-            try (DirectoryStream<Path> files = Files.newDirectoryStream(sourceFolder)) {
-                for (Path file : files) {
-                    if (!Files.isRegularFile(file)) {
-                        continue;
-                    }
-                    Path fileName = file.getFileName();
-                    if (fileName.toString().startsWith(".")) {
-                        continue;
-                    }
-                    try {
-                        TiffCopyTest.copyTiff(context, file, targetFolder.resolve(fileName), bigTiff, uncompressed);
-                    } catch (UnsupportedTiffFormatException e) {
-                        System.out.println("  Cannot copy: " + e.getMessage());
-                    } catch (TiffException e) {
-                        System.out.println("  Format error! " + e.getMessage());
-                    }
+        try (DirectoryStream<Path> files = Files.newDirectoryStream(sourceFolder)) {
+            for (Path file : files) {
+                if (!Files.isRegularFile(file)) {
+                    continue;
+                }
+                Path fileName = file.getFileName();
+                if (fileName.toString().startsWith(".")) {
+                    continue;
+                }
+                try {
+                    TiffCopyTest.copyTiff(file, targetFolder.resolve(fileName), bigTiff, uncompressed);
+                } catch (UnsupportedTiffFormatException e) {
+                    System.out.println("  Cannot copy: " + e.getMessage());
+                } catch (TiffException e) {
+                    System.out.println("  Format error! " + e.getMessage());
                 }
             }
         }

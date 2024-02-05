@@ -43,11 +43,6 @@ import java.util.List;
 public class TiffCopyTest {
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
-        boolean noContext = false;
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-noContext")) {
-            noContext = true;
-            startArgIndex++;
-        }
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
             System.out.println("    " + TiffCopyTest.class.getName()
@@ -66,23 +61,18 @@ public class TiffCopyTest {
 
         for (int test = 1; test <= numberOfTests; test++) {
             System.out.printf("Test #%d%n", test);
-            try (Context context = noContext ? null : TiffTools.newSCIFIOContext()) {
-                copyTiff(
-                        context, sourceFile, targetFile, firstIFDIndex, lastIFDIndex,
-                        false, false);
-            }
+                copyTiff(sourceFile, targetFile, firstIFDIndex, lastIFDIndex, false, false);
         }
         System.out.println("Done");
     }
 
     private static void copyTiff(
-            Context context,
             Path sourceFile, Path targetFile,
             int firstIFDIndex, int lastIFDIndex,
             boolean enforceBigTiff,
             boolean uncompressedTarget)
             throws IOException {
-        try (TiffReader reader = new TiffReader(sourceFile, false).setContext(context)) {
+        try (TiffReader reader = new TiffReader(sourceFile, false)) {
             if (!reader.isValid()) {
                 System.out.printf("Skipping %s: not a TIFF%n", sourceFile);
                 return;
@@ -90,7 +80,7 @@ public class TiffCopyTest {
             System.out.printf("Copying %s to %s...%n", sourceFile, targetFile);
             reader.setByteFiller((byte) 0xC0);
             boolean ok = false;
-            try (TiffWriter writer = new TiffWriter(targetFile).setContext(context)) {
+            try (TiffWriter writer = new TiffWriter(targetFile)) {
                 writer.setSmartIFDCorrection(true);
                 writer.setBigTiff(enforceBigTiff || reader.isBigTiff());
                 writer.setLittleEndian(reader.isLittleEndian());
@@ -119,11 +109,9 @@ public class TiffCopyTest {
         }
     }
 
-    static void copyTiff(
-            Context context, Path sourceFile, Path targetFile,
-            boolean enforceBigTiff, boolean uncompressedTarget)
+    static void copyTiff(Path sourceFile, Path targetFile, boolean enforceBigTiff, boolean uncompressedTarget)
             throws IOException {
-        copyTiff(context, sourceFile, targetFile, 0, Integer.MAX_VALUE, enforceBigTiff, uncompressedTarget);
+        copyTiff(sourceFile, targetFile, 0, Integer.MAX_VALUE, enforceBigTiff, uncompressedTarget);
     }
 
     static void copyImage(TiffIFD readIFD, TiffIFD writeIFD, TiffReader reader, TiffWriter writer)
