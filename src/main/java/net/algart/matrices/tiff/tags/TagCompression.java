@@ -56,6 +56,7 @@ public enum TagCompression {
     PACK_BITS(32773, "PackBits", PackbitsCodec::new),
 
     JPEG_2000_LOSSLESS(33003, "JPEG-2000", JPEG2000Codec::new),
+    // - note that while writing we do not try to use YCbCr encoding, as Aperio recommends for 33003
     JPEG_2000_LOSSY(33004, "JPEG-2000 lossy", JPEG2000Codec::new),
     JPEG_2000_LOSSLESS_ALTERNATIVE(33005, "JPEG-2000 alternative", JPEG2000Codec::new),
     JPEG_2000_LOSSLESS_OLYMPUS(34712, "JPEG-2000 Olympus", JPEG2000Codec::new);
