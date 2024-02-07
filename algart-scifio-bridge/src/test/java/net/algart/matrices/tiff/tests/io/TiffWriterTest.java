@@ -398,12 +398,12 @@ public class TiffWriterTest {
         tiffTile.separateSamples();
     }
 
-    private static Object makeSamples(int ifdIndex, int bandCount, TiffSampleType sampleType, int xSize, int ySize) {
-        final int matrixSize = xSize * ySize;
+    private static Object makeSamples(int ifdIndex, int bandCount, TiffSampleType sampleType, int dimX, int dimY) {
+        final int matrixSize = dimX * dimY;
         switch (sampleType) {
             case UINT8, INT8 -> {
                 byte[] channels = new byte[matrixSize * bandCount];
-                for (int y = 0; y < ySize; y++) {
+                for (int y = 0; y < dimY; y++) {
                     int c1 = (y / 32) % (bandCount + 1) - 1;
                     int c2 = c1;
                     if (c1 == -1) {
@@ -411,7 +411,7 @@ public class TiffWriterTest {
                         c2 = bandCount - 1;
                     }
                     for (int c = c1; c <= c2; c++) {
-                        for (int x = 0, disp = y * xSize; x < xSize; x++, disp++) {
+                        for (int x = 0, disp = y * dimX; x < dimX; x++, disp++) {
                             channels[disp + c * matrixSize] = (byte) (50 * ifdIndex + x + y);
                         }
                     }
@@ -420,7 +420,7 @@ public class TiffWriterTest {
             }
             case UINT16, INT16 -> {
                 short[] channels = new short[matrixSize * bandCount];
-                for (int y = 0; y < ySize; y++) {
+                for (int y = 0; y < dimY; y++) {
                     int c1 = (y / 32) % (bandCount + 1) - 1;
                     int c2 = c1;
                     if (c1 == -1) {
@@ -428,7 +428,7 @@ public class TiffWriterTest {
                         c2 = bandCount - 1;
                     }
                     for (int c = c1; c <= c2; c++) {
-                        for (int x = 0, disp = y * xSize; x < xSize; x++, disp++) {
+                        for (int x = 0, disp = y * dimX; x < dimX; x++, disp++) {
                             channels[disp + c * matrixSize] = (short) (157 * (50 * ifdIndex + x + y));
                         }
                     }
@@ -437,9 +437,9 @@ public class TiffWriterTest {
             }
             case INT32, UINT32 -> {
                 int[] channels = new int[matrixSize * bandCount];
-                for (int y = 0, disp = 0; y < ySize; y++) {
+                for (int y = 0, disp = 0; y < dimY; y++) {
                     final int c = (y / 32) % bandCount;
-                    for (int x = 0; x < xSize; x++, disp++) {
+                    for (int x = 0; x < dimX; x++, disp++) {
                         channels[disp + c * matrixSize] = 157 * 65536 * (50 * ifdIndex + x + y);
                     }
                 }
@@ -447,9 +447,9 @@ public class TiffWriterTest {
             }
             case FLOAT -> {
                 float[] channels = new float[matrixSize * bandCount];
-                for (int y = 0, disp = 0; y < ySize; y++) {
+                for (int y = 0, disp = 0; y < dimY; y++) {
                     final int c = (y / 32) % bandCount;
-                    for (int x = 0; x < xSize; x++, disp++) {
+                    for (int x = 0; x < dimX; x++, disp++) {
                         int v = (50 * ifdIndex + x + y) & 0xFF;
                         channels[disp + c * matrixSize] = (float) (0.5 + 1.5 * (v / 256.0 - 0.5));
                     }
@@ -458,9 +458,9 @@ public class TiffWriterTest {
             }
             case DOUBLE -> {
                 double[] channels = new double[matrixSize * bandCount];
-                for (int y = 0, disp = 0; y < ySize; y++) {
+                for (int y = 0, disp = 0; y < dimY; y++) {
                     final int c = (y / 32) % bandCount;
-                    for (int x = 0; x < xSize; x++, disp++) {
+                    for (int x = 0; x < dimX; x++, disp++) {
                         int v = (50 * ifdIndex + x + y) & 0xFF;
                         channels[disp + c * matrixSize] = (float) (0.5 + 1.5 * (v / 256.0 - 0.5));
                     }
