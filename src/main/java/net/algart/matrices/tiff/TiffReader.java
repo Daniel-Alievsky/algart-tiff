@@ -183,7 +183,9 @@ public class TiffReader implements Closeable {
      *
      * <p>If <tt>requireValidTiff</tt> is <tt>true</tt> (standard variant), it will throw an exception
      * in a case of incorrect TIFF header or some other I/O errors.
-     * If it is <tt>false</tt>, exceptions will be ignored, but {@link #isValid()} method will return <tt>false</tt>.
+     * If it is <tt>false</tt>, exception is caught and not thrown,
+     * and {@link #isValid()} method will return <tt>false</tt>;
+     * in this case, you can know the occurred exception by {@link #openingException()} method.
      *
      * @param in               input stream.
      * @param requireValidTiff whether the input file must exist and be a readable TIFF-file with a correct header.
@@ -205,14 +207,19 @@ public class TiffReader implements Closeable {
     }
 
     /**
-     * Universal constructor, helping to make subclasses with constructors, which not throw exceptions.
+     * Universal constructor.
+     *
+     * <p>It never throws an exception. If the file is not a correct TIFF or in a case of any other I/O problem,
+     * the information about the problem is stored in an exception, which can be retrieved later
+     * by {@link #openingException()} method and which is passed to <tt>exceptionHandler</tt>
+     * (if it is not <tt>null</tt>).
      *
      * @param in               input stream.
      * @param exceptionHandler if not <tt>null</tt>, it will be called in a case of some checked exception;
      *                         for example, it may log it. But usually it is better idea to use the main
      *                         constructor {@link #TiffReader(DataHandle, boolean)} with catching exception.
      */
-    protected TiffReader(DataHandle<Location> in, Consumer<Exception> exceptionHandler) {
+    public TiffReader(DataHandle<Location> in, Consumer<Exception> exceptionHandler) {
         Objects.requireNonNull(in, "Null in stream");
         this.requireValidTiff = false;
         this.in = in instanceof ReadBufferDataHandle ? in : new ReadBufferDataHandle<>(in);
@@ -455,6 +462,10 @@ public class TiffReader implements Closeable {
 
     public boolean isValid() {
         return valid;
+    }
+
+    public Exception openingException() {
+        return openingException;
     }
 
     /**
