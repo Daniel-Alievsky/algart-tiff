@@ -157,11 +157,11 @@ public class TiffWriter implements Closeable {
      * You <b>must</b> call one of methods {@link #create()} or {@link #open(boolean)} after creating this object
      * by the constructor.
      *
-     * @param out output TIFF file.
+     * @param outputStream output TIFF file.
      */
-    public TiffWriter(DataHandle<Location> out) {
-        Objects.requireNonNull(out, "Null \"out\" data handle (output stream)");
-        this.out = out;
+    public TiffWriter(DataHandle<Location> outputStream) {
+        Objects.requireNonNull(outputStream, "Null \"outputStream\" data handle (output stream)");
+        this.out = outputStream;
     }
 
     /**
@@ -483,8 +483,9 @@ public class TiffWriter implements Closeable {
                 }
             }
             ifdOffsets.clear();
-            final TiffReader reader = new TiffReader(out, true);
-            // - note: we should NOT call reader.close() method
+            final TiffReader reader = new TiffReader(out, true, false);
+            // - note: we should NOT close the reader in a case of any problem,
+            // because it uses the same stream with this writer
             final long[] offsets = reader.readIFDOffsets();
             final long readerPositionOfLastOffset = reader.positionOfLastIFDOffset();
             this.setBigTiff(reader.isBigTiff()).setLittleEndian(reader.isLittleEndian());

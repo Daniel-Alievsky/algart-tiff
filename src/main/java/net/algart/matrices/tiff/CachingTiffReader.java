@@ -63,12 +63,19 @@ public class CachingTiffReader extends TiffReader {
         super(file, requireValidTiff);
     }
 
-    public CachingTiffReader(DataHandle<Location> in) throws IOException {
-        super(in);
+    public CachingTiffReader(
+            DataHandle<Location> inputStream,
+            boolean requireValidTiff)
+            throws IOException {
+        super(inputStream, requireValidTiff);
     }
 
-    public CachingTiffReader(DataHandle<Location> in, boolean requireValidTiff) throws IOException {
-        super(in, requireValidTiff);
+    public CachingTiffReader(
+            DataHandle<Location> inputStream,
+            boolean requireValidTiff,
+            boolean closeStreamOnException)
+            throws IOException {
+        super(inputStream, requireValidTiff, closeStreamOnException);
     }
 
     public long getMaxCachingMemory() {

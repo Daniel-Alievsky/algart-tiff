@@ -371,7 +371,7 @@ public class TiffWriterTest {
             TiffMap map,
             int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        final TiffReader reader = new TiffReader(writer.getStream());
+        final TiffReader reader = new TiffReader(writer.getStream(), true);
         final IRectangularArea areaToWrite = IRectangularArea.valueOf(
                 fromX, fromY, fromX + sizeX - 1, fromY + sizeY - 1);
         for (TiffTile tile : map.tiles()) {

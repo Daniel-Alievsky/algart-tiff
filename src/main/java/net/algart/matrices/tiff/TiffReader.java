@@ -171,11 +171,22 @@ public class TiffReader implements Closeable {
     }
 
     public TiffReader(Path file, boolean requireValidTiff) throws IOException {
-        this(TiffTools.getExistingFileHandle(file), requireValidTiff);
+        this(TiffTools.getExistingFileHandle(file), requireValidTiff, true);
     }
 
-    public TiffReader(DataHandle<Location> in) throws IOException {
-        this(in, true);
+    /**
+     * Equivalent to {@link #TiffReader(DataHandle, boolean, boolean)} with <tt>false</tt> last argument.
+     * Note that you <b>should not</b> call this constructor from another constructor, creating this
+     * <tt>DataHandle</tt>: in this case, the handle will never be closed!
+     *
+     * @param inputStream      input stream.
+     * @param requireValidTiff whether the input file must exist and be a readable TIFF-file
+     *                         with a correct header.
+     * @throws TiffException if the file is not a correct TIFF file
+     * @throws IOException   in a case of any problems with the input file
+     */
+    public TiffReader(DataHandle<Location> inputStream, boolean requireValidTiff) throws IOException {
+        this(inputStream, requireValidTiff, false);
     }
 
     /**
@@ -183,19 +194,35 @@ public class TiffReader implements Closeable {
      *
      * <p>If <tt>requireValidTiff</tt> is <tt>true</tt> (standard variant), it will throw an exception
      * in a case of incorrect TIFF header or some other I/O errors.
-     * If it is <tt>false</tt>, exception is caught and not thrown,
-     * and {@link #isValid()} method will return <tt>false</tt>;
-     * in this case, you can know the occurred exception by {@link #openingException()} method.
+     * In this case, <tt>closeStreamOnException</tt> flag specifies, whether this function
+     * must close the input stream or no. It <b>should</b> be true when you call this constructor
+     * from another constructor, which creates <tt>DataHandle</tt>: it is the only way to close
+     * an invalid file. In other situation this flag may be <tt>false</tt>, then you must close
+     * the input stream yourself.
      *
-     * @param in               input stream.
-     * @param requireValidTiff whether the input file must exist and be a readable TIFF-file with a correct header.
+     * <p>If <tt>requireValidTiff</tt> is <tt>false</tt>, all exceptions are caught and not thrown,
+     * and {@link #isValid()} method will return <tt>false</tt>.
+     * In this case, you can know the occurred exception by {@link #openingException()} method.
+     *
+     * @param inputStream            input stream.
+     * @param requireValidTiff       whether the input file must exist and be a readable TIFF-file
+     *                               with a correct header.
+     * @param closeStreamOnException if <tt>true</tt>, the input stream is closed in a case of any exception;
+     *                               ignored if <tt>requireValidTiff</tt> is <tt>false</tt>.
      * @throws TiffException if the file is not a correct TIFF file
      * @throws IOException   in a case of any problems with the input file
      */
-    public TiffReader(DataHandle<Location> in, boolean requireValidTiff) throws IOException {
-        this(in, null);
+    public TiffReader(DataHandle<Location> inputStream, boolean requireValidTiff, boolean closeStreamOnException)
+            throws IOException {
+        this(inputStream, null);
         this.requireValidTiff = requireValidTiff;
         if (requireValidTiff && openingException != null) {
+            if (closeStreamOnException) {
+                try {
+                    inputStream.close();
+                } catch (Exception ignored) {
+                }
+            }
             if (openingException instanceof IOException e) {
                 throw e;
             }
@@ -214,15 +241,18 @@ public class TiffReader implements Closeable {
      * by {@link #openingException()} method and which is passed to <tt>exceptionHandler</tt>
      * (if it is not <tt>null</tt>).
      *
-     * @param in               input stream.
+     * <p>This constructor is useful, because it allows to make constructors in subclasses, which do not through
+     * any exceptions.
+     *
+     * @param inputStream      input stream.
      * @param exceptionHandler if not <tt>null</tt>, it will be called in a case of some checked exception;
      *                         for example, it may log it. But usually it is better idea to use the main
-     *                         constructor {@link #TiffReader(DataHandle, boolean)} with catching exception.
+     *                         constructor {@link #TiffReader(DataHandle, boolean, boolean)} with catching exception.
      */
-    public TiffReader(DataHandle<Location> in, Consumer<Exception> exceptionHandler) {
-        Objects.requireNonNull(in, "Null in stream");
+    public TiffReader(DataHandle<Location> inputStream, Consumer<Exception> exceptionHandler) {
+        Objects.requireNonNull(inputStream, "Null in stream");
         this.requireValidTiff = false;
-        this.in = in instanceof ReadBufferDataHandle ? in : new ReadBufferDataHandle<>(in);
+        this.in = inputStream instanceof ReadBufferDataHandle ? inputStream : new ReadBufferDataHandle<>(inputStream);
         AtomicBoolean bigTiff = new AtomicBoolean(false);
         this.openingException = startReading(bigTiff);
         this.valid = openingException == null;
