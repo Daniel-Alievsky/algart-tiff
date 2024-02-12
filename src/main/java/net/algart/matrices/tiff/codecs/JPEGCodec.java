@@ -117,18 +117,25 @@ public class JPEGCodec extends AbstractCodec implements TiffCodec.Timing {
     public byte[] compress(byte[] data, Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
-        if (data.length == 0) {
-            return data;
+        if (options.floatingPoint) {
+            throw new TiffException("JPEG compression cannot be used for floating-point values");
         }
-        long t1 = timing ? System.nanoTime() : 0;
-
         if (options.numberOfChannels != 1 && options.numberOfChannels != 3) {
             throw new TiffException("JPEG compression for " + options.numberOfChannels + " channels is not supported");
         }
         if (options.bitsPerSample != 8) {
             throw new TiffException("JPEG compression for " + options.bitsPerSample +
-                    "-bit data is not supported (only 8-bit samples allowed)");
+                    "-bit data is not supported (only unsigned 8-bit samples allowed)");
         }
+        if (options.signed) {
+            throw new TiffException("JPEG compression for signed " + options.bitsPerSample +
+                    "-bit data is not supported (only unsigned 8-bit samples allowed)");
+        }
+        if (data.length == 0) {
+            return data;
+        }
+        long t1 = timing ? System.nanoTime() : 0;
+
         final ByteArrayOutputStream output = new ByteArrayOutputStream();
         final BufferedImage image = AWTImages.makeImage(data, options.width,
                 options.height, options.numberOfChannels, options.interleaved,

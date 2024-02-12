@@ -703,7 +703,7 @@ public class TiffTools {
             scaleWhenIncreasingBitDepth = false;
         }
         final boolean invertedBrightness = photometricInterpretation.isInvertedBrightness();
-        if (tile.isFloatingPoint() && OPTIMIZE_SEPARATING_WHOLE_BYTES) {
+        if (tile.sampleType().isFloatingPoint() && OPTIMIZE_SEPARATING_WHOLE_BYTES) {
             // - TIFF with float/double samples must not require bit unpacking or inverting brightness
             throw new TiffException("Invalid TIFF image: floating-point values, compression \"" +
                     ifd.compressionPrettyName() + "\", photometric interpretation \"" +

@@ -224,10 +224,19 @@ public class JPEG2000Codec extends AbstractCodec {
     }
 
     // Copy of equivalent SCIFIO method, not using jaiIIOService field
-    public byte[] compress(final byte[] data, final Options options) throws TiffException {
+    public byte[] compress(final byte[] data, Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
-        if (data.length == 0) return data;
+        if (options.floatingPoint) {
+            throw new TiffException("JPEG-2000 compression cannot be used for floating-point values");
+        }
+        if (options.signed) {
+            throw new TiffException("JPEG compression for signed samples is not supported " +
+                    "(only unsigned samples allowed)");
+        }
+        if (data.length == 0) {
+            return data;
+        }
 
         JPEG2000Options jpeg2000Options = new JPEG2000Options().setTo(options);
 

@@ -889,7 +889,7 @@ public class TiffReader implements Closeable {
             codec = compression.codec();
             // - we are sure that this codec does not require SCIFIO context
         }
-        TiffCodec.Options options = buildOptions(tile, codec);
+        TiffCodec.Options options = buildOptions(tile);
         long t2 = debugTime();
 
         if (codec != null) {
@@ -1388,10 +1388,9 @@ public class TiffReader implements Closeable {
         }
     }
 
-    private TiffCodec.Options buildOptions(TiffTile tile, TiffCodec codec) throws TiffException {
-        TiffIFD ifd = tile.ifd();
+    private TiffCodec.Options buildOptions(TiffTile tile) throws TiffException {
         TiffCodec.Options options = this.codecOptions.clone();
-        options.setLittleEndian(ifd.isLittleEndian());
+        options.setLittleEndian(tile.isLittleEndian());
         final int samplesLength = tile.getSizeInBytes();
         // - Note: it may be LESS than a usual number of samples in the tile/strip.
         // Current readEncodedTile() always returns full-size tile without cropping

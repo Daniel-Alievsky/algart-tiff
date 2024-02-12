@@ -56,6 +56,8 @@ public interface TiffCodec {
         int height = 0;
         int numberOfChannels = 0;
         int bitsPerSample = 0;
+        boolean signed = false;
+        boolean floatingPoint = false;
         boolean littleEndian = false;
         boolean interleaved = false;
         int maxSizeInBytes = 0;
@@ -116,6 +118,24 @@ public interface TiffCodec {
             return this;
         }
 
+        public boolean isSigned() {
+            return signed;
+        }
+
+        public Options setSigned(boolean signed) {
+            this.signed = signed;
+            return this;
+        }
+
+        public boolean isFloatingPoint() {
+            return floatingPoint;
+        }
+
+        public Options setFloatingPoint(boolean floatingPoint) {
+            this.floatingPoint = floatingPoint;
+            return this;
+        }
+
         public boolean isLittleEndian() {
             return littleEndian;
         }
@@ -172,6 +192,8 @@ public interface TiffCodec {
             setHeight(options.height);
             setNumberOfChannels(options.numberOfChannels);
             setBitsPerSample(options.bitsPerSample);
+            setSigned(options.signed);
+            setFloatingPoint(options.floatingPoint);
             setLittleEndian(options.littleEndian);
             setInterleaved(options.interleaved);
             setMaxSizeInBytes(options.maxSizeInBytes);
@@ -219,6 +241,8 @@ public interface TiffCodec {
             setHeight(getField(oldStyleOptions, Integer.class, "height"));
             setNumberOfChannels(getField(oldStyleOptions, Integer.class, "channels"));
             setBitsPerSample(getField(oldStyleOptions, Integer.class, "bitsPerSample"));
+            setSigned(false);
+            setFloatingPoint(false);
             setLittleEndian(getField(oldStyleOptions, Boolean.class, "littleEndian"));
             setInterleaved(getField(oldStyleOptions, Boolean.class, "interleaved"));
             setMaxSizeInBytes(getField(oldStyleOptions, Integer.class, "maxBytes"));
@@ -232,6 +256,8 @@ public interface TiffCodec {
                     ", height=" + height +
                     ", numberOfChannels=" + numberOfChannels +
                     ", bitsPerSample=" + bitsPerSample +
+                    ", signed=" + signed +
+                    ", floatingPoint=" + floatingPoint +
                     ", littleEndian=" + littleEndian +
                     ", interleaved=" + interleaved +
                     ", maxSizeInBytes=" + maxSizeInBytes +

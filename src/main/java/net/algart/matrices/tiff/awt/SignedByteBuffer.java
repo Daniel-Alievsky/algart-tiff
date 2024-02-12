@@ -73,7 +73,8 @@ public class SignedByteBuffer extends DataBuffer {
 
 	/** Construct a new buffer of signed bytes using the given 2D byte array. */
 	public SignedByteBuffer(final byte[][] dataArray, final int size) {
-		super(DataBuffer.TYPE_BYTE, size);
+//		super(DataBuffer.TYPE_BYTE, size); // SCIFIO BUG!
+		super(DataBuffer.TYPE_BYTE, size, dataArray.length);
 		bankData = dataArray;
 	}
 

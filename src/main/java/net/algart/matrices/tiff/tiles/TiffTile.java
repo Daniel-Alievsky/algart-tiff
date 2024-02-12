@@ -113,10 +113,6 @@ public final class TiffTile {
         return map.sampleType();
     }
 
-    public boolean isFloatingPoint() {
-        return map.isFloatingPoint();
-    }
-
     public Class<?> elementType() {
         return map.elementType();
     }

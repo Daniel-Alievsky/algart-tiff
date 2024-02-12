@@ -24,6 +24,8 @@
 
 package net.algart.matrices.tiff;
 
+import net.algart.arrays.Matrix;
+import net.algart.arrays.PArray;
 import net.algart.matrices.tiff.tags.*;
 
 import java.lang.reflect.Array;
@@ -1013,7 +1015,30 @@ public class TiffIFD {
         return (optInt(Tags.NEW_SUBFILE_TYPE, 0) & FILETYPE_REDUCED_IMAGE) != 0;
     }
 
+    public TiffIFD putMatrixInformation(Matrix<? extends PArray> matrix) {
+        return putMatrixInformation(matrix, false, false);
+    }
+
+    public TiffIFD putMatrixInformation(Matrix<? extends PArray> matrix, boolean signedIntegers) {
+        return putMatrixInformation(matrix, signedIntegers, false);
+    }
+
+    public TiffIFD putMatrixInformation(Matrix<? extends PArray> matrix, boolean signedIntegers, boolean interleaved) {
+        Objects.requireNonNull(matrix, "Null matrix");
+        final int dimChannelsIndex = interleaved ? 0 : 2;
+        final long numberOfChannels = matrix.dim(dimChannelsIndex);
+        final long dimX = matrix.dim(interleaved ? 1 : 0);
+        final long dimY = matrix.dim(interleaved ? 2 : 1);
+        putImageDimensions(dimX, dimY);
+        putPixelInformation(numberOfChannels, matrix.elementType(), signedIntegers);
+        return this;
+    }
+
     public TiffIFD putImageDimensions(int dimX, int dimY) {
+        return putImageDimensions((long) dimX, (long) dimY);
+    }
+
+    public TiffIFD putImageDimensions(long dimX, long dimY) {
         checkImmutable();
         updateImageDimensions(dimX, dimY);
         return this;
@@ -1025,22 +1050,23 @@ public class TiffIFD {
         return this;
     }
 
-    public TiffIFD putPixelInformation(int numberOfChannels, Class<?> elementType) {
+    public TiffIFD putPixelInformation(long numberOfChannels, Class<?> elementType) {
         return putPixelInformation(numberOfChannels, elementType, false);
     }
 
-    public TiffIFD putPixelInformation(int numberOfChannels, Class<?> elementType, boolean signedIntegers) {
+    public TiffIFD putPixelInformation(long numberOfChannels, Class<?> elementType, boolean signedIntegers) {
         return putPixelInformation(numberOfChannels, TiffSampleType.valueOf(elementType, signedIntegers));
     }
 
     /**
      * Puts base pixel type and channels information: BitsPerSample, SampleFormat, SamplesPerPixel.
      *
-     * @param numberOfChannels number of channels (in other words, number of samples per every pixel).
+     * @param numberOfChannels number of channels (in other words, number of samples per every pixel);
+     *                         must be not &le;{@link #MAX_NUMBER_OF_CHANNELS}.
      * @param sampleType       type of pixel samples.
      * @return a reference to this object.
      */
-    public TiffIFD putPixelInformation(int numberOfChannels, TiffSampleType sampleType) {
+    public TiffIFD putPixelInformation(long numberOfChannels, TiffSampleType sampleType) {
         Objects.requireNonNull(sampleType, "Null sampleType");
         putNumberOfChannels(numberOfChannels);
         // - note: actual number of channels will be 3 in a case of OLD_JPEG;
@@ -1049,7 +1075,7 @@ public class TiffIFD {
         return this;
     }
 
-    public TiffIFD putNumberOfChannels(int numberOfChannels) {
+    public TiffIFD putNumberOfChannels(long numberOfChannels) {
         if (numberOfChannels <= 0) {
             throw new IllegalArgumentException("Zero or negative numberOfChannels = " + numberOfChannels);
         }
@@ -1221,15 +1247,21 @@ public class TiffIFD {
      *
      * <p>Note: this method works even when IFD is frozen by {@link #freeze()} method.
      *
-     * @param dimX new TIFF image width (<tt>ImageWidth</tt> tag).
-     * @param dimY new TIFF image height (<tt>ImageLength</tt> tag).
+     * @param dimX new TIFF image width (<tt>ImageWidth</tt> tag); must be in 1..Integer.MAX_VALUE range.
+     * @param dimY new TIFF image height (<tt>ImageLength</tt> tag); must be in 1..Integer.MAX_VALUE range.
      */
-    public TiffIFD updateImageDimensions(int dimX, int dimY) {
+    public TiffIFD updateImageDimensions(long dimX, long dimY) {
         if (dimX <= 0) {
             throw new IllegalArgumentException("Zero or negative image width (x-dimension): " + dimX);
         }
         if (dimY <= 0) {
             throw new IllegalArgumentException("Zero or negative image height (y-dimension): " + dimY);
+        }
+        if (dimX > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Too large image width = " + dimX + " (>2^31-1)");
+        }
+        if (dimY > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Too large image height = " + dimY + " (>2^31-1)");
         }
         if (!containsKey(Tags.TILE_WIDTH) || !containsKey(Tags.TILE_LENGTH)) {
             // - we prefer not to throw exception here, like in hasTileInformation method
@@ -1329,8 +1361,8 @@ public class TiffIFD {
         sb.append((json ?
                 "  \"ifdType\" : \"%s\",\n" :
                 " (%s)").formatted(ifdTypeName));
-        long dimX = 0;
-        long dimY = 0;
+        int dimX = 0;
+        int dimY = 0;
         int channels;
         int tileSizeX = 1;
         int tileSizeY = 1;

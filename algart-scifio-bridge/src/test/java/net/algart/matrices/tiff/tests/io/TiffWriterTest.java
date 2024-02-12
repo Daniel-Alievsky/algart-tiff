@@ -224,7 +224,7 @@ public class TiffWriterTest {
                 if (quality != null) {
                     writer.setQuality(quality);
                 }
-                writer.setJpegInPhotometricRGB(jpegRGB);
+                writer.setPreferRGB(jpegRGB);
 //                writer.setPredefinedPhotoInterpretation(PhotoInterp.Y_CB_CR);
 //                writer.setByteFiller((byte) 0xE0);
                 writer.setTileInitializer(TiffWriterTest::customFillEmptyTile);

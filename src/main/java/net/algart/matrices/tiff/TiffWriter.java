@@ -1,4 +1,3 @@
-
 /*
  * The MIT License (MIT)
  *
@@ -120,7 +119,7 @@ public class TiffWriter implements Closeable {
     private TiffCodec.Options codecOptions = new TiffCodec.Options();
     private boolean enforceUseExternalCodec = false;
     private Double quality = null;
-    private boolean jpegInPhotometricRGB = false;
+    private boolean preferRGB = false;
     private boolean missingTilesAllowed = false;
     private byte byteFiller = 0;
     private Consumer<TiffTile> tileInitializer = this::fillEmptyTile;
@@ -308,10 +307,6 @@ public class TiffWriter implements Closeable {
         return this;
     }
 
-    public boolean isJpegInPhotometricRGB() {
-        return jpegInPhotometricRGB;
-    }
-
     public boolean hasQuality() {
         return quality != null;
     }
@@ -361,29 +356,39 @@ public class TiffWriter implements Closeable {
         return this;
     }
 
+    public boolean isPreferRGB() {
+        return preferRGB;
+    }
+
     /**
-     * Sets whether you need to compress JPEG tiles/stripes with photometric interpretation RGB.
-     * Default value is <tt>false</tt>, that means using YCbCr photometric interpretation &mdash;
-     * standard encoding for JPEG, but not so popular in TIFF.
-     * If photometric interpretation in already specified IFD and if it is RGB or YCbCr,
-     * it will override recommendation of this flag.
+     * Sets whether you need to prefer RGB photometric interpretation even in such formats, where another
+     * color space is more traditional. Default value is <tt>false</tt>.
      *
-     * <p>This parameter is ignored (as if it is <tt>false</tt>), when {@link #isEnforceUseExternalCodec()}
+     * <p>In the current version, it only applies to {@link TagCompression#JPEG} format: this flag enforces the writer
+     * to compress JPEG tiles/stripes with photometric interpretation RGB.
+     * If this flag is <tt>false</tt>, the writer uses YCbCr photometric interpretation &mdash;
+     * a standard encoding for JPEG, but not so popular in TIFF.
+     *
+     * <p>This flag is used if a photometric interpretation in not specified in the IFD. Otherwise,
+     * this flag is ignored and the writer uses the photometric interpretation from the IFD
+     * (but, for JPEG, only YCbCr and RGB options are allowed).
+     *
+     * <p>Please <b>remember</b> that this parameter may vary between different IFDs.
+     * In this case, you need to call this method every time before creating a new IFD,
+     * not just once for the entire TIFF file!
+     *
+     * <p>This parameter is ignored (as if it is <tt>false</tt>), if {@link #isEnforceUseExternalCodec()}
      * return <tt>true</tt>.
      *
-     * <p>This flag affects results of {@link #newMap(TiffIFD, boolean)} method: it helps to choose
-     * correct photometric interpretation tag. After creating TIFF map and storing information in IFD object,
+     * <p>This flag affects the results of {@link #newMap(TiffIFD, boolean)} method: it helps to choose
+     * correct photometric interpretation tag. Once a TIFF map is created and information is stored in an IFD object,
      * this object no longer uses this flag.
      *
-     * <p>Please <b>remember</b> that this parameter may be different for different IFDs.
-     * In this case, you need to call this method every time before creating new IFD,
-     * not only once for all TIFF file!
-     *
-     * @param jpegInPhotometricRGB whether you want to compress JPEG in RGB encoding.
+     * @param preferRGB whether you want to compress JPEG in RGB encoding.
      * @return a reference to this object.
      */
-    public TiffWriter setJpegInPhotometricRGB(boolean jpegInPhotometricRGB) {
-        this.jpegInPhotometricRGB = jpegInPhotometricRGB;
+    public TiffWriter setPreferRGB(boolean preferRGB) {
+        this.preferRGB = preferRGB;
         return this;
     }
 
@@ -838,35 +843,35 @@ public class TiffWriter implements Closeable {
         return updateSamples(map, samples, fromX, fromY, sizeX, sizeY);
     }
 
-    public List<TiffTile> updateMatrix(TiffMap map, Matrix<? extends PArray> m, int fromX, int fromY) {
+    public List<TiffTile> updateMatrix(TiffMap map, Matrix<? extends PArray> matrix, int fromX, int fromY) {
         Objects.requireNonNull(map, "Null TIFF map");
-        Objects.requireNonNull(m, "Null matrix");
+        Objects.requireNonNull(matrix, "Null matrix");
         final boolean sourceInterleaved = isSourceProbablyInterleaved(map);
-        final Class<?> elementType = m.elementType();
+        final Class<?> elementType = matrix.elementType();
         if (elementType != map.elementType()) {
             throw new IllegalArgumentException("Invalid element type of the matrix: " + elementType +
                     ", because the specified TIFF map stores " + map.elementType() + " elements");
         }
-        if (m.dimCount() != 3 && !(m.dimCount() == 2 && map.numberOfChannels() == 1)) {
-            throw new IllegalArgumentException("Illegal number of matrix dimensions " + m.dimCount() +
+        if (matrix.dimCount() != 3 && !(matrix.dimCount() == 2 && map.numberOfChannels() == 1)) {
+            throw new IllegalArgumentException("Illegal number of matrix dimensions " + matrix.dimCount() +
                     ": it must be 3-dimensional dimX*dimY*C, " +
                     "where C is the number of channels (z-dimension), " +
                     "or 3-dimensional C*dimX*dimY for interleaved case, " +
                     "or may be 2-dimensional in a case of monochrome TIFF image");
         }
         final int dimChannelsIndex = sourceInterleaved ? 0 : 2;
-        final long numberOfChannels = m.dim(dimChannelsIndex);
+        final long numberOfChannels = matrix.dim(dimChannelsIndex);
+        final long sizeX = matrix.dim(sourceInterleaved ? 1 : 0);
+        final long sizeY = matrix.dim(sourceInterleaved ? 2 : 1);
         if (numberOfChannels != map.numberOfChannels()) {
             throw new IllegalArgumentException("Invalid number of channels in the matrix: " + numberOfChannels +
-                    " (matrix " + m.dim(0) + "*" + m.dim(1) + "*" + m.dim(2) + "), " +
-                    (m.dim(2 - dimChannelsIndex) == map.numberOfChannels() ?
+                    " (matrix " + matrix.dim(0) + "*" + matrix.dim(1) + "*" + matrix.dim(2) + "), " +
+                    (matrix.dim(2 - dimChannelsIndex) == map.numberOfChannels() ?
                             "probably because of invalid interleaving mode: TIFF image is " +
                                     (sourceInterleaved ? "" : "NOT ") + "interleaved" :
                             "because the specified TIFF map stores " + map.numberOfChannels() + " channels"));
         }
-        final long sizeX = m.dim(sourceInterleaved ? 1 : 0);
-        final long sizeY = m.dim(sourceInterleaved ? 2 : 1);
-        final byte[] samples = TiffTools.arrayToBytes(m.array(), isLittleEndian());
+        final byte[] samples = TiffTools.arrayToBytes(matrix.array(), isLittleEndian());
         return updateSamples(map, samples, fromX, fromY, sizeX, sizeY);
     }
 
@@ -887,7 +892,7 @@ public class TiffWriter implements Closeable {
             codec = compression.codec();
             // - we are sure that this codec does not require SCIFIO context
         }
-        TiffCodec.Options options = buildOptions(tile, codec);
+        TiffCodec.Options options = buildOptions(tile);
         long t3 = debugTime();
 
         byte[] data = tile.getDecodedData();
@@ -976,25 +981,19 @@ public class TiffWriter implements Closeable {
         }
         final TagCompression compression = ifd.optCompression().orElse(null);
 
-        final boolean jpeg = compression == TagCompression.JPEG;
         final TagPhotometricInterpretation suggestedPhotometric =
                 ifd.containsKey(Tags.PHOTOMETRIC_INTERPRETATION) ? ifd.getPhotometricInterpretation() : null;
         TagPhotometricInterpretation newPhotometric = suggestedPhotometric;
         // - note: it is possible, that we DO NOT KNOW this newPhotometric interpretation;
         // in this case, newPhotometric will be UNKNOWN, but we should not prevent writing such image
         // in simple formats like UNCOMPRESSED or LZW: maybe, the client knows how to process it
-        if (jpeg) {
+        if (compression == TagCompression.JPEG) {
             if (samplesPerPixel != 1 && samplesPerPixel != 3) {
                 throw new TiffException("JPEG compression for " + samplesPerPixel + " channels is not supported");
             }
-            if (sampleType != TiffSampleType.UINT8) {
-                throw new TiffException("JPEG compression is supported for 8-bit unsigned samples only, but " +
-                        (sampleType == TiffSampleType.INT8 ? "signed 8-bit samples requested" :
-                                "requested number of bits/samples is " + Arrays.toString(ifd.getBitsPerSample())));
-            }
             if (newPhotometric == null) {
                 newPhotometric = samplesPerPixel == 1 ? TagPhotometricInterpretation.BLACK_IS_ZERO :
-                        (jpegInPhotometricRGB || !ifd.isChunked()) ?
+                        (preferRGB || !ifd.isChunked()) ?
                                 TagPhotometricInterpretation.RGB : TagPhotometricInterpretation.Y_CB_CR;
             } else {
                 checkPhotometricInterpretation(newPhotometric,
@@ -1801,11 +1800,13 @@ public class TiffWriter implements Closeable {
         }
     }
 
-    private TiffCodec.Options buildOptions(TiffTile tile, TiffCodec codec) throws TiffException {
+    private TiffCodec.Options buildOptions(TiffTile tile) throws TiffException {
         TiffCodec.Options result = this.codecOptions.clone();
         result.setSizes(tile.getSizeX(), tile.getSizeY());
         result.setBitsPerSample(8 * tile.bytesPerSample());
         result.setNumberOfChannels(tile.samplesPerPixel());
+        result.setSigned(tile.sampleType().isSigned());
+        result.setFloatingPoint(tile.sampleType().isFloatingPoint());
         result.setLittleEndian(tile.isLittleEndian());
         result.setInterleaved(true);
         if (this.quality != null) {
