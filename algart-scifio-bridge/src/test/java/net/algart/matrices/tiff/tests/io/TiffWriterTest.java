@@ -282,6 +282,7 @@ public class TiffWriterTest {
                         // - unusual mode: no special putXxx method
                     }
                     ifd.putPixelInformation(numberOfChannels, sampleType);
+                    ifd.putImageDescription("TiffWriter test image");
                     final boolean overwriteExisting = randomAccess && k == 0;
                     if (k == 0) {
                         writer.open(!randomAccess);
@@ -332,14 +333,14 @@ public class TiffWriterTest {
                     }
 //                    writer.writeJavaArray(map, samplesArray, x, y, w, h); // - alternate way to write this matrix
                     if (thoroughTesting) {
-                        long length = writer.getStream().length();
+                        long length = writer.stream().length();
                         // writer.writeJavaArray(map, samplesArray, x, y, w, h);
                         // - usually not a problem to call twice, but file space will be used twice;
                         // if we have partially filled tiles on existing map, then preserveOldAccurately mode
                         // will not work properly (without 2nd preloadPartiallyOverwrittenTiles)
                         writer.complete(map); // - called inside write, but not a problem to call twice
                         writer.complete(map); // - called inside write, but not a problem to call twice
-                        if (writer.getStream().length() != length) {
+                        if (writer.stream().length() != length) {
                             throw new AssertionError("File increased!");
                         }
                     }
@@ -371,7 +372,7 @@ public class TiffWriterTest {
             TiffMap map,
             int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        final TiffReader reader = new TiffReader(writer.getStream(), true);
+        final TiffReader reader = new TiffReader(writer.stream(), true);
         final IRectangularArea areaToWrite = IRectangularArea.valueOf(
                 fromX, fromY, fromX + sizeX - 1, fromY + sizeY - 1);
         for (TiffTile tile : map.tiles()) {

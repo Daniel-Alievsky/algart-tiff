@@ -55,7 +55,7 @@ import java.util.stream.Collectors;
  * <p>This object is internally synchronized and thread-safe when used in multi-threaded environment.
  * However, you should not modify objects, passed to the methods of this class, from a parallel thread;
  * in particular, it concerns the {@link TiffIFD} arguments and Java-arrays with samples.
- * The same is true for the result of {@link #getStream()} method.</p>
+ * The same is true for the result of {@link #stream()} method.</p>
  */
 public class TiffWriter implements Closeable {
     // Creating this class started from reworking SCIFIO TiffSaver class.
@@ -315,8 +315,8 @@ public class TiffWriter implements Closeable {
         return quality;
     }
 
-    public TiffWriter setOrRemoveQuality(Double quality) {
-        return quality == null ? removeQuality() : setQuality(quality);
+    public TiffWriter setQuality(Double quality) {
+        return quality == null ? removeQuality() : setQuality(quality.doubleValue());
     }
 
     /**
@@ -449,7 +449,7 @@ public class TiffWriter implements Closeable {
     /**
      * Gets the stream from which TIFF data is being saved.
      */
-    public DataHandle<Location> getStream() {
+    public DataHandle<Location> stream() {
         synchronized (fileLock) {
             // - we prefer not to return this stream in the middle of I/O operations
             return out;
@@ -1438,7 +1438,7 @@ public class TiffWriter implements Closeable {
     }
 
     /**
-     * Writes the given IFD value to the {@link #getStream() main output stream}, excepting "extra" data,
+     * Writes the given IFD value to the {@link #stream() main output stream}, excepting "extra" data,
      * which are written into the specified <tt>extraBuffer</tt>. After calling this method, you
      * should copy full content of <tt>extraBuffer</tt> into the main stream at the position,
      * specified by the 2nd argument; {@link #rewriteIFD(TiffIFD, boolean)} method does it automatically.

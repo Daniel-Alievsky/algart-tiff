@@ -1235,6 +1235,17 @@ public class TiffIFD {
         return this;
     }
 
+    public TiffIFD putImageDescription(String imageDescription) {
+        Objects.requireNonNull(imageDescription, "Null image description");
+        put(Tags.IMAGE_DESCRIPTION, imageDescription);
+        return this;
+    }
+
+    public TiffIFD removeImageDescription() {
+        remove(Tags.IMAGE_DESCRIPTION);
+        return this;
+    }
+
     public void removeDataPositioning() {
         remove(Tags.STRIP_OFFSETS);
         remove(Tags.STRIP_BYTE_COUNTS);

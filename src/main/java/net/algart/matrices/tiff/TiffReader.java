@@ -58,7 +58,7 @@ import java.util.stream.Collectors;
  * <p>This object is internally synchronized and thread-safe when used in multi-threaded environment.
  * However, you should not modify objects, passed to the methods of this class from a parallel thread;
  * first of all, it concerns the {@link TiffIFD} arguments of many methods.
- * The same is true for the result of {@link #getStream()} method.</p>
+ * The same is true for the result of {@link #stream()} method.</p>
  */
 public class TiffReader implements Closeable {
     // Creating this class started from reworking SCIFIO TiffParser class.
@@ -483,7 +483,7 @@ public class TiffReader implements Closeable {
     /**
      * Gets the stream from which TIFF data is being parsed.
      */
-    public DataHandle<Location> getStream() {
+    public DataHandle<Location> stream() {
         synchronized (fileLock) {
             // - we prefer not to return this stream in the middle of I/O operations
             return in;

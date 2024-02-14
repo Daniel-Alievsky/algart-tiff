@@ -102,7 +102,7 @@ public class TiffInfo {
                         tiffFile,
                         ifdCount,
                         reader.isBigTiff() ? "BigTIFF" : "not BigTIFF",
-                        reader.getStream().isLittleEndian() ? "little" : "big");
+                        reader.isLittleEndian() ? "little" : "big");
                 for (int k = 0; k < ifdCount; k++) {
                     if (k >= firstIFDIndex && k <= lastIFDIndex) {
                         final TiffIFD ifd = ifdList.get(k);
