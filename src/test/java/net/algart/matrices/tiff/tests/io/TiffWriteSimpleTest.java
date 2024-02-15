@@ -25,6 +25,7 @@
 package net.algart.matrices.tiff.tests.io;
 
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
@@ -43,6 +44,11 @@ import java.util.stream.Collectors;
 public class TiffWriteSimpleTest {
     private final static int IMAGE_WIDTH = 2000;
     private final static int IMAGE_HEIGHT = 2000;
+
+    private static void printReaderInfo(TiffWriter writer) throws IOException {
+        TiffReader reader = writer.newReader(false);
+        System.out.printf("Checking file by the reader, IFD #0: %s%n", reader.ifd(0));
+    }
 
     public static void main(String[] args) throws IOException {
         if (args.length < 1) {
@@ -86,15 +92,17 @@ public class TiffWriteSimpleTest {
             final List<TiffTile> updated = writer.updateJavaArray(
                     map, samples, 0, 0, map.dimX() / 2, map.dimY() / 2);
             // - filling only 1/4 of map
-            System.out.printf("Updated:%n  %s%n", updated.stream().map(TiffTile::toString).collect(
+            System.out.printf("Updated:%n  %s%n%n", updated.stream().map(TiffTile::toString).collect(
                     Collectors.joining("%n  ".formatted())));
             writer.writeCompletedTiles(updated);
             // - frees the memory (almost do not affect results)
+//            printReaderInfo(writer);
 
             writer.complete(map);
             // writer.writeSamples(map, samples); // - equivalent to previous 3 methods
+            printReaderInfo(writer);
 
-            System.out.printf("%nActually saved IFD:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.DETAILED));
+            System.out.printf("Actually saved IFD:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.DETAILED));
         }
         System.out.println("Done");
     }

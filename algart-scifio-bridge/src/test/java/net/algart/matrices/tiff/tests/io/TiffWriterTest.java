@@ -268,7 +268,7 @@ public class TiffWriterTest {
                         ifd.putCompressionCode(Integer.parseInt(compression));
                     }
 //                    if (jpegRGB) {
-                        // - alternative for setJpegInPhotometricRGB
+                    // - alternative for setJpegInPhotometricRGB
 //                        ifd.putPhotometricInterpretation(PhotoInterp.RGB);
 //                    }
                     ifd.putPlanarSeparated(planarSeparated);
@@ -296,10 +296,9 @@ public class TiffWriterTest {
                         // but following images will be written with new properties.
                         // Note: it seems that we need to "flush" current writer.getStream(),
                         // but DataHandle has not any analogs of flush() method.
-                        try (TiffReader reader = new TiffReader(targetFile, false)) {
-                            ifd = reader.readSingleIFD(ifdIndex);
-                            ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
-                        }
+                        final TiffReader reader = writer.newReader(false);
+                        ifd = reader.readSingleIFD(ifdIndex);
+                        ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
                     }
                     if (overwriteExisting && preserveOld) {
                         boolean breakOldChain = numberOfImages > 1;
@@ -324,12 +323,13 @@ public class TiffWriterTest {
                                 (byte[]) samplesArray, map.numberOfChannels(), 1, w * h);
                     }
                     Matrix<UpdatablePArray> matrix = TiffTools.asMatrix(
-                            samplesArray, w, h,  map.numberOfChannels(), interleaved);
+                            samplesArray, w, h, map.numberOfChannels(), interleaved);
                     if (writer instanceof TiffSaver saver && samplesArray instanceof byte[] bytes) {
                         saver.writeImage(bytes, TiffParser.toScifioIFD(map.ifd(), null),
-                                ifdIndex, FormatTools.UINT8, k == numberOfImages - 1);
+                                ifdIndex, FormatTools.UINT8,
+                                x, y, w, h, k == numberOfImages - 1);
                     } else {
-                        writer.writeMatrix(map, matrix);
+                        writer.writeMatrix(map, matrix, x, y);
                     }
 //                    writer.writeJavaArray(map, samplesArray, x, y, w, h); // - alternate way to write this matrix
                     if (thoroughTesting) {

@@ -528,17 +528,21 @@ public class TiffReader implements Closeable {
     }
 
     public TiffMap map(int ifdIndex) throws IOException {
+        return newMap(ifd(ifdIndex));
+    }
+
+    public TiffIFD ifd(int ifdIndex) throws IOException {
         List<TiffIFD> ifdList = allIFDs();
         if (ifdIndex < 0 || ifdIndex >= ifdList.size()) {
             throw new IndexOutOfBoundsException(
                     "IFD index " + ifdIndex + " is out of bounds 0 <= index < " + ifdList.size());
         }
-        return newMap(ifdList.get(ifdIndex));
+        return ifdList.get(ifdIndex);
     }
 
     /**
      * Reads 1st IFD (#0). If you really needs access only to 1st IFD,
-     * this method may work faster than {@link #map(int)}.
+     * this method may work faster than {@link #ifd(int)}.
      */
     public TiffIFD firstIFD() throws IOException {
         TiffIFD firstIFD = this.firstIFD;

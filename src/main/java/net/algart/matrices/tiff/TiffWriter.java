@@ -163,6 +163,10 @@ public class TiffWriter implements Closeable {
         this.out = outputStream;
     }
 
+    public TiffReader newReader(boolean requireValidTiff) throws IOException {
+        return new TiffReader(out, requireValidTiff, false);
+    }
+
     /**
      * Returns whether we are writing little-endian data.
      */
