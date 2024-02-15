@@ -532,14 +532,10 @@ public class TiffWriter implements Closeable {
             if (bigTiff) {
                 out.writeShort(8);
                 out.writeShort(0);
-
-                // write the offset to the first IFD for BigTIFF files
-                positionOfLastIFDOffset = out.offset();
-                writeOffset(16);
-            } else {
-                positionOfLastIFDOffset = out.offset();
-                writeOffset(8);
             }
+            positionOfLastIFDOffset = out.offset();
+            // write the "last offset" marker
+            writeOffset(TiffIFD.LAST_IFD_OFFSET);
             // - we are ready to write after the header
             out.setLength(out.offset());
             // - truncate the file if it already existed:

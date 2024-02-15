@@ -46,8 +46,13 @@ public class TiffWriteSimpleTest {
     private final static int IMAGE_HEIGHT = 2000;
 
     private static void printReaderInfo(TiffWriter writer) throws IOException {
-        TiffReader reader = writer.newReader(false);
-        System.out.printf("Checking file by the reader, IFD #0: %s%n", reader.ifd(0));
+        System.out.print("Checking file by the reader, IFD #0: ");
+        try {
+            final TiffReader reader = writer.newReader(false);
+            System.out.println(reader.numberOfIFDs() == 0 ? "none" : reader.ifd(0));
+        } catch (IOException e) {
+            e.printStackTrace(System.out);
+        }
     }
 
     public static void main(String[] args) throws IOException {
@@ -94,9 +99,10 @@ public class TiffWriteSimpleTest {
             // - filling only 1/4 of map
             System.out.printf("Updated:%n  %s%n%n", updated.stream().map(TiffTile::toString).collect(
                     Collectors.joining("%n  ".formatted())));
+            printReaderInfo(writer);
             writer.writeCompletedTiles(updated);
             // - frees the memory (almost do not affect results)
-//            printReaderInfo(writer);
+            printReaderInfo(writer);
 
             writer.complete(map);
             // writer.writeSamples(map, samples); // - equivalent to previous 3 methods
