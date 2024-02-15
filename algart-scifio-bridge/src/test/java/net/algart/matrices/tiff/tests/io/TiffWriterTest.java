@@ -51,6 +51,19 @@ public class TiffWriterTest {
     private final static int IMAGE_WIDTH = 1011;
     private final static int IMAGE_HEIGHT = 1051;
 
+    private static void printReaderInfo(TiffWriter writer) throws IOException {
+        System.out.print("Checking file by the reader: ");
+        try {
+            final TiffReader reader = writer.newReader(false);
+            final int n = reader.numberOfIFDs();
+            System.out.printf("%s, %s%n",
+                    reader.isValid() ? "valid" : "INVALID: " + reader.openingException(),
+                    n == 0 ? "no IFD" : "#0/" + n + ": " + reader.ifd(0));
+        } catch (IOException e) {
+            e.printStackTrace(System.out);
+        }
+    }
+
     public static void main(String[] args) throws IOException, FormatException {
         int startArgIndex = 0;
         boolean noContext = false;
@@ -239,6 +252,7 @@ public class TiffWriterTest {
                         test, numberOfTests,
                         existingFile ? "writing to" : "creating", targetFile);
                 for (int k = 0; k < numberOfImages; k++) {
+                    printReaderInfo(writer);
                     final int ifdIndex = firstIfdIndex + k;
                     TiffIFD ifd = new TiffIFD();
                     if (!resizable) {
@@ -332,6 +346,7 @@ public class TiffWriterTest {
                         writer.writeMatrix(map, matrix, x, y);
                     }
 //                    writer.writeJavaArray(map, samplesArray, x, y, w, h); // - alternate way to write this matrix
+                    printReaderInfo(writer);
                     if (thoroughTesting) {
                         long length = writer.stream().length();
                         // writer.writeJavaArray(map, samplesArray, x, y, w, h);
