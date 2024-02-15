@@ -46,10 +46,12 @@ public class TiffWriteSimpleTest {
     private final static int IMAGE_HEIGHT = 2000;
 
     private static void printReaderInfo(TiffWriter writer) throws IOException {
-        System.out.print("Checking file by the reader, IFD #0: ");
+        System.out.print("Checking file by the reader: ");
         try {
             final TiffReader reader = writer.newReader(false);
-            System.out.println(reader.numberOfIFDs() == 0 ? "none" : reader.ifd(0));
+            System.out.printf("%s, %s%n",
+                    reader.isValid() ? "valid" : "INVALID: " + reader.openingException(),
+                    reader.numberOfIFDs() == 0 ? "no IFD" : "#0 " + reader.ifd(0));
         } catch (IOException e) {
             e.printStackTrace(System.out);
         }
