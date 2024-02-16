@@ -518,29 +518,24 @@ public class TiffWriter implements Closeable {
                 out.writeByte(TiffTools.FILE_PREFIX_BIG_ENDIAN);
                 out.writeByte(TiffTools.FILE_PREFIX_BIG_ENDIAN);
             }
-            // write magic number
+            // Writing magic number:
             if (bigTiff) {
                 out.writeShort(TiffTools.FILE_BIG_TIFF_MAGIC_NUMBER);
             } else {
                 out.writeShort(TiffTools.FILE_USUAL_MAGIC_NUMBER);
             }
-
-            // write the offset to the first IFD
-
-            // for vanilla TIFFs, 8 is the offset to the first IFD
-            // for BigTIFFs, 8 is the number of bytes in an offset
             if (bigTiff) {
                 out.writeShort(8);
+                // - 16-bit "8" value means the number of bytes in BigTIFF offsets
                 out.writeShort(0);
             }
+            // Writing the "last offset" marker:
             positionOfLastIFDOffset = out.offset();
-            // write the "last offset" marker
             writeOffset(TiffIFD.LAST_IFD_OFFSET);
-            // - we are ready to write after the header
-            out.setLength(out.offset());
-            // - truncate the file if it already existed:
-            // it is necessary, because all new information is always written
+            // Truncating the file if it already existed:
+            // it is necessary, because this class writes all new information
             // to the file end (to avoid damaging existing content)
+            out.setLength(out.offset());
         }
     }
 
