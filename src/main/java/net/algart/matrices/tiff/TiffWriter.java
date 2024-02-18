@@ -647,32 +647,28 @@ public class TiffWriter implements Closeable {
         writeEncodedTile(tile, true);
     }
 
-    public void writeTiles(Collection<TiffTile> tiles) throws IOException {
-        writeTiles(tiles, tile -> true);
+    public int writeTiles(Collection<TiffTile> tiles) throws IOException {
+        return writeTiles(tiles, tile -> true);
     }
 
-    public void writeCompletedTiles(Collection<TiffTile> tiles) throws IOException {
-        writeTiles(tiles, TiffTile::isCompleted);
+    public int writeCompletedTiles(Collection<TiffTile> tiles) throws IOException {
+        return writeTiles(tiles, TiffTile::isCompleted);
     }
 
-    public void writeTiles(Collection<TiffTile> tiles, Predicate<TiffTile> needToWrite) throws IOException {
+    public int writeTiles(Collection<TiffTile> tiles, Predicate<TiffTile> needToWrite) throws IOException {
         Objects.requireNonNull(tiles, "Null tiles");
         Objects.requireNonNull(needToWrite, "Null needToWrite");
+        int count = 0;
         for (TiffTile tile : tiles) {
             if (needToWrite.test(tile)) {
                 writeTile(tile);
+                count++;
             }
         }
+        return count;
     }
 
-    public void writeFullTiles(Collection<TiffTile> tiles) throws IOException {
-        Objects.requireNonNull(tiles, "Null tiles");
-        for (TiffTile tile : tiles) {
-            writeTile(tile);
-        }
-    }
-
-    public void writeEncodedTile(TiffTile tile, boolean freeAfterWriting) throws IOException {
+       public void writeEncodedTile(TiffTile tile, boolean freeAfterWriting) throws IOException {
         Objects.requireNonNull(tile, "Null tile");
         if (tile.isEmpty()) {
             return;
@@ -1163,7 +1159,7 @@ public class TiffWriter implements Closeable {
         }
     }
 
-    public void complete(final TiffMap map) throws IOException {
+    public int complete(final TiffMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         final boolean resizable = map.isResizable();
         map.checkTooSmallDimensionsForCurrentGrid();
@@ -1176,7 +1172,7 @@ public class TiffWriter implements Closeable {
             ifd.updateImageDimensions(map.dimX(), map.dimY());
         }
 
-        completeWritingMap(map);
+        final int count = completeWritingMap(map);
         map.cropAllUnset();
         appendFileUntilEvenLength();
         // - not absolutely necessary, but good idea
@@ -1192,6 +1188,7 @@ public class TiffWriter implements Closeable {
         // - This seeking to file end is not necessary, but can help to avoid accidental bugs
         // (this is much better than keeping file offset in the middle of the last image
         // between IFD and newly written TIFF tiles).
+        return count;
     }
 
     public void writeSamples(final TiffMap map, byte[] samples) throws IOException {
@@ -1652,7 +1649,7 @@ public class TiffWriter implements Closeable {
                 updatePositionOfLastIFDOffset);
     }
 
-    private void completeWritingMap(TiffMap map) throws IOException {
+    private int completeWritingMap(TiffMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         final long[] offsets = new long[map.numberOfGridTiles()];
         final long[] byteCounts = new long[map.numberOfGridTiles()];
@@ -1661,6 +1658,7 @@ public class TiffWriter implements Closeable {
         final int numberOfSeparatedPlanes = map.numberOfSeparatedPlanes();
         final int gridTileCountY = map.gridTileCountY();
         final int gridTileCountX = map.gridTileCountX();
+        int count = 0;
         for (int p = 0, k = 0; p < numberOfSeparatedPlanes; p++) {
             for (int yIndex = 0; yIndex < gridTileCountY; yIndex++) {
                 for (int xIndex = 0; xIndex < gridTileCountX; xIndex++, k++) {
@@ -1673,6 +1671,7 @@ public class TiffWriter implements Closeable {
                     // - like in updateSamples
                     if (!tile.isEmpty()) {
                         writeEncodedTile(tile, true);
+                        count++;
                     }
                     if (tile.hasStoredDataFileOffset()) {
                         offsets[k] = tile.getStoredDataFileOffset();
@@ -1700,6 +1699,7 @@ public class TiffWriter implements Closeable {
             }
         }
         map.ifd().updateDataPositioning(offsets, byteCounts);
+        return count;
     }
 
     /**
