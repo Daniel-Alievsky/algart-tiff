@@ -1031,8 +1031,12 @@ public class TiffWriter implements Closeable {
             }
         } else {
             if (newPhotometric == null) {
-                throw new IllegalArgumentException("Cannot write TIFF image: newPhotometric interpretation " +
-                        "is not specified in 3 and cannot be determined automatically");
+                if (samplesPerPixel == 4) {
+                    // - probably RGBA
+                    newPhotometric = TagPhotometricInterpretation.RGB;
+                }
+                // else we stay IFD without photometric interpretation: incorrect for good TIFF,
+                // but better than senseless interpretation
             }
         }
         if (newPhotometric != suggestedPhotometric) {

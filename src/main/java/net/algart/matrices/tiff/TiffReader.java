@@ -209,8 +209,8 @@ public class TiffReader implements Closeable {
      *                               with a correct header.
      * @param closeStreamOnException if <tt>true</tt>, the input stream is closed in a case of any exception;
      *                               ignored if <tt>requireValidTiff</tt> is <tt>false</tt>.
-     * @throws TiffException if the file is not a correct TIFF file
-     * @throws IOException   in a case of any problems with the input file
+     * @throws TiffException if the file is not a correct TIFF file.
+     * @throws IOException   in a case of any problems with the input file.
      */
     public TiffReader(DataHandle<Location> inputStream, boolean requireValidTiff, boolean closeStreamOnException)
             throws IOException {
@@ -527,21 +527,49 @@ public class TiffReader implements Closeable {
         return positionOfLastIFDOffset;
     }
 
+    /**
+     * Returns <tt>{@link #allIFDs()}.size()</tt>.
+     *
+     * @return number of existing IFDs.
+     * @throws TiffException if the file is not a correct TIFF file.
+     * @throws IOException   in a case of any problems with the input file.
+     */
+    public int numberOfIFDs() throws IOException {
+        return allIFDs().size();
+    }
+
     public TiffMap map(int ifdIndex) throws IOException {
         return newMap(ifd(ifdIndex));
     }
 
+    /**
+     * Calls {@link #allIFDs()} and returns IFD with the specified index.
+     * If <tt>ifdIndex</tt> is too big (&ge;{@link #numberOfIFDs()}), this method throws {@link TiffException}.</p>
+     *
+     * @param ifdIndex index of IFD.
+     * @return the IFD with the specified index.
+     * @throws TiffException            if <tt>ifdIndex</tt> is too large, or if the file is not a correct TIFF file
+     *                                  and this was not detected while opening it.
+     * @throws IOException              in a case of any problems with the input file.
+     * @throws IllegalArgumentException if <tt>ifdIndex&lt;0</tt>.
+     */
     public TiffIFD ifd(int ifdIndex) throws IOException {
         List<TiffIFD> ifdList = allIFDs();
-        if (ifdIndex < 0 || ifdIndex >= ifdList.size()) {
-            throw new IndexOutOfBoundsException(
+        if (ifdIndex < 0) {
+            throw new IllegalArgumentException("Negative IFD index " + ifdIndex);
+        }
+        if (ifdIndex >= ifdList.size()) {
+            throw new TiffException(
                     "IFD index " + ifdIndex + " is out of bounds 0 <= index < " + ifdList.size());
         }
         return ifdList.get(ifdIndex);
     }
 
     /**
-     * Reads 1st IFD (#0). If you really needs access only to 1st IFD,
+     * Reads 1st IFD (#0).
+     *
+     * <p>Note: this method <i>does not</i> use {@link #allIFDs()} method.
+     * If you really needs access only to 1st IFD,
      * this method may work faster than {@link #ifd(int)}.
      */
     public TiffIFD firstIFD() throws IOException {
@@ -562,15 +590,15 @@ public class TiffReader implements Closeable {
         return allIFDs().stream().map(this::newMap).collect(Collectors.toList());
     }
 
-    public int numberOfIFDs() throws IOException {
-        return allIFDs().size();
-    }
-
     /**
-     * Returns all IFDs in the file.
+     * Returns all IFDs in the file. When first called, reads all IFD from the file
+     * (but this can be disabled using {@link #setCachingIFDs(boolean)} method).
      *
      * <p>Note: if this TIFF file is not valid ({@link #isValid()} returns <tt>false</tt>), this method
      * returns an empty list and does not throw an exception. For valid TIFF, result cannot be empty.
+     *
+     * @throws TiffException if the file is not a correct TIFF file, but this was not detected while opening it.
+     * @throws IOException   in a case of any problems with the input file.
      */
     public List<TiffIFD> allIFDs() throws IOException {
         long t1 = debugTime();

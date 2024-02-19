@@ -725,7 +725,7 @@ public class TiffIFD {
                 && getInt(Tags.COMPRESSION, 0) == TagCompression.JPEG_OLD_STYLE.code()) {
             return TagPhotometricInterpretation.RGB;
         }
-        final int code = reqInt(Tags.PHOTOMETRIC_INTERPRETATION);
+        final int code = getInt(Tags.PHOTOMETRIC_INTERPRETATION, -1);
         return TagPhotometricInterpretation.valueOfCodeOrUnknown(code);
     }
 
