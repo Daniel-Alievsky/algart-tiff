@@ -658,17 +658,22 @@ public class TiffWriter implements Closeable {
     public int writeTiles(Collection<TiffTile> tiles, Predicate<TiffTile> needToWrite) throws IOException {
         Objects.requireNonNull(tiles, "Null tiles");
         Objects.requireNonNull(needToWrite, "Null needToWrite");
+        long t1 = debugTime();
         int count = 0;
+        long sizeInBytes = 0;
         for (TiffTile tile : tiles) {
             if (needToWrite.test(tile)) {
                 writeTile(tile);
                 count++;
+                sizeInBytes += tile.getSizeInBytes();
             }
         }
+        long t2 = debugTime();
+        logTiles(tiles, "middle", "encoded/wrote", count, sizeInBytes, t1, t2);
         return count;
     }
 
-       public void writeEncodedTile(TiffTile tile, boolean freeAfterWriting) throws IOException {
+    public void writeEncodedTile(TiffTile tile, boolean freeAfterWriting) throws IOException {
         Objects.requireNonNull(tile, "Null tile");
         if (tile.isEmpty()) {
             return;
@@ -916,12 +921,7 @@ public class TiffWriter implements Closeable {
     }
 
     public void encode(TiffMap map) throws TiffException {
-        Objects.requireNonNull(map, "Null TIFF map");
-        for (TiffTile tile : map.tiles()) {
-            if (!tile.isEncoded()) {
-                encode(tile);
-            }
-        }
+        encode(map, null);
     }
 
     public void correctIFDForWriting(TiffIFD ifd) throws TiffException {
@@ -1164,7 +1164,7 @@ public class TiffWriter implements Closeable {
         final boolean resizable = map.isResizable();
         map.checkTooSmallDimensionsForCurrentGrid();
 
-        encode(map);
+        encode(map, "completion");
         // - encode tiles, which are not encoded yet
 
         final TiffIFD ifd = map.ifd();
@@ -1211,9 +1211,8 @@ public class TiffWriter implements Closeable {
         encode(map);
         long t4 = debugTime();
         complete(map);
-        if (TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
-            logWriting(map, "byte samples", sizeX, sizeY, t1, t2, t3, t4);
-        }
+        logWritingMatrix(map, "byte samples", sizeX, sizeY, t1, t2, t3, t4);
+
     }
 
     public void writeJavaArray(TiffMap map, Object samplesArray) throws IOException {
@@ -1235,9 +1234,8 @@ public class TiffWriter implements Closeable {
         encode(map);
         long t4 = debugTime();
         complete(map);
-        if (TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
-            logWriting(map, "pixel array", sizeX, sizeY, t1, t2, t3, t4);
-        }
+        logWritingMatrix(map, "pixel array", sizeX, sizeY, t1, t2, t3, t4);
+
     }
 
     /**
@@ -1269,13 +1267,7 @@ public class TiffWriter implements Closeable {
         encode(map);
         long t4 = debugTime();
         complete(map);
-        if (TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
-            final boolean sourceInterleaved = isSourceProbablyInterleaved(map);
-            final int sizeX = (int) matrix.dim(sourceInterleaved ? 1 : 0);
-            final int sizeY = (int) matrix.dim(sourceInterleaved ? 2 : 1);
-            // - already checked that they are actually "int"
-            logWriting(map, "matrix", sizeX, sizeY, t1, t2, t3, t4);
-        }
+        logWritingMatrix(map, "matrix", matrix, t1, t2, t3, t4);
     }
 
     public void fillEmptyTile(TiffTile tiffTile) {
@@ -1649,6 +1641,22 @@ public class TiffWriter implements Closeable {
                 updatePositionOfLastIFDOffset);
     }
 
+    private void encode(TiffMap map, String stage) throws TiffException {
+        Objects.requireNonNull(map, "Null TIFF map");
+        long t1 = debugTime();
+        int count = 0;
+        long sizeInBytes = 0;
+        for (TiffTile tile : map.tiles()) {
+            if (!tile.isEncoded()) {
+                encode(tile);
+                count++;
+                sizeInBytes += tile.getSizeInBytes();
+            }
+        }
+        long t2 = debugTime();
+        logTiles(map, stage, "encoded", count, sizeInBytes, t1, t2);
+    }
+
     private int completeWritingMap(TiffMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         final long[] offsets = new long[map.numberOfGridTiles()];
@@ -1658,7 +1666,9 @@ public class TiffWriter implements Closeable {
         final int numberOfSeparatedPlanes = map.numberOfSeparatedPlanes();
         final int gridTileCountY = map.gridTileCountY();
         final int gridTileCountX = map.gridTileCountX();
+        long t1 = debugTime();
         int count = 0;
+        long sizeInBytes = 0;
         for (int p = 0, k = 0; p < numberOfSeparatedPlanes; p++) {
             for (int yIndex = 0; yIndex < gridTileCountY; yIndex++) {
                 for (int xIndex = 0; xIndex < gridTileCountX; xIndex++, k++) {
@@ -1672,6 +1682,7 @@ public class TiffWriter implements Closeable {
                     if (!tile.isEmpty()) {
                         writeEncodedTile(tile, true);
                         count++;
+                        sizeInBytes += tile.getSizeInBytes();
                     }
                     if (tile.hasStoredDataFileOffset()) {
                         offsets[k] = tile.getStoredDataFileOffset();
@@ -1699,6 +1710,8 @@ public class TiffWriter implements Closeable {
             }
         }
         map.ifd().updateDataPositioning(offsets, byteCounts);
+        long t2 = debugTime();
+        logTiles(map, "completion", "wrote", count, sizeInBytes, t1, t2);
         return count;
     }
 
@@ -1810,31 +1823,76 @@ public class TiffWriter implements Closeable {
         return result;
     }
 
-    private void logWriting(TiffMap map, String name, int sizeX, int sizeY, long t1, long t2, long t3, long t4) {
-        long t5 = debugTime();
-        long sizeOf = map.totalSizeInBytes();
-        LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
-                "%s wrote %dx%dx%d %s (%.3f MB) in %.3f ms = " +
-                        "%.3f conversion/copying data + %.3f writing IFD " +
-                        "+ %.3f/%.3f encoding/writing " +
-                        "(%.3f prepare + %.3f customize + %.3f encode " +
-                        " (= %.3f main + %.3f bridge + %.3f additional) " +
-                        "+ %.3f write), %.3f MB/s",
-                getClass().getSimpleName(),
-                map.numberOfChannels(), sizeX, sizeY,
-                name,
-                sizeOf / 1048576.0,
-                (t5 - t1) * 1e-6,
-                (t2 - t1) * 1e-6, (t3 - t2) * 1e-6,
-                (t4 - t3) * 1e-6, (t5 - t4) * 1e-6,
-                timePreparingEncoding * 1e-6,
-                timeCustomizingEncoding * 1e-6,
-                timeEncoding * 1e-6,
-                timeEncodingMain * 1e-6,
-                timeEncodingBridge * 1e-6,
-                timeEncodingAdditional * 1e-6,
-                timeWriting * 1e-6,
-                sizeOf / 1048576.0 / ((t5 - t1) * 1e-9)));
+    private void logWritingMatrix(TiffMap map, String name, Matrix<?> matrix, long t1, long t2, long t3, long t4) {
+        if (TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+            final boolean sourceInterleaved = isSourceProbablyInterleaved(map);
+            final long dimX = matrix.dim(sourceInterleaved ? 1 : 0);
+            final long dimY = matrix.dim(sourceInterleaved ? 2 : 1);
+            // - already checked that they are actually "int"
+            logWritingMatrix(map, name, dimX, dimY, t1, t2, t3, t4);
+        }
+    }
+
+    private void logTiles(
+            Collection<TiffTile> tiles,
+            String stage,
+            String action,
+            int count,
+            long sizeInBytes,
+            long t1,
+            long t2) {
+        logTiles(tiles.isEmpty() ? null : tiles.iterator().next().map(), stage, action, count, sizeInBytes, t1, t2);
+    }
+
+    private void logTiles(TiffMap map, String stage, String action, int count, long sizeInBytes, long t1, long t2) {
+        if (TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+            LOG.log(System.Logger.Level.DEBUG,
+                    count == 0 ?
+                            String.format(Locale.US,
+                                    "%s%s %s no tiles in %.3f ms",
+                                    getClass().getSimpleName(),
+                                    stage == null ? "" : " (" + stage + " stage)",
+                                    action,
+                                    (t2 - t1) * 1e-6) :
+                    String.format(Locale.US,
+                            "%s%s %s %d tiles %dx%dx%d (%.3f MB) in %.3f ms, %.3f MB/s",
+                            getClass().getSimpleName(),
+                            stage == null ? "" : " (" + stage + " stage)",
+                            action,
+                            count, map.numberOfChannels(), map.tileSizeX(), map.tileSizeY(),
+                            sizeInBytes / 1048576.0,
+                            (t2 - t1) * 1e-6,
+                            sizeInBytes / 1048576.0 / ((t2 - t1) * 1e-9)));
+        }
+    }
+
+    private void logWritingMatrix(TiffMap map, String name, long dimX, long dimY, long t1, long t2, long t3, long t4) {
+        if (TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+            long t5 = debugTime();
+            final long sizeInBytes = map.totalSizeInBytes();
+            LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
+                    "%s wrote %dx%dx%d %s (%.3f MB) in %.3f ms = " +
+                            "%.3f conversion/copying data + %.3f writing IFD " +
+                            "+ %.3f/%.3f encoding/writing " +
+                            "(%.3f prepare + %.3f customize + %.3f encode " +
+                            " (= %.3f main + %.3f bridge + %.3f additional) " +
+                            "+ %.3f write), %.3f MB/s",
+                    getClass().getSimpleName(),
+                    map.numberOfChannels(), dimX, dimY,
+                    name,
+                    sizeInBytes / 1048576.0,
+                    (t5 - t1) * 1e-6,
+                    (t2 - t1) * 1e-6, (t3 - t2) * 1e-6,
+                    (t4 - t3) * 1e-6, (t5 - t4) * 1e-6,
+                    timePreparingEncoding * 1e-6,
+                    timeCustomizingEncoding * 1e-6,
+                    timeEncoding * 1e-6,
+                    timeEncodingMain * 1e-6,
+                    timeEncodingBridge * 1e-6,
+                    timeEncodingAdditional * 1e-6,
+                    timeWriting * 1e-6,
+                    sizeInBytes / 1048576.0 / ((t5 - t1) * 1e-9)));
+        }
     }
 
     private static void checkPhotometricInterpretation(

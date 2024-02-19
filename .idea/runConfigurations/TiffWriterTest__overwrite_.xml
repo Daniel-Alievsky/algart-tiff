@@ -3,7 +3,7 @@
     <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.tests.io.TiffWriterTest" />
     <module name="algart-scifio-bridge" />
     <option name="PROGRAM_PARAMETERS" value="-nocontext -resizable -randomAccess -preserveOldAccurately -color -quality=null -jpegRGB -tiled /tmp/test.tiff uint8 1 JPEG 400 200 300 200 5  " />
-    <option name="VM_PARAMETERS" value="-ea -esa -Dnet.algart.matrices.tiff.timing=true -Djava.util.logging.config.file=\SciChains\conf\logging.properties" />
+    <option name="VM_PARAMETERS" value="-ea -esa -Dnet.algart.matrices.tiff.timing=true -Djava.util.logging.config.file=/SciChains/conf/logging.properties" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>

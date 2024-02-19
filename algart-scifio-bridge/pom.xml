@@ -9,7 +9,7 @@
     <version>1.2.4</version>
 
     <name>AlgART-SCIFIO bridge</name>
-    <description>Module helping using and testing AlgART-TIFF together with io.scif:scifio</description>
+    <description>Module helping to use and test AlgART-TIFF together with io.scif:scifio</description>
     <url>http://algart.net/java/AlgART-TIFF/</url>
 
     <licenses>

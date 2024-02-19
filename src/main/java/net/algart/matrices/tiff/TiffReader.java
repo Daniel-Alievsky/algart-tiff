@@ -1152,13 +1152,13 @@ public class TiffReader implements Closeable {
         // - note: we allow this area to be outside the image
         final int numberOfChannels = map.numberOfChannels();
         final TiffIFD ifd = map.ifd();
-        final int size = ifd.sizeOfRegion(sizeX, sizeY);
-        assert sizeX >= 0 && sizeY >= 0 : "sizeOfIFDRegion didn't check sizes accurately: " + sizeX + "fromX" + sizeY;
-        byte[] samples = new byte[size];
+        final int sizeInBytes = ifd.sizeOfRegion(sizeX, sizeY);
+        assert sizeX >= 0 && sizeY >= 0 : "sizeOfRegion didn't check sizes accurately: " + sizeX + "fromX" + sizeY;
+        byte[] samples = new byte[sizeInBytes];
 
         if (byteFiller != 0) {
             // - samples array is already zero-filled by Java
-            Arrays.fill(samples, 0, size, byteFiller);
+            Arrays.fill(samples, 0, sizeInBytes, byteFiller);
         }
         // - important for a case when the requested area is outside the image;
         // old SCIFIO code did not check this and could return undefined results
@@ -1193,7 +1193,7 @@ public class TiffReader implements Closeable {
                             "+ %.3f complete)" +
                             "%s%s, %.3f MB/s",
                     getClass().getSimpleName(),
-                    numberOfChannels, sizeX, sizeY, size / 1048576.0,
+                    numberOfChannels, sizeX, sizeY, sizeInBytes / 1048576.0,
                     (t5 - t1) * 1e-6,
                     (t2 - t1) * 1e-6,
                     (t3 - t2) * 1e-6,
@@ -1208,7 +1208,7 @@ public class TiffReader implements Closeable {
                             String.format(Locale.US, " + %.3f interleave", (t4 - t3) * 1e-6) : "",
                     unusualPrecision ?
                             String.format(Locale.US, " + %.3f unusual precisions", (t5 - t4) * 1e-6) : "",
-                    size / 1048576.0 / ((t5 - t1) * 1e-9)));
+                    sizeInBytes / 1048576.0 / ((t5 - t1) * 1e-9)));
         }
         return samples;
     }
