@@ -587,11 +587,12 @@ public class TiffReader implements Closeable {
 
 
     public List<TiffMap> allMaps() throws IOException {
-        return allIFDs().stream().map(this::newMap).collect(Collectors.toList());
+        return allIFDs().stream().map(this::newMap).toList();
     }
 
     /**
-     * Returns all IFDs in the file. When first called, reads all IFD from the file
+     * Returns all IFDs in the file in unmodifiable list.
+     * When first called, reads all IFD from the file
      * (but this can be disabled using {@link #setCachingIFDs(boolean)} method).
      *
      * <p>Note: if this TIFF file is not valid ({@link #isValid()} returns <tt>false</tt>), this method
@@ -638,7 +639,7 @@ public class TiffReader implements Closeable {
                 }
             }
             if (cachingIFDs) {
-                this.ifds = ifds;
+                this.ifds = Collections.unmodifiableList(ifds);
             }
         }
         if (TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
@@ -714,6 +715,9 @@ public class TiffReader implements Closeable {
 
     /**
      * Gets the offsets to every IFD in the file.
+     *
+     * <p>Note: if this TIFF file is not valid ({@link #isValid()} returns <tt>false</tt>), this method
+     * returns an empty array and does not throw an exception. For valid TIFF, result cannot be empty.
      */
     public long[] readIFDOffsets() throws IOException {
         synchronized (fileLock) {

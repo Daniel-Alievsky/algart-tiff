@@ -9,6 +9,8 @@ AlgART-TIFF is a Java library providing complete read/write support of TIFF file
 Main AlgART-TIFF functions are available in [SciChains](http://scichains.com) visual constructor
 via [scichains-map](https://github.com/scichains/scichains-maps) library.
 
+See also [AlgART-TIFF page](https://algart.net/java/AlgART-TIFF/) on AlgART site.
+
 ## Key features
 
 * You have full control over TIFF-file structure: ability to analyse, read or write separate IFDs with help of `TiffReader` and `TiffWriter` classes.
