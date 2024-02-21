@@ -29,7 +29,6 @@ import org.scijava.util.Bytes;
 import java.awt.*;
 import java.awt.color.ColorSpace;
 import java.awt.image.*;
-import java.util.Hashtable;
 
 /**
  * A utility class with convenience methods for manipulating images in
@@ -682,7 +681,7 @@ public final class AWTImages {
      * Extracts pixel data as arrays of unsigned bytes, one per channel.
      */
     public static byte[][] getBytes(WritableRaster r, int x, int y, int w, int h) {
-        if (canUseBankDataDirectly(r, DataBuffer.TYPE_BYTE, DataBufferByte.class) &&
+        if (canDirectlyUseBankData(r, DataBuffer.TYPE_BYTE, DataBufferByte.class) &&
                 x == 0 && y == 0 && w == r.getWidth() && h == r.getHeight()) {
             return ((DataBufferByte) r.getDataBuffer()).getBankData();
         }
@@ -717,9 +716,8 @@ public final class AWTImages {
      * Extracts pixel data as arrays of unsigned shorts, one per channel.
      */
     public static short[][] getShorts(WritableRaster r, int x, int y, int w, int h) {
-        if (canUseBankDataDirectly(r, DataBuffer.TYPE_USHORT,
-                DataBufferUShort.class) && x == 0 && y == 0 && w == r.getWidth() && h == r
-                .getHeight()) {
+        if (canDirectlyUseBankData(r, DataBuffer.TYPE_USHORT, DataBufferUShort.class)
+                && x == 0 && y == 0 && w == r.getWidth() && h == r.getHeight()) {
             return ((DataBufferUShort) r.getDataBuffer()).getBankData();
         }
         final int c = r.getNumBands();
@@ -752,8 +750,8 @@ public final class AWTImages {
      * Extracts pixel data as arrays of signed integers, one per channel.
      */
     public static int[][] getInts(WritableRaster r, int x, int y, int w, int h) {
-        if (canUseBankDataDirectly(r, DataBuffer.TYPE_INT, DataBufferInt.class) &&
-                x == 0 && y == 0 && w == r.getWidth() && h == r.getHeight()) {
+        if (canDirectlyUseBankData(r, DataBuffer.TYPE_INT, DataBufferInt.class)
+                && x == 0 && y == 0 && w == r.getWidth() && h == r.getHeight()) {
             return ((DataBufferInt) r.getDataBuffer()).getBankData();
         }
         // NB: an order of magnitude faster than the naive makeType solution
@@ -783,9 +781,8 @@ public final class AWTImages {
      * Extracts pixel data as arrays of floats, one per channel.
      */
     public static float[][] getFloats(WritableRaster r, int x, int y, int w, int h) {
-        if (canUseBankDataDirectly(r, DataBuffer.TYPE_FLOAT,
-                DataBufferFloat.class) && x == 0 && y == 0 && w == r.getWidth() && h == r
-                .getHeight()) {
+        if (canDirectlyUseBankData(r, DataBuffer.TYPE_FLOAT, DataBufferFloat.class)
+                && x == 0 && y == 0 && w == r.getWidth() && h == r.getHeight()) {
             return ((DataBufferFloat) r.getDataBuffer()).getBankData();
         }
         // NB: an order of magnitude faster than the naive makeType solution
@@ -815,9 +812,8 @@ public final class AWTImages {
      * Extracts pixel data as arrays of doubles, one per channel.
      */
     public static double[][] getDoubles(WritableRaster r, int x, int y, int w, int h) {
-        if (canUseBankDataDirectly(r, DataBuffer.TYPE_DOUBLE,
-                DataBufferDouble.class) && x == 0 && y == 0 && w == r.getWidth() && h == r
-                .getHeight()) {
+        if (canDirectlyUseBankData(r, DataBuffer.TYPE_DOUBLE, DataBufferDouble.class)
+                && x == 0 && y == 0 && w == r.getWidth() && h == r.getHeight()) {
             return ((DataBufferDouble) r.getDataBuffer()).getBankData();
         }
         // NB: an order of magnitude faster than the naive makeType solution
@@ -1027,32 +1023,79 @@ public final class AWTImages {
      * Whether we can return the data buffer's bank data without performing any
      * copy or conversion operations.
      */
-    private static boolean canUseBankDataDirectly(
+    private static boolean canDirectlyUseBankData(
             WritableRaster r,
             int transferType,
             Class<? extends DataBuffer> dataBufferClass) {
         final int tt = r.getTransferType();
-        if (tt != transferType) return false;
+        if (tt != transferType) {
+            return false;
+        }
         final DataBuffer buffer = r.getDataBuffer();
-        if (!dataBufferClass.isInstance(buffer)) return false;
+        if (!dataBufferClass.isInstance(buffer)) {
+            return false;
+        }
         final SampleModel model = r.getSampleModel();
-        if (!(model instanceof ComponentSampleModel)) return false;
-        final ComponentSampleModel csm = (ComponentSampleModel) model;
+        if (!(model instanceof ComponentSampleModel csm)) {
+            return false;
+        }
         final int pixelStride = csm.getPixelStride();
-        if (pixelStride != 1) return false;
+        if (pixelStride != 1) {
+            return false;
+        }
         final int w = r.getWidth();
         final int scanlineStride = csm.getScanlineStride();
-        if (scanlineStride != w) return false;
+        if (scanlineStride != w) {
+            return false;
+        }
         final int c = r.getNumBands();
         final int[] bandOffsets = csm.getBandOffsets();
-        if (bandOffsets.length != c) return false;
-        for (int i = 0; i < bandOffsets.length; i++) {
-            if (bandOffsets[i] != 0) return false;
+        if (bandOffsets.length != c) {
+            return false;
         }
         for (int i = 0; i < bandOffsets.length; i++) {
-            if (bandOffsets[i] != i) return false;
+            if (bandOffsets[i] != 0) {
+                return false;
+            }
+        }
+        for (int i = 0; i < bandOffsets.length; i++) {
+            if (bandOffsets[i] != i) {
+                return false;
+            }
         }
         return true;
     }
+
+    private static boolean canDirectlyUseBankDataForBGRBytes(final WritableRaster raster) {
+        if (raster.getTransferType() != DataBuffer.TYPE_BYTE) {
+            return false;
+        }
+        final DataBuffer buffer = raster.getDataBuffer();
+        if (!(buffer instanceof DataBufferByte)) {
+            return false;
+        }
+        if (raster.getNumBands() != 3) {
+            return false;
+        }
+        final SampleModel model = raster.getSampleModel();
+        if (!(model instanceof ComponentSampleModel csm)) {
+            return false;
+        }
+        final int pixelStride = csm.getPixelStride();
+        if (pixelStride != 3) {
+            return false;
+        }
+        final int width = raster.getWidth();
+        final int scanlineStride = csm.getScanlineStride();
+        if (scanlineStride != pixelStride * width) {
+            return false;
+        }
+        final int[] bandOffsets = csm.getBandOffsets();
+        if (bandOffsets.length != 3) {
+            return false;
+        }
+        return bandOffsets[0] == 2 && bandOffsets[1] == 1 && bandOffsets[2] == 0;
+    }
+
 
 }
