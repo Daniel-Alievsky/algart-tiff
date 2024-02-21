@@ -2,7 +2,7 @@
   <configuration default="false" name="TiffReaderTest" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.tests.io.TiffReaderTest" />
     <module name="algart-scifio-bridge" />
-    <option name="PROGRAM_PARAMETERS" value="-nocontext /tmp/test.tiff /tmp/test.png  2 0 0 -1 -1 5" />
+    <option name="PROGRAM_PARAMETERS" value="-nocontext /tmp/test.tiff /tmp/test.png  2 0 0 -1 -1 10" />
     <option name="VM_PARAMETERS" value="-ea -esa -Dnet.algart.matrices.tiff.timing=true -Djava.util.logging.config.file=/SciChains/conf/logging.properties" />
     <method v="2">
       <option name="Make" enabled="true" />

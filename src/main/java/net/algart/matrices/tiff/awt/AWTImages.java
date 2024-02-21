@@ -741,6 +741,8 @@ public final class AWTImages {
 		}
 		final int c = r.getNumBands();
 		final byte[][] samples = new byte[c][w * h];
+
+
 		final int[] buf = new int[w * h];
 		for (int i = 0; i < c; i++) {
 			r.getSamples(x, y, w, h, i, buf);
@@ -1158,108 +1160,6 @@ public final class AWTImages {
 		}
 		return rtn;
 	}
-
-	/**
-	 * Creates a buffered image from the given AWT image object. If the AWT image
-	 * is already a buffered image, no new object is created.
-	 */
-	public static BufferedImage makeBuffered(final Image image) {
-		if (image instanceof BufferedImage) return (BufferedImage) image;
-
-		// TODO: better way to handle color model (don't just assume RGB)
-		loadImage(image);
-		final BufferedImage img = new BufferedImage(image.getWidth(OBS), image
-			.getHeight(OBS), BufferedImage.TYPE_INT_RGB);
-		final Graphics g = img.getGraphics();
-		g.drawImage(image, 0, 0, OBS);
-		g.dispose();
-		return img;
-	}
-
-	/**
-	 * Creates a buffered image possessing the given color model, from the
-	 * specified AWT image object. If the AWT image is already a buffered image
-	 * with the given color model, no new object is created.
-	 */
-	public static BufferedImage makeBuffered(final Image image,
-		final ColorModel cm)
-	{
-		if (cm == null) return makeBuffered(image);
-
-		if (image instanceof BufferedImage) {
-			final BufferedImage bi = (BufferedImage) image;
-			if (cm.equals(bi.getColorModel())) return bi;
-		}
-		loadImage(image);
-		final int w = image.getWidth(OBS), h = image.getHeight(OBS);
-		final boolean alphaPremultiplied = cm.isAlphaPremultiplied();
-		final WritableRaster raster = cm.createCompatibleWritableRaster(w, h);
-		final BufferedImage result = new BufferedImage(cm, raster,
-			alphaPremultiplied, null);
-		final Graphics2D g = result.createGraphics();
-		g.drawImage(image, 0, 0, OBS);
-		g.dispose();
-		return result;
-	}
-
-	/** Ensures the given AWT image is fully loaded. */
-	public static boolean loadImage(final Image image) {
-		if (image instanceof BufferedImage) return true;
-		final MediaTracker tracker = new MediaTracker(OBS);
-		tracker.addImage(image, 0);
-		try {
-			tracker.waitForID(0);
-		}
-		catch (final InterruptedException exc) {
-			return false;
-		}
-		if (MediaTracker.COMPLETE != tracker.statusID(0, false)) return false;
-		return true;
-	}
-
-	/**
-	 * Gets the width and height of the given AWT image, waiting for it to finish
-	 * loading if necessary.
-	 */
-	public static Dimension getSize(final Image image) {
-		if (image == null) return new Dimension(0, 0);
-		if (image instanceof BufferedImage) {
-			final BufferedImage bi = (BufferedImage) image;
-			return new Dimension(bi.getWidth(), bi.getHeight());
-		}
-		loadImage(image);
-		return new Dimension(image.getWidth(OBS), image.getHeight(OBS));
-	}
-
-	// -- Graphics configuration --
-
-	/**
-	 * Creates a buffered image compatible with the given graphics configuration,
-	 * using the given buffered image as a source. If gc is null, the default
-	 * graphics configuration is used.
-	 */
-	public static BufferedImage makeCompatible(final BufferedImage image,
-		GraphicsConfiguration gc)
-	{
-		if (gc == null) gc = getDefaultConfiguration();
-		final int w = image.getWidth(), h = image.getHeight();
-		final int trans = image.getColorModel().getTransparency();
-		final BufferedImage result = gc.createCompatibleImage(w, h, trans);
-		final Graphics2D g2 = result.createGraphics();
-		g2.drawRenderedImage(image, null);
-		g2.dispose();
-		return result;
-	}
-
-	/** Gets the default graphics configuration for the environment. */
-	public static GraphicsConfiguration getDefaultConfiguration() {
-		final GraphicsEnvironment ge = GraphicsEnvironment
-			.getLocalGraphicsEnvironment();
-		final GraphicsDevice gd = ge.getDefaultScreenDevice();
-		return gd.getDefaultConfiguration();
-	}
-
-	// -- Color model --
 
 	/** Gets a color space for the given number of color components. */
 	public static ColorSpace makeColorSpace(final int c) {

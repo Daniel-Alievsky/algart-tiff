@@ -1169,7 +1169,7 @@ public class TiffTools {
         Objects.requireNonNull(fileLocation, "Null fileLocation");
         FileHandle fileHandle = new FileHandle(fileLocation);
         fileHandle.setLittleEndian(false);
-        // - in current implementation it is an extra operator: BigEndian is default in SCIFIO;
+        // - in current implementation it is an extra operator: BigEndian is default in scijava;
         // but we want to be sure that this behaviour will be the same in all future versions
         return (DataHandle) fileHandle;
     }

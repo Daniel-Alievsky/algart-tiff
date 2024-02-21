@@ -202,10 +202,10 @@ public class JPEGCodec extends AbstractCodec implements TiffCodec.Timing {
         long t2 = timing ? System.nanoTime() : 0;
         timeMain += t2 - t1;
 
-        final byte[] quickResult = options.interleaved || completeDecoding || !OPTIMIZE_SEPARATING_BGR?
+        final byte[] quickBGR = options.interleaved || completeDecoding || !OPTIMIZE_SEPARATING_BGR?
                 null :
                 JPEG.quickBGRPixelBytes(bi);
-        final byte[][] data = quickResult != null ? null : AWTImages.getPixelBytes(bi, options.littleEndian);
+        final byte[][] data = quickBGR != null ? null : AWTImages.getPixelBytes(bi, options.littleEndian);
         long t3 = timing ? System.nanoTime() : 0;
 
         if (completeDecoding) {
@@ -214,8 +214,8 @@ public class JPEGCodec extends AbstractCodec implements TiffCodec.Timing {
         timeBridge += t3 - t2;
 
         final byte[] result;
-        if (quickResult != null) {
-            result = JPEG.separateBGR(quickResult, bi.getWidth() * bi.getHeight());
+        if (quickBGR != null) {
+            result = JPEG.separateBGR(quickBGR, bi.getWidth() * bi.getHeight());
         } else {
             int bandSize = data[0].length;
             if (data.length == 1) {

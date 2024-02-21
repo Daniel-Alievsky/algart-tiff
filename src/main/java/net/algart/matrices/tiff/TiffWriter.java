@@ -146,7 +146,7 @@ public class TiffWriter implements Closeable {
     }
 
     public TiffWriter(Path file, boolean deleteExistingFile) throws IOException {
-        this(deleteFileIfRequested(file, deleteExistingFile));
+        this(openWithDeletingPreviousFileIfRequested(file, deleteExistingFile));
     }
 
     /**
@@ -179,6 +179,10 @@ public class TiffWriter implements Closeable {
 
     /**
      * Sets whether little-endian data should be written.
+     * <p>Note that the default order is <b>big-endian</b>.
+     *
+     * @param littleEndian new byte while writing the file: big-endian (<tt>false</tt>) or
+     *                     little-endian (<tt>true</tt>); default is <tt>false</tt>.
      */
     public TiffWriter setLittleEndian(final boolean littleEndian) {
         synchronized (fileLock) {
@@ -1924,7 +1928,8 @@ public class TiffWriter implements Closeable {
         return TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG ? System.nanoTime() : 0;
     }
 
-    private static DataHandle<Location> deleteFileIfRequested(Path file, boolean deleteExisting) throws IOException {
+    private static DataHandle<Location> openWithDeletingPreviousFileIfRequested(Path file, boolean deleteExisting)
+            throws IOException {
         Objects.requireNonNull(file, "Null file");
         if (deleteExisting) {
             Files.deleteIfExists(file);
