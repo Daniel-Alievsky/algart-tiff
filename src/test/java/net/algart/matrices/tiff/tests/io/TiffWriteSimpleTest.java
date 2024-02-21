@@ -48,7 +48,7 @@ public class TiffWriteSimpleTest {
     private static void printReaderInfo(TiffWriter writer) throws IOException {
         System.out.print("Checking file by the reader: ");
         try {
-            final TiffReader reader = writer.newReader(false);
+            final TiffReader reader = writer.readerOfThisFile(false);
             System.out.printf("%s, %s%n",
                     reader.isValid() ? "valid" : "INVALID: " + reader.openingException(),
                     reader.numberOfIFDs() == 0 ? "no IFD" : "#0 " + reader.ifd(0));
@@ -69,8 +69,8 @@ public class TiffWriteSimpleTest {
         System.out.println("Writing TIFF " + targetFile);
         try (final TiffWriter writer = new TiffWriter(targetFile)) {
             writer.setByteFiller((byte) 0xB0);
-            writer.create();
             writer.setSmartIFDCorrection(true);
+            writer.create();
             // writer.startNewFile(); // - not a problem to call twice
             TiffIFD ifd = new TiffIFD();
             final int[] bitsPerSample = {8};

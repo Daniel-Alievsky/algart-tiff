@@ -152,7 +152,8 @@ public class TiffWriter implements Closeable {
     /**
      * Creates new TIFF writer.
      *
-     * <p>Note: unlike classes like <tt>java.io.FileWriter</tt>, this constructor does not actually create file.
+     * <p>Note: unlike classes like <tt>java.io.FileWriter</tt> and unlike {@link TiffReader},
+     * this constructor <b>does not actually open or create file</b>.
      * You <b>must</b> call one of methods {@link #create()} or {@link #open(boolean)} after creating this object
      * by the constructor.
      *
@@ -163,7 +164,7 @@ public class TiffWriter implements Closeable {
         this.out = outputStream;
     }
 
-    public TiffReader newReader(boolean requireValidTiff) throws IOException {
+    public TiffReader readerOfThisFile(boolean requireValidTiff) throws IOException {
         return new TiffReader(out, requireValidTiff, false);
     }
 
@@ -476,16 +477,19 @@ public class TiffWriter implements Closeable {
         return ifdOffsets.size();
     }
 
-    public void open() throws IOException {
-        open(false);
+    public TiffWriter open() throws IOException {
+        return open(false);
     }
 
-    public void open(boolean createIfNotExists) throws IOException {
+    public TiffWriter openOrCreate() throws IOException {
+        return open(true);
+    }
+
+    public TiffWriter open(boolean createIfNotExists) throws IOException {
         synchronized (fileLock) {
             if (!out.exists()) {
                 if (createIfNotExists) {
-                    create();
-                    return;
+                    return create();
                 } else {
                     throw new FileNotFoundException("Output TIFF file " +
                             TiffReader.prettyFileName("%s", out) + " does not exist");
@@ -503,11 +507,11 @@ public class TiffWriter implements Closeable {
             seekToEnd();
             // - ready to write after the end of the file
             // (not necessary, but can help to avoid accidental bugs)
-
+            return this;
         }
     }
 
-    public void create() throws IOException {
+    public TiffWriter create() throws IOException {
         synchronized (fileLock) {
             ifdOffsets.clear();
             out.seek(0);
@@ -536,6 +540,7 @@ public class TiffWriter implements Closeable {
             // it is necessary, because this class writes all new information
             // to the file end (to avoid damaging existing content)
             out.setLength(out.offset());
+            return this;
         }
     }
 
