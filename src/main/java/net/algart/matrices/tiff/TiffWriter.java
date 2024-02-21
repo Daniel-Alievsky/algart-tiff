@@ -112,8 +112,8 @@ public class TiffWriter implements Closeable {
     private static final System.Logger LOG = System.getLogger(TiffWriter.class.getName());
     private static final boolean LOGGABLE_DEBUG = LOG.isLoggable(System.Logger.Level.DEBUG);
 
-    private boolean writingForwardAllowed = true;
     private boolean bigTiff = false;
+    private boolean writingForwardAllowed = true;
     private boolean autoInterleaveSource = true;
     private boolean smartIFDCorrection = false;
     private TiffCodec.Options codecOptions = new TiffCodec.Options();
@@ -187,15 +187,6 @@ public class TiffWriter implements Closeable {
         return this;
     }
 
-    public boolean isWritingForwardAllowed() {
-        return writingForwardAllowed;
-    }
-
-    public TiffWriter setWritingForwardAllowed(boolean writingForwardAllowed) {
-        this.writingForwardAllowed = writingForwardAllowed;
-        return this;
-    }
-
     /**
      * Returns whether we are writing BigTIFF data.
      */
@@ -211,6 +202,15 @@ public class TiffWriter implements Closeable {
         return this;
     }
 
+
+    public boolean isWritingForwardAllowed() {
+        return writingForwardAllowed;
+    }
+
+    public TiffWriter setWritingForwardAllowed(boolean writingForwardAllowed) {
+        this.writingForwardAllowed = writingForwardAllowed;
+        return this;
+    }
 
     public boolean isAutoInterleaveSource() {
         return autoInterleaveSource;
@@ -477,7 +477,7 @@ public class TiffWriter implements Closeable {
         return ifdOffsets.size();
     }
 
-    public TiffWriter open() throws IOException {
+    public TiffWriter openExisting() throws IOException {
         return open(false);
     }
 
@@ -574,7 +574,7 @@ public class TiffWriter implements Closeable {
      *     <li>It updates the offset, stored in the file at {@link #positionOfLastIFDOffset()}, with start offset of
      *     this IFD (i.e. <tt>startOffset</tt> or position of the file end). This action is performed <b>only</b>
      *     if this start offset is really new for this file, i.e. if it did not present in an existing file
-     *     while opening it by {@link #open()} method and if some IFD was not already written
+     *     while opening it by {@link #openExisting()} method and if some IFD was not already written
      *     at this position by methods of this object.</li>
      *     <li>It replaces the internal field, returned by {@link #positionOfLastIFDOffset()}, with
      *     the position of the next IFD offset, written as a part of this IFD.
