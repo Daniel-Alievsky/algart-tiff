@@ -687,6 +687,9 @@ public final class AWTImages {
         }
         final int c = r.getNumBands();
         final byte[][] samples = new byte[c][w * h];
+        if (canDirectlyUseBankDataForBGRBytes(r)) {
+            assert c == 3;
+        }
 
         final int[] buf = new int[w * h];
         for (int i = 0; i < c; i++) {
@@ -1066,7 +1069,7 @@ public final class AWTImages {
         return true;
     }
 
-    private static boolean canDirectlyUseBankDataForBGRBytes(final WritableRaster raster) {
+    private static boolean canDirectlyUseBankDataForBGRBytes(WritableRaster raster) {
         if (raster.getTransferType() != DataBuffer.TYPE_BYTE) {
             return false;
         }

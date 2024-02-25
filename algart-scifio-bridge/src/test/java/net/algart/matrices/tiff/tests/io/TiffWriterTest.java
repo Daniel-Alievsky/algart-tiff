@@ -362,11 +362,10 @@ public class TiffWriterTest {
                     if (test == 1) {
                         if (map.hasUnset()) {
                             List<TiffTile> unset = map.tiles().stream().filter(TiffTile::hasUnset).toList();
-                            List<TiffTile> partial = unset.stream().filter(TiffTile::hasStoredDataFileOffset).toList();
                             System.out.printf(
-                                    "  Image #%d: %d tiles, %d are not completely filled, %d are partially filled%n",
-                                    k, map.size(), unset.size(), partial.size());
-                            for (TiffTile tile : partial) {
+                                    "  Image #%d: %d tiles, %d are not completely filled%n",
+                                    k, map.size(), unset.size());
+                            for (TiffTile tile : unset) {
                                 Collection<IRectangularArea> unsetArea = tile.getUnsetArea();
                                 System.out.printf("      %s (%d area%s)%n", tile, unsetArea.size(),
                                         unsetArea.size() == 1 ? ": " + unsetArea.iterator().next() : "s");

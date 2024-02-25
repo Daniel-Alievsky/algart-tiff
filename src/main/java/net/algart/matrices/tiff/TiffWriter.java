@@ -1697,7 +1697,7 @@ public class TiffWriter implements Closeable {
                         count++;
                         sizeInBytes += tile.getSizeInBytes();
                     }
-                    if (tile.hasStoredDataFileOffset()) {
+                    if (tile.isStoredInFile()) {
                         offsets[k] = tile.getStoredDataFileOffset();
                         byteCounts[k] = tile.getStoredDataLength();
                     } else {

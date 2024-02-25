@@ -434,7 +434,7 @@ public final class TiffTile {
         return storedDataLength;
     }
 
-    public boolean hasStoredDataFileOffset() {
+    public boolean isStoredInFile() {
         return storedDataFileOffset >= 0;
     }
 
@@ -622,7 +622,7 @@ public final class TiffTile {
                                 storedNumberOfPixels + " pixels, " + storedDataLength + " bytes)" +
                                 (isCompleted() ? ", completed" : ", partial")) +
                 ", index " + index +
-                (hasStoredDataFileOffset() ? " at file offset " + storedDataFileOffset : "");
+                (isStoredInFile() ? " at file offset " + storedDataFileOffset : "");
     }
 
     @Override
