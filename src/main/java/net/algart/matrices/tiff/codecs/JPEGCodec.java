@@ -41,7 +41,8 @@ import java.util.Arrays;
 import java.util.Objects;
 
 public class JPEGCodec extends AbstractCodec implements TiffCodec.Timing {
-    private static final boolean OPTIMIZE_SEPARATING_BGR = true;
+    private static final boolean OPTIMIZE_SEPARATING_BGR = false;
+    // - deprecated since 1.2.7: AWTImages.getPixelBytes now also implements quick separation
 
     public static class JPEGOptions extends Options {
         /**

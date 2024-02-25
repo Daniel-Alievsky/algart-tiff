@@ -29,6 +29,7 @@ import org.scijava.util.Bytes;
 import java.awt.*;
 import java.awt.color.ColorSpace;
 import java.awt.image.*;
+import java.util.Objects;
 
 /**
  * A utility class with convenience methods for manipulating images in
@@ -681,14 +682,20 @@ public final class AWTImages {
      * Extracts pixel data as arrays of unsigned bytes, one per channel.
      */
     public static byte[][] getBytes(WritableRaster r, int x, int y, int w, int h) {
-        if (canDirectlyUseBankData(r, DataBuffer.TYPE_BYTE, DataBufferByte.class) &&
-                x == 0 && y == 0 && w == r.getWidth() && h == r.getHeight()) {
+        final boolean wholeImage = x == 0 && y == 0 && w == r.getWidth() && h == r.getHeight();
+        if (wholeImage && canDirectlyUseBankData(r, DataBuffer.TYPE_BYTE, DataBufferByte.class)) {
             return ((DataBufferByte) r.getDataBuffer()).getBankData();
         }
         final int c = r.getNumBands();
         final byte[][] samples = new byte[c][w * h];
-        if (canDirectlyUseBankDataForBGRBytes(r)) {
+        if (wholeImage && canDirectlyUseBankDataForBGRBytes(r)) {
             assert c == 3;
+            byte[][] data = ((DataBufferByte) r.getDataBuffer()).getBankData();
+            if (data.length == 1 && data[0].length == 3 * (long) w * (long) h) {
+                // - 2nd condition should be always true
+                separateBGR(samples, data[0], w * h);
+                return samples;
+            }
         }
 
         final int[] buf = new int[w * h];
@@ -719,8 +726,8 @@ public final class AWTImages {
      * Extracts pixel data as arrays of unsigned shorts, one per channel.
      */
     public static short[][] getShorts(WritableRaster r, int x, int y, int w, int h) {
-        if (canDirectlyUseBankData(r, DataBuffer.TYPE_USHORT, DataBufferUShort.class)
-                && x == 0 && y == 0 && w == r.getWidth() && h == r.getHeight()) {
+        final boolean wholeImage = x == 0 && y == 0 && w == r.getWidth() && h == r.getHeight();
+        if (wholeImage && canDirectlyUseBankData(r, DataBuffer.TYPE_USHORT, DataBufferUShort.class)) {
             return ((DataBufferUShort) r.getDataBuffer()).getBankData();
         }
         final int c = r.getNumBands();
@@ -753,8 +760,8 @@ public final class AWTImages {
      * Extracts pixel data as arrays of signed integers, one per channel.
      */
     public static int[][] getInts(WritableRaster r, int x, int y, int w, int h) {
-        if (canDirectlyUseBankData(r, DataBuffer.TYPE_INT, DataBufferInt.class)
-                && x == 0 && y == 0 && w == r.getWidth() && h == r.getHeight()) {
+        final boolean wholeImage = x == 0 && y == 0 && w == r.getWidth() && h == r.getHeight();
+        if (wholeImage && canDirectlyUseBankData(r, DataBuffer.TYPE_INT, DataBufferInt.class)) {
             return ((DataBufferInt) r.getDataBuffer()).getBankData();
         }
         // NB: an order of magnitude faster than the naive makeType solution
@@ -784,8 +791,8 @@ public final class AWTImages {
      * Extracts pixel data as arrays of floats, one per channel.
      */
     public static float[][] getFloats(WritableRaster r, int x, int y, int w, int h) {
-        if (canDirectlyUseBankData(r, DataBuffer.TYPE_FLOAT, DataBufferFloat.class)
-                && x == 0 && y == 0 && w == r.getWidth() && h == r.getHeight()) {
+        final boolean wholeImage = x == 0 && y == 0 && w == r.getWidth() && h == r.getHeight();
+        if (wholeImage && canDirectlyUseBankData(r, DataBuffer.TYPE_FLOAT, DataBufferFloat.class)) {
             return ((DataBufferFloat) r.getDataBuffer()).getBankData();
         }
         // NB: an order of magnitude faster than the naive makeType solution
@@ -815,8 +822,8 @@ public final class AWTImages {
      * Extracts pixel data as arrays of doubles, one per channel.
      */
     public static double[][] getDoubles(WritableRaster r, int x, int y, int w, int h) {
-        if (canDirectlyUseBankData(r, DataBuffer.TYPE_DOUBLE, DataBufferDouble.class)
-                && x == 0 && y == 0 && w == r.getWidth() && h == r.getHeight()) {
+        final boolean wholeImage = x == 0 && y == 0 && w == r.getWidth() && h == r.getHeight();
+        if (wholeImage && canDirectlyUseBankData(r, DataBuffer.TYPE_DOUBLE, DataBufferDouble.class)) {
             return ((DataBufferDouble) r.getDataBuffer()).getBankData();
         }
         // NB: an order of magnitude faster than the naive makeType solution
@@ -1098,7 +1105,23 @@ public final class AWTImages {
             return false;
         }
         return bandOffsets[0] == 2 && bandOffsets[1] == 1 && bandOffsets[2] == 0;
+        // - typical situation for Java AWT (BGR format)
     }
 
+    private static void separateBGR(byte[][] result, byte[] bytes, int numberOfPixels) {
+        Objects.requireNonNull(bytes, "Null bytes");
+        assert bytes.length == 3 * numberOfPixels;
+        final byte[] r = result[0];
+        final byte[] g = result[1];
+        final byte[] b = result[2];
+        assert r.length == numberOfPixels;
+        assert g.length == numberOfPixels;
+        assert b.length == numberOfPixels;
+        for (int i = 0, disp = 0; i < numberOfPixels; i++) {
+            b[i] = bytes[disp++];
+            g[i] = bytes[disp++];
+            r[i] = bytes[disp++];
+        }
+    }
 
 }
