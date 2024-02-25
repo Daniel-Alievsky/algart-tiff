@@ -405,7 +405,7 @@ public final class TiffMap {
         }
     }
 
-    public int size() {
+    public int numberOfTiles() {
         return tileMap.size();
     }
 

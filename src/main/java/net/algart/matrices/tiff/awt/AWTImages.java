@@ -688,12 +688,13 @@ public final class AWTImages {
         }
         final int c = r.getNumBands();
         final byte[][] samples = new byte[c][w * h];
-        if (wholeImage && canDirectlyUseBankDataForBGRBytes(r)) {
+        final int[] rgbIndexes;
+        if (wholeImage && (rgbIndexes = tryDirectlyUseBankDataForRGB(r)) != null) {
             assert c == 3;
             byte[][] data = ((DataBufferByte) r.getDataBuffer()).getBankData();
             if (data.length == 1 && data[0].length == 3 * (long) w * (long) h) {
                 // - 2nd condition should be always true
-                separateBGR(samples, data[0], w * h);
+                separateRGB(samples, rgbIndexes, data[0], w * h);
                 return samples;
             }
         }
@@ -1076,51 +1077,58 @@ public final class AWTImages {
         return true;
     }
 
-    private static boolean canDirectlyUseBankDataForBGRBytes(WritableRaster raster) {
+    private static int[] tryDirectlyUseBankDataForRGB(WritableRaster raster) {
         if (raster.getTransferType() != DataBuffer.TYPE_BYTE) {
-            return false;
+            return null;
         }
         final DataBuffer buffer = raster.getDataBuffer();
         if (!(buffer instanceof DataBufferByte)) {
-            return false;
+            return null;
         }
         if (raster.getNumBands() != 3) {
-            return false;
+            return null;
         }
         final SampleModel model = raster.getSampleModel();
         if (!(model instanceof ComponentSampleModel csm)) {
-            return false;
+            return null;
         }
         final int pixelStride = csm.getPixelStride();
         if (pixelStride != 3) {
-            return false;
+            return null;
         }
         final int width = raster.getWidth();
         final int scanlineStride = csm.getScanlineStride();
         if (scanlineStride != pixelStride * width) {
-            return false;
+            return null;
         }
         final int[] bandOffsets = csm.getBandOffsets();
         if (bandOffsets.length != 3) {
-            return false;
+            return null;
         }
-        return bandOffsets[0] == 2 && bandOffsets[1] == 1 && bandOffsets[2] == 0;
-        // - typical situation for Java AWT (BGR format)
+        if (bandOffsets[0] == 0 && bandOffsets[1] == 1 && bandOffsets[2] == 2) {
+            return new int[] {0, 1, 2};
+            // - RGB
+        }
+        if (bandOffsets[0] == 2 && bandOffsets[1] == 1 && bandOffsets[2] == 0) {
+            return new int[] {2, 1, 0};
+            // - BGR (typical situation for Java AWT)
+        }
+        return null;
     }
 
-    private static void separateBGR(byte[][] result, byte[] bytes, int numberOfPixels) {
+    private static void separateRGB(byte[][] result, int[] rgbIndexes, byte[] bytes, int numberOfPixels) {
         Objects.requireNonNull(bytes, "Null bytes");
         assert bytes.length == 3 * numberOfPixels;
-        final byte[] r = result[0];
-        final byte[] g = result[1];
-        final byte[] b = result[2];
-        assert r.length == numberOfPixels;
-        assert g.length == numberOfPixels;
-        assert b.length == numberOfPixels;
+        final byte[] rgb0 = result[rgbIndexes[0]];
+        final byte[] rgb1 = result[rgbIndexes[1]];
+        final byte[] rgb2 = result[rgbIndexes[2]];
+        assert rgb0.length == numberOfPixels;
+        assert rgb1.length == numberOfPixels;
+        assert rgb2.length == numberOfPixels;
         for (int i = 0, disp = 0; i < numberOfPixels; i++) {
-            b[i] = bytes[disp++];
-            g[i] = bytes[disp++];
-            r[i] = bytes[disp++];
+            rgb0[i] = bytes[disp++];
+            rgb1[i] = bytes[disp++];
+            rgb2[i] = bytes[disp++];
         }
     }
 

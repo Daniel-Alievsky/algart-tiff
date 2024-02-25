@@ -1124,7 +1124,7 @@ public class TiffWriter implements Closeable {
         assert offsets != null;
         assert byteCounts != null;
         map.buildGrid();
-        if (offsets.length < map.size() || byteCounts.length < map.size()) {
+        if (offsets.length < map.numberOfTiles() || byteCounts.length < map.numberOfTiles()) {
             throw new ConcurrentModificationException("Strange length of tile offsets " + offsets.length +
                     " or byte counts " + byteCounts.length);
             // - should not occur: it is checked in getTileOrStripOffsets/getTileOrStripByteCounts methods

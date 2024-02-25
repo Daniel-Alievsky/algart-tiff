@@ -364,14 +364,14 @@ public class TiffWriterTest {
                             List<TiffTile> unset = map.tiles().stream().filter(TiffTile::hasUnset).toList();
                             System.out.printf(
                                     "  Image #%d: %d tiles, %d are not completely filled%n",
-                                    k, map.size(), unset.size());
+                                    k, map.numberOfTiles(), unset.size());
                             for (TiffTile tile : unset) {
                                 Collection<IRectangularArea> unsetArea = tile.getUnsetArea();
                                 System.out.printf("      %s (%d area%s)%n", tile, unsetArea.size(),
                                         unsetArea.size() == 1 ? ": " + unsetArea.iterator().next() : "s");
                             }
                         } else {
-                            System.out.printf("All %d tiles are completely filled%n", map.size());
+                            System.out.printf("All %d tiles are completely filled%n", map.numberOfTiles());
                         }
                     }
                     System.out.printf("%d ready IFDs%n", writer.numberOfIFDs());

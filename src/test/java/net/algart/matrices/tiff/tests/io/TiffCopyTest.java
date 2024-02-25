@@ -26,13 +26,11 @@ package net.algart.matrices.tiff.tests.io;
 
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.TiffTools;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIndex;
-import org.scijava.Context;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -119,7 +117,7 @@ public class TiffCopyTest {
         final TiffMap readMap = reader.newMap(readIFD);
         final TiffMap writeMap = writer.newMap(writeIFD, false);
         writer.writeForward(writeMap);
-        int k = 0, n = readMap.size();
+        int k = 0, n = readMap.numberOfTiles();
         for (TiffTileIndex index : readMap.indexes()) {
             TiffTile sourceTile = reader.readTile(index);
             TiffTile targetTile = writeMap.getOrNew(writeMap.copyIndex(index));
