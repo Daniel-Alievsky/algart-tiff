@@ -27,7 +27,7 @@ package net.algart.matrices.tiff.tests.io;
 import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
-import net.algart.external.ExternalAlgorithmCaller;
+import net.algart.external.MatrixIO;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffTools;
@@ -113,8 +113,7 @@ public class TiffReadTilesTest {
     private static void writeImageFile(Path file, Matrix<? extends PArray> matrix) throws IOException {
         if (matrix.size() > 0) {
             // - BufferedImage cannot have zero sizes
-            List<Matrix<? extends PArray>> image = TiffTools.splitChannels(matrix);
-            ExternalAlgorithmCaller.writeImage(file.toFile(), image);
+            MatrixIO.writeImage(file, matrix.asLayers());
         }
     }
 }

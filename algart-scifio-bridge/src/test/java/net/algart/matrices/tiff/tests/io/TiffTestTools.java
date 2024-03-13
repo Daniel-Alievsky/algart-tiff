@@ -24,16 +24,15 @@
 
 package net.algart.matrices.tiff.tests.io;
 
+import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
-import net.algart.arrays.SimpleMemoryModel;
-import net.algart.external.ExternalAlgorithmCaller;
-import net.algart.external.ImageConversions;
-import net.algart.matrices.tiff.TiffTools;
+import net.algart.external.MatrixIO;
+import net.algart.external.awt.MatrixToBufferedImage;
 
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
 
 class TiffTestTools {
     private TiffTestTools() {
@@ -47,25 +46,13 @@ class TiffTestTools {
             throws IOException {
         if (matrix.size() > 0) {
             // - BufferedImage cannot have zero sizes
-            List<Matrix<? extends PArray>> image = interleaved ?
-                    ImageConversions.unpack2DBandsFromSequentialSamples(null, intsToBytes(matrix)) :
-                    TiffTools.splitChannels(intsToBytes(matrix));
-            ExternalAlgorithmCaller.writeImage(file.toFile(), image);
+            final Matrix<? extends PArray> interleave = interleaved ?
+                    matrix :
+                    Matrices.interleave(null, matrix.asLayers());
+            BufferedImage bi = new MatrixToBufferedImage.InterleavedRGBToInterleaved()
+                    .setUnsignedInt32(true)
+                    .toBufferedImage(interleave);
+            MatrixIO.writeBufferedImage(file, bi);
         }
-    }
-
-    private static Matrix<? extends PArray> intsToBytes(Matrix<? extends PArray> matrix) {
-        if (matrix.elementType() == int.class) {
-            // - standard method ExternalAlgorithmCaller.writeImage uses AlgART interpretation: 2^31 is white;
-            // it is incorrect for TIFF files
-            final int[] ints = new int[(int) matrix.size()];
-            matrix.array().getData(0, ints);
-            byte[] bytes = new byte[ints.length];
-            for (int k = 0; k < bytes.length; k++) {
-                bytes[k] = (byte) (ints[k] >>> 24);
-            }
-            return matrix.matrix(SimpleMemoryModel.asUpdatableByteArray(bytes));
-        }
-        return matrix;
     }
 }

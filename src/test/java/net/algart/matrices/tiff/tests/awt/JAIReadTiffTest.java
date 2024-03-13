@@ -29,7 +29,7 @@ import io.scif.media.imageioimpl.plugins.tiff.TIFFImageReaderSpi;
 import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
-import net.algart.external.BufferedImageToMatrixConverter;
+import net.algart.external.awt.BufferedImageToMatrix;
 
 import javax.imageio.IIOException;
 import javax.imageio.ImageIO;
@@ -79,7 +79,7 @@ public class JAIReadTiffTest {
             bi = r.read(ifdIndex, param);
             long t2 = System.nanoTime();
 //            Matrix<? extends PArray> matrix = bufferedImageToPackedBGRA(bi);
-            Matrix<? extends PArray> matrix = new BufferedImageToMatrixConverter.ToPacked3D(true)
+            Matrix<? extends PArray> matrix = new BufferedImageToMatrix.ToInterleavedRGB()
                     .toMatrix(bi);
             long t3 = System.nanoTime();
             System.out.printf("Test #%d: %s loaded (%.3f MB) in %.3f ms + converted in %.3f ms, %.3f MB/sec%n",

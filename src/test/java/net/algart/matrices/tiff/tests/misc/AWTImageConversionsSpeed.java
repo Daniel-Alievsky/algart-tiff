@@ -26,7 +26,7 @@ package net.algart.matrices.tiff.tests.misc;
 
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
-import net.algart.external.BufferedImageToMatrixConverter;
+import net.algart.external.awt.BufferedImageToMatrix;
 import net.algart.matrices.tiff.awt.AWTImages;
 import net.algart.matrices.tiff.awt.JPEG;
 
@@ -83,7 +83,7 @@ public class AWTImageConversionsSpeed {
             long t1 = System.nanoTime();
             data = AWTImages.getPixelBytes(bi, true);
             long t2 = System.nanoTime();
-            BufferedImageToMatrixConverter converter = new BufferedImageToMatrixConverter.ToPacked3D(true);
+            BufferedImageToMatrix converter = new BufferedImageToMatrix.ToInterleavedRGB();
             Matrix<? extends UpdatablePArray> matrix = converter.toMatrix(bi);
             long t3 = System.nanoTime();
             byte[] bgr = JPEG.quickBGRPixelBytes(bi);
