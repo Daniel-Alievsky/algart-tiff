@@ -30,6 +30,7 @@ import io.scif.codec.CodecOptions;
 import io.scif.common.Constants;
 import io.scif.enumeration.EnumException;
 import io.scif.formats.tiff.*;
+import net.algart.arrays.PackedBitArraysPer8;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
@@ -51,7 +52,6 @@ import org.scijava.util.IntRect;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Legacy version of {@link TiffReader} with some deprecated method.
@@ -995,8 +995,10 @@ public class TiffParser extends TiffReader {
     }
 
     @Deprecated
-    private byte[] adjustFillOrder(final IFD ifd, final byte[] buf) throws TiffException {
-        TiffTools.invertFillOrderIfRequested(toTiffIFD(ifd), buf);
+    private byte[] adjustFillOrder(final IFD ifd, final byte[] buf) throws FormatException {
+        if (ifd.getFillOrder() == FillOrder.REVERSED) {
+            PackedBitArraysPer8.reverseBitOrder(buf);
+        }
         return buf;
     }
 

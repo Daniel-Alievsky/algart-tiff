@@ -25,8 +25,11 @@
 package net.algart.matrices.tiff.tests.io;
 
 import io.scif.codec.CodecOptions;
+import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
+import net.algart.external.MatrixIO;
+import net.algart.external.awt.MatrixToBufferedImage;
 import net.algart.matrices.tiff.CachingTiffReader;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffTools;
@@ -35,6 +38,7 @@ import net.algart.matrices.tiff.executable.TiffInfo;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import org.scijava.Context;
 
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -166,11 +170,24 @@ public class TiffReaderTest {
                 }
 
                 System.out.printf("Saving result image into %s...%n", resultFile);
-                TiffTestTools.writeImageFile(resultFile, matrix, interleave);
+                writeImageFile(resultFile, matrix, interleave);
                 reader.close();
             }
             System.out.printf("Done repeat %d/%d%n%n", repeat, numberOfCompleteRepeats);
         }
     }
 
+    private static void writeImageFile(Path file, Matrix<? extends PArray> matrix, boolean interleaved)
+            throws IOException {
+        if (matrix.size() > 0) {
+            // - BufferedImage cannot have zero sizes
+            final Matrix<? extends PArray> interleave = interleaved ?
+                    matrix :
+                    Matrices.interleave(null, matrix.asLayers());
+            BufferedImage bi = new MatrixToBufferedImage.InterleavedRGBToInterleaved()
+                    .setUnsignedInt32(true)
+                    .toBufferedImage(interleave);
+            MatrixIO.writeBufferedImage(file, bi);
+        }
+    }
 }

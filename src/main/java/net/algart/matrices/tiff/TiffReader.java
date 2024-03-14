@@ -969,7 +969,7 @@ public class TiffReader implements Closeable {
             // - unlike full decoding, here it is better not to throw exception for empty tile
             return;
         }
-        TiffTools.invertFillOrderIfRequested(tile);
+        TiffTools.reverseFillOrderIfRequested(tile);
         TiffIFD ifd = tile.ifd();
         final TagCompression compression = ifd.optCompression().orElse(null);
         if (compression != null && compression.isJpeg()) {
@@ -1220,9 +1220,9 @@ public class TiffReader implements Closeable {
             LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
                     "%s read %dx%dx%d samples (%.3f MB) in %.3f ms = " +
                             "%.3f initializing + %.3f read/decode " +
-                            "(%.3f read + %.3f customize/bit-order + %.3f decode " +
-                            " (= %.3f main + %.3f bridge + %.3f additional) " +
-                            "+ %.3f complete)" +
+                            "(%.3f read, %.3f customize/bit-order, %.3f decode: " +
+                            "%.3f decode-main%s, " +
+                            "%.3f complete)" +
                             "%s%s, %.3f MB/s",
                     getClass().getSimpleName(),
                     numberOfChannels, sizeX, sizeY, sizeInBytes / 1048576.0,
@@ -1233,8 +1233,11 @@ public class TiffReader implements Closeable {
                     timeCustomizingDecoding * 1e-6,
                     timeDecoding * 1e-6,
                     timeDecodingMain * 1e-6,
-                    timeDecodingBridge * 1e-6,
-                    timeDecodingAdditional * 1e-6,
+                    timeDecodingBridge + timeDecodingAdditional > 0 ?
+                            String.format(Locale.US, " + %.3f decode-bridge + %.3f decode-additional",
+                                    timeDecodingBridge * 1e-6,
+                                    timeDecodingAdditional * 1e-6) :
+                            "",
                     timeCompleteDecoding * 1e-6,
                     interleave ?
                             String.format(Locale.US, " + %.3f interleave", (t4 - t3) * 1e-6) : "",

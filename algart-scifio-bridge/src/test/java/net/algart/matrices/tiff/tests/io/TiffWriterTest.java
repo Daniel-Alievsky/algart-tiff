@@ -252,7 +252,7 @@ public class TiffWriterTest {
                         test, numberOfTests,
                         existingFile ? "writing to" : "creating", targetFile);
                 for (int k = 0; k < numberOfImages; k++) {
-                    printReaderInfo(writer);
+//                    printReaderInfo(writer); // - should show invalid file
                     final int ifdIndex = firstIfdIndex + k;
                     TiffIFD ifd = new TiffIFD();
                     if (!resizable) {

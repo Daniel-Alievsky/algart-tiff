@@ -914,7 +914,7 @@ public class TiffWriter implements Closeable {
             final byte[] encodedData = compressExternalFormat(tile, externalOptions);
             tile.setEncodedData(encodedData);
         }
-        TiffTools.invertFillOrderIfRequested(tile);
+        TiffTools.reverseFillOrderIfRequested(tile);
         long t4 = debugTime();
 
         timePreparingEncoding += t2 - t1;
@@ -1887,9 +1887,9 @@ public class TiffWriter implements Closeable {
                     "%s wrote %dx%dx%d %s (%.3f MB) in %.3f ms = " +
                             "%.3f conversion/copying data + %.3f writing IFD " +
                             "+ %.3f/%.3f encoding/writing " +
-                            "(%.3f prepare + %.3f customize + %.3f encode " +
-                            " (= %.3f main + %.3f bridge + %.3f additional) " +
-                            "+ %.3f write), %.3f MB/s",
+                            "(%.3f prepare, %.3f customize, %.3f encode: " +
+                            "%.3f encode-main%s, " +
+                            "%.3f write), %.3f MB/s",
                     getClass().getSimpleName(),
                     map.numberOfChannels(), dimX, dimY,
                     name,
@@ -1901,6 +1901,11 @@ public class TiffWriter implements Closeable {
                     timeCustomizingEncoding * 1e-6,
                     timeEncoding * 1e-6,
                     timeEncodingMain * 1e-6,
+                    timeEncodingBridge + timeEncodingAdditional > 0 ?
+                            String.format(Locale.US, " + %.3f encode-bridge + %.3f encode-additional",
+                                    timeEncodingBridge * 1e-6,
+                                    timeEncodingAdditional * 1e-6) :
+                            "",
                     timeEncodingBridge * 1e-6,
                     timeEncodingAdditional * 1e-6,
                     timeWriting * 1e-6,

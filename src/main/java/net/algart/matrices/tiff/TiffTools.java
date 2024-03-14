@@ -45,9 +45,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
@@ -59,9 +57,13 @@ import java.util.stream.Collectors;
  * @author Daniel Alievsky
  */
 public class TiffTools {
-    /** The number of bytes in each IFD entry. */
+    /**
+     * The number of bytes in each IFD entry.
+     */
     public static final int BYTES_PER_ENTRY = 12;
-    /** The number of bytes in each IFD entry of a BigTIFF file. */
+    /**
+     * The number of bytes in each IFD entry of a BigTIFF file.
+     */
     public static final int BIG_TIFF_BYTES_PER_ENTRY = 20;
     // TIFF header constants
     public static final int FILE_USUAL_MAGIC_NUMBER = 42;
@@ -72,35 +74,6 @@ public class TiffTools {
     private static final boolean OPTIMIZE_SEPARATING_WHOLE_BYTES = true;
     // - should be true for good performance; false value can help while debugging
     static final boolean BUILT_IN_TIMING = getBooleanProperty("net.algart.matrices.tiff.timing");
-
-    /**
-     * Bit order mapping for reversed fill order.
-     */
-    private static final byte[] REVERSE = {0x00, -0x80, 0x40, -0x40, 0x20, -0x60,
-            0x60, -0x20, 0x10, -0x70, 0x50, -0x30, 0x30, -0x50, 0x70, -0x10, 0x08,
-            -0x78, 0x48, -0x38, 0x28, -0x58, 0x68, -0x18, 0x18, -0x68, 0x58, -0x28,
-            0x38, -0x48, 0x78, -0x08, 0x04, -0x7c, 0x44, -0x3c, 0x24, -0x5c, 0x64,
-            -0x1c, 0x14, -0x6c, 0x54, -0x2c, 0x34, -0x4c, 0x74, -0x0c, 0x0c, -0x74,
-            0x4c, -0x34, 0x2c, -0x54, 0x6c, -0x14, 0x1c, -0x64, 0x5c, -0x24, 0x3c,
-            -0x44, 0x7c, -0x04, 0x02, -0x7e, 0x42, -0x3e, 0x22, -0x5e, 0x62, -0x1e,
-            0x12, -0x6e, 0x52, -0x2e, 0x32, -0x4e, 0x72, -0x0e, 0x0a, -0x76, 0x4a,
-            -0x36, 0x2a, -0x56, 0x6a, -0x16, 0x1a, -0x66, 0x5a, -0x26, 0x3a, -0x46,
-            0x7a, -0x06, 0x06, -0x7a, 0x46, -0x3a, 0x26, -0x5a, 0x66, -0x1a, 0x16,
-            -0x6a, 0x56, -0x2a, 0x36, -0x4a, 0x76, -0x0a, 0x0e, -0x72, 0x4e, -0x32,
-            0x2e, -0x52, 0x6e, -0x12, 0x1e, -0x62, 0x5e, -0x22, 0x3e, -0x42, 0x7e,
-            -0x02, 0x01, -0x7f, 0x41, -0x3f, 0x21, -0x5f, 0x61, -0x1f, 0x11, -0x6f,
-            0x51, -0x2f, 0x31, -0x4f, 0x71, -0x0f, 0x09, -0x77, 0x49, -0x37, 0x29,
-            -0x57, 0x69, -0x17, 0x19, -0x67, 0x59, -0x27, 0x39, -0x47, 0x79, -0x07,
-            0x05, -0x7b, 0x45, -0x3b, 0x25, -0x5b, 0x65, -0x1b, 0x15, -0x6b, 0x55,
-            -0x2b, 0x35, -0x4b, 0x75, -0x0b, 0x0d, -0x73, 0x4d, -0x33, 0x2d, -0x53,
-            0x6d, -0x13, 0x1d, -0x63, 0x5d, -0x23, 0x3d, -0x43, 0x7d, -0x03, 0x03,
-            -0x7d, 0x43, -0x3d, 0x23, -0x5d, 0x63, -0x1d, 0x13, -0x6d, 0x53, -0x2d,
-            0x33, -0x4d, 0x73, -0x0d, 0x0b, -0x75, 0x4b, -0x35, 0x2b, -0x55, 0x6b,
-            -0x15, 0x1b, -0x65, 0x5b, -0x25, 0x3b, -0x45, 0x7b, -0x05, 0x07, -0x79,
-            0x47, -0x39, 0x27, -0x59, 0x67, -0x19, 0x17, -0x69, 0x57, -0x29, 0x37,
-            -0x49, 0x77, -0x09, 0x0f, -0x71, 0x4f, -0x31, 0x2f, -0x51, 0x6f, -0x11,
-            0x1f, -0x61, 0x5f, -0x21, 0x3f, -0x41, 0x7f, -0x01};
-
 
     private TiffTools() {
     }
@@ -283,18 +256,19 @@ public class TiffTools {
         final int bandSize = numberOfPixels * bytesPerSample;
         final byte[] interleavedBytes = new byte[size];
         if (bytesPerSample == 1) {
-            // - optimization
-            if (numberOfChannels == 3) {
-                // - most typical case
-                quickInterleave3(interleavedBytes, bytes, bandSize);
-            } else {
-                for (int i = 0, disp = 0; i < bandSize; i++) {
-                    for (int bandDisp = i, j = 0; j < numberOfChannels; j++, bandDisp += bandSize) {
+            Matrix<UpdatablePArray> mI = SimpleMemoryModel.asMatrix(interleavedBytes, numberOfChannels, numberOfPixels);
+            Matrix<UpdatablePArray> mS = SimpleMemoryModel.asMatrix(bytes, numberOfPixels, numberOfChannels);
+            Matrices.interleave(null, mI, mS.asLayers());
+//            if (numberOfChannels == 3) {
+//                quickInterleave3(interleavedBytes, bytes, bandSize);
+//            } else {
+//                for (int i = 0, disp = 0; i < bandSize; i++) {
+//                    for (int bandDisp = i, j = 0; j < numberOfChannels; j++, bandDisp += bandSize) {
                         // note: we must check j, not bandDisp, because "bandDisp += bandSize" can lead to overflow
-                        interleavedBytes[disp++] = bytes[bandDisp];
-                    }
-                }
-            }
+//                        interleavedBytes[disp++] = bytes[bandDisp];
+//                    }
+//                }
+//            }
         } else {
             for (int i = 0, disp = 0; i < bandSize; i += bytesPerSample) {
                 for (int bandDisp = i, j = 0; j < numberOfChannels; j++, bandDisp += bandSize) {
@@ -336,18 +310,19 @@ public class TiffTools {
         final int bandSize = numberOfPixels * bytesPerSample;
         final byte[] separatedBytes = new byte[size];
         if (bytesPerSample == 1) {
-            // - optimization
-            if (numberOfChannels == 3) {
-                // - most typical case
-                quickSeparate3(separatedBytes, bytes, bandSize);
-            } else {
-                for (int i = 0, disp = 0; i < bandSize; i++) {
-                    for (int bandDisp = i, j = 0; j < numberOfChannels; j++, bandDisp += bandSize) {
+            Matrix<UpdatablePArray> mI = SimpleMemoryModel.asMatrix(bytes, numberOfChannels, numberOfPixels);
+            Matrix<UpdatablePArray> mS = SimpleMemoryModel.asMatrix(separatedBytes, numberOfPixels, numberOfChannels);
+            Matrices.separate(null, mS.asLayers(), mI);
+//            if (numberOfChannels == 3) {
+//                quickSeparate3(separatedBytes, bytes, bandSize);
+//            } else {
+//                for (int i = 0, disp = 0; i < bandSize; i++) {
+//                    for (int bandDisp = i, j = 0; j < numberOfChannels; j++, bandDisp += bandSize) {
                         // note: we must check j, not bandDisp, because "bandDisp += bandSize" can lead to overflow
-                        separatedBytes[bandDisp] = bytes[disp++];
-                    }
-                }
-            }
+//                        separatedBytes[bandDisp] = bytes[disp++];
+//                    }
+//                }
+//            }
         } else {
             for (int i = 0, disp = 0; i < bandSize; i += bytesPerSample) {
                 for (int bandDisp = i, j = 0; j < numberOfChannels; j++, bandDisp += bandSize) {
@@ -360,26 +335,16 @@ public class TiffTools {
         return separatedBytes;
     }
 
-    public static void invertFillOrderIfRequested(TiffTile tile) throws TiffException {
-        Objects.requireNonNull(tile, "Null tile");
-        invertFillOrderIfRequested(tile.ifd(), tile.getData());
-    }
-
     /**
-     * Changes bits order inside the passed array if FillOrder=2.
-     * Note: GIMP and most viewers also do not support this feature.
+     * Changes bits order inside the tile if FillOrder=2.
      *
-     * @param ifd   IFD
-     * @param bytes bytes
+     * @param tile TIFF tile
      * @throws TiffException in a case of error in IFD
      */
-    public static void invertFillOrderIfRequested(TiffIFD ifd, final byte[] bytes) throws TiffException {
-        Objects.requireNonNull(ifd, "Null IFD");
-        if (ifd.isReversedFillOrder()) {
-            // swap bits order of all bytes
-            for (int i = 0; i < bytes.length; i++) {
-                bytes[i] = REVERSE[bytes[i] & 0xFF];
-            }
+    public static void reverseFillOrderIfRequested(TiffTile tile) throws TiffException {
+        Objects.requireNonNull(tile, "Null tile");
+        if (tile.ifd().isReversedFillOrder()) {
+            PackedBitArraysPer8.reverseBitOrder(tile.getData());
         }
     }
 
@@ -1254,6 +1219,8 @@ public class TiffTools {
         }
     }
 
+    /*
+    // Unnecessary since AlgART 1.4.0
     private static void quickInterleave3(byte[] interleavedBytes, byte[] bytes, int bandSize) {
         final int bandSize2 = 2 * bandSize;
         for (int i = 0, disp = 0; i < bandSize; i++) {
@@ -1271,6 +1238,7 @@ public class TiffTools {
             separatedBytes[i + bandSize2] = bytes[disp++];
         }
     }
+     */
 
     private static boolean isSimpleRearrangingBytesEnough(TiffIFD ifd, AtomicBoolean simpleLossless)
             throws TiffException {
