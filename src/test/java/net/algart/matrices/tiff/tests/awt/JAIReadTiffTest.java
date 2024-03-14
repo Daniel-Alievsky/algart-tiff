@@ -24,8 +24,8 @@
 
 package net.algart.matrices.tiff.tests.awt;
 
-import io.scif.media.imageioimpl.plugins.tiff.TIFFImageReader;
-import io.scif.media.imageioimpl.plugins.tiff.TIFFImageReaderSpi;
+import com.github.jaiimageio.impl.plugins.tiff.TIFFImageReader;
+import com.github.jaiimageio.impl.plugins.tiff.TIFFImageReaderSpi;
 import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;

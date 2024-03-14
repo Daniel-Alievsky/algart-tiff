@@ -24,10 +24,10 @@
 
 package net.algart.matrices.tiff.codecs;
 
-import io.scif.media.imageio.plugins.jpeg2000.J2KImageReadParam;
-import io.scif.media.imageio.plugins.jpeg2000.J2KImageWriteParam;
-import io.scif.media.imageioimpl.plugins.jpeg2000.J2KImageReader;
-import io.scif.media.imageioimpl.plugins.jpeg2000.J2KImageWriter;
+import com.github.jaiimageio.jpeg2000.J2KImageReadParam;
+import com.github.jaiimageio.jpeg2000.J2KImageWriteParam;
+import com.github.jaiimageio.jpeg2000.impl.J2KImageReader;
+import com.github.jaiimageio.jpeg2000.impl.J2KImageWriter;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.awt.AWTImages;
 import net.algart.matrices.tiff.awt.UnsignedIntBuffer;

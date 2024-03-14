@@ -46,10 +46,11 @@
             <artifactId>algart</artifactId>
             <version>1.4.0</version>
         </dependency>
+
         <dependency>
-            <groupId>io.scif</groupId>
-            <artifactId>scifio-jai-imageio</artifactId>
-            <version>1.1.1</version>
+            <groupId>com.github.jai-imageio</groupId>
+            <artifactId>jai-imageio-jpeg2000</artifactId>
+            <version>1.4.0</version>
         </dependency>
         <dependency>
             <groupId>org.scijava</groupId>

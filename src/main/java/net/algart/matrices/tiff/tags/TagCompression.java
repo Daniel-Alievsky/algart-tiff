@@ -55,7 +55,7 @@ public enum TagCompression {
     // - OLD_JPEG does not work: see https://github.com/scifio/scifio/issues/510
     PACK_BITS(32773, "PackBits", PackbitsCodec::new),
 
-    JPEG_2000_LOSSLESS(33003, "JPEG-2000", JPEG2000Codec::new),
+    JPEG_2000_LOSSLESS(33003, "JPEG-2000 lossless", JPEG2000Codec::new),
     // - note that while writing we do not try to use YCbCr encoding, as Aperio recommends for 33003
     JPEG_2000_LOSSY(33004, "JPEG-2000 lossy", JPEG2000Codec::new),
     JPEG_2000_LOSSLESS_ALTERNATIVE(33005, "JPEG-2000 alternative", JPEG2000Codec::new),
