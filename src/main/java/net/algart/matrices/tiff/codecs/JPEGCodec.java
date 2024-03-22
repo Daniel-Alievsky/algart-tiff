@@ -41,9 +41,6 @@ import java.util.Arrays;
 import java.util.Objects;
 
 public class JPEGCodec extends AbstractCodec implements TiffCodec.Timing {
-    private static final boolean OPTIMIZE_SEPARATING_BGR = false;
-    // - deprecated since 1.2.7: AWTImages.getPixelBytes now also implements quick separation
-
     public static class JPEGOptions extends Options {
         /**
          * Value of TIFF tag PhotometricInterpretation (READ/WRITE).
@@ -203,10 +200,7 @@ public class JPEGCodec extends AbstractCodec implements TiffCodec.Timing {
         long t2 = timing ? System.nanoTime() : 0;
         timeMain += t2 - t1;
 
-        final byte[] quickBGR = options.interleaved || completeDecoding || !OPTIMIZE_SEPARATING_BGR?
-                null :
-                JPEG.quickBGRPixelBytes(bi);
-        final byte[][] data = quickBGR != null ? null : AWTImages.getPixelBytes(bi, options.littleEndian);
+        final byte[][] data = AWTImages.getPixelBytes(bi, options.littleEndian);
         long t3 = timing ? System.nanoTime() : 0;
 
         if (completeDecoding) {
@@ -215,25 +209,21 @@ public class JPEGCodec extends AbstractCodec implements TiffCodec.Timing {
         timeBridge += t3 - t2;
 
         final byte[] result;
-        if (quickBGR != null) {
-            result = JPEG.separateBGR(quickBGR, bi.getWidth() * bi.getHeight());
+        int bandSize = data[0].length;
+        if (data.length == 1) {
+            result = data[0];
         } else {
-            int bandSize = data[0].length;
-            if (data.length == 1) {
-                result = data[0];
+            result = new byte[data.length * bandSize];
+            if (options.interleaved) {
+                int next = 0;
+                for (int i = 0; i < bandSize; i++) {
+                    for (byte[] bytes : data) {
+                        result[next++] = bytes[i];
+                    }
+                }
             } else {
-                result = new byte[data.length * bandSize];
-                if (options.interleaved) {
-                    int next = 0;
-                    for (int i = 0; i < bandSize; i++) {
-                        for (byte[] bytes : data) {
-                            result[next++] = bytes[i];
-                        }
-                    }
-                } else {
-                    for (int i = 0; i < data.length; i++) {
-                        System.arraycopy(data[i], 0, result, i * bandSize, bandSize);
-                    }
+                for (int i = 0; i < data.length; i++) {
+                    System.arraycopy(data[i], 0, result, i * bandSize, bandSize);
                 }
             }
         }

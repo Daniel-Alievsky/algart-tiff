@@ -86,28 +86,14 @@ public class AWTImageConversionsSpeed {
             BufferedImageToMatrix converter = new BufferedImageToMatrix.ToInterleavedRGB();
             Matrix<? extends UpdatablePArray> matrix = converter.toMatrix(bi);
             long t3 = System.nanoTime();
-            byte[] bgr = JPEG.quickBGRPixelBytes(bi);
-            bgr = JPEG.separateBGR(bgr, bgr.length / 3);
-            long t4 = System.nanoTime();
-            byte[][] quickData = separateToArrays(bgr);
             bytesPerSample = data[0].length / (dimX * dimY);
-            assert dimX * dimY * bytesPerSample == data[0].length : "unaligned samples!";
             final int size = data.length * data[0].length;
-            if (quickData != null) {
-                for (int k = 0; k < data.length; k++) {
-                    if (!Arrays.equals(data[k], quickData[k])) {
-                        throw new AssertionError("Invalid quick data");
-                    }
-                }
-            }
             System.out.printf(Locale.US,
                     "Decoding image %dx%dx%d, %d samples per %d bytes: " +
-                            "%.3f ms AWTImages (%.3f MB/sec), %.3f ms AlgART, " +
-                            "%.3f ms quickPixelBytes (%.3f MB/sec)%n",
+                            "%.3f ms AWTImages (%.3f MB/sec), %.3f ms AlgART%n",
                     dimX, dimY, data.length, size / bytesPerSample, bytesPerSample,
                     (t2 - t1) * 1e-6, size / 1048576.0 / ((t2 - t1) * 1e-9),
-                    (t3 - t2) * 1e-6,
-                    (t4 - t3) * 1e-6, size / 1048576.0 / ((t4 - t3) * 1e-9));
+                    (t3 - t2) * 1e-6);
 
         }
 
