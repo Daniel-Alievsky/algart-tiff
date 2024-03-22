@@ -94,8 +94,7 @@ public class TiffReadTilesTest {
                     final Path tileFile = tilePath(t, resultFolder);
                     System.out.printf("Saving tile %s in %s...%n", t, tileFile);
                     PArray a = TiffTools.bytesToArray(t.getDecodedData(), t.sampleType(), reader.isLittleEndian());
-                    writeImageFile(
-                            tileFile, Matrices.matrix(a, t.getSizeX(), t.getSizeY(), t.samplesPerPixel()));
+                    writeImageFile(tileFile, a.matrix(t.getSizeX(), t.getSizeY(), t.samplesPerPixel()));
                 }
             }
         }
