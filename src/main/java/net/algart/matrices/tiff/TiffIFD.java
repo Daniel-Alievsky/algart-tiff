@@ -311,9 +311,16 @@ public class TiffIFD {
     }
 
     public int sizeOfRegion(long sizeX, long sizeY) throws TiffException {
-        return TiffTools.checkedMul(sizeX, sizeY, getSamplesPerPixel(), equalBytesPerSample(),
-                "sizeX", "sizeY", "samples per pixel", "bytes per sample",
-                () -> "Invalid requested area: ", () -> "");
+        try {
+            return TiffTools.checkedMul(sizeX, sizeY, getSamplesPerPixel(), equalBytesPerSample(),
+                    "sizeX", "sizeY", "samples per pixel", "bytes per sample",
+                    () -> "Invalid requested area: ", () -> "");
+        } catch (TooLargeTiffImageException e) {
+            throw new TooLargeTiffImageException("Too large requested image " + sizeX + "x" + sizeY +
+                " (" + getSamplesPerPixel() + " samples/pixel, " +
+                    equalBytesPerSample() + " bytes/sample): it requires > " +
+                    Integer.MAX_VALUE + " bytes to store");
+        }
     }
 
     public boolean containsKey(int key) {

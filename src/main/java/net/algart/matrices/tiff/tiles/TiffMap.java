@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff.tiles;
 
+import net.algart.arrays.TooLargeArrayException;
 import net.algart.matrices.tiff.*;
 
 import java.util.*;
@@ -541,7 +542,7 @@ public final class TiffMap {
         if ((long) dimX * (long) dimY > Long.MAX_VALUE / totalBytesPerPixel) {
             // - Very improbable! But we would like to be sure that 63-bit arithmetic
             // is enough to calculate total size of the map in BYTES.
-            throw new IllegalArgumentException("Too large image sizes " + dimX + "x" + dimY +
+            throw new TooLargeArrayException("Too large image sizes " + dimX + "x" + dimY +
                     ": total number of bytes is greater than 2^63-1 (!)");
         }
         final int tileCountX = (int) ((long) dimX + (long) tileSizeX - 1) / tileSizeX;

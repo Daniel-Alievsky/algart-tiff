@@ -22,32 +22,26 @@
  * SOFTWARE.
  */
 
-//
-// Source code recreated from a .class file by IntelliJ IDEA
-// (powered by FernFlower decompiler)
-//
-
 package net.algart.matrices.tiff;
 
-import java.io.IOException;
 import java.io.Serial;
 
-public class TiffException extends IOException {
+public class TooLargeTiffImageException extends TiffException {
     @Serial
-    private static final long serialVersionUID = -1948418211763453705L;
+    private static final long serialVersionUID = -1470346816602006491L;
 
-    public TiffException() {
+    public TooLargeTiffImageException() {
     }
 
-    public TiffException(String s) {
+    public TooLargeTiffImageException(String s) {
         super(s);
     }
 
-    public TiffException(String s, Throwable cause) {
+    public TooLargeTiffImageException(String s, Throwable cause) {
         super(s, cause);
     }
 
-    public TiffException(Throwable cause) {
+    public TooLargeTiffImageException(Throwable cause) {
         super(cause);
     }
 }

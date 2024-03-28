@@ -1177,7 +1177,7 @@ public class TiffTools {
             }
         }
         if (overflow) {
-            throw new TiffException(prefix.get() + "too large " + String.join(" * ", names) +
+            throw new TooLargeTiffImageException(prefix.get() + "too large " + String.join(" * ", names) +
                     " = " + Arrays.stream(values).mapToObj(String::valueOf).collect(
                     Collectors.joining(" * ")) +
                     " = " + product + " >= 2^31" + postfix.get());
