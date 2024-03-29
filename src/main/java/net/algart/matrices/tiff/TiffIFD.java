@@ -74,6 +74,13 @@ public class TiffIFD {
      */
     public static final int MAX_NUMBER_OF_CHANNELS = 512;
 
+    /**
+     * Maximal supported number of bits per sample.
+     *
+     * <p>This limit helps to avoid "crazy" or corrupted TIFF and also help to avoid arithmetic overflow.
+     */
+    public static final int MAX_BITS_PER_SAMPLE = 512;
+
     public static final int LAST_IFD_OFFSET = 0;
 
     public static final int DEFAULT_TILE_SIZE_X = 256;
@@ -318,8 +325,8 @@ public class TiffIFD {
         } catch (TooLargeTiffImageException e) {
             throw new TooLargeTiffImageException("Too large requested image " + sizeX + "x" + sizeY +
                 " (" + getSamplesPerPixel() + " samples/pixel, " +
-                    equalBytesPerSample() + " bytes/sample): it requires > " +
-                    Integer.MAX_VALUE + " bytes to store");
+                    equalBytesPerSample() + " bytes/sample): it requires > 2 GB to store (" +
+                    Integer.MAX_VALUE + " bytes)");
         }
     }
 
@@ -471,8 +478,12 @@ public class TiffIFD {
             throw new TiffException("Zero length of BitsPerSample array");
         }
         for (int i = 0; i < bitsPerSample.length; i++) {
-            if (bitsPerSample[i] <= 0) {
-                throw new TiffException("Zero or negative BitsPerSample[" + i + "] = " + bitsPerSample[i]);
+            final int bits = bitsPerSample[i];
+            if (bits <= 0) {
+                throw new TiffException("Zero or negative BitsPerSample[" + i + "] = " + bits);
+            }
+            if (bits > MAX_BITS_PER_SAMPLE) {
+                throw new TiffException("Too large BitsPerSample[" + i + "] = " + bits + " > " + MAX_BITS_PER_SAMPLE);
             }
         }
         final int samplesPerPixel = getSamplesPerPixel();
@@ -958,37 +969,57 @@ public class TiffIFD {
     }
 
     /**
-     * Returns the number of bytes per each sample. It is calculated by rounding the number of
-     * {@link #getBitsPerSample() bits per sample},
-     * divided by 8 with rounding up to nearest integer: &#8968;BitsPerSample/8&#8969;.
+     * Returns the number of bits per each sample. It is calculated based on the array
+     * <tt>B&nbsp;=&nbsp;{@link #getBitsPerSample()}</tt> (numbers of bits per each channel) as follows:
+     * <ol>
+     *     <li>if all elements <tt>B[i]==1</tt>, the result is 1;</li>
+     *     <li>if all the values <tt>(B[i]+7)/8</tt> (<tt>&#8968;(double)B[i]/8&#8969;</tt>) are equal
+     *     to the same value <tt>b</tt>, the result is b*8
+     *     (this is the number of whole bytes needed to store each sample);</li>
+     *     <li>if some of values <tt>(B[i]+7)/8</tt> are different, {@link UnsupportedTiffFormatException}
+     *     is thrown.</li>
+     * </ol>
      *
-     * <p>This method requires that the number of bytes, calculated by this formula, must be positive and
-     * equal for all channels.
-     * This is also requirement for TIFF files, that can be read by {@link TiffReader} class.
-     * However, equality of number of <i>bits</i> is not required.
+     * <p>This method requires that the number of bytes, necessary to store each channel, must be
+     * equal for all channels. This is also requirement for TIFF files, that can be read by {@link TiffReader} class.
+     * However, equality of number of <i>bits</i> is not required; it allows, for example, to process
+     * old HiRes RGB format with 5+6+5 bits/channels.
+     *
+     * @return number of bits per each sample, aligned to the integer number of bytes, excepting a case
+     * of pure binary 1-bit image, where the result is 1.
+     * @throws TiffException if &#8968;bitsPerSample/8&#8969; values are different for some channels.
+     */
+    public int alignedBitDepth() throws TiffException {
+        final int[] bitsPerSample = getBitsPerSample();
+        if (Arrays.stream(bitsPerSample).allMatch(bits -> bits == 1)) {
+            return 1;
+        }
+        final int bytes0 = (bitsPerSample[0] + 7) >>> 3;
+        // ">>>" for a case of integer overflow
+        assert bytes0 > 0;
+        // - for example, if we have 5 bits R + 6 bits G + 4 bits B, it will be ceil(6/8) = 1 byte;
+        // usually the same for all components
+        for (int k = 1; k < bitsPerSample.length; k++) {
+            if ((bitsPerSample[k] + 7) >>> 3 != bytes0) {
+                throw new UnsupportedTiffFormatException("Unsupported TIFF IFD: " +
+                        "different number of bytes per samples " +
+                        Arrays.toString(getBytesPerSample()) + ", based on the following number of bits: " +
+                        Arrays.toString(getBitsPerSample()));
+            }
+            // - note that LibTiff does not support different BitsPerSample values for different components;
+            // we do not support different number of BYTES for different components
+        }
+        return bytes0 << 3;
+    }
+
+    /**
+     * Returns the number of bytes per each sample. It is calculated as ({@link #alignedBitDepth()}+7)/8.
      *
      * @return number of bytes per each sample.
      * @throws TiffException if &#8968;bitsPerSample/8&#8969; values are different for some channels.
      */
     public int equalBytesPerSample() throws TiffException {
-        final int[] bytesPerSample = getBytesPerSample();
-        final int bytes0 = bytesPerSample[0];
-        // - for example, if we have 5 bits R + 6 bits G + 4 bits B, it will be ceil(6/8) = 1 byte;
-        // usually the same for all components
-        if (bytes0 < 1) {
-            throw new TiffException("Invalid format: zero or negative bytes per sample = " + bytes0);
-        }
-        for (int k = 1; k < bytesPerSample.length; k++) {
-            if (bytesPerSample[k] != bytes0) {
-                throw new UnsupportedTiffFormatException("Unsupported TIFF IFD: " +
-                        "different number of bytes per samples (" +
-                        Arrays.toString(bytesPerSample) + "), based on the following number of bits (" +
-                        Arrays.toString(getBitsPerSample()) + ")");
-            }
-            // - note that LibTiff does not support different BitsPerSample values for different components;
-            // we do not support different number of BYTES for different components
-        }
-        return bytes0;
+        return (alignedBitDepth() + 7) >>> 3;
     }
 
     public boolean isOrdinaryBitDepth() throws TiffException {

@@ -71,8 +71,6 @@ public final class TiffTile {
         this.bytesPerSample = map.bytesPerSample();
         this.bytesPerPixel = samplesPerPixel * bytesPerSample;
         this.littleEndian = map.ifd().isLittleEndian();
-        assert bytesPerPixel <= TiffMap.MAX_TOTAL_BYTES_PER_PIXEL :
-                samplesPerPixel + "*" + bytesPerPixel + " were not checked in TiffMap!";
         assert index.ifd() == map.ifd() : "index retrieved ifd from its tile map!";
         setSizes(map.tileSizeX(), map.tileSizeY());
     }

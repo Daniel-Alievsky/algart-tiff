@@ -31,13 +31,6 @@ import java.util.*;
 
 public final class TiffMap {
     /**
-     * Maximal supported length of pixel (including all channels).
-     *
-     * <p>This limit helps to avoid "crazy" or corrupted TIFF and also help to avoid arithmetic overflow.
-     */
-    public static final int MAX_TOTAL_BYTES_PER_PIXEL = 4096;
-
-    /**
      * Maximal value of x/y-index of the tile.
      *
      * <p>This limit helps to avoid arithmetic overflow while operations with indexes.
@@ -109,10 +102,9 @@ public final class TiffMap {
             this.tileSamplesPerPixel = planarSeparated ? 1 : numberOfChannels;
             this.bytesPerSample = ifd.equalBytesPerSample();
             // - so, we allow only EQUAL number of bytes/sample (but number if bits/sample can be different)
-            if ((long) numberOfChannels * (long) bytesPerSample > MAX_TOTAL_BYTES_PER_PIXEL) {
-                throw new TiffException("Very large number of bytes per pixel " + numberOfChannels + " * " +
-                        bytesPerSample + " > " + MAX_TOTAL_BYTES_PER_PIXEL + " is not supported");
-            }
+            assert (long) numberOfChannels * (long) bytesPerSample <
+                    TiffIFD.MAX_NUMBER_OF_CHANNELS * TiffIFD.MAX_BITS_PER_SAMPLE;
+            // - actually must be in 8 times less
             this.tileBytesPerPixel = tileSamplesPerPixel * bytesPerSample;
             this.totalBytesPerPixel = numberOfChannels * bytesPerSample;
             this.sampleType = ifd.sampleType();
