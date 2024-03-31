@@ -697,6 +697,7 @@ public class TiffTools {
             for (int xIndex = 0; xIndex < sizeX; xIndex++, i++) {
                 for (int s = 0; s < samplesPerPixel; s++) {
                     final int bits = bitsPerSample[s];
+                    assert bits <= 32 : "the check \"bytesPerSample > 4\" was not performed!";
                     final long maxValue = (1L << bits) - 1;
                     // - we need long type, because maximal number of bits here is 32
                     // (but if not ALL bits/sample are 32 - such cases do not require this method)

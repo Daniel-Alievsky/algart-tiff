@@ -49,6 +49,12 @@ abstract class BitsUnpacker {
             0xFC, // 11111100
             0xFE // 11111110
     };
+    static {
+        for (int k = 0; k < 7; k++) {
+            assert BACK_MASK[k] == 0xFF >> (8 - k);
+            assert FRONT_MASK[k] == ((0xFF00 >> k) & 0xFF);
+        }
+    }
 
     final byte[] bytes;
 
