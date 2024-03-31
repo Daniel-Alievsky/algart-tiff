@@ -24,6 +24,8 @@
 
 package net.algart.matrices.tiff;
 
+import java.util.Objects;
+
 /**
  * A class for reading arbitrary numbers of bits from a byte array.
  */
@@ -70,6 +72,54 @@ abstract class BitsUnpacker {
 
     public static BitsUnpacker getUnpackerHighBitFirst(byte[] bytes) {
         return new BigEndian(bytes);
+    }
+
+    // Note: return zeros after the end of the array
+    public static long getBits(byte[] src, long srcPos, int count) {
+        Objects.requireNonNull(src, "Null src");
+        if (srcPos < 0) {
+            throw new IndexOutOfBoundsException("Negative srcPos argument: " + srcPos);
+        }
+        final long srcPosDiv8 = srcPos >>> 3;
+        if (count < 0) {
+            throw new IllegalArgumentException("Negative count argument: " + count);
+        }
+        if (count == 0 || srcPosDiv8 >= src.length) {
+            return 0;
+        }
+        int result = 0;
+        int currentBitIndex = (int) (srcPos & 7);
+        int currentByteIndex = (int) srcPosDiv8;
+        while (count != 0) {
+            final int bitsLeft = 8 - currentBitIndex;
+            if (count >= bitsLeft) {
+                result <<= bitsLeft;
+                count -= bitsLeft;
+                final int cb = src[currentByteIndex];
+                if (currentBitIndex == 0) {
+                    // we can read in a whole byte, so we'll do that.
+                    result += cb & 0xff;
+                } else {
+                    // otherwise, only read the appropriate number of bits off the back
+                    // side of the byte, in order to "finish" the current byte in the buffer.
+                    result += cb & BACK_MASK[bitsLeft];
+                    currentBitIndex = 0;
+                }
+                currentByteIndex++;
+            } else {
+                // We will be able to finish using the current byte.
+                // read the appropriate number of bits off the front side of the byte,
+                // then push them into the int.
+                result = result << count;
+                final int cb = src[currentByteIndex] & 0xff;
+                result += (cb & (0x00FF - FRONT_MASK[currentBitIndex])) >> (bitsLeft - count);
+                break;
+            }
+            if (currentByteIndex >= src.length) {
+                break;
+            }
+        }
+        return result;
     }
 
     public long position() {

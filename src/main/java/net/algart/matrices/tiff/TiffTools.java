@@ -690,6 +690,8 @@ public class TiffTools {
             multipliers[k] = ((1L << 8 * bytesPerSample) - 1) / ((1L << bitsPerSample[k]) - 1);
             // - note that 2^n-1 is divisible by 2^m-1 when m < n; actually it is less or about 256
         }
+        long pos = 0;
+        long length = 8 * (long) data.length;
         MainLoop:
         for (int yIndex = 0, i = 0; yIndex < sizeY; yIndex++) {
             for (int xIndex = 0; xIndex < sizeX; xIndex++, i++) {
@@ -714,10 +716,11 @@ public class TiffTools {
                         // but this inversion is performed in the very beginning,
                         // even before decoding LZW/Deflate etc.)
                     } else {
-                        if (bitsUnpacker.isEof()) {
+                        if (pos >= length) {
                             break MainLoop;
                         }
-                        value = bitsUnpacker.getBits(bits) & 0xFFFFFFFFL;
+                        value = BitsUnpacker.getBits(data, pos, bits) & 0xFFFFFFFFL;
+                        pos += bits;
                         // - unsigned 32-bit value
                     }
                     if (correctInvertedBrightness && invertedBrightness) {
@@ -730,7 +733,9 @@ public class TiffTools {
                     Bytes.unpack(value, unpacked, outputIndex, bytesPerSample, littleEndian);
                 }
             }
-            bitsUnpacker.skipBitsUntilNextByte();
+            pos = (pos + 7) & ~7;
+            // - skipping bits until the first bit of the next whole byte
+//            bitsUnpacker.skipBitsUntilNextByte();
         }
         tile.setDecodedData(unpacked);
         tile.setInterleaved(false);
