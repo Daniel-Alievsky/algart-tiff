@@ -81,7 +81,7 @@ abstract class BitsUnpacker {
     }
 
     // Note: return zeros after the end of the array
-    public static long getBits(byte[] src, long srcPos, int count) {
+    public static int getBits(byte[] src, long srcPos, int count) {
         Objects.requireNonNull(src, "Null src");
         if (srcPos < 0) {
             throw new IndexOutOfBoundsException("Negative srcPos argument: " + srcPos);
