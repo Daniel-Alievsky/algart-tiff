@@ -690,7 +690,7 @@ public class TiffTools {
             // - note that 2^n-1 is divisible by 2^m-1 when m < n; actually it is less or about 256
         }
         long pos = 0;
-        long length = 8 * (long) data.length;
+        long length = PackedBitArraysPer8.unpackedLength(data);
         MainLoop:
         for (int yIndex = 0, i = 0; yIndex < sizeY; yIndex++) {
             for (int xIndex = 0; xIndex < sizeX; xIndex++, i++) {
