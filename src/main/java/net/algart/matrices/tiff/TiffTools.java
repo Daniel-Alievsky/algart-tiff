@@ -344,7 +344,7 @@ public class TiffTools {
     public static void reverseFillOrderIfRequested(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         if (tile.ifd().isReversedFillOrder()) {
-            PackedBitArraysPer8.reverseBitOrder(tile.getData());
+            PackedBitArraysPer8.reverseBitsOrderInEachByte(tile.getData());
         }
     }
 
@@ -682,7 +682,6 @@ public class TiffTools {
 
 //        debugPrintBits(tile);
         final byte[] data = tile.getDecodedData();
-        final BitsUnpacker bitsUnpacker = BitsUnpacker.getUnpackerHighBitFirst(data);
         final byte[] unpacked = new byte[resultSamplesLength];
 
         final long[] multipliers = new long[bitsPerSample.length];
@@ -720,7 +719,7 @@ public class TiffTools {
                         if (pos >= length) {
                             break MainLoop;
                         }
-                        value = BitsUnpacker.getBits(data, pos, bits) & 0xFFFFFFFFL;
+                        value = PackedBitArraysPer8.getBitsInReverseOrder(data, pos, bits) & 0xFFFFFFFFL;
                         pos += bits;
                         // - unsigned 32-bit value
                     }

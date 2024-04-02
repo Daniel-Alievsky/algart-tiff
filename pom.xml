@@ -6,7 +6,7 @@
 
     <groupId>net.algart</groupId>
     <artifactId>algart-tiff</artifactId>
-    <version>1.2.9</version>
+    <version>1.2.10</version>
 
     <name>AlgART TIFF support</name>
     <description>Full support of TIFF files: reading, writing, editing</description>
@@ -44,7 +44,7 @@
         <dependency>
             <groupId>net.algart</groupId>
             <artifactId>algart</artifactId>
-            <version>1.4.1</version>
+            <version>1.4.2</version>
         </dependency>
 
         <dependency>
