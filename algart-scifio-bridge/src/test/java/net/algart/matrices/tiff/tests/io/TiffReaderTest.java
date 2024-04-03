@@ -184,7 +184,7 @@ public class TiffReaderTest {
             final Matrix<? extends PArray> interleave = interleaved ?
                     matrix :
                     Matrices.interleave(null, matrix.asLayers());
-            BufferedImage bi = new MatrixToBufferedImage.InterleavedRGBToInterleaved()
+            final BufferedImage bi = new MatrixToBufferedImage.InterleavedRGBToInterleaved()
                     .setUnsignedInt32(true)
                     .toBufferedImage(interleave);
             MatrixIO.writeBufferedImage(file, bi);

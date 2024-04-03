@@ -311,12 +311,6 @@ public class TiffIFD {
         return map.size();
     }
 
-    public int sizeOfRegionBasedOnType(long sizeX, long sizeY) throws TiffException {
-        return TiffTools.checkedMul(sizeX, sizeY, getSamplesPerPixel(), sampleType().bytesPerSample(),
-                "sizeX", "sizeY", "samples per pixel", "bytes per sample (type-based)",
-                () -> "Invalid requested area: ", () -> "");
-    }
-
     public int sizeOfRegion(long sizeX, long sizeY) throws TiffException {
         try {
             return TiffTools.checkedMul(sizeX, sizeY, getSamplesPerPixel(), equalBytesPerSample(),
