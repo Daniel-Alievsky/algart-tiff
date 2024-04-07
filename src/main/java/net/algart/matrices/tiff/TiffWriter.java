@@ -1891,7 +1891,7 @@ public class TiffWriter implements Closeable {
                             "%.3f encode-main%s, " +
                             "%.3f write), %.3f MB/s",
                     getClass().getSimpleName(),
-                    map.numberOfChannels(), dimX, dimY,
+                    dimX, dimY, map.numberOfChannels(),
                     name,
                     sizeInBytes / 1048576.0,
                     (t5 - t1) * 1e-6,

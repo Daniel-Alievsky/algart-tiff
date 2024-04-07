@@ -337,11 +337,6 @@ public final class TiffMap {
         expandGrid(newMinimalTileCountX, newMinimalTileCountY, true);
     }
 
-    public void checkPixelCompatibility(int numberOfChannels, Class<?> elementType, boolean signedIntegers)
-            throws TiffException {
-        checkPixelCompatibility(numberOfChannels, TiffSampleType.valueOf(elementType, signedIntegers));
-    }
-
     public void checkPixelCompatibility(int numberOfChannels, TiffSampleType sampleType) throws TiffException {
         Objects.requireNonNull(sampleType, "Null sampleType");
         if (numberOfChannels <= 0) {

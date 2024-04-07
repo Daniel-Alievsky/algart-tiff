@@ -1049,7 +1049,7 @@ public class TiffIFD {
         final long dimX = matrix.dim(interleaved ? 1 : 0);
         final long dimY = matrix.dim(interleaved ? 2 : 1);
         putImageDimensions(dimX, dimY);
-        putPixelInformation(numberOfChannels, matrix.elementType(), signedIntegers);
+        putPixelInformation(numberOfChannels, TiffSampleType.valueOf(matrix.elementType(), signedIntegers));
         return this;
     }
 
@@ -1070,11 +1070,7 @@ public class TiffIFD {
     }
 
     public TiffIFD putPixelInformation(long numberOfChannels, Class<?> elementType) {
-        return putPixelInformation(numberOfChannels, elementType, false);
-    }
-
-    public TiffIFD putPixelInformation(long numberOfChannels, Class<?> elementType, boolean signedIntegers) {
-        return putPixelInformation(numberOfChannels, TiffSampleType.valueOf(elementType, signedIntegers));
+        return putPixelInformation(numberOfChannels, TiffSampleType.valueOf(elementType, false));
     }
 
     /**

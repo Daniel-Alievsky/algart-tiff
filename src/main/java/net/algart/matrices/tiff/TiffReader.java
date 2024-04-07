@@ -1225,7 +1225,7 @@ public class TiffReader implements Closeable {
                             "%.3f complete)" +
                             "%s%s, %.3f MB/s",
                     getClass().getSimpleName(),
-                    numberOfChannels, sizeX, sizeY, sizeInBytes / 1048576.0,
+                    sizeX, sizeY, numberOfChannels, sizeInBytes / 1048576.0,
                     (t5 - t1) * 1e-6,
                     (t2 - t1) * 1e-6,
                     (t3 - t2) * 1e-6,

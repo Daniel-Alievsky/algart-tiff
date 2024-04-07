@@ -24,6 +24,8 @@
 
 package net.algart.matrices.tiff;
 
+import net.algart.arrays.PArray;
+
 import java.util.Objects;
 
 public enum TiffSampleType {
@@ -101,9 +103,16 @@ public enum TiffSampleType {
         return this == FLOAT || this == DOUBLE;
     }
 
+    public static TiffSampleType valueOf(PArray array, boolean signedIntegers) {
+        Objects.requireNonNull(array, "Null array");
+        return valueOf(array.elementType(), signedIntegers);
+    }
+
     public static TiffSampleType valueOf(Class<?> elementType, boolean signedIntegers) {
         Objects.requireNonNull(elementType, "Null elementType");
-        if (elementType == byte.class) {
+        if (elementType == boolean.class) {
+            return BIT;
+        } else if (elementType == byte.class) {
             return signedIntegers ? INT8 : UINT8;
         } else if (elementType == short.class) {
             return signedIntegers ? INT16 : UINT16;

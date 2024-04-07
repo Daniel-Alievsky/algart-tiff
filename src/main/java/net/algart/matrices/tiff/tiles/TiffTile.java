@@ -615,8 +615,8 @@ public final class TiffTile {
                 (interleaved ? " interleaved" : "") +
                 " tile" +
                 (isEmpty() ?
-                        ", " + sizeX + "x" + sizeY :
-                        ", actual sizes " + sizeX + "x" + sizeY + " (" +
+                        ", " + sizeX + "x" + sizeY + "x" + samplesPerPixel :
+                        ", actual sizes " + sizeX + "x" + sizeY + "x" + samplesPerPixel + " (" +
                                 storedNumberOfPixels + " pixels, " + storedDataLength + " bytes)" +
                                 (isCompleted() ? ", completed" : ", partial")) +
                 ", index " + index +

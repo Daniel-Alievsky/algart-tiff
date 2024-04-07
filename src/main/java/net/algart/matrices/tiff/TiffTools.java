@@ -85,7 +85,9 @@ public class TiffTools {
             throw new IllegalArgumentException("The specified javaArray is not actual an array: " +
                     "it is " + javaArray.getClass());
         }
-        return TiffSampleType.valueOf(elementType, signedIntegers);
+        return javaArray instanceof long[] ? // - packed long[]
+                TiffSampleType.BIT :
+                TiffSampleType.valueOf(elementType, signedIntegers);
     }
 
     public static UpdatablePArray bytesToArray(byte[] bytes, TiffSampleType sampleType, boolean littleEndian) {
