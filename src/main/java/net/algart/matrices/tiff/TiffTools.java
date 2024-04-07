@@ -613,7 +613,7 @@ public class TiffTools {
         return true;
     }
 
-    public static boolean separateBitsAndInvertValues(
+    public static boolean unpackBitsAndInvertValues(
             TiffTile tile,
             boolean scaleWhenIncreasingBitDepth,
             boolean correctInvertedBrightness)
@@ -778,9 +778,9 @@ public class TiffTools {
         // Following code is necessary in a very rare case, and no sense to seriously optimize it
         final boolean littleEndian = ifd.isLittleEndian();
 
-        final int size = checkedMul(new long[]{numberOfPixels, numberOfChannels, 4},
+        final int size = (int) checkedMul(new long[]{numberOfPixels, numberOfChannels, 4},
                 new String[]{"number of pixels", "number of channels", "4 bytes per float"},
-                () -> "Invalid sizes: ", () -> "");
+                () -> "Invalid sizes: ", () -> "", Integer.MAX_VALUE);
         final int numberOfSamples = numberOfChannels * numberOfPixels;
         if (samples.length < numberOfSamples * packedBytesPerSample) {
             throw new IllegalArgumentException("Too short samples array byte[" + samples.length +
@@ -1126,20 +1126,13 @@ public class TiffTools {
         return (DataHandle) bytesHandle;
     }
 
-    static int checkedMul(
-            long v1, long v2, long v3,
-            String n1, String n2, String n3,
-            Supplier<String> prefix,
-            Supplier<String> postfix) throws TiffException {
-        return checkedMul(new long[]{v1, v2, v3}, new String[]{n1, n2, n3}, prefix, postfix);
-    }
-
-    static int checkedMul(
+    static long checkedMul(
             long v1, long v2, long v3, long v4,
             String n1, String n2, String n3, String n4,
             Supplier<String> prefix,
-            Supplier<String> postfix) throws TiffException {
-        return checkedMul(new long[]{v1, v2, v3, v4}, new String[]{n1, n2, n3, n4}, prefix, postfix);
+            Supplier<String> postfix,
+            long maxValue) throws TiffException {
+        return checkedMul(new long[]{v1, v2, v3, v4}, new String[]{n1, n2, n3, n4}, prefix, postfix, maxValue);
     }
 
     static int checkedMulNoException(
@@ -1148,17 +1141,18 @@ public class TiffTools {
             Supplier<String> prefix,
             Supplier<String> postfix) {
         try {
-            return checkedMul(values, names, prefix, postfix);
+            return (int) checkedMul(values, names, prefix, postfix, Integer.MAX_VALUE);
         } catch (TiffException e) {
             throw new IllegalArgumentException(e.getMessage());
         }
     }
 
-    static int checkedMul(
+    static long checkedMul(
             long[] values,
             String[] names,
             Supplier<String> prefix,
-            Supplier<String> postfix) throws TiffException {
+            Supplier<String> postfix,
+            long maxValue) throws TiffException {
         Objects.requireNonNull(values);
         Objects.requireNonNull(prefix);
         Objects.requireNonNull(postfix);
@@ -1176,7 +1170,7 @@ public class TiffTools {
             }
             result *= m;
             product *= m;
-            if (result > Integer.MAX_VALUE) {
+            if (result > maxValue) {
                 overflow = true;
                 // - we just indicate this, but still calculate the floating-point product
             }
@@ -1185,7 +1179,7 @@ public class TiffTools {
             throw new TooLargeTiffImageException(prefix.get() + "too large " + String.join(" * ", names) +
                     " = " + Arrays.stream(values).mapToObj(String::valueOf).collect(
                     Collectors.joining(" * ")) +
-                    " = " + product + " >= 2^31" + postfix.get());
+                    " = " + product + " > " + maxValue + postfix.get());
         }
         return (int) result;
     }

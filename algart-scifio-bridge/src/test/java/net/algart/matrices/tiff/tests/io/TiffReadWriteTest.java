@@ -186,7 +186,7 @@ public class TiffReadWriteTest {
                         }
                         final IFD scifioIFD = parser.toScifioIFD(readerIFD);
                         final int samplesPerPixel = readerIFD.getSamplesPerPixel();
-                        final int bytesPerSample = readerIFD.sampleType().bytesPerSample();
+                        final int bytesPerSample = (readerIFD.sampleType().bitsPerSample() + 7) >>> 3;
                         bytes = new byte[paddedW * paddedH * samplesPerPixel * bytesPerSample];
                         @SuppressWarnings("deprecation")
                         byte[] buf1 = parser.getSamples(scifioIFD, bytes, START_X, START_Y, paddedW, paddedH);

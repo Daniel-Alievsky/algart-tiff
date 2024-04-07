@@ -1099,7 +1099,7 @@ public class TiffReader implements Closeable {
         } else {
             if (!TiffTools.separateUnpackedSamples(tile)) {
                 if (!TiffTools.separateYCbCrToRGB(tile)) {
-                    TiffTools.separateBitsAndInvertValues(tile,
+                    TiffTools.unpackBitsAndInvertValues(tile,
                             autoScaleWhenIncreasingBitDepth,
                             autoCorrectInvertedBrightness);
                 }
@@ -1184,7 +1184,7 @@ public class TiffReader implements Closeable {
         // - note: we allow this area to be outside the image
         final int numberOfChannels = map.numberOfChannels();
         final TiffIFD ifd = map.ifd();
-        final int sizeInBytes = ifd.sizeOfRegion(sizeX, sizeY);
+        final int sizeInBytes = sizeOfRegion(map, sizeX, sizeY);
         assert sizeX >= 0 && sizeY >= 0 : "sizeOfRegion didn't check sizes accurately: " + sizeX + "fromX" + sizeY;
         byte[] samples = new byte[sizeInBytes];
 
@@ -1263,10 +1263,10 @@ public class TiffReader implements Closeable {
         final byte[] samples = readSamples(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
         long t1 = debugTime();
         final TiffSampleType sampleType = map.sampleType();
-        if (!autoUnpackUnusualPrecisions && map.bytesPerSample() != sampleType.bytesPerSample()) {
+        if (!autoUnpackUnusualPrecisions && map.bytesPerSample() * 8 != sampleType.bitsPerSample()) {
             throw new IllegalStateException("Cannot convert TIFF pixels, " + map.bytesPerSample() +
-                    " bytes/sample, to \"" + sampleType.elementType() + "\" " + sampleType.bytesPerSample() +
-                    "-byte Java type: unpacking unusual prevision mode is disabled");
+                    " bytes/sample, to \"" + sampleType.elementType() + "\" " + sampleType.bitsPerSample() +
+                    "-bit Java type: unpacking unusual prevision mode is disabled");
         }
         final Object samplesArray = TiffTools.bytesToJavaArray(samples, sampleType, isLittleEndian());
         if (TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
@@ -1311,6 +1311,27 @@ public class TiffReader implements Closeable {
     public void close() throws IOException {
         synchronized (fileLock) {
             in.close();
+        }
+    }
+
+    public static int sizeOfRegion(TiffMap map, long sizeX, long sizeY) throws TiffException {
+        Objects.requireNonNull(map, "Null map");
+        final TiffSampleType sampleType = map.sampleType();
+        if (!sampleType.isConsistingOfWholeBytes()) {
+            return sampleType.sizeOfRegion(sizeX, sizeY, map.numberOfChannels());
+        } else {
+            // - for whole-byte formats, TiffReader may read
+            try {
+                return (int) TiffTools.checkedMul(sizeX, sizeY, map.numberOfChannels(), map.bytesPerSample(),
+                        "sizeX", "sizeY", "samples per pixel", "bytes per sample",
+                        () -> "Invalid requested area: ", () -> "",
+                        Integer.MAX_VALUE);
+            } catch (TooLargeTiffImageException e) {
+                throw new TooLargeTiffImageException("Too large requested image " + sizeX + "x" + sizeY +
+                        " (" + map.numberOfChannels() + " samples/pixel, " +
+                        map.bytesPerSample() + " bytes/sample): it requires > 2 GB to store (" +
+                        Integer.MAX_VALUE + " bytes)");
+            }
         }
     }
 

@@ -311,19 +311,6 @@ public class TiffIFD {
         return map.size();
     }
 
-    public int sizeOfRegion(long sizeX, long sizeY) throws TiffException {
-        try {
-            return TiffTools.checkedMul(sizeX, sizeY, getSamplesPerPixel(), equalBytesPerSample(),
-                    "sizeX", "sizeY", "samples per pixel", "bytes per sample",
-                    () -> "Invalid requested area: ", () -> "");
-        } catch (TooLargeTiffImageException e) {
-            throw new TooLargeTiffImageException("Too large requested image " + sizeX + "x" + sizeY +
-                " (" + getSamplesPerPixel() + " samples/pixel, " +
-                    equalBytesPerSample() + " bytes/sample): it requires > 2 GB to store (" +
-                    Integer.MAX_VALUE + " bytes)");
-        }
-    }
-
     public boolean containsKey(int key) {
         return map.containsKey(key);
     }
@@ -1121,7 +1108,7 @@ public class TiffIFD {
 
     public TiffIFD putSampleType(TiffSampleType sampleType) {
         Objects.requireNonNull(sampleType, "Null sampleType");
-        final int bytesPerSample = sampleType.bytesPerSample();
+        final int bitsPerSample = sampleType.bitsPerSample();
         final boolean signed = sampleType.isSigned();
         final boolean floatingPoint = sampleType.isFloatingPoint();
         final int samplesPerPixel;
@@ -1130,7 +1117,7 @@ public class TiffIFD {
         } catch (TiffException e) {
             throw new IllegalStateException("Cannot set TIFF samples type: SamplesPerPixel tag is invalid", e);
         }
-        put(Tags.BITS_PER_SAMPLE, nInts(samplesPerPixel, 8 * bytesPerSample));
+        put(Tags.BITS_PER_SAMPLE, nInts(samplesPerPixel, bitsPerSample));
         if (floatingPoint) {
             put(Tags.SAMPLE_FORMAT, nInts(samplesPerPixel, SAMPLE_FORMAT_IEEEFP));
         } else if (signed) {

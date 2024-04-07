@@ -226,7 +226,7 @@ public class TiffWriterTest {
                 writer.setContext(context);
 //                 TiffWriter writer = new TiffSaver(context, targetFile.toString())) {
 //                writer.setEnforceUseExternalCodec(true);
-                if (interleaveOutside && sampleType.bytesPerSample() == 1) {
+                if (interleaveOutside && sampleType.bitsPerSample() == 8) {
                     writer.setAutoInterleaveSource(false);
                 }
 //                writer.setWritingForwardAllowed(false);

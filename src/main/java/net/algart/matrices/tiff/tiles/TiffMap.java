@@ -108,7 +108,7 @@ public final class TiffMap {
             this.tileBytesPerPixel = tileSamplesPerPixel * bytesPerSample;
             this.totalBytesPerPixel = numberOfChannels * bytesPerSample;
             this.sampleType = ifd.sampleType();
-            this.bytesPerUnpackedSample = sampleType.bytesPerSample();
+            this.bytesPerUnpackedSample = (sampleType.bitsPerSample() + 7) >>> 3;
             this.elementType = sampleType.elementType();
             this.tileSizeX = ifd.getTileSizeX();
             this.tileSizeY = ifd.getTileSizeY();

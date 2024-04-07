@@ -27,25 +27,26 @@ package net.algart.matrices.tiff;
 import java.util.Objects;
 
 public enum TiffSampleType {
-    INT8(0, "int8", 1, byte.class, true),
-    UINT8(1, "uint8", 1, byte.class, false),
-    INT16(2, "int16", 2, short.class, true),
-    UINT16(3, "uint16", 2, short.class, false),
-    INT32(4, "int32", 4, int.class, true),
-    UINT32(5, "uint32", 4, int.class, false),
-    FLOAT(6, "float", 4, float.class, true),
-    DOUBLE(7, "double", 8, double.class, true);
+    BIT(0, "bit", 1, boolean.class, false),
+    INT8(0, "int8", 8, byte.class, true),
+    UINT8(1, "uint8", 8, byte.class, false),
+    INT16(2, "int16", 16, short.class, true),
+    UINT16(3, "uint16", 16, short.class, false),
+    INT32(4, "int32", 32, int.class, true),
+    UINT32(5, "uint32", 32, int.class, false),
+    FLOAT(6, "float", 32, float.class, true),
+    DOUBLE(7, "double", 64, double.class, true);
 
     private final int code;
     private final String prettyName;
-    private final int bytesPerSample;
+    private final int bitsPerSample;
     private final Class<?> elementType;
     private final boolean signed;
 
-    TiffSampleType(int code, String prettyName, int bytesPerSample, Class<?> elementType, boolean signed) {
+    TiffSampleType(int code, String prettyName, int bitsPerSample, Class<?> elementType, boolean signed) {
         this.code = code;
         this.prettyName = prettyName;
-        this.bytesPerSample = bytesPerSample;
+        this.bitsPerSample = bitsPerSample;
         this.elementType = elementType;
         this.signed = signed;
     }
@@ -64,12 +65,32 @@ public enum TiffSampleType {
         return prettyName;
     }
 
-    public int bytesPerSample() {
-        return bytesPerSample;
+    public int bitsPerSample() {
+        return bitsPerSample;
     }
 
     public Class<?> elementType() {
         return elementType;
+    }
+
+    public boolean isConsistingOfWholeBytes() {
+        return this != BIT;
+    }
+
+    public int sizeOfRegion(long sizeX, long sizeY, int numberOfChannels) throws TiffException {
+        long size;
+        try {
+            size = TiffTools.checkedMul(sizeX, sizeY, numberOfChannels, bitsPerSample,
+                    "sizeX", "sizeY", "number of channels", "bits per sample",
+                    () -> "Invalid requested area: ", () -> "", (1L << 34) - 1);
+        } catch (TooLargeTiffImageException e) {
+            throw new TooLargeTiffImageException("Too large requested image " + sizeX + "x" + sizeY +
+                    " (" + numberOfChannels + " samples/pixel, " +
+                    bitsPerSample + " bytes/sample): it requires > 2 GB to store (" +
+                    Integer.MAX_VALUE + " bytes)");
+        }
+        assert size >= 0;
+        return (int) ((size + 7) >> 3);
     }
 
     public boolean isSigned() {
