@@ -566,6 +566,9 @@ public final class TiffTile {
         }
         byte[] newData;
         if (interleaved || samplesPerPixel == 1) {
+            // Note: for interleaved tile we ALSO do not need estimatedNumberOfPixels.
+            // In future versions this can allow us to implement multichannel 1-bit images,
+            // but ONLY IF they are always stored interleaved (as for Deflate/LZW and similar "old" formats).
             newData = Arrays.copyOf(data, newLength);
         } else {
             if ((bitsPerPixel & 7) != 0) {
