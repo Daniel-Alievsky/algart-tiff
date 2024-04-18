@@ -708,7 +708,7 @@ public class TiffWriter implements Closeable {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(samples, "Null samples");
         TiffTools.checkRequestedArea(fromX, fromY, sizeX, sizeY);
-        TiffTools.checkRequestedAreaInArray(samples, sizeX, sizeY, map.totalBytesPerPixel());
+        TiffTools.checkRequestedAreaInArray(samples, sizeX, sizeY, map.totalBitsPerPixel());
         List<TiffTile> updatedTiles = new ArrayList<>();
         if (sizeX == 0 || sizeY == 0) {
             // - if no pixels are updated, no need to expand the map and to check correct expansion
@@ -720,10 +720,12 @@ public class TiffWriter implements Closeable {
 
         final int mapTileSizeX = map.tileSizeX();
         final int mapTileSizeY = map.tileSizeY();
-        final int bytesPerSample = map.bytesPerSample();
+        final int bytesPerSample = (map.bitsPerSample() + 7) >> 3;
+        //TODO!!
         final int numberOfSeparatedPlanes = map.numberOfSeparatedPlanes();
         final int samplesPerPixel = map.tileSamplesPerPixel();
-        final int bytesPerPixel = map.tileBytesPerPixel();
+        final int bytesPerPixel = (map.tileBitsPerPixel() + 7) >> 3;
+        //TODO!!
 
         final int minXIndex = Math.max(0, TiffReader.divFloor(fromX, mapTileSizeX));
         final int minYIndex = Math.max(0, TiffReader.divFloor(fromY, mapTileSizeY));
@@ -1824,7 +1826,7 @@ public class TiffWriter implements Closeable {
     private TiffCodec.Options buildOptions(TiffTile tile) throws TiffException {
         TiffCodec.Options result = this.codecOptions.clone();
         result.setSizes(tile.getSizeX(), tile.getSizeY());
-        result.setBitsPerSample(8 * tile.bytesPerSample());
+        result.setBitsPerSample(tile.bitsPerSample());
         result.setNumberOfChannels(tile.samplesPerPixel());
         result.setSigned(tile.sampleType().isSigned());
         result.setFloatingPoint(tile.sampleType().isFloatingPoint());

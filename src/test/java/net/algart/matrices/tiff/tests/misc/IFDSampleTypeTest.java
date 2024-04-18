@@ -36,11 +36,9 @@ public class IFDSampleTypeTest {
         System.out.printf("BitsPerSample: %s%n", Arrays.toString(ifd.getBitsPerSample()));
         TiffSampleType sampleType = null;
         int alignedBitDepth = -1;
-        int equalBytesPerSample = -1;
         try {
             sampleType = ifd.sampleType();
             alignedBitDepth = ifd.alignedBitDepth();
-            equalBytesPerSample = ifd.equalBytesPerSample();
         } catch (TiffException e) {
             if (requiredSampleType != null) {
                 throw new AssertionError("Unexpected " + e);
@@ -48,18 +46,17 @@ public class IFDSampleTypeTest {
             System.out.println("  " + e);
         }
         if (sampleType != requiredSampleType) {
-            throw new AssertionError();
+            throw new AssertionError("Invalid sample type");
         }
         if (alignedBitDepth != requiredAlignedBitDepth) {
-            throw new AssertionError();
+            throw new AssertionError("Invalid aligned depth");
         }
-        System.out.printf("  aligned bits: %d, whole bytes: %d, sample type: %s%n",
-                alignedBitDepth, equalBytesPerSample, sampleType);
+        System.out.printf("  aligned bits: %d, sample type: %s%n", alignedBitDepth, sampleType);
     }
 
     public static void main(String[] args) throws TiffException {
         TiffIFD ifd = new TiffIFD();
-        showTag(ifd, 1, TiffSampleType.UINT8);
+        showTag(ifd, 1, TiffSampleType.BIT);
         ifd.put(Tags.BITS_PER_SAMPLE, 2);
         showTag(ifd, 8, TiffSampleType.UINT8);
         ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_INT);
@@ -72,5 +69,10 @@ public class IFDSampleTypeTest {
         showTag(ifd, 32, TiffSampleType.INT32);
         ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_IEEEFP);
         showTag(ifd, 32, TiffSampleType.FLOAT);
+        ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_UINT);
+        ifd.put(Tags.BITS_PER_SAMPLE, 1);
+        showTag(ifd, 1, TiffSampleType.BIT);
+        ifd.put(Tags.SAMPLES_PER_PIXEL, 3);
+        showTag(ifd, 8, TiffSampleType.UINT8);
     }
 }

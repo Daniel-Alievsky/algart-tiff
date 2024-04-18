@@ -384,19 +384,19 @@ public class TiffIFD {
     public long[] getLongArray(int tag) throws TiffException {
         final Object value = get(tag);
         long[] results = null;
-        if (value instanceof long[]) {
-            results = ((long[]) value).clone();
-        } else if (value instanceof Number) {
-            results = new long[]{((Number) value).longValue()};
-        } else if (value instanceof Number[] numbers) {
-            results = new long[numbers.length];
+        if (value instanceof long[] v) {
+            results = v.clone();
+        } else if (value instanceof Number v) {
+            results = new long[]{v.longValue()};
+        } else if (value instanceof Number[] v) {
+            results = new long[v.length];
             for (int i = 0; i < results.length; i++) {
-                results[i] = numbers[i].longValue();
+                results[i] = v[i].longValue();
             }
-        } else if (value instanceof int[] integers) {
-            results = new long[integers.length];
-            for (int i = 0; i < integers.length; i++) {
-                results[i] = integers[i];
+        } else if (value instanceof int[] v) {
+            results = new long[v.length];
+            for (int i = 0; i < v.length; i++) {
+                results[i] = v[i];
             }
         } else if (value != null) {
             throw new TiffException("TIFF tag " + Tags.tiffTagName(tag, true) +
@@ -409,19 +409,19 @@ public class TiffIFD {
     public int[] getIntArray(int tag) throws TiffException {
         final Object value = get(tag);
         int[] results = null;
-        if (value instanceof int[]) {
-            results = ((int[]) value).clone();
-        } else if (value instanceof Number) {
-            results = new int[]{checkedIntValue(((Number) value).intValue(), tag)};
-        } else if (value instanceof long[] longs) {
-            results = new int[longs.length];
-            for (int i = 0; i < longs.length; i++) {
-                results[i] = checkedIntValue(longs[i], tag);
+        if (value instanceof int[] v) {
+            results = v.clone();
+        } else if (value instanceof Number v) {
+            results = new int[]{checkedIntValue(v, tag)};
+        } else if (value instanceof long[] v) {
+            results = new int[v.length];
+            for (int i = 0; i < v.length; i++) {
+                results[i] = checkedIntValue(v[i], tag);
             }
-        } else if (value instanceof Number[] numbers) {
-            results = new int[numbers.length];
+        } else if (value instanceof Number[] v) {
+            results = new int[v.length];
             for (int i = 0; i < results.length; i++) {
-                results[i] = checkedIntValue(numbers[i].longValue(), tag);
+                results[i] = checkedIntValue(v[i].longValue(), tag);
             }
         } else if (value != null) {
             throw new TiffException("TIFF tag " + Tags.tiffTagName(tag, true) +
@@ -498,15 +498,18 @@ public class TiffIFD {
     }
 
     public TiffSampleType sampleType(boolean requireNonNullResult) throws TiffException {
-        final int bytesPerSample;
+        final int bitsPerSample;
         if (requireNonNullResult) {
-            bytesPerSample = equalBytesPerSample();
+            bitsPerSample = alignedBitDepth();
         } else {
             try {
-                bytesPerSample = equalBytesPerSample();
+                bitsPerSample = alignedBitDepth();
             } catch (TiffException e) {
                 return null;
             }
+        }
+        if (bitsPerSample == 1) {
+            return TiffSampleType.BIT;
         }
         int[] sampleFormats = getIntArray(Tags.SAMPLE_FORMAT);
         if (sampleFormats == null) {
@@ -526,6 +529,7 @@ public class TiffIFD {
                 }
             }
         }
+        final int bytesPerSample = (bitsPerSample + 7) >>> 3;
         TiffSampleType result = null;
         switch (sampleFormats[0]) {
             case SAMPLE_FORMAT_UINT -> {
@@ -924,7 +928,7 @@ public class TiffIFD {
      * Note that unequal bits per sample is not supported by all software.
      *
      * <p>Note: {@link TiffReader} class does not strictly require this condition, it requires only
-     * equality of number of <i>bytes</i> per sample: see {@link #equalBytesPerSample()}
+     * equality of number of <i>bytes</i> per sample: see {@link #alignedBitDepth()}
      * (though the complete support of TIFF with different number of bits is not provided).
      * In comparison, {@link TiffWriter} class really <i>does</i> require this condition: it cannot
      * create TIFF files with different number of bits per channel.
@@ -953,8 +957,8 @@ public class TiffIFD {
      * Returns the number of bits per each sample. It is calculated based on the array
      * <tt>B&nbsp;=&nbsp;{@link #getBitsPerSample()}</tt> (numbers of bits per each channel) as follows:
      * <ol>
-     *     <li>if all elements <tt>B[i]==1</tt>, the result is 1;</li>
-     *     <li>if all the values <tt>(B[i]+7)/8</tt> (<tt>&#8968;(double)B[i]/8&#8969;</tt>) are equal
+     *     <li>if this array consists of the single element <tt>B[0]==1</tt>, the result is 1;</li>
+     *     <li>in other case, if all the values <tt>(B[i]+7)/8</tt> (<tt>&#8968;(double)B[i]/8&#8969;</tt>) are equal
      *     to the same value <tt>b</tt>, the result is b*8
      *     (this is the number of whole bytes needed to store each sample);</li>
      *     <li>if some of values <tt>(B[i]+7)/8</tt> are different, {@link UnsupportedTiffFormatException}
@@ -972,7 +976,9 @@ public class TiffIFD {
      */
     public int alignedBitDepth() throws TiffException {
         final int[] bitsPerSample = getBitsPerSample();
-        if (Arrays.stream(bitsPerSample).allMatch(bits -> bits == 1)) {
+        if (bitsPerSample.length == 1 && bitsPerSample[0] == 1) {
+            // - we do not support BIT format for RGB and other multi-channels TIFF;
+            // if this situation occurred, we process this in a common way like any N-bit image, N <= 8
             return 1;
         }
         final int bytes0 = (bitsPerSample[0] + 7) >>> 3;
@@ -991,16 +997,6 @@ public class TiffIFD {
             // we do not support different number of BYTES for different components
         }
         return bytes0 << 3;
-    }
-
-    /**
-     * Returns the number of bytes per each sample. It is calculated as ({@link #alignedBitDepth()}+7)/8.
-     *
-     * @return number of bytes per each sample.
-     * @throws TiffException if &#8968;bitsPerSample/8&#8969; values are different for some channels.
-     */
-    public int equalBytesPerSample() throws TiffException {
-        return (alignedBitDepth() + 7) >>> 3;
     }
 
     public boolean isOrdinaryBitDepth() throws TiffException {

@@ -186,7 +186,7 @@ public class TiffReadWriteTest {
                         }
                         final IFD scifioIFD = parser.toScifioIFD(readerIFD);
                         final int samplesPerPixel = readerIFD.getSamplesPerPixel();
-                        final int bytesPerSample = (readerIFD.sampleType().bitsPerSample() + 7) >>> 3;
+                        final int bytesPerSample = readerIFD.sampleType().bytesPerSample().orElseThrow();
                         bytes = new byte[paddedW * paddedH * samplesPerPixel * bytesPerSample];
                         @SuppressWarnings("deprecation")
                         byte[] buf1 = parser.getSamples(scifioIFD, bytes, START_X, START_Y, paddedW, paddedH);
@@ -202,11 +202,11 @@ public class TiffReadWriteTest {
                         originalParser.getSamples(scifioIFD, buf2, START_X, START_Y, paddedW, paddedH);
                         // - this is absolute old TiffParser
                         if (!planar) {
-                            bytes = TiffTools.toInterleavedSamples(
+                            bytes = TiffTools.toInterleavedBytes(
                                     bytes, samplesPerPixel, bytesPerSample, paddedW * paddedH);
-                            buf1 = TiffTools.toInterleavedSamples(
+                            buf1 = TiffTools.toInterleavedBytes(
                                     buf1, samplesPerPixel, bytesPerSample, paddedW * paddedH);
-                            buf2 = TiffTools.toInterleavedSamples(
+                            buf2 = TiffTools.toInterleavedBytes(
                                     buf2, samplesPerPixel, bytesPerSample, paddedW * paddedH);
                         }
                         final int checkedLength = paddedW * h * samplesPerPixel * bytesPerSample;

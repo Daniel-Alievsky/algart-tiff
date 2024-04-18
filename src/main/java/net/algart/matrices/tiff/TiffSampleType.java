@@ -27,6 +27,7 @@ package net.algart.matrices.tiff;
 import net.algart.arrays.PArray;
 
 import java.util.Objects;
+import java.util.OptionalInt;
 
 public enum TiffSampleType {
     BIT(0, "bit", 1, boolean.class, false),
@@ -69,6 +70,10 @@ public enum TiffSampleType {
 
     public int bitsPerSample() {
         return bitsPerSample;
+    }
+
+    public OptionalInt bytesPerSample() {
+        return isConsistingOfWholeBytes() ? OptionalInt.of(bitsPerSample >>> 3) : OptionalInt.empty();
     }
 
     public Class<?> elementType() {

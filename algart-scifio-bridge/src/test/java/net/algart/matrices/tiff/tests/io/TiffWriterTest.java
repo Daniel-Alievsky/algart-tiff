@@ -46,6 +46,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.OptionalInt;
 
 public class TiffWriterTest {
     private final static int IMAGE_WIDTH = 1011;
@@ -331,9 +332,9 @@ public class TiffWriterTest {
                     }
 
                     Object samplesArray = makeSamples(ifdIndex, map.numberOfChannels(), map.sampleType(), w, h);
-                    final boolean interleaved = !writer.isAutoInterleaveSource() && map.bytesPerSample() == 1;
+                    final boolean interleaved = !writer.isAutoInterleaveSource() && map.bitsPerSample() == 8;
                     if (interleaved) {
-                        samplesArray = TiffTools.toInterleavedSamples(
+                        samplesArray = TiffTools.toInterleavedBytes(
                                 (byte[]) samplesArray, map.numberOfChannels(), 1, w * h);
                     }
                     Matrix<UpdatablePArray> matrix = TiffTools.asMatrix(
@@ -399,9 +400,13 @@ public class TiffWriterTest {
 
     private static void customFillEmptyTile(TiffTile tiffTile) {
         byte[] decoded = tiffTile.getDecodedData();
-        Arrays.fill(decoded, tiffTile.bytesPerSample() == 1 ? (byte) 0xE0 : (byte) 0xFF);
+        Arrays.fill(decoded, tiffTile.bitsPerSample() == 8 ? (byte) 0xE0 : (byte) 0xFF);
         tiffTile.setInterleaved(true);
-        final int pixel = tiffTile.bytesPerPixel();
+        OptionalInt bytesPerPixel = tiffTile.bytesPerPixel();
+        if (bytesPerPixel.isEmpty()) {
+            return;
+        }
+        final int pixel = bytesPerPixel.getAsInt();
         final int sizeX = tiffTile.getSizeX() * pixel;
         final int sizeY = tiffTile.getSizeY();
         Arrays.fill(decoded, 0, sizeX, (byte) 0);

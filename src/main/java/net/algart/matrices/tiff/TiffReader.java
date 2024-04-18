@@ -1072,7 +1072,7 @@ public class TiffReader implements Closeable {
      * This method performs necessary conversion to RGB (but only if the image is exactly 8-bit).</p>
      *
      * <p>Note: this method never increase number of <i>bytes</i>, necessary for representing a single pixel sample.
-     * It can increase the number of <i>bits</i> per sample, but onty to the nearest greater integer number of
+     * It can increase the number of <i>bits</i> per sample, but only to the nearest greater integer number of
      * bytes: 1..7 bits are transformed to 8 bits/sample, 9..15 to 16 bits/sample, 17..23 to 24 bits/sample etc.
      * Thus, this method <b>does not unpack 3-byte samples</b> (to 4-byte) and
      * <b>does not unpack 16- or 24-bit</b> floating-point formats. These cases
@@ -1184,8 +1184,9 @@ public class TiffReader implements Closeable {
         // - note: we allow this area to be outside the image
         final int numberOfChannels = map.numberOfChannels();
         final TiffIFD ifd = map.ifd();
-        final int sizeInBytes = sizeOfRegion(map, sizeX, sizeY);
-        assert sizeX >= 0 && sizeY >= 0 : "sizeOfRegion didn't check sizes accurately: " + sizeX + "fromX" + sizeY;
+        final int sizeInBytes = sizeOfRegionWithPossibleUnusualPrecisions(map, sizeX, sizeY);
+        assert sizeX >= 0 && sizeY >= 0 :
+                "sizeOfRegionWithPossibleUnusualPrecisions didn't check sizes accurately: " + sizeX + "fromX" + sizeY;
         byte[] samples = new byte[sizeInBytes];
 
         if (byteFiller != 0) {
@@ -1201,8 +1202,7 @@ public class TiffReader implements Closeable {
         long t3 = debugTime();
         boolean interleave = false;
         if (interleaveResults) {
-            byte[] newSamples = TiffTools.toInterleavedSamples(
-                    samples, numberOfChannels, map.bytesPerSample(), sizeX * sizeY);
+            byte[] newSamples = map.toInterleavedSamples(samples, sizeX * sizeY);
             interleave = newSamples != samples;
             samples = newSamples;
         }
@@ -1263,9 +1263,9 @@ public class TiffReader implements Closeable {
         final byte[] samples = readSamples(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
         long t1 = debugTime();
         final TiffSampleType sampleType = map.sampleType();
-        if (!autoUnpackUnusualPrecisions && map.bytesPerSample() * 8 != sampleType.bitsPerSample()) {
-            throw new IllegalStateException("Cannot convert TIFF pixels, " + map.bytesPerSample() +
-                    " bytes/sample, to \"" + sampleType.elementType() + "\" " + sampleType.bitsPerSample() +
+        if (!autoUnpackUnusualPrecisions && map.bitsPerSample()  != sampleType.bitsPerSample()) {
+            throw new IllegalStateException("Cannot convert TIFF pixels, " + map.bitsPerSample() +
+                    " bits/sample, to \"" + sampleType.elementType() + "\" " + sampleType.bitsPerSample() +
                     "-bit Java type: unpacking unusual prevision mode is disabled");
         }
         final Object samplesArray = TiffTools.bytesToJavaArray(samples, sampleType, isLittleEndian());
@@ -1314,7 +1314,8 @@ public class TiffReader implements Closeable {
         }
     }
 
-    public static int sizeOfRegion(TiffMap map, long sizeX, long sizeY) throws TiffException {
+    public static int sizeOfRegionWithPossibleUnusualPrecisions(TiffMap map, long sizeX, long sizeY)
+            throws TiffException {
         Objects.requireNonNull(map, "Null map");
         final TiffSampleType sampleType = map.sampleType();
         if (!sampleType.isConsistingOfWholeBytes()) {
@@ -1322,14 +1323,14 @@ public class TiffReader implements Closeable {
         } else {
             // - for whole-byte formats, TiffReader may read
             try {
-                return (int) TiffTools.checkedMul(sizeX, sizeY, map.numberOfChannels(), map.bytesPerSample(),
+                return (int) TiffTools.checkedMul(sizeX, sizeY, map.numberOfChannels(), map.bitsPerSample() >>> 3,
                         "sizeX", "sizeY", "samples per pixel", "bytes per sample",
                         () -> "Invalid requested area: ", () -> "",
                         Integer.MAX_VALUE);
             } catch (TooLargeTiffImageException e) {
                 throw new TooLargeTiffImageException("Too large requested image " + sizeX + "x" + sizeY +
                         " (" + map.numberOfChannels() + " samples/pixel, " +
-                        map.bytesPerSample() + " bytes/sample): it requires > 2 GB to store (" +
+                        map.bitsPerSample() + " bits/sample): it requires > 2 GB to store (" +
                         Integer.MAX_VALUE + " bytes)");
             }
         }
@@ -1495,7 +1496,11 @@ public class TiffReader implements Closeable {
 
         final int mapTileSizeX = map.tileSizeX();
         final int mapTileSizeY = map.tileSizeY();
-        final int bytesPerSample = map.bytesPerSample();
+        if (!map.isWholeBytes()) {
+            //TODO!!
+            throw new UnsupportedOperationException("Under construction");
+        }
+        final int bytesPerSample = map.bitsPerSample() >>> 3;
         final int numberOfSeparatedPlanes = map.numberOfSeparatedPlanes();
         final int samplesPerPixel = map.tileSamplesPerPixel();
 

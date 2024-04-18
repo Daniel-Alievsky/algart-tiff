@@ -60,13 +60,13 @@ public class InterleaveSeparateTest {
     }
 
 
-    private static void testIS(byte[] bytes, int numberOfChannels, int bytesPerSample, int numberOfPixels) {
+    private static void testIS(byte[] bytes, int numberOfChannels, int bytesPerSamples, int numberOfPixels) {
         long t1 = System.nanoTime();
-        byte[] interleavedSamples = TiffTools.toInterleavedSamples(
-                bytes, numberOfChannels, bytesPerSample, numberOfPixels);
+        byte[] interleavedSamples = TiffTools.toInterleavedBytes(
+                bytes, numberOfChannels, bytesPerSamples, numberOfPixels);
         long t2 = System.nanoTime();
-        byte[] separatedSamples = TiffTools.toSeparatedSamples(
-                interleavedSamples, numberOfChannels, bytesPerSample, numberOfPixels);
+        byte[] separatedSamples = TiffTools.toSeparatedBytes(
+                interleavedSamples, numberOfChannels, bytesPerSamples, numberOfPixels);
         long t3 = System.nanoTime();
         if (!Arrays.equals(bytes, separatedSamples)) {
             throw new AssertionError("Separated samples mismatch!");
@@ -78,10 +78,10 @@ public class InterleaveSeparateTest {
 
     private static void testSI(byte[] bytes, int numberOfChannels, int bytesPerSample, int numberOfPixels) {
         long t1 = System.nanoTime();
-        byte[] separatedSamples = TiffTools.toSeparatedSamples(
+        byte[] separatedSamples = TiffTools.toSeparatedBytes(
                 bytes, numberOfChannels, bytesPerSample, numberOfPixels);
         long t2 = System.nanoTime();
-        byte[] interleavedSamples = TiffTools.toInterleavedSamples(
+        byte[] interleavedSamples = TiffTools.toInterleavedBytes(
                 separatedSamples, numberOfChannels, bytesPerSample, numberOfPixels);
         long t3 = System.nanoTime();
         if (!Arrays.equals(bytes, interleavedSamples)) {

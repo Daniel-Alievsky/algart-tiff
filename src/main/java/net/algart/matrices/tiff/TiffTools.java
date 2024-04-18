@@ -229,7 +229,7 @@ public class TiffTools {
                 SimpleMemoryModel.asMatrix(javaArray, sizeX, sizeY, numberOfChannels);
     }
 
-    public static byte[] toInterleavedSamples(
+    public static byte[] toInterleavedBytes(
             byte[] bytes,
             int numberOfChannels,
             int bytesPerSample,
@@ -283,7 +283,7 @@ public class TiffTools {
         return interleavedBytes;
     }
 
-    public static byte[] toSeparatedSamples(
+    public static byte[] toSeparatedBytes(
             byte[] bytes,
             int numberOfChannels,
             int bytesPerSample,
@@ -356,9 +356,13 @@ public class TiffTools {
         final byte[] data = tile.getDecodedData();
         final int predictor = tile.ifd().getInt(Tags.PREDICTOR, TiffIFD.PREDICTOR_NONE);
         if (predictor == TiffIFD.PREDICTOR_HORIZONTAL) {
+            if (!tile.isWholeBytes()) {
+                throw new TiffException("Cannot use TIFF predictor for bit depths that are not multiple of 8: " +
+                        Arrays.toString(tile.ifd().getBitsPerSample()));
+            }
             final boolean little = tile.isLittleEndian();
-            final int bytes = tile.bytesPerSample();
-            final int len = tile.bytesPerPixel();
+            final int bytes = tile.bitsPerSample() >> 3;
+            final int len = tile.bitsPerPixel() >> 3;
             final long xSize = tile.getSizeX();
             final long xSizeInBytes = xSize * len;
 
@@ -396,9 +400,13 @@ public class TiffTools {
         final byte[] data = tile.getDecodedData();
         final int predictor = tile.ifd().getInt(Tags.PREDICTOR, TiffIFD.PREDICTOR_NONE);
         if (predictor == TiffIFD.PREDICTOR_HORIZONTAL) {
+            if (!tile.isWholeBytes()) {
+                throw new TiffException("Cannot decode TIFF predictor for bit depths that are not multiple of 8: " +
+                        Arrays.toString(tile.ifd().getBitsPerSample()));
+            }
             final boolean little = tile.isLittleEndian();
-            final int bytes = tile.bytesPerSample();
-            final int len = tile.bytesPerPixel();
+            final int bytes = tile.bitsPerSample() >> 3;
+            final int len = tile.bitsPerPixel() >> 3;
             final long xSize = tile.getSizeX();
             final long xSizeInBytes = xSize * len;
 
@@ -649,10 +657,11 @@ public class TiffTools {
                     Arrays.toString(ifd.getBitsPerSample()) + " bits per sample");
         }
 
-        final int bytesPerSample = tile.bytesPerSample();
+        //TODO!! process 1-bit case
+        final int bytesPerSample = (tile.bitsPerSample() + 7) >> 3;
         if (bytesPerSample > 4) {
             throw new IllegalStateException("Corrupted IFD, probably by direct modifications (" +
-                    bytesPerSample + " bytes/sample in tile, though it was already checked)");
+                    bytesPerSample + " bytes/sample in tile, though this was already checked)");
             // - was checked in isSimpleRearrangingBytesEnough
         }
         // The only non-standard bytesPerSample is 3: 17..24-bit integer (but not all bits/sample are 24);
@@ -660,7 +669,7 @@ public class TiffTools {
         final int[] bitsPerSample = ifd.getBitsPerSample();
         final boolean byteAligned = Arrays.stream(bitsPerSample).noneMatch(bits -> (bits & 7) != 0);
         if (byteAligned && !invertedBrightness && OPTIMIZE_SEPARATING_WHOLE_BYTES) {
-            throw new IllegalStateException("Corrupted IFD, probably by a parallel thread " +
+            throw new IllegalStateException("Corrupted IFD, probably from a parallel thread " +
                     "(BitsPerSample tag is byte-aligned and inversion is not necessary, " +
                     "though it was already checked)");
             // - was checked in isSimpleRearrangingBytesEnough; other case,
@@ -762,7 +771,7 @@ public class TiffTools {
         if (numberOfPixels < 0) {
             throw new IllegalArgumentException("Negative numberOfPixels = " + numberOfPixels);
         }
-        final int packedBytesPerSample = ifd.equalBytesPerSample();
+        final int packedBytesPerSample = (ifd.alignedBitDepth() + 7) >>> 3;
         final TiffSampleType sampleType = ifd.sampleType();
         final boolean floatingPoint = sampleType.isFloatingPoint();
         // - actually DOUBLE is not used below
@@ -908,22 +917,16 @@ public class TiffTools {
         }
     }
 
-    public static void checkRequestedAreaInArray(byte[] array, long sizeX, long sizeY, int bytesPerPixel) {
+    public static void checkRequestedAreaInArray(byte[] array, long sizeX, long sizeY, int bitsPerPixel) {
         Objects.requireNonNull(array, "Null array");
-        checkRequestedAreaInArray(array.length, sizeX, sizeY, bytesPerPixel);
-    }
-
-    public static void checkRequestedAreaInArray(int arrayLength, long sizeX, long sizeY, int pixelLength) {
-        if (arrayLength < 0) {
-            throw new IllegalArgumentException("Negative arrayLength = " + arrayLength);
+        if (bitsPerPixel <= 0) {
+            throw new IllegalArgumentException("Zero or negative bitsPerPixel = " + bitsPerPixel);
         }
-        if (pixelLength <= 0) {
-            throw new IllegalArgumentException("Zero or negative pixelLength = " + pixelLength);
-        }
+        final long arrayBits = (long) array.length * 8;
         checkRequestedArea(0, 0, sizeX, sizeY);
-        if (sizeX * sizeY > arrayLength || sizeX * sizeY * (long) pixelLength > arrayLength) {
+        if (sizeX * sizeY > arrayBits || sizeX * sizeY * (long) bitsPerPixel > arrayBits) {
             throw new IllegalArgumentException("Requested area " + sizeX + "x" + sizeY +
-                    " is too large for array of " + arrayLength + " elements, " + pixelLength + " per pixel");
+                    " is too large for array of " + array.length + " bytes, " + bitsPerPixel + " per pixel");
         }
     }
 
@@ -1142,8 +1145,17 @@ public class TiffTools {
             String[] names,
             Supplier<String> prefix,
             Supplier<String> postfix) {
+        return (int) checkedMulNoException(values, names, prefix, postfix, Integer.MAX_VALUE);
+    }
+
+    static long checkedMulNoException(
+            long[] values,
+            String[] names,
+            Supplier<String> prefix,
+            Supplier<String> postfix,
+            long maxValue) {
         try {
-            return (int) checkedMul(values, names, prefix, postfix, Integer.MAX_VALUE);
+            return checkedMul(values, names, prefix, postfix, maxValue);
         } catch (TiffException e) {
             throw new IllegalArgumentException(e.getMessage());
         }
