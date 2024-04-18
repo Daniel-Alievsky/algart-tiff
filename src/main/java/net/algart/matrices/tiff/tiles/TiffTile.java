@@ -52,7 +52,7 @@ public final class TiffTile {
     private byte[] data = null;
     private long storedDataFileOffset = -1;
     private int storedDataLength = 0;
-    private int storedNumberOfPixels = 0;
+    private int estimatedNumberOfPixels = 0;
     private Queue<IRectangularArea> unsetArea = null;
     // - null value marks that all is empty;
     // it helps to defer actual subtracting until the moment when we know correct tile sizes
@@ -70,7 +70,8 @@ public final class TiffTile {
         this.map = index.map();
         this.samplesPerPixel = map.tileSamplesPerPixel();
         this.bitsPerSample = map.bitsPerSample();
-        this.bitsPerPixel = samplesPerPixel * bitsPerSample;
+        this.bitsPerPixel = map.tileBitsPerPixel();
+        assert this.bitsPerPixel == samplesPerPixel * bitsPerSample;
         this.littleEndian = map.ifd().isLittleEndian();
         assert index.ifd() == map.ifd() : "index retrieved ifd from its tile map!";
         setSizes(map.tileSizeX(), map.tileSizeY());
@@ -507,106 +508,82 @@ public final class TiffTile {
         return this;
     }
 
-    /**
-     * Returns the number of pixels, actually stored in the {@link #getData() data array} in this tile
-     * in the decoded form, or 0 after creating this object.
-     *
-     * <p>Note: that this method throws <tt>IllegalStateException</tt> if the data are
-     * {@link #isEncoded() encoded}, for example, immediately after reading tile from file.
-     * If the tile is {@link #isEmpty() empty} (no data),
-     * the exception is not thrown, though usually there is no sense to call this method in this situation.</p>
-     *
-     * <p>If the data are not {@link #isEncoded() encoded}, the following equality is <i>usually</i> true:</p>
-     *
-     * <pre>{@link #getStoredDataLength()} == {@link #getStoredNumberOfPixels()} * {@link #bytesPerPixel()}</pre>
-     *
-     * <p>The only possible exception is when you sets the data with help of
-     * {@link #setPartiallyDecodedData(byte[])} (when data are almost decoded, but, maybe, some additional
-     * unpacking is necessary). This condition is always checked inside {@link #setDecodedData(byte[])}
-     * method. You may also check this directly by {@link #checkDataLengthAlignment()} method.</p>
-     *
-     * <p><b>Warning:</b> the stored number of pixels, returned by this method, may <b>differ</b> from the tile
-     * size {@link #getSizeX()} * {@link #getSizeY()}! Usually it occurs after decoding encoded tile, when the
-     * decoding method returns only sequence of pixels and does not return information about the size.
-     * In this situation, the external code sets the tile sizes from a priory information, but the decoded tile
-     * may be actually less; for example, it takes place for the last strip in non-tiled TIFF format.
-     * You can check, does the actual number of stored pixels equal to tile size, via
-     * {@link #checkStoredNumberOfPixels()} method.
-     *
-     * @return the number of pixels in the last non-null data array, which was stored in this object.
-     */
-    @SuppressWarnings("JavadocDeclaration")
-    public int getStoredNumberOfPixels() {
-        //TODO!! OptionalInt
-        if (isEncoded()) {
-            throw new IllegalStateException("TIFF tile data are not decoded, number of pixels is unknown: " + this);
-        }
-        return storedNumberOfPixels;
-    }
-
     public void checkDataLengthAlignment() {
         if (!encoded) {
-            final int storedNumberOfBytes = (storedNumberOfPixels * bitsPerPixel + 7) >> 3;
-            //TODO!!
+            final int storedNumberOfBytes = (estimatedNumberOfPixels * bitsPerPixel + 7) >>> 3;
             if (storedNumberOfBytes != data.length) {
+                assert bitsPerPixel != 1 : "unaligned estimatedNumberOfPixels cannot appear for 1 bit/pixel";
+                // - in current version it means that we have whole bytes: bitsPerPixel = 8*K
                 throw new IllegalStateException("Unaligned length of decoded data " + data.length +
-                        ": it must be equal to ceil(number of pixels * bits per pixel / 7) = ceil(" +
-                        storedNumberOfPixels + " * " + bitsPerSample + " / 7) = " + storedNumberOfBytes);
+                        ": it is not equal to ceil(number of pixels * bits per pixel / 7) = ceil(" +
+                        estimatedNumberOfPixels + " * " + bitsPerSample + " / 7) = " + storedNumberOfBytes +
+                        ", as if the last pixel is stored \"partially\"");
             }
         }
     }
 
-
     public TiffTile checkStoredNumberOfPixels() throws IllegalStateException {
         checkEmpty();
-        int storedNumberOfPixels = getStoredNumberOfPixels();
-        if (storedNumberOfPixels != sizeX * sizeY) {
-            throw new IllegalStateException("Number of stored pixels " + storedNumberOfPixels +
-                    " does not match tile sizes " + sizeX + "x" + sizeY + " = " + (sizeX * sizeY));
+        final int estimatedNumberOfPixels = getEstimatedNumberOfPixels();
+        final int dataLength = (estimatedNumberOfPixels * bitsPerPixel + 7) >>> 3;
+        assert dataLength == storedDataLength :
+                "invalid estimatedNumberOfPixels: setData has set it not matching data length " + storedDataLength;
+        if (dataLength != sizeInBytes) {
+            throw new IllegalStateException("Number of stored pixels " + estimatedNumberOfPixels +
+                    " does not match tile sizes " + sizeX + "x" + sizeY + " = " + sizeInPixels);
         }
-        assert (storedNumberOfPixels * bitsPerPixel + 7) >>> 3 == storedDataLength;
         return this;
     }
 
     public TiffTile adjustNumberOfPixels(boolean allowDecreasing) {
-        return changeNumberOfPixels(sizeX * sizeY, allowDecreasing);
+        return changeNumberOfPixels(sizeInPixels, allowDecreasing);
     }
 
-    public TiffTile changeNumberOfPixels(int newNumberOfPixels, boolean allowDecreasing) {
+    public TiffTile changeNumberOfPixels(long newNumberOfPixels, boolean allowDecreasing) {
         if (newNumberOfPixels < 0) {
             throw new IllegalArgumentException("Negative new number of pixels = " + newNumberOfPixels);
         }
-        final byte[] data = getDecodedData();
-        // - performs all necessary state checks
-        int numberOfPixels = storedNumberOfPixels;
-        if (numberOfPixels == newNumberOfPixels) {
-            return this;
-        }
-        // The following code is executed rarely, for example, while reading a stripped TIFF,
-        // where the last strip is not cropped correctly
-        // (see resources\demo\images\tiff\algart\jpeg_rgb_stripped_with_uncropped_last_strip.tiff)
-        if ((long) newNumberOfPixels * (long) bitsPerPixel > Integer.MAX_VALUE) {
+        final long newNumberOfBits = newNumberOfPixels * (long) bitsPerPixel;
+        if (newNumberOfPixels > Integer.MAX_VALUE || newNumberOfBits > Integer.MAX_VALUE) {
+            // - first check is necessary for a case of overflow in newNumberOfBits
             throw new IllegalArgumentException("Too large requested number of pixels in tile: " + newNumberOfPixels +
                     " pixels * " + samplesPerPixel + " samples/pixel * " + bitsPerSample + " bits/sample >= " +
                     "2^31 bits (256 MB), such large tiles are not supported");
         }
-        if (newNumberOfPixels < numberOfPixels && !allowDecreasing) {
-            throw new IllegalArgumentException("The new number of pixels " + newNumberOfPixels +
-                    " is less than actually stored " + numberOfPixels + "; this is not allowed: data may be lost");
+        final int newLength = (int) ((newNumberOfBits + 7) >>> 3);
+        final byte[] data = getDecodedData();
+        // - performs all necessary state checks
+        if (newLength == data.length) {
+            // - nothing to change: data has a correct length
+            return this;
         }
-        final int newLength = newNumberOfPixels * bitsPerPixel;
+        // The following code is executed rarely (excepting 1-bit case), for example, while reading a stripped TIFF,
+        // where the last strip is not cropped correctly
+        // (see resources\demo\images\tiff\algart\jpeg_rgb_stripped_with_uncropped_last_strip.tiff)
+        if (newLength < data.length && !allowDecreasing) {
+            throw new IllegalArgumentException("The new number of pixels " + newNumberOfPixels +
+                    " is less than actually stored; this is not allowed: data may be lost");
+        }
         byte[] newData;
         if (interleaved || samplesPerPixel == 1) {
-            newData = Arrays.copyOf(data, (newLength + 7) >>> 3);
+            newData = Arrays.copyOf(data, newLength);
         } else {
+            if ((bitsPerPixel & 7) != 0) {
+                throw new AssertionError("Unsupported bits per pixel " + bitsPerPixel + " for " +
+                        samplesPerPixel + " channel (more than one)");
+                // - for example, 1-bit RGB is not supported:
+                // we cannot calculate number of pixels to separate or interleave them
+            }
             newData = new byte[newLength];
             // - zero-filled by Java
-            final int size = numberOfPixels * bitsPerSample;
-            final int newSize = newNumberOfPixels * bitsPerSample;
-            final int sizeToCopy = Math.min(size, newSize);
-            for (int s = 0, disp = 0, newDisp = 0; s < samplesPerPixel; s++, disp += size, newDisp += newSize) {
+            final long size = (long) getEstimatedNumberOfPixels() * bitsPerSample;
+            // bitsPerPixels is multiply of 8, so, estimatedNumberOfPixels is the actual number of stored pixels
+            final long newSize = newNumberOfPixels * bitsPerSample;
+            final long sizeToCopy = Math.min(size, newSize);
+            for (long s = 0, disp = 0, newDisp = 0; s < samplesPerPixel; s++, disp += size, newDisp += newSize) {
                 PackedBitArraysPer8.copyBits(newData, newDisp, data, disp, sizeToCopy);
-                // System.arraycopy(data, disp, newData, newDisp, sizeToCopy);
+                // - actually this is equivalent to System.arraycopy,
+                // but we use copyBits for possible future version, if they will allow multichannel 1-bit images
             }
         }
         return setDecodedData(newData);
@@ -633,7 +610,8 @@ public final class TiffTile {
         if (isInterleaved()) {
             throw new IllegalStateException("TIFF tile is already interleaved: " + this);
         }
-        data = map.toInterleavedSamples(data, getStoredNumberOfPixels());
+        data = map.toInterleavedSamples(data, getEstimatedNumberOfPixels());
+        // - getEstimatedNumberOfPixels may return invalid value only for 1 channel, when this argument is not used
         setInterleaved(true);
         setDecodedData(data);
         return this;
@@ -644,7 +622,8 @@ public final class TiffTile {
         if (!isInterleaved()) {
             throw new IllegalStateException("TIFF tile is already separated: " + this);
         }
-        data = map.toSeparatedSamples(data, getStoredNumberOfPixels());
+        data = map.toSeparatedSamples(data, getEstimatedNumberOfPixels());
+        // - getEstimatedNumberOfPixels may return invalid value only for 1 channel, when this argument is not used
         setInterleaved(false);
         setDecodedData(data);
         return this;
@@ -660,7 +639,7 @@ public final class TiffTile {
                 (isEmpty() ?
                         ", " + sizeX + "x" + sizeY + "x" + samplesPerPixel :
                         ", actual sizes " + sizeX + "x" + sizeY + "x" + samplesPerPixel + " (" +
-                                storedNumberOfPixels + " pixels, " + storedDataLength + " bytes)" +
+                                storedDataLength + " bytes)" +
                                 (isCompleted() ? ", completed" : ", partial")) +
                 ", " + bitsPerSample + " bits/sample" +
                 ", index " + index +
@@ -695,23 +674,74 @@ public final class TiffTile {
         // Note: doesn't check this.map to avoid infinite recursion!
     }
 
+    /**
+     * Returns the number of pixels, actually stored in the {@link #getData() data array} in this tile
+     * in the decoded form, or 0 after creating this object.
+     *
+     * <p>Note: that this method throws <tt>IllegalStateException</tt> if the data are
+     * {@link #isEncoded() encoded}, for example, immediately after reading tile from file.
+     * If the tile is {@link #isEmpty() empty} (no data),
+     * the exception is not thrown, though usually there is no sense to call this method in this situation.</p>
+     *
+     * <p>If the data are not {@link #isEncoded() encoded}, the following equality is <i>usually</i> true:</p>
+     *
+     * <pre>{@link #getStoredDataLength()} == {@link #getEstimatedNumberOfPixels()} * {@link #bytesPerPixel()}</pre>
+     *
+     * <p>The only possible exception is when you sets the data with help of
+     * {@link #setPartiallyDecodedData(byte[])} (when data are almost decoded, but, maybe, some additional
+     * unpacking is necessary). This condition is always checked inside {@link #setDecodedData(byte[])}
+     * method. You may also check this directly by {@link #checkDataLengthAlignment()} method.</p>
+     *
+     * <p><b>Warning:</b> the stored number of pixels, returned by this method, may <b>differ</b> from the tile
+     * size {@link #getSizeX()} * {@link #getSizeY()}! Usually it occurs after decoding encoded tile, when the
+     * decoding method returns only sequence of pixels and does not return information about the size.
+     * In this situation, the external code sets the tile sizes from a priory information, but the decoded tile
+     * may be actually less; for example, it takes place for the last strip in non-tiled TIFF format.
+     * You can check, does the actual number of stored pixels equal to tile size, via
+     * {@link #checkStoredNumberOfPixels()} method.
+     *
+     * @return the number of pixels in the last non-null data array, which was stored in this object.
+     */
+    @SuppressWarnings("JavadocDeclaration")
+    private int getEstimatedNumberOfPixels() {
+        // - This method is private, because it does not return exact number of pixels for 1-bit channels
+        // and should be used carefully.
+        // Maybe, in future we will support better field "numberOfPixels", always correct also for 1-bit channels,
+        // then this method will become public.
+        if (isEncoded()) {
+            throw new IllegalStateException("TIFF tile data are not decoded, number of pixels is unknown: " + this);
+        }
+        return estimatedNumberOfPixels;
+    }
+
     private TiffTile setData(byte[] data, boolean encoded, boolean checkAligned) {
         Objects.requireNonNull(data, "Null " + (encoded ? "encoded" : "decoded") + " data");
         final long numberOfBits = 8L * (long) data.length;
-        final long storedNumberOfPixels = numberOfBits / bitsPerPixel;
-        if (!encoded && checkAligned && (storedNumberOfPixels * bitsPerPixel + 7) >>> 3 != data.length) {
-            throw new IllegalArgumentException("Invalid length of decoded data " + data.length +
-                    " bytes, or " + numberOfBits + " bits: not a multiple of the bits-per-pixel " +
-                    bitsPerPixel + " = " + samplesPerPixel + " * " + bitsPerSample +
-                    " (channels per pixel * bits per channel sample), as if the last pixel is stored \"partially\"");
+        final long numberOfPixels = numberOfBits / bitsPerPixel;
+        if (bitsPerPixel > 1) {
+            // - if it is 1, data cannot be unaligned (X % 1 == 0 always)
+            if ((bitsPerPixel & 7) != 0) {
+                throw new AssertionError("Unsupported bits per pixel " + bitsPerPixel);
+                // - for example, 1-bit RGB is not supported:
+                // we cannot calculate number of pixels to separate or interleave them
+            }
+            final int bytesPerPixel = bitsPerPixel >>> 3;
+            if (!encoded && checkAligned && numberOfPixels * bytesPerPixel != data.length) {
+                throw new IllegalArgumentException("Invalid length of decoded data " + data.length +
+                        " bytes, or " + numberOfBits + " bits: not a multiple of the bits-per-pixel " +
+                        bitsPerPixel + " = " + samplesPerPixel + " * " + bitsPerSample +
+                        " (channels per pixel * bits per channel sample), " +
+                        "as if the last pixel is stored \"partially\"");
+            }
         }
-        if (storedNumberOfPixels > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("Cannot store " + storedNumberOfPixels +
+
+        if (numberOfPixels > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Cannot store " + numberOfPixels +
                     " pixels: very large TIFF tiles >= 2^31 pixels are not supported");
         }
         this.data = data;
         this.storedDataLength = data.length;
-        this.storedNumberOfPixels = (int) storedNumberOfPixels;
+        this.estimatedNumberOfPixels = (int) numberOfPixels;
         this.encoded = encoded;
         if (!encoded) {
             removeStoredDataFileOffset();
