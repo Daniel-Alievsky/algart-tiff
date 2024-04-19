@@ -272,9 +272,9 @@ public class TiffWriterTest {
                             ifd.put(Tags.TILE_LENGTH, (long) ifd.getTileSizeY());
                         }
                     } else if (!singleStrip) {
-                        ifd.putStripSize(100);
+                        ifd.putStripSize(500);
                         if (longTags) {
-                            ifd.put(Tags.ROWS_PER_STRIP, 100L);
+                            ifd.put(Tags.ROWS_PER_STRIP, 500L);
                         }
                     }
                     try {
