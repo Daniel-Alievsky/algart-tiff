@@ -25,6 +25,7 @@
 package net.algart.matrices.tiff;
 
 import net.algart.arrays.Matrix;
+import net.algart.arrays.PackedBitArraysPer8;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.tags.TagCompression;
@@ -1496,11 +1497,8 @@ public class TiffReader implements Closeable {
 
         final int mapTileSizeX = map.tileSizeX();
         final int mapTileSizeY = map.tileSizeY();
-        if (!map.isWholeBytes()) {
-            //TODO!!
-            throw new UnsupportedOperationException("Under construction");
-        }
-        final int bytesPerSample = map.bitsPerSample() >>> 3;
+        final long bitsPerSample = map.bitsPerSample();
+        // - "long" here leads to stricter requirements later on
         final int numberOfSeparatedPlanes = map.numberOfSeparatedPlanes();
         final int samplesPerPixel = map.tileSamplesPerPixel();
 
@@ -1518,8 +1516,8 @@ public class TiffReader implements Closeable {
             // - possible when fromX < 0 or fromY < 0
             return;
         }
-        final int tileOneChannelRowSizeInBytes = mapTileSizeX * bytesPerSample;
-        final int samplesOneChannelRowSizeInBytes = sizeX * bytesPerSample;
+        final long tileOneChannelRowSizeInBits = (long) mapTileSizeX * bitsPerSample;
+        final long samplesOneChannelRowSizeInBits = (long) sizeX * bitsPerSample;
 
         for (int p = 0; p < numberOfSeparatedPlanes; p++) {
             // - for a rare case PlanarConfiguration=2 (RRR...GGG...BBB...)
@@ -1553,14 +1551,16 @@ public class TiffReader implements Closeable {
                     final int sizeYInTile = Math.min(toY - tileStartY, tileSizeY - fromYInTile);
                     assert sizeYInTile > 0 : "sizeYInTile=" + sizeYInTile;
 
-                    final int partSizeXInBytes = sizeXInTile * bytesPerSample;
+                    final long partSizeXInBits = (long) sizeXInTile * bitsPerSample;
                     for (int s = 0; s < samplesPerPixel; s++) {
-                        int tOffset = (((s * tileSizeY) + fromYInTile) * tileSizeX + fromXInTile) * bytesPerSample;
-                        int samplesOffset = (((p + s) * sizeY + yDiff) * sizeX + xDiff) * bytesPerSample;
+                        final int tileFirst = ((s * tileSizeY) + fromYInTile) * tileSizeX + fromXInTile;
+                        final int samplesFirst = ((p + s) * sizeY + yDiff) * sizeX + xDiff;
+                        long tOffset = tileFirst * bitsPerSample;
+                        long sOffset = samplesFirst * bitsPerSample;
                         for (int i = 0; i < sizeYInTile; i++) {
-                            System.arraycopy(data, tOffset, resultSamples, samplesOffset, partSizeXInBytes);
-                            tOffset += tileOneChannelRowSizeInBytes;
-                            samplesOffset += samplesOneChannelRowSizeInBytes;
+                            PackedBitArraysPer8.copyBits(resultSamples, sOffset, data, tOffset, partSizeXInBits);
+                            tOffset += tileOneChannelRowSizeInBits;
+                            sOffset += samplesOneChannelRowSizeInBits;
                         }
                     }
                 }
