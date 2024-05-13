@@ -98,13 +98,13 @@ public final class TiffMap {
             }
             this.planarSeparated = ifd.isPlanarSeparated();
             this.numberOfChannels = ifd.getSamplesPerPixel();
-            assert numberOfChannels <= TiffIFD.MAX_NUMBER_OF_CHANNELS;
+            assert numberOfChannels <= TiffTools.MAX_NUMBER_OF_CHANNELS;
             this.numberOfSeparatedPlanes = planarSeparated ? numberOfChannels : 1;
             this.tileSamplesPerPixel = planarSeparated ? 1 : numberOfChannels;
             this.bitsPerSample = ifd.alignedBitDepth();
             // - so, we allow only EQUAL number of bytes/sample (but number if bits/sample can be different)
             assert (long) numberOfChannels * (long) bitsPerSample <
-                    TiffIFD.MAX_NUMBER_OF_CHANNELS * TiffIFD.MAX_BITS_PER_SAMPLE;
+                    TiffTools.MAX_NUMBER_OF_CHANNELS * TiffTools.MAX_BITS_PER_SAMPLE;
             // - actually must be in 8 times less
             this.tileBitsPerPixel = tileSamplesPerPixel * bitsPerSample;
             this.totalBitsPerPixel = numberOfChannels * bitsPerSample;

@@ -67,20 +67,6 @@ public class TiffIFD {
         }
     }
 
-    /**
-     * Maximal supported number of channels. Popular OpenCV library has the same limit.
-     *
-     * <p>This limit helps to avoid "crazy" or corrupted TIFF and also help to avoid arithmetic overflow.
-     */
-    public static final int MAX_NUMBER_OF_CHANNELS = 512;
-
-    /**
-     * Maximal supported number of bits per sample.
-     *
-     * <p>This limit helps to avoid "crazy" or corrupted TIFF and also help to avoid arithmetic overflow.
-     */
-    public static final int MAX_BITS_PER_SAMPLE = 512;
-
     public static final int LAST_IFD_OFFSET = 0;
 
     public static final int DEFAULT_TILE_SIZE_X = 256;
@@ -442,9 +428,9 @@ public class TiffIFD {
             throw new TiffException("TIFF tag SamplesPerPixel contains illegal zero or negative value: " +
                     samplesPerPixel);
         }
-        if (samplesPerPixel > MAX_NUMBER_OF_CHANNELS) {
-            throw new TiffException("TIFF tag SamplesPerPixel contains too large value: " +
-                    samplesPerPixel + " (maximal support number of channels is " + MAX_NUMBER_OF_CHANNELS + ")");
+        if (samplesPerPixel > TiffTools.MAX_NUMBER_OF_CHANNELS) {
+            throw new TiffException("TIFF tag SamplesPerPixel contains too large value: " + samplesPerPixel +
+                    " (maximal support number of channels is " + TiffTools.MAX_NUMBER_OF_CHANNELS + ")");
         }
         return samplesPerPixel;
     }
@@ -463,8 +449,9 @@ public class TiffIFD {
             if (bits <= 0) {
                 throw new TiffException("Zero or negative BitsPerSample[" + i + "] = " + bits);
             }
-            if (bits > MAX_BITS_PER_SAMPLE) {
-                throw new TiffException("Too large BitsPerSample[" + i + "] = " + bits + " > " + MAX_BITS_PER_SAMPLE);
+            if (bits > TiffTools.MAX_BITS_PER_SAMPLE) {
+                throw new TiffException("Too large BitsPerSample[" + i + "] = " + bits + " > " +
+                        TiffTools.MAX_BITS_PER_SAMPLE);
             }
         }
         final int samplesPerPixel = getSamplesPerPixel();
@@ -1042,10 +1029,12 @@ public class TiffIFD {
         Objects.requireNonNull(matrix, "Null matrix");
         final int dimChannelsIndex = interleaved ? 0 : 2;
         final long numberOfChannels = matrix.dim(dimChannelsIndex);
+        TiffTools.checkNumberOfChannels(numberOfChannels);
+        assert numberOfChannels == (int) numberOfChannels : "must be checked in checkNumberOfChannels";
         final long dimX = matrix.dim(interleaved ? 1 : 0);
         final long dimY = matrix.dim(interleaved ? 2 : 1);
         putImageDimensions(dimX, dimY);
-        putPixelInformation(numberOfChannels, TiffSampleType.valueOf(matrix.elementType(), signedIntegers));
+        putPixelInformation((int) numberOfChannels, TiffSampleType.valueOf(matrix.elementType(), signedIntegers));
         return this;
     }
 
@@ -1065,7 +1054,7 @@ public class TiffIFD {
         return this;
     }
 
-    public TiffIFD putPixelInformation(long numberOfChannels, Class<?> elementType) {
+    public TiffIFD putPixelInformation(int numberOfChannels, Class<?> elementType) {
         return putPixelInformation(numberOfChannels, TiffSampleType.valueOf(elementType, false));
     }
 
@@ -1073,11 +1062,11 @@ public class TiffIFD {
      * Puts base pixel type and channels information: BitsPerSample, SampleFormat, SamplesPerPixel.
      *
      * @param numberOfChannels number of channels (in other words, number of samples per every pixel);
-     *                         must be not &le;{@link #MAX_NUMBER_OF_CHANNELS}.
+     *                         must be not &le;{@link TiffTools#MAX_NUMBER_OF_CHANNELS}.
      * @param sampleType       type of pixel samples.
      * @return a reference to this object.
      */
-    public TiffIFD putPixelInformation(long numberOfChannels, TiffSampleType sampleType) {
+    public TiffIFD putPixelInformation(int numberOfChannels, TiffSampleType sampleType) {
         Objects.requireNonNull(sampleType, "Null sampleType");
         putNumberOfChannels(numberOfChannels);
         // - note: actual number of channels will be 3 in a case of OLD_JPEG;
@@ -1086,14 +1075,8 @@ public class TiffIFD {
         return this;
     }
 
-    public TiffIFD putNumberOfChannels(long numberOfChannels) {
-        if (numberOfChannels <= 0) {
-            throw new IllegalArgumentException("Zero or negative numberOfChannels = " + numberOfChannels);
-        }
-        if (numberOfChannels > MAX_NUMBER_OF_CHANNELS) {
-            throw new IllegalArgumentException("Very large number of channels " + numberOfChannels + " > " +
-                    MAX_NUMBER_OF_CHANNELS + " is not supported");
-        }
+    public TiffIFD putNumberOfChannels(int numberOfChannels) {
+        TiffTools.checkNumberOfChannels(numberOfChannels);
         put(Tags.SAMPLES_PER_PIXEL, numberOfChannels);
         return this;
     }
@@ -1426,7 +1409,7 @@ public class TiffIFD {
                             isLittleEndian(),
                             isBigTiff(),
                             hasTileInformation()) :
-                    "%s, precision %s%s, ".formatted(
+                    "%s, supported precision %s%s, ".formatted(
                             isLittleEndian() ? "little-endian" : "big-endian",
                             sampleType == null ? "???" : sampleType.prettyName(),
                             isBigTiff() ? " [BigTIFF]" : ""));

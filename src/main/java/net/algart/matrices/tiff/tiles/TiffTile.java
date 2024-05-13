@@ -508,30 +508,97 @@ public final class TiffTile {
         return this;
     }
 
+    /**
+     * Returns the estimated number of pixels, that can be stored in the {@link #getData() data array} in this tile
+     * in the decoded form, or 0 after creating this object.
+     *
+     * <p>Note: that this method throws <tt>IllegalStateException</tt> if the data are
+     * {@link #isEncoded() encoded}, for example, immediately after reading tile from file.
+     * If the tile is {@link #isEmpty() empty} (no data),
+     * the exception is not thrown, though usually there is no sense to call this method in this situation.</p>
+     *
+     * <p>If the data are not {@link #isEncoded() encoded}, the following equality is <i>usually</i> true:</p>
+     *
+     * <pre>{@link #getStoredDataLength()} == ({@link #getEstimatedNumberOfPixels()} * {@link
+     * #bitsPerPixel()} + 7) / 8</pre>
+     *
+     * <p>The only possible exception is when you sets the data with help of
+     * {@link #setPartiallyDecodedData(byte[])} (when data are almost decoded, but, maybe, some additional
+     * unpacking is necessary). This condition is always checked inside {@link #setDecodedData(byte[])} method.
+     * You may also check this directly by {@link #checkDataLengthAlignment()} method.</p>
+     *
+     * <p><b>Warning:</b> the estimated number of pixels, returned by this method, may <b>differ</b> from the tile
+     * size {@link #getSizeX()} * {@link #getSizeY()}! Usually it occurs after decoding encoded tile, when the
+     * decoding method returns only sequence of pixels and does not return information about the size.
+     * In this situation, the external code sets the tile sizes from a priory information, but the decoded tile
+     * may be actually less; for example, it takes place for the last strip in non-tiled TIFF format.
+     * You can check, does the actual number of stored pixels equal to tile size, via
+     * {@link #checkStoredNumberOfPixels()} method.
+     *
+     * @return the number of pixels in the last non-null data array, which was stored in this object.
+     */
+    @SuppressWarnings("JavadocDeclaration")
+    public int getEstimatedNumberOfPixels() {
+        // - This method is private, because it does not return exact number of pixels for 1-bit channels
+        // and should be used carefully.
+        // Maybe, in future we will support better field "numberOfPixels", always correct also for 1-bit channels,
+        // then this method will become public.
+        if (isEncoded()) {
+            throw new IllegalStateException("TIFF tile data are not decoded, number of pixels is unknown: " + this);
+        }
+        return estimatedNumberOfPixels;
+    }
+
+    /**
+     * Checks whether the length of the data array in bytes is correctly aligned: the data contains an integer number
+     * of whole pixels. If it is not so, throws <tt>IllegalStateException</tt>.
+     *
+     * <p>Note that unaligned length is impossible for 1 bit/sample, because we support only 1-channel images
+     * with 1 bit/sample.</p>
+     *
+     * <p>This method must not be called for {@link #isEncoded() encoded} tile.
+     *
+     * <p>This method is called after reading and complete decoding any tile of the TIFF file.
+     */
     public void checkDataLengthAlignment() {
-        if (!encoded) {
-            final int storedNumberOfBytes = (estimatedNumberOfPixels * bitsPerPixel + 7) >>> 3;
-            if (storedNumberOfBytes != data.length) {
-                assert bitsPerPixel != 1 : "unaligned estimatedNumberOfPixels cannot appear for 1 bit/pixel";
-                // - in current version it means that we have whole bytes: bitsPerPixel = 8*K
-                throw new IllegalStateException("Unaligned length of decoded data " + data.length +
-                        ": it is not equal to ceil(number of pixels * bits per pixel / 7) = ceil(" +
-                        estimatedNumberOfPixels + " * " + bitsPerSample + " / 7) = " + storedNumberOfBytes +
-                        ", as if the last pixel is stored \"partially\"");
-            }
+        checkEmpty();
+        final int estimatedNumberOfPixels = getEstimatedNumberOfPixels();
+        // - IllegalStateException if encoded
+        assert !encoded;
+        final int expectedNumberOfBytes = (estimatedNumberOfPixels * bitsPerPixel + 7) >>> 3;
+        if (expectedNumberOfBytes != data.length) {
+            assert bitsPerPixel != 1 : "unaligned estimatedNumberOfPixels cannot appear for 1 bit/pixel";
+            // - in current version it means that we have whole bytes: bitsPerPixel = 8*K;
+            // see assertions in setData for a case of bitsPerPixel == 1
+            throw new IllegalStateException("Unaligned length of decoded data " + data.length +
+                    ": it is not equal to ceil(number of pixels * bits per pixel / 7) = ceil(" +
+                    estimatedNumberOfPixels + " * " + bitsPerSample + " / 7) = " + expectedNumberOfBytes +
+                    ", as if the last pixel is stored \"partially\"");
         }
     }
 
-    public TiffTile checkStoredNumberOfPixels() throws IllegalStateException {
+    /**
+     * Checks whether the length of the data array length matches the declared tile sizes {@link #getSizeInBytes()}.
+     * If it is not so, throws <tt>IllegalStateException</tt>.
+     *
+     * <p>This method must not be called for {@link #isEncoded() encoded} tile.
+     *
+     * <p>This method is called before encoding and writing any tile to the TIFF file.
+     */
+    public TiffTile checkStoredNumberOfPixels()  {
         checkEmpty();
         final int estimatedNumberOfPixels = getEstimatedNumberOfPixels();
-        final int dataLength = (estimatedNumberOfPixels * bitsPerPixel + 7) >>> 3;
-        assert dataLength == storedDataLength :
-                "invalid estimatedNumberOfPixels: setData has set it not matching data length " + storedDataLength;
-        if (dataLength != sizeInBytes) {
+        // - IllegalStateException if encoded
+        assert !encoded;
+        if (storedDataLength != sizeInBytes) {
             throw new IllegalStateException("Number of stored pixels " + estimatedNumberOfPixels +
                     " does not match tile sizes " + sizeX + "x" + sizeY + " = " + sizeInPixels);
         }
+        final int dataLength = (estimatedNumberOfPixels * bitsPerPixel + 7) >>> 3;
+        assert dataLength == storedDataLength : "invalid estimatedNumberOfPixels " + estimatedNumberOfPixels;
+        // - in other words, checkDataLengthAlignment() must be unnecessary:
+        // if bitsPerPixel = 1, unaligned data is impossible;
+        // if bitsPerPixel = 8*i, storedDataLength = sizeInBytes is divided by bytesPerPixel
         return this;
     }
 
@@ -677,46 +744,6 @@ public final class TiffTile {
         // Note: doesn't check this.map to avoid infinite recursion!
     }
 
-    /**
-     * Returns the number of pixels, actually stored in the {@link #getData() data array} in this tile
-     * in the decoded form, or 0 after creating this object.
-     *
-     * <p>Note: that this method throws <tt>IllegalStateException</tt> if the data are
-     * {@link #isEncoded() encoded}, for example, immediately after reading tile from file.
-     * If the tile is {@link #isEmpty() empty} (no data),
-     * the exception is not thrown, though usually there is no sense to call this method in this situation.</p>
-     *
-     * <p>If the data are not {@link #isEncoded() encoded}, the following equality is <i>usually</i> true:</p>
-     *
-     * <pre>{@link #getStoredDataLength()} == {@link #getEstimatedNumberOfPixels()} * {@link #bytesPerPixel()}</pre>
-     *
-     * <p>The only possible exception is when you sets the data with help of
-     * {@link #setPartiallyDecodedData(byte[])} (when data are almost decoded, but, maybe, some additional
-     * unpacking is necessary). This condition is always checked inside {@link #setDecodedData(byte[])}
-     * method. You may also check this directly by {@link #checkDataLengthAlignment()} method.</p>
-     *
-     * <p><b>Warning:</b> the stored number of pixels, returned by this method, may <b>differ</b> from the tile
-     * size {@link #getSizeX()} * {@link #getSizeY()}! Usually it occurs after decoding encoded tile, when the
-     * decoding method returns only sequence of pixels and does not return information about the size.
-     * In this situation, the external code sets the tile sizes from a priory information, but the decoded tile
-     * may be actually less; for example, it takes place for the last strip in non-tiled TIFF format.
-     * You can check, does the actual number of stored pixels equal to tile size, via
-     * {@link #checkStoredNumberOfPixels()} method.
-     *
-     * @return the number of pixels in the last non-null data array, which was stored in this object.
-     */
-    @SuppressWarnings("JavadocDeclaration")
-    private int getEstimatedNumberOfPixels() {
-        // - This method is private, because it does not return exact number of pixels for 1-bit channels
-        // and should be used carefully.
-        // Maybe, in future we will support better field "numberOfPixels", always correct also for 1-bit channels,
-        // then this method will become public.
-        if (isEncoded()) {
-            throw new IllegalStateException("TIFF tile data are not decoded, number of pixels is unknown: " + this);
-        }
-        return estimatedNumberOfPixels;
-    }
-
     private TiffTile setData(byte[] data, boolean encoded, boolean checkAligned) {
         Objects.requireNonNull(data, "Null " + (encoded ? "encoded" : "decoded") + " data");
         final long numberOfBits = 8L * (long) data.length;
@@ -729,13 +756,19 @@ public final class TiffTile {
                 // we cannot calculate number of pixels to separate or interleave them
             }
             final int bytesPerPixel = bitsPerPixel >>> 3;
-            if (!encoded && checkAligned && numberOfPixels * bytesPerPixel != data.length) {
+            assert numberOfPixels == data.length / bytesPerPixel;
+            if (checkAligned && !encoded && numberOfPixels * bytesPerPixel != data.length) {
                 throw new IllegalArgumentException("Invalid length of decoded data " + data.length +
                         " bytes, or " + numberOfBits + " bits: not a multiple of the bits-per-pixel " +
                         bitsPerPixel + " = " + samplesPerPixel + " * " + bitsPerSample +
                         " (channels per pixel * bits per channel sample), " +
                         "as if the last pixel is stored \"partially\"");
             }
+        } else {
+            assert bitsPerPixel == 1 : "zero or negative bitsPerPixel = " + bitsPerPixel;
+            final long expectedNumberOfBytes = (numberOfPixels + 7) >>> 3;
+            assert expectedNumberOfBytes == data.length;
+            // - in other words, the condition, required by checkAligned argument, is always fulfilled
         }
 
         if (numberOfPixels > Integer.MAX_VALUE) {

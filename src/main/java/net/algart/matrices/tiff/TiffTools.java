@@ -58,6 +58,20 @@ import java.util.stream.Collectors;
  */
 public class TiffTools {
     /**
+     * Maximal supported number of channels. Popular OpenCV library has the same limit.
+     *
+     * <p>This limit helps to avoid "crazy" or corrupted TIFF and also help to avoid arithmetic overflow.
+     */
+    public static final int MAX_NUMBER_OF_CHANNELS = 512;
+
+    /**
+     * Maximal supported number of bits per sample.
+     *
+     * <p>This limit helps to avoid "crazy" or corrupted TIFF and also help to avoid arithmetic overflow.
+     */
+    public static final int MAX_BITS_PER_SAMPLE = 512;
+
+    /**
      * The number of bytes in each IFD entry.
      */
     public static final int BYTES_PER_ENTRY = 12;
@@ -225,8 +239,8 @@ public class TiffTools {
             throw new IllegalArgumentException("Zero or negative numberOfChannels = " + numberOfChannels);
         }
         return interleavedSamples ?
-                SimpleMemoryModel.asMatrix(javaArray, numberOfChannels, sizeX, sizeY) :
-                SimpleMemoryModel.asMatrix(javaArray, sizeX, sizeY, numberOfChannels);
+                Matrix.as(javaArray, numberOfChannels, sizeX, sizeY) :
+                Matrix.as(javaArray, sizeX, sizeY, numberOfChannels);
     }
 
     public static byte[] toInterleavedBytes(
@@ -258,8 +272,8 @@ public class TiffTools {
         final int bandSize = numberOfPixels * bytesPerSample;
         final byte[] interleavedBytes = new byte[size];
         if (bytesPerSample == 1) {
-            Matrix<UpdatablePArray> mI = SimpleMemoryModel.asMatrix(interleavedBytes, numberOfChannels, numberOfPixels);
-            Matrix<UpdatablePArray> mS = SimpleMemoryModel.asMatrix(bytes, numberOfPixels, numberOfChannels);
+            Matrix<UpdatablePArray> mI = Matrix.as(interleavedBytes, numberOfChannels, numberOfPixels);
+            Matrix<UpdatablePArray> mS = Matrix.as(bytes, numberOfPixels, numberOfChannels);
             Matrices.interleave(null, mI, mS.asLayers());
 //            if (numberOfChannels == 3) {
 //                quickInterleave3(interleavedBytes, bytes, bandSize);
@@ -312,8 +326,8 @@ public class TiffTools {
         final int bandSize = numberOfPixels * bytesPerSample;
         final byte[] separatedBytes = new byte[size];
         if (bytesPerSample == 1) {
-            Matrix<UpdatablePArray> mI = SimpleMemoryModel.asMatrix(bytes, numberOfChannels, numberOfPixels);
-            Matrix<UpdatablePArray> mS = SimpleMemoryModel.asMatrix(separatedBytes, numberOfPixels, numberOfChannels);
+            Matrix<UpdatablePArray> mI = Matrix.as(bytes, numberOfChannels, numberOfPixels);
+            Matrix<UpdatablePArray> mS = Matrix.as(separatedBytes, numberOfPixels, numberOfChannels);
             Matrices.separate(null, mS.asLayers(), mI);
 //            if (numberOfChannels == 3) {
 //                quickSeparate3(separatedBytes, bytes, bandSize);
@@ -897,6 +911,16 @@ public class TiffTools {
                     + (Files.exists(file) ? " is not a regular file" : " does not exist"));
         }
         return getFileHandle(file);
+    }
+
+    public static void checkNumberOfChannels(long numberOfChannels) {
+        if (numberOfChannels <= 0) {
+            throw new IllegalArgumentException("Zero or negative numberOfChannels = " + numberOfChannels);
+        }
+        if (numberOfChannels > MAX_NUMBER_OF_CHANNELS) {
+            throw new IllegalArgumentException("Very large number of channels " + numberOfChannels + " > " +
+                    MAX_NUMBER_OF_CHANNELS + " is not supported");
+        }
     }
 
     public static void checkRequestedArea(long fromX, long fromY, long sizeX, long sizeY) {
