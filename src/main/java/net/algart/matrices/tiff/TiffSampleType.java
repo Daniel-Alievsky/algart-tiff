@@ -80,6 +80,11 @@ public enum TiffSampleType {
         return elementType;
     }
 
+
+    public boolean isBinary() {
+        return this == BIT;
+    }
+
     public boolean isConsistingOfWholeBytes() {
         return this != BIT;
     }

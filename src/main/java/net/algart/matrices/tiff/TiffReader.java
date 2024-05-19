@@ -127,6 +127,7 @@ public class TiffReader implements Closeable {
 
     private boolean requireValidTiff;
     private boolean interleaveResults = false;
+    private boolean autoUnpackBitToByte = false;
     private boolean autoUnpackUnusualPrecisions = true;
     private boolean autoScaleWhenIncreasingBitDepth = true;
     private boolean autoCorrectInvertedBrightness = false;
@@ -294,6 +295,31 @@ public class TiffReader implements Closeable {
      */
     public TiffReader setInterleaveResults(boolean interleaveResults) {
         this.interleaveResults = interleaveResults;
+        return this;
+    }
+
+    public boolean isAutoUnpackBitToByte() {
+        return autoUnpackBitToByte;
+    }
+
+    /**
+     * Sets the flag, whether do we need to unpack binary images (1 bit/pixel, black-and-white images)
+     * into <tt>byte</tt> matrices: black pixels to the value 0, white pixels to the value 255.
+     *
+     * <p>By default this flag is cleared. In this case, {@link #readMatrix(TiffMap)} and similar methods return
+     * binary AlgART matrices.</p>
+     *
+     * <p>Note that TIFF images, using <i>m</i>&gt;1 bit per pixel where <i>m</i> is not divisible by 8,
+     * for example 4-bit indexed images with a palette or 15-bit RGB image, 5+5+5 bits/channel,
+     * are always unpacked to format with an integer number of bytes per channel (<i>m</i>=8*<i>k</i>).
+     * The only exception is 1-bit monochrome images: in this case, unpacking into bytes depends
+     * is controlled by this method.</p>
+     *
+     * @param autoUnpackBitToByte whether do we need to unpack bit matrices to byte ones (0->0, 1->255).
+     * @return a reference to this object.
+     */
+    public TiffReader setAutoUnpackBitToByte(boolean autoUnpackBitToByte) {
+        this.autoUnpackBitToByte = autoUnpackBitToByte;
         return this;
     }
 
@@ -1185,6 +1211,8 @@ public class TiffReader implements Closeable {
         // - note: we allow this area to be outside the image
         final int numberOfChannels = map.numberOfChannels();
         final TiffIFD ifd = map.ifd();
+        final long sizeInPixels = (long) sizeX * (long) sizeY;
+        // - can be >2^31 for bits
         final int sizeInBytes = sizeOfRegionWithPossibleUnusualPrecisions(map, sizeX, sizeY);
         assert sizeX >= 0 && sizeY >= 0 :
                 "sizeOfRegionWithPossibleUnusualPrecisions didn't check sizes accurately: " + sizeX + "fromX" + sizeY;
@@ -1203,18 +1231,22 @@ public class TiffReader implements Closeable {
         long t3 = debugTime();
         boolean interleave = false;
         if (interleaveResults) {
-            byte[] newSamples = map.toInterleavedSamples(samples, sizeX * sizeY);
+            byte[] newSamples = map.toInterleavedSamples(samples, sizeInPixels);
             interleave = newSamples != samples;
             samples = newSamples;
         }
         long t4 = debugTime();
-        boolean unusualPrecision = false;
+        boolean unpackingPrecision = false;
         if (autoUnpackUnusualPrecisions) {
             byte[] newSamples = TiffTools.unpackUnusualPrecisions(
-                    samples, ifd, numberOfChannels, sizeX * sizeY, autoScaleWhenIncreasingBitDepth);
-            unusualPrecision = newSamples != samples;
+                    samples, ifd, numberOfChannels, sizeInPixels, autoScaleWhenIncreasingBitDepth);
+            unpackingPrecision = newSamples != samples;
             samples = newSamples;
             // - note: the size of sample array can be increased here!
+        }
+        if (autoUnpackBitToByte && map.sampleType().isBinary()) {
+            unpackingPrecision = true;
+            //TODO!!
         }
         if (TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t5 = debugTime();
@@ -1242,8 +1274,9 @@ public class TiffReader implements Closeable {
                     timeCompleteDecoding * 1e-6,
                     interleave ?
                             String.format(Locale.US, " + %.3f interleave", (t4 - t3) * 1e-6) : "",
-                    unusualPrecision ?
-                            String.format(Locale.US, " + %.3f unusual precisions", (t5 - t4) * 1e-6) : "",
+                    unpackingPrecision ?
+                            String.format(Locale.US, " + %.3f unpacking %d-bit precisions",
+                                    (t5 - t4) * 1e-6, map.bitsPerSample()) : "",
                     sizeInBytes / 1048576.0 / ((t5 - t1) * 1e-9)));
         }
         return samples;

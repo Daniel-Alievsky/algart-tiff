@@ -169,7 +169,7 @@ public class TiffReaderTest {
                     System.gc();
                 }
 
-                System.out.printf("Saving result image into %s...%n", resultFile);
+                System.out.printf("Saving result image into %s - %s...%n", resultFile, matrix);
                 writeImageFile(resultFile, matrix, interleave);
                 reader.close();
             }

@@ -257,7 +257,7 @@ public class TiffTools {
             byte[] bytes,
             int numberOfChannels,
             int bytesPerSample,
-            int numberOfPixels) {
+            long numberOfPixels) {
         Objects.requireNonNull(bytes, "Null bytes");
         if (numberOfChannels <= 0) {
             throw new IllegalArgumentException("Zero or negative numberOfChannels = " + numberOfChannels);
@@ -273,13 +273,14 @@ public class TiffTools {
                 new String[]{"number of pixels", "bytes per pixel", "bytes per sample"},
                 () -> "Invalid sizes: ", () -> "");
         // - exception usually should not occur: this function is typically called after analysing IFD
+        assert numberOfPixels <= Integer.MAX_VALUE : "must be checked above";
         if (bytes.length < size) {
-            throw new IllegalArgumentException("Too short bytes array: " + bytes.length + " < " + size);
+            throw new IllegalArgumentException("Too short samples array: " + bytes.length + " < " + size);
         }
         if (numberOfChannels == 1) {
             return bytes;
         }
-        final int bandSize = numberOfPixels * bytesPerSample;
+        final int bandSize = bytesPerSample * (int) numberOfPixels;
         final byte[] interleavedBytes = new byte[size];
         if (bytesPerSample == 1) {
             Matrix<UpdatablePArray> mI = Matrix.as(interleavedBytes, numberOfChannels, numberOfPixels);
@@ -311,7 +312,7 @@ public class TiffTools {
             byte[] bytes,
             int numberOfChannels,
             int bytesPerSample,
-            int numberOfPixels) {
+            long numberOfPixels) {
         Objects.requireNonNull(bytes, "Null bytes");
         if (numberOfChannels <= 0) {
             throw new IllegalArgumentException("Zero or negative numberOfChannels = " + numberOfChannels);
@@ -327,13 +328,14 @@ public class TiffTools {
                 new String[]{"number of pixels", "bytes per pixel", "bytes per sample"},
                 () -> "Invalid sizes: ", () -> "");
         // - exception usually should not occur: this function is typically called after analysing IFD
+        assert numberOfPixels <= Integer.MAX_VALUE : "must be checked above";
         if (bytes.length < size) {
-            throw new IllegalArgumentException("Too short bytes array: " + bytes.length + " < " + size);
+            throw new IllegalArgumentException("Too short samples array: " + bytes.length + " < " + size);
         }
         if (numberOfChannels == 1) {
             return bytes;
         }
-        final int bandSize = numberOfPixels * bytesPerSample;
+        final int bandSize = bytesPerSample * (int) numberOfPixels;
         final byte[] separatedBytes = new byte[size];
         if (bytesPerSample == 1) {
             final Matrix<UpdatablePArray> mI = Matrix.as(bytes, numberOfChannels, numberOfPixels);
@@ -677,14 +679,14 @@ public class TiffTools {
         final int sizeY = tile.getSizeY();
         assert tile.getSizeInPixels() == sizeX * sizeY;
 //        debugPrintBits(tile);
-        final byte[] data = tile.getDecodedData();
+        final byte[] source = tile.getDecodedData();
         final byte[] result = new byte[tile.getSizeInBytes()];
         OptionalInt bytesPerSample = tile.bytesPerSample();
         if (tile.isWholeBytes()) {
             unpackWholeBytesAndInvertValues(
                     ifd,
                     result,
-                    data,
+                    source,
                     sizeX,
                     sizeY,
                     tile.samplesPerPixel(),
@@ -694,7 +696,7 @@ public class TiffTools {
         } else {
             assert tile.bitsPerSample() == 1 : ">1 bits per sample for non-whole bytes are not supported: " + tile;
             assert tile.samplesPerPixel() == 1 : ">1 samples per pixel for non-whole bytes are not supported: " + tile;
-            extractSingleBitsAndInvertValues(result, data, sizeX, sizeY, invertValues);
+            extractSingleBitsAndInvertValues(result, source, sizeX, sizeY, invertValues);
         }
         tile.setDecodedData(result);
         tile.setInterleaved(false);
@@ -709,7 +711,7 @@ public class TiffTools {
             final byte[] samples,
             final TiffIFD ifd,
             final int numberOfChannels,
-            final int numberOfPixels,
+            final long numberOfPixels,
             boolean scaleUnsignedInt24) throws TiffException {
         Objects.requireNonNull(samples, "Null samples");
         Objects.requireNonNull(ifd, "Null IFD");
@@ -740,7 +742,8 @@ public class TiffTools {
         final int size = (int) checkedMul(new long[]{numberOfPixels, numberOfChannels, 4},
                 new String[]{"number of pixels", "number of channels", "4 bytes per float"},
                 () -> "Invalid sizes: ", () -> "", Integer.MAX_VALUE);
-        final int numberOfSamples = numberOfChannels * numberOfPixels;
+        assert numberOfPixels <= Integer.MAX_VALUE : "must be checked above";
+        final int numberOfSamples = numberOfChannels * (int) numberOfPixels;
         if (samples.length < numberOfSamples * packedBytesPerSample) {
             throw new IllegalArgumentException("Too short samples array byte[" + samples.length +
                     "]: it does not contain " + numberOfPixels + " pixels per " + numberOfChannels +
@@ -1140,6 +1143,10 @@ public class TiffTools {
             if (m < 0) {
                 throw new TiffException(prefix.get() + "negative " + names[i] + " = " + m + postfix.get());
             }
+            if (m > maxValue) {
+                throw new TiffException(prefix.get() + "too large " + names[i] + " = " + m + postfix.get()
+                    + " > " + maxValue);
+            }
             result *= m;
             product *= m;
             if (result > maxValue) {
@@ -1167,7 +1174,7 @@ public class TiffTools {
     private static void unpackWholeBytesAndInvertValues(
             TiffIFD ifd,
             byte[] unpacked,
-            byte[] data,
+            byte[] source,
             int sizeX,
             int sizeY,
             int samplesPerPixel,
@@ -1209,7 +1216,7 @@ public class TiffTools {
             // - note that 2^n-1 is divisible by 2^m-1 when m < n; actually it is less or about 256
         }
         long pos = 0;
-        long length = PackedBitArraysPer8.unpackedLength(data);
+        final long length = PackedBitArraysPer8.unpackedLength(source);
         for (int yIndex = 0, i = 0; yIndex < sizeY; yIndex++) {
             for (int xIndex = 0; xIndex < sizeX; xIndex++, i++) {
                 for (int s = 0; s < samplesPerPixel; s++) {
@@ -1223,7 +1230,7 @@ public class TiffTools {
                     long value;
                     if (byteAligned) {
                         final int index = (i * samplesPerPixel + s) * bytesPerSample;
-                        value = Bytes.toLong(data, index, bytesPerSample, littleEndian);
+                        value = Bytes.toLong(source, index, bytesPerSample, littleEndian);
                         // - It is strange, but it is a fact:
                         //      for byte-aligned pixels (for example, 16 or 24 bits/sample),
                         // the byte order (little-endian or big-endian) is important;
@@ -1237,7 +1244,7 @@ public class TiffTools {
                         if (pos >= length) {
                             return;
                         }
-                        value = PackedBitArraysPer8.getBitsInReverseOrder(data, pos, bits) & 0xFFFFFFFFL;
+                        value = PackedBitArraysPer8.getBitsInReverseOrder(source, pos, bits) & 0xFFFFFFFFL;
                         pos += bits;
                         // - unsigned 32-bit value
                     }
@@ -1259,34 +1266,26 @@ public class TiffTools {
 
     private static void extractSingleBitsAndInvertValues(
             byte[] unpacked,
-            byte[] data,
+            byte[] source,
             int sizeX,
             int sizeY,
             boolean invertValues) throws TiffException {
-        long pos = 0;
-        long length = PackedBitArraysPer8.unpackedLength(data);
-        //TODO!! data CAN be too short
-        for (int yIndex = 0, i = 0; yIndex < sizeY; yIndex++) {
-            for (int xIndex = 0; xIndex < sizeX; xIndex++, i++) {
-                final int bits = 1;
-                final long maxValue = (1L << bits) - 1;
-                // - we need long type, because maximal number of bits here is 32
-                // (but if not ALL bits/sample are 32 - such cases do not require this method)
-
-                if (pos >= length) {
-                    return;
-                }
-                boolean value = PackedBitArraysPer8.getBitInReverseOrder(data, pos);
-                pos += bits;
-                // - unsigned 32-bit value
-                if (invertValues) {
-                    value = !value;
-                }
-                PackedBitArraysPer8.setBitNoSync(unpacked, i, value);
-
+        final long length = PackedBitArraysPer8.unpackedLength(source);
+        final long alignedLine = (sizeX + 7) & ~7;
+        // - skipping bits until the first bit of the next whole byte
+        long sOffset = 0;
+        long tOffset = 0;
+        for (int yIndex = 0; yIndex < sizeY; yIndex++, sOffset += alignedLine, tOffset += sizeX) {
+            final long actual = Math.min(sizeX, length - sOffset);
+            if (actual <= 0) {
+                // - source data MAY be too short in a case of invalid/strange TIFF
+                break;
             }
-            pos = (pos + 7) & ~7;
-            // - skipping bits until the first bit of the next whole byte
+            PackedBitArraysPer8.copyBitsFromReverseToNormalOrder(unpacked, tOffset, source, sOffset, actual);
+        }
+        if (invertValues) {
+            //TODO!! simplified method notBits
+            PackedBitArraysPer8.notBits(unpacked, 0, unpacked, 0, 8L * (long) unpacked.length);
         }
     }
 

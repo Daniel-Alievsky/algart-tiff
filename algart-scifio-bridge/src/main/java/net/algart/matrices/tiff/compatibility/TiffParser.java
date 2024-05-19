@@ -100,6 +100,7 @@ public class TiffParser extends TiffReader {
         Objects.requireNonNull(context, "Null context");
         setContext(context);
         // Disable new features of TiffReader for compatibility:
+        this.setAutoUnpackBitToByte(true);
         this.setAutoUnpackUnusualPrecisions(false);
         this.setCropTilesToImageBoundaries(false);
         this.setEnforceUseExternalCodec(true);

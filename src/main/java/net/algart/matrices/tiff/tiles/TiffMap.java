@@ -115,6 +115,11 @@ public final class TiffMap {
                         " (sample type " + sampleType +
                         " is whole-bytes, but we have " + bitsPerSample + " bits/sample)");
             }
+            if ((totalBitsPerPixel == 1) != sampleType.isBinary()) {
+                throw new ConcurrentModificationException("Corrupted IFD, probably from a parallel thread" +
+                        " (sample type is " + sampleType +
+                        ", but we have " + totalBitsPerPixel + " bits/pixel)");
+            }
             this.bitsPerUnpackedSample = sampleType.bitsPerSample();
             this.elementType = sampleType.elementType();
             this.tileSizeX = ifd.getTileSizeX();
@@ -232,6 +237,10 @@ public final class TiffMap {
 
     public TiffSampleType sampleType() {
         return sampleType;
+    }
+
+    public boolean isBinary() {
+        return sampleType().isBinary();
     }
 
     public boolean isWholeBytes() {
@@ -494,31 +503,12 @@ public final class TiffMap {
         }
     }
 
-    public byte[] toInterleavedSamples(byte[] samples, int numberOfPixels) {
-        Objects.requireNonNull(samples, "Null samples");
-        if (numberOfPixels < 0) {
-            throw new IllegalArgumentException("Negative numberOfPixels = " + numberOfPixels);
-        }
-        if (numberOfChannels == 1) {
-            return samples;
-        }
-        final OptionalInt bytesPerSample = sampleType.bytesPerSample();
-        assert bytesPerSample.isPresent() : "non-whole bytes is impossible in valid TiffMap with 1 channel";
-        return TiffTools.toInterleavedBytes(
-                samples, numberOfChannels, bytesPerSample.getAsInt(), numberOfPixels);
+    public byte[] toInterleavedSamples(byte[] samples, long numberOfPixels) {
+        return toInterleaveOrSeparatedSamples(samples, numberOfPixels, true);
     }
 
-    public byte[] toSeparatedSamples(byte[] samples, int numberOfPixels) {
-        Objects.requireNonNull(samples, "Null samples");
-        if (numberOfPixels < 0) {
-            throw new IllegalArgumentException("Negative numberOfPixels = " + numberOfPixels);
-        }
-        if (numberOfChannels == 1) {
-            return samples;
-        }
-        final OptionalInt bytesPerSample = sampleType.bytesPerSample();
-        assert bytesPerSample.isPresent() : "non-whole bytes is impossible in valid TiffMap with 1 channel";
-        return TiffTools.toSeparatedBytes(samples, numberOfChannels, bytesPerSample.getAsInt(), numberOfPixels);
+    public byte[] toSeparatedSamples(byte[] samples, long numberOfPixels) {
+        return toInterleaveOrSeparatedSamples(samples, numberOfPixels, false);
     }
 
     @Override
@@ -556,6 +546,21 @@ public final class TiffMap {
     @Override
     public int hashCode() {
         return Objects.hash(System.identityHashCode(ifd), tileMap, resizable, dimX, dimY);
+    }
+
+    private byte[] toInterleaveOrSeparatedSamples(byte[] samples, long numberOfPixels, boolean interleave) {
+        Objects.requireNonNull(samples, "Null samples");
+        if (numberOfPixels < 0) {
+            throw new IllegalArgumentException("Negative numberOfPixels = " + numberOfPixels);
+        }
+        if (numberOfChannels == 1) {
+            return samples;
+        }
+        final OptionalInt bytesPerSample = sampleType.bytesPerSample();
+        assert bytesPerSample.isPresent() : "non-whole bytes is impossible in valid TiffMap with 1 channel";
+        return interleave ?
+                TiffTools.toInterleavedBytes(samples, numberOfChannels, bytesPerSample.getAsInt(), numberOfPixels) :
+                TiffTools.toSeparatedBytes(samples, numberOfChannels, bytesPerSample.getAsInt(), numberOfPixels);
     }
 
     private void setDimensions(int dimX, int dimY, boolean checkResizable) {

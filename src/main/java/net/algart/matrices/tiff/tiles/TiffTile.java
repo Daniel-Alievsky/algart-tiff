@@ -194,10 +194,20 @@ public final class TiffTile {
         // - note: there is no sense to check samplesPerPixel, it is not a "size", but property of pixel format
     }
 
+    /**
+     * Returns {@link #getSizeX()} * {@link #getSizeY()}.
+     *
+     * @return number of pixels in the tile.
+     */
     public int getSizeInPixels() {
         return sizeInPixels;
     }
 
+    /**
+     * Returns ({@link #getSizeInPixels()} * {@link #bitsPerPixel()} + 7) / 8.
+     *
+     * @return the length of the minimal <tt>byte[]</tt> data array, enough to store all tile pixels.
+     */
     public int getSizeInBytes() {
         return sizeInBytes;
     }
