@@ -639,7 +639,7 @@ public class TiffTools {
         return true;
     }
 
-    public static boolean unpackBitsAndInvertValues(
+    public static boolean unpackTiffBitsAndInvertValues(
             TiffTile tile,
             boolean scaleWhenIncreasingBitDepth,
             boolean correctInvertedBrightness)
@@ -1284,8 +1284,7 @@ public class TiffTools {
             PackedBitArraysPer8.copyBitsFromReverseToNormalOrder(unpacked, tOffset, source, sOffset, actual);
         }
         if (invertValues) {
-            //TODO!! simplified method notBits
-            PackedBitArraysPer8.notBits(unpacked, 0, unpacked, 0, 8L * (long) unpacked.length);
+            PackedBitArraysPer8.notBits(unpacked, 0, 8L * (long) unpacked.length);
         }
     }
 

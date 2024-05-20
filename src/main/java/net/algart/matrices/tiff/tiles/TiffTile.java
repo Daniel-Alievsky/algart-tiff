@@ -690,7 +690,7 @@ public final class TiffTile {
         if (isInterleaved()) {
             throw new IllegalStateException("TIFF tile is already interleaved: " + this);
         }
-        data = map.toInterleavedSamples(data, getEstimatedNumberOfPixels());
+        data = map.toInterleavedSamples(data, samplesPerPixel, getEstimatedNumberOfPixels());
         // - getEstimatedNumberOfPixels may return invalid value only for 1 channel, when this argument is not used
         setInterleaved(true);
         setDecodedData(data);
@@ -702,7 +702,7 @@ public final class TiffTile {
         if (!isInterleaved()) {
             throw new IllegalStateException("TIFF tile is already separated: " + this);
         }
-        data = map.toSeparatedSamples(data, getEstimatedNumberOfPixels());
+        data = map.toSeparatedSamples(data, samplesPerPixel, getEstimatedNumberOfPixels());
         // - getEstimatedNumberOfPixels may return invalid value only for 1 channel, when this argument is not used
         setInterleaved(false);
         setDecodedData(data);

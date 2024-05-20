@@ -26,6 +26,7 @@ package net.algart.matrices.tiff;
 
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
+import net.algart.arrays.PackedBitArraysPer8;
 import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.tags.*;
 import net.algart.matrices.tiff.tiles.TiffMap;
@@ -720,12 +721,11 @@ public class TiffWriter implements Closeable {
 
         final int mapTileSizeX = map.tileSizeX();
         final int mapTileSizeY = map.tileSizeY();
-        final int bytesPerSample = (map.bitsPerSample() + 7) >> 3;
-        //TODO!!
         final int numberOfSeparatedPlanes = map.numberOfSeparatedPlanes();
         final int samplesPerPixel = map.tileSamplesPerPixel();
-        final int bytesPerPixel = (map.tileBitsPerPixel() + 7) >> 3;
-        //TODO!!
+        final long bitsPerSample = map.bitsPerSample();
+        final long bitsPerPixel = map.tileBitsPerPixel();
+        // - "long" here leads to stricter requirements later on
 
         final int minXIndex = Math.max(0, TiffReader.divFloor(fromX, mapTileSizeX));
         final int minYIndex = Math.max(0, TiffReader.divFloor(fromY, mapTileSizeY));
@@ -741,10 +741,10 @@ public class TiffWriter implements Closeable {
             return updatedTiles;
         }
 
-        final int tileChunkedRowSizeInBytes = mapTileSizeX * bytesPerPixel;
-        final int samplesChunkedRowSizeInBytes = sizeX * bytesPerPixel;
-        final int tileOneChannelRowSizeInBytes = mapTileSizeX * bytesPerSample;
-        final int samplesOneChannelRowSizeInBytes = sizeX * bytesPerSample;
+        final long tileChunkedRowSizeInBits = (long) mapTileSizeX * bitsPerPixel;
+        final long samplesChunkedRowSizeInBits = (long) sizeX * bitsPerPixel;
+        final long tileOneChannelRowSizeInBits = (long) mapTileSizeX * bitsPerSample;
+        final long samplesOneChannelRowSizeInBits = (long) sizeX * bitsPerSample;
 
         final boolean sourceInterleaved = isSourceProbablyInterleaved(map);
         for (int p = 0; p < numberOfSeparatedPlanes; p++) {
@@ -792,13 +792,13 @@ public class TiffWriter implements Closeable {
                         // prefers to use interleaved form, for example, OpenCV library.
                         // Here tile will be actually interleaved directly after this method;
                         // we'll need to inform it about this fact (by setInterleaved(true)) later in encode().
-                        final int partSizeXInBytes = sizeXInTile * bytesPerPixel;
-                        int tOffset = (fromYInTile * tileSizeX + fromXInTile) * bytesPerPixel;
-                        int samplesOffset = (yDiff * sizeX + xDiff) * bytesPerPixel;
+                        final long partSizeXInBits = (long) sizeXInTile * bitsPerPixel;
+                        long tOffset = ((long) fromYInTile * tileSizeX + fromXInTile) * bitsPerPixel;
+                        long sOffset = ((long) yDiff * sizeX + xDiff) * bitsPerPixel;
                         for (int i = 0; i < sizeYInTile; i++) {
-                            System.arraycopy(samples, samplesOffset, data, tOffset, partSizeXInBytes);
-                            tOffset += tileChunkedRowSizeInBytes;
-                            samplesOffset += samplesChunkedRowSizeInBytes;
+                            PackedBitArraysPer8.copyBits(data, tOffset, samples, sOffset, partSizeXInBits);
+                            tOffset += tileChunkedRowSizeInBits;
+                            sOffset += samplesChunkedRowSizeInBits;
                         }
                     } else {
 //                        System.out.printf("!!!Separate: %d%n", samplesPerPixel);
@@ -810,14 +810,16 @@ public class TiffWriter implements Closeable {
                         // we must prepare a single tile, but with SEPARATED data (they will be interleaved later);
                         //      C) planarSeparated=true (rare): for 3 channels (RGB) we must prepare 3 separate tiles;
                         // in this case samplesPerPixel=1.
-                        final int partSizeXInBytes = sizeXInTile * bytesPerSample;
+                        final long partSizeXInBits = (long) sizeXInTile * bitsPerSample;
                         for (int s = 0; s < samplesPerPixel; s++) {
-                            int tOffset = (((s * tileSizeY) + fromYInTile) * tileSizeX + fromXInTile) * bytesPerSample;
-                            int samplesOffset = (((p + s) * sizeY + yDiff) * sizeX + xDiff) * bytesPerSample;
+                            final int tileFirst = ((s * tileSizeY) + fromYInTile) * tileSizeX + fromXInTile;
+                            final int samplesFirst = ((p + s) * sizeY + yDiff) * sizeX + xDiff;
+                            long tOffset = (long) tileFirst * bitsPerSample;
+                            long sOffset = (long) samplesFirst * bitsPerSample;
                             for (int i = 0; i < sizeYInTile; i++) {
-                                System.arraycopy(samples, samplesOffset, data, tOffset, partSizeXInBytes);
-                                tOffset += tileOneChannelRowSizeInBytes;
-                                samplesOffset += samplesOneChannelRowSizeInBytes;
+                                PackedBitArraysPer8.copyBits(data, tOffset, samples, sOffset, partSizeXInBits);
+                                tOffset += tileOneChannelRowSizeInBits;
+                                sOffset += samplesOneChannelRowSizeInBits;
                             }
                         }
                     }

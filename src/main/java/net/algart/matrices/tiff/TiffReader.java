@@ -127,7 +127,7 @@ public class TiffReader implements Closeable {
 
     private boolean requireValidTiff;
     private boolean interleaveResults = false;
-    private boolean autoUnpackBitToByte = false;
+    private boolean autoUnpackBitsToBytes = false;
     private boolean autoUnpackUnusualPrecisions = true;
     private boolean autoScaleWhenIncreasingBitDepth = true;
     private boolean autoCorrectInvertedBrightness = false;
@@ -298,8 +298,8 @@ public class TiffReader implements Closeable {
         return this;
     }
 
-    public boolean isAutoUnpackBitToByte() {
-        return autoUnpackBitToByte;
+    public boolean isAutoUnpackBitsToBytes() {
+        return autoUnpackBitsToBytes;
     }
 
     /**
@@ -315,11 +315,11 @@ public class TiffReader implements Closeable {
      * The only exception is 1-bit monochrome images: in this case, unpacking into bytes depends
      * is controlled by this method.</p>
      *
-     * @param autoUnpackBitToByte whether do we need to unpack bit matrices to byte ones (0->0, 1->255).
+     * @param autoUnpackBitsToBytes whether do we need to unpack bit matrices to byte ones (0->0, 1->255).
      * @return a reference to this object.
      */
-    public TiffReader setAutoUnpackBitToByte(boolean autoUnpackBitToByte) {
-        this.autoUnpackBitToByte = autoUnpackBitToByte;
+    public TiffReader setAutoUnpackBitsToBytes(boolean autoUnpackBitsToBytes) {
+        this.autoUnpackBitsToBytes = autoUnpackBitsToBytes;
         return this;
     }
 
@@ -1126,7 +1126,7 @@ public class TiffReader implements Closeable {
         } else {
             if (!TiffTools.separateUnpackedSamples(tile)) {
                 if (!TiffTools.separateYCbCrToRGB(tile)) {
-                    TiffTools.unpackBitsAndInvertValues(tile,
+                    TiffTools.unpackTiffBitsAndInvertValues(tile,
                             autoScaleWhenIncreasingBitDepth,
                             autoCorrectInvertedBrightness);
                 }
@@ -1231,7 +1231,7 @@ public class TiffReader implements Closeable {
         long t3 = debugTime();
         boolean interleave = false;
         if (interleaveResults) {
-            byte[] newSamples = map.toInterleavedSamples(samples, sizeInPixels);
+            byte[] newSamples = map.toInterleavedSamples(samples, numberOfChannels, sizeInPixels);
             interleave = newSamples != samples;
             samples = newSamples;
         }
@@ -1244,9 +1244,9 @@ public class TiffReader implements Closeable {
             samples = newSamples;
             // - note: the size of sample array can be increased here!
         }
-        if (autoUnpackBitToByte && map.sampleType().isBinary()) {
+        if (autoUnpackBitsToBytes && map.isBinary()) {
             unpackingPrecision = true;
-            //TODO!!
+            samples = PackedBitArraysPer8.unpackBitsToBytes(samples, 0, sizeInPixels, (byte) 0, (byte) 255);
         }
         if (TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t5 = debugTime();
@@ -1297,12 +1297,14 @@ public class TiffReader implements Closeable {
         final byte[] samples = readSamples(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
         long t1 = debugTime();
         final TiffSampleType sampleType = map.sampleType();
-        if (!autoUnpackUnusualPrecisions && map.bitsPerSample()  != sampleType.bitsPerSample()) {
+        if (!autoUnpackUnusualPrecisions && map.bitsPerSample() != sampleType.bitsPerSample()) {
             throw new IllegalStateException("Cannot convert TIFF pixels, " + map.bitsPerSample() +
                     " bits/sample, to \"" + sampleType.elementType() + "\" " + sampleType.bitsPerSample() +
                     "-bit Java type: unpacking unusual prevision mode is disabled");
         }
-        final Object samplesArray = TiffTools.bytesToJavaArray(samples, sampleType, isLittleEndian());
+        final Object samplesArray = autoUnpackBitsToBytes && map.isBinary() ?
+                samples :
+                TiffTools.bytesToJavaArray(samples, sampleType, isLittleEndian());
         if (TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t2 = debugTime();
             LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,

@@ -503,12 +503,12 @@ public final class TiffMap {
         }
     }
 
-    public byte[] toInterleavedSamples(byte[] samples, long numberOfPixels) {
-        return toInterleaveOrSeparatedSamples(samples, numberOfPixels, true);
+    public byte[] toInterleavedSamples(byte[] samples, int numberOfChannels, long numberOfPixels) {
+        return toInterleaveOrSeparatedSamples(samples, numberOfChannels, numberOfPixels, true);
     }
 
-    public byte[] toSeparatedSamples(byte[] samples, long numberOfPixels) {
-        return toInterleaveOrSeparatedSamples(samples, numberOfPixels, false);
+    public byte[] toSeparatedSamples(byte[] samples, int numberOfChannels, long numberOfPixels) {
+        return toInterleaveOrSeparatedSamples(samples, numberOfChannels, numberOfPixels, false);
     }
 
     @Override
@@ -548,7 +548,11 @@ public final class TiffMap {
         return Objects.hash(System.identityHashCode(ifd), tileMap, resizable, dimX, dimY);
     }
 
-    private byte[] toInterleaveOrSeparatedSamples(byte[] samples, long numberOfPixels, boolean interleave) {
+    private byte[] toInterleaveOrSeparatedSamples(
+            byte[] samples,
+            int numberOfChannels,
+            long numberOfPixels,
+            boolean interleave) {
         Objects.requireNonNull(samples, "Null samples");
         if (numberOfPixels < 0) {
             throw new IllegalArgumentException("Negative numberOfPixels = " + numberOfPixels);

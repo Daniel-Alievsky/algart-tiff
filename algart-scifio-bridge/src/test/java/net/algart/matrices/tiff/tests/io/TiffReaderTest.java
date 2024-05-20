@@ -107,6 +107,7 @@ public class TiffReaderTest {
 //                reader.setEnforceUseExternalCodec(true);
 //                reader.setCachingIFDs(false);
 //                reader.setAutoUnpackUnusualPrecisions(false);
+//                reader.setAutoUnpackBitToByte(true);
 //                reader.setAutoScaleWhenIncreasingBitDepth(false);
                 reader.setInterleaveResults(interleave);
                 reader.setAutoCorrectInvertedBrightness(true);
