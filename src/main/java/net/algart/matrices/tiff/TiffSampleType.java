@@ -102,7 +102,7 @@ public enum TiffSampleType {
                     Integer.MAX_VALUE + " bytes)");
         }
         assert size >= 0;
-        return (int) ((size + 7) >> 3);
+        return (int) ((size + 7) >>> 3);
     }
 
     public boolean isSigned() {

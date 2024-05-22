@@ -581,8 +581,8 @@ public final class TiffTile {
             // - in current version it means that we have whole bytes: bitsPerPixel = 8*K;
             // see assertions in setData for a case of bitsPerPixel == 1
             throw new IllegalStateException("Unaligned length of decoded data " + data.length +
-                    ": it is not equal to ceil(number of pixels * bits per pixel / 7) = ceil(" +
-                    estimatedNumberOfPixels + " * " + bitsPerSample + " / 7) = " + expectedNumberOfBytes +
+                    ": it is not equal to ceil(number of pixels * bits per pixel / 8) = ceil(" +
+                    estimatedNumberOfPixels + " * " + bitsPerPixel + " / 8) = " + expectedNumberOfBytes +
                     ", as if the last pixel is stored \"partially\"");
         }
     }

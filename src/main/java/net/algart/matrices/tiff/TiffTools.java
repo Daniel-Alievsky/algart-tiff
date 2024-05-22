@@ -800,7 +800,6 @@ public class TiffTools {
             throw new TooLargeArrayException("Too large requested TIFF binary image " + sizeX + "x" + sizeY +
                     ": cannot fit into 2^31 bytes after aligning each line");
         }
-
         final byte[] result = new byte[(int) length];
         // - padded by zeros
         long sOffset = 0;
