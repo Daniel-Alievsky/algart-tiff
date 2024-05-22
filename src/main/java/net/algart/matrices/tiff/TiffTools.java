@@ -674,7 +674,6 @@ public class TiffTools {
         }
         final boolean invertValues = correctInvertedBrightness && invertedBrightness;
 
-
         final int sizeX = tile.getSizeX();
         final int sizeY = tile.getSizeY();
         assert tile.getSizeInPixels() == sizeX * sizeY;
@@ -775,6 +774,42 @@ public class TiffTools {
             Bytes.unpack(value, unpacked, i * 4, 4, littleEndian);
         }
         return unpacked;
+    }
+
+    public static boolean packTiffBits(TiffTile tile) {
+        Objects.requireNonNull(tile);
+        if (tile.bitsPerPixel() != 1) {
+            return false;
+        }
+        assert tile.samplesPerPixel() == 1 : "> 1 channel in " + tile;
+        final byte[] source = tile.getDecodedData();
+        final int sizeInBytes = tile.getSizeInBytes();
+        if (source.length < sizeInBytes) {
+            throw new IllegalArgumentException("Stored data length " + source.length +
+                    " does not match tile sizes: " + tile);
+        }
+        final int sizeX = tile.getSizeX();
+        final int sizeY = tile.getSizeY();
+        assert tile.getSizeInPixels() == sizeX * sizeY;
+        final long alignedLine = ((long) sizeX + 7) & ~7;
+        // - skipping bits until the first bit of the next whole byte;
+        // note that it may be !=sizeX only in non-tiled TIFF (when "tile width" is the width of whole image)
+        final long length = ((long) sizeY * alignedLine) >>> 3;
+        if (length > Integer.MAX_VALUE) {
+            // - very improbable: (sizeX*sizeY)/8 < 2^31, but (alignedLine*sizeY)/8 >= 2^31
+            throw new TooLargeArrayException("Too large requested TIFF binary image " + sizeX + "x" + sizeY +
+                    ": cannot fit into 2^31 bytes after aligning each line");
+        }
+
+        final byte[] result = new byte[(int) length];
+        // - padded by zeros
+        long sOffset = 0;
+        long tOffset = 0;
+        for (int yIndex = 0; yIndex < sizeY; yIndex++, sOffset += sizeX, tOffset += alignedLine) {
+            PackedBitArraysPer8.copyBitsFromNormalToReverseOrderNoSync(result, tOffset, source, sOffset, sizeX);
+        }
+        tile.setPartiallyDecodedData(result);
+        return true;
     }
 
     public static String escapeJsonString(CharSequence string) {
@@ -1271,8 +1306,9 @@ public class TiffTools {
             int sizeY,
             boolean invertValues) throws TiffException {
         final long length = PackedBitArraysPer8.unpackedLength(source);
-        final long alignedLine = (sizeX + 7) & ~7;
-        // - skipping bits until the first bit of the next whole byte
+        final long alignedLine = ((long) sizeX + 7) & ~7;
+        // - skipping bits until the first bit of the next whole byte;
+        // note that it may be !=sizeX only in non-tiled TIFF (when "tile width" is the width of whole image)
         long sOffset = 0;
         long tOffset = 0;
         for (int yIndex = 0; yIndex < sizeY; yIndex++, sOffset += alignedLine, tOffset += sizeX) {

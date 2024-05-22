@@ -605,7 +605,9 @@ public final class TiffTile {
                     " does not match tile sizes " + sizeX + "x" + sizeY + " = " + sizeInPixels);
         }
         final int dataLength = (estimatedNumberOfPixels * bitsPerPixel + 7) >>> 3;
-        assert dataLength == storedDataLength : "invalid estimatedNumberOfPixels " + estimatedNumberOfPixels;
+        if (dataLength != storedDataLength) {
+            throw new AssertionError("invalid estimatedNumberOfPixels " + estimatedNumberOfPixels);
+        }
         // - in other words, checkDataLengthAlignment() must be unnecessary:
         // if bitsPerPixel = 1, unaligned data is impossible;
         // if bitsPerPixel = 8*i, storedDataLength = sizeInBytes is divided by bytesPerPixel

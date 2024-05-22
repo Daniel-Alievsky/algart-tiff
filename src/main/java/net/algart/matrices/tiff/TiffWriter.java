@@ -889,11 +889,10 @@ public class TiffWriter implements Closeable {
         if (tile.isEmpty()) {
             return;
         }
+        tile.checkStoredNumberOfPixels();
         long t1 = debugTime();
         prepareDecodedTileForEncoding(tile);
         long t2 = debugTime();
-
-        tile.checkStoredNumberOfPixels();
 
         final TagCompression compression = TagCompression.valueOfCodeOrNull(tile.ifd().getCompressionCode());
         TiffCodec codec = null;
@@ -1355,6 +1354,7 @@ public class TiffWriter implements Closeable {
             tile.setInterleaved(true);
             // - if not autoInterleave, we should suppose that the samples were already interleaved
         }
+        TiffTools.packTiffBits(tile);
 
         // scifio.tiff().difference(tile.getDecodedData(), ifd);
         // - this solution requires using SCIFIO context class; it is better to avoid this

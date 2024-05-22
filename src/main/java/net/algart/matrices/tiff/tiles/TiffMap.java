@@ -120,6 +120,10 @@ public final class TiffMap {
                         " (sample type is " + sampleType +
                         ", but we have " + totalBitsPerPixel + " bits/pixel)");
             }
+            if (sampleType.isBinary() && numberOfChannels > 1) {
+                throw new AssertionError("Binary IFD for " + numberOfChannels +
+                        " > 1 channels is not supported: invalid TiffIFD class");
+            }
             this.bitsPerUnpackedSample = sampleType.bitsPerSample();
             this.elementType = sampleType.elementType();
             this.tileSizeX = ifd.getTileSizeX();
