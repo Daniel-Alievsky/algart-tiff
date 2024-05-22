@@ -1281,7 +1281,7 @@ public class TiffTools {
                 // - source data MAY be too short in a case of invalid/strange TIFF
                 break;
             }
-            PackedBitArraysPer8.copyBitsFromReverseToNormalOrder(unpacked, tOffset, source, sOffset, actual);
+            PackedBitArraysPer8.copyBitsFromReverseToNormalOrderNoSync(unpacked, tOffset, source, sOffset, actual);
         }
         if (invertValues) {
             PackedBitArraysPer8.notBits(unpacked, 0, 8L * (long) unpacked.length);

@@ -796,7 +796,7 @@ public class TiffWriter implements Closeable {
                         long tOffset = ((long) fromYInTile * tileSizeX + fromXInTile) * bitsPerPixel;
                         long sOffset = ((long) yDiff * sizeX + xDiff) * bitsPerPixel;
                         for (int i = 0; i < sizeYInTile; i++) {
-                            PackedBitArraysPer8.copyBits(data, tOffset, samples, sOffset, partSizeXInBits);
+                            PackedBitArraysPer8.copyBitsNoSync(data, tOffset, samples, sOffset, partSizeXInBits);
                             tOffset += tileChunkedRowSizeInBits;
                             sOffset += samplesChunkedRowSizeInBits;
                         }
@@ -817,7 +817,7 @@ public class TiffWriter implements Closeable {
                             long tOffset = (long) tileFirst * bitsPerSample;
                             long sOffset = (long) samplesFirst * bitsPerSample;
                             for (int i = 0; i < sizeYInTile; i++) {
-                                PackedBitArraysPer8.copyBits(data, tOffset, samples, sOffset, partSizeXInBits);
+                                PackedBitArraysPer8.copyBitsNoSync(data, tOffset, samples, sOffset, partSizeXInBits);
                                 tOffset += tileOneChannelRowSizeInBits;
                                 sOffset += samplesOneChannelRowSizeInBits;
                             }

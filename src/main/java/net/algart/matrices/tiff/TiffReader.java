@@ -1593,7 +1593,7 @@ public class TiffReader implements Closeable {
                         long tOffset = tileFirst * bitsPerSample;
                         long sOffset = samplesFirst * bitsPerSample;
                         for (int i = 0; i < sizeYInTile; i++) {
-                            PackedBitArraysPer8.copyBits(resultSamples, sOffset, data, tOffset, partSizeXInBits);
+                            PackedBitArraysPer8.copyBitsNoSync(resultSamples, sOffset, data, tOffset, partSizeXInBits);
                             tOffset += tileOneChannelRowSizeInBits;
                             sOffset += samplesOneChannelRowSizeInBits;
                         }

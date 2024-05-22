@@ -661,9 +661,9 @@ public final class TiffTile {
             final long newSize = newNumberOfPixels * bitsPerSample;
             final long sizeToCopy = Math.min(size, newSize);
             for (long s = 0, disp = 0, newDisp = 0; s < samplesPerPixel; s++, disp += size, newDisp += newSize) {
-                PackedBitArraysPer8.copyBits(newData, newDisp, data, disp, sizeToCopy);
+                PackedBitArraysPer8.copyBitsNoSync(newData, newDisp, data, disp, sizeToCopy);
                 // - actually this is equivalent to System.arraycopy,
-                // but we use copyBits for possible future version, if they will allow multichannel 1-bit images
+                // but we use copyBitsNoSync for possible future version, if they will allow multichannel 1-bit images
             }
         }
         return setDecodedData(newData);
