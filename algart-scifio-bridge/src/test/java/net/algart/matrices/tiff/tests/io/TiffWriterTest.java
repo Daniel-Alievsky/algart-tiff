@@ -28,6 +28,7 @@ import io.scif.FormatException;
 import io.scif.codec.CodecOptions;
 import io.scif.util.FormatTools;
 import net.algart.arrays.Matrix;
+import net.algart.arrays.PackedBitArrays;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
@@ -401,11 +402,11 @@ public class TiffWriterTest {
     private static void customFillEmptyTile(TiffTile tiffTile) {
         byte[] decoded = tiffTile.getDecodedData();
         Arrays.fill(decoded, tiffTile.bitsPerSample() == 8 ? (byte) 0xE0 : (byte) 0xFF);
-        tiffTile.setInterleaved(true);
         OptionalInt bytesPerPixel = tiffTile.bytesPerPixel();
         if (bytesPerPixel.isEmpty()) {
             return;
         }
+        tiffTile.setInterleaved(true);
         final int pixel = bytesPerPixel.getAsInt();
         final int sizeX = tiffTile.getSizeX() * pixel;
         final int sizeY = tiffTile.getSizeY();
@@ -421,6 +422,23 @@ public class TiffWriterTest {
     private static Object makeSamples(int ifdIndex, int bandCount, TiffSampleType sampleType, int dimX, int dimY) {
         final int matrixSize = dimX * dimY;
         switch (sampleType) {
+            case BIT -> {
+                boolean[] channels = new boolean[matrixSize * bandCount];
+                for (int y = 0; y < dimY; y++) {
+                    int c1 = (y / 32) % (bandCount + 1) - 1;
+                    int c2 = c1;
+                    if (c1 == -1) {
+                        c1 = 0;
+                        c2 = bandCount - 1;
+                    }
+                    for (int c = c1; c <= c2; c++) {
+                        for (int x = 0, disp = y * dimX; x < dimX; x++, disp++) {
+                            channels[disp + c * matrixSize] = (byte) (50 * ifdIndex + x + y) < 0;
+                        }
+                    }
+                }
+                return PackedBitArrays.packBits(channels, 0, channels.length);
+            }
             case UINT8, INT8 -> {
                 byte[] channels = new byte[matrixSize * bandCount];
                 for (int y = 0; y < dimY; y++) {

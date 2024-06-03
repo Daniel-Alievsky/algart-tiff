@@ -966,10 +966,13 @@ public class TiffWriter implements Closeable {
                         Arrays.toString(ifd.getBitsPerSample()) + " (this variant is not supported)");
             }
             final int bits = optionalBits.getAsInt();
-            final boolean usualPrecision = bits == 8 || bits == 16 || bits == 32 || bits == 64;
+            final boolean usualPrecision = sampleType.isBinary() ||
+                    bits == 8 || bits == 16 || bits == 32 || bits == 64;
+            // - bits == 1 is possible also for more than 1 channel, which is recognized as non-binary UINT8
             if (!usualPrecision) {
                 throw new UnsupportedTiffFormatException("Cannot write TIFF, because " +
-                        "requested number of bits per sample is not supported: " + bits + " bits");
+                        "requested number of bits per sample is not supported for writing: " +
+                        Arrays.toString(ifd.getBitsPerSample()) + " bits");
             }
             if (sampleType == TiffSampleType.FLOAT && bits != 32) {
                 throw new UnsupportedTiffFormatException("Cannot write TIFF, because " +
@@ -1355,6 +1358,10 @@ public class TiffWriter implements Closeable {
     protected void prepareDecodedTileForEncoding(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         if (autoInterleaveSource) {
+            if (tile.isInterleaved()) {
+                throw new IllegalArgumentException("Tile for encoding and writing to TIFF file must not be " +
+                        "interleaved:: " + tile);
+            }
             tile.interleaveSamples();
         } else {
             tile.setInterleaved(true);
