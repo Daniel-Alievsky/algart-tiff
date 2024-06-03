@@ -1019,6 +1019,11 @@ public class TiffWriter implements Closeable {
                         TagPhotometricInterpretation.RGB_PALETTE :
                         TagPhotometricInterpretation.BLACK_IS_ZERO;
             } else {
+                // There are no reasons to create custom photometric interpretations for 1 channel,
+                // excepting RGB palette and standard black-and-white (BLACK_IS_ZERO).
+                // In particular, WHITE_IS_ZERO interpretation has no advantage
+                // in comparison with BLACK_IS_ZERO, but requires special processing
+                // if you want to get the same results while further reading.
                 if (newPhotometric == TagPhotometricInterpretation.RGB_PALETTE && !hasColorMap) {
                     throw new TiffException("Cannot write TIFF image: newPhotometric interpretation \"" +
                             newPhotometric.prettyName() + "\" requires also \"ColorMap\" tag");
@@ -1032,6 +1037,9 @@ public class TiffWriter implements Closeable {
             if (newPhotometric == null) {
                 newPhotometric = TagPhotometricInterpretation.RGB;
             } else {
+                // Unlike 1 channel/pixel (the case above), we do not prevent the user from
+                // setting non-standard custom photometric interpretations: maybe he wants
+                // to create some LAB or CMYK TIFF, and he prepared all channels correctly.
                 if (ifd.isStandardYCbCrNonJpeg()) {
                     if (!smartCorrection) {
                         throw new UnsupportedTiffFormatException("Cannot write TIFF: encoding YCbCr " +
