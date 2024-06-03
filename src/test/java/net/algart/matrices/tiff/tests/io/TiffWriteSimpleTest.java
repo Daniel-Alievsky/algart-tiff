@@ -68,21 +68,21 @@ public class TiffWriteSimpleTest {
 
         System.out.println("Writing TIFF " + targetFile);
         try (final TiffWriter writer = new TiffWriter(targetFile)) {
-            writer.setByteFiller((byte) 0xB0);
+            writer.setByteFiller((byte) 0);
             writer.setSmartIFDCorrection(true);
             writer.create();
             // writer.startNewFile(); // - not a problem to call twice
             TiffIFD ifd = new TiffIFD();
-            final int[] bitsPerSample = {8};
+            final int[] bitsPerSample = {1};
             ifd.putImageDimensions(IMAGE_WIDTH, IMAGE_HEIGHT);
             ifd.putNumberOfChannels(bitsPerSample.length);
             ifd.putTileSizes(256, 256);
             ifd.putCompression(TagCompression.LZW);
-            ifd.putPhotometricInterpretation(TagPhotometricInterpretation.WHITE_IS_ZERO);
+//            ifd.putPhotometricInterpretation(TagPhotometricInterpretation.WHITE_IS_ZERO);
             ifd.put(Tags.BITS_PER_SAMPLE, bitsPerSample);
             ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_INT);
             // - you can comment or change the options above for thorough testing
-//            ifd.put(TiffIFD.PHOTOMETRIC_INTERPRETATION, 8);
+//            ifd.put(Tags.PHOTOMETRIC_INTERPRETATION, 8);
 
             System.out.printf("Desired IFD:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.NORMAL));
 
@@ -96,6 +96,8 @@ public class TiffWriteSimpleTest {
                     IMAGE_WIDTH * IMAGE_HEIGHT * bitsPerSample.length);
             if (samples instanceof byte[] bytes) {
                 Arrays.fill(bytes, (byte) 70);
+            } else if (samples instanceof boolean[] booleans) {
+                Arrays.fill(booleans, true);
             }
             // writer.writeForward(map); // - uncomment to write IFD BEFORE image
             final List<TiffTile> updated = writer.updateJavaArray(

@@ -190,7 +190,12 @@ public class TiffTools {
         // so, the "signedIntegers" argument is not important
         switch (sampleType) {
             case BIT -> {
-                return PackedBitArraysPer8.toByteArray((long[]) javaArray, numberOfElements);
+                if (javaArray instanceof boolean[] booleanValues) {
+                    return PackedBitArraysPer8.packBits(booleanValues, 0,
+                            checkEnoughArrayLength(numberOfElements, booleanValues.length));
+                } else {
+                    return PackedBitArraysPer8.toByteArray((long[]) javaArray, numberOfElements);
+                }
             }
             case INT8, UINT8 -> {
                 byte[] byteValues = (byte[]) javaArray;
@@ -781,12 +786,16 @@ public class TiffTools {
         return unpacked;
     }
 
-    public static boolean packTiffBits(TiffTile tile) {
+    public static boolean packTiffBits(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile);
         if (tile.bitsPerPixel() != 1) {
             return false;
         }
         assert tile.samplesPerPixel() == 1 : "> 1 channel in " + tile;
+        // Note: we do not check tile.ifd().getPhotometricInterpretation().isInvertedBrightness(),
+        // because WHITE_IS_ZERO photometric interpretation is not supported;
+        // in any case, we do not provide any processing of non-standard photometric interpretations
+        // for writing any other sample types.
         final byte[] source = tile.getDecodedData();
         final int sizeInBytes = tile.getSizeInBytes();
         if (source.length < sizeInBytes) {

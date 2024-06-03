@@ -1020,6 +1020,10 @@ public class TiffWriter implements Closeable {
                     throw new TiffException("Cannot write TIFF image: newPhotometric interpretation \"" +
                             newPhotometric.prettyName() + "\" requires also \"ColorMap\" tag");
                 }
+                checkPhotometricInterpretation(newPhotometric,
+                        EnumSet.of(TagPhotometricInterpretation.BLACK_IS_ZERO,
+                                TagPhotometricInterpretation.RGB_PALETTE),
+                        samplesPerPixel + "-channel image");
             }
         } else if (samplesPerPixel == 3) {
             if (newPhotometric == null) {
@@ -1927,7 +1931,7 @@ public class TiffWriter implements Closeable {
         if (photometricInterpretation != null) {
             if (!allowed.contains(photometricInterpretation)) {
                 throw new TiffException("Writing " + whatToWrite + " with photometric interpretation \"" +
-                        photometricInterpretation + "\" is not supported (only " +
+                        photometricInterpretation.prettyName() + "\" is not supported (only " +
                         allowed.stream().map(photometric -> "\"" + photometric.prettyName() + "\"")
                                 .collect(Collectors.joining(", ")) +
                         " allowed)");
