@@ -63,7 +63,8 @@ public class TagRational extends Number implements Comparable<TagRational> {
 	// -- Fields --
 
 	/** Components of the rational's fractional representation. */
-	private long numer, denom;
+	private final long numer;
+    private final long denom;
 
 	// -- Constructor --
 

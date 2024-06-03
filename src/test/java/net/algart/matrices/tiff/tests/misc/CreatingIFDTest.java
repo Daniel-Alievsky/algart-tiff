@@ -36,7 +36,7 @@ public class CreatingIFDTest {
         System.out.printf("Json:%n----%n%s%n----%n%n", ifd.toString(TiffIFD.StringFormat.JSON));
     }
 
-    public static void main(String[] args) throws TiffException {
+    public static void main(String[] args)  {
         TiffIFD ifd = new TiffIFD();
         showIFD(ifd, "Empty");
 

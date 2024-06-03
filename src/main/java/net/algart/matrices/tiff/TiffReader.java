@@ -103,7 +103,7 @@ public class TiffReader implements Closeable {
      * IFD with number of entries, greater than this limit, is not allowed:
      * it is mostly probable that it is corrupted file.
      */
-    public static int MAX_NUMBER_OF_IFD_ENTRIES = 1_000_000;
+    public static final int MAX_NUMBER_OF_IFD_ENTRIES = 1_000_000;
 
     private static final boolean OPTIMIZE_READING_IFD_ARRAYS = true;
     // - Note: this optimization allows to speed up reading large array of offsets.

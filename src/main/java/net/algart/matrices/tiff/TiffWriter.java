@@ -1838,6 +1838,7 @@ public class TiffWriter implements Closeable {
         }
     }
 
+    @SuppressWarnings("RedundantThrows")
     private TiffCodec.Options buildOptions(TiffTile tile) throws TiffException {
         TiffCodec.Options result = this.codecOptions.clone();
         result.setSizes(tile.getSizeX(), tile.getSizeY());

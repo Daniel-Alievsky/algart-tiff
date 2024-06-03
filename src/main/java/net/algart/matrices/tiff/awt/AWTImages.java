@@ -1003,20 +1003,12 @@ public final class AWTImages {
     public static ColorSpace makeColorSpace(int c) {
         int type;
         switch (c) {
-            case 1:
-                type = ColorSpace.CS_GRAY;
-                break;
-            case 2:
-                type = TwoChannelColorSpace.CS_2C;
-                break;
-            case 3:
-                type = ColorSpace.CS_sRGB;
-                break;
-            case 4:
-                type = ColorSpace.CS_sRGB;
-                break;
-            default:
+            case 1 -> type = ColorSpace.CS_GRAY;
+            case 2 -> type = TwoChannelColorSpace.CS_2C;
+            case 3, 4 -> type = ColorSpace.CS_sRGB;
+            default -> {
                 return null;
+            }
         }
         return TwoChannelColorSpace.getInstance(type);
     }

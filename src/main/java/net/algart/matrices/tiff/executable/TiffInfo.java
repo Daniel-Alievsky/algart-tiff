@@ -39,7 +39,7 @@ public class TiffInfo {
     boolean strict = false;
     TiffIFD.StringFormat stringFormat = TiffIFD.StringFormat.NORMAL;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         TiffInfo info = new TiffInfo();
         int startArgIndex = 0;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-strict")) {

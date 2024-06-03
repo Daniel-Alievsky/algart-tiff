@@ -424,7 +424,6 @@ class TagFriendlyNames {
                 NewRawImageDigest = 51111
                 RawToPreviewGain = 51112
                 DefaultUserCrop = 51125
-                                
                 Matteing = 32995
                 DataType = 32996
                 ImageDepth = 32997

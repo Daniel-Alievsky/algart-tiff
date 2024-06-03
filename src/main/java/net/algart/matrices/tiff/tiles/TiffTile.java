@@ -434,7 +434,7 @@ public final class TiffTile {
         byte[] samples = getDecodedData();
         try {
             samples = TiffTools.unpackUnusualPrecisions(
-                    samples, ifd(), samplesPerPixel, sizeX * sizeY, true);
+                    samples, ifd(), samplesPerPixel, sizeInPixels, true);
         } catch (TiffException e) {
             throw new IllegalStateException("Illegal IFD inside the tile map", e);
         }
