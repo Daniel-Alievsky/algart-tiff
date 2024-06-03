@@ -252,6 +252,10 @@ public class TiffTools {
         if (numberOfChannels <= 0) {
             throw new IllegalArgumentException("Zero or negative numberOfChannels = " + numberOfChannels);
         }
+        if (javaArray instanceof boolean[]) {
+            throw new IllegalArgumentException("boolean[] array cannot be converted to AlgART matrix; " +
+                    "binary matrix should be packed into long[] array");
+        }
         final UpdatablePArray array = javaArray instanceof long[] packedBisArray ?
                 // long[] type in this library is reserved for packed bits (TIFF does not support 64-bit precision)
                 BitArray.as(packedBisArray, (long) sizeX * (long) sizeY * (long) numberOfChannels) :

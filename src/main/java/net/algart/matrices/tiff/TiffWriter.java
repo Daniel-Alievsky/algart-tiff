@@ -861,7 +861,7 @@ public class TiffWriter implements Closeable {
         final Class<?> elementType = matrix.elementType();
         if (elementType != map.elementType()) {
             throw new IllegalArgumentException("Invalid element type of the matrix: " + elementType +
-                    ", because the specified TIFF map stores " + map.elementType() + " elements");
+                    ", although the specified TIFF map stores " + map.elementType() + " elements");
         }
         if (matrix.dimCount() != 3 && !(matrix.dimCount() == 2 && map.numberOfChannels() == 1)) {
             throw new IllegalArgumentException("Illegal number of matrix dimensions " + matrix.dimCount() +
