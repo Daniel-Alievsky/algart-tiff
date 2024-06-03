@@ -90,7 +90,9 @@ public class TiffWriteSimpleTest {
             // map = writer.newMap(ifd); - will throw an exception
             System.out.printf("IFD to save:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.NORMAL));
 
-            final Object samples = Array.newInstance(map.elementType(),
+            final Object samples = Array.newInstance(
+//                    String.class, // - invalid type here should lead to exception
+                    map.elementType(),
                     IMAGE_WIDTH * IMAGE_HEIGHT * bitsPerSample.length);
             if (samples instanceof byte[] bytes) {
                 Arrays.fill(bytes, (byte) 70);

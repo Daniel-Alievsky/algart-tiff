@@ -181,20 +181,25 @@ public class TiffTools {
                 array instanceof DirectAccessible da && da.hasJavaArray() && da.javaArrayOffset() == 0 ?
                         da.javaArray() :
                         net.algart.arrays.Arrays.toJavaArray(array);
-        return javaArrayToBytes(javaArray, littleEndian);
+        return javaArrayToBytes(javaArray, array.length(), littleEndian);
     }
 
-    public static byte[] javaArrayToBytes(Object javaArray, boolean littleEndian) {
+    public static byte[] javaArrayToBytes(Object javaArray, long numberOfElements, boolean littleEndian) {
         final TiffSampleType sampleType = javaArrayToSampleType(javaArray, false);
         // - note: signed and unsigned values correspond to the same element types,
         // so, the "signedIntegers" argument is not important
         switch (sampleType) {
+            case BIT -> {
+                return PackedBitArraysPer8.toByteArray((long[]) javaArray, numberOfElements);
+            }
             case INT8, UINT8 -> {
-                return (byte[]) javaArray;
+                byte[] byteValues = (byte[]) javaArray;
+                checkEnoughArrayLength(numberOfElements, byteValues.length);
+                return byteValues;
             }
             case INT16, UINT16 -> {
                 final short[] shortValues = (short[]) javaArray;
-                final byte[] v = new byte[shortValues.length * 2];
+                final byte[] v = new byte[checkEnoughArrayLength(numberOfElements, shortValues.length) * 2];
                 final ByteBuffer bb = ByteBuffer.wrap(v);
                 bb.order(littleEndian ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN);
                 bb.asShortBuffer().put(shortValues);
@@ -202,7 +207,7 @@ public class TiffTools {
             }
             case INT32, UINT32 -> {
                 final int[] intValues = (int[]) javaArray;
-                final byte[] v = new byte[intValues.length * 4];
+                final byte[] v = new byte[checkEnoughArrayLength(numberOfElements, intValues.length) * 4];
                 final ByteBuffer bb = ByteBuffer.wrap(v);
                 bb.order(littleEndian ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN);
                 bb.asIntBuffer().put(intValues);
@@ -210,7 +215,7 @@ public class TiffTools {
             }
             case FLOAT -> {
                 final float[] floatValues = (float[]) javaArray;
-                final byte[] v = new byte[floatValues.length * 4];
+                final byte[] v = new byte[checkEnoughArrayLength(numberOfElements, floatValues.length) * 4];
                 final ByteBuffer bb = ByteBuffer.wrap(v);
                 bb.order(littleEndian ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN);
                 bb.asFloatBuffer().put(floatValues);
@@ -218,7 +223,7 @@ public class TiffTools {
             }
             case DOUBLE -> {
                 final double[] doubleValue = (double[]) javaArray;
-                final byte[] v = new byte[doubleValue.length * 8];
+                final byte[] v = new byte[checkEnoughArrayLength(numberOfElements, doubleValue.length) * 8];
                 final ByteBuffer bb = ByteBuffer.wrap(v);
                 bb.order(littleEndian ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN);
                 bb.asDoubleBuffer().put(doubleValue);
@@ -1488,6 +1493,14 @@ public class TiffTools {
 
         // Combine all parts,  sign << (31 - 15), value << (23 - 10)
         return (value & 0x8000) << 16 | (exponent | mantissa) << 13;
+    }
+
+    private static int checkEnoughArrayLength(long numberOfElements, int arrayLength) {
+        if (numberOfElements > arrayLength) {
+            throw new IllegalArgumentException("Too short array length " + arrayLength +
+                    ": it must contain at least " + numberOfElements + " elements");
+        }
+        return (int) numberOfElements;
     }
 
     private static void checkInterleaved(TiffTile tile) throws TiffException {

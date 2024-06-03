@@ -839,6 +839,7 @@ public class TiffWriter implements Closeable {
             int sizeY) {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(samplesArray, "Null samplesArray");
+        TiffTools.checkRequestedArea(fromX, fromY, sizeX, sizeY);
         final Class<?> elementType = samplesArray.getClass().getComponentType();
         if (elementType == null) {
             throw new IllegalArgumentException("The specified samplesArray is not actual an array: " +
@@ -846,9 +847,10 @@ public class TiffWriter implements Closeable {
         }
         if (elementType != map.elementType()) {
             throw new IllegalArgumentException("Invalid element type of samples array: " + elementType +
-                    ", but the specified TIFF map stores " + map.elementType());
+                    ", but the specified TIFF map stores " + map.elementType() + " elements");
         }
-        final byte[] samples = TiffTools.javaArrayToBytes(samplesArray, isLittleEndian());
+        final byte[] samples = TiffTools.javaArrayToBytes(samplesArray,
+                (long) sizeX * (long) sizeY, isLittleEndian());
         return updateSamples(map, samples, fromX, fromY, sizeX, sizeY);
     }
 
