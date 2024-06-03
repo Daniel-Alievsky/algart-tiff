@@ -998,7 +998,7 @@ public class TiffParser extends TiffReader {
     @Deprecated
     private byte[] adjustFillOrder(final IFD ifd, final byte[] buf) throws FormatException {
         if (ifd.getFillOrder() == FillOrder.REVERSED) {
-            PackedBitArraysPer8.reverseBitsOrderInEachByte(buf);
+            PackedBitArraysPer8.reverseBitOrderInPlace(buf);
         }
         return buf;
     }
