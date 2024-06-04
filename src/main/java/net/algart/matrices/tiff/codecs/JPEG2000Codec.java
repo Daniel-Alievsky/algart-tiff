@@ -315,6 +315,9 @@ public class JPEG2000Codec extends AbstractCodec {
             img = AWTImages.constructImage(s.length, DataBuffer.TYPE_INT,
                     jpeg2000Options.width, jpeg2000Options.height, false, true, buffer,
                     jpeg2000Options.colorModel);
+        } else {
+            throw new TiffException("JPEG-2000 compression for " + jpeg2000Options.bitsPerSample +
+                    "-bit samples is not supported (only 8-bit, 16-bit and 32-bit samples allowed)");
         }
 
         try {
@@ -350,9 +353,9 @@ public class JPEG2000Codec extends AbstractCodec {
         Objects.requireNonNull(options, "Null codec options");
         JPEG2000Options jpeg2000Options = new JPEG2000Options().setTo(options);
 
-        byte[][] single = null;
-        WritableRaster b = null;
-        int bpp = jpeg2000Options.bitsPerSample / 8;
+        byte[][] single;
+        WritableRaster b;
+        int bpp;
 
         try {
             final ByteArrayInputStream bis = new ByteArrayInputStream(data);

@@ -34,7 +34,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Locale;
 
-public class TiffWriteHugeFileTest {
+public class TiffWriteHugeTiledFileTest {
     private final static int IMAGE_WIDTH = 10 * 1024;
     private final static int IMAGE_HEIGHT = 10 * 1024;
 
@@ -47,7 +47,7 @@ public class TiffWriteHugeFileTest {
         }
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
-            System.out.println("    " + TiffWriteHugeFileTest.class.getName() +
+            System.out.println("    " + TiffWriteHugeTiledFileTest.class.getName() +
                     " [-bigTiff] " +
                     "target.tiff number_of_images");
             return;

@@ -123,11 +123,11 @@ public class JPEGCodec extends AbstractCodec implements TiffCodec.Timing {
         }
         if (options.bitsPerSample != 8) {
             throw new TiffException("JPEG compression for " + options.bitsPerSample +
-                    "-bit data is not supported (only unsigned 8-bit samples allowed)");
+                    "-bit samples is not supported (only unsigned 8-bit samples allowed)");
         }
         if (options.signed) {
             throw new TiffException("JPEG compression for signed " + options.bitsPerSample +
-                    "-bit data is not supported (only unsigned 8-bit samples allowed)");
+                    "-bit samples is not supported (only unsigned 8-bit samples allowed)");
         }
         if (data.length == 0) {
             return data;

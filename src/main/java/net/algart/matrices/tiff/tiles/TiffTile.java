@@ -97,6 +97,10 @@ public final class TiffTile {
         return samplesPerPixel;
     }
 
+    public boolean isBinary() {
+        return map.isBinary();
+    }
+
     public boolean isWholeBytes() {
         return map.isWholeBytes();
     }

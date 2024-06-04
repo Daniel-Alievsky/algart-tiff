@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="TiffWriteHugeFileTest" type="Application" factoryName="Application" nameIsGenerated="true">
-    <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.tests.io.TiffWriteHugeFileTest" />
+  <configuration default="false" name="TiffWriteHugeTiledFileTest" type="Application" factoryName="Application" nameIsGenerated="true">
+    <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.tests.io.TiffWriteHugeTiledFileTest" />
     <module name="algart-tiff" />
     <option name="PROGRAM_PARAMETERS" value="-bigtiff /tmp/huge.tiff 20" />
     <method v="2">

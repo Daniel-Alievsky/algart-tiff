@@ -790,7 +790,7 @@ public class TiffTools {
         return unpacked;
     }
 
-    public static boolean packTiffBits(TiffTile tile) throws TiffException {
+    public static boolean packTiffBits(TiffTile tile) {
         Objects.requireNonNull(tile);
         if (tile.bitsPerPixel() != 1) {
             return false;
