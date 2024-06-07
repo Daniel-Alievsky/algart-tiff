@@ -567,11 +567,14 @@ public final class TiffMap {
         if (numberOfChannels == 1) {
             return samples;
         }
-        final OptionalInt bytesPerSample = sampleType.bytesPerSample();
-        assert bytesPerSample.isPresent() : "non-whole bytes is impossible in valid TiffMap with 1 channel";
+        if (!isWholeBytes()) {
+            throw new AssertionError("Non-whole bytes are impossible in valid TiffMap with 1 channel");
+        }
+        final int bytesPerSample = bitsPerSample >>> 3;
+        assert bitsPerSample == bytesPerSample * 8 : "unaligned bitsPerSample impossible for whole bytes";
         return interleave ?
-                TiffTools.toInterleavedBytes(samples, numberOfChannels, bytesPerSample.getAsInt(), numberOfPixels) :
-                TiffTools.toSeparatedBytes(samples, numberOfChannels, bytesPerSample.getAsInt(), numberOfPixels);
+                TiffTools.toInterleavedBytes(samples, numberOfChannels, bytesPerSample, numberOfPixels) :
+                TiffTools.toSeparatedBytes(samples, numberOfChannels, bytesPerSample, numberOfPixels);
     }
 
     private void setDimensions(int dimX, int dimY, boolean checkResizable) {
