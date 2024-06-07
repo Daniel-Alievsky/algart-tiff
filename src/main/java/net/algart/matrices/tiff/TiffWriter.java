@@ -158,11 +158,12 @@ public class TiffWriter implements Closeable {
      * You <b>must</b> call one of methods {@link #create()} or {@link #open(boolean)} after creating this object
      * by the constructor.
      *
-     * @param outputStream output TIFF file.
+     * @param outputStream output TIFF tile.
      */
     public TiffWriter(DataHandle<Location> outputStream) {
         Objects.requireNonNull(outputStream, "Null \"outputStream\" data handle (output stream)");
         this.out = outputStream;
+        // - we do not use WriteBufferDataHandle here
     }
 
     public TiffReader readerOfThisFile(boolean requireValidTiff) throws IOException {
@@ -1596,12 +1597,12 @@ public class TiffWriter implements Closeable {
                     // manually via TiffIFD.put with "long" argument
                     switch (tag) {
                         case Tags.IMAGE_WIDTH,
-                                Tags.IMAGE_LENGTH,
-                                Tags.TILE_WIDTH,
-                                Tags.TILE_LENGTH,
-                                Tags.IMAGE_DEPTH,
-                                Tags.ROWS_PER_STRIP,
-                                Tags.NEW_SUBFILE_TYPE -> {
+                             Tags.IMAGE_LENGTH,
+                             Tags.TILE_WIDTH,
+                             Tags.TILE_LENGTH,
+                             Tags.IMAGE_DEPTH,
+                             Tags.ROWS_PER_STRIP,
+                             Tags.NEW_SUBFILE_TYPE -> {
                             out.writeShort(TagTypes.LONG);
                             writeIntOrLong(out, q.length);
                             out.writeInt((int) v);
@@ -1897,15 +1898,15 @@ public class TiffWriter implements Closeable {
                                     stage == null ? "" : " (" + stage + " stage)",
                                     action,
                                     (t2 - t1) * 1e-6) :
-                    String.format(Locale.US,
-                            "%s%s %s %d tiles %dx%dx%d (%.3f MB) in %.3f ms, %.3f MB/s",
-                            getClass().getSimpleName(),
-                            stage == null ? "" : " (" + stage + " stage)",
-                            action,
-                            count, map.numberOfChannels(), map.tileSizeX(), map.tileSizeY(),
-                            sizeInBytes / 1048576.0,
-                            (t2 - t1) * 1e-6,
-                            sizeInBytes / 1048576.0 / ((t2 - t1) * 1e-9)));
+                            String.format(Locale.US,
+                                    "%s%s %s %d tiles %dx%dx%d (%.3f MB) in %.3f ms, %.3f MB/s",
+                                    getClass().getSimpleName(),
+                                    stage == null ? "" : " (" + stage + " stage)",
+                                    action,
+                                    count, map.numberOfChannels(), map.tileSizeX(), map.tileSizeY(),
+                                    sizeInBytes / 1048576.0,
+                                    (t2 - t1) * 1e-6,
+                                    sizeInBytes / 1048576.0 / ((t2 - t1) * 1e-9)));
         }
     }
 
@@ -1917,8 +1918,11 @@ public class TiffWriter implements Closeable {
                     "%s wrote %dx%dx%d %s (%.3f MB) in %.3f ms = " +
                             "%.3f conversion/copying data + %.3f writing IFD " +
                             "+ %.3f/%.3f encoding/writing " +
-                            "(%.3f prepare, %.3f customize, %.3f encode: " +
-                            "%.3f encode-main%s, " +
+                            "(%.3f prepare, " +
+                            "%.3f customize, " +
+                            "%.3f encode: " +
+                            "%.3f encode-main" +
+                            "%s, " +
                             "%.3f write), %.3f MB/s",
                     getClass().getSimpleName(),
                     dimX, dimY, map.numberOfChannels(),
@@ -1936,8 +1940,6 @@ public class TiffWriter implements Closeable {
                                     timeEncodingBridge * 1e-6,
                                     timeEncodingAdditional * 1e-6) :
                             "",
-                    timeEncodingBridge * 1e-6,
-                    timeEncodingAdditional * 1e-6,
                     timeWriting * 1e-6,
                     sizeInBytes / 1048576.0 / ((t5 - t1) * 1e-9)));
         }

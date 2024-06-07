@@ -93,7 +93,7 @@ public class TiffSaver extends TiffWriter {
     }
 
     /**
-     * Sets whether or not we know that the planes will be written sequentially.
+     * Sets whether we know that the planes will be written sequentially.
      * If we are writing planes sequentially and set this flag, then performance
      * is slightly improved.
      */

@@ -181,7 +181,8 @@ public class TiffReader implements Closeable {
      * Note that you <b>should not</b> call this constructor from another constructor, creating this
      * <code>DataHandle</code>: in this case, the handle will never be closed!
      *
-     * @param inputStream      input stream.
+     * @param inputStream      input stream; automatically replaced (wrapped) with {@link ReadBufferDataHandle},
+     *                         if this stream is still not an instance of this class.
      * @param requireValidTiff whether the input file must exist and be a readable TIFF-file
      *                         with a correct header.
      * @throws TiffException if the file is not a correct TIFF file
@@ -206,7 +207,8 @@ public class TiffReader implements Closeable {
      * and {@link #isValid()} method will return <code>false</code>.
      * In this case, you can know the occurred exception by {@link #openingException()} method.
      *
-     * @param inputStream            input stream.
+     * @param inputStream            input stream; automatically replaced (wrapped) with {@link ReadBufferDataHandle},
+     *                               if this stream is still not an instance of this class.
      * @param requireValidTiff       whether the input file must exist and be a readable TIFF-file
      *                               with a correct header.
      * @param closeStreamOnException if <code>true</code>, the input stream is closed in a case of any exception;
@@ -236,7 +238,7 @@ public class TiffReader implements Closeable {
     }
 
     /**
-     * Universal constructor.
+     * Universal constructor, called from other constructors.
      *
      * <p>It never throws an exception. If the file is not a correct TIFF or in a case of any other I/O problem,
      * the information about the problem is stored in an exception, which can be retrieved later
@@ -246,7 +248,8 @@ public class TiffReader implements Closeable {
      * <p>This constructor is useful, because it allows to make constructors in subclasses, which do not through
      * any exceptions.
      *
-     * @param inputStream      input stream.
+     * @param inputStream      input stream; automatically replaced (wrapped) with {@link ReadBufferDataHandle},
+     *                         if this stream is still not an instance of this class.
      * @param exceptionHandler if not <code>null</code>, it will be called in a case of some checked exception;
      *                         for example, it may log it. But usually it is better idea to use the main
      *                         constructor {@link #TiffReader(DataHandle, boolean, boolean)} with catching exception.
@@ -254,7 +257,9 @@ public class TiffReader implements Closeable {
     public TiffReader(DataHandle<Location> inputStream, Consumer<Exception> exceptionHandler) {
         Objects.requireNonNull(inputStream, "Null in stream");
         this.requireValidTiff = false;
-        this.in = inputStream instanceof ReadBufferDataHandle ? inputStream : new ReadBufferDataHandle<>(inputStream);
+        this.in = inputStream instanceof ReadBufferDataHandle ?
+                inputStream :
+                new ReadBufferDataHandle<>(inputStream);
         AtomicBoolean bigTiff = new AtomicBoolean(false);
         this.openingException = startReading(bigTiff);
         this.valid = openingException == null;
@@ -527,14 +532,14 @@ public class TiffReader implements Closeable {
     }
 
     /**
-     * Returns whether or not the current TIFF file contains BigTIFF data.
+     * Returns whether the current TIFF file contains BigTIFF data.
      */
     public boolean isBigTiff() {
         return bigTiff;
     }
 
     /**
-     * Returns whether or not we are reading little-endian data.
+     * Returns whether we are reading little-endian data.
      * Determined in the constructors.
      */
     public boolean isLittleEndian() {
@@ -1017,7 +1022,7 @@ public class TiffReader implements Closeable {
             //      FF D9 (EOI, end of image)
             // From libtiff specification:
             //      When the JPEGTables field is present, it shall contain a valid JPEG
-            //      "abbreviated table specification" datastream.  This datastream shall begin
+            //      "abbreviated table specification" data stream. This data stream shall begin
             //      with SOI and end with EOI.
             if (data.length < 2 || data[0] != (byte) 0xFF || data[1] != (byte) 0xD8) {
                 // - the same check is performed inside Java API ImageIO (JPEGImageReaderSpi),
@@ -1088,7 +1093,7 @@ public class TiffReader implements Closeable {
      * by multiplying each channel by (2<sup>16</sup>&minus;1)/(2<sup>12</sup>&minus;1), etc.</p>
      *
      * <p>2nd correction: inversion. Some TIFF files use CMYK color space or WhiteIsZero interpretation of grayscale
-     * images, where dark colors are represented by smaller values and bright colors by higher, in particlular,
+     * images, where dark colors are represented by smaller values and bright colors by higher, in particular,
      * 0 is white, maximal value (255 for 8-bit) is black.</p>
      *
      * <p>However, the API of this class suppose that all returned images are RGB, RGBA or usual monochrome.
@@ -1108,7 +1113,7 @@ public class TiffReader implements Closeable {
      * <b>does not unpack 16- or 24-bit</b> floating-point formats. These cases
      * are processed after reading all tiles inside {@link #readSamples(TiffMap, int, int, int, int)}
      * method, if {@link #isAutoUnpackUnusualPrecisions()} flag is set, or may be performed by external
-     * code with help of {@link TiffTools#unpackUnusualPrecisions(byte[], TiffIFD, int, int, boolean)} method.
+     * code with help of {@link TiffTools#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)} method.
      *
      * <p>This method does not allow 5, 6, 7 or greater than 8 bytes/sample
      * (but 8 bytes/sample is allowed: it is probably <code>double</code> precision).</p>

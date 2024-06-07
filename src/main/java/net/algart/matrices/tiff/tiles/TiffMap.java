@@ -133,7 +133,9 @@ public final class TiffMap {
                 setDimensions(ifd.getImageDimX(), ifd.getImageDimY(), false);
             }
             if ((long) tileSizeX * (long) tileSizeY > Integer.MAX_VALUE) {
-                throw new IllegalArgumentException("Very large TIFF tiles " + tileSizeX + "x" + tileSizeY +
+                throw new IllegalArgumentException("Very large " +
+                        (tiled ? "TIFF tiles " : "non-tiled TIFF ")
+                        + tileSizeX + "x" + tileSizeY +
                         " >= 2^31 pixels are not supported");
                 // - note that it is also checked deeper in the next operator
             }

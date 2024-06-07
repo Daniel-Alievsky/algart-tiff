@@ -151,7 +151,7 @@ public class TiffParser extends TiffReader {
     }
 
     /**
-     * Sets whether or not to assume that strips are of equal size.
+     * Sets whether to assume that strips are of equal size.
      *
      * @param equalStrips Whether or not the strips are of equal size.
      */
@@ -162,7 +162,7 @@ public class TiffParser extends TiffReader {
 
 
     /**
-     * Sets whether or not 64-bit offsets are used for non-BigTIFF files.
+     * Sets whether 64-bit offsets are used for non-BigTIFF files.
      */
     @Deprecated
     public void setUse64BitOffsets(final boolean use64Bit) {
@@ -170,14 +170,14 @@ public class TiffParser extends TiffReader {
     }
 
     /**
-     * Sets whether or not YCbCr color correction is allowed.
+     * Sets whether YCbCr color correction is allowed.
      */
     public void setYCbCrCorrection(final boolean correctionAllowed) {
         ycbcrCorrection = correctionAllowed;
     }
 
     /**
-     * Sets whether or not IFD entries should be cached.
+     * Sets whether IFD entries should be cached.
      * Use {@link #setCachingIFDs(boolean)} instead.
      */
     @Deprecated
