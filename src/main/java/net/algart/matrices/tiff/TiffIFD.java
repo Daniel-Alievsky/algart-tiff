@@ -1377,7 +1377,8 @@ public class TiffIFD {
             sb.append((json ?
                     "  \"elementType\" : \"%s\",\n" :
                     " %s").formatted(
-                    sampleType == null ? "???" : sampleType.elementType().getSimpleName()));
+                    sampleType == null ? "???" : sampleType.isBinary() ? "bit" :
+                            sampleType.elementType().getSimpleName()));
             channels = getSamplesPerPixel();
             if (hasImageDimensions()) {
                 dimX = getImageDimX();
@@ -1509,8 +1510,7 @@ public class TiffIFD {
                     switch (tag) {
                         case Tags.PHOTOMETRIC_INTERPRETATION ->
                                 additional = getPhotometricInterpretation().prettyName();
-                        case Tags.COMPRESSION ->
-                                additional = compressionPrettyName();
+                        case Tags.COMPRESSION -> additional = compressionPrettyName();
                         case Tags.PLANAR_CONFIGURATION -> {
                             if (v instanceof Number number) {
                                 switch (number.intValue()) {

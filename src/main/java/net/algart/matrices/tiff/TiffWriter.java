@@ -1035,6 +1035,7 @@ public class TiffWriter implements Closeable {
                 }
                 checkPhotometricInterpretation(newPhotometric,
                         EnumSet.of(TagPhotometricInterpretation.BLACK_IS_ZERO,
+                                TagPhotometricInterpretation.WHITE_IS_ZERO,
                                 TagPhotometricInterpretation.RGB_PALETTE),
                         samplesPerPixel + "-channel image");
             }
