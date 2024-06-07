@@ -3,7 +3,7 @@
     <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.tests.io.TiffWriteSimpleTest" />
     <module name="algart-tiff" />
     <option name="PROGRAM_PARAMETERS" value="/tmp/simple.tiff" />
-    <option name="VM_PARAMETERS" value="-ea -esa -Dnet.algart.matrices.tiff.timing=true -Djava.util.logging.config.file=/SciChains/conf/logging.properties" />
+    <option name="VM_PARAMETERS" value="-ea -esa -Dnet.algart.matrices.tiff.timing=true -Djava.util.logging.config.file=additional/logging.properties" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="net.algart.matrices.tiff.tests.io.*" />

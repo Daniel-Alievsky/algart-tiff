@@ -177,10 +177,7 @@ public class TiffTools {
 
     public static byte[] arrayToBytes(PArray array, boolean littleEndian) {
         Objects.requireNonNull(array, "Null array");
-        final Object javaArray =
-                array instanceof DirectAccessible da && da.hasJavaArray() && da.javaArrayOffset() == 0 ?
-                        da.javaArray() :
-                        net.algart.arrays.Arrays.toJavaArray(array);
+        final Object javaArray = array instanceof BitArray bitArray ? bitArray.jaBit() : array.ja();
         return javaArrayToBytes(javaArray, array.length(), littleEndian);
     }
 
@@ -1212,7 +1209,7 @@ public class TiffTools {
                     Collectors.joining(" * ")) +
                     " = " + product + " > " + maxValue + postfix.get());
         }
-        return (int) result;
+        return result;
     }
 
     static boolean getBooleanProperty(String propertyName) {

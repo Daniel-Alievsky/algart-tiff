@@ -793,9 +793,10 @@ public class TiffWriter implements Closeable {
                         // Here tile will be actually interleaved directly after this method;
                         // we'll need to inform it about this fact (by setInterleaved(true)) later in encode().
                         final long partSizeXInBits = (long) sizeXInTile * bitsPerPixel;
-                        long tOffset = ((long) fromYInTile * tileSizeX + fromXInTile) * bitsPerPixel;
-                        long sOffset = ((long) yDiff * sizeX + xDiff) * bitsPerPixel;
+                        long tOffset = (fromYInTile * (long) tileSizeX + fromXInTile) * bitsPerPixel;
+                        long sOffset = (yDiff * (long) sizeX + xDiff) * bitsPerPixel;
                         for (int i = 0; i < sizeYInTile; i++) {
+                            assert sOffset >= 0 && tOffset >= 0 : "possibly int instead of long";
                             PackedBitArraysPer8.copyBitsNoSync(data, tOffset, samples, sOffset, partSizeXInBits);
                             tOffset += tileChunkedRowSizeInBits;
                             sOffset += samplesChunkedRowSizeInBits;
@@ -812,11 +813,12 @@ public class TiffWriter implements Closeable {
                         // in this case samplesPerPixel=1.
                         final long partSizeXInBits = (long) sizeXInTile * bitsPerSample;
                         for (int s = 0; s < samplesPerPixel; s++) {
-                            final int tileFirst = ((s * tileSizeY) + fromYInTile) * tileSizeX + fromXInTile;
-                            final int samplesFirst = ((p + s) * sizeY + yDiff) * sizeX + xDiff;
-                            long tOffset = (long) tileFirst * bitsPerSample;
-                            long sOffset = (long) samplesFirst * bitsPerSample;
+                            long tOffset = (((s * (long) tileSizeY) + fromYInTile)
+                                    * (long) tileSizeX + fromXInTile) * bitsPerSample;
+                            long sOffset = (((p + s) * (long) sizeY + yDiff) * (long) sizeX + xDiff) * bitsPerSample;
+                            // (long) cast is important for processing large bit matrices!
                             for (int i = 0; i < sizeYInTile; i++) {
+                                assert sOffset >= 0 && tOffset >= 0 : "possibly int instead of long";
                                 PackedBitArraysPer8.copyBitsNoSync(data, tOffset, samples, sOffset, partSizeXInBits);
                                 tOffset += tileOneChannelRowSizeInBits;
                                 sOffset += samplesOneChannelRowSizeInBits;

@@ -1590,11 +1590,12 @@ public class TiffReader implements Closeable {
 
                     final long partSizeXInBits = (long) sizeXInTile * bitsPerSample;
                     for (int s = 0; s < samplesPerPixel; s++) {
-                        final int tileFirst = ((s * tileSizeY) + fromYInTile) * tileSizeX + fromXInTile;
-                        final int samplesFirst = ((p + s) * sizeY + yDiff) * sizeX + xDiff;
-                        long tOffset = tileFirst * bitsPerSample;
-                        long sOffset = samplesFirst * bitsPerSample;
+                        long tOffset = (((s * (long) tileSizeY) + fromYInTile)
+                                * (long) tileSizeX + fromXInTile) * bitsPerSample;
+                        long sOffset = (((p + s) * (long) sizeY + yDiff) * (long) sizeX + xDiff) * bitsPerSample;
+                        // (long) cast is important for processing large bit matrices!
                         for (int i = 0; i < sizeYInTile; i++) {
+                            assert sOffset >= 0 && tOffset >= 0 : "possibly int instead of long";
                             PackedBitArraysPer8.copyBitsNoSync(resultSamples, sOffset, data, tOffset, partSizeXInBits);
                             tOffset += tileOneChannelRowSizeInBits;
                             sOffset += samplesOneChannelRowSizeInBits;
