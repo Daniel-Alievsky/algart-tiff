@@ -56,7 +56,7 @@ public enum TiffSampleType {
 
     /**
      * Returns integer code 0..7 for INT8, UINT8, INT16, UINT16, INT32, UINT32, FLOAT, DOUBLE.
-     * This code is compatible with pixel type constants from SCIFIO library (<tt>FormatTools</tt> class).
+     * This code is compatible with pixel type constants from SCIFIO library (<code>FormatTools</code> class).
      *
      * @return integer code of this sample type.
      */

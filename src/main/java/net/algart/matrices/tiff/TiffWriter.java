@@ -100,7 +100,7 @@ public class TiffWriter implements Closeable {
     /**
      * If the file grows to about this limit and {@link #setBigTiff(boolean) big-TIFF} mode is not set,
      * attempt to write new IFD at the file end by methods of this class throw IO exception.
-     * While writing tiles, an exception will be thrown only while exceeding the limit <tt>2^32-1</tt>
+     * While writing tiles, an exception will be thrown only while exceeding the limit <code>2^32-1</code>
      * (~280 MB greater than this value {@value}).
      */
     public static final long MAXIMAL_ALLOWED_32BIT_IFD_OFFSET = 4_000_000_000L;
@@ -153,7 +153,7 @@ public class TiffWriter implements Closeable {
     /**
      * Creates new TIFF writer.
      *
-     * <p>Note: unlike classes like <tt>java.io.FileWriter</tt> and unlike {@link TiffReader},
+     * <p>Note: unlike classes like <code>java.io.FileWriter</code> and unlike {@link TiffReader},
      * this constructor <b>does not actually open or create file</b>.
      * You <b>must</b> call one of methods {@link #create()} or {@link #open(boolean)} after creating this object
      * by the constructor.
@@ -182,8 +182,8 @@ public class TiffWriter implements Closeable {
      * Sets whether little-endian data should be written.
      * <p>Note that the default order is <b>big-endian</b>.
      *
-     * @param littleEndian new byte while writing the file: big-endian (<tt>false</tt>) or
-     *                     little-endian (<tt>true</tt>); default is <tt>false</tt>.
+     * @param littleEndian new byte while writing the file: big-endian (<code>false</code>) or
+     *                     little-endian (<code>true</code>); default is <code>false</code>.
      */
     public TiffWriter setLittleEndian(final boolean littleEndian) {
         synchronized (fileLock) {
@@ -224,9 +224,9 @@ public class TiffWriter implements Closeable {
     /**
      * Sets auto-interleave mode.
      *
-     * <p>If set, then the samples array in <tt>write...</tt> methods is always supposed to be unpacked.
+     * <p>If set, then the samples array in <code>write...</code> methods is always supposed to be unpacked.
      * For multichannel images it means the samples order like RRR..GGG..BBB...: standard form, supposed by
-     * <tt>io.scif.Plane</tt> class and returned by {@link TiffReader}. If the desired IFD format is
+     * <code>io.scif.Plane</code> class and returned by {@link TiffReader}. If the desired IFD format is
      * chunked, i.e. {@link Tags#PLANAR_CONFIGURATION} is {@link TiffIFD#PLANAR_CONFIGURATION_CHUNKED}
      * (that is the typical usage), then the passes samples are automatically re-packed into chunked (interleaved)
      * form RGBRGBRGB...
@@ -240,7 +240,7 @@ public class TiffWriter implements Closeable {
      * i.e. for 1-channel images and if {@link Tags#PLANAR_CONFIGURATION} is
      * {@link TiffIFD#PLANAR_CONFIGURATION_SEPARATE}.
      *
-     * @param autoInterleaveSource new auto-interleave mode. Default value is <tt>true</tt>.
+     * @param autoInterleaveSource new auto-interleave mode. Default value is <code>true</code>.
      * @return a reference to this object.
      */
     public TiffWriter setAutoInterleaveSource(boolean autoInterleaveSource) {
@@ -265,26 +265,26 @@ public class TiffWriter implements Closeable {
      * {@link TiffException}. If the settings look possible in principle, but this class does not support
      * writing in this mode, the behaviour depends on the flag, setting by this method.</p>
      *
-     * <p>If this mode is set to <tt>true</tt> (the "smart" IFD correction), the writer may try to change IFD to
+     * <p>If this mode is set to <code>true</code> (the "smart" IFD correction), the writer may try to change IFD to
      * some similar settings, so that it will be able to write the image. In particular, if number of bits
      * per sample is not divided by 8 (like 4 bits/sample or "HiRes" RGB image with 5+5+5 bits/pixel),
      * the number of bits will be automatically increased up to the nearest supported bit depth: 8, 16 or 32
-     * (for floating-point images, up to 32- or 64-bit <tt>float</tt>/<tt>double</tt> precision).
+     * (for floating-point images, up to 32- or 64-bit <code>float</code>/<code>double</code> precision).
      * If you specified YCbCr photometric interpretation for <i>non-JPEG</i> compression &mdash;
      * for example, uncompressed, LZW, or Deflate compression &mdash; it will be automatically replaced with RGB
      * (this class supports YCbCr encoding for JPEG only). And so on.</p>
      *
-     * <p>If this mode is not set (this flag is <tt>false</tt>), such settings will lead to an exception.
+     * <p>If this mode is not set (this flag is <code>false</code>), such settings will lead to an exception.
      * In this case we guarantee that TIFF writer never changes existing entries in the passed IFD, but may only
      * <i>add</i> some tag if they are necessary.</p>
      *
-     * <p>Default value is <tt>false</tt>. You may set it to <tt>true</tt>, for example, when you need
+     * <p>Default value is <code>false</code>. You may set it to <code>true</code>, for example, when you need
      * to encode a new copy of some existing TIFF file.</p>
      *
      * <p>Note that this flag is passed to {@link #correctIFDForWriting(TiffIFD, boolean)} method,
-     * called inside <tt>writeSamples</tt>/<tt>writeJavaArray</tt> methods.
+     * called inside <code>writeSamples</code>/<code>writeJavaArray</code> methods.
      *
-     * @param smartIFDCorrection <tt>true</tt> means that we enable smart correction of the specified IFD
+     * @param smartIFDCorrection <code>true</code> means that we enable smart correction of the specified IFD
      *                           and do not require strictly accurate, fully supported IFD settings.
      * @return a reference to this object.
      */
@@ -333,18 +333,18 @@ public class TiffWriter implements Closeable {
      * Sets the compression quality for JPEG tiles/strips to some non-negative value.
      *
      * <p>Possible values are format-specific. For JPEG, it should between 0.0 and 1.0 (1.0 means the best quality).
-     * For JPEG-2000, maximal possible value is <tt>Double.MAX_VALUE</tt>, that means loss-less compression.
+     * For JPEG-2000, maximal possible value is <code>Double.MAX_VALUE</code>, that means loss-less compression.
      *
      * <p>If this method was not called (or after {@link #removeQuality()}), the compression quality is not specified.
      * In this case, some default quality will be used. In particular, it will be 1.0 for JPEG (maximal JPEG quality),
      * 10 for JPEG-2000 (compression code 33003) or alternative JPEG-200 (code 33005),
-     * <tt>Double.MAX_VALUE</tt> for lose-less JPEG-2000 ({@link TagCompression#JPEG_2000_LOSSY}, code 33004).
+     * <code>Double.MAX_VALUE</code> for lose-less JPEG-2000 ({@link TagCompression#JPEG_2000_LOSSY}, code 33004).
      * Note that the only difference between lose-less JPEG-2000 and the standard JPEG-2000 is this defaults:
      * if this method is called, both compressions work identically (but write different TIFF compression tags).
      *
      * <p>Note: the {@link TiffCodec.Options#setQuality(Double) quality}, that can be set via
      * {@link #setCodecOptions(TiffCodec.Options)} method, is ignored,
-     * if this value is set to non-<tt>null</tt> value.
+     * if this value is set to non-<code>null</code> value.
      *
      * <p>Please <b>remember</b> that this parameter may be different for different IFDs.
      * In this case, you need to call this method every time before creating new IFD,
@@ -372,11 +372,11 @@ public class TiffWriter implements Closeable {
 
     /**
      * Sets whether you need to prefer RGB photometric interpretation even in such formats, where another
-     * color space is more traditional. Default value is <tt>false</tt>.
+     * color space is more traditional. Default value is <code>false</code>.
      *
      * <p>In the current version, it only applies to {@link TagCompression#JPEG} format: this flag enforces the writer
      * to compress JPEG tiles/stripes with photometric interpretation RGB.
-     * If this flag is <tt>false</tt>, the writer uses YCbCr photometric interpretation &mdash;
+     * If this flag is <code>false</code>, the writer uses YCbCr photometric interpretation &mdash;
      * a standard encoding for JPEG, but not so popular in TIFF.
      *
      * <p>This flag is used if a photometric interpretation in not specified in the IFD. Otherwise,
@@ -387,8 +387,8 @@ public class TiffWriter implements Closeable {
      * In this case, you need to call this method every time before creating a new IFD,
      * not just once for the entire TIFF file!
      *
-     * <p>This parameter is ignored (as if it is <tt>false</tt>), if {@link #isEnforceUseExternalCodec()}
-     * return <tt>true</tt>.
+     * <p>This parameter is ignored (as if it is <code>false</code>), if {@link #isEnforceUseExternalCodec()}
+     * return <code>true</code>.
      *
      * <p>This flag affects the results of {@link #newMap(TiffIFD, boolean)} method: it helps to choose
      * correct photometric interpretation tag. Once a TIFF map is created and information is stored in an IFD object,
@@ -408,15 +408,15 @@ public class TiffWriter implements Closeable {
 
     /**
      * Sets the special mode, when TIFF file is allowed to contain "missing" tiles or strips,
-     * for which the offset (<tt>TileOffsets</tt> or <tt>StripOffsets</tt> tag) and/or
-     * byte count (<tt>TileByteCounts</tt> or <tt>StripByteCounts</tt> tag) contains zero value.
+     * for which the offset (<code>TileOffsets</code> or <code>StripOffsets</code> tag) and/or
+     * byte count (<code>TileByteCounts</code> or <code>StripByteCounts</code> tag) contains zero value.
      * In this mode, this writer will use zero offset and byte count, if
      * the written tile is actually empty &mdash; no pixels were written in it via
      * {@link #updateSamples(TiffMap, byte[], int, int, int, int)} or other methods.
      * In other case, this writer will create a normal tile, filled by
      * the {@link #setByteFiller(byte) default filler}.
      *
-     * <p>Default value is <tt>false</tt>. Note that <tt>true</tt> value violates requirement of
+     * <p>Default value is <code>false</code>. Note that <code>true</code> value violates requirement of
      * the standard TIFF format (but may be used by some non-standard software, which needs to
      * detect areas, not containing any actual data).
      *
@@ -470,7 +470,7 @@ public class TiffWriter implements Closeable {
      * Returns position in the file of the last IFD offset, written by methods of this object.
      * It is updated by {@link #rewriteIFD(TiffIFD, boolean)}.
      *
-     * <p>Immediately after creating new object this position is <tt>-1</tt>.
+     * <p>Immediately after creating new object this position is <code>-1</code>.
      *
      * @return file position of the last IFD offset.
      */
@@ -565,19 +565,19 @@ public class TiffWriter implements Closeable {
     }
 
     /**
-     * Writes IFD at the position, specified by <tt>startOffset</tt> argument, or at the file end
-     * (aligned to nearest even length) if it is <tt>null</tt>.
+     * Writes IFD at the position, specified by <code>startOffset</code> argument, or at the file end
+     * (aligned to nearest even length) if it is <code>null</code>.
      *
      * <p>Note: this IFD is automatically marked as last IFD in the file (next IFD offset is 0),
      * unless you explicitly specified other next offset via {@link TiffIFD#setNextIFDOffset(long)}.
      * You also may call {@link #rewritePreviousLastIFDOffset(long)} to correct
      * this mark inside the file in the previously written IFD, but usually there is no necessity to do this.</p>
      *
-     * <p>If <tt>updateIFDLinkages</tt> is <tt>true</tt>, this method also performs the following 2 actions.</p>
+     * <p>If <code>updateIFDLinkages</code> is <code>true</code>, this method also performs the following 2 actions.</p>
      *
      * <ol>
      *     <li>It updates the offset, stored in the file at {@link #positionOfLastIFDOffset()}, with start offset of
-     *     this IFD (i.e. <tt>startOffset</tt> or position of the file end). This action is performed <b>only</b>
+     *     this IFD (i.e. <code>startOffset</code> or position of the file end). This action is performed <b>only</b>
      *     if this start offset is really new for this file, i.e. if it did not present in an existing file
      *     while opening it by {@link #openExisting()} method and if some IFD was not already written
      *     at this position by methods of this object.</li>
@@ -1097,7 +1097,7 @@ public class TiffWriter implements Closeable {
      * Starts writing new IFD image.
      *
      * @param ifd       newly created and probably customized IFD.
-     * @param resizable if <tt>true</tt>, IFD dimensions may not be specified yet.
+     * @param resizable if <code>true</code>, IFD dimensions may not be specified yet.
      * @return map for writing further data.
      */
     public TiffMap newMap(TiffIFD ifd, boolean resizable) throws TiffException {
@@ -1465,8 +1465,8 @@ public class TiffWriter implements Closeable {
 
     /**
      * Writes the given IFD value to the {@link #stream() main output stream}, excepting "extra" data,
-     * which are written into the specified <tt>extraBuffer</tt>. After calling this method, you
-     * should copy full content of <tt>extraBuffer</tt> into the main stream at the position,
+     * which are written into the specified <code>extraBuffer</code>. After calling this method, you
+     * should copy full content of <code>extraBuffer</code> into the main stream at the position,
      * specified by the 2nd argument; {@link #rewriteIFD(TiffIFD, boolean)} method does it automatically.
      *
      * <p>Here "extra" data means all data, for which IFD contains their offsets instead of data itself,
@@ -1476,7 +1476,7 @@ public class TiffWriter implements Closeable {
      * @param extraBuffer              buffer to which "extra" IFD information should be written.
      * @param bufferOffsetInResultFile position of "extra" data in the result TIFF file =
      *                                 bufferOffsetInResultFile +
-     *                                 offset of the written "extra" data inside <tt>extraBuffer</tt>>;
+     *                                 offset of the written "extra" data inside <code>extraBuffer</code>;
      *                                 for example, this argument may be a position directly after
      *                                 the "main" content (sequence of 12/20-byte records).
      * @param tag                      IFD tag to write.

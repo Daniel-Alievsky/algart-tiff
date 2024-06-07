@@ -157,7 +157,7 @@ public final class TiffTile {
      * and supported for additional convenience of usage this object.
      *
      * <p>There is a guarantee that the total {@link #getSizeInBytes() number of bytes},
-     * required to store <tt>sizeX*sizeY</tt> pixels, will be <tt>&le;Integer.MAX_VALUE.</tt>
+     * required to store <code>sizeX*sizeY</code> pixels, will be <code>&le;Integer.MAX_VALUE.</code>
      *
      * @param sizeX the tile width; must be positive.
      * @param sizeY the tile height; must be positive.
@@ -210,7 +210,7 @@ public final class TiffTile {
     /**
      * Returns ({@link #getSizeInPixels()} * {@link #bitsPerPixel()} + 7) / 8.
      *
-     * @return the length of the minimal <tt>byte[]</tt> data array, enough to store all tile pixels.
+     * @return the length of the minimal <code>byte[]</code> data array, enough to store all tile pixels.
      */
     public int getSizeInBytes() {
         return sizeInBytes;
@@ -242,14 +242,14 @@ public final class TiffTile {
      * Reduces sizes of this tile so that it will completely lie inside map dimensions.
      *
      * <p>This operation can be useful for <i>stripped</i> TIFF image, especially while writing.
-     * But you should not call this for <i>tiled</i> image (when {@link TiffMap#isTiled()} returns <tt>true</tt>).
+     * But you should not call this for <i>tiled</i> image (when {@link TiffMap#isTiled()} returns <code>true</code>).
      * For tiled image, TIFF file usually contains full-size encoded tiles even on image boundary;
      * they should be cropped after decoding by external means. You can disable attempt to reduce
-     * tile in tiled image by passing <tt>nonTiledOnly=true</tt>.
+     * tile in tiled image by passing <code>nonTiledOnly=true</code>.
      *
-     * @param nonTiledOnly if <tt>true</tt>, this function will not do anything when the map
+     * @param nonTiledOnly if <code>true</code>, this function will not do anything when the map
      *                     is {@link TiffMap#isTiled() tiled}. While using for reading/writing TIFF files,
-     *                     this argument usually should be <tt>true</tt>.
+     *                     this argument usually should be <code>true</code>.
      * @return a reference to this object.
      * @throws IllegalStateException if this tile is completely outside map dimensions.
      */
@@ -312,16 +312,16 @@ public final class TiffTile {
     }
 
     /**
-     * Returns <tt>true</tt>>, if the stored pixel samples (as supposed) are interleaved, like RGBRGB...,
-     * or <tt>false</tt> if not (RRR...GGG...BBB...).
+     * Returns <code>true</code>>, if the stored pixel samples (as supposed) are interleaved, like RGBRGB...,
+     * or <code>false</code> if not (RRR...GGG...BBB...).
      * It doesn't matter in a case of monochrome images and in a case of {@link #isEncoded() encoded} data.
-     * Default value is <tt>false</tt>.
+     * Default value is <code>false</code>.
      *
      * <p>By default, the data are considered to be <b>not</b> interleaved, in other words, {@link #isSeparated()
      * separated}. Methods, reading and decoding the tile from TIFF, always return separated tile.
      * Methods, encoding the file for writing to TIFF, may work both with interleaved tiles,
      * but it should be explicitly declared, like in
-     * {@link TiffWriter#setAutoInterleaveSource(boolean)} method (with <tt>false</tt> argument).</p>
+     * {@link TiffWriter#setAutoInterleaveSource(boolean)} method (with <code>false</code> argument).</p>
      *
      * <p>This is purely informational property, not affecting processing the stored data
      * by methods of this object and supported for additional convenience of usage this class.</p>
@@ -399,8 +399,8 @@ public final class TiffTile {
     /**
      * Returns the decoded data. Every pixel in the unpacked data consists of {@link #samplesPerPixel()}
      * <i>samples</i>, and every sample is represented with either 1 bit or 1, 2, 3 or 4 whole bytes.
-     * If the samples in TIFF file are K-bit integers where <tt>K%8&nbsp;&ne;&nbsp;0</tt>, they are automatically
-     * unpacked into <tt>&#8968;K/8&#8969*8</tt> bit integers while decoding.
+     * If the samples in TIFF file are K-bit integers where <code>K%8&nbsp;&ne;&nbsp;0</code>, they are automatically
+     * unpacked into <code>&#8968;K/8&#8969*8</code> bit integers while decoding.
      *
      * <p>In addition to the standard precisions provided by {@link TiffSampleType}, samples can be represented
      * in the following unusual precisions:</p>
@@ -526,7 +526,7 @@ public final class TiffTile {
      * Returns the estimated number of pixels, that can be stored in the {@link #getData() data array} in this tile
      * in the decoded form, or 0 after creating this object.
      *
-     * <p>Note: that this method throws <tt>IllegalStateException</tt> if the data are
+     * <p>Note: that this method throws <code>IllegalStateException</code> if the data are
      * {@link #isEncoded() encoded}, for example, immediately after reading tile from file.
      * If the tile is {@link #isEmpty() empty} (no data),
      * the exception is not thrown, though usually there is no sense to call this method in this situation.</p>
@@ -565,7 +565,7 @@ public final class TiffTile {
 
     /**
      * Checks whether the length of the data array in bytes is correctly aligned: the data contains an integer number
-     * of whole pixels. If it is not so, throws <tt>IllegalStateException</tt>.
+     * of whole pixels. If it is not so, throws <code>IllegalStateException</code>.
      *
      * <p>Note that unaligned length is impossible for 1 bit/sample, because we support only 1-channel images
      * with 1 bit/sample.</p>
@@ -593,7 +593,7 @@ public final class TiffTile {
 
     /**
      * Checks whether the length of the data array length matches the declared tile sizes {@link #getSizeInBytes()}.
-     * If it is not so, throws <tt>IllegalStateException</tt>.
+     * If it is not so, throws <code>IllegalStateException</code>.
      *
      * <p>This method must not be called for {@link #isEncoded() encoded} tile.
      *

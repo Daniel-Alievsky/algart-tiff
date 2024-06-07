@@ -1118,7 +1118,7 @@ public class TiffTools {
 
     /**
      * Warning: you should never call {@link DataHandle#set(Object)} method of the returned result!
-     * It can lead to unpredictable <tt>ClassCastException</tt>.
+     * It can lead to unpredictable <code>ClassCastException</code>.
      */
     @SuppressWarnings("rawtypes, unchecked")
     static DataHandle<Location> getFileHandle(FileLocation fileLocation) {
@@ -1132,7 +1132,7 @@ public class TiffTools {
 
     /**
      * Warning: you should never call {@link DataHandle#set(Object)} method of the returned result!
-     * It can lead to unpredictable <tt>ClassCastException</tt>.
+     * It can lead to unpredictable <code>ClassCastException</code>.
      */
     @SuppressWarnings("rawtypes, unchecked")
     static DataHandle<Location> getBytesHandle(BytesLocation bytesLocation) {

@@ -177,9 +177,9 @@ public class TiffReader implements Closeable {
     }
 
     /**
-     * Equivalent to {@link #TiffReader(DataHandle, boolean, boolean)} with <tt>false</tt> last argument.
+     * Equivalent to {@link #TiffReader(DataHandle, boolean, boolean)} with <code>false</code> last argument.
      * Note that you <b>should not</b> call this constructor from another constructor, creating this
-     * <tt>DataHandle</tt>: in this case, the handle will never be closed!
+     * <code>DataHandle</code>: in this case, the handle will never be closed!
      *
      * @param inputStream      input stream.
      * @param requireValidTiff whether the input file must exist and be a readable TIFF-file
@@ -194,23 +194,23 @@ public class TiffReader implements Closeable {
     /**
      * Constructs new reader.
      *
-     * <p>If <tt>requireValidTiff</tt> is <tt>true</tt> (standard variant), it will throw an exception
+     * <p>If <code>requireValidTiff</code> is <code>true</code> (standard variant), it will throw an exception
      * in a case of incorrect TIFF header or some other I/O errors.
-     * In this case, <tt>closeStreamOnException</tt> flag specifies, whether this function
+     * In this case, <code>closeStreamOnException</code> flag specifies, whether this function
      * must close the input stream or no. It <b>should</b> be true when you call this constructor
-     * from another constructor, which creates <tt>DataHandle</tt>: it is the only way to close
-     * an invalid file. In other situation this flag may be <tt>false</tt>, then you must close
+     * from another constructor, which creates <code>DataHandle</code>: it is the only way to close
+     * an invalid file. In other situation this flag may be <code>false</code>, then you must close
      * the input stream yourself.
      *
-     * <p>If <tt>requireValidTiff</tt> is <tt>false</tt>, all exceptions are caught and not thrown,
-     * and {@link #isValid()} method will return <tt>false</tt>.
+     * <p>If <code>requireValidTiff</code> is <code>false</code>, all exceptions are caught and not thrown,
+     * and {@link #isValid()} method will return <code>false</code>.
      * In this case, you can know the occurred exception by {@link #openingException()} method.
      *
      * @param inputStream            input stream.
      * @param requireValidTiff       whether the input file must exist and be a readable TIFF-file
      *                               with a correct header.
-     * @param closeStreamOnException if <tt>true</tt>, the input stream is closed in a case of any exception;
-     *                               ignored if <tt>requireValidTiff</tt> is <tt>false</tt>.
+     * @param closeStreamOnException if <code>true</code>, the input stream is closed in a case of any exception;
+     *                               ignored if <code>requireValidTiff</code> is <code>false</code>.
      * @throws TiffException if the file is not a correct TIFF file.
      * @throws IOException   in a case of any problems with the input file.
      */
@@ -240,14 +240,14 @@ public class TiffReader implements Closeable {
      *
      * <p>It never throws an exception. If the file is not a correct TIFF or in a case of any other I/O problem,
      * the information about the problem is stored in an exception, which can be retrieved later
-     * by {@link #openingException()} method and which is passed to <tt>exceptionHandler</tt>
-     * (if it is not <tt>null</tt>).
+     * by {@link #openingException()} method and which is passed to <code>exceptionHandler</code>
+     * (if it is not <code>null</code>).
      *
      * <p>This constructor is useful, because it allows to make constructors in subclasses, which do not through
      * any exceptions.
      *
      * @param inputStream      input stream.
-     * @param exceptionHandler if not <tt>null</tt>, it will be called in a case of some checked exception;
+     * @param exceptionHandler if not <code>null</code>, it will be called in a case of some checked exception;
      *                         for example, it may log it. But usually it is better idea to use the main
      *                         constructor {@link #TiffReader(DataHandle, boolean, boolean)} with catching exception.
      */
@@ -270,7 +270,7 @@ public class TiffReader implements Closeable {
 
     /**
      * Sets whether the parser should always require valid TIFF format.
-     * Default value is specified in the constructor or is <tt>false</tt>
+     * Default value is specified in the constructor or is <code>false</code>
      * when using a constructor without such argument.
      *
      * @param requireValidTiff whether TIFF file should be correct.
@@ -304,7 +304,7 @@ public class TiffReader implements Closeable {
 
     /**
      * Sets the flag, whether do we need to unpack binary images (1 bit/pixel, black-and-white images)
-     * into <tt>byte</tt> matrices: black pixels to the value 0, white pixels to the value 255.
+     * into <code>byte</code> matrices: black pixels to the value 0, white pixels to the value 255.
      *
      * <p>By default this flag is cleared. In this case, {@link #readMatrix(TiffMap)} and similar methods return
      * binary AlgART matrices.</p>
@@ -347,17 +347,18 @@ public class TiffReader implements Closeable {
      * they are automatically converted to the nearest "larger" type, for example, 4-bit integer is converted
      * to 8-bit, 12-bit integer is converted to 16-bit, 24-bit to 32-bit.</p>
      *
-     * <p>If this flag is <tt>false</tt>, this conversion is performed "as-is", so, values 0..15 in 4-bit source data
+     * <p>If this flag is <code>false</code>, this conversion is performed "as-is", so, values 0..15 in 4-bit source data
      * will be converted to the same values 0..15 with 8-bit precision.
      * This is good if you need to process these values using some kind of algorithm.
      * However, if you need to show the real picture to the end user, then values 0..15 with 8-bit
-     * precisions (or 0..4095 with 16-bit precision) will look almost black. To avoid this, you may use <tt>true</tt>
+     * precisions (or 0..4095 with 16-bit precision) will look almost black. To avoid this,
+     * you can use <code>true</code>
      * value of this flag, which causes automatic scaling returned values: multiplying by
      * (2<sup><i>n</i></sup>&minus;1)/(2<sup><i>k</i></sup>&minus;1), where <i>n</i> is the result bit depth
      * and <i>k</i> is the source one (for example, for 12-bit image <i>k</i>=12 and <i>n</i>=16).
      * As the result, the returned picture will look alike the source one.</p>
      *
-     * <p>Default value is <tt>true</tt>. However, the scaling is still not performed if
+     * <p>Default value is <code>true</code>. However, the scaling is still not performed if
      * PhotometricInterpretation TIFF tag is "Palette" (3) or "Transparency Mask" (4): in these cases
      * scaling has no sense.
      *
@@ -385,7 +386,7 @@ public class TiffReader implements Closeable {
      * and absolutely useless for more complex color spaces like CIELAB, but for PhotometricInterpretation=0 or 5
      * it helps to provide RGB results more similar to the correct picture.
      *
-     * <p>Default value is <tt>false</tt>. You may set it to <tt>true</tt> if the only goal of reading TIFF
+     * <p>Default value is <code>false</code>. You may set it to <code>true</code> if the only goal of reading TIFF
      * is to show the image to a user.
      *
      * @param autoCorrectInvertedBrightness whether do we need to invert samples for "WhiteIsZero" and "CMYK"
@@ -443,9 +444,9 @@ public class TiffReader implements Closeable {
     /**
      * Sets whether IFD entries, returned by {@link #allIFDs()} method, should be cached.
      *
-     * <p>Default value is <tt>true</tt>. Possible reason to set is to <tt>false</tt>
+     * <p>Default value is <code>true</code>. Possible reason to set is to <code>false</code>
      * is reading file which is dynamically modified.
-     * In other cases, usually it should be <tt>true</tt>, though <tt>false</tt> value
+     * In other cases, usually it should be <code>true</code>, though <code>false</code> value
      * also works well if you are not going to call {@link #allIFDs()} more than once.
      *
      * @param cachingIFDs whether caching IFD is enabled.
@@ -462,12 +463,12 @@ public class TiffReader implements Closeable {
 
     /**
      * Sets the special mode, when TIFF file is allowed to contain "missing" tiles or strips,
-     * for which the offset (<tt>TileOffsets</tt> or <tt>StripOffsets</tt> tag) and/or
-     * byte count (<tt>TileByteCounts</tt> or <tt>StripByteCounts</tt> tag) contains zero value.
+     * for which the offset (<code>TileOffsets</code> or <code>StripOffsets</code> tag) and/or
+     * byte count (<code>TileByteCounts</code> or <code>StripByteCounts</code> tag) contains zero value.
      * In this mode, such tiles/strips will be successfully read as empty rectangles, filled by
      * the {@link #setByteFiller(byte) default filler}.
      *
-     * <p>Default value is <tt>false</tt>. In this case, such tiles/strips are not allowed,
+     * <p>Default value is <code>false</code>. In this case, such tiles/strips are not allowed,
      * as the standard TIFF format requires.
      *
      * @param missingTilesAllowed whether "missing" tiles/strips are allowed.
@@ -546,7 +547,7 @@ public class TiffReader implements Closeable {
      * Usually it is just a position of the offset of the last IFD, because
      * popular {@link #allIFDs()} method calls {@link #readIFDOffsets()} inside.
      *
-     * <p>Immediately after creating new object this position is <tt>-1</tt>.
+     * <p>Immediately after creating new object this position is <code>-1</code>.
      *
      * @return file position of the last IFD offset.
      */
@@ -555,7 +556,7 @@ public class TiffReader implements Closeable {
     }
 
     /**
-     * Returns <tt>{@link #allIFDs()}.size()</tt>.
+     * Returns <code>{@link #allIFDs()}.size()</code>.
      *
      * @return number of existing IFDs.
      * @throws TiffException if the file is not a correct TIFF file.
@@ -571,14 +572,16 @@ public class TiffReader implements Closeable {
 
     /**
      * Calls {@link #allIFDs()} and returns IFD with the specified index.
-     * If <tt>ifdIndex</tt> is too big (&ge;{@link #numberOfIFDs()}), this method throws {@link TiffException}.</p>
+     * If <code>ifdIndex</code> is too big (&ge;{@link #numberOfIFDs()}), this method throws
+     * {@link TiffException}.</p>
      *
      * @param ifdIndex index of IFD.
      * @return the IFD with the specified index.
-     * @throws TiffException            if <tt>ifdIndex</tt> is too large, or if the file is not a correct TIFF file
+     * @throws TiffException            if <code>ifdIndex</code> is too large,
+     *                                  or if the file is not a correct TIFF file
      *                                  and this was not detected while opening it.
      * @throws IOException              in a case of any problems with the input file.
-     * @throws IllegalArgumentException if <tt>ifdIndex&lt;0</tt>.
+     * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
      */
     public TiffIFD ifd(int ifdIndex) throws IOException {
         List<TiffIFD> ifdList = allIFDs();
@@ -622,7 +625,7 @@ public class TiffReader implements Closeable {
      * When first called, reads all IFD from the file
      * (but this can be disabled using {@link #setCachingIFDs(boolean)} method).
      *
-     * <p>Note: if this TIFF file is not valid ({@link #isValid()} returns <tt>false</tt>), this method
+     * <p>Note: if this TIFF file is not valid ({@link #isValid()} returns <code>false</code>), this method
      * returns an empty list and does not throw an exception. For valid TIFF, result cannot be empty.
      *
      * @throws TiffException if the file is not a correct TIFF file, but this was not detected while opening it.
@@ -709,11 +712,11 @@ public class TiffReader implements Closeable {
     }
 
     /**
-     * Returns the file offset of IFD with given index or <tt>-1</tt> if the index is too high.
+     * Returns the file offset of IFD with given index or <code>-1</code> if the index is too high.
      * Updates {@link #positionOfLastIFDOffset()} to position of this offset.
      *
      * @param ifdIndex index of IFD (0, 1, ...).
-     * @return offset of this IFD in the file or <tt>-1</tt> if the index is too high.
+     * @return offset of this IFD in the file or <code>-1</code> if the index is too high.
      */
     public long readSingleIFDOffset(int ifdIndex) throws IOException {
         if (ifdIndex < 0) {
@@ -743,7 +746,7 @@ public class TiffReader implements Closeable {
     /**
      * Gets the offsets to every IFD in the file.
      *
-     * <p>Note: if this TIFF file is not valid ({@link #isValid()} returns <tt>false</tt>), this method
+     * <p>Note: if this TIFF file is not valid ({@link #isValid()} returns <code>false</code>), this method
      * returns an empty array and does not throw an exception. For valid TIFF, result cannot be empty.
      */
     public long[] readIFDOffsets() throws IOException {
@@ -785,7 +788,7 @@ public class TiffReader implements Closeable {
 
     /**
      * Reads the IFD stored at the given offset.
-     * Never returns <tt>null</tt>.
+     * Never returns <code>null</code>.
      */
     public TiffIFD readIFDAt(long startOffset) throws IOException {
         return readIFDAt(startOffset, null, true);
@@ -1108,7 +1111,7 @@ public class TiffReader implements Closeable {
      * code with help of {@link TiffTools#unpackUnusualPrecisions(byte[], TiffIFD, int, int, boolean)} method.
      *
      * <p>This method does not allow 5, 6, 7 or greater than 8 bytes/sample
-     * (but 8 bytes/sample is allowed: it is probably <tt>double</tt> precision).</p>
+     * (but 8 bytes/sample is allowed: it is probably <code>double</code> precision).</p>
      *
      * @param tile the tile that should be corrected.
      */
@@ -1192,7 +1195,7 @@ public class TiffReader implements Closeable {
     }
 
     /**
-     * Reads samples in <tt>byte[]</tt> array.
+     * Reads samples in <code>byte[]</code> array.
      *
      * <p>Note: you should not change IFD in a parallel thread while calling this method.
      *

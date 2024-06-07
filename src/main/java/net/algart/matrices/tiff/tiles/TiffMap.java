@@ -190,7 +190,7 @@ public final class TiffMap {
      * the value of BitsPerSample TIFF tag, aligned to the nearest non-lesser multiple of 8,
      * or 1 in the case of a single-channel binary matrix (BitsPerSample=1, SamplesPerPixel=1).
      * This class requires that this value is equal for all channels, even
-     * if <tt>BitsPerSample</tt> tag contain different number of bits per channel (for example, 5+6+5).
+     * if <code>BitsPerSample</code> tag contain different number of bits per channel (for example, 5+6+5).
      *
      * <p>Note that the actual number of bits, used for storing the pixel samples in memory
      * after reading data from TIFF file, may be little greater: see {@link #bitsPerUnpackedSample()}.
@@ -213,11 +213,12 @@ public final class TiffMap {
      *     <li>every channel is encoded as N-bit integer value, where 17&le;N&le;24, and, so, requires 3 bytes:
      *     this method returns 32, {@link #bitsPerSample()} returns 24
      *     (image, stored in memory, must have 2<sup>k</sup> bytes (k=1..3) per every sample, to allow to represent
-     *     it by one of Java types <tt>byte</tt>, <tt>short</tt>, <tt>int</tt>, <tt>float</tt>, <tt>double</tt>);
+     *     it by one of Java types <code>byte</code>, <code>short</code>, <code>int</code>,
+     *     <code>float</code>, <code>double</code>);
      *     </li>
      *     <li>pixels are encoded as 16-bit or 24-bit floating point values:
      *     this method returns 32, {@link #bitsPerSample()} returns 16/24
-     *     (in memory, such image will be unpacked into usual array of 32-bit <tt>float</tt> values).
+     *     (in memory, such image will be unpacked into usual array of 32-bit <code>float</code> values).
      *     </li>
      * </ul>
      *
@@ -319,7 +320,7 @@ public final class TiffMap {
     }
 
     /**
-     * Replaces total image sizes to maximums from their current values and <tt>newMinimalDimX/Y</tt>.
+     * Replaces total image sizes to maximums from their current values and <code>newMinimalDimX/Y</code>.
      *
      * <p>Note: if both new x/y-sizes are not greater than existing ones, this method does nothing
      * and can be called even if not {@link #isResizable()}.</p>
@@ -348,7 +349,7 @@ public final class TiffMap {
     }
 
     /**
-     * Replaces tile x/y-count to maximums from their current values and <tt>newMinimalTileCountX/Y</tt>.
+     * Replaces tile x/y-count to maximums from their current values and <code>newMinimalTileCountX/Y</code>.
      *
      * <p>Note: the arguments are the desired minimal tile <i>counts</i>, not tile <i>indexes</i>.
      * So, you can freely specify zero arguments, and this method will do nothing in this case.

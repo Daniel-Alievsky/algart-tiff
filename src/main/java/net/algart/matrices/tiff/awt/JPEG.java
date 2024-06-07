@@ -53,7 +53,7 @@ public class JPEG {
     }
 
     /**
-     * Analog of <tt>ImageIO.read</tt>. Actually can read any formats, not only JPEG.
+     * Analog of <code>ImageIO.read</code>. Actually can read any formats, not only JPEG.
      * Also reads metadata (but not thumbnails).
      */
     public static ImageInformation readJPEG(InputStream in) throws IOException {
@@ -77,7 +77,7 @@ public class JPEG {
     }
 
     /**
-     * Analog of <tt>ImageIO.write</tt> for JPEG.
+     * Analog of <code>ImageIO.write</code> for JPEG.
      */
     public static void writeJPEG(
             BufferedImage image,

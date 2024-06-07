@@ -224,7 +224,7 @@ public class TiffIFD {
     }
 
     /**
-     * Returns <tt>true</tt> if this IFD is marked as the last ({@link #getNextIFDOffset()} returns 0).
+     * Returns <code>true</code> if this IFD is marked as the last ({@link #getNextIFDOffset()} returns 0).
      *
      * @return whether this IFD is the last one in the TIFF file.
      */
@@ -910,7 +910,7 @@ public class TiffIFD {
     }
 
     /**
-     * Checks that all bits per sample (<tt>BitsPerSample</tt> tag) for all channels are equal to the same integer,
+     * Checks that all bits per sample (<code>BitsPerSample</code> tag) for all channels are equal to the same integer,
      * and returns this integer. If it is not so, returns empty optional result.
      * Note that unequal bits per sample is not supported by all software.
      *
@@ -922,7 +922,7 @@ public class TiffIFD {
      *
      * @return bits per sample, if this value is the same for all channels, or empty value in other case.
      * @throws TiffException in a case of any problems while parsing IFD, in particular,
-     *                       if <tt>BitsPerSample</tt> tag contains zero or negative values.
+     *                       if <code>BitsPerSample</code> tag contains zero or negative values.
      */
     public OptionalInt tryEqualBitDepth() throws TiffException {
         final int[] bitsPerSample = getBitsPerSample();
@@ -942,13 +942,13 @@ public class TiffIFD {
 
     /**
      * Returns the number of bits per each sample. It is calculated based on the array
-     * <tt>B&nbsp;=&nbsp;{@link #getBitsPerSample()}</tt> (numbers of bits per each channel) as follows:
+     * <code>B&nbsp;=&nbsp;{@link #getBitsPerSample()}</code> (numbers of bits per each channel) as follows:
      * <ol>
-     *     <li>if this array consists of the single element <tt>B[0]==1</tt>, the result is 1;</li>
-     *     <li>in other case, if all the values <tt>(B[i]+7)/8</tt> (<tt>&#8968;(double)B[i]/8&#8969;</tt>) are equal
-     *     to the same value <tt>b</tt>, the result is b*8
+     *     <li>if this array consists of the single element <code>B[0]==1</code>, the result is 1;</li>
+     *     <li>in other case, if all the values <code>(B[i]+7)/8</code> (<code>&#8968;(double)B[i]/8&#8969;</code>)
+     *     are equal to the same value <code>b</code>, the result is b*8
      *     (this is the number of whole bytes needed to store each sample);</li>
-     *     <li>if some of values <tt>(B[i]+7)/8</tt> are different, {@link UnsupportedTiffFormatException}
+     *     <li>if some of values <code>(B[i]+7)/8</code> are different, {@link UnsupportedTiffFormatException}
      *     is thrown.</li>
      * </ol>
      *
@@ -1141,26 +1141,26 @@ public class TiffIFD {
     }
 
     /**
-     * Returns <tt>true</tt> if IFD contains tags <tt>TileWidth</tt> and <tt>TileLength</tt>.
+     * Returns <code>true</code> if IFD contains tags <code>TileWidth</code> and <code>TileLength</code>.
      * It means that the image is stored in tiled form, but not separated by strips.
      *
-     * <p>If IFD contains <b>only one</b> from these tags &mdash; there is <tt>TileWidth</tt>,
-     * but <tt>TileLength</tt> is not specified, or vice versa &mdash; this method throws
-     * <tt>FormatException</tt>. It allows to guarantee: if this method returns <tt>true</tt>,
+     * <p>If IFD contains <b>only one</b> from these tags &mdash; there is <code>TileWidth</code>,
+     * but <code>TileLength</code> is not specified, or vice versa &mdash; this method throws
+     * <code>FormatException</code>. It allows to guarantee: if this method returns <code>true</code>,
      * than the tile sizes are completely specified by these 2 tags and do not depend on the
-     * actual image sizes. Note: when this method returns <tt>false</tt>, the tiles sizes,
+     * actual image sizes. Note: when this method returns <code>false</code>, the tiles sizes,
      * returned by {@link #getTileSizeY()} methods, are determined by
-     * <tt>RowsPerStrip</tt> tag, and {@link #getTileSizeX()} is always equal to the value
-     * of <tt>ImageWidth</tt> tag.
+     * <code>RowsPerStrip</code> tag, and {@link #getTileSizeX()} is always equal to the value
+     * of <code>ImageWidth</code> tag.
      *
-     * <p>For comparison, old <tt>isTiled()</tt> methods returns <tt>true</tt>
-     * if IFD contains tag <tt>TileWidth</tt> <i>and</i> does not contain tag <tt>StripOffsets</tt>.
-     * However, some TIFF files use <tt>StripOffsets</tt> and <tt>StripByteCounts</tt> tags even
+     * <p>For comparison, old <code>isTiled()</code> methods returns <code>true</code>
+     * if IFD contains tag <code>TileWidth</code> <i>and</i> does not contain tag <code>StripOffsets</code>.
+     * However, some TIFF files use <code>StripOffsets</code> and <code>StripByteCounts</code> tags even
      * in a case of tiled image, for example, cramps-tile.tif from the known image set <i>libtiffpic</i>
      * (see https://download.osgeo.org/libtiff/ ).
      *
      * @return whether this IFD contain tile size information.
-     * @throws TiffException if one of tags <tt>TileWidth</tt> and <tt>TileLength</tt> is present in IFD,
+     * @throws TiffException if one of tags <code>TileWidth</code> and <code>TileLength</code> is present in IFD,
      *                       but the second is absent.
      */
     public boolean hasTileInformation() throws TiffException {
@@ -1249,12 +1249,12 @@ public class TiffIFD {
     }
 
     /**
-     * Puts new values for <tt>ImageWidth</tt> and <tt>ImageLength</tt> tags.
+     * Puts new values for <code>ImageWidth</code> and <code>ImageLength</code> tags.
      *
      * <p>Note: this method works even when IFD is frozen by {@link #freeze()} method.
      *
-     * @param dimX new TIFF image width (<tt>ImageWidth</tt> tag); must be in 1..Integer.MAX_VALUE range.
-     * @param dimY new TIFF image height (<tt>ImageLength</tt> tag); must be in 1..Integer.MAX_VALUE range.
+     * @param dimX new TIFF image width (<code>ImageWidth</code> tag); must be in 1..Integer.MAX_VALUE range.
+     * @param dimY new TIFF image height (<code>ImageLength</code> tag); must be in 1..Integer.MAX_VALUE range.
      */
     public TiffIFD updateImageDimensions(long dimX, long dimY) {
         if (dimX <= 0) {
@@ -1282,9 +1282,9 @@ public class TiffIFD {
     }
 
     /**
-     * Puts new values for <tt>TileOffsets</tt> / <tt>TileByteCounts</tt> tags or
-     * <tt>StripOffsets</tt> / <tt>StripByteCounts</tt> tag, depending on result of
-     * {@link #hasTileInformation()} methods (<tt>true</tt> or <tt>false</tt> correspondingly).
+     * Puts new values for <code>TileOffsets</code> / <code>TileByteCounts</code> tags or
+     * <code>StripOffsets</code> / <code>StripByteCounts</code> tag, depending on result of
+     * {@link #hasTileInformation()} methods (<code>true</code> or <code>false</code> correspondingly).
      *
      * <p>Note: this method works even when IFD is frozen by {@link #freeze()} method.
      *
