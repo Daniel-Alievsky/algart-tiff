@@ -285,20 +285,27 @@ public class LZWCodec extends AbstractCodec {
 		// Previous code processed by decompressor.
 		int oldCode = 0; // without initializer, Java reports error later
 
+		boolean startDecoding = true;
 		try {
 			do {
 				// read next code
 				{
 					int bitsLeft = currCodeLength - bitsRead;
+					int firstByte = -1;
 					if (bitsLeft > 8) {
-						currRead = (currRead << 8) | (in.read() & 0xff);
+						firstByte = in.read() & 0xff;
+						currRead = (currRead << 8) | firstByte;
 						bitsLeft -= 8;
 					}
 					bitsRead = 8 - bitsLeft;
 					final int nextByte = in.read() & 0xff;
+					if (startDecoding && firstByte == 0x00 && nextByte == 0x01) {
+						throw new TiffException("TIFF 5.0-style LZW compression (very old format) is not supported");
+					}
 					currCode = (currRead << bitsLeft) | (nextByte >> bitsRead);
 					currRead = nextByte & DECOMPR_MASKS[bitsRead];
 				}
+				startDecoding = false;
 
 				if (currCode == EOI_CODE) break;
 

@@ -241,7 +241,6 @@ public class TiffWriterTest {
                 }
                 writer.setPreferRGB(jpegRGB);
 //                writer.setSmartIFDCorrection(true);
-//                writer.setPredefinedPhotoInterpretation(PhotoInterp.Y_CB_CR);
 //                writer.setByteFiller((byte) 0xE0);
                 writer.setTileInitializer(TiffWriterTest::customFillEmptyTile);
                 writer.setMissingTilesAllowed(allowMissing);

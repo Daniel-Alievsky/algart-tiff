@@ -1025,10 +1025,14 @@ public class TiffWriter implements Closeable {
                         TagPhotometricInterpretation.BLACK_IS_ZERO;
             } else {
                 // There are no reasons to create custom photometric interpretations for 1 channel,
-                // excepting RGB palette and standard black-and-white (BLACK_IS_ZERO).
-                // In particular, WHITE_IS_ZERO interpretation has no advantage
-                // in comparison with BLACK_IS_ZERO, but requires special processing
-                // if you want to get the same results while further reading.
+                // excepting RGB palette, BLACK_IS_ZERO, WHITE_IS_ZERO
+                // (we do not support TRANSPARENCY_MASK, that should be used together with other IFD).
+                // We have no special support for interpretations other that BLACK_IS_ZERO,
+                // but if the user wants, he can prepare correct data for them.
+                // We do not try to invert data for WHITE_IS_ZERO,
+                // as well as we do not invert values for CMYK below.
+                // This is important, because TiffReader (by default) also do not invert brightness in these cases:
+                // autoCorrectInvertedBrightness=false, so, TiffReader+TiffWriter can copy such IFD correctly.
                 if (newPhotometric == TagPhotometricInterpretation.RGB_PALETTE && !hasColorMap) {
                     throw new TiffException("Cannot write TIFF image: newPhotometric interpretation \"" +
                             newPhotometric.prettyName() + "\" requires also \"ColorMap\" tag");
@@ -1054,9 +1058,9 @@ public class TiffWriter implements Closeable {
                         // - compression == null is added just in case (it is impossible when isStandardYCbCrNonJpeg,
                         // excepting the case of correction from a parallel thread)
                     } else {
-                        // - In this case, we automatically decode YCbCr into RGB while reading;
+                        // - TiffReader automatically decodes YCbCr into RGB while reading;
                         // we cannot encode pixels back to YCbCr,
-                        // so, it would be better to change newPhotometric interpretation to RGB.
+                        // and it would be better to change newPhotometric interpretation to RGB.
                         // Note that for JPEG we have no this problem: we CAN encode JPEG as YCbCr.
                         // For other models (like CMYK or CIE Lab), we ignore newPhotometric interpretation
                         // and suppose that the user herself prepared channels in the necessary model.
@@ -1073,6 +1077,8 @@ public class TiffWriter implements Closeable {
                 // else we stay IFD without photometric interpretation: incorrect for good TIFF,
                 // but better than senseless interpretation
             }
+            // But if newPhotometric is specified, we do not anything;
+            // for example, the user can prepare correct data for CMYK image.
         }
         if (newPhotometric != suggestedPhotometric) {
             ifd.putPhotometricInterpretation(newPhotometric);

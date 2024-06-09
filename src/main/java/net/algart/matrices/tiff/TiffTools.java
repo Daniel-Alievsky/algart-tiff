@@ -384,8 +384,9 @@ public class TiffTools {
         final int predictor = tile.ifd().getInt(Tags.PREDICTOR, TiffIFD.PREDICTOR_NONE);
         if (predictor == TiffIFD.PREDICTOR_HORIZONTAL) {
             if (!tile.isWholeBytes()) {
-                throw new TiffException("Cannot use TIFF predictor for bit depths that are not multiple of 8: " +
-                        Arrays.toString(tile.ifd().getBitsPerSample()));
+                throw new TiffException("Cannot use TIFF predictor for writing " +
+                        "when bit depth is not multiple of 8: " +
+                        Arrays.toString(tile.ifd().getBitsPerSample()) + " bits/pixel");
             }
             final boolean little = tile.isLittleEndian();
             final int bytes = tile.bitsPerSample() >> 3;
@@ -428,8 +429,9 @@ public class TiffTools {
         final int predictor = tile.ifd().getInt(Tags.PREDICTOR, TiffIFD.PREDICTOR_NONE);
         if (predictor == TiffIFD.PREDICTOR_HORIZONTAL) {
             if (!tile.isWholeBytes()) {
-                throw new TiffException("Cannot decode TIFF predictor for bit depths that are not multiple of 8: " +
-                        Arrays.toString(tile.ifd().getBitsPerSample()));
+                throw new TiffException("Cannot use TIFF predictor for reading " +
+                        "when bit depth is not multiple of 8: " +
+                        Arrays.toString(tile.ifd().getBitsPerSample()) + " bits/pixel");
             }
             final boolean little = tile.isLittleEndian();
             final int bytes = tile.bitsPerSample() >> 3;

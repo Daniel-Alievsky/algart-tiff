@@ -60,6 +60,8 @@ public class TiffCopyFolderTest {
 
         System.out.printf("Copying all TIFF files from %s to %s...%n", sourceFolder, targetFolder);
 
+        int total = 0;
+        int successful = 0;
         try (DirectoryStream<Path> files = Files.newDirectoryStream(sourceFolder)) {
             for (Path file : files) {
                 if (!Files.isRegularFile(file)) {
@@ -69,8 +71,10 @@ public class TiffCopyFolderTest {
                 if (fileName.toString().startsWith(".")) {
                     continue;
                 }
+                total++;
                 try {
                     TiffCopyTest.copyTiff(file, targetFolder.resolve(fileName), bigTiff, uncompressed);
+                    successful++;
                 } catch (UnsupportedTiffFormatException e) {
                     System.out.println("  Cannot copy: " + e.getMessage());
                 } catch (TiffException e) {
@@ -78,6 +82,6 @@ public class TiffCopyFolderTest {
                 }
             }
         }
-        System.out.println("Done");
+        System.out.printf("%d from %d copied successfully%n", successful, total);
     }
 }

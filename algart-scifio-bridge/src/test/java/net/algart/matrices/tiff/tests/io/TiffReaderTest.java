@@ -45,7 +45,7 @@ import java.nio.file.Paths;
 import java.util.Locale;
 
 public class TiffReaderTest {
-    private static final int MAX_IMAGE_DIM = 60000;
+    private static final int MAX_IMAGE_DIM = 10000;
 
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
