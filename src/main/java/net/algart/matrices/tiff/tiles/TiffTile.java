@@ -111,8 +111,22 @@ public final class TiffTile {
      * excepting the only case 1-channel 1-bit pixels.
      *
      * <p><i>Warning:</i> this number can be smaller than the result of the same method of {@link #sampleType()}
-     * object! This is possible for "unusual" precisions, like 24-bit integer or 16/24-bit float samples.
-     * See {@link TiffReader#completeDecoding(TiffTile)} method.</p>
+     * object! This is possible for unusual precisions, like 24-bit integer or 16/24-bit float samples.
+     * See {@link TiffReader#setAutoUnpackUnusualPrecisions(boolean)} and
+     * {@link TiffReader#completeDecoding(TiffTile)} methods.</p>
+     *
+     * <p>Note that you can see unpacked data only in two variants:</p>
+     * <ol>
+     *     <li>fully unpacked, when the number of bits per sample corresponds to one of variants of
+     *     {@link TiffSampleType};</li>
+     *     <li>unpacked to <i>unusual precision</i>: 3-byte samples (17..24 bits/sample),
+     *     16- or 24-bit floating-point formats.</li>
+     * </ol>
+     * <p>Inside this class, you are always dealing with the variant #2 (excepting call of
+     * {@link #unpackUnusualDecodedData()} method). The {@link TiffReader} class
+     * usually returns data in the option #1, unless you disable this by
+     * {@link TiffReader#setAutoUnpackUnusualPrecisions(boolean)} method.
+     * The {@link TiffWriter} class always takes the data in the variant #1.</p>
      *
      * @return number of bits per each sample (1 channel for 1 pixel).
      */
@@ -439,7 +453,7 @@ public final class TiffTile {
      * Gets the decoded data with unpacking non-usual precisions: 16/24-bit floating points data
      * and any 3-byte/sample integer data. The same operations are performed by
      * {@link TiffReader} automatically
-     * if the {@link TiffReader#isAutoUnpackUnusualPrecisions()} mode is set.
+     * if the {@link TiffReader#setAutoUnpackUnusualPrecisions(boolean)} mode is set.
      *
      * <p>This method is necessary rarely: {@link #getDecodedData()} is enough for most needs.
      *

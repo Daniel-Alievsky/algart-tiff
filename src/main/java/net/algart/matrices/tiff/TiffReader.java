@@ -332,6 +332,29 @@ public class TiffReader implements Closeable {
         return autoUnpackUnusualPrecisions;
     }
 
+    /**
+     * Sets the flag, whether do we need to automatically unpack precisions (bits/sample), differ than all precisions
+     * supported by {@link TiffSampleType} class. These are 3-byte samples (17..24 bits/sample;
+     * this flag enforces unpacking them to 32 bit) and 16- or 24-bit floating-point formats
+     * (this flag enforces unpacking them to 32 bit {@code float} values).
+     *
+     * <p>This flag is used after reading all tiles inside {@link #readSamples(TiffMap, int, int, int, int)}
+     * method. Note that the data in {@link TiffTile}, in the case of unusual precision, are never unpacked.
+     * On the other hand, all other precisions, like 4-bit or 12-bit (but not 1-channel 1-bit case),
+     * are always unpacked into the nearest bit depth divided by 8 while decoding tiles.</p>
+     *
+     * <p>If this flag is {@code false}, you cannot used high-level reading methods as
+     * {@link #readMatrix} and {@link #readJavaArray}; you must use {@link #readSamples} methods,
+     * which return pixels as a sequences of bytes.</p>
+     *
+     * <p>This flag is {@code true} by default. Usually there are not reasons to set it to {@code false},
+     * besides compatibility reasons or requirement to maximally save memory while processing 16/24-bit
+     * float values.</p>
+     *
+     * @param autoUnpackUnusualPrecisions whether do we need to unpack unusual precisions.
+     * @return a reference to this object.
+     * @see #completeDecoding(TiffTile)
+     */
     public TiffReader setAutoUnpackUnusualPrecisions(boolean autoUnpackUnusualPrecisions) {
         this.autoUnpackUnusualPrecisions = autoUnpackUnusualPrecisions;
         return this;
@@ -1114,6 +1137,7 @@ public class TiffReader implements Closeable {
      * are processed after reading all tiles inside {@link #readSamples(TiffMap, int, int, int, int)}
      * method, if {@link #isAutoUnpackUnusualPrecisions()} flag is set, or may be performed by external
      * code with help of {@link TiffTools#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)} method.
+     * See {@link TiffReader#setAutoUnpackUnusualPrecisions(boolean)}.
      *
      * <p>This method does not allow 5, 6, 7 or greater than 8 bytes/sample
      * (but 8 bytes/sample is allowed: it is probably <code>double</code> precision).</p>
