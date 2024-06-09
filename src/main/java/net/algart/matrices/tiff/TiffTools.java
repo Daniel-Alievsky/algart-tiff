@@ -715,10 +715,40 @@ public class TiffTools {
         return true;
     }
 
-    // Note: we prefer to pass numberOfChannels directly, not calculate it on the base of IFD,
-    // because in some cases (like processing tile) number of channels should be set to 1 for planar IFD,
-    // but in other cases (like processing whole image) it is not so.
-    // Note: this method CHANGES the number of bytes/sample.
+    /**
+     * Unpacks pixel samples, stored in unusual precisions (2 or 3 bytes/sample), and returns unpacked data
+     * (4 bytes/sample). Returns a reference to the source {@code samples} array if IFD does not
+     * specify an unusual precision.
+     *
+     * <p>We call <b>unusual precisions</b> the following two cases:</p>
+     * <ol>
+     *     <li>every channel is encoded as N-bit integer value, where 17&le;N&le;24, and, so, requires 3 bytes;
+     *     </li>
+     *     <li>every channel is encoded as 16-bit or 24-bit floating point values.
+     *     </li>
+     * </ol>
+     * <p>However, in the 1st case, this method assumes that N=24: if N=17..23 (not divisible by 8),
+     * the bits should be unpacked to whole bytes (3 bytes/sample, N=24) while reading/decoding TIFF tiles,
+     * i.e. before using this method.
+     * See also {@link TiffMap#bitsPerUnpackedSample()}.</p>
+     *
+     * @param samples            the source pixel samples.
+     * @param ifd                IFD (it is analysed to detect an unusual precision).
+     * @param numberOfChannels   number of samples per pixel; note that this value may differ from
+     *                           {@link TiffIFD#getSamplesPerPixel() ifd.getSamplesPerPixel()} when this
+     *                           method is used for unpacking a single tile, for example, in
+     *                           {@link TiffTile#unpackUnusualDecodedData()} method
+     *                           (in which case {@code numberOfChannels} can be 1 even for several channels
+     *                           when {@link TiffIFD#isPlanarSeparated()} is {@code true}).
+     * @param numberOfPixels     number of pixels in {@code samples} array.
+     * @param scaleUnsignedInt24 if {@code true} and there is the 1st of the cases above (3-byte integer values),
+     *                           this method multiplies all (unsigned) 24-bit integer values by 256
+     *                           ({@code value<<8} operator), so that the source samples bits will be placed
+     *                           in bits 8..31 of the 4-byte result samples.
+     * @return the unpacked samples.
+     * @throws TiffException in a case of incorrect IFD.
+     * @see TiffTile#unpackUnusualDecodedData()
+     */
     public static byte[] unpackUnusualPrecisions(
             final byte[] samples,
             final TiffIFD ifd,
@@ -1196,7 +1226,7 @@ public class TiffTools {
             }
             if (m > maxValue) {
                 throw new TiffException(prefix.get() + "too large " + names[i] + " = " + m + postfix.get()
-                    + " > " + maxValue);
+                        + " > " + maxValue);
             }
             result *= m;
             product *= m;

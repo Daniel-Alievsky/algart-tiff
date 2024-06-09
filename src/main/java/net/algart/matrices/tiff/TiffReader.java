@@ -354,6 +354,7 @@ public class TiffReader implements Closeable {
      * @param autoUnpackUnusualPrecisions whether do we need to unpack unusual precisions.
      * @return a reference to this object.
      * @see #completeDecoding(TiffTile)
+     * @see TiffMap#bitsPerUnpackedSample()
      */
     public TiffReader setAutoUnpackUnusualPrecisions(boolean autoUnpackUnusualPrecisions) {
         this.autoUnpackUnusualPrecisions = autoUnpackUnusualPrecisions;

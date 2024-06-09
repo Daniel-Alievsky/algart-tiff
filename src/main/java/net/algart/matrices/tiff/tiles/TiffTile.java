@@ -107,7 +107,8 @@ public final class TiffTile {
 
     /**
      * Returns number of bits per each sample of this tile.
-     * Note that this number is always equal for all channels and is always divided by 8,
+     * Always equal to {@link #map()}.{@link TiffMap#bitsPerSample() bitsPerSample()}.
+     * Note that this number is always the same for all channels and is always divided by 8,
      * excepting the only case 1-channel 1-bit pixels.
      *
      * <p><i>Warning:</i> this number can be smaller than the result of the same method of {@link #sampleType()}
@@ -129,6 +130,8 @@ public final class TiffTile {
      * The {@link TiffWriter} class always takes the data in the variant #1.</p>
      *
      * @return number of bits per each sample (1 channel for 1 pixel).
+     * @see TiffMap#bitsPerUnpackedSample()
+     * @see TiffTile#bitsPerSample()
      */
     public int bitsPerSample() {
         return bitsPerSample;
@@ -425,7 +428,7 @@ public final class TiffTile {
      * Returns the decoded data. Every pixel in the unpacked data consists of {@link #samplesPerPixel()}
      * <i>samples</i>, and every sample is represented with either 1 bit or 1, 2, 3 or 4 whole bytes.
      * If the samples in TIFF file are K-bit integers where <code>K%8&nbsp;&ne;&nbsp;0</code>, they are automatically
-     * unpacked into <code>&#8968;K/8&#8969*8</code> bit integers while decoding.
+     * unpacked into <code>&#8968;K/8&#8969;*8</code> bit integers while decoding.
      *
      * <p>In addition to the standard precisions provided by {@link TiffSampleType}, samples can be represented
      * in the following unusual precisions:</p>
@@ -435,7 +438,6 @@ public final class TiffTile {
      *     <li>24-bit floating points values,</li>
      *     <li>24-bit integer values (for a case of K-bit samples, 16&le;K&lt;24).</li>
      * </ul>
-     *
      *
      * @return unpacked data.
      * @throws IllegalStateException if the tile is {@link #isEncoded() encoded}.
@@ -458,6 +460,9 @@ public final class TiffTile {
      * <p>This method is necessary rarely: {@link #getDecodedData()} is enough for most needs.
      *
      * @return unpacked data.
+     * @see TiffTools#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)
+     * @see #bitsPerSample()
+     * @see TiffMap#bitsPerUnpackedSample()
      */
     public byte[] unpackUnusualDecodedData() {
         byte[] samples = getDecodedData();

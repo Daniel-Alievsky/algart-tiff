@@ -209,7 +209,8 @@ public final class TiffMap {
      * {@link TiffReader}, and for source data,
      * that should be written by {@link TiffWriter}.
      *
-     * <p>Usually this value is equal to results of {@link #bitsPerSample()}, excepting the following rare cases:</p>
+     * <p>Usually this value is equal to results of {@link #bitsPerSample()}, excepting the following rare cases,
+     * called <b>unusual precisions</b>:</p>
      *
      * <ul>
      *     <li>every channel is encoded as N-bit integer value, where 17&le;N&le;24, and, so, requires 3 bytes:
@@ -229,6 +230,7 @@ public final class TiffMap {
      * it is not allowed to write image with precisions listed above.</p>
      *
      * @return number of bytes, used for storing one channel of the pixel in memory.
+     * @see TiffReader#setAutoUnpackUnusualPrecisions(boolean) 
      */
     public int bitsPerUnpackedSample() {
         return bitsPerUnpackedSample;
