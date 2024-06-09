@@ -105,6 +105,17 @@ public final class TiffTile {
         return map.isWholeBytes();
     }
 
+    /**
+     * Returns number of bits per each sample of this tile.
+     * Note that this number is always equal for all channels and is always divided by 8,
+     * excepting the only case 1-channel 1-bit pixels.
+     *
+     * <p><i>Warning:</i> this number can be smaller than the result of the same method of {@link #sampleType()}
+     * object! This is possible for "unusual" precisions, like 24-bit integer or 16/24-bit float samples.
+     * See {@link TiffReader#completeDecoding(TiffTile)} method.</p>
+     *
+     * @return number of bits per each sample (1 channel for 1 pixel).
+     */
     public int bitsPerSample() {
         return bitsPerSample;
     }
@@ -602,7 +613,7 @@ public final class TiffTile {
     public TiffTile checkStoredNumberOfPixels()  {
         checkEmpty();
         final int estimatedNumberOfPixels = getEstimatedNumberOfPixels();
-        // - IllegalStateException if encoded
+        // - necessary to throw IllegalStateException if encoded
         assert !encoded;
         if (storedDataLength != sizeInBytes) {
             throw new IllegalStateException("Number of stored pixels " + estimatedNumberOfPixels +
@@ -610,7 +621,7 @@ public final class TiffTile {
         }
         final int dataLength = (estimatedNumberOfPixels * bitsPerPixel + 7) >>> 3;
         if (dataLength != storedDataLength) {
-            throw new AssertionError("invalid estimatedNumberOfPixels " + estimatedNumberOfPixels);
+            throw new AssertionError("Invalid estimatedNumberOfPixels " + estimatedNumberOfPixels);
         }
         // - in other words, checkDataLengthAlignment() must be unnecessary:
         // if bitsPerPixel = 1, unaligned data is impossible;
@@ -697,7 +708,7 @@ public final class TiffTile {
             throw new IllegalStateException("TIFF tile is already interleaved: " + this);
         }
         data = map.toInterleavedSamples(data, samplesPerPixel, getEstimatedNumberOfPixels());
-        // - getEstimatedNumberOfPixels may return invalid value only for 1 channel, when this argument is not used
+        // - getEstimatedNumberOfPixels can return invalid value only for 1 channel, when this argument is not used
         setInterleaved(true);
         setDecodedData(data);
         return this;
@@ -709,7 +720,7 @@ public final class TiffTile {
             throw new IllegalStateException("TIFF tile is already separated: " + this);
         }
         data = map.toSeparatedSamples(data, samplesPerPixel, getEstimatedNumberOfPixels());
-        // - getEstimatedNumberOfPixels may return invalid value only for 1 channel, when this argument is not used
+        // - getEstimatedNumberOfPixels can return invalid value only for 1 channel, when this argument is not used
         setInterleaved(false);
         setDecodedData(data);
         return this;
