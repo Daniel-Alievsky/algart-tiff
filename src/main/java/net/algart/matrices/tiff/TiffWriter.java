@@ -345,7 +345,7 @@ public class TiffWriter implements Closeable {
      *
      * <p>Note: the {@link TiffCodec.Options#setQuality(Double) quality}, that can be set via
      * {@link #setCodecOptions(TiffCodec.Options)} method, is ignored,
-     * if this value is set to non-<code>null</code> value.
+     * if this value is set to non-{@code null} value.
      *
      * <p>Please <b>remember</b> that this parameter may be different for different IFDs.
      * In this case, you need to call this method every time before creating new IFD,

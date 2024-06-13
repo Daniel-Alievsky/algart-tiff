@@ -243,14 +243,14 @@ public class TiffReader implements Closeable {
      * <p>It never throws an exception. If the file is not a correct TIFF or in a case of any other I/O problem,
      * the information about the problem is stored in an exception, which can be retrieved later
      * by {@link #openingException()} method and which is passed to <code>exceptionHandler</code>
-     * (if it is not <code>null</code>).
+     * (if it is not {@code null}).
      *
      * <p>This constructor is useful, because it allows to make constructors in subclasses, which do not through
      * any exceptions.
      *
      * @param inputStream      input stream; automatically replaced (wrapped) with {@link ReadBufferDataHandle},
      *                         if this stream is still not an instance of this class.
-     * @param exceptionHandler if not <code>null</code>, it will be called in a case of some checked exception;
+     * @param exceptionHandler if not {@code null}, it will be called in a case of some checked exception;
      *                         for example, it may log it. But usually it is better idea to use the main
      *                         constructor {@link #TiffReader(DataHandle, boolean, boolean)} with catching exception.
      */
@@ -817,7 +817,7 @@ public class TiffReader implements Closeable {
 
     /**
      * Reads the IFD stored at the given offset.
-     * Never returns <code>null</code>.
+     * Never returns {@code null}.
      */
     public TiffIFD readIFDAt(long startOffset) throws IOException {
         return readIFDAt(startOffset, null, true);
