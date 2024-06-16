@@ -407,7 +407,7 @@ public class TiffReader implements Closeable {
     }
 
     /**
-     * Sets the flag, whether do we need to automatically correct (invert) pixel sample values in color space
+     * Sets the flag, whether do we need to automatically correct (invert) pixel sample values in color spaces
      * with inverted sense of pixel brightness, i.e. when PhotometricInterpretation TIFF tag is "WhiteIsZero" (0)
      * or "Separated" (CMYK, 5). (In these color spaces, white color is encoded as zero, and black color is encoded
      * as maximal allowed value like 255 for 8-bit samples.)
