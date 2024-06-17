@@ -1487,11 +1487,7 @@ public class TiffReader implements Closeable {
     protected Object buildExternalOptions(TiffTile tile, TiffCodec.Options options) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(options, "Null options");
-        if (!SCIFIOBridge.isScifioInstalled()) {
-            throw new UnsupportedTiffFormatException("TIFF compression " +
-                    TagCompression.toPrettyString(tile.ifd().getCompressionCode()) +
-                    " is not supported without installed SCIFIO: " + SCIFIOBridge.SCIFIO_CLASS_NAME + " class");
-        }
+        requireScifio(tile.ifd());
         return options.toOldStyleOptions(SCIFIOBridge.codecOptionsClass());
     }
 
@@ -1499,14 +1495,8 @@ public class TiffReader implements Closeable {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(externalOptions, "Null externalOptions");
         final byte[] encodedData = tile.getEncodedData();
+        final Object scifio = requireScifio(tile.ifd());
         final int compressionCode = tile.ifd().getCompressionCode();
-        final Object scifio = scifio();
-        if (scifio == null) {
-            // - in other words, this.context is not set
-            throw new UnsupportedTiffFormatException("TIFF compression " +
-                    TagCompression.toPrettyString(compressionCode) +
-                    " is not supported without external codecs");
-        }
         final Object compression;
         try {
             compression = SCIFIOBridge.createTiffCompression(compressionCode);
@@ -1521,11 +1511,21 @@ public class TiffReader implements Closeable {
         }
     }
 
-
     Object scifio() {
         Object scifio = this.scifio;
         if (scifio == null) {
             this.scifio = scifio = SCIFIOBridge.createScifioFromContext(context);
+        }
+        return scifio;
+    }
+
+    private Object requireScifio(TiffIFD ifd) throws UnsupportedTiffFormatException {
+        Object scifio = scifio();
+        if (scifio == null) {
+            // - in other words, this.context is not set
+            throw new UnsupportedTiffFormatException("TIFF compression " +
+                    TagCompression.toPrettyString(ifd.optInt(Tags.COMPRESSION, TagCompression.UNCOMPRESSED.code())) +
+                    " is not supported without external codecs");
         }
         return scifio;
     }

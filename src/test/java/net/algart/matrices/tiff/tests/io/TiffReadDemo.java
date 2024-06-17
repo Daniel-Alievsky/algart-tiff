@@ -28,6 +28,8 @@ import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.external.MatrixIO;
 import net.algart.matrices.tiff.TiffReader;
+import net.algart.matrices.tiff.TiffTools;
+import org.scijava.Context;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -49,6 +51,7 @@ public class TiffReadDemo {
         System.out.println("Reading TIFF " + sourceFile + "...");
         List<Matrix<UpdatablePArray>> image;
         try (TiffReader reader = new TiffReader(sourceFile)) {
+            // reader.setContext(TiffTools.newSCIFIOContext()); // - throws exception without dependence on SCIFIO
             // reader.setInterleaveResults(true); // - slows down reading (unnecessary interleaving+separating)
             image = reader.readChannels(ifdIndex);
         }
