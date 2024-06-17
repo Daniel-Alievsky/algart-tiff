@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff;
 
+import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
 import net.algart.arrays.PackedBitArraysPer8;
@@ -233,7 +234,7 @@ public class TiffWriter implements Closeable {
      * form RGBRGBRGB...
      *
      * <p>If this mode is not set, as well as if {@link Tags#PLANAR_CONFIGURATION} is
-     * {@link TiffIFD#PLANAR_CONFIGURATION_SEPARATE}, the passed data are encoded as-as, i.e. as unpacked
+     * {@link TiffIFD#PLANAR_CONFIGURATION_SEPARATE}, the passed data for writing must be represented as unpacked
      * RRR...GGG..BBB...  for {@link TiffIFD#PLANAR_CONFIGURATION_SEPARATE} or as interleaved RGBRGBRGB...
      * for {@link TiffIFD#PLANAR_CONFIGURATION_CHUNKED}.
      *
@@ -889,6 +890,33 @@ public class TiffWriter implements Closeable {
         return updateSamples(map, samples, fromX, fromY, sizeX, sizeY);
     }
 
+    /**
+     * Equivalent to
+     * <code>{@link #updateMatrix(TiffMap, Matrix, int, int)
+     * updateMatrix}(Matrices.mergeLayers(Arrays.SMM, channels), fromX, fromY)</code>.
+     *
+     * <p>Note that this method requires the {@link #setAutoInterleaveSource(boolean) auto-interleave} mode to be set;
+     * otherwise an exception is thrown.
+     *
+     * @param map      TIFF map for writing.
+     * @param channels color channels of the image (2-dimensional matrices).
+     * @param fromX    starting x-coordinate for updating.
+     * @param fromY    starting y-coordinate for updating.
+     * @return list of TIFF tiles where were updated as a result of this operation.
+     */
+    public List<TiffTile> updateChannels(
+            TiffMap map,
+            List<? extends Matrix<? extends PArray>> channels,
+            int fromX,
+            int fromY) {
+        Objects.requireNonNull(map, "Null TIFF map");
+        Objects.requireNonNull(channels, "Null channels");
+        if (!autoInterleaveSource) {
+            throw new IllegalStateException("Cannot update image channels: autoInterleaveSource mode is not set");
+        }
+        return updateMatrix(map, Matrices.mergeLayers(net.algart.arrays.Arrays.SMM, channels), fromX, fromY);
+    }
+
     public void encode(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         if (tile.isEmpty()) {
@@ -1088,6 +1116,10 @@ public class TiffWriter implements Closeable {
         // - will be used, for example, in getCompressionCodecOptions
         ifd.setBigTiff(bigTiff);
         // - not used, but helps to provide better TiffIFD.toString
+    }
+
+    public TiffIFD newIFD() {
+        return newIFD(false);
     }
 
     public TiffIFD newIFD(boolean tiled) {
@@ -1291,7 +1323,7 @@ public class TiffWriter implements Closeable {
      * the map to have correct non-zero dimensions (a situation, possible for resizable maps).</p>
      *
      * @param map    TIFF map.
-     * @param matrix matrix of pixels.
+     * @param matrix 3D-matrix of pixels.
      * @throws TiffException in a case of invalid TIFF IFD.
      * @throws IOException   in a case of any I/O errors.
      */
@@ -1313,6 +1345,37 @@ public class TiffWriter implements Closeable {
         long t4 = debugTime();
         complete(map);
         logWritingMatrix(map, "matrix", matrix, t1, t2, t3, t4);
+    }
+
+    /**
+     * Equivalent to
+     * <code>{@link #writeMatrix(TiffMap, Matrix)
+     * writeMatrix}(Matrices.mergeLayers(Arrays.SMM, channels))</code>.
+     *
+     * <p>Note that this method requires the {@link #setAutoInterleaveSource(boolean) auto-interleave} mode to be set;
+     * otherwise an exception is thrown.
+     *
+     * @param map      TIFF map.
+     * @param channels color channels of the image (2-dimensional matrices).
+     * @throws TiffException in a case of invalid TIFF IFD.
+     * @throws IOException   in a case of any I/O errors.
+     */
+    public void writeChannels(TiffMap map, List<? extends Matrix<? extends PArray>> channels) throws IOException {
+        Objects.requireNonNull(map, "Null TIFF map");
+        writeChannels(map, channels, 0, 0);
+    }
+
+    public void writeChannels(
+            TiffMap map,
+            List<? extends Matrix<? extends PArray>> channels,
+            int fromX,
+            int fromY) throws IOException {
+        Objects.requireNonNull(map, "Null TIFF map");
+        Objects.requireNonNull(channels, "Null channels");
+        if (!autoInterleaveSource) {
+            throw new IllegalStateException("Cannot write image channels: autoInterleaveSource mode is not set");
+        }
+        writeMatrix(map, Matrices.mergeLayers(net.algart.arrays.Arrays.SMM, channels), fromX, fromY);
     }
 
     public void fillEmptyTile(TiffTile tiffTile) {

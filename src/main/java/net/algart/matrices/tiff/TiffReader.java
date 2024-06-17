@@ -24,9 +24,7 @@
 
 package net.algart.matrices.tiff;
 
-import net.algart.arrays.Matrix;
-import net.algart.arrays.PackedBitArraysPer8;
-import net.algart.arrays.UpdatablePArray;
+import net.algart.arrays.*;
 import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagRational;
@@ -49,6 +47,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -595,6 +594,17 @@ public class TiffReader implements Closeable {
         return allIFDs().size();
     }
 
+    /**
+     * Equivalent to <code>{@link #newMap(TiffIFD) newMap}({@link #ifd(int) ifd}(ifdIndex))</code>.
+     *
+     * @param ifdIndex index of IFD.
+     * @return TIFF map, allowing to read this IFD
+     * @throws TiffException            if <code>ifdIndex</code> is too large,
+     *                                  or if the file is not a correct TIFF file
+     *                                  and this was not detected while opening it.
+     * @throws IOException              in a case of any problems with the input file.
+     * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
+     */
     public TiffMap map(int ifdIndex) throws IOException {
         return newMap(ifd(ifdIndex));
     }
@@ -1055,12 +1065,18 @@ public class TiffReader implements Closeable {
                     throw new TiffException(
                             "Invalid TIFF image: it is declared as JPEG, but the data are not actually JPEG");
                 } else {
+                    if (context == null) {
+                        // - no available external codecs; later we will throw an exception
+                        return;
+                    }
                     throw new UnsupportedTiffFormatException(
                             "Unsupported format of TIFF image: it is declared as \"" + compression.prettyName() +
                                     "\", but the data are not actually JPEG");
+                    // - it is better than throwing strange exception in SCIFIO external codec
                 }
             }
             if (jpegTable != null) {
+                // We need to include JPEG table into JPEG data stream
                 if (jpegTable.length <= 4) {
                     throw new TiffException("Too short JPEGTables tag: only " + jpegTable.length + " bytes");
                 }
@@ -1354,6 +1370,25 @@ public class TiffReader implements Closeable {
         return samplesArray;
     }
 
+    /**
+     * Reads the full image with the specified index.
+     * The result is a 3-dimensional matrix, where each 3-dimensional layer contain one of color channels.
+     * However, if {@link #setInterleaveResults interleave results} flag is cleared, the result will an interleaved
+     * 3D matrix, which can be separated to channels by {@link Matrices#separate(ArrayContext, Matrix)} method.
+     * Equivalent to <code>{@link #readMatrix(TiffMap) readMatrix}({@link #map(int) map}(ifdIndex))</code>.
+     *
+     * @param ifdIndex index of IFD.
+     * @return content of the IFD image.
+     * @throws TiffException            if <code>ifdIndex</code> is too large,
+     *                                  or if the file is not a correct TIFF file
+     *                                  and this was not detected while opening it.
+     * @throws IOException              in a case of any problems with the input file.
+     * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
+     */
+    public Matrix<UpdatablePArray> readMatrix(int ifdIndex) throws IOException {
+        return readMatrix(map(ifdIndex));
+    }
+
     public Matrix<UpdatablePArray> readMatrix(TiffMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readMatrix(map, 0, 0, map.dimX(), map.dimY());
@@ -1374,6 +1409,48 @@ public class TiffReader implements Closeable {
             throws IOException {
         final Object samplesArray = readJavaArray(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
         return TiffTools.asMatrix(samplesArray, sizeX, sizeY, map.numberOfChannels(), interleaveResults);
+    }
+
+    /**
+     * Reads the full image with the specified index as a list of 2-dimensional matrices containing color channels.
+     * For example, for RGB image the result will be a list of 3 matrices R, G, B.
+     * Equivalent to
+     * <code>{@link #readChannels(TiffMap) readChannels}({@link #map(int) map}(ifdIndex))</code>.
+     *
+     * @param ifdIndex index of IFD.
+     * @return content of the IFD image.
+     * @throws TiffException            if <code>ifdIndex</code> is too large,
+     *                                  or if the file is not a correct TIFF file
+     *                                  and this was not detected while opening it.
+     * @throws IOException              in a case of any problems with the input file.
+     * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
+     */
+    public List<Matrix<UpdatablePArray>> readChannels(int ifdIndex) throws IOException {
+        return readChannels(map(ifdIndex));
+    }
+
+    public List<Matrix<UpdatablePArray>> readChannels(TiffMap map) throws IOException {
+        Objects.requireNonNull(map, "Null TIFF map");
+        return readChannels(map, 0, 0, map.dimX(), map.dimY());
+    }
+
+    public List<Matrix<UpdatablePArray>> readChannels(TiffMap map, int fromX, int fromY, int sizeX, int sizeY)
+            throws IOException {
+        return readChannels(map, fromX, fromY, sizeX, sizeY, false);
+    }
+
+    public List<Matrix<UpdatablePArray>> readChannels(
+            TiffMap map,
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY,
+            boolean storeTilesInMap)
+            throws IOException {
+        Matrix<UpdatablePArray> mergedChannels = readMatrix(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
+        return interleaveResults ?
+                Matrices.separate(null, mergedChannels, TiffTools.MAX_NUMBER_OF_CHANNELS) :
+                Matrices.asLayers(mergedChannels, TiffTools.MAX_NUMBER_OF_CHANNELS);
     }
 
     @Override
@@ -1411,8 +1488,9 @@ public class TiffReader implements Closeable {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(options, "Null options");
         if (!SCIFIOBridge.isScifioInstalled()) {
-            throw new UnsupportedTiffFormatException("TIFF compression with code " + tile.ifd().getCompressionCode() +
-                    " cannot be decompressed");
+            throw new UnsupportedTiffFormatException("TIFF compression " +
+                    TagCompression.toPrettyString(tile.ifd().getCompressionCode()) +
+                    " is not supported without installed SCIFIO: " + SCIFIOBridge.SCIFIO_CLASS_NAME + " class");
         }
         return options.toOldStyleOptions(SCIFIOBridge.codecOptionsClass());
     }
@@ -1424,8 +1502,10 @@ public class TiffReader implements Closeable {
         final int compressionCode = tile.ifd().getCompressionCode();
         final Object scifio = scifio();
         if (scifio == null) {
-            throw new IllegalStateException(
-                    "Compression type " + compressionCode + " requires specifying non-null SCIFIO context");
+            // - in other words, this.context is not set
+            throw new UnsupportedTiffFormatException("TIFF compression " +
+                    TagCompression.toPrettyString(compressionCode) +
+                    " is not supported without external codecs");
         }
         final Object compression;
         try {

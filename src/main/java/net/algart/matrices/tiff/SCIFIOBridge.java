@@ -30,6 +30,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 
 class SCIFIOBridge {
+    static final String SCIFIO_CLASS_NAME = "io.scif.SCIFIO";
     private static final Class<?> SCIFIO_CLASS = findScifioClass();
 
     static boolean isScifioInstalled() {
@@ -194,7 +195,7 @@ class SCIFIOBridge {
 
     private static Class<?> findScifioClass() {
         try {
-            return Class.forName("io.scif.SCIFIO");
+            return Class.forName(SCIFIO_CLASS_NAME);
         } catch (ClassNotFoundException e) {
             return null;
         }

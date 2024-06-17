@@ -65,7 +65,7 @@ public class TiffReadTilesTest {
         int h = args.length <= ++startArgIndex ? -1 : Integer.parseInt(args[startArgIndex]);
         final int numberOfTests = args.length <= ++startArgIndex ? 1 : Integer.parseInt(args[startArgIndex]);
 
-        try (final TiffReader reader = new TiffReader(tiffFile)) {
+        try (TiffReader reader = new TiffReader(tiffFile)) {
             reader.setByteFiller((byte) 0x40);
             reader.setCropTilesToImageBoundaries(true);
             final TiffMap map = reader.map(ifdIndex);

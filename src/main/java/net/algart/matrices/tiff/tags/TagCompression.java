@@ -51,15 +51,23 @@ public enum TagCompression {
             return customizeWritingJpeg(tile, options);
         }
     },
-    JPEG_OLD_STYLE(6, "Old-style JPEG", null),
-    // - OLD_JPEG does not work: see https://github.com/scifio/scifio/issues/510
     PACK_BITS(32773, "PackBits", PackbitsCodec::new),
 
     JPEG_2000_LOSSLESS(33003, "JPEG-2000 lossless", JPEG2000Codec::new),
     // - note that while writing we do not try to use YCbCr encoding, as Aperio recommends for 33003
     JPEG_2000_LOSSY(33004, "JPEG-2000 lossy", JPEG2000Codec::new),
     JPEG_2000_LOSSLESS_ALTERNATIVE(33005, "JPEG-2000 alternative", JPEG2000Codec::new),
-    JPEG_2000_LOSSLESS_OLYMPUS(34712, "JPEG-2000 Olympus", JPEG2000Codec::new);
+    JPEG_2000_LOSSLESS_OLYMPUS(34712, "JPEG-2000 Olympus", JPEG2000Codec::new),
+
+    // The following compression are recognized, but not supported
+    CCITT_1D(2, "CCITT Group 3 1-Dimensional Modified Huffman", null),
+    CCITT_GROUP_3_FAX(3, "CCITT T.4 bi-level encoding (Group 3 Fax)", null),
+    CCITT_GROUP_4_FAX(4, "CCITT T.6 bi-level encoding (Group 4 Fax)", null),
+    JPEG_OLD_STYLE(6, "Old-style JPEG", null),
+    // - OLD_JPEG does not work: see https://github.com/scifio/scifio/issues/510
+    THUNDERSCAN(32809, "Thunderscan", null);
+
+
 
     private static final Map<Integer, TagCompression> LOOKUP =
             Arrays.stream(values()).collect(Collectors.toMap(TagCompression::code, v -> v));
@@ -72,6 +80,15 @@ public enum TagCompression {
         this.code = code;
         this.name = Objects.requireNonNull(name);
         this.codec = codec;
+    }
+
+    public static TagCompression valueOfCodeOrNull(int code) {
+        return LOOKUP.get(code);
+    }
+
+    public static String toPrettyString(int code) {
+        final TagCompression compression = valueOfCodeOrNull(code);
+        return "type " + code + (compression == null ? "" : ": \"" + compression.prettyName() + "\"");
     }
 
     public int code() {
@@ -118,9 +135,6 @@ public enum TagCompression {
         return options;
     }
 
-    public static TagCompression valueOfCodeOrNull(int code) {
-        return LOOKUP.get(code);
-    }
 
     // Note: corrections, performed by this method, may be tested with the image jpeg_ycbcr_encoded_as_rgb.tiff
     public static TiffCodec.Options customizeReadingJpeg(TiffTile tile, TiffCodec.Options options)

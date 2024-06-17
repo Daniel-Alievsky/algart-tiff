@@ -66,7 +66,7 @@ public class TiffWriteSimpleTest {
         }
         final Path targetFile = Paths.get(args[0]);
 
-        System.out.println("Writing TIFF " + targetFile);
+        System.out.println("Writing TIFF " + targetFile + "...");
         try (final TiffWriter writer = new TiffWriter(targetFile)) {
             writer.setByteFiller((byte) 0);
             writer.setSmartIFDCorrection(true);

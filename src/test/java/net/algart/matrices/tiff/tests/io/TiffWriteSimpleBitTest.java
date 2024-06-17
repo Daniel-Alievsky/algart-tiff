@@ -28,6 +28,7 @@ import net.algart.arrays.BitArray;
 import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.math.functions.AbstractFunc;
+import net.algart.math.functions.Func2;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tiles.TiffMap;
@@ -62,12 +63,7 @@ public class TiffWriteSimpleBitTest {
         final int numberOfTests = startArgIndex < args.length ? Integer.parseInt(args[startArgIndex]) : 1;
 
         Matrix<BitArray> m = Matrices.asCoordFuncMatrix(
-                new AbstractFunc() {
-                    @Override
-                    public double get(double... x) {
-                        return ((int) (x[0] - x[1]) & 0xFFF) < 0x800 ? 0 : 1;
-                    }
-                },
+                (Func2) (x, y) -> ((int) (x - y) & 0xFFF) < 0x800 ? 0 : 1,
                 BitArray.class, dimX, dimY).clone();
 
         System.out.println("Writing huge TIFF " + targetFile);

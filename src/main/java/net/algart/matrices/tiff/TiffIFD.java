@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff;
 
+import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
 import net.algart.matrices.tiff.tags.*;
@@ -1036,6 +1037,26 @@ public class TiffIFD {
         final long dimY = matrix.dim(interleaved ? 2 : 1);
         putImageDimensions(dimX, dimY);
         putPixelInformation((int) numberOfChannels, TiffSampleType.valueOf(matrix.elementType(), signedIntegers));
+        return this;
+    }
+
+    public TiffIFD putChannelsInformation(List<? extends Matrix<? extends PArray>> channels) {
+        return putChannelsInformation(channels, false);
+    }
+
+    public TiffIFD putChannelsInformation(List<? extends Matrix<? extends PArray>> channels, boolean signedIntegers) {
+        Objects.requireNonNull(channels, "Null channels");
+        Matrices.checkDimensionEquality(channels, true);
+        final int numberOfChannels = channels.size();
+        if (numberOfChannels == 0) {
+            throw new IllegalArgumentException("Empty channels list");
+        }
+        Matrix<? extends PArray> matrix = channels.get(0);
+        TiffTools.checkNumberOfChannels(numberOfChannels);
+        final long dimX = matrix.dimX();
+        final long dimY = matrix.dimY();
+        putImageDimensions(dimX, dimY);
+        putPixelInformation(numberOfChannels, TiffSampleType.valueOf(matrix.elementType(), signedIntegers));
         return this;
     }
 
