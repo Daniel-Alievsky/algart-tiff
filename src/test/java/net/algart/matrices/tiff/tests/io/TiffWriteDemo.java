@@ -29,7 +29,6 @@ import net.algart.arrays.UpdatablePArray;
 import net.algart.external.MatrixIO;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
-import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.TiffMap;
 
 import java.io.IOException;
@@ -51,8 +50,7 @@ public class TiffWriteDemo {
         System.out.println("Reading " + sourceFile + "...");
         List<Matrix<UpdatablePArray>> image = MatrixIO.readImage(sourceFile);;
         System.out.println("Writing TIFF " + targetFile + "...");
-        try (TiffWriter writer = new TiffWriter(targetFile)) {
-            writer.create();
+        try (TiffWriter writer = new TiffWriter(targetFile, true)) {
             // writer.setAutoInterleaveSource(false); // - leads to throwing exception
             TiffIFD ifd = writer.newIFD();
             ifd.putChannelsInformation(image);

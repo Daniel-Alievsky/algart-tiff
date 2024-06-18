@@ -224,7 +224,7 @@ public class TiffWriterTest {
             try (final Context context = noContext ? null : TiffTools.newSCIFIOContext();
                  final TiffWriter writer = compatibility ?
                          new TiffSaver(context, targetFile.toString()) :
-                         new TiffWriter(targetFile, !existingFile)) {
+                         new TiffWriter(targetFile)) {
                 writer.setContext(context);
 //                 TiffWriter writer = new TiffSaver(context, targetFile.toString())) {
 //                writer.setEnforceUseExternalCodec(true);
@@ -301,7 +301,11 @@ public class TiffWriterTest {
                     ifd.putImageDescription("TiffWriter test image");
                     final boolean overwriteExisting = randomAccess && k == 0;
                     if (k == 0) {
-                        writer.open(!randomAccess);
+                        if (existingFile) {
+                            writer.open(!randomAccess);
+                        } else {
+                            writer.create();
+                        }
                     }
                     final TiffMap map;
                     if (overwriteExisting) {

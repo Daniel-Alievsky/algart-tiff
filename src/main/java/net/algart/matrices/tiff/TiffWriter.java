@@ -143,28 +143,86 @@ public class TiffWriter implements Closeable {
     private long timeEncodingBridge = 0;
     private long timeEncodingAdditional = 0;
 
+    /**
+     * Equivalent to <code>new {@link #TiffWriter(Path, boolean) TiffWriter(file, false)}</code>.
+     *
+     * <p>Note: unlike classes like <code>java.io.FileWriter</code>,
+     * this constructor <b>does not actually open or create file</b>.
+     * If you need, you can use another constructor with the argument
+     * <code>createNewFileAndOpen&nbsp;=&nbsp;true</code>:</p>
+     * <pre>
+     *     var writer = new {@link #TiffWriter(Path, boolean) TiffWriter}(path, true);
+     * </pre>
+     * <p>But in this case you will not be able to customize the created object
+     * before writing TIFF header
+     * and will not be able to open an existing TIFF file for modifications.</p>
+     *
+     * @param file output TIFF tile.
+     * @throws IOException in a case of any I/O errors.
+     */
     public TiffWriter(Path file) throws IOException {
         this(file, false);
-    }
-
-    public TiffWriter(Path file, boolean deleteExistingFile) throws IOException {
-        this(openWithDeletingPreviousFileIfRequested(file, deleteExistingFile));
     }
 
     /**
      * Creates new TIFF writer.
      *
      * <p>Note: unlike classes like <code>java.io.FileWriter</code> and unlike {@link TiffReader},
-     * this constructor <b>does not actually open or create file</b>.
-     * You <b>must</b> call one of methods {@link #create()} or {@link #open(boolean)} after creating this object
-     * by the constructor.
+     * this constructor <b>does not actually open or create file</b>, when the argument
+     * <b><code>createNewFileAndOpen</code> is {@code false}</b>.
+     * In this case, you may create the file&nbsp;&mdash; or open an existing TIFF file&nbsp;&mdash; later via
+     * one of methods {@link #create()} or {@link #open(boolean)}.
+     * Before this, you can customize this object, for example, with help of
+     * {@link #setBigTiff(boolean)}, {@link #setLittleEndian(boolean)} and other methods.
      *
-     * @param outputStream output TIFF tile.
+     * <p>If the argument <code>createNewFileAndOpen</code> is {@code true},
+     * this constructor automatically removes the file with the specified path, if it exists,
+     * and calls {@link #create()} method. In a case of I/O exception in {@link #create()} method,
+     * this file is automatically closed. This behaviour is alike
+     * <code>java.io.FileWriter</code> and similar classes.
+     *
+     * <p>This is the simplest way to create a new TIFF file and automatically open it with writing the standard
+     * TIFF header. After that, this object is ready for adding new TIFF images.
+     * However, this way does not allow to customize this writer, for example, to choose Big-TIFF mode
+     * (an indicator, written into the TIFF header)
+     * and does not allow to open an existing TIFF, for example, for adding new images (IFD).
+     * If you need this, please set
+     * <code>createNewFileAndOpen&nbsp;=&nbsp;false</code>.
+     *
+     * @param file                 output TIFF tile.
+     * @param createNewFileAndOpen whether you need to call {@link #create()} method inside the constructor.
+     * @throws IOException in a case of any I/O errors.
+     */
+    public TiffWriter(Path file, boolean createNewFileAndOpen) throws IOException {
+        this(openWithDeletingPreviousFileIfRequested(file, createNewFileAndOpen));
+        if (createNewFileAndOpen) {
+            try {
+                create();
+            } catch (IOException exception) {
+                try {
+                    out.close();
+                } catch (Exception ignored) {
+                }
+                throw exception;
+            }
+        }
+    }
+
+    /**
+     * Universal constructor, called from other constructors.
+     *
+     * <p>Note: this method does not do anything with the file stream, in particular, does not call
+     * {@link #create()} method. You can do this later.
+     *
+     * <p>Unlike other constructors, this one never throws an exception. This is helpful, because allows
+     * to make constructors in subclasses, which do not declare any exceptions to be thrown.
+     *
+     * @param outputStream output stream.
      */
     public TiffWriter(DataHandle<Location> outputStream) {
-        Objects.requireNonNull(outputStream, "Null \"outputStream\" data handle (output stream)");
+        Objects.requireNonNull(outputStream, "Null data handle (output stream)");
         this.out = outputStream;
-        // - we do not use WriteBufferDataHandle here
+        // - we do not use WriteBufferDataHandle here: this is not too important for efficiency
     }
 
     public TiffReader readerOfThisFile(boolean requireValidTiff) throws IOException {
@@ -484,41 +542,71 @@ public class TiffWriter implements Closeable {
         return ifdOffsets.size();
     }
 
-    public TiffWriter openExisting() throws IOException {
-        return open(false);
+    /**
+     * Opens an existing TIFF file.
+     * To use this method, you must not use the constructor with the argument
+     * <code>createNewFileAndOpen = true</code>.
+     *
+     * @throws IOException in a case of any I/O errors.
+     */
+    public final void openExisting() throws IOException {
+        open(false);
     }
 
-    public TiffWriter openOrCreate() throws IOException {
-        return open(true);
+    /**
+     * Opens TIFF file, if it exists, or creates it otherwise.
+     * To use this method, you must not use the constructor with the argument
+     * <code>createNewFileAndOpen = true</code>.
+     *
+     * @throws IOException in a case of any I/O errors.
+     */
+    public final void openOrCreate() throws IOException {
+        open(true);
     }
 
-    public TiffWriter open(boolean createIfNotExists) throws IOException {
+    /**
+     * Equivalent to {@link #openExisting()} if the argument is {@code false}
+     * or to {@link #openOrCreate()} if the argument is {@code true}.
+     *
+     * @param createIfNotExists whether you need to create a new TIFF file when there is no existing file.
+     * @throws IOException in a case of any I/O errors.
+     */
+    public final void open(boolean createIfNotExists) throws IOException {
         synchronized (fileLock) {
             if (!out.exists()) {
                 if (createIfNotExists) {
-                    return create();
+                    create();
                 } else {
                     throw new FileNotFoundException("Output TIFF file " +
                             TiffReader.prettyFileName("%s", out) + " does not exist");
                 }
+                // In this branch we MUST NOT try to analyse the file: it is not a correct TIFF!
+            } else {
+                ifdOffsets.clear();
+                final TiffReader reader = new TiffReader(out, true, false);
+                // - note: we should NOT close the reader in a case of any problem,
+                // because it uses the same stream with this writer
+                final long[] offsets = reader.readIFDOffsets();
+                final long readerPositionOfLastOffset = reader.positionOfLastIFDOffset();
+                this.setBigTiff(reader.isBigTiff()).setLittleEndian(reader.isLittleEndian());
+                ifdOffsets.addAll(Arrays.stream(offsets).boxed().toList());
+                positionOfLastIFDOffset = readerPositionOfLastOffset;
+                seekToEnd();
+                // - ready to write after the end of the file
+                // (not necessary, but can help to avoid accidental bugs)
             }
-            ifdOffsets.clear();
-            final TiffReader reader = new TiffReader(out, true, false);
-            // - note: we should NOT close the reader in a case of any problem,
-            // because it uses the same stream with this writer
-            final long[] offsets = reader.readIFDOffsets();
-            final long readerPositionOfLastOffset = reader.positionOfLastIFDOffset();
-            this.setBigTiff(reader.isBigTiff()).setLittleEndian(reader.isLittleEndian());
-            ifdOffsets.addAll(Arrays.stream(offsets).boxed().toList());
-            positionOfLastIFDOffset = readerPositionOfLastOffset;
-            seekToEnd();
-            // - ready to write after the end of the file
-            // (not necessary, but can help to avoid accidental bugs)
-            return this;
         }
     }
 
-    public TiffWriter create() throws IOException {
+    /**
+     * Creates new TIFF file and writes the standard TIFF header in the beginning.
+     * If the file already exists, it is truncated to zero length before writing the header.
+     * This method is called automatically in the constructor, when it is called with the argument
+     * <code>createNewFileAndOpen = true</code>.
+     *
+     * @throws IOException in a case of any I/O errors.
+     */
+    public final void create() throws IOException {
         synchronized (fileLock) {
             ifdOffsets.clear();
             out.seek(0);
@@ -547,7 +635,6 @@ public class TiffWriter implements Closeable {
             // it is necessary, because this class writes all new information
             // to the file end (to avoid damaging existing content)
             out.setLength(out.offset());
-            return this;
         }
     }
 

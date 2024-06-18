@@ -239,13 +239,13 @@ public class TiffReader implements Closeable {
     /**
      * Universal constructor, called from other constructors.
      *
-     * <p>It never throws an exception. If the file is not a correct TIFF or in a case of any other I/O problem,
+     * <p>Unlike other constructors, this one never throws an exception. This is helpful, because allows
+     * to make constructors in subclasses, which do not declare any exceptions to be thrown.
+     *
+     * <p>If the file is not a correct TIFF or in a case of any other I/O problem,
      * the information about the problem is stored in an exception, which can be retrieved later
      * by {@link #openingException()} method and which is passed to <code>exceptionHandler</code>
      * (if it is not {@code null}).
-     *
-     * <p>This constructor is useful, because it allows to make constructors in subclasses, which do not through
-     * any exceptions.
      *
      * @param inputStream      input stream; automatically replaced (wrapped) with {@link ReadBufferDataHandle},
      *                         if this stream is still not an instance of this class.

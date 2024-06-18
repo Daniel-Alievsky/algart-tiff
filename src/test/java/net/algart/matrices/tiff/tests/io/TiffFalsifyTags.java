@@ -54,7 +54,8 @@ public class TiffFalsifyTags {
         }
 
         try (TiffReader reader = new TiffReader(targetFile);
-             TiffWriter writer = new TiffWriter(targetFile).openExisting()) {
+             TiffWriter writer = new TiffWriter(targetFile)) {
+            writer.openExisting();
 
             System.out.printf("Transforming %s...%n", targetFile);
             final TiffIFD ifd = reader.readSingleIFD(ifdIndex);
