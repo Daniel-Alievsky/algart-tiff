@@ -600,7 +600,8 @@ public class TiffWriter implements Closeable {
 
     /**
      * Creates new TIFF file and writes the standard TIFF header in the beginning.
-     * If the file already exists, it is truncated to zero length before writing the header.
+     * If the file already existed before creating this object,
+     * this method truncates it to zero length before writing the header.
      * This method is called automatically in the constructor, when it is called with the argument
      * <code>createNewFileAndOpen = true</code>.
      *
