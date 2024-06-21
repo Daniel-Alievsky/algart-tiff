@@ -51,7 +51,7 @@ public final class TiffMap {
     private final TiffSampleType sampleType;
     private final boolean wholeBytes;
     private final Class<?> elementType;
-    private final boolean tiled;
+    private final boolean tileGrid;
     private final int tileSizeX;
     private final int tileSizeY;
     private final int tileSizeInPixels;
@@ -89,8 +89,8 @@ public final class TiffMap {
                 throw new IllegalArgumentException("TIFF image sizes (ImageWidth and ImageLength tags) " +
                         "are not specified; it is not allowed for non-resizable tile map");
             }
-            this.tiled = ifd.hasTileInformation();
-            if (resizable && !tiled) {
+            this.tileGrid = ifd.hasTileInformation();
+            if (resizable && !tileGrid) {
                 throw new IllegalArgumentException("TIFF image is not tiled (TileWidth and TileLength tags " +
                         "are not specified); it is not allowed for resizable tile map: any processing " +
                         "TIFF image, such as writing its fragments, requires either knowing its final fixed sizes, " +
@@ -134,7 +134,7 @@ public final class TiffMap {
             }
             if ((long) tileSizeX * (long) tileSizeY > Integer.MAX_VALUE) {
                 throw new IllegalArgumentException("Very large " +
-                        (tiled ? "TIFF tiles " : "non-tiled TIFF ")
+                        (tileGrid ? "TIFF tiles " : "non-tiled TIFF ")
                         + tileSizeX + "x" + tileSizeY +
                         " >= 2^31 pixels are not supported");
                 // - note that it is also checked deeper in the next operator
@@ -265,7 +265,7 @@ public final class TiffMap {
     }
 
     public boolean isTileGrid() {
-        return tiled;
+        return tileGrid;
     }
 
     public int tileSizeX() {
