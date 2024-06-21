@@ -703,8 +703,8 @@ public class TiffParser extends TiffReader {
         TiffMap map = new TiffMap(toTiffIFD(ifd));
         int planeIndex = 0;
         if (map.isPlanarSeparated()) {
-            planeIndex = row / map.gridTileCountY();
-            row = row % map.gridTileCountY();
+            planeIndex = row / map.gridCountY();
+            row = row % map.gridCountY();
             // - in terms of the old TiffParser, "row" index already contains index of the plane
         }
         TiffTileIndex tileIndex = map.multiplaneIndex(planeIndex, col, row);

@@ -61,8 +61,8 @@ public final class TiffMap {
     // it is probable that we do not know final sizes while creating tiles of the image!
     private volatile int dimX = 0;
     private volatile int dimY = 0;
-    private volatile int gridTileCountX = 0;
-    private volatile int gridTileCountY = 0;
+    private volatile int gridCountX = 0;
+    private volatile int gridCountY = 0;
     private volatile int numberOfGridTiles = 0;
 
     public TiffMap(TiffIFD ifd) {
@@ -264,7 +264,7 @@ public final class TiffMap {
         return ifd.optDescription();
     }
 
-    public boolean isTiled() {
+    public boolean isTileGrid() {
         return tiled;
     }
 
@@ -314,9 +314,9 @@ public final class TiffMap {
     public void checkTooSmallDimensionsForCurrentGrid() {
         final int tileCountX = (int) ((long) dimX + (long) tileSizeX - 1) / tileSizeX;
         final int tileCountY = (int) ((long) dimY + (long) tileSizeY - 1) / tileSizeY;
-        assert tileCountX <= this.gridTileCountX && tileCountY <= this.gridTileCountY :
+        assert tileCountX <= this.gridCountX && tileCountY <= this.gridCountY :
                 "Grid dimensions were not correctly grown according map dimensions";
-        if (tileCountX != this.gridTileCountX || tileCountY != this.gridTileCountY) {
+        if (tileCountX != this.gridCountX || tileCountY != this.gridCountY) {
             assert resizable : "Map dimensions mismatch to grid dimensions: impossible for non-resizable map";
             throw new IllegalStateException("Map dimensions " + dimX + "x" + dimY +
                     " are too small for current tile grid: " + this);
@@ -340,12 +340,12 @@ public final class TiffMap {
         }
     }
 
-    public int gridTileCountX() {
-        return gridTileCountX;
+    public int gridCountX() {
+        return gridCountX;
     }
 
-    public int gridTileCountY() {
-        return gridTileCountY;
+    public int gridCountY() {
+        return gridCountY;
     }
 
     public int numberOfGridTiles() {
@@ -363,8 +363,8 @@ public final class TiffMap {
      *
      * <p>Note: this method is called automatically while changing total image sizes.
      *
-     * @param newMinimalTileCountX new minimal value for {@link #gridTileCountX()}.
-     * @param newMinimalTileCountY new minimal value for {@link #gridTileCountY()}.
+     * @param newMinimalTileCountX new minimal value for {@link #gridCountX()}.
+     * @param newMinimalTileCountY new minimal value for {@link #gridCountY()}.
      */
     public void expandGrid(int newMinimalTileCountX, int newMinimalTileCountY) {
         expandGrid(newMinimalTileCountX, newMinimalTileCountY, true);
@@ -391,8 +391,8 @@ public final class TiffMap {
             throw new IndexOutOfBoundsException("Separated plane index " + separatedPlaneIndex +
                     " is out of range 0.." + (numberOfSeparatedPlanes - 1));
         }
-        int tileCountX = this.gridTileCountX;
-        int tileCountY = this.gridTileCountY;
+        int tileCountX = this.gridCountX;
+        int tileCountY = this.gridCountY;
         if (xIndex < 0 || xIndex >= tileCountX || yIndex < 0 || yIndex >= tileCountY) {
             throw new IndexOutOfBoundsException("One of X/Y-indexes (" + xIndex + ", " + yIndex +
                     ") of the tile is out of ranges 0.." + (tileCountX - 1) + ", 0.." + (tileCountY - 1));
@@ -459,7 +459,7 @@ public final class TiffMap {
         if (resizable) {
             expandGrid(tileIndex.xIndex() + 1, tileIndex.yIndex() + 1);
         } else {
-            if (tileIndex.xIndex() >= gridTileCountX || tileIndex.yIndex() >= gridTileCountY) {
+            if (tileIndex.xIndex() >= gridCountX || tileIndex.yIndex() >= gridCountY) {
                 // sizeX-1: tile MAY be partially outside the image, but it MUST have at least 1 pixel inside it
                 throw new IndexOutOfBoundsException("New tile is completely outside the image " +
                         "(out of maximal tilemap sizes) " + dimX + "x" + dimY + ": " + tileIndex);
@@ -473,10 +473,10 @@ public final class TiffMap {
         tiles.forEach(this::put);
     }
 
-    public TiffMap buildGrid() {
+    public TiffMap buildTileGrid() {
         for (int p = 0; p < numberOfSeparatedPlanes; p++) {
-            for (int y = 0; y < gridTileCountY; y++) {
-                for (int x = 0; x < gridTileCountX; x++) {
+            for (int y = 0; y < gridCountY; y++) {
+                for (int x = 0; x < gridCountX; x++) {
                     getOrNewMultiplane(p, x, y).cropToMap(true);
                 }
             }
@@ -505,8 +505,8 @@ public final class TiffMap {
         if (clearDimensions) {
             setDimensions(0, 0);
             // - exception if !resizable
-            gridTileCountX = 0;
-            gridTileCountY = 0;
+            gridCountX = 0;
+            gridCountY = 0;
             numberOfGridTiles = 0;
             // - note: this is the only way to reduce tileCountX/Y!
         }
@@ -524,7 +524,7 @@ public final class TiffMap {
     public String toString() {
         return (resizable ? "resizable " : "") + "map " +
                 (resizable ? "": dimX + "x" + dimY + " ") +
-                "of " + tileMap.size() + " TIFF tiles (grid " + gridTileCountX + "x" + gridTileCountY +
+                "of " + tileMap.size() + " TIFF tiles (grid " + gridCountX + "x" + gridCountY +
                 ") at the image " + ifd;
     }
 
@@ -609,22 +609,22 @@ public final class TiffMap {
         if (newMinimalTileCountY < 0) {
             throw new IllegalArgumentException("Negative new minimal tiles y-count: " + newMinimalTileCountY);
         }
-        if (newMinimalTileCountX <= gridTileCountX && newMinimalTileCountY <= gridTileCountY) {
+        if (newMinimalTileCountX <= gridCountX && newMinimalTileCountY <= gridCountY) {
             return;
             // - even in a case !resizable
         }
         if (checkResizable && !resizable) {
             throw new IllegalArgumentException("Cannot expand tile counts in a non-resizable tile map");
         }
-        final int tileCountX = Math.max(this.gridTileCountX, newMinimalTileCountX);
-        final int tileCountY = Math.max(this.gridTileCountY, newMinimalTileCountY);
+        final int tileCountX = Math.max(this.gridCountX, newMinimalTileCountX);
+        final int tileCountY = Math.max(this.gridCountY, newMinimalTileCountY);
         if ((long) tileCountX * (long) tileCountY > Integer.MAX_VALUE / numberOfSeparatedPlanes) {
             throw new IllegalArgumentException("Too large number of tiles/strips: " +
                     (numberOfSeparatedPlanes > 1 ? numberOfSeparatedPlanes + " separated planes * " : "") +
                     tileCountX + " * " + tileCountY + " > 2^31-1");
         }
-        this.gridTileCountX = tileCountX;
-        this.gridTileCountY = tileCountY;
+        this.gridCountX = tileCountX;
+        this.gridCountY = tileCountY;
         this.numberOfGridTiles = tileCountX * tileCountY * numberOfSeparatedPlanes;
     }
 

@@ -1228,7 +1228,7 @@ public class TiffReader implements Closeable {
     }
 
     public TiffMap newMap(TiffIFD ifd) {
-        return new TiffMap(ifd).buildGrid();
+        return new TiffMap(ifd).buildTileGrid();
         // - building grid is useful to perform loops on all tiles
     }
 
@@ -1657,11 +1657,11 @@ public class TiffReader implements Closeable {
         // - crop by image sizes to avoid reading unpredictable content of the boundary tiles outside the image
         final int minXIndex = Math.max(0, divFloor(fromX, mapTileSizeX));
         final int minYIndex = Math.max(0, divFloor(fromY, mapTileSizeY));
-        if (minXIndex >= map.gridTileCountX() || minYIndex >= map.gridTileCountY() || toX < fromX || toY < fromY) {
+        if (minXIndex >= map.gridCountX() || minYIndex >= map.gridCountY() || toX < fromX || toY < fromY) {
             return;
         }
-        final int maxXIndex = Math.min(map.gridTileCountX() - 1, divFloor(toX - 1, mapTileSizeX));
-        final int maxYIndex = Math.min(map.gridTileCountY() - 1, divFloor(toY - 1, mapTileSizeY));
+        final int maxXIndex = Math.min(map.gridCountX() - 1, divFloor(toX - 1, mapTileSizeX));
+        final int maxYIndex = Math.min(map.gridCountY() - 1, divFloor(toY - 1, mapTileSizeY));
         if (minYIndex > maxYIndex || minXIndex > maxXIndex) {
             // - possible when fromX < 0 or fromY < 0
             return;

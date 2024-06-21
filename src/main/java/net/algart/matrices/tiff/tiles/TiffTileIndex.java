@@ -152,13 +152,13 @@ public final class TiffTileIndex {
 
     public boolean isInBounds() {
         assert channelPlane < map.numberOfSeparatedPlanes() : "must be checked in the constructor!";
-        return xIndex < map.gridTileCountX() && yIndex < map.gridTileCountY();
+        return xIndex < map.gridCountX() && yIndex < map.gridCountY();
     }
 
     public void checkInBounds() {
         if (!isInBounds()) {
             throw new IllegalStateException("Tile index is out of current TIFF map grid sizes " +
-                    map.gridTileCountX() + "x" + map.gridTileCountY() + ": " + this);
+                    map.gridCountX() + "x" + map.gridCountY() + ": " + this);
         }
     }
 

@@ -819,13 +819,13 @@ public class TiffWriter implements Closeable {
 
         final int minXIndex = Math.max(0, TiffReader.divFloor(fromX, mapTileSizeX));
         final int minYIndex = Math.max(0, TiffReader.divFloor(fromY, mapTileSizeY));
-        if (minXIndex >= map.gridTileCountX() || minYIndex >= map.gridTileCountY()) {
+        if (minXIndex >= map.gridCountX() || minYIndex >= map.gridCountY()) {
             throw new AssertionError("Map was not expanded/checked properly: minimal tile index (" +
                     minXIndex + "," + minYIndex + ") is out of tile grid 0<=x<" +
-                    map.gridTileCountX() + ", 0<=y<" + map.gridTileCountY() + "; map: " + map);
+                    map.gridCountX() + ", 0<=y<" + map.gridCountY() + "; map: " + map);
         }
-        final int maxXIndex = Math.min(map.gridTileCountX() - 1, TiffReader.divFloor(toX - 1, mapTileSizeX));
-        final int maxYIndex = Math.min(map.gridTileCountY() - 1, TiffReader.divFloor(toY - 1, mapTileSizeY));
+        final int maxXIndex = Math.min(map.gridCountX() - 1, TiffReader.divFloor(toX - 1, mapTileSizeX));
+        final int maxYIndex = Math.min(map.gridCountY() - 1, TiffReader.divFloor(toY - 1, mapTileSizeY));
         if (minYIndex > maxYIndex || minXIndex > maxXIndex) {
             // - possible when fromX < 0 or fromY < 0
             return updatedTiles;
@@ -1236,7 +1236,7 @@ public class TiffWriter implements Closeable {
         }
         correctIFDForWriting(ifd);
         final TiffMap map = new TiffMap(ifd, resizable);
-        map.buildGrid();
+        map.buildTileGrid();
         // - useful to perform loops on all tiles, especially in non-resizable case
         ifd.removeNextIFDOffset();
         ifd.removeDataPositioning();
@@ -1275,7 +1275,7 @@ public class TiffWriter implements Closeable {
         final long[] byteCounts = ifd.cachedTileOrStripByteCounts();
         assert offsets != null;
         assert byteCounts != null;
-        map.buildGrid();
+        map.buildTileGrid();
         if (offsets.length < map.numberOfTiles() || byteCounts.length < map.numberOfTiles()) {
             throw new ConcurrentModificationException("Strange length of tile offsets " + offsets.length +
                     " or byte counts " + byteCounts.length);
@@ -1865,14 +1865,14 @@ public class TiffWriter implements Closeable {
         // - zero-filled by Java
         TiffTile filler = null;
         final int numberOfSeparatedPlanes = map.numberOfSeparatedPlanes();
-        final int gridTileCountY = map.gridTileCountY();
-        final int gridTileCountX = map.gridTileCountX();
+        final int gridCountY = map.gridCountY();
+        final int gridCountX = map.gridCountX();
         long t1 = debugTime();
         int count = 0;
         long sizeInBytes = 0;
         for (int p = 0, k = 0; p < numberOfSeparatedPlanes; p++) {
-            for (int yIndex = 0; yIndex < gridTileCountY; yIndex++) {
-                for (int xIndex = 0; xIndex < gridTileCountX; xIndex++, k++) {
+            for (int yIndex = 0; yIndex < gridCountY; yIndex++) {
+                for (int xIndex = 0; xIndex < gridCountX; xIndex++, k++) {
                     TiffTileIndex tileIndex = map.multiplaneIndex(p, xIndex, yIndex);
                     TiffTile tile = map.getOrNew(tileIndex);
                     // - non-existing is created (empty) and saved in the map;
