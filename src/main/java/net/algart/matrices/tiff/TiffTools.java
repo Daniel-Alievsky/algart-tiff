@@ -496,7 +496,8 @@ public class TiffTools {
             // in the same situation, when its argument is false.
             throw new TiffException("Too large decoded TIFF data: " + tile.getStoredDataLength() +
                     " bytes, its is greater than one " +
-                    (tile.map().isTileGrid() ? "tile" : "strip") + " (" + tile.map().tileSizeInBytes() + " bytes); "
+                    (tile.map().getTilingMode().isTileGrid() ? "tile" : "strip") +
+                    " (" + tile.map().tileSizeInBytes() + " bytes); "
                     + "probably TIFF file is corrupted or format is not properly supported");
         }
         tile.adjustNumberOfPixels(true);

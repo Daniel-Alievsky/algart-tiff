@@ -269,22 +269,25 @@ public final class TiffTile {
     /**
      * Reduces sizes of this tile so that it will completely lie inside map dimensions.
      *
-     * <p>This operation can be useful for <i>stripped</i> TIFF image, especially while writing.
-     * But you should not call this for <i>tiled</i> image (when {@link TiffMap#isTileGrid()}
-     * returns <code>true</code>).
+     * <p>This operation can be useful for
+     * {@link net.algart.matrices.tiff.tiles.TiffMap.TilingMode#STRIPS stripped TIFF image},
+     * especially while writing.
+     * But there are no reasons to call this for
+     * {@link net.algart.matrices.tiff.tiles.TiffMap.TilingMode#TILE_GRID tiled image}.
      * For tiled image, TIFF file usually contains full-size encoded tiles even on image boundary;
      * they should be cropped after decoding by external means. You can disable attempt to reduce
      * tile in tiled image by passing <code>strippedOnly=true</code>.
      *
      * @param strippedOnly if <code>true</code>, this function will not do anything when the map
-     *                     is a @link TiffMap#isTileGrid() tile grid}. While using for reading/writing TIFF files,
+     *                     is a  {@link net.algart.matrices.tiff.tiles.TiffMap.TilingMode#TILE_GRID tiled image}.
+     *                     While using for reading/writing TIFF files,
      *                     this argument usually should be <code>true</code>.
      * @return a reference to this object.
      * @throws IllegalStateException if this tile is completely outside map dimensions.
      */
     public TiffTile cropToMap(boolean strippedOnly) {
         checkOutsideMap();
-        if (strippedOnly && map.isTileGrid()) {
+        if (strippedOnly && map.getTilingMode().isTileGrid()) {
             return this;
         } else {
             return setSizes(Math.min(sizeX, map.dimX() - index.fromX()), Math.min(sizeY, map.dimY() - index.fromY()));

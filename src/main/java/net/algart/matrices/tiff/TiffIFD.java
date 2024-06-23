@@ -809,7 +809,7 @@ public class TiffIFD {
         return imageLength;
     }
 
-    public int getStripRows() throws TiffException {
+    public int getRowsPerStrip() throws TiffException {
         final long[] rowsPerStrip = getLongArray(Tags.ROWS_PER_STRIP);
         final int imageDimY = getImageDimY();
         if (rowsPerStrip == null || rowsPerStrip.length == 0) {
@@ -881,7 +881,7 @@ public class TiffIFD {
             }
             return tileLength;
         }
-        final int stripRows = getStripRows();
+        final int stripRows = getRowsPerStrip();
         assert stripRows > 0 : "getStripRows() did not check non-positive result";
         return stripRows;
         // - unlike old SCIFIO getTileLength, we do not return 0 if rowsPerStrip==0:
@@ -1163,7 +1163,9 @@ public class TiffIFD {
 
     /**
      * Returns <code>true</code> if IFD contains tags <code>TileWidth</code> and <code>TileLength</code>.
-     * It means that the image is stored in tiled form, but not separated by strips.
+     * We call such a TIFF image <b>tiled</b>.
+     * This means that the image is stored in tiled form (2D grid of rectangular tiles),
+     * but not separated by strips.
      *
      * <p>If IFD contains <b>only one</b> from these tags &mdash; there is <code>TileWidth</code>,
      * but <code>TileLength</code> is not specified, or vice versa &mdash; this method throws
@@ -1174,11 +1176,10 @@ public class TiffIFD {
      * <code>RowsPerStrip</code> tag, and {@link #getTileSizeX()} is always equal to the value
      * of <code>ImageWidth</code> tag.
      *
-     * <p>For comparison, old <code>isTiled()</code> methods returns <code>true</code>
-     * if IFD contains tag <code>TileWidth</code> <i>and</i> does not contain tag <code>StripOffsets</code>.
-     * However, some TIFF files use <code>StripOffsets</code> and <code>StripByteCounts</code> tags even
-     * in a case of tiled image, for example, cramps-tile.tif from the known image set <i>libtiffpic</i>
-     * (see https://download.osgeo.org/libtiff/ ).
+     * <p>Note that some TIFF files use <code>StripOffsets</code> and <code>StripByteCounts</code> tags even
+     * in a case of tiled image with <code>TileWidth</code> and <code>TileLength</code> tags,
+     * for example, cramps-tile.tif from the known image set <i>libtiffpic</i>
+     * (see <a href="https://download.osgeo.org/libtiff/">https://download.osgeo.org/libtiff/</a>).
      *
      * @return whether this IFD contain tile size information.
      * @throws TiffException if one of tags <code>TileWidth</code> and <code>TileLength</code> is present in IFD,

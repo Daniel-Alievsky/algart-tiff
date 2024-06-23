@@ -56,7 +56,7 @@ public class TiffWriterTest {
     private static void printReaderInfo(TiffWriter writer) throws IOException {
         System.out.print("Checking file by the reader: ");
         try {
-            final TiffReader reader = writer.readerOfThisFile(false);
+            final TiffReader reader = writer.newReaderOfThisFile(false);
             final int n = reader.numberOfIFDs();
             System.out.printf("%s, %s%n",
                     reader.isValid() ? "valid" : "INVALID: " + reader.openingException(),
@@ -316,7 +316,7 @@ public class TiffWriterTest {
                         // but following images will be written with new properties.
                         // Note: it seems that we need to "flush" current writer.getStream(),
                         // but DataHandle has not any analogs of flush() method.
-                        final TiffReader reader = writer.readerOfThisFile(false);
+                        final TiffReader reader = writer.newReaderOfThisFile(false);
                         ifd = reader.readSingleIFD(ifdIndex);
                         ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
                     }

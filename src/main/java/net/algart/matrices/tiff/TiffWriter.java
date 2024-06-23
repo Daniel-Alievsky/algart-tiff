@@ -41,6 +41,7 @@ import org.scijava.io.location.BytesLocation;
 import org.scijava.io.location.Location;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -146,8 +147,8 @@ public class TiffWriter implements Closeable {
     /**
      * Equivalent to <code>new {@link #TiffWriter(Path, boolean) TiffWriter(file, false)}</code>.
      *
-     * <p>Note: unlike classes like <code>java.io.FileWriter</code>,
-     * this constructor <b>does not actually open or create file</b>.
+     * <p>Note: unlike classes like {@link java.io.FileWriter},
+     * this constructor <b>does not try to open or create file</b>.
      * If you need, you can use another constructor with the argument
      * <code>createNewFileAndOpen&nbsp;=&nbsp;true</code>:</p>
      * <pre>
@@ -167,10 +168,13 @@ public class TiffWriter implements Closeable {
     /**
      * Creates new TIFF writer.
      *
-     * <p>Note: unlike classes like <code>java.io.FileWriter</code> and unlike {@link TiffReader},
-     * this constructor <b>does not actually open or create file</b>, when the argument
-     * <b><code>createNewFileAndOpen</code> is {@code false}</b>.
-     * In this case, you may create the file&nbsp;&mdash; or open an existing TIFF file&nbsp;&mdash; later via
+     * <p>If the argument <code>createNewFileAndOpen</code> is {@code false},
+     * this constructor <b>does not try to open or create file</b> and, so, never
+     * throw {@link IOException}.
+     * This behaviour <b>differ</b> from the constructor of {@link java.io.FileWriter#FileWriter(File) FileWriter}
+     * and similar classes, which create and open a file.
+     *
+     * <p>You may create the file&nbsp;&mdash; or open an existing TIFF file&nbsp;&mdash; later via
      * one of methods {@link #create()} or {@link #open(boolean)}.
      * Before this, you can customize this object, for example, with help of
      * {@link #setBigTiff(boolean)}, {@link #setLittleEndian(boolean)} and other methods.
@@ -179,7 +183,7 @@ public class TiffWriter implements Closeable {
      * this constructor automatically removes the file with the specified path, if it exists,
      * and calls {@link #create()} method. In a case of I/O exception in {@link #create()} method,
      * this file is automatically closed. This behaviour is alike
-     * <code>java.io.FileWriter</code> and similar classes.
+     *{@link java.io.FileWriter#FileWriter(File) FileWriter constructor}.
      *
      * <p>This is the simplest way to create a new TIFF file and automatically open it with writing the standard
      * TIFF header. After that, this object is ready for adding new TIFF images.
@@ -225,7 +229,7 @@ public class TiffWriter implements Closeable {
         // - we do not use WriteBufferDataHandle here: this is not too important for efficiency
     }
 
-    public TiffReader readerOfThisFile(boolean requireValidTiff) throws IOException {
+    public TiffReader newReaderOfThisFile(boolean requireValidTiff) throws IOException {
         return new TiffReader(out, requireValidTiff, false);
     }
 
@@ -611,6 +615,7 @@ public class TiffWriter implements Closeable {
         synchronized (fileLock) {
             ifdOffsets.clear();
             out.seek(0);
+            // - this call actually creates and opens the file, if it was not opened before
             if (isLittleEndian()) {
                 out.writeByte(TiffTools.FILE_PREFIX_LITTLE_ENDIAN);
                 out.writeByte(TiffTools.FILE_PREFIX_LITTLE_ENDIAN);
@@ -656,7 +661,7 @@ public class TiffWriter implements Closeable {
 
     /**
      * Writes IFD at the position, specified by <code>startOffset</code> argument, or at the file end
-     * (aligned to nearest even length) if it is <code>null</code>.
+     * (aligned to nearest even length) if it is {@code null}.
      *
      * <p>Note: this IFD is automatically marked as last IFD in the file (next IFD offset is 0),
      * unless you explicitly specified other next offset via {@link TiffIFD#setNextIFDOffset(long)}.

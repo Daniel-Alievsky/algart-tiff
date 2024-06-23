@@ -28,7 +28,6 @@ import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
@@ -48,7 +47,7 @@ public class TiffWriteSimpleTest {
     private static void printReaderInfo(TiffWriter writer) throws IOException {
         System.out.print("Checking file by the reader: ");
         try {
-            final TiffReader reader = writer.readerOfThisFile(false);
+            final TiffReader reader = writer.newReaderOfThisFile(false);
             System.out.printf("%s, %s%n",
                     reader.isValid() ? "valid" : "INVALID: " + reader.openingException(),
                     reader.numberOfIFDs() == 0 ? "no IFD" : "#0 " + reader.ifd(0));

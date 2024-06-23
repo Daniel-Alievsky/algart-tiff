@@ -31,6 +31,57 @@ import java.util.*;
 
 public final class TiffMap {
     /**
+     * Possible type of tiles in the TIFF map: 2D tile grid or horizontal strips.
+     * You can know the tiling type of the map by {@link TiffMap#getTilingMode()} method.
+     */
+    public enum TilingMode {
+        /**
+         * True tiles: 2D grid of rectangular tiles with of equal size.
+         *
+         * <p>The sizes of tiles are returned by {@link TiffMap#tileSizeX()} and
+         * {@link TiffMap#tileSizeY()} methods.
+         *
+         * <p>IFD must contain <code>TileWidth</code> and <code>TileLength</code> tags.
+         * The method {@link TiffMap#ifd()}.{@link TiffIFD#hasTileInformation() hasTileInformation()}
+         * returns {@code true}.</p>
+         *
+         * <p>The tiles on the image boundaries, partially lying outside the image,
+         * are stored as full-size pixel matrices; extra pixels outside the image should be ignored.
+         *
+         * </p>Used for large TIFF images.</p>
+         */
+        TILE_GRID,
+
+        /**
+         * Horizontal strips. In terms of this library they are also called "tiles" and represented
+         * with help of {@link TiffTile} and {@link TiffMap} classes.
+         *
+         * <p>In this case, all strips ("tiles") has a width,
+         * equal to the width of the entire image, and the same height <code>H</code> (excepting the last strip,
+         * which height is a reminder <code>image-height % H</code> when the full image height is not divisible
+         * by <code>H</code>). The height <code>H</code> is returned by {@link #tileSizeY()} method;
+         * the {@link #tileSizeX()} method returns the total image width.
+         *
+         * <p>IFD must <b>not</b> contain <code>TileWidth</code> and <code>TileLength</code> tags.
+         * The height <code>H</code> of every strip is specified in <code>RowsPerStrip</code> tag
+         * or is the full image height if there is no such tag (in the latter case, {@link TiffMap}
+         * will contain only 1 tile).
+         * Though TIFF format allows to specify strips with different heights,
+         * this library does not support this case.
+         *
+         * <p>If the full image height is not divisible by strip height <code>H</code>),
+         * the last tile should be stored as a pixel matrix with reduced height
+         * <code>image-height % H</code>: extra pixel outside the image are not stored.
+         * However, if this condition is not fulfilled, for example, the last strip is stored
+         * as a full-size JPEG with the height <code>H</code>, this library correctly reads such an image.
+         */
+        STRIPS;
+
+        public final boolean isTileGrid() {
+            return this == TILE_GRID;
+        }
+    }
+    /**
      * Maximal value of x/y-index of the tile.
      *
      * <p>This limit helps to avoid arithmetic overflow while operations with indexes.
@@ -51,7 +102,7 @@ public final class TiffMap {
     private final TiffSampleType sampleType;
     private final boolean wholeBytes;
     private final Class<?> elementType;
-    private final boolean tileGrid;
+    private final TilingMode tilingMode;
     private final int tileSizeX;
     private final int tileSizeY;
     private final int tileSizeInPixels;
@@ -89,8 +140,8 @@ public final class TiffMap {
                 throw new IllegalArgumentException("TIFF image sizes (ImageWidth and ImageLength tags) " +
                         "are not specified; it is not allowed for non-resizable tile map");
             }
-            this.tileGrid = ifd.hasTileInformation();
-            if (resizable && !tileGrid) {
+            this.tilingMode = ifd.hasTileInformation() ? TilingMode.TILE_GRID : TilingMode.STRIPS;
+            if (resizable && !tilingMode.isTileGrid()) {
                 throw new IllegalArgumentException("TIFF image is not tiled (TileWidth and TileLength tags " +
                         "are not specified); it is not allowed for resizable tile map: any processing " +
                         "TIFF image, such as writing its fragments, requires either knowing its final fixed sizes, " +
@@ -134,7 +185,7 @@ public final class TiffMap {
             }
             if ((long) tileSizeX * (long) tileSizeY > Integer.MAX_VALUE) {
                 throw new IllegalArgumentException("Very large " +
-                        (tileGrid ? "TIFF tiles " : "non-tiled TIFF ")
+                        (tilingMode.isTileGrid() ? "TIFF tiles " : "TIFF strips ")
                         + tileSizeX + "x" + tileSizeY +
                         " >= 2^31 pixels are not supported");
                 // - note that it is also checked deeper in the next operator
@@ -264,8 +315,8 @@ public final class TiffMap {
         return ifd.optDescription();
     }
 
-    public boolean isTileGrid() {
-        return tileGrid;
+    public TilingMode getTilingMode() {
+        return tilingMode;
     }
 
     public int tileSizeX() {
