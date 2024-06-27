@@ -24,10 +24,9 @@
 
 package net.algart.matrices.tiff.tests.io;
 
-import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
-import net.algart.external.MatrixIO;
+import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffTools;

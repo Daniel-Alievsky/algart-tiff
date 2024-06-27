@@ -29,7 +29,7 @@ import com.github.jaiimageio.impl.plugins.tiff.TIFFImageReaderSpi;
 import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
-import net.algart.external.awt.BufferedImageToMatrix;
+import net.algart.io.awt.BufferedImageToMatrix;
 
 import javax.imageio.IIOException;
 import javax.imageio.ImageIO;

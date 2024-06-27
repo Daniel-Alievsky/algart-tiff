@@ -26,9 +26,8 @@ package net.algart.matrices.tiff.tests.misc;
 
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
-import net.algart.external.awt.BufferedImageToMatrix;
+import net.algart.io.awt.BufferedImageToMatrix;
 import net.algart.matrices.tiff.awt.AWTImages;
-import net.algart.matrices.tiff.awt.JPEG;
 
 import javax.imageio.IIOException;
 import javax.imageio.ImageIO;
@@ -37,7 +36,6 @@ import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Locale;
 
 public class AWTImageConversionsSpeed {

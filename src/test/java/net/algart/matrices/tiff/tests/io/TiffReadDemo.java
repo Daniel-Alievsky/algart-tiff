@@ -26,10 +26,8 @@ package net.algart.matrices.tiff.tests.io;
 
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
-import net.algart.external.MatrixIO;
+import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.TiffTools;
-import org.scijava.Context;
 
 import java.io.IOException;
 import java.nio.file.Path;
