@@ -68,8 +68,7 @@ public class AWT2MatrixTest {
         for (int i = 0; i < bytes.length; i++) {
             bytes[i] = matrices.get(i).array().jaByte();
         }
-        BufferedImage bi2 = AWTImages.makeImage(
-                bytes, dimX, dimY, false);
+        BufferedImage bi2 = AWTImages.makeImage(bytes, dimX, dimY, false);
 
         System.out.printf("BufferedImage: %s%n", bi2);
         System.out.printf("Writing AWTImage conversion to %s...%n", resultFile2);
@@ -89,5 +88,6 @@ public class AWT2MatrixTest {
         System.out.printf("BufferedImage: %s%n", bi4);
         System.out.printf("Writing new test image to %s...%n", resultFile4);
         MatrixIO.writeBufferedImage(resultFile4, bi4);
+        // Note: JPEG2000 will be written incorrectly in jai-imageio-jpeg2000 1.4.0!
     }
 }
