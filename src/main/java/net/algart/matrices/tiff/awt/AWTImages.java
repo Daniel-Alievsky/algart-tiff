@@ -153,8 +153,12 @@ public final class AWTImages {
      *                    127) instead of unsigned (0 to 255).
      */
     public static BufferedImage makeImage(byte[] data, int w, int h, int c, boolean interleaved, boolean signed) {
-        if (c == 1) return makeImage(data, w, h, signed);
-        if (c > 2) return makeRGBImage(data, c, w, h, interleaved);
+        if (c == 1) {
+            return makeImage(data, w, h, signed);
+        }
+        if (c > 2) {
+            return makeRGBImage(data, c, w, h, interleaved);
+        }
         int dataType;
         DataBuffer buffer;
         dataType = DataBuffer.TYPE_BYTE;
@@ -181,7 +185,9 @@ public final class AWTImages {
      *                    to 32767) instead of unsigned (0 to 65535).
      */
     public static BufferedImage makeImage(short[] data, int w, int h, int c, boolean interleaved, boolean signed) {
-        if (c == 1) return makeImage(data, w, h, signed);
+        if (c == 1) {
+            return makeImage(data, w, h, signed);
+        }
         int dataType;
         DataBuffer buffer;
         if (signed) {
@@ -209,7 +215,9 @@ public final class AWTImages {
      *                    2^31-1) instead of unsigned (0 to 2^32-1).
      */
     public static BufferedImage makeImage(int[] data, int w, int h, int c, boolean interleaved, boolean signed) {
-        if (c == 1) return makeImage(data, w, h, signed);
+        if (c == 1) {
+            return makeImage(data, w, h, signed);
+        }
         final int dataType = DataBuffer.TYPE_INT;
         DataBuffer buffer;
         if (signed) {
@@ -233,7 +241,9 @@ public final class AWTImages {
      *                    "RRR...GGG...BBB..." is sequential.
      */
     public static BufferedImage makeImage(float[] data, int w, int h, int c, boolean interleaved) {
-        if (c == 1) return makeImage(data, w, h);
+        if (c == 1) {
+            return makeImage(data, w, h);
+        }
         final int dataType = DataBuffer.TYPE_FLOAT;
         final DataBuffer buffer = new DataBufferFloat(data, c * w * h);
         return constructImage(c, dataType, w, h, interleaved, false, buffer);
@@ -252,7 +262,9 @@ public final class AWTImages {
      *                    "RRR...GGG...BBB..." is sequential.
      */
     public static BufferedImage makeImage(double[] data, int w, int h, int c, boolean interleaved) {
-        if (c == 1) return makeImage(data, w, h);
+        if (c == 1) {
+            return makeImage(data, w, h);
+        }
         final int dataType = DataBuffer.TYPE_DOUBLE;
         final DataBuffer buffer = new DataBufferDouble(data, c * w * h);
         return constructImage(c, dataType, w, h, interleaved, false, buffer);
@@ -272,7 +284,9 @@ public final class AWTImages {
      *               127) instead of unsigned (0 to 255).
      */
     public static BufferedImage makeImage(byte[][] data, int w, int h, boolean signed) {
-        if (data.length > 2) return makeRGBImage(data, w, h);
+        if (data.length > 2) {
+            return makeRGBImage(data, w, h);
+        }
         int dataType;
         DataBuffer buffer;
         dataType = DataBuffer.TYPE_BYTE;
@@ -434,19 +448,29 @@ public final class AWTImages {
             final Object pixels = Bytes.makeArray(data[i], bpp % 3 == 0 ? bpp / 3
                     : bpp, fp, little);
             if (pixels instanceof byte[]) {
-                if (v == null) v = new byte[c][];
+                if (v == null) {
+                    v = new byte[c][];
+                }
                 ((byte[][]) v)[i] = (byte[]) pixels;
             } else if (pixels instanceof short[]) {
-                if (v == null) v = new short[c][];
+                if (v == null) {
+                    v = new short[c][];
+                }
                 ((short[][]) v)[i] = (short[]) pixels;
             } else if (pixels instanceof int[]) {
-                if (v == null) v = new int[c][];
+                if (v == null) {
+                    v = new int[c][];
+                }
                 ((int[][]) v)[i] = (int[]) pixels;
             } else if (pixels instanceof float[]) {
-                if (v == null) v = new float[c][];
+                if (v == null) {
+                    v = new float[c][];
+                }
                 ((float[][]) v)[i] = (float[]) pixels;
             } else if (pixels instanceof double[]) {
-                if (v == null) v = new double[c][];
+                if (v == null) {
+                    v = new double[c][];
+                }
                 ((double[][]) v)[i] = (double[]) pixels;
             }
         }
@@ -553,7 +577,9 @@ public final class AWTImages {
         }
         if (colorModel == null || colorModel instanceof DirectColorModel) {
             colorModel = makeColorModel(c, type);
-            if (colorModel == null) return null;
+            if (colorModel == null) {
+                return null;
+            }
             if (buffer instanceof UnsignedIntBuffer) {
                 colorModel = new UnsignedIntColorModel(32, type, c);
             }
@@ -568,17 +594,20 @@ public final class AWTImages {
             }
             model = new SinglePixelPackedSampleModel(DataBuffer.TYPE_INT, w, h,
                     bitMasks);
-        } else if (banded) model = new BandedSampleModel(type, w, h, c);
-        else if (interleaved) {
+        } else if (banded) {
+            model = new BandedSampleModel(type, w, h, c);
+        } else if (interleaved) {
             final int[] bandOffsets = new int[c];
-            for (int i = 0; i < c; i++)
+            for (int i = 0; i < c; i++) {
                 bandOffsets[i] = i;
+            }
             model = new PixelInterleavedSampleModel(type, w, h, c, c * w,
                     bandOffsets);
         } else {
             final int[] bandOffsets = new int[c];
-            for (int i = 0; i < c; i++)
+            for (int i = 0; i < c; i++) {
                 bandOffsets[i] = i * w * h;
+            }
             model = new ComponentSampleModel(type, w, h, 1, w, bandOffsets);
         }
 
@@ -607,10 +636,14 @@ public final class AWTImages {
                 b = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
             }
 
-            if (b != null) b.setData(raster);
+            if (b != null) {
+                b.setData(raster);
+            }
         }
 
-        if (b == null) b = new BufferedImage(colorModel, raster, false, null);
+        if (b == null) {
+            b = new BufferedImage(colorModel, raster, false, null);
+        }
 
         return b;
     }
@@ -653,14 +686,19 @@ public final class AWTImages {
      */
     public static Object getPixels(WritableRaster raster, int x, int y, int w, int h) {
         final int tt = raster.getTransferType();
-        if (tt == DataBuffer.TYPE_BYTE) return getBytes(raster, x, y, w, h);
-        else if (tt == DataBuffer.TYPE_USHORT || tt == DataBuffer.TYPE_SHORT) {
+        if (tt == DataBuffer.TYPE_BYTE) {
+            return getBytes(raster, x, y, w, h);
+        } else if (tt == DataBuffer.TYPE_USHORT || tt == DataBuffer.TYPE_SHORT) {
             return getShorts(raster, x, y, w, h);
-        } else if (tt == DataBuffer.TYPE_INT) return getInts(raster, x, y, w, h);
-        else if (tt == DataBuffer.TYPE_FLOAT) return getFloats(raster, x, y, w, h);
-        else if (tt == DataBuffer.TYPE_DOUBLE) {
+        } else if (tt == DataBuffer.TYPE_INT) {
+            return getInts(raster, x, y, w, h);
+        } else if (tt == DataBuffer.TYPE_FLOAT) {
+            return getFloats(raster, x, y, w, h);
+        } else if (tt == DataBuffer.TYPE_DOUBLE) {
             return getDoubles(raster, x, y, w, h);
-        } else return null;
+        } else {
+            return null;
+        }
     }
 
     /**
@@ -702,8 +740,9 @@ public final class AWTImages {
         final int[] buf = new int[w * h];
         for (int i = 0; i < c; i++) {
             r.getSamples(x, y, w, h, i, buf);
-            for (int j = 0; j < buf.length; j++)
+            for (int j = 0; j < buf.length; j++) {
                 samples[i][j] = (byte) buf[j];
+            }
         }
         return samples;
     }
@@ -736,8 +775,9 @@ public final class AWTImages {
         final int[] buf = new int[w * h];
         for (int i = 0; i < c; i++) {
             r.getSamples(x, y, w, h, i, buf);
-            for (int j = 0; j < buf.length; j++)
+            for (int j = 0; j < buf.length; j++) {
                 samples[i][j] = (short) buf[j];
+            }
         }
         return samples;
     }
@@ -768,8 +808,9 @@ public final class AWTImages {
         // NB: an order of magnitude faster than the naive makeType solution
         final int c = r.getNumBands();
         final int[][] samples = new int[c][w * h];
-        for (int i = 0; i < c; i++)
+        for (int i = 0; i < c; i++) {
             r.getSamples(x, y, w, h, i, samples[i]);
+        }
         return samples;
     }
 
@@ -799,8 +840,9 @@ public final class AWTImages {
         // NB: an order of magnitude faster than the naive makeType solution
         final int c = r.getNumBands();
         final float[][] samples = new float[c][w * h];
-        for (int i = 0; i < c; i++)
+        for (int i = 0; i < c; i++) {
             r.getSamples(x, y, w, h, i, samples[i]);
+        }
         return samples;
     }
 
@@ -830,8 +872,9 @@ public final class AWTImages {
         // NB: an order of magnitude faster than the naive makeType solution
         final int c = r.getNumBands();
         final double[][] samples = new double[c][w * h];
-        for (int i = 0; i < c; i++)
+        for (int i = 0; i < c; i++) {
             r.getSamples(x, y, w, h, i, samples[i]);
+        }
         return samples;
     }
 
@@ -1098,11 +1141,11 @@ public final class AWTImages {
             return null;
         }
         if (bandOffsets[0] == 0 && bandOffsets[1] == 1 && bandOffsets[2] == 2) {
-            return new int[] {0, 1, 2};
+            return new int[]{0, 1, 2};
             // - RGB
         }
         if (bandOffsets[0] == 2 && bandOffsets[1] == 1 && bandOffsets[2] == 0) {
-            return new int[] {2, 1, 0};
+            return new int[]{2, 1, 0};
             // - BGR (typical situation for Java AWT)
         }
         return null;
