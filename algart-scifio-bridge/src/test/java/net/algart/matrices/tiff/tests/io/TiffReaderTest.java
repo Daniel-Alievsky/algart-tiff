@@ -180,11 +180,11 @@ public class TiffReaderTest {
 
     private static void writeImageFile(Path file, Matrix<? extends PArray> matrix, boolean interleaved)
             throws IOException {
-        if (matrix.size() > 0) {
+        if (!matrix.isEmpty()) {
             // - BufferedImage cannot have zero sizes
             final Matrix<? extends PArray> interleave = interleaved ?
                     matrix :
-                    Matrices.interleave(null, matrix.asLayers());
+                    Matrices.interleave(matrix.asLayers());
             final BufferedImage bi = new MatrixToBufferedImage.InterleavedRGBToInterleaved()
                     .setUnsignedInt32(true)
                     .toBufferedImage(interleave);

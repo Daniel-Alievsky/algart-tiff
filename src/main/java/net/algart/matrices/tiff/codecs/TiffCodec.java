@@ -323,15 +323,4 @@ public interface TiffCodec {
      * @throws TiffException If data is not valid.
      */
     byte[] decompress(byte[] data, Options options) throws TiffException;
-
-    /**
-     * Decompresses data from the given DataHandle.
-     *
-     * @param in      The stream from which to read compressed data.
-     * @param options Options to be used during decompression.
-     * @return The decompressed data.
-     * @throws TiffException If data is not valid compressed data for this
-     *                       decompressor.
-     */
-    byte[] decompress(DataHandle<Location> in, Options options) throws IOException;
 }

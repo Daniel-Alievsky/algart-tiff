@@ -24,8 +24,11 @@
 
 package net.algart.matrices.tiff.tests.awt;
 
+import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
+import net.algart.arrays.UpdatablePArray;
 import net.algart.io.MatrixIO;
+import net.algart.io.awt.MatrixToBufferedImage;
 import net.algart.matrices.tiff.awt.AWTImages;
 
 import java.awt.image.BufferedImage;
@@ -33,25 +36,34 @@ import java.awt.image.DataBuffer;
 import java.awt.image.DataBufferByte;
 import java.awt.image.SampleModel;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.List;
 
 public class AWTImagesMakeBufferedImageTest {
     public static void main(String[] args) throws IOException {
-        if (args.length < 6) {
+        int startArgIndex = 0;
+        boolean packed = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-packed")) {
+            packed = true;
+            startArgIndex++;
+        }
+        if (args.length < startArgIndex + 6) {
             System.out.println("Usage:");
             System.out.println("    " + AWTImagesMakeBufferedImageTest.class.getName()
                     + " some_image.jpeg/png/bmp/... result_1.jpeg/png/bmp/... " +
-                    "result_2.jpeg/png/bmp/... result_4.jpeg/png/bmp/... result_5.jpeg/png/bmp/...");
+                    "result_2.jpeg/png/bmp/... result_3.jpeg/png/bmp/... " +
+                    "result_4.jpeg/png/bmp/... result_5.jpeg/png/bmp/...");
             return;
         }
 
-        final Path srcFile = Path.of(args[0]);
-        final Path resultFile1 = Path.of(args[1]);
-        final Path resultFile2 = Path.of(args[2]);
-        final Path resultFile3 = Path.of(args[3]);
-        final Path resultFile4 = Path.of(args[4]);
-        final Path resultFile5 = Path.of(args[5]);
+        final Path srcFile = Path.of(args[startArgIndex++]);
+        final Path resultFile1 = Path.of(args[startArgIndex++]);
+        final Path resultFile2 = Path.of(args[startArgIndex++]);
+        final Path resultFile3 = Path.of(args[startArgIndex++]);
+        final Path resultFile4 = Path.of(args[startArgIndex++]);
+        final Path resultFile5 = Path.of(args[startArgIndex]);
 
         System.out.printf("Reading %s...%n", srcFile);
         BufferedImage bi1 = MatrixIO.readBufferedImage(srcFile);
@@ -61,10 +73,21 @@ public class AWTImagesMakeBufferedImageTest {
         final int dimX = bi1.getWidth();
         final int dimY = bi1.getHeight();
 
-        var matrices2 = MatrixIO.readImage(srcFile);
-        System.out.printf("AlgART matrices: %s%n", matrices2);
+        final List<Matrix<UpdatablePArray>> matrices1 = MatrixIO.readImage(srcFile);
+        System.out.printf("AlgART matrices: %s%n", matrices1);
         System.out.printf("Writing to %s...%n%n", resultFile2);
-        MatrixIO.writeImage(resultFile2, matrices2);
+        MatrixIO.writeImage(resultFile2, matrices1);
+
+        if (packed) {
+            bi1 = new MatrixToBufferedImage.InterleavedRGBToPacked().toBufferedImage(Matrices.interleave(matrices1));
+            System.out.printf("BufferedImage in packed format: %s%n", toString(bi1));
+        }
+
+        Object pixels = AWTImages.getPixels(bi1);
+        System.out.printf("All pixels: %s, %d channels%n", pixels.getClass().getSimpleName(), Array.getLength(pixels));
+        // - Note: in packed mode, result type will be incorrect (int[][] instead of byte[][])!
+        // This problem is not resolved in current version of AWTImages.
+        System.out.println();
 
         // The following code will reduce precision to 8-bit samples
         final byte[][] bytes = AWTImages.getBytes(bi1);

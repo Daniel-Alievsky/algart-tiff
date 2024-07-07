@@ -44,7 +44,7 @@
         <dependency>
             <groupId>net.algart</groupId>
             <artifactId>algart</artifactId>
-            <version>1.4.12</version>
+            <version>1.4.13</version>
         </dependency>
 
         <dependency>

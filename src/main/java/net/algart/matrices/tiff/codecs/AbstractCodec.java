@@ -45,6 +45,19 @@ abstract class AbstractCodec implements TiffCodec {
 		}
 	}
 
+
+	/**
+	 * Decompresses data from the given DataHandle.
+	 *
+	 * @param in      The stream from which to read compressed data.
+	 * @param options Options to be used during decompression.
+	 * @return The decompressed data.
+	 * @throws TiffException If data is not valid compressed data for this
+	 *                       decompressor.
+	 */
+	abstract byte[] decompress(DataHandle<Location> in, Options options) throws IOException;
+
+
 	@SuppressWarnings("rawtypes, unchecked")
 	private static DataHandle<Location> getBytesHandle(BytesLocation bytesLocation) {
 		Objects.requireNonNull(bytesLocation, "Null bytesLocation");
