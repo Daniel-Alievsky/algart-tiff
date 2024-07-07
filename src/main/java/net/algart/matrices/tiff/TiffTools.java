@@ -377,93 +377,99 @@ public class TiffTools {
         }
     }
 
-    // Analog of the function DefaultTiffService.undifference
+    // Analog of the function DefaultTiffService.difference
     public static void subtractPredictionIfRequested(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
-        final byte[] data = tile.getDecodedData();
         final int predictor = tile.ifd().getInt(Tags.PREDICTOR, TiffIFD.PREDICTOR_NONE);
-        if (predictor == TiffIFD.PREDICTOR_HORIZONTAL) {
-            if (!tile.isWholeBytes()) {
-                throw new TiffException("Cannot use TIFF predictor for writing " +
-                        "when bit depth is not multiple of 8: " +
-                        Arrays.toString(tile.ifd().getBitsPerSample()) + " bits/pixel");
+        switch (predictor) {
+            case TiffIFD.PREDICTOR_NONE -> {
             }
-            final boolean little = tile.isLittleEndian();
-            final int bytes = tile.bitsPerSample() >> 3;
-            final int len = tile.bitsPerPixel() >> 3;
-            final long xSize = tile.getSizeX();
-            final long xSizeInBytes = xSize * len;
-
-            int k = data.length - bytes;
-            long xOffset = k % xSizeInBytes;
-
-            if (bytes == 1) {
-                for (; k >= 0; k--, xOffset--) {
-                    if (xOffset < 0) {
-                        xOffset += xSizeInBytes;
-                    }
-//                    assert (k / len % xSize == 0) == (xOffset < len);
-                    if (xOffset >= len) {
-                        data[k] -= data[k - len];
-                    }
-                }
-            } else {
-                for (; k >= 0; k -= bytes) {
-                    if (k / len % xSize == 0) {
-                        continue;
-                    }
-                    int value = Bytes.toInt(data, k, bytes, little);
-                    value -= Bytes.toInt(data, k - len, bytes, little);
-                    Bytes.unpack(value, data, k, bytes, little);
-                }
+            case TiffIFD.PREDICTOR_HORIZONTAL -> {
+                subtractPrediction(tile);
             }
-        } else if (predictor != TiffIFD.PREDICTOR_NONE) {
-            throw new TiffException("Unsupported TIFF Predictor tag: " + predictor);
+            default -> throw new TiffException("Unsupported TIFF Predictor tag: " + predictor);
         }
     }
 
-    // Analog of the function DefaultTiffService.difference
+    // Analog of the function DefaultTiffService.undifference
     public static void unsubtractPredictionIfRequested(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
-        final byte[] data = tile.getDecodedData();
         final int predictor = tile.ifd().getInt(Tags.PREDICTOR, TiffIFD.PREDICTOR_NONE);
-        if (predictor == TiffIFD.PREDICTOR_HORIZONTAL) {
-            if (!tile.isWholeBytes()) {
-                throw new TiffException("Cannot use TIFF predictor for reading " +
-                        "when bit depth is not multiple of 8: " +
-                        Arrays.toString(tile.ifd().getBitsPerSample()) + " bits/pixel");
+        switch (predictor) {
+            case TiffIFD.PREDICTOR_NONE -> {
             }
-            final boolean little = tile.isLittleEndian();
-            final int bytes = tile.bitsPerSample() >> 3;
-            final int len = tile.bitsPerPixel() >> 3;
-            final long xSize = tile.getSizeX();
-            final long xSizeInBytes = xSize * len;
+            case TiffIFD.PREDICTOR_HORIZONTAL -> {
+                unsubtractPrediction(tile);
+            }
+            default -> throw new TiffException("Unsupported TIFF Predictor tag: " + predictor);
+        }
+    }
 
-            int k = 0;
-            long xOffset = 0;
+    public static void subtractPrediction(TiffTile tile) throws TiffException {
+        Objects.requireNonNull(tile, "Null tile");
+        final byte[] data = tile.getDecodedData();
+        final int bytesPerSample = checkBitDepthForPrediction(tile, "for writing");
+        final int len = bytesPerSample * tile.samplesPerPixel();
+        final boolean little = tile.isLittleEndian();
+        final long xSize = tile.getSizeX();
+        final long xSizeInBytes = xSize * len;
 
-            if (bytes == 1) {
-                for (; k <= data.length - 1; k++, xOffset++) {
-                    if (xOffset == xSizeInBytes) {
-                        xOffset = 0;
-                    }
+        int k = data.length - bytesPerSample;
+        long xOffset = k % xSizeInBytes;
+
+        if (bytesPerSample == 1) {
+            for (; k >= 0; k--, xOffset--) {
+                if (xOffset < 0) {
+                    xOffset += xSizeInBytes;
+                }
 //                    assert (k / len % xSize == 0) == (xOffset < len);
-                    if (xOffset >= len) {
-                        data[k] += data[k - len];
-                    }
-                }
-            } else {
-                for (; k <= data.length - bytes; k += bytes) {
-                    if (k / len % xSize == 0) {
-                        continue;
-                    }
-                    int value = Bytes.toInt(data, k, bytes, little);
-                    value += Bytes.toInt(data, k - len, bytes, little);
-                    Bytes.unpack(value, data, k, bytes, little);
+                if (xOffset >= len) {
+                    data[k] -= data[k - len];
                 }
             }
-        } else if (predictor != TiffIFD.PREDICTOR_NONE) {
-            throw new TiffException("Unsupported TIFF Predictor tag: " + predictor);
+        } else {
+            for (; k >= 0; k -= bytesPerSample) {
+                if (k / len % xSize == 0) {
+                    continue;
+                }
+                int value = Bytes.toInt(data, k, bytesPerSample, little);
+                value -= Bytes.toInt(data, k - len, bytesPerSample, little);
+                Bytes.unpack(value, data, k, bytesPerSample, little);
+            }
+        }
+    }
+
+    public static void unsubtractPrediction(TiffTile tile) throws TiffException {
+        Objects.requireNonNull(tile, "Null tile");
+        final byte[] data = tile.getDecodedData();
+        final int bytesPerSample = checkBitDepthForPrediction(tile, "for reading");
+        final int len = bytesPerSample * tile.samplesPerPixel();
+        final boolean little = tile.isLittleEndian();
+        final long xSize = tile.getSizeX();
+        final long xSizeInBytes = xSize * len;
+
+        int k = 0;
+        long xOffset = 0;
+
+        if (bytesPerSample == 1) {
+            for (; k <= data.length - 1; k++, xOffset++) {
+                if (xOffset == xSizeInBytes) {
+                    xOffset = 0;
+                }
+//                    assert (k / len % xSize == 0) == (xOffset < len);
+                if (xOffset >= len) {
+                    data[k] += data[k - len];
+                }
+            }
+        } else {
+            for (; k <= data.length - bytesPerSample; k += bytesPerSample) {
+                if (k / len % xSize == 0) {
+                    continue;
+                }
+                int value = Bytes.toInt(data, k, bytesPerSample, little);
+                value += Bytes.toInt(data, k - len, bytesPerSample, little);
+                Bytes.unpack(value, data, k, bytesPerSample, little);
+            }
         }
     }
 
@@ -1369,6 +1375,16 @@ public class TiffTools {
         if (invertValues) {
             PackedBitArraysPer8.notBits(unpacked, 0, 8L * (long) unpacked.length);
         }
+    }
+
+    private static int checkBitDepthForPrediction(TiffTile tile, String where) throws TiffException {
+        final int bitsPerSample = tile.bitsPerSample();
+        if (bitsPerSample != 8 && bitsPerSample != 16 && bitsPerSample != 32) {
+            throw new TiffException("Cannot use TIFF prediction " + where +
+                    " for bit depth " + bitsPerSample + ": " +
+                    Arrays.toString(tile.ifd().getBitsPerSample()) + " bits/pixel");
+        }
+        return bitsPerSample >>> 3;
     }
 
     private static void debugPrintBits(TiffTile tile) throws TiffException {

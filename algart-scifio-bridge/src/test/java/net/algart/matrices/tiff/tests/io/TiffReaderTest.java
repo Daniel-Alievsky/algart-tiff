@@ -42,6 +42,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Locale;
 
 public class TiffReaderTest {
@@ -184,11 +185,15 @@ public class TiffReaderTest {
             // - BufferedImage cannot have zero sizes
             final Matrix<? extends PArray> interleave = interleaved ?
                     matrix :
-                    Matrices.interleave(matrix.asLayers());
+                    Matrices.interleave(tryToExtractRGB(matrix.asLayers()));
             final BufferedImage bi = new MatrixToBufferedImage.InterleavedRGBToInterleaved()
                     .setUnsignedInt32(true)
                     .toBufferedImage(interleave);
             MatrixIO.writeBufferedImage(file, bi);
         }
+    }
+
+    private static <T> List<T> tryToExtractRGB(List<T> image) {
+        return image.size() <= 4 ? image : image.subList(0, 3);
     }
 }
