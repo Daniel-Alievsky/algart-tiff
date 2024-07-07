@@ -35,6 +35,7 @@ import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.compatibility.TiffParser;
 import net.algart.matrices.tiff.compatibility.TiffSaver;
 import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tags.TagPredictor;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
@@ -289,7 +290,7 @@ public class TiffWriterTest {
 //                    }
                     ifd.putPlanarSeparated(planarSeparated);
                     if (predict) {
-                        ifd.put(Tags.PREDICTOR, TiffIFD.PREDICTOR_HORIZONTAL);
+                        ifd.putPredictor(TagPredictor.HORIZONTAL);
                         // - unusual mode: no special putXxx method;
                         // should not be used for compressions besides LZW/DEFLATE
                     }

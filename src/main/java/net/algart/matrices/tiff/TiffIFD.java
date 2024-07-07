@@ -96,11 +96,6 @@ public class TiffIFD {
     public static final int SAMPLE_FORMAT_COMPLEX_INT = 5;
     public static final int SAMPLE_FORMAT_COMPLEX_IEEEFP = 6;
 
-    public static final int PREDICTOR_NONE = 1;
-    public static final int PREDICTOR_HORIZONTAL = 2;
-    public static final int PREDICTOR_FLOATING_POINT = 3;
-    // - value 3 is not supported!
-
     public static final int FILETYPE_REDUCED_IMAGE = 1;
 
     private final Map<Integer, Object> map;
@@ -702,6 +697,14 @@ public class TiffIFD {
         return code == -1 ? Optional.empty() : Optional.ofNullable(TagCompression.valueOfCodeOrNull(code));
     }
 
+    public int optPredictorCode()  {
+        return optInt(Tags.PREDICTOR, TagPredictor.NONE.code());
+    }
+
+    public TagPredictor optPredictor() {
+        return TagPredictor.valueOfCodeOrUnknown(optPredictorCode());
+    }
+
     public String compressionPrettyName() {
         final int code = optInt(Tags.COMPRESSION, -1);
         if (code == -1) {
@@ -1148,7 +1151,19 @@ public class TiffIFD {
 
     public TiffIFD putPhotometricInterpretation(TagPhotometricInterpretation photometricInterpretation) {
         Objects.requireNonNull(photometricInterpretation, "Null photometricInterpretation");
-        put(Tags.PHOTOMETRIC_INTERPRETATION, photometricInterpretation.code());
+        if (!photometricInterpretation.isUnknown()) {
+            put(Tags.PHOTOMETRIC_INTERPRETATION, photometricInterpretation.code());
+        }
+        return this;
+    }
+
+    public TiffIFD putPredictor(TagPredictor predictor) {
+        Objects.requireNonNull(predictor, "Null predictor");
+        if (predictor == TagPredictor.NONE) {
+            remove(Tags.PREDICTOR);
+        } else if (!predictor.isUnknown()) {
+            put(Tags.PREDICTOR, predictor.code());
+        }
         return this;
     }
 
@@ -1560,10 +1575,9 @@ public class TiffIFD {
                         }
                         case Tags.PREDICTOR -> {
                             if (v instanceof Number number) {
-                                switch (number.intValue()) {
-                                    case PREDICTOR_NONE -> additional = "none";
-                                    case PREDICTOR_HORIZONTAL -> additional = "horizontal subtraction";
-                                    case PREDICTOR_FLOATING_POINT -> additional = "floating-point subtraction";
+                                final TagPredictor predictor = TagPredictor.valueOfCodeOrUnknown(number.intValue());
+                                if (predictor != TagPredictor.UNKNOWN) {
+                                    additional = predictor.prettyName();
                                 }
                             }
                         }

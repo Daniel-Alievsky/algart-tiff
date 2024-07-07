@@ -25,10 +25,7 @@
 package net.algart.matrices.tiff;
 
 import net.algart.arrays.*;
-import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
-import net.algart.matrices.tiff.tags.TagRational;
-import net.algart.matrices.tiff.tags.Tags;
+import net.algart.matrices.tiff.tags.*;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import org.scijava.Context;
@@ -380,28 +377,28 @@ public class TiffTools {
     // Analog of the function DefaultTiffService.difference
     public static void subtractPredictionIfRequested(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
-        final int predictor = tile.ifd().getInt(Tags.PREDICTOR, TiffIFD.PREDICTOR_NONE);
+        final TagPredictor predictor = tile.ifd().optPredictor();
         switch (predictor) {
-            case TiffIFD.PREDICTOR_NONE -> {
+            case NONE ->  {
             }
-            case TiffIFD.PREDICTOR_HORIZONTAL -> {
+            case HORIZONTAL -> {
                 subtractPrediction(tile);
             }
-            default -> throw new TiffException("Unsupported TIFF Predictor tag: " + predictor);
+            default -> throw new TiffException("Unsupported TIFF Predictor tag: " + tile.ifd().optPredictorCode());
         }
     }
 
     // Analog of the function DefaultTiffService.undifference
     public static void unsubtractPredictionIfRequested(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
-        final int predictor = tile.ifd().getInt(Tags.PREDICTOR, TiffIFD.PREDICTOR_NONE);
+        final TagPredictor predictor = tile.ifd().optPredictor();
         switch (predictor) {
-            case TiffIFD.PREDICTOR_NONE -> {
+            case NONE ->  {
             }
-            case TiffIFD.PREDICTOR_HORIZONTAL -> {
+            case HORIZONTAL -> {
                 unsubtractPrediction(tile);
             }
-            default -> throw new TiffException("Unsupported TIFF Predictor tag: " + predictor);
+            default -> throw new TiffException("Unsupported TIFF Predictor tag: " + tile.ifd().optPredictorCode());
         }
     }
 
