@@ -37,6 +37,7 @@ import java.util.Objects;
 import java.util.Random;
 
 public class SubtractPredictionTest {
+    // This code implements the same slow algorithm as the original DefaultTiffService.difference
     private static void simpleSubtractPrediction(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         final byte[] data = tile.getDecodedData();
@@ -54,6 +55,7 @@ public class SubtractPredictionTest {
         }
     }
 
+    // This code implements the same slow algorithm as the original DefaultTiffService.undifference
     private static void simpleUnsubtractPrediction(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         final byte[] data = tile.getDecodedData();

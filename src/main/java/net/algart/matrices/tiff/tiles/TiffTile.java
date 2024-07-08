@@ -47,6 +47,7 @@ public final class TiffTile {
     private int sizeY;
     private int sizeInPixels;
     private int sizeInBytes;
+    private int sizeInBits;
     private boolean interleaved = false;
     private boolean encoded = false;
     private byte[] data = null;
@@ -184,12 +185,15 @@ public final class TiffTile {
      * <p>These are purely informational properties, not affecting processing the stored data
      * and supported for additional convenience of usage this object.
      *
-     * <p>There is a guarantee that the total {@link #getSizeInBytes() number of bytes},
+     * <p>There is a guarantee that the total {@link #getSizeInBits() number of bits},
      * required to store <code>sizeX*sizeY</code> pixels, will be <code>&le;Integer.MAX_VALUE.</code>
+     * If the specified sizes are too large to fit this limitation,
+     * this method throws {@link IllegalArgumentException}.
      *
      * @param sizeX the tile width; must be positive.
      * @param sizeY the tile height; must be positive.
      * @return a reference to this object.
+     * @throws IllegalArgumentException if the specified sizes are negative, zero, or too large.
      */
     public TiffTile setSizes(int sizeX, int sizeY) {
         if (sizeX <= 0) {
@@ -212,7 +216,8 @@ public final class TiffTile {
         this.sizeX = sizeX;
         this.sizeY = sizeY;
         this.sizeInPixels = sizeInPixels;
-        this.sizeInBytes = (sizeInPixels * bitsPerPixel + 7) >>> 3;
+        this.sizeInBits = sizeInPixels * bitsPerPixel;
+        this.sizeInBytes = (sizeInBits + 7) >>> 3;
         return this;
     }
 
@@ -244,6 +249,17 @@ public final class TiffTile {
         return sizeInBytes;
     }
 
+    /**
+     * Returns {@link #getSizeInPixels()} * {@link #bitsPerPixel()}.
+     * There is a guarantee that this value is &le;2<sup>31</sup> and, so,
+     * can be represented by <code>int</code> value.
+     *
+     * @return number of bits, necessary to store all tile pixels.
+     */
+    public int getSizeInBits() {
+        return sizeInBits;
+    }
+
     public IRectangularArea rectangle() {
         return rectangleInTile(0, 0, sizeX, sizeY);
     }
@@ -264,6 +280,16 @@ public final class TiffTile {
 
     public boolean isFullyInsideMap() {
         return index.fromX() + sizeX <= map.dimX() && index.fromY() + sizeY <= map.dimY();
+    }
+
+    /**
+     * Equivalent to {@link #cropToMap(boolean) cropToMap(true)}.
+     *
+     * @return a reference to this object.
+     * @throws IllegalStateException if this tile is completely outside map dimensions.
+     */
+    public TiffTile cropToMap() {
+        return cropToMap(true);
     }
 
     /**
@@ -637,7 +663,7 @@ public final class TiffTile {
      *
      * <p>This method is called before encoding and writing any tile to the TIFF file.
      */
-    public TiffTile checkStoredNumberOfPixels()  {
+    public TiffTile checkStoredNumberOfPixels() {
         checkEmpty();
         final int estimatedNumberOfPixels = getEstimatedNumberOfPixels();
         // - necessary to throw IllegalStateException if encoded

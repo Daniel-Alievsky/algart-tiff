@@ -856,7 +856,7 @@ public class TiffWriter implements Closeable {
 
                     final TiffTile tile = map.getOrNewMultiPlane(p, xIndex, yIndex);
                     tile.checkReadyForNewDecodedData(false);
-                    tile.cropToMap(true);
+                    tile.cropToMap();
                     // - In stripped image, we should correct the height of the last row.
                     // It is important for writing: without this correction, GIMP and other libtiff-based programs
                     // will report about an error (see libtiff, tif_jpeg.c, assigning segment_width/segment_height)
@@ -1883,7 +1883,7 @@ public class TiffWriter implements Closeable {
                     // - non-existing is created (empty) and saved in the map;
                     // this is necessary to inform the map about new data file range for this tile
                     // and to avoid twice writing it while twice calling "complete()" method
-                    tile.cropToMap(true);
+                    tile.cropToMap();
                     // - like in updateSamples
                     if (!tile.isEmpty()) {
                         writeEncodedTile(tile, true);

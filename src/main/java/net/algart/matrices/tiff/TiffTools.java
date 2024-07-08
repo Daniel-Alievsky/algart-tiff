@@ -408,10 +408,14 @@ public class TiffTools {
         Objects.requireNonNull(tile, "Null tile");
         final byte[] data = tile.getDecodedData();
         final int bytesPerSample = checkBitDepthForPrediction(tile, "for writing");
-        final int len = bytesPerSample * tile.samplesPerPixel();
+        final int bytesPerPixel = bytesPerSample * tile.samplesPerPixel();
         final boolean little = tile.isLittleEndian();
-        final long xSize = tile.getSizeX();
-        final long xSizeInBytes = xSize * len;
+        final int xSize = tile.getSizeX();
+        final int xSizeInBytes = xSize * bytesPerPixel;
+        // - cannot be >Integer.MAX_VALUE: see limitation for tile sizes in TiffTile.setSizes() method
+        final int ySize = data.length / xSizeInBytes;
+        // - not tile.getSizeY(): it allows to process also the ending tiles in the end image strip,
+
 
         int k = data.length - bytesPerSample;
         long xOffset = k % xSizeInBytes;
@@ -421,18 +425,18 @@ public class TiffTools {
                 if (xOffset < 0) {
                     xOffset += xSizeInBytes;
                 }
-//                    assert (k / len % xSize == 0) == (xOffset < len);
-                if (xOffset >= len) {
-                    data[k] -= data[k - len];
+//                    assert (k / bytesPerPixel % xSize == 0) == (xOffset < bytesPerPixel);
+                if (xOffset >= bytesPerPixel) {
+                    data[k] -= data[k - bytesPerPixel];
                 }
             }
         } else {
             for (; k >= 0; k -= bytesPerSample) {
-                if (k / len % xSize == 0) {
+                if (k / bytesPerPixel % xSize == 0) {
                     continue;
                 }
                 int value = Bytes.toInt(data, k, bytesPerSample, little);
-                value -= Bytes.toInt(data, k - len, bytesPerSample, little);
+                value -= Bytes.toInt(data, k - bytesPerPixel, bytesPerSample, little);
                 Bytes.unpack(value, data, k, bytesPerSample, little);
             }
         }

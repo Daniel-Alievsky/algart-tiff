@@ -955,7 +955,7 @@ public class TiffReader implements Closeable {
         // - No reasons to put it into the map: this class do not provide access to temporary created map.
 
         if (cropTilesToImageBoundaries) {
-            result.cropToMap(true);
+            result.cropToMap();
         }
         // If cropping is disabled, we should not avoid reading extra content of the last strip.
         // Note the last encoded strip can have actually full strip sizes,

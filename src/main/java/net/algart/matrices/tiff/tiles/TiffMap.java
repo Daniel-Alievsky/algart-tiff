@@ -536,15 +536,19 @@ public final class TiffMap {
         for (int p = 0; p < numberOfSeparatedPlanes; p++) {
             for (int y = 0; y < gridCountY; y++) {
                 for (int x = 0; x < gridCountX; x++) {
-                    getOrNewMultiPlane(p, x, y).cropToMap(true);
+                    getOrNewMultiPlane(p, x, y).cropToMap();
                 }
             }
         }
         return this;
     }
 
-    public void cropAll(boolean nonTiledOnly) {
-        tileMap.values().forEach(tile -> tile.cropToMap(nonTiledOnly));
+    public void cropAll() {
+        cropAll(true);
+    }
+
+    public void cropAll(boolean strippedOnly) {
+        tileMap.values().forEach(tile -> tile.cropToMap(strippedOnly));
     }
 
     public boolean hasUnset() {
