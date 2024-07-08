@@ -85,7 +85,7 @@ public class TiffWriteSimpleTest {
 
             System.out.printf("Desired IFD:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.NORMAL));
 
-            TiffMap map = writer.newMap(ifd);
+            TiffMap map = writer.newFixedMap(ifd);
             // map = writer.newMap(ifd); - will throw an exception
             System.out.printf("IFD to save:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.NORMAL));
 

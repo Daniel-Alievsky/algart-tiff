@@ -55,7 +55,7 @@ public class TiffWriteDemo {
             TiffIFD ifd = writer.newIFD();
             ifd.putChannelsInformation(image);
             // ifd.putCompression(TagCompression.JPEG); // - you can specify some compression
-            TiffMap map = writer.newMap(ifd);
+            TiffMap map = writer.newFixedMap(ifd);
             writer.writeChannels(map, image);
         }
         System.out.println("Done");

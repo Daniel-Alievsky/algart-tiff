@@ -116,22 +116,7 @@ public final class TiffMap {
     private volatile int gridCountY = 0;
     private volatile int numberOfGridTiles = 0;
 
-    public TiffMap(TiffIFD ifd) {
-        this(ifd, false);
-    }
-
-    /**
-     * Creates new tile map.
-     *
-     * <p>Note: you should not change the tags of the passed IFD, describing sample type, number of samples
-     * and tile sizes, after creating this object. The constructor saves this information in this object
-     * (it is available via access methods) and will not be renewed automatically.
-     *
-     * @param ifd       IFD.
-     * @param resizable whether maximal dimensions of this set will grow while adding new tiles,
-     *                  or they are fixed and must be specified in IFD.
-     */
-    public TiffMap(TiffIFD ifd, boolean resizable) {
+    private TiffMap(TiffIFD ifd, boolean resizable) {
         this.ifd = Objects.requireNonNull(ifd, "Null IFD");
         this.resizable = resizable;
         final boolean hasImageDimensions = ifd.hasImageDimensions();
@@ -200,6 +185,29 @@ public final class TiffMap {
         } catch (TiffException e) {
             throw new IllegalArgumentException("Illegal IFD: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Creates new tile map.
+     *
+     * <p>Note: you should not change the tags of the passed IFD, describing sample type, number of samples
+     * and tile sizes, after creating this object. The constructor saves this information in this object
+     * (it is available via access methods) and will not be renewed automatically.
+     *
+     * @param ifd       IFD.
+     * @param resizable whether maximal dimensions of this set will grow while adding new tiles,
+     *                  or they are fixed and must be specified in IFD.
+     */
+    public static TiffMap newMap(TiffIFD ifd, boolean resizable) {
+        return new TiffMap(ifd, resizable);
+    }
+
+    public static TiffMap newFixed(TiffIFD ifd) {
+        return newMap(ifd, false);
+    }
+
+    public static TiffMap newResizable(TiffIFD ifd) {
+        return newMap(ifd, true);
     }
 
     public TiffIFD ifd() {
@@ -458,7 +466,7 @@ public final class TiffMap {
         return new TiffTileIndex(this, 0, x, y);
     }
 
-    public TiffTileIndex multiplaneIndex(int separatedPlaneIndex, int x, int y) {
+    public TiffTileIndex multiPlaneIndex(int separatedPlaneIndex, int x, int y) {
         return new TiffTileIndex(this, separatedPlaneIndex, x, y);
     }
 
@@ -485,8 +493,8 @@ public final class TiffMap {
         return getOrNew(index(x, y));
     }
 
-    public TiffTile getOrNewMultiplane(int separatedPlaneIndex, int x, int y) {
-        return getOrNew(multiplaneIndex(separatedPlaneIndex, x, y));
+    public TiffTile getOrNewMultiPlane(int separatedPlaneIndex, int x, int y) {
+        return getOrNew(multiPlaneIndex(separatedPlaneIndex, x, y));
     }
 
     public TiffTile getOrNew(TiffTileIndex tileIndex) {
@@ -528,7 +536,7 @@ public final class TiffMap {
         for (int p = 0; p < numberOfSeparatedPlanes; p++) {
             for (int y = 0; y < gridCountY; y++) {
                 for (int x = 0; x < gridCountX; x++) {
-                    getOrNewMultiplane(p, x, y).cropToMap(true);
+                    getOrNewMultiPlane(p, x, y).cropToMap(true);
                 }
             }
         }

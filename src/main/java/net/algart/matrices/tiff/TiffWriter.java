@@ -319,7 +319,7 @@ public class TiffWriter implements Closeable {
     /**
      * Sets smart IFD correction mode.
      *
-     * <p>IFD, offered by the user for writing TIFF image (usually with help of {@link #newMap(TiffIFD)} method),
+     * <p>IFD, offered by the user for writing TIFF image (usually with help of {@link #newFixedMap(TiffIFD)} method),
      * may contain specification, which are incorrect or not supported by this class. For example,
      * the user may specify {@link TiffIFD#putPhotometricInterpretation(TagPhotometricInterpretation)
      * photometric interpretation} {@link TagPhotometricInterpretation#RGB_PALETTE}, but not provide actual
@@ -854,7 +854,7 @@ public class TiffWriter implements Closeable {
                     final int fromXInTile = tileStartX % mapTileSizeX;
                     final int xDiff = tileStartX - fromX;
 
-                    final TiffTile tile = map.getOrNewMultiplane(p, xIndex, yIndex);
+                    final TiffTile tile = map.getOrNewMultiPlane(p, xIndex, yIndex);
                     tile.checkReadyForNewDecodedData(false);
                     tile.cropToMap(true);
                     // - In stripped image, we should correct the height of the last row.
@@ -1219,9 +1219,9 @@ public class TiffWriter implements Closeable {
         final TiffIFD ifd = new TiffIFD();
         ifd.putCompression(TagCompression.UNCOMPRESSED);
         if (tiled) {
-            ifd.putDefaultTileSizes();
+            ifd.defaultTileSizes();
         } else {
-            ifd.putDefaultStripSize();
+            ifd.defaultStripSize();
         }
         return ifd;
     }
@@ -1240,7 +1240,7 @@ public class TiffWriter implements Closeable {
                     "probably you called this method twice");
         }
         correctIFDForWriting(ifd);
-        final TiffMap map = new TiffMap(ifd, resizable);
+        final TiffMap map = TiffMap.newMap(ifd, resizable);
         map.buildTileGrid();
         // - useful to perform loops on all tiles, especially in non-resizable case
         ifd.removeNextIFDOffset();
@@ -1253,7 +1253,7 @@ public class TiffWriter implements Closeable {
         return map;
     }
 
-    public TiffMap newMap(TiffIFD ifd) throws TiffException {
+    public TiffMap newFixedMap(TiffIFD ifd) throws TiffException {
         return newMap(ifd, false);
     }
 
@@ -1275,7 +1275,7 @@ public class TiffWriter implements Closeable {
     public TiffMap existingMap(TiffIFD ifd) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         correctIFDForWriting(ifd);
-        final TiffMap map = new TiffMap(ifd);
+        final TiffMap map = TiffMap.newFixed(ifd);
         final long[] offsets = ifd.cachedTileOrStripOffsets();
         final long[] byteCounts = ifd.cachedTileOrStripByteCounts();
         assert offsets != null;
@@ -1878,7 +1878,7 @@ public class TiffWriter implements Closeable {
         for (int p = 0, k = 0; p < numberOfSeparatedPlanes; p++) {
             for (int yIndex = 0; yIndex < gridCountY; yIndex++) {
                 for (int xIndex = 0; xIndex < gridCountX; xIndex++, k++) {
-                    TiffTileIndex tileIndex = map.multiplaneIndex(p, xIndex, yIndex);
+                    TiffTileIndex tileIndex = map.multiPlaneIndex(p, xIndex, yIndex);
                     TiffTile tile = map.getOrNew(tileIndex);
                     // - non-existing is created (empty) and saved in the map;
                     // this is necessary to inform the map about new data file range for this tile

@@ -1160,10 +1160,15 @@ public class TiffIFD {
     public TiffIFD putPredictor(TagPredictor predictor) {
         Objects.requireNonNull(predictor, "Null predictor");
         if (predictor == TagPredictor.NONE) {
-            remove(Tags.PREDICTOR);
+            removePredictor();
         } else if (!predictor.isUnknown()) {
             put(Tags.PREDICTOR, predictor.code());
         }
+        return this;
+    }
+
+    public TiffIFD removePredictor() {
+        remove(Tags.PREDICTOR);
         return this;
     }
 
@@ -1227,7 +1232,7 @@ public class TiffIFD {
         return this;
     }
 
-    public TiffIFD putDefaultTileSizes() {
+    public TiffIFD defaultTileSizes() {
         return putTileSizes(DEFAULT_TILE_SIZE_X, DEFAULT_TILE_SIZE_Y);
     }
 
@@ -1258,7 +1263,7 @@ public class TiffIFD {
         return this;
     }
 
-    public TiffIFD putDefaultStripSize() {
+    public TiffIFD defaultStripSize() {
         return putStripSize(DEFAULT_STRIP_SIZE);
     }
 

@@ -418,6 +418,10 @@ public final class TiffTile {
         return setData(data, true, false);
     }
 
+    public TiffTile fillEmpty() {
+        return fillEmpty(null);
+    }
+
     public TiffTile fillEmpty(Consumer<TiffTile> initializer) {
         if (isEmpty()) {
             setDecodedData(new byte[sizeInBytes]);

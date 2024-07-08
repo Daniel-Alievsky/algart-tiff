@@ -88,8 +88,7 @@ public class SubtractPredictionTest {
         TiffIFD ifd = new TiffIFD()
                 .putTileSizes(tileSizeX, tileSizeY)
                 .putPixelInformation(numberOfChannels, sampleType);
-        TiffMap map = new TiffMap(ifd, true);
-        TiffTile tile = map.getOrNew(0, 0);
+        TiffTile tile = TiffMap.newResizable(ifd).getOrNew(0, 0);
 
         Random random = new Random(157);
         for (int test = 0; test < numberOfTests; test++) {

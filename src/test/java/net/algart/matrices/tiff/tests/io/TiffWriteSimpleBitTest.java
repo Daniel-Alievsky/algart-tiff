@@ -27,7 +27,6 @@ package net.algart.matrices.tiff.tests.io;
 import net.algart.arrays.BitArray;
 import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
-import net.algart.math.functions.AbstractFunc;
 import net.algart.math.functions.Func2;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
@@ -75,7 +74,7 @@ public class TiffWriteSimpleBitTest {
                 TiffIFD ifd = writer.newIFD(true);
                 ifd.putMatrixInformation(m);
                 ifd.removeTileInformation();
-                ifd.putDefaultStripSize();
+                ifd.defaultStripSize();
                 final TiffMap map = writer.newMap(ifd, false);
 
                 long t1 = System.nanoTime();

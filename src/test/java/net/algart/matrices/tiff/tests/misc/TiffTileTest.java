@@ -32,11 +32,10 @@ import net.algart.matrices.tiff.tiles.TiffTile;
 public class TiffTileTest {
     private static void testMap(int numberOfChannels, TiffSampleType sampleType, int testDataLength) {
         TiffIFD ifd = new TiffIFD();
-        ifd.putDefaultTileSizes();
+        ifd.defaultTileSizes();
         ifd.putPixelInformation(numberOfChannels, sampleType);
         System.out.printf("%s%n", ifd.toString(TiffIFD.StringFormat.NORMAL));
-        TiffMap map = new TiffMap(ifd, true);
-        TiffTile tile = map.getOrNew(0, 0);
+        TiffTile tile = TiffMap.newResizable(ifd).getOrNew(0, 0);
 
         tile.setPartiallyDecodedData(new byte[testDataLength - 1]);
         System.out.printf("%s: %s stored length, %d estimated pixels%n",

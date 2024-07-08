@@ -384,7 +384,8 @@ public class TiffTools {
             case HORIZONTAL -> {
                 subtractPrediction(tile);
             }
-            default -> throw new TiffException("Unsupported TIFF Predictor tag: " + tile.ifd().optPredictorCode());
+            default -> throw new TiffException("Unsupported TIFF Predictor tag: " +
+                    tile.ifd().optPredictorCode() + " (" + predictor.prettyName() + ")");
         }
     }
 
@@ -398,7 +399,8 @@ public class TiffTools {
             case HORIZONTAL -> {
                 unsubtractPrediction(tile);
             }
-            default -> throw new TiffException("Unsupported TIFF Predictor tag: " + tile.ifd().optPredictorCode());
+            default -> throw new TiffException("Unsupported TIFF Predictor tag: " +
+                    tile.ifd().optPredictorCode() + " (" + predictor.prettyName() + ")");
         }
     }
 
