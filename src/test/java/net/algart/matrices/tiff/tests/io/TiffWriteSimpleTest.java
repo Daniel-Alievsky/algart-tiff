@@ -72,7 +72,7 @@ public class TiffWriteSimpleTest {
             writer.create();
             // writer.startNewFile(); // - not a problem to call twice
             TiffIFD ifd = new TiffIFD();
-            final int[] bitsPerSample = {1};
+            final int[] bitsPerSample = {8};
             ifd.putImageDimensions(IMAGE_WIDTH, IMAGE_HEIGHT);
             ifd.putNumberOfChannels(bitsPerSample.length);
             ifd.putTileSizes(256, 256);

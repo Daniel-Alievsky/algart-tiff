@@ -642,13 +642,20 @@ public final class TiffTile {
         final int estimatedNumberOfPixels = getEstimatedNumberOfPixels();
         // - necessary to throw IllegalStateException if encoded
         assert !encoded;
-        if (storedDataLength != sizeInBytes) {
+        if (data.length != storedDataLength) {
+            throw new IllegalStateException("Stored data length field " + storedDataLength +
+                    " is set to value, different than the actual data length " + data.length);
+        }
+        if (data.length != sizeInBytes) {
             throw new IllegalStateException("Number of stored pixels " + estimatedNumberOfPixels +
                     " does not match tile sizes " + sizeX + "x" + sizeY + " = " + sizeInPixels);
         }
         final int dataLength = (estimatedNumberOfPixels * bitsPerPixel + 7) >>> 3;
-        if (dataLength != storedDataLength) {
-            throw new AssertionError("Invalid estimatedNumberOfPixels " + estimatedNumberOfPixels);
+        if (dataLength != data.length) {
+            // - this check must be AFTER possible throwing IllegalStateException:
+            // in other case, we will throw AssertionError instead of correct IllegalStateException
+            throw new AssertionError("Invalid estimatedNumberOfPixels " + estimatedNumberOfPixels +
+                    ": does not match data.length = " + data.length);
         }
         // - in other words, checkDataLengthAlignment() must be unnecessary:
         // if bitsPerPixel = 1, unaligned data is impossible;

@@ -1378,7 +1378,7 @@ public class TiffTools {
 
     private static int checkBitDepthForPrediction(TiffTile tile, String where) throws TiffException {
         final int bitsPerSample = tile.bitsPerSample();
-        if (bitsPerSample != 8 && bitsPerSample != 16 && bitsPerSample != 32) {
+        if (bitsPerSample != 8 && bitsPerSample != 16 && bitsPerSample != 32 && bitsPerSample != 64) {
             throw new TiffException("Cannot use TIFF prediction " + where +
                     " for bit depth " + bitsPerSample + ": " +
                     Arrays.toString(tile.ifd().getBitsPerSample()) + " bits/pixel");
