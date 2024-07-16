@@ -1172,10 +1172,7 @@ public class TiffTools {
                     "it is possible only for OLD_JPEG, that was already checked)");
         // - but samplesPerPixel can be =1 for planar-separated tiles
 
-
         final boolean littleEndian = ifd.isLittleEndian();
-
-
         final long[] multipliers = new long[bitsPerSample.length];
         for (int k = 0; k < multipliers.length; k++) {
             multipliers[k] = ((1L << 8 * bytesPerSample) - 1) / ((1L << bitsPerSample[k]) - 1);
