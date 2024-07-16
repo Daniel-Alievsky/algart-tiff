@@ -71,10 +71,8 @@ public class TiffWriteSimpleBitTest {
             writer.setLittleEndian(true);
             for (int k = 1; k <= numberOfTests; k++) {
                 writer.create();
-                TiffIFD ifd = writer.newIFD(true);
+                TiffIFD ifd = writer.newIFD();
                 ifd.putMatrixInformation(m);
-                ifd.removeTileInformation();
-                ifd.defaultStripSize();
                 final TiffMap map = writer.newMap(ifd, false);
 
                 long t1 = System.nanoTime();
