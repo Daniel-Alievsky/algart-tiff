@@ -1609,7 +1609,7 @@ public class TiffReader implements Closeable {
 
     private TiffCodec.Options buildOptions(TiffTile tile) throws TiffException {
         TiffCodec.Options options = this.codecOptions.clone();
-        options.setLittleEndian(tile.isLittleEndian());
+        options.setByteOrder(tile.byteOrder());
         final int samplesLength = tile.getSizeInBytes();
         // - Note: it may be LESS than a usual number of samples in the tile/strip.
         // Current readEncodedTile() always returns full-size tile without cropping

@@ -28,6 +28,7 @@ import net.algart.arrays.PackedBitArraysPer8;
 import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
 
+import java.nio.ByteOrder;
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -41,7 +42,7 @@ public final class TiffTile {
     private final int samplesPerPixel;
     private final int bitsPerSample;
     private final int bitsPerPixel;
-    private final boolean littleEndian;
+    private final ByteOrder byteOrder;
     private final TiffTileIndex index;
     private int sizeX;
     private int sizeY;
@@ -73,7 +74,7 @@ public final class TiffTile {
         this.bitsPerSample = map.bitsPerSample();
         this.bitsPerPixel = map.tileBitsPerPixel();
         assert this.bitsPerPixel == samplesPerPixel * bitsPerSample;
-        this.littleEndian = map.ifd().isLittleEndian();
+        this.byteOrder = map.ifd().isLittleEndian() ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
         assert index.ifd() == map.ifd() : "index retrieved ifd from its tile map!";
         setSizes(map.tileSizeX(), map.tileSizeY());
     }
@@ -151,8 +152,8 @@ public final class TiffTile {
         return opt.isPresent() ? OptionalInt.of(opt.getAsInt() * samplesPerPixel) : OptionalInt.empty();
     }
 
-    public boolean isLittleEndian() {
-        return littleEndian;
+    public ByteOrder byteOrder() {
+        return byteOrder;
     }
 
     public TiffSampleType sampleType() {

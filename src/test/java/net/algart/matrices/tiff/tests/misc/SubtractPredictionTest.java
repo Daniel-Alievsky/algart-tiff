@@ -32,6 +32,7 @@ import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import org.scijava.util.Bytes;
 
+import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Random;
@@ -43,7 +44,7 @@ public class SubtractPredictionTest {
         final byte[] data = tile.getDecodedData();
         final int bytesPerSample = tile.bytesPerSample().orElseThrow();
         final int len = bytesPerSample * tile.samplesPerPixel();
-        final boolean little = tile.isLittleEndian();
+        final boolean little = tile.byteOrder() == ByteOrder.LITTLE_ENDIAN;
         final long xSize = tile.getSizeX();
         for (int k = data.length - bytesPerSample; k >= 0; k -= bytesPerSample) {
             if (k / len % xSize == 0) {
@@ -61,7 +62,7 @@ public class SubtractPredictionTest {
         final byte[] data = tile.getDecodedData();
         final int bytesPerSample = tile.bytesPerSample().orElseThrow();
         final int len = bytesPerSample * tile.samplesPerPixel();
-        final boolean little = tile.isLittleEndian();
+        final boolean little = tile.byteOrder() == ByteOrder.LITTLE_ENDIAN;
         final long xSize = tile.getSizeX();
 
         for (int k = 0; k <= data.length - bytesPerSample; k += bytesPerSample) {

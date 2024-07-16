@@ -25,11 +25,9 @@
 package net.algart.matrices.tiff.codecs;
 
 import net.algart.matrices.tiff.TiffException;
-import org.scijava.io.handle.DataHandle;
-import org.scijava.io.location.Location;
 
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.ByteOrder;
 import java.util.Objects;
 
 /**
@@ -142,6 +140,12 @@ public interface TiffCodec {
 
         public Options setLittleEndian(boolean littleEndian) {
             this.littleEndian = littleEndian;
+            return this;
+        }
+
+        public Options setByteOrder(ByteOrder byteOrder) {
+            Objects.requireNonNull(byteOrder, "Null byteOrder");
+            this.littleEndian = byteOrder == ByteOrder.LITTLE_ENDIAN;
             return this;
         }
 

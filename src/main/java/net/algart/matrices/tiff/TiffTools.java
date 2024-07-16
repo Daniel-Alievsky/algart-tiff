@@ -38,6 +38,7 @@ import org.scijava.io.location.Location;
 import org.scijava.util.Bytes;
 
 import java.io.FileNotFoundException;
+import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -266,7 +267,8 @@ public class TiffTools {
         final int bytesPerSample = checkBitDepthForPrediction(tile, "for writing");
         final int samplesPerPixel = tile.samplesPerPixel();
         final int bytesPerPixel = bytesPerSample * samplesPerPixel;
-        final boolean little = tile.isLittleEndian();
+        ByteOrder byteOrder = tile.byteOrder();
+        final boolean little = byteOrder == ByteOrder.LITTLE_ENDIAN;
         final int xSize = tile.getSizeX();
         final int xSizeInSamples = xSize * samplesPerPixel;
         final int xSizeInBytes = xSize * bytesPerPixel;
@@ -286,7 +288,7 @@ public class TiffTools {
                 }
             }
 //        } else if (bytesPerPixel == 2) {
-//            short[] a = bytesToShortArray(data, tile.isLittleEndian());
+//            short[] a = JArrays.bytesToShortArray(data, tile.isLittleEndian());
 //            for (int y = 0; y < ySize; y++) {
 //                final int lineOffset = y * xSizeInSamples;
 //                int offset = lineOffset + xSize * samplesPerPixel - 1;
@@ -313,7 +315,8 @@ public class TiffTools {
         final byte[] data = tile.getDecodedData();
         final int bytesPerSample = checkBitDepthForPrediction(tile, "for reading");
         final int bytesPerPixel = bytesPerSample * tile.samplesPerPixel();
-        final boolean little = tile.isLittleEndian();
+        ByteOrder byteOrder = tile.byteOrder();
+        final boolean little = byteOrder == ByteOrder.LITTLE_ENDIAN;
         final long xSize = tile.getSizeX();
         final long xSizeInBytes = xSize * bytesPerPixel;
 

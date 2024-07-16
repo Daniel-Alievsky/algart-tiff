@@ -2037,18 +2037,18 @@ public class TiffWriter implements Closeable {
 
     @SuppressWarnings("RedundantThrows")
     private TiffCodec.Options buildOptions(TiffTile tile) throws TiffException {
-        TiffCodec.Options result = this.codecOptions.clone();
-        result.setSizes(tile.getSizeX(), tile.getSizeY());
-        result.setBitsPerSample(tile.bitsPerSample());
-        result.setNumberOfChannels(tile.samplesPerPixel());
-        result.setSigned(tile.sampleType().isSigned());
-        result.setFloatingPoint(tile.sampleType().isFloatingPoint());
-        result.setLittleEndian(tile.isLittleEndian());
-        result.setInterleaved(true);
+        TiffCodec.Options options = this.codecOptions.clone();
+        options.setSizes(tile.getSizeX(), tile.getSizeY());
+        options.setBitsPerSample(tile.bitsPerSample());
+        options.setNumberOfChannels(tile.samplesPerPixel());
+        options.setSigned(tile.sampleType().isSigned());
+        options.setFloatingPoint(tile.sampleType().isFloatingPoint());
+        options.setByteOrder(tile.byteOrder());
+        options.setInterleaved(true);
         if (this.quality != null) {
-            result.setQuality(this.quality);
+            options.setQuality(this.quality);
         }
-        return result;
+        return options;
     }
 
     private void logWritingMatrix(TiffMap map, String name, Matrix<?> matrix, long t1, long t2, long t3, long t4) {
