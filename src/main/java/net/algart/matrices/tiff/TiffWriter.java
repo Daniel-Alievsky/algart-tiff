@@ -45,6 +45,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -241,6 +242,14 @@ public class TiffWriter implements Closeable {
             return out.isLittleEndian();
         }
     }
+
+    /**
+     * Returns <code>{@link #isLittleEndian()} ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN</code>.
+     */
+    public ByteOrder byteOrder() {
+        return isLittleEndian() ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
+    }
+
 
     /**
      * Sets whether little-endian data should be written.
@@ -936,7 +945,7 @@ public class TiffWriter implements Closeable {
             int sizeY) {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(samplesArray, "Null samplesArray");
-        TiffTools.checkRequestedArea(fromX, fromY, sizeX, sizeY);
+        final long numberOfPixels = TiffTools.checkRequestedArea(fromX, fromY, sizeX, sizeY);
         final Class<?> elementType = samplesArray.getClass().getComponentType();
         if (elementType == null) {
             throw new IllegalArgumentException("The specified samplesArray is not actual an array: " +
@@ -946,8 +955,14 @@ public class TiffWriter implements Closeable {
             throw new IllegalArgumentException("Invalid element type of samples array: " + elementType +
                     ", but the specified TIFF map stores " + map.elementType() + " elements");
         }
-        final byte[] samples = TiffTools.javaArrayToBytes(samplesArray,
-                (long) sizeX * (long) sizeY, isLittleEndian());
+        final long numberOfSamples = Math.multiplyExact(numberOfPixels, map.numberOfChannels());
+        // - overflow impossible after checkRequestedArea
+        if (numberOfSamples > map.maxNumberOfSamplesInArray()) {
+            throw new IllegalArgumentException("Too large area for updating TIFF in a single operation: " +
+                    + sizeX + "x" + sizeY + "x" + map.numberOfChannels() +  " exceed the limit " +
+                    map.maxNumberOfSamplesInArray());
+        }
+        final byte[] samples = TiffSampleType.bytes(samplesArray, numberOfSamples, byteOrder());
         return updateSamples(map, samples, fromX, fromY, sizeX, sizeY);
     }
 
@@ -979,7 +994,13 @@ public class TiffWriter implements Closeable {
                                     (sourceInterleaved ? "" : "NOT ") + "interleaved" :
                             "because the specified TIFF map stores " + map.numberOfChannels() + " channels"));
         }
-        final byte[] samples = TiffTools.arrayToBytes(matrix.array(), isLittleEndian());
+        PArray array = matrix.array();
+        if (array.length() > map.maxNumberOfSamplesInArray()) {
+            throw new IllegalArgumentException("Too large matrix for updating TIFF in a single operation: " + matrix
+                + " (number of elements " + array.length() + " exceed the limit " +
+                    map.maxNumberOfSamplesInArray() + ")");
+        }
+        final byte[] samples = TiffSampleType.bytes(array, byteOrder());
         return updateSamples(map, samples, fromX, fromY, sizeX, sizeY);
     }
 

@@ -102,6 +102,7 @@ public final class TiffMap {
     private final TiffSampleType sampleType;
     private final boolean wholeBytes;
     private final Class<?> elementType;
+    private final long maxNumberOfSamplesInArray;
     private final TilingMode tilingMode;
     private final int tileSizeX;
     private final int tileSizeY;
@@ -162,6 +163,7 @@ public final class TiffMap {
             }
             this.bitsPerUnpackedSample = sampleType.bitsPerSample();
             this.elementType = sampleType.elementType();
+            this.maxNumberOfSamplesInArray = sampleType.maxNumberOfSamplesInArray();
             this.tileSizeX = ifd.getTileSizeX();
             this.tileSizeY = ifd.getTileSizeY();
             assert tileSizeX > 0 && tileSizeY > 0 : "non-positive tile sizes are not checked in IFD methods";
@@ -317,6 +319,10 @@ public final class TiffMap {
 
     public Class<?> elementType() {
         return elementType;
+    }
+
+    public long maxNumberOfSamplesInArray() {
+        return maxNumberOfSamplesInArray;
     }
 
     public Optional<String> description() {

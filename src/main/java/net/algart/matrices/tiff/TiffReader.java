@@ -44,6 +44,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
@@ -563,10 +564,16 @@ public class TiffReader implements Closeable {
 
     /**
      * Returns whether we are reading little-endian data.
-     * Determined in the constructors.
      */
     public boolean isLittleEndian() {
         return in.isLittleEndian();
+    }
+
+    /**
+     * Returns <code>{@link #isLittleEndian()} ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN</code>.
+     */
+    public ByteOrder byteOrder() {
+        return isLittleEndian() ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
     }
 
     /**
@@ -1353,7 +1360,7 @@ public class TiffReader implements Closeable {
         }
         final Object samplesArray = autoUnpackBitsToBytes && map.isBinary() ?
                 samples :
-                TiffTools.bytesToJavaArray(samples, sampleType, isLittleEndian());
+                sampleType.javaArray(samples, byteOrder());
         if (TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t2 = debugTime();
             LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
@@ -1830,6 +1837,7 @@ public class TiffReader implements Closeable {
         final int type = entry.type();
         final int count = entry.valueCount();
         final long offset = entry.valueOffset();
+        final ByteOrder byteOrder = in.isLittleEndian() ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
 
         LOG.log(System.Logger.Level.TRACE, () ->
                 "Reading entry " + entry.tag() + " from " + offset + "; type=" + type + ", count=" + count);
@@ -1890,7 +1898,7 @@ public class TiffReader implements Closeable {
                 }
                 if (OPTIMIZE_READING_IFD_ARRAYS) {
                     final byte[] bytes = readIFDBytes(in, 2 * (long) count);
-                    final short[] shorts = TiffTools.bytesToShortArray(bytes, in.isLittleEndian());
+                    final short[] shorts = JArrays.bytesToShortArray(bytes, byteOrder);
                     final int[] result = new int[count];
                     for (int j = 0; j < count; j++) {
                         result[j] = shorts[j] & 0xFFFF;
@@ -1911,7 +1919,7 @@ public class TiffReader implements Closeable {
                 }
                 if (OPTIMIZE_READING_IFD_ARRAYS) {
                     final byte[] bytes = readIFDBytes(in, 4 * (long) count);
-                    final int[] ints = TiffTools.bytesToIntArray(bytes, in.isLittleEndian());
+                    final int[] ints = JArrays.bytesToIntArray(bytes, byteOrder);
                     return Arrays.stream(ints).mapToLong(anInt -> anInt & 0xFFFFFFFFL).toArray();
                     // note: TIFF_LONG is UNSIGNED long
                 } else {
@@ -1928,7 +1936,7 @@ public class TiffReader implements Closeable {
                 }
                 if (OPTIMIZE_READING_IFD_ARRAYS) {
                     final byte[] bytes = readIFDBytes(in, 8 * (long) count);
-                    return TiffTools.bytesToLongArray(bytes, in.isLittleEndian());
+                    return JArrays.bytesToLongArray(bytes, byteOrder);
                 } else {
                     long[] longs = new long[count];
                     for (int j = 0; j < count; j++) {

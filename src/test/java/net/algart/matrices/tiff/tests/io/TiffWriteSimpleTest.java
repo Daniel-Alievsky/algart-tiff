@@ -72,14 +72,15 @@ public class TiffWriteSimpleTest {
             writer.create();
             // writer.startNewFile(); // - not a problem to call twice
             TiffIFD ifd = new TiffIFD();
-            final int[] bitsPerSample = {8};
+            final int[] bitsPerSample = {16, 16, 16};
+            int numberOfChannels = bitsPerSample.length;
             ifd.putImageDimensions(IMAGE_WIDTH, IMAGE_HEIGHT);
-            ifd.putNumberOfChannels(bitsPerSample.length);
+            ifd.putNumberOfChannels(numberOfChannels);
             ifd.putTileSizes(256, 256);
-            ifd.putCompression(TagCompression.LZW);
+            ifd.putCompression(TagCompression.UNCOMPRESSED);
 //            ifd.putPhotometricInterpretation(TagPhotometricInterpretation.WHITE_IS_ZERO);
             ifd.put(Tags.BITS_PER_SAMPLE, bitsPerSample);
-            ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_INT);
+            ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_UINT);
             // - you can comment or change the options above for thorough testing
 //            ifd.put(Tags.PHOTOMETRIC_INTERPRETATION, 8);
 
@@ -89,18 +90,28 @@ public class TiffWriteSimpleTest {
             // map = writer.newMap(ifd); - will throw an exception
             System.out.printf("IFD to save:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.NORMAL));
 
+
+            int sizeX = map.dimX() / 2;
+            int sizeY = map.dimY() / 2;
             final Object samples = Array.newInstance(
 //                    String.class, // - invalid type here should lead to exception
                     map.elementType(),
-                    IMAGE_WIDTH * IMAGE_HEIGHT * bitsPerSample.length);
-            if (samples instanceof byte[] bytes) {
-                Arrays.fill(bytes, (byte) 70);
+                    sizeX * sizeY * numberOfChannels);
+            if (samples instanceof byte[] a) {
+                for (int i = 0; i < a.length; i++) {
+                    a[i] = (byte) (i < a.length / numberOfChannels ? 70 : 240);
+                    // - by default, source data are always separated
+                }
+            } else if (samples instanceof short[] a) {
+                for (int i = 0; i < a.length; i++) {
+                    a[i] = (short) (i < a.length / numberOfChannels ? 17070 : 41400);
+                }
             } else if (samples instanceof boolean[] booleans) {
                 Arrays.fill(booleans, true);
             }
             // writer.writeForward(map); // - uncomment to write IFD BEFORE image
             final List<TiffTile> updated = writer.updateJavaArray(
-                    map, samples, 0, 0, map.dimX() / 2, map.dimY() / 2);
+                    map, samples, 0, 0, sizeX, sizeY);
             // - filling only 1/4 of map
             System.out.printf("Updated:%n  %s%n%n", updated.stream().map(TiffTile::toString).collect(
                     Collectors.joining("%n  ".formatted())));

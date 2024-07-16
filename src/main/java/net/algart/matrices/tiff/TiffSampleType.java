@@ -24,13 +24,22 @@
 
 package net.algart.matrices.tiff;
 
+import net.algart.arrays.BitArray;
+import net.algart.arrays.JArrays;
 import net.algart.arrays.PArray;
+import net.algart.arrays.PackedBitArraysPer8;
 
+import java.nio.ByteOrder;
 import java.util.Objects;
 import java.util.OptionalInt;
 
 public enum TiffSampleType {
-    BIT(0, "bit", 1, boolean.class, false),
+    BIT(0, "bit", 1, boolean.class, false) {
+        @Override
+        public Object javaArray(byte[] bytes, ByteOrder byteOrder) {
+            return PackedBitArraysPer8.toLongArray(bytes);
+        }
+    },
     INT8(0, "int8", 8, byte.class, true),
     UINT8(1, "uint8", 8, byte.class, false),
     INT16(2, "int16", 16, short.class, true),
@@ -80,6 +89,9 @@ public enum TiffSampleType {
         return elementType;
     }
 
+    public long maxNumberOfSamplesInArray() {
+        return this == BIT ? ((long) Integer.MAX_VALUE) << 3 : Integer.MAX_VALUE;
+    }
 
     public boolean isBinary() {
         return this == BIT;
@@ -111,6 +123,44 @@ public enum TiffSampleType {
 
     public boolean isFloatingPoint() {
         return this == FLOAT || this == DOUBLE;
+    }
+
+    public Object javaArray(byte[] bytes, ByteOrder byteOrder) {
+        return elementType == byte.class ? bytes : JArrays.bytesToArray(bytes, elementType, byteOrder);
+    }
+
+    public static byte[] bytes(PArray array, ByteOrder byteOrder) {
+        Objects.requireNonNull(array, "Null array");
+        final Object javaArray = array instanceof BitArray bitArray ? bitArray.jaBit() : array.ja();
+        return bytes(javaArray, array.length(), byteOrder);
+    }
+
+    public static byte[] bytes(Object javaArray, long numberOfElements, ByteOrder byteOrder) {
+        if (javaArray instanceof byte[] a) {
+            if (numberOfElements > a.length) {
+                throw new IllegalArgumentException("Too short array: " + a.length + "<" + numberOfElements);
+            }
+            return a;
+        } else if (javaArray instanceof boolean[] a) {
+            return PackedBitArraysPer8.packBits(a, 0, numberOfElements);
+        } else if (javaArray instanceof long[] a){
+            return PackedBitArraysPer8.toByteArray(a, numberOfElements);
+        } else {
+            return JArrays.arrayToBytes(javaArray, numberOfElements, byteOrder);
+        }
+    }
+
+    public static TiffSampleType valueOfJavaArray(Object javaArray, boolean signedIntegers) {
+        Objects.requireNonNull(javaArray, "Null Java array");
+        Class<?> elementType = javaArray.getClass().getComponentType();
+        if (elementType == null) {
+            throw new IllegalArgumentException("The specified javaArray is not actual an array: " +
+                    "it is " + javaArray.getClass());
+        }
+        return javaArray instanceof long[] ?
+                // - packed long[]
+                TiffSampleType.BIT :
+                TiffSampleType.valueOf(elementType, signedIntegers);
     }
 
     public static TiffSampleType valueOf(PArray array, boolean signedIntegers) {
