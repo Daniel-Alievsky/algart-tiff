@@ -115,6 +115,11 @@ public class TiffIFD {
         this(new LinkedHashMap<>());
     }
 
+    public TiffIFD(int imageDimX, int imageDimY) {
+        this();
+        putImageDimensions(imageDimX, imageDimY);
+    }
+
     @SuppressWarnings("CopyConstructorMissesField")
     public TiffIFD(TiffIFD ifd) {
         fileOffsetForReading = ifd.fileOffsetForReading;
@@ -414,7 +419,7 @@ public class TiffIFD {
     }
 
     public int getSamplesPerPixel() throws TiffException {
-        int compressionValue = getInt(Tags.COMPRESSION, 0);
+        int compressionValue = optInt(Tags.COMPRESSION, 0);
         if (compressionValue == TagCompression.JPEG_OLD_STYLE.code()) {
             return 3;
             // always 3 channels: RGB
@@ -1106,11 +1111,18 @@ public class TiffIFD {
         return this;
     }
 
-    public TiffIFD putSampleType(TiffSampleType sampleType) {
-        Objects.requireNonNull(sampleType, "Null sampleType");
-        final int bitsPerSample = sampleType.bitsPerSample();
-        final boolean signed = sampleType.isSigned();
-        final boolean floatingPoint = sampleType.isFloatingPoint();
+    public TiffIFD putBitsPerSample(int bitsPerSample) {
+        return putBitsPerSample(bitsPerSample, false, false);
+    }
+
+    public TiffIFD putBitsPerSample(int bitsPerSample, boolean signed, boolean floatingPoint) {
+        if (bitsPerSample <= 0) {
+            throw new IllegalArgumentException("Zero or negative bitsPerSample = " + bitsPerSample);
+        }
+        if (bitsPerSample > TiffTools.MAX_BITS_PER_SAMPLE) {
+            throw new IllegalArgumentException("Very large number of bits per sample " + bitsPerSample + " > " +
+                    TiffTools.MAX_BITS_PER_SAMPLE + " is not supported");
+        }
         final int samplesPerPixel;
         try {
             samplesPerPixel = getSamplesPerPixel();
@@ -1126,6 +1138,14 @@ public class TiffIFD {
             remove(Tags.SAMPLE_FORMAT);
         }
         return this;
+    }
+
+    public TiffIFD putSampleType(TiffSampleType sampleType) {
+        Objects.requireNonNull(sampleType, "Null sampleType");
+        final int bitsPerSample = sampleType.bitsPerSample();
+        final boolean signed = sampleType.isSigned();
+        final boolean floatingPoint = sampleType.isFloatingPoint();
+        return putBitsPerSample(bitsPerSample, signed, floatingPoint);
     }
 
     public TiffIFD putCompression(TagCompression compression) {
@@ -1437,7 +1457,7 @@ public class TiffIFD {
             }
         } catch (Exception e) {
             sb.append(json ?
-                    "  \"exceptionBasic\" : \"%s\",\n".formatted(TiffTools.escapeJsonString(e.getMessage())) :
+                    "  \"exceptionBasic\" : \"%s\",\n".formatted(escapeJsonString(e.getMessage())) :
                     " [cannot detect basic information: " + e.getMessage() + "] ");
         }
         try {
@@ -1498,7 +1518,7 @@ public class TiffIFD {
                     isChunked() ? ", chunked" : ", planar");
         } catch (Exception e) {
             sb.append(json ?
-                    "  \"exceptionAdditional\" : \"%s\",\n".formatted(TiffTools.escapeJsonString(e.getMessage())) :
+                    "  \"exceptionAdditional\" : \"%s\",\n".formatted(escapeJsonString(e.getMessage())) :
                     " [cannot detect additional information: " + e.getMessage() + "]");
         }
         if (!json) {
@@ -1531,7 +1551,7 @@ public class TiffIFD {
             if (json) {
                 sb.append(firstEntry ? "" : ",\n");
                 firstEntry = false;
-                sb.append("    \"%s\" : ".formatted(TiffTools.escapeJsonString(tagName)));
+                sb.append("    \"%s\" : ".formatted(escapeJsonString(tagName)));
                 if (manyValues) {
                     sb.append("[");
                     appendIFDArray(sb, v, false, true);
@@ -1542,7 +1562,7 @@ public class TiffIFD {
                     sb.append(v);
                 } else {
                     sb.append("\"");
-                    TiffTools.escapeJsonString(sb, String.valueOf(v));
+                    escapeJsonString(sb, String.valueOf(v));
                     sb.append("\"");
                 }
             } else {
@@ -1746,6 +1766,71 @@ public class TiffIFD {
             sb.append('0');
         }
         sb.append(Integer.toHexString(v));
+    }
+
+    private static String escapeJsonString(CharSequence string) {
+        final StringBuilder result = new StringBuilder();
+        escapeJsonString(result, string);
+        return result.toString();
+    }
+
+    // Clone of the method JsonGeneratorImpl.writeEscapedString
+    private static void escapeJsonString(StringBuilder result, CharSequence string) {
+        int len = string.length();
+        for (int i = 0; i < len; i++) {
+            int begin = i;
+            int end = i;
+            char c = string.charAt(i);
+            // find all the characters that need not be escaped
+            // unescaped = %x20-21 | %x23-5B | %x5D-10FFFF
+            while (c >= 0x20 && c != 0x22 && c != 0x5c) {
+                i++;
+                end = i;
+                if (i < len) {
+                    c = string.charAt(i);
+                } else {
+                    break;
+                }
+            }
+            // Write characters without escaping
+            if (begin < end) {
+                result.append(string, begin, end);
+                if (i == len) {
+                    break;
+                }
+            }
+
+            switch (c) {
+                case '"':
+                case '\\':
+                    result.append('\\');
+                    result.append(c);
+                    break;
+                case '\b':
+                    result.append('\\');
+                    result.append('b');
+                    break;
+                case '\f':
+                    result.append('\\');
+                    result.append('f');
+                    break;
+                case '\n':
+                    result.append('\\');
+                    result.append('n');
+                    break;
+                case '\r':
+                    result.append('\\');
+                    result.append('r');
+                    break;
+                case '\t':
+                    result.append('\\');
+                    result.append('t');
+                    break;
+                default:
+                    String hex = "000" + Integer.toHexString(c);
+                    result.append("\\u").append(hex.substring(hex.length() - 4));
+            }
+        }
     }
 
     // Helper class for internal needs, analog of SCIFIO TiffIFDEntry

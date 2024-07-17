@@ -222,7 +222,7 @@ public class TiffWriterTest {
             if (compatibility && !existingFile) {
                 Files.deleteIfExists(targetFile);
             }
-            try (final Context context = noContext ? null : TiffTools.newSCIFIOContext();
+            try (final Context context = noContext ? null : TiffReader.newSCIFIOContext();
                  final TiffWriter writer = compatibility ?
                          new TiffSaver(context, targetFile.toString()) :
                          new TiffWriter(targetFile)) {
@@ -340,8 +340,8 @@ public class TiffWriterTest {
                     Object samplesArray = makeSamples(ifdIndex, map.numberOfChannels(), map.sampleType(), w, h);
                     final boolean interleaved = !writer.isAutoInterleaveSource() && map.bitsPerSample() == 8;
                     if (interleaved) {
-                        samplesArray = TiffTools.toInterleavedBytes(
-                                (byte[]) samplesArray, map.numberOfChannels(), 1, w * h);
+                        samplesArray = map.toInterleavedSamples(
+                                (byte[]) samplesArray, map.numberOfChannels(), (long) w * (long) h);
                     }
                     Matrix<UpdatablePArray> matrix = TiffTools.asMatrix(
                             samplesArray, w, h, map.numberOfChannels(), interleaved);

@@ -24,7 +24,10 @@
 
 package net.algart.matrices.tiff.tiles;
 
+import net.algart.arrays.Matrices;
+import net.algart.arrays.Matrix;
 import net.algart.arrays.TooLargeArrayException;
+import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.*;
 
 import java.util.*;
@@ -626,6 +629,106 @@ public final class TiffMap {
         return Objects.hash(System.identityHashCode(ifd), tileMap, resizable, dimX, dimY);
     }
 
+    public static byte[] toInterleavedBytes(
+            byte[] bytes,
+            int numberOfChannels,
+            int bytesPerSample,
+            long numberOfPixels) {
+        Objects.requireNonNull(bytes, "Null bytes");
+        if (numberOfChannels <= 0) {
+            throw new IllegalArgumentException("Zero or negative numberOfChannels = " + numberOfChannels);
+        }
+        if (bytesPerSample <= 0) {
+            throw new IllegalArgumentException("Zero or negative bytesPerSample = " + bytesPerSample);
+        }
+        if (numberOfPixels < 0) {
+            throw new IllegalArgumentException("Negative numberOfPixels = " + numberOfPixels);
+        }
+        final int size = TiffTools.checkedMulNoException(
+                new long[]{numberOfPixels, numberOfChannels, bytesPerSample},
+                new String[]{"number of pixels", "bytes per pixel", "bytes per sample"},
+                () -> "Invalid sizes: ", () -> "");
+        // - exception usually should not occur: this function is typically called after analysing IFD
+        assert numberOfPixels <= Integer.MAX_VALUE : "must be checked above";
+        if (bytes.length < size) {
+            throw new IllegalArgumentException("Too short samples array: " + bytes.length + " < " + size);
+        }
+        if (numberOfChannels == 1) {
+            return bytes;
+        }
+        final int bandSize = bytesPerSample * (int) numberOfPixels;
+        final byte[] interleavedBytes = new byte[size];
+        if (bytesPerSample == 1) {
+            Matrix<UpdatablePArray> mI = Matrix.as(interleavedBytes, numberOfChannels, numberOfPixels);
+            Matrix<UpdatablePArray> mS = Matrix.as(bytes, numberOfPixels, numberOfChannels);
+            Matrices.interleave(null, mI, mS.asLayers());
+//            if (numberOfChannels == 3) {
+//                quickInterleave3(interleavedBytes, bytes, bandSize);
+//            } else {
+//                for (int i = 0, disp = 0; i < bandSize; i++) {
+//                    for (int bandDisp = i, j = 0; j < numberOfChannels; j++, bandDisp += bandSize) {
+            // note: we must check j, not bandDisp, because "bandDisp += bandSize" can lead to overflow
+//                        interleavedBytes[disp++] = bytes[bandDisp];
+//                    }
+//                }
+//            }
+        } else {
+            for (int i = 0, disp = 0; i < bandSize; i += bytesPerSample) {
+                for (int bandDisp = i, j = 0; j < numberOfChannels; j++, bandDisp += bandSize) {
+                    for (int k = 0; k < bytesPerSample; k++) {
+                        interleavedBytes[disp++] = bytes[bandDisp + k];
+                    }
+                }
+            }
+        }
+        return interleavedBytes;
+    }
+
+    public static byte[] toSeparatedBytes(
+            byte[] bytes,
+            int numberOfChannels,
+            int bytesPerSample,
+            long numberOfPixels) {
+        Objects.requireNonNull(bytes, "Null bytes");
+        if (numberOfChannels <= 0) {
+            throw new IllegalArgumentException("Zero or negative numberOfChannels = " + numberOfChannels);
+        }
+        if (bytesPerSample <= 0) {
+            throw new IllegalArgumentException("Zero or negative bytesPerSample = " + bytesPerSample);
+        }
+        if (numberOfPixels < 0) {
+            throw new IllegalArgumentException("Negative numberOfPixels = " + numberOfPixels);
+        }
+        final int size = TiffTools.checkedMulNoException(
+                new long[]{numberOfPixels, numberOfChannels, bytesPerSample},
+                new String[]{"number of pixels", "bytes per pixel", "bytes per sample"},
+                () -> "Invalid sizes: ", () -> "");
+        // - exception usually should not occur: this function is typically called after analysing IFD
+        assert numberOfPixels <= Integer.MAX_VALUE : "must be checked above";
+        if (bytes.length < size) {
+            throw new IllegalArgumentException("Too short samples array: " + bytes.length + " < " + size);
+        }
+        if (numberOfChannels == 1) {
+            return bytes;
+        }
+        final int bandSize = bytesPerSample * (int) numberOfPixels;
+        final byte[] separatedBytes = new byte[size];
+        if (bytesPerSample == 1) {
+            final Matrix<UpdatablePArray> mI = Matrix.as(bytes, numberOfChannels, numberOfPixels);
+            final Matrix<UpdatablePArray> mS = Matrix.as(separatedBytes, numberOfPixels, numberOfChannels);
+            Matrices.separate(null, mS.asLayers(), mI);
+        } else {
+            for (int i = 0, disp = 0; i < bandSize; i += bytesPerSample) {
+                for (int bandDisp = i, j = 0; j < numberOfChannels; j++, bandDisp += bandSize) {
+                    for (int k = 0; k < bytesPerSample; k++) {
+                        separatedBytes[bandDisp + k] = bytes[disp++];
+                    }
+                }
+            }
+        }
+        return separatedBytes;
+    }
+
     private byte[] toInterleaveOrSeparatedSamples(
             byte[] samples,
             int numberOfChannels,
@@ -644,8 +747,8 @@ public final class TiffMap {
         final int bytesPerSample = bitsPerSample >>> 3;
         assert bitsPerSample == bytesPerSample * 8 : "unaligned bitsPerSample impossible for whole bytes";
         return interleave ?
-                TiffTools.toInterleavedBytes(samples, numberOfChannels, bytesPerSample, numberOfPixels) :
-                TiffTools.toSeparatedBytes(samples, numberOfChannels, bytesPerSample, numberOfPixels);
+                toInterleavedBytes(samples, numberOfChannels, bytesPerSample, numberOfPixels) :
+                toSeparatedBytes(samples, numberOfChannels, bytesPerSample, numberOfPixels);
     }
 
     private void setDimensions(int dimX, int dimY, boolean checkResizable) {

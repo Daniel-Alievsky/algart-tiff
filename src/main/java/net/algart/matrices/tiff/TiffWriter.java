@@ -29,6 +29,7 @@ import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
 import net.algart.arrays.PackedBitArraysPer8;
 import net.algart.matrices.tiff.codecs.TiffCodec;
+import net.algart.matrices.tiff.data.TiffPacking;
 import net.algart.matrices.tiff.tags.*;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
@@ -1054,7 +1055,7 @@ public class TiffWriter implements Closeable {
         if (codec != null) {
             options = compression.customizeWriting(tile, options);
             if (codec instanceof TiffCodec.Timing timing) {
-                timing.setTiming(TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG);
+                timing.setTiming(TiffReader.BUILT_IN_TIMING && LOGGABLE_DEBUG);
                 timing.clearTiming();
             }
             final byte[] encodedData = codec.compress(data, options);
@@ -1564,7 +1565,7 @@ public class TiffWriter implements Closeable {
             tile.setInterleaved(true);
             // - if not autoInterleave, we should suppose that the samples were already interleaved
         }
-        TiffTools.packTiffBits(tile);
+        TiffPacking.packTiffBits(tile);
 
         // scifio.tiff().difference(tile.getDecodedData(), ifd);
         // - this solution requires using SCIFIO context class; it is better to avoid this
@@ -1632,7 +1633,7 @@ public class TiffWriter implements Closeable {
         final long afterMain = startOffset + mainIFDLength;
         final BytesLocation bytesLocation = new BytesLocation(0, "memory-buffer");
         final long positionOfNextOffset;
-        try (final DataHandle<Location> extraHandle = TiffTools.getBytesHandle(bytesLocation)) {
+        try (final DataHandle<Location> extraHandle = TiffReader.getBytesHandle(bytesLocation)) {
             for (final Map.Entry<Integer, Object> e : ifd.entrySet()) {
                 writeIFDValueAtCurrentPosition(extraHandle, afterMain, e.getKey(), e.getValue());
             }
@@ -2052,7 +2053,7 @@ public class TiffWriter implements Closeable {
     }
 
     private void logWritingMatrix(TiffMap map, String name, Matrix<?> matrix, long t1, long t2, long t3, long t4) {
-        if (TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+        if (TiffReader.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             final boolean sourceInterleaved = isSourceProbablyInterleaved(map);
             final long dimX = matrix.dim(sourceInterleaved ? 1 : 0);
             final long dimY = matrix.dim(sourceInterleaved ? 2 : 1);
@@ -2073,7 +2074,7 @@ public class TiffWriter implements Closeable {
     }
 
     private void logTiles(TiffMap map, String stage, String action, int count, long sizeInBytes, long t1, long t2) {
-        if (TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+        if (TiffReader.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             LOG.log(System.Logger.Level.DEBUG,
                     count == 0 ?
                             String.format(Locale.US,
@@ -2095,7 +2096,7 @@ public class TiffWriter implements Closeable {
     }
 
     private void logWritingMatrix(TiffMap map, String name, long dimX, long dimY, long t1, long t2, long t3, long t4) {
-        if (TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+        if (TiffReader.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t5 = debugTime();
             final long sizeInBytes = map.totalSizeInBytes();
             LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
@@ -2146,7 +2147,7 @@ public class TiffWriter implements Closeable {
     }
 
     private static long debugTime() {
-        return TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG ? System.nanoTime() : 0;
+        return TiffReader.BUILT_IN_TIMING && LOGGABLE_DEBUG ? System.nanoTime() : 0;
     }
 
     private static DataHandle<Location> openWithDeletingPreviousFileIfRequested(Path file, boolean deleteExisting)
@@ -2155,6 +2156,6 @@ public class TiffWriter implements Closeable {
         if (deleteExisting) {
             Files.deleteIfExists(file);
         }
-        return TiffTools.getFileHandle(file);
+        return TiffReader.getFileHandle(file);
     }
 }

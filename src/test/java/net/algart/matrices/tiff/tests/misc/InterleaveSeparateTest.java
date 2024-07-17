@@ -24,7 +24,7 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
-import net.algart.matrices.tiff.TiffTools;
+import net.algart.matrices.tiff.tiles.TiffMap;
 
 import java.util.Arrays;
 import java.util.Random;
@@ -62,10 +62,10 @@ public class InterleaveSeparateTest {
 
     private static void testIS(byte[] bytes, int numberOfChannels, int bytesPerSamples, int numberOfPixels) {
         long t1 = System.nanoTime();
-        byte[] interleavedSamples = TiffTools.toInterleavedBytes(
+        byte[] interleavedSamples = TiffMap.toInterleavedBytes(
                 bytes, numberOfChannels, bytesPerSamples, numberOfPixels);
         long t2 = System.nanoTime();
-        byte[] separatedSamples = TiffTools.toSeparatedBytes(
+        byte[] separatedSamples = TiffMap.toSeparatedBytes(
                 interleavedSamples, numberOfChannels, bytesPerSamples, numberOfPixels);
         long t3 = System.nanoTime();
         if (!Arrays.equals(bytes, separatedSamples)) {
@@ -78,10 +78,10 @@ public class InterleaveSeparateTest {
 
     private static void testSI(byte[] bytes, int numberOfChannels, int bytesPerSample, int numberOfPixels) {
         long t1 = System.nanoTime();
-        byte[] separatedSamples = TiffTools.toSeparatedBytes(
+        byte[] separatedSamples = TiffMap.toSeparatedBytes(
                 bytes, numberOfChannels, bytesPerSample, numberOfPixels);
         long t2 = System.nanoTime();
-        byte[] interleavedSamples = TiffTools.toInterleavedBytes(
+        byte[] interleavedSamples = TiffMap.toInterleavedBytes(
                 separatedSamples, numberOfChannels, bytesPerSample, numberOfPixels);
         long t3 = System.nanoTime();
         if (!Arrays.equals(bytes, interleavedSamples)) {

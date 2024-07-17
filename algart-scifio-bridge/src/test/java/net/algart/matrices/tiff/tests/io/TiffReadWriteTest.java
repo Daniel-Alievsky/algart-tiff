@@ -202,12 +202,10 @@ public class TiffReadWriteTest {
                         originalParser.getSamples(scifioIFD, buf2, START_X, START_Y, paddedW, paddedH);
                         // - this is absolute old TiffParser
                         if (!planar) {
-                            bytes = TiffTools.toInterleavedBytes(
-                                    bytes, samplesPerPixel, bytesPerSample, paddedW * paddedH);
-                            buf1 = TiffTools.toInterleavedBytes(
-                                    buf1, samplesPerPixel, bytesPerSample, paddedW * paddedH);
-                            buf2 = TiffTools.toInterleavedBytes(
-                                    buf2, samplesPerPixel, bytesPerSample, paddedW * paddedH);
+                            long numberOfPixels = (long) paddedW * (long) paddedH;
+                            bytes = map.toInterleavedSamples(bytes, samplesPerPixel, numberOfPixels);
+                            buf1 = map.toInterleavedSamples(buf1, samplesPerPixel, numberOfPixels);
+                            buf2 = map.toInterleavedSamples(buf2, samplesPerPixel,  numberOfPixels);
                         }
                         final int checkedLength = paddedW * h * samplesPerPixel * bytesPerSample;
                         // - In a case of stripped image (but not tiled!), the last strip is usually stored

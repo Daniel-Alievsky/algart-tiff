@@ -26,6 +26,7 @@ package net.algart.matrices.tiff;
 
 import net.algart.arrays.*;
 import net.algart.matrices.tiff.codecs.TiffCodec;
+import net.algart.matrices.tiff.data.TiffPacking;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.matrices.tiff.tags.TagTypes;
@@ -35,8 +36,12 @@ import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIO;
 import net.algart.matrices.tiff.tiles.TiffTileIndex;
 import org.scijava.Context;
+import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
+import org.scijava.io.handle.FileHandle;
 import org.scijava.io.handle.ReadBufferDataHandle;
+import org.scijava.io.location.BytesLocation;
+import org.scijava.io.location.FileLocation;
 import org.scijava.io.location.Location;
 
 import java.io.Closeable;
@@ -46,6 +51,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.Arrays;
@@ -116,7 +122,8 @@ public class TiffReader implements Closeable {
     static final boolean USE_LEGACY_UNPACK_BYTES = false;
     // - Should be false for better performance; necessary for debugging needs only
     // (together with uncommenting unpackBytesLegacy call)
-    static final boolean THOROUGHLY_TEST_Y_CB_CR_LOOP = false;
+
+    static final boolean BUILT_IN_TIMING = getBooleanProperty("net.algart.matrices.tiff.timing");
 
     private static final int MINIMAL_ALLOWED_TIFF_FILE_LENGTH = 8 + 2 + 12 + 4;
     // - 8 bytes header + at least 1 IFD entry (usually at least 2 entries required: ImageWidth + ImageLength);
@@ -173,7 +180,7 @@ public class TiffReader implements Closeable {
     }
 
     public TiffReader(Path file, boolean requireValidTiff) throws IOException {
-        this(TiffTools.getExistingFileHandle(file), requireValidTiff, true);
+        this(getExistingFileHandle(file), requireValidTiff, true);
     }
 
     /**
@@ -718,7 +725,7 @@ public class TiffReader implements Closeable {
                 this.ifds = Collections.unmodifiableList(ifds);
             }
         }
-        if (TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+        if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t2 = debugTime();
             LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
                     "%s read %d IFDs: %.3f ms",
@@ -910,7 +917,7 @@ public class TiffReader implements Closeable {
             }
         }
 
-        if (TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+        if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t2 = debugTime();
             LOG.log(System.Logger.Level.TRACE, String.format(Locale.US,
                     "%s read IFD at offset %d: %.3f ms, including %.6f entries + %.6f arrays",
@@ -1011,7 +1018,7 @@ public class TiffReader implements Closeable {
                 // - old-style unpackBytes does not "understand" already-separated tiles
             }
             if (codec instanceof TiffCodec.Timing timing) {
-                timing.setTiming(TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG);
+                timing.setTiming(BUILT_IN_TIMING && LOGGABLE_DEBUG);
                 timing.clearTiming();
             }
             final byte[] decodedData = codec.decompress(tile.getEncodedData(), options);
@@ -1160,7 +1167,7 @@ public class TiffReader implements Closeable {
      * <b>does not unpack 16- or 24-bit</b> floating-point formats. These cases
      * are processed after reading all tiles inside {@link #readSamples(TiffMap, int, int, int, int)}
      * method, if {@link #isAutoUnpackUnusualPrecisions()} flag is set, or may be performed by external
-     * code with help of {@link TiffTools#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)} method.
+     * code with help of {@link TiffPacking#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)} method.
      * See {@link TiffReader#setAutoUnpackUnusualPrecisions(boolean)}.
      *
      * <p>This method does not allow 5, 6, 7 or greater than 8 bytes/sample
@@ -1180,9 +1187,9 @@ public class TiffReader implements Closeable {
             tile.setDecodedData(samples);
             tile.setInterleaved(false);
         } else {
-            if (!TiffTools.separateUnpackedSamples(tile)) {
-                if (!TiffTools.separateYCbCrToRGB(tile)) {
-                    TiffTools.unpackTiffBitsAndInvertValues(tile,
+            if (!TiffPacking.separateUnpackedSamples(tile)) {
+                if (!TiffPacking.separateYCbCrToRGB(tile)) {
+                    TiffPacking.unpackTiffBitsAndInvertValues(tile,
                             autoScaleWhenIncreasingBitDepth,
                             autoCorrectInvertedBrightness);
                 }
@@ -1294,7 +1301,7 @@ public class TiffReader implements Closeable {
         long t4 = debugTime();
         boolean unpackingPrecision = false;
         if (autoUnpackUnusualPrecisions) {
-            byte[] newSamples = TiffTools.unpackUnusualPrecisions(
+            byte[] newSamples = TiffPacking.unpackUnusualPrecisions(
                     samples, ifd, numberOfChannels, sizeInPixels, autoScaleWhenIncreasingBitDepth);
             unpackingPrecision = newSamples != samples;
             samples = newSamples;
@@ -1304,7 +1311,7 @@ public class TiffReader implements Closeable {
             unpackingPrecision = true;
             samples = PackedBitArraysPer8.unpackBitsToBytes(samples, 0, sizeInPixels, (byte) 0, (byte) 255);
         }
-        if (TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+        if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t5 = debugTime();
             LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
                     "%s read %dx%dx%d samples (%.3f MB) in %.3f ms = " +
@@ -1361,7 +1368,7 @@ public class TiffReader implements Closeable {
         final Object samplesArray = autoUnpackBitsToBytes && map.isBinary() ?
                 samples :
                 sampleType.javaArray(samples, byteOrder());
-        if (TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+        if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t2 = debugTime();
             LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
                     "%s converted %d bytes (%.3f MB) to %s[] in %.3f ms%s",
@@ -1489,6 +1496,49 @@ public class TiffReader implements Closeable {
                         Integer.MAX_VALUE + " bytes)");
             }
         }
+    }
+
+    public static Context newSCIFIOContext() {
+        return SCIFIOBridge.getDefaultScifioContext();
+    }
+
+    public static DataHandle<Location> getExistingFileHandle(Path file) throws FileNotFoundException {
+        if (!Files.isRegularFile(file)) {
+            throw new FileNotFoundException("File " + file
+                    + (Files.exists(file) ? " is not a regular file" : " does not exist"));
+        }
+        return getFileHandle(file);
+    }
+
+    static DataHandle<Location> getFileHandle(Path file) {
+        Objects.requireNonNull(file, "Null file");
+        return getFileHandle(new FileLocation(file.toFile()));
+    }
+
+    /**
+     * Warning: you should never call {@link DataHandle#set(Object)} method of the returned result!
+     * It can lead to unpredictable <code>ClassCastException</code>.
+     */
+    @SuppressWarnings("rawtypes, unchecked")
+    static DataHandle<Location> getBytesHandle(BytesLocation bytesLocation) {
+        Objects.requireNonNull(bytesLocation, "Null bytesLocation");
+        BytesHandle bytesHandle = new BytesHandle(bytesLocation);
+        return (DataHandle) bytesHandle;
+    }
+
+
+    /**
+     * Warning: you should never call {@link DataHandle#set(Object)} method of the returned result!
+     * It can lead to unpredictable <code>ClassCastException</code>.
+     */
+    @SuppressWarnings("rawtypes, unchecked")
+    static DataHandle<Location> getFileHandle(FileLocation fileLocation) {
+        Objects.requireNonNull(fileLocation, "Null fileLocation");
+        FileHandle fileHandle = new FileHandle(fileLocation);
+        fileHandle.setLittleEndian(false);
+        // - in current implementation it is an extra operator: BigEndian is default in scijava;
+        // but we want to be sure that this behaviour will be the same in all future versions
+        return (DataHandle) fileHandle;
     }
 
     protected Object buildExternalOptions(TiffTile tile, TiffCodec.Options options) throws TiffException {
@@ -2077,7 +2127,16 @@ public class TiffReader implements Closeable {
         return format.formatted(uri);
     }
 
-    private static long debugTime() {
-        return TiffTools.BUILT_IN_TIMING && LOGGABLE_DEBUG ? System.nanoTime() : 0;
+    static boolean getBooleanProperty(String propertyName) {
+        try {
+            return Boolean.getBoolean(propertyName);
+        } catch (Exception e) {
+            return false;
+        }
     }
+
+    private static long debugTime() {
+        return BUILT_IN_TIMING && LOGGABLE_DEBUG ? System.nanoTime() : 0;
+    }
+
 }

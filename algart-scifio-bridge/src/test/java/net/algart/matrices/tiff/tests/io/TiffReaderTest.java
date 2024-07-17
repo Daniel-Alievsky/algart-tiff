@@ -32,7 +32,6 @@ import net.algart.io.MatrixIO;
 import net.algart.io.awt.MatrixToBufferedImage;
 import net.algart.matrices.tiff.CachingTiffReader;
 import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.TiffTools;
 import net.algart.matrices.tiff.compatibility.TiffParser;
 import net.algart.matrices.tiff.executable.TiffInfo;
 import net.algart.matrices.tiff.tiles.TiffMap;
@@ -96,7 +95,7 @@ public class TiffReaderTest {
 //        TiffInfo.showTiffInfo(tiffFile);
 
         for (int repeat = 1; repeat <= numberOfCompleteRepeats; repeat++) {
-            try (final Context context = noContext ? null : TiffTools.newSCIFIOContext()) {
+            try (final Context context = noContext ? null : TiffReader.newSCIFIOContext()) {
                 long t1 = System.nanoTime();
                 final TiffReader reader = compatibility ?
                         new TiffParser(context, tiffFile) : cache ?
