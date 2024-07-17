@@ -128,11 +128,6 @@ public class TiffIFD {
         this(new LinkedHashMap<>());
     }
 
-    public TiffIFD(int imageDimX, int imageDimY) {
-        this();
-        putImageDimensions(imageDimX, imageDimY);
-    }
-
     @SuppressWarnings("CopyConstructorMissesField")
     public TiffIFD(TiffIFD ifd) {
         fileOffsetForReading = ifd.fileOffsetForReading;
