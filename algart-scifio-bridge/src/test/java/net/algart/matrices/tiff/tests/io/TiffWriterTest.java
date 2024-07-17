@@ -343,7 +343,7 @@ public class TiffWriterTest {
                         samplesArray = map.toInterleavedSamples(
                                 (byte[]) samplesArray, map.numberOfChannels(), (long) w * (long) h);
                     }
-                    Matrix<UpdatablePArray> matrix = TiffTools.asMatrix(
+                    Matrix<UpdatablePArray> matrix = TiffSampleType.asMatrix(
                             samplesArray, w, h, map.numberOfChannels(), interleaved);
                     if (writer instanceof TiffSaver saver && samplesArray instanceof byte[] bytes) {
                         saver.writeImage(bytes, TiffParser.toScifioIFD(map.ifd(), null),

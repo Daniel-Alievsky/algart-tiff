@@ -27,7 +27,7 @@ package net.algart.matrices.tiff.tests.misc;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffSampleType;
-import net.algart.matrices.tiff.TiffTools;
+import net.algart.matrices.tiff.data.TiffPrediction;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import org.scijava.util.Bytes;
@@ -103,7 +103,7 @@ public class SubtractPredictionTest {
             byte[] predicted = data.clone();
             tile.setDecodedData(predicted);
             long t1 = System.nanoTime();
-            TiffTools.subtractPrediction(tile);
+            TiffPrediction.subtractPrediction(tile);
             long t2 = System.nanoTime();
             System.out.printf("subtractPrediction:            %.3f ms, %.3f MB/sec%n",
                     (t2 - t1) * 1e-6, data.length / 1048576.0 / ((t2 - t1) * 1e-9));
@@ -123,7 +123,7 @@ public class SubtractPredictionTest {
 
             tile.setDecodedData(predicted);
             t1 = System.nanoTime();
-            TiffTools.unsubtractPrediction(tile);
+            TiffPrediction.unsubtractPrediction(tile);
             t2 = System.nanoTime();
             System.out.printf("unsubtractPrediction:          %.3f ms, %.3f MB/sec%n",
                     (t2 - t1) * 1e-6, data.length / 1048576.0 / ((t2 - t1) * 1e-9));

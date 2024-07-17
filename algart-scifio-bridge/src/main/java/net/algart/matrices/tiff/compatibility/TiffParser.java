@@ -34,7 +34,6 @@ import net.algart.arrays.PackedBitArraysPer8;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.TiffTools;
 import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 import net.algart.matrices.tiff.tags.TagRational;
@@ -324,10 +323,10 @@ public class TiffParser extends TiffReader {
         in.seek(0);
         final int endianOne = in.read();
         final int endianTwo = in.read();
-        final boolean littleEndian = endianOne == TiffTools.FILE_PREFIX_LITTLE_ENDIAN &&
-                endianTwo == TiffTools.FILE_PREFIX_LITTLE_ENDIAN; // II
-        final boolean bigEndian = endianOne == TiffTools.FILE_PREFIX_BIG_ENDIAN &&
-                endianTwo == TiffTools.FILE_PREFIX_BIG_ENDIAN; // MM
+        final boolean littleEndian = endianOne == TiffReader.FILE_PREFIX_LITTLE_ENDIAN &&
+                endianTwo == TiffReader.FILE_PREFIX_LITTLE_ENDIAN; // II
+        final boolean bigEndian = endianOne == TiffReader.FILE_PREFIX_BIG_ENDIAN &&
+                endianTwo == TiffReader.FILE_PREFIX_BIG_ENDIAN; // MM
         if (!littleEndian && !bigEndian) return null;
 
         // check magic number (42)
@@ -335,8 +334,8 @@ public class TiffParser extends TiffReader {
         final short magic = in.readShort();
         // bigTiff = magic == TiffConstants.BIG_TIFF_MAGIC_NUMBER;
         // - already set by the constructor
-        if (magic != TiffTools.FILE_USUAL_MAGIC_NUMBER &&
-                magic != TiffTools.FILE_BIG_TIFF_MAGIC_NUMBER) {
+        if (magic != TiffReader.FILE_USUAL_MAGIC_NUMBER &&
+                magic != TiffReader.FILE_BIG_TIFF_MAGIC_NUMBER) {
             return null;
         }
 
@@ -352,8 +351,8 @@ public class TiffParser extends TiffReader {
         final DataHandle<Location> in = stream();
         final boolean bigTiff = isBigTiff();
 
-        final int bytesPerEntry = bigTiff ? TiffTools.BIG_TIFF_BYTES_PER_ENTRY
-                : TiffTools.BYTES_PER_ENTRY;
+        final int bytesPerEntry = bigTiff ? TiffReader.BIG_TIFF_BYTES_PER_ENTRY
+                : TiffReader.BYTES_PER_ENTRY;
 
         final Vector<Long> offsets = new Vector<>();
         long offset = getFirstOffset();
@@ -430,8 +429,8 @@ public class TiffParser extends TiffReader {
         if (numEntries == 0 || numEntries == 1) return ifd;
         //?? Why numEntries == 1 should lead to EMPTY IFD?
 
-        final int bytesPerEntry = bigTiff ? TiffTools.BIG_TIFF_BYTES_PER_ENTRY
-                : TiffTools.BYTES_PER_ENTRY;
+        final int bytesPerEntry = bigTiff ? TiffReader.BIG_TIFF_BYTES_PER_ENTRY
+                : TiffReader.BYTES_PER_ENTRY;
         final int baseOffset = bigTiff ? 8 : 2;
 
         for (int i = 0; i < numEntries; i++) {
@@ -685,8 +684,8 @@ public class TiffParser extends TiffReader {
         for (int i = 0; i < numEntries; i++) {
             in.seek(offset + // The beginning of the IFD
                     (bigTiff ? 8 : 2) + // The width of the initial numEntries field
-                    (bigTiff ? TiffTools.BIG_TIFF_BYTES_PER_ENTRY
-                            : TiffTools.BYTES_PER_ENTRY) * (long) i);
+                    (bigTiff ? TiffReader.BIG_TIFF_BYTES_PER_ENTRY
+                            : TiffReader.BYTES_PER_ENTRY) * (long) i);
 
             final TiffIFDEntry entry = readTiffIFDEntry();
             if (entry.getTag() == tag) {
@@ -736,7 +735,7 @@ public class TiffParser extends TiffReader {
     public byte[] getSamples(final IFD ifd, final byte[] buf, final int x,
                              final int y, final long width, final long height) throws FormatException,
             IOException {
-        TiffTools.checkRequestedArea(x, y, width, height);
+        TiffReader.checkRequestedArea(x, y, width, height);
         byte[] result = readSamples(newMap(toTiffIFD(ifd)), x, y, (int) width, (int) height);
         if (result.length > buf.length) {
             throw new IllegalArgumentException(

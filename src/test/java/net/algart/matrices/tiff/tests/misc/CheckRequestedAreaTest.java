@@ -24,13 +24,13 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
-import net.algart.matrices.tiff.TiffTools;
+import net.algart.matrices.tiff.TiffReader;
 
 public class CheckRequestedAreaTest {
     private static void callCheckRequestedArea(long fromX, long fromY, long sizeX, long sizeY, boolean exception) {
         System.out.printf("%d, %d, %d x %d    ", fromX, fromY, sizeX, sizeY);
         try {
-            TiffTools.checkRequestedArea(fromX, fromY, sizeX, sizeY);
+            TiffReader.checkRequestedArea(fromX, fromY, sizeX, sizeY);
             if (exception) {
                 throw new AssertionError("No exception!");
             }
@@ -46,7 +46,7 @@ public class CheckRequestedAreaTest {
 
     public static void main(String[] args) {
         callCheckRequestedArea(0, 0, 0, -1, true);
-        callCheckRequestedArea(-1000, -1000, Integer.MAX_VALUE, Integer.MAX_VALUE, false);
+        callCheckRequestedArea(-1000, -1000, 10000000, 1000000, false);
         callCheckRequestedArea(1000, 1000, Integer.MAX_VALUE, Integer.MAX_VALUE, true);
         callCheckRequestedArea(-10000000000L, 1000, Integer.MAX_VALUE, Integer.MAX_VALUE, true);
         callCheckRequestedArea(0, 10000000000L, Integer.MAX_VALUE, Integer.MAX_VALUE, true);

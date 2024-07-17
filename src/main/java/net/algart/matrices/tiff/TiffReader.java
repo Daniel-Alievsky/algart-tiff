@@ -27,6 +27,7 @@ package net.algart.matrices.tiff;
 import net.algart.arrays.*;
 import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.data.TiffPacking;
+import net.algart.matrices.tiff.data.TiffPrediction;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.matrices.tiff.tags.TagTypes;
@@ -110,6 +111,19 @@ public class TiffReader implements Closeable {
      * it is mostly probable that it is corrupted file.
      */
     public static final int MAX_NUMBER_OF_IFD_ENTRIES = 1_000_000;
+    /**
+     * The number of bytes in each IFD entry.
+     */
+    public static final int BYTES_PER_ENTRY = 12;
+    /**
+     * The number of bytes in each IFD entry of a BigTIFF file.
+     */
+    public static final int BIG_TIFF_BYTES_PER_ENTRY = 20;
+    // TIFF header constants
+    public static final int FILE_USUAL_MAGIC_NUMBER = 42;
+    public static final int FILE_BIG_TIFF_MAGIC_NUMBER = 43;
+    public static final int FILE_PREFIX_LITTLE_ENDIAN = 0x49;
+    public static final int FILE_PREFIX_BIG_ENDIAN = 0x4d;
 
     private static final boolean OPTIMIZE_READING_IFD_ARRAYS = true;
     // - Note: this optimization allows to speed up reading large array of offsets.
@@ -875,7 +889,7 @@ public class TiffReader implements Closeable {
                 // in any case, billions if detailedEntries will probably lead to OutOfMemoryError or integer overflow
             }
 
-            final int bytesPerEntry = bigTiff ? TiffTools.BIG_TIFF_BYTES_PER_ENTRY : TiffTools.BYTES_PER_ENTRY;
+            final int bytesPerEntry = bigTiff ? BIG_TIFF_BYTES_PER_ENTRY : BYTES_PER_ENTRY;
             final int baseOffset = bigTiff ? 8 : 2;
 
             for (long i = 0; i < numberOfEntries; i++) {
@@ -1052,7 +1066,9 @@ public class TiffReader implements Closeable {
             // - unlike full decoding, here it is better not to throw exception for empty tile
             return;
         }
-        TiffTools.reverseFillOrderIfRequested(tile);
+        if (tile.ifd().isReversedFillOrder()) {
+            PackedBitArraysPer8.reverseBitOrderInPlace(tile.getData());
+        }
         TiffIFD ifd = tile.ifd();
         final TagCompression compression = ifd.optCompression().orElse(null);
         if (compression != null && compression.isJpeg()) {
@@ -1178,7 +1194,7 @@ public class TiffReader implements Closeable {
     public void completeDecoding(TiffTile tile) throws TiffException {
         // scifio.tiff().undifference(tile.getDecodedData(), tile.ifd());
         // - this solution requires using SCIFIO context class; it is better to avoid this
-        TiffTools.unsubtractPredictionIfRequested(tile);
+        TiffPrediction.unsubtractPredictionIfRequested(tile);
 
         if (USE_LEGACY_UNPACK_BYTES) {
             byte[] samples = new byte[tile.map().tileSizeInBytes()];
@@ -1270,7 +1286,7 @@ public class TiffReader implements Closeable {
         Objects.requireNonNull(map, "Null TIFF map");
         long t1 = debugTime();
         clearTiming();
-        TiffTools.checkRequestedArea(fromX, fromY, sizeX, sizeY);
+        checkRequestedArea(fromX, fromY, sizeX, sizeY);
         // - note: we allow this area to be outside the image
         final int numberOfChannels = map.numberOfChannels();
         final TiffIFD ifd = map.ifd();
@@ -1422,7 +1438,7 @@ public class TiffReader implements Closeable {
             boolean storeTilesInMap)
             throws IOException {
         final Object samplesArray = readJavaArray(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
-        return TiffTools.asMatrix(samplesArray, sizeX, sizeY, map.numberOfChannels(), interleaveResults);
+        return TiffSampleType.asMatrix(samplesArray, sizeX, sizeY, map.numberOfChannels(), interleaveResults);
     }
 
     /**
@@ -1463,8 +1479,8 @@ public class TiffReader implements Closeable {
             throws IOException {
         Matrix<UpdatablePArray> mergedChannels = readMatrix(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
         return interleaveResults ?
-                Matrices.separate(null, mergedChannels, TiffTools.MAX_NUMBER_OF_CHANNELS) :
-                Matrices.asLayers(mergedChannels, TiffTools.MAX_NUMBER_OF_CHANNELS);
+                Matrices.separate(null, mergedChannels, TiffIFD.MAX_NUMBER_OF_CHANNELS) :
+                Matrices.asLayers(mergedChannels, TiffIFD.MAX_NUMBER_OF_CHANNELS);
     }
 
     @Override
@@ -1472,6 +1488,31 @@ public class TiffReader implements Closeable {
         synchronized (fileLock) {
             in.close();
         }
+    }
+
+    public static long checkRequestedArea(long fromX, long fromY, long sizeX, long sizeY) {
+        if (sizeX < 0 || sizeY < 0) {
+            throw new IllegalArgumentException("Negative sizeX = " + sizeX + " or sizeY = " + sizeY);
+        }
+        if (fromX != (int) fromX || fromY != (int) fromY) {
+            throw new IllegalArgumentException("Too large absolute values of fromX = " + fromX +
+                    " or fromY = " + fromY + " (out of -2^31..2^31-1 ranges)");
+        }
+        if (sizeX > Integer.MAX_VALUE || sizeY > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Too large sizeX = " + sizeX + " or sizeY = " + sizeY + " (>2^31-1)");
+        }
+        if (sizeX >= Integer.MAX_VALUE - fromX || sizeY >= Integer.MAX_VALUE - fromY) {
+            // - Note: >= instead of > ! This allows to use "toX = fromX + sizeX" without overflow
+            throw new IllegalArgumentException("Requested area [" + fromX + ".." + (fromX + sizeX - 1) +
+                    " x " + fromY + ".." + (fromY + sizeY - 1) + " is out of 0..2^31-2 ranges");
+        }
+        final long result = sizeX * sizeY;
+        if (result > Long.MAX_VALUE / TiffIFD.MAX_NUMBER_OF_CHANNELS) {
+            throw new TooLargeArrayException("Extremely large area " + sizeX + "x" + sizeY +
+                    ": number of bits may exceed the limit 2^63 for too large number of channels " +
+                    TiffIFD.MAX_NUMBER_OF_CHANNELS);
+        }
+        return result;
     }
 
     public static int sizeOfRegionWithPossibleUnusualPrecisions(TiffMap map, long sizeX, long sizeY)
@@ -1628,10 +1669,10 @@ public class TiffReader implements Closeable {
             final int endianOne = in.read();
             final int endianTwo = in.read();
             // byte order must be II or MM
-            final boolean littleEndian = endianOne == TiffTools.FILE_PREFIX_LITTLE_ENDIAN &&
-                    endianTwo == TiffTools.FILE_PREFIX_LITTLE_ENDIAN; // II
-            final boolean bigEndian = endianOne == TiffTools.FILE_PREFIX_BIG_ENDIAN &&
-                    endianTwo == TiffTools.FILE_PREFIX_BIG_ENDIAN; // MM
+            final boolean littleEndian = endianOne == FILE_PREFIX_LITTLE_ENDIAN &&
+                    endianTwo == FILE_PREFIX_LITTLE_ENDIAN; // II
+            final boolean bigEndian = endianOne == FILE_PREFIX_BIG_ENDIAN &&
+                    endianTwo == FILE_PREFIX_BIG_ENDIAN; // MM
             if (!littleEndian && !bigEndian) {
                 throw new TiffException("The file" + prettyInName() + " is not TIFF");
             }
@@ -1639,9 +1680,9 @@ public class TiffReader implements Closeable {
             // check magic number (42)
             in.setLittleEndian(littleEndian);
             final short magic = in.readShort();
-            final boolean bigTiff = magic == TiffTools.FILE_BIG_TIFF_MAGIC_NUMBER;
+            final boolean bigTiff = magic == FILE_BIG_TIFF_MAGIC_NUMBER;
             bigTiffReference.set(bigTiff);
-            if (magic != TiffTools.FILE_USUAL_MAGIC_NUMBER && magic != TiffTools.FILE_BIG_TIFF_MAGIC_NUMBER) {
+            if (magic != FILE_USUAL_MAGIC_NUMBER && magic != FILE_BIG_TIFF_MAGIC_NUMBER) {
                 throw new TiffException("The file" + prettyInName() + " is not TIFF");
             }
             if (bigTiff) {
@@ -1811,7 +1852,7 @@ public class TiffReader implements Closeable {
 
     private void skipIFDEntries(long fileLength) throws IOException {
         final long offset = in.offset();
-        final int bytesPerEntry = bigTiff ? TiffTools.BIG_TIFF_BYTES_PER_ENTRY : TiffTools.BYTES_PER_ENTRY;
+        final int bytesPerEntry = bigTiff ? BIG_TIFF_BYTES_PER_ENTRY : BYTES_PER_ENTRY;
         final long numberOfEntries = bigTiff ? in.readLong() : in.readUnsignedShort();
         if (numberOfEntries < 0 || numberOfEntries > Integer.MAX_VALUE / bytesPerEntry) {
             throw new TiffException(

@@ -30,6 +30,7 @@ import net.algart.arrays.PArray;
 import net.algart.arrays.PackedBitArraysPer8;
 import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.data.TiffPacking;
+import net.algart.matrices.tiff.data.TiffPrediction;
 import net.algart.matrices.tiff.tags.*;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
@@ -627,17 +628,17 @@ public class TiffWriter implements Closeable {
             out.seek(0);
             // - this call actually creates and opens the file, if it was not opened before
             if (isLittleEndian()) {
-                out.writeByte(TiffTools.FILE_PREFIX_LITTLE_ENDIAN);
-                out.writeByte(TiffTools.FILE_PREFIX_LITTLE_ENDIAN);
+                out.writeByte(TiffReader.FILE_PREFIX_LITTLE_ENDIAN);
+                out.writeByte(TiffReader.FILE_PREFIX_LITTLE_ENDIAN);
             } else {
-                out.writeByte(TiffTools.FILE_PREFIX_BIG_ENDIAN);
-                out.writeByte(TiffTools.FILE_PREFIX_BIG_ENDIAN);
+                out.writeByte(TiffReader.FILE_PREFIX_BIG_ENDIAN);
+                out.writeByte(TiffReader.FILE_PREFIX_BIG_ENDIAN);
             }
             // Writing magic number:
             if (bigTiff) {
-                out.writeShort(TiffTools.FILE_BIG_TIFF_MAGIC_NUMBER);
+                out.writeShort(TiffReader.FILE_BIG_TIFF_MAGIC_NUMBER);
             } else {
-                out.writeShort(TiffTools.FILE_USUAL_MAGIC_NUMBER);
+                out.writeShort(TiffReader.FILE_USUAL_MAGIC_NUMBER);
             }
             if (bigTiff) {
                 out.writeShort(8);
@@ -805,7 +806,7 @@ public class TiffWriter implements Closeable {
     public List<TiffTile> updateSamples(TiffMap map, byte[] samples, long fromX, long fromY, long sizeX, long sizeY) {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(samples, "Null samples");
-        TiffTools.checkRequestedArea(fromX, fromY, sizeX, sizeY);
+        TiffReader.checkRequestedArea(fromX, fromY, sizeX, sizeY);
         assert fromX == (int) fromX && fromY == (int) fromY && sizeX == (int) sizeX && sizeY == (int) sizeY;
         return updateSamples(map, samples, (int) fromX, (int) fromY, (int) sizeX, (int) sizeY);
     }
@@ -813,8 +814,8 @@ public class TiffWriter implements Closeable {
     public List<TiffTile> updateSamples(TiffMap map, byte[] samples, int fromX, int fromY, int sizeX, int sizeY) {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(samples, "Null samples");
-        TiffTools.checkRequestedArea(fromX, fromY, sizeX, sizeY);
-        TiffTools.checkRequestedAreaInArray(samples, sizeX, sizeY, map.totalBitsPerPixel());
+        TiffReader.checkRequestedArea(fromX, fromY, sizeX, sizeY);
+        checkRequestedAreaInArray(samples, sizeX, sizeY, map.totalBitsPerPixel());
         List<TiffTile> updatedTiles = new ArrayList<>();
         if (sizeX == 0 || sizeY == 0) {
             // - if no pixels are updated, no need to expand the map and to check correct expansion
@@ -946,7 +947,7 @@ public class TiffWriter implements Closeable {
             int sizeY) {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(samplesArray, "Null samplesArray");
-        final long numberOfPixels = TiffTools.checkRequestedArea(fromX, fromY, sizeX, sizeY);
+        final long numberOfPixels = TiffReader.checkRequestedArea(fromX, fromY, sizeX, sizeY);
         final Class<?> elementType = samplesArray.getClass().getComponentType();
         if (elementType == null) {
             throw new IllegalArgumentException("The specified samplesArray is not actual an array: " +
@@ -1065,7 +1066,9 @@ public class TiffWriter implements Closeable {
             final byte[] encodedData = compressExternalFormat(tile, externalOptions);
             tile.setEncodedData(encodedData);
         }
-        TiffTools.reverseFillOrderIfRequested(tile);
+        if (tile.ifd().isReversedFillOrder()) {
+            PackedBitArraysPer8.reverseBitOrderInPlace(tile.getData());
+        }
         long t4 = debugTime();
 
         timePreparingEncoding += t2 - t1;
@@ -1507,6 +1510,19 @@ public class TiffWriter implements Closeable {
         }
     }
 
+    static void checkRequestedAreaInArray(byte[] array, long sizeX, long sizeY, int bitsPerPixel) {
+        Objects.requireNonNull(array, "Null array");
+        if (bitsPerPixel <= 0) {
+            throw new IllegalArgumentException("Zero or negative bitsPerPixel = " + bitsPerPixel);
+        }
+        final long arrayBits = (long) array.length * 8;
+        TiffReader.checkRequestedArea(0, 0, sizeX, sizeY);
+        if (sizeX * sizeY > arrayBits || sizeX * sizeY * (long) bitsPerPixel > arrayBits) {
+            throw new IllegalArgumentException("Requested area " + sizeX + "x" + sizeY +
+                    " is too large for array of " + array.length + " bytes, " + bitsPerPixel + " per pixel");
+        }
+    }
+
     protected Object buildExternalOptions(TiffTile tile, TiffCodec.Options options) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(options, "Null options");
@@ -1569,7 +1585,7 @@ public class TiffWriter implements Closeable {
 
         // scifio.tiff().difference(tile.getDecodedData(), ifd);
         // - this solution requires using SCIFIO context class; it is better to avoid this
-        TiffTools.subtractPredictionIfRequested(tile);
+        TiffPrediction.subtractPredictionIfRequested(tile);
     }
 
     Object scifio() {
@@ -1612,7 +1628,7 @@ public class TiffWriter implements Closeable {
             // - theoretically BigTIFF allows to write more, but we prefer to make some restriction and
             // guarantee 32-bit number of bytes
         }
-        final int bytesPerEntry = bigTiff ? TiffTools.BIG_TIFF_BYTES_PER_ENTRY : TiffTools.BYTES_PER_ENTRY;
+        final int bytesPerEntry = bigTiff ? TiffReader.BIG_TIFF_BYTES_PER_ENTRY : TiffReader.BYTES_PER_ENTRY;
         return (bigTiff ? 8 + 8 : 2 + 4) + bytesPerEntry * numberOfEntries;
         // - includes starting number of entries (2 or 8) and ending next offset (4 or 8)
     }

@@ -24,10 +24,7 @@
 
 package net.algart.matrices.tiff;
 
-import net.algart.arrays.BitArray;
-import net.algart.arrays.JArrays;
-import net.algart.arrays.PArray;
-import net.algart.arrays.PackedBitArraysPer8;
+import net.algart.arrays.*;
 
 import java.nio.ByteOrder;
 import java.util.Objects;
@@ -186,4 +183,34 @@ public enum TiffSampleType {
             throw new IllegalArgumentException("Element type " + elementType + " is not a supported TIFF sample type");
         }
     }
+
+    public static Matrix<UpdatablePArray> asMatrix(
+            Object javaArray,
+            int sizeX,
+            int sizeY,
+            int numberOfChannels,
+            boolean interleavedSamples) {
+        valueOfJavaArray(javaArray, false);
+        // - checks that javaArray is an array of supported primitive types
+        if (sizeX < 0 || sizeY < 0) {
+            throw new IllegalArgumentException("Negative sizeX = " + sizeX + " or sizeY = " + sizeY);
+        }
+        if (numberOfChannels <= 0) {
+            throw new IllegalArgumentException("Zero or negative numberOfChannels = " + numberOfChannels);
+        }
+        if (javaArray instanceof boolean[]) {
+            throw new IllegalArgumentException("boolean[] array cannot be converted to AlgART matrix; " +
+                    "binary matrix should be packed into long[] array");
+        }
+        final UpdatablePArray array = javaArray instanceof long[] packedBisArray ?
+                // long[] type in this library is reserved for packed bits (TIFF does not support 64-bit precision)
+                BitArray.as(packedBisArray, (long) sizeX * (long) sizeY * (long) numberOfChannels) :
+                // - but actually numberOfChannels > 1 is not supported by this library for binary matrices;
+                // overflow (very improbable) will be well checked in the following operator
+                PArray.as(javaArray);
+        return interleavedSamples ?
+                Matrices.matrix(array, numberOfChannels, sizeX, sizeY) :
+                Matrices.matrix(array, sizeX, sizeY, numberOfChannels);
+    }
+
 }

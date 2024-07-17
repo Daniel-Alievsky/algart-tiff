@@ -33,6 +33,19 @@ import java.lang.reflect.Array;
 import java.util.*;
 
 public class TiffIFD {
+    /**
+     * Maximal supported number of channels. Popular OpenCV library has the same limit.
+     *
+     * <p>This limit helps to avoid "crazy" or corrupted TIFF and also help to avoid arithmetic overflow.
+     */
+    public static final int MAX_NUMBER_OF_CHANNELS = 512;
+    /**
+     * Maximal supported number of bits per sample.
+     *
+     * <p>This limit helps to avoid "crazy" or corrupted TIFF and also help to avoid arithmetic overflow.
+     */
+    public static final int MAX_BITS_PER_SAMPLE = 128;
+
     public record UnsupportedTypeValue(int type, int count, long valueOrOffset) {
         public UnsupportedTypeValue(int type, int count, long valueOrOffset) {
             if (count < 0) {
@@ -429,9 +442,9 @@ public class TiffIFD {
             throw new TiffException("TIFF tag SamplesPerPixel contains illegal zero or negative value: " +
                     samplesPerPixel);
         }
-        if (samplesPerPixel > TiffTools.MAX_NUMBER_OF_CHANNELS) {
+        if (samplesPerPixel > MAX_NUMBER_OF_CHANNELS) {
             throw new TiffException("TIFF tag SamplesPerPixel contains too large value: " + samplesPerPixel +
-                    " (maximal support number of channels is " + TiffTools.MAX_NUMBER_OF_CHANNELS + ")");
+                    " (maximal support number of channels is " + MAX_NUMBER_OF_CHANNELS + ")");
         }
         return samplesPerPixel;
     }
@@ -450,9 +463,9 @@ public class TiffIFD {
             if (bits <= 0) {
                 throw new TiffException("Zero or negative BitsPerSample[" + i + "] = " + bits);
             }
-            if (bits > TiffTools.MAX_BITS_PER_SAMPLE) {
+            if (bits > MAX_BITS_PER_SAMPLE) {
                 throw new TiffException("Too large BitsPerSample[" + i + "] = " + bits + " > " +
-                        TiffTools.MAX_BITS_PER_SAMPLE);
+                        MAX_BITS_PER_SAMPLE);
             }
         }
         final int samplesPerPixel = getSamplesPerPixel();
@@ -1039,7 +1052,7 @@ public class TiffIFD {
         Objects.requireNonNull(matrix, "Null matrix");
         final int dimChannelsIndex = interleaved ? 0 : 2;
         final long numberOfChannels = matrix.dim(dimChannelsIndex);
-        TiffTools.checkNumberOfChannels(numberOfChannels);
+        checkNumberOfChannels(numberOfChannels);
         assert numberOfChannels == (int) numberOfChannels : "must be checked in checkNumberOfChannels";
         final long dimX = matrix.dim(interleaved ? 1 : 0);
         final long dimY = matrix.dim(interleaved ? 2 : 1);
@@ -1060,7 +1073,7 @@ public class TiffIFD {
             throw new IllegalArgumentException("Empty channels list");
         }
         Matrix<? extends PArray> matrix = channels.get(0);
-        TiffTools.checkNumberOfChannels(numberOfChannels);
+        checkNumberOfChannels(numberOfChannels);
         final long dimX = matrix.dimX();
         final long dimY = matrix.dimY();
         putImageDimensions(dimX, dimY);
@@ -1092,7 +1105,7 @@ public class TiffIFD {
      * Puts base pixel type and channels information: BitsPerSample, SampleFormat, SamplesPerPixel.
      *
      * @param numberOfChannels number of channels (in other words, number of samples per every pixel);
-     *                         must be not &le;{@link TiffTools#MAX_NUMBER_OF_CHANNELS}.
+     *                         must be not &le;{@link TiffIFD#MAX_NUMBER_OF_CHANNELS}.
      * @param sampleType       type of pixel samples.
      * @return a reference to this object.
      */
@@ -1106,7 +1119,7 @@ public class TiffIFD {
     }
 
     public TiffIFD putNumberOfChannels(int numberOfChannels) {
-        TiffTools.checkNumberOfChannels(numberOfChannels);
+        checkNumberOfChannels(numberOfChannels);
         put(Tags.SAMPLES_PER_PIXEL, numberOfChannels);
         return this;
     }
@@ -1119,9 +1132,9 @@ public class TiffIFD {
         if (bitsPerSample <= 0) {
             throw new IllegalArgumentException("Zero or negative bitsPerSample = " + bitsPerSample);
         }
-        if (bitsPerSample > TiffTools.MAX_BITS_PER_SAMPLE) {
+        if (bitsPerSample > MAX_BITS_PER_SAMPLE) {
             throw new IllegalArgumentException("Very large number of bits per sample " + bitsPerSample + " > " +
-                    TiffTools.MAX_BITS_PER_SAMPLE + " is not supported");
+                    MAX_BITS_PER_SAMPLE + " is not supported");
         }
         final int samplesPerPixel;
         try {
@@ -1412,7 +1425,6 @@ public class TiffIFD {
         map.clear();
     }
 
-
     @Override
     public String toString() {
         return toString(StringFormat.BRIEF);
@@ -1692,6 +1704,16 @@ public class TiffIFD {
                     " = " + value + " < -2^31 is not supported");
         }
         return (int) result;
+    }
+
+    private static void checkNumberOfChannels(long numberOfChannels) {
+        if (numberOfChannels <= 0) {
+            throw new IllegalArgumentException("Zero or negative numberOfChannels = " + numberOfChannels);
+        }
+        if (numberOfChannels > MAX_NUMBER_OF_CHANNELS) {
+            throw new IllegalArgumentException("Very large number of channels " + numberOfChannels + " > " +
+                    MAX_NUMBER_OF_CHANNELS + " is not supported");
+        }
     }
 
     private static int[] nInts(int count, int filler) {
