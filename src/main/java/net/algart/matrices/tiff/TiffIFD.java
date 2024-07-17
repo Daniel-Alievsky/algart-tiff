@@ -1129,13 +1129,7 @@ public class TiffIFD {
     }
 
     public TiffIFD putBitsPerSample(int bitsPerSample, boolean signed, boolean floatingPoint) {
-        if (bitsPerSample <= 0) {
-            throw new IllegalArgumentException("Zero or negative bitsPerSample = " + bitsPerSample);
-        }
-        if (bitsPerSample > MAX_BITS_PER_SAMPLE) {
-            throw new IllegalArgumentException("Very large number of bits per sample " + bitsPerSample + " > " +
-                    MAX_BITS_PER_SAMPLE + " is not supported");
-        }
+        checkBitsPerSample(bitsPerSample);
         final int samplesPerPixel;
         try {
             samplesPerPixel = getSamplesPerPixel();
@@ -1656,6 +1650,26 @@ public class TiffIFD {
         return sb.toString();
     }
 
+    public static void checkNumberOfChannels(long numberOfChannels) {
+        if (numberOfChannels <= 0) {
+            throw new IllegalArgumentException("Zero or negative numberOfChannels = " + numberOfChannels);
+        }
+        if (numberOfChannels > MAX_NUMBER_OF_CHANNELS) {
+            throw new IllegalArgumentException("Very large number of channels " + numberOfChannels + " > " +
+                    MAX_NUMBER_OF_CHANNELS + " is not supported");
+        }
+    }
+
+    public static void checkBitsPerSample(long bitsPerSample) {
+        if (bitsPerSample <= 0) {
+            throw new IllegalArgumentException("Zero or negative bitsPerSample = " + bitsPerSample);
+        }
+        if (bitsPerSample > MAX_BITS_PER_SAMPLE) {
+            throw new IllegalArgumentException("Very large number of bits per sample " + bitsPerSample + " > " +
+                    MAX_BITS_PER_SAMPLE + " is not supported");
+        }
+    }
+
     private void clearCache() {
         cachedTileOrStripByteCounts = null;
         cachedTileOrStripOffsets = null;
@@ -1704,16 +1718,6 @@ public class TiffIFD {
                     " = " + value + " < -2^31 is not supported");
         }
         return (int) result;
-    }
-
-    private static void checkNumberOfChannels(long numberOfChannels) {
-        if (numberOfChannels <= 0) {
-            throw new IllegalArgumentException("Zero or negative numberOfChannels = " + numberOfChannels);
-        }
-        if (numberOfChannels > MAX_NUMBER_OF_CHANNELS) {
-            throw new IllegalArgumentException("Very large number of channels " + numberOfChannels + " > " +
-                    MAX_NUMBER_OF_CHANNELS + " is not supported");
-        }
     }
 
     private static int[] nInts(int count, int filler) {

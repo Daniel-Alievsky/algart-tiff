@@ -25,9 +25,7 @@
 package net.algart.matrices.tiff.tests.io;
 
 import net.algart.matrices.tiff.TiffException;
-import net.algart.matrices.tiff.TiffTools;
 import net.algart.matrices.tiff.UnsupportedTiffFormatException;
-import org.scijava.Context;
 
 import java.io.IOException;
 import java.nio.file.DirectoryStream;

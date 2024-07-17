@@ -1522,20 +1522,8 @@ public class TiffReader implements Closeable {
         if (!sampleType.isConsistingOfWholeBytes()) {
             return sampleType.sizeOfRegion(sizeX, sizeY, map.numberOfChannels());
         } else {
+            return TiffSampleType.sizeOfRegion(sizeX, sizeY, map.numberOfChannels(), map.bitsPerSample());
             // - for whole-byte formats, TiffReader may read
-            final int bitsPerSample = map.bitsPerSample();
-            assert (bitsPerSample & 7) == 0;
-            try {
-                return (int) TiffTools.checkedMul(sizeX, sizeY, map.numberOfChannels(), bitsPerSample >>> 3,
-                        "sizeX", "sizeY", "samples per pixel", "bytes per sample",
-                        () -> "Invalid requested area: ", () -> "",
-                        Integer.MAX_VALUE);
-            } catch (TooLargeTiffImageException e) {
-                throw new TooLargeTiffImageException("Too large requested image " + sizeX + "x" + sizeY +
-                        " (" + map.numberOfChannels() + " samples/pixel, " +
-                        bitsPerSample + " bits/sample): it requires > 2 GB to store (" +
-                        Integer.MAX_VALUE + " bytes)");
-            }
         }
     }
 

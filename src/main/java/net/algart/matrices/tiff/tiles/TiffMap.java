@@ -635,21 +635,8 @@ public final class TiffMap {
             int bytesPerSample,
             long numberOfPixels) {
         Objects.requireNonNull(bytes, "Null bytes");
-        if (numberOfChannels <= 0) {
-            throw new IllegalArgumentException("Zero or negative numberOfChannels = " + numberOfChannels);
-        }
-        if (bytesPerSample <= 0) {
-            throw new IllegalArgumentException("Zero or negative bytesPerSample = " + bytesPerSample);
-        }
-        if (numberOfPixels < 0) {
-            throw new IllegalArgumentException("Negative numberOfPixels = " + numberOfPixels);
-        }
-        final int size = TiffTools.checkedMulNoException(
-                new long[]{numberOfPixels, numberOfChannels, bytesPerSample},
-                new String[]{"number of pixels", "bytes per pixel", "bytes per sample"},
-                () -> "Invalid sizes: ", () -> "");
+        final int size = checkSizes(numberOfChannels, bytesPerSample, numberOfPixels);
         // - exception usually should not occur: this function is typically called after analysing IFD
-        assert numberOfPixels <= Integer.MAX_VALUE : "must be checked above";
         if (bytes.length < size) {
             throw new IllegalArgumentException("Too short samples array: " + bytes.length + " < " + size);
         }
@@ -690,21 +677,8 @@ public final class TiffMap {
             int bytesPerSample,
             long numberOfPixels) {
         Objects.requireNonNull(bytes, "Null bytes");
-        if (numberOfChannels <= 0) {
-            throw new IllegalArgumentException("Zero or negative numberOfChannels = " + numberOfChannels);
-        }
-        if (bytesPerSample <= 0) {
-            throw new IllegalArgumentException("Zero or negative bytesPerSample = " + bytesPerSample);
-        }
-        if (numberOfPixels < 0) {
-            throw new IllegalArgumentException("Negative numberOfPixels = " + numberOfPixels);
-        }
-        final int size = TiffTools.checkedMulNoException(
-                new long[]{numberOfPixels, numberOfChannels, bytesPerSample},
-                new String[]{"number of pixels", "bytes per pixel", "bytes per sample"},
-                () -> "Invalid sizes: ", () -> "");
+        final int size = checkSizes(numberOfChannels, bytesPerSample, numberOfPixels);
         // - exception usually should not occur: this function is typically called after analysing IFD
-        assert numberOfPixels <= Integer.MAX_VALUE : "must be checked above";
         if (bytes.length < size) {
             throw new IllegalArgumentException("Too short samples array: " + bytes.length + " < " + size);
         }
@@ -749,6 +723,23 @@ public final class TiffMap {
         return interleave ?
                 toInterleavedBytes(samples, numberOfChannels, bytesPerSample, numberOfPixels) :
                 toSeparatedBytes(samples, numberOfChannels, bytesPerSample, numberOfPixels);
+    }
+
+    private static int checkSizes(int numberOfChannels, int bytesPerSample, long numberOfPixels) {
+        TiffIFD.checkNumberOfChannels(numberOfChannels);
+        TiffIFD.checkBitsPerSample(8L * (long) bytesPerSample);
+        // - so, numberOfChannels * bytesPerSample is not too large value
+        if (numberOfPixels < 0) {
+            throw new IllegalArgumentException("Negative numberOfPixels = " + numberOfPixels);
+        }
+        long size;
+        if (numberOfPixels > Integer.MAX_VALUE ||
+                (size = numberOfPixels * (long) numberOfChannels * (long) bytesPerSample) > Integer.MAX_VALUE) {
+            throw new TooLargeArrayException("Too large number of pixels " + numberOfPixels +
+                    " (" + numberOfChannels + " samples/pixel, " +
+                    bytesPerSample + " bytes/sample): it requires > 2 GB to store");
+        }
+        return (int) size;
     }
 
     private void setDimensions(int dimX, int dimY, boolean checkResizable) {
@@ -799,5 +790,4 @@ public final class TiffMap {
         this.gridCountY = tileCountY;
         this.numberOfGridTiles = tileCountX * tileCountY * numberOfSeparatedPlanes;
     }
-
 }

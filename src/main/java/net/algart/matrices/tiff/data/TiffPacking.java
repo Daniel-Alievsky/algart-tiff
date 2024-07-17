@@ -339,9 +339,7 @@ public class TiffPacking {
             boolean scaleUnsignedInt24) throws TiffException {
         Objects.requireNonNull(samples, "Null samples");
         Objects.requireNonNull(ifd, "Null IFD");
-        if (numberOfChannels <= 0) {
-            throw new IllegalArgumentException("Zero or negative numberOfChannels = " + numberOfChannels);
-        }
+        TiffIFD.checkNumberOfChannels(numberOfChannels);
         if (numberOfPixels < 0) {
             throw new IllegalArgumentException("Negative numberOfPixels = " + numberOfPixels);
         }
@@ -360,20 +358,23 @@ public class TiffPacking {
         if (!float16 && !float24 && !int24) {
             return samples;
         }
+        assert packedBytesPerSample <= 4;
         // Following code is necessary in a very rare case, and no sense to seriously optimize it
         final boolean littleEndian = ifd.isLittleEndian();
 
-        final int size = (int) TiffTools.checkedMul(new long[]{numberOfPixels, numberOfChannels, 4},
-                new String[]{"number of pixels", "number of channels", "4 bytes per float"},
-                () -> "Invalid sizes: ", () -> "", Integer.MAX_VALUE);
-        assert numberOfPixels <= Integer.MAX_VALUE : "must be checked above";
-        final int numberOfSamples = numberOfChannels * (int) numberOfPixels;
-        if (samples.length < numberOfSamples * packedBytesPerSample) {
+        final long size;
+        if (numberOfPixels > Integer.MAX_VALUE ||
+                (size = numberOfPixels * numberOfChannels * 4L) > Integer.MAX_VALUE) {
+            throw new TooLargeArrayException("Too large number of pixels " + numberOfPixels +
+                    " (" + numberOfChannels + " samples/pixel, 4 bytes/sample): it requires > 2 GB to store");
+        }
+        final int numberOfSamples = (int) (numberOfChannels * numberOfPixels);
+        if ((long) numberOfSamples * packedBytesPerSample > samples.length) {
             throw new IllegalArgumentException("Too short samples array byte[" + samples.length +
                     "]: it does not contain " + numberOfPixels + " pixels per " + numberOfChannels +
                     " samples, " + packedBytesPerSample + " bytes/sample");
         }
-        final byte[] unpacked = new byte[size];
+        final byte[] unpacked = new byte[(int) size];
         if (int24) {
             for (int i = 0, disp = 0; i < numberOfSamples; i++, disp += packedBytesPerSample) {
                 // - very rare case, no sense to optimize
@@ -857,6 +858,32 @@ public class TiffPacking {
 
     private static int pow2(int b) {
         return 1 << b;
+    }
+
+    private static void debugPrintBits(TiffTile tile) throws TiffException {
+        if (tile.index().yIndex() != 0) {
+            return;
+        }
+        final byte[] data = tile.getDecodedData();
+        final int sizeX = tile.getSizeX();
+        final int[] bitsPerSample = tile.ifd().getBitsPerSample();
+        final int samplesPerPixel = tile.samplesPerPixel();
+        System.out.printf("%nPacked bits %s:%n", Arrays.toString(bitsPerSample));
+        for (int i = 0, bit = 0; i < sizeX; i++) {
+            System.out.printf("Pixel #%d: ", i);
+            for (int s = 0; s < samplesPerPixel; s++) {
+                final int bits = bitsPerSample[s];
+                int v = 0;
+                for (int j = 0; j < bits; j++, bit++) {
+                    final int bitIndex = 7 - bit % 8;
+                    int b = (data[bit / 8] >> bitIndex) & 1;
+                    System.out.print(b);
+                    v |= b << (bits - 1 - j);
+                }
+                System.out.printf(" = %-6d ", v);
+            }
+            System.out.println();
+        }
     }
 
 }

@@ -80,7 +80,7 @@ public class PureScifioTiffReadWriteTest {
 //                bytes = TiffTools.unpackUnusualPrecisions(bytes, ifd, numberOfChannels, w * h);
                 bytes = TiffMap.toInterleavedBytes(
                         bytes, numberOfChannels, FormatTools.getBytesPerPixel(ifd.getPixelType()),
-                        (long) w * (long) h);
+                        w * h);
                 boolean last = ifdIndex == ifdList.size() - 1;
                 final IFD newIfd = removeUndesirableTags(ifd);
 

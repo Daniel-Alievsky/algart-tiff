@@ -32,7 +32,6 @@ import io.scif.formats.tiff.PhotoInterp;
 import io.scif.formats.tiff.TiffCompression;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.TiffTools;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.compatibility.TiffParser;
 import net.algart.matrices.tiff.tags.Tags;
