@@ -294,7 +294,7 @@ public final class TiffMap {
      * it is not allowed to write image with precisions listed above.</p>
      *
      * @return number of bytes, used for storing one channel of the pixel in memory.
-     * @see TiffReader#setAutoUnpackUnusualPrecisions(boolean) 
+     * @see TiffReader#setAutoUnpackUnusualPrecisions(boolean)
      */
     public int bitsPerUnpackedSample() {
         return bitsPerUnpackedSample;
