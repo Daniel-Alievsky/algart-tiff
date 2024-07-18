@@ -102,7 +102,7 @@ public class AWTImagesMakeBufferedImageTest {
         MatrixIO.writeBufferedImage(resultFile4, bi4);
         // Note: JPEG2000 will be written incorrectly in jai-imageio-jpeg2000 1.4.0!
 
-        DataBuffer buffer = new  DataBufferByte(bytes, bytes[0].length);
+        DataBuffer buffer = new DataBufferByte(bytes, bytes[0].length);
         BufferedImage bi5 = AWTImages.constructImage(bytes.length,
                 DataBuffer.TYPE_BYTE,
                 dimX, dimY,

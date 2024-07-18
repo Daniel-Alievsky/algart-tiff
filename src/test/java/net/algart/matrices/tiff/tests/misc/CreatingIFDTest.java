@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
-import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.Tags;
@@ -36,7 +35,7 @@ public class CreatingIFDTest {
         System.out.printf("Json:%n----%n%s%n----%n%n", ifd.toString(TiffIFD.StringFormat.JSON));
     }
 
-    public static void main(String[] args)  {
+    public static void main(String[] args) {
         TiffIFD ifd = new TiffIFD();
         showIFD(ifd, "Empty");
 

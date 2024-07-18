@@ -59,7 +59,7 @@ public class TiffCopyTest {
 
         for (int test = 1; test <= numberOfTests; test++) {
             System.out.printf("Test #%d%n", test);
-                copyTiff(sourceFile, targetFile, firstIFDIndex, lastIFDIndex, false, false);
+            copyTiff(sourceFile, targetFile, firstIFDIndex, lastIFDIndex, false, false);
         }
         System.out.println("Done");
     }

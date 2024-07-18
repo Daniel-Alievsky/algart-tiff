@@ -32,10 +32,10 @@ import java.util.Arrays;
 public class IFDGetArrayTest {
     public static void main(String[] args) throws TiffException {
         TiffIFD ifd = new TiffIFD();
-        ifd.put(1, new long[] {1, 2, 3});
-        ifd.put(2, new int[] {1, 2, 3});
-        ifd.put(3, new Number[] {1L, -2L, 23});
-        ifd.put(4, new Number[] {1L, 2L, 23});
+        ifd.put(1, new long[]{1, 2, 3});
+        ifd.put(2, new int[]{1, 2, 3});
+        ifd.put(3, new Number[]{1L, -2L, 23});
+        ifd.put(4, new Number[]{1L, 2L, 23});
         for (int key = 1; key <= 4; key++) {
             System.out.printf("%d: %s; %s%n",
                     key,

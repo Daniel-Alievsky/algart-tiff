@@ -26,7 +26,7 @@ package net.algart.matrices.tiff.tests.misc;
 
 public class ByteFillerToFloatTest {
     public static void main(String[] args) {
-        for (int v : new int[] {0, 1, 0x80, 0xC0, 0xFF}) {
+        for (int v : new int[]{0, 1, 0x80, 0xC0, 0xFF}) {
             // - possible filler for TiffParser
             int intFiller = v | v << 8 | v << 16 | v << 24;
             float floatFiller = Float.intBitsToFloat(intFiller);

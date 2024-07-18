@@ -80,7 +80,7 @@ public class TiffFalsifyJPEGColorSpace {
                 System.out.printf("\rTransforming #%d/%d: %s%n", i, ifds.size(), readIFD);
                 writeIFD.putPhotometricInterpretation(before);
                 writeIFD.put(Tags.Y_CB_CR_SUB_SAMPLING,
-                        before == TagPhotometricInterpretation.RGB ? new int[] {1, 1} : new int[] {2, 2});
+                        before == TagPhotometricInterpretation.RGB ? new int[]{1, 1} : new int[]{2, 2});
                 // - instruct Java AWT to store as RGB and disable sub-sampling (RGB are encoded without sub-sampling)
                 TiffCopyTest.copyImage(readIFD, writeIFD, reader, writer);
                 final TiffIFD cloneIFD = new TiffIFD(writeIFD);

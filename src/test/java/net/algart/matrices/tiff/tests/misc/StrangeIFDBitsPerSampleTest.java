@@ -68,31 +68,31 @@ public class StrangeIFDBitsPerSampleTest {
 
 //        ifd.put(Tags.SAMPLES_PER_PIXEL, 3); // - should not be necessary for exception on -1
 
-        ifd.put(Tags.BITS_PER_SAMPLE, new int[] {1, 8});
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[]{1, 8});
         ifd.put(Tags.COMPRESSION, TagCompression.JPEG_OLD_STYLE.code());
         showIFD(ifd, "Old JPEG", false);
 
         ifd.remove(Tags.COMPRESSION);
-        ifd.put(Tags.BITS_PER_SAMPLE, new int[] {1, -1, 1, 2});
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[]{1, -1, 1, 2});
         showIFD(ifd, "BitsPerSample (negative)", true);
 
-        ifd.put(Tags.BITS_PER_SAMPLE, new int[] {1, 11, 1, 2});
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[]{1, 11, 1, 2});
         showIFD(ifd, "BitsPerSample (different)", true);
 
-        ifd.put(Tags.BITS_PER_SAMPLE, new int[] {11, 11, 12, 15});
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[]{11, 11, 12, 15});
         showIFD(ifd, "BitsPerSample (normal)", false);
 
-        ifd.put(Tags.BITS_PER_SAMPLE, new int[] {111, 111, 112});
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[]{111, 111, 112});
         showIFD(ifd, "BitsPerSample (large)", true);
 
-        ifd.put(Tags.BITS_PER_SAMPLE, new int[] {40});
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[]{40});
         showIFD(ifd, "BitsPerSample (5 bytes)", true);
 
 
         ifd.putPixelInformation(1, byte.class);
         showIFD(ifd, "1-byte", false);
 
-        ifd.put(Tags.SAMPLE_FORMAT, new int[] {1, 3, 1});
+        ifd.put(Tags.SAMPLE_FORMAT, new int[]{1, 3, 1});
         showIFD(ifd, "Different sample format", true);
 
         ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_COMPLEX_INT);

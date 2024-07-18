@@ -48,7 +48,8 @@ public class TiffWriteDemo {
         final Path targetFile = Paths.get(args[1]);
 
         System.out.println("Reading " + sourceFile + "...");
-        List<Matrix<UpdatablePArray>> image = MatrixIO.readImage(sourceFile);;
+        List<Matrix<UpdatablePArray>> image = MatrixIO.readImage(sourceFile);
+        ;
         System.out.println("Writing TIFF " + targetFile + "...");
         try (TiffWriter writer = new TiffWriter(targetFile, true)) {
             // writer.setAutoInterleaveSource(false); // - leads to throwing exception

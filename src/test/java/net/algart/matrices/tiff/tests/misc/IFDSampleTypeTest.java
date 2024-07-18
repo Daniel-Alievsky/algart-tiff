@@ -61,11 +61,11 @@ public class IFDSampleTypeTest {
         showTag(ifd, 8, TiffSampleType.UINT8);
         ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_INT);
         showTag(ifd, 8, TiffSampleType.INT8);
-        ifd.put(Tags.BITS_PER_SAMPLE, new int[] {5, 6, 5});
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[]{5, 6, 5});
         showTag(ifd, 8, TiffSampleType.INT8);
-        ifd.put(Tags.BITS_PER_SAMPLE, new int[] {50, 6, 5});
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[]{50, 6, 5});
         showTag(ifd, -1, null);
-        ifd.put(Tags.BITS_PER_SAMPLE, new int[] {32, 32, 32});
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[]{32, 32, 32});
         showTag(ifd, 32, TiffSampleType.INT32);
         ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_IEEEFP);
         showTag(ifd, 32, TiffSampleType.FLOAT);
