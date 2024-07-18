@@ -1521,9 +1521,11 @@ public class TiffReader implements Closeable {
         final TiffSampleType sampleType = map.sampleType();
         if (!sampleType.isConsistingOfWholeBytes()) {
             return sampleType.sizeOfRegion(sizeX, sizeY, map.numberOfChannels());
+            // - in current version this is equivalent to the following call
         } else {
             return TiffSampleType.sizeOfRegion(sizeX, sizeY, map.numberOfChannels(), map.bitsPerSample());
-            // - for whole-byte formats, TiffReader may read
+            // - for whole-byte formats, TiffReader may read 2- or 3-byte samples, that
+            // will be transformed later into 4-byte formats by unpackUnusualPrecisions() method
         }
     }
 

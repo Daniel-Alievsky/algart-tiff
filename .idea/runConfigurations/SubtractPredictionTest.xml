@@ -6,7 +6,7 @@
     <option name="VM_PARAMETERS" value="-ea -esa" />
     <extension name="coverage">
       <pattern>
-        <option name="PATTERN" value="net.algart.matrices.tiff.tests.misc.*" />
+        <option name="PATTERN" value="net.algart.matrices.tiff.tiles.*" />
         <option name="ENABLED" value="true" />
       </pattern>
     </extension>

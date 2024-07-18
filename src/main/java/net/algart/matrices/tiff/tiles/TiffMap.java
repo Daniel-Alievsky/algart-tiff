@@ -671,7 +671,7 @@ public final class TiffMap {
         return interleavedBytes;
     }
 
-    public static byte[] toSeparatedBytes(
+    static byte[] toSeparatedBytes(
             byte[] bytes,
             int numberOfChannels,
             int bytesPerSample,
@@ -703,7 +703,7 @@ public final class TiffMap {
         return separatedBytes;
     }
 
-    private byte[] toInterleaveOrSeparatedSamples(
+    byte[] toInterleaveOrSeparatedSamples(
             byte[] samples,
             int numberOfChannels,
             long numberOfPixels,
