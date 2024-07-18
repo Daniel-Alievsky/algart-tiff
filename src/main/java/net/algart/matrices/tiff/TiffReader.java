@@ -1292,7 +1292,7 @@ public class TiffReader implements Closeable {
         final TiffIFD ifd = map.ifd();
         final long sizeInPixels = (long) sizeX * (long) sizeY;
         // - can be >2^31 for bits
-        final int sizeInBytes = sizeOfRegionWithPossibleUnusualPrecisions(map, sizeX, sizeY);
+        final int sizeInBytes = map.sizeOfRegionWithPossibleNonStandardPrecisions(sizeX, sizeY);
         assert sizeX >= 0 && sizeY >= 0 :
                 "sizeOfRegionWithPossibleUnusualPrecisions didn't check sizes accurately: " + sizeX + "fromX" + sizeY;
         byte[] samples = new byte[sizeInBytes];
@@ -1491,42 +1491,17 @@ public class TiffReader implements Closeable {
     }
 
     public static long checkRequestedArea(long fromX, long fromY, long sizeX, long sizeY) {
-        if (sizeX < 0 || sizeY < 0) {
-            throw new IllegalArgumentException("Negative sizeX = " + sizeX + " or sizeY = " + sizeY);
-        }
+        final long result = TiffIFD.multiplySizes(sizeX, sizeY);
         if (fromX != (int) fromX || fromY != (int) fromY) {
             throw new IllegalArgumentException("Too large absolute values of fromX = " + fromX +
                     " or fromY = " + fromY + " (out of -2^31..2^31-1 ranges)");
-        }
-        if (sizeX > Integer.MAX_VALUE || sizeY > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("Too large sizeX = " + sizeX + " or sizeY = " + sizeY + " (>2^31-1)");
         }
         if (sizeX >= Integer.MAX_VALUE - fromX || sizeY >= Integer.MAX_VALUE - fromY) {
             // - Note: >= instead of > ! This allows to use "toX = fromX + sizeX" without overflow
             throw new IllegalArgumentException("Requested area [" + fromX + ".." + (fromX + sizeX - 1) +
                     " x " + fromY + ".." + (fromY + sizeY - 1) + " is out of 0..2^31-2 ranges");
         }
-        final long result = sizeX * sizeY;
-        if (result > Long.MAX_VALUE / TiffIFD.MAX_NUMBER_OF_CHANNELS) {
-            throw new TooLargeArrayException("Extremely large area " + sizeX + "x" + sizeY +
-                    ": number of bits may exceed the limit 2^63 for too large number of channels " +
-                    TiffIFD.MAX_NUMBER_OF_CHANNELS);
-        }
         return result;
-    }
-
-    public static int sizeOfRegionWithPossibleUnusualPrecisions(TiffMap map, long sizeX, long sizeY)
-            throws TiffException {
-        Objects.requireNonNull(map, "Null map");
-        final TiffSampleType sampleType = map.sampleType();
-        if (!sampleType.isConsistingOfWholeBytes()) {
-            return sampleType.sizeOfRegion(sizeX, sizeY, map.numberOfChannels());
-            // - in current version this is equivalent to the following call
-        } else {
-            return TiffSampleType.sizeOfRegion(sizeX, sizeY, map.numberOfChannels(), map.bitsPerSample());
-            // - for whole-byte formats, TiffReader may read 2- or 3-byte samples, that
-            // will be transformed later into 4-byte formats by unpackUnusualPrecisions() method
-        }
     }
 
     public static Context newSCIFIOContext() {

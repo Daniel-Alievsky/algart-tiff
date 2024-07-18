@@ -27,6 +27,7 @@ package net.algart.matrices.tiff;
 import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
+import net.algart.arrays.TooLargeArrayException;
 import net.algart.matrices.tiff.tags.*;
 
 import java.lang.reflect.Array;
@@ -45,6 +46,14 @@ public class TiffIFD {
      * <p>This limit helps to avoid "crazy" or corrupted TIFF and also help to avoid arithmetic overflow.
      */
     public static final int MAX_BITS_PER_SAMPLE = 128;
+
+    /**
+     * Maximal number of bits, that can be packed inside a single Java <code>byte[]</code> array.
+     */
+    public static final long MAX_NUMBER_OF_BITS_IN_BYTE_ARRAY = (1L << 34) - 1;
+
+    private static final long MAX_LONG_DIV_MAX_BITS_PER_PIXEL = Long.MAX_VALUE /
+            (MAX_NUMBER_OF_CHANNELS * MAX_BITS_PER_SAMPLE);
 
     public record UnsupportedTypeValue(int type, int count, long valueOrOffset) {
         public UnsupportedTypeValue(int type, int count, long valueOrOffset) {
@@ -776,7 +785,6 @@ public class TiffIFD {
         return result;
     }
 
-
     public int getPlanarConfiguration() throws TiffException {
         final int result = getInt(Tags.PLANAR_CONFIGURATION, 1);
         if (result != 1 && result != 2) {
@@ -1474,7 +1482,7 @@ public class TiffIFD {
                             isLittleEndian(),
                             isBigTiff(),
                             hasTileInformation()) :
-                    "%s, supported precision %s%s, ".formatted(
+                    "%s, precision %s%s, ".formatted(
                             isLittleEndian() ? "little-endian" : "big-endian",
                             sampleType == null ? "???" : sampleType.prettyName(),
                             isBigTiff() ? " [BigTIFF]" : ""));
@@ -1663,6 +1671,66 @@ public class TiffIFD {
             throw new IllegalArgumentException("Very large number of bits per sample " + bitsPerSample + " > " +
                     MAX_BITS_PER_SAMPLE + " is not supported");
         }
+    }
+
+    /**
+     * Checks whether the specified sizes are allowed in principle for any kind of work
+     * and returns their product.
+     *
+     * <p>Both <code>sizeX</code> and <code>sizeY</code> must be
+     * in <code>0..Integer.MAX_VALUE</code> range, and
+     * <code>sizeX&nbsp;*&nbsp;sizeY&nbsp;*&nbsp;{@link
+     * #MAX_NUMBER_OF_CHANNELS}&nbsp;*&nbsp;{@link #MAX_BITS_PER_SAMPLE}</code>
+     * value must be &le;Long.MAX_VALUE
+     * (so we have a guarantee than we can calculate total number of pixel bits without 64-bit overflow).
+     *
+     * @param sizeX X-size of some region.
+     * @param sizeY Y-size of some region.
+     * @return the product sizeX * sizeY.
+     * @throws IllegalArgumentException if one of arguments is negative or <code>&ge;2<sup>31</sup></code>.
+     * @throws TooLargeArrayException if <code>sizeX&nbsp;*&nbsp;sizeY&nbsp;*&nbsp;{@link
+     * #MAX_NUMBER_OF_CHANNELS}&nbsp;*&nbsp;{@link #MAX_BITS_PER_SAMPLE}&nbsp;&ge;&nbsp;2<sup>63</sup></code>.
+     */
+    public static long multiplySizes(long sizeX, long sizeY) {
+        if (sizeX < 0) {
+            throw new IllegalArgumentException("Negative sizeX = " + sizeX);
+        }
+        if (sizeY < 0) {
+            throw new IllegalArgumentException("Negative sizeY = " + sizeY);
+        }
+        if (sizeX > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Too large sizeX = " + sizeX + " >2^31-1");
+        }
+        if (sizeY > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Too large sizeY = " + sizeY + " >2^31-1");
+        }
+        final long result = sizeX * sizeY;
+        if (result > MAX_LONG_DIV_MAX_BITS_PER_PIXEL) {
+            throw new TooLargeArrayException("Extremely large area " + sizeX + "x" + sizeY +
+                    ": number of pixel bits may exceed the limit 2^63 for too large number of channels " +
+                    MAX_NUMBER_OF_CHANNELS + " and too many bits per sample " + MAX_BITS_PER_SAMPLE +
+                    " (" + sizeX + " * " + sizeY + " * " + MAX_NUMBER_OF_CHANNELS + " * " + MAX_BITS_PER_SAMPLE +
+                    " = " + (double) result * (double) (MAX_NUMBER_OF_CHANNELS * MAX_BITS_PER_SAMPLE) +
+                    " > " + Long.MAX_VALUE + ")");
+        }
+        return result;
+    }
+
+    public static int sizeOfRegionInBytes(long sizeX, long sizeY, int numberOfChannels, int bitsPerSample)
+            throws TiffException {
+        final long n = multiplySizes(sizeX, sizeY);
+        checkNumberOfChannels(numberOfChannels);
+        checkBitsPerSample(bitsPerSample);
+        // - so, numberOfChannels * bitsPerSample is not too large value
+        final long size = n * numberOfChannels * bitsPerSample;
+        if (size > MAX_NUMBER_OF_BITS_IN_BYTE_ARRAY) {
+            throw new TooLargeTiffImageException("Too large requested image " + sizeX + "x" + sizeY +
+                    " (" + numberOfChannels + " samples/pixel, " +
+                    bitsPerSample + " bits/sample): it requires > 2 GB to store (" +
+                    Integer.MAX_VALUE + " bytes)");
+        }
+        assert size >= 0;
+        return (int) ((size + 7) >>> 3);
     }
 
     private void clearCache() {

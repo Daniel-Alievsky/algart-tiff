@@ -324,6 +324,10 @@ public final class TiffMap {
         return elementType;
     }
 
+    public int sizeOfRegionWithPossibleNonStandardPrecisions(long sizeX, long sizeY) throws TiffException {
+        return TiffIFD.sizeOfRegionInBytes(sizeX, sizeY, numberOfChannels, bitsPerSample);
+    }
+
     public long maxNumberOfSamplesInArray() {
         return maxNumberOfSamplesInArray;
     }
@@ -595,7 +599,8 @@ public final class TiffMap {
     @Override
     public String toString() {
         return (resizable ? "resizable " : "") + "map " +
-                (resizable ? "": dimX + "x" + dimY + " ") +
+                (resizable ? "?x?": dimX + "x" + dimY) +
+                "x" + numberOfChannels + " (" + bitsPerSample + " bits) " +
                 "of " + tileMap.size() + " TIFF tiles (grid " + gridCountX + "x" + gridCountY +
                 ") at the image " + ifd;
     }

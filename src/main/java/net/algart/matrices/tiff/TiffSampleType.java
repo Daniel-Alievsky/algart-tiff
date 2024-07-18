@@ -98,10 +98,6 @@ public enum TiffSampleType {
         return this != BIT;
     }
 
-    public int sizeOfRegion(long sizeX, long sizeY, int numberOfChannels) throws TiffException {
-        return sizeOfRegion(sizeX, sizeY, numberOfChannels, this.bitsPerSample);
-    }
-
     public boolean isSigned() {
         return signed;
     }
@@ -171,30 +167,6 @@ public enum TiffSampleType {
             throw new IllegalArgumentException("Element type " + elementType + " is not a supported TIFF sample type");
         }
     }
-
-    public static int sizeOfRegion(long sizeX, long sizeY, int numberOfChannels, int bitsPerSample) throws TiffException {
-        if (sizeX < 0 || sizeY < 0) {
-            throw new IllegalArgumentException("Negative sizeX = " + sizeX + " or sizeY = " + sizeY);
-        }
-        if (sizeX > Integer.MAX_VALUE || sizeY > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("Too large sizeX = " + sizeX + " or sizeY = " + sizeY + " (>2^31-1)");
-        }
-        TiffIFD.checkNumberOfChannels(numberOfChannels);
-        TiffIFD.checkBitsPerSample(bitsPerSample);
-        // - so, numberOfChannels * bitsPerSample is not too large value
-        final long maxNumberOfBits = (1L << 34) - 1;
-        final long size;
-        if (sizeX * sizeY > maxNumberOfBits ||
-                (size = sizeX * sizeY * numberOfChannels * bitsPerSample) > maxNumberOfBits) {
-            throw new TooLargeTiffImageException("Too large requested image " + sizeX + "x" + sizeY +
-                    " (" + numberOfChannels + " samples/pixel, " +
-                    bitsPerSample + " bits/sample): it requires > 2 GB to store (" +
-                    Integer.MAX_VALUE + " bytes)");
-        }
-        assert size >= 0;
-        return (int) ((size + 7) >>> 3);
-    }
-
 
     public static Matrix<UpdatablePArray> asMatrix(
             Object javaArray,
