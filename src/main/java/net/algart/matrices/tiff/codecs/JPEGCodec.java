@@ -147,8 +147,8 @@ public class JPEGCodec extends AbstractCodec implements TiffCodec.Timing {
                 extended.getPhotometricInterpretation() :
                 TagPhotometricInterpretation.Y_CB_CR;
         final double jpegQuality = Math.min(options.quality(), 1.0);
-            // - for JPEG, maximal possible quality is 1.0, but it is better to allow greater qualities
-            // (for comparison, maximal quality in JPEG-2000 is Double.MAX_VALUE)
+        // - for JPEG, maximal possible quality is 1.0, but it is better to allow greater qualities
+        // (for comparison, maximal quality in JPEG-2000 is Double.MAX_VALUE)
         try {
             JPEG.writeJPEG(image, output, colorSpace, jpegQuality);
         } catch (final IOException e) {

@@ -29,17 +29,16 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public enum TagPhotometricInterpretation {
-
     WHITE_IS_ZERO(0, "White-is-zero"),
     BLACK_IS_ZERO(1, "Black-is-zero"),
-	RGB(2, "RGB"),
-	RGB_PALETTE(3, "RGB palette"),
-	TRANSPARENCY_MASK(4, "Transparency mask"),
-	CMYK(5, "CMYK"),
-	Y_CB_CR(6, "YCbCr"),
-	CIE_LAB(8, "CIELAB"),
-	ICC_LAB(9, "ICCLAB"),
-	CFA_ARRAY(32803, "Color filter array"),
+    RGB(2, "RGB"),
+    RGB_PALETTE(3, "RGB palette"),
+    TRANSPARENCY_MASK(4, "Transparency mask"),
+    CMYK(5, "CMYK"),
+    Y_CB_CR(6, "YCbCr"),
+    CIE_LAB(8, "CIELAB"),
+    ICC_LAB(9, "ICCLAB"),
+    CFA_ARRAY(32803, "Color filter array"),
     UNKNOWN(-1, "unknown");
 
     private final int code;

@@ -719,7 +719,7 @@ public class TiffIFD {
         return code == -1 ? Optional.empty() : Optional.ofNullable(TagCompression.valueOfCodeOrNull(code));
     }
 
-    public int optPredictorCode()  {
+    public int optPredictorCode() {
         return optInt(Tags.PREDICTOR, TagPredictor.NONE.code());
     }
 
@@ -1687,9 +1687,10 @@ public class TiffIFD {
      * @param sizeX X-size of some region.
      * @param sizeY Y-size of some region.
      * @return the product sizeX * sizeY.
-     * @throws IllegalArgumentException if one of arguments is negative or <code>&ge;2<sup>31</sup></code>.
-     * @throws TooLargeArrayException if <code>sizeX&nbsp;*&nbsp;sizeY&nbsp;*&nbsp;{@link
-     * #MAX_NUMBER_OF_CHANNELS}&nbsp;*&nbsp;{@link #MAX_BITS_PER_SAMPLE}&nbsp;&ge;&nbsp;2<sup>63</sup></code>.
+     * @throws IllegalArgumentException if one of arguments is negative or <code>&ge; 2<sup>31</sup></code>.
+     * @throws TooLargeArrayException   if <code>sizeX&nbsp;*&nbsp;sizeY&nbsp;*&nbsp;{@link
+     *                                  #MAX_NUMBER_OF_CHANNELS}&nbsp;*&nbsp;{@link #MAX_BITS_PER_SAMPLE}&nbsp;&ge;
+     *                                  2<sup>63</sup></code>.
      */
     public static long multiplySizes(long sizeX, long sizeY) {
         if (sizeX < 0) {

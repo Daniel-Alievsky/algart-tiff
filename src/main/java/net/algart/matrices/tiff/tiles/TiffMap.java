@@ -84,6 +84,7 @@ public final class TiffMap {
             return this == TILE_GRID;
         }
     }
+
     /**
      * Maximal value of x/y-index of the tile.
      *
@@ -599,7 +600,7 @@ public final class TiffMap {
     @Override
     public String toString() {
         return (resizable ? "resizable " : "") + "map " +
-                (resizable ? "?x?": dimX + "x" + dimY) +
+                (resizable ? "?x?" : dimX + "x" + dimY) +
                 "x" + numberOfChannels + " (" + bitsPerSample + " bits) " +
                 "of " + tileMap.size() + " TIFF tiles (grid " + gridCountX + "x" + gridCountY +
                 ") at the image " + ifd;

@@ -186,7 +186,7 @@ public class TiffWriter implements Closeable {
      * this constructor automatically removes the file with the specified path, if it exists,
      * and calls {@link #create()} method. In a case of I/O exception in {@link #create()} method,
      * this file is automatically closed. This behaviour is alike
-     *{@link java.io.FileWriter#FileWriter(File) FileWriter constructor}.
+     * {@link java.io.FileWriter#FileWriter(File) FileWriter constructor}.
      *
      * <p>This is the simplest way to create a new TIFF file and automatically open it with writing the standard
      * TIFF header. After that, this object is ready for adding new TIFF images.
@@ -961,7 +961,7 @@ public class TiffWriter implements Closeable {
         // - overflow impossible after checkRequestedArea
         if (numberOfSamples > map.maxNumberOfSamplesInArray()) {
             throw new IllegalArgumentException("Too large area for updating TIFF in a single operation: " +
-                    + sizeX + "x" + sizeY + "x" + map.numberOfChannels() +  " exceed the limit " +
+                    +sizeX + "x" + sizeY + "x" + map.numberOfChannels() + " exceed the limit " +
                     map.maxNumberOfSamplesInArray());
         }
         final byte[] samples = TiffSampleType.bytes(samplesArray, numberOfSamples, byteOrder());
@@ -999,7 +999,7 @@ public class TiffWriter implements Closeable {
         PArray array = matrix.array();
         if (array.length() > map.maxNumberOfSamplesInArray()) {
             throw new IllegalArgumentException("Too large matrix for updating TIFF in a single operation: " + matrix
-                + " (number of elements " + array.length() + " exceed the limit " +
+                    + " (number of elements " + array.length() + " exceed the limit " +
                     map.maxNumberOfSamplesInArray() + ")");
         }
         final byte[] samples = TiffSampleType.bytes(array, byteOrder());
@@ -1935,7 +1935,8 @@ public class TiffWriter implements Closeable {
                         assert tile.isEmpty() : "writeEncodedTile() call above did not store data file offset!";
                         if (!missingTilesAllowed) {
                             if (!tile.equalSizes(filler)) {
-                                // - usually performed once, maybe twice for stripped image (where last strip has smaller height)
+                                // - usually performed once, maybe twice for stripped image (where last strip has
+                                // smaller height)
                                 // or even 2 * numberOfSeparatedPlanes times for plane-separated tiles
                                 filler = new TiffTile(tileIndex).setEqualSizes(tile);
                                 filler.fillEmpty(tileInitializer);

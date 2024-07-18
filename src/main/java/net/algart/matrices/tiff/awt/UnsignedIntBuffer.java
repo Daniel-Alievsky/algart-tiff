@@ -77,7 +77,7 @@ public class UnsignedIntBuffer extends DataBuffer {
      * Construct a new buffer of unsigned ints using the given 2D int array.
      */
     public UnsignedIntBuffer(int[][] dataArray, int size) {
-//		super(DataBuffer.TYPE_INT, size); // SCIFIO BUG!
+//      super(DataBuffer.TYPE_INT, size); // SCIFIO BUG!
         super(DataBuffer.TYPE_INT, size, dataArray.length);
         bankData = dataArray;
     }

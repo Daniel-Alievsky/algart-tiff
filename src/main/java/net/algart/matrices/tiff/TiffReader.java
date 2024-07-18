@@ -54,8 +54,8 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
 import java.util.Arrays;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -397,8 +397,8 @@ public class TiffReader implements Closeable {
      * they are automatically converted to the nearest "larger" type, for example, 4-bit integer is converted
      * to 8-bit, 12-bit integer is converted to 16-bit, 24-bit to 32-bit.</p>
      *
-     * <p>If this flag is <code>false</code>, this conversion is performed "as-is", so, values 0..15 in 4-bit source data
-     * will be converted to the same values 0..15 with 8-bit precision.
+     * <p>If this flag is <code>false</code>, this conversion is performed "as-is", so, values 0..15 in 4-bit source
+     * data will be converted to the same values 0..15 with 8-bit precision.
      * This is good if you need to process these values using some kind of algorithm.
      * However, if you need to show the real picture to the end user, then values 0..15 with 8-bit
      * precisions (or 0..4095 with 16-bit precision) will look almost black. To avoid this,

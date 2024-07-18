@@ -92,14 +92,14 @@ public class JPEG2000Codec extends AbstractCodec {
 
         /**
          * Color model to use when constructing an image (WRITE).
-         * */
+         */
         ColorModel colorModel = null;
 
         /**
          * The maximum code-block size to use per tile-component as it would be
          * provided to: {@code J2KImageWriteParam#setCodeBlockSize(int[])} (WRITE).
          */
-        int[] codeBlockSize = { 64, 64 };
+        int[] codeBlockSize = {64, 64};
 
         /**
          * The number of decomposition levels as would be provided to:

@@ -67,7 +67,7 @@ public enum TagCompression {
     // - OLD_JPEG does not work: see https://github.com/scifio/scifio/issues/510
     THUNDERSCAN(32809, "Thunderscan", null),
     NIKON(34713, "Nikon", null),
-    LURAWAVE(65535,  "LuraWave", null);
+    LURAWAVE(65535, "LuraWave", null);
 
     private static final Map<Integer, TagCompression> LOOKUP =
             Arrays.stream(values()).collect(Collectors.toMap(TagCompression::code, v -> v));

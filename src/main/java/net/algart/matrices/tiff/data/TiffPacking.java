@@ -26,7 +26,10 @@ package net.algart.matrices.tiff.data;
 
 import net.algart.arrays.PackedBitArraysPer8;
 import net.algart.arrays.TooLargeArrayException;
-import net.algart.matrices.tiff.*;
+import net.algart.matrices.tiff.TiffException;
+import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.TiffSampleType;
+import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 import net.algart.matrices.tiff.tags.TagRational;

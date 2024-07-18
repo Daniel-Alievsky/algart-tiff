@@ -124,7 +124,7 @@ public enum TiffSampleType {
             return a;
         } else if (javaArray instanceof boolean[] a) {
             return PackedBitArraysPer8.packBits(a, 0, numberOfElements);
-        } else if (javaArray instanceof long[] a){
+        } else if (javaArray instanceof long[] a) {
             return PackedBitArraysPer8.toByteArray(a, numberOfElements);
         } else {
             return JArrays.arrayToBytes(javaArray, numberOfElements, byteOrder);
