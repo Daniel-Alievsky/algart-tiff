@@ -322,7 +322,7 @@ public class LosslessJPEGCodec extends AbstractCodec {
                         huffmanTables = new short[4][];
                     }
                     final int s = in.read();
-//					final byte tableClass = (byte) ((s & 0xf0) >> 4);
+//                    final byte tableClass = (byte) ((s & 0xf0) >> 4);
                     final byte destination = (byte) (s & 0xf);
                     final int[] nCodes = new int[16];
                     final ShortArray table = new ShortArray();

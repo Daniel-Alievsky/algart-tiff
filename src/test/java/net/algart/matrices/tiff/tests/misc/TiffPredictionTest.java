@@ -34,6 +34,7 @@ import org.scijava.util.Bytes;
 
 import java.nio.ByteOrder;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 
@@ -76,71 +77,82 @@ public class TiffPredictionTest {
     }
 
     public static void main(String[] args) throws TiffException {
-        if (args.length < 5) {
+        if (args.length < 4) {
             System.out.println("Usage:");
             System.out.println("    " + TiffPredictionTest.class.getName()
-                    + " tileSizeX tileSizeY numberOfChannels uint8|uint16|uint32 numberOfTests");
+                    + " tileSizeX tileSizeY numberOfChannels numberOfTests");
             return;
         }
 
         final int tileSizeX = Integer.parseInt(args[0]);
         final int tileSizeY = Integer.parseInt(args[1]);
         final int numberOfChannels = Integer.parseInt(args[2]);
-        final TiffSampleType sampleType = TiffSampleType.valueOf(args[3].toUpperCase());
-        final int numberOfTests = Integer.parseInt(args[4]);
-        TiffIFD ifd = new TiffIFD()
-                .putTileSizes(tileSizeX, tileSizeY)
-                .putPixelInformation(numberOfChannels, sampleType);
-        TiffTile tile = TiffMap.newResizable(ifd).getOrNew(0, 0);
+        final int numberOfTests = Integer.parseInt(args[3]);
 
         Random random = new Random(157);
         for (int test = 0; test < numberOfTests; test++) {
             System.out.printf("%nTest #%d...%n", test);
-            byte[] data = new byte[tile.getSizeInBytes()];
-            for (int k = 0; k < data.length; k++) {
-                data[k] = (byte) random.nextInt();
-            }
-            byte[] predicted = data.clone();
-            tile.setDecodedData(predicted);
-            long t1 = System.nanoTime();
-            TiffPrediction.subtractPrediction(tile);
-            long t2 = System.nanoTime();
-            System.out.printf("subtractPrediction:            %.3f ms, %.3f MB/sec%n",
-                    (t2 - t1) * 1e-6, data.length / 1048576.0 / ((t2 - t1) * 1e-9));
-            assert predicted == tile.getDecodedData();
+            for (TiffSampleType sampleType : TiffSampleType.values()) {
+                if (sampleType == TiffSampleType.BIT) {
+                    continue;
+                    // - not supported yet
+                }
+                System.out.printf("Sample type: %s%n", sampleType);
 
-            byte[] simplePredicted = data.clone();
-            tile.setDecodedData(simplePredicted);
-            t1 = System.nanoTime();
-            simpleSubtractPrediction(tile);
-            t2 = System.nanoTime();
-            System.out.printf("subtractPrediction (simple):   %.3f ms, %.3f MB/sec%n",
-                    (t2 - t1) * 1e-6, data.length / 1048576.0 / ((t2 - t1) * 1e-9));
-            assert simplePredicted == tile.getDecodedData();
-            if (!Arrays.equals(predicted, simplePredicted)) {
-                throw new AssertionError("Bug in subtractPrediction");
-            }
+                TiffIFD ifd = new TiffIFD()
+                        .putTileSizes(tileSizeX, tileSizeY)
+                        .putPixelInformation(numberOfChannels, sampleType);
+                TiffTile tile = TiffMap.newResizable(ifd).getOrNew(0, 0);
+                byte[] data = new byte[tile.getSizeInBytes()];
+                for (int k = 0; k < data.length; k++) {
+                    data[k] = test == 0 ? (byte) k : (byte) random.nextInt();
+                }
+                byte[] predicted = data.clone();
+                tile.setDecodedData(predicted);
+                long t1 = System.nanoTime();
+                TiffPrediction.subtractPrediction(tile);
+                long t2 = System.nanoTime();
+                assert predicted == tile.getDecodedData();
 
-            tile.setDecodedData(predicted);
-            t1 = System.nanoTime();
-            TiffPrediction.unsubtractPrediction(tile);
-            t2 = System.nanoTime();
-            System.out.printf("unsubtractPrediction:          %.3f ms, %.3f MB/sec%n",
-                    (t2 - t1) * 1e-6, data.length / 1048576.0 / ((t2 - t1) * 1e-9));
-            if (!Arrays.equals(data, predicted)) {
-                throw new AssertionError("Bug in unsubtractPrediction");
-            }
+                byte[] simplePredicted = data.clone();
+                long t3 = t1, t4 = t1;
+                if (tile.bitsPerSample() <= 32) {
+                    tile.setDecodedData(simplePredicted);
+                    t3 = System.nanoTime();
+                    simpleSubtractPrediction(tile);
+                    t4 = System.nanoTime();
+                    assert simplePredicted == tile.getDecodedData();
+                    if (!Arrays.equals(predicted, simplePredicted)) {
+                        throw new AssertionError("Bug in subtractPrediction");
+                    }
+                }
 
-            tile.setDecodedData(simplePredicted);
-            t1 = System.nanoTime();
-            simpleUnsubtractPrediction(tile);
-            t2 = System.nanoTime();
-            System.out.printf("unsubtractPrediction (simple): %.3f ms, %.3f MB/sec%n",
-                    (t2 - t1) * 1e-6, data.length / 1048576.0 / ((t2 - t1) * 1e-9));
-            if (!Arrays.equals(data, simplePredicted)) {
-                throw new AssertionError("Bug in simpleUnsubtractPrediction");
-            }
+                tile.setDecodedData(predicted);
+                long t5 = System.nanoTime();
+                TiffPrediction.unsubtractPrediction(tile);
+                long t6 = System.nanoTime();
+                System.out.printf("subtractPrediction:            %.3f ms, %.3f MB/sec%n",
+                        (t2 - t1) * 1e-6, data.length / 1048576.0 / ((t2 - t1) * 1e-9));
+                System.out.printf("unsubtractPrediction:          %.3f ms, %.3f MB/sec%n",
+                        (t6 - t5) * 1e-6, data.length / 1048576.0 / ((t6 - t5) * 1e-9));
+                if (!Arrays.equals(data, predicted)) {
+                    throw new AssertionError("Bug in unsubtractPrediction");
+                }
 
+                if (tile.bitsPerSample() <= 32) {
+                    tile.setDecodedData(simplePredicted);
+                    long t7 = System.nanoTime();
+                    simpleUnsubtractPrediction(tile);
+                    long t8 = System.nanoTime();
+                    System.out.printf("subtractPrediction (simple):   %.3f ms, %.3f MB/sec%n",
+                            (t4 - t3) * 1e-6, data.length / 1048576.0 / ((t4 - t3) * 1e-9));
+                    System.out.printf("unsubtractPrediction (simple): %.3f ms, %.3f MB/sec%n",
+                            (t8 - t7) * 1e-6, data.length / 1048576.0 / ((t8 - t7) * 1e-9));
+                    if (!Arrays.equals(data, simplePredicted)) {
+                        throw new AssertionError("Bug in simpleUnsubtractPrediction");
+                    }
+                }
+            }
         }
         System.out.println("O'k");
     }

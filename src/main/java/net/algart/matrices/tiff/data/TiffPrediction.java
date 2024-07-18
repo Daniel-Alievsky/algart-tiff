@@ -24,13 +24,11 @@
 
 package net.algart.matrices.tiff.data;
 
+import net.algart.arrays.JArrays;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.tags.TagPredictor;
 import net.algart.matrices.tiff.tiles.TiffTile;
-import org.scijava.util.Bytes;
 
-import java.nio.ByteOrder;
-import java.util.Arrays;
 import java.util.Objects;
 
 public class TiffPrediction {
@@ -70,138 +68,199 @@ public class TiffPrediction {
     public static void subtractPrediction(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         final byte[] data = tile.getDecodedData();
-        final int bytesPerSample = checkBitDepthForPrediction(tile, "for writing");
+        final int bitsPerSample = tile.bitsPerSample();
+        final int bytesPerSample = checkBitDepthForPrediction(bitsPerSample, "for writing");
         final int samplesPerPixel = tile.samplesPerPixel();
-        final int bytesPerPixel = bytesPerSample * samplesPerPixel;
-        ByteOrder byteOrder = tile.byteOrder();
-        final boolean little = byteOrder == ByteOrder.LITTLE_ENDIAN;
         final int xSize = tile.getSizeX();
-        final int xSizeInSamples = xSize * samplesPerPixel;
-        final int xSizeInBytes = xSize * bytesPerPixel;
+        final int xSizeInBytes = xSize * bytesPerSample * samplesPerPixel;
         final int ySize = data.length / xSizeInBytes;
         // - not tile.getSizeY(): we want to process also the ending tiles in the end image strip,
         // when they are written incorrectly and contain more or less then tile.getSizeY() lines
-        int k = data.length - bytesPerSample;
-        long xOffset = k % xSizeInBytes;
 
-        if (bytesPerSample == 1) {
-            for (int y = 0; y < ySize; y++) {
-                final int lineOffset = y * xSizeInSamples;
-                int offset = lineOffset + xSize * samplesPerPixel - 1;
-                // - cannot be >Integer.MAX_VALUE: see limitation for tile sizes in TiffTile.setSizes() method
-                for (int minOffset = lineOffset + samplesPerPixel; offset >= minOffset; offset--) {
-                    data[offset] -= data[offset - samplesPerPixel];
-                }
+        switch (bitsPerSample) {
+            case 8 -> subtractByteMatrix(data, xSize, ySize, samplesPerPixel);
+            case 16 -> {
+                short[] a = JArrays.bytesToShortArray(data, tile.byteOrder());
+                subtractShortMatrix(a, xSize, ySize, samplesPerPixel);
+                JArrays.shortArrayToBytes(data, a, a.length, tile.byteOrder());
             }
-//        } else if (bytesPerPixel == 2) {
-//            short[] a = JArrays.bytesToShortArray(data, byteOrder);
-//            subtractShorts(a, ySize, xSize, samplesPerPixel);
-//            JArrays.shortArrayToBytes(data, a, a.length, byteOrder);
-        } else {
-            for (; k >= 0; k -= bytesPerSample) {
-                if (k / bytesPerPixel % xSize == 0) {
-                    continue;
-                }
-                int value = Bytes.toInt(data, k, bytesPerSample, little);
-                value -= Bytes.toInt(data, k - bytesPerPixel, bytesPerSample, little);
-                Bytes.unpack(value, data, k, bytesPerSample, little);
+            case 32 -> {
+                int[] a = JArrays.bytesToIntArray(data, tile.byteOrder());
+                subtractIntMatrix(a, xSize, ySize, samplesPerPixel);
+                JArrays.intArrayToBytes(data, a, a.length, tile.byteOrder());
+            }
+            case 64 -> {
+                long[] a = JArrays.bytesToLongArray(data, tile.byteOrder());
+                subtractLongMatrix(a, xSize, ySize, samplesPerPixel);
+                JArrays.longArrayToBytes(data, a, a.length, tile.byteOrder());
+            }
+            default -> throw new AssertionError("Must be checked in checkBitDepthForPrediction");
+        }
+            // Legacy solution:
+//            for (int k = data.length - bytes; k >= 0; k--, xOffset--) {
+//                if (xOffset < 0) {
+//                    xOffset += xSizeInBytes;
+//                }
+//                // assert (k / len % xSize == 0) == (xOffset < bytesPerPixel);
+//                if (xOffset >= bytesPerPixel) {
+//                    data[k] -= data[k - bytesPerPixel];
+//                }
+//            }
+    }
+
+    public static void unsubtractPrediction(TiffTile tile) throws TiffException {
+        Objects.requireNonNull(tile, "Null tile");
+        final byte[] data = tile.getDecodedData();
+        final int bitsPerSample = tile.bitsPerSample();
+        final int bytesPerSample = checkBitDepthForPrediction(bitsPerSample, "for writing");
+        final int samplesPerPixel = tile.samplesPerPixel();
+        final int xSize = tile.getSizeX();
+        final int xSizeInBytes = xSize * bytesPerSample * samplesPerPixel;
+        final int ySize = data.length / xSizeInBytes;
+
+        switch (bitsPerSample) {
+            case 8 -> unsubtractByteMatrix(data, xSize, ySize, samplesPerPixel);
+            case 16 -> {
+                short[] a = JArrays.bytesToShortArray(data, tile.byteOrder());
+                unsubtractShortMatrix(a, xSize, ySize, samplesPerPixel);
+                JArrays.shortArrayToBytes(data, a, a.length, tile.byteOrder());
+            }
+            case 32 -> {
+                int[] a = JArrays.bytesToIntArray(data, tile.byteOrder());
+                unsubtractIntMatrix(a, xSize, ySize, samplesPerPixel);
+                JArrays.intArrayToBytes(data, a, a.length, tile.byteOrder());
+            }
+            case 64 -> {
+                long[] a = JArrays.bytesToLongArray(data, tile.byteOrder());
+                unsubtractLongMatrix(a, xSize, ySize, samplesPerPixel);
+                JArrays.longArrayToBytes(data, a, a.length, tile.byteOrder());
+            }
+            default -> throw new AssertionError("Must be checked in checkBitDepthForPrediction");
+        }
+            // Legacy solution:
+//            for (int k = 0; k <= data.length - 1; k++, xOffset++) {
+//                if (xOffset == xSizeInBytes) {
+//                    xOffset = 0;
+//                }
+//                // assert (k / bytesPerPixel % xSize == 0) == (xOffset < bytesPerPixel);
+//                if (xOffset >= bytesPerPixel) {
+//                    data[k] += data[k - bytesPerPixel];
+//                }
+//            }
+    }
+
+
+    /*Repeat() Byte ==> Short,,Int,,Long;;
+               byte ==> short,,int,,long */
+    @SuppressWarnings("DuplicatedCode")
+    private static void subtractByteMatrix(byte[] a, int xSize, int ySize, int samplesPerPixel) {
+        final int xSizeInSamples = xSize * samplesPerPixel;
+        for (int y = 0; y < ySize; y++) {
+            final int lineOffset = y * xSizeInSamples;
+            final int minOffset = lineOffset + samplesPerPixel;
+            // - cannot be >Integer.MAX_VALUE: see limitation for tile sizes in TiffTile.setSizes() method
+            for (int k = lineOffset + xSizeInSamples - 1; k >= minOffset; k--) {
+                a[k] -= a[k - samplesPerPixel];
             }
         }
     }
 
-    /*Repeat() Byte ==> Short,,Int,,Long;;
-               byte ==> short,,int,,long */
-    private static void subtractBytes(byte[] a, int ySize, int xSize, int samplesPerPixel) {
+    @SuppressWarnings("DuplicatedCode")
+    private static void unsubtractByteMatrix(byte[] a, int xSize, int ySize, int samplesPerPixel) {
         final int xSizeInSamples = xSize * samplesPerPixel;
         for (int y = 0; y < ySize; y++) {
             final int lineOffset = y * xSizeInSamples;
-            int offset = lineOffset + xSize * samplesPerPixel - 1;
+            int toOffset = lineOffset + xSizeInSamples;
             // - cannot be >Integer.MAX_VALUE: see limitation for tile sizes in TiffTile.setSizes() method
-            for (int minOffset = lineOffset + samplesPerPixel; offset >= minOffset; offset--) {
-                a[offset] -= a[offset - samplesPerPixel];
+            for (int k = lineOffset + samplesPerPixel; k < toOffset; k++) {
+                a[k] += a[k - samplesPerPixel];
             }
         }
     }
 
     /*Repeat.AutoGeneratedStart !! Auto-generated: NOT EDIT !! */
-    private static void subtractShorts(short[] a, int ySize, int xSize, int samplesPerPixel) {
+    @SuppressWarnings("DuplicatedCode")
+    private static void subtractShortMatrix(short[] a, int xSize, int ySize, int samplesPerPixel) {
         final int xSizeInSamples = xSize * samplesPerPixel;
         for (int y = 0; y < ySize; y++) {
             final int lineOffset = y * xSizeInSamples;
-            int offset = lineOffset + xSize * samplesPerPixel - 1;
+            final int minOffset = lineOffset + samplesPerPixel;
             // - cannot be >Integer.MAX_VALUE: see limitation for tile sizes in TiffTile.setSizes() method
-            for (int minOffset = lineOffset + samplesPerPixel; offset >= minOffset; offset--) {
-                a[offset] -= a[offset - samplesPerPixel];
+            for (int k = lineOffset + xSizeInSamples - 1; k >= minOffset; k--) {
+                a[k] -= a[k - samplesPerPixel];
             }
         }
     }
 
-    private static void subtractInts(int[] a, int ySize, int xSize, int samplesPerPixel) {
+    @SuppressWarnings("DuplicatedCode")
+    private static void unsubtractShortMatrix(short[] a, int xSize, int ySize, int samplesPerPixel) {
         final int xSizeInSamples = xSize * samplesPerPixel;
         for (int y = 0; y < ySize; y++) {
             final int lineOffset = y * xSizeInSamples;
-            int offset = lineOffset + xSize * samplesPerPixel - 1;
+            int toOffset = lineOffset + xSizeInSamples;
             // - cannot be >Integer.MAX_VALUE: see limitation for tile sizes in TiffTile.setSizes() method
-            for (int minOffset = lineOffset + samplesPerPixel; offset >= minOffset; offset--) {
-                a[offset] -= a[offset - samplesPerPixel];
+            for (int k = lineOffset + samplesPerPixel; k < toOffset; k++) {
+                a[k] += a[k - samplesPerPixel];
+            }
+        }
+    }
+    @SuppressWarnings("DuplicatedCode")
+    private static void subtractIntMatrix(int[] a, int xSize, int ySize, int samplesPerPixel) {
+        final int xSizeInSamples = xSize * samplesPerPixel;
+        for (int y = 0; y < ySize; y++) {
+            final int lineOffset = y * xSizeInSamples;
+            final int minOffset = lineOffset + samplesPerPixel;
+            // - cannot be >Integer.MAX_VALUE: see limitation for tile sizes in TiffTile.setSizes() method
+            for (int k = lineOffset + xSizeInSamples - 1; k >= minOffset; k--) {
+                a[k] -= a[k - samplesPerPixel];
             }
         }
     }
 
-    private static void subtractLongs(long[] a, int ySize, int xSize, int samplesPerPixel) {
+    @SuppressWarnings("DuplicatedCode")
+    private static void unsubtractIntMatrix(int[] a, int xSize, int ySize, int samplesPerPixel) {
         final int xSizeInSamples = xSize * samplesPerPixel;
         for (int y = 0; y < ySize; y++) {
             final int lineOffset = y * xSizeInSamples;
-            int offset = lineOffset + xSize * samplesPerPixel - 1;
+            int toOffset = lineOffset + xSizeInSamples;
             // - cannot be >Integer.MAX_VALUE: see limitation for tile sizes in TiffTile.setSizes() method
-            for (int minOffset = lineOffset + samplesPerPixel; offset >= minOffset; offset--) {
-                a[offset] -= a[offset - samplesPerPixel];
+            for (int k = lineOffset + samplesPerPixel; k < toOffset; k++) {
+                a[k] += a[k - samplesPerPixel];
             }
         }
     }
+    @SuppressWarnings("DuplicatedCode")
+    private static void subtractLongMatrix(long[] a, int xSize, int ySize, int samplesPerPixel) {
+        final int xSizeInSamples = xSize * samplesPerPixel;
+        for (int y = 0; y < ySize; y++) {
+            final int lineOffset = y * xSizeInSamples;
+            final int minOffset = lineOffset + samplesPerPixel;
+            // - cannot be >Integer.MAX_VALUE: see limitation for tile sizes in TiffTile.setSizes() method
+            for (int k = lineOffset + xSizeInSamples - 1; k >= minOffset; k--) {
+                a[k] -= a[k - samplesPerPixel];
+            }
+        }
+    }
+
+    @SuppressWarnings("DuplicatedCode")
+    private static void unsubtractLongMatrix(long[] a, int xSize, int ySize, int samplesPerPixel) {
+        final int xSizeInSamples = xSize * samplesPerPixel;
+        for (int y = 0; y < ySize; y++) {
+            final int lineOffset = y * xSizeInSamples;
+            int toOffset = lineOffset + xSizeInSamples;
+            // - cannot be >Integer.MAX_VALUE: see limitation for tile sizes in TiffTile.setSizes() method
+            for (int k = lineOffset + samplesPerPixel; k < toOffset; k++) {
+                a[k] += a[k - samplesPerPixel];
+            }
+        }
+    }
+
     /*Repeat.AutoGeneratedEnd*/
 
-    public static void unsubtractPrediction(TiffTile tile) throws TiffException {
-        Objects.requireNonNull(tile, "Null tile");
-        final byte[] data = tile.getDecodedData();
-        final int bytesPerSample = checkBitDepthForPrediction(tile, "for reading");
-        final int bytesPerPixel = bytesPerSample * tile.samplesPerPixel();
-        ByteOrder byteOrder = tile.byteOrder();
-        final boolean little = byteOrder == ByteOrder.LITTLE_ENDIAN;
-        final long xSize = tile.getSizeX();
-        final long xSizeInBytes = xSize * bytesPerPixel;
-
-        int k = 0;
-        long xOffset = 0;
-
-        if (bytesPerSample == 1) {
-            for (; k <= data.length - 1; k++, xOffset++) {
-                if (xOffset == xSizeInBytes) {
-                    xOffset = 0;
-                }
-//                    assert (k / bytesPerPixel % xSize == 0) == (xOffset < bytesPerPixel);
-                if (xOffset >= bytesPerPixel) {
-                    data[k] += data[k - bytesPerPixel];
-                }
-            }
-        } else {
-            for (; k <= data.length - bytesPerSample; k += bytesPerSample) {
-                if (k / bytesPerPixel % xSize == 0) {
-                    continue;
-                }
-                int value = Bytes.toInt(data, k, bytesPerSample, little);
-                value += Bytes.toInt(data, k - bytesPerPixel, bytesPerSample, little);
-                Bytes.unpack(value, data, k, bytesPerSample, little);
-            }
-        }
-    }
-
-    private static int checkBitDepthForPrediction(TiffTile tile, String where) throws TiffException {
-        final int bitsPerSample = tile.bitsPerSample();
+    private static int checkBitDepthForPrediction(int bitsPerSample, String where) throws TiffException {
         if (bitsPerSample != 8 && bitsPerSample != 16 && bitsPerSample != 32 && bitsPerSample != 64) {
             throw new TiffException("Cannot use TIFF prediction " + where +
-                    " for bit depth " + bitsPerSample + ": " +
-                    Arrays.toString(tile.ifd().getBitsPerSample()) + " bits/pixel");
+                    " for bit depth " + bitsPerSample);
         }
         return bitsPerSample >>> 3;
     }
