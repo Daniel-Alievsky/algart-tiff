@@ -25,6 +25,7 @@
 package net.algart.matrices.tiff.tiles;
 
 import net.algart.arrays.PackedBitArraysPer8;
+import net.algart.arrays.TooLargeArrayException;
 import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.data.TiffPacking;
@@ -32,6 +33,7 @@ import net.algart.matrices.tiff.data.TiffPacking;
 import java.nio.ByteOrder;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * TIFF tile: container for samples (encoded or decoded) with given {@link TiffTileIndex index}.
@@ -50,6 +52,7 @@ public final class TiffTile {
     private int sizeInPixels;
     private int sizeInBytes;
     private int sizeInBits;
+    private int rowSizeInBytes;
     private boolean interleaved = false;
     private boolean encoded = false;
     private byte[] data = null;
@@ -188,9 +191,14 @@ public final class TiffTile {
      * and supported for additional convenience of usage this object.
      *
      * <p>There is a guarantee that the total {@link #getSizeInBits() number of bits},
-     * required to store <code>sizeX*sizeY</code> pixels, will be <code>&le;Integer.MAX_VALUE.</code>
-     * If the specified sizes are too large to fit this limitation,
-     * this method throws {@link IllegalArgumentException}.
+     * required to store <code>sizeX*sizeY</code> pixels, will be <code>&le;Integer.MAX_VALUE</code>.
+     * Moreover, there is a guarantee that the same is true for the nearest integer &ge;<code>sizeX</code>,
+     * whisi is divisible by 8, i.e. <code>(sizeX&nbsp;+&nbsp;7)&nbsp;/&nbsp;8&nbsp;*&nbsp;8</code>):</p>
+     * <pre>
+     *     ((sizeX + 7) / 8 * 8) * sizeY * {@link #getSizeInBits()} &le; Integer.MAX_VALUE</code>
+     * </pre>
+     * <p>If the specified sizes are too large to fit this limitation,
+     * this method throws {@link TooLargeArrayException}.</p>
      *
      * @param sizeX the tile width; must be positive.
      * @param sizeY the tile height; must be positive.
@@ -204,22 +212,28 @@ public final class TiffTile {
         if (sizeY <= 0) {
             throw new IllegalArgumentException("Zero or negative tile y-size: " + sizeY);
         }
-        // - zero sizes are disabled to provide correct IRectangularArea processing
-        if ((long) sizeX * (long) sizeY > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("Very large TIFF tile " + sizeX + "x" + sizeY +
-                    " >= 2^31 pixels is not supported");
+        // - zero sizes are disabled, in particular, to provide correct IRectangularArea processing
+        final long alignedSizeX = ((long) sizeX + 7L) & ~7L;
+        assert alignedSizeX >= sizeX && alignedSizeX >> 3 == (sizeX + 7) >>> 3;
+        Supplier<String> alignedMsg = () -> alignedSizeX == sizeX ? "" :
+                " (after aligning " + sizeX + " to slightly larger width " + alignedSizeX + ", divisible by 8)";
+        if (alignedSizeX * (long) sizeY > Integer.MAX_VALUE) {
+            throw new TooLargeArrayException("Very large TIFF tile " + sizeX + "x" + sizeY +
+                    " >= 2^31 pixels is not supported" + alignedMsg.get());
+        }
+        if (alignedSizeX * (long) sizeY * (long) bitsPerPixel > Integer.MAX_VALUE) {
+            throw new TooLargeArrayException("Very large TIFF tile " + sizeX + "x" + sizeY +
+                    ", " + samplesPerPixel + " channels per " + bitsPerSample +
+                    " bits >= 2^31 bits (256 MB) is not supported" + alignedMsg.get());
         }
         final int sizeInPixels = sizeX * sizeY;
-        if ((long) sizeInPixels * (long) bitsPerPixel > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("Very large TIFF tile " + sizeX + "x" + sizeY +
-                    ", " + samplesPerPixel + " channels per " + bitsPerSample +
-                    " bits >= 2^31 bits (256 MB) is not supported");
-        }
+        assert alignedSizeX * (long) bitsPerPixel <= Integer.MAX_VALUE : "impossible because " + sizeY + " > 0";
         this.sizeX = sizeX;
         this.sizeY = sizeY;
         this.sizeInPixels = sizeInPixels;
         this.sizeInBits = sizeInPixels * bitsPerPixel;
         this.sizeInBytes = (sizeInBits + 7) >>> 3;
+        this.rowSizeInBytes = (int) ((alignedSizeX * bitsPerPixel) >>> 3);
         return this;
     }
 
@@ -249,6 +263,17 @@ public final class TiffTile {
      */
     public int getSizeInBytes() {
         return sizeInBytes;
+    }
+
+    /**
+     * Returns ({@link #getSizeX()} * {@link #bitsPerPixel()} + 7) / 8:
+     * size of each line in bytes.
+     * (According the TIFF format, lines should be aligned to an integer number of bytes.)
+     *
+     * @return the number of bytes in each horizontal row of pixels.
+     */
+    public int getRowSizeInBytes() {
+        return rowSizeInBytes;
     }
 
     /**

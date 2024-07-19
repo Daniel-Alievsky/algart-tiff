@@ -766,7 +766,7 @@ public final class TiffMap {
             // - Very improbable! But we would like to be sure that 63-bit arithmetic
             // is enough to calculate total size of the map in BYTES.
             throw new TooLargeArrayException("Extremely large image sizes " + dimX + "x" + dimY +
-                    ": total number of bits is greater than 2^63-1 (!)");
+                    ", " + totalBitsPerPixel + " bits/pixel: total number of bits is greater than 2^63-1 (!)");
         }
         final int tileCountX = (int) ((long) dimX + (long) tileSizeX - 1) / tileSizeX;
         final int tileCountY = (int) ((long) dimY + (long) tileSizeY - 1) / tileSizeY;

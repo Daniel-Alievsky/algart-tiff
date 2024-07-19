@@ -25,12 +25,20 @@
 package net.algart.matrices.tiff.data;
 
 import net.algart.arrays.JArrays;
+import net.algart.arrays.PackedBitArraysPer8;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.tags.TagPredictor;
 import net.algart.matrices.tiff.tiles.TiffTile;
 
 import java.util.Objects;
 
+/**
+ * Processing TIFF Tag Predictor.
+ *
+ * <p>Note that we support non-standard case of prediction for binary images (1 sample, 1 bit/pixel).
+ * Images, written with this prediction, will not be readable by usual TIFF applications.
+ * We do not recommend this mode for creating new TIFF images.</p>
+ */
 public class TiffPrediction {
     private TiffPrediction() {
     }
@@ -69,15 +77,22 @@ public class TiffPrediction {
         Objects.requireNonNull(tile, "Null tile");
         final byte[] data = tile.getDecodedData();
         final int bitsPerSample = tile.bitsPerSample();
-        final int bytesPerSample = checkBitDepthForPrediction(bitsPerSample, "for writing");
+        checkBitDepthForPrediction(bitsPerSample, "for writing");
         final int samplesPerPixel = tile.samplesPerPixel();
         final int xSize = tile.getSizeX();
-        final int xSizeInBytes = xSize * bytesPerSample * samplesPerPixel;
+        final int xSizeInBytes = tile.getRowSizeInBytes();
         final int ySize = data.length / xSizeInBytes;
         // - not tile.getSizeY(): we want to process also the ending tiles in the end image strip,
         // when they are written incorrectly and contain more or less then tile.getSizeY() lines
 
         switch (bitsPerSample) {
+            case 1 -> {
+                final int xSizeInBits = xSizeInBytes * 8;
+                boolean[] a = PackedBitArraysPer8.unpackBitsInReverseOrder(
+                        data, 0, (long) xSizeInBits * ySize);
+                subtractBooleanMatrix(a, xSizeInBits, ySize, samplesPerPixel);
+                PackedBitArraysPer8.packBitsInReverseOrder(data, 0, a, 0, a.length);
+            }
             case 8 -> subtractByteMatrix(data, xSize, ySize, samplesPerPixel);
             case 16 -> {
                 short[] a = JArrays.bytesToShortArray(data, tile.byteOrder());
@@ -112,13 +127,20 @@ public class TiffPrediction {
         Objects.requireNonNull(tile, "Null tile");
         final byte[] data = tile.getDecodedData();
         final int bitsPerSample = tile.bitsPerSample();
-        final int bytesPerSample = checkBitDepthForPrediction(bitsPerSample, "for writing");
+        checkBitDepthForPrediction(bitsPerSample, "for writing");
         final int samplesPerPixel = tile.samplesPerPixel();
         final int xSize = tile.getSizeX();
-        final int xSizeInBytes = xSize * bytesPerSample * samplesPerPixel;
+        final int xSizeInBytes = tile.getRowSizeInBytes();
         final int ySize = data.length / xSizeInBytes;
 
         switch (bitsPerSample) {
+            case 1 -> {
+                final int xSizeInBits = xSizeInBytes * 8;
+                boolean[] a = PackedBitArraysPer8.unpackBitsInReverseOrder(
+                        data, 0, (long) xSizeInBits * ySize);
+                unsubtractBooleanMatrix(a, xSizeInBits, ySize, samplesPerPixel);
+                PackedBitArraysPer8.packBitsInReverseOrder(data, 0, a, 0, a.length);
+            }
             case 8 -> unsubtractByteMatrix(data, xSize, ySize, samplesPerPixel);
             case 16 -> {
                 short[] a = JArrays.bytesToShortArray(data, tile.byteOrder());
@@ -150,8 +172,9 @@ public class TiffPrediction {
     }
 
 
-    /*Repeat() Byte ==> Short,,Int,,Long;;
-               byte ==> short,,int,,long */
+    /*Repeat() Byte ==> Short,,Int,,Long,,Boolean;;
+               byte ==> short,,int,,long,,boolean;;
+               ([-+])= ==> $1=,,$1=,,$1=,,^= */
     @SuppressWarnings("DuplicatedCode")
     private static void subtractByteMatrix(byte[] a, int xSize, int ySize, int samplesPerPixel) {
         final int xSizeInSamples = xSize * samplesPerPixel;
@@ -254,14 +277,42 @@ public class TiffPrediction {
             }
         }
     }
+    @SuppressWarnings("DuplicatedCode")
+    private static void subtractBooleanMatrix(boolean[] a, int xSize, int ySize, int samplesPerPixel) {
+        final int xSizeInSamples = xSize * samplesPerPixel;
+        for (int y = 0; y < ySize; y++) {
+            final int lineOffset = y * xSizeInSamples;
+            final int minOffset = lineOffset + samplesPerPixel;
+            // - cannot be >Integer.MAX_VALUE: see limitation for tile sizes in TiffTile.setSizes() method
+            for (int k = lineOffset + xSizeInSamples - 1; k >= minOffset; k--) {
+                a[k] ^= a[k - samplesPerPixel];
+            }
+        }
+    }
+
+    @SuppressWarnings("DuplicatedCode")
+    private static void unsubtractBooleanMatrix(boolean[] a, int xSize, int ySize, int samplesPerPixel) {
+        final int xSizeInSamples = xSize * samplesPerPixel;
+        for (int y = 0; y < ySize; y++) {
+            final int lineOffset = y * xSizeInSamples;
+            int toOffset = lineOffset + xSizeInSamples;
+            // - cannot be >Integer.MAX_VALUE: see limitation for tile sizes in TiffTile.setSizes() method
+            for (int k = lineOffset + samplesPerPixel; k < toOffset; k++) {
+                a[k] ^= a[k - samplesPerPixel];
+            }
+        }
+    }
 
     /*Repeat.AutoGeneratedEnd*/
 
-    private static int checkBitDepthForPrediction(int bitsPerSample, String where) throws TiffException {
-        if (bitsPerSample != 8 && bitsPerSample != 16 && bitsPerSample != 32 && bitsPerSample != 64) {
+    private static void checkBitDepthForPrediction(int bitsPerSample, String where) throws TiffException {
+        if (bitsPerSample != 1 &&
+                bitsPerSample != 8 &&
+                bitsPerSample != 16 &&
+                bitsPerSample != 32 &&
+                bitsPerSample != 64) {
             throw new TiffException("Cannot use TIFF prediction " + where +
                     " for bit depth " + bitsPerSample);
         }
-        return bitsPerSample >>> 3;
     }
 }

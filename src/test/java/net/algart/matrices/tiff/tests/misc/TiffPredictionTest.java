@@ -93,10 +93,6 @@ public class TiffPredictionTest {
         for (int test = 0; test < numberOfTests; test++) {
             System.out.printf("%nTest #%d...%n", test);
             for (TiffSampleType sampleType : TiffSampleType.values()) {
-                if (sampleType == TiffSampleType.BIT) {
-                    continue;
-                    // - not supported yet
-                }
                 System.out.printf("Sample type: %s%n", sampleType);
 
                 TiffIFD ifd = new TiffIFD()
@@ -116,7 +112,7 @@ public class TiffPredictionTest {
 
                 byte[] simplePredicted = data.clone();
                 long t3 = t1, t4 = t1;
-                if (tile.bitsPerSample() <= 32) {
+                if (tile.bitsPerPixel() > 1 && tile.bitsPerSample() <= 32) {
                     tile.setDecodedData(simplePredicted);
                     t3 = System.nanoTime();
                     simpleSubtractPrediction(tile);
@@ -139,7 +135,7 @@ public class TiffPredictionTest {
                     throw new AssertionError("Bug in unsubtractPrediction");
                 }
 
-                if (tile.bitsPerSample() <= 32) {
+                if (tile.bitsPerPixel() > 1 && tile.bitsPerSample() <= 32) {
                     tile.setDecodedData(simplePredicted);
                     long t7 = System.nanoTime();
                     simpleUnsubtractPrediction(tile);
