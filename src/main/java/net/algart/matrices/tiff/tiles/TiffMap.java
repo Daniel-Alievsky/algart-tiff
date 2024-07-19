@@ -99,7 +99,7 @@ public final class TiffMap {
     private final int numberOfChannels;
     private final int numberOfSeparatedPlanes;
     private final int tileSamplesPerPixel;
-    private final int bitsPerSample;
+    private final int alignedBitsPerSample;
     private final int bitsPerUnpackedSample;
     private final int tileBitsPerPixel;
     private final int totalBitsPerPixel;
@@ -142,19 +142,19 @@ public final class TiffMap {
             assert numberOfChannels <= TiffIFD.MAX_NUMBER_OF_CHANNELS;
             this.numberOfSeparatedPlanes = planarSeparated ? numberOfChannels : 1;
             this.tileSamplesPerPixel = planarSeparated ? 1 : numberOfChannels;
-            this.bitsPerSample = ifd.alignedBitDepth();
+            this.alignedBitsPerSample = ifd.alignedBitDepth();
             // - so, we allow only EQUAL number of bytes/sample (but number if bits/sample can be different)
-            assert (long) numberOfChannels * (long) bitsPerSample <
+            assert (long) numberOfChannels * (long) alignedBitsPerSample <
                     TiffIFD.MAX_NUMBER_OF_CHANNELS * TiffIFD.MAX_BITS_PER_SAMPLE;
             // - actually must be in 8 times less
-            this.tileBitsPerPixel = tileSamplesPerPixel * bitsPerSample;
-            this.totalBitsPerPixel = numberOfChannels * bitsPerSample;
+            this.tileBitsPerPixel = tileSamplesPerPixel * alignedBitsPerSample;
+            this.totalBitsPerPixel = numberOfChannels * alignedBitsPerSample;
             this.sampleType = ifd.sampleType();
             this.wholeBytes = sampleType.isConsistingOfWholeBytes();
-            if (this.wholeBytes && (bitsPerSample & 7) != 0) {
+            if (this.wholeBytes && (alignedBitsPerSample & 7) != 0) {
                 throw new ConcurrentModificationException("Corrupted IFD, probably from a parallel thread" +
                         " (sample type " + sampleType +
-                        " is whole-bytes, but we have " + bitsPerSample + " bits/sample)");
+                        " is whole-bytes, but we have " + alignedBitsPerSample + " bits/sample)");
             }
             if ((totalBitsPerPixel == 1) != sampleType.isBinary()) {
                 throw new ConcurrentModificationException("Corrupted IFD, probably from a parallel thread" +
@@ -166,6 +166,10 @@ public final class TiffMap {
                         " > 1 channels is not supported: invalid TiffIFD class");
             }
             this.bitsPerUnpackedSample = sampleType.bitsPerSample();
+            if (bitsPerUnpackedSample < alignedBitsPerSample) {
+                throw new AssertionError(sampleType + ".bitsPerSample() = " + bitsPerUnpackedSample +
+                        " is too little: less than ifd.alignedBitDepth() = " + alignedBitsPerSample);
+            }
             this.elementType = sampleType.elementType();
             this.maxNumberOfSamplesInArray = sampleType.maxNumberOfSamplesInArray();
             this.tileSizeX = ifd.getTileSizeX();
@@ -184,7 +188,7 @@ public final class TiffMap {
             this.tileSizeInPixels = tileSizeX * tileSizeY;
             if ((long) tileSizeInPixels * (long) tileBitsPerPixel > Integer.MAX_VALUE) {
                 throw new IllegalArgumentException("Very large TIFF tiles " + tileSizeX + "x" + tileSizeY +
-                        ", " + tileSamplesPerPixel + " channels per " + bitsPerSample +
+                        ", " + tileSamplesPerPixel + " channels per " + alignedBitsPerSample +
                         " bits >= 2^31 bits (256 MB) are not supported");
             }
             this.tileSizeInBytes = (tileSizeInPixels * tileBitsPerPixel + 7) >>> 3;
@@ -265,7 +269,7 @@ public final class TiffMap {
      * @return number of bytes, necessary to store one channel of the pixel inside TIFF.
      */
     public int bitsPerSample() {
-        return bitsPerSample;
+        return alignedBitsPerSample;
     }
 
     /**
@@ -326,7 +330,7 @@ public final class TiffMap {
     }
 
     public int sizeOfRegionWithPossibleNonStandardPrecisions(long sizeX, long sizeY) throws TiffException {
-        return TiffIFD.sizeOfRegionInBytes(sizeX, sizeY, numberOfChannels, bitsPerSample);
+        return TiffIFD.sizeOfRegionInBytes(sizeX, sizeY, numberOfChannels, alignedBitsPerSample);
     }
 
     public long maxNumberOfSamplesInArray() {
@@ -601,7 +605,7 @@ public final class TiffMap {
     public String toString() {
         return (resizable ? "resizable " : "") + "map " +
                 (resizable ? "?x?" : dimX + "x" + dimY) +
-                "x" + numberOfChannels + " (" + bitsPerSample + " bits) " +
+                "x" + numberOfChannels + " (" + alignedBitsPerSample + " bits) " +
                 "of " + tileMap.size() + " TIFF tiles (grid " + gridCountX + "x" + gridCountY +
                 ") at the image " + ifd;
     }
@@ -621,7 +625,7 @@ public final class TiffMap {
                 Objects.equals(tileMap, that.tileMap) &&
                 planarSeparated == that.planarSeparated &&
                 numberOfChannels == that.numberOfChannels &&
-                bitsPerSample == that.bitsPerSample &&
+                alignedBitsPerSample == that.alignedBitsPerSample &&
                 tileSizeX == that.tileSizeX && tileSizeY == that.tileSizeY &&
                 tileSizeInBytes == that.tileSizeInBytes;
         // - Important! Comparing references to IFD, not content!
@@ -724,8 +728,8 @@ public final class TiffMap {
         if (!isWholeBytes()) {
             throw new AssertionError("Non-whole bytes are impossible in valid TiffMap with 1 channel");
         }
-        final int bytesPerSample = bitsPerSample >>> 3;
-        assert bitsPerSample == bytesPerSample * 8 : "unaligned bitsPerSample impossible for whole bytes";
+        final int bytesPerSample = alignedBitsPerSample >>> 3;
+        assert alignedBitsPerSample == bytesPerSample * 8 : "unaligned bitsPerSample impossible for whole bytes";
         return interleave ?
                 toInterleavedBytes(samples, numberOfChannels, bytesPerSample, numberOfPixels) :
                 toSeparatedBytes(samples, numberOfChannels, bytesPerSample, numberOfPixels);

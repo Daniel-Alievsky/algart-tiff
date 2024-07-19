@@ -35,17 +35,18 @@ import java.util.*;
 
 public class TiffIFD {
     /**
-     * Maximal supported number of channels. Popular OpenCV library has the same limit.
+     * Maximal supported number of channels.
+     * For comparison, the popular OpenCV library has a limit of 512 channels.
      *
      * <p>This limit helps to avoid "crazy" or corrupted TIFF and also help to avoid arithmetic overflow.
      */
-    public static final int MAX_NUMBER_OF_CHANNELS = 512;
+    public static final int MAX_NUMBER_OF_CHANNELS = 128;
     /**
      * Maximal supported number of bits per sample.
      *
      * <p>This limit helps to avoid "crazy" or corrupted TIFF and also help to avoid arithmetic overflow.
      */
-    public static final int MAX_BITS_PER_SAMPLE = 128;
+    public static final int MAX_BITS_PER_SAMPLE = 256;
 
     /**
      * Maximal number of bits, that can be packed inside a single Java <code>byte[]</code> array.
@@ -496,6 +497,14 @@ public class TiffIFD {
         return result;
     }
 
+    /**
+     * Detects the TIFF sample type, allowing to store samples of this TIFF image.
+     * Note that {@link TiffSampleType#bitsPerSample()} cannot be less than
+     * {@link #alignedBitDepth()}.
+     *
+     * @return TIFF sample type
+     * @throws TiffException in a case of format problems.
+     */
     public TiffSampleType sampleType() throws TiffException {
         TiffSampleType result = sampleType(true);
         assert result != null;
@@ -503,17 +512,17 @@ public class TiffIFD {
     }
 
     public TiffSampleType sampleType(boolean requireNonNullResult) throws TiffException {
-        final int bitsPerSample;
+        final int alignedBitDepth;
         if (requireNonNullResult) {
-            bitsPerSample = alignedBitDepth();
+            alignedBitDepth = alignedBitDepth();
         } else {
             try {
-                bitsPerSample = alignedBitDepth();
+                alignedBitDepth = alignedBitDepth();
             } catch (TiffException e) {
                 return null;
             }
         }
-        if (bitsPerSample == 1) {
+        if (alignedBitDepth == 1) {
             return TiffSampleType.BIT;
         }
         int[] sampleFormats = getIntArray(Tags.SAMPLE_FORMAT);
@@ -534,7 +543,7 @@ public class TiffIFD {
                 }
             }
         }
-        final int bytesPerSample = (bitsPerSample + 7) >>> 3;
+        final int bytesPerSample = (alignedBitDepth + 7) >>> 3;
         TiffSampleType result = null;
         switch (sampleFormats[0]) {
             case SAMPLE_FORMAT_UINT -> {
@@ -598,6 +607,7 @@ public class TiffIFD {
                 }
             }
         }
+        assert result == null || result.bitsPerSample() >= alignedBitDepth;
         return result;
     }
 
@@ -1712,7 +1722,7 @@ public class TiffIFD {
                     MAX_NUMBER_OF_CHANNELS + " and too many bits per sample " + MAX_BITS_PER_SAMPLE +
                     " (" + sizeX + " * " + sizeY + " * " + MAX_NUMBER_OF_CHANNELS + " * " + MAX_BITS_PER_SAMPLE +
                     " = " + (double) result * (double) (MAX_NUMBER_OF_CHANNELS * MAX_BITS_PER_SAMPLE) +
-                    " > " + Long.MAX_VALUE + ")");
+                    " > 2^63-1 = " + (double) Long.MAX_VALUE + ")");
         }
         return result;
     }
