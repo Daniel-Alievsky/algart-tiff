@@ -1197,6 +1197,18 @@ public class TiffIFD {
         return this;
     }
 
+    /**
+     * Puts TIFF Predictor tag.
+     * Note that only {@link TagPredictor#HORIZONTAL} case is supported by this library
+     * (besides {@link TagPredictor#NONE}).
+     *
+     * <p>Note: if this image is binary (1 bit/pixel), we do not recommend to use this tag:
+     * this library supports this case, but this is non-standard, and the resulting TIFF will not be readable
+     * by usual viewers.
+     *
+     * @param predictor predictor tag.
+     * @return a reference to this object.
+     */
     public TiffIFD putPredictor(TagPredictor predictor) {
         Objects.requireNonNull(predictor, "Null predictor");
         if (predictor == TagPredictor.NONE) {
