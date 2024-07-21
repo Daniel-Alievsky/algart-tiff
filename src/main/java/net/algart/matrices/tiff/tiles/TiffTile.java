@@ -78,7 +78,7 @@ public final class TiffTile {
         this.bitsPerSample = map.bitsPerSample();
         this.bitsPerPixel = map.tileBitsPerPixel();
         assert this.bitsPerPixel == samplesPerPixel * bitsPerSample;
-        this.byteOrder = map.ifd().isLittleEndian() ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
+        this.byteOrder = map.ifd().getByteOrder();
         assert index.ifd() == map.ifd() : "index retrieved ifd from its tile map!";
         setSizes(map.tileSizeX(), map.tileSizeY());
     }

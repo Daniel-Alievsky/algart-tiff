@@ -31,6 +31,7 @@ import net.algart.arrays.TooLargeArrayException;
 import net.algart.matrices.tiff.tags.*;
 
 import java.lang.reflect.Array;
+import java.nio.ByteOrder;
 import java.util.*;
 
 public class TiffIFD {
@@ -173,6 +174,15 @@ public class TiffIFD {
     public TiffIFD setLittleEndian(boolean littleEndian) {
         this.littleEndian = littleEndian;
         return this;
+    }
+
+    public ByteOrder getByteOrder() {
+        return isLittleEndian() ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
+    }
+
+    public TiffIFD setByteOrder(ByteOrder byteOrder) {
+        Objects.requireNonNull(byteOrder);
+        return setLittleEndian(byteOrder == ByteOrder.LITTLE_ENDIAN);
     }
 
     public boolean isBigTiff() {
@@ -1497,11 +1507,11 @@ public class TiffIFD {
             final long tileCountY = (dimY + (long) tileSizeY - 1) / tileSizeY;
             sb.append(json ?
                     ("  \"precision\" : \"%s\",\n" +
-                            "  \"littleEndian\" : %s,\n" +
+                            "  \"byteOrder\" : \"%s\",\n" +
                             "  \"bigTiff\" : %s,\n" +
                             "  \"tiled\" : %s,\n").formatted(
                             sampleType.prettyName(),
-                            isLittleEndian(),
+                            getByteOrder(),
                             isBigTiff(),
                             hasTileInformation()) :
                     "%s, precision %s%s, ".formatted(

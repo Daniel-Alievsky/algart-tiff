@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
+import net.algart.arrays.JArrays;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffSampleType;
@@ -45,15 +46,15 @@ public class TiffPredictionTest {
         final byte[] data = tile.getDecodedData();
         final int bytesPerSample = tile.bytesPerSample().orElseThrow();
         final int len = bytesPerSample * tile.samplesPerPixel();
-        final boolean little = tile.byteOrder() == ByteOrder.LITTLE_ENDIAN;
+        final ByteOrder byteOrder = tile.byteOrder();
         final long xSize = tile.getSizeX();
         for (int k = data.length - bytesPerSample; k >= 0; k -= bytesPerSample) {
             if (k / len % xSize == 0) {
                 continue;
             }
-            int value = Bytes.toInt(data, k, bytesPerSample, little);
-            value -= Bytes.toInt(data, k - len, bytesPerSample, little);
-            Bytes.unpack(value, data, k, bytesPerSample, little);
+            int value = (int) JArrays.getBytes8(data, k, bytesPerSample, byteOrder);
+            value -= (int) JArrays.getBytes8(data, k - len, bytesPerSample, byteOrder);
+            JArrays.setBytes8(data, k, value, bytesPerSample, byteOrder);
         }
     }
 
@@ -63,16 +64,16 @@ public class TiffPredictionTest {
         final byte[] data = tile.getDecodedData();
         final int bytesPerSample = tile.bytesPerSample().orElseThrow();
         final int len = bytesPerSample * tile.samplesPerPixel();
-        final boolean little = tile.byteOrder() == ByteOrder.LITTLE_ENDIAN;
+        final ByteOrder byteOrder = tile.byteOrder();
         final long xSize = tile.getSizeX();
 
         for (int k = 0; k <= data.length - bytesPerSample; k += bytesPerSample) {
             if (k / len % xSize == 0) {
                 continue;
             }
-            int value = Bytes.toInt(data, k, bytesPerSample, little);
-            value += Bytes.toInt(data, k - len, bytesPerSample, little);
-            Bytes.unpack(value, data, k, bytesPerSample, little);
+            int value = (int) JArrays.getBytes8(data, k, bytesPerSample, byteOrder);
+            value += (int) JArrays.getBytes8(data, k - len, bytesPerSample, byteOrder);
+            JArrays.setBytes8(data, k, value, bytesPerSample, byteOrder);
         }
     }
 

@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff.data;
 
+import net.algart.arrays.JArrays;
 import net.algart.arrays.PackedBitArraysPer8;
 import net.algart.arrays.TooLargeArrayException;
 import net.algart.matrices.tiff.TiffException;
@@ -36,8 +37,8 @@ import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
-import org.scijava.util.Bytes;
 
+import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.OptionalInt;
@@ -363,7 +364,7 @@ public class TiffPacking {
         }
         assert packedBytesPerSample <= 4;
         // Following code is necessary in a very rare case, and no sense to seriously optimize it
-        final boolean littleEndian = ifd.isLittleEndian();
+        final ByteOrder byteOrder = ifd.getByteOrder();
 
         final long size;
         if (numberOfPixels > Integer.MAX_VALUE ||
@@ -381,9 +382,9 @@ public class TiffPacking {
         if (int24) {
             for (int i = 0, disp = 0; i < numberOfSamples; i++, disp += packedBytesPerSample) {
                 // - very rare case, no sense to optimize
-                final int value = Bytes.toInt(samples, disp, packedBytesPerSample, littleEndian);
-                final long newValue = scaleUnsignedInt24 ? (long) value << 8 : value;
-                Bytes.unpack(newValue, unpacked, i * 4, 4, littleEndian);
+                final long value = JArrays.getBytes8(samples, disp, packedBytesPerSample, byteOrder);
+                final long newValue = scaleUnsignedInt24 ? value << 8 : value;
+                JArrays.setBytes8(unpacked, i * 4, newValue, 4, byteOrder);
             }
             return unpacked;
         }
@@ -391,7 +392,7 @@ public class TiffPacking {
 //        final int mantissaBits = float16 ? 10 : 16;
 //        final int exponentBits = float16 ? 5 : 7;
         for (int i = 0, disp = 0; i < numberOfSamples; i++, disp += packedBytesPerSample) {
-            final int packedValue = Bytes.toInt(samples, disp, packedBytesPerSample, littleEndian);
+            final int packedValue = (int) JArrays.getBytes8(samples, disp, packedBytesPerSample, byteOrder);
 //            final int valueToCompare = unpackFloatBits(packedValue, mantissaBits, exponentBits);
             final int value = float16 ?
                     unpack16BitFloat((short) packedValue) :
@@ -400,7 +401,7 @@ public class TiffPacking {
 //                System.out.printf("%h %f != %h %f%n", value, Float.intBitsToFloat(value),
 //                        valueToCompare, Float.intBitsToFloat(valueToCompare));
 //            }
-            Bytes.unpack(value, unpacked, i * 4, 4, littleEndian);
+            JArrays.setBytes8(unpacked, i * 4, value, 4, byteOrder);
         }
         return unpacked;
     }
@@ -766,7 +767,7 @@ public class TiffPacking {
                     "it is possible only for OLD_JPEG, that was already checked)");
         // - but samplesPerPixel can be =1 for planar-separated tiles
 
-        final boolean littleEndian = ifd.isLittleEndian();
+        final ByteOrder byteOrder = ifd.getByteOrder();
         final long[] multipliers = new long[bitsPerSample.length];
         for (int k = 0; k < multipliers.length; k++) {
             multipliers[k] = ((1L << 8 * bytesPerSample) - 1) / ((1L << bitsPerSample[k]) - 1);
@@ -787,7 +788,7 @@ public class TiffPacking {
                     long value;
                     if (byteAligned) {
                         final int index = (i * samplesPerPixel + s) * bytesPerSample;
-                        value = Bytes.toLong(source, index, bytesPerSample, littleEndian);
+                        value = JArrays.getBytes8(source, index, bytesPerSample, byteOrder);
                         // - It is strange, but it is a fact:
                         //      for byte-aligned pixels (for example, 16 or 24 bits/sample),
                         // the byte order (little-endian or big-endian) is important;
@@ -812,7 +813,7 @@ public class TiffPacking {
                         value *= multipliers[s];
                     }
                     assert outputIndex + bytesPerSample <= unpacked.length;
-                    Bytes.unpack(value, unpacked, outputIndex, bytesPerSample, littleEndian);
+                    JArrays.setBytes8(unpacked, outputIndex, value, bytesPerSample, byteOrder);
                 }
             }
             pos = (pos + 7) & ~7;

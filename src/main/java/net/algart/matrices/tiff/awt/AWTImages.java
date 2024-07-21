@@ -24,11 +24,13 @@
 
 package net.algart.matrices.tiff.awt;
 
+import net.algart.arrays.JArrays;
 import org.scijava.util.Bytes;
 
 import java.awt.*;
 import java.awt.color.ColorSpace;
 import java.awt.image.*;
+import java.nio.ByteOrder;
 import java.util.Objects;
 
 /**
@@ -405,7 +407,7 @@ public final class AWTImages {
             boolean fp,
             boolean little,
             boolean signed) {
-        final Object pixels = Bytes.makeArray(data, bpp % 3 == 0 ? bpp / 3 : bpp, fp, little);
+        final Object pixels = makeArray(data, bpp % 3 == 0 ? bpp / 3 : bpp, fp, little);
         if (pixels instanceof byte[]) {
             return makeImage((byte[]) pixels, w, h, c, interleaved, signed);
         } else if (pixels instanceof short[]) {
@@ -1167,4 +1169,23 @@ public final class AWTImages {
         }
     }
 
+    public static Object makeArray(
+            final byte[] b, final int bpp,
+            final boolean fp, final boolean little) {
+        ByteOrder byteOrder = little ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
+        if (bpp == 1) {
+            return b;
+        } else if (bpp == 2) {
+            return JArrays.bytesToShortArray(b, byteOrder);
+        } else if (bpp == 4 && fp) {
+            return JArrays.bytesToFloatArray(b, byteOrder);
+        } else if (bpp == 4) {
+            return JArrays.bytesToIntArray(b, byteOrder);
+        } else if (bpp == 8 && fp) {
+            return JArrays.bytesToDoubleArray(b, byteOrder);
+        } else if (bpp == 8) {
+            return JArrays.bytesToLongArray(b, byteOrder);
+        }
+        return null;
+    }
 }
