@@ -1169,7 +1169,7 @@ public final class AWTImages {
         }
     }
 
-    public static Object makeArray(
+    static Object makeArray(
             final byte[] b, final int bpp,
             final boolean fp, final boolean little) {
         ByteOrder byteOrder = little ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
