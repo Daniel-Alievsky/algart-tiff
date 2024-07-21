@@ -447,8 +447,7 @@ public final class AWTImages {
         final int c = data.length;
         Object v = null;
         for (int i = 0; i < c; i++) {
-            final Object pixels = Bytes.makeArray(data[i], bpp % 3 == 0 ? bpp / 3
-                    : bpp, fp, little);
+            final Object pixels = makeArray(data[i], bpp % 3 == 0 ? bpp / 3 : bpp, fp, little);
             if (pixels instanceof byte[]) {
                 if (v == null) {
                     v = new byte[c][];
