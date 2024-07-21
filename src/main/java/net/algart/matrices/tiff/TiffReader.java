@@ -26,7 +26,7 @@ package net.algart.matrices.tiff;
 
 import net.algart.arrays.*;
 import net.algart.matrices.tiff.codecs.TiffCodec;
-import net.algart.matrices.tiff.data.TiffPacking;
+import net.algart.matrices.tiff.data.TiffUnpacking;
 import net.algart.matrices.tiff.data.TiffPrediction;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagRational;
@@ -1183,7 +1183,7 @@ public class TiffReader implements Closeable {
      * <b>does not unpack 16- or 24-bit</b> floating-point formats. These cases
      * are processed after reading all tiles inside {@link #readSamples(TiffMap, int, int, int, int)}
      * method, if {@link #isAutoUnpackUnusualPrecisions()} flag is set, or may be performed by external
-     * code with help of {@link TiffPacking#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)} method.
+     * code with help of {@link TiffUnpacking#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)} method.
      * See {@link TiffReader#setAutoUnpackUnusualPrecisions(boolean)}.
      *
      * <p>This method does not allow 5, 6, 7 or greater than 8 bytes/sample
@@ -1203,9 +1203,9 @@ public class TiffReader implements Closeable {
             tile.setDecodedData(samples);
             tile.setInterleaved(false);
         } else {
-            if (!TiffPacking.separateUnpackedSamples(tile)) {
-                if (!TiffPacking.separateYCbCrToRGB(tile)) {
-                    TiffPacking.unpackTiffBitsAndInvertValues(tile,
+            if (!TiffUnpacking.separateUnpackedSamples(tile)) {
+                if (!TiffUnpacking.separateYCbCrToRGB(tile)) {
+                    TiffUnpacking.unpackTiffBitsAndInvertValues(tile,
                             autoScaleWhenIncreasingBitDepth,
                             autoCorrectInvertedBrightness);
                 }
@@ -1317,7 +1317,7 @@ public class TiffReader implements Closeable {
         long t4 = debugTime();
         boolean unpackingPrecision = false;
         if (autoUnpackUnusualPrecisions) {
-            byte[] newSamples = TiffPacking.unpackUnusualPrecisions(
+            byte[] newSamples = TiffUnpacking.unpackUnusualPrecisions(
                     samples, ifd, numberOfChannels, sizeInPixels, autoScaleWhenIncreasingBitDepth);
             unpackingPrecision = newSamples != samples;
             samples = newSamples;
