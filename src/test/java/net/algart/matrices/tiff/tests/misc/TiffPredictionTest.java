@@ -31,11 +31,9 @@ import net.algart.matrices.tiff.TiffSampleType;
 import net.algart.matrices.tiff.data.TiffPrediction;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
-import org.scijava.util.Bytes;
 
 import java.nio.ByteOrder;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 

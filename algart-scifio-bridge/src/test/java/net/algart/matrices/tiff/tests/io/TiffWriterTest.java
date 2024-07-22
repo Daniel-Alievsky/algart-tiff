@@ -472,7 +472,11 @@ public class TiffWriterTest {
                     }
                     for (int c = c1; c <= c2; c++) {
                         for (int x = 0, disp = y * dimX; x < dimX; x++, disp++) {
-                            channels[disp + c * matrixSize] = (short) (157 * (50 * ifdIndex + x + y));
+                            int v = 157 * (50 * ifdIndex + x + y);
+                            if (c1 != c2) {
+                                v &= ~255; // - providing strong difference between little-endian and big-endian
+                            }
+                            channels[disp + c * matrixSize] = (short) v;
                         }
                     }
                 }

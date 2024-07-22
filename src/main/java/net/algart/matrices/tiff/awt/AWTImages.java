@@ -913,6 +913,7 @@ public final class AWTImages {
         final int imageType = img.getType();
         byte[][] pixelBytes = null;
 
+       final ByteOrder byteOrder = little ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
         if (pixels instanceof byte[][]) {
             pixelBytes = (byte[][]) pixels;
         } else if (pixels instanceof short[][]) {
@@ -920,7 +921,7 @@ public final class AWTImages {
             pixelBytes = new byte[s.length][s[0].length * 2];
             for (int i = 0; i < pixelBytes.length; i++) {
                 for (int j = 0; j < s[0].length; j++) {
-                    Bytes.unpack(s[i][j], pixelBytes[i], j * 2, 2, little);
+                    unpack(s[i][j], pixelBytes[i], j * 2, 2, little);
                 }
             }
         } else if (pixels instanceof int[][]) {
@@ -943,7 +944,7 @@ public final class AWTImages {
                 pixelBytes = new byte[in.length][in[0].length * 4];
                 for (int i = 0; i < pixelBytes.length; i++) {
                     for (int j = 0; j < in[0].length; j++) {
-                        Bytes.unpack(in[i][j], pixelBytes[i], j * 4, 4, little);
+                        unpack(in[i][j], pixelBytes[i], j * 4, 4, little);
                     }
                 }
             }
@@ -953,7 +954,7 @@ public final class AWTImages {
             for (int i = 0; i < pixelBytes.length; i++) {
                 for (int j = 0; j < in[0].length; j++) {
                     final int v = Float.floatToIntBits(in[i][j]);
-                    Bytes.unpack(v, pixelBytes[i], j * 4, 4, little);
+                    unpack(v, pixelBytes[i], j * 4, 4, little);
                 }
             }
         } else if (pixels instanceof double[][]) {
@@ -962,7 +963,7 @@ public final class AWTImages {
             for (int i = 0; i < pixelBytes.length; i++) {
                 for (int j = 0; j < in[0].length; j++) {
                     final long v = Double.doubleToLongBits(in[i][j]);
-                    Bytes.unpack(v, pixelBytes[i], j * 8, 8, little);
+                    unpack(v, pixelBytes[i], j * 8, 8, little);
                 }
             }
         }
@@ -991,7 +992,7 @@ public final class AWTImages {
             pixelBytes = new byte[s.length][s[0].length * bpp];
             for (int i = 0; i < pixelBytes.length; i++) {
                 for (int j = 0; j < s[0].length; j++) {
-                    Bytes.unpack(s[i][j], pixelBytes[i], j * bpp, bpp, little);
+                    unpack(s[i][j], pixelBytes[i], j * bpp, bpp, little);
                 }
             }
         } else if (pixels instanceof int[][]) {
@@ -1001,7 +1002,7 @@ public final class AWTImages {
             pixelBytes = new byte[in.length][in[0].length * bpp];
             for (int i = 0; i < pixelBytes.length; i++) {
                 for (int j = 0; j < in[0].length; j++) {
-                    Bytes.unpack(in[i][j], pixelBytes[i], j * bpp, bpp, little);
+                    unpack(in[i][j], pixelBytes[i], j * bpp, bpp, little);
                 }
             }
         } else if (pixels instanceof float[][]) {
@@ -1011,7 +1012,7 @@ public final class AWTImages {
             for (int i = 0; i < pixelBytes.length; i++) {
                 for (int j = 0; j < in[0].length; j++) {
                     final int v = Float.floatToIntBits(in[i][j]);
-                    Bytes.unpack(v, pixelBytes[i], j * bpp, bpp, little);
+                    unpack(v, pixelBytes[i], j * bpp, bpp, little);
                 }
             }
         } else if (pixels instanceof double[][]) {
@@ -1021,7 +1022,7 @@ public final class AWTImages {
             for (int i = 0; i < pixelBytes.length; i++) {
                 for (int j = 0; j < in[0].length; j++) {
                     final long v = Double.doubleToLongBits(in[i][j]);
-                    Bytes.unpack(v, pixelBytes[i], j * bpp, bpp, little);
+                    unpack(v, pixelBytes[i], j * bpp, bpp, little);
                 }
             }
         }
@@ -1186,5 +1187,11 @@ public final class AWTImages {
             return JArrays.bytesToLongArray(b, byteOrder);
         }
         return null;
+    }
+
+    static void unpack(final long value, final byte[] buf, final int ndx,
+                       final int nBytes, final boolean little) {
+        Bytes.unpack(value, buf, ndx, nBytes, little);
+//        JArrays.setBytes8(buf, ndx, value, nBytes, little ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN);
     }
 }

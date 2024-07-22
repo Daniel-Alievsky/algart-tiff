@@ -69,6 +69,7 @@ public class AWTImageConversionsSpeed {
             throw new IIOException("Can't create an ImageInputStream!");
         }
         BufferedImage bi = ImageIO.read(stream);
+        System.out.printf("Read image %s%n", bi);
         final int dimX = bi.getWidth();
         final int dimY = bi.getHeight();
         final int tt = bi.getRaster().getTransferType();
@@ -87,11 +88,11 @@ public class AWTImageConversionsSpeed {
             bytesPerSample = data[0].length / (dimX * dimY);
             final int size = data.length * data[0].length;
             System.out.printf(Locale.US,
-                    "Decoding image %dx%dx%d, %d samples per %d bytes: " +
-                            "%.3f ms AWTImages (%.3f MB/sec), %.3f ms AlgART%n",
+                    "AWTImages decoding image %dx%dx%d, %d samples per %d bytes: %.3f ms (%.3f MB/sec)%n" +
+                            "AlgART decoding %s: %.3f ms%n",
                     dimX, dimY, data.length, size / bytesPerSample, bytesPerSample,
                     (t2 - t1) * 1e-6, size / 1048576.0 / ((t2 - t1) * 1e-9),
-                    (t3 - t2) * 1e-6);
+                    matrix, (t3 - t2) * 1e-6);
 
         }
 
