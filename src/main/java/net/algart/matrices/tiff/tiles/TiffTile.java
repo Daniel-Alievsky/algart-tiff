@@ -214,6 +214,7 @@ public final class TiffTile {
         }
         // - zero sizes are disabled, in particular, to provide correct IRectangularArea processing
         final long alignedSizeX = ((long) sizeX + 7L) & ~7L;
+        // - for checking sizes only! This value has no sense for whole-byte format!
         assert alignedSizeX >= sizeX && alignedSizeX >> 3 == (sizeX + 7) >>> 3;
         Supplier<String> alignedMsg = () -> alignedSizeX == sizeX ? "" :
                 " (after aligning " + sizeX + " to slightly larger width " + alignedSizeX + ", divisible by 8)";
@@ -233,7 +234,7 @@ public final class TiffTile {
         this.sizeInPixels = sizeInPixels;
         this.sizeInBits = sizeInPixels * bitsPerPixel;
         this.sizeInBytes = (sizeInBits + 7) >>> 3;
-        this.rowSizeInBytes = (int) ((alignedSizeX * bitsPerPixel) >>> 3);
+        this.rowSizeInBytes = ((sizeX * bitsPerPixel + 7) >>> 3);
         return this;
     }
 

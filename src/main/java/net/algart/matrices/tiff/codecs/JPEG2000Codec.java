@@ -28,12 +28,12 @@ import com.github.jaiimageio.jpeg2000.J2KImageReadParam;
 import com.github.jaiimageio.jpeg2000.J2KImageWriteParam;
 import com.github.jaiimageio.jpeg2000.impl.J2KImageReader;
 import com.github.jaiimageio.jpeg2000.impl.J2KImageWriter;
+import net.algart.arrays.JArrays;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.awt.AWTImages;
 import net.algart.matrices.tiff.awt.UnsignedIntBuffer;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.location.Location;
-import org.scijava.util.Bytes;
 
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
@@ -42,6 +42,7 @@ import javax.imageio.stream.ImageOutputStream;
 import javax.imageio.stream.MemoryCacheImageInputStream;
 import java.awt.image.*;
 import java.io.*;
+import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -255,6 +256,7 @@ public class JPEG2000Codec extends AbstractCodec {
 
         final int plane = jpeg2000Options.width * jpeg2000Options.height;
 
+        final ByteOrder byteOrder = jpeg2000Options.littleEndian ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
         if (jpeg2000Options.bitsPerSample == 8) {
             final byte[][] b = new byte[jpeg2000Options.numberOfChannels][plane];
             if (jpeg2000Options.interleaved) {
@@ -277,14 +279,16 @@ public class JPEG2000Codec extends AbstractCodec {
             if (jpeg2000Options.interleaved) {
                 for (int q = 0; q < plane; q++) {
                     for (int c = 0; c < jpeg2000Options.numberOfChannels; c++) {
-                        s[c][q] = Bytes.toShort(data, next, 2, jpeg2000Options.littleEndian);
+                        // assert toShort(data, next, false) == Bytes.toShort(data, next, 2, false);
+                        // assert toShort(data, next, true) == Bytes.toShort(data, next, 2, true);
+                        s[c][q] = toShort(data, next, jpeg2000Options.littleEndian);
                         next += 2;
                     }
                 }
             } else {
                 for (int c = 0; c < jpeg2000Options.numberOfChannels; c++) {
                     for (int q = 0; q < plane; q++) {
-                        s[c][q] = Bytes.toShort(data, next, 2, jpeg2000Options.littleEndian);
+                        s[c][q] = toShort(data, next, jpeg2000Options.littleEndian);
                         next += 2;
                     }
                 }
@@ -298,14 +302,18 @@ public class JPEG2000Codec extends AbstractCodec {
             if (jpeg2000Options.interleaved) {
                 for (int q = 0; q < plane; q++) {
                     for (int c = 0; c < jpeg2000Options.numberOfChannels; c++) {
-                        s[c][q] = Bytes.toInt(data, next, 4, jpeg2000Options.littleEndian);
+//                        assert JArrays.getBytes8(data, next, 4, ByteOrder.LITTLE_ENDIAN)
+//                                == (Bytes.toInt(data, next, 4, true) & 0xFFFFFFFFL);
+//                        assert JArrays.getBytes8(data, next, 4, ByteOrder.BIG_ENDIAN)
+//                                == (Bytes.toInt(data, next, 4, false) & 0xFFFFFFFFL);
+                        s[c][q] = (int) JArrays.getBytes8(data, next, 4, byteOrder);
                         next += 4;
                     }
                 }
             } else {
                 for (int c = 0; c < jpeg2000Options.numberOfChannels; c++) {
                     for (int q = 0; q < plane; q++) {
-                        s[c][q] = Bytes.toInt(data, next, 4, jpeg2000Options.littleEndian);
+                        s[c][q] = (int) JArrays.getBytes8(data, next, 4, byteOrder);
                         next += 4;
                     }
                 }
@@ -440,4 +448,11 @@ public class JPEG2000Codec extends AbstractCodec {
         }
         return reader.readRaster(0, param);
     }
+
+    private static short toShort(final byte[] src, int srcPos, final boolean little) {
+        return (short) (little ?
+                (src[srcPos] & 0xFF) | ((src[srcPos + 1] & 0xFF) << 8) :
+                ((src[srcPos] & 0xFF) << 8) | (src[srcPos + 1] & 0xFF));
+    }
+
 }
