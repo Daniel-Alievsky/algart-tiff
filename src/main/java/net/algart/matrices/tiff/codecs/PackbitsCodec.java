@@ -31,6 +31,7 @@ import org.scijava.io.location.Location;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Objects;
 
 /**
  * This class implements packbits decompression. Compression is not yet
@@ -70,8 +71,13 @@ public class PackbitsCodec extends AbstractCodec {
      */
     @Override
     public byte[] compress(final byte[] data, final Options options) throws TiffException {
-        // TODO: Add compression support.
-        throw new UnsupportedTiffFormatException("Packbits Compression not currently supported");
+        Objects.requireNonNull(data, "Null data");
+        Objects.requireNonNull(options, "Null codec options");
+        return encode(data,
+                options.width,
+                options.height,
+                options.numberOfChannels,
+                options.bitsPerSample);
     }
 
     /**
@@ -80,9 +86,10 @@ public class PackbitsCodec extends AbstractCodec {
      */
     @Override
     public byte[] decompress(final DataHandle<Location> in, Options options) throws IOException {
-        if (options == null) options = new Options();
-        if (in == null) throw new IllegalArgumentException(
-                "No data to decompress.");
+        Objects.requireNonNull(in, "Null input handle");
+        if (options == null) {
+            options = new Options();
+        }
         final long fp = in.offset();
         // Adapted from the TIFF 6.0 specification, page 42.
         final ByteArrayOutputStream output = new ByteArrayOutputStream(1024);
@@ -100,11 +107,82 @@ public class PackbitsCodec extends AbstractCodec {
                 final int len = -n + 1;
                 final byte inp = (byte) (in.read() & 0xff);
                 nread++;
-                for (int i = 0; i < len; i++)
+                for (int i = 0; i < len; i++) {
                     output.write(inp);
+                }
             }
         }
-        if (fp + nread < in.length()) in.seek(fp + nread);
+        if (fp + nread < in.length()) {
+            in.seek(fp + nread);
+        }
         return output.toByteArray();
+    }
+
+    private static byte[] encode(
+            byte[] b,
+            int width,
+            int height,
+            int numberOfChannels,
+            int bitsPerSample) {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        int bitsPerPixel = numberOfChannels * bitsPerSample;
+        int bytesPerRow = (bitsPerPixel * width + 7) / 8;
+        int bufSize = (bytesPerRow + (bytesPerRow + 127) / 128);
+        byte[] compData = new byte[bufSize];
+
+        for (int i = 0, off = 0; i < height; i++) {
+            int bytes = packBits(b, off, bytesPerRow, compData, 0);
+            off += bytesPerRow;
+            stream.write(compData, 0, bytes);
+        }
+
+        return stream.toByteArray();
+    }
+
+    private static int packBits(byte[] input, int inOffset, int inCount, byte[] output, int outOffset) {
+        int inMax = inOffset + inCount - 1;
+        int inMaxMinus1 = inMax - 1;
+
+        while (inOffset <= inMax) {
+            int run = 1;
+            byte replicate = input[inOffset];
+            while (run < 127 && inOffset < inMax &&
+                    input[inOffset] == input[inOffset + 1]) {
+                run++;
+                inOffset++;
+            }
+            if (run > 1) {
+                inOffset++;
+                output[outOffset++] = (byte) (-(run - 1));
+                output[outOffset++] = replicate;
+            }
+
+            run = 0;
+            int saveOffset = outOffset;
+            while (run < 128 &&
+                    ((inOffset < inMax &&
+                            input[inOffset] != input[inOffset + 1]) ||
+                            (inOffset < inMaxMinus1 &&
+                                    input[inOffset] != input[inOffset + 2]))) {
+                run++;
+                output[++outOffset] = input[inOffset++];
+            }
+            if (run > 0) {
+                output[saveOffset] = (byte) (run - 1);
+                outOffset++;
+            }
+
+            if (inOffset == inMax) {
+                if (run > 0 && run < 128) {
+                    output[saveOffset]++;
+                    output[outOffset++] = input[inOffset++];
+                } else {
+                    output[outOffset++] = (byte) 0;
+                    output[outOffset++] = input[inOffset++];
+                }
+            }
+        }
+
+        return outOffset;
     }
 }

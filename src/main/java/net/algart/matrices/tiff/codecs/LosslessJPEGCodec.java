@@ -32,6 +32,7 @@ import org.scijava.io.handle.DataHandle;
 import org.scijava.io.location.Location;
 
 import java.io.IOException;
+import java.util.Objects;
 
 /**
  * Decompresses lossless JPEG images.
@@ -159,8 +160,7 @@ public class LosslessJPEGCodec extends AbstractCodec {
      */
     @Override
     public byte[] decompress(final DataHandle<Location> in, Options options) throws IOException {
-        if (in == null) throw new IllegalArgumentException(
-                "No data to decompress.");
+        Objects.requireNonNull(in, "Null input handle");
         if (options == null) options = new Options();
         byte[] buf = new byte[0];
 
