@@ -28,7 +28,7 @@ import net.algart.arrays.PackedBitArraysPer8;
 import net.algart.arrays.TooLargeArrayException;
 import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
-import net.algart.matrices.tiff.data.TiffUnpacking;
+import net.algart.matrices.tiff.data.TiffUnusualPrecisions;
 
 import java.nio.ByteOrder;
 import java.util.*;
@@ -521,14 +521,14 @@ public final class TiffTile {
      * <p>This method is necessary rarely: {@link #getDecodedData()} is enough for most needs.
      *
      * @return unpacked data.
-     * @see TiffUnpacking#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)
+     * @see TiffUnusualPrecisions#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)
      * @see #bitsPerSample()
      * @see TiffMap#bitsPerUnpackedSample()
      */
     public byte[] unpackUnusualDecodedData() {
         byte[] samples = getDecodedData();
         try {
-            samples = TiffUnpacking.unpackUnusualPrecisions(
+            samples = TiffUnusualPrecisions.unpackUnusualPrecisions(
                     samples, ifd(), samplesPerPixel, sizeInPixels, true);
         } catch (TiffException e) {
             throw new IllegalStateException("Illegal IFD inside the tile map", e);
