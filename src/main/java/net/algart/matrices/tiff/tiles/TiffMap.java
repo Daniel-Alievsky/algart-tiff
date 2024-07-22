@@ -101,8 +101,8 @@ public final class TiffMap {
     private final int tileSamplesPerPixel;
     private final int alignedBitsPerSample;
     private final int bitsPerUnpackedSample;
-    private final int tileBitsPerPixel;
-    private final int totalBitsPerPixel;
+    private final int tileAlignedBitsPerPixel;
+    private final int totalAlignedBitsPerPixel;
     private final TiffSampleType sampleType;
     private final boolean wholeBytes;
     private final Class<?> elementType;
@@ -147,19 +147,20 @@ public final class TiffMap {
             assert (long) numberOfChannels * (long) alignedBitsPerSample <
                     TiffIFD.MAX_NUMBER_OF_CHANNELS * TiffIFD.MAX_BITS_PER_SAMPLE;
             // - actually must be in 8 times less
-            this.tileBitsPerPixel = tileSamplesPerPixel * alignedBitsPerSample;
-            this.totalBitsPerPixel = numberOfChannels * alignedBitsPerSample;
+            this.tileAlignedBitsPerPixel = tileSamplesPerPixel * alignedBitsPerSample;
+            this.totalAlignedBitsPerPixel = numberOfChannels * alignedBitsPerSample;
             this.sampleType = ifd.sampleType();
-            this.wholeBytes = sampleType.isConsistingOfWholeBytes();
-            if (this.wholeBytes && (alignedBitsPerSample & 7) != 0) {
+            this.wholeBytes = sampleType.isWholeBytes();
+            if (this.wholeBytes != ((alignedBitsPerSample & 7) == 0)) {
                 throw new ConcurrentModificationException("Corrupted IFD, probably from a parallel thread" +
-                        " (sample type " + sampleType +
-                        " is whole-bytes, but we have " + alignedBitsPerSample + " bits/sample)");
+                        " (sample type " + sampleType + " is" +
+                        (wholeBytes ? "" : " NOT") +
+                        " whole-bytes, but we have " + alignedBitsPerSample + " bits/sample)");
             }
-            if ((totalBitsPerPixel == 1) != sampleType.isBinary()) {
+            if ((totalAlignedBitsPerPixel == 1) != sampleType.isBinary()) {
                 throw new ConcurrentModificationException("Corrupted IFD, probably from a parallel thread" +
                         " (sample type is " + sampleType +
-                        ", but we have " + totalBitsPerPixel + " bits/pixel)");
+                        ", but we have " + totalAlignedBitsPerPixel + " bits/pixel)");
             }
             if (sampleType.isBinary() && numberOfChannels > 1) {
                 throw new AssertionError("Binary IFD for " + numberOfChannels +
@@ -186,12 +187,12 @@ public final class TiffMap {
                 // - note that it is also checked deeper in the next operator
             }
             this.tileSizeInPixels = tileSizeX * tileSizeY;
-            if ((long) tileSizeInPixels * (long) tileBitsPerPixel > Integer.MAX_VALUE) {
+            if ((long) tileSizeInPixels * (long) tileAlignedBitsPerPixel > Integer.MAX_VALUE) {
                 throw new IllegalArgumentException("Very large TIFF tiles " + tileSizeX + "x" + tileSizeY +
                         ", " + tileSamplesPerPixel + " channels per " + alignedBitsPerSample +
                         " bits >= 2^31 bits (256 MB) are not supported");
             }
-            this.tileSizeInBytes = (tileSizeInPixels * tileBitsPerPixel + 7) >>> 3;
+            this.tileSizeInBytes = (tileSizeInPixels * tileAlignedBitsPerPixel + 7) >>> 3;
         } catch (TiffException e) {
             throw new IllegalArgumentException("Illegal IFD: " + e.getMessage(), e);
         }
@@ -256,6 +257,18 @@ public final class TiffMap {
         return tileSamplesPerPixel;
     }
 
+    public TiffSampleType sampleType() {
+        return sampleType;
+    }
+
+    public boolean isBinary() {
+        return sampleType().isBinary();
+    }
+
+    public boolean isWholeBytes() {
+        return wholeBytes;
+    }
+
     /**
      * Minimal number of bits, necessary to store one channel of the pixel:
      * the value of BitsPerSample TIFF tag, aligned to the nearest non-lesser multiple of 8,
@@ -268,8 +281,13 @@ public final class TiffMap {
      *
      * @return number of bytes, necessary to store one channel of the pixel inside TIFF.
      */
-    public int bitsPerSample() {
+    public int alignedBitsPerSample() {
         return alignedBitsPerSample;
+    }
+
+    public OptionalInt bytesPerSample() {
+        assert wholeBytes == ((alignedBitsPerSample & 7) == 0) : "must be checked ins the constructor";
+        return wholeBytes ? OptionalInt.of(alignedBitsPerSample >>> 3) : OptionalInt.empty();
     }
 
     /**
@@ -278,18 +296,18 @@ public final class TiffMap {
      * {@link TiffReader}, and for source data,
      * that should be written by {@link TiffWriter}.
      *
-     * <p>Usually this value is equal to results of {@link #bitsPerSample()}, excepting the following rare cases,
-     * called <b>unusual precisions</b>:</p>
+     * <p>Usually this value is equal to results of {@link #alignedBitsPerSample()},
+     * excepting the following rare cases, called <b>unusual precisions</b>:</p>
      *
      * <ul>
      *     <li>every channel is encoded as N-bit integer value, where 17&le;N&le;24, and, so, requires 3 bytes:
-     *     this method returns 32, {@link #bitsPerSample()} returns 24
+     *     this method returns 32, {@link #alignedBitsPerSample()} returns 24
      *     (image, stored in memory, must have 2<sup>k</sup> bytes (k=1..3) per every sample, to allow to represent
      *     it by one of Java types <code>byte</code>, <code>short</code>, <code>int</code>,
      *     <code>float</code>, <code>double</code>);
      *     </li>
      *     <li>pixels are encoded as 16-bit or 24-bit floating point values:
-     *     this method returns 32, {@link #bitsPerSample()} returns 16/24
+     *     this method returns 32, {@link #alignedBitsPerSample()} returns 16/24
      *     (in memory, such image will be unpacked into usual array of 32-bit <code>float</code> values).
      *     </li>
      * </ul>
@@ -305,24 +323,12 @@ public final class TiffMap {
         return bitsPerUnpackedSample;
     }
 
-    public int tileBitsPerPixel() {
-        return tileBitsPerPixel;
+    public int tileAlignedBitsPerPixel() {
+        return tileAlignedBitsPerPixel;
     }
 
-    public int totalBitsPerPixel() {
-        return totalBitsPerPixel;
-    }
-
-    public TiffSampleType sampleType() {
-        return sampleType;
-    }
-
-    public boolean isBinary() {
-        return sampleType().isBinary();
-    }
-
-    public boolean isWholeBytes() {
-        return wholeBytes;
+    public int totalAlignedBitsPerPixel() {
+        return totalAlignedBitsPerPixel;
     }
 
     public Class<?> elementType() {
@@ -374,7 +380,7 @@ public final class TiffMap {
     }
 
     public long totalSizeInBytes() {
-        return (Math.multiplyExact(totalSizeInPixels(), (long) totalBitsPerPixel) + 7) >>> 3;
+        return (Math.multiplyExact(totalSizeInPixels(), (long) totalAlignedBitsPerPixel) + 7) >>> 3;
         // - but overflow here should be impossible due to the check in setDimensions
     }
 
@@ -762,11 +768,11 @@ public final class TiffMap {
         if (dimY < 0) {
             throw new IllegalArgumentException("Negative y-dimension: " + dimY);
         }
-        if ((long) dimX * (long) dimY > Long.MAX_VALUE / totalBitsPerPixel) {
+        if ((long) dimX * (long) dimY > Long.MAX_VALUE / totalAlignedBitsPerPixel) {
             // - Very improbable! But we would like to be sure that 63-bit arithmetic
             // is enough to calculate total size of the map in BYTES.
             throw new TooLargeArrayException("Extremely large image sizes " + dimX + "x" + dimY +
-                    ", " + totalBitsPerPixel + " bits/pixel: total number of bits is greater than 2^63-1 (!)");
+                    ", " + totalAlignedBitsPerPixel + " bits/pixel: total number of bits is greater than 2^63-1 (!)");
         }
         final int tileCountX = (int) ((long) dimX + (long) tileSizeX - 1) / tileSizeX;
         final int tileCountY = (int) ((long) dimY + (long) tileSizeY - 1) / tileSizeY;

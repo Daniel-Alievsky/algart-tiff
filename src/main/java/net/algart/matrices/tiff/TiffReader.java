@@ -1184,7 +1184,8 @@ public class TiffReader implements Closeable {
      * <b>does not unpack 16- or 24-bit</b> floating-point formats. These cases
      * are processed after reading all tiles inside {@link #readSamples(TiffMap, int, int, int, int)}
      * method, if {@link #isAutoUnpackUnusualPrecisions()} flag is set, or may be performed by external
-     * code with help of {@link TiffUnusualPrecisions#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)} method.
+     * code with help of {@link TiffUnusualPrecisions#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)}
+     * method.
      * See {@link TiffReader#setAutoUnpackUnusualPrecisions(boolean)}.
      *
      * <p>This method does not allow 5, 6, 7 or greater than 8 bytes/sample
@@ -1355,8 +1356,11 @@ public class TiffReader implements Closeable {
                     interleave ?
                             String.format(Locale.US, " + %.3f interleave", (t4 - t3) * 1e-6) : "",
                     unpackingPrecision ?
-                            String.format(Locale.US, " + %.3f unpacking %d-bit precisions",
-                                    (t5 - t4) * 1e-6, map.bitsPerSample()) : "",
+                            String.format(Locale.US, " + %.3f unpacking %d-bit %s",
+                                    (t5 - t4) * 1e-6,
+                                    map.alignedBitsPerSample(),
+                                    map.sampleType().isFloatingPoint() ? "float values" : "integer values") :
+                            "",
                     sizeInBytes / 1048576.0 / ((t5 - t1) * 1e-9)));
         }
         return samples;
@@ -1377,8 +1381,8 @@ public class TiffReader implements Closeable {
         final byte[] samples = readSamples(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
         long t1 = debugTime();
         final TiffSampleType sampleType = map.sampleType();
-        if (!autoUnpackUnusualPrecisions && map.bitsPerSample() != sampleType.bitsPerSample()) {
-            throw new IllegalStateException("Cannot convert TIFF pixels, " + map.bitsPerSample() +
+        if (!autoUnpackUnusualPrecisions && map.alignedBitsPerSample() != sampleType.bitsPerSample()) {
+            throw new IllegalStateException("Cannot convert TIFF pixels, " + map.alignedBitsPerSample() +
                     " bits/sample, to \"" + sampleType.elementType() + "\" " + sampleType.bitsPerSample() +
                     "-bit Java type: unpacking unusual prevision mode is disabled");
         }
@@ -1711,7 +1715,7 @@ public class TiffReader implements Closeable {
 
         final int mapTileSizeX = map.tileSizeX();
         final int mapTileSizeY = map.tileSizeY();
-        final long bitsPerSample = map.bitsPerSample();
+        final long bitsPerSample = map.alignedBitsPerSample();
         // - "long" here leads to stricter requirements later on
         final int numberOfSeparatedPlanes = map.numberOfSeparatedPlanes();
         final int samplesPerPixel = map.tileSamplesPerPixel();

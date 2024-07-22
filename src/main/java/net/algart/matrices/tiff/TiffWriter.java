@@ -815,7 +815,7 @@ public class TiffWriter implements Closeable {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(samples, "Null samples");
         TiffReader.checkRequestedArea(fromX, fromY, sizeX, sizeY);
-        checkRequestedAreaInArray(samples, sizeX, sizeY, map.totalBitsPerPixel());
+        checkRequestedAreaInArray(samples, sizeX, sizeY, map.totalAlignedBitsPerPixel());
         List<TiffTile> updatedTiles = new ArrayList<>();
         if (sizeX == 0 || sizeY == 0) {
             // - if no pixels are updated, no need to expand the map and to check correct expansion
@@ -829,8 +829,8 @@ public class TiffWriter implements Closeable {
         final int mapTileSizeY = map.tileSizeY();
         final int numberOfSeparatedPlanes = map.numberOfSeparatedPlanes();
         final int samplesPerPixel = map.tileSamplesPerPixel();
-        final long bitsPerSample = map.bitsPerSample();
-        final long bitsPerPixel = map.tileBitsPerPixel();
+        final long bitsPerSample = map.alignedBitsPerSample();
+        final long bitsPerPixel = map.tileAlignedBitsPerPixel();
         // - "long" here leads to stricter requirements later on
 
         final int minXIndex = Math.max(0, TiffReader.divFloor(fromX, mapTileSizeX));

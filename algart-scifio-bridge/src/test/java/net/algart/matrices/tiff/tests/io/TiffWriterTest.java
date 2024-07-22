@@ -338,7 +338,7 @@ public class TiffWriterTest {
                     }
 
                     Object samplesArray = makeSamples(ifdIndex, map.numberOfChannels(), map.sampleType(), w, h);
-                    final boolean interleaved = !writer.isAutoInterleaveSource() && map.bitsPerSample() == 8;
+                    final boolean interleaved = !writer.isAutoInterleaveSource() && map.alignedBitsPerSample() == 8;
                     if (interleaved) {
                         samplesArray = map.toInterleavedSamples(
                                 (byte[]) samplesArray, map.numberOfChannels(), (long) w * (long) h);

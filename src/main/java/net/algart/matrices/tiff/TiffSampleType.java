@@ -79,7 +79,7 @@ public enum TiffSampleType {
     }
 
     public OptionalInt bytesPerSample() {
-        return isConsistingOfWholeBytes() ? OptionalInt.of(bitsPerSample >>> 3) : OptionalInt.empty();
+        return isWholeBytes() ? OptionalInt.of(bitsPerSample >>> 3) : OptionalInt.empty();
     }
 
     public Class<?> elementType() {
@@ -94,7 +94,7 @@ public enum TiffSampleType {
         return this == BIT;
     }
 
-    public boolean isConsistingOfWholeBytes() {
+    public boolean isWholeBytes() {
         return this != BIT;
     }
 
