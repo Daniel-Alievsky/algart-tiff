@@ -438,7 +438,7 @@ public class TiffWriterTest {
                     }
                     for (int c = c1; c <= c2; c++) {
                         for (int x = 0, disp = y * dimX; x < dimX; x++, disp++) {
-                            channels[disp + c * matrixSize] = (byte) (50 * ifdIndex + x + y) < 0;
+                            channels[disp + c * matrixSize] = (byte) (50 * ifdIndex + Math.min(x, 500) + y) < 0;
                         }
                     }
                 }
@@ -455,7 +455,7 @@ public class TiffWriterTest {
                     }
                     for (int c = c1; c <= c2; c++) {
                         for (int x = 0, disp = y * dimX; x < dimX; x++, disp++) {
-                            channels[disp + c * matrixSize] = (byte) (50 * ifdIndex + x + y);
+                            channels[disp + c * matrixSize] = (byte) (50 * ifdIndex + Math.min(x, 500) + y);
                         }
                     }
                 }
@@ -472,7 +472,7 @@ public class TiffWriterTest {
                     }
                     for (int c = c1; c <= c2; c++) {
                         for (int x = 0, disp = y * dimX; x < dimX; x++, disp++) {
-                            int v = 157 * (50 * ifdIndex + x + y);
+                            int v = 157 * (50 * ifdIndex + Math.min(x, 500) + y);
                             if (c1 != c2) {
                                 v &= ~255; // - providing strong difference between little-endian and big-endian
                             }
@@ -487,7 +487,7 @@ public class TiffWriterTest {
                 for (int y = 0, disp = 0; y < dimY; y++) {
                     final int c = (y / 32) % bandCount;
                     for (int x = 0; x < dimX; x++, disp++) {
-                        channels[disp + c * matrixSize] = 157 * 65536 * (50 * ifdIndex + x + y);
+                        channels[disp + c * matrixSize] = 157 * 65536 * (50 * ifdIndex + Math.min(x, 500)  + y);
                     }
                 }
                 return channels;
@@ -497,7 +497,7 @@ public class TiffWriterTest {
                 for (int y = 0, disp = 0; y < dimY; y++) {
                     final int c = (y / 32) % bandCount;
                     for (int x = 0; x < dimX; x++, disp++) {
-                        int v = (50 * ifdIndex + x + y) & 0xFF;
+                        int v = (50 * ifdIndex + Math.min(x, 500) + y) & 0xFF;
                         channels[disp + c * matrixSize] = (float) (0.5 + 1.5 * (v / 256.0 - 0.5));
                     }
                 }
@@ -508,7 +508,7 @@ public class TiffWriterTest {
                 for (int y = 0, disp = 0; y < dimY; y++) {
                     final int c = (y / 32) % bandCount;
                     for (int x = 0; x < dimX; x++, disp++) {
-                        int v = (50 * ifdIndex + x + y) & 0xFF;
+                        int v = (50 * ifdIndex + Math.min(x, 500)  + y) & 0xFF;
                         channels[disp + c * matrixSize] = (float) (0.5 + 1.5 * (v / 256.0 - 0.5));
                     }
                 }

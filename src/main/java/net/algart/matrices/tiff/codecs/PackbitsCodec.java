@@ -25,7 +25,6 @@
 package net.algart.matrices.tiff.codecs;
 
 import net.algart.matrices.tiff.TiffException;
-import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.location.Location;
 
@@ -128,61 +127,57 @@ public class PackbitsCodec extends AbstractCodec {
         int bitsPerPixel = numberOfChannels * bitsPerSample;
         int bytesPerRow = (bitsPerPixel * width + 7) / 8;
         int bufSize = (bytesPerRow + (bytesPerRow + 127) / 128);
-        byte[] compData = new byte[bufSize];
-
+        byte[] buffer = new byte[bufSize];
         for (int i = 0, off = 0; i < height; i++) {
-            int bytes = packBits(b, off, bytesPerRow, compData, 0);
+            int bytes = packBits(buffer, b, off, bytesPerRow);
             off += bytesPerRow;
-            stream.write(compData, 0, bytes);
+            stream.write(buffer, 0, bytes);
         }
-
         return stream.toByteArray();
     }
 
-    private static int packBits(byte[] input, int inOffset, int inCount, byte[] output, int outOffset) {
-        int inMax = inOffset + inCount - 1;
-        int inMaxMinus1 = inMax - 1;
+    private static int packBits(byte[] dest, byte[] src, int srcPos, int count) {
+        int destPos = 0;
+        int srcPosMax = srcPos + count - 1;
+        int srcPosMaxMinus1 = srcPosMax - 1;
 
-        while (inOffset <= inMax) {
+        while (srcPos <= srcPosMax) {
             int run = 1;
-            byte replicate = input[inOffset];
-            while (run < 127 && inOffset < inMax &&
-                    input[inOffset] == input[inOffset + 1]) {
+            byte replicate = src[srcPos];
+            while (run < 127 && srcPos < srcPosMax && src[srcPos] == src[srcPos + 1]) {
                 run++;
-                inOffset++;
+                srcPos++;
             }
             if (run > 1) {
-                inOffset++;
-                output[outOffset++] = (byte) (-(run - 1));
-                output[outOffset++] = replicate;
+                srcPos++;
+                dest[destPos++] = (byte) (-(run - 1));
+                dest[destPos++] = replicate;
             }
 
             run = 0;
-            int saveOffset = outOffset;
+            int saveOffset = destPos;
             while (run < 128 &&
-                    ((inOffset < inMax &&
-                            input[inOffset] != input[inOffset + 1]) ||
-                            (inOffset < inMaxMinus1 &&
-                                    input[inOffset] != input[inOffset + 2]))) {
+                    ((srcPos < srcPosMax && src[srcPos] != src[srcPos + 1])
+                            || (srcPos < srcPosMaxMinus1 && src[srcPos] != src[srcPos + 2]))) {
                 run++;
-                output[++outOffset] = input[inOffset++];
+                dest[++destPos] = src[srcPos++];
             }
             if (run > 0) {
-                output[saveOffset] = (byte) (run - 1);
-                outOffset++;
+                dest[saveOffset] = (byte) (run - 1);
+                destPos++;
             }
 
-            if (inOffset == inMax) {
+            if (srcPos == srcPosMax) {
                 if (run > 0 && run < 128) {
-                    output[saveOffset]++;
-                    output[outOffset++] = input[inOffset++];
+                    dest[saveOffset]++;
+                    dest[destPos++] = src[srcPos++];
                 } else {
-                    output[outOffset++] = (byte) 0;
-                    output[outOffset++] = input[inOffset++];
+                    dest[destPos++] = (byte) 0;
+                    dest[destPos++] = src[srcPos++];
                 }
             }
         }
 
-        return outOffset;
+        return destPos;
     }
 }
