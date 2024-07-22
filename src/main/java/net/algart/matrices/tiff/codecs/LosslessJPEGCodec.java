@@ -24,12 +24,12 @@
 
 package net.algart.matrices.tiff.codecs;
 
+import net.algart.arrays.JArrays;
+import net.algart.arrays.MutableShortArray;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.location.Location;
-import org.scijava.util.Bytes;
-import org.scijava.util.ShortArray;
 
 import java.io.IOException;
 
@@ -248,12 +248,19 @@ public class LosslessJPEGCodec extends AbstractCodec {
                         final int indexC = nextSample - (width + 1) * bytesPerSample +
                                 componentOffset;
 
-                        final int sampleA = indexA < 0 ? 0 : Bytes.toInt(buf, indexA,
-                                bytesPerSample, false);
-                        final int sampleB = indexB < 0 ? 0 : Bytes.toInt(buf, indexB,
-                                bytesPerSample, false);
-                        final int sampleC = indexC < 0 ? 0 : Bytes.toInt(buf, indexC,
-                                bytesPerSample, false);
+//                        if (indexA >= 0 && indexA < buf.length - 4)
+//                            assert Bytes.toInt(buf, indexA, 4, false) ==
+//                                    (int) JArrays.getBytes8InBigEndianOrder(buf, indexA, 4);
+//                        final int sampleA = indexA < 0 ? 0 : Bytes.toInt(buf, indexA, bytesPerSample, false);
+//                        final int sampleB = indexB < 0 ? 0 : Bytes.toInt(buf, indexB, bytesPerSample, false);
+//                        final int sampleC = indexC < 0 ? 0 : Bytes.toInt(buf, indexC, bytesPerSample, false);
+
+                        final int sampleA = indexA < 0 ? 0 :
+                                (int) JArrays.getBytes8InBigEndianOrder(buf, indexA, bytesPerSample);
+                        final int sampleB = indexB < 0 ? 0 :
+                                (int) JArrays.getBytes8InBigEndianOrder(buf, indexB, bytesPerSample);
+                        final int sampleC = indexC < 0 ? 0 :
+                                (int) JArrays.getBytes8InBigEndianOrder(buf, indexC, bytesPerSample);
 
                         if (nextSample > 0) {
                             int pred = 0;
@@ -285,7 +292,8 @@ public class LosslessJPEGCodec extends AbstractCodec {
 
                         final int offset = componentOffset + nextSample;
 
-                        Bytes.unpack(v, buf, offset, bytesPerSample, false);
+                        JArrays.setBytes8InBigEndianOrder(buf, offset, v, bytesPerSample);
+//                        Bytes.unpack(v, buf, offset, bytesPerSample, false);
                     }
                     nextSample += bytesPerSample;
                 }
@@ -325,20 +333,20 @@ public class LosslessJPEGCodec extends AbstractCodec {
 //                    final byte tableClass = (byte) ((s & 0xf0) >> 4);
                     final byte destination = (byte) (s & 0xf);
                     final int[] nCodes = new int[16];
-                    final ShortArray table = new ShortArray();
+                    final MutableShortArray table = MutableShortArray.newArray();
                     for (int i = 0; i < nCodes.length; i++) {
                         nCodes[i] = in.read();
-                        table.add((short) nCodes[i]);
+                        table.pushShort((short) nCodes[i]);
                     }
 
                     for (int i = 0; i < nCodes.length; i++) {
                         for (int j = 0; j < nCodes[i]; j++) {
-                            table.add((short) (in.read() & 0xff));
+                            table.pushShort((short) (in.read() & 0xff));
                         }
                     }
-                    huffmanTables[destination] = new short[table.size()];
+                    huffmanTables[destination] = new short[table.length32()];
                     for (int i = 0; i < huffmanTables[destination].length; i++) {
-                        huffmanTables[destination][i] = table.getValue(i);
+                        huffmanTables[destination][i] = (short) table.getShort(i);
                     }
                 }
                 in.seek(fp + length);

@@ -26,7 +26,6 @@ package net.algart.matrices.tiff.awt;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
-import org.scijava.util.Bytes;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -43,9 +42,6 @@ import java.util.Iterator;
 import java.util.Objects;
 
 public class JPEG {
-    private static final boolean USE_LEGACY_DECODE_Y_CB_CR = false;
-    // - Should be false for correct behaviour and better performance; necessary for debugging needs only.
-
     public record ImageInformation(BufferedImage bufferedImage, IIOMetadata metadata) {
     }
 
@@ -171,11 +167,6 @@ public class JPEG {
         Objects.requireNonNull(declaredSubsampling, "Null declared subsampling");
         final long bandLength = (long) imageInformation.bufferedImage.getWidth()
                 * (long) imageInformation.bufferedImage.getHeight();
-        if (USE_LEGACY_DECODE_Y_CB_CR) {
-            decodeYCbCrLegacy(data, bandLength);
-            return;
-        }
-
         if (data[0].length != bandLength) {
             // - should not occur
             throw new TiffException("Cannot correct unpacked JPEG: number of bytes per sample in JPEG " +
@@ -201,6 +192,7 @@ public class JPEG {
     }
 
 
+    /*
     private static void decodeYCbCrLegacy(byte[][] buf, long bandLength) {
         final boolean littleEndian = false;
         // - not important for 8-bit values
@@ -223,6 +215,7 @@ public class JPEG {
             Bytes.unpack(blue, buf[2], i, nBytes, littleEndian);
         }
     }
+    */
 
     public static ImageReader getImageReaderOrNull(Object inputStream) {
         Iterator<ImageReader> readers = ImageIO.getImageReaders(inputStream);
