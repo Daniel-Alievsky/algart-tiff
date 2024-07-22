@@ -39,17 +39,7 @@ import java.io.IOException;
 import java.util.Locale;
 
 public class AWTImageConversionsSpeed {
-    private static byte[][] separateToArrays(byte[] bytes3Band) {
-        if (bytes3Band == null) {
-            return null;
-        }
-        final int bandSize = bytes3Band.length / 3;
-        byte[][] result = new byte[3][bandSize];
-        for (int k = 0; k < 3; k++) {
-            System.arraycopy(bytes3Band, k * bandSize, result[k], 0, bandSize);
-        }
-        return result;
-    }
+    private static final boolean LITTLE_ENDIAN = false;
 
     public static void main(String[] args) throws IOException {
         if (args.length < 2) {
@@ -80,7 +70,7 @@ public class AWTImageConversionsSpeed {
         for (int test = 1; test <= numberOfTests; test++) {
             System.out.printf("%nDecoding test %d%n", test);
             long t1 = System.nanoTime();
-            data = AWTImages.getPixelBytes(bi, true);
+            data = AWTImages.getPixelBytes(bi, LITTLE_ENDIAN);
             long t2 = System.nanoTime();
             BufferedImageToMatrix converter = new BufferedImageToMatrix.ToInterleavedRGB();
             Matrix<? extends UpdatablePArray> matrix = converter.toMatrix(bi);
@@ -101,7 +91,7 @@ public class AWTImageConversionsSpeed {
             System.out.printf("%nEncoding test %d%n", test);
             long t1 = System.nanoTime();
             bi = AWTImages.makeImage(
-                    data, dimX, dimY, bytesPerSample, floatingPoint, false, false);
+                    data, dimX, dimY, bytesPerSample, floatingPoint, LITTLE_ENDIAN, false);
             long t2 = System.nanoTime();
             final int size = data.length * data[0].length;
             System.out.printf(Locale.US,

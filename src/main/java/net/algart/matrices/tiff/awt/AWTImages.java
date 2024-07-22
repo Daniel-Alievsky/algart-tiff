@@ -1191,7 +1191,6 @@ public final class AWTImages {
 
     static void unpack(final long value, final byte[] buf, final int ndx,
                        final int nBytes, final boolean little) {
-        Bytes.unpack(value, buf, ndx, nBytes, little);
-//        JArrays.setBytes8(buf, ndx, value, nBytes, little ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN);
+        JArrays.setBytes8(buf, ndx, value, nBytes, little ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN);
     }
 }
