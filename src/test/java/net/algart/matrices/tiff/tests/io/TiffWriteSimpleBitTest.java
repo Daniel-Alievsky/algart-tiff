@@ -30,6 +30,7 @@ import net.algart.arrays.Matrix;
 import net.algart.math.functions.Func2;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
+import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.TiffMap;
 
 import java.io.IOException;
@@ -72,6 +73,7 @@ public class TiffWriteSimpleBitTest {
             for (int k = 1; k <= numberOfTests; k++) {
                 writer.create();
                 TiffIFD ifd = writer.newIFD();
+                ifd.putCompression(TagCompression.PACK_BITS);
                 ifd.putMatrixInformation(m);
                 final TiffMap map = writer.newMap(ifd, false);
 
@@ -82,7 +84,9 @@ public class TiffWriteSimpleBitTest {
                                 "written in %.3f ms, %.3f MB/sec%n",
                         k, numberOfTests, m.dimX(), m.dimY(), m.size(),
                         (t2 - t1) * 1e-6, Matrices.sizeOf(m) / 1048576.0 / ((t2 - t1) * 1e-9));
-
+                if (k == numberOfTests) {
+                    System.out.printf("%nWritten IFD:%n%s%n", ifd.toString(TiffIFD.StringFormat.NORMAL));
+                }
             }
         }
         System.out.println("Done");
