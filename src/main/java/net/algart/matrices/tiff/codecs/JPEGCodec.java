@@ -162,7 +162,7 @@ public class JPEGCodec extends AbstractCodec implements TiffCodec.Timing {
     }
 
     @Override
-    public byte[] decompress(final DataHandle<Location> in, Options options) throws IOException {
+    public byte[] decompress(final DataHandle<? extends Location> in, Options options) throws IOException {
         Objects.requireNonNull(in, "Null input handle");
         final long offset = in.offset();
         long t1 = timing ? System.nanoTime() : 0;

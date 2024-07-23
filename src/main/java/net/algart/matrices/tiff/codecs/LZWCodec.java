@@ -246,7 +246,7 @@ public class LZWCodec extends AbstractCodec {
      * {@link Options#getMaxSizeInBytes()}
      */
     @Override
-    public byte[] decompress(final DataHandle<Location> in, Options options) throws IOException {
+    public byte[] decompress(final DataHandle<? extends Location> in, Options options) throws IOException {
         if (in == null || in.length() == 0) return null;
         if (options == null) options = new Options();
 

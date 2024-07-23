@@ -155,7 +155,7 @@ public class ZlibCodec extends AbstractCodec {
     }
 
     @Override
-    public byte[] decompress(final DataHandle<Location> in, Options options) throws IOException {
+    public byte[] decompress(final DataHandle<? extends Location> in, Options options) throws IOException {
         final InflaterInputStream i = new InflaterInputStream(
                 new DataHandleInputStream<>(in));
         final ByteVector bytes = new ByteVector();

@@ -31,7 +31,7 @@ import org.scijava.io.location.Location;
  * A codec which just returns the exact data it was given, performing no
  * compression or decompression.
  */
-public class UncompressedCodec extends AbstractCodec {
+public class UncompressedCodec implements TiffCodec {
     // (It is placed here to avoid autocorrection by IntelliJ IDEA)
     /*
      * #%L
@@ -64,11 +64,6 @@ public class UncompressedCodec extends AbstractCodec {
     @Override
     public byte[] decompress(final byte[] data, final Options options) {
         return data;
-    }
-
-    @Override
-    public byte[] decompress(final DataHandle<Location> in, final Options options) {
-        throw new UnsupportedOperationException("Not implemented.");
     }
 
     @Override

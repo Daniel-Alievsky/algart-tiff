@@ -32,13 +32,14 @@ import org.scijava.io.location.BytesLocation;
 import org.scijava.io.location.Location;
 
 import java.io.IOException;
-import java.util.Objects;
 
 abstract class AbstractCodec implements TiffCodec {
     @Override
     public byte[] decompress(byte[] data, Options options) throws TiffException {
-        try (DataHandle<Location> handle = getBytesHandle(new BytesLocation(data))) {
-            return decompress(handle, options);
+        try {
+            try (DataHandle<? extends Location> handle = new BytesHandle(new BytesLocation(data))) {
+                return decompress(handle, options);
+            }
         } catch (IOException e) {
             throw e instanceof TiffException tiffException ? tiffException : new TiffException(e);
             // - last variant is very improbable
@@ -52,16 +53,7 @@ abstract class AbstractCodec implements TiffCodec {
      * @param in      The stream from which to read compressed data.
      * @param options Options to be used during decompression.
      * @return The decompressed data.
-     * @throws TiffException If data is not valid compressed data for this
-     *                       decompressor.
+     * @throws TiffException If data is not valid compressed data for this decompressor.
      */
-    abstract byte[] decompress(DataHandle<Location> in, Options options) throws IOException;
-
-
-    @SuppressWarnings("rawtypes, unchecked")
-    private static DataHandle<Location> getBytesHandle(BytesLocation bytesLocation) {
-        Objects.requireNonNull(bytesLocation, "Null bytesLocation");
-        BytesHandle bytesHandle = new BytesHandle(bytesLocation);
-        return (DataHandle) bytesHandle;
-    }
+    abstract byte[] decompress(DataHandle<? extends Location> in, Options options) throws IOException;
 }

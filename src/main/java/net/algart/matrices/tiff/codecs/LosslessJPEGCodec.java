@@ -159,7 +159,7 @@ public class LosslessJPEGCodec extends AbstractCodec {
      * {@link Options#isLittleEndian()}
      */
     @Override
-    public byte[] decompress(final DataHandle<Location> in, Options options) throws IOException {
+    public byte[] decompress(final DataHandle<? extends Location> in, Options options) throws IOException {
         Objects.requireNonNull(in, "Null input handle");
         if (options == null) options = new Options();
         byte[] buf = new byte[0];
