@@ -63,7 +63,7 @@ public class TiffWriteSimpleBitTest {
         final int numberOfTests = startArgIndex < args.length ? Integer.parseInt(args[startArgIndex]) : 1;
 
         Matrix<BitArray> m = Matrices.asCoordFuncMatrix(
-                (Func2) (x, y) -> ((int) (x - y) & 0xFFF) < 0x800 ? 0 : 1,
+                (Func2) (x, y) -> ((int) (x - y) & 0xFFFF) < 0x8000 ? 0 : 1,
                 BitArray.class, dimX, dimY).clone();
 
         System.out.println("Writing huge TIFF " + targetFile);

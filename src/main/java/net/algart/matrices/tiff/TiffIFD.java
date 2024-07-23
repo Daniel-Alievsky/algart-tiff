@@ -1514,10 +1514,11 @@ public class TiffIFD {
                             getByteOrder(),
                             isBigTiff(),
                             hasTileInformation()) :
-                    "%s, precision %s%s, ".formatted(
+                    "%s, precision %s%s, %s, ".formatted(
                             isLittleEndian() ? "little-endian" : "big-endian",
                             sampleType == null ? "???" : sampleType.prettyName(),
-                            isBigTiff() ? " [BigTIFF]" : ""));
+                            isBigTiff() ? " [BigTIFF]" : "",
+                            compressionPrettyName()));
             if (hasTileInformation()) {
                 sb.append(
                         json ?
