@@ -41,6 +41,10 @@ import java.util.function.Supplier;
  * @author Denial Alievsky
  */
 public final class TiffTile {
+    private static final boolean DISABLE_CROPPING = false;
+    // - You may set this to true for creating little invalid stripped TIFF, where the last strip is not cropped.
+    // Normal value is false.
+
     private final TiffMap map;
     private final int samplesPerPixel;
     private final int bitsPerSample;
@@ -341,7 +345,7 @@ public final class TiffTile {
      */
     public TiffTile cropToMap(boolean strippedOnly) {
         checkOutsideMap();
-        if (strippedOnly && map.getTilingMode().isTileGrid()) {
+        if (DISABLE_CROPPING || (strippedOnly && map.getTilingMode().isTileGrid())) {
             return this;
         } else {
             return setSizes(Math.min(sizeX, map.dimX() - index.fromX()), Math.min(sizeY, map.dimY() - index.fromY()));

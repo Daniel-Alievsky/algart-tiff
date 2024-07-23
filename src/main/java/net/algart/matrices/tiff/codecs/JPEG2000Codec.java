@@ -31,8 +31,6 @@ import com.github.jaiimageio.jpeg2000.impl.J2KImageWriter;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.awt.AWTImages;
 import net.algart.matrices.tiff.awt.UnsignedIntBuffer;
-import org.scijava.io.handle.DataHandle;
-import org.scijava.io.location.Location;
 
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
@@ -46,7 +44,7 @@ import java.util.Objects;
 
 // This class avoids the bug in SCIFIO: https://github.com/scifio/scifio/issues/495
 // and allows to work without SCIFIO context
-public class JPEG2000Codec extends AbstractCodec {
+public class JPEG2000Codec implements TiffCodec {
     // (It is placed here to avoid autocorrection by IntelliJ IDEA)
     /*
      * #%L
@@ -332,24 +330,12 @@ public class JPEG2000Codec extends AbstractCodec {
         return out.toByteArray();
     }
 
-    // Almost exact copy of equivalent SCIFIO method
-    @Override
-    public byte[] decompress(final DataHandle<Location> in, Options options) throws IOException {
-        Objects.requireNonNull(in, "Null in");
-        Objects.requireNonNull(options, "Null codec options");
+    // Note: SCIFIO codec also overrides the method decompress(DataHandle) of AbstractCodec,
+    // but this is probably a bug:
+    // 1) actually we use decompress(byte[] data) method, which is also overridden;
+    // 2) the implementation used options.maxSizeInBytes for reading COMPRESSED data.
 
-        byte[] buf = null;
-        final long fp = in.offset();
-        if (options.maxSizeInBytes == 0) {
-            buf = new byte[(int) (in.length() - fp)];
-        } else {
-            buf = new byte[(int) (options.maxSizeInBytes - fp)];
-        }
-        in.read(buf);
-        return decompress(buf, options);
-    }
-
-    // Copy of equivalent SCIFIO method, not using jaiIIOService field
+    // Below is a copy of equivalent SCIFIO method, not using jaiIIOService field
     @Override
     public byte[] decompress(byte[] data, Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");

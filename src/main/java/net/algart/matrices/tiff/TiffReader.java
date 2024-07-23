@@ -1615,19 +1615,18 @@ public class TiffReader implements Closeable {
     private TiffCodec.Options buildOptions(TiffTile tile) throws TiffException {
         TiffCodec.Options options = this.codecOptions.clone();
         options.setByteOrder(tile.byteOrder());
-        final int samplesLength = tile.getSizeInBytes();
-        // - Note: it may be LESS than a usual number of samples in the tile/strip.
-        // Current readEncodedTile() always returns full-size tile without cropping
-        // (see comments inside that method), but the user CAN crop last tile/strip in an external code.
+        options.setMaxSizeInBytes(tile.getSizeInBytes());
+        // - Note: this may be LESS than a usual number of samples in the tile/strip.
+        // Current readEncodedTile() can return full-size tile without cropping
+        // (see comments inside that method), but usually it CROPS the last tile/strip.
         // Old SCIFIO code did not detect this situation, in particular, did not distinguish between
         // last and usual strips in stripped image, and its behaviour could be described by the following assignment:
         //      final int samplesLength = tile.map().tileSizeInBytes();
         // For many codecs (like DEFLATE or JPEG) this is not important, but at least
         // LZWCodec creates result array on the base of options.maxSizeInBytes.
-        // If it will be invalid (too large) value, returned decoded data will be too large,
-        // and this class will throw an exception "data may be lost" in further
-        // tile.completeNumberOfPixels() call.
-        options.setMaxSizeInBytes(Math.max(samplesLength, tile.getStoredDataLength()));
+        // If it is invalid (too large value), the returned decoded data will be too large,
+        // and that is not too good: this class could throw an exception "data may be lost" in further
+        // tile.adjustNumberOfPixels() call if it called it without allowDecreasing=true argument.
         options.setInterleaved(true);
         // - Value "true" is necessary for most codecs, that work with high-level classes (like JPEG or JPEG-2000) and
         // need to be instructed to interleave results (unlike LZW or DECOMPRESSED, which work with data "as-is"
