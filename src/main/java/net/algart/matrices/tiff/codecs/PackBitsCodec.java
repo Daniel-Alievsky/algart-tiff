@@ -34,7 +34,7 @@ public class PackBitsCodec implements TiffCodec {
     public byte[] compress(final byte[] data, final Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
-        return encodeImage(data,
+        return packImage(data,
                 options.width,
                 options.height,
                 options.numberOfChannels,
@@ -55,19 +55,15 @@ public class PackBitsCodec implements TiffCodec {
         return result;
     }
 
-    private static byte[] encodeImage(
-            byte[] bytes,
-            int width,
-            int height,
-            int numberOfChannels,
-            int bitsPerSample) {
+    public static byte[] packImage(byte[] data, int width, int height, int numberOfChannels, int bitsPerSample) {
+        Objects.requireNonNull(data, "Null data");
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         final int bitsPerPixel = numberOfChannels * bitsPerSample;
         final int bytesPerRow = (bitsPerPixel * width + 7) / 8;
         final int bufSize = (bytesPerRow + (bytesPerRow + 127) / 128);
         final byte[] buffer = new byte[bufSize];
         for (int i = 0, disp = 0; i < height; i++) {
-            final int packedLength = packBytes(buffer, bytes, disp, bytesPerRow);
+            final int packedLength = packBytes(buffer, data, disp, bytesPerRow);
             disp += bytesPerRow;
             stream.write(buffer, 0, packedLength);
         }
