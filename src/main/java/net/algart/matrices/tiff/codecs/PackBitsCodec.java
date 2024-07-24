@@ -25,18 +25,11 @@
 package net.algart.matrices.tiff.codecs;
 
 import net.algart.matrices.tiff.TiffException;
-import org.scijava.io.handle.BytesHandle;
-import org.scijava.io.handle.DataHandle;
-import org.scijava.io.location.BytesLocation;
-import org.scijava.io.location.Location;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.Arrays;
 import java.util.Objects;
-import java.util.Random;
 
-public class PackbitsCodec implements TiffCodec {
+public class PackBitsCodec implements TiffCodec {
     @Override
     public byte[] compress(final byte[] data, final Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
@@ -81,9 +74,9 @@ public class PackbitsCodec implements TiffCodec {
         return stream.toByteArray();
     }
 
-    private static int packBytes(byte[] dest, byte[] src, int srcPos, int count) {
+    public static int packBytes(byte[] dest, byte[] src, int srcPos, int numberOfUnpackedBytes) {
         int destPos = 0;
-        final int srcPosMax = srcPos + count - 1;
+        final int srcPosMax = srcPos + numberOfUnpackedBytes - 1;
         final int srcPosMaxMinus1 = srcPosMax - 1;
 
         while (srcPos <= srcPosMax) {
@@ -125,20 +118,25 @@ public class PackbitsCodec implements TiffCodec {
         return destPos;
     }
 
-    private static int unpackBytes(byte[] dest, byte[] src, int count) {
-        if (count < 0 || count > src.length) {
-            throw new IllegalArgumentException("Invalid count: " + count);
+    public static int unpackBytes(byte[] dest, byte[] src, int numberOfPackedBytes) {
+        if (numberOfPackedBytes < 0 || numberOfPackedBytes > src.length) {
+            throw new IllegalArgumentException("Invalid numberOfPackedBytes: " + numberOfPackedBytes);
         }
         int srcPos = 0;
         int destPos = 0;
-        int maxSrcPos = count - 1;
+        int maxSrcPos = numberOfPackedBytes - 1;
 
         while (destPos < dest.length && srcPos < maxSrcPos) {
+            // Note: if srcPos == numberOfPackedBytes - 1 now, there is no sense to continue:
+            // yes, we can read this byte, but we cannot copy anything else (b >= 0)
+            // and cannot read the repeater (b < 0).
             final byte b = src[srcPos++];
             if (b >= 0) {
                 // 0 <= b <= 127
                 final int n = (int) b + 1;
-                if (srcPos + n > src.length || destPos + n > dest.length) {
+                if (srcPos + n > numberOfPackedBytes || destPos + n > dest.length) {
+                    // - probably invalid data;
+                    // we do not try to copy only a portion of data, instead, we skip all this block
                     break;
                 }
                 System.arraycopy(src, srcPos, dest, destPos, n);
@@ -151,100 +149,12 @@ public class PackbitsCodec implements TiffCodec {
                 for (int i = 0; i < n; i++) {
                     dest[destPos++] = repeat;
                 }
-            } else {
-                // No-op, do nothing
-                srcPos++;
             }
+            // Else we have no-operation code: 128
+            // Note that some codecs, for example, TIFFPackBitsCompressor in Java API,
+            // increase srcPos 2nd time in this case (and skip the next byte).
+            // For comparison, TwelveMonkey library does not increase srcPos here.
         }
         return destPos;
-    }
-
-    private static byte[] oldDecompress(byte[] bytes, int maxSizeInBytes) throws IOException {
-        try (DataHandle<? extends Location> in = new BytesHandle(new BytesLocation(bytes))) {
-            final long fp = in.offset();
-            // Adapted from the TIFF 6.0 specification, page 42.
-            final ByteArrayOutputStream output = new ByteArrayOutputStream(1024);
-            int nread = 0;
-            while (output.size() < maxSizeInBytes) {
-                final byte n = (byte) (in.read() & 0xff);
-                nread++;
-                if (n >= 0) { // 0 <= n <= 127
-                    byte[] b = new byte[n + 1];
-                    in.read(b);
-                    nread += n + 1;
-                    output.write(b);
-                } else if (n != -128) { // -127 <= n <= -1
-                    final int len = -n + 1;
-                    final byte inp = (byte) (in.read() & 0xff);
-                    nread++;
-                    for (int i = 0; i < len; i++) {
-                        output.write(inp);
-                    }
-                }
-            }
-            if (fp + nread < in.length()) {
-                in.seek(fp + nread);
-            }
-            return output.toByteArray();
-        }
-    }
-
-    public static void main(String[] args) throws IOException {
-        Random rnd = new Random();
-        for (int test = 1; test <= 1000000; test++) {
-            if (test % 1000 == 0) {
-                System.out.printf("\rTest #%d...\r", test);
-            }
-            byte[] data = new byte[1000];
-            boolean useSeries = rnd.nextBoolean();
-            for (int k = 0; k < data.length; ) {
-                byte b = (byte) rnd.nextInt();
-                if (useSeries) {
-                    int len = rnd.nextInt(13) == 0 ? rnd.nextInt(300) : rnd.nextInt(2);
-                    for (int i = 0; i < len && k < data.length; i++) {
-                        data[k++] = b;
-                    }
-                } else {
-                    data[k++] = b;
-                }
-            }
-            if (test == 1) {
-                System.out.printf("Some example of packed array (%s series):%n%s%n%n",
-                        useSeries ? "with" : "no", Arrays.toString(data));
-            }
-            int count = rnd.nextInt(data.length);
-            final int bufSize = (count + (count + 127) / 128);
-            final byte[] packed = new byte[bufSize];
-            int packedLength = packBytes(packed, data, 0, count);
-            if (packedLength > bufSize) {
-                throw new AssertionError(packedLength + " > " + bufSize);
-            }
-
-            // Testing actual compression/decompression
-            byte[] unpacked = new byte[count];
-            int unpackedLength = unpackBytes(unpacked, packed, packedLength);
-            if (unpackedLength != count) {
-                throw new AssertionError(unpackedLength + "!=" + count);
-            }
-            for (int k = 0; k < count; k++) {
-                if (unpacked[k] != data[k]) {
-                    throw new AssertionError("unpackBytes: " + k + ": " + unpacked[k] + "!=" + data[k]);
-                }
-            }
-            // Testing old decompression code from SCIFIO
-            byte[] old = oldDecompress(Arrays.copyOf(packed, packedLength), count);
-            if (old.length != count) {
-                throw new AssertionError(old.length + "!=" + count);
-            }
-            for (int k = 0; k < count; k++) {
-                if (old[k] != data[k]) {
-                    throw new AssertionError("oldDecompress: " + k + ": " + old[k] + "!=" + data[k]);
-                }
-            }
-
-            unpackBytes(data, data, count);
-            // - exception should not occur
-        }
-        System.out.println("O'k           ");
     }
 }

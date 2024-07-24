@@ -51,7 +51,7 @@ public enum TagCompression {
             return customizeWritingJpeg(tile, options);
         }
     },
-    PACK_BITS(32773, "PackBits", PackbitsCodec::new),
+    PACK_BITS(32773, "PackBits", PackBitsCodec::new),
 
     JPEG_2000_LOSSLESS(33003, "JPEG-2000 lossless", JPEG2000Codec::new),
     // - note that while writing we do not try to use YCbCr encoding, as Aperio recommends for 33003
