@@ -30,22 +30,23 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import javax.imageio.*;
+import javax.imageio.IIOException;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReadParam;
+import javax.imageio.ImageReader;
 import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.stream.ImageInputStream;
-import javax.imageio.stream.ImageOutputStream;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Iterator;
 import java.util.Objects;
 
-public class JPEG {
+public class JPEGDecoding {
     public record ImageInformation(BufferedImage bufferedImage, IIOMetadata metadata) {
     }
 
-    private JPEG() {
+    private JPEGDecoding() {
     }
 
     /**
@@ -57,7 +58,7 @@ public class JPEG {
         if (stream == null) {
             throw new IIOException("Cannot decompress JPEG tile");
         }
-        ImageReader reader = JPEG.getImageReaderOrNull(stream);
+        ImageReader reader = getImageReaderOrNull(stream);
         if (reader == null) {
             return null;
         }
@@ -69,50 +70,6 @@ public class JPEG {
             return new ImageInformation(image, imageMetadata);
         } finally {
             reader.dispose();
-        }
-    }
-
-    /**
-     * Analog of <code>ImageIO.write</code> for JPEG.
-     */
-    public static void writeJPEG(
-            BufferedImage image,
-            OutputStream out,
-            TagPhotometricInterpretation colorSpace,
-            double quality) throws IOException {
-        Objects.requireNonNull(image, "Null image");
-        Objects.requireNonNull(out, "Null output stream");
-        Objects.requireNonNull(colorSpace, "Null color space");
-        if (colorSpace != TagPhotometricInterpretation.Y_CB_CR && colorSpace != TagPhotometricInterpretation.RGB) {
-            throw new IllegalArgumentException("Unsupported color space: " + colorSpace);
-        }
-        final boolean enforceRGB = colorSpace == TagPhotometricInterpretation.RGB;
-
-        final ImageOutputStream ios = ImageIO.createImageOutputStream(out);
-        final ImageWriter jpegWriter = getJPEGWriter();
-        jpegWriter.setOutput(ios);
-
-        final ImageWriteParam writeParam = jpegWriter.getDefaultWriteParam();
-        writeParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-        writeParam.setCompressionType("JPEG");
-        writeParam.setCompressionQuality((float) quality);
-        final ImageTypeSpecifier imageTypeSpecifier = new ImageTypeSpecifier(image);
-        if (enforceRGB) {
-            writeParam.setDestinationType(imageTypeSpecifier);
-            // - Important! It informs getDefaultImageMetadata to add Adobe and SOF markers,
-            // that is detected by JPEGImageWriter and leads to correct outCsType = JPEG.JCS_RGB
-        }
-        final IIOMetadata metadata = jpegWriter.getDefaultImageMetadata(
-                enforceRGB ? null : imageTypeSpecifier,
-                writeParam);
-        // - Important! imageType = null necessary for RGB, in other case setDestinationType will be ignored!
-
-        final IIOImage iioImage = new IIOImage(image, null, metadata);
-        // - metadata necessary (with necessary markers)
-        try {
-            jpegWriter.write(null, iioImage, writeParam);
-        } finally {
-            jpegWriter.dispose();
         }
     }
 
@@ -138,7 +95,7 @@ public class JPEG {
         return null;
     }
 
-    public static boolean completeDecodingYCbCrNecessary(
+    public static boolean isCompleteDecodingYCbCrNecessary(
             ImageInformation imageInformation,
             TagPhotometricInterpretation declaredColorSpace,
             int[] declaredSubsampling) {
@@ -191,7 +148,6 @@ public class JPEG {
         }
     }
 
-
     /*
     private static void decodeYCbCrLegacy(byte[][] buf, long bandLength) {
         final boolean littleEndian = false;
@@ -222,16 +178,7 @@ public class JPEG {
         return findAWTCodec(readers);
     }
 
-    public static ImageWriter getJPEGWriter() throws IIOException {
-        Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("jpeg");
-        ImageWriter result = findAWTCodec(writers);
-        if (result == null) {
-            throw new IIOException("Cannot write JPEG: no necessary registered plugin");
-        }
-        return result;
-    }
-
-    private static <T> T findAWTCodec(Iterator<T> iterator) {
+    static <T> T findAWTCodec(Iterator<T> iterator) {
         if (!iterator.hasNext()) {
             return null;
         }
@@ -253,11 +200,11 @@ public class JPEG {
         return first;
     }
 
-    private static boolean isProbableAWTClass(Object o) {
-        return o != null && o.getClass().getName().startsWith("com.sun.");
-    }
-
     private static int toUnsignedByte(double v) {
         return v < 0.0 ? 0 : v > 255.0 ? 255 : (int) Math.round(v);
+    }
+
+    private static boolean isProbableAWTClass(Object o) {
+        return o != null && o.getClass().getName().startsWith("com.sun.");
     }
 }

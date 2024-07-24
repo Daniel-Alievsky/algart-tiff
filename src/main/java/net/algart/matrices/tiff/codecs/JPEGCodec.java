@@ -26,7 +26,8 @@ package net.algart.matrices.tiff.codecs;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.awt.AWTImages;
-import net.algart.matrices.tiff.awt.JPEG;
+import net.algart.matrices.tiff.awt.JPEGDecoding;
+import net.algart.matrices.tiff.awt.JPEGEncoding;
 import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.DataHandleInputStream;
@@ -150,7 +151,7 @@ public class JPEGCodec extends AbstractCodec implements TiffCodec.Timing {
         // - for JPEG, maximal possible quality is 1.0, but it is better to allow greater qualities
         // (for comparison, maximal quality in JPEG-2000 is Double.MAX_VALUE)
         try {
-            JPEG.writeJPEG(image, output, colorSpace, jpegQuality);
+            JPEGEncoding.writeJPEG(image, output, colorSpace, jpegQuality);
         } catch (final IOException e) {
             throw new TiffException("Cannot compress JPEG data", e);
         }
@@ -166,9 +167,9 @@ public class JPEGCodec extends AbstractCodec implements TiffCodec.Timing {
         Objects.requireNonNull(in, "Null input handle");
         final long offset = in.offset();
         long t1 = timing ? System.nanoTime() : 0;
-        JPEG.ImageInformation info;
+        JPEGDecoding.ImageInformation info;
         try (InputStream input = new BufferedInputStream(new DataHandleInputStream<>(in), 8192)) {
-            info = JPEG.readJPEG(input);
+            info = JPEGDecoding.readJPEG(input);
         } catch (final IOException exc) {
             // probably a lossless JPEG; delegate to LosslessJPEGCodec
             in.seek(offset);
@@ -195,7 +196,8 @@ public class JPEGCodec extends AbstractCodec implements TiffCodec.Timing {
         if (options instanceof JPEGOptions extended) {
             declaredColorSpace = extended.getPhotometricInterpretation();
             declaredSubsampling = extended.getYCbCrSubsampling();
-            completeDecoding = JPEG.completeDecodingYCbCrNecessary(info, declaredColorSpace, declaredSubsampling);
+            completeDecoding = JPEGDecoding.isCompleteDecodingYCbCrNecessary(
+                    info, declaredColorSpace, declaredSubsampling);
         }
         BufferedImage bi = info.bufferedImage();
         long t2 = timing ? System.nanoTime() : 0;
@@ -205,7 +207,7 @@ public class JPEGCodec extends AbstractCodec implements TiffCodec.Timing {
         long t3 = timing ? System.nanoTime() : 0;
 
         if (completeDecoding) {
-            JPEG.completeDecodingYCbCr(data, info, declaredColorSpace, declaredSubsampling);
+            JPEGDecoding.completeDecodingYCbCr(data, info, declaredColorSpace, declaredSubsampling);
         }
         timeBridge += t3 - t2;
 
