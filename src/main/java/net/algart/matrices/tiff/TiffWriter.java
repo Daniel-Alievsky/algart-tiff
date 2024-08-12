@@ -1075,8 +1075,12 @@ public class TiffWriter implements Closeable {
             final byte[] encodedData = codec.compress(data, options);
             tile.setEncodedData(encodedData);
         } else {
-            final byte[] encodedData = encodeByExternalCodec(tile, options);
-            tile.setEncodedData(encodedData);
+            final Optional<byte[]> encodedData = encodeByExternalCodec(tile, tile.getDecodedData(), options);
+            if (encodedData.isEmpty()) {
+                throw new UnsupportedTiffFormatException("TIFF compression with code " +
+                        tile.ifd().getCompressionCode() + " cannot be encoded: " + tile.ifd());
+            }
+            tile.setEncodedData(encodedData.get());
         }
         if (tile.ifd().isReversedFillOrder()) {
             PackedBitArraysPer8.reverseBitOrderInPlace(tile.getData());
@@ -1580,18 +1584,18 @@ public class TiffWriter implements Closeable {
         }
     }
 
-    protected byte[] encodeByExternalCodec(TiffTile tile, TiffCodec.Options options) throws TiffException {
+    protected Optional<byte[]> encodeByExternalCodec(TiffTile tile, byte[] decodedData, TiffCodec.Options options)
+            throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
+        Objects.requireNonNull(decodedData, "Null decoded data");
         Objects.requireNonNull(options, "Null options");
         if (!SCIFIOBridge.isScifioInstalled()) {
-            // - this check is necessary to get a good error message when we use this library without SCIFIO
-            throw new UnsupportedTiffFormatException("TIFF compression with code " + tile.ifd().getCompressionCode() +
-                    " cannot be processed");
+            return Optional.empty();
         }
         final Object scifioCodecOptions = options.toScifioStyleOptions(SCIFIOBridge.codecOptionsClass());
         final int width = tile.getSizeX();
         final int height = tile.getSizeY();
-        return compressByScifioCodec(tile.ifd(), tile.getDecodedData(), width, height, scifioCodecOptions);
+        return Optional.of(compressByScifioCodec(tile.ifd(), decodedData, width, height, scifioCodecOptions));
     }
 
     static void checkRequestedAreaInArray(byte[] array, long sizeX, long sizeY, int bitsPerPixel) {

@@ -1040,8 +1040,12 @@ public class TiffReader implements Closeable {
             final byte[] decodedData = codec.decompress(tile.getEncodedData(), options);
             tile.setPartiallyDecodedData(decodedData);
         } else {
-            final byte[] decodedData = decodeByExternalCodec(tile, options);
-            tile.setPartiallyDecodedData(decodedData);
+            final Optional<byte[]> decodedData = decodeByExternalCodec(tile, tile.getEncodedData(), options);
+            if (decodedData.isEmpty()) {
+                throw new UnsupportedTiffFormatException("TIFF compression with code " +
+                        tile.ifd().getCompressionCode() + " cannot be decoded: " + tile.ifd());
+            }
+            tile.setPartiallyDecodedData(decodedData.get());
         }
         tile.setInterleaved(options.isInterleaved());
         long t3 = debugTime();
@@ -1482,11 +1486,16 @@ public class TiffReader implements Closeable {
         return getFileHandle(file);
     }
 
-    protected byte[] decodeByExternalCodec(TiffTile tile, TiffCodec.Options options) throws TiffException {
+    protected Optional<byte[]> decodeByExternalCodec(TiffTile tile, byte[] encodedData, TiffCodec.Options options)
+            throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
+        Objects.requireNonNull(encodedData, "Null encoded data");
         Objects.requireNonNull(options, "Null options");
+        if (!SCIFIOBridge.isScifioInstalled()) {
+            return Optional.empty();
+        }
         final Object scifioCodecOptions = options.toScifioStyleOptions(SCIFIOBridge.codecOptionsClass());
-        return decompressByScifioCodec(tile.ifd(), tile.getEncodedData(), scifioCodecOptions);
+        return Optional.of(decompressByScifioCodec(tile.ifd(), encodedData, scifioCodecOptions));
     }
 
     static DataHandle<Location> getFileHandle(Path file) {

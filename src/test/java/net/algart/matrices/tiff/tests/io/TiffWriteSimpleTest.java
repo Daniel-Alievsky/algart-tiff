@@ -69,9 +69,6 @@ public class TiffWriteSimpleTest {
         try (final TiffWriter writer = new TiffWriter(targetFile)) {
             writer.setByteFiller((byte) 0);
             writer.setSmartIFDCorrection(true);
-            // writer.setEnforceUseExternalCodec(true);
-            // - if you will uncomment this, you will always get a message "compression cannot be processed",
-            // because there are no external codecs by default
 
             writer.create();
             // writer.startNewFile(); // - not a problem to call twice

@@ -49,6 +49,7 @@ public class TiffReadDemo {
         System.out.println("Reading TIFF " + sourceFile + "...");
         List<Matrix<UpdatablePArray>> image;
         try (TiffReader reader = new TiffReader(sourceFile)) {
+            // reader.setEnforceUseExternalCodec(true); // - throws exception: no SCIFIO or other external codecs
             // reader.setContext(TiffTools.newSCIFIOContext()); // - throws exception without dependence on SCIFIO
             // reader.setInterleaveResults(true); // - slows down reading (unnecessary interleaving+separating)
             image = reader.readChannels(ifdIndex);

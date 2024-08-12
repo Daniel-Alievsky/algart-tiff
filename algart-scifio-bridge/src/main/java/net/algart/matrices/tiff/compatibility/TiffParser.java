@@ -983,8 +983,10 @@ public class TiffParser extends TiffReader {
     // Note: the algorithm, implemented in SCIFIO JPEGCodec until 0.46.0 version, works incorrectly.
     // Note: this method may be tested with the image jpeg_ycbcr_encoded_as_rgb.tiff
     @Override
-    protected byte[] decodeByExternalCodec(TiffTile tile, TiffCodec.Options options) throws TiffException {
+    protected Optional<byte[]> decodeByExternalCodec(TiffTile tile, byte[] encodedData, TiffCodec.Options options)
+            throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
+        Objects.requireNonNull(encodedData, "Null encoded data");
         Objects.requireNonNull(options, "Null options");
         final CodecOptions codecOptions = options.toScifioStyleOptions(CodecOptions.class);
         final TiffIFD ifd = tile.ifd();
@@ -994,7 +996,7 @@ public class TiffParser extends TiffReader {
                 this.ycbcrCorrection) {
                 codecOptions.ycbcr = true;
         }
-        return decompressByScifioCodec(tile.ifd(), tile.getEncodedData(), codecOptions);
+        return Optional.of(decompressByScifioCodec(tile.ifd(), encodedData, codecOptions));
     }
 
     @Deprecated
