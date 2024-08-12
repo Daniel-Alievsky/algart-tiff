@@ -112,6 +112,7 @@ public class JPEGDecoding {
         // and the JPEG is incorrectly detected as RGB; so, there is no sense to optimize this.
     }
 
+    // Note: this method may be tested with the image jpeg_ycbcr_encoded_as_rgb.tiff
     public static void completeDecodingYCbCr(
             byte[][] data,
             ImageInformation imageInformation,

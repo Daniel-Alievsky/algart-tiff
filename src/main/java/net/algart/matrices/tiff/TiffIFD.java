@@ -448,7 +448,7 @@ public class TiffIFD {
 
     public int getSamplesPerPixel() throws TiffException {
         int compressionValue = optInt(Tags.COMPRESSION, 0);
-        if (compressionValue == TagCompression.JPEG_OLD_STYLE.code()) {
+        if (compressionValue == TagCompression.OLD_JPEG.code()) {
             return 3;
             // always 3 channels: RGB
         }
@@ -758,7 +758,7 @@ public class TiffIFD {
 
     public TagPhotometricInterpretation getPhotometricInterpretation() throws TiffException {
         if (!containsKey(Tags.PHOTOMETRIC_INTERPRETATION)
-                && getInt(Tags.COMPRESSION, 0) == TagCompression.JPEG_OLD_STYLE.code()) {
+                && getInt(Tags.COMPRESSION, 0) == TagCompression.OLD_JPEG.code()) {
             return TagPhotometricInterpretation.RGB;
         }
         final int code = getInt(Tags.PHOTOMETRIC_INTERPRETATION, -1);

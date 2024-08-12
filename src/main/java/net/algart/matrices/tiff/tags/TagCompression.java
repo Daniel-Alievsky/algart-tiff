@@ -59,15 +59,11 @@ public enum TagCompression {
     JPEG_2000_LOSSLESS_ALTERNATIVE(33005, "JPEG-2000 alternative", JPEG2000Codec::new),
     JPEG_2000_LOSSLESS_OLYMPUS(34712, "JPEG-2000 Olympus", JPEG2000Codec::new),
 
-    // The following compression are recognized, but not supported
-    CCITT_1D(2, "CCITT Group 3 1-Dimensional Modified Huffman", null),
-    CCITT_GROUP_3_FAX(3, "CCITT T.4 bi-level encoding (Group 3 Fax)", null),
-    CCITT_GROUP_4_FAX(4, "CCITT T.6 bi-level encoding (Group 4 Fax)", null),
-    JPEG_OLD_STYLE(6, "Old-style JPEG", null),
-    // - OLD_JPEG does not work: see https://github.com/scifio/scifio/issues/510
-    THUNDERSCAN(32809, "Thunderscan", null),
-    NIKON(34713, "Nikon", null),
-    LURAWAVE(65535, "LuraWave", null);
+    // The following compressions are recognized, but not supported
+    CCITT_MODIFIED_HUFFMAN_RLE(2, "CCITT Modified Huffman RLE compression", null),
+    CCITT_T4(3, "CCITT T.4 bi-level encoding (Group 3 Fax)", null),
+    CCITT_T6(4, "CCITT T.6 bi-level encoding (Group 4 Fax)", null),
+    OLD_JPEG(6, "Old-style JPEG", null);
 
     private static final Map<Integer, TagCompression> LOOKUP =
             Arrays.stream(values()).collect(Collectors.toMap(TagCompression::code, v -> v));
@@ -107,7 +103,7 @@ public enum TagCompression {
     }
 
     public boolean isJpeg() {
-        return this == JPEG || this == JPEG_OLD_STYLE;
+        return this == JPEG || this == OLD_JPEG;
     }
 
     public boolean isJpeg2000() {

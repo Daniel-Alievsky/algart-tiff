@@ -45,7 +45,7 @@ public class CreatingIFDTest {
         ifd.put(Tags.COMPRESSION, 22222);
         showIFD(ifd, "Unknown compression");
 
-        ifd.putCompression(TagCompression.JPEG_OLD_STYLE);
+        ifd.putCompression(TagCompression.OLD_JPEG);
         // - 3 channels, not 1
         showIFD(ifd, "Compression");
 
