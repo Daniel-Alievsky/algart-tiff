@@ -35,22 +35,21 @@ import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.zip.*;
 
 public class TiffCustomCodecDemo {
-    private static int MY_COMPRESSION = 40157;
+    public static int MY_GZIP_COMPRESSION_CODE = 40157;
 
-    private static byte[] myEncode(byte[] data) {
-        return data;
-    }
-
-    private static byte[] myDecode(byte[] data) {
-        return data;
-    }
+    private static final System.Logger LOG = System.getLogger(TiffCustomCodecDemo.class.getName());
+    private static final System.Logger.Level LOG_LEVEl = System.Logger.Level.INFO;
 
     public static void main(String[] args) throws IOException {
         if (args.length < 3) {
@@ -59,18 +58,20 @@ public class TiffCustomCodecDemo {
                     " source.jpg/png/bmp target.tiff test.jpg/png/bmp");
             return;
         }
+        testMyCodec();
+
         final Path sourceFile = Paths.get(args[0]);
         final Path tiffFile = Paths.get(args[1]);
         final Path testFile = Paths.get(args[2]);
 
-        System.out.println("Reading " + sourceFile + "...");
+        System.out.printf("%nReading %s...%n", sourceFile);
         List<Matrix<UpdatablePArray>> image = MatrixIO.readImage(sourceFile);
-        System.out.println("Writing TIFF " + tiffFile + "...");
+        System.out.printf("Writing TIFF %s...%n%n", tiffFile);
         try (TiffWriter writer = new TiffWriter(tiffFile, true) {
             @Override
             protected Optional<byte[]> encodeByExternalCodec(
                     TiffTile tile, byte[] decodedData, TiffCodec.Options options) throws TiffException {
-                return tile.ifd().getCompressionCode() == MY_COMPRESSION ?
+                return tile.ifd().getCompressionCode() == MY_GZIP_COMPRESSION_CODE ?
                         Optional.of(myEncode(tile.getDecodedData())) :
                         Optional.empty();
             }
@@ -78,16 +79,17 @@ public class TiffCustomCodecDemo {
             // writer.setAutoInterleaveSource(false); // - leads to throwing exception
             TiffIFD ifd = writer.newIFD();
             ifd.putChannelsInformation(image);
-            ifd.putCompressionCode(MY_COMPRESSION);
+            ifd.putCompressionCode(MY_GZIP_COMPRESSION_CODE);
+            // ifd.putCompression(TagCompression.DEFLATE); // - uncomment to compare sizes
             TiffMap map = writer.newFixedMap(ifd);
             writer.writeChannels(map, image);
         }
-        System.out.println("Reading TIFF " + tiffFile + "...");
+        System.out.printf("%nReading TIFF %s...%n%n", tiffFile);
         try (TiffReader reader = new TiffReader(tiffFile) {
             @Override
             protected Optional<byte[]> decodeByExternalCodec(
                     TiffTile tile, byte[] encodedData, TiffCodec.Options options) throws TiffException {
-                return tile.ifd().getCompressionCode() == MY_COMPRESSION ?
+                return tile.ifd().getCompressionCode() == MY_GZIP_COMPRESSION_CODE ?
                         Optional.of(myDecode(tile.getEncodedData())) :
                         Optional.empty();
             }
@@ -96,9 +98,43 @@ public class TiffCustomCodecDemo {
             // reader.setInterleaveResults(true); // - slows down reading (unnecessary interleaving+separating)
             image = reader.readChannels(0);
         }
-        System.out.println("Writing " + testFile + "...");
+        System.out.printf("%nWriting %s for comparison with original file...%n", testFile);
         MatrixIO.writeImage(testFile, image);
 
         System.out.println("Done");
+    }
+
+    private static byte[] myEncode(byte[] data) throws TiffException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try {
+            try (var gzip = new GZIPOutputStream(output)) {
+                gzip.write(data);
+            }
+        } catch (IOException e) {
+            throw new TiffException(e);
+        }
+        byte[] result = output.toByteArray();
+        LOG.log(LOG_LEVEl, data.length + " bytes compressed to " + result.length);
+        return result;
+    }
+
+    private static byte[] myDecode(byte[] data) throws TiffException {
+        byte[] result;
+        try (var gzip = new GZIPInputStream(new ByteArrayInputStream(data))) {
+            result = gzip.readAllBytes();
+        } catch (IOException e) {
+            throw new TiffException(e);
+        }
+        LOG.log(LOG_LEVEl, data.length + " bytes decompressed to " + result.length);
+        return result;
+    }
+
+    private static void testMyCodec() throws TiffException {
+        byte[] original = "Hello World!".repeat(1000).getBytes();
+        byte[] encoded = myEncode(original);
+        byte[] decoded = myDecode(encoded);
+        if (!Arrays.equals(decoded, original)) {
+            throw new AssertionError();
+        }
     }
 }
