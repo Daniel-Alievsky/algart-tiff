@@ -97,19 +97,21 @@ public class TiffSaver extends TiffWriter {
      * If we are writing planes sequentially and set this flag, then performance
      * is slightly improved.
      */
-    public void setWritingSequentially(final boolean sequential) {
+    public TiffSaver setWritingSequentially(final boolean sequential) {
         sequentialWrite = sequential;
+        return this;
     }
 
-    public void setCodecOptions(final CodecOptions codecOptions) {
+    public TiffSaver setCodecOptions(final CodecOptions codecOptions) {
         this.options = codecOptions;
         TiffCodec.Options options = getCodecOptions();
-        options.setToOldStyleOptions(codecOptions);
-        // - Not too important, but also does not create problems.
+        options.setToScifioStyleOptions(codecOptions);
+        // - This is not too important, but also does not create problems.
         // In particular, default quality=null may be replaced with quality=0.0,
         // but this is not a problem for old SCIFIO codecs.
         //noinspection resource
         setCodecOptions(options);
+        return this;
     }
 
     @Deprecated

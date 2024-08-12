@@ -39,7 +39,7 @@ public class CodecOptionsTest {
                 .setHeight(2048)
                 .setInterleaved(true);
         System.out.println(options);
-        final CodecOptions oldStyleOptions = options.toOldStyleOptions(CodecOptions.class);
+        final CodecOptions oldStyleOptions = options.toScifioStyleOptions(CodecOptions.class);
         System.out.println("Old-style options: " + oldStyleOptions);
         System.out.println("  width=" + oldStyleOptions.width);
         System.out.println("  height=" + oldStyleOptions.height);
@@ -55,7 +55,7 @@ public class CodecOptionsTest {
         System.out.println("  colorModel=" + oldStyleOptions.colorModel);
         System.out.println("  quality=" + oldStyleOptions.quality);
         options = new JPEG2000Codec.JPEG2000Options();
-        options.setToOldStyleOptions(oldStyleOptions);
+        options.setToScifioStyleOptions(oldStyleOptions);
         System.out.println("Back to Options class");
         System.out.println(options);
     }

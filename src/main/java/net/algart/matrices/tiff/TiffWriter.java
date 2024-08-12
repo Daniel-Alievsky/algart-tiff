@@ -387,6 +387,19 @@ public class TiffWriter implements Closeable {
         return enforceUseExternalCodec;
     }
 
+    /**
+     * Forces the writer to use an external codec via {@link #encodeByExternalCodec(TiffTile, TiffCodec.Options)}
+     * method even for standard compressions.
+     *
+     * <p>Note that this only makes sense if:</p>
+     * <ul>
+     *     <li>you override that method;</li>
+     *     <li>you are using this library together with SCIFIO.</li>
+     * </ul>
+     *
+     * @param enforceUseExternalCodec whether external codecs should be used even for standard compressions.
+     * @return a reference to this object.
+     */
     public TiffWriter setEnforceUseExternalCodec(boolean enforceUseExternalCodec) {
         this.enforceUseExternalCodec = enforceUseExternalCodec;
         return this;
@@ -1040,7 +1053,7 @@ public class TiffWriter implements Closeable {
         }
         tile.checkStoredNumberOfPixels();
         long t1 = debugTime();
-        prepareDecodedTileForEncoding(tile);
+        prepareTileForEncoding(tile);
         long t2 = debugTime();
 
         final TagCompression compression = TagCompression.valueOfCodeOrNull(tile.ifd().getCompressionCode());
@@ -1062,8 +1075,7 @@ public class TiffWriter implements Closeable {
             final byte[] encodedData = codec.compress(data, options);
             tile.setEncodedData(encodedData);
         } else {
-            Object externalOptions = buildExternalOptions(tile, options);
-            final byte[] encodedData = compressExternalFormat(tile, externalOptions);
+            final byte[] encodedData = encodeByExternalCodec(tile, options);
             tile.setEncodedData(encodedData);
         }
         if (tile.ifd().isReversedFillOrder()) {
@@ -1081,6 +1093,25 @@ public class TiffWriter implements Closeable {
         } else {
             timeEncodingMain += t4 - t3;
         }
+    }
+
+    public void prepareTileForEncoding(TiffTile tile) throws TiffException {
+        Objects.requireNonNull(tile, "Null tile");
+        if (autoInterleaveSource) {
+            if (tile.isInterleaved()) {
+                throw new IllegalArgumentException("Tile for encoding and writing to TIFF file must not be " +
+                        "interleaved:: " + tile);
+            }
+            tile.interleaveSamples();
+        } else {
+            tile.setInterleaved(true);
+            // - if not autoInterleave, we should suppose that the samples were already interleaved
+        }
+        TiffPacking.packTiffBits(tile);
+
+        // scifio.tiff().difference(tile.getDecodedData(), ifd);
+        // - this solution requires using SCIFIO context class; it is better to avoid this
+        TiffPrediction.subtractPredictionIfRequested(tile);
     }
 
     public void encode(TiffMap map) throws TiffException {
@@ -1503,41 +1534,16 @@ public class TiffWriter implements Closeable {
         }
     }
 
-    @Override
-    public void close() throws IOException {
-        synchronized (fileLock) {
-            out.close();
-        }
-    }
-
-    static void checkRequestedAreaInArray(byte[] array, long sizeX, long sizeY, int bitsPerPixel) {
-        Objects.requireNonNull(array, "Null array");
-        if (bitsPerPixel <= 0) {
-            throw new IllegalArgumentException("Zero or negative bitsPerPixel = " + bitsPerPixel);
-        }
-        final long arrayBits = (long) array.length * 8;
-        TiffReader.checkRequestedArea(0, 0, sizeX, sizeY);
-        if (sizeX * sizeY > arrayBits || sizeX * sizeY * (long) bitsPerPixel > arrayBits) {
-            throw new IllegalArgumentException("Requested area " + sizeX + "x" + sizeY +
-                    " is too large for array of " + array.length + " bytes, " + bitsPerPixel + " per pixel");
-        }
-    }
-
-    protected Object buildExternalOptions(TiffTile tile, TiffCodec.Options options) throws TiffException {
-        Objects.requireNonNull(tile, "Null tile");
-        Objects.requireNonNull(options, "Null options");
-        if (!SCIFIOBridge.isScifioInstalled()) {
-            throw new UnsupportedTiffFormatException("TIFF compression with code " + tile.ifd().getCompressionCode() +
-                    " cannot be processed");
-        }
-        return options.toOldStyleOptions(SCIFIOBridge.codecOptionsClass());
-    }
-
-    protected byte[] compressExternalFormat(TiffTile tile, Object externalOptions) throws TiffException {
-        Objects.requireNonNull(tile, "Null tile");
-        Objects.requireNonNull(externalOptions, "Null externalOptions");
-        final byte[] decodedData = tile.getDecodedData();
-        final int compressionCode = tile.ifd().getCompressionCode();
+    public final byte[] compressByScifioCodec(
+            TiffIFD ifd,
+            byte[] data,
+            int width,
+            int height,
+            Object scifioCodecOptions) throws TiffException {
+        Objects.requireNonNull(ifd, "Null ifd");
+        Objects.requireNonNull(data, "Null data");
+        Objects.requireNonNull(scifioCodecOptions, "Null scifioCodecOptions");
+        final int compressionCode = ifd.getCompressionCode();
         final Object scifio = scifio();
         if (scifio == null) {
             throw new IllegalStateException(
@@ -1551,41 +1557,54 @@ public class TiffWriter implements Closeable {
                     " is unknown and is not correctly recognized by the external SCIFIO subsystem", e);
         }
         try {
-            final TiffIFD ifd = tile.ifd();
             final Class<?> scifioIFDClass = SCIFIOBridge.scifioIFDClass();
             final Map<Integer, Object> scifioIFD = SCIFIOBridge.createIFD(scifioIFDClass);
             scifioIFD.putAll(ifd.map());
             scifioIFD.put(0, ifd.isLittleEndian()); // IFD.LITTLE_ENDIAN
             scifioIFD.put(1, ifd.isBigTiff());      // IFD.BIG_TIFF
-            scifioIFD.put(Tags.IMAGE_WIDTH, tile.getSizeX());
-            scifioIFD.put(Tags.IMAGE_LENGTH, tile.getSizeY());
-            // - correct dimensions (especially useful for resizable map, when dimensions are not set yet)
-            externalOptions = SCIFIOBridge.getCompressionCodecOptions(compression, scifioIFD, externalOptions);
-            return SCIFIOBridge.callCompress(scifio, compression, decodedData, externalOptions);
+            scifioIFD.put(Tags.IMAGE_WIDTH, width);
+            scifioIFD.put(Tags.IMAGE_LENGTH, height);
+            // - some correct dimensions (especially useful for a resizable map, when dimensions are not set yet)
+            scifioCodecOptions = SCIFIOBridge.getCompressionCodecOptions(compression, scifioIFD, scifioCodecOptions);
+            return SCIFIOBridge.callCompress(scifio, compression, data, scifioCodecOptions);
         } catch (InvocationTargetException e) {
             throw new TiffException("TIFF compression code " + compressionCode + " is unknown and " +
                     "cannot be correctly processed for compression by the external SCIFIO subsystem", e);
         }
-
     }
 
-    protected void prepareDecodedTileForEncoding(TiffTile tile) throws TiffException {
-        Objects.requireNonNull(tile, "Null tile");
-        if (autoInterleaveSource) {
-            if (tile.isInterleaved()) {
-                throw new IllegalArgumentException("Tile for encoding and writing to TIFF file must not be " +
-                        "interleaved:: " + tile);
-            }
-            tile.interleaveSamples();
-        } else {
-            tile.setInterleaved(true);
-            // - if not autoInterleave, we should suppose that the samples were already interleaved
+    @Override
+    public void close() throws IOException {
+        synchronized (fileLock) {
+            out.close();
         }
-        TiffPacking.packTiffBits(tile);
+    }
 
-        // scifio.tiff().difference(tile.getDecodedData(), ifd);
-        // - this solution requires using SCIFIO context class; it is better to avoid this
-        TiffPrediction.subtractPredictionIfRequested(tile);
+    protected byte[] encodeByExternalCodec(TiffTile tile, TiffCodec.Options options) throws TiffException {
+        Objects.requireNonNull(tile, "Null tile");
+        Objects.requireNonNull(options, "Null options");
+        if (!SCIFIOBridge.isScifioInstalled()) {
+            // - this check is necessary to get a good error message when we use this library without SCIFIO
+            throw new UnsupportedTiffFormatException("TIFF compression with code " + tile.ifd().getCompressionCode() +
+                    " cannot be processed");
+        }
+        final Object scifioCodecOptions = options.toScifioStyleOptions(SCIFIOBridge.codecOptionsClass());
+        final int width = tile.getSizeX();
+        final int height = tile.getSizeY();
+        return compressByScifioCodec(tile.ifd(), tile.getDecodedData(), width, height, scifioCodecOptions);
+    }
+
+    static void checkRequestedAreaInArray(byte[] array, long sizeX, long sizeY, int bitsPerPixel) {
+        Objects.requireNonNull(array, "Null array");
+        if (bitsPerPixel <= 0) {
+            throw new IllegalArgumentException("Zero or negative bitsPerPixel = " + bitsPerPixel);
+        }
+        final long arrayBits = (long) array.length * 8;
+        TiffReader.checkRequestedArea(0, 0, sizeX, sizeY);
+        if (sizeX * sizeY > arrayBits || sizeX * sizeY * (long) bitsPerPixel > arrayBits) {
+            throw new IllegalArgumentException("Requested area " + sizeX + "x" + sizeY +
+                    " is too large for array of " + array.length + " bytes, " + bitsPerPixel + " per pixel");
+        }
     }
 
     Object scifio() {

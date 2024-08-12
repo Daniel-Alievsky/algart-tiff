@@ -1016,7 +1016,7 @@ public class TiffReader implements Closeable {
     public void decode(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         long t1 = debugTime();
-        prepareEncodedTileForDecoding(tile);
+        prepareTileForDecoding(tile);
 
         final TagCompression compression = TagCompression.valueOfCodeOrNull(tile.ifd().getCompressionCode());
         TiffCodec codec = null;
@@ -1040,8 +1040,7 @@ public class TiffReader implements Closeable {
             final byte[] decodedData = codec.decompress(tile.getEncodedData(), options);
             tile.setPartiallyDecodedData(decodedData);
         } else {
-            Object externalOptions = buildExternalOptions(tile, options);
-            final byte[] decodedData = decompressExternalFormat(tile, externalOptions);
+            final byte[] decodedData = decodeByExternalCodec(tile, options);
             tile.setPartiallyDecodedData(decodedData);
         }
         tile.setInterleaved(options.isInterleaved());
@@ -1062,7 +1061,7 @@ public class TiffReader implements Closeable {
         timeCompleteDecoding += t4 - t3;
     }
 
-    public void prepareEncodedTileForDecoding(TiffTile tile) throws TiffException {
+    public void prepareTileForDecoding(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         if (tile.isEmpty()) {
             // - unlike full decoding, here it is better not to throw exception for empty tile
@@ -1432,6 +1431,24 @@ public class TiffReader implements Closeable {
                 Matrices.asLayers(mergedChannels, TiffIFD.MAX_NUMBER_OF_CHANNELS);
     }
 
+    public final byte[] decompressByScifioCodec(TiffIFD ifd, byte[] encodedData, Object scifioCodecOptions)
+            throws TiffException {
+        final Object scifio = requireScifio(ifd);
+        final int compressionCode = ifd.getCompressionCode();
+        final Object compression;
+        try {
+            compression = SCIFIOBridge.createTiffCompression(compressionCode);
+        } catch (InvocationTargetException e) {
+            throw new UnsupportedTiffFormatException("TIFF compression code " + compressionCode +
+                    " is unknown and is not correctly recognized by the external SCIFIO subsystem", e);
+        }
+        try {
+            return SCIFIOBridge.callDecompress(scifio, compression, encodedData, scifioCodecOptions);
+        } catch (InvocationTargetException e) {
+            throw new TiffException(e.getMessage(), e.getCause());
+        }
+    }
+
     @Override
     public void close() throws IOException {
         synchronized (fileLock) {
@@ -1465,6 +1482,13 @@ public class TiffReader implements Closeable {
         return getFileHandle(file);
     }
 
+    protected byte[] decodeByExternalCodec(TiffTile tile, TiffCodec.Options options) throws TiffException {
+        Objects.requireNonNull(tile, "Null tile");
+        Objects.requireNonNull(options, "Null options");
+        final Object scifioCodecOptions = options.toScifioStyleOptions(SCIFIOBridge.codecOptionsClass());
+        return decompressByScifioCodec(tile.ifd(), tile.getEncodedData(), scifioCodecOptions);
+    }
+
     static DataHandle<Location> getFileHandle(Path file) {
         Objects.requireNonNull(file, "Null file");
         return getFileHandle(new FileLocation(file.toFile()));
@@ -1494,33 +1518,6 @@ public class TiffReader implements Closeable {
         // - in current implementation it is an extra operator: BigEndian is default in scijava;
         // but we want to be sure that this behaviour will be the same in all future versions
         return (DataHandle) fileHandle;
-    }
-
-    protected Object buildExternalOptions(TiffTile tile, TiffCodec.Options options) throws TiffException {
-        Objects.requireNonNull(tile, "Null tile");
-        Objects.requireNonNull(options, "Null options");
-        requireScifio(tile.ifd());
-        return options.toOldStyleOptions(SCIFIOBridge.codecOptionsClass());
-    }
-
-    protected byte[] decompressExternalFormat(TiffTile tile, Object externalOptions) throws TiffException {
-        Objects.requireNonNull(tile, "Null tile");
-        Objects.requireNonNull(externalOptions, "Null externalOptions");
-        final byte[] encodedData = tile.getEncodedData();
-        final Object scifio = requireScifio(tile.ifd());
-        final int compressionCode = tile.ifd().getCompressionCode();
-        final Object compression;
-        try {
-            compression = SCIFIOBridge.createTiffCompression(compressionCode);
-        } catch (InvocationTargetException e) {
-            throw new UnsupportedTiffFormatException("TIFF compression code " + compressionCode +
-                    " is unknown and is not correctly recognized by the external SCIFIO subsystem", e);
-        }
-        try {
-            return SCIFIOBridge.callDecompress(scifio, compression, encodedData, externalOptions);
-        } catch (InvocationTargetException e) {
-            throw new TiffException(e.getMessage(), e.getCause());
-        }
     }
 
     Object scifio() {

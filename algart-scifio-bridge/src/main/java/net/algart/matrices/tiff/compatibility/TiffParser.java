@@ -155,8 +155,9 @@ public class TiffParser extends TiffReader {
      * @param equalStrips Whether or not the strips are of equal size.
      */
     @Deprecated
-    public void setAssumeEqualStrips(final boolean equalStrips) {
+    public TiffParser setAssumeEqualStrips(final boolean equalStrips) {
         this.equalStrips = equalStrips;
+        return this;
     }
 
 
@@ -164,15 +165,19 @@ public class TiffParser extends TiffReader {
      * Sets whether 64-bit offsets are used for non-BigTIFF files.
      */
     @Deprecated
-    public void setUse64BitOffsets(final boolean use64Bit) {
+    public TiffParser setUse64BitOffsets(final boolean use64Bit) {
         fakeBigTiff = use64Bit;
+        return this;
     }
 
     /**
      * Sets whether YCbCr color correction is allowed.
+     * Note: this mode was not implemented well in SCIFIO 0.46.0:
+     * please use TiffReader for correct processing this case.
      */
-    public void setYCbCrCorrection(final boolean correctionAllowed) {
+    public TiffParser setYCbCrCorrection(final boolean correctionAllowed) {
         ycbcrCorrection = correctionAllowed;
+        return this;
     }
 
     /**
@@ -187,7 +192,7 @@ public class TiffParser extends TiffReader {
     public void setCodecOptions(final CodecOptions codecOptions) {
         this.codecOptions = codecOptions;
         TiffCodec.Options options = getCodecOptions();
-        options.setToOldStyleOptions(codecOptions);
+        options.setToScifioStyleOptions(codecOptions);
         // - not too important, but also does not create problems
         //noinspection resource
         setCodecOptions(options);
@@ -975,23 +980,21 @@ public class TiffParser extends TiffReader {
     }
 
     // Note: this logic cannot be implemented in the superclass, because it does not contain "ycbcrCorrection" flag.
+    // Note: the algorithm, implemented in SCIFIO JPEGCodec until 0.46.0 version, works incorrectly.
     // Note: this method may be tested with the image jpeg_ycbcr_encoded_as_rgb.tiff
     @Override
-    protected Object buildExternalOptions(TiffTile tile, TiffCodec.Options options) throws TiffException {
-        final Object external = super.buildExternalOptions(tile, options);
+    protected byte[] decodeByExternalCodec(TiffTile tile, TiffCodec.Options options) throws TiffException {
+        Objects.requireNonNull(tile, "Null tile");
+        Objects.requireNonNull(options, "Null options");
+        final CodecOptions codecOptions = options.toScifioStyleOptions(CodecOptions.class);
         final TiffIFD ifd = tile.ifd();
-        int[] declaredSubsampling = ifd.getYCbCrSubsampling();
+        final int[] declaredSubsampling = ifd.getYCbCrSubsampling();
         if (ifd.getPhotometricInterpretation() == TagPhotometricInterpretation.Y_CB_CR &&
                 declaredSubsampling.length >= 2 && declaredSubsampling[0] == 1 && declaredSubsampling[1] == 1 &&
-                ycbcrCorrection) {
-            if (external instanceof CodecOptions) {
-                ((CodecOptions) external).ycbcr = true;
-            } else {
-                throw new AssertionError("Incompatible versions: " +
-                        "TiffReader.buildExternalOptions does not return SCIFIO CodecOptions class");
-            }
+                this.ycbcrCorrection) {
+                codecOptions.ycbcr = true;
         }
-        return external;
+        return decompressByScifioCodec(tile.ifd(), tile.getEncodedData(), codecOptions);
     }
 
     @Deprecated

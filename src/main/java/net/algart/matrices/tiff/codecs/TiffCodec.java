@@ -205,52 +205,52 @@ public interface TiffCodec {
             return this;
         }
 
-        public final Object toOldStyleOptions(String oldStyleClassName) {
-            Objects.requireNonNull(oldStyleClassName, "Null oldStyleClassName");
+        public final Object toScifioStyleOptions(String scifioStyleClassName) {
+            Objects.requireNonNull(scifioStyleClassName, "Null scifioStyleClassName");
             final Class<?> c;
             try {
-                c = Class.forName(oldStyleClassName);
+                c = Class.forName(scifioStyleClassName);
             } catch (ClassNotFoundException e) {
-                throw new IllegalArgumentException("No class " + oldStyleClassName, e);
+                throw new IllegalArgumentException("No class " + scifioStyleClassName, e);
             }
-            return toOldStyleOptions(c);
+            return toScifioStyleOptions(c);
         }
 
-        public <T> T toOldStyleOptions(Class<T> oldStyleClass) {
-            Objects.requireNonNull(oldStyleClass, "Null oldStyleClass");
+        public <T> T toScifioStyleOptions(Class<T> scifioStyleClass) {
+            Objects.requireNonNull(scifioStyleClass, "Null scifioStyleClass");
             final T result;
             try {
-                result = oldStyleClass.getConstructor().newInstance();
+                result = scifioStyleClass.getConstructor().newInstance();
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException |
                      NoSuchMethodException e) {
-                throw new IllegalArgumentException("Class " + oldStyleClass +
+                throw new IllegalArgumentException("Class " + scifioStyleClass +
                         " cannot be created with empty constructor", e);
             }
-            setField(oldStyleClass, result, "width", width);
-            setField(oldStyleClass, result, "height", height);
-            setField(oldStyleClass, result, "channels", numberOfChannels);
-            setField(oldStyleClass, result, "bitsPerSample", bitsPerSample);
-            setField(oldStyleClass, result, "littleEndian", littleEndian);
-            setField(oldStyleClass, result, "interleaved", interleaved);
-            setField(oldStyleClass, result, "maxBytes", maxSizeInBytes);
+            setField(scifioStyleClass, result, "width", width);
+            setField(scifioStyleClass, result, "height", height);
+            setField(scifioStyleClass, result, "channels", numberOfChannels);
+            setField(scifioStyleClass, result, "bitsPerSample", bitsPerSample);
+            setField(scifioStyleClass, result, "littleEndian", littleEndian);
+            setField(scifioStyleClass, result, "interleaved", interleaved);
+            setField(scifioStyleClass, result, "maxBytes", maxSizeInBytes);
             if (quality != null) {
-                setField(oldStyleClass, result, "quality", quality);
+                setField(scifioStyleClass, result, "quality", quality);
             }
             return result;
         }
 
-        public void setToOldStyleOptions(Object oldStyleOptions) {
-            Objects.requireNonNull(oldStyleOptions, "Null oldStyleOptions");
-            setWidth(getField(oldStyleOptions, Integer.class, "width"));
-            setHeight(getField(oldStyleOptions, Integer.class, "height"));
-            setNumberOfChannels(getField(oldStyleOptions, Integer.class, "channels"));
-            setBitsPerSample(getField(oldStyleOptions, Integer.class, "bitsPerSample"));
+        public void setToScifioStyleOptions(Object scifioStyleOptions) {
+            Objects.requireNonNull(scifioStyleOptions, "Null scifioStyleOptions");
+            setWidth(getField(scifioStyleOptions, Integer.class, "width"));
+            setHeight(getField(scifioStyleOptions, Integer.class, "height"));
+            setNumberOfChannels(getField(scifioStyleOptions, Integer.class, "channels"));
+            setBitsPerSample(getField(scifioStyleOptions, Integer.class, "bitsPerSample"));
             setSigned(false);
             setFloatingPoint(false);
-            setLittleEndian(getField(oldStyleOptions, Boolean.class, "littleEndian"));
-            setInterleaved(getField(oldStyleOptions, Boolean.class, "interleaved"));
-            setMaxSizeInBytes(getField(oldStyleOptions, Integer.class, "maxBytes"));
-            setQuality(getField(oldStyleOptions, Double.class, "quality"));
+            setLittleEndian(getField(scifioStyleOptions, Boolean.class, "littleEndian"));
+            setInterleaved(getField(scifioStyleOptions, Boolean.class, "interleaved"));
+            setMaxSizeInBytes(getField(scifioStyleOptions, Integer.class, "maxBytes"));
+            setQuality(getField(scifioStyleOptions, Double.class, "quality"));
         }
 
         @Override
