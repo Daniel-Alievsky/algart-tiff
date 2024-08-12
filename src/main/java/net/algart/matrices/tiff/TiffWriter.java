@@ -1595,7 +1595,8 @@ public class TiffWriter implements Closeable {
         final Object scifioCodecOptions = options.toScifioStyleOptions(SCIFIOBridge.codecOptionsClass());
         final int width = tile.getSizeX();
         final int height = tile.getSizeY();
-        return Optional.of(compressByScifioCodec(tile.ifd(), decodedData, width, height, scifioCodecOptions));
+        final byte[] encodedData = compressByScifioCodec(tile.ifd(), decodedData, width, height, scifioCodecOptions);
+        return Optional.of(encodedData);
     }
 
     static void checkRequestedAreaInArray(byte[] array, long sizeX, long sizeY, int bitsPerPixel) {
