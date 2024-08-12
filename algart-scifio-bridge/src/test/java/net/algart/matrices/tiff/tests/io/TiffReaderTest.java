@@ -193,6 +193,6 @@ public class TiffReaderTest {
     }
 
     private static <T> List<T> tryToExtractRGB(List<T> image) {
-        return image.size() <= 4 ? image : image.subList(0, 3);
+        return image.size() <= 4 ? image : image.subList(0, 4);
     }
 }
