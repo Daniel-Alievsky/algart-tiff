@@ -28,7 +28,7 @@ import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.io.MatrixIO;
-import net.algart.io.awt.MatrixToBufferedImage;
+import net.algart.io.awt.MatrixToImage;
 import net.algart.matrices.tiff.awt.AWTImages;
 
 import java.awt.image.BufferedImage;
@@ -79,7 +79,7 @@ public class AWTImagesMakeBufferedImageTest {
         MatrixIO.writeImage(resultFile2, matrices1);
 
         if (packed) {
-            bi1 = new MatrixToBufferedImage.InterleavedRGBToPacked().toBufferedImage(Matrices.interleave(matrices1));
+            bi1 = new MatrixToImage.InterleavedRGBToPacked().toBufferedImage(Matrices.interleave(matrices1));
             System.out.printf("BufferedImage in packed format: %s%n", toString(bi1));
         }
 

@@ -29,7 +29,7 @@ import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
 import net.algart.io.MatrixIO;
-import net.algart.io.awt.MatrixToBufferedImage;
+import net.algart.io.awt.MatrixToImage;
 import net.algart.matrices.tiff.CachingTiffReader;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.compatibility.TiffParser;
@@ -185,7 +185,7 @@ public class TiffReaderTest {
             final Matrix<? extends PArray> interleave = interleaved ?
                     matrix :
                     Matrices.interleave(tryToExtractRGB(matrix.asLayers()));
-            final BufferedImage bi = new MatrixToBufferedImage.InterleavedRGBToInterleaved()
+            final BufferedImage bi = new MatrixToImage.InterleavedRGBToInterleaved()
                     .setUnsignedInt32(true)
                     .toBufferedImage(interleave);
             MatrixIO.writeBufferedImage(file, bi);
