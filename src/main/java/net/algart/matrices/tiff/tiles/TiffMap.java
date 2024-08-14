@@ -652,7 +652,7 @@ public final class TiffMap {
             long numberOfPixels) {
         Objects.requireNonNull(bytes, "Null bytes");
         final int size = checkSizes(numberOfChannels, bytesPerSample, numberOfPixels);
-        // - exception usually should not occur: this function is typically called after analysing IFD
+        // - exception usually should not occur: this function is typically called after analyzing IFD
         if (bytes.length < size) {
             throw new IllegalArgumentException("Too short samples array: " + bytes.length + " < " + size);
         }
@@ -694,7 +694,7 @@ public final class TiffMap {
             long numberOfPixels) {
         Objects.requireNonNull(bytes, "Null bytes");
         final int size = checkSizes(numberOfChannels, bytesPerSample, numberOfPixels);
-        // - exception usually should not occur: this function is typically called after analysing IFD
+        // - exception usually should not occur: this function is typically called after analyzing IFD
         if (bytes.length < size) {
             throw new IllegalArgumentException("Too short samples array: " + bytes.length + " < " + size);
         }
