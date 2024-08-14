@@ -388,7 +388,7 @@ public class TiffWriter implements Closeable {
     }
 
     /**
-     * Forces the writer to use an external codec via {@link #encodeByExternalCodec(TiffTile, TiffCodec.Options)}
+     * Forces the writer to use an external codec via {@link #encodeByExternalCodec}
      * method even for standard compressions.
      *
      * <p>Note that this only makes sense if:</p>
