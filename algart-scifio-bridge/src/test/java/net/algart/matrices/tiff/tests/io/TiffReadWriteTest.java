@@ -287,7 +287,7 @@ public class TiffReadWriteTest {
             ifd.putIFDValue(IFD.PHOTOMETRIC_INTERPRETATION, requestedPhotoInterp.getCode());
             saver.writeIFD(ifd, lastImageInTiff ? 0 : out.length());
             // - I don't know why, but we need to replace RGB photometric, automatically
-            // set by TiffSaver, with YCbCr, in other case this image is shown incorrectly.
+            // set by TiffSaver, with YCbCr, in another case this image is shown incorrectly.
             // We must do this here, not before writeImage: writeImage automatically sets it to RGB.
         }
         out.seek(out.length());

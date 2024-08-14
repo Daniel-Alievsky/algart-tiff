@@ -72,7 +72,7 @@ public class JPEGEncoding {
         final IIOMetadata metadata = jpegWriter.getDefaultImageMetadata(
                 enforceRGB ? null : imageTypeSpecifier,
                 writeParam);
-        // - Important! imageType = null necessary for RGB, in other case setDestinationType will be ignored!
+        // - Important! imageType = null necessary for RGB, in another case, setDestinationType will be ignored!
 
         final IIOImage iioImage = new IIOImage(image, null, metadata);
         // - metadata necessary (with necessary markers)

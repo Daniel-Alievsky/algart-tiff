@@ -540,7 +540,7 @@ public class TiffReader implements Closeable {
      * Value 0 means black color, 0xFF usually means white color.
      *
      * <p><b>Warning!</b> If you want to work with non-8-bit TIFF, especially float precision, you should
-     * preserve default 0 value, in other case results could be very strange.
+     * preserve default 0 value, in another case results could be very strange.
      *
      * @param byteFiller new filler.
      * @return a reference to this object.

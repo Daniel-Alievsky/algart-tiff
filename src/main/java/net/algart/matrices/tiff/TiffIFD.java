@@ -965,7 +965,7 @@ public class TiffIFD {
      * In comparison, {@link TiffWriter} class really <i>does</i> require this condition: it cannot
      * create TIFF files with different number of bits per channel.
      *
-     * @return bits per sample, if this value is the same for all channels, or empty value in other case.
+     * @return bits per sample, if this value is the same for all channels, or empty value in another case.
      * @throws TiffException in a case of any problems while parsing IFD, in particular,
      *                       if <code>BitsPerSample</code> tag contains zero or negative values.
      */
@@ -990,7 +990,7 @@ public class TiffIFD {
      * <code>B&nbsp;=&nbsp;{@link #getBitsPerSample()}</code> (numbers of bits per each channel) as follows:
      * <ol>
      *     <li>if this array consists of the single element <code>B[0]==1</code>, the result is 1;</li>
-     *     <li>in other case, if all the values <code>(B[i]+7)/8</code> (<code>&#8968;(double)B[i]/8&#8969;</code>)
+     *     <li>in another case, if all the values <code>(B[i]+7)/8</code> (<code>&#8968;(double)B[i]/8&#8969;</code>)
      *     are equal to the same value <code>b</code>, the result is b*8
      *     (this is the number of whole bytes needed to store each sample);</li>
      *     <li>if some of values <code>(B[i]+7)/8</code> are different, {@link UnsupportedTiffFormatException}

@@ -711,7 +711,7 @@ public final class TiffTile {
         final int dataLength = (estimatedNumberOfPixels * bitsPerPixel + 7) >>> 3;
         if (dataLength != data.length) {
             // - this check must be AFTER possible throwing IllegalStateException:
-            // in other case, we will throw AssertionError instead of correct IllegalStateException
+            // in another case, we will throw AssertionError instead of correct IllegalStateException
             throw new AssertionError("Invalid estimatedNumberOfPixels " + estimatedNumberOfPixels +
                     ": does not match data.length = " + data.length);
         }

@@ -103,7 +103,7 @@ public class AWTCustomWriteJpegTest {
         }
 
         IIOMetadata metadata = writer.getDefaultImageMetadata(rgbSpace ? null : imageTypeSpecifier, writeParam);
-        // - imageType = null, in other case setDestinationType will be ignored!
+        // - imageType = null, in another case, setDestinationType will be ignored!
 
         System.out.printf("Writing JPEG image into %s via image type %s...%n", file, imageTypeSpecifier);
         IIOImage iioImage = new IIOImage(image, null, metadata);
