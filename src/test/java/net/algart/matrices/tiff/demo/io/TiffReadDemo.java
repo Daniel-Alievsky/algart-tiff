@@ -22,43 +22,42 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.tests.io;
+package net.algart.matrices.tiff.demo.io;
 
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.TiffWriter;
-import net.algart.matrices.tiff.tiles.TiffMap;
+import net.algart.matrices.tiff.TiffReader;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
-public class TiffWriteDemo {
+public class TiffReadDemo {
     public static void main(String[] args) throws IOException {
-        if (args.length < 2) {
+        if (args.length < 3) {
             System.out.println("Usage:");
-            System.out.println("    " + TiffWriteDemo.class.getName() +
-                    " source.jpg/png/bmp target.tiff");
+            System.out.println("    " + TiffReadDemo.class.getName() +
+                    " source.tiff target.jpg/png/bmp ifdIndex");
             return;
         }
         final Path sourceFile = Paths.get(args[0]);
         final Path targetFile = Paths.get(args[1]);
+        final int ifdIndex = Integer.parseInt(args[2]);
 
-        System.out.println("Reading " + sourceFile + "...");
-        List<Matrix<UpdatablePArray>> image = MatrixIO.readImage(sourceFile);
-        System.out.println("Writing TIFF " + targetFile + "...");
-        try (TiffWriter writer = new TiffWriter(targetFile, true)) {
-            // writer.setEnforceUseExternalCodec(true); // - throws exception: no SCIFIO or other external codecs
-            // writer.setAutoInterleaveSource(false);
-            TiffIFD ifd = writer.newIFD();
-            ifd.putChannelsInformation(image);
-            // ifd.putCompression(TagCompression.JPEG); // - you can specify some compression
-            TiffMap map = writer.newFixedMap(ifd);
-            writer.writeChannels(map, image);
+        System.out.println("Reading TIFF " + sourceFile + "...");
+        List<Matrix<UpdatablePArray>> image;
+        try (TiffReader reader = new TiffReader(sourceFile)) {
+            // reader.setEnforceUseExternalCodec(true); // - throws exception: no SCIFIO or other external codecs
+            // reader.setContext(TiffTools.newSCIFIOContext()); // - throws exception without dependence on SCIFIO
+            // reader.setInterleaveResults(true); // - slows down reading (unnecessary interleaving+separating)
+            image = reader.readChannels(ifdIndex);
         }
+        System.out.println("Writing " + targetFile + "...");
+        MatrixIO.writeImage(targetFile, image);
+
         System.out.println("Done");
     }
 }

@@ -1,11 +1,11 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="TiffReadDemo" type="Application" factoryName="Application" nameIsGenerated="true">
-    <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.tests.io.TiffReadDemo" />
+    <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.demo.io.TiffReadDemo" />
     <module name="algart-tiff" />
     <option name="PROGRAM_PARAMETERS" value="/tmp/lenna.tiff /tmp/lenna.bmp 0" />
     <extension name="coverage">
       <pattern>
-        <option name="PATTERN" value="net.algart.matrices.tiff.tests.io.*" />
+        <option name="PATTERN" value="net.algart.matrices.tiff.demo.io.*" />
         <option name="ENABLED" value="true" />
       </pattern>
     </extension>
