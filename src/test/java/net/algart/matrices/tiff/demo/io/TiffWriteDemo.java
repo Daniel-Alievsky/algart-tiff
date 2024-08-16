@@ -29,6 +29,7 @@ import net.algart.arrays.UpdatablePArray;
 import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
+import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.TiffMap;
 
 import java.io.IOException;
@@ -53,9 +54,9 @@ public class TiffWriteDemo {
         try (TiffWriter writer = new TiffWriter(targetFile, true)) {
             // writer.setEnforceUseExternalCodec(true); // - throws exception: no SCIFIO or other external codecs
             // writer.setAutoInterleaveSource(false);
-            TiffIFD ifd = writer.newIFD();
-            ifd.putChannelsInformation(image);
-            // ifd.putCompression(TagCompression.JPEG); // - you can specify some compression
+            TiffIFD ifd = writer.newIFD()
+                .putChannelsInformation(image)
+                .putCompression(TagCompression.DEFLATE);
             TiffMap map = writer.newFixedMap(ifd);
             writer.writeChannels(map, image);
         }

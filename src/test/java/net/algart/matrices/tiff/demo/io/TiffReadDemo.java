@@ -27,8 +27,8 @@ package net.algart.matrices.tiff.demo.io;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.io.MatrixIO;
-import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
+import net.algart.matrices.tiff.tiles.TiffMap;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -53,7 +53,8 @@ public class TiffReadDemo {
             // reader.setEnforceUseExternalCodec(true); // - throws exception: no SCIFIO or other external codecs
             // reader.setContext(TiffTools.newSCIFIOContext()); // - throws exception without dependence on SCIFIO
             // reader.setInterleaveResults(true); // - slows down reading (unnecessary interleaving+separating)
-            image = reader.readChannels(ifdIndex);
+            TiffMap map = reader.map(ifdIndex);
+            image = reader.readChannels(map);
         }
         System.out.println("Writing " + targetFile + "...");
         MatrixIO.writeImage(targetFile, image);
