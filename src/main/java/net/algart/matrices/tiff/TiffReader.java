@@ -1353,13 +1353,16 @@ public class TiffReader implements Closeable {
     }
 
     /**
-     * Reads the full image with the specified index.
-     * The result is a 3-dimensional matrix, where each 3-dimensional layer contain one of color channels.
+     * Reads the full image with the specified TIFF map.
+     * The result is a 3-dimensional matrix, where each 2-dimensional {@link Matrices#asLayers(Matrix) layer}
+     * contains one of color channels.
      * However, if {@link #setInterleaveResults interleave results} flag is cleared, the result will an interleaved
      * 3D matrix, which can be separated to channels by {@link Matrices#separate(ArrayContext, Matrix)} method.
-     * Equivalent to <code>{@link #readMatrix(TiffMap) readMatrix}({@link #map(int) map}(ifdIndex))</code>.
      *
-     * @param ifdIndex index of IFD.
+     * <p>The necessary TIFF map can be obtained, for example, by calling
+     * <code>{@link #map(int) reader.map}(ifdIndex)</code>.</p>
+     *
+     * @param map TIFF map, constructed from one of the IFDs of this TIFF file.
      * @return content of the IFD image.
      * @throws TiffException            if <code>ifdIndex</code> is too large,
      *                                  or if the file is not a correct TIFF file
@@ -1367,10 +1370,6 @@ public class TiffReader implements Closeable {
      * @throws IOException              in a case of any problems with the input file.
      * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
      */
-    public Matrix<UpdatablePArray> readMatrix(int ifdIndex) throws IOException {
-        return readMatrix(map(ifdIndex));
-    }
-
     public Matrix<UpdatablePArray> readMatrix(TiffMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readMatrix(map, 0, 0, map.dimX(), map.dimY());
@@ -1396,10 +1395,11 @@ public class TiffReader implements Closeable {
     /**
      * Reads the full image with the specified TIFF map as a list of 2-dimensional matrices containing color channels.
      * For example, for RGB image the result will be a list of three matrices R, G, B.
-     * The necessary TIFF map can be obtained, for example, by calling
-     * <code>{@link #map(int) reader.map}(ifdIndex)</code>.
      *
-     * @param map TIFF map, constructed from one of the IFDs of this TIF file.
+     * <p>The necessary TIFF map can be obtained, for example, by calling
+     * <code>{@link #map(int) reader.map}(ifdIndex)</code>.</p>
+     *
+     * @param map TIFF map, constructed from one of the IFDs of this TIFF file.
      * @return content of the TIFF image.
      * @throws TiffException            if the file is not a correct TIFF file,
      *                                  and this was not detected while opening it.
