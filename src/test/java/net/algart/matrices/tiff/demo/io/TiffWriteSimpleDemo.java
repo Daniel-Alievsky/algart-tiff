@@ -24,8 +24,9 @@
 
 package net.algart.matrices.tiff.demo.io;
 
+import net.algart.arrays.ColorMatrices;
 import net.algart.arrays.Matrix;
-import net.algart.arrays.UpdatablePArray;
+import net.algart.arrays.PArray;
 import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
@@ -37,19 +38,30 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
-public class TiffWriteSimplestDemo {
+public class TiffWriteSimpleDemo {
     public static void main(String[] args) throws IOException {
-        if (args.length < 2) {
+        int startArgIndex = 0;
+        boolean mono = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-mono")) {
+            mono = true;
+            startArgIndex++;
+        }
+        if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
             System.out.printf("    %s source.jpg/png/bmp target.tiff%n",
-                    TiffWriteSimplestDemo.class.getName());
+                    TiffWriteSimpleDemo.class.getName());
             return;
         }
-        final Path sourceFile = Paths.get(args[0]);
-        final Path targetFile = Paths.get(args[1]);
+        final Path sourceFile = Paths.get(args[startArgIndex]);
+        final Path targetFile = Paths.get(args[startArgIndex + 1]);
 
         System.out.printf("Reading %s...%n", sourceFile);
-        List<Matrix<UpdatablePArray>> image = MatrixIO.readImage(sourceFile);
+        List<? extends Matrix<? extends PArray>> image = MatrixIO.readImage(sourceFile);
+        if (mono && image.size() > 1) {
+            System.out.println("Conversion color image to monochrome...");
+            image = List.of(ColorMatrices.asRGBIntensity(image).clone());
+        }
+
         System.out.printf("Writing TIFF %s...%n", targetFile);
         try (TiffWriter writer = new TiffWriter(targetFile, true)) {
             // writer.setEnforceUseExternalCodec(true); // - throws exception: no SCIFIO or other external codecs

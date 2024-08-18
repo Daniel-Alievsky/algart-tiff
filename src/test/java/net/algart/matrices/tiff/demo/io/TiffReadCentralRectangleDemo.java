@@ -67,10 +67,12 @@ public class TiffReadCentralRectangleDemo {
             int fromX = (map.dimX() - sizeX) / 2;
             int fromY = (map.dimY() - sizeY) / 2;
             if (lowLevel) {
+                System.out.printf("Reading low-level byte[] %dx%d from %s...%n", sizeX, sizeY, map);
                 byte[] samples = reader.readSamples(map, fromX, fromY, sizeX, sizeY);
                 BufferedImage bi = AWTImages.makeSeparatedImage(samples, sizeX, sizeY, map.numberOfChannels());
                 MatrixIO.writeBufferedImage(targetFile, bi);
             } else {
+                System.out.printf("Reading image %dx%d from %s...%n", sizeX, sizeY, map);
                 List<Matrix<UpdatablePArray>> image = reader.readChannels(map, fromX, fromY, sizeX, sizeY);
                 MatrixIO.writeImage(targetFile, image);
             }

@@ -35,12 +35,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
-public class TiffReadSimplestDemo {
+public class TiffReadSimpleDemo {
     public static void main(String[] args) throws IOException {
         if (args.length < 3) {
             System.out.println("Usage:");
             System.out.printf("    %s source.tiff target.jpg/png/bmp ifdIndex%n",
-                    TiffReadSimplestDemo.class.getName());
+                    TiffReadSimpleDemo.class.getName());
             return;
         }
         final Path sourceFile = Paths.get(args[0]);
