@@ -49,7 +49,7 @@ public class TiffReadCentralRectangleDemo {
         }
         if (args.length < startArgIndex + 5) {
             System.out.println("Usage:");
-            System.out.printf("    [-lowLevel] %s source.tiff target.jpg/png/bmp ifdIndex width height %n",
+            System.out.printf("    [-lowLevel] %s source.tiff target.jpg/png/bmp ifdIndex width height%n",
                     TiffReadCentralRectangleDemo.class.getName());
             return;
         }
