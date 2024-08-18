@@ -37,20 +37,20 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
-public class TiffWriteDemo {
+public class TiffWriteSimplestDemo {
     public static void main(String[] args) throws IOException {
         if (args.length < 2) {
             System.out.println("Usage:");
-            System.out.println("    " + TiffWriteDemo.class.getName() +
-                    " source.jpg/png/bmp target.tiff");
+            System.out.printf("    %s source.jpg/png/bmp target.tiff%n",
+                    TiffWriteSimplestDemo.class.getName());
             return;
         }
         final Path sourceFile = Paths.get(args[0]);
         final Path targetFile = Paths.get(args[1]);
 
-        System.out.println("Reading " + sourceFile + "...");
+        System.out.printf("Reading %s...%n", sourceFile);
         List<Matrix<UpdatablePArray>> image = MatrixIO.readImage(sourceFile);
-        System.out.println("Writing TIFF " + targetFile + "...");
+        System.out.printf("Writing TIFF %s...%n", targetFile);
         try (TiffWriter writer = new TiffWriter(targetFile, true)) {
             // writer.setEnforceUseExternalCodec(true); // - throws exception: no SCIFIO or other external codecs
             // writer.setAutoInterleaveSource(false);
@@ -58,6 +58,7 @@ public class TiffWriteDemo {
                 .putChannelsInformation(image)
                 .putCompression(TagCompression.DEFLATE);
             TiffMap map = writer.newFixedMap(ifd);
+            System.out.printf("Writing image to %s...%n", map);
             writer.writeChannels(map, image);
         }
         System.out.println("Done");

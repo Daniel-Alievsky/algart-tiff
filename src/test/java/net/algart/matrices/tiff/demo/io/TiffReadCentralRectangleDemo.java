@@ -28,37 +28,53 @@ import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffReader;
+import net.algart.matrices.tiff.awt.AWTImages;
 import net.algart.matrices.tiff.tiles.TiffMap;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
 
-public class TiffReadDemo {
+public class TiffReadCentralRectangleDemo {
     public static void main(String[] args) throws IOException {
-        if (args.length < 3) {
+        int startArgIndex = 0;
+        boolean lowLevel = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-lowLevel")) {
+            lowLevel = true;
+            startArgIndex++;
+        }
+        if (args.length < startArgIndex + 5) {
             System.out.println("Usage:");
-            System.out.println("    " + TiffReadDemo.class.getName() +
-                    " source.tiff target.jpg/png/bmp ifdIndex");
+            System.out.printf("    [-lowLevel] %s source.tiff target.jpg/png/bmp ifdIndex width height %n",
+                    TiffReadCentralRectangleDemo.class.getName());
             return;
         }
-        final Path sourceFile = Paths.get(args[0]);
-        final Path targetFile = Paths.get(args[1]);
-        final int ifdIndex = Integer.parseInt(args[2]);
+        final Path sourceFile = Paths.get(args[startArgIndex]);
+        final Path targetFile = Paths.get(args[startArgIndex + 1]);
+        final int ifdIndex = Integer.parseInt(args[startArgIndex + 2]);
+        final int width = Integer.parseInt(args[startArgIndex + 3]);
+        final int height = Integer.parseInt(args[startArgIndex + 4]);
 
-        System.out.println("Reading TIFF " + sourceFile + "...");
-        List<Matrix<UpdatablePArray>> image;
+        System.out.printf("Reading TIFF %s and writing %s...%n", sourceFile, targetFile);
         try (TiffReader reader = new TiffReader(sourceFile)) {
-            // reader.setEnforceUseExternalCodec(true); // - throws exception: no SCIFIO or other external codecs
-            // reader.setContext(TiffTools.newSCIFIOContext()); // - throws exception without dependence on SCIFIO
-            // reader.setInterleaveResults(true); // - slows down reading (unnecessary interleaving+separating)
             TiffMap map = reader.map(ifdIndex);
-            image = reader.readChannels(map);
+            int sizeX = Math.min(width, map.dimX());
+            int sizeY = Math.min(height, map.dimY());
+            int fromX = (map.dimX() - sizeX) / 2;
+            int fromY = (map.dimY() - sizeY) / 2;
+            if (lowLevel) {
+                byte[] samples = reader.readSamples(map, fromX, fromY, sizeX, sizeY);
+                BufferedImage bi = AWTImages.makeSeparatedImage(samples, sizeX, sizeY, map.numberOfChannels());
+                MatrixIO.writeBufferedImage(targetFile, bi);
+            } else {
+                List<Matrix<UpdatablePArray>> image = reader.readChannels(map, fromX, fromY, sizeX, sizeY);
+                MatrixIO.writeImage(targetFile, image);
+            }
         }
-        System.out.println("Writing " + targetFile + "...");
-        MatrixIO.writeImage(targetFile, image);
-
         System.out.println("Done");
     }
 }

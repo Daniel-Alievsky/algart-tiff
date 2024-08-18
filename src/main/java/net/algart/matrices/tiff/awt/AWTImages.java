@@ -139,6 +139,14 @@ public final class AWTImages {
 
     // -- Image construction - from 1D (interleaved or banded) data arrays --
 
+    public static BufferedImage makeSeparatedImage(byte[] data, int w, int h, int c) {
+        return makeImage(data, w, h, c, false);
+    }
+
+    public static BufferedImage makeImage(byte[] data, int w, int h, int c, boolean interleaved) {
+        return makeImage(data, w, h, c, interleaved, false);
+    }
+
     /**
      * Creates an image from the given byte data.
      *

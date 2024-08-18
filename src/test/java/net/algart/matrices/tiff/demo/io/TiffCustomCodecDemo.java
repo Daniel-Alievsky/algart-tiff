@@ -54,8 +54,8 @@ public class TiffCustomCodecDemo {
     public static void main(String[] args) throws IOException {
         if (args.length < 3) {
             System.out.println("Usage:");
-            System.out.println("    " + TiffCustomCodecDemo.class.getName() +
-                    " source.jpg/png/bmp target.tiff test.jpg/png/bmp");
+            System.out.printf("    %s source.jpg/png/bmp target.tiff test.jpg/png/bmp%n",
+                    TiffCustomCodecDemo.class.getName());
             return;
         }
         testMyCodec();
