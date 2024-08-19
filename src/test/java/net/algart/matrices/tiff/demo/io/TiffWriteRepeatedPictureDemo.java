@@ -63,6 +63,8 @@ public class TiffWriteRepeatedPictureDemo {
         if (xCount > Integer.MAX_VALUE / patternSizeX || yCount > Integer.MAX_VALUE / patternSizeY) {
             throw new IllegalArgumentException("Too large result image (>=2^31)");
         }
+        System.out.printf("Pattern image: %dx%d, %d channels, %s elements%n",
+                patternSizeX, patternSizeY, pattern.size(), pattern.get(0).elementType());
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
         try (TiffWriter writer = new TiffWriter(targetFile, true)) {
@@ -76,10 +78,10 @@ public class TiffWriteRepeatedPictureDemo {
                 for (int x = 0; x < xCount; x++) {
                     List<TiffTile> updated = writer.updateChannels(
                             map, pattern, x * (int) patternSizeX, y * (int) patternSizeY);
-                    writer.writeCompletedTiles(updated);
+                    int written = writer.writeCompletedTiles(updated);
                     // - if you comment this operator, OutOfMemoryError will be possible for a very large TIFF
-                    System.out.printf("\rBlock (%d,%d) from (%d,%d) ready (%s memory used)        \r",
-                            x + 1, y + 1, xCount, yCount, memory());
+                    System.out.printf("\rBlock (%d,%d) from (%d,%d) ready (%d written, %s memory used)        \r",
+                            x + 1, y + 1, xCount, yCount, written, memory());
                 }
             }
             System.out.println();

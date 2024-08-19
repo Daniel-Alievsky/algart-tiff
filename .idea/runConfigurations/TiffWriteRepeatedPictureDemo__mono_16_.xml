@@ -1,0 +1,17 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="TiffWriteRepeatedPictureDemo (mono-16)" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.demo.io.TiffWriteRepeatedPictureDemo" />
+    <module name="algart-tiff" />
+    <option name="PROGRAM_PARAMETERS" value="src/test/java/resources/demo/images/tiff/algart/depth/little-endian/test-gray-16.tif /tmp/repeated.tiff 10 10 LZW" />
+    <option name="VM_PARAMETERS" value="-Xmx512m" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="net.algart.matrices.tiff.demo.io.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
