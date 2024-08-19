@@ -94,8 +94,8 @@ public class TiffIFD {
 
     public static final int LAST_IFD_OFFSET = 0;
 
-    public static final int DEFAULT_TILE_SIZE_X = 256;
-    public static final int DEFAULT_TILE_SIZE_Y = 256;
+    public static final int DEFAULT_TILE_SIZE_X = 512;
+    public static final int DEFAULT_TILE_SIZE_Y = 512;
     public static final int DEFAULT_STRIP_SIZE = 128;
 
     /**

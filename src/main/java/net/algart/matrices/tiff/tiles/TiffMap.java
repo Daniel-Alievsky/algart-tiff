@@ -610,8 +610,7 @@ public final class TiffMap {
     @Override
     public String toString() {
         return (resizable ? "resizable " : "") + "map " +
-                (resizable ? "?x?" : dimX + "x" + dimY) +
-                "x" + numberOfChannels + " (" + alignedBitsPerSample + " bits) " +
+                dimX + "x" + dimY + "x" + numberOfChannels + " (" + alignedBitsPerSample + " bits) " +
                 "of " + tileMap.size() + " TIFF tiles (grid " + gridCountX + "x" + gridCountY +
                 ") at the image " + ifd;
     }

@@ -571,7 +571,7 @@ public class TiffWriter implements Closeable {
     }
 
     /**
-     * Opens an existing TIFF file.
+     * Opens an existing TIFF file for appending new images.
      * To use this method, you must not use the constructor with the argument
      * <code>createNewFileAndOpen = true</code>.
      *
@@ -582,7 +582,7 @@ public class TiffWriter implements Closeable {
     }
 
     /**
-     * Opens TIFF file, if it exists, or creates it otherwise.
+     * Opens the TIFF file for possible appending images if it exists, or creates a new TIFF file otherwise.
      * To use this method, you must not use the constructor with the argument
      * <code>createNewFileAndOpen = true</code>.
      *
@@ -608,7 +608,7 @@ public class TiffWriter implements Closeable {
                     throw new FileNotFoundException("Output TIFF file " +
                             TiffReader.prettyFileName("%s", out) + " does not exist");
                 }
-                // In this branch we MUST NOT try to analyse the file: it is not a correct TIFF!
+                // In this branch, we MUST NOT try to analyse the file: it is not a correct TIFF!
             } else {
                 ifdOffsets.clear();
                 final TiffReader reader = new TiffReader(out, true, false);
@@ -627,7 +627,7 @@ public class TiffWriter implements Closeable {
     }
 
     /**
-     * Creates new TIFF file and writes the standard TIFF header in the beginning.
+     * Creates a new TIFF file and writes the standard TIFF header in the beginning.
      * If the file already existed before creating this object,
      * this method truncates it to zero length before writing the header.
      * This method is called automatically in the constructor, when it is called with the argument
@@ -1315,6 +1315,10 @@ public class TiffWriter implements Closeable {
 
     public TiffMap newFixedMap(TiffIFD ifd) throws TiffException {
         return newMap(ifd, false);
+    }
+
+    public TiffMap newResizableMap(TiffIFD ifd) throws TiffException {
+        return newMap(ifd, true);
     }
 
     /**

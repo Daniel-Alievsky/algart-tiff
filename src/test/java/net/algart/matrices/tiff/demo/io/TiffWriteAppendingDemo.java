@@ -38,13 +38,18 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
-public class TiffWriteSimpleDemo {
+public class TiffWriteAppendingDemo {
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
+        boolean mono = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-mono")) {
+            mono = true;
+            startArgIndex++;
+        }
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
-            System.out.printf("    %s source.jpg/png/bmp target.tiff%n",
-                    TiffWriteSimpleDemo.class.getName());
+            System.out.printf("    %s [-append] [-mono] source.jpg/png/bmp target.tiff%n",
+                    TiffWriteAppendingDemo.class.getName());
             return;
         }
         final Path sourceFile = Paths.get(args[startArgIndex]);
@@ -52,16 +57,20 @@ public class TiffWriteSimpleDemo {
 
         System.out.printf("Reading %s...%n", sourceFile);
         List<? extends Matrix<? extends PArray>> image = MatrixIO.readImage(sourceFile);
+        if (mono && image.size() > 1) {
+            System.out.println("Conversion color image to monochrome...");
+            image = List.of(ColorMatrices.asRGBIntensity(image).clone());
+        }
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
-        try (TiffWriter writer = new TiffWriter(targetFile, true)) {
-            // writer.setEnforceUseExternalCodec(true); // - throws exception: no SCIFIO or other external codecs
-            // writer.setAutoInterleaveSource(false);
+        try (TiffWriter writer = new TiffWriter(targetFile)) {
+            writer.openOrCreate();
+            // writer.create(); // - for comparison, this method always creates a new file
             TiffIFD ifd = writer.newIFD()
-                .putChannelsInformation(image)
-                .putCompression(TagCompression.DEFLATE);
+                    .putChannelsInformation(image)
+                    .putCompression(TagCompression.DEFLATE);
             TiffMap map = writer.newFixedMap(ifd);
-            System.out.printf("Writing image to %s...%n", map);
+            System.out.printf("Appending image to %s...%n", map);
             writer.writeChannels(map, image);
         }
         System.out.println("Done");
