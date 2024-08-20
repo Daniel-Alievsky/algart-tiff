@@ -884,7 +884,7 @@ public class TiffIFD {
      * Returns the tile width in tiled image. If there are no tiles,
      * returns max(w,1), where w is the image width.
      *
-     * <p>Note: result is always positive!
+     * <p>Note: the result is always positive!
      *
      * @return tile width.
      * @throws TiffException in a case of incorrect IFD.
@@ -909,7 +909,7 @@ public class TiffIFD {
      * Returns the tile height in tiled image, strip height in other images. If there are no tiles or strips,
      * returns max(h,1), where h is the image height.
      *
-     * <p>Note: result is always positive!
+     * <p>Note: the result is always positive!
      *
      * @return tile/strip height.
      * @throws TiffException in a case of incorrect IFD.

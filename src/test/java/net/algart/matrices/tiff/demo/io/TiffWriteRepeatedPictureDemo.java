@@ -84,12 +84,11 @@ public class TiffWriteRepeatedPictureDemo {
             } else {
                 writer.create();
             }
-            TiffIFD ifd = writer.newIFD()
+            TiffIFD ifd = writer.newIFD(true)
                     .putPixelInformation(pattern.size(), pattern.get(0).elementType())
-                    .defaultTileSizes()
                     .putCompression(compression);
-
             TiffMap map = writer.newResizableMap(ifd);
+            System.out.printf("Creating new resizable map: %s%n", map);
             for (int y = 0; y < yCount; y++) {
                 for (int x = 0; x < xCount; x++) {
                     List<TiffTile> updated = writer.updateChannels(
