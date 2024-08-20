@@ -38,7 +38,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
-public class TiffWriteAppendingDemo {
+public class TiffAppendDemo {
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         boolean mono = false;
@@ -49,7 +49,7 @@ public class TiffWriteAppendingDemo {
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
             System.out.printf("    %s [-append] [-mono] source.jpg/png/bmp target.tiff%n",
-                    TiffWriteAppendingDemo.class.getName());
+                    TiffAppendDemo.class.getName());
             return;
         }
         final Path sourceFile = Paths.get(args[startArgIndex]);
