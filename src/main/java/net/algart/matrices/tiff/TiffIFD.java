@@ -905,7 +905,6 @@ public class TiffIFD {
         // - imageDimX == 0 is checked to be on the safe side
     }
 
-
     /**
      * Returns the tile height in tiled image, strip height in other images. If there are no tiles or strips,
      * returns max(h,1), where h is the image height.
