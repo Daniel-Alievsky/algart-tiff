@@ -42,6 +42,11 @@ import java.util.List;
 public class TiffWriteRepeatedPictureDemo {
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
+        boolean bigTiff = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-bigTiff")) {
+            bigTiff = true;
+            startArgIndex++;
+        }
         if (args.length < startArgIndex + 4) {
             System.out.println("Usage:");
             System.out.printf("    %s image-to-repeat.jpg/png/bmp target.tiff " +
@@ -67,7 +72,9 @@ public class TiffWriteRepeatedPictureDemo {
                 patternSizeX, patternSizeY, pattern.size(), pattern.get(0).elementType());
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
-        try (TiffWriter writer = new TiffWriter(targetFile, true)) {
+        try (TiffWriter writer = new TiffWriter(targetFile)) {
+            writer.setBigTiff(bigTiff);
+            writer.create();
             TiffIFD ifd = writer.newIFD()
                     .putPixelInformation(pattern.size(), pattern.get(0).elementType())
                     .defaultTileSizes()

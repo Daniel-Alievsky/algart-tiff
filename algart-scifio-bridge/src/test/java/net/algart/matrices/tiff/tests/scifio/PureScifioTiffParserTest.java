@@ -91,7 +91,7 @@ public class PureScifioTiffParserTest {
         System.out.printf("Converting data to BufferedImage...%n");
         final BufferedImage image = bytesToImage(bytes, w, h, bandCount);
         System.out.printf("Saving result image into %s...%n", resultFile);
-        if (!ImageIO.write(image, TiffInfo.extension(resultFile.getName(), "bmp"), resultFile)) {
+        if (!ImageIO.write(image, extension(resultFile.getName(), "bmp"), resultFile)) {
             throw new IIOException("Cannot write " + resultFile);
         }
         context.close();
@@ -113,4 +113,13 @@ public class PureScifioTiffParserTest {
         }
         return result;
     }
+
+    static String extension(String fileName, String defaultExtension) {
+        int p = fileName.lastIndexOf('.');
+        if (p == -1) {
+            return defaultExtension;
+        }
+        return fileName.substring(p + 1);
+    }
+
 }

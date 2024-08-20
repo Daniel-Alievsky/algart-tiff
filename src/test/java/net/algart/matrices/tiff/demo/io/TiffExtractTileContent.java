@@ -52,7 +52,7 @@ public class TiffExtractTileContent {
         final int row = Integer.parseInt(args[startArgIndex++]);
         final int separatedPlaneIndex = startArgIndex < args.length ? Integer.parseInt(args[startArgIndex]) : 0;
 
-        new TiffInfo().showTiffInfo(tiffFile);
+        // new TiffInfo().showTiffInfo(tiffFile);
 
         final TiffReader reader = new TiffReader(tiffFile);
         System.out.printf("Opening %s by %s...%n", tiffFile, reader);

@@ -98,21 +98,21 @@ public class TiffInfo {
                 reader.setRequireValidTiff(strict);
                 var ifdList = reader.allIFDs();
                 final int ifdCount = ifdList.size();
-                System.out.printf("%nFile %s: %d IFDs, %s, %s-endian%n",
+                firstIFDIndex = Math.max(firstIFDIndex, 0);
+                lastIFDIndex = Math.min(lastIFDIndex, ifdCount - 1);
+                System.out.printf("%nFile %s: %d images, %s, %s-endian%n",
                         tiffFile,
                         ifdCount,
                         reader.isBigTiff() ? "BigTIFF" : "not BigTIFF",
                         reader.isLittleEndian() ? "little" : "big");
-                for (int k = 0; k < ifdCount; k++) {
-                    if (k >= firstIFDIndex && k <= lastIFDIndex) {
-                        final TiffIFD ifd = ifdList.get(k);
-                        System.out.println(ifdInfo(ifd, k, ifdCount));
-                        if (!(ifd.containsKey(Tags.STRIP_BYTE_COUNTS) || ifd.containsKey(Tags.TILE_BYTE_COUNTS))) {
-                            throw new TiffException("Invalid IFD: doesn't contain StripByteCounts/TileByteCounts tag");
-                        }
-                        if (!(ifd.containsKey(Tags.STRIP_OFFSETS) || ifd.containsKey(Tags.TILE_OFFSETS))) {
-                            throw new TiffException("Invalid IFD: doesn't contain StripOffsets/TileOffsets tag");
-                        }
+                for (int k = firstIFDIndex; k <= lastIFDIndex; k++) {
+                    final TiffIFD ifd = ifdList.get(k);
+                    System.out.println(ifdInfo(ifd, k, ifdCount));
+                    if (!(ifd.containsKey(Tags.STRIP_BYTE_COUNTS) || ifd.containsKey(Tags.TILE_BYTE_COUNTS))) {
+                        throw new TiffException("Invalid IFD: doesn't contain StripByteCounts/TileByteCounts tag");
+                    }
+                    if (!(ifd.containsKey(Tags.STRIP_OFFSETS) || ifd.containsKey(Tags.TILE_OFFSETS))) {
+                        throw new TiffException("Invalid IFD: doesn't contain StripOffsets/TileOffsets tag");
                     }
                 }
             }
@@ -128,20 +128,11 @@ public class TiffInfo {
                 ifd.toString(stringFormat));
     }
 
-    public static String extension(String fileName, String defaultExtension) {
-        int p = fileName.lastIndexOf('.');
-        if (p == -1) {
-            return defaultExtension;
-        }
-        return fileName.substring(p + 1);
-    }
-
     private static boolean isPossiblyTIFF(File file) {
         if (!file.isFile()) {
             return false;
         }
-        final String e = extension(file.getName().toLowerCase(), "txt");
-        return !e.equals("txt");
+        String name = file.getName().toLowerCase();
+        return !(!name.contains(".") || name.endsWith(".txt"));
     }
-
 }

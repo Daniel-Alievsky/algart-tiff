@@ -1557,7 +1557,7 @@ public class TiffIFD {
             }
             sb.append(json ?
                     "  \"chunked\" : %s,\n".formatted(isChunked()) :
-                    isChunked() ? ", chunked" : ", planar");
+                    isChunked() ? ", chunked (interleaved)" : ", planar (separated)");
         } catch (Exception e) {
             sb.append(json ?
                     "  \"exceptionAdditional\" : \"%s\",\n".formatted(escapeJsonString(e.getMessage())) :
