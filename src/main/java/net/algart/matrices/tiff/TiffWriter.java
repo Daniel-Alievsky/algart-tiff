@@ -836,7 +836,14 @@ public class TiffWriter implements Closeable {
         }
         final int toX = fromX + sizeX;
         final int toY = fromY + sizeY;
-        map.expandDimensions(toX, toY);
+        if (map.needToExpandDimensions(toX, toY)) {
+            if (!map.isResizable()) {
+                throw new IndexOutOfBoundsException("Requested area [" + fromX + ".." + (fromX + sizeX - 1) +
+                        " x " + fromY + ".." + (fromY + sizeY - 1) + "] is outside the TIFF image dimensions " +
+                        map.dimX() + "x" + map.dimY() + ": this is not allowed for non-resizable tile map");
+            }
+            map.expandDimensions(toX, toY);
+        }
 
         final int mapTileSizeX = map.tileSizeX();
         final int mapTileSizeY = map.tileSizeY();

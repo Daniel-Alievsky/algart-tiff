@@ -1463,7 +1463,7 @@ public class TiffReader implements Closeable {
         if (sizeX >= Integer.MAX_VALUE - fromX || sizeY >= Integer.MAX_VALUE - fromY) {
             // - Note: >= instead of > ! This allows to use "toX = fromX + sizeX" without overflow
             throw new IllegalArgumentException("Requested area [" + fromX + ".." + (fromX + sizeX - 1) +
-                    " x " + fromY + ".." + (fromY + sizeY - 1) + " is out of 0..2^31-2 ranges");
+                    " x " + fromY + ".." + (fromY + sizeY - 1) + "] is outside the 0..2^31-2 ranges");
         }
         return result;
     }

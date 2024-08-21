@@ -66,6 +66,7 @@ public class TiffOverwriteDemo {
             TiffIFD ifd = reader.readSingleIFD(ifdIndex);
             ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
             TiffMap map = writer.existingMap(ifd);
+            System.out.printf("Overwriting %s...%n", map);
             preloadPartiallyOverwrittenTiles(reader, map, x, y, imageToDrawSizeX, imageToDrawSizeY);
             writer.writeChannels(map, imageToDraw, x, y);
         }

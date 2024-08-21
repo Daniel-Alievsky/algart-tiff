@@ -418,9 +418,22 @@ public final class TiffMap {
      * @param newMinimalDimY new minimal value for {@link #dimY() sizeY}.
      */
     public void expandDimensions(int newMinimalDimX, int newMinimalDimY) {
-        if (newMinimalDimX > dimX || newMinimalDimY > dimY) {
+        if (needToExpandDimensions(newMinimalDimX, newMinimalDimY)) {
             setDimensions(Math.max(dimX, newMinimalDimX), Math.max(dimY, newMinimalDimY));
         }
+    }
+
+    /**
+     * Equivalent to <code>newMinimalDimX > {@link #dimX()} || newMinimalDimY > {@link #dimY()}</code>.
+     * If this method returns <code>false</code>, the {@link #expandDimensions} method with the same arguments
+     * does nothing.
+     *
+     * @param newMinimalDimX new minimal value for {@link #dimX() sizeX}.
+     * @param newMinimalDimY new minimal value for {@link #dimY() sizeY}.
+     * @return whether one of the current dimensions is less than the corresponding argument.
+     */
+    public boolean needToExpandDimensions(int newMinimalDimX, int newMinimalDimY) {
+        return newMinimalDimX > dimX || newMinimalDimY > dimY;
     }
 
     public int gridCountX() {
