@@ -513,7 +513,7 @@ public class TiffIFD {
      * {@link #alignedBitDepth()}.
      *
      * @return TIFF sample type
-     * @throws TiffException in a case of format problems.
+     * @throws TiffException in the case of format problems.
      */
     public TiffSampleType sampleType() throws TiffException {
         TiffSampleType result = sampleType(true);
@@ -887,7 +887,7 @@ public class TiffIFD {
      * <p>Note: the result is always positive!
      *
      * @return tile width.
-     * @throws TiffException in a case of incorrect IFD.
+     * @throws TiffException in the case of incorrect IFD.
      */
     public int getTileSizeX() throws TiffException {
         if (hasTileInformation()) {
@@ -912,7 +912,7 @@ public class TiffIFD {
      * <p>Note: the result is always positive!
      *
      * @return tile/strip height.
-     * @throws TiffException in a case of incorrect IFD.
+     * @throws TiffException in the case of incorrect IFD.
      */
     public int getTileSizeY() throws TiffException {
         if (hasTileInformation()) {
@@ -965,7 +965,7 @@ public class TiffIFD {
      * create TIFF files with different number of bits per channel.
      *
      * @return bits per sample, if this value is the same for all channels, or empty value in another case.
-     * @throws TiffException in a case of any problems while parsing IFD, in particular,
+     * @throws TiffException in the case of any problems while parsing IFD, in particular,
      *                       if <code>BitsPerSample</code> tag contains zero or negative values.
      */
     public OptionalInt tryEqualBitDepth() throws TiffException {
@@ -1134,7 +1134,7 @@ public class TiffIFD {
     public TiffIFD putPixelInformation(int numberOfChannels, TiffSampleType sampleType) {
         Objects.requireNonNull(sampleType, "Null sampleType");
         putNumberOfChannels(numberOfChannels);
-        // - note: actual number of channels will be 3 in a case of OLD_JPEG;
+        // - note: actual number of channels will be 3 in the case of OLD_JPEG;
         // but it is not a recommended usage (we may set OLD_JPEG compression later)
         putSampleType(sampleType);
         return this;
@@ -1250,15 +1250,15 @@ public class TiffIFD {
      *
      * <p>If IFD contains <b>only one</b> from these tags &mdash; there is <code>TileWidth</code>,
      * but <code>TileLength</code> is not specified, or vice versa &mdash; this method throws
-     * <code>FormatException</code>. It allows to guarantee: if this method returns <code>true</code>,
-     * than the tile sizes are completely specified by these 2 tags and do not depend on the
+     * <code>FormatException</code>. It allows guaranteeing: if this method returns <code>true</code>,
+     * than the tile sizes are completely specified by these two tags and do not depend on the
      * actual image sizes. Note: when this method returns <code>false</code>, the tiles sizes,
      * returned by {@link #getTileSizeY()} methods, are determined by
      * <code>RowsPerStrip</code> tag, and {@link #getTileSizeX()} is always equal to the value
      * of <code>ImageWidth</code> tag.
      *
      * <p>Note that some TIFF files use <code>StripOffsets</code> and <code>StripByteCounts</code> tags even
-     * in a case of tiled image with <code>TileWidth</code> and <code>TileLength</code> tags,
+     * in the case of tiled image with <code>TileWidth</code> and <code>TileLength</code> tags,
      * for example, cramps-tile.tif from the known image set <i>libtiffpic</i>
      * (see <a href="https://download.osgeo.org/libtiff/">https://download.osgeo.org/libtiff/</a>).
      *

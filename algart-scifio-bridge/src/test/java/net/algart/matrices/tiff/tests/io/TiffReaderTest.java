@@ -30,7 +30,6 @@ import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
 import net.algart.io.MatrixIO;
 import net.algart.io.awt.MatrixToImage;
-import net.algart.matrices.tiff.CachingTiffReader;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.compatibility.TiffParser;
 import net.algart.matrices.tiff.executable.TiffInfo;
@@ -98,10 +97,12 @@ public class TiffReaderTest {
             try (final Context context = !useContext ? null : TiffReader.newSCIFIOContext()) {
                 long t1 = System.nanoTime();
                 final TiffReader reader = compatibility ?
-                        new TiffParser(context, tiffFile) : cache ?
-                        new CachingTiffReader(tiffFile)
-                                .setMaxCachingMemory(tiny ? 1000000 : CachingTiffReader.DEFAULT_MAX_CACHING_MEMORY):
+                        new TiffParser(context, tiffFile) :
                         new TiffReader(tiffFile);
+                if (cache) {
+                    reader.setCaching(true)
+                            .setMaxCachingMemory(tiny ? 1000000 : TiffReader.DEFAULT_MAX_CACHING_MEMORY);
+                }
                 reader.setContext(context);
                 long t2 = System.nanoTime();
 //                reader.setEnforceUseExternalCodec(true);

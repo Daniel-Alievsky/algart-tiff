@@ -206,13 +206,13 @@ public class TiffReadWriteTest {
                             buf2 = map.toInterleavedSamples(buf2, samplesPerPixel,  numberOfPixels);
                         }
                         final int checkedLength = paddedW * h * samplesPerPixel * bytesPerSample;
-                        // - In a case of stripped image (but not tiled!), the last strip is usually stored
-                        // with its actual sizes, i.e. with the height R = min(tileSizeY, imageLength-y).
-                        // It means that the end part of the tile buffer inside TiffParser - after 1st R lines -
+                        // - In the case of stripped image (but not tiled!), the last strip is usually stored
+                        // with its actual sizes, i.e., with the height R = min(tileSizeY, imageLength-y).
+                        // This means that the end part of the tile buffer inside TiffParser - after 1st R lines -
                         // is not defined: it may be filled anyhow.
                         // Old code reuses the same buffer for all tiles, but compatibility TiffParser.getTile method,
                         // based on TiffReader.readTile, always creates new zero-filled buffer.
-                        // Only first R lines of this buffer are filled correctly, but this buffer
+                        // Only the first R lines of this buffer are filled correctly, but this buffer
                         // is copied completely into getSamples byte[] argument.
                         // It is the reason why we should check only first h lines while comparing with the old parser.
                         // It is also the reason why we should perform interleaving before comparison.
@@ -308,7 +308,7 @@ public class TiffReadWriteTest {
             sum += Math.abs((buf1[k] & 0xFF) - (bytes[k] & 0xFF));
         }
         if (count > 0) {
-            System.err.printf("%n%s: different behaviour! %d bytes differ since %d, summary difference %d%n",
+            System.err.printf("%n%s: different behavior! %d bytes differ since %d, summary difference %d%n",
                     message, count, first, sum);
         }
     }

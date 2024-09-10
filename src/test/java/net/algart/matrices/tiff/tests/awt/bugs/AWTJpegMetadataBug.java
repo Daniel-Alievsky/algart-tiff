@@ -100,7 +100,7 @@ public class AWTJpegMetadataBug {
 
         IIOMetadata metadata = writer.getDefaultImageMetadata(imageTypeSpecifier, writeParam);
         correctColorSpace(metadata, rgbSpace ? "RGB" : "YCbCr");
-        // - lead to invalid metadata (duplicate APP0) in a case YCbCr
+        // - lead to invalid metadata (duplicate APP0) in the case YCbCr
         IIOImage iioImage = new IIOImage(image, null, metadata);
         writer.write(null, iioImage, writeParam);
         // !!!! BUG #2: even when metadata are incorrect and contain duplicated JFIF marker,

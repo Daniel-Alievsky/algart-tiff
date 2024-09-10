@@ -53,7 +53,7 @@ public final class TiffTileIndex {
      * Creates new tile index.
      *
      * @param map          containing tile map.
-     * @param channelPlane channel-plane index (used only in a case of
+     * @param channelPlane channel-plane index (used only in the case of
      *                     {@link TiffIFD#PLANAR_CONFIGURATION_SEPARATE},
      *                     always 0 for usual case {@link TiffIFD#PLANAR_CONFIGURATION_CHUNKED})
      * @param xIndex       x-index of the tile (0, 1, 2, ...).

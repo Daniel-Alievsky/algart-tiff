@@ -802,7 +802,7 @@ public final class TiffMap {
         }
         if (newMinimalTileCountX <= gridCountX && newMinimalTileCountY <= gridCountY) {
             return;
-            // - even in a case !resizable
+            // - even in the case !resizable
         }
         if (checkResizable && !resizable) {
             throw new IllegalArgumentException("Cannot expand tile counts in a non-resizable tile map");

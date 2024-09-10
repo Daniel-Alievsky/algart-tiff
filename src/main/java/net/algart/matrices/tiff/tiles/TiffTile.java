@@ -404,7 +404,7 @@ public final class TiffTile {
     /**
      * Returns <code>true</code>>, if the stored pixel samples (as supposed) are interleaved, like RGBRGB...,
      * or <code>false</code> if not (RRR...GGG...BBB...).
-     * It doesn't matter in a case of monochrome images and in a case of {@link #isEncoded() encoded} data.
+     * It doesn't matter in the case of monochrome images and in the case of {@link #isEncoded() encoded} data.
      * Default value is <code>false</code>.
      *
      * <p>By default, the data are considered to be <b>not</b> interleaved, in other words, {@link #isSeparated()

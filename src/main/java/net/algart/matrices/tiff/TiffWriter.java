@@ -124,7 +124,7 @@ public class TiffWriter implements Closeable {
      * and will not be able to open an existing TIFF file for modifications.</p>
      *
      * @param file output TIFF tile.
-     * @throws IOException in a case of any I/O errors.
+     * @throws IOException in the case of any I/O errors.
      */
     public TiffWriter(Path file) throws IOException {
         this(file, false);
@@ -136,7 +136,7 @@ public class TiffWriter implements Closeable {
      * <p>If the argument <code>createNewFileAndOpen</code> is {@code false},
      * this constructor <b>does not try to open or create file</b> and, so, never
      * throw {@link IOException}.
-     * This behaviour <b>differ</b> from the constructor of {@link java.io.FileWriter#FileWriter(File) FileWriter}
+     * This behavior <b>differ</b> from the constructor of {@link java.io.FileWriter#FileWriter(File) FileWriter}
      * and similar classes, which create and open a file.
      *
      * <p>You may create the file&nbsp;&mdash; or open an existing TIFF file&nbsp;&mdash; later via
@@ -146,8 +146,8 @@ public class TiffWriter implements Closeable {
      *
      * <p>If the argument <code>createNewFileAndOpen</code> is {@code true},
      * this constructor automatically removes the file with the specified path, if it exists,
-     * and calls {@link #create()} method. In a case of I/O exception in {@link #create()} method,
-     * this file is automatically closed. This behaviour is alike
+     * and calls {@link #create()} method. in the case of I/O exception in {@link #create()} method,
+     * this file is automatically closed. This behavior is alike
      * {@link java.io.FileWriter#FileWriter(File) FileWriter constructor}.
      *
      * <p>This is the simplest way to create a new TIFF file and automatically open it with writing the standard
@@ -160,7 +160,7 @@ public class TiffWriter implements Closeable {
      *
      * @param file                 output TIFF tile.
      * @param createNewFileAndOpen whether you need to call {@link #create()} method inside the constructor.
-     * @throws IOException in a case of any I/O errors.
+     * @throws IOException in the case of any I/O errors.
      */
     public TiffWriter(Path file, boolean createNewFileAndOpen) throws IOException {
         this(openWithDeletingPreviousFileIfRequested(file, createNewFileAndOpen));
@@ -300,7 +300,7 @@ public class TiffWriter implements Closeable {
      *
      * <p>If the settings in the specified IFD are absolutely incorrect, this class always throws
      * {@link TiffException}. If the settings look possible in principle, but this class does not support
-     * writing in this mode, the behaviour depends on the flag, setting by this method.</p>
+     * writing in this mode, the behavior depends on the flag, setting by this method.</p>
      *
      * <p>If this mode is set to <code>true</code> (the "smart" IFD correction), the writer may try to change IFD to
      * some similar settings, so that it will be able to write the image. In particular, if number of bits
@@ -537,7 +537,7 @@ public class TiffWriter implements Closeable {
      * To use this method, you must not use the constructor with the argument
      * <code>createNewFileAndOpen = true</code>.
      *
-     * @throws IOException in a case of any I/O errors.
+     * @throws IOException in the case of any I/O errors.
      */
     public final void openExisting() throws IOException {
         open(false);
@@ -548,7 +548,7 @@ public class TiffWriter implements Closeable {
      * To use this method, you must not use the constructor with the argument
      * <code>createNewFileAndOpen = true</code>.
      *
-     * @throws IOException in a case of any I/O errors.
+     * @throws IOException in the case of any I/O errors.
      */
     public final void openOrCreate() throws IOException {
         open(true);
@@ -559,7 +559,7 @@ public class TiffWriter implements Closeable {
      * or to {@link #openOrCreate()} if the argument is {@code true}.
      *
      * @param createIfNotExists whether you need to create a new TIFF file when there is no existing file.
-     * @throws IOException in a case of any I/O errors.
+     * @throws IOException in the case of any I/O errors.
      */
     public final void open(boolean createIfNotExists) throws IOException {
         synchronized (fileLock) {
@@ -574,7 +574,7 @@ public class TiffWriter implements Closeable {
             } else {
                 ifdOffsets.clear();
                 final TiffReader reader = new TiffReader(out, true, false);
-                // - note: we should NOT close the reader in a case of any problem,
+                // - note: we should NOT close the reader in the case of any problem,
                 // because it uses the same stream with this writer
                 final long[] offsets = reader.readIFDOffsets();
                 final long readerPositionOfLastOffset = reader.positionOfLastIFDOffset();
@@ -595,7 +595,7 @@ public class TiffWriter implements Closeable {
      * This method is called automatically in the constructor, when it is called with the argument
      * <code>createNewFileAndOpen = true</code>.
      *
-     * @throws IOException in a case of any I/O errors.
+     * @throws IOException in the case of any I/O errors.
      */
     public final void create() throws IOException {
         synchronized (fileLock) {
@@ -673,7 +673,7 @@ public class TiffWriter implements Closeable {
      *
      * @param ifd               IFD to write in the output stream.
      * @param updateIFDLinkages see comments above.
-     * @throws IOException in a case of any I/O errors.
+     * @throws IOException in the case of any I/O errors.
      */
     public void writeIFDAt(TiffIFD ifd, Long startOffset, boolean updateIFDLinkages) throws IOException {
         synchronized (fileLock) {
@@ -717,7 +717,7 @@ public class TiffWriter implements Closeable {
      * without automatic updating IFD linkage.
      *
      * @param nextLastIFDOffset new last IFD offset.
-     * @throws IOException in a case of any I/O errors.
+     * @throws IOException in the case of any I/O errors.
      */
     public void rewritePreviousLastIFDOffset(long nextLastIFDOffset) throws IOException {
         synchronized (fileLock) {
@@ -893,7 +893,7 @@ public class TiffWriter implements Closeable {
 //                        System.out.printf("!!!Separate: %d%n", samplesPerPixel);
                         // - Source data are separated to channel planes: standard form, more convenient for image
                         // processing; this form is used for results of TiffReader by default (unless
-                        // you specify another behaviour by setInterleaveResults method).
+                        // you specify another behavior by setInterleaveResults method).
                         // Here are 2 possible cases:
                         //      B) planarSeparated=false (most typical): results in the file should be interleaved;
                         // we must prepare a single tile, but with SEPARATED data (they will be interleaved later);
@@ -964,7 +964,7 @@ public class TiffWriter implements Closeable {
                     ": it must be 3-dimensional dimX*dimY*C, " +
                     "where C is the number of channels (z-dimension), " +
                     "or 3-dimensional C*dimX*dimY for interleaved case, " +
-                    "or may be 2-dimensional in a case of monochrome TIFF image");
+                    "or may be 2-dimensional in the case of monochrome TIFF image");
         }
         final int dimChannelsIndex = sourceInterleaved ? 0 : 2;
         final long numberOfChannels = matrix.dim(dimChannelsIndex);
@@ -1450,8 +1450,8 @@ public class TiffWriter implements Closeable {
      *
      * @param map    TIFF map.
      * @param matrix 3D-matrix of pixels.
-     * @throws TiffException in a case of invalid TIFF IFD.
-     * @throws IOException   in a case of any I/O errors.
+     * @throws TiffException in the case of invalid TIFF IFD.
+     * @throws IOException   in the case of any I/O errors.
      */
     public void writeMatrix(TiffMap map, Matrix<? extends PArray> matrix) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
@@ -1483,8 +1483,8 @@ public class TiffWriter implements Closeable {
      *
      * @param map      TIFF map.
      * @param channels color channels of the image (2-dimensional matrices).
-     * @throws TiffException in a case of invalid TIFF IFD.
-     * @throws IOException   in a case of any I/O errors.
+     * @throws TiffException in the case of invalid TIFF IFD.
+     * @throws IOException   in the case of any I/O errors.
      */
     public void writeChannels(TiffMap map, List<? extends Matrix<? extends PArray>> channels) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");

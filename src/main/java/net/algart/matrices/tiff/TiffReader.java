@@ -50,6 +50,8 @@ import org.scijava.io.location.Location;
 import java.io.Closeable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.ref.Reference;
+import java.lang.ref.SoftReference;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.nio.ByteOrder;
@@ -71,6 +73,11 @@ import java.util.stream.Collectors;
  * The same is true for the result of {@link #stream()} method.</p>
  */
 public class TiffReader implements Closeable {
+    public static final long DEFAULT_MAX_CACHING_MEMORY = Math.max(0,
+            net.algart.arrays.Arrays.SystemSettings.getLongProperty(
+                    "net.algart.matrices.tiff.defaultMaxCachingMemory", 256 * 1048576L));
+    // - 256 MB maximal cache by default
+
 
     /**
      * IFD with number of entries, greater than this limit, is not allowed:
@@ -113,6 +120,8 @@ public class TiffReader implements Closeable {
     private static final boolean LOGGABLE_DEBUG = LOG.isLoggable(System.Logger.Level.DEBUG);
 
     private boolean requireValidTiff;
+    private boolean caching = false;
+    private long maxCachingMemory = DEFAULT_MAX_CACHING_MEMORY;
     private boolean interleaveResults = false;
     private boolean autoUnpackBitsToBytes = false;
     private boolean autoUnpackUnusualPrecisions = true;
@@ -147,6 +156,11 @@ public class TiffReader implements Closeable {
 
     private volatile long positionOfLastIFDOffset = -1;
 
+    private final Map<TiffTileIndex, CachedTile> tileCacheMap = new HashMap<>();
+    private final Queue<CachedTile> tileCache = new LinkedList<CachedTile>();
+    private long currentCacheMemory = 0;
+    private final Object tileCacheLock = new Object();
+
     private long timeReading = 0;
     private long timeCustomizingDecoding = 0;
     private long timeDecoding = 0;
@@ -173,7 +187,7 @@ public class TiffReader implements Closeable {
      * @param requireValidTiff whether the input file must exist and be a readable TIFF-file
      *                         with a correct header.
      * @throws TiffException if the file is not a correct TIFF file
-     * @throws IOException   in a case of any problems with the input file
+     * @throws IOException   in the case of any problems with the input file
      */
     public TiffReader(DataHandle<Location> inputStream, boolean requireValidTiff) throws IOException {
         this(inputStream, requireValidTiff, false);
@@ -183,7 +197,7 @@ public class TiffReader implements Closeable {
      * Constructs new reader.
      *
      * <p>If <code>requireValidTiff</code> is <code>true</code> (standard variant), it will throw an exception
-     * in a case of incorrect TIFF header or some other I/O errors.
+     * in the case of incorrect TIFF header or some other I/O errors.
      * In this case, <code>closeStreamOnException</code> flag specifies, whether this function
      * must close the input stream or no. It <b>should</b> be true when you call this constructor
      * from another constructor, which creates <code>DataHandle</code>: it is the only way to close
@@ -198,10 +212,10 @@ public class TiffReader implements Closeable {
      *                               if this stream is still not an instance of this class.
      * @param requireValidTiff       whether the input file must exist and be a readable TIFF-file
      *                               with a correct header.
-     * @param closeStreamOnException if <code>true</code>, the input stream is closed in a case of any exception;
+     * @param closeStreamOnException if <code>true</code>, the input stream is closed in the case of any exception;
      *                               ignored if <code>requireValidTiff</code> is <code>false</code>.
      * @throws TiffException if the file is not a correct TIFF file.
-     * @throws IOException   in a case of any problems with the input file.
+     * @throws IOException   in the case of any problems with the input file.
      */
     public TiffReader(DataHandle<Location> inputStream, boolean requireValidTiff, boolean closeStreamOnException)
             throws IOException {
@@ -230,14 +244,14 @@ public class TiffReader implements Closeable {
      * <p>Unlike other constructors, this one never throws an exception. This is helpful, because allows
      * to make constructors in subclasses, which do not declare any exceptions to be thrown.
      *
-     * <p>If the file is not a correct TIFF or in a case of any other I/O problem,
+     * <p>If the file is not a correct TIFF or in the case of any other I/O problem,
      * the information about the problem is stored in an exception, which can be retrieved later
      * by {@link #openingException()} method and which is passed to <code>exceptionHandler</code>
      * (if it is not {@code null}).
      *
      * @param inputStream      input stream; automatically replaced (wrapped) with {@link ReadBufferDataHandle},
      *                         if this stream is still not an instance of this class.
-     * @param exceptionHandler if not {@code null}, it will be called in a case of some checked exception;
+     * @param exceptionHandler if not {@code null}, it will be called in the case of some checked exception;
      *                         for example, it may log it. But usually it is better idea to use the main
      *                         constructor {@link #TiffReader(DataHandle, boolean, boolean)} with catching exception.
      */
@@ -273,13 +287,43 @@ public class TiffReader implements Closeable {
         return this;
     }
 
+    public boolean isCaching() {
+        return caching;
+    }
+
+    /**
+     * Enables or disables caching tile. If caching is enabled, {@link #readTile(TiffTileIndex)} method
+     * works very quickly when the tile is found in the cache.
+     *
+     * <p>By default, the caching is disabled.</p>
+     *
+     * @param caching whether reading data from the fill should be cached.
+     * @return a reference to this object.
+     */
+    public TiffReader setCaching(boolean caching) {
+        this.caching = caching;
+        return this;
+    }
+
+    public long getMaxCachingMemory() {
+        return maxCachingMemory;
+    }
+
+    public TiffReader setMaxCachingMemory(long maxCachingMemory) {
+        if (maxCachingMemory < 0) {
+            throw new IllegalArgumentException("Negative maxCachingMemory = " + maxCachingMemory);
+        }
+        this.maxCachingMemory = maxCachingMemory;
+        return this;
+    }
+
     public boolean isInterleaveResults() {
         return interleaveResults;
     }
 
     /**
-     * Sets the interleave mode: the loaded samples will be returned in chunked form, for example, RGBRGBRGB...
-     * in a case of RGB image. If not set (default behaviour), the samples are returned in unpacked form:
+     * Sets the interleaving mode: the loaded samples will be returned in chunked form, for example, RGBRGBRGB...
+     * in the case of RGB image. If not set (default behavior), the samples are returned in unpacked form:
      * RRR...GGG...BBB...
      *
      * @param interleaveResults new interleaving mode.
@@ -461,7 +505,7 @@ public class TiffReader implements Closeable {
      * Sets whether IFD entries, returned by {@link #allIFDs()} method, should be cached.
      *
      * <p>Default value is <code>true</code>. Possible reason to set is to <code>false</code>
-     * is reading file which is dynamically modified.
+     * is reading a file which is dynamically modified.
      * In other cases, usually it should be <code>true</code>, though <code>false</code> value
      * also works well if you are not going to call {@link #allIFDs()} more than once.
      *
@@ -566,10 +610,10 @@ public class TiffReader implements Closeable {
     /**
      * Returns position in the file of the last IFD offset, loaded by {@link #readIFDOffsets()},
      * {@link #readSingleIFDOffset(int)} or {@link #readFirstIFDOffset()} methods.
-     * Usually it is just a position of the offset of the last IFD, because
+     * Usually it is just a position of the last IFD offset, because
      * popular {@link #allIFDs()} method calls {@link #readIFDOffsets()} inside.
      *
-     * <p>Immediately after creating new object this position is <code>-1</code>.
+     * <p>Immediately after creating a new object this position is <code>-1</code>.
      *
      * @return file position of the last IFD offset.
      */
@@ -582,7 +626,7 @@ public class TiffReader implements Closeable {
      *
      * @return number of existing IFDs.
      * @throws TiffException if the file is not a correct TIFF file.
-     * @throws IOException   in a case of any problems with the input file.
+     * @throws IOException   in the case of any problems with the input file.
      */
     public int numberOfIFDs() throws IOException {
         return allIFDs().size();
@@ -596,7 +640,7 @@ public class TiffReader implements Closeable {
      * @throws TiffException            if <code>ifdIndex</code> is too large,
      *                                  or if the file is not a correct TIFF file
      *                                  and this was not detected while opening it.
-     * @throws IOException              in a case of any problems with the input file.
+     * @throws IOException              in the case of any problems with the input file.
      * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
      */
     public TiffMap map(int ifdIndex) throws IOException {
@@ -611,9 +655,9 @@ public class TiffReader implements Closeable {
      * @param ifdIndex index of IFD.
      * @return the IFD with the specified index.
      * @throws TiffException            if <code>ifdIndex</code> is too large,
-     *                                  or if the file is not a correct TIFF file
+     *                                  or if the file is not a correct TIFF file,
      *                                  and this was not detected while opening it.
-     * @throws IOException              in a case of any problems with the input file.
+     * @throws IOException              in the case of any problems with the input file.
      * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
      */
     public TiffIFD ifd(int ifdIndex) throws IOException {
@@ -632,7 +676,7 @@ public class TiffReader implements Closeable {
      * Reads 1st IFD (#0).
      *
      * <p>Note: this method <i>does not</i> use {@link #allIFDs()} method.
-     * If you really needs access only to 1st IFD,
+     * If you really need access only to the first IFD,
      * this method may work faster than {@link #ifd(int)}.
      */
     public TiffIFD firstIFD() throws IOException {
@@ -659,10 +703,11 @@ public class TiffReader implements Closeable {
      * (but this can be disabled using {@link #setCachingIFDs(boolean)} method).
      *
      * <p>Note: if this TIFF file is not valid ({@link #isValid()} returns <code>false</code>), this method
-     * returns an empty list and does not throw an exception. For valid TIFF, result cannot be empty.
+     * returns an empty list and does not throw an exception.
+     * For a valid TIFF, the result cannot be empty.
      *
      * @throws TiffException if the file is not a correct TIFF file, but this was not detected while opening it.
-     * @throws IOException   in a case of any problems with the input file.
+     * @throws IOException   in the case of any problems with the input file.
      */
     public List<TiffIFD> allIFDs() throws IOException {
         long t1 = debugTime();
@@ -893,7 +938,7 @@ public class TiffReader implements Closeable {
                 ifd.setNextIFDOffset(nextOffset);
                 in.seek(positionOfNextOffset);
                 // - this "in.seek" provides maximal compatibility with old code (which did not read next IFD offset)
-                // and also with behaviour of this method, when readNextOffset is not requested
+                // and also with the behavior of this method, when readNextOffset is not requested
             }
         }
 
@@ -908,14 +953,32 @@ public class TiffReader implements Closeable {
     }
 
     /**
-     * Reads and decodes the tile at the specified position.
-     * Note: the loaded tile is always {@link TiffTile#isSeparated() separated}.
+     * Calls {@link #readTile(TiffTileIndex)} with the same argument with caching, if this was enabled
+     * by {@link #setCaching(boolean)} method.
      *
-     * @param tileIndex position of the file
+     * @param tileIndex position of the file.
      * @return loaded tile.
+     * @throws IOException in the case of any problems with the input file.
      */
     public TiffTile readTile(TiffTileIndex tileIndex) throws IOException {
-        TiffTile tile = readEncodedTile(tileIndex);
+        if (!caching || maxCachingMemory == 0) {
+            return readTileNoCache(tileIndex);
+        }
+        return getCachedTile(tileIndex).readIfNecessary();
+    }
+
+    /**
+     * Reads and decodes the tile at the specified position.
+     * <p>Note: the loaded tile is always {@link TiffTile#isSeparated() separated}.
+     * <p>Note: this method does not cache tiles.
+     *
+     * @param tileIndex position of the file.
+     * @return loaded tile.
+     * @throws IOException in the case of any problems with the input file.
+     * @see #readTile(TiffTileIndex)
+     */
+    public TiffTile readTileNoCache(TiffTileIndex tileIndex) throws IOException {
+        final TiffTile tile = readEncodedTile(tileIndex);
         if (tile.isEmpty()) {
             return tile;
         }
@@ -946,14 +1009,14 @@ public class TiffReader implements Closeable {
         */
 
         final TiffTile result = new TiffTile(tileIndex);
-        // - No reasons to put it into the map: this class do not provide access to temporary created map.
+        // - No reasons to put it into the map: this class does not provide access to a temporary created map.
 
         if (cropTilesToImageBoundaries) {
             result.cropToMap();
         }
         // If cropping is disabled, we should not avoid reading extra content of the last strip.
         // Note the last encoded strip can have actually full strip sizes,
-        // i.e. larger than necessary; this situation is quite possible.
+        // i.e., larger than necessary; this situation is quite possible.
         if (byteCount == 0 || offset == 0) {
             if (missingTilesAllowed) {
                 return result;
@@ -1331,7 +1394,7 @@ public class TiffReader implements Closeable {
      * @throws TiffException            if <code>ifdIndex</code> is too large,
      *                                  or if the file is not a correct TIFF file
      *                                  and this was not detected while opening it.
-     * @throws IOException              in a case of any problems with the input file.
+     * @throws IOException              in the case of any problems with the input file.
      * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
      */
     public Matrix<UpdatablePArray> readMatrix(TiffMap map) throws IOException {
@@ -1365,9 +1428,9 @@ public class TiffReader implements Closeable {
      *
      * @param map TIFF map, constructed from one of the IFDs of this TIFF file.
      * @return content of the TIFF image.
-     * @throws TiffException            if the file is not a correct TIFF file,
-     *                                  and this was not detected while opening it.
-     * @throws IOException              in the case of any other problems with the input file.
+     * @throws TiffException if the file is not a correct TIFF file,
+     *                       and this was not detected while opening it.
+     * @throws IOException   in the case of any other problems with the input file.
      */
     public List<Matrix<UpdatablePArray>> readChannels(TiffMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
@@ -1488,8 +1551,8 @@ public class TiffReader implements Closeable {
         Objects.requireNonNull(fileLocation, "Null fileLocation");
         FileHandle fileHandle = new FileHandle(fileLocation);
         fileHandle.setLittleEndian(false);
-        // - in current implementation it is an extra operator: BigEndian is default in scijava;
-        // but we want to be sure that this behaviour will be the same in all future versions
+        // - in the current implementation it is an extra operator: BigEndian is default in scijava;
+        // but we want to be sure that this behavior will be the same in all future versions
         return (DataHandle) fileHandle;
     }
 
@@ -1590,7 +1653,7 @@ public class TiffReader implements Closeable {
         // Current readEncodedTile() can return full-size tile without cropping
         // (see comments inside that method), but usually it CROPS the last tile/strip.
         // Old SCIFIO code did not detect this situation, in particular, did not distinguish between
-        // last and usual strips in stripped image, and its behaviour could be described by the following assignment:
+        // last and usual strips in stripped image, and its behavior could be described by the following assignment:
         //      final int samplesLength = tile.map().tileSizeInBytes();
         // For many codecs (like DEFLATE or JPEG) this is not important, but at least
         // LZWCodec creates result array on the base of options.maxSizeInBytes.
@@ -1604,6 +1667,22 @@ public class TiffReader implements Closeable {
         // For JPEG, TagCompression overrides this value to false, because it works faster in this mode.
         return options;
     }
+
+    private CachedTile getCachedTile(TiffTileIndex tileIndex) {
+        synchronized (tileCacheLock) {
+            CachedTile tile = tileCacheMap.get(tileIndex);
+            if (tile == null) {
+                tile = new CachedTile(tileIndex);
+                tileCacheMap.put(tileIndex, tile);
+            }
+            return tile;
+            // So, we store (without an ability to remove) all CachedTile objects in the cache tileMap.
+            // It is not a problem, because CachedTile is a very lightweight object.
+            // In any case, this.ifds already contains comparable amount of data:
+            // strip offsets and strip byte counts for all tiles.
+        }
+    }
+
 
     // Note: this method does not store tile in the tile map.
     private void readTiles(
@@ -2061,6 +2140,73 @@ public class TiffReader implements Closeable {
 
     private static long debugTime() {
         return BUILT_IN_TIMING && LOGGABLE_DEBUG ? System.nanoTime() : 0;
+    }
+
+    class CachedTile {
+        private final TiffTileIndex tileIndex;
+
+        private final Object onlyThisTileLock = new Object();
+        private Reference<TiffTile> cachedTile = null;
+        // - we use SoftReference to be on the safe side in addition to our own memory control
+        private long cachedDataLength;
+
+        CachedTile(TiffTileIndex tileIndex) {
+            this.tileIndex = Objects.requireNonNull(tileIndex, "Null tileIndex");
+        }
+
+        TiffTile readIfNecessary() throws IOException {
+            synchronized (onlyThisTileLock) {
+                final TiffTile cachedData = cached();
+                if (cachedData != null) {
+                    LOG.log(System.Logger.Level.TRACE, () -> "CACHED tile: " + tileIndex);
+                    return cachedData;
+                } else {
+                    final TiffTile result = readTileNoCache(tileIndex);
+                    saveCache(result);
+                    return result;
+                }
+            }
+        }
+
+        private TiffTile cached() {
+            synchronized (tileCacheLock) {
+                if (cachedTile == null) {
+                    return null;
+                }
+                final TiffTile tile = cachedTile.get();
+                if (tile == null) {
+                    LOG.log(System.Logger.Level.DEBUG,
+                            () -> "CACHED tile is freed by garbage collector due to " +
+                                    "insufficiency of memory: " + tileIndex);
+                }
+                return tile;
+            }
+        }
+
+        private void saveCache(TiffTile tile) {
+            Objects.requireNonNull(tile);
+            synchronized (tileCacheLock) {
+                if (caching && maxCachingMemory > 0) {
+                    this.cachedTile = new SoftReference<>(tile);
+                    this.cachedDataLength = tile.getStoredDataLength();
+                    currentCacheMemory += this.cachedDataLength;
+                    tileCache.add(this);
+                    LOG.log(System.Logger.Level.TRACE, () -> "STORING tile in cache: " + tileIndex);
+                    while (currentCacheMemory > maxCachingMemory) {
+                        CachedTile cached = tileCache.remove();
+                        assert cached != null;
+                        currentCacheMemory -= cached.cachedDataLength;
+                        cached.cachedTile = null;
+                        Runtime runtime = Runtime.getRuntime();
+                        LOG.log(System.Logger.Level.TRACE, () -> String.format(Locale.US,
+                                "REMOVING tile from cache (limit %.1f MB exceeded, used memory %.1f MB): %s",
+                                maxCachingMemory / 1048576.0,
+                                (runtime.totalMemory() - runtime.freeMemory()) / 1048576.0,
+                                cached.tileIndex));
+                    }
+                }
+            }
+        }
     }
 
 }

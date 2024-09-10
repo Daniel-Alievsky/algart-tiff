@@ -87,13 +87,13 @@ public class TiffUnpacking {
         // - Note: getStoredDataLength() is unpredictable, because it is the result of decompression by a codec;
         // in particular, for JPEG compression last strip in non-tiled TIFF may be shorter or even larger
         // than a full tile.
-        // If cropping boundary tiles is enabled, actual height of the last strip is reduced
+        // If cropping boundary tiles is enabled, the actual height of the last strip is reduced
         // (see readEncodedTile method), so larger data is possible (it is a minor format separately).
         // If cropping boundary tiles is disabled, larger data MAY be considered as a format error,
         // because tile sizes are the FULL sizes of tile in the grid (it is checked above independently).
-        // We consider this situation as an error in a case of "complex" codecs like JPEG, JPEG-2000 etc.
+        // We consider this situation as an error in the case of "complex" codecs like JPEG, JPEG-2000 etc.
         // Also note: it is better to rearrange pixels before separating (if necessary),
-        // because rearranging interleaved pixels is little more simple.
+        // because rearranging interleaved pixels is a little more simple.
         tile.separateSamplesIfNecessary();
 
         // Note: other 2 functions, unpackUnusualBits and decodeYCbCr, always work with interleaved
@@ -603,7 +603,7 @@ public class TiffUnpacking {
         for (int yIndex = 0; yIndex < sizeY; yIndex++, sOffset += alignedLine, tOffset += sizeX) {
             final long actual = Math.min(sizeX, length - sOffset);
             if (actual <= 0) {
-                // - source data MAY be too short in a case of invalid/strange TIFF
+                // - source data MAY be too short in the case of invalid/strange TIFF
                 break;
             }
             PackedBitArraysPer8.copyBitsFromReverseToNormalOrderNoSync(unpacked, tOffset, source, sOffset, actual);

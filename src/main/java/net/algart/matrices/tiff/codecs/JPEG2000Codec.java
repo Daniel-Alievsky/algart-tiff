@@ -171,7 +171,7 @@ public class JPEG2000Codec implements TiffCodec {
             return this;
         }
 
-        // Note: this method SHOULD be overridden to provide correct clone() behaviour.
+        // Note: this method SHOULD be overridden to provide correct clone() behavior.
         @Override
         public JPEG2000Options setTo(Options options) {
             return setTo(options, true);

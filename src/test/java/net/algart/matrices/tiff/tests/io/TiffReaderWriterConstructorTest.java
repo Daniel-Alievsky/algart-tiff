@@ -36,12 +36,12 @@ public class TiffReaderWriterConstructorTest {
     private static void test(Path fileToRead, Path fileToWrite) throws IOException {
         System.out.println("Opening " + fileToRead + "...");
         TiffReader tiffReader = new TiffReader(fileToRead);
-        // - in a case of exception, file must be closed!
+        // - in the case of exception, file must be closed!
         System.out.println("Closing " + fileToRead + "...");
         tiffReader.close();
         System.out.println("Creating " + fileToWrite + "...");
         TiffWriter tiffWriter = new TiffWriter(fileToWrite, true);
-        // - in a case of exception, file must be closed! (but this is very improbable situation)
+        // - in the case of exception, file must be closed! (but this is very improbable situation)
         System.out.println("Closing " + fileToWrite + "...");
         tiffWriter.close();
     }

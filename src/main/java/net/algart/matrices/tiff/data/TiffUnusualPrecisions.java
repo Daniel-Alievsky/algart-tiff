@@ -71,7 +71,7 @@ public class TiffUnusualPrecisions {
      *                           ({@code value<<8} operator), so that the source samples bits will be placed
      *                           in bits 8..31 of the 4-byte result samples.
      * @return the unpacked samples.
-     * @throws TiffException in a case of incorrect IFD.
+     * @throws TiffException in the case of incorrect IFD.
      * @see TiffTile#unpackUnusualDecodedData()
      */
     public static byte[] unpackUnusualPrecisions(

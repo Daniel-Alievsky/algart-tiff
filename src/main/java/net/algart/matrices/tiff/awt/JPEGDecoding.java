@@ -186,10 +186,10 @@ public class JPEGDecoding {
         T first = iterator.next();
         if (isProbableAWTClass(first)) {
             return first;
-            // - This is maximally typical behaviour, in particularly, used in ImageIO.read/write.
-            // But it can be not the desirable behaviour, when we have some additional plugins
+            // - This is maximally typical behavior, in particularly, used in ImageIO.read/write.
+            // But it can be not the desirable behavior, when we have some additional plugins
             // like TwelveMonkeys ImageIO, which are registered as the first plugin INSTEAD of built-in
-            // Java AWT plugin, because, for example, TwelveMonkeys does not guarantee the identical behaviour;
+            // Java AWT plugin, because, for example, TwelveMonkeys does not guarantee the identical behavior;
             // in this case, we should try to find the original AWT plugin.
         }
         while (iterator.hasNext()) {

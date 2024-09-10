@@ -124,7 +124,7 @@ public class AWTCustomWriteJpegTest {
 
         IIOMetadata metadata = writer.getDefaultImageMetadata(imageTypeSpecifier, writeParam);
         correctColorSpace(metadata, rgbSpace ? "RGB" : "YCbCr");
-        // - lead to invalid metadata (duplicate APP0) in a case YCbCr
+        // - lead to invalid metadata (duplicate APP0) in the case YCbCr
         // Note: for RGB case, this method leads to results, identical to writeJpegViaImageType
         System.out.printf("Writing JPEG image into %s via metadata %s...%n", file, metadata);
         IIOImage iioImage = new IIOImage(image, null, metadata);

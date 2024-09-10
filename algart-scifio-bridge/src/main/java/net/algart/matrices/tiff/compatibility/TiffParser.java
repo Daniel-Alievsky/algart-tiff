@@ -768,7 +768,7 @@ public class TiffParser extends TiffReader {
 
 
     /**
-     * This function is deprecated, because almost identical behaviour is implemented by
+     * This function is deprecated, because almost identical behavior is implemented by
      * {@link #readSamples(TiffMap, int, int, int, int)}.
      */
     @Deprecated

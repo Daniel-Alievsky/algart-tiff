@@ -28,7 +28,6 @@ import net.algart.arrays.ArrayContext;
 import net.algart.arrays.Arrays;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
-import net.algart.matrices.tiff.CachingTiffReader;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.tiles.TiffMap;
 
@@ -57,7 +56,7 @@ public class TiffAnalyseMeanSimpleDemo {
         final int ifdIndex = Integer.parseInt(args[startArgIndex + 1]);
 
         System.out.printf("Analysing TIFF %s...%n", sourceFile);
-        try (TiffReader reader = new CachingTiffReader(sourceFile)) {
+        try (TiffReader reader = new TiffReader(sourceFile).setCaching(true)) {
             TiffMap map = reader.map(ifdIndex);
             long t1 = System.nanoTime();
             double[] mean = lowLevel ?
