@@ -58,9 +58,9 @@ public class TiffReadWriteTest {
 
     public static void main(String[] args) throws IOException, FormatException {
         int startArgIndex = 0;
-        boolean noContext = false;
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-noContext")) {
-            noContext = true;
+        boolean useContext = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-useContext")) {
+            useContext = true;
             startArgIndex++;
         }
         boolean bigTiff = false;
@@ -110,7 +110,7 @@ public class TiffReadWriteTest {
         final SCIFIO scifio = new SCIFIO();
         for (int test = 1; test <= numberOfTests; test++) {
             System.out.printf("Test #%d%n", test);
-            try (Context context = noContext ? null : scifio.getContext()) {
+            try (Context context = !useContext ? null : scifio.getContext()) {
                 TiffReader reader = new TiffReader(sourceFile);
                 reader.setContext(context);
                 reader.setByteFiller((byte) 0xC0);
@@ -126,8 +126,7 @@ public class TiffReadWriteTest {
                 io.scif.formats.tiff.TiffSaver tiffSaver = null;
                 if (compatibility) {
                     if (context == null) {
-                        throw new UnsupportedEncodingException(
-                                "No-context mode is not supported by compatibility code");
+                        throw new UnsupportedEncodingException("Compatibility mode requires using context");
                     }
                     FileLocation location = new FileLocation(sourceFile.toFile());
                     parser = new TiffParser(context, location);
@@ -230,8 +229,9 @@ public class TiffReadWriteTest {
                             // - not remove! Removing means default value!
                         }
                         writerIFD.putImageDimensions(w, h);
-                        // Note: as a result, last strip in this file will be too large!
+                        // Note: as a result, the last strip in this file will be too large!
                         // It is a minor inconsistency, but detected by GIMP and other programs.
+                        System.out.printf("Writing %s%s...%n", targetExperimentalFile, bigTiff ? " (big TIFF)" : "");
                         writeSeveralTilesOrStrips(tiffSaver, buf2,
                                 parser.toScifioIFD(writerIFD), readerIFD.sampleType().code(), bandCount,
                                 START_X, START_Y, paddedW, paddedH, ifdIndex == lastIFDIndex);
@@ -252,7 +252,7 @@ public class TiffReadWriteTest {
         System.out.println("Done");
     }
 
-    // A clone of very old method, helped to use TiffSaver in 2014
+    // A clone of a very old method, helped to use TiffSaver in 2014
     private static void writeSeveralTilesOrStrips(
             final io.scif.formats.tiff.TiffSaver saver,
             final byte[] data, final IFD ifd,

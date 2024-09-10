@@ -69,9 +69,9 @@ public class TiffWriterTest {
 
     public static void main(String[] args) throws IOException, FormatException {
         int startArgIndex = 0;
-        boolean noContext = false;
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-noContext")) {
-            noContext = true;
+        boolean useContext = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-useContext")) {
+            useContext = true;
             startArgIndex++;
         }
         boolean resizable = false;
@@ -222,7 +222,7 @@ public class TiffWriterTest {
             if (compatibility && !existingFile) {
                 Files.deleteIfExists(targetFile);
             }
-            try (final Context context = noContext ? null : TiffReader.newSCIFIOContext();
+            try (final Context context = !useContext ? null : TiffReader.newSCIFIOContext();
                  final TiffWriter writer = compatibility ?
                          new TiffSaver(context, targetFile.toString()) :
                          new TiffWriter(targetFile)) {
@@ -251,9 +251,11 @@ public class TiffWriterTest {
                     saver.setCodecOptions(codecOptions);
                     // - should not have effect
                 }
-                System.out.printf("%nTest #%d/%d: %s %s...%n",
+                System.out.printf("%nTest #%d/%d: %s %s%s...%n",
                         test, numberOfTests,
-                        existingFile ? "writing to" : "creating", targetFile);
+                        existingFile ? "writing to" : "creating",
+                        targetFile,
+                        context == null ? "" : " (SCIFIO context " + context + ")");
                 for (int k = 0; k < numberOfImages; k++) {
 //                    printReaderInfo(writer); // - should show invalid file
                     final int ifdIndex = firstIfdIndex + k;

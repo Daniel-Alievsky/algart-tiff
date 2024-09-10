@@ -49,9 +49,9 @@ public class TiffReaderTest {
 
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
-        boolean noContext = false;
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-noContext")) {
-            noContext = true;
+        boolean useContext = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-useContext")) {
+            useContext = true;
             startArgIndex++;
         }
         boolean interleave = false;
@@ -95,7 +95,7 @@ public class TiffReaderTest {
 //        TiffInfo.showTiffInfo(tiffFile);
 
         for (int repeat = 1; repeat <= numberOfCompleteRepeats; repeat++) {
-            try (final Context context = noContext ? null : TiffReader.newSCIFIOContext()) {
+            try (final Context context = !useContext ? null : TiffReader.newSCIFIOContext()) {
                 long t1 = System.nanoTime();
                 final TiffReader reader = compatibility ?
                         new TiffParser(context, tiffFile) : cache ?
@@ -127,11 +127,13 @@ public class TiffReaderTest {
                 final int numberOfIFDS = reader.numberOfIFDs();
                 long t3 = System.nanoTime();
                 System.out.printf(
-                        "Opening %s by %s: %.3f ms opening, %.3f ms reading IFDs (position of first IFD offset: %d)%n",
+                        "Reading %s by %s: %.3f ms opening, %.3f ms reading IFDs " +
+                                "(position of first IFD offset: %d%s)%n",
                         tiffFile, reader,
                         (t2 - t1) * 1e-6,
                         (t3 - t2) * 1e-6,
-                        positionOfLastOffset);
+                        positionOfLastOffset,
+                        context == null ? "" : "; SCIFIO context " + context);
                 if (numberOfIFDS == 0) {
                     System.out.println("No IFDs");
                     return;

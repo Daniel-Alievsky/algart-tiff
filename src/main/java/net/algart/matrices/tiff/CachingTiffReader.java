@@ -47,10 +47,10 @@ public class CachingTiffReader extends TiffReader {
 
     private static final System.Logger LOG = System.getLogger(CachingTiffReader.class.getName());
 
+    private volatile boolean useCache = true;
     private volatile long maxCachingMemory = DEFAULT_MAX_CACHING_MEMORY;
-    // - volatile is necessary for correct parallel work of the setter
 
-    private final Map<TiffTileIndex, CachedTile> tileMap = new HashMap<>();
+    private final Map<TiffTileIndex, CachedTile> tileCacheMap = new HashMap<>();
     private final Queue<CachedTile> tileCache = new LinkedList<CachedTile>();
     private long currentCacheMemory = 0;
     private final Object tileCacheLock = new Object();
@@ -78,6 +78,15 @@ public class CachingTiffReader extends TiffReader {
         super(inputStream, requireValidTiff, closeStreamOnException);
     }
 
+    public boolean isUseCache() {
+        return useCache;
+    }
+
+    public CachingTiffReader setUseCache(boolean useCache) {
+        this.useCache = useCache;
+        return this;
+    }
+
     public long getMaxCachingMemory() {
         return maxCachingMemory;
     }
@@ -90,29 +99,28 @@ public class CachingTiffReader extends TiffReader {
         return this;
     }
 
-    public CachingTiffReader disableCaching() {
-        return setMaxCachingMemory(0);
-    }
-
     @Override
     public TiffTile readTile(TiffTileIndex tileIndex) throws IOException {
-        if (maxCachingMemory == 0) {
-            return getTileWithoutCache(tileIndex);
+        return readCachedTile(tileIndex);
+    }
+
+    public TiffTile readCachedTile(TiffTileIndex tileIndex) throws IOException {
+        if (!useCache || maxCachingMemory == 0) {
+            return readTileNoCache(tileIndex);
         }
         return getCached(tileIndex).readIfNecessary();
     }
 
-
-    private TiffTile getTileWithoutCache(TiffTileIndex tileIndex) throws IOException {
+    private TiffTile readTileNoCache(TiffTileIndex tileIndex) throws IOException {
         return super.readTile(tileIndex);
     }
 
     private CachedTile getCached(TiffTileIndex tileIndex) {
         synchronized (tileCacheLock) {
-            CachedTile tile = tileMap.get(tileIndex);
+            CachedTile tile = tileCacheMap.get(tileIndex);
             if (tile == null) {
                 tile = new CachedTile(tileIndex);
-                tileMap.put(tileIndex, tile);
+                tileCacheMap.put(tileIndex, tile);
             }
             return tile;
             // So, we store (without ability to remove) all Tile objects in the cache tileMap.
@@ -148,7 +156,7 @@ public class CachingTiffReader extends TiffReader {
                     LOG.log(System.Logger.Level.TRACE, () -> "CACHED tile: " + tileIndex);
                     return cachedData;
                 } else {
-                    final var result = getTileWithoutCache(tileIndex);
+                    final var result = readTileNoCache(tileIndex);
                     saveCache(result);
                     return result;
                 }
@@ -173,7 +181,7 @@ public class CachingTiffReader extends TiffReader {
         private void saveCache(TiffTile tile) {
             Objects.requireNonNull(tile);
             synchronized (tileCacheLock) {
-                if (maxCachingMemory > 0) {
+                if (useCache && maxCachingMemory > 0) {
                     this.cachedTile = new SoftReference<>(tile);
                     this.cachedDataLength = tile.getStoredDataLength();
                     currentCacheMemory += this.cachedDataLength;
