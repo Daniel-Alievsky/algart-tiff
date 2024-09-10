@@ -2,7 +2,7 @@
   <configuration default="false" name="TiffWriterTest (bit)" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.tests.io.TiffWriterTest" />
     <module name="algart-scifio-bridge" />
-    <option name="PROGRAM_PARAMETERS" value="-nocontext -quality=null /tmp/test.tiff bit 1 PACK_BITS 0 0 -1 -1 15  " />
+    <option name="PROGRAM_PARAMETERS" value="-quality=null /tmp/test.tiff bit 1 PACK_BITS 0 0 -1 -1 15  " />
     <option name="VM_PARAMETERS" value="-ea -esa -Dnet.algart.matrices.tiff.timing=true -Djava.util.logging.config.file=additional/logging.properties" />
     <method v="2">
       <option name="Make" enabled="true" />
