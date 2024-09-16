@@ -140,7 +140,7 @@ public enum TagCompression {
                 .setPhotometricInterpretation(ifd.getPhotometricInterpretation())
                 .setYCbCrSubsampling(ifd.getYCbCrSubsampling())
                 .setInterleaved(false);
-        // JPEGCodec works faster in with non-interleaved data, and in any case it is better
+        // JPEGCodec works faster in with non-interleaved data, and in any case, it is better
         // because TiffReader needs non-interleaved results.
     }
 

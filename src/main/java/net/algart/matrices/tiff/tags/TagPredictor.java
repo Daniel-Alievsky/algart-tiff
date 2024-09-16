@@ -33,7 +33,7 @@ public enum TagPredictor {
     NONE(1, "none"),
     HORIZONTAL(2, "horizontal differencing"),
     HORIZONTAL_FLOATING_POINT(3, "floating-point horizontal differencing"),
-    // - value 3 is not actually supported
+    // - value 3 is not supported
     UNKNOWN(-1, "unknown");
 
     private static final Map<Integer, TagPredictor> LOOKUP =

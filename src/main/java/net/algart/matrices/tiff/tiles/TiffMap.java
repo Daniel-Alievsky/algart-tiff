@@ -59,7 +59,7 @@ public final class TiffMap {
          * Horizontal strips. In terms of this library they are also called "tiles" and represented
          * with help of {@link TiffTile} and {@link TiffMap} classes.
          *
-         * <p>In this case, all strips ("tiles") has a width,
+         * <p>In this case, all strips ("tiles") have a width,
          * equal to the width of the entire image, and the same height <code>H</code> (excepting the last strip,
          * which height is a reminder <code>image-height % H</code> when the full image height is not divisible
          * by <code>H</code>). The height <code>H</code> is returned by {@link #tileSizeY()} method;
@@ -69,12 +69,12 @@ public final class TiffMap {
          * The height <code>H</code> of every strip is specified in <code>RowsPerStrip</code> tag
          * or is the full image height if there is no such tag (in the latter case, {@link TiffMap}
          * will contain only 1 tile).
-         * Though TIFF format allows to specify strips with different heights,
+         * Though the TIFF format allows specifying strips with different heights,
          * this library does not support this case.
          *
          * <p>If the full image height is not divisible by strip height <code>H</code>),
          * the last tile should be stored as a pixel matrix with reduced height
-         * <code>image-height % H</code>: extra pixel outside the image are not stored.
+         * <code>image-height % H</code>: extra pixels outside the image are not stored.
          * However, if this condition is not fulfilled, for example, the last strip is stored
          * as a full-size JPEG with the height <code>H</code>, this library correctly reads such an image.
          */
@@ -199,7 +199,7 @@ public final class TiffMap {
     }
 
     /**
-     * Creates new tile map.
+     * Creates a new tile map.
      *
      * <p>Note: you should not change the tags of the passed IFD, describing sample type, number of samples
      * and tile sizes, after creating this object. The constructor saves this information in this object
@@ -277,7 +277,7 @@ public final class TiffMap {
      * if <code>BitsPerSample</code> tag contain different number of bits per channel (for example, 5+6+5).
      *
      * <p>Note that the actual number of bits, used for storing the pixel samples in memory
-     * after reading data from TIFF file, may be little greater: see {@link #bitsPerUnpackedSample()}.
+     * after reading data from a TIFF file, may be little greater: see {@link #bitsPerUnpackedSample()}.
      *
      * @return number of bytes, necessary to store one channel of the pixel inside TIFF.
      */

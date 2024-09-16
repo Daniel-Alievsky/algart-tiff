@@ -146,7 +146,7 @@ class HuffmanCodecReduced {
             if (bitsToRead == 0) return 0;
             if (eofFlag) return -1; // Already at end of file
             int toStore = 0;
-            while (bitsToRead != 0 && !eofFlag) {
+            while (bitsToRead != 0) {
                 if (currentBit < 0 || currentBit > 7) {
                     throw new IllegalStateException("byte=" + currentByte + ", bit = " +
                             currentBit);

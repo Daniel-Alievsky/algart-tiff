@@ -50,7 +50,7 @@ public class TiffFalsifyTags {
         final int newDimY = Integer.parseInt(args[startArgIndex++]);
         TagPhotometricInterpretation photometricInterpretation = null;
         if (startArgIndex < args.length) {
-            photometricInterpretation = TagPhotometricInterpretation.valueOf(args[startArgIndex++]);
+            photometricInterpretation = TagPhotometricInterpretation.valueOf(args[startArgIndex]);
         }
 
         try (TiffReader reader = new TiffReader(targetFile);

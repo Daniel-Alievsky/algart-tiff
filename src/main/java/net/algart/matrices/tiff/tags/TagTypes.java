@@ -69,22 +69,10 @@ public class TagTypes {
 
     public static int sizeOfType(int tagType) {
         return switch (tagType) {
-            case BYTE -> 1;
-            case ASCII -> 1;
-            case SHORT -> 2;
-            case LONG -> 4;
-            case RATIONAL -> 8;
-            case SBYTE -> 1;
-            case UNDEFINED -> 1;
-            case SSHORT -> 2;
-            case SLONG -> 4;
-            case SRATIONAL -> 8;
-            case FLOAT -> 4;
-            case DOUBLE -> 8;
-            case IFD -> 4;
-            case LONG8 -> 8;
-            case SLONG8 -> 8;
-            case IFD8 -> 8;
+            case BYTE, ASCII, UNDEFINED, SBYTE -> 1;
+            case SHORT, SSHORT -> 2;
+            case LONG, IFD, FLOAT, SLONG -> 4;
+            case RATIONAL, IFD8, SLONG8, LONG8, DOUBLE, SRATIONAL -> 8;
             default -> 0;
         };
     }

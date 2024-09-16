@@ -327,7 +327,8 @@ public class TiffUnpacking {
         return !ifd.isStandardInvertedCompression();
     }
 
-    // Almost exact copy of old TiffParser.unpackBytes method
+    // Below is almost exact copy of old TiffParser.unpackBytes method:
+
     /*
     static void unpackBytesLegacy(
             final byte[] samples, final int startIndex,

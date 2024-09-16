@@ -27,6 +27,7 @@ package net.algart.matrices.tiff.awt;
 
 import java.awt.*;
 import java.awt.image.*;
+import java.util.Arrays;
 
 /**
  * ColorModel that handles 8, 16 and 32 bits per channel signed data.
@@ -229,9 +230,7 @@ public class SignedColorModel extends ColorModel {
 
     private static int[] makeBitArray(int nChannels, int nBits) {
         final int[] bits = new int[nChannels];
-        for (int i = 0; i < bits.length; i++) {
-            bits[i] = nBits;
-        }
+        Arrays.fill(bits, nBits);
         return bits;
     }
 

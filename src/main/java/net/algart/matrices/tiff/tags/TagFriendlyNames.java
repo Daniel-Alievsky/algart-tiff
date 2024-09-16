@@ -66,7 +66,7 @@ class TagFriendlyNames {
     }
 
     private static class NamedConstantsHolder {
-        // The following matchers allows to process also lines like
+        // The following matchers allow processing also lines like
         // "public static final int make = 271;"
         // and also replaces " " -> "_"
         private static final Pattern BEGIN_PATTERN = Pattern.compile("^[\\w\\s]*\\sint\\s");

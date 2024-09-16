@@ -164,15 +164,15 @@ public class LosslessJPEGCodec extends AbstractCodec {
         if (options == null) options = new Options();
         byte[] buf = new byte[0];
 
-        int width = 0, height = 0;
+        int width = 0, height;
         int bitsPerSample = 0, nComponents = 0, bytesPerSample = 0;
-        int[] horizontalSampling = null, verticalSampling = null;
-        int[] quantizationTable = null;
+        int[] horizontalSampling, verticalSampling;
+        int[] quantizationTable;
         short[][] huffmanTables = null;
 
-        int startPredictor = 0;
+        int startPredictor;
 
-        int[] dcTable = null, acTable = null;
+        int[] dcTable, acTable;
 
         while (in.offset() < in.length() - 1) {
             final int code = in.readShort() & 0xffff;

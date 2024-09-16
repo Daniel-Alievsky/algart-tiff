@@ -55,7 +55,7 @@ public class TiffPacking {
         assert tile.getSizeInPixels() == sizeX * sizeY;
         final long alignedLine = ((long) sizeX + 7) & ~7;
         // - skipping bits until the first bit of the next whole byte;
-        // note that it may be !=sizeX only in non-tiled TIFF (when "tile width" is the width of whole image)
+        // note that it may be !=sizeX only in non-tiled TIFF (when "tile width" is the width of the whole image)
         final long length = ((long) sizeY * alignedLine) >>> 3;
         if (length > Integer.MAX_VALUE) {
             // - very improbable: (sizeX*sizeY)/8 < 2^31, but (alignedLine*sizeY)/8 >= 2^31

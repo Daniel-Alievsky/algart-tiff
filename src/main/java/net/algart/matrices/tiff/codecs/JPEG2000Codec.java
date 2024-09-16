@@ -238,7 +238,7 @@ public class JPEG2000Codec implements TiffCodec {
         JPEG2000Options jpeg2000Options = new JPEG2000Options().setTo(options);
 
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        BufferedImage img = null;
+        BufferedImage img;
 
         int next = 0;
 
@@ -246,8 +246,8 @@ public class JPEG2000Codec implements TiffCodec {
         // AWTImages.makeImage. The AWTImages.makeImage methods
         // construct
         // images that are not properly handled by the JPEG2000 writer.
-        // Specifically, 8-bit multi-channel images are constructed with type
-        // DataBuffer.TYPE_INT (so a single int is used to store all of the
+        // Specifically, 8-bit multichannel images are constructed with type
+        // DataBuffer.TYPE_INT (so a single int is used to store all the
         // channels for a specific pixel).
 
         final int plane = jpeg2000Options.width * jpeg2000Options.height;
@@ -356,7 +356,6 @@ public class JPEG2000Codec implements TiffCodec {
             bpp = single[0].length / (b.getWidth() * b.getHeight());
 
             bis.close();
-            b = null;
         } catch (final IOException e) {
             throw new TiffException("Could not decompress JPEG2000 image. Please " +
                     "make sure that jai_imageio.jar is installed.", e);
@@ -383,8 +382,6 @@ public class JPEG2000Codec implements TiffCodec {
                         single[i].length);
             }
         }
-        single = null;
-
         return rtn;
     }
 

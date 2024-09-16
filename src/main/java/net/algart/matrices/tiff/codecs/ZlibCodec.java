@@ -146,7 +146,7 @@ public class ZlibCodec extends AbstractCodec {
         deflater.finish();
         final byte[] buf = new byte[8192];
         final ByteVector bytes = new ByteVector();
-        int r = 0;
+        int r;
         // compress until eof reached
         while ((r = deflater.deflate(buf, 0, buf.length)) > 0) {
             bytes.add(buf, 0, r);
@@ -160,7 +160,7 @@ public class ZlibCodec extends AbstractCodec {
                 new DataHandleInputStream<>(in));
         final ByteVector bytes = new ByteVector();
         final byte[] buf = new byte[8192];
-        int r = 0;
+        int r;
         // read until eof reached
         try {
             while ((r = i.read(buf, 0, buf.length)) > 0)

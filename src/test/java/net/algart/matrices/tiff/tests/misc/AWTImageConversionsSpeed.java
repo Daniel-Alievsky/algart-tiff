@@ -51,7 +51,7 @@ public class AWTImageConversionsSpeed {
 
         final File srcFile = new File(args[0]);
         final File resultFile = new File(args[1]);
-        final int numberOfTests = args.length <= 2 ? 1 : Integer.parseInt(args[2]);
+        final int numberOfTests = args.length == 2 ? 1 : Integer.parseInt(args[2]);
 
         System.out.printf("Opening %s...%n", srcFile);
         final ImageInputStream stream = ImageIO.createImageInputStream(srcFile);

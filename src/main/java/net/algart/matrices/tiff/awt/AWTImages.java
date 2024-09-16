@@ -640,13 +640,11 @@ public final class AWTImages {
                 .getNumBanks() == 1 && !(buffer instanceof UnsignedIntBuffer)) {
             if (c == 3) {
                 b = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
-            } else if (c == 4) {
+            } else {
                 b = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
             }
 
-            if (b != null) {
-                b.setData(raster);
-            }
+            b.setData(raster);
         }
 
         if (b == null) {

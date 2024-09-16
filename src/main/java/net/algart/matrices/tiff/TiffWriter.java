@@ -56,7 +56,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
- * Writes TIFF format.
+ * Writes the TIFF format.
  *
  * <p>This object is internally synchronized and thread-safe when used in multi-threaded environment.
  * However, you should not modify objects, passed to the methods of this class, from a parallel thread;
@@ -131,7 +131,7 @@ public class TiffWriter implements Closeable {
     }
 
     /**
-     * Creates new TIFF writer.
+     * Creates a new TIFF writer.
      *
      * <p>If the argument <code>createNewFileAndOpen</code> is {@code false},
      * this constructor <b>does not try to open or create file</b> and, so, never
@@ -152,9 +152,9 @@ public class TiffWriter implements Closeable {
      *
      * <p>This is the simplest way to create a new TIFF file and automatically open it with writing the standard
      * TIFF header. After that, this object is ready for adding new TIFF images.
-     * However, this way does not allow to customize this writer, for example, to choose Big-TIFF mode
+     * However, this way does not allow customizing this writer, for example, to choose Big-TIFF mode
      * (an indicator, written into the TIFF header)
-     * and does not allow to open an existing TIFF, for example, for adding new images (IFD).
+     * and does not allow opening an existing TIFF, for example, for adding new images (IFD).
      * If you need this, please set
      * <code>createNewFileAndOpen&nbsp;=&nbsp;false</code>.
      *
@@ -183,8 +183,8 @@ public class TiffWriter implements Closeable {
      * <p>Note: this method does not do anything with the file stream, in particular, does not call
      * {@link #create()} method. You can do this later.
      *
-     * <p>Unlike other constructors, this one never throws an exception. This is helpful, because allows
-     * to make constructors in subclasses, which do not declare any exceptions to be thrown.
+     * <p>Unlike other constructors, this one never throws an exception. This is helpful because it allows
+     *  making constructors in subclasses, which do not declare any exceptions to be thrown.
      *
      * @param outputStream output stream.
      */
@@ -274,7 +274,7 @@ public class TiffWriter implements Closeable {
      * for {@link TiffIFD#PLANAR_CONFIGURATION_CHUNKED}.
      *
      * <p>Note that this flag is ignored if the result data in the file should not be interleaved,
-     * i.e. for 1-channel images and if {@link Tags#PLANAR_CONFIGURATION} is
+     * i.e., for 1-channel images and if {@link Tags#PLANAR_CONFIGURATION} is
      * {@link TiffIFD#PLANAR_CONFIGURATION_SEPARATE}.
      *
      * @param autoInterleaveSource new auto-interleave mode. Default value is <code>true</code>.
@@ -382,7 +382,7 @@ public class TiffWriter implements Closeable {
     /**
      * Sets the compression quality for JPEG tiles/strips to some non-negative value.
      *
-     * <p>Possible values are format-specific. For JPEG, it should between 0.0 and 1.0 (1.0 means the best quality).
+     * <p>Possible values are format-specific. For JPEG, it should be between 0.0 and 1.0 (1.0 means the best quality).
      * For JPEG-2000, maximal possible value is <code>Double.MAX_VALUE</code>, that means loss-less compression.
      *
      * <p>If this method was not called (or after {@link #removeQuality()}), the compression quality is not specified.
@@ -601,7 +601,7 @@ public class TiffWriter implements Closeable {
         synchronized (fileLock) {
             ifdOffsets.clear();
             out.seek(0);
-            // - this call actually creates and opens the file, if it was not opened before
+            // - this call actually creates and opens the file if it was not opened before
             if (isLittleEndian()) {
                 out.writeByte(TiffReader.FILE_PREFIX_LITTLE_ENDIAN);
                 out.writeByte(TiffReader.FILE_PREFIX_LITTLE_ENDIAN);

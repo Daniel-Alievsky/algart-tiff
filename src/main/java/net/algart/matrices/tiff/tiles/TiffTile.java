@@ -65,7 +65,7 @@ public final class TiffTile {
     private int estimatedNumberOfPixels = 0;
     private Queue<IRectangularArea> unsetArea = null;
     // - null value marks that all is empty;
-    // it helps to defer actual subtracting until the moment when we know correct tile sizes
+    // it helps to defer actual subtracting until the moment when we know the correct tile sizes
 
     /**
      * Creates new tile with given index.
@@ -332,8 +332,8 @@ public final class TiffTile {
      * especially while writing.
      * But there are no reasons to call this for
      * {@link net.algart.matrices.tiff.tiles.TiffMap.TilingMode#TILE_GRID tiled image}.
-     * For tiled image, TIFF file usually contains full-size encoded tiles even on image boundary;
-     * they should be cropped after decoding by external means. You can disable attempt to reduce
+     * For tiled image, a TIFF file usually contains full-size encoded tiles even on image boundary;
+     * they should be cropped after decoding by external means. You can disable an attempt to reduce
      * tile in tiled image by passing <code>strippedOnly=true</code>.
      *
      * @param strippedOnly if <code>true</code>, this function will not do anything when the map
@@ -564,7 +564,7 @@ public final class TiffTile {
      * Return the length of the last non-null {@link #getData() data array}, stored in this tile,
      * or 0 after creating this object.
      *
-     * <p>Immediately after reading tile from file, as well as
+     * <p>Immediately after reading tile from the file, as well as
      * immediately before/after writing it into file, this method returns the number of encoded bytes,
      * which are actually stored in the file for this tile.
      *
@@ -640,7 +640,7 @@ public final class TiffTile {
      * <p><b>Warning:</b> the estimated number of pixels, returned by this method, may <b>differ</b> from the tile
      * size {@link #getSizeX()} * {@link #getSizeY()}! Usually it occurs after decoding encoded tile, when the
      * decoding method returns only sequence of pixels and does not return information about the size.
-     * In this situation, the external code sets the tile sizes from a priory information, but the decoded tile
+     * In this situation, the external code sets the tile sizes from a-priory information, but the decoded tile
      * may be actually less; for example, it takes place for the last strip in non-tiled TIFF format.
      * You can check, does the actual number of stored pixels equal to tile size, via
      * {@link #checkStoredNumberOfPixels()} method.
@@ -678,7 +678,7 @@ public final class TiffTile {
         final int expectedNumberOfBytes = (estimatedNumberOfPixels * bitsPerPixel + 7) >>> 3;
         if (expectedNumberOfBytes != data.length) {
             assert bitsPerPixel != 1 : "unaligned estimatedNumberOfPixels cannot appear for 1 bit/pixel";
-            // - in current version it means that we have whole bytes: bitsPerPixel = 8*K;
+            // - in the current version it means that we have whole bytes: bitsPerPixel = 8*K;
             // see assertions in setData for a case of bitsPerPixel == 1
             throw new IllegalStateException("Unaligned length of decoded data " + data.length +
                     ": it is not equal to ceil(number of pixels * bits per pixel / 8) = ceil(" +
@@ -753,7 +753,7 @@ public final class TiffTile {
         byte[] newData;
         if (interleaved || samplesPerPixel == 1) {
             // Note: for interleaved tile we ALSO do not need estimatedNumberOfPixels.
-            // In future versions this can allow us to implement multichannel 1-bit images,
+            // In future versions, this can allow us to implement multichannel 1-bit images,
             // but ONLY IF they are always stored interleaved (as for Deflate/LZW and similar "old" formats).
             newData = Arrays.copyOf(data, newLength);
         } else {

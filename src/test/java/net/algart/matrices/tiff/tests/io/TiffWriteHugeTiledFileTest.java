@@ -53,7 +53,7 @@ public class TiffWriteHugeTiledFileTest {
             return;
         }
         final Path targetFile = Paths.get(args[startArgIndex++]);
-        final int numberOfImages = Integer.parseInt(args[startArgIndex++]);
+        final int numberOfImages = Integer.parseInt(args[startArgIndex]);
 
         System.out.println("Writing huge TIFF " + targetFile);
         try (final TiffWriter writer = new TiffWriter(targetFile)) {

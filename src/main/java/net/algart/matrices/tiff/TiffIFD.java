@@ -1108,6 +1108,7 @@ public class TiffIFD {
     }
 
     public TiffIFD putImageDimensions(int dimX, int dimY) {
+        //noinspection RedundantCast
         return putImageDimensions((long) dimX, (long) dimY);
     }
 

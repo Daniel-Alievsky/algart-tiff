@@ -216,7 +216,7 @@ public class TiffUnusualPrecisions {
         } else if (exponent != 0) {             // Normalized value
             exponent += 0x1c000;                // exp - 15 + 127
 
-            // [ Below is commented addition from TwelveMonkey, that sometimes leads to incorrect results;
+            // [ Below is commented addition from the TwelveMonkey, that sometimes leads to incorrect results;
             // fixed in https://github.com/haraldk/TwelveMonkeys/issues/865 ]
             // Smooth transition
 //            if (mantissa == 0 && exponent > 0x1c400) {

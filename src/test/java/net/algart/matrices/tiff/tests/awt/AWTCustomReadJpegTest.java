@@ -38,9 +38,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 
-// Actually this test is not "custom": it just illustrates that we cannot customize default reading scheme,
+// Actually, this test is not "custom": it just illustrates that we cannot customize the default reading scheme,
 // namely, cannot set up necessary color space
 public class AWTCustomReadJpegTest {
+    private static final boolean PRINT_METADATA = true;
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         boolean enforceAWT = false;
@@ -91,7 +92,7 @@ public class AWTCustomReadJpegTest {
         reader.setInput(stream, false, false);
         IIOMetadata metadata = reader.getImageMetadata(0);
 //        AWTCustomWriteJpegTest.correctColorSpace(metadata, "YCbCr");
-        // - does not help: metadata are really changed, but this Java object is ignored
+        // - does not help: metadata is really changed, but this Java object is ignored
         // while reading inside JPEG inside AWT native code;
         // in TwelveMonkey library, leads to IllegalStateException: Metadata is read-only
 
@@ -123,11 +124,10 @@ public class AWTCustomReadJpegTest {
             }
         }
 
-        if (false) {
-            IIOMetadata imageMetadata = reader.getImageMetadata(0);
-            System.out.printf("%nDefault metadata:%n%s", AWTReadMetadataTest.metadataToString(imageMetadata,
+        if (PRINT_METADATA) {
+            System.out.printf("%nDefault metadata:%n%s", AWTReadMetadataTest.metadataToString(metadata,
                     IIOMetadataFormatImpl.standardMetadataFormatName));
-            System.out.printf("%nNative metadata:%n%s", AWTReadMetadataTest.metadataToString(imageMetadata,
+            System.out.printf("%nNative metadata:%n%s", AWTReadMetadataTest.metadataToString(metadata,
                     "javax_imageio_jpeg_image_1.0"));
         }
     }
