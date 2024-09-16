@@ -114,7 +114,7 @@ public class TiffReader implements Closeable {
 
     private static final int MINIMAL_ALLOWED_TIFF_FILE_LENGTH = 8 + 2 + 12 + 4;
     // - 8 bytes header + at least 1 IFD entry (usually at least 2 entries required: ImageWidth + ImageLength);
-    // this constant should be > 16 to detect "dummy" BigTIFF file, containing header only
+    // this constant should be > 16 to detect a "fake" BigTIFF file, containing header only
 
     private static final System.Logger LOG = System.getLogger(TiffReader.class.getName());
     private static final boolean LOGGABLE_DEBUG = LOG.isLoggable(System.Logger.Level.DEBUG);

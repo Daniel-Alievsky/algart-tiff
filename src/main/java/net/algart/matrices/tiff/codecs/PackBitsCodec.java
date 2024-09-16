@@ -104,11 +104,10 @@ public class PackBitsCodec implements TiffCodec {
             if (srcPos == srcPosMax) {
                 if (run > 0 && run < 128) {
                     dest[saveOffset]++;
-                    dest[destPos++] = src[srcPos++];
                 } else {
                     dest[destPos++] = (byte) 0;
-                    dest[destPos++] = src[srcPos++];
                 }
+                dest[destPos++] = src[srcPos++];
             }
         }
         return destPos;

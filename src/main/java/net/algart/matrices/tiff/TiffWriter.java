@@ -1112,23 +1112,7 @@ public class TiffWriter implements Closeable {
                     e.getMessage());
         }
         if (!smartCorrection) {
-            final OptionalInt optionalBits = ifd.tryEqualBitDepth();
-            final int[] bitsPerSample = ifd.getBitsPerSample();
-            if (optionalBits.isEmpty()) {
-                throw new UnsupportedTiffFormatException("Cannot write TIFF, because requested number of " +
-                        "bits per samples is unequal for different channels: " +
-                        Arrays.toString(bitsPerSample) + " (this variant is not supported)");
-            }
-            final int bits = optionalBits.getAsInt();
-            final boolean usualPrecision = sampleType.isBinary() ||
-                    bits == 8 || bits == 16 || bits == 32 || bits == 64;
-            // - bits == 1 is possible also for more than 1 channel, which is recognized as non-binary UINT8
-            if (!usualPrecision) {
-                throw new UnsupportedTiffFormatException("Cannot write TIFF, because " +
-                        "requested " + bits + " bits per sample for " + bitsPerSample.length +
-                        " samples is not supported for writing: " +
-                        Arrays.toString(bitsPerSample) + " bits");
-            }
+            final int bits = ifd.ordinaryBitDepth();
             if (sampleType == TiffSampleType.FLOAT && bits != 32) {
                 throw new UnsupportedTiffFormatException("Cannot write TIFF, because " +
                         "requested number of bits per sample is not supported: " +

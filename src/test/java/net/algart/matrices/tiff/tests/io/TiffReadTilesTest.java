@@ -107,7 +107,7 @@ public class TiffReadTilesTest {
     }
 
     private static void writeImageFile(Path file, Matrix<? extends PArray> matrix) throws IOException {
-        if (matrix.size() > 0) {
+        if (!matrix.isEmpty()) {
             // - BufferedImage cannot have zero sizes
             MatrixIO.writeImage(file, matrix.asLayers());
         }

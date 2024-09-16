@@ -68,7 +68,7 @@ public class TiffWriteSimpleTest {
         System.out.println("Writing TIFF " + targetFile + "...");
         try (final TiffWriter writer = new TiffWriter(targetFile)) {
             writer.setByteFiller((byte) 0);
-            writer.setSmartIFDCorrection(true);
+//            writer.setSmartIFDCorrection(true);
 
             writer.create();
             // writer.startNewFile(); // - not a problem to call twice

@@ -146,6 +146,7 @@ public class AWTCustomReadJpegTest {
             // Java AWT plugin, because, for example, TwelveMonkeys does not guarantee the identical behavior;
             // in this case, we should try to find the original AWT plugin.
         }
+        //noinspection WhileCanBeDoWhile
         while (iterator.hasNext()) {
             T other = iterator.next();
             if (isProbableAWTClass(other)) {

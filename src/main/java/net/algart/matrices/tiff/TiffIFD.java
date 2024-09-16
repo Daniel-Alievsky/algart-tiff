@@ -955,8 +955,8 @@ public class TiffIFD {
 
     /**
      * Checks that all bits per sample (<code>BitsPerSample</code> tag) for all channels are equal to the same integer,
-     * and returns this integer. If it is not so, returns empty optional result.
-     * Note that unequal bits per sample is not supported by all software.
+     * and returns this integer. If it is not so, returns an empty optional result.
+     * Note that some software does not support the case of unequal bits per sample.
      *
      * <p>Note: {@link TiffReader} class does not strictly require this condition, it requires only
      * equality of number of <i>bytes</i> per sample: see {@link #alignedBitDepth()}
@@ -999,7 +999,7 @@ public class TiffIFD {
      * <p>This method requires that the number of bytes, necessary to store each channel, must be
      * equal for all channels. This is also requirement for TIFF files, that can be read by {@link TiffReader} class.
      * However, equality of number of <i>bits</i> is not required; it allows, for example, to process
-     * old HiRes RGB format with 5+6+5 bits/channels.
+     * an old HiRes RGB format with 5+6+5 bits/channels.
      *
      * @return number of bits per each sample, aligned to the integer number of bytes, excepting a case
      * of pure binary 1-bit image, where the result is 1.
@@ -1008,9 +1008,10 @@ public class TiffIFD {
     public int alignedBitDepth() throws TiffException {
         final int[] bitsPerSample = getBitsPerSample();
         if (bitsPerSample.length == 1 && bitsPerSample[0] == 1) {
-            // - we do not support BIT format for RGB and other multi-channels TIFF;
+            // - we do not support the BIT format for RGB and other multi-channels TIFF;
             // if this situation occurred, we process this in a common way like any N-bit image, N <= 8
             return 1;
+            // - see also ordinaryBitDepth()
         }
         final int bytes0 = (bitsPerSample[0] + 7) >>> 3;
         // ">>>" for a case of integer overflow
@@ -1030,9 +1031,15 @@ public class TiffIFD {
         return bytes0 << 3;
     }
 
-    public boolean isOrdinaryBitDepth() throws TiffException {
-        final int bits = tryEqualBitDepth().orElse(-1);
-        return bits == 8 || bits == 16 || bits == 32 || bits == 64;
+    public int ordinaryBitDepth() throws TiffException {
+        final int[] bitsPerSample = getBitsPerSample();
+        if (!isOrdinaryPrecisionWithCheckingEquality(bitsPerSample)) {
+            throw new UnsupportedTiffFormatException("The number of bits per sample " +
+                    bitsPerSample[0] + " bits per sample for " + bitsPerSample.length +
+                    " samples is not supported: " +
+                    Arrays.toString(bitsPerSample) + " bits/samples");
+        }
+        return bitsPerSample[0];
     }
 
     public boolean isStandardYCbCrNonJpeg() throws TiffException {
@@ -1634,11 +1641,9 @@ public class TiffIFD {
                                 }
                             }
                         }
-                        case Tags.FILL_ORDER -> {
-                            additional = !isReversedFillOrder() ?
-                                    "default bits order: highest first (big-endian, 7-6-5-4-3-2-1-0)" :
-                                    "reversed bits order: lowest first (little-endian, 0-1-2-3-4-5-6-7)";
-                        }
+                        case Tags.FILL_ORDER -> additional = !isReversedFillOrder() ?
+                                "default bits order: highest first (big-endian, 7-6-5-4-3-2-1-0)" :
+                                "reversed bits order: lowest first (little-endian, 0-1-2-3-4-5-6-7)";
                         case Tags.PREDICTOR -> {
                             if (v instanceof Number number) {
                                 final TagPredictor predictor = TagPredictor.valueOfCodeOrUnknown(number.intValue());
@@ -1787,6 +1792,23 @@ public class TiffIFD {
                 detailedEntries.remove(tag);
             }
         }
+    }
+
+    private static boolean isOrdinaryPrecisionWithCheckingEquality(int[] bitsPerSample) throws UnsupportedTiffFormatException {
+        final int bits = bitsPerSample[0];
+        for (int i = 1; i < bitsPerSample.length; i++) {
+            if (bitsPerSample[i] != bits) {
+                throw new UnsupportedTiffFormatException("The number of " +
+                        "bits per samples is unequal for different channels: " +
+                        Arrays.toString(bitsPerSample) +
+                        " (this variant is not supported, in particular for writing)");
+            }
+        }
+        final boolean binary = bitsPerSample.length == 1 && bits == 1;
+        // - see alignedBitDepth()
+        // Note: while writing, bits == 1 is possible also for more than 1 channel,
+        // which is recognized as non-binary UINT8
+        return binary || bits == 8 || bits == 16 || bits == 32 || bits == 64;
     }
 
     private static int truncatedIntValue(Number value) {

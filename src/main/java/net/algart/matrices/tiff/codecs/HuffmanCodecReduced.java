@@ -364,15 +364,14 @@ class HuffmanCodecReduced {
                     "loci.formats.codec.HuffmanCodecOptions.");
         }
 
-        final HuffmanCodecOptions huffman = options;
-        final byte[] pix = new byte[huffman.maxBytes];
+        final byte[] pix = new byte[options.maxBytes];
         in.read(pix);
 
         final BitBuffer bb = new BitBuffer(pix);
 
-        final int nSamples = (huffman.maxBytes * 8) / huffman.bitsPerSample;
-        int bytesPerSample = huffman.bitsPerSample / 8;
-        if ((huffman.bitsPerSample % 8) != 0) bytesPerSample++;
+        final int nSamples = (options.maxBytes * 8) / options.bitsPerSample;
+        int bytesPerSample = options.bitsPerSample / 8;
+        if ((options.bitsPerSample % 8) != 0) bytesPerSample++;
 
         final BitWriter out = new BitWriter();
 
@@ -396,11 +395,10 @@ class HuffmanCodecReduced {
                     "loci.formats.codec.HuffmanCodecOptions.");
         }
 
-        final HuffmanCodecOptions huffman = options;
-        Decoder decoder = cachedDecoders.get(huffman.table);
+        Decoder decoder = cachedDecoders.get(options.table);
         if (decoder == null) {
-            decoder = new Decoder(huffman.table);
-            cachedDecoders.put(huffman.table, decoder);
+            decoder = new Decoder(options.table);
+            cachedDecoders.put(options.table, decoder);
         }
 
         int bitCount = decoder.decode(bb);
