@@ -1099,8 +1099,8 @@ public final class AWTImages {
         if (bandOffsets.length != c) {
             return false;
         }
-        for (int i = 0; i < bandOffsets.length; i++) {
-            if (bandOffsets[i] != 0) {
+        for (int bandOffset : bandOffsets) {
+            if (bandOffset != 0) {
                 return false;
             }
         }

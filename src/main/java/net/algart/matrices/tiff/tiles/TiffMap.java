@@ -51,7 +51,7 @@ public final class TiffMap {
          * <p>The tiles on the image boundaries, partially lying outside the image,
          * are stored as full-size pixel matrices; extra pixels outside the image should be ignored.
          *
-         * </p>Used for large TIFF images.</p>
+         * <p>Used for large TIFF images.</p>
          */
         TILE_GRID,
 

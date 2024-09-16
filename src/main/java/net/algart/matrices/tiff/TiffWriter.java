@@ -943,7 +943,7 @@ public class TiffWriter implements Closeable {
         // - overflow impossible after checkRequestedArea
         if (numberOfSamples > map.maxNumberOfSamplesInArray()) {
             throw new IllegalArgumentException("Too large area for updating TIFF in a single operation: " +
-                    +sizeX + "x" + sizeY + "x" + map.numberOfChannels() + " exceed the limit " +
+                    sizeX + "x" + sizeY + "x" + map.numberOfChannels() + " exceed the limit " +
                     map.maxNumberOfSamplesInArray());
         }
         final byte[] samples = TiffSampleType.bytes(samplesArray, numberOfSamples, byteOrder());

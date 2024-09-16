@@ -371,9 +371,9 @@ public class JPEG2000Codec implements TiffCodec {
         if (jpeg2000Options.interleaved) {
             int next = 0;
             for (int i = 0; i < single[0].length / bpp; i++) {
-                for (int j = 0; j < single.length; j++) {
+                for (byte[] bytes : single) {
                     for (int bb = 0; bb < bpp; bb++) {
-                        rtn[next++] = single[j][i * bpp + bb];
+                        rtn[next++] = bytes[i * bpp + bb];
                     }
                 }
             }

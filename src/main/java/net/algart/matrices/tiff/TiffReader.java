@@ -157,7 +157,7 @@ public class TiffReader implements Closeable {
     private volatile long positionOfLastIFDOffset = -1;
 
     private final Map<TiffTileIndex, CachedTile> tileCacheMap = new HashMap<>();
-    private final Queue<CachedTile> tileCache = new LinkedList<CachedTile>();
+    private final Queue<CachedTile> tileCache = new LinkedList<>();
     private long currentCacheMemory = 0;
     private final Object tileCacheLock = new Object();
 
@@ -953,7 +953,7 @@ public class TiffReader implements Closeable {
     }
 
     /**
-     * Calls {@link #readTile(TiffTileIndex)} with the same argument with caching, if this was enabled
+     * Calls {@link #readTileNoCache(TiffTileIndex)} with the same argument with caching, if this was enabled
      * by {@link #setCaching(boolean)} method.
      *
      * @param tileIndex position of the file.

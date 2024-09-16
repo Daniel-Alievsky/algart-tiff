@@ -339,8 +339,8 @@ public class LosslessJPEGCodec extends AbstractCodec {
                         table.pushShort((short) nCodes[i]);
                     }
 
-                    for (int i = 0; i < nCodes.length; i++) {
-                        for (int j = 0; j < nCodes[i]; j++) {
+                    for (int nCode : nCodes) {
+                        for (int j = 0; j < nCode; j++) {
                             table.pushShort((short) (in.read() & 0xff));
                         }
                     }

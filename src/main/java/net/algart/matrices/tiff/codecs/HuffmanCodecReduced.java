@@ -248,7 +248,7 @@ class HuffmanCodecReduced {
             }
             for (int i = numBits - 1; i >= 0; i--) {
                 final int b = bits[i] << (7 - bit);
-                buf[index] |= b;
+                buf[index] |= (byte) b;
                 bit++;
                 if (bit > 7) {
                     bit = 0;
@@ -315,14 +315,15 @@ class HuffmanCodecReduced {
         }
 
         public void add(final byte[] array, final int off, final int len) {
-            while (data.length < size + len)
+            assert len >= 0;
+            while (data.length < size + len) {
                 doubleCapacity();
-            if (len == 1) data[size] = array[off];
-            else if (len < 35) {
-                // for loop is faster for small number of elements
-                for (int i = 0; i < len; i++)
-                    data[size + i] = array[off + i];
-            } else System.arraycopy(array, off, data, size, len);
+            }
+            if (len == 1) {
+                data[size] = array[off];
+            } else {
+                System.arraycopy(array, off, data, size, len);
+            }
             size += len;
         }
 
