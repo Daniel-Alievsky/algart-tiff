@@ -27,7 +27,6 @@ package net.algart.matrices.tiff.tests.io;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
 import net.algart.io.MatrixIO;
-import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
@@ -98,7 +97,7 @@ public class TiffReadTilesTest {
         }
     }
 
-    private static Path tilePath(TiffTile tile, Path resultFolder) throws TiffException {
+    private static Path tilePath(TiffTile tile, Path resultFolder) {
         final TiffTileIndex i = tile.index();
         return resultFolder.resolve("tile_x" + i.xIndex() +
                 "_y" + i.yIndex() +

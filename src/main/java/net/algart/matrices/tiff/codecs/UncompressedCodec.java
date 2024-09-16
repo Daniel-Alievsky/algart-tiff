@@ -24,9 +24,6 @@
 
 package net.algart.matrices.tiff.codecs;
 
-import org.scijava.io.handle.DataHandle;
-import org.scijava.io.location.Location;
-
 /**
  * A codec which just returns the exact data it was given, performing no
  * compression or decompression.

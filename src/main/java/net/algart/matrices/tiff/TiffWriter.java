@@ -388,7 +388,7 @@ public class TiffWriter implements Closeable {
      * <p>If this method was not called (or after {@link #removeQuality()}), the compression quality is not specified.
      * In this case, some default quality will be used. In particular, it will be 1.0 for JPEG (maximal JPEG quality),
      * 10 for JPEG-2000 (compression code 33003) or alternative JPEG-200 (code 33005),
-     * <code>Double.MAX_VALUE</code> for lose-less JPEG-2000 ({@link TagCompression#JPEG_2000_LOSSY}, code 33004).
+     * <code>Double.MAX_VALUE</code> for lose-less JPEG-2000 ({@link TagCompression#JPEG_2000}, code 33004).
      * Note that the only difference between lose-less JPEG-2000 and the standard JPEG-2000 is this defaults:
      * if this method is called, both compressions work identically (but write different TIFF compression tags).
      *

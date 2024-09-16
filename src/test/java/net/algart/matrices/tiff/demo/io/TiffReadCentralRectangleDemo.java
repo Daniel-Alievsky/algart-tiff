@@ -31,12 +31,10 @@ import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.awt.AWTImages;
 import net.algart.matrices.tiff.tiles.TiffMap;
 
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.List;
 
 public class TiffReadCentralRectangleDemo {

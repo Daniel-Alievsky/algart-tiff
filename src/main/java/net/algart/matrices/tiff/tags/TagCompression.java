@@ -55,7 +55,7 @@ public enum TagCompression {
 
     JPEG_2000_LOSSLESS(33003, "JPEG-2000 lossless", JPEG2000Codec::new),
     // - note that while writing we do not try to use YCbCr encoding, as Aperio recommends for 33003
-    JPEG_2000_LOSSY(33004, "JPEG-2000 lossy", JPEG2000Codec::new),
+    JPEG_2000(33004, "JPEG-2000 lossy", JPEG2000Codec::new),
     JPEG_2000_LOSSLESS_ALTERNATIVE(33005, "JPEG-2000 alternative", JPEG2000Codec::new),
     JPEG_2000_LOSSLESS_OLYMPUS(34712, "JPEG-2000 Olympus", JPEG2000Codec::new),
 
@@ -108,11 +108,11 @@ public enum TagCompression {
 
     public boolean isJpeg2000() {
         return this == JPEG_2000_LOSSLESS || this == JPEG_2000_LOSSLESS_ALTERNATIVE ||
-                this == JPEG_2000_LOSSLESS_OLYMPUS || this == JPEG_2000_LOSSY;
+                this == JPEG_2000_LOSSLESS_OLYMPUS || this == JPEG_2000;
     }
 
     public boolean isJpeg2000Lossy() {
-        return this == JPEG_2000_LOSSY;
+        return this == JPEG_2000;
     }
 
     public boolean isStandard() {

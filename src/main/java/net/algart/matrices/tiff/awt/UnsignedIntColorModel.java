@@ -26,6 +26,7 @@ package net.algart.matrices.tiff.awt;
 
 import java.awt.*;
 import java.awt.image.*;
+import java.util.Arrays;
 
 /**
  * ColorModel that handles unsigned 32 bit data.
@@ -141,8 +142,7 @@ public class UnsignedIntColorModel extends ColorModel {
 
     @Override
     public int getRed(Object data) {
-        if (data instanceof int[]) {
-            final int[] i = (int[]) data;
+        if (data instanceof int[] i) {
             if (i.length == 1) return getRed(i[0]);
             return getRed(i.length != 4 ? i[0] : i[1]);
         }
@@ -151,8 +151,7 @@ public class UnsignedIntColorModel extends ColorModel {
 
     @Override
     public int getGreen(Object data) {
-        if (data instanceof int[]) {
-            final int[] i = (int[]) data;
+        if (data instanceof int[] i) {
             if (i.length == 1) return getGreen(i[0]);
             return getGreen(i.length != 4 ? i[1] : i[2]);
         }
@@ -161,8 +160,7 @@ public class UnsignedIntColorModel extends ColorModel {
 
     @Override
     public int getBlue(Object data) {
-        if (data instanceof int[]) {
-            final int[] i = (int[]) data;
+        if (data instanceof int[] i) {
             if (i.length == 1) return getBlue(i[0]);
             return getBlue(i[i.length - 1]);
         }
@@ -180,9 +178,7 @@ public class UnsignedIntColorModel extends ColorModel {
 
     private static int[] makeBitArray(int nChannels, int nBits) {
         final int[] bits = new int[nChannels];
-        for (int i = 0; i < bits.length; i++) {
-            bits[i] = nBits;
-        }
+        Arrays.fill(bits, nBits);
         return bits;
     }
 

@@ -43,10 +43,11 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.zip.*;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 public class TiffCustomCodecDemo {
-    public static int MY_GZIP_COMPRESSION_CODE = 40157;
+    public static final int MY_GZIP_COMPRESSION_CODE = 40157;
 
     private static final System.Logger LOG = System.getLogger(TiffCustomCodecDemo.class.getName());
     private static final System.Logger.Level LOG_LEVEl = System.Logger.Level.INFO;

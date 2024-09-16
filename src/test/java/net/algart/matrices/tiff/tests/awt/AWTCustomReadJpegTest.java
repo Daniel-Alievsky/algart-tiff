@@ -31,7 +31,6 @@ import javax.imageio.ImageReader;
 import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.metadata.IIOMetadataFormatImpl;
 import javax.imageio.stream.ImageInputStream;
-import javax.xml.transform.TransformerException;
 import java.awt.image.BufferedImage;
 import java.awt.image.Raster;
 import java.awt.image.WritableRaster;
@@ -42,7 +41,7 @@ import java.util.Iterator;
 // Actually this test is not "custom": it just illustrates that we cannot customize default reading scheme,
 // namely, cannot set up necessary color space
 public class AWTCustomReadJpegTest {
-    public static void main(String[] args) throws IOException, TransformerException {
+    public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         boolean enforceAWT = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-enforceAWT")) {

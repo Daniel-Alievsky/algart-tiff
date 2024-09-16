@@ -593,7 +593,7 @@ public class TiffUnpacking {
             byte[] source,
             int sizeX,
             int sizeY,
-            boolean invertValues) throws TiffException {
+            boolean invertValues) {
         final long length = PackedBitArraysPer8.unpackedLength(source);
         final long alignedLine = ((long) sizeX + 7) & ~7;
         // - skipping bits until the first bit of the next whole byte;
@@ -613,7 +613,7 @@ public class TiffUnpacking {
         }
     }
 
-    private static void checkInterleaved(TiffTile tile) throws TiffException {
+    private static void checkInterleaved(TiffTile tile) {
         if (!tile.isInterleaved()) {
             throw new IllegalArgumentException("Tile data must be interleaved for correct completing " +
                     "to decode " + tile.ifd().compressionPrettyName() + " (separated data are allowed for codecs " +

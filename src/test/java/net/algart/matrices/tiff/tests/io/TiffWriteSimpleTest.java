@@ -44,7 +44,7 @@ public class TiffWriteSimpleTest {
     private final static int IMAGE_WIDTH = 2000;
     private final static int IMAGE_HEIGHT = 2000;
 
-    private static void printReaderInfo(TiffWriter writer) throws IOException {
+    private static void printReaderInfo(TiffWriter writer) {
         System.out.print("Checking file by the reader: ");
         try {
             final TiffReader reader = writer.newReaderOfThisFile(false);

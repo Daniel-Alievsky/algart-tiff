@@ -58,13 +58,10 @@ public class TiffIFD {
             (MAX_NUMBER_OF_CHANNELS * MAX_BITS_PER_SAMPLE);
 
     public record UnsupportedTypeValue(int type, int count, long valueOrOffset) {
-        public UnsupportedTypeValue(int type, int count, long valueOrOffset) {
+        public UnsupportedTypeValue {
             if (count < 0) {
                 throw new IllegalArgumentException("Negative count of values");
             }
-            this.type = type;
-            this.count = count;
-            this.valueOrOffset = valueOrOffset;
         }
 
         @Override
@@ -1512,10 +1509,12 @@ public class TiffIFD {
             final long tileCountX = (dimX + (long) tileSizeX - 1) / tileSizeX;
             final long tileCountY = (dimY + (long) tileSizeY - 1) / tileSizeY;
             sb.append(json ?
-                    ("  \"precision\" : \"%s\",\n" +
-                            "  \"byteOrder\" : \"%s\",\n" +
-                            "  \"bigTiff\" : %s,\n" +
-                            "  \"tiled\" : %s,\n").formatted(
+                    ("""
+                              "precision" : "%s",
+                              "byteOrder" : "%s",
+                              "bigTiff" : %s,
+                              "tiled" : %s,
+                            """).formatted(
                             sampleType.prettyName(),
                             getByteOrder(),
                             isBigTiff(),
@@ -1528,13 +1527,15 @@ public class TiffIFD {
             if (hasTileInformation()) {
                 sb.append(
                         json ?
-                                ("  \"tiles\" : {\n" +
-                                        "    \"sizeX\" : %d,\n" +
-                                        "    \"sizeY\" : %d,\n" +
-                                        "    \"countX\" : %d,\n" +
-                                        "    \"countY\" : %d,\n" +
-                                        "    \"count\" : %d\n" +
-                                        "  },\n").formatted(
+                                ("""
+                                          "tiles" : {
+                                            "sizeX" : %d,
+                                            "sizeY" : %d,
+                                            "countX" : %d,
+                                            "countY" : %d,
+                                            "count" : %d
+                                          },
+                                        """).formatted(
                                         tileSizeX, tileSizeY, tileCountX, tileCountY,
                                         tileCountX * tileCountY) :
                                 "%dx%d=%d tiles %dx%d (last tile %sx%s)".formatted(
@@ -1548,10 +1549,12 @@ public class TiffIFD {
             } else {
                 sb.append(
                         json ?
-                                ("  \"strips\" : {\n" +
-                                        "    \"sizeY\" : %d,\n" +
-                                        "    \"countY\" : %d\n" +
-                                        "  },\n").formatted(tileSizeY, tileCountY) :
+                                ("""
+                                          "strips" : {
+                                            "sizeY" : %d,
+                                            "countY" : %d
+                                          },
+                                        """).formatted(tileSizeY, tileCountY) :
                                 "%d strips per %d lines (last strip %s, virtual \"tiles\" %dx%d)".formatted(
                                         tileCountY,
                                         tileSizeY,

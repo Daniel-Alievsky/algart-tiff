@@ -152,16 +152,13 @@ public class SignedColorModel extends ColorModel {
 
     @Override
     public int getAlpha(Object data) {
-        if (data instanceof byte[]) {
-            final byte[] b = (byte[]) data;
+        if (data instanceof byte[] b) {
             if (b.length == 1) return getAlpha(b[0]);
             return rescale(b.length == 4 ? b[0] : max, max);
-        } else if (data instanceof short[]) {
-            final short[] s = (short[]) data;
+        } else if (data instanceof short[] s) {
             if (s.length == 1) return getAlpha(s[0]);
             return rescale(s.length == 4 ? s[0] : max, max);
-        } else if (data instanceof int[]) {
-            final int[] i = (int[]) data;
+        } else if (data instanceof int[] i) {
             if (i.length == 1) return getAlpha(i[0]);
             return rescale(i.length == 4 ? i[0] : max, max);
         }
@@ -170,16 +167,13 @@ public class SignedColorModel extends ColorModel {
 
     @Override
     public int getRed(Object data) {
-        if (data instanceof byte[]) {
-            final byte[] b = (byte[]) data;
+        if (data instanceof byte[] b) {
             if (b.length == 1) return getRed(b[0]);
             return rescale(b.length != 4 ? b[0] : b[1]);
-        } else if (data instanceof short[]) {
-            final short[] s = (short[]) data;
+        } else if (data instanceof short[] s) {
             if (s.length == 1) return getRed(s[0]);
             return rescale(s.length != 4 ? s[0] : s[1], max);
-        } else if (data instanceof int[]) {
-            final int[] i = (int[]) data;
+        } else if (data instanceof int[] i) {
             if (i.length == 1) return getRed(i[0]);
             return rescale(i.length != 4 ? i[0] : i[1], max);
         }
@@ -188,16 +182,13 @@ public class SignedColorModel extends ColorModel {
 
     @Override
     public int getGreen(Object data) {
-        if (data instanceof byte[]) {
-            final byte[] b = (byte[]) data;
+        if (data instanceof byte[] b) {
             if (b.length == 1) return getGreen(b[0]);
             return rescale(b.length != 4 ? b[1] : b[2]);
-        } else if (data instanceof short[]) {
-            final short[] s = (short[]) data;
+        } else if (data instanceof short[] s) {
             if (s.length == 1) return getGreen(s[0]);
             return rescale(s.length != 4 ? s[1] : s[2], max);
-        } else if (data instanceof int[]) {
-            final int[] i = (int[]) data;
+        } else if (data instanceof int[] i) {
             if (i.length == 1) return getGreen(i[0]);
             return rescale(i.length != 4 ? i[1] : i[2], max);
         }
@@ -206,16 +197,13 @@ public class SignedColorModel extends ColorModel {
 
     @Override
     public int getBlue(Object data) {
-        if (data instanceof byte[]) {
-            final byte[] b = (byte[]) data;
+        if (data instanceof byte[] b) {
             if (b.length == 1) return getBlue(b[0]);
             return rescale(b.length > 2 ? b[b.length - 1] : 0);
-        } else if (data instanceof short[]) {
-            final short[] s = (short[]) data;
+        } else if (data instanceof short[] s) {
             if (s.length == 1) return getBlue(s[0]);
             return rescale(s.length > 2 ? s[s.length - 1] : 0, max);
-        } else if (data instanceof int[]) {
-            final int[] i = (int[]) data;
+        } else if (data instanceof int[] i) {
             if (i.length == 1) return getBlue(i[0]);
             return rescale(i.length > 2 ? i[i.length - 1] : 0, max);
         }

@@ -55,7 +55,7 @@ public class IFDTagPredictorTest {
                 diagnostic);
     }
 
-    public static void main(String[] args) throws TiffException {
+    public static void main(String[] args) {
         TiffIFD ifd = new TiffIFD().defaultTileSizes();
         check(ifd, TagPredictor.NONE, 1, false);
 

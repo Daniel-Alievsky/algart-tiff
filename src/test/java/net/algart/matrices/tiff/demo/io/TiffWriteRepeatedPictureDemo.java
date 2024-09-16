@@ -25,7 +25,6 @@
 package net.algart.matrices.tiff.demo.io;
 
 import net.algart.arrays.Matrix;
-import net.algart.arrays.PArray;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffIFD;

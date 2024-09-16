@@ -923,17 +923,14 @@ public final class AWTImages {
        final ByteOrder byteOrder = little ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
         if (pixels instanceof byte[][]) {
             pixelBytes = (byte[][]) pixels;
-        } else if (pixels instanceof short[][]) {
-            final short[][] s = (short[][]) pixels;
+        } else if (pixels instanceof short[][] s) {
             pixelBytes = new byte[s.length][s[0].length * 2];
             for (int i = 0; i < pixelBytes.length; i++) {
                 for (int j = 0; j < s[0].length; j++) {
                     JArrays.setBytes8(pixelBytes[i], j * 2, s[i][j], 2, byteOrder);
                 }
             }
-        } else if (pixels instanceof int[][]) {
-            final int[][] in = (int[][]) pixels;
-
+        } else if (pixels instanceof int[][] in) {
             if (imageType == BufferedImage.TYPE_INT_RGB ||
                     imageType == BufferedImage.TYPE_INT_BGR ||
                     imageType == BufferedImage.TYPE_INT_ARGB) {
@@ -955,8 +952,7 @@ public final class AWTImages {
                     }
                 }
             }
-        } else if (pixels instanceof float[][]) {
-            final float[][] in = (float[][]) pixels;
+        } else if (pixels instanceof float[][] in) {
             pixelBytes = new byte[in.length][in[0].length * 4];
             for (int i = 0; i < pixelBytes.length; i++) {
                 for (int j = 0; j < in[0].length; j++) {
@@ -964,8 +960,7 @@ public final class AWTImages {
                     JArrays.setBytes8(pixelBytes[i], j * 4, v, 4, byteOrder);
                 }
             }
-        } else if (pixels instanceof double[][]) {
-            final double[][] in = (double[][]) pixels;
+        } else if (pixels instanceof double[][] in) {
             pixelBytes = new byte[in.length][in[0].length * 8];
             for (int i = 0; i < pixelBytes.length; i++) {
                 for (int j = 0; j < in[0].length; j++) {
@@ -994,28 +989,24 @@ public final class AWTImages {
         if (pixels instanceof byte[][]) {
             pixelBytes = (byte[][]) pixels;
             bpp = 1;
-        } else if (pixels instanceof short[][]) {
+        } else if (pixels instanceof short[][] s) {
             bpp = 2;
-            final short[][] s = (short[][]) pixels;
             pixelBytes = new byte[s.length][s[0].length * bpp];
             for (int i = 0; i < pixelBytes.length; i++) {
                 for (int j = 0; j < s[0].length; j++) {
                     JArrays.setBytes8(pixelBytes[i], j * bpp, s[i][j], bpp, byteOrder);
                 }
             }
-        } else if (pixels instanceof int[][]) {
+        } else if (pixels instanceof int[][] in) {
             bpp = 4;
-            final int[][] in = (int[][]) pixels;
-
             pixelBytes = new byte[in.length][in[0].length * bpp];
             for (int i = 0; i < pixelBytes.length; i++) {
                 for (int j = 0; j < in[0].length; j++) {
                     JArrays.setBytes8(pixelBytes[i], j * bpp, in[i][j], bpp, byteOrder);
                 }
             }
-        } else if (pixels instanceof float[][]) {
+        } else if (pixels instanceof float[][] in) {
             bpp = 4;
-            final float[][] in = (float[][]) pixels;
             pixelBytes = new byte[in.length][in[0].length * bpp];
             for (int i = 0; i < pixelBytes.length; i++) {
                 for (int j = 0; j < in[0].length; j++) {
@@ -1023,9 +1014,8 @@ public final class AWTImages {
                     JArrays.setBytes8(pixelBytes[i], j * bpp, v, bpp, byteOrder);
                 }
             }
-        } else if (pixels instanceof double[][]) {
+        } else if (pixels instanceof double[][] in) {
             bpp = 8;
-            final double[][] in = (double[][]) pixels;
             pixelBytes = new byte[in.length][in[0].length * bpp];
             for (int i = 0; i < pixelBytes.length; i++) {
                 for (int j = 0; j < in[0].length; j++) {

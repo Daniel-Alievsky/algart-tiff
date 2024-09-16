@@ -418,7 +418,7 @@ class HuffmanCodecReduced {
 
     class Decoder {
 
-        public Decoder[] branch = new Decoder[2];
+        public final Decoder[] branch = new Decoder[2];
 
         private int leafValue = -1;
 
