@@ -263,30 +263,16 @@ public class LosslessJPEGCodec extends AbstractCodec {
                                 (int) JArrays.getBytes8InBigEndianOrder(buf, indexC, bytesPerSample);
 
                         if (nextSample > 0) {
-                            int pred = 0;
-                            switch (predictor) {
-                                case 1:
-                                    pred = sampleA;
-                                    break;
-                                case 2:
-                                    pred = sampleB;
-                                    break;
-                                case 3:
-                                    pred = sampleC;
-                                    break;
-                                case 4:
-                                    pred = sampleA + sampleB + sampleC;
-                                    break;
-                                case 5:
-                                    pred = sampleA + ((sampleB - sampleC) / 2);
-                                    break;
-                                case 6:
-                                    pred = sampleB + ((sampleA - sampleC) / 2);
-                                    break;
-                                case 7:
-                                    pred = (sampleA + sampleB) / 2;
-                                    break;
-                            }
+                            int pred = switch (predictor) {
+                                case 1 -> sampleA;
+                                case 2 -> sampleB;
+                                case 3 -> sampleC;
+                                case 4 -> sampleA + sampleB + sampleC;
+                                case 5 -> sampleA + ((sampleB - sampleC) / 2);
+                                case 6 -> sampleB + ((sampleA - sampleC) / 2);
+                                case 7 -> (sampleA + sampleB) / 2;
+                                default -> 0;
+                            };
                             v += pred;
                         }
 

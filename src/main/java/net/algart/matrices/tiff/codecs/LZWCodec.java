@@ -210,18 +210,13 @@ public class LZWCodec extends AbstractCodec {
         }
         // 2) write END_OF_INFORMATION code
         // -- we write the last incomplete byte here as well
-        // !!! We have to increase length of code if needed !!!
-        switch (nextCode) {
-            case 511:
-                currCodeLength = 10;
-                break;
-            case 1023:
-                currCodeLength = 11;
-                break;
-            case 2047:
-                currCodeLength = 12;
-                break;
-        }
+        // !!! We have to increase the length of code if needed !!!
+        currCodeLength = switch (nextCode) {
+            case 511 -> 10;
+            case 1023 -> 11;
+            case 2047 -> 12;
+            default -> currCodeLength;
+        };
 
         {
             int shift = currCodeLength - freeBits;
@@ -381,18 +376,13 @@ public class LZWCodec extends AbstractCodec {
                     oldCode = currCode;
                     nextCode++;
                 }
-                // Increase length of code if needed
-                switch (nextCode) {
-                    case 511:
-                        currCodeLength = 10;
-                        break;
-                    case 1023:
-                        currCodeLength = 11;
-                        break;
-                    case 2047:
-                        currCodeLength = 12;
-                        break;
-                }
+                // Increase the length of code if needed
+                currCodeLength = switch (nextCode) {
+                    case 511 -> 10;
+                    case 1023 -> 11;
+                    case 2047 -> 12;
+                    default -> currCodeLength;
+                };
             }
             while (currOutPos < output.length && in.offset() < in.length());
         } catch (final ArrayIndexOutOfBoundsException e) {

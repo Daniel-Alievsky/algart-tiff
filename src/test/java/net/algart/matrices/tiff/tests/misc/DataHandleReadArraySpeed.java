@@ -60,6 +60,7 @@ public class DataHandleReadArraySpeed {
                 (t3 - t2) * 1e-6, (size * elementSize) / 1048576.0 / ((t3 - t2) * 1e-9), b);
     }
 
+    @SuppressWarnings("MismatchedReadAndWriteOfArray")
     private static void testBytes(DataHandle<Location> in, DataHandle<Location> inBuffer) throws IOException {
         final int elementSize = 1;
         final int size = (int) (Math.min(in.length(), 1_000_000) / elementSize);

@@ -99,8 +99,8 @@ public class TiffSaver extends TiffWriter {
 
     private boolean sequentialWrite = false;
     private CodecOptions options;
-    private SCIFIO scifio;
-    private LogService log;
+    private final SCIFIO scifio;
+    private final LogService log;
 
     public TiffSaver(final Context ctx, final String filename) throws IOException {
         this(ctx, new FileLocation(filename));
@@ -242,28 +242,24 @@ public class TiffSaver extends TiffWriter {
             out.writeShort(IFDType.BYTE.getCode());
             writeIntValue(out, q.length);
             if (q.length <= dataLength) {
-                for (int i = 0; i < q.length; i++)
-                    out.writeByte(q[i]);
+                for (short item : q) out.writeByte(item);
                 for (int i = q.length; i < dataLength; i++)
                     out.writeByte(0);
             } else {
                 writeIntValue(out, offset + extraOut.length());
-                for (int i = 0; i < q.length; i++)
-                    extraOut.writeByte(q[i]);
+                for (short item : q) extraOut.writeByte(item);
             }
         } else if (value instanceof String) { // ASCII
             final char[] q = ((String) value).toCharArray();
             out.writeShort(IFDType.ASCII.getCode()); // type
             writeIntValue(out, q.length + 1);
             if (q.length < dataLength) {
-                for (int i = 0; i < q.length; i++)
-                    out.writeByte(q[i]); // value(s)
+                for (char c : q) out.writeByte(c); // value(s)
                 for (int i = q.length; i < dataLength; i++)
                     out.writeByte(0); // padding
             } else {
                 writeIntValue(out, offset + extraOut.length());
-                for (int i = 0; i < q.length; i++)
-                    extraOut.writeByte(q[i]); // values
+                for (char c : q) extraOut.writeByte(c); // values
                 extraOut.writeByte(0); // concluding NULL byte
             }
         } else if (value instanceof int[]) { // SHORT
@@ -271,16 +267,16 @@ public class TiffSaver extends TiffWriter {
             out.writeShort(IFDType.SHORT.getCode()); // type
             writeIntValue(out, q.length);
             if (q.length <= dataLength / 2) {
-                for (int i = 0; i < q.length; i++) {
-                    out.writeShort(q[i]); // value(s)
+                for (int j : q) {
+                    out.writeShort(j); // value(s)
                 }
                 for (int i = q.length; i < dataLength / 2; i++) {
                     out.writeShort(0); // padding
                 }
             } else {
                 writeIntValue(out, offset + extraOut.length());
-                for (int i = 0; i < q.length; i++) {
-                    extraOut.writeShort(q[i]); // values
+                for (int j : q) {
+                    extraOut.writeShort(j); // values
                 }
             }
         } else if (value instanceof long[]) { // LONG
@@ -302,8 +298,8 @@ public class TiffSaver extends TiffWriter {
                 }
             } else {
                 writeIntValue(out, offset + extraOut.length());
-                for (int i = 0; i < q.length; i++) {
-                    writeIntValue(extraOut, q[i]);
+                for (long l : q) {
+                    writeIntValue(extraOut, l);
                 }
             }
         } else if (value instanceof TagRational[]) { // RATIONAL
@@ -315,9 +311,9 @@ public class TiffSaver extends TiffWriter {
                 out.writeInt((int) q[0].getDenominator());
             } else {
                 writeIntValue(out, offset + extraOut.length());
-                for (int i = 0; i < q.length; i++) {
-                    extraOut.writeInt((int) q[i].getNumerator());
-                    extraOut.writeInt((int) q[i].getDenominator());
+                for (TagRational tagRational : q) {
+                    extraOut.writeInt((int) tagRational.getNumerator());
+                    extraOut.writeInt((int) tagRational.getDenominator());
                 }
             }
         } else if (value instanceof float[]) { // FLOAT
@@ -333,8 +329,8 @@ public class TiffSaver extends TiffWriter {
                 }
             } else {
                 writeIntValue(out, offset + extraOut.length());
-                for (int i = 0; i < q.length; i++) {
-                    extraOut.writeFloat(q[i]); // values
+                for (float v : q) {
+                    extraOut.writeFloat(v); // values
                 }
             }
         } else if (value instanceof double[]) { // DOUBLE
@@ -697,9 +693,8 @@ public class TiffSaver extends TiffWriter {
         final boolean isTiled = ifd.isTiled();
 
         if (!sequentialWrite) {
-            DataHandle<Location> in = dataHandleService.create(out.get());
-            try {
-                final io.scif.formats.tiff.TiffParser parser = new TiffParser(getContext(), in);
+            try (DataHandle<Location> in = dataHandleService.create(out.get())) {
+                final TiffParser parser = new TiffParser(getContext(), in);
                 final long[] ifdOffsets = parser.getIFDOffsets();
                 log.debug("IFD offsets: " + Arrays.toString(ifdOffsets));
                 if (planeIndex < ifdOffsets.length) {
@@ -708,8 +703,6 @@ public class TiffSaver extends TiffWriter {
                             " in non-sequential write.");
                     ifd = parser.getIFD(ifdOffsets[(int) planeIndex]);
                 }
-            } finally {
-                in.close();
             }
         }
 

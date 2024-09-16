@@ -123,7 +123,7 @@ public class TiffPrediction {
         Objects.requireNonNull(tile, "Null tile");
         final byte[] data = tile.getDecodedData();
         final int bitsPerSample = tile.bitsPerSample();
-        checkBitDepthForPrediction(bitsPerSample, "for writing");
+        checkBitDepthForPrediction(bitsPerSample, "for reading");
         final int samplesPerPixel = tile.samplesPerPixel();
         final int xSize = tile.getSizeX();
         final int xSizeInBytes = tile.getRowSizeInBytes();
@@ -271,7 +271,6 @@ public class TiffPrediction {
         }
     }
 
-    @SuppressWarnings("DuplicatedCode")
     private static void subtractBooleanMatrix(boolean[] a, int xSize, int ySize, int samplesPerPixel) {
         final int xSizeInSamples = xSize * samplesPerPixel;
         for (int y = 0; y < ySize; y++) {
@@ -284,7 +283,6 @@ public class TiffPrediction {
         }
     }
 
-    @SuppressWarnings("DuplicatedCode")
     private static void unsubtractBooleanMatrix(boolean[] a, int xSize, int ySize, int samplesPerPixel) {
         final int xSizeInSamples = xSize * samplesPerPixel;
         for (int y = 0; y < ySize; y++) {

@@ -30,7 +30,6 @@ import io.scif.formats.tiff.IFD;
 import io.scif.formats.tiff.IFDList;
 import io.scif.formats.tiff.TiffParser;
 import io.scif.util.FormatTools;
-import net.algart.matrices.tiff.executable.TiffInfo;
 import org.scijava.Context;
 import org.scijava.io.location.FileLocation;
 

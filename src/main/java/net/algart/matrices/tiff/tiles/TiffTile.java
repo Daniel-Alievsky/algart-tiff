@@ -651,7 +651,7 @@ public final class TiffTile {
     public int getEstimatedNumberOfPixels() {
         // - This method is private, because it does not return exact number of pixels for 1-bit channels
         // and should be used carefully.
-        // Maybe, in future we will support better field "numberOfPixels", always correct also for 1-bit channels,
+        // Maybe in future we will support better field "numberOfPixels", always correct also for 1-bit channels,
         // then this method will become public.
         if (isEncoded()) {
             throw new IllegalStateException("TIFF tile data are not decoded, number of pixels is unknown: " + this);

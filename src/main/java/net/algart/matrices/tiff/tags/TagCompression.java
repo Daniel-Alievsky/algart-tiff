@@ -144,6 +144,7 @@ public enum TagCompression {
         // because TiffReader needs non-interleaved results.
     }
 
+    @SuppressWarnings("RedundantThrows")
     public static TiffCodec.Options customizeWritingJpeg(TiffTile tile, TiffCodec.Options options)
             throws TiffException {
         final JPEGCodec.JPEGOptions result = new JPEGCodec.JPEGOptions().setTo(options);

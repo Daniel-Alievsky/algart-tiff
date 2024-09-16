@@ -389,7 +389,7 @@ public class TiffWriter implements Closeable {
      * In this case, some default quality will be used. In particular, it will be 1.0 for JPEG (maximal JPEG quality),
      * 10 for JPEG-2000 (compression code 33003) or alternative JPEG-200 (code 33005),
      * <code>Double.MAX_VALUE</code> for lose-less JPEG-2000 ({@link TagCompression#JPEG_2000}, code 33004).
-     * Note that the only difference between lose-less JPEG-2000 and the standard JPEG-2000 is this defaults:
+     * Note that the only difference between lose-less JPEG-2000 and the standard JPEG-2000 is these default values:
      * if this method is called, both compressions work identically (but write different TIFF compression tags).
      *
      * <p>Note: the {@link TiffCodec.Options#setQuality(Double) quality}, that can be set via
@@ -398,7 +398,7 @@ public class TiffWriter implements Closeable {
      *
      * <p>Please <b>remember</b> that this parameter may be different for different IFDs.
      * In this case, you need to call this method every time before creating new IFD,
-     * not only once for all TIFF file!
+     * not only once for the whole TIFF file!
      *
      * @param quality floating-point value, the desired quality level.
      * @return a reference to this object.
@@ -457,13 +457,13 @@ public class TiffWriter implements Closeable {
     }
 
     /**
-     * Sets the special mode, when TIFF file is allowed to contain "missing" tiles or strips,
+     * Sets the special mode, when a TIFF file is allowed to contain "missing" tiles or strips,
      * for which the offset (<code>TileOffsets</code> or <code>StripOffsets</code> tag) and/or
      * byte count (<code>TileByteCounts</code> or <code>StripByteCounts</code> tag) contains zero value.
-     * In this mode, this writer will use zero offset and byte count, if
+     * In this mode, this writer will use zero offset and byte-count, if
      * the written tile is actually empty &mdash; no pixels were written in it via
      * {@link #updateSamples(TiffMap, byte[], int, int, int, int)} or other methods.
-     * In other case, this writer will create a normal tile, filled by
+     * In another case, this writer will create a normal tile, filled by
      * the {@link #setByteFiller(byte) default filler}.
      *
      * <p>Default value is <code>false</code>. Note that <code>true</code> value violates requirement of
@@ -570,7 +570,7 @@ public class TiffWriter implements Closeable {
                     throw new FileNotFoundException("Output TIFF file " +
                             TiffReader.prettyFileName("%s", out) + " does not exist");
                 }
-                // In this branch, we MUST NOT try to analyse the file: it is not a correct TIFF!
+                // In this branch, we MUST NOT try to analyze the file: it is not a correct TIFF!
             } else {
                 ifdOffsets.clear();
                 final TiffReader reader = new TiffReader(out, true, false);
@@ -591,7 +591,7 @@ public class TiffWriter implements Closeable {
     /**
      * Creates a new TIFF file and writes the standard TIFF header in the beginning.
      * If the file already existed before creating this object,
-     * this method truncates it to zero length before writing the header.
+     * this method truncates it to a zero length before writing the header.
      * This method is called automatically in the constructor, when it is called with the argument
      * <code>createNewFileAndOpen = true</code>.
      *
@@ -1131,8 +1131,8 @@ public class TiffWriter implements Closeable {
         final TagPhotometricInterpretation suggestedPhotometric =
                 ifd.containsKey(Tags.PHOTOMETRIC_INTERPRETATION) ? ifd.getPhotometricInterpretation() : null;
         TagPhotometricInterpretation newPhotometric = suggestedPhotometric;
-        // - note: it is possible, that we DO NOT KNOW this newPhotometric interpretation;
-        // in this case, newPhotometric will be UNKNOWN, but we should not prevent writing such image
+        // - note: it is possible that we DO NOT KNOW this newPhotometric interpretation;
+        // in this case, newPhotometric will be UNKNOWN, but we should not prevent writing such an image
         // in simple formats like UNCOMPRESSED or LZW: maybe, the client knows how to process it
         if (compression == TagCompression.JPEG) {
             if (samplesPerPixel != 1 && samplesPerPixel != 3) {
@@ -1165,7 +1165,7 @@ public class TiffWriter implements Closeable {
                 // but if the user wants, he can prepare correct data for them.
                 // We do not try to invert data for WHITE_IS_ZERO,
                 // as well as we do not invert values for CMYK below.
-                // This is important, because TiffReader (by default) also do not invert brightness in these cases:
+                // This is important, because TiffReader (by default) also does not invert brightness in these cases:
                 // autoCorrectInvertedBrightness=false, so, TiffReader+TiffWriter can copy such IFD correctly.
                 if (newPhotometric == TagPhotometricInterpretation.RGB_PALETTE && !hasColorMap) {
                     throw new TiffException("Cannot write TIFF image: newPhotometric interpretation \"" +
@@ -1311,7 +1311,7 @@ public class TiffWriter implements Closeable {
             tile.setStoredDataFileRange(offsets[k], (int) byteCounts[k]);
             // - we "tell" that all tiles already exist in the file;
             // note we can use index k, because buildGrid() method, called above for an empty map,
-            // provided correct tiles order
+            //  provided the correct tiles order
             tile.removeUnset();
             k++;
         }
@@ -1372,7 +1372,7 @@ public class TiffWriter implements Closeable {
         }
 
         seekToEnd();
-        // - This seeking to file end is not necessary, but can help to avoid accidental bugs
+        // - This seeking to the file end is not necessary, but can help to avoid accidental bugs
         // (this is much better than keeping file offset in the middle of the last image
         // between IFD and newly written TIFF tiles).
         return count;
@@ -1490,7 +1490,7 @@ public class TiffWriter implements Closeable {
 
     public void fillEmptyTile(TiffTile tiffTile) {
         if (byteFiller != 0) {
-            // - Java-arrays are automatically filled by zero
+            // - Java arrays are automatically filled by zero
             Arrays.fill(tiffTile.getDecodedData(), byteFiller);
         }
     }
@@ -1611,7 +1611,7 @@ public class TiffWriter implements Closeable {
         final int numberOfEntriesLimit = bigTiff ? TiffReader.MAX_NUMBER_OF_IFD_ENTRIES : 65535;
         if (numberOfEntries > numberOfEntriesLimit) {
             throw new IllegalStateException("Too many IFD entries: " + numberOfEntries + " > " + numberOfEntriesLimit);
-            // - theoretically BigTIFF allows to write more, but we prefer to make some restriction and
+            // - theoretically BigTIFF allows writing more, but we prefer to make some restriction and
             // guarantee 32-bit number of bytes
         }
         final int bytesPerEntry = bigTiff ? TiffReader.BIG_TIFF_BYTES_PER_ENTRY : TiffReader.BYTES_PER_ENTRY;
@@ -1655,7 +1655,7 @@ public class TiffWriter implements Closeable {
      * Writes the given IFD value to the {@link #stream() main output stream}, excepting "extra" data,
      * which are written into the specified <code>extraBuffer</code>. After calling this method, you
      * should copy full content of <code>extraBuffer</code> into the main stream at the position,
-     * specified by the 2nd argument; {@link #rewriteIFD(TiffIFD, boolean)} method does it automatically.
+     * specified by the second argument; {@link #rewriteIFD(TiffIFD, boolean)} method does it automatically.
      *
      * <p>Here "extra" data means all data, for which IFD contains their offsets instead of data itself,
      * like arrays or text strings. The "main" data is 12-byte IFD record (20-byte for Big-TIFF),
@@ -1701,7 +1701,7 @@ public class TiffWriter implements Closeable {
         if (value instanceof byte[] q) {
             out.writeShort(TagTypes.UNDEFINED);
             // - Most probable type. Maybe in future we will support here some algorithm,
-            // determining necessary type on the base of the tag value.
+            // determining the necessary type on the base of the tag value.
             writeIntOrLong(out, q.length);
             if (q.length <= dataLength) {
                 for (byte byteValue : q) {
@@ -1734,7 +1734,7 @@ public class TiffWriter implements Closeable {
             final char[] q = ((String) value).toCharArray();
             out.writeShort(TagTypes.ASCII);
             writeIntOrLong(out, q.length + 1);
-            // - with concluding zero byte
+            // - with concluding zero bytes
             if (q.length < dataLength) {
                 for (char c : q) {
                     writeUnsignedByte(out, c);
@@ -1747,11 +1747,11 @@ public class TiffWriter implements Closeable {
                 for (char charValue : q) {
                     writeUnsignedByte(extraBuffer, charValue);
                 }
-                extraBuffer.writeByte(0); // concluding zero byte
+                extraBuffer.writeByte(0); // concluding zero bytes
             }
         } else if (value instanceof int[] q) { // suppose SHORT (unsigned 16-bit)
             if (q.length == 1) {
-                // - we should allow to use usual int values for 32-bit tags, to avoid a lot of obvious bugs
+                // - we should allow using usual int values for 32-bit tags, to avoid a lot of obvious bugs
                 final int v = q[0];
                 if (v >= 0xFFFF) {
                     out.writeShort(TagTypes.LONG);
@@ -1921,7 +1921,7 @@ public class TiffWriter implements Closeable {
                         assert tile.isEmpty() : "writeEncodedTile() call above did not store data file offset!";
                         if (!missingTilesAllowed) {
                             if (!tile.equalSizes(filler)) {
-                                // - usually performed once, maybe twice for stripped image (where last strip has
+                                // - usually performed once, maybe twice for stripped image (where the last strip has
                                 // smaller height)
                                 // or even 2 * numberOfSeparatedPlanes times for plane-separated tiles
                                 filler = new TiffTile(tileIndex).setEqualSizes(tile);
@@ -1929,7 +1929,7 @@ public class TiffWriter implements Closeable {
                                 encode(filler);
                                 writeEncodedTile(filler, false);
                                 // - note: unlike usual tiles, the filler tile is written once,
-                                // but its offset/byte-count are used many times!
+                                // but its offset/byte-count is used many times!
                             }
                             offsets[k] = filler.getStoredDataFileOffset();
                             byteCounts[k] = filler.getStoredDataLength();
@@ -1948,8 +1948,8 @@ public class TiffWriter implements Closeable {
 
     /**
      * Write the given value to the given RandomAccessOutputStream. If the
-     * 'bigTiff' flag is set, then the value will be written as an 8 byte long;
-     * otherwise, it will be written as a 4 byte integer.
+     * 'bigTiff' flag is set, then the value will be written as an 8-byte long;
+     * otherwise, it will be written as a 4-byte integer.
      */
     private void writeIntOrLong(DataHandle<Location> handle, long value) throws IOException {
         if (bigTiff) {
@@ -1998,7 +1998,7 @@ public class TiffWriter implements Closeable {
                         + " > 2^32-16; such large files should be written in Big-TIFF mode");
             }
             out.writeInt((int) offset);
-            // - masking by 0xFFFFFFFF is not needed: cast to (int) works properly also for 32-bit unsigned values
+            // - masking by 0xFFFFFFFF is unnecessary: cast to (int) works properly also for 32-bit unsigned values
         }
     }
 

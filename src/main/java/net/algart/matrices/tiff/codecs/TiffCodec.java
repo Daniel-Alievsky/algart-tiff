@@ -276,7 +276,7 @@ public interface TiffCodec {
                 throw new AssertionError(e);
             }
             result.setTo(this);
-            // - performs necessary cloning of mutable fields like Java arrays
+            // - performs the necessary cloning of mutable fields like Java arrays
             return result;
         }
 

@@ -30,7 +30,7 @@ import org.scijava.Context;
 public class SimplestSCIFIO {
     private static final int MAX_IMAGE_SIZE = 6000;
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         SCIFIO scifio = new SCIFIO();
         Context context = scifio.getContext();
         System.out.println(context);

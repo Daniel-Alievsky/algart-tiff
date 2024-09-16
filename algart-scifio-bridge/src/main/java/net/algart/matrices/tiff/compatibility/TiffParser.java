@@ -109,7 +109,6 @@ public class TiffParser extends TiffReader {
     private IFDList ifdList;
     private IFD firstIFD;
 
-    private final SCIFIO scifio;
     private final LogService log;
 
 
@@ -140,7 +139,7 @@ public class TiffParser extends TiffReader {
         this.setEnforceUseExternalCodec(true);
         this.setMissingTilesAllowed(true);
         // - This is an interesting undocumented feature: old TiffParser really supported missing tiles!
-        this.scifio = new SCIFIO(context);
+        SCIFIO scifio = new SCIFIO(context);
         this.log = scifio.log();
     }
 
@@ -253,7 +252,7 @@ public class TiffParser extends TiffReader {
                     fillInIFD(ifd);
                 }
                 subOffsets = ifd.getIFDLongArray(IFD.SUB_IFD);
-            } catch (final FormatException e) {
+            } catch (final FormatException ignored) {
             }
             if (subOffsets != null) {
                 for (final long subOffset : subOffsets) {
@@ -985,7 +984,7 @@ public class TiffParser extends TiffReader {
         return adjustFillOrder(ifd, buf);
     }
 
-    // Equivalent method in TiffReader became private: no reasons to declare it public
+    // The equivalent method in TiffReader became private: no reasons to declare it public
     @Deprecated
     public TiffIFDEntry readTiffIFDEntry() throws IOException {
         DataHandle<Location> in = stream();
@@ -996,7 +995,7 @@ public class TiffParser extends TiffReader {
         try {
             entryType = IFDType.get(in.readUnsignedShort());
         } catch (final EnumException e) {
-//            log.error("Error reading IFD type at: " + in.offset());
+            log.error("Error reading IFD type at: " + in.offset());
             throw e;
         }
 

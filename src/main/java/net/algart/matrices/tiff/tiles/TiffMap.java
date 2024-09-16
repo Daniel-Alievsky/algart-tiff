@@ -68,7 +68,7 @@ public final class TiffMap {
          * <p>IFD must <b>not</b> contain <code>TileWidth</code> and <code>TileLength</code> tags.
          * The height <code>H</code> of every strip is specified in <code>RowsPerStrip</code> tag
          * or is the full image height if there is no such tag (in the latter case, {@link TiffMap}
-         * will contain only 1 tile).
+         * will contain only one tile).
          * Though the TIFF format allows specifying strips with different heights,
          * this library does not support this case.
          *
@@ -112,7 +112,7 @@ public final class TiffMap {
     private final int tileSizeY;
     private final int tileSizeInPixels;
     private final int tileSizeInBytes;
-    // - Note: we store here information about samples and tiles structure, but
+    // - Note: we store here information about samples and tile structure, but
     // SHOULD NOT store information about image sizes (like number of tiles):
     // it is probable that we do not know final sizes while creating tiles of the image!
     private volatile int dimX = 0;
@@ -292,7 +292,7 @@ public final class TiffMap {
 
     /**
      * Number of bits, actually used for storing one channel of the pixel in memory.
-     * This number of bytes is correct for data, loaded from TIFF file by
+     * This number of bytes is correct for data, loaded from a TIFF file by
      * {@link TiffReader}, and for source data,
      * that should be written by {@link TiffWriter}.
      *
@@ -494,7 +494,7 @@ public final class TiffMap {
                     ") of the tile is out of ranges 0.." + (tileCountX - 1) + ", 0.." + (tileCountY - 1));
         }
         // - if the tile is out of bounds, it means that we do not know actual grid dimensions
-        // (even it is resizable): there is no way to calculate correct linear index
+        // (even it is resizable): there is no way to calculate the correct linear index
         return (separatedPlaneIndex * tileCountY + yIndex) * tileCountX + xIndex;
         // - overflow impossible: setDimensions checks that tileCountX * tileCountY * numberOfSeparatedPlanes < 2^31
     }
@@ -517,7 +517,7 @@ public final class TiffMap {
         if (tileIndex.ifd() != this.ifd) {
             // - Checking references, not content!
             // Checking IFD, not reference to map ("this"): there is no sense to disable creating new map
-            // and copying there the tiles from the given map.
+            // and copying the tiles from the given map there.
             throw new IllegalArgumentException("Illegal tile index: tile map cannot process tiles from different IFD");
         }
     }
@@ -782,7 +782,7 @@ public final class TiffMap {
         }
         if ((long) dimX * (long) dimY > Long.MAX_VALUE / totalAlignedBitsPerPixel) {
             // - Very improbable! But we would like to be sure that 63-bit arithmetic
-            // is enough to calculate total size of the map in BYTES.
+            // is enough to calculate the total size of the map in BYTES.
             throw new TooLargeArrayException("Extremely large image sizes " + dimX + "x" + dimY +
                     ", " + totalAlignedBitsPerPixel + " bits/pixel: total number of bits is greater than 2^63-1 (!)");
         }

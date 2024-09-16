@@ -81,7 +81,7 @@ public class TiffReader implements Closeable {
 
     /**
      * IFD with number of entries, greater than this limit, is not allowed:
-     * it is mostly probable that it is corrupted file.
+     * it is mostly probable that it is a corrupted file.
      */
     public static final int MAX_NUMBER_OF_IFD_ENTRIES = 1_000_000;
     /**
@@ -99,8 +99,8 @@ public class TiffReader implements Closeable {
     public static final int FILE_PREFIX_BIG_ENDIAN = 0x4d;
 
     private static final boolean OPTIMIZE_READING_IFD_ARRAYS = true;
-    // - Note: this optimization allows to speed up reading large array of offsets.
-    // If we use simple FileHandle for reading file (based on RandomAccessFile),
+    // - Note: this optimization allows speeding up reading a large array of offsets.
+    // If we use simple FileHandle for reading files (based on RandomAccessFile),
     // acceleration is up to 100 and more times:
     // on my computer, 23220 int32 values were loaded in 0.2 ms instead of 570 ms.
     // Since scijava-common 2.95.1, we use optimized ReadBufferDataHandle for reading file;
@@ -241,8 +241,9 @@ public class TiffReader implements Closeable {
     /**
      * Universal constructor, called from other constructors.
      *
-     * <p>Unlike other constructors, this one never throws an exception. This is helpful, because allows
-     * to make constructors in subclasses, which do not declare any exceptions to be thrown.
+     * <p>Unlike other constructors, this one never throws an exception.
+     * This is helpful because it allows
+     * making constructors in subclasses, which do not declare any exceptions to be thrown.
      *
      * <p>If the file is not a correct TIFF or in the case of any other I/O problem,
      * the information about the problem is stored in an exception, which can be retrieved later
@@ -275,11 +276,11 @@ public class TiffReader implements Closeable {
     }
 
     /**
-     * Sets whether the parser should always require valid TIFF format.
+     * Sets whether the parser should always require a file with the valid TIFF format.
      * Default value is specified in the constructor or is <code>false</code>
      * when using a constructor without such argument.
      *
-     * @param requireValidTiff whether TIFF file should be correct.
+     * @param requireValidTiff whether a TIFF file should be correct.
      * @return a reference to this object.
      */
     public TiffReader setRequireValidTiff(boolean requireValidTiff) {
@@ -339,8 +340,8 @@ public class TiffReader implements Closeable {
     }
 
     /**
-     * Sets the flag, whether do we need to unpack binary images (1 bit/pixel, black-and-white images)
-     * into <code>byte</code> matrices: black pixels to the value 0, white pixels to the value 255.
+     * Sets the flag, whether do we need to unpack binary images (one bit/pixel, black-and-white images)
+     * into <code>byte</code> matrices: black pixels to the value 0, white pixels to value 255.
      *
      * <p>By default this flag is cleared. In this case, {@link #readMatrix(TiffMap)} and similar methods return
      * binary AlgART matrices.</p>
@@ -419,7 +420,7 @@ public class TiffReader implements Closeable {
      * As the result, the returned picture will look alike the source one.</p>
      *
      * <p>Default value is <code>true</code>. However, the scaling is still not performed if
-     * PhotometricInterpretation TIFF tag is "Palette" (3) or "Transparency Mask" (4): in these cases
+     * PhotometricInterpretation TIFF tag is "Palette" (3) or "Transparency Mask" (4): in these cases,
      * scaling has no sense.
      *
      * @param autoScaleWhenIncreasingBitDepth whether do we need to scale pixel samples, represented with <i>k</i>
@@ -439,7 +440,7 @@ public class TiffReader implements Closeable {
 
     /**
      * Sets the flag, whether do we need to automatically correct (invert) pixel sample values in color spaces
-     * with inverted sense of pixel brightness, i.e. when PhotometricInterpretation TIFF tag is "WhiteIsZero" (0)
+     * with inverted sense of pixel brightness, i.e., when PhotometricInterpretation TIFF tag is "WhiteIsZero" (0)
      * or "Separated" (CMYK, 5). (In these color spaces, white color is encoded as zero, and black color is encoded
      * as maximal allowed value like 255 for 8-bit samples.)
      * Note that this flag <b>do not provide</b> correct processing CMYK color model
@@ -506,7 +507,7 @@ public class TiffReader implements Closeable {
      *
      * <p>Default value is <code>true</code>. Possible reason to set is to <code>false</code>
      * is reading a file which is dynamically modified.
-     * In other cases, usually it should be <code>true</code>, though <code>false</code> value
+     * In another case, usually it should be <code>true</code>, though <code>false</code> value
      * also works well if you are not going to call {@link #allIFDs()} more than once.
      *
      * @param cachingIFDs whether caching IFD is enabled.
@@ -522,7 +523,7 @@ public class TiffReader implements Closeable {
     }
 
     /**
-     * Sets the special mode, when TIFF file is allowed to contain "missing" tiles or strips,
+     * Sets the special mode, when a TIFF file is allowed to contain "missing" tiles or strips,
      * for which the offset (<code>TileOffsets</code> or <code>StripOffsets</code> tag) and/or
      * byte count (<code>TileByteCounts</code> or <code>StripByteCounts</code> tag) contains zero value.
      * In this mode, such tiles/strips will be successfully read as empty rectangles, filled by
@@ -548,7 +549,7 @@ public class TiffReader implements Closeable {
      * Value 0 means black color, 0xFF usually means white color.
      *
      * <p><b>Warning!</b> If you want to work with non-8-bit TIFF, especially float precision, you should
-     * preserve default 0 value, in another case results could be very strange.
+     * preserve the default 0 value; in another case, results could be very strange.
      *
      * @param byteFiller new filler.
      * @return a reference to this object.
@@ -825,7 +826,8 @@ public class TiffReader implements Closeable {
      * Gets the offsets to every IFD in the file.
      *
      * <p>Note: if this TIFF file is not valid ({@link #isValid()} returns <code>false</code>), this method
-     * returns an empty array and does not throw an exception. For valid TIFF, result cannot be empty.
+     * returns an empty array and does not throw an exception.
+     * For a valid TIFF, the result cannot be empty.
      */
     public long[] readIFDOffsets() throws IOException {
         synchronized (fileLock) {
@@ -896,7 +898,7 @@ public class TiffReader implements Closeable {
             if (numberOfEntries < 0 || numberOfEntries > MAX_NUMBER_OF_IFD_ENTRIES) {
                 throw new TiffException("Too large number of IFD entries: " +
                         (numberOfEntries < 0 ? ">= 2^63" : numberOfEntries + " > " + MAX_NUMBER_OF_IFD_ENTRIES));
-                // - theoretically BigTIFF allows to have more entries, but we prefer to make some restriction;
+                // - theoretically BigTIFF allows having more entries, but we prefer to make some restriction;
                 // in any case, billions if detailedEntries will probably lead to OutOfMemoryError or integer overflow
             }
 
@@ -918,8 +920,8 @@ public class TiffReader implements Closeable {
 //            System.err.printf("%d values from %d: %.6f ms%n", valueCount, valueOffset, (tEntry3 - tEntry2) * 1e-6);
 
                 if (value != null && !map.containsKey(tag)) {
-                    // - null value should not occur in current version;
-                    // if this tag is present twice (strange mistake if TIFF file),
+                    // - null value should not occur in the current version;
+                    // if this tag is present twice (strange mistake if a TIFF file),
                     // we do not throw exception and just use the 1st entry
                     map.put(tag, value);
                     detailedEntries.put(tag, entry);
@@ -1151,7 +1153,7 @@ public class TiffReader implements Closeable {
      * the image is stored as YCbCr, however not in JPEG format, but uncompressed or, for example, as LZW.
      * This method performs necessary conversion to RGB (but only if the image is exactly 8-bit).</p>
      *
-     * <p>Note: this method never increase number of <i>bytes</i>, necessary for representing a single pixel sample.
+     * <p>Note: this method never increases number of <i>bytes</i>, necessary for representing a single pixel sample.
      * It can increase the number of <i>bits</i> per sample, but only to the nearest greater integer number of
      * bytes: 1..7 bits are transformed to 8 bits/sample, 9..15 to 16 bits/sample, 17..23 to 24 bits/sample etc.
      * Thus, this method <b>does not unpack 3-byte samples</b> (to 4-byte) and
@@ -1392,7 +1394,7 @@ public class TiffReader implements Closeable {
      * @param map TIFF map, constructed from one of the IFDs of this TIFF file.
      * @return content of the IFD image.
      * @throws TiffException            if <code>ifdIndex</code> is too large,
-     *                                  or if the file is not a correct TIFF file
+     *                                  or if the file is not a correct TIFF file,
      *                                  and this was not detected while opening it.
      * @throws IOException              in the case of any problems with the input file.
      * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
@@ -1493,7 +1495,7 @@ public class TiffReader implements Closeable {
                     " or fromY = " + fromY + " (out of -2^31..2^31-1 ranges)");
         }
         if (sizeX >= Integer.MAX_VALUE - fromX || sizeY >= Integer.MAX_VALUE - fromY) {
-            // - Note: >= instead of > ! This allows to use "toX = fromX + sizeX" without overflow
+            // - Note: ">=" instead of ">"! This allows to use "toX = fromX + sizeX" without overflow
             throw new IllegalArgumentException("Requested area [" + fromX + ".." + (fromX + sizeX - 1) +
                     " x " + fromY + ".." + (fromY + sizeY - 1) + "] is outside the 0..2^31-2 ranges");
         }
@@ -1551,7 +1553,7 @@ public class TiffReader implements Closeable {
         Objects.requireNonNull(fileLocation, "Null fileLocation");
         FileHandle fileHandle = new FileHandle(fileLocation);
         fileHandle.setLittleEndian(false);
-        // - in the current implementation it is an extra operator: BigEndian is default in scijava;
+        // - in the current implementation it is an extra operator: BigEndian is defaulted in scijava;
         // but we want to be sure that this behavior will be the same in all future versions
         return (DataHandle) fileHandle;
     }
@@ -1645,11 +1647,12 @@ public class TiffReader implements Closeable {
         }
     }
 
+    @SuppressWarnings("RedundantThrows")
     private TiffCodec.Options buildOptions(TiffTile tile) throws TiffException {
         TiffCodec.Options options = this.codecOptions.clone();
         options.setByteOrder(tile.byteOrder());
         options.setMaxSizeInBytes(tile.getSizeInBytes());
-        // - Note: this may be LESS than a usual number of samples in the tile/strip.
+        // - Note: this may be LESS than the usual number of samples in the tile/strip.
         // Current readEncodedTile() can return full-size tile without cropping
         // (see comments inside that method), but usually it CROPS the last tile/strip.
         // Old SCIFIO code did not detect this situation, in particular, did not distinguish between
@@ -1664,7 +1667,7 @@ public class TiffReader implements Closeable {
         // - Value "true" is necessary for most codecs, that work with high-level classes (like JPEG or JPEG-2000) and
         // need to be instructed to interleave results (unlike LZW or DECOMPRESSED, which work with data "as-is"
         // and suppose that data are interleaved according TIFF format specification).
-        // For JPEG, TagCompression overrides this value to false, because it works faster in this mode.
+        // For JPEG, TagCompression overrides this value to false because it works faster in this mode.
         return options;
     }
 
@@ -1837,8 +1840,9 @@ public class TiffReader implements Closeable {
     }
 
     /**
-     * Read a file offset. For bigTiff, a 64-bit number is read. For other Tiffs,
-     * a 32-bit number is read and possibly adjusted for a possible carry-over
+     * Read a file offset.
+     * For BigTIFF files, a 64-bit number is read.
+     * For other Tiffs, a 32-bit number is read and possibly adjusted for a possible carry-over
      * from the previous offset.
      */
     private long readNextOffset(boolean updatePositionOfLastOffset, boolean requireValidTiff, boolean bigTiff)
@@ -1912,12 +1916,12 @@ public class TiffReader implements Closeable {
                 return shorts;
             }
             case TagTypes.ASCII -> {
-                // 8-bit byte that contain a 7-bit ASCII code;
+                // 8-bit byte that contains a 7-bit ASCII code;
                 // the last byte must be NUL (binary zero)
                 final byte[] ascii = new byte[count];
                 in.read(ascii);
 
-                // count number of null terminators
+                // count the number of null terminators
                 int zeroCount = 0;
                 for (int j = 0; j < count; j++) {
                     if (ascii[j] == 0 || j == count - 1) {
@@ -2090,7 +2094,7 @@ public class TiffReader implements Closeable {
                     (valueCount < 0 ? " >= 2^63" : valueCount + " >= 2^31") + " is not supported");
         }
         final int bytesPerElement = TagTypes.sizeOfType(entryType);
-        // - will be zero for unknown type; in this case we will set valueOffset=in.offset() below
+        // - will be zero for an unknown type; in this case we will set valueOffset=in.offset() below
         final long valueLength = valueCount * (long) bytesPerElement;
         final int threshold = bigTiff ? 8 : 4;
         final long valueOffset = valueLength > threshold ?
