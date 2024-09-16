@@ -41,6 +41,11 @@ public class TiffCopyFolderTest {
             bigTiff = true;
             startArgIndex++;
         }
+        boolean rawCopy = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-rawCopy")) {
+            rawCopy = true;
+            startArgIndex++;
+        }
         boolean uncompressed = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-uncompressed")) {
             uncompressed = true;
@@ -49,7 +54,7 @@ public class TiffCopyFolderTest {
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
             System.out.println("    " + TiffCopyFolderTest.class.getName()
-                    + " source-folder target-folder");
+                    + " [-bigTiff] [-rawCopy] source-folder target-folder");
             return;
         }
         final Path sourceFolder = Paths.get(args[startArgIndex++]);
@@ -71,7 +76,7 @@ public class TiffCopyFolderTest {
                 }
                 total++;
                 try {
-                    TiffCopyTest.copyTiff(file, targetFolder.resolve(fileName), bigTiff, uncompressed);
+                    TiffCopyTest.copyTiff(targetFolder.resolve(fileName), file, bigTiff, !rawCopy, uncompressed);
                     successful++;
                 } catch (UnsupportedTiffFormatException e) {
                     System.out.println("  Cannot copy: " + e.getMessage());

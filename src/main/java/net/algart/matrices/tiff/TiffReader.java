@@ -293,7 +293,7 @@ public class TiffReader implements Closeable {
     }
 
     /**
-     * Enables or disables caching tile. If caching is enabled, {@link #readTile(TiffTileIndex)} method
+     * Enables or disables caching tile. If caching is enabled, {@link #readCachedTile(TiffTileIndex)} method
      * works very quickly when the tile is found in the cache.
      *
      * <p>By default, the caching is disabled.</p>
@@ -955,16 +955,16 @@ public class TiffReader implements Closeable {
     }
 
     /**
-     * Calls {@link #readTileNoCache(TiffTileIndex)} with the same argument with caching, if this was enabled
+     * Calls {@link #readTile(TiffTileIndex)} with the same argument with caching, if this was enabled
      * by {@link #setCaching(boolean)} method.
      *
      * @param tileIndex position of the file.
      * @return loaded tile.
      * @throws IOException in the case of any problems with the input file.
      */
-    public TiffTile readTile(TiffTileIndex tileIndex) throws IOException {
+    public TiffTile readCachedTile(TiffTileIndex tileIndex) throws IOException {
         if (!caching || maxCachingMemory == 0) {
-            return readTileNoCache(tileIndex);
+            return readTile(tileIndex);
         }
         return getCachedTile(tileIndex).readIfNecessary();
     }
@@ -977,9 +977,9 @@ public class TiffReader implements Closeable {
      * @param tileIndex position of the file.
      * @return loaded tile.
      * @throws IOException in the case of any problems with the input file.
-     * @see #readTile(TiffTileIndex)
+     * @see #readCachedTile(TiffTileIndex)
      */
-    public TiffTile readTileNoCache(TiffTileIndex tileIndex) throws IOException {
+    public TiffTile readTile(TiffTileIndex tileIndex) throws IOException {
         final TiffTile tile = readEncodedTile(tileIndex);
         if (tile.isEmpty()) {
             return tile;
@@ -1042,11 +1042,15 @@ public class TiffReader implements Closeable {
     }
 
     // Note: result is usually interleaved (RGBRGB...) or monochrome; it is always so in UNCOMPRESSED, LZW, DEFLATE
-    public void decode(TiffTile tile) throws TiffException {
+    public boolean decode(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
+        if (!tile.isEncoded()) {
+            return false;
+        }
         long t1 = debugTime();
         prepareTileForDecoding(tile);
 
+        final byte[] encodedData = tile.getEncodedData();
         final TagCompression compression = TagCompression.valueOfCodeOrNull(tile.ifd().getCompressionCode());
         TiffCodec codec = null;
         if (!enforceUseExternalCodec && compression != null) {
@@ -1066,10 +1070,10 @@ public class TiffReader implements Closeable {
                 timing.setTiming(BUILT_IN_TIMING && LOGGABLE_DEBUG);
                 timing.clearTiming();
             }
-            final byte[] decodedData = codec.decompress(tile.getEncodedData(), options);
+            final byte[] decodedData = codec.decompress(encodedData, options);
             tile.setPartiallyDecodedData(decodedData);
         } else {
-            final Optional<byte[]> decodedData = decodeByExternalCodec(tile, tile.getEncodedData(), options);
+            final Optional<byte[]> decodedData = decodeByExternalCodec(tile, encodedData, options);
             if (decodedData.isEmpty()) {
                 throw new UnsupportedTiffFormatException("TIFF compression with code " +
                         tile.ifd().getCompressionCode() + " cannot be decoded: " + tile.ifd());
@@ -1092,6 +1096,7 @@ public class TiffReader implements Closeable {
             timeDecodingMain += t3 - t2;
         }
         timeCompleteDecoding += t4 - t3;
+        return true;
     }
 
     public void prepareTileForDecoding(TiffTile tile) throws TiffException {
@@ -1744,7 +1749,7 @@ public class TiffReader implements Closeable {
                     final int fromXInTile = tileStartX % mapTileSizeX;
                     final int xDiff = tileStartX - fromX;
 
-                    final TiffTile tile = readTile(map.multiPlaneIndex(p, xIndex, yIndex));
+                    final TiffTile tile = readCachedTile(map.multiPlaneIndex(p, xIndex, yIndex));
                     if (storeTilesInMap) {
                         map.put(tile);
                     }
@@ -2165,7 +2170,7 @@ public class TiffReader implements Closeable {
                     LOG.log(System.Logger.Level.TRACE, () -> "CACHED tile: " + tileIndex);
                     return cachedData;
                 } else {
-                    final TiffTile result = readTileNoCache(tileIndex);
+                    final TiffTile result = readTile(tileIndex);
                     saveCache(result);
                     return result;
                 }

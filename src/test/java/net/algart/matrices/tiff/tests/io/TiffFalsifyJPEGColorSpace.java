@@ -74,7 +74,7 @@ public class TiffFalsifyJPEGColorSpace {
                 final TiffIFD writeIFD = new TiffIFD(readIFD);
                 if (readIFD.optCompression().orElse(null) != TagCompression.JPEG) {
                     System.out.printf("\rCopying #%d/%d: %s%n", i, ifds.size(), readIFD);
-                    TiffCopyTest.copyImage(readIFD, writeIFD, reader, writer);
+                    TiffCopyTest.copyImage(writer, reader, writeIFD, readIFD);
                     continue;
                 }
                 System.out.printf("\rTransforming #%d/%d: %s%n", i, ifds.size(), readIFD);
@@ -82,7 +82,7 @@ public class TiffFalsifyJPEGColorSpace {
                 writeIFD.put(Tags.Y_CB_CR_SUB_SAMPLING,
                         before == TagPhotometricInterpretation.RGB ? new int[]{1, 1} : new int[]{2, 2});
                 // - instruct Java AWT to store as RGB and disable sub-sampling (RGB are encoded without sub-sampling)
-                TiffCopyTest.copyImage(readIFD, writeIFD, reader, writer);
+                TiffCopyTest.copyImage(writer, reader, writeIFD, readIFD);
                 final TiffIFD cloneIFD = new TiffIFD(writeIFD);
                 // - writeIFD is frozen and cannot be modified
                 cloneIFD.putPhotometricInterpretation(after);

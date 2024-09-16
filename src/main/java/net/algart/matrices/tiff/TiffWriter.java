@@ -1015,10 +1015,11 @@ public class TiffWriter implements Closeable {
         return updateMatrix(map, Matrices.mergeLayers(net.algart.arrays.Arrays.SMM, channels), fromX, fromY);
     }
 
-    public void encode(TiffTile tile) throws TiffException {
+    public boolean encode(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
-        if (tile.isEmpty()) {
-            return;
+        if (tile.isEmpty() || tile.isEncoded()) {
+            // - note: unlike TiffReader.decode, we do not require that the tile is non-empty
+            return false;
         }
         tile.checkStoredNumberOfPixels();
         long t1 = debugTime();
@@ -1066,6 +1067,7 @@ public class TiffWriter implements Closeable {
         } else {
             timeEncodingMain += t4 - t3;
         }
+        return true;
     }
 
     public void prepareTileForEncoding(TiffTile tile) throws TiffException {
@@ -1245,14 +1247,33 @@ public class TiffWriter implements Closeable {
      * @param ifd       newly created and probably customized IFD.
      * @param resizable if <code>true</code>, IFD dimensions may not be specified yet.
      * @return map for writing further data.
+     * @throws TiffException in the case of some problems.
      */
     public TiffMap newMap(TiffIFD ifd, boolean resizable) throws TiffException {
+        return newMap(ifd, resizable, smartIFDCorrection);
+    }
+
+    /**
+     * Analog of {@link #newMap(TiffIFD, boolean)} method, allowing to explicitly enable or disable
+     * {@link #setSmartIFDCorrection(boolean) "smart correction"} of the specified IFD.
+     *
+     * <p>In the usual {@link #newMap(TiffIFD, boolean)} method, necessity of correction depends
+     * on the global flag, set by {@link #setSmartIFDCorrection(boolean)} method.
+     * This method is more flexible: it allows performing correction for some IFDs and disable correction
+     * for other IFDs.
+     *
+     * @param ifd       newly created and probably customized IFD.
+     * @param resizable if <code>true</code>, IFD dimensions may not be specified yet.
+     * @return map for writing further data.
+     * @throws TiffException in the case of some problems.
+     */
+    public TiffMap newMap(TiffIFD ifd, boolean resizable, boolean smartIFDCorrection) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         if (ifd.isFrozen()) {
             throw new IllegalStateException("IFD is already frozen for usage while writing TIFF; " +
                     "probably you called this method twice");
         }
-        correctIFDForWriting(ifd);
+        correctIFDForWriting(ifd, smartIFDCorrection);
         final TiffMap map = TiffMap.newMap(ifd, resizable);
         map.buildTileGrid();
         // - useful to perform loops on all tiles, especially in non-resizable case
@@ -1319,10 +1340,10 @@ public class TiffWriter implements Closeable {
     }
 
     /**
-     * Prepare writing new image with known fixed sizes.
+     * Prepare to write new image with known fixed sizes.
      * This method writes image header (IFD) to the end of the TIFF file,
      * so it will be placed before actually written data: it helps
-     * to improve performance of future reading this file.
+     * to improve the performance of future reading this file.
      *
      * <p>Note: this method does nothing if the image is {@link TiffMap#isResizable() resizable}
      * or if this action is disabled by {@link #setWritingForwardAllowed(boolean) setWritingForwardAllowed(false)}
@@ -1486,6 +1507,29 @@ public class TiffWriter implements Closeable {
             throw new IllegalStateException("Cannot write image channels: autoInterleaveSource mode is not set");
         }
         writeMatrix(map, Matrices.mergeLayers(net.algart.arrays.Arrays.SMM, channels), fromX, fromY);
+    }
+
+    public void copyImage(TiffReader source, int sourceIfdIndex) throws IOException {
+        Objects.requireNonNull(source, "Null source TIFF reader");
+        copyImage(source, source.map(sourceIfdIndex));
+    }
+
+    public void copyImage(TiffReader source, TiffMap sourceMap) throws IOException {
+        Objects.requireNonNull(source, "Null source TIFF reader");
+        Objects.requireNonNull(sourceMap, "Null source TIFF map");
+        final TiffIFD targetIFD = new TiffIFD(sourceMap.ifd());
+        // - creating a clone of IFD: we must not modify the source IFD
+        final TiffMap targetMap = newMap(targetIFD, false, false);
+        writeForward(targetMap);
+        for (TiffTileIndex index : sourceMap.indexes()) {
+            final TiffTile sourceTile = source.readEncodedTile(index);
+            final TiffTile targetTile = targetMap.getOrNew(targetMap.copyIndex(index));
+            final byte[] data = sourceTile.getEncodedData();
+            targetTile.setEncodedData(data);
+            targetMap.put(targetTile);
+            writeTile(targetTile);
+        }
+        complete(targetMap);
     }
 
     public void fillEmptyTile(TiffTile tiffTile) {
@@ -1877,8 +1921,8 @@ public class TiffWriter implements Closeable {
         int count = 0;
         long sizeInBytes = 0;
         for (TiffTile tile : map.tiles()) {
-            if (!tile.isEncoded()) {
-                encode(tile);
+            final boolean wasNotEncodedYet = encode(tile);
+            if (wasNotEncodedYet) {
                 count++;
                 sizeInBytes += tile.getSizeInBytes();
             }

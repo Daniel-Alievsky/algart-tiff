@@ -749,7 +749,7 @@ public class TiffParser extends TiffReader {
         if (buf == null) {
             buf = new byte[map.tileSizeInBytes()];
         }
-        TiffTile tile = readTile(tileIndex);
+        TiffTile tile = readCachedTile(tileIndex);
         if (!tile.isEmpty()) {
             byte[] data = tile.getDecodedData();
             System.arraycopy(data, 0, buf, 0, data.length);

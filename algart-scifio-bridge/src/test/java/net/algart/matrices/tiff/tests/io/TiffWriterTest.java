@@ -403,7 +403,7 @@ public class TiffWriterTest {
                 fromX, fromY, fromX + sizeX - 1, fromY + sizeY - 1);
         for (TiffTile tile : map.tiles()) {
             if (tile.rectangle().intersects(areaToWrite) && !areaToWrite.contains(tile.rectangle())) {
-                final TiffTile existing = reader.readTile(tile.index());
+                final TiffTile existing = reader.readCachedTile(tile.index());
                 tile.setDecodedData(existing.getDecodedData());
             }
         }

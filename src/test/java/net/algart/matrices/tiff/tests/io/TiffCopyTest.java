@@ -41,10 +41,15 @@ import java.util.List;
 public class TiffCopyTest {
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
+        boolean rawCopy = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-rawCopy")) {
+            rawCopy = true;
+            startArgIndex++;
+        }
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
             System.out.println("    " + TiffCopyTest.class.getName()
-                    + " source.tif target.tif [firstIFDIndex lastIFDIndex [numberOfTests]]");
+                    + " [-rawCopy] source.tif target.tif [firstIFDIndex lastIFDIndex [numberOfTests]]");
             return;
         }
         final Path sourceFile = Paths.get(args[startArgIndex++]);
@@ -59,15 +64,19 @@ public class TiffCopyTest {
 
         for (int test = 1; test <= numberOfTests; test++) {
             System.out.printf("Test #%d%n", test);
-            copyTiff(sourceFile, targetFile, firstIFDIndex, lastIFDIndex, false, false);
+            copyTiff(
+                    sourceFile, targetFile, firstIFDIndex, lastIFDIndex,
+                    false, !rawCopy, false);
         }
         System.out.println("Done");
     }
 
     private static void copyTiff(
             Path sourceFile, Path targetFile,
-            int firstIFDIndex, int lastIFDIndex,
+            int firstIFDIndex,
+            int lastIFDIndex,
             boolean enforceBigTiff,
+            boolean recompressData,
             boolean uncompressedTarget)
             throws IOException {
         try (TiffReader reader = new TiffReader(sourceFile, false)) {
@@ -79,7 +88,6 @@ public class TiffCopyTest {
             reader.setByteFiller((byte) 0xC0);
             boolean ok = false;
             try (TiffWriter writer = new TiffWriter(targetFile)) {
-                writer.setSmartIFDCorrection(true);
                 writer.setBigTiff(enforceBigTiff || reader.isBigTiff());
                 writer.setLittleEndian(reader.isLittleEndian());
                 // writer.setJpegInPhotometricRGB(true);
@@ -91,12 +99,16 @@ public class TiffCopyTest {
                 lastIFDIndex = Math.min(lastIFDIndex, ifds.size() - 1);
                 for (int ifdIndex = firstIFDIndex; ifdIndex <= lastIFDIndex; ifdIndex++) {
                     final TiffIFD readIFD = ifds.get(ifdIndex);
-                    final TiffIFD writeIFD = new TiffIFD(readIFD);
-                    if (uncompressedTarget) {
-                        writeIFD.putCompression(TagCompression.UNCOMPRESSED);
-                    }
                     System.out.printf("\r  Copying #%d/%d: %s%n", ifdIndex, ifds.size(), readIFD);
-                    copyImage(readIFD, writeIFD, reader, writer);
+                    if (recompressData) {
+                        final TiffIFD writeIFD = new TiffIFD(readIFD);
+                        if (uncompressedTarget) {
+                            writeIFD.putCompression(TagCompression.UNCOMPRESSED);
+                        }
+                        copyImage(writer, reader, writeIFD, readIFD);
+                    } else {
+                        writer.copyImage(reader, ifdIndex);
+                    }
                 }
                 ok = true;
             } finally {
@@ -107,19 +119,26 @@ public class TiffCopyTest {
         }
     }
 
-    static void copyTiff(Path sourceFile, Path targetFile, boolean enforceBigTiff, boolean uncompressedTarget)
+    static void copyTiff(
+            Path targetFile,
+            Path sourceFile,
+            boolean enforceBigTiff,
+            boolean recompressData,
+            boolean uncompressedTarget)
             throws IOException {
-        copyTiff(sourceFile, targetFile, 0, Integer.MAX_VALUE, enforceBigTiff, uncompressedTarget);
+        copyTiff(
+                sourceFile, targetFile, 0, Integer.MAX_VALUE,
+                enforceBigTiff, recompressData, uncompressedTarget);
     }
 
-    static void copyImage(TiffIFD readIFD, TiffIFD writeIFD, TiffReader reader, TiffWriter writer)
+    static void copyImage(TiffWriter writer, TiffReader reader, TiffIFD writeIFD, TiffIFD readIFD)
             throws IOException {
         final TiffMap readMap = reader.newMap(readIFD);
-        final TiffMap writeMap = writer.newMap(writeIFD, false);
+        final TiffMap writeMap = writer.newMap(writeIFD, false, true);
         writer.writeForward(writeMap);
         int k = 0, n = readMap.numberOfTiles();
         for (TiffTileIndex index : readMap.indexes()) {
-            TiffTile sourceTile = reader.readTile(index);
+            TiffTile sourceTile = reader.readCachedTile(index);
             TiffTile targetTile = writeMap.getOrNew(writeMap.copyIndex(index));
             byte[] data = sourceTile.unpackUnusualDecodedData();
             targetTile.setDecodedData(data);
