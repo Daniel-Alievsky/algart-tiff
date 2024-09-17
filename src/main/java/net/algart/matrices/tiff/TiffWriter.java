@@ -1026,7 +1026,7 @@ public class TiffWriter implements Closeable {
         prepareEncoding(tile);
         long t2 = debugTime();
 
-        final TagCompression compression = TagCompression.valueOfCodeOrNull(tile.ifd().getCompressionCode());
+        final TagCompression compression = TagCompression.valueOfCodeOrNull(tile.compressionCode());
         TiffCodec codec = null;
         if (!enforceUseExternalCodec && compression != null) {
             codec = compression.codec();
@@ -1048,7 +1048,7 @@ public class TiffWriter implements Closeable {
             final Optional<byte[]> encodedData = encodeByExternalCodec(tile, tile.getDecodedData(), options);
             if (encodedData.isEmpty()) {
                 throw new UnsupportedTiffFormatException("TIFF compression with code " +
-                        tile.ifd().getCompressionCode() + " cannot be encoded: " + tile.ifd());
+                        tile.compressionCode() + " cannot be encoded: " + tile.ifd());
             }
             tile.setEncodedData(encodedData.get());
         }
@@ -1529,23 +1529,41 @@ public class TiffWriter implements Closeable {
         writeMatrix(map, Matrices.mergeLayers(net.algart.arrays.Arrays.SMM, channels), fromX, fromY);
     }
 
-    public TiffMap copyImage(TiffReader source, int sourceIfdIndex) throws IOException {
+    public TiffMap copyEncodedImage(TiffReader source, int sourceIfdIndex) throws IOException {
         Objects.requireNonNull(source, "Null source TIFF reader");
-        return copyImage(source, source.map(sourceIfdIndex));
+        return copyEncodedImage(source, source.map(sourceIfdIndex));
     }
 
-    public TiffMap copyImage(TiffReader source, TiffMap sourceMap) throws IOException {
+    public TiffMap copyEncodedImage(TiffReader source, TiffMap sourceMap) throws IOException {
+        return copyImage(source, sourceMap, null, false);
+    }
+
+    public TiffMap copyImage(
+            TiffReader source,
+            TiffMap sourceMap,
+            Consumer<TiffIFD> correctIFDForWriting,
+            boolean decodeAndEncode) throws IOException {
         Objects.requireNonNull(source, "Null source TIFF reader");
         Objects.requireNonNull(sourceMap, "Null source TIFF map");
         final TiffIFD targetIFD = new TiffIFD(sourceMap.ifd());
         // - creating a clone of IFD: we must not modify the source IFD
-        final TiffMap targetMap = newMap(targetIFD, false, false);
+        if (correctIFDForWriting != null) {
+            correctIFDForWriting.accept(targetIFD);
+        }
+        final TiffMap targetMap = newMap(targetIFD, false, decodeAndEncode);
+        // - there is no sense to call correctIFDForWriting() method if we will not decode/encode tile
         writeForward(targetMap);
         for (TiffTileIndex index : sourceMap.indexes()) {
-            final TiffTile sourceTile = source.readEncodedTile(index);
             final TiffTile targetTile = targetMap.getOrNew(targetMap.copyIndex(index));
-            final byte[] data = sourceTile.getEncodedData();
-            targetTile.setEncodedData(data);
+            if (decodeAndEncode) {
+                final TiffTile sourceTile = source.readCachedTile(index);
+                final byte[] decodedData = sourceTile.unpackUnusualDecodedData();
+                targetTile.setDecodedData(decodedData);
+            } else {
+                final TiffTile sourceTile = source.readEncodedTile(index);
+                final byte[] encodedData = sourceTile.getEncodedData();
+                targetTile.setEncodedData(encodedData);
+            }
             targetMap.put(targetTile);
             writeTile(targetTile);
         }

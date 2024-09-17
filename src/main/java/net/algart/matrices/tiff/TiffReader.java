@@ -1051,7 +1051,7 @@ public class TiffReader implements Closeable {
         prepareDecoding(tile);
 
         final byte[] encodedData = tile.getEncodedData();
-        final TagCompression compression = TagCompression.valueOfCodeOrNull(tile.ifd().getCompressionCode());
+        final TagCompression compression = TagCompression.valueOfCodeOrNull(tile.compressionCode());
         TiffCodec codec = null;
         if (!enforceUseExternalCodec && compression != null) {
             codec = compression.codec();
@@ -1076,7 +1076,7 @@ public class TiffReader implements Closeable {
             final Optional<byte[]> decodedData = decodeByExternalCodec(tile, encodedData, options);
             if (decodedData.isEmpty()) {
                 throw new UnsupportedTiffFormatException("TIFF compression with code " +
-                        tile.ifd().getCompressionCode() + " cannot be decoded: " + tile.ifd());
+                        tile.compressionCode() + " cannot be decoded: " + tile.ifd());
             }
             tile.setPartiallyDecodedData(decodedData.get());
         }

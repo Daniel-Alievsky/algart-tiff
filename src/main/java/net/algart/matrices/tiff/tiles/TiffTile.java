@@ -172,6 +172,10 @@ public final class TiffTile {
         return map.elementType();
     }
 
+    public int compressionCode() {
+        return map.compressionCode();
+    }
+
     public int getSizeX() {
         return sizeX;
     }

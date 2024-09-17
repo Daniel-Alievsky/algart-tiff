@@ -72,7 +72,7 @@ public class TiffCustomCodecDemo {
             @Override
             protected Optional<byte[]> encodeByExternalCodec(
                     TiffTile tile, byte[] decodedData, TiffCodec.Options options) throws TiffException {
-                return tile.ifd().getCompressionCode() == MY_GZIP_COMPRESSION_CODE ?
+                return tile.compressionCode() == MY_GZIP_COMPRESSION_CODE ?
                         Optional.of(myEncode(tile.getDecodedData())) :
                         Optional.empty();
             }
@@ -90,7 +90,7 @@ public class TiffCustomCodecDemo {
             @Override
             protected Optional<byte[]> decodeByExternalCodec(
                     TiffTile tile, byte[] encodedData, TiffCodec.Options options) throws TiffException {
-                return tile.ifd().getCompressionCode() == MY_GZIP_COMPRESSION_CODE ?
+                return tile.compressionCode() == MY_GZIP_COMPRESSION_CODE ?
                         Optional.of(myDecode(tile.getEncodedData())) :
                         Optional.empty();
             }

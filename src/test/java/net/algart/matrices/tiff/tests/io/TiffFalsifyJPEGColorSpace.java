@@ -30,6 +30,7 @@ import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 import net.algart.matrices.tiff.tags.Tags;
+import net.algart.matrices.tiff.tiles.TiffMap;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -67,24 +68,25 @@ public class TiffFalsifyJPEGColorSpace {
             writer.create();
 
             System.out.printf("Transforming to %s...%n", targetFile);
-            final List<TiffIFD> ifds = reader.allIFDs();
-            lastIFDIndex = Math.min(lastIFDIndex, ifds.size() - 1);
+            final List<TiffMap> maps = reader.allMaps();
+            lastIFDIndex = Math.min(lastIFDIndex, maps.size() - 1);
             for (int i = firstIFDIndex; i <= lastIFDIndex; i++) {
-                final TiffIFD readIFD = ifds.get(i);
-                final TiffIFD writeIFD = new TiffIFD(readIFD);
-                if (readIFD.optCompression().orElse(null) != TagCompression.JPEG) {
-                    System.out.printf("\rCopying #%d/%d: %s%n", i, ifds.size(), readIFD);
-                    TiffCopyTest.copyImage(writer, reader, writeIFD, readIFD);
+                final TiffMap readMap = maps.get(i);
+                if (readMap.compressionCode() != TagCompression.JPEG.code()) {
+                    System.out.printf("\rCopying #%d/%d: %s%n", i, maps.size(), readMap.ifd());
+                    writer.copyEncodedImage(reader, readMap);
                     continue;
                 }
-                System.out.printf("\rTransforming #%d/%d: %s%n", i, ifds.size(), readIFD);
-                writeIFD.putPhotometricInterpretation(before);
-                writeIFD.put(Tags.Y_CB_CR_SUB_SAMPLING,
-                        before == TagPhotometricInterpretation.RGB ? new int[]{1, 1} : new int[]{2, 2});
-                // - instruct Java AWT to store as RGB and disable sub-sampling (RGB are encoded without sub-sampling)
-                TiffCopyTest.copyImage(writer, reader, writeIFD, readIFD);
-                final TiffIFD cloneIFD = new TiffIFD(writeIFD);
-                // - writeIFD is frozen and cannot be modified
+                System.out.printf("\rTransforming #%d/%d: %s%n", i, maps.size(), readMap.ifd());
+                final TiffMap writeMap = writer.copyImage(reader, readMap, writeIFD -> {
+                            writeIFD.putPhotometricInterpretation(before);
+                            writeIFD.put(Tags.Y_CB_CR_SUB_SAMPLING,
+                                    before == TagPhotometricInterpretation.RGB ? new int[]{1, 1} : new int[]{2, 2});
+                            // - instruct Java AWT to store as RGB and disable subsampling
+                            // (RGB are encoded without subsampling)
+                        }, true);
+                final TiffIFD cloneIFD = new TiffIFD(writeMap.ifd());
+                // - writeMap is frozen and cannot be modified
                 cloneIFD.putPhotometricInterpretation(after);
                 writer.rewriteIFD(cloneIFD, false);
                 // - replacing photometric interpretation in already written IFD

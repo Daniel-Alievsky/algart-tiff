@@ -1,4 +1,4 @@
-/*
+    /*
  * The MIT License (MIT)
  *
  * Copyright (c) 2023-2024 Daniel Alievsky, AlgART Laboratory (http://algart.net)
@@ -115,6 +115,7 @@ public final class TiffMap {
     // - Note: we store here information about samples and tile structure, but
     // SHOULD NOT store information about image sizes (like number of tiles):
     // it is probable that we do not know final sizes while creating tiles of the image!
+    private final int compressionCode;
     private volatile int dimX = 0;
     private volatile int dimY = 0;
     private volatile int gridCountX = 0;
@@ -176,6 +177,7 @@ public final class TiffMap {
             this.tileSizeX = ifd.getTileSizeX();
             this.tileSizeY = ifd.getTileSizeY();
             assert tileSizeX > 0 && tileSizeY > 0 : "non-positive tile sizes are not checked in IFD methods";
+            this.compressionCode = ifd.getCompressionCode();
             if (hasImageDimensions) {
                 setDimensions(ifd.getImageDimX(), ifd.getImageDimY(), false);
             }
@@ -365,6 +367,10 @@ public final class TiffMap {
 
     public int tileSizeInBytes() {
         return tileSizeInBytes;
+    }
+
+    public int compressionCode() {
+        return compressionCode;
     }
 
     public int dimX() {

@@ -95,19 +95,19 @@ public class TiffCopyTest {
 //                writer.setQuality(0.3);
                 writer.create();
 
-                final List<TiffIFD> ifds = reader.allIFDs();
-                lastIFDIndex = Math.min(lastIFDIndex, ifds.size() - 1);
+                final List<TiffMap> maps = reader.allMaps();
+                lastIFDIndex = Math.min(lastIFDIndex, maps.size() - 1);
                 for (int ifdIndex = firstIFDIndex; ifdIndex <= lastIFDIndex; ifdIndex++) {
-                    final TiffIFD readIFD = ifds.get(ifdIndex);
-                    System.out.printf("\r  Copying #%d/%d: %s%n", ifdIndex, ifds.size(), readIFD);
+                    final TiffMap readMap = maps.get(ifdIndex);
+                    System.out.printf("\r  Copying #%d/%d: %s%n", ifdIndex, maps.size(), readMap.ifd());
                     if (recompressData) {
-                        final TiffIFD writeIFD = new TiffIFD(readIFD);
-                        if (uncompressedTarget) {
-                            writeIFD.putCompression(TagCompression.UNCOMPRESSED);
-                        }
-                        copyImage(writer, reader, writeIFD, readIFD);
+                        writer.copyImage(reader, readMap, writeIFD -> {
+                            if (uncompressedTarget) {
+                                writeIFD.putCompression(TagCompression.UNCOMPRESSED);
+                            }
+                        }, true);
                     } else {
-                        writer.copyImage(reader, ifdIndex);
+                        writer.copyEncodedImage(reader, readMap);
                     }
                 }
                 ok = true;
@@ -129,23 +129,5 @@ public class TiffCopyTest {
         copyTiff(
                 sourceFile, targetFile, 0, Integer.MAX_VALUE,
                 enforceBigTiff, recompressData, uncompressedTarget);
-    }
-
-    static void copyImage(TiffWriter writer, TiffReader reader, TiffIFD writeIFD, TiffIFD readIFD)
-            throws IOException {
-        final TiffMap readMap = reader.newMap(readIFD);
-        final TiffMap writeMap = writer.newMap(writeIFD, false, true);
-        writer.writeForward(writeMap);
-        int k = 0, n = readMap.numberOfTiles();
-        for (TiffTileIndex index : readMap.indexes()) {
-            TiffTile sourceTile = reader.readCachedTile(index);
-            TiffTile targetTile = writeMap.getOrNew(writeMap.copyIndex(index));
-            byte[] data = sourceTile.unpackUnusualDecodedData();
-            targetTile.setDecodedData(data);
-            writeMap.put(targetTile);
-            writer.writeTile(targetTile);
-            System.out.printf("\rCopying tile %d/%d...\r", ++k, n);
-        }
-        writer.complete(writeMap);
     }
 }
