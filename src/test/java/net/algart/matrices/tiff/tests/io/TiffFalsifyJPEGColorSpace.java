@@ -89,7 +89,7 @@ public class TiffFalsifyJPEGColorSpace {
                 // - writeMap is frozen and cannot be modified
                 cloneIFD.putPhotometricInterpretation(after);
                 writer.rewriteIFD(cloneIFD, false);
-                // - replacing photometric interpretation in already written IFD
+                // - replacing photometric interpretation in the already written IFD
             }
         }
         System.out.println("Done");
