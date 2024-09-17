@@ -1048,7 +1048,7 @@ public class TiffReader implements Closeable {
             return false;
         }
         long t1 = debugTime();
-        prepareTileForDecoding(tile);
+        prepareDecoding(tile);
 
         final byte[] encodedData = tile.getEncodedData();
         final TagCompression compression = TagCompression.valueOfCodeOrNull(tile.ifd().getCompressionCode());
@@ -1099,7 +1099,7 @@ public class TiffReader implements Closeable {
         return true;
     }
 
-    public void prepareTileForDecoding(TiffTile tile) throws TiffException {
+    public void prepareDecoding(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         if (tile.isEmpty()) {
             // - unlike full decoding, here it is better not to throw exception for empty tile

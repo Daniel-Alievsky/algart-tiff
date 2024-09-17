@@ -59,7 +59,7 @@ public class TiffExtractTileContent {
         System.out.printf("TIFF map #%d: %s%n", ifdIndex, map);
         final TiffTileIndex tileIndex = map.multiPlaneIndex(separatedPlaneIndex, col, row);
         TiffTile tile = reader.readEncodedTile(tileIndex);
-        reader.prepareTileForDecoding(tile);
+        reader.prepareDecoding(tile);
         System.out.printf("Loaded tile:%n    %s%n", tile);
         if (!tile.isEmpty()) {
             System.out.printf("    Compression format: %s%n", map.ifd().compressionPrettyName());

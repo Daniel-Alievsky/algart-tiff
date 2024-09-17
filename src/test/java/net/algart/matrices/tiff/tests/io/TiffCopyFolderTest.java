@@ -79,9 +79,9 @@ public class TiffCopyFolderTest {
                     TiffCopyTest.copyTiff(targetFolder.resolve(fileName), file, bigTiff, !rawCopy, uncompressed);
                     successful++;
                 } catch (UnsupportedTiffFormatException e) {
-                    System.out.println("  Cannot copy: " + e.getMessage());
+                    System.out.println("    CANNOT copy: " + e.getMessage());
                 } catch (TiffException e) {
-                    System.out.println("  Format error! " + e.getMessage());
+                    System.out.println("    FORMAT ERROR! " + e.getMessage());
                 }
             }
         }

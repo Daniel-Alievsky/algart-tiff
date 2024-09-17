@@ -1023,7 +1023,7 @@ public class TiffWriter implements Closeable {
         }
         tile.checkStoredNumberOfPixels();
         long t1 = debugTime();
-        prepareTileForEncoding(tile);
+        prepareEncoding(tile);
         long t2 = debugTime();
 
         final TagCompression compression = TagCompression.valueOfCodeOrNull(tile.ifd().getCompressionCode());
@@ -1070,7 +1070,7 @@ public class TiffWriter implements Closeable {
         return true;
     }
 
-    public void prepareTileForEncoding(TiffTile tile) throws TiffException {
+    public void prepareEncoding(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         if (autoInterleaveSource) {
             if (tile.isInterleaved()) {
@@ -1093,8 +1093,15 @@ public class TiffWriter implements Closeable {
         encode(map, null);
     }
 
+    /**
+     * Equivalent to <code>{@link #correctIFDForWriting(TiffIFD, boolean)
+     * correctIFDForWriting}(ifd, thisObject.{@link #isSmartIFDCorrection() isSmartIFDCorrection()})</code>.
+     *
+     * @param ifd IFD to be corrected.
+     * @throws TiffException in the case of some problems, in particular, if IFD settings are not supported.
+     */
     public void correctIFDForWriting(TiffIFD ifd) throws TiffException {
-        correctIFDForWriting(ifd, smartIFDCorrection);
+        correctIFDForWriting(ifd, isSmartIFDCorrection());
     }
 
     public void correctIFDForWriting(TiffIFD ifd, boolean smartCorrection) throws TiffException {
@@ -1191,8 +1198,6 @@ public class TiffWriter implements Closeable {
                         throw new UnsupportedTiffFormatException("Cannot write TIFF: encoding YCbCr " +
                                 "photometric interpretation is not supported for compression \"" +
                                 (compression == null ? "??? : " : compression.prettyName()) + "\"");
-                        // - compression == null is added just in case (it is impossible when isStandardYCbCrNonJpeg,
-                        // excepting the case of correction from a parallel thread)
                     } else {
                         // - TiffReader automatically decodes YCbCr into RGB while reading;
                         // we cannot encode pixels back to YCbCr,
@@ -1242,7 +1247,9 @@ public class TiffWriter implements Closeable {
     }
 
     /**
-     * Starts writing new IFD image.
+     * Creates a new TIFF map for further writing data into the TIFF file by <code>writeXxx</code> methods.
+     *
+     * <p>Equivalent to <code>{@link #newMap(TiffIFD, boolean, boolean) newMap}(ifd, resizable, true)</code>.
      *
      * @param ifd       newly created and probably customized IFD.
      * @param resizable if <code>true</code>, IFD dimensions may not be specified yet.
@@ -1250,30 +1257,40 @@ public class TiffWriter implements Closeable {
      * @throws TiffException in the case of some problems.
      */
     public TiffMap newMap(TiffIFD ifd, boolean resizable) throws TiffException {
-        return newMap(ifd, resizable, smartIFDCorrection);
+        return newMap(ifd, resizable, true);
     }
 
     /**
-     * Analog of {@link #newMap(TiffIFD, boolean)} method, allowing to explicitly enable or disable
-     * {@link #setSmartIFDCorrection(boolean) "smart correction"} of the specified IFD.
+     * Creates a new TIFF map for further writing data to the TIFF file by <code>writeXxx</code> methods.
      *
-     * <p>In the usual {@link #newMap(TiffIFD, boolean)} method, necessity of correction depends
-     * on the global flag, set by {@link #setSmartIFDCorrection(boolean)} method.
-     * This method is more flexible: it allows performing correction for some IFDs and disable correction
-     * for other IFDs.
+     * <p>The <code>resizable</code> argument specifies the type of the created map: resizable or fixed.
+     * For a resizable map, you do not have to set the IFD dimensions at this stage: they will be calculated
+     * automatically while {@link #complete(TiffMap) completion} of the image.
+     * See also the constructor {@link TiffMap#newMap(TiffIFD, boolean)}.</p>
+     *
+     * <p>If <code>correctIFDForWriting</code> is <code>true</code>,
+     * this method automatically calls {@link #correctIFDForWriting(TiffIFD)} method for
+     * the specified <code>ifd</code> argument.
+     * While typical usage, this argument should be <code>true</code>.
+     * But you may set it to <code>false</code> if you want to control all IFD settings yourself,
+     * in particular if you prefer to call the method {@link #correctIFDForWriting(TiffIFD, boolean)}
+     * with non-standard <code>smartCorrection</code> flag.
      *
      * @param ifd       newly created and probably customized IFD.
-     * @param resizable if <code>true</code>, IFD dimensions may not be specified yet.
+     * @param resizable if <code>true</code>, IFD dimensions may not be specified yet: this argument is passed
+     *                  to {@link TiffMap#newMap(TiffIFD, boolean)} method for creating the new map.
      * @return map for writing further data.
      * @throws TiffException in the case of some problems.
      */
-    public TiffMap newMap(TiffIFD ifd, boolean resizable, boolean smartIFDCorrection) throws TiffException {
+    public TiffMap newMap(TiffIFD ifd, boolean resizable, boolean correctIFDForWriting) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         if (ifd.isFrozen()) {
             throw new IllegalStateException("IFD is already frozen for usage while writing TIFF; " +
                     "probably you called this method twice");
         }
-        correctIFDForWriting(ifd, smartIFDCorrection);
+        if (correctIFDForWriting) {
+            correctIFDForWriting(ifd);
+        }
         final TiffMap map = TiffMap.newMap(ifd, resizable);
         map.buildTileGrid();
         // - useful to perform loops on all tiles, especially in non-resizable case
@@ -1307,12 +1324,15 @@ public class TiffWriter implements Closeable {
      * read some tiles from this IFD via {@link TiffReader} class (it is important for tiles, that you neeed to
      * partially fill, but partially load from the old file).</p>
      *
+     * <p>Note: this method never performs {@link #setSmartIFDCorrection(boolean) "smart correction"}
+     * of the specified IFD.</p>
+     *
      * @param ifd IFD of some existing image, probably loaded from the current TIFF file.
      * @return map for writing further data.
      */
     public TiffMap existingMap(TiffIFD ifd) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
-        correctIFDForWriting(ifd);
+        correctIFDForWriting(ifd, false);
         final TiffMap map = TiffMap.newFixed(ifd);
         final long[] offsets = ifd.cachedTileOrStripOffsets();
         final long[] byteCounts = ifd.cachedTileOrStripByteCounts();
@@ -1509,12 +1529,12 @@ public class TiffWriter implements Closeable {
         writeMatrix(map, Matrices.mergeLayers(net.algart.arrays.Arrays.SMM, channels), fromX, fromY);
     }
 
-    public void copyImage(TiffReader source, int sourceIfdIndex) throws IOException {
+    public TiffMap copyImage(TiffReader source, int sourceIfdIndex) throws IOException {
         Objects.requireNonNull(source, "Null source TIFF reader");
-        copyImage(source, source.map(sourceIfdIndex));
+        return copyImage(source, source.map(sourceIfdIndex));
     }
 
-    public void copyImage(TiffReader source, TiffMap sourceMap) throws IOException {
+    public TiffMap copyImage(TiffReader source, TiffMap sourceMap) throws IOException {
         Objects.requireNonNull(source, "Null source TIFF reader");
         Objects.requireNonNull(sourceMap, "Null source TIFF map");
         final TiffIFD targetIFD = new TiffIFD(sourceMap.ifd());
@@ -1530,6 +1550,7 @@ public class TiffWriter implements Closeable {
             writeTile(targetTile);
         }
         complete(targetMap);
+        return targetMap;
     }
 
     public void fillEmptyTile(TiffTile tiffTile) {
