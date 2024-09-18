@@ -74,7 +74,7 @@ public class TiffFalsifyJPEGColorSpace {
                 final TiffMap readMap = maps.get(i);
                 if (readMap.compressionCode() != TagCompression.JPEG.code()) {
                     System.out.printf("\rCopying #%d/%d: %s%n", i, maps.size(), readMap.ifd());
-                    writer.copyEncodedImage(reader, readMap);
+                    writer.copyImage(reader, readMap);
                     continue;
                 }
                 System.out.printf("\rTransforming #%d/%d: %s%n", i, maps.size(), readMap.ifd());

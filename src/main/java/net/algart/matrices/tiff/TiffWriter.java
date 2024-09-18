@@ -1529,26 +1529,26 @@ public class TiffWriter implements Closeable {
         writeMatrix(map, Matrices.mergeLayers(net.algart.arrays.Arrays.SMM, channels), fromX, fromY);
     }
 
-    public TiffMap copyEncodedImage(TiffReader source, int sourceIfdIndex) throws IOException {
+    public TiffMap copyImage(TiffReader source, int sourceIfdIndex) throws IOException {
         Objects.requireNonNull(source, "Null source TIFF reader");
-        return copyEncodedImage(source, source.map(sourceIfdIndex));
+        return copyImage(source, source.map(sourceIfdIndex));
     }
 
-    public TiffMap copyEncodedImage(TiffReader source, TiffMap sourceMap) throws IOException {
+    public TiffMap copyImage(TiffReader source, TiffMap sourceMap) throws IOException {
         return copyImage(source, sourceMap, null, false);
     }
 
     public TiffMap copyImage(
             TiffReader source,
             TiffMap sourceMap,
-            Consumer<TiffIFD> correctIFDForWriting,
+            Consumer<TiffIFD> correctingResultIFDAfterCopyingFromSource,
             boolean decodeAndEncode) throws IOException {
         Objects.requireNonNull(source, "Null source TIFF reader");
         Objects.requireNonNull(sourceMap, "Null source TIFF map");
         final TiffIFD targetIFD = new TiffIFD(sourceMap.ifd());
         // - creating a clone of IFD: we must not modify the source IFD
-        if (correctIFDForWriting != null) {
-            correctIFDForWriting.accept(targetIFD);
+        if (correctingResultIFDAfterCopyingFromSource != null) {
+            correctingResultIFDAfterCopyingFromSource.accept(targetIFD);
         }
         final TiffMap targetMap = newMap(targetIFD, false, decodeAndEncode);
         // - there is no sense to call correctIFDForWriting() method if we will not decode/encode tile
