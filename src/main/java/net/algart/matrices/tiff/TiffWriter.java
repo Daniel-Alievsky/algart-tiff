@@ -1766,18 +1766,27 @@ public class TiffWriter implements Closeable {
         appendUntilEvenPosition(extraBuffer);
 
         // convert singleton objects into arrays, for simplicity
-        if (value instanceof Short) {
-            value = new short[]{(Short) value};
-        } else if (value instanceof Integer) {
-            value = new int[]{(Integer) value};
-        } else if (value instanceof Long) {
-            value = new long[]{(Long) value};
-        } else if (value instanceof TagRational) {
-            value = new TagRational[]{(TagRational) value};
-        } else if (value instanceof Float) {
-            value = new float[]{(Float) value};
-        } else if (value instanceof Double) {
-            value = new double[]{(Double) value};
+        if (value instanceof Short v) {
+            value = new short[]{v};
+        } else if (value instanceof Integer v) {
+            value = new int[]{v};
+        } else if (value instanceof Long v) {
+            value = new long[]{v};
+        } else if (value instanceof TagRational v) {
+            value = new TagRational[]{v};
+        } else if (value instanceof Float v) {
+            value = new float[]{v};
+        } else if (value instanceof Double v) {
+            value = new double[]{v};
+        }
+
+        boolean emptyStringList = false;
+        if (value instanceof String[] list) {
+            emptyStringList = list.length == 0;
+            value = String.join("\0", list);
+        } else if (value instanceof List<?> list) {
+            emptyStringList = list.isEmpty();
+            value = list.stream().map(String::valueOf).collect(Collectors.joining("\0"));
         }
 
         final boolean bigTiff = this.bigTiff;
@@ -1818,11 +1827,13 @@ public class TiffWriter implements Closeable {
                 }
             }
         } else if (value instanceof String) { // suppose ASCII
-            final char[] q = ((String) value).toCharArray();
             out.writeShort(TagTypes.ASCII);
-            writeIntOrLong(out, q.length + 1);
-            // - with concluding zero bytes
+            final char[] q = ((String) value).toCharArray();
+            writeIntOrLong(out, emptyStringList ? 0 : q.length + 1);
+            // - with concluding zero bytes, excepting an empty string list (produced by ASCII byte[0])
             if (q.length < dataLength) {
+                // - this branch is the same for an empty string list (byte[0])
+                // and for an empty string (byte[1] which contains 0)
                 for (char c : q) {
                     writeUnsignedByte(out, c);
                 }

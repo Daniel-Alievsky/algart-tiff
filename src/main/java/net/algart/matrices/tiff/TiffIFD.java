@@ -1671,6 +1671,8 @@ public class TiffIFD {
                     sb.append(" {");
                     appendIFDArray(sb, v, format.compactArrays, false);
                     sb.append("}");
+                } else if (v instanceof String) {
+                    sb.append("\"").append(v).append("\"");
                 } else {
                     sb.append(v);
                 }
