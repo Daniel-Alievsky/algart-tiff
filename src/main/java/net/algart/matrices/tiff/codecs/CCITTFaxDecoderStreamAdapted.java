@@ -78,7 +78,7 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
      * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
      */
 
-     private static final int COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE = 2;
+    private static final int COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE = 2;
     private static final int COMPRESSION_CCITT_T4 = 3;
     private static final int COMPRESSION_CCITT_T6 = 4;
     private static final int GROUP3OPT_2DENCODING = 1;
@@ -90,7 +90,7 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
     private static final int TAG_GROUP3OPTIONS = 292;
     private static final int TAG_GROUP4OPTIONS = 293;
 
-    public long getCCITTOptions(TiffIFD ifd, int compression) throws IIOException {
+    public static long getCCITTOptions(TiffIFD ifd, int compression) {
         return switch (compression) {
             case COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE -> 0L;
             case COMPRESSION_CCITT_T4 -> ifd.optLong(TAG_GROUP3OPTIONS, 0L);

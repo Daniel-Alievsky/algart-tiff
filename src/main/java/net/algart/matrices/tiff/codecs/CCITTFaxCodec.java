@@ -30,7 +30,8 @@ import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.Tags;
 
-import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.Objects;
 
@@ -47,13 +48,26 @@ public class CCITTFaxCodec implements TiffCodec {
     }
 
 
-    /**
-     * The Options parameter should have the following fields set:
-     * {@link Options#getIfd()},
-     * {@link Options#getMaxSizeInBytes()}.
-     */
-    @Override
     public byte[] decompress(byte[] data, Options options) throws TiffException {
+        Objects.requireNonNull(data, "Null data");
+        Objects.requireNonNull(options, "Null codec options");
+        final TiffIFD ifd = options.getIfd();
+        Objects.requireNonNull(ifd, "IFD is not set in the options");
+
+        final int compression = ifd.reqInt(Tags.COMPRESSION);
+        long ccittOptions = CCITTFaxDecoderStreamAdapted.getCCITTOptions(ifd, compression);
+        CCITTFaxDecoderStreamAdapted decompressorStream = new CCITTFaxDecoderStreamAdapted(
+                new ByteArrayInputStream(data), options.width, compression, ccittOptions);
+        byte[] result = new byte[options.maxSizeInBytes];
+        try {
+            new DataInputStream(decompressorStream).readFully(result);
+        } catch (IOException e) {
+            throw new TiffException(e);
+        }
+        return result;
+    }
+
+    public byte[] decompressViaJAIImageIO(byte[] data, Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
 

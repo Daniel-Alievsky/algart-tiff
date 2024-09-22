@@ -112,7 +112,7 @@ public class TiffReaderTest {
 //                reader.setAutoScaleWhenIncreasingBitDepth(false);
                 reader.setInterleaveResults(interleave);
                 reader.setAutoCorrectInvertedBrightness(true);
-                reader.setMissingTilesAllowed(true);
+//                reader.setMissingTilesAllowed(true);
                 reader.setByteFiller((byte) 0x80);
                 if (reader instanceof TiffParser parser) {
                     CodecOptions codecOptions = new CodecOptions();

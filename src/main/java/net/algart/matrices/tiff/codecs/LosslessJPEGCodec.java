@@ -202,17 +202,19 @@ public class LosslessJPEGCodec extends AbstractCodec {
 
                 // scrub out byte stuffing
 
-                final HuffmanCodecReduced.ByteVector b = new HuffmanCodecReduced.ByteVector();
+                final HuffmanCodecAdaptedAndReduced.ByteVector b = new HuffmanCodecAdaptedAndReduced.ByteVector();
                 for (int i = 0; i < toDecode.length; i++) {
                     b.add(toDecode[i]);
                     if (toDecode[i] == (byte) 0xff && toDecode[i + 1] == 0) i++;
                 }
                 toDecode = b.toByteArray();
 
-                final HuffmanCodecReduced.BitBuffer bb = new HuffmanCodecReduced.BitBuffer(toDecode);
-                final HuffmanCodecReduced huffman = new HuffmanCodecReduced();
-                final HuffmanCodecReduced.HuffmanCodecOptions huffmanOptions =
-                        new HuffmanCodecReduced.HuffmanCodecOptions();
+                final HuffmanCodecAdaptedAndReduced.BitBuffer bb =
+                        new HuffmanCodecAdaptedAndReduced.BitBuffer(toDecode);
+                final HuffmanCodecAdaptedAndReduced huffman =
+                        new HuffmanCodecAdaptedAndReduced();
+                final HuffmanCodecAdaptedAndReduced.HuffmanCodecOptions huffmanOptions =
+                        new HuffmanCodecAdaptedAndReduced.HuffmanCodecOptions();
                 huffmanOptions.bitsPerSample = bitsPerSample;
                 huffmanOptions.maxBytes = buf.length / nComponents;
 

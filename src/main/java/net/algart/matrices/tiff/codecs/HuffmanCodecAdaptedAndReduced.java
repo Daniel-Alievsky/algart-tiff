@@ -33,7 +33,7 @@ import java.io.IOException;
 import java.util.HashMap;
 
 // Reduced version of analogous SCIFIO class (for compatibility).
-class HuffmanCodecReduced {
+class HuffmanCodecAdaptedAndReduced {
     // (It is placed here to avoid autocorrection by IntelliJ IDEA)
     /*
      * #%L
