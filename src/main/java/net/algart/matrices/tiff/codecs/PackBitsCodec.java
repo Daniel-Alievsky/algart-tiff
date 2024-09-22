@@ -44,7 +44,7 @@ public class PackBitsCodec implements TiffCodec {
 
     /**
      * The Options parameter should have the following fields set:
-     * {@link Options#getMaxSizeInBytes()}
+     * {@link Options#getMaxSizeInBytes()}.
      */
     @Override
     public byte[] decompress(byte[] data, Options options) throws TiffException {

@@ -1575,7 +1575,7 @@ public class TiffReader implements Closeable {
         Object scifio = scifio();
         if (scifio == null) {
             // - in other words, this.context is not set
-            throw new UnsupportedTiffFormatException("TIFF compression " +
+            throw new UnsupportedTiffFormatException("Reading with TIFF compression " +
                     TagCompression.toPrettyString(ifd.optInt(Tags.COMPRESSION, TagCompression.UNCOMPRESSED.code())) +
                     " is not supported without external codecs");
         }
@@ -1655,7 +1655,14 @@ public class TiffReader implements Closeable {
     @SuppressWarnings("RedundantThrows")
     private TiffCodec.Options buildOptions(TiffTile tile) throws TiffException {
         TiffCodec.Options options = this.codecOptions.clone();
+        options.setSizes(tile.getSizeX(), tile.getSizeY());
+        options.setBitsPerSample(tile.bitsPerSample());
+        options.setNumberOfChannels(tile.samplesPerPixel());
+        options.setSigned(tile.sampleType().isSigned());
+        options.setFloatingPoint(tile.sampleType().isFloatingPoint());
         options.setByteOrder(tile.byteOrder());
+        // - Note: codecs in SCIFIO did not use the options above, but some new codes like CCITTFaxCodec need them
+
         options.setMaxSizeInBytes(tile.getSizeInBytes());
         // - Note: this may be LESS than the usual number of samples in the tile/strip.
         // Current readEncodedTile() can return full-size tile without cropping

@@ -39,9 +39,9 @@ public enum TagCompression {
     UNCOMPRESSED(1, "Uncompressed", UncompressedCodec::new),
 
     // The following 4 compressions are recognized and can be read, but writing is not supported
-    CCITT_RLE(2, "CCITT Modified Huffman RLE compression", null),
-    CCITT_T_4(3, "CCITT T.4 bi-level encoding (Group 3 Fax)", null),
-    CCITT_T_6(4, "CCITT T.6 bi-level encoding (Group 4 Fax)", null),
+    CCITT_RLE(2, "CCITT Modified Huffman RLE compression", CCITTFaxCodec::new),
+    CCITT_T_4(3, "CCITT T.4 bi-level encoding (Group 3 Fax)", CCITTFaxCodec::new),
+    CCITT_T_6(4, "CCITT T.6 bi-level encoding (Group 4 Fax)", CCITTFaxCodec::new),
     OLD_JPEG(6, "Old-style JPEG", null),
 
     LZW(5, "LZW", LZWCodec::new),

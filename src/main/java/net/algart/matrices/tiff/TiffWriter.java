@@ -1590,8 +1590,10 @@ public class TiffWriter implements Closeable {
         final int compressionCode = ifd.getCompressionCode();
         final Object scifio = scifio();
         if (scifio == null) {
-            throw new IllegalStateException(
-                    "Compression type " + compressionCode + " requires specifying non-null SCIFIO context");
+            // - in other words, this.context is not set
+            throw new UnsupportedTiffFormatException("Writing with TIFF compression " +
+                    TagCompression.toPrettyString(ifd.optInt(Tags.COMPRESSION, TagCompression.UNCOMPRESSED.code())) +
+                    " is not supported without external codecs");
         }
         final Object compression;
         try {

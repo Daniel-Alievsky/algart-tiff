@@ -238,7 +238,7 @@ public class LZWCodec extends AbstractCodec {
 
     /**
      * The Options parameter should have the following fields set:
-     * {@link Options#getMaxSizeInBytes()}
+     * {@link Options#getMaxSizeInBytes()}.
      */
     @Override
     public byte[] decompress(final DataHandle<? extends Location> in, Options options) throws IOException {

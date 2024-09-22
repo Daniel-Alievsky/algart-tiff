@@ -389,7 +389,7 @@ public class TiffIFD {
         return getValue(tag, Number.class).orElse(defaultValue).longValue();
     }
 
-    public long optLong(int tag, int defaultValue) {
+    public long optLong(int tag, long defaultValue) {
         return optValue(tag, Number.class).orElse(defaultValue).longValue();
     }
 

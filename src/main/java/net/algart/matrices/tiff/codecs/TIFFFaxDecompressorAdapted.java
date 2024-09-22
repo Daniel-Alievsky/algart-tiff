@@ -37,7 +37,7 @@ import java.util.Objects;
  * from <a href="https://github.com/jai-imageio/jai-imageio-core">jai-imageio-core 1.4.0</a>.
  * Below is the copyright notice, copied from the source code of this class.
  */
-class TIFFFaxDecompressorAdapted  {
+class TIFFFaxDecompressorAdapted {
     // (It is placed here to avoid autocorrection by IntelliJ IDEA)
     /*
 		Copyright (c) 2005 Sun Microsystems, Inc.
@@ -91,10 +91,10 @@ class TIFFFaxDecompressorAdapted  {
     public static final int COMPRESSION_CCITT_T_4 = 3;
     public static final int COMPRESSION_CCITT_T_6 = 4;
 
-    private final int srcMinX = 0;
-    private final int srcMinY = 0;
-    private int srcWidth;
-    private int srcHeight;
+    private final int srcMinX = 0; // - not used in this library
+    private final int srcMinY = 0; // - not used in this library
+    private final int srcWidth;
+    private final int srcHeight;
     // The fields above are added (they were superclass fields in the orifinal code)
 
     /**
@@ -651,13 +651,15 @@ class TIFFFaxDecompressorAdapted  {
 
 
     // This constructor is added instead of the original beginDecoding() method.
-    public TIFFFaxDecompressorAdapted(TiffIFD ifd, byte[] sourceBytes) throws TiffException {
-        Objects.requireNonNull(ifd, "Null IFD");
+    public TIFFFaxDecompressorAdapted(TiffCodec.Options options) throws TiffException {
+        Objects.requireNonNull(options, "Null codec options");
+        final TiffIFD ifd = options.getIfd();
+        Objects.requireNonNull(ifd, "IFD is not set in the options");
+        this.srcWidth = options.width;
+        this.srcHeight = options.height;
 
         this.fillOrder = ifd.getInt(Tags.FILL_ORDER, 1);
-
         this.compression = ifd.getInt(Tags.COMPRESSION, COMPRESSION_CCITT_RLE);
-
         this.t4Options = ifd.getInt(Tags.T4_OPTIONS, 0);
         this.oneD = t4Options & 0x01;
         // uncompressedMode - haven't dealt with this yet
@@ -667,19 +669,22 @@ class TIFFFaxDecompressorAdapted  {
     }
 
     // Argument sourceBytes is added
-    public void decodeRaw(byte[] b, int dstOffset,
-                          byte[] sourceBytes,
-                          int bitsPerPixel, // will always be 1
-                          int scanlineStride) throws IOException {
+    public void unpackBytes(
+            byte[] b,
+            byte[] sourceBytes,
+            int bitsPerPixel, // will always be 1
+            int scanlineStride) throws IOException {
         this.data = Objects.requireNonNull(sourceBytes, "Null source bytes");
         Objects.requireNonNull(b);
-        decodeRaw(b, dstOffset, bitsPerPixel, scanlineStride);
+        decodeRaw(b, 0, bitsPerPixel, scanlineStride);
     }
 
     // Exact copy of the original "decodeRaw" method
-    public void decodeRaw(byte[] b, int dstOffset,
-        int bitsPerPixel, // will always be 1
-        int scanlineStride) throws IOException {
+    private void decodeRaw(
+            byte[] b,
+            int dstOffset,
+            int bitsPerPixel, // will always be 1
+            int scanlineStride) throws IOException {
 
         this.buffer = b;
 

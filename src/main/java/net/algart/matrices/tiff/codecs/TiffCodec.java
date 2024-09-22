@@ -165,6 +165,12 @@ public interface TiffCodec {
             return maxSizeInBytes;
         }
 
+        /**
+         * Sets the size of result unpacked data. Used for reading only.
+         *
+         * @param maxSizeInBytes new maximal data size to be uncompressed.
+         * @return a reference to this object.
+         */
         public Options setMaxSizeInBytes(int maxSizeInBytes) {
             if (maxSizeInBytes < 0) {
                 throw new IllegalArgumentException("Negative maxSizeInBytes = " + maxSizeInBytes);
