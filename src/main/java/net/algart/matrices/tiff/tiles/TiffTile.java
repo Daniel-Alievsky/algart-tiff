@@ -243,6 +243,8 @@ public final class TiffTile {
         this.sizeInBits = sizeInPixels * bitsPerPixel;
         this.sizeInBytes = (sizeInBits + 7) >>> 3;
         this.rowSizeInBytes = ((sizeX * bitsPerPixel + 7) >>> 3);
+        assert (long) rowSizeInBytes * (long) sizeY <= Integer.MAX_VALUE : "too large " + rowSizeInBytes + "*" + sizeY;
+        // - impossible because even the number of BITS is not greater than Integer.MAX_VALUE
         return this;
     }
 
@@ -266,7 +268,7 @@ public final class TiffTile {
     }
 
     /**
-     * Returns ({@link #getSizeInPixels()} * {@link #bitsPerPixel()} + 7) / 8.
+     * Returns <code>({@link #getSizeInPixels()} * {@link #bitsPerPixel()} + 7) / 8</code>.
      *
      * @return the length of the minimal <code>byte[]</code> data array, enough to store all tile pixels.
      */
@@ -275,14 +277,25 @@ public final class TiffTile {
     }
 
     /**
-     * Returns ({@link #getSizeX()} * {@link #bitsPerPixel()} + 7) / 8:
+     * Returns <code>({@link #getSizeX()} * {@link #bitsPerPixel()} + 7) / 8</code>:
      * size of each line in bytes.
-     * (According the TIFF format, lines should be aligned to an integer number of bytes.)
+     * (According to the TIFF format, lines should be aligned to an integer number of bytes.)
      *
      * @return the number of bytes in each horizontal row of pixels.
      */
     public int getRowSizeInBytes() {
         return rowSizeInBytes;
+    }
+
+    /**
+     * Returns {@link #getRowSizeInBytes()} * {@link #getSizeY()}</code>:
+     * the size of the unpacked tile according to storing rules of TIFF format.
+     *
+     * @return the length of the minimal <code>byte[]</code> data array, enough to store all tile pixels
+     * after unpacking according TIFF rules (each line is byte-aligned).
+     */
+    public int getSizeInBytesInTIFF() {
+        return rowSizeInBytes * sizeY;
     }
 
     /**

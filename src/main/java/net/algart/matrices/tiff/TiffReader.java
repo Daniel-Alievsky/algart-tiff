@@ -1663,7 +1663,7 @@ public class TiffReader implements Closeable {
         options.setByteOrder(tile.byteOrder());
         // - Note: codecs in SCIFIO did not use the options above, but some new codes like CCITTFaxCodec need them
 
-        options.setMaxSizeInBytes(tile.getSizeInBytes());
+        options.setMaxSizeInBytes(tile.getSizeInBytesInTIFF());
         // - Note: this may be LESS than the usual number of samples in the tile/strip.
         // Current readEncodedTile() can return full-size tile without cropping
         // (see comments inside that method), but usually it CROPS the last tile/strip.

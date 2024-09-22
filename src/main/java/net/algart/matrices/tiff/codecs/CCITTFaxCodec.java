@@ -58,7 +58,10 @@ public class CCITTFaxCodec implements TiffCodec {
         final long ccittOptions = CCITTFaxDecoderStreamAdapted.getCCITTOptions(ifd, compression);
         final CCITTFaxDecoderStreamAdapted decompressorStream = new CCITTFaxDecoderStreamAdapted(
                 new ByteArrayInputStream(data), options.width, compression, ccittOptions);
-        byte[] result = new byte[options.maxSizeInBytes];
+        final int bitsPerPixel = options.numberOfChannels * options.bitsPerSample;
+        final int bytesPerRow = (bitsPerPixel * options.width + 7) / 8;
+        final int resultSize = bytesPerRow * options.height;
+        byte[] result = new byte[resultSize];
         try {
             new DataInputStream(decompressorStream).readFully(result);
         } catch (IOException e) {
@@ -73,8 +76,8 @@ public class CCITTFaxCodec implements TiffCodec {
 
         final int bitsPerPixel = options.numberOfChannels * options.bitsPerSample;
         final int bytesPerRow = (bitsPerPixel * options.width + 7) / 8;
-
-        byte[] result = new byte[options.maxSizeInBytes];
+        final int resultSize = bytesPerRow * options.height;
+        byte[] result = new byte[resultSize];
         final TIFFFaxDecompressorAdapted decompressor = new TIFFFaxDecompressorAdapted(options);
         try {
             decompressor.unpackBytes(result, data, bitsPerPixel, bytesPerRow);

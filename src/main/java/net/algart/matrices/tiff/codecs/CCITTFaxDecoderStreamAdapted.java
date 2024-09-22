@@ -26,7 +26,6 @@ package net.algart.matrices.tiff.codecs;
 
 import net.algart.matrices.tiff.TiffIFD;
 
-import javax.imageio.IIOException;
 import java.io.EOFException;
 import java.io.FilterInputStream;
 import java.io.IOException;
