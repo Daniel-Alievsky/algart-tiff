@@ -996,19 +996,7 @@ public class TiffReader implements Closeable {
         // - also checks that tile index is not out of image bounds
         final long offset = ifd.cachedTileOrStripOffset(index);
         assert offset >= 0 : "offset " + offset + " was not checked in TiffIFD";
-        final int byteCount = cachedByteCountWithCompatibilityTrick(ifd, index);
-
-        /*
-        // Some strange old code, seems to be useless
-        final int rowsPerStrip = ifd.cachedStripSizeY();
-        final int bytesPerSample = ifd.getBytesPerSampleBasedOnBits();
-        if (byteCount == ((long) rowsPerStrip * tileSizeX) && bytesPerSample > 1) {
-            byteCount *= bytesPerSample;
-        }
-        if (byteCount >= Integer.MAX_VALUE) {
-            throw new FormatException("Too large tile/strip #" + index + ": " + byteCount + " bytes > 2^31-1");
-        }
-        */
+        int byteCount = cachedByteCountWithCompatibilityTrick(ifd, index);
 
         final TiffTile result = new TiffTile(tileIndex);
         // - No reasons to put it into the map: this class does not provide access to a temporary created map.
@@ -1022,10 +1010,22 @@ public class TiffReader implements Closeable {
         if (byteCount == 0 || offset == 0) {
             if (missingTilesAllowed) {
                 return result;
-            } else {
-                throw new TiffException("Zero tile/strip " + (byteCount == 0 ? "byte-count" : "offset")
-                        + " is not allowed in a valid TIFF file (tile " + tileIndex + ")");
             }
+            if (offset > 0 && ifd.cachedTileOrStripByteCountLength() == 1 && numberOfIFDs() == 1) {
+                // (so, byteCount == 0): a rare case:
+                // some TIFF files have only one IFD with one tile with zero StripByteCounts,
+                // that means that we must use all space in the file
+                final long left = in.length() - offset;
+                if (left <= Math.min(Integer.MAX_VALUE, 2L * tileIndex.map().tileSizeInBytes() + 1000L)) {
+                    // - it is improbable that a compressed tile requires > 2*N+1000 bytes,
+                    // where N is the length of unpacked tile in bytes
+                    byteCount = (int) left;
+                }
+            }
+        }
+        if (byteCount == 0 || offset == 0) {
+            throw new TiffException("Zero tile/strip " + (byteCount == 0 ? "byte-count" : "offset")
+                    + " is not allowed in a valid TIFF file (tile " + tileIndex + ")");
         }
 
         synchronized (fileLock) {

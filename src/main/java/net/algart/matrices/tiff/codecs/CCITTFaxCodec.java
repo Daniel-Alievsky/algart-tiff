@@ -55,8 +55,8 @@ public class CCITTFaxCodec implements TiffCodec {
         Objects.requireNonNull(ifd, "IFD is not set in the options");
 
         final int compression = ifd.reqInt(Tags.COMPRESSION);
-        long ccittOptions = CCITTFaxDecoderStreamAdapted.getCCITTOptions(ifd, compression);
-        CCITTFaxDecoderStreamAdapted decompressorStream = new CCITTFaxDecoderStreamAdapted(
+        final long ccittOptions = CCITTFaxDecoderStreamAdapted.getCCITTOptions(ifd, compression);
+        final CCITTFaxDecoderStreamAdapted decompressorStream = new CCITTFaxDecoderStreamAdapted(
                 new ByteArrayInputStream(data), options.width, compression, ccittOptions);
         byte[] result = new byte[options.maxSizeInBytes];
         try {

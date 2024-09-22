@@ -645,6 +645,10 @@ public class TiffIFD {
         return result;
     }
 
+    public int cachedTileOrStripByteCountLength() throws TiffException {
+        return cachedTileOrStripByteCounts().length;
+    }
+
     public int cachedTileOrStripByteCount(int index) throws TiffException {
         long[] byteCounts = cachedTileOrStripByteCounts();
         if (index < 0) {

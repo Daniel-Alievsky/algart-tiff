@@ -62,13 +62,13 @@ public class IFDTileOffsetsTest {
             t1 = System.nanoTime();
             long[] offsets = ifd.getTileOrStripOffsets();
             t2 = System.nanoTime();
-            System.out.printf("Tile/strip offsets, %d values: %s (%.3f mcs)%n",
+            System.out.printf("Tile/strip offsets, %d values: [%s] (%.3f mcs)%n",
                     offsets.length, JArrays.toString(offsets, ", ", 100), (t2 - t1) * 1e-3);
 
             t1 = System.nanoTime();
             long[] counts = ifd.getTileOrStripByteCounts();
             t2 = System.nanoTime();
-            System.out.printf("Tile/strip byte-counts, %d values: %s (%.3f mcs)%n",
+            System.out.printf("Tile/strip byte-counts, %d values: [%s] (%.3f mcs)%n",
                     counts.length, JArrays.toString(counts, ", ", 100), (t2 - t1) * 1e-3);
 
             t1 = System.nanoTime();
@@ -76,13 +76,13 @@ public class IFDTileOffsetsTest {
             // ifd.put(TiffIFD.TILE_OFFSETS, new long[ifd.getTileCountX() * ifd.getTileCountY()]);
             // - should clear cache
             t2 = System.nanoTime();
-            System.out.printf("Tile/strip offsets with caching, %d values: %s (%.3f mcs)%n",
+            System.out.printf("Tile/strip offsets with caching, %d values: [%s] (%.3f mcs)%n",
                     offsets.length, JArrays.toString(offsets, ", ", 100), (t2 - t1) * 1e-3);
 
             t1 = System.nanoTime();
             counts = ifd.cachedTileOrStripByteCounts();
             t2 = System.nanoTime();
-            System.out.printf("Tile/strip byte-counts with caching, %d values: %s (%.3f mcs)%n",
+            System.out.printf("Tile/strip byte-counts with caching, %d values: [%s] (%.3f mcs)%n",
                     counts.length, JArrays.toString(counts, ", ", 100), (t2 - t1) * 1e-6);
         }
         reader.close();

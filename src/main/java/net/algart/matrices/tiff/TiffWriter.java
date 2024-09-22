@@ -1107,10 +1107,12 @@ public class TiffWriter implements Closeable {
     public void correctIFDForWriting(TiffIFD ifd, boolean smartCorrection) throws TiffException {
         final int samplesPerPixel = ifd.getSamplesPerPixel();
         if (!ifd.containsKey(Tags.BITS_PER_SAMPLE)) {
-            ifd.put(Tags.BITS_PER_SAMPLE, new int[]{8});
-            // - Default value of BitsPerSample is 1 bit/pixel, but it is a rare case,
-            // not supported at all by SCIFIO library FormatTools; so, we set another default 8 bits/pixel
-            // Note: we do not change SAMPLE_FORMAT tag here!
+            ifd.put(Tags.BITS_PER_SAMPLE, new int[]{1});
+            // - Default value of BitsPerSample is 1 bit/pixel!
+            // This is a rare case, however, we CANNOT set here another value:
+            // probably we created this IFD as a copy of another IFD, like in copyImage method,
+            // and changing the supposed number of bits can lead to unpredictable behaviour
+            // (for example, passing too short data to TiffTile.setDecodedData() method).
         }
         final TiffSampleType sampleType;
         try {
