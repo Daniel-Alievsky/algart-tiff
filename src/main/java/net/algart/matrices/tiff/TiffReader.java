@@ -1673,6 +1673,7 @@ public class TiffReader implements Closeable {
         // need to be instructed to interleave results (unlike LZW or DECOMPRESSED, which work with data "as-is"
         // and suppose that data are interleaved according TIFF format specification).
         // For JPEG, TagCompression overrides this value to false because it works faster in this mode.
+        options.setIfd(tile.ifd());
         return options;
     }
 

@@ -2135,6 +2135,7 @@ public class TiffWriter implements Closeable {
         if (this.quality != null) {
             options.setQuality(this.quality);
         }
+        options.setIfd(tile.ifd());
         return options;
     }
 

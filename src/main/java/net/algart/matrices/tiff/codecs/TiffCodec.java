@@ -25,6 +25,7 @@
 package net.algart.matrices.tiff.codecs;
 
 import net.algart.matrices.tiff.TiffException;
+import net.algart.matrices.tiff.TiffIFD;
 
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteOrder;
@@ -60,6 +61,8 @@ public interface TiffCodec {
         boolean interleaved = false;
         int maxSizeInBytes = 0;
         private Double quality = null;
+        private TiffIFD ifd = null;
+        // - used only if other information is not enough
 
         public Options() {
         }
@@ -190,6 +193,15 @@ public interface TiffCodec {
             return quality;
         }
 
+        public TiffIFD getIfd() {
+            return ifd;
+        }
+
+        public Options setIfd(TiffIFD ifd) {
+            this.ifd = ifd;
+            return this;
+        }
+
         public Options setTo(Options options) {
             Objects.requireNonNull(options, "Null options");
             setWidth(options.width);
@@ -202,6 +214,7 @@ public interface TiffCodec {
             setInterleaved(options.interleaved);
             setMaxSizeInBytes(options.maxSizeInBytes);
             setQuality(options.quality);
+            setIfd(options.ifd);
             return this;
         }
 

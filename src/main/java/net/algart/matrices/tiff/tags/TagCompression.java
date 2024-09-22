@@ -37,6 +37,13 @@ import java.util.stream.Collectors;
 
 public enum TagCompression {
     UNCOMPRESSED(1, "Uncompressed", UncompressedCodec::new),
+
+    // The following 4 compressions are recognized and can be read, but writing is not supported
+    CCITT_RLE(2, "CCITT Modified Huffman RLE compression", null),
+    CCITT_T_4(3, "CCITT T.4 bi-level encoding (Group 3 Fax)", null),
+    CCITT_T_6(4, "CCITT T.6 bi-level encoding (Group 4 Fax)", null),
+    OLD_JPEG(6, "Old-style JPEG", null),
+
     LZW(5, "LZW", LZWCodec::new),
     DEFLATE(8, "ZLib-Deflate", ZlibCodec::new),
     DEFLATE_PROPRIETARY(32946, "ZLib-Deflate proprietary", ZlibCodec::new),
@@ -57,13 +64,7 @@ public enum TagCompression {
     // - note that while writing we do not try to use YCbCr encoding, as Aperio recommends for 33003
     JPEG_2000(33004, "JPEG-2000 lossy", JPEG2000Codec::new),
     JPEG_2000_LOSSLESS_ALTERNATIVE(33005, "JPEG-2000 alternative", JPEG2000Codec::new),
-    JPEG_2000_LOSSLESS_OLYMPUS(34712, "JPEG-2000 Olympus", JPEG2000Codec::new),
-
-    // The following compressions are recognized, but not supported
-    CCITT_MODIFIED_HUFFMAN_RLE(2, "CCITT Modified Huffman RLE compression", null),
-    CCITT_T4(3, "CCITT T.4 bi-level encoding (Group 3 Fax)", null),
-    CCITT_T6(4, "CCITT T.6 bi-level encoding (Group 4 Fax)", null),
-    OLD_JPEG(6, "Old-style JPEG", null);
+    JPEG_2000_LOSSLESS_OLYMPUS(34712, "JPEG-2000 Olympus", JPEG2000Codec::new);
 
     private static final Map<Integer, TagCompression> LOOKUP =
             Arrays.stream(values()).collect(Collectors.toMap(TagCompression::code, v -> v));
