@@ -69,7 +69,10 @@ public class StrangeIFDBitsPerSampleTest {
 //        ifd.put(Tags.SAMPLES_PER_PIXEL, 3); // - should not be necessary for exception on -1
 
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{1, 8});
-        ifd.put(Tags.COMPRESSION, TagCompression.OLD_JPEG.code());
+        ifd.put(Tags.SAMPLES_PER_PIXEL, 2);
+        showIFD(ifd, "Adding {1,8} BitsPerSample", false);
+
+        ifd.put(Tags.COMPRESSION, TiffIFD.COMPRESSION_OLD_JPEG);
         showIFD(ifd, "Old JPEG", false);
 
         ifd.remove(Tags.COMPRESSION);

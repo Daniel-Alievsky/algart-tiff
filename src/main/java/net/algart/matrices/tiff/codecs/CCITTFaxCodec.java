@@ -43,7 +43,7 @@ public class CCITTFaxCodec implements TiffCodec {
         final TiffIFD ifd = options.getIfd();
         Objects.requireNonNull(ifd, "IFD is not set in the options");
         throw new UnsupportedTiffFormatException("Writing with TIFF compression " +
-                TagCompression.toPrettyString(ifd.optInt(Tags.COMPRESSION, TagCompression.UNCOMPRESSED.code())) +
+                TagCompression.toPrettyString(ifd.optInt(Tags.COMPRESSION, TiffIFD.COMPRESSION_NONE)) +
                 " is not supported");
     }
 
@@ -54,10 +54,9 @@ public class CCITTFaxCodec implements TiffCodec {
         final TiffIFD ifd = options.getIfd();
         Objects.requireNonNull(ifd, "IFD is not set in the options");
 
-        final int compression = ifd.reqInt(Tags.COMPRESSION);
-        final long ccittOptions = CCITTFaxDecoderStreamAdapted.getCCITTOptions(ifd, compression);
+        final long ccittOptions = CCITTFaxDecoderStreamAdapted.getCCITTOptions(ifd, options.compressionCode);
         final CCITTFaxDecoderStreamAdapted decompressorStream = new CCITTFaxDecoderStreamAdapted(
-                new ByteArrayInputStream(data), options.width, compression, ccittOptions);
+                new ByteArrayInputStream(data), options.width, options.compressionCode, ccittOptions);
         final int bitsPerPixel = options.numberOfChannels * options.bitsPerSample;
         final int bytesPerRow = (bitsPerPixel * options.width + 7) / 8;
         final int resultSize = bytesPerRow * options.height;

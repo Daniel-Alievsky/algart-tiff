@@ -96,6 +96,47 @@ public class TiffIFD {
     public static final int DEFAULT_STRIP_SIZE = 128;
 
     /**
+     * Compression code for {@link TagCompression#NONE}.
+     */
+    public static final int COMPRESSION_NONE = 1;
+    /**
+     * Compression code for {@link TagCompression#CCITT_MODIFIED_HUFFMAN_RLE}.
+     */
+    public static final int COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE = 2;
+    /**
+     * Compression code for {@link TagCompression#CCITT_T4}.
+     */
+    public static final int COMPRESSION_CCITT_T4 = 3;
+    /**
+     * Compression code for {@link TagCompression#CCITT_T6}.
+     */
+    public static final int COMPRESSION_CCITT_T6 = 4;
+    /**
+     * Compression code for {@link TagCompression#PACK_BITS}.
+     */
+    public static final int COMPRESSION_PACK_BITS = 32773;
+    /**
+     * Compression code for {@link TagCompression#LZW}.
+     */
+    public static final int COMPRESSION_LZW = 5;
+    /**
+     * Compression code for {@link TagCompression#OLD_JPEG}.
+     */
+    public static final int COMPRESSION_OLD_JPEG = 6;
+    /**
+     * Compression code for {@link TagCompression#JPEG}.
+     */
+    public static final int COMPRESSION_JPEG = 7;
+    /**
+     * Compression code for {@link TagCompression#DEFLATE}.
+     */
+    public static final int COMPRESSION_DEFLATE = 8;
+    /**
+     * Compression code for {@link TagCompression#DEFLATE_PROPRIETARY}.
+     */
+    public static final int COMPRESSION_DEFLATE_PROPRIETARY = 32946;
+
+    /**
      * Contiguous (chunked) samples format (PlanarConfiguration), for example: RGBRGBRGB....
      */
     public static final int PLANAR_CONFIGURATION_CHUNKED = 1;
@@ -445,7 +486,7 @@ public class TiffIFD {
 
     public int getSamplesPerPixel() throws TiffException {
         int compressionValue = optInt(Tags.COMPRESSION, 0);
-        if (compressionValue == TagCompression.OLD_JPEG.code()) {
+        if (compressionValue == TiffIFD.COMPRESSION_OLD_JPEG) {
             return 3;
             // always 3 channels: RGB
         }
@@ -730,7 +771,7 @@ public class TiffIFD {
     }
 
     public int getCompressionCode() throws TiffException {
-        return getInt(Tags.COMPRESSION, TagCompression.UNCOMPRESSED.code());
+        return getInt(Tags.COMPRESSION, COMPRESSION_NONE);
     }
 
     // Note: there is no getCompression() method, which ALWAYS returns some compression:
@@ -759,7 +800,7 @@ public class TiffIFD {
 
     public TagPhotometricInterpretation getPhotometricInterpretation() throws TiffException {
         if (!containsKey(Tags.PHOTOMETRIC_INTERPRETATION)
-                && getInt(Tags.COMPRESSION, 0) == TagCompression.OLD_JPEG.code()) {
+                && getInt(Tags.COMPRESSION, 0) == COMPRESSION_OLD_JPEG) {
             return TagPhotometricInterpretation.RGB;
         }
         final int code = getInt(Tags.PHOTOMETRIC_INTERPRETATION, -1);
@@ -1192,7 +1233,7 @@ public class TiffIFD {
 
     public TiffIFD putCompression(TagCompression compression, boolean putAlsoDefaultUncompressed) {
         if (compression == null && putAlsoDefaultUncompressed) {
-            compression = TagCompression.UNCOMPRESSED;
+            compression = TagCompression.NONE;
         }
         if (compression == null) {
             remove(Tags.COMPRESSION);

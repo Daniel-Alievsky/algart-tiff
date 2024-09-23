@@ -1126,7 +1126,7 @@ public class TiffReader implements Closeable {
      *
      * <p>This method does 3 other corrections for some standard compression algorithms:
      * <ul>
-     * <li>{@link TagCompression#UNCOMPRESSED},</li>
+     * <li>{@link TagCompression#NONE},</li>
      * <li>{@link TagCompression#LZW},</li>
      * <li>{@link TagCompression#DEFLATE},</li>
      * <li>{@link TagCompression#PACK_BITS}.</li>
@@ -1151,7 +1151,7 @@ public class TiffReader implements Closeable {
      *
      * <p>However, the API of this class suppose that all returned images are RGB, RGBA or usual monochrome.
      * Complex codecs like JPEG perform necessary conversion themselves, but the simple codecs like
-     * {@link TagCompression#UNCOMPRESSED} do not this correction. This is performed by this method.
+     * {@link TagCompression#NONE} do not this correction. This is performed by this method.
      * For CMYK or WhiteIsZero it means inversion of the pixel samples: v is transformed to MAX&minus;v,
      * where MAX is the maximal possible value (255 for 8-bit).</p>
      *
@@ -1577,7 +1577,7 @@ public class TiffReader implements Closeable {
         if (scifio == null) {
             // - in other words, this.context is not set
             throw new UnsupportedTiffFormatException("Reading with TIFF compression " +
-                    TagCompression.toPrettyString(ifd.optInt(Tags.COMPRESSION, TagCompression.UNCOMPRESSED.code())) +
+                    TagCompression.toPrettyString(ifd.optInt(Tags.COMPRESSION, TiffIFD.COMPRESSION_NONE)) +
                     " is not supported without external codecs");
         }
         return scifio;
@@ -1661,6 +1661,7 @@ public class TiffReader implements Closeable {
         options.setNumberOfChannels(tile.samplesPerPixel());
         options.setSigned(tile.sampleType().isSigned());
         options.setFloatingPoint(tile.sampleType().isFloatingPoint());
+        options.setCompressionCode(tile.compressionCode());
         options.setByteOrder(tile.byteOrder());
         // - Note: codecs in SCIFIO did not use the options above, but some new codes like CCITTFaxCodec need them
 

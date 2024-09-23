@@ -100,7 +100,7 @@ public class TiffCopyTest {
                     if (recompressData) {
                         writer.copyImage(reader, readMap, writeIFD -> {
                             if (uncompressedTarget) {
-                                writeIFD.putCompression(TagCompression.UNCOMPRESSED);
+                                writeIFD.putCompression(TagCompression.NONE);
                             }
                         }, true);
                     } else {

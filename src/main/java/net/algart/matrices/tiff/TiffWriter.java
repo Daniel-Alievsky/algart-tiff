@@ -1134,7 +1134,7 @@ public class TiffWriter implements Closeable {
         }
 
         if (!ifd.containsKey(Tags.COMPRESSION)) {
-            ifd.put(Tags.COMPRESSION, TagCompression.UNCOMPRESSED.code());
+            ifd.put(Tags.COMPRESSION, TiffIFD.COMPRESSION_NONE);
             // - We prefer explicitly specify this case
         }
         final TagCompression compression = ifd.optCompression().orElse(null);
@@ -1239,7 +1239,7 @@ public class TiffWriter implements Closeable {
 
     public TiffIFD newIFD(boolean tiled) {
         final TiffIFD ifd = new TiffIFD();
-        ifd.putCompression(TagCompression.UNCOMPRESSED);
+        ifd.putCompression(TagCompression.NONE);
         if (tiled) {
             ifd.defaultTileSizes();
         } else {
@@ -1594,7 +1594,7 @@ public class TiffWriter implements Closeable {
         if (scifio == null) {
             // - in other words, this.context is not set
             throw new UnsupportedTiffFormatException("Writing with TIFF compression " +
-                    TagCompression.toPrettyString(ifd.optInt(Tags.COMPRESSION, TagCompression.UNCOMPRESSED.code())) +
+                    TagCompression.toPrettyString(ifd.optInt(Tags.COMPRESSION, TiffIFD.COMPRESSION_NONE)) +
                     " is not supported without external codecs");
         }
         final Object compression;
@@ -2145,6 +2145,7 @@ public class TiffWriter implements Closeable {
         options.setNumberOfChannels(tile.samplesPerPixel());
         options.setSigned(tile.sampleType().isSigned());
         options.setFloatingPoint(tile.sampleType().isFloatingPoint());
+        options.setCompressionCode(tile.compressionCode());
         options.setByteOrder(tile.byteOrder());
         options.setInterleaved(true);
         if (this.quality != null) {

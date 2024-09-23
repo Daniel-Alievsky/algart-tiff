@@ -57,6 +57,7 @@ public interface TiffCodec {
         int bitsPerSample = 0;
         boolean signed = false;
         boolean floatingPoint = false;
+        int compressionCode = TiffIFD.COMPRESSION_NONE;
         boolean littleEndian = false;
         boolean interleaved = false;
         int maxSizeInBytes = 0;
@@ -136,6 +137,16 @@ public interface TiffCodec {
             this.floatingPoint = floatingPoint;
             return this;
         }
+
+        public int getCompressionCode() {
+            return compressionCode;
+        }
+
+        public Options setCompressionCode(int compressionCode) {
+            this.compressionCode = compressionCode;
+            return this;
+        }
+
 
         public boolean isLittleEndian() {
             return littleEndian;

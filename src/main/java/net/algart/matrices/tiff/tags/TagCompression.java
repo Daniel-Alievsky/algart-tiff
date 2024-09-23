@@ -36,18 +36,17 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public enum TagCompression {
-    UNCOMPRESSED(1, "Uncompressed", UncompressedCodec::new),
+    NONE(TiffIFD.COMPRESSION_NONE, "Uncompressed", UncompressedCodec::new),
 
     // The following 4 compressions are recognized and can be read, but writing is not supported
-    CCITT_RLE(2, "CCITT Modified Huffman RLE compression", CCITTFaxCodec::new),
-    CCITT_T_4(3, "CCITT T.4 bi-level encoding (Group 3 Fax)", CCITTFaxCodec::new),
-    CCITT_T_6(4, "CCITT T.6 bi-level encoding (Group 4 Fax)", CCITTFaxCodec::new),
-    OLD_JPEG(6, "Old-style JPEG", null),
-
-    LZW(5, "LZW", LZWCodec::new),
-    DEFLATE(8, "ZLib-Deflate", ZlibCodec::new),
-    DEFLATE_PROPRIETARY(32946, "ZLib-Deflate proprietary", ZlibCodec::new),
-    JPEG(7, "JPEG", JPEGCodec::new) {
+    CCITT_MODIFIED_HUFFMAN_RLE(TiffIFD.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE,
+            "CCITT Modified Huffman RLE compression", CCITTFaxCodec::new),
+    CCITT_T4(TiffIFD.COMPRESSION_CCITT_T4, "CCITT T.4/Group 3 Fax compression", CCITTFaxCodec::new),
+    CCITT_T6(TiffIFD.COMPRESSION_CCITT_T6, "CCITT T.6/Group 4 Fax compression", CCITTFaxCodec::new),
+    PACK_BITS(TiffIFD.COMPRESSION_PACK_BITS, "PackBits", PackBitsCodec::new),
+    LZW(TiffIFD.COMPRESSION_LZW, "LZW", LZWCodec::new),
+    OLD_JPEG(TiffIFD.COMPRESSION_OLD_JPEG, "Old-style JPEG", null),
+    JPEG(TiffIFD.COMPRESSION_JPEG, "JPEG", JPEGCodec::new) {
         @Override
         public TiffCodec.Options customizeReading(TiffTile tile, TiffCodec.Options options) throws TiffException {
             return customizeReadingJpeg(tile, options);
@@ -58,7 +57,8 @@ public enum TagCompression {
             return customizeWritingJpeg(tile, options);
         }
     },
-    PACK_BITS(32773, "PackBits", PackBitsCodec::new),
+    DEFLATE(TiffIFD.COMPRESSION_DEFLATE, "ZLib-Deflate", ZlibCodec::new),
+    DEFLATE_PROPRIETARY(TiffIFD.COMPRESSION_DEFLATE_PROPRIETARY, "ZLib-Deflate (PKZIP-style)", ZlibCodec::new),
 
     JPEG_2000_LOSSLESS(33003, "JPEG-2000 lossless", JPEG2000Codec::new),
     // - note that while writing we do not try to use YCbCr encoding, as Aperio recommends for 33003
