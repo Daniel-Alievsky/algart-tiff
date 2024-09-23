@@ -26,27 +26,41 @@ package net.algart.matrices.tiff.codecs;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tags.Tags;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.Objects;
 
 public class CCITTFaxCodec implements TiffCodec {
     @Override
-    public byte[] compress(final byte[] data, final Options options) throws TiffException {
+    public byte[] compress(byte[] data, Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
         final TiffIFD ifd = options.getIfd();
         Objects.requireNonNull(ifd, "IFD is not set in the options");
-        throw new UnsupportedTiffFormatException("Writing with TIFF compression " +
-                TagCompression.toPrettyString(ifd.optInt(Tags.COMPRESSION, TiffIFD.COMPRESSION_NONE)) +
-                " is not supported");
-    }
+        if (options.numberOfChannels != 1 || options.bitsPerSample != 1) {
+            throw new TiffException("CCITT compression (" +
+                    TagCompression.toPrettyString(options.compressionCode) +
+                    ") for " + options.numberOfChannels + " channels and " + options.bitsPerSample +
+                    "-bit samples is not allowed (CCITT compressions support 1 sample/pixel, 1 bit/sample only)");
+        }
 
+        final ByteArrayOutputStream compressedDataStream = new ByteArrayOutputStream();
+        final long writingOptions = TinyTwelveMonkey.getCCITTWritingOptions(ifd, options.compressionCode);
+        final OutputStream compressorStream = new CCITTFaxEncoderStreamAdapted(
+                compressedDataStream, options.width, options.height, options.compressionCode,
+                TinyTwelveMonkey.FILL_LEFT_TO_RIGHT,
+                writingOptions);
+        // - we always specify FILL_LEFT_TO_RIGHT: TiffWriter performs the bit inversion, if necessary,
+        // at the final stage after calling the codec
+        try {
+            compressorStream.write(data);
+            compressorStream.close();
+        } catch (IOException e) {
+            throw new TiffException(e);
+        }
+        return compressedDataStream.toByteArray();
+    }
 
     public byte[] decompress(byte[] data, Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
@@ -54,9 +68,10 @@ public class CCITTFaxCodec implements TiffCodec {
         final TiffIFD ifd = options.getIfd();
         Objects.requireNonNull(ifd, "IFD is not set in the options");
 
-        final long ccittOptions = CCITTFaxDecoderStreamAdapted.getCCITTOptions(ifd, options.compressionCode);
-        final CCITTFaxDecoderStreamAdapted decompressorStream = new CCITTFaxDecoderStreamAdapted(
-                new ByteArrayInputStream(data), options.width, options.compressionCode, ccittOptions);
+        final ByteArrayInputStream compressedDataStream = new ByteArrayInputStream(data);
+        final long readingOptions = TinyTwelveMonkey.getCCITTReadingOptions(ifd, options.compressionCode);
+        final InputStream decompressorStream = new CCITTFaxDecoderStreamAdapted(
+                compressedDataStream, options.width, options.compressionCode, readingOptions);
         final int bitsPerPixel = options.numberOfChannels * options.bitsPerSample;
         final int bytesPerRow = (bitsPerPixel * options.width + 7) / 8;
         final int resultSize = bytesPerRow * options.height;

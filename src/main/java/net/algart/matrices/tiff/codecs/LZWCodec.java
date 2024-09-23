@@ -93,11 +93,11 @@ public class LZWCodec extends AbstractCodec {
             0x1f, 0x3f, 0x7f};
 
     @Override
-    public byte[] compress(final byte[] input, final Options options) throws TiffException {
-        if (input == null || input.length == 0) return input;
+    public byte[] compress(byte[] data, Options options) throws TiffException {
+        if (data == null || data.length == 0) return data;
 
         // Output buffer (see class comments for justification of size).
-        final long bufferSize = ((long) input.length * 141) / 100 + 3;
+        final long bufferSize = ((long) data.length * 141) / 100 + 3;
         if (bufferSize > Integer.MAX_VALUE) {
             throw new TiffException("Output buffer is greater than 2 GB");
         }
@@ -130,12 +130,12 @@ public class LZWCodec extends AbstractCodec {
 
         // Names of these variables are taken from TIFF specification.
         // The first byte of input is handled specially.
-        int tiffK = input[0] & 0xff;
+        int tiffK = data[0] & 0xff;
         int tiffOmega = tiffK;
 
         // Main loop.
-        for (int currInPos = 1; currInPos < input.length; currInPos++) {
-            tiffK = input[currInPos] & 0xff;
+        for (int currInPos = 1; currInPos < data.length; currInPos++) {
+            tiffK = data[currInPos] & 0xff;
             final int hashKey = (tiffOmega << 8) | tiffK;
             int hashCode = hashKey % HASH_SIZE;
             do {

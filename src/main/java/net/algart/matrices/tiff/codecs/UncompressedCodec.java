@@ -59,7 +59,7 @@ public class UncompressedCodec implements TiffCodec {
      * #L%
      */
     @Override
-    public byte[] decompress(final byte[] data, final Options options) {
+    public byte[] decompress(byte[] data, Options options) {
         return data;
     }
 

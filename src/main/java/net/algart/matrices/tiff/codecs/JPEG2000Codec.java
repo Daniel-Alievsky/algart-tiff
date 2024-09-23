@@ -221,7 +221,7 @@ public class JPEG2000Codec implements TiffCodec {
     }
 
     // Copy of equivalent SCIFIO method, not using jaiIIOService field
-    public byte[] compress(final byte[] data, Options options) throws TiffException {
+    public byte[] compress(byte[] data, Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
         if (options.floatingPoint) {

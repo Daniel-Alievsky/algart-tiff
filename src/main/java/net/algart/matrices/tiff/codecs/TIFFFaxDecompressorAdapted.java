@@ -36,8 +36,9 @@ import java.util.Objects;
  * This is an adapted copy of com.github.jaiimageio.impl.plugins.tiff.TIFFFaxDecompressor class
  * from <a href="https://github.com/jai-imageio/jai-imageio-core">jai-imageio-core 1.4.0</a>.
  * Below is the copyright notice, copied from the source code of this class.
+ * (Not used in the current version.)
  */
-class TIFFFaxDecompressorAdapted {
+final class TIFFFaxDecompressorAdapted {
     // (It is placed here to avoid autocorrection by IntelliJ IDEA)
     /*
 		Copyright (c) 2005 Sun Microsystems, Inc.
@@ -658,7 +659,10 @@ class TIFFFaxDecompressorAdapted {
         this.srcWidth = options.width;
         this.srcHeight = options.height;
 
-        this.fillOrder = ifd.getInt(Tags.FILL_ORDER, 1);
+        // this.fillOrder = ifd.getInt(Tags.FILL_ORDER, 1);
+        // - Note that the assignment fillOrder should be skipped for AlgART TIFF:
+        // we perform the necessary bits inversion before calling the codec
+        // PackedBitArraysPer8.reverseBitOrderInPlace method.
         this.compression = ifd.getInt(Tags.COMPRESSION, COMPRESSION_CCITT_RLE);
         this.t4Options = ifd.getInt(Tags.T4_OPTIONS, 0);
         this.oneD = t4Options & 0x01;

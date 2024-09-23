@@ -148,7 +148,13 @@ public class TiffIFD {
      */
     public static final int PLANAR_CONFIGURATION_SEPARATE = 2;
 
+    /**
+     * Normal TIFF bits order 76543210.
+     */
     public static final int FILL_ORDER_NORMAL = 1;
+    /**
+     * Reversed TIFF bits order 01234567.
+     */
     public static final int FILL_ORDER_REVERSED = 2;
 
     public static final int SAMPLE_FORMAT_UINT = 1;

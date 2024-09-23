@@ -31,7 +31,7 @@ import java.util.Objects;
 
 public class PackBitsCodec implements TiffCodec {
     @Override
-    public byte[] compress(final byte[] data, final Options options) throws TiffException {
+    public byte[] compress(byte[] data, Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
         return packImage(data,

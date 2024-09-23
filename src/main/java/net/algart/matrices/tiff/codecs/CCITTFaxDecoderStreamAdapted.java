@@ -24,8 +24,6 @@
 
 package net.algart.matrices.tiff.codecs;
 
-import net.algart.matrices.tiff.TiffIFD;
-
 import java.io.EOFException;
 import java.io.FilterInputStream;
 import java.io.IOException;
@@ -38,8 +36,8 @@ import java.util.Objects;
  * from <a href="https://github.com/haraldk/TwelveMonkeys">TwelveMonkeys 3.11</a>.
  * Below (after the class declaration) is the copyright notice, copied from the source code of this class.
  * - Daniel Alievsky.
- * <p>
- * CCITT Modified Huffman RLE, Group 3 (T4) and Group 4 (T6) fax compression.
+ *
+ * <p>CCITT Modified Huffman RLE, Group 3 (T4) and Group 4 (T6) fax compression.
  *
  * @author <a href="mailto:harald.kuhr@gmail.com">Harald Kuhr</a>
  * @author <a href="https://github.com/Schmidor">Oliver Schmidtmer</a>
@@ -76,30 +74,6 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
      * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
      * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
      */
-
-    private static final int COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE = 2;
-    private static final int COMPRESSION_CCITT_T4 = 3;
-    private static final int COMPRESSION_CCITT_T6 = 4;
-    private static final int GROUP3OPT_2DENCODING = 1;
-    private static final int GROUP3OPT_UNCOMPRESSED = 2;
-    private static final int GROUP3OPT_FILLBITS = 4;
-    private static final int GROUP3OPT_BYTEALIGNED = 8;
-    private static final int GROUP4OPT_UNCOMPRESSED = 2;
-    private static final int GROUP4OPT_BYTEALIGNED = 4;
-    private static final int TAG_GROUP3OPTIONS = 292;
-    private static final int TAG_GROUP4OPTIONS = 293;
-
-    public static long getCCITTOptions(TiffIFD ifd, int compression) {
-        return switch (compression) {
-            case COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE -> 0L;
-            case COMPRESSION_CCITT_T4 -> ifd.optLong(TAG_GROUP3OPTIONS, 0L);
-            case COMPRESSION_CCITT_T6 -> ifd.optLong(TAG_GROUP4OPTIONS, 0L);
-            default -> throw new IllegalArgumentException("No CCITT options for compression: " + compression);
-        };
-    }
-
-    // - The code above is added (Daniel Alievsky)
-
 
     // See TIFF 6.0 Specification, Section 10: "Modified Huffman Compression", page 43.
 
@@ -141,10 +115,10 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
             final long options, final boolean byteAligned) {
         super(Objects.requireNonNull(stream, "Null stream"));
 
-        this.columns = isTrue(columns > 0, columns, "width must be greater than 0");
-        this.type = isTrue(type == COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE ||
-                        type == COMPRESSION_CCITT_T4 ||
-                        type == COMPRESSION_CCITT_T6,
+        this.columns = TinyTwelveMonkey.isTrue(columns > 0, columns, "width must be greater than 0");
+        this.type = TinyTwelveMonkey.isTrue(type == TinyTwelveMonkey.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE ||
+                        type == TinyTwelveMonkey.COMPRESSION_CCITT_T4 ||
+                        type == TinyTwelveMonkey.COMPRESSION_CCITT_T6,
                 type, "Only CCITT Modified Huffman RLE compression (2), CCITT T4 (3) or CCITT T6 (4) supported: %s");
 
         // We know this is only used for b/w (1 bit)
@@ -153,30 +127,30 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
         changesCurrentRow = new int[columns + 2];
 
         switch (type) {
-            case COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE:
+            case TinyTwelveMonkey.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE:
                 optionByteAligned = byteAligned;
                 optionG32D = false;
                 optionG3Fill = false;
                 optionUncompressed = false;
                 break;
-            case COMPRESSION_CCITT_T4:
+            case TinyTwelveMonkey.COMPRESSION_CCITT_T4:
                 optionByteAligned = byteAligned;
-                optionG32D = (options & GROUP3OPT_2DENCODING) != 0;
-                optionG3Fill = (options & GROUP3OPT_FILLBITS) != 0;
-                optionUncompressed = (options & GROUP3OPT_UNCOMPRESSED) != 0;
+                optionG32D = (options & TinyTwelveMonkey.GROUP3OPT_2DENCODING) != 0;
+                optionG3Fill = (options & TinyTwelveMonkey.GROUP3OPT_FILLBITS) != 0;
+                optionUncompressed = (options & TinyTwelveMonkey.GROUP3OPT_UNCOMPRESSED) != 0;
                 break;
-            case COMPRESSION_CCITT_T6:
+            case TinyTwelveMonkey.COMPRESSION_CCITT_T6:
                 optionByteAligned = byteAligned;
                 optionG32D = false;
                 optionG3Fill = false;
-                optionUncompressed = (options & GROUP4OPT_UNCOMPRESSED) != 0;
+                optionUncompressed = (options & TinyTwelveMonkey.GROUP4OPT_UNCOMPRESSED) != 0;
                 break;
             default:
                 // Guarded above
                 throw new AssertionError();
         }
 
-        isTrue(!optionUncompressed, optionUncompressed,
+        TinyTwelveMonkey.isTrue(!optionUncompressed, optionUncompressed,
                 "CCITT GROUP 3/4 OPTION UNCOMPRESSED is not supported");
     }
 
@@ -191,12 +165,13 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
      */
     public CCITTFaxDecoderStreamAdapted(final InputStream stream, final int columns, final int type,
                                         final long options) {
-        this(stream, columns, type, options, type == COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE);
+        this(stream, columns, type, options,
+                type == TinyTwelveMonkey.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE);
     }
 
     static int findCompressionType(final int encodedType, final InputStream stream) throws IOException {
         // Discover possible incorrect compression type, revert to RLE if no EOLs found
-        if (encodedType == COMPRESSION_CCITT_T4 && stream.markSupported()) {
+        if (encodedType == TinyTwelveMonkey.COMPRESSION_CCITT_T4 && stream.markSupported()) {
             int limit = 512;
 
             try {
@@ -222,7 +197,7 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
                         read = stream.read();
                         if (read == -1) {
                             // no EOL before stream end
-                            return COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE;
+                            return TinyTwelveMonkey.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE;
                         }
                         streamByte = (byte) read;
                     }
@@ -231,12 +206,12 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
 
                     if ((b & 0xFFF) == 1) {
                         // found EOL
-                        return COMPRESSION_CCITT_T4;
+                        return TinyTwelveMonkey.COMPRESSION_CCITT_T4;
                     }
                 }
 
                 // no EOL till limit
-                return COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE;
+                return TinyTwelveMonkey.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE;
             } finally {
                 stream.reset();
             }
@@ -423,13 +398,13 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
 
     private void decodeRow() throws IOException {
         switch (type) {
-            case COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE:
+            case TinyTwelveMonkey.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE:
                 decodeRowType2();
                 break;
-            case COMPRESSION_CCITT_T4:
+            case TinyTwelveMonkey.COMPRESSION_CCITT_T4:
                 decodeRowType4();
                 break;
-            case COMPRESSION_CCITT_T6:
+            case TinyTwelveMonkey.COMPRESSION_CCITT_T6:
                 decodeRowType6();
                 break;
         }
@@ -914,18 +889,5 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
         } catch (IOException e) {
             throw new AssertionError(e);
         }
-    }
-
-    static boolean isTrue(final boolean pExpression, final String pMessage) {
-        return isTrue(pExpression, pExpression, pMessage);
-    }
-
-    static <T> T isTrue(final boolean condition, final T value, final String message) {
-        if (!condition) {
-            throw new IllegalArgumentException(String.format(message == null ? "expression may not be %s" : message,
-                    value));
-        }
-
-        return value;
     }
 }

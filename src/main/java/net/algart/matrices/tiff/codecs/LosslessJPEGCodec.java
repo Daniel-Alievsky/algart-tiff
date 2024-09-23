@@ -149,7 +149,7 @@ public class LosslessJPEGCodec extends AbstractCodec {
     // -- Codec API methods --
 
     @Override
-    public byte[] compress(final byte[] data, final Options options) throws TiffException {
+    public byte[] compress(byte[] data, Options options) throws TiffException {
         throw new UnsupportedTiffFormatException("Lossless JPEG compression not supported");
     }
 

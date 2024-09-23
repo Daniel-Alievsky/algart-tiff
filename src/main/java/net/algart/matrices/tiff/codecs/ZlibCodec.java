@@ -138,7 +138,7 @@ public class ZlibCodec extends AbstractCodec {
     }
 
     @Override
-    public byte[] compress(final byte[] data, final Options options) {
+    public byte[] compress(byte[] data, Options options) {
         if (data == null || data.length == 0)
             throw new IllegalArgumentException("No data to compress");
         final Deflater deflater = new Deflater();
