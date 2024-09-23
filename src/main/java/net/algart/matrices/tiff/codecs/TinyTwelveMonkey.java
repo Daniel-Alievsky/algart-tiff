@@ -58,9 +58,9 @@ class TinyTwelveMonkey {
     static int findCCITTType(final int encodedCompression, final InputStream stream) throws IOException {
         int compressionType = CCITTFaxDecoderStreamAdapted.findCompressionType(encodedCompression, stream);
         if (compressionType != encodedCompression) {
-            LOG.log(System.Logger.Level.DEBUG,
-                    "Detected compression type %d, does not match encoded compression type: %d".formatted(
-                            compressionType, encodedCompression));
+            LOG.log(System.Logger.Level.DEBUG, ("CCITTFaxDecoderStreamAdapted detected compression type %d, " +
+                    "that does not match encoded CCITT compression type: %d").formatted(
+                    compressionType, encodedCompression));
         }
         return compressionType;
     }
