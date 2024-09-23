@@ -56,7 +56,7 @@ public final class TiffTile {
     private int sizeInPixels;
     private int sizeInBytes;
     private int sizeInBits;
-    private int rowSizeInBytes;
+    private int rowSizeInBytesInsideTIFF;
     private boolean interleaved = false;
     private boolean encoded = false;
     private byte[] data = null;
@@ -242,8 +242,8 @@ public final class TiffTile {
         this.sizeInPixels = sizeInPixels;
         this.sizeInBits = sizeInPixels * bitsPerPixel;
         this.sizeInBytes = (sizeInBits + 7) >>> 3;
-        this.rowSizeInBytes = ((sizeX * bitsPerPixel + 7) >>> 3);
-        assert (long) rowSizeInBytes * (long) sizeY <= Integer.MAX_VALUE : "too large " + rowSizeInBytes + "*" + sizeY;
+        this.rowSizeInBytesInsideTIFF = ((sizeX * bitsPerPixel + 7) >>> 3);
+        assert (long) rowSizeInBytesInsideTIFF * (long) sizeY <= Integer.MAX_VALUE : "too large " + rowSizeInBytesInsideTIFF + "*" + sizeY;
         // - impossible because even the number of BITS is not greater than Integer.MAX_VALUE
         return this;
     }
@@ -278,24 +278,24 @@ public final class TiffTile {
 
     /**
      * Returns <code>({@link #getSizeX()} * {@link #bitsPerPixel()} + 7) / 8</code>:
-     * size of each line in bytes.
+     * size of each line in bytes inside the TIFF file.
      * (According to the TIFF format, lines should be aligned to an integer number of bytes.)
      *
      * @return the number of bytes in each horizontal row of pixels.
      */
-    public int getRowSizeInBytes() {
-        return rowSizeInBytes;
+    public int getRowSizeInBytesInsideTIFF() {
+        return rowSizeInBytesInsideTIFF;
     }
 
     /**
-     * Returns {@link #getRowSizeInBytes()} * {@link #getSizeY()}</code>:
+     * Returns {@link #getRowSizeInBytesInsideTIFF()} * {@link #getSizeY()}</code>:
      * the size of the unpacked tile according to storing rules of TIFF format.
      *
      * @return the length of the minimal <code>byte[]</code> data array, enough to store all tile pixels
      * after unpacking according TIFF rules (each line is byte-aligned).
      */
-    public int getSizeInBytesInTIFF() {
-        return rowSizeInBytes * sizeY;
+    public int getSizeInBytesInsideTIFF() {
+        return rowSizeInBytesInsideTIFF * sizeY;
     }
 
     /**

@@ -1011,14 +1011,15 @@ public class TiffReader implements Closeable {
             if (missingTilesAllowed) {
                 return result;
             }
-            if (offset > 0 && ifd.cachedTileOrStripByteCountLength() == 1 && numberOfIFDs() == 1) {
+            if (offset > 0 && ifd.cachedTileOrStripByteCountLength() == 1 && ifd.isLastIFD()) {
                 // (so, byteCount == 0): a rare case:
                 // some TIFF files have only one IFD with one tile with zero StripByteCounts,
                 // that means that we must use all space in the file
                 final long left = in.length() - offset;
                 if (left <= Math.min(Integer.MAX_VALUE, 2L * tileIndex.map().tileSizeInBytes() + 1000L)) {
-                    // - it is improbable that a compressed tile requires > 2*N+1000 bytes,
-                    // where N is the length of unpacked tile in bytes
+                    // - Additional check that we are really not too far from the file end
+                    // (it is improbable that a compressed tile requires > 2*N+1000 bytes,
+                    // where N is the length of unpacked tile in bytes).
                     byteCount = (int) left;
                 }
             }
@@ -1663,7 +1664,7 @@ public class TiffReader implements Closeable {
         options.setByteOrder(tile.byteOrder());
         // - Note: codecs in SCIFIO did not use the options above, but some new codes like CCITTFaxCodec need them
 
-        options.setMaxSizeInBytes(tile.getSizeInBytesInTIFF());
+        options.setMaxSizeInBytes(tile.getSizeInBytesInsideTIFF());
         // - Note: this may be LESS than the usual number of samples in the tile/strip.
         // Current readEncodedTile() can return full-size tile without cropping
         // (see comments inside that method), but usually it CROPS the last tile/strip.

@@ -76,7 +76,9 @@ public class TiffPrediction {
         checkBitDepthForPrediction(bitsPerSample, "for writing");
         final int samplesPerPixel = tile.samplesPerPixel();
         final int xSize = tile.getSizeX();
-        final int xSizeInBytes = tile.getRowSizeInBytes();
+        final int xSizeInBytes = tile.getRowSizeInBytesInsideTIFF();
+        // - getRowSizeInBytesInsideTIFF, because this method is called at the last stage
+        // after repacking bits according TIFF format
         final int ySize = data.length / xSizeInBytes;
         // - not tile.getSizeY(): we want to process also the ending tiles in the end image strip,
         // when they are written incorrectly and contain more or less then tile.getSizeY() lines
@@ -84,24 +86,24 @@ public class TiffPrediction {
         switch (bitsPerSample) {
             case 1 -> {
                 final int xSizeInBits = xSizeInBytes * 8;
-                boolean[] a = PackedBitArraysPer8.unpackBitsInReverseOrder(
+                final boolean[] a = PackedBitArraysPer8.unpackBitsInReverseOrder(
                         data, 0, (long) xSizeInBits * ySize);
                 subtractBooleanMatrix(a, xSizeInBits, ySize, samplesPerPixel);
                 PackedBitArraysPer8.packBitsInReverseOrder(data, 0, a, 0, a.length);
             }
             case 8 -> subtractByteMatrix(data, xSize, ySize, samplesPerPixel);
             case 16 -> {
-                short[] a = JArrays.bytesToShortArray(data, tile.byteOrder());
+                final short[] a = JArrays.bytesToShortArray(data, tile.byteOrder());
                 subtractShortMatrix(a, xSize, ySize, samplesPerPixel);
                 JArrays.shortArrayToBytes(data, a, a.length, tile.byteOrder());
             }
             case 32 -> {
-                int[] a = JArrays.bytesToIntArray(data, tile.byteOrder());
+                final int[] a = JArrays.bytesToIntArray(data, tile.byteOrder());
                 subtractIntMatrix(a, xSize, ySize, samplesPerPixel);
                 JArrays.intArrayToBytes(data, a, a.length, tile.byteOrder());
             }
             case 64 -> {
-                long[] a = JArrays.bytesToLongArray(data, tile.byteOrder());
+                final long[] a = JArrays.bytesToLongArray(data, tile.byteOrder());
                 subtractLongMatrix(a, xSize, ySize, samplesPerPixel);
                 JArrays.longArrayToBytes(data, a, a.length, tile.byteOrder());
             }
@@ -126,30 +128,32 @@ public class TiffPrediction {
         checkBitDepthForPrediction(bitsPerSample, "for reading");
         final int samplesPerPixel = tile.samplesPerPixel();
         final int xSize = tile.getSizeX();
-        final int xSizeInBytes = tile.getRowSizeInBytes();
+        final int xSizeInBytes = tile.getRowSizeInBytesInsideTIFF();
+        // - getRowSizeInBytesInsideTIFF, because this method is called at the first stage
+        // before repacking bits from TIFF format (byte-aligned rows) into AlgART rules (no aligning)
         final int ySize = data.length / xSizeInBytes;
 
         switch (bitsPerSample) {
             case 1 -> {
                 final int xSizeInBits = xSizeInBytes * 8;
-                boolean[] a = PackedBitArraysPer8.unpackBitsInReverseOrder(
+                final boolean[] a = PackedBitArraysPer8.unpackBitsInReverseOrder(
                         data, 0, (long) xSizeInBits * ySize);
                 unsubtractBooleanMatrix(a, xSizeInBits, ySize, samplesPerPixel);
                 PackedBitArraysPer8.packBitsInReverseOrder(data, 0, a, 0, a.length);
             }
             case 8 -> unsubtractByteMatrix(data, xSize, ySize, samplesPerPixel);
             case 16 -> {
-                short[] a = JArrays.bytesToShortArray(data, tile.byteOrder());
+                final short[] a = JArrays.bytesToShortArray(data, tile.byteOrder());
                 unsubtractShortMatrix(a, xSize, ySize, samplesPerPixel);
                 JArrays.shortArrayToBytes(data, a, a.length, tile.byteOrder());
             }
             case 32 -> {
-                int[] a = JArrays.bytesToIntArray(data, tile.byteOrder());
+                final int[] a = JArrays.bytesToIntArray(data, tile.byteOrder());
                 unsubtractIntMatrix(a, xSize, ySize, samplesPerPixel);
                 JArrays.intArrayToBytes(data, a, a.length, tile.byteOrder());
             }
             case 64 -> {
-                long[] a = JArrays.bytesToLongArray(data, tile.byteOrder());
+                final long[] a = JArrays.bytesToLongArray(data, tile.byteOrder());
                 unsubtractLongMatrix(a, xSize, ySize, samplesPerPixel);
                 JArrays.longArrayToBytes(data, a, a.length, tile.byteOrder());
             }
