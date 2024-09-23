@@ -26,6 +26,9 @@ package net.algart.matrices.tiff.codecs;
 
 import net.algart.matrices.tiff.TiffIFD;
 
+import java.io.IOException;
+import java.io.InputStream;
+
 /**
  * Tiny collection of necessary constants/methods from TwelveMonkey library
  * to provide an ability to use adapted copies of CCITTFaxDecoderStream and CCITTFaxEncoderStream.
@@ -33,6 +36,8 @@ import net.algart.matrices.tiff.TiffIFD;
 class TinyTwelveMonkey {
     private TinyTwelveMonkey() {
     }
+
+    private static final System.Logger LOG = System.getLogger(TinyTwelveMonkey.class.getName());
 
     static final int COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE = 2;
     static final int COMPRESSION_CCITT_T4 = 3;
@@ -49,6 +54,16 @@ class TinyTwelveMonkey {
     static final int TAG_GROUP4OPTIONS = 293;
 
     static final int FILL_LEFT_TO_RIGHT = 1; // normal bits order (76543210)
+
+    static int findCCITTType(final int encodedCompression, final InputStream stream) throws IOException {
+        int compressionType = CCITTFaxDecoderStreamAdapted.findCompressionType(encodedCompression, stream);
+        if (compressionType != encodedCompression) {
+            LOG.log(System.Logger.Level.DEBUG,
+                    "Detected compression type %d, does not match encoded compression type: %d".formatted(
+                            compressionType, encodedCompression));
+        }
+        return compressionType;
+    }
 
     public static long getCCITTReadingOptions(TiffIFD ifd, int compression) {
         return switch (compression) {
