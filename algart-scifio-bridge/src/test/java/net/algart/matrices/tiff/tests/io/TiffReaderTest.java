@@ -125,7 +125,7 @@ public class TiffReaderTest {
 //                reader.setCropTilesToImageBoundaries(false);
                 final long positionOfLastOffset = reader.positionOfLastIFDOffset();
                 assert positionOfLastOffset == -1 : "constructor should not set positionOfLastOffset";
-                final int numberOfIFDS = reader.numberOfIFDs();
+                final int numberOfIFDS = reader.numberOfImages();
                 long t3 = System.nanoTime();
                 System.out.printf(
                         "Reading %s by %s: %.3f ms opening, %.3f ms reading IFDs " +

@@ -78,11 +78,7 @@ public class TiffWriteRepeatedPictureDemo {
         System.out.printf("%s TIFF %s...%n", append ? "Appending" : "Writing", targetFile);
         try (TiffWriter writer = new TiffWriter(targetFile)) {
             writer.setBigTiff(bigTiff);
-            if (append) {
-                writer.openOrCreate();
-            } else {
-                writer.create();
-            }
+            writer.create(append);
             TiffIFD ifd = writer.newIFD(true)
                     .putPixelInformation(pattern.size(), pattern.get(0).elementType())
                     .putCompression(compression);

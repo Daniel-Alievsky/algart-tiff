@@ -61,7 +61,7 @@ public class TiffWriterTest {
         System.out.print("Checking file by the reader: ");
         try {
             final TiffReader reader = writer.newReaderOfThisFile(false);
-            final int n = reader.numberOfIFDs();
+            final int n = reader.numberOfImages();
             System.out.printf("%s, %s%n",
                     reader.isValid() ? "valid" : "INVALID: " + reader.openingException(),
                     n == 0 ? "no IFD" : "#0/" + n + ": " + reader.ifd(0));

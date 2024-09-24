@@ -544,19 +544,19 @@ public class TiffWriter implements Closeable {
     }
 
     /**
-     * Opens the TIFF file for possible appending images if it exists, or creates a new TIFF file otherwise.
+     * Opens the TIFF file for possible appending new images if it exists, or creates a new TIFF file otherwise.
      * To use this method, you must not use the constructor with the argument
      * <code>createNewFileAndOpen = true</code>.
      *
      * @throws IOException in the case of any I/O errors.
      */
-    public final void openOrCreate() throws IOException {
+    public final void openForAppend() throws IOException {
         open(true);
     }
 
     /**
      * Equivalent to {@link #openExisting()} if the argument is {@code false}
-     * or to {@link #openOrCreate()} if the argument is {@code true}.
+     * or to {@link #openForAppend()} if the argument is {@code true}.
      *
      * @param createIfNotExists whether you need to create a new TIFF file when there is no existing file.
      * @throws IOException in the case of any I/O errors.
@@ -589,8 +589,27 @@ public class TiffWriter implements Closeable {
     }
 
     /**
+     * Equivalent to {@link #openForAppend()} if the argument is <code>true</code>,
+     * or {@link #create()} if the argument is <code>false</code>.
+     * <p>If the file does not exist, the argument has no effect: this method
+     * creates a new empty TIFF file.
+     * </p>If the file already exists, this method opens it for possible appending new images
+     * when <code>appendToExistingFile</code> is <code>true</code>,
+     * or truncates it to a zero length and writes the TIFF header otherwise.
+     *
+     * @throws IOException in the case of any I/O errors.
+     */
+    public final void create(boolean appendToExistingFile) throws IOException {
+        if (appendToExistingFile) {
+            openForAppend();
+        } else {
+            create();
+        }
+    }
+
+    /**
      * Creates a new TIFF file and writes the standard TIFF header in the beginning.
-     * If the file already existed before creating this object,
+     * If the file already exists before creating this object,
      * this method truncates it to a zero length before writing the header.
      * This method is called automatically in the constructor, when it is called with the argument
      * <code>createNewFileAndOpen = true</code>.
@@ -1534,6 +1553,14 @@ public class TiffWriter implements Closeable {
     public TiffMap copyImage(TiffReader source, int sourceIfdIndex) throws IOException {
         Objects.requireNonNull(source, "Null source TIFF reader");
         return copyImage(source, source.map(sourceIfdIndex));
+    }
+
+    public TiffMap copyImage(
+            TiffReader source,
+            int sourceIfdIndex,
+            boolean decodeAndEncode) throws IOException {
+        Objects.requireNonNull(source, "Null source TIFF reader");
+        return copyImage(source, source.map(sourceIfdIndex), null, decodeAndEncode);
     }
 
     public TiffMap copyImage(TiffReader source, TiffMap sourceMap) throws IOException {

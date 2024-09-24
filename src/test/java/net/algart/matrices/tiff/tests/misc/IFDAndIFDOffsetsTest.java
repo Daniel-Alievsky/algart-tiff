@@ -83,7 +83,7 @@ public class IFDAndIFDOffsetsTest {
             System.out.printf("  Position of last IFD offset: %d%n", reader.positionOfLastIFDOffset());
 
             t1 = System.nanoTime();
-            int n = reader.numberOfIFDs();
+            int n = reader.numberOfImages();
             t2 = System.nanoTime();
             if (n != n1) {
                 throw new AssertionError();

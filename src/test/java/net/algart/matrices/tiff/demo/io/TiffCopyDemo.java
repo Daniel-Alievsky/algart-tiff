@@ -24,42 +24,53 @@
 
 package net.algart.matrices.tiff.demo.io;
 
-import net.algart.arrays.Matrix;
-import net.algart.arrays.PArray;
-import net.algart.io.MatrixIO;
-import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
-import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tiles.TiffMap;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 
-public class TiffWriteSimpleDemo {
+public class TiffCopyDemo {
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
+        boolean append = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-append")) {
+            append = true;
+            startArgIndex++;
+        }
+        boolean repack = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-repack")) {
+            repack = true;
+            startArgIndex++;
+        }
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
-            System.out.printf("    %s source.jpg/png/bmp target.tiff%n",
-                    TiffWriteSimpleDemo.class.getName());
+            System.out.printf("    [-append] [-repack] %s source.tiff target.tiff [firstIFDIndex lastIFDIndex]%n",
+                    TiffCopyDemo.class.getName());
             return;
         }
-        final Path sourceFile = Paths.get(args[startArgIndex]);
-        final Path targetFile = Paths.get(args[startArgIndex + 1]);
+        final Path sourceFile = Paths.get(args[startArgIndex++]);
+        final Path targetFile = Paths.get(args[startArgIndex++]);
+        final int firstIFDIndex = startArgIndex < args.length ? Integer.parseInt(args[startArgIndex]) : 0;
+        int lastIFDIndex = startArgIndex + 1 < args.length ?
+                Integer.parseInt(args[startArgIndex + 1]) :
+                Integer.MAX_VALUE;
 
-        System.out.printf("Reading %s...%n", sourceFile);
-        List<? extends Matrix<? extends PArray>> image = MatrixIO.readImage(sourceFile);
+        System.out.printf("Copying %s to %s %s...%n",
+                sourceFile, targetFile, repack ? "with recompression" : "as-is");
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
-        try (TiffWriter writer = new TiffWriter(targetFile, true)) {
-            TiffIFD ifd = writer.newIFD()
-                .putChannelsInformation(image)
-                .putCompression(TagCompression.DEFLATE);
-            TiffMap map = writer.newFixedMap(ifd);
-            System.out.printf("Writing image to %s...%n", map);
-            writer.writeChannels(map, image);
+        try (TiffReader reader = new TiffReader(sourceFile);
+                TiffWriter writer = new TiffWriter(targetFile)) {
+            lastIFDIndex = Math.min(lastIFDIndex, reader.numberOfImages() - 1);
+            if (lastIFDIndex >= firstIFDIndex) {
+                writer.create(append);
+                for (int i = firstIFDIndex; i <= lastIFDIndex; i++) {
+                    System.out.printf("Copying image %d...%n", i);
+                    writer.copyImage(reader, i, repack);
+                }
+            }
         }
         System.out.println("Done");
     }

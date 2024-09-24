@@ -50,7 +50,7 @@ public class TiffWriteSimpleTest {
             final TiffReader reader = writer.newReaderOfThisFile(false);
             System.out.printf("%s, %s%n",
                     reader.isValid() ? "valid" : "INVALID: " + reader.openingException(),
-                    reader.numberOfIFDs() == 0 ? "no IFD" : "#0 " + reader.ifd(0));
+                    reader.numberOfImages() == 0 ? "no IFD" : "#0 " + reader.ifd(0));
         } catch (IOException e) {
             e.printStackTrace(System.out);
         }

@@ -629,7 +629,7 @@ public class TiffReader implements Closeable {
      * @throws TiffException if the file is not a correct TIFF file.
      * @throws IOException   in the case of any problems with the input file.
      */
-    public int numberOfIFDs() throws IOException {
+    public int numberOfImages() throws IOException {
         return allIFDs().size();
     }
 
@@ -650,7 +650,7 @@ public class TiffReader implements Closeable {
 
     /**
      * Calls {@link #allIFDs()} and returns IFD with the specified index.
-     * If <code>ifdIndex</code> is too big (&ge;{@link #numberOfIFDs()}), this method throws
+     * If <code>ifdIndex</code> is too big (&ge;{@link #numberOfImages()}), this method throws
      * {@link TiffException}.</p>
      *
      * @param ifdIndex index of IFD.
