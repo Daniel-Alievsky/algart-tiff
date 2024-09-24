@@ -1007,26 +1007,10 @@ public class TiffReader implements Closeable {
         // If cropping is disabled, we should not avoid reading extra content of the last strip.
         // Note the last encoded strip can have actually full strip sizes,
         // i.e., larger than necessary; this situation is quite possible.
-        if (byteCount == 0 || offset == 0) {
-            if (missingTilesAllowed) {
-                return result;
-            }
-            if (offset > 0 && ifd.cachedTileOrStripByteCountLength() == 1 && ifd.isLastIFD()) {
-                // (so, byteCount == 0): a rare case:
-                // some TIFF files have only one IFD with one tile with zero StripByteCounts,
-                // that means that we must use all space in the file
-                final long left = in.length() - offset;
-                if (left <= Math.min(Integer.MAX_VALUE, 2L * tileIndex.map().tileSizeInBytes() + 1000L)) {
-                    // - Additional check that we are really not too far from the file end
-                    // (it is improbable that a compressed tile requires > 2*N+1000 bytes,
-                    // where N is the length of unpacked tile in bytes).
-                    byteCount = (int) left;
-                }
-            }
-        }
-        if (byteCount == 0 || offset == 0) {
-            throw new TiffException("Zero tile/strip " + (byteCount == 0 ? "byte-count" : "offset")
-                    + " is not allowed in a valid TIFF file (tile " + tileIndex + ")");
+
+        byteCount = correctZeroByteCount(tileIndex, byteCount, offset);
+        if (byteCount == -1) {
+            return result;
         }
 
         synchronized (fileLock) {
@@ -1812,6 +1796,33 @@ public class TiffReader implements Closeable {
         }
         return ifd.cachedTileOrStripByteCount(index);
     }
+
+    private int correctZeroByteCount(TiffTileIndex tileIndex, int byteCount, long offset) throws IOException {
+        if (byteCount == 0 || offset == 0) {
+            if (missingTilesAllowed) {
+                return -1;
+            }
+            final TiffIFD ifd = tileIndex.ifd();
+            if (offset > 0 && ifd.cachedTileOrStripByteCountLength() == 1 && ifd.isLastIFD()) {
+                // (so, byteCount == 0): a rare case:
+                // some TIFF files have only one IFD with one tile with zero StripByteCounts,
+                // that means that we must use all space in the file
+                final long left = in.length() - offset;
+                if (left <= Math.min(Integer.MAX_VALUE, 2L * tileIndex.map().tileSizeInBytes() + 1000L)) {
+                    // - Additional check that we are really not too far from the file end
+                    // (it is improbable that a compressed tile requires > 2*N+1000 bytes,
+                    // where N is the length of unpacked tile in bytes).
+                    byteCount = (int) left;
+                }
+            }
+        }
+        if (byteCount == 0 || offset == 0) {
+            throw new TiffException("Zero tile/strip " + (byteCount == 0 ? "byte-count" : "offset")
+                    + " is not allowed in a valid TIFF file (tile " + tileIndex + ")");
+        }
+        return byteCount;
+    }
+
 
     // Unlike AbstractCodec.decompress, this method does not require using "handles" field, annotated as @Parameter
     // This function is not universal, it cannot be applied to any codec!

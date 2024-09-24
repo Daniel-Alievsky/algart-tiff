@@ -36,11 +36,16 @@ import java.nio.file.Paths;
 import java.util.List;
 
 public class TiffCopyTest {
+    boolean useContext = false;
+    boolean bigTiff = false;
+    boolean rawCopy = false;
+    boolean uncompress = false;
+
     public static void main(String[] args) throws IOException {
+        TiffCopyTest copier = new TiffCopyTest();
         int startArgIndex = 0;
-        boolean rawCopy = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-rawCopy")) {
-            rawCopy = true;
+            copier.rawCopy = true;
             startArgIndex++;
         }
         if (args.length < startArgIndex + 2) {
@@ -61,22 +66,24 @@ public class TiffCopyTest {
 
         for (int test = 1; test <= numberOfTests; test++) {
             System.out.printf("Test #%d%n", test);
-            copyTiff(
-                    sourceFile, targetFile, firstIFDIndex, lastIFDIndex,
-                    false, !rawCopy, false);
+            copier.copyTiff(sourceFile, targetFile, firstIFDIndex, lastIFDIndex);
         }
         System.out.println("Done");
     }
 
-    private static void copyTiff(
+    void copyTiff(Path targetFile, Path sourceFile) throws IOException {
+        copyTiff(sourceFile, targetFile, 0, Integer.MAX_VALUE);
+    }
+
+    private void copyTiff(
             Path sourceFile, Path targetFile,
             int firstIFDIndex,
-            int lastIFDIndex,
-            boolean enforceBigTiff,
-            boolean recompressData,
-            boolean uncompressedTarget)
+            int lastIFDIndex)
             throws IOException {
         try (TiffReader reader = new TiffReader(sourceFile, false)) {
+            if (useContext) {
+                reader.setContext(TiffReader.newSCIFIOContext());
+            }
             if (!reader.isValid()) {
                 System.out.printf("Skipping %s: not a TIFF%n", sourceFile);
                 return;
@@ -85,7 +92,10 @@ public class TiffCopyTest {
             reader.setByteFiller((byte) 0xC0);
             boolean ok = false;
             try (TiffWriter writer = new TiffWriter(targetFile)) {
-                writer.setBigTiff(enforceBigTiff || reader.isBigTiff());
+                if (useContext) {
+                    writer.setContext(TiffReader.newSCIFIOContext());
+                }
+                writer.setBigTiff(bigTiff || reader.isBigTiff());
                 writer.setLittleEndian(reader.isLittleEndian());
                 // writer.setJpegInPhotometricRGB(true);
                 // - should not be important for copying, when PhotometricInterpretation is already specified
@@ -97,14 +107,14 @@ public class TiffCopyTest {
                 for (int ifdIndex = firstIFDIndex; ifdIndex <= lastIFDIndex; ifdIndex++) {
                     final TiffMap readMap = maps.get(ifdIndex);
                     System.out.printf("\r  Copying #%d/%d: %s%n", ifdIndex, maps.size(), readMap.ifd());
-                    if (recompressData) {
+                    if (rawCopy) {
+                        writer.copyImage(reader, readMap);
+                    } else {
                         writer.copyImage(reader, readMap, writeIFD -> {
-                            if (uncompressedTarget) {
+                            if (uncompress) {
                                 writeIFD.putCompression(TagCompression.NONE);
                             }
                         }, true);
-                    } else {
-                        writer.copyImage(reader, readMap);
                     }
                 }
                 ok = true;
@@ -114,17 +124,5 @@ public class TiffCopyTest {
                 }
             }
         }
-    }
-
-    static void copyTiff(
-            Path targetFile,
-            Path sourceFile,
-            boolean enforceBigTiff,
-            boolean recompressData,
-            boolean uncompressedTarget)
-            throws IOException {
-        copyTiff(
-                sourceFile, targetFile, 0, Integer.MAX_VALUE,
-                enforceBigTiff, recompressData, uncompressedTarget);
     }
 }

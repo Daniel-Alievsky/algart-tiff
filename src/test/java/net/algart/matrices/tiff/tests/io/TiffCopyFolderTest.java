@@ -35,20 +35,22 @@ import java.nio.file.Paths;
 
 public class TiffCopyFolderTest {
     public static void main(String[] args) throws IOException {
+        TiffCopyTest copier = new TiffCopyTest();
         int startArgIndex = 0;
-        boolean bigTiff = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-useContext")) {
+            copier.useContext = true;
+            startArgIndex++;
+        }
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-bigTiff")) {
-            bigTiff = true;
+            copier.bigTiff = true;
             startArgIndex++;
         }
-        boolean rawCopy = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-rawCopy")) {
-            rawCopy = true;
+            copier.rawCopy = true;
             startArgIndex++;
         }
-        boolean uncompressed = false;
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-uncompressed")) {
-            uncompressed = true;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-uncompress")) {
+            copier.uncompress = true;
             startArgIndex++;
         }
         if (args.length < startArgIndex + 2) {
@@ -76,7 +78,7 @@ public class TiffCopyFolderTest {
                 }
                 total++;
                 try {
-                    TiffCopyTest.copyTiff(targetFolder.resolve(fileName), file, bigTiff, !rawCopy, uncompressed);
+                    copier.copyTiff(targetFolder.resolve(fileName), file);
                     successful++;
                 } catch (UnsupportedTiffFormatException e) {
                     System.out.println("    CANNOT copy: " + e.getMessage());
