@@ -633,11 +633,14 @@ public class TiffParser extends TiffReader {
                     .getTag() == IFD.TILE_BYTE_COUNTS)) {
                 longs = new long[1];
                 longs[0] = in.readLong();
-            } else if (equalStrips && (entry.getTag() == IFD.STRIP_OFFSETS || entry
-                    .getTag() == IFD.TILE_OFFSETS)) {
-                final OnDemandLongArray offsets = new OnDemandLongArray(in);
-                offsets.setSize(count);
-                return offsets;
+
+                // The following optimization with OnDemandLongArray CANNOT be used:
+                // TiffReader does not know how to interpret it.
+//            } else if (equalStrips && (entry.getTag() == IFD.STRIP_OFFSETS || entry
+//                    .getTag() == IFD.TILE_OFFSETS)) {
+//                final OnDemandLongArray offsets = new OnDemandLongArray(in);
+//                offsets.setSize(count);
+//                return offsets;
             } else {
                 longs = new long[count];
                 for (int j = 0; j < count; j++)
