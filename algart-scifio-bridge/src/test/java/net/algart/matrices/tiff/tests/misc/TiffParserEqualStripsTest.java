@@ -65,7 +65,7 @@ public class TiffParserEqualStripsTest {
         final int row = Integer.parseInt(args[startArgIndex]);
 
         try (TiffParser parser = new TiffParser(new SCIFIO().context(), tiffFile)) {
-//            parser.setAssumeEqualStrips(true);
+            parser.setAssumeEqualStrips(true);
             System.out.printf("Opening %s by %s...%n", tiffFile, parser);
             final IFDList ifdList = parser.getIFDs();
             final IFD ifd = ifdList.get(ifdIndex);
