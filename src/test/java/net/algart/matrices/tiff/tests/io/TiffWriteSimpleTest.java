@@ -34,6 +34,7 @@ import net.algart.matrices.tiff.tiles.TiffTile;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -68,6 +69,7 @@ public class TiffWriteSimpleTest {
         System.out.println("Writing TIFF " + targetFile + "...");
         try (final TiffWriter writer = new TiffWriter(targetFile)) {
             writer.setByteFiller((byte) 0);
+            writer.setByteOrder(ByteOrder.LITTLE_ENDIAN);
 //            writer.setSmartIFDCorrection(true);
 
             writer.create();
@@ -91,7 +93,6 @@ public class TiffWriteSimpleTest {
             TiffMap map = writer.newFixedMap(ifd);
             // map = writer.newMap(ifd); - will throw an exception
             System.out.printf("IFD to save:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.NORMAL));
-
 
             int sizeX = map.dimX() / 2;
             int sizeY = map.dimY() / 2;

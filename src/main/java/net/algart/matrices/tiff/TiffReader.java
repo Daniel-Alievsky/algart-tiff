@@ -608,7 +608,7 @@ public class TiffReader implements Closeable {
     /**
      * Returns <code>{@link #isLittleEndian()} ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN</code>.
      */
-    public ByteOrder byteOrder() {
+    public ByteOrder getByteOrder() {
         return isLittleEndian() ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
     }
 
@@ -1358,7 +1358,7 @@ public class TiffReader implements Closeable {
         }
         final Object samplesArray = autoUnpackBitsToBytes && map.isBinary() ?
                 samples :
-                sampleType.javaArray(samples, byteOrder());
+                sampleType.javaArray(samples, getByteOrder());
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t2 = debugTime();
             LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,

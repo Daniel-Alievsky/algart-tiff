@@ -208,14 +208,6 @@ public class TiffWriter implements Closeable {
     }
 
     /**
-     * Returns <code>{@link #isLittleEndian()} ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN</code>.
-     */
-    public ByteOrder byteOrder() {
-        return isLittleEndian() ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
-    }
-
-
-    /**
      * Sets whether little-endian data should be written.
      * <p>Note that the default order is <b>big-endian</b>.
      *
@@ -227,6 +219,18 @@ public class TiffWriter implements Closeable {
             out.setLittleEndian(littleEndian);
         }
         return this;
+    }
+
+    /**
+     * Returns <code>{@link #isLittleEndian()} ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN</code>.
+     */
+    public ByteOrder getByteOrder() {
+        return isLittleEndian() ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
+    }
+
+    public TiffWriter setByteOrder(ByteOrder byteOrder) {
+        Objects.requireNonNull(byteOrder);
+        return setLittleEndian(byteOrder == ByteOrder.LITTLE_ENDIAN);
     }
 
     /**
@@ -965,7 +969,7 @@ public class TiffWriter implements Closeable {
                     sizeX + "x" + sizeY + "x" + map.numberOfChannels() + " exceed the limit " +
                     map.maxNumberOfSamplesInArray());
         }
-        final byte[] samples = TiffSampleType.bytes(samplesArray, numberOfSamples, byteOrder());
+        final byte[] samples = TiffSampleType.bytes(samplesArray, numberOfSamples, getByteOrder());
         return updateSamples(map, samples, fromX, fromY, sizeX, sizeY);
     }
 
@@ -1003,7 +1007,7 @@ public class TiffWriter implements Closeable {
                     + " (number of elements " + array.length() + " exceed the limit " +
                     map.maxNumberOfSamplesInArray() + ")");
         }
-        final byte[] samples = TiffSampleType.bytes(array, byteOrder());
+        final byte[] samples = TiffSampleType.bytes(array, getByteOrder());
         return updateSamples(map, samples, fromX, fromY, sizeX, sizeY);
     }
 

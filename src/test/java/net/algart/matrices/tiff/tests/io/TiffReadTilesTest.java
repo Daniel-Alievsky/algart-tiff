@@ -90,7 +90,7 @@ public class TiffReadTilesTest {
                 if (!t.isEmpty()) {
                     final Path tileFile = tilePath(t, resultFolder);
                     System.out.printf("Saving tile %s in %s...%n", t, tileFile);
-                    Object a = t.sampleType().javaArray(t.getDecodedData(), reader.byteOrder());
+                    Object a = t.sampleType().javaArray(t.getDecodedData(), reader.getByteOrder());
                     writeImageFile(tileFile, Matrix.as(a, t.getSizeX(), t.getSizeY(), t.samplesPerPixel()));
                 }
             }

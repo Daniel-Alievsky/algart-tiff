@@ -69,7 +69,7 @@ public class TiffExtractTileContent {
             if (unpack) {
                 tile = reader.readTile(tileIndex);
                 System.out.printf("Decoded tile:%n    %s%n", tile);
-                final var image = tile.unpackMatrix(reader.byteOrder()).asLayers();
+                final var image = tile.unpackMatrix(reader.getByteOrder()).asLayers();
                 MatrixIO.writeImage(resultFile, image);
                 System.out.printf("Writing tile in %s%n", resultFile);
             } else {
