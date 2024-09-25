@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff.demo.io;
 
+import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
@@ -37,11 +38,17 @@ import java.nio.file.Paths;
 public class TiffExtractTileContent {
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
+        boolean unpack = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-unpack")) {
+            unpack = true;
+            startArgIndex++;
+        }
         if (args.length < startArgIndex + 5) {
             System.out.println("Usage:");
             System.out.println("    " + TiffExtractTileContent.class.getName() +
-                    " some_tiff_file result.jpg/png/dat ifdIndex tileCol tileRow [separatedPlaneIndex]");
-            System.out.println("Note: you should choose file extension, corresponding to IFD compression format.");
+                    " [-unpack] some_tiff_file.tiff result.jpg/png/dat ifdIndex tileCol tileRow [separatedPlaneIndex]");
+            System.out.println("Note: if you do not used -unpack key, you should choose file extension " +
+                    "corresponding to IFD compression format.");
             return;
         }
         final Path tiffFile = Paths.get(args[startArgIndex++]);
@@ -53,24 +60,34 @@ public class TiffExtractTileContent {
 
         // new TiffInfo().showTiffInfo(tiffFile);
 
-        final TiffReader reader = new TiffReader(tiffFile);
-        System.out.printf("Opening %s by %s...%n", tiffFile, reader);
-        final TiffMap map = reader.map(ifdIndex);
-        System.out.printf("TIFF map #%d: %s%n", ifdIndex, map);
-        final TiffTileIndex tileIndex = map.multiPlaneIndex(separatedPlaneIndex, col, row);
-        TiffTile tile = reader.readEncodedTile(tileIndex);
-        reader.prepareDecoding(tile);
-        System.out.printf("Loaded tile:%n    %s%n", tile);
-        if (!tile.isEmpty()) {
-            System.out.printf("    Compression format: %s%n", map.ifd().compressionPrettyName());
-            byte[] bytes = tile.getData();
-            System.out.printf("Tile saved in %s%n", resultFile);
-            Files.write(resultFile, bytes);
-            try {
+        try (TiffReader reader = new TiffReader(tiffFile)) {
+            System.out.printf("Opening %s by %s...%n", tiffFile, reader);
+            final TiffMap map = reader.map(ifdIndex);
+            System.out.printf("TIFF map #%d: %s%n", ifdIndex, map);
+            final TiffTileIndex tileIndex = map.multiPlaneIndex(separatedPlaneIndex, col, row);
+            TiffTile tile;
+            if (unpack) {
                 tile = reader.readTile(tileIndex);
-                System.out.printf("Decoding the same (for verification): %s%n", tile);
-            } catch (IOException e) {
-                System.err.printf("Cannot decode tile: %s%n", e);
+                System.out.printf("Decoded tile:%n    %s%n", tile);
+                final var image = tile.unpackMatrix(reader.byteOrder()).asLayers();
+                MatrixIO.writeImage(resultFile, image);
+                System.out.printf("Writing tile in %s%n", resultFile);
+            } else {
+                tile = reader.readEncodedTile(tileIndex);
+                reader.prepareDecoding(tile);
+                System.out.printf("Encoded tile:%n    %s%n", tile);
+                if (!tile.isEmpty()) {
+                    System.out.printf("    Compression format: %s%n", map.ifd().compressionPrettyName());
+                    byte[] bytes = tile.getData();
+                    System.out.printf("Saving tile in %s%n", resultFile);
+                    Files.write(resultFile, bytes);
+                    try {
+                        tile = reader.readTile(tileIndex);
+                        System.out.printf("Attempt to decode the same tile (for verification): %s%n", tile);
+                    } catch (IOException e) {
+                        System.err.printf("Cannot decode tile: %s%n", e);
+                    }
+                }
             }
         }
         System.out.println("Done");

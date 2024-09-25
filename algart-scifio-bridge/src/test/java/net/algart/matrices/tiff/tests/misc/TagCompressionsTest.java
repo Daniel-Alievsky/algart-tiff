@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.tests;
+package net.algart.matrices.tiff.tests.misc;
 
 import io.scif.formats.tiff.TiffCompression;
 import net.algart.matrices.tiff.tags.TagCompression;

@@ -327,6 +327,10 @@ public class TiffReader implements Closeable {
      * in the case of RGB image. If not set (default behavior), the samples are returned in unpacked form:
      * RRR...GGG...BBB...
      *
+     * <p>Note that this mode affects only the data returned by methods {@link #readMatrix} and other methods,
+     * reading an image from TIFF file. The tiles, returned by {@link #readTile(TiffTileIndex)} method,
+     * are always {@link TiffTile#isSeparated() separated}.</p>
+     *
      * @param interleaveResults new interleaving mode.
      * @return a reference to this object.
      */
@@ -1413,7 +1417,7 @@ public class TiffReader implements Closeable {
 
     /**
      * Reads the full image with the specified TIFF map as a list of 2-dimensional matrices containing color channels.
-     * For example, for RGB image the result will be a list of three matrices R, G, B.
+     * For example, for RGB image, the result will be a list of three matrices R, G, B.
      *
      * <p>The necessary TIFF map can be obtained, for example, by calling
      * <code>{@link #map(int) reader.map}(ifdIndex)</code>.</p>
@@ -1785,14 +1789,18 @@ public class TiffReader implements Closeable {
         final boolean tiled = ifd.hasTileInformation();
         final int tag = tiled ? Tags.TILE_BYTE_COUNTS : Tags.STRIP_BYTE_COUNTS;
         Object value = ifd.get(tag);
-        if (value instanceof long[] byteCounts &&
-                byteCounts.length == 1 &&
-                byteCounts[0] == (int) byteCounts[0]) {
-            // - possible in a rare case:
-            // we use TiffParser.getIFD to read this IFD,
-            // and this file is Big-TIFF,
-            // and if we set "equal-strip" mode by TiffParser.setAssumeEqualStrips
-            return (int) byteCounts[0];
+        if (value instanceof long[] byteCounts && byteCounts.length == 1) {
+            // - Here we process a rare case of using TiffParser compatibility class:
+            // we call TiffParser.getIFD to read this IFD,
+            // and this file is Big-TIFF (TileByteCounts or StripByteCounts is IFDType.LONG8),
+            // and if we set "equal-strip" mode by TiffParser.setAssumeEqualStrips.
+            long result = byteCounts[0];
+            if (result >= 0 && result < Integer.MAX_VALUE) {
+                // In another case, let's call cachedTileOrStripByteCount which will produce the necessary exception.
+                return (int) result;
+                // Note that this is also possible in a normal situation, when we REALLY have only one tile/strip;
+                // in this case, byteCounts[0] is a correct result equal to the result of cachedTileOrStripByteCount.
+            }
         }
         return ifd.cachedTileOrStripByteCount(index);
     }

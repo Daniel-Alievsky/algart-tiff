@@ -112,11 +112,14 @@ public enum TiffSampleType {
 
     public static byte[] bytes(PArray array, ByteOrder byteOrder) {
         Objects.requireNonNull(array, "Null array");
+        Objects.requireNonNull(byteOrder, "Null byteOrder");
         final Object javaArray = array instanceof BitArray bitArray ? bitArray.jaBit() : array.ja();
         return bytes(javaArray, array.length(), byteOrder);
     }
 
     public static byte[] bytes(Object javaArray, long numberOfElements, ByteOrder byteOrder) {
+        Objects.requireNonNull(javaArray, "Null javaArray");
+        Objects.requireNonNull(byteOrder, "Null byteOrder");
         if (javaArray instanceof byte[] a) {
             if (numberOfElements > a.length) {
                 throw new IllegalArgumentException("Too short array: " + a.length + "<" + numberOfElements);

@@ -24,8 +24,10 @@
 
 package net.algart.matrices.tiff.tiles;
 
+import net.algart.arrays.Matrix;
 import net.algart.arrays.PackedBitArraysPer8;
 import net.algart.arrays.TooLargeArrayException;
+import net.algart.arrays.UpdatablePArray;
 import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.data.TiffUnusualPrecisions;
@@ -556,6 +558,13 @@ public final class TiffTile {
             throw new IllegalStateException("Illegal IFD inside the tile map", e);
         }
         return samples;
+    }
+
+    public Matrix<UpdatablePArray> unpackMatrix(ByteOrder byteOrder) {
+        Objects.requireNonNull(byteOrder, "Null byteOrder");
+        final byte[] samples = unpackUnusualDecodedData();
+        final Object javaArray = sampleType().javaArray(samples, byteOrder);
+        return TiffSampleType.asMatrix(javaArray, sizeX, sizeY, samplesPerPixel, interleaved);
     }
 
     public TiffTile setDecodedData(byte[] data) {
