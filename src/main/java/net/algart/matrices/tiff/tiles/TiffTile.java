@@ -560,10 +560,10 @@ public final class TiffTile {
         return samples;
     }
 
-    public Matrix<UpdatablePArray> unpackedMatrix(ByteOrder byteOrder) {
+    public Matrix<UpdatablePArray> unpackedMatrix() {
         Objects.requireNonNull(byteOrder, "Null byteOrder");
         final byte[] samples = unpackUnusualDecodedData();
-        final Object javaArray = sampleType().javaArray(samples, byteOrder);
+        final Object javaArray = sampleType().javaArray(samples, byteOrder());
         return TiffSampleType.asMatrix(javaArray, sizeX, sizeY, samplesPerPixel, interleaved);
     }
 
