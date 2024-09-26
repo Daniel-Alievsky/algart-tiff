@@ -42,10 +42,15 @@ public class TiffParserEqualStripsTest {
     @SuppressWarnings("deprecation")
     public static void main(String[] args) throws IOException, FormatException {
         int startArgIndex = 0;
+        boolean equalStrips = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-equalStrips")) {
+            equalStrips = true;
+            startArgIndex++;
+        }
         if (args.length < startArgIndex + 4) {
             System.out.println("Usage:");
             System.out.println("    " + TiffExtractTileContent.class.getName() +
-                    " tiff_file.tiff result.jpg/png ifdIndex tileCol tileRow");
+                    " [-equalStrips] tiff_file.tiff result.jpg/png ifdIndex tileCol tileRow");
             System.out.println("Note: the results will be correct only for 1st tile or " +
                     "if the encoded tiles have identical length.");
             return;
@@ -57,17 +62,17 @@ public class TiffParserEqualStripsTest {
         final int row = Integer.parseInt(args[startArgIndex]);
 
         try (TiffParser parser = new TiffParser(new SCIFIO().context(), tiffFile)) {
-            parser.setAssumeEqualStrips(true);
+            parser.setAssumeEqualStrips(equalStrips);
             System.out.printf("Opening %s by %s...%n", tiffFile, parser);
             final IFDList ifdList = parser.getIFDs();
             final IFD ifd = ifdList.get(ifdIndex);
-            byte[] bytes = parser.getTile(ifd, null, col, row);
+            final byte[] bytes = parser.getTile(ifd, null, row, col);
             BufferedImage bi = AWTImages.makeImage(bytes,
                     (int) ifd.getTileWidth(),
                     (int) ifd.getTileLength(),
                     ifd.getSamplesPerPixel(),
                     false);
-            System.out.printf("Loaded tile:%n    %s%n", bi);
+            System.out.printf("Loaded tile (%d, %d):%n    %s%n", col, row, bi);
             System.out.printf("Writing %s...%n", resultFile);
             MatrixIO.writeBufferedImage(resultFile, bi);
         }

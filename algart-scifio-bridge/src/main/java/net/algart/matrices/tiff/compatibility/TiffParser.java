@@ -53,7 +53,8 @@ import java.nio.file.Path;
 import java.util.*;
 
 /**
- * Legacy version of {@link TiffReader} with some deprecated method.
+ * Legacy version of {@link TiffReader} with some deprecated method,
+ * provided for compatibility with original SCIFIO class {@link io.scif.formats.tiff.TiffParser}.
  * Should be replaced with {@link TiffReader}.
  */
 public class TiffParser extends TiffReader {
@@ -103,7 +104,9 @@ public class TiffParser extends TiffReader {
     private boolean ycbcrCorrection = true;
 
     private boolean equalStrips = false;
-    /** Codec options to be used when decoding compressed pixel data. */
+    /**
+     * Codec options to be used when decoding compressed pixel data.
+     */
     private CodecOptions codecOptions = CodecOptions.getDefaultOptions();
 
     private IFDList ifdList;
@@ -443,7 +446,6 @@ public class TiffParser extends TiffReader {
     /**
      * Use {@link #readIFDAt(long)} instead.
      */
-    @SuppressWarnings("removal")
     @Deprecated
     public IFD getIFD(long offset) throws IOException {
         final DataHandle<Location> in = stream();
@@ -456,9 +458,9 @@ public class TiffParser extends TiffReader {
         final IFD ifd = new IFD(log);
 
         // save little-endian flag to internal LITTLE_ENDIAN tag
-        ifd.put(new Integer(IFD.LITTLE_ENDIAN), Boolean.valueOf(in
+        ifd.put(Integer.valueOf(IFD.LITTLE_ENDIAN), Boolean.valueOf(in
                 .isLittleEndian()));
-        ifd.put(new Integer(IFD.BIG_TIFF), Boolean.valueOf(bigTiff));
+        ifd.put(Integer.valueOf(IFD.BIG_TIFF), Boolean.valueOf(bigTiff));
 
         // read in directory entries for this IFD
         log.trace("getIFDs: seeking IFD at " + offset);
@@ -520,8 +522,8 @@ public class TiffParser extends TiffReader {
                 value = entry;
             } else value = getIFDValue(entry);
 
-            if (value != null && !ifd.containsKey(new Integer(tag))) {
-                ifd.put(new Integer(tag), value);
+            if (value != null && !ifd.containsKey(Integer.valueOf(tag))) {
+                ifd.put(Integer.valueOf(tag), value);
             }
         }
 
@@ -550,16 +552,29 @@ public class TiffParser extends TiffReader {
     }
 
 
+    /**
+     * This method is almost identical to the original
+     * {@link io.scif.formats.tiff.TiffParser#getIFDValue(TiffIFDEntry)}.
+     * There are two changes:
+     * <ol>
+     *     <li><code>new Long()</code>, <code>new Byte()</code> and similar constructors,
+     *     marked for removal in new Java versions like Java 17, are replaced
+     *     with equivalent <code>valueOf</code>;</li>
+     *     <li>the optimization based on <code>OnDemandLongArray</code> is not longer supported, because
+     *     it is incompatible with {@link TiffReader} methods processing IFD content
+     *     (for example, with {@link #readTile(TiffTileIndex)} method);
+     *     this does not affect the behaviour, but only causes a slight slowdown of this method.</li>
+     * </ol>
+     */
     @Deprecated
-    @SuppressWarnings("removal")
     public Object getIFDValue(final TiffIFDEntry entry) throws IOException {
         DataHandle<Location> in = stream();
         final IFDType type = entry.getType();
         final int count = entry.getValueCount();
         final long offset = entry.getValueOffset();
 
-//        log.trace("Reading entry " + entry.getTag() + " from " + offset +
-//                "; type=" + type + ", count=" + count);
+        log.trace("Reading entry " + entry.getTag() + " from " + offset +
+                "; type=" + type + ", count=" + count);
 
         if (offset >= in.length()) {
             return null;
@@ -571,7 +586,7 @@ public class TiffParser extends TiffReader {
 
         if (type == IFDType.BYTE) {
             // 8-bit unsigned integer
-            if (count == 1) return new Short(in.readByte());
+            if (count == 1) return Short.valueOf(in.readByte());
             final byte[] bytes = new byte[count];
             in.readFully(bytes);
             // bytes are unsigned, so use shorts
@@ -608,7 +623,7 @@ public class TiffParser extends TiffReader {
             return strings == null ? (Object) s : strings;
         } else if (type == IFDType.SHORT) {
             // 16-bit (2-byte) unsigned integer
-            if (count == 1) return new Integer(in.readUnsignedShort());
+            if (count == 1) return Integer.valueOf(in.readUnsignedShort());
             final int[] shorts = new int[count];
             for (int j = 0; j < count; j++) {
                 shorts[j] = in.readUnsignedShort();
@@ -616,7 +631,7 @@ public class TiffParser extends TiffReader {
             return shorts;
         } else if (type == IFDType.LONG || type == IFDType.IFD) {
             // 32-bit (4-byte) unsigned integer
-            if (count == 1) return new Long(in.readInt());
+            if (count == 1) return Long.valueOf(in.readInt());
             final long[] longs = new long[count];
             for (int j = 0; j < count; j++) {
                 if (in.offset() + 4 <= in.length()) {
@@ -626,7 +641,7 @@ public class TiffParser extends TiffReader {
             return longs;
         } else if (type == IFDType.LONG8 || type == IFDType.SLONG8 ||
                 type == IFDType.IFD8) {
-            if (count == 1) return new Long(in.readLong());
+            if (count == 1) return Long.valueOf(in.readLong());
             long[] longs = null;
 
             if (equalStrips && (entry.getTag() == IFD.STRIP_BYTE_COUNTS || entry
@@ -660,34 +675,34 @@ public class TiffParser extends TiffReader {
             // SBYTE: An 8-bit signed (twos-complement) integer
             // UNDEFINED: An 8-bit byte that may contain anything,
             // depending on the definition of the field
-            if (count == 1) return new Byte(in.readByte());
+            if (count == 1) return Byte.valueOf(in.readByte());
             final byte[] sbytes = new byte[count];
             in.read(sbytes);
             return sbytes;
         } else if (type == IFDType.SSHORT) {
             // A 16-bit (2-byte) signed (twos-complement) integer
-            if (count == 1) return new Short(in.readShort());
+            if (count == 1) return Short.valueOf(in.readShort());
             final short[] sshorts = new short[count];
             for (int j = 0; j < count; j++)
                 sshorts[j] = in.readShort();
             return sshorts;
         } else if (type == IFDType.SLONG) {
             // A 32-bit (4-byte) signed (twos-complement) integer
-            if (count == 1) return new Integer(in.readInt());
+            if (count == 1) return Integer.valueOf(in.readInt());
             final int[] slongs = new int[count];
             for (int j = 0; j < count; j++)
                 slongs[j] = in.readInt();
             return slongs;
         } else if (type == IFDType.FLOAT) {
             // Single precision (4-byte) IEEE format
-            if (count == 1) return new Float(in.readFloat());
+            if (count == 1) return Float.valueOf(in.readFloat());
             final float[] floats = new float[count];
             for (int j = 0; j < count; j++)
                 floats[j] = in.readFloat();
             return floats;
         } else if (type == IFDType.DOUBLE) {
             // Double precision (8-byte) IEEE format
-            if (count == 1) return new Double(in.readDouble());
+            if (count == 1) return Double.valueOf(in.readDouble());
             final double[] doubles = new double[count];
             for (int j = 0; j < count; j++) {
                 doubles[j] = in.readDouble();
@@ -805,7 +820,7 @@ public class TiffParser extends TiffReader {
         final long tileWidth = ifd.getTileWidth();
         long tileLength = ifd.getTileLength();
         if (tileLength <= 0) {
-//            log.trace("Tile length is " + tileLength + "; setting it to " + height);
+            log.trace("Tile length is " + tileLength + "; setting it to " + height);
             tileLength = height;
         }
 
@@ -817,9 +832,9 @@ public class TiffParser extends TiffReader {
         final int pixel = ifd.getBytesPerSample()[0];
         final int effectiveChannels = planarConfig == 2 ? 1 : samplesPerPixel;
 
-//        if (log.isTrace()) {
-//            ifd.printIFD();
-//        }
+        if (log.isTrace()) {
+            ifd.printIFD();
+        }
 
         if (width * height > Integer.MAX_VALUE) {
             throw new FormatException(
@@ -1036,7 +1051,7 @@ public class TiffParser extends TiffReader {
         if (ifd.getPhotometricInterpretation() == TagPhotometricInterpretation.Y_CB_CR &&
                 declaredSubsampling.length >= 2 && declaredSubsampling[0] == 1 && declaredSubsampling[1] == 1 &&
                 this.ycbcrCorrection) {
-                codecOptions.ycbcr = true;
+            codecOptions.ycbcr = true;
         }
         return Optional.of(decompressByScifioCodec(tile.ifd(), encodedData, codecOptions));
     }

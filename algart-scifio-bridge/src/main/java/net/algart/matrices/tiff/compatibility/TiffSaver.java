@@ -53,7 +53,8 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Legacy version of {@link TiffWriter} with some deprecated method.
+ * Legacy version of {@link TiffWriter} with some deprecated method,
+ * provided for compatibility with the original SCIFIO class {@link io.scif.formats.tiff.TiffSaver}.
  * Should be replaced with {@link TiffWriter}.
  */
 public class TiffSaver extends TiffWriter {
