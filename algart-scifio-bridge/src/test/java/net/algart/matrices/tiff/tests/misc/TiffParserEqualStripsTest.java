@@ -29,20 +29,12 @@ import io.scif.SCIFIO;
 import io.scif.formats.tiff.IFD;
 import io.scif.formats.tiff.IFDList;
 import net.algart.io.MatrixIO;
-import net.algart.io.awt.MatrixToImage;
-import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.TiffSampleType;
 import net.algart.matrices.tiff.awt.AWTImages;
 import net.algart.matrices.tiff.compatibility.TiffParser;
 import net.algart.matrices.tiff.demo.io.TiffExtractTileContent;
-import net.algart.matrices.tiff.tiles.TiffMap;
-import net.algart.matrices.tiff.tiles.TiffTile;
-import net.algart.matrices.tiff.tiles.TiffTileIndex;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -53,7 +45,7 @@ public class TiffParserEqualStripsTest {
         if (args.length < startArgIndex + 4) {
             System.out.println("Usage:");
             System.out.println("    " + TiffExtractTileContent.class.getName() +
-                    " some_tiff_file.tiff result.jpg/png ifdIndex tileCol tileRow");
+                    " tiff_file.tiff result.jpg/png ifdIndex tileCol tileRow");
             System.out.println("Note: the results will be correct only for 1st tile or " +
                     "if the encoded tiles have identical length.");
             return;

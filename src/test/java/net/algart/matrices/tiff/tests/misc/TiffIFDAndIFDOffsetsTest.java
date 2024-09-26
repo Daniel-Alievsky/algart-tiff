@@ -34,11 +34,11 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
-public class IFDAndIFDOffsetsTest {
+public class TiffIFDAndIFDOffsetsTest {
     public static void main(String[] args) throws IOException {
         if (args.length < 2) {
             System.out.println("Usage:");
-            System.out.println("    " + IFDAndIFDOffsetsTest.class.getName() + " tiff_file.tiff ifdIndex");
+            System.out.println("    " + TiffIFDAndIFDOffsetsTest.class.getName() + " tiff_file.tiff ifdIndex");
             return;
         }
 

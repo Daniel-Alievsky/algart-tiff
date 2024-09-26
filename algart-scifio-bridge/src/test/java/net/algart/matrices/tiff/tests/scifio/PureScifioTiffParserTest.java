@@ -51,7 +51,7 @@ public class PureScifioTiffParserTest {
         if (args.length < 3) {
             System.out.println("Usage:");
             System.out.println("    " + PureScifioTiffParserTest.class.getName()
-                    + " some_tiff_file.tif result.png ifd_index [number_of_tests]");
+                    + " some_tiff_file.tiff result.png ifd_index [number_of_tests]");
             return;
         }
         final File tiffFile = new File(args[0]);

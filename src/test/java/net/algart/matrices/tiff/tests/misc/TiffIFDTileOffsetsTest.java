@@ -33,11 +33,11 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class IFDTileOffsetsTest {
+public class TiffIFDTileOffsetsTest {
     public static void main(String[] args) throws IOException {
         if (args.length < 2) {
             System.out.println("Usage:");
-            System.out.println("    " + IFDTileOffsetsTest.class.getName() + " tiff_file.tiff ifdIndex");
+            System.out.println("    " + TiffIFDTileOffsetsTest.class.getName() + " tiff_file.tiff ifdIndex");
             return;
         }
 
@@ -52,9 +52,9 @@ public class IFDTileOffsetsTest {
                 ifdIndex,
                 ifd.toString(TiffIFD.StringFormat.NORMAL_SORTED),
                 (t2 - t1) * 1e-3);
-        IFDGetValueTest.showTag(ifd, Tags.IMAGE_WIDTH, Number.class);
-        IFDGetValueTest.showTag(ifd, Tags.IMAGE_LENGTH, Number.class);
-        IFDGetValueTest.showTag(ifd, Tags.SAMPLES_PER_PIXEL, Integer.class);
+        TiffIFDGetValueTest.showTag(ifd, Tags.IMAGE_WIDTH, Number.class);
+        TiffIFDGetValueTest.showTag(ifd, Tags.IMAGE_LENGTH, Number.class);
+        TiffIFDGetValueTest.showTag(ifd, Tags.SAMPLES_PER_PIXEL, Integer.class);
 
         for (int test = 1; test <= 10; test++) {
             System.out.printf("%nTest %d:%n", test);

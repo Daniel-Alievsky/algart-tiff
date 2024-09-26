@@ -47,7 +47,7 @@ public class JAIReadTiffTest {
         if (args.length < 3) {
             System.out.println("Usage:");
             System.out.println("    " + JAIReadTiffTest.class.getName()
-                    + " some_tiff_file.tif ifdIndex result.png");
+                    + " some_tiff_file.tiff ifdIndex result.png");
             return;
         }
         final File tiffFile = new File(args[0]);

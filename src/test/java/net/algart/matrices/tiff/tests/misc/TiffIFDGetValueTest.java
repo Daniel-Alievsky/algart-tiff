@@ -30,7 +30,7 @@ import net.algart.matrices.tiff.tags.Tags;
 
 import java.util.Optional;
 
-public class IFDGetValueTest {
+public class TiffIFDGetValueTest {
     static void showTag(TiffIFD ifd, int tag, Class<?> requiredClass) {
         System.out.printf("Tag %s, required class %s:%n",
                 Tags.tiffTagName(tag, true),

@@ -57,7 +57,7 @@ public class TiffInfo {
         if (args.length < startArgIndex + 1) {
             System.out.println("Usage:");
             System.out.println("    " + TiffInfo.class.getName() + " [-strict] [-detailed|-json] " +
-                    "some_tiff_file.tif [firstIFDIndex lastIFDIndex]");
+                    "some_tiff_file.tiff [firstIFDIndex lastIFDIndex]");
             return;
         }
         final String fileName = args[startArgIndex];

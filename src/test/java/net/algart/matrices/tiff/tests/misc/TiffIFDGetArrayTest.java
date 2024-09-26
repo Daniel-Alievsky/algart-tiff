@@ -29,7 +29,7 @@ import net.algart.matrices.tiff.TiffIFD;
 
 import java.util.Arrays;
 
-public class IFDGetArrayTest {
+public class TiffIFDGetArrayTest {
     public static void main(String[] args) throws TiffException {
         TiffIFD ifd = new TiffIFD();
         ifd.put(1, new long[]{1, 2, 3});
