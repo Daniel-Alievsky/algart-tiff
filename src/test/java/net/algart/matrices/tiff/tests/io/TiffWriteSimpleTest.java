@@ -124,7 +124,11 @@ public class TiffWriteSimpleTest {
             printReaderInfo(writer);
 
             writer.complete(map);
-            // writer.writeSamples(map, samples); // - equivalent to previous 3 methods
+            // writer.complete(map);
+            // - we can call complete twice, it will spend little time for rewriting IFD, but has no effect
+
+//            writer.writeJavaArray(map, samples, 0, 0, sizeX, sizeY);
+            // - equivalent to previous 3 TiffWriter methods
             printReaderInfo(writer);
 
             System.out.printf("Actually saved IFD:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.DETAILED));
