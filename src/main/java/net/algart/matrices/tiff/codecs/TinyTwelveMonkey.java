@@ -81,6 +81,15 @@ class TinyTwelveMonkey {
         return 0L;
     }
 
+    static <T> T notNull(final T pParameter, final String pParamName) {
+        if (pParameter == null) {
+            throw new IllegalArgumentException(String.format("%s may not be null",
+                    pParamName == null ? "method parameter" : pParamName));
+        }
+
+        return pParameter;
+    }
+
     static boolean isTrue(final boolean pExpression, final String pMessage) {
         return isTrue(pExpression, pExpression, pMessage);
     }

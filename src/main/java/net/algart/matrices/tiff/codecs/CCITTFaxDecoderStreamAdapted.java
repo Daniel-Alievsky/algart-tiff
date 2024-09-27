@@ -78,6 +78,7 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
     // See TIFF 6.0 Specification, Section 10: "Modified Huffman Compression", page 43.
 
     private final int columns;
+    private int rowsLeft;
     private final byte[] decodedRow;
 
     private final boolean optionG32D;
@@ -100,6 +101,20 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
 
     /**
      * Creates a CCITTFaxDecoderStream.
+     *
+     * @param stream  the compressed CCITT stream.
+     * @param columns the number of columns in the stream.
+     * @param type    the type of stream, must be one of {@code COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE},
+     *                {@code COMPRESSION_CCITT_T4} or {@code COMPRESSION_CCITT_T6}.
+     * @param options CCITT T.4 or T.6 options.
+     */
+    public CCITTFaxDecoderStreamAdapted(final InputStream stream, final int columns, final int type,
+                                        final long options) {
+        this(stream, columns, -1, type, options, type == TinyTwelveMonkey.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE);
+    }
+
+    /**
+     * Creates a CCITTFaxDecoderStream.
      * This constructor may be used for CCITT streams embedded in PDF files,
      * which use EncodedByteAlign.
      *
@@ -110,12 +125,19 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
      * @param options     CCITT T.4 or T.6 options.
      * @param byteAligned enable byte alignment used in PDF files (EncodedByteAlign).
      */
-    public CCITTFaxDecoderStreamAdapted(
-            final InputStream stream, final int columns, final int type,
-            final long options, final boolean byteAligned) {
-        super(Objects.requireNonNull(stream, "Null stream"));
+    public CCITTFaxDecoderStreamAdapted(final InputStream stream, final int columns, final int type,
+                                        final long options, final boolean byteAligned) {
+        this(stream, columns, -1, type, options, byteAligned);
+    }
+
+    CCITTFaxDecoderStreamAdapted(final InputStream stream, final int columns, final int rows, final int type,
+                                 final long options, final boolean byteAligned) {
+        super(TinyTwelveMonkey.notNull(stream, "stream"));
 
         this.columns = TinyTwelveMonkey.isTrue(columns > 0, columns, "width must be greater than 0");
+        // -1 means as many rows the stream contains, otherwise pad up to 'rows' before EOF for compatibility with
+        // legacy CCITT streams
+        this.rowsLeft = TinyTwelveMonkey.isTrue(rows == -1 || rows > 0, rows, "height must be greater than 0");
         this.type = TinyTwelveMonkey.isTrue(type == TinyTwelveMonkey.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE ||
                         type == TinyTwelveMonkey.COMPRESSION_CCITT_T4 ||
                         type == TinyTwelveMonkey.COMPRESSION_CCITT_T6,
@@ -152,21 +174,6 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
 
         TinyTwelveMonkey.isTrue(!optionUncompressed, optionUncompressed,
                 "CCITT GROUP 3/4 OPTION UNCOMPRESSED is not supported");
-    }
-
-    /**
-     * Creates a CCITTFaxDecoderStream.
-     *
-     * @param stream  the compressed CCITT stream.
-     * @param columns the number of columns in the stream.
-     * @param type    the type of stream, must be one of {@code COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE},
-     *                {@code COMPRESSION_CCITT_T4} or {@code COMPRESSION_CCITT_T6}.
-     * @param options CCITT T.4 or T.6 options.
-     */
-    public CCITTFaxDecoderStreamAdapted(final InputStream stream, final int columns, final int type,
-                                        final long options) {
-        this(stream, columns, type, options,
-                type == TinyTwelveMonkey.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE);
     }
 
     static int findCompressionType(final int encodedType, final InputStream stream) throws IOException {
@@ -235,9 +242,17 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
                     throw e;
                 }
 
-                // ...otherwise, just let client code try to read past the
-                // end of stream
-                decodedLength = -1;
+                if (rowsLeft > 0) {
+                    // For
+                    rowsLeft--;
+
+                    Arrays.fill(decodedRow, (byte) 0);
+                    decodedLength = decodedRow.length;
+                } else {
+                    // ...otherwise, just let client code try to read past the
+                    // end of stream
+                    decodedLength = -1;
+                }
             }
 
             decodedPos = 0;
@@ -427,7 +442,7 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
             int byteIndex = index / 8;
 
             while (index % 8 != 0 && (nextChange - index) > 0) {
-                decodedRow[byteIndex] |= (white ? 0 : 1 << (7 - ((index) % 8)));
+                decodedRow[byteIndex] |= (byte) (white ? 0 : 1 << (7 - ((index) % 8)));
                 index++;
             }
 
@@ -447,7 +462,7 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
                     decodedRow[byteIndex] = 0;
                 }
 
-                decodedRow[byteIndex] |= (white ? 0 : 1 << (7 - ((index) % 8)));
+                decodedRow[byteIndex] |= (byte) (white ? 0 : 1 << (7 - ((index) % 8)));
                 index++;
             }
 
@@ -458,6 +473,7 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
             throw new IOException("Sum of run-lengths does not equal scan line width: " + index + " > " + columns);
         }
 
+        rowsLeft--;
         decodedLength = (index + 7) / 8;
     }
 
@@ -515,14 +531,14 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
     @Override
     public int read() throws IOException {
         if (decodedLength < 0) {
-            return 0x0;
+            return -1;
         }
 
         if (decodedPos >= decodedLength) {
             fetch();
 
             if (decodedLength < 0) {
-                return 0x0;
+                return -1;
             }
         }
 
@@ -532,16 +548,14 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
         if (decodedLength < 0) {
-            Arrays.fill(b, off, off + len, (byte) 0x0);
-            return len;
+            return -1;
         }
 
         if (decodedPos >= decodedLength) {
             fetch();
 
             if (decodedLength < 0) {
-                Arrays.fill(b, off, off + len, (byte) 0x0);
-                return len;
+                return -1;
             }
         }
 

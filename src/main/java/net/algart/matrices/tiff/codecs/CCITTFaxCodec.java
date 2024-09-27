@@ -74,16 +74,14 @@ public class CCITTFaxCodec implements TiffCodec {
             final int overrideCCITTCompressionCode = TinyTwelveMonkey.findCCITTType(
                     options.compressionCode, compressedDataStream);
             final InputStream decompressorStream = new CCITTFaxDecoderStreamAdapted(
-                    compressedDataStream, options.width, overrideCCITTCompressionCode, readingOptions,
+                    compressedDataStream, options.width, options.height, overrideCCITTCompressionCode, readingOptions,
                     options.compressionCode == TinyTwelveMonkey.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE);
             // - note: the last byteAligned argument should be determined one the base of compression code,
             // written in TIFF IFD, not on the base of overrideCCITTCompressionCode
             final int bitsPerPixel = options.numberOfChannels * options.bitsPerSample;
             final int bytesPerRow = (bitsPerPixel * options.width + 7) / 8;
             final int resultSize = bytesPerRow * options.height;
-            final byte[] result = new byte[resultSize];
-            new DataInputStream(decompressorStream).readFully(result);
-            return result;
+            return decompressorStream.readNBytes(resultSize);
         } catch (IOException e) {
             throw new TiffException(e);
         }
