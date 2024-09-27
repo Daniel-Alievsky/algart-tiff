@@ -44,7 +44,7 @@
         <dependency>
             <groupId>net.algart</groupId>
             <artifactId>algart</artifactId>
-            <version>1.4.22</version>
+            <version>1.4.23</version>
         </dependency>
 
         <dependency>
@@ -55,7 +55,7 @@
         <dependency>
             <groupId>org.scijava</groupId>
             <artifactId>scijava-common</artifactId>
-            <version>2.98.0</version>
+            <version>2.99.0</version>
         </dependency>
         <!-- Note: the following dependencies MUST NOT affect to correct reading/writing JPEG -->
         <!-- You may uncomment them for testing this fact! -->
