@@ -35,17 +35,48 @@ import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+/**
+ * Possible values (compression types) for TIFF Compression Tag (259).
+ */
 public enum TagCompression {
+    /**
+     * Uncompressed TIFF image (type 1).
+     */
     NONE(TiffIFD.COMPRESSION_NONE, "Uncompressed", UncompressedCodec::new),
 
-    // The following 4 compressions are recognized and can be read, but writing is not supported
+    /**
+     * CCITT RLE: Modified Huffman compression (type 2).
+     * For binary images only (1 sample/pixel, 1 bit/sample).
+     */
     CCITT_MODIFIED_HUFFMAN_RLE(TiffIFD.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE,
             "CCITT Modified Huffman RLE compression", CCITTFaxCodec::new),
+
+    /**
+     * CCITT T.4: Bi-level encoding/Group 3 facsimile compression (type 3).
+     * For binary images only (1 sample/pixel, 1 bit/sample).
+     */
     CCITT_T4(TiffIFD.COMPRESSION_CCITT_T4, "CCITT T.4/Group 3 Fax compression", CCITTFaxCodec::new),
+
+    /**
+     * CCITT T.6: Bi-level encoding/Group 4 facsimile compression (type 4).
+     * For binary images only (1 sample/pixel, 1 bit/sample).
+     */
     CCITT_T6(TiffIFD.COMPRESSION_CCITT_T6, "CCITT T.6/Group 4 Fax compression", CCITTFaxCodec::new),
-    PACK_BITS(TiffIFD.COMPRESSION_PACK_BITS, "PackBits", PackBitsCodec::new),
+
+    /**
+     * LZW compression (type 5).
+     */
     LZW(TiffIFD.COMPRESSION_LZW, "LZW", LZWCodec::new),
+
+    /**
+     * "Old-style" (obsolete) JPEG compression (type 6).
+     * Not supported in the current version.
+     */
     OLD_JPEG(TiffIFD.COMPRESSION_OLD_JPEG, "Old-style JPEG", null),
+
+    /**
+     * JPEG compression (type 7).
+     */
     JPEG(TiffIFD.COMPRESSION_JPEG, "JPEG", JPEGCodec::new) {
         @Override
         public TiffCodec.Options customizeReading(TiffTile tile, TiffCodec.Options options) throws TiffException {
@@ -57,14 +88,54 @@ public enum TagCompression {
             return customizeWritingJpeg(tile, options);
         }
     },
+
+    /**
+     * Zlib deflate compression (ZIP), compatible with ZLib and {@link java.util.zip.DeflaterOutputStream} (type 8).
+     */
     DEFLATE(TiffIFD.COMPRESSION_DEFLATE, "ZLib-Deflate", ZlibCodec::new),
+
+    /**
+     * Deflate compression, equivalent to "{@link #DEFLATE Zlib deflate}"
+     * but with another value 32946 in the Compression tag (type 32946).
+     * See Oracle's document "TIFF Metadata Format Specification and Usage Notes":
+     *
+     * <blockquote>
+     *     ZLib and Deflate compression are identical except for the value of the TIFF Compression field:
+     *     for ZLib the Compression field has value 8 whereas for Deflate it has value 32946 (0x80b2).
+     *     In both cases each image segment (strip or tile) is written as a single complete zlib data stream.
+     * </blockquote>
+     */
     DEFLATE_PROPRIETARY(TiffIFD.COMPRESSION_DEFLATE_PROPRIETARY, "ZLib-Deflate (PKZIP-style)", ZlibCodec::new),
 
+    /**
+     * PackBits run-length compression (type 32773).
+     * Oriented for binary or byte images, but can be used for any bit depth.
+     */
+    PACK_BITS(TiffIFD.COMPRESSION_PACK_BITS, "PackBits", PackBitsCodec::new),
+
+    /**
+     * JPEG-2000 Aperio lossless compression (type 33003).
+     *
+     * <p>Note that while writing TIFF in this format, {@link net.algart.matrices.tiff.TiffWriter}
+     * does not try to use YCbCr encoding,
+     * as Aperio recommends for the type 33003.
+     */
     JPEG_2000_LOSSLESS(33003, "JPEG-2000 lossless", JPEG2000Codec::new),
-    // - note that while writing we do not try to use YCbCr encoding, as Aperio recommends for 33003
+
+    /**
+     * JPEG-2000 Aperio lossy compression (type 33004).
+     */
     JPEG_2000(33004, "JPEG-2000 lossy", JPEG2000Codec::new),
-    JPEG_2000_LOSSLESS_ALTERNATIVE(33005, "JPEG-2000 alternative", JPEG2000Codec::new),
-    JPEG_2000_LOSSLESS_OLYMPUS(34712, "JPEG-2000 Olympus", JPEG2000Codec::new);
+
+    /**
+     * JPEG-2000 Aperio lossless compression for RGB (type 33005).
+     */
+    JPEG_2000_LOSSLESS_ALTERNATIVE(33005, "JPEG-2000 lossless alternative", JPEG2000Codec::new),
+
+    /**
+     * JPEG-2000 Olympus lossless compression (type 34712).
+     */
+    JPEG_2000_LOSSLESS_OLYMPUS(34712, "JPEG-2000 lossless Olympus", JPEG2000Codec::new);
 
     private static final Map<Integer, TagCompression> LOOKUP =
             Arrays.stream(values()).collect(Collectors.toMap(TagCompression::code, v -> v));

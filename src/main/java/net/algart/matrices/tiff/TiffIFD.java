@@ -112,10 +112,6 @@ public class TiffIFD {
      */
     public static final int COMPRESSION_CCITT_T6 = 4;
     /**
-     * Compression code for {@link TagCompression#PACK_BITS}.
-     */
-    public static final int COMPRESSION_PACK_BITS = 32773;
-    /**
      * Compression code for {@link TagCompression#LZW}.
      */
     public static final int COMPRESSION_LZW = 5;
@@ -135,6 +131,10 @@ public class TiffIFD {
      * Compression code for {@link TagCompression#DEFLATE_PROPRIETARY}.
      */
     public static final int COMPRESSION_DEFLATE_PROPRIETARY = 32946;
+    /**
+     * Compression code for {@link TagCompression#PACK_BITS}.
+     */
+    public static final int COMPRESSION_PACK_BITS = 32773;
 
     /**
      * Contiguous (chunked) samples format (PlanarConfiguration), for example: RGBRGBRGB....
