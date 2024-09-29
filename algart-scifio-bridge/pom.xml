@@ -6,7 +6,7 @@
 
     <groupId>net.algart</groupId>
     <artifactId>algart-scifio-bridge</artifactId>
-    <version>1.3.6</version>
+    <version>1.3.7</version>
 
     <name>AlgART-SCIFIO bridge</name>
     <description>Module helping to use and test AlgART-TIFF together with io.scif:scifio</description>
@@ -43,13 +43,13 @@
         <dependency>
             <groupId>net.algart</groupId>
             <artifactId>algart-tiff</artifactId>
-            <version>1.3.6</version>
+            <version>1.3.7</version>
         </dependency>
         <!-- test scope dependency -->
         <dependency>
             <groupId>net.algart</groupId>
             <artifactId>algart-tiff</artifactId>
-            <version>1.3.6</version>
+            <version>1.3.7</version>
             <classifier>tests</classifier>
             <type>test-jar</type>
             <scope>test</scope>
