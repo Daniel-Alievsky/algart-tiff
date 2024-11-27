@@ -112,8 +112,8 @@ public class TiffWriteMixedTest {
 
             // Second writing a part of image: must not affect previously written tiles
             samples = makeSamples(map, sizeX, sizeY, numberOfChannels, 0.1);
-            updated = writer.updateJavaArray(map, samples, 20, 20, sizeX, sizeY);
-            // - filling only 1/4 of map
+            updated = writer.updateJavaArray(map, samples, 500, 20, sizeX, sizeY);
+            // In the version 1.3.7, this led to a bug: the second tile was created again
             System.out.printf("2nd updated %d tiles:%n  %s%n%n",
                     updated.size(),
                     updated.stream().map(TiffTile::toString).collect(Collectors.joining("%n  ".formatted())));
