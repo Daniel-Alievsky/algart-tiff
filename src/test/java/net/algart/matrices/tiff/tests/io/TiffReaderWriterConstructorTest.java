@@ -50,7 +50,7 @@ public class TiffReaderWriterConstructorTest {
     public static void main(String[] args) throws IOException {
         if (args.length < 2) {
             System.out.println("Usage:");
-            System.out.println("    " + TiffWriteSimpleTest.class.getName() +
+            System.out.println("    " + TiffReaderWriterConstructorTest.class.getName() +
                     " test-for-read.tiff test-for-write.tiff");
             return;
         }

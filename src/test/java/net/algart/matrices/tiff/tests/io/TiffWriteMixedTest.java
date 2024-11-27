@@ -41,7 +41,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class TiffWriteSimpleTest {
+public class TiffWriteMixedTest {
     private final static int IMAGE_WIDTH = 2000;
     private final static int IMAGE_HEIGHT = 2000;
 
@@ -60,7 +60,7 @@ public class TiffWriteSimpleTest {
     public static void main(String[] args) throws IOException {
         if (args.length < 1) {
             System.out.println("Usage:");
-            System.out.println("    " + TiffWriteSimpleTest.class.getName() +
+            System.out.println("    " + TiffWriteMixedTest.class.getName() +
                     " target.tiff");
             return;
         }
@@ -96,33 +96,31 @@ public class TiffWriteSimpleTest {
 
             int sizeX = map.dimX() / 2;
             int sizeY = map.dimY() / 2;
-            final Object samples = Array.newInstance(
-//                    String.class, // - invalid type here should lead to exception
-                    map.elementType(),
-                    sizeX * sizeY * numberOfChannels);
-            if (samples instanceof byte[] a) {
-                for (int i = 0; i < a.length; i++) {
-                    a[i] = (byte) (i < a.length / numberOfChannels ? 70 : 240);
-                    // - by default, source data are always separated
-                }
-            } else if (samples instanceof short[] a) {
-                for (int i = 0; i < a.length; i++) {
-                    a[i] = (short) (i < a.length / numberOfChannels ? 17070 : 41400);
-                }
-            } else if (samples instanceof boolean[] booleans) {
-                Arrays.fill(booleans, true);
-            }
             // writer.writeForward(map); // - uncomment to write IFD BEFORE image
-            final List<TiffTile> updated = writer.updateJavaArray(
-                    map, samples, 0, 0, sizeX, sizeY);
+
+            // First writing a part of image
+            Object samples = makeSamples(map, sizeX, sizeY, numberOfChannels, 0.3);
+            List<TiffTile> updated = writer.updateJavaArray(map, samples, 20, 20, sizeX, sizeY);
             // - filling only 1/4 of map
-            System.out.printf("Updated:%n  %s%n%n", updated.stream().map(TiffTile::toString).collect(
-                    Collectors.joining("%n  ".formatted())));
+            System.out.printf("1st updated %d tiles:%n  %s%n%n",
+                    updated.size(),
+                    updated.stream().map(TiffTile::toString).collect(Collectors.joining("%n  ".formatted())));
             printReaderInfo(writer);
             writer.writeCompletedTiles(updated);
             // - frees the memory (almost do not affect results)
             printReaderInfo(writer);
 
+            // Second writing a part of image: must not affect previously written tiles
+            samples = makeSamples(map, sizeX, sizeY, numberOfChannels, 0.1);
+            updated = writer.updateJavaArray(map, samples, 20, 20, sizeX, sizeY);
+            // - filling only 1/4 of map
+            System.out.printf("2nd updated %d tiles:%n  %s%n%n",
+                    updated.size(),
+                    updated.stream().map(TiffTile::toString).collect(Collectors.joining("%n  ".formatted())));
+            printReaderInfo(writer);
+            writer.writeCompletedTiles(updated);
+            // - frees the memory (almost do not affect results)
+            printReaderInfo(writer);
             writer.complete(map);
             // writer.complete(map);
             // - we can call complete twice, it will spend little time for rewriting IFD, but has no effect
@@ -134,5 +132,28 @@ public class TiffWriteSimpleTest {
             System.out.printf("Actually saved IFD:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.DETAILED));
         }
         System.out.println("Done");
+    }
+
+    private static Object makeSamples(TiffMap map, int sizeX, int sizeY, int numberOfChannels, double value) {
+        final int numberOfPixels = sizeX * sizeY;
+        final Object samples = Array.newInstance(
+//                    String.class, // - invalid type here should lead to exception
+                map.elementType(),
+                numberOfPixels * numberOfChannels);
+        if (samples instanceof byte[] a) {
+            int v = (int) (value * 255.0);
+            for (int i = 0; i < a.length; i++) {
+                a[i] = (byte) (i < numberOfPixels ? v : 3 * v);
+                // - by default, source data are always separated
+            }
+        } else if (samples instanceof short[] a) {
+            int v = (int) (value * 65535.0);
+            for (int i = 0; i < a.length; i++) {
+                a[i] = (short) (i < numberOfPixels ? v : 3 * v);
+            }
+        } else if (samples instanceof boolean[] booleans) {
+            Arrays.fill(booleans, value != 0.0);
+        }
+        return samples;
     }
 }

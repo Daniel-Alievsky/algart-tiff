@@ -570,6 +570,11 @@ public final class TiffMap {
         tileMap.put(tileIndex, tile);
     }
 
+    public TiffTile remove(TiffTileIndex tileIndex) {
+        checkTileIndexIFD(tileIndex);
+        return tileMap.remove(tileIndex);
+    }
+
     public void putAll(Collection<TiffTile> tiles) {
         Objects.requireNonNull(tiles, "Null tiles");
         tiles.forEach(this::put);
