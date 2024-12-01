@@ -488,11 +488,12 @@ public final class TiffTile {
         return setData(data, true, false);
     }
 
-    public TiffTile fillEmpty() {
-        return fillEmpty(null);
+    public TiffTile fillWhenEmpty() {
+        return fillWhenEmpty(null);
     }
 
-    public TiffTile fillEmpty(Consumer<TiffTile> initializer) {
+    public TiffTile fillWhenEmpty(Consumer<TiffTile> initializer) {
+        checkDisposed();
         if (isEmpty()) {
             setDecodedData(new byte[sizeInBytes]);
             if (initializer != null) {
@@ -577,7 +578,7 @@ public final class TiffTile {
         this.interleaved = false;
         // - before possible setting new decoded data, we should restore default status interleaved = false
         this.encoded = false;
-        // - method checkReadyForNewDecodedData() require that the tile should not be declared as encoded
+        // - method checkReadyForNewDecodedData() requires that the tile should not be declared as encoded
         // Note: we should not clear information about stored data file range, because
         // it will be used even after flushing data to disk (with freeing this tile)
         return this;
@@ -592,11 +593,11 @@ public final class TiffTile {
      *
      * <p>After {@link #free()} method, the tile becomes {@link #isEmpty() empty},
      * but can be filled with some data again, for example using {@link #setDecodedData(byte[])}
-     * or {@link #fillEmpty()}.
+     * or {@link #fillWhenEmpty()}.
      * Unlike this, after {@link #dispose()} method,
      * the tile cannot be modified at all: any attempt to get or set data
      * ({@link #getDecodedData()}, {@link #getEncodedData()}, {@link  #setDecodedData(byte[])},
-     * {@link #setEncodedData(byte[])}, {@link #fillEmpty()} etc.) will result in an exception.</p>
+     * {@link #setEncodedData(byte[])}, {@link #fillWhenEmpty()} etc.) will result in an exception.</p>
      *
      * <p>{@link TiffWriter} class checks {@link #isDisposed()} method and does not attempt to update
      * <i>disposed</i> tiles.</p>
@@ -876,7 +877,7 @@ public final class TiffTile {
     @Override
     public String toString() {
         return "TIFF " +
-                (isEmpty() ? "(empty) " : "") +
+                (disposed ? "(DISPOSED) " : isEmpty() ? "(empty) " : "") +
                 (encoded ? "encoded" : "non-encoded") +
                 (interleaved ? " interleaved" : "") +
                 " tile" +
@@ -920,6 +921,7 @@ public final class TiffTile {
 
     private TiffTile setData(byte[] data, boolean encoded, boolean checkAligned) {
         Objects.requireNonNull(data, "Null " + (encoded ? "encoded" : "decoded") + " data");
+        checkDisposed();
         final long numberOfBits = 8L * (long) data.length;
         final long numberOfPixels = numberOfBits / bitsPerPixel;
         if (bitsPerPixel > 1) {
@@ -969,7 +971,15 @@ public final class TiffTile {
 
     private void checkEmpty() {
         if (data == null) {
+            checkDisposed();
             throw new IllegalStateException("TIFF tile is still not filled by any data: " + this);
+        }
+    }
+
+    private void checkDisposed() {
+        if (disposed) {
+            assert isEmpty() : "disposed tile must be empty";
+            throw new IllegalStateException("TIFF tile is disposed, access to its data is prohibited: " + this);
         }
     }
 

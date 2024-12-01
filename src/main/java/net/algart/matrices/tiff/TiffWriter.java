@@ -755,21 +755,21 @@ public class TiffWriter implements Closeable {
         }
     }
 
-
-    public void writeTile(TiffTile tile) throws IOException {
+    public void writeTile(TiffTile tile, boolean disposeAfterWriting) throws IOException {
         encode(tile);
-        writeEncodedTile(tile, true);
+        writeEncodedTile(tile, disposeAfterWriting);
     }
 
-    public int writeTiles(Collection<TiffTile> tiles) throws IOException {
-        return writeTiles(tiles, tile -> true);
+    public int writeAllTiles(Collection<TiffTile> tiles) throws IOException {
+        return writeTiles(tiles, tile -> true, true);
     }
 
     public int writeCompletedTiles(Collection<TiffTile> tiles) throws IOException {
-        return writeTiles(tiles, TiffTile::isCompleted);
+        return writeTiles(tiles, TiffTile::isCompleted, true);
     }
 
-    public int writeTiles(Collection<TiffTile> tiles, Predicate<TiffTile> needToWrite) throws IOException {
+    public int writeTiles(Collection<TiffTile> tiles, Predicate<TiffTile> needToWrite, boolean disposeAfterWriting)
+            throws IOException {
         Objects.requireNonNull(tiles, "Null tiles");
         Objects.requireNonNull(needToWrite, "Null needToWrite");
         long t1 = debugTime();
@@ -777,7 +777,7 @@ public class TiffWriter implements Closeable {
         long sizeInBytes = 0;
         for (TiffTile tile : tiles) {
             if (needToWrite.test(tile)) {
-                writeTile(tile);
+                writeTile(tile, disposeAfterWriting);
                 count++;
                 sizeInBytes += tile.getSizeInBytes();
             }
@@ -787,7 +787,7 @@ public class TiffWriter implements Closeable {
         return count;
     }
 
-    public void writeEncodedTile(TiffTile tile, boolean freeAfterWriting) throws IOException {
+    public void writeEncodedTile(TiffTile tile, boolean disposeAfterWriting) throws IOException {
         Objects.requireNonNull(tile, "Null tile");
         if (tile.isEmpty()) {
             return;
@@ -795,7 +795,7 @@ public class TiffWriter implements Closeable {
         long t1 = debugTime();
         synchronized (fileLock) {
             checkVirginFile();
-            TiffTileIO.writeToEnd(tile, out, freeAfterWriting, !bigTiff);
+            TiffTileIO.writeToEnd(tile, out, disposeAfterWriting, !bigTiff);
         }
         long t2 = debugTime();
         timeWriting += t2 - t1;
@@ -877,7 +877,7 @@ public class TiffWriter implements Closeable {
                     // It is important for writing: without this correction, GIMP and other libtiff-based programs
                     // will report about an error (see libtiff, tif_jpeg.c, assigning segment_width/segment_height)
                     // However, if tiling is requested via TILE_WIDTH/TILE_LENGTH tags, we SHOULD NOT do this.
-                    tile.fillEmpty(tileInitializer);
+                    tile.fillWhenEmpty(tileInitializer);
                     final byte[] data = tile.getDecodedData();
 
                     final int tileSizeX = tile.getSizeX();
@@ -1598,7 +1598,7 @@ public class TiffWriter implements Closeable {
                 targetTile.setEncodedData(encodedData);
             }
             targetMap.put(targetTile);
-            writeTile(targetTile);
+            writeTile(targetTile, true);
         }
         complete(targetMap);
         return targetMap;
@@ -2054,7 +2054,7 @@ public class TiffWriter implements Closeable {
                                 // smaller height)
                                 // or even 2 * numberOfSeparatedPlanes times for plane-separated tiles
                                 filler = new TiffTile(tileIndex).setEqualSizes(tile);
-                                filler.fillEmpty(tileInitializer);
+                                filler.fillWhenEmpty(tileInitializer);
                                 encode(filler);
                                 writeEncodedTile(filler, false);
                                 // - note: unlike usual tiles, the filler tile is written once,

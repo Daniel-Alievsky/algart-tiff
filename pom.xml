@@ -163,11 +163,11 @@
         </profile>
     </profiles>
 
-    <repositories>
-        <repository>
-            <!-- Repository of SCIFIO -->
-            <id>scijava.public</id>
-            <url>https://maven.scijava.org/content/groups/public</url>
-        </repository>
-    </repositories>
+<!-- Repository of SCIFIO was necessary in old versions of scijava-common -->
+<!--    <repositories>-->
+<!--        <repository>-->
+<!--            <id>scijava.public</id>-->
+<!--            <url>https://maven.scijava.org/content/groups/public</url>-->
+<!--        </repository>-->
+<!--    </repositories>-->
 </project>

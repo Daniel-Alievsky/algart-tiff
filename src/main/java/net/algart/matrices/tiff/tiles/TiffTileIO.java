@@ -58,7 +58,7 @@ public class TiffTileIO {
     public static void writeToEnd(
             TiffTile tile,
             DataHandle<?> out,
-            boolean freeAfterWriting,
+            boolean disposeAfterWriting,
             boolean strictlyRequire32Bit) throws IOException {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(out, "Null output stream");
@@ -68,18 +68,18 @@ public class TiffTileIO {
                     0xFFFFFFF0L + "; such large files should be written in Big-TIFF mode");
         }
         tile.setStoredDataFileOffset(length);
-        write(tile, out, freeAfterWriting);
+        write(tile, out, disposeAfterWriting);
     }
 
-    public static void write(TiffTile tile, DataHandle<?> out, boolean freeAfterWriting) throws IOException {
+    public static void write(TiffTile tile, DataHandle<?> out, boolean disposeAfterWriting) throws IOException {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(out, "Null output stream");
         final long filePosition = tile.getStoredDataFileOffset();
         byte[] encodedData = tile.getEncodedData();
         out.seek(filePosition);
         out.write(encodedData);
-        if (freeAfterWriting) {
-            tile.free();
+        if (disposeAfterWriting) {
+            tile.dispose();
         }
     }
 }
