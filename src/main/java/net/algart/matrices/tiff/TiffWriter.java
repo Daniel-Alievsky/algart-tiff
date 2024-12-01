@@ -871,6 +871,10 @@ public class TiffWriter implements Closeable {
                     final int xDiff = tileStartX - fromX;
 
                     final TiffTile tile = map.getOrNewMultiPlane(p, xIndex, yIndex);
+                    if (tile.isDisposed()) {
+                        // - we cannot write to already dispose tile: it will result in an exception
+                        continue;
+                    }
                     tile.checkReadyForNewDecodedData(false);
                     tile.cropToMap();
                     // - In stripped image, we should correct the height of the last row.
