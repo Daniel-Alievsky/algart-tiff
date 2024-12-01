@@ -1,4 +1,4 @@
-    /*
+/*
  * The MIT License (MIT)
  *
  * Copyright (c) 2023-2024 Daniel Alievsky, AlgART Laboratory (http://algart.net)
@@ -28,11 +28,7 @@ import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.TooLargeArrayException;
 import net.algart.arrays.UpdatablePArray;
-import net.algart.matrices.tiff.TiffException;
-import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.TiffSampleType;
-import net.algart.matrices.tiff.TiffWriter;
+import net.algart.matrices.tiff.*;
 
 import java.util.*;
 
@@ -226,15 +222,15 @@ public final class TiffMap {
      *                  or they are fixed and must be specified in IFD.
      */
     public TiffMap(TiffIFD ifd, boolean resizable) {
-        this( null, null, ifd, resizable);
+        this(null, null, ifd, resizable);
     }
 
     public static TiffMap newMapForWriting(TiffWriter owningWriter, TiffIFD ifd, boolean resizable) {
-        return new TiffMap( null, owningWriter, ifd, resizable);
+        return new TiffMap(null, owningWriter, ifd, resizable);
     }
 
     public static TiffMap newMapForReading(TiffReader owningReader, TiffIFD ifd) {
-        return new TiffMap( owningReader, null, ifd, false);
+        return new TiffMap(owningReader, null, ifd, false);
     }
 
     public TiffIFD ifd() {
