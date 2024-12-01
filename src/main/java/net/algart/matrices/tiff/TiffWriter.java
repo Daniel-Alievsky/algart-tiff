@@ -1076,7 +1076,7 @@ public class TiffWriter implements Closeable {
             tile.setEncodedData(encodedData.get());
         }
         if (tile.ifd().isReversedFillOrder()) {
-            PackedBitArraysPer8.reverseBitOrderInPlace(tile.getData());
+            PackedBitArraysPer8.reverseBitOrderInPlace(tile.getEncodedData());
         }
         long t4 = debugTime();
 

@@ -68,6 +68,7 @@ public final class TiffTile {
     private Queue<IRectangularArea> unsetArea = null;
     // - null value marks that all is empty;
     // it helps to defer actual subtracting until the moment when we know the correct tile sizes
+    private boolean disposed = false;
 
     /**
      * Creates new tile with given index.
@@ -462,9 +463,6 @@ public final class TiffTile {
         return encoded;
     }
 
-    public boolean isEmpty() {
-        return data == null;
-    }
 
     public void checkReadyForNewDecodedData(Boolean requiredInterleavedState) {
         if (encoded) {
@@ -476,11 +474,6 @@ public final class TiffTile {
             throw new IllegalStateException("TIFF tile is not ready to store new decoded data, because " +
                     "it is " + status + " (probably contains decoded, but already " + status + " data): " + this);
         }
-    }
-
-    public byte[] getData() {
-        checkEmpty();
-        return data;
     }
 
     public byte[] getEncodedData() {
@@ -575,6 +568,10 @@ public final class TiffTile {
         return setData(data, false, false);
     }
 
+    public boolean isEmpty() {
+        return data == null;
+    }
+
     public TiffTile free() {
         this.data = null;
         this.interleaved = false;
@@ -586,8 +583,40 @@ public final class TiffTile {
         return this;
     }
 
+    public boolean isDisposed() {
+        return disposed;
+    }
+
     /**
-     * Return the length of the last non-null {@link #getData() data array}, stored in this tile,
+     * Calls {@link #free()} and marks this tile as <i>disposed</i>.
+     *
+     * <p>After {@link #free()} method, the tile becomes {@link #isEmpty() empty},
+     * but can be filled with some data again, for example using {@link #setDecodedData(byte[])}
+     * or {@link #fillEmpty()}.
+     * Unlike this, after {@link #dispose()} method,
+     * the tile cannot be modified at all: any attempt to get or set data
+     * ({@link #getDecodedData()}, {@link #getEncodedData()}, {@link  #setDecodedData(byte[])},
+     * {@link #setEncodedData(byte[])}, {@link #fillEmpty()} etc.) will result in an exception.</p>
+     *
+     * <p>{@link TiffWriter} class checks {@link #isDisposed()} method and does not attempt to update
+     * <i>disposed</i> tiles.</p>
+     *
+     * <p>This method is automatically called by {@link TiffWriter#writeTile(TiffTile)} method:
+     * usually there is no any sense to work with a tile after once it has been written into the TIFF file.</p>
+     *
+     * <p>Note: there is no way to clear the <i>disposed</i> status in this object.</p>
+     *
+     * @return a reference to this object.
+     */
+    public TiffTile dispose() {
+        free();
+        this.disposed = true;
+        return this;
+    }
+
+
+    /**
+     * Return the length of the last non-null data array, stored in this tile,
      * or 0 after creating this object.
      *
      * <p>Immediately after reading tile from the file, as well as
@@ -645,8 +674,8 @@ public final class TiffTile {
     }
 
     /**
-     * Returns the estimated number of pixels, that can be stored in the {@link #getData() data array} in this tile
-     * in the decoded form, or 0 after creating this object.
+     * Returns the estimated number of pixels, that can be stored in the {@link #getDecodedData() data array}
+     * in this tile in the decoded form, or 0 after creating this object.
      *
      * <p>Note: that this method throws <code>IllegalStateException</code> if the data are
      * {@link #isEncoded() encoded}, for example, immediately after reading tile from file.

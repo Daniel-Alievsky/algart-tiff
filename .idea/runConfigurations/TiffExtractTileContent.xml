@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="TiffExtractTileContent" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.demo.io.TiffExtractTileContent" />
+    <module name="algart-tiff" />
+    <option name="PROGRAM_PARAMETERS" value="src/test/java/resources/demo/images/tiff/openslide/CMU-1-Small-Region.svs /tmp/tile.jpg 0 5 7" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="net.algart.matrices.tiff.demo.io.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

@@ -1014,6 +1014,7 @@ public class TiffReader implements Closeable {
 
         byteCount = correctZeroByteCount(tileIndex, byteCount, offset);
         if (byteCount == -1) {
+            // - possible when missingTilesAllowed flag is set
             return result;
         }
 
@@ -1095,7 +1096,7 @@ public class TiffReader implements Closeable {
             return;
         }
         if (tile.ifd().isReversedFillOrder()) {
-            PackedBitArraysPer8.reverseBitOrderInPlace(tile.getData());
+            PackedBitArraysPer8.reverseBitOrderInPlace(tile.getEncodedData());
         }
         boolean throwExceptionForStrangeDataStream = context != null;
         // - if context == null, there are no available external codecs; later we will throw a correct exception

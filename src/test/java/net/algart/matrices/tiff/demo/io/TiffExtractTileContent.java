@@ -26,6 +26,7 @@ package net.algart.matrices.tiff.demo.io;
 
 import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffReader;
+import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIndex;
@@ -78,7 +79,7 @@ public class TiffExtractTileContent {
                 System.out.printf("Encoded tile:%n    %s%n", tile);
                 if (!tile.isEmpty()) {
                     System.out.printf("    Compression format: %s%n", map.ifd().compressionPrettyName());
-                    byte[] bytes = tile.getData();
+                    byte[] bytes = tile.getEncodedData();
                     System.out.printf("Saving tile in %s%n", resultFile);
                     Files.write(resultFile, bytes);
                     try {
@@ -88,8 +89,15 @@ public class TiffExtractTileContent {
                         System.err.printf("Cannot decode tile: %s%n", e);
                     }
                 }
+                System.out.println("Done");
+                if (tile.compressionCode() == TagCompression.JPEG.code()) {
+                    System.out.println();
+                    System.out.println("Note: sometimes the saved JPEG will have different colors than " +
+                            "the colors in the original TIFF (for example, in some SVS files).");
+                    System.out.println("This is possible when the photometric interpretation (RGB or YCbCr) " +
+                            "declared in the TIFF tag is not properly encoded inside the JPEG data stream.");
+                }
             }
         }
-        System.out.println("Done");
     }
 }
