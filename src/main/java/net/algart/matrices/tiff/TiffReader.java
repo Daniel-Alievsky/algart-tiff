@@ -1231,7 +1231,7 @@ public class TiffReader implements Closeable {
     }
 
     public TiffMap newMap(TiffIFD ifd) {
-        return TiffMap.newFixed(ifd).buildTileGrid();
+        return TiffMap.newMapForReading(this, ifd).buildTileGrid();
         // - building grid is useful to perform loops on all tiles
     }
 

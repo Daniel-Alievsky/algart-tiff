@@ -75,12 +75,13 @@ public class TiffOverwriteDemo {
 
     private static void preloadPartiallyOverwrittenTiles(
             TiffReader reader,
-            TiffMap map,
+            TiffMap mapForWriting,
             int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
+        // Note: the reader IS NOT mapForWriting.owningReader()
         final IRectangularArea areaToWrite = IRectangularArea.valueOf(
                 fromX, fromY, fromX + sizeX - 1, fromY + sizeY - 1);
-        for (TiffTile tile : map.tiles()) {
+        for (TiffTile tile : mapForWriting.tiles()) {
             if (tile.rectangle().intersects(areaToWrite) && !areaToWrite.contains(tile.rectangle())) {
                 final TiffTile existing = reader.readCachedTile(tile.index());
                 tile.setDecodedData(existing.getDecodedData());

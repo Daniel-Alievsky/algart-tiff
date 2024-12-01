@@ -602,7 +602,8 @@ public final class TiffTile {
      * <p>{@link TiffWriter} class checks {@link #isDisposed()} method and does not attempt to update
      * <i>disposed</i> tiles.</p>
      *
-     * <p>This method is automatically called by {@link TiffWriter#writeTile(TiffTile)} method:
+     * <p>This method is automatically called by {@link TiffWriter#writeTile(TiffTile, boolean)} method
+     * when its second argument is <code>true</code>:
      * usually there is no any sense to work with a tile after once it has been written into the TIFF file.</p>
      *
      * <p>Note: there is no way to clear the <i>disposed</i> status in this object.</p>
@@ -614,7 +615,6 @@ public final class TiffTile {
         this.disposed = true;
         return this;
     }
-
 
     /**
      * Return the length of the last non-null data array, stored in this tile,

@@ -756,7 +756,7 @@ public class TiffParser extends TiffReader {
     @Deprecated
     public byte[] getTile(final IFD ifd, byte[] buf, int row, final int col)
             throws IOException, FormatException {
-        TiffMap map = TiffMap.newFixed(toTiffIFD(ifd));
+        TiffMap map = new TiffMap(toTiffIFD(ifd), false);
         int planeIndex = 0;
         if (map.isPlanarSeparated()) {
             planeIndex = row / map.gridCountY();

@@ -336,7 +336,7 @@ public class TiffWriterTest {
                         }
                         map = writer.existingMap(ifd);
                         if (preserveOldAccurately) {
-                            preloadPartiallyOverwrittenTiles(writer, map, x, y, w, h);
+                            preloadPartiallyOverwrittenTiles(map, x, y, w, h);
                         }
                     } else {
                         map = writer.newMap(ifd, resizable);
@@ -394,11 +394,11 @@ public class TiffWriterTest {
     }
 
     private static void preloadPartiallyOverwrittenTiles(
-            TiffWriter writer,
             TiffMap map,
             int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        final TiffReader reader = new TiffReader(writer.stream(), true);
+        @SuppressWarnings("resource")
+        final TiffReader reader = map.owningWriter().newReaderOfThisFile(true);
         final IRectangularArea areaToWrite = IRectangularArea.valueOf(
                 fromX, fromY, fromX + sizeX - 1, fromY + sizeY - 1);
         for (TiffTile tile : map.tiles()) {

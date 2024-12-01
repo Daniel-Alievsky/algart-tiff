@@ -97,7 +97,7 @@ public class TiffPredictionTest {
                 TiffIFD ifd = new TiffIFD()
                         .putTileSizes(tileSizeX, tileSizeY)
                         .putPixelInformation(numberOfChannels, sampleType);
-                TiffTile tile = TiffMap.newResizable(ifd).getOrNew(0, 0);
+                TiffTile tile = new TiffMap(ifd, true).getOrNew(0, 0);
                 byte[] data = new byte[tile.getSizeInBytes()];
                 for (int k = 0; k < data.length; k++) {
                     data[k] = test == 0 ? (byte) k : (byte) random.nextInt();

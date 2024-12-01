@@ -60,8 +60,8 @@ public class TiffAnalyseMeanSimpleDemo {
             TiffMap map = reader.map(ifdIndex);
             long t1 = System.nanoTime();
             double[] mean = lowLevel ?
-                    meanLowLevel(reader, map) :
-                    meanHighLevel(reader, map);
+                    meanLowLevel(map) :
+                    meanHighLevel(map);
             long t2 = System.nanoTime();
             System.out.printf("Mean channels values (%s): %s, calculated in %.3f ms, %.3f megapixels/sec%n",
                     lowLevel ? "low-level" : "high-level",
@@ -72,8 +72,9 @@ public class TiffAnalyseMeanSimpleDemo {
         System.out.println("Done");
     }
 
-    private static double[] meanHighLevel(TiffReader reader, TiffMap map) throws IOException {
+    private static double[] meanHighLevel(TiffMap map) throws IOException {
         double[] sum = new double[map.numberOfChannels()];
+        @SuppressWarnings("resource") TiffReader reader = map.owningReader();
         for (int y = 0; y < map.dimY(); y += BLOCK_SIZE) {
             if (y > 5000) {
                 System.out.printf("\r%d/%d...\r", y, map.dimY());
@@ -93,8 +94,9 @@ public class TiffAnalyseMeanSimpleDemo {
         return sum;
     }
 
-    private static double[] meanLowLevel(TiffReader reader, TiffMap map) throws IOException {
+    private static double[] meanLowLevel(TiffMap map) throws IOException {
         double[] sum = new double[map.numberOfChannels()];
+        @SuppressWarnings("resource") TiffReader reader = map.owningReader();
         for (int y = 0; y < map.dimY(); y += BLOCK_SIZE) {
             if (y > 5000) {
                 System.out.printf("\r%d/%d...\r", y, map.dimY());

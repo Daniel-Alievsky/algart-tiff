@@ -73,11 +73,11 @@ public class TiffFalsifyJPEGColorSpace {
                 final TiffMap readMap = maps.get(i);
                 if (readMap.compressionCode() != TiffIFD.COMPRESSION_JPEG) {
                     System.out.printf("\rCopying #%d/%d: %s%n", i, maps.size(), readMap.ifd());
-                    writer.copyImage(reader, readMap);
+                    writer.copyImage(readMap);
                     continue;
                 }
                 System.out.printf("\rTransforming #%d/%d: %s%n", i, maps.size(), readMap.ifd());
-                final TiffMap writeMap = writer.copyImage(reader, readMap, writeIFD -> {
+                final TiffMap writeMap = writer.copyImage(readMap, writeIFD -> {
                             writeIFD.putPhotometricInterpretation(before);
                             writeIFD.put(Tags.Y_CB_CR_SUB_SAMPLING,
                                     before == TagPhotometricInterpretation.RGB ? new int[]{1, 1} : new int[]{2, 2});

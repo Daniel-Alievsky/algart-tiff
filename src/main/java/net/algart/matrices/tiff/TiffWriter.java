@@ -184,7 +184,7 @@ public class TiffWriter implements Closeable {
      * {@link #create()} method. You can do this later.
      *
      * <p>Unlike other constructors, this one never throws an exception. This is helpful because it allows
-     *  making constructors in subclasses, which do not declare any exceptions to be thrown.
+     * making constructors in subclasses, which do not declare any exceptions to be thrown.
      *
      * @param outputStream output stream.
      */
@@ -1276,26 +1276,12 @@ public class TiffWriter implements Closeable {
     }
 
     /**
-     * Creates a new TIFF map for further writing data into the TIFF file by <code>writeXxx</code> methods.
-     *
-     * <p>Equivalent to <code>{@link #newMap(TiffIFD, boolean, boolean) newMap}(ifd, resizable, true)</code>.
-     *
-     * @param ifd       newly created and probably customized IFD.
-     * @param resizable if <code>true</code>, IFD dimensions may not be specified yet.
-     * @return map for writing further data.
-     * @throws TiffException in the case of some problems.
-     */
-    public TiffMap newMap(TiffIFD ifd, boolean resizable) throws TiffException {
-        return newMap(ifd, resizable, true);
-    }
-
-    /**
      * Creates a new TIFF map for further writing data to the TIFF file by <code>writeXxx</code> methods.
      *
      * <p>The <code>resizable</code> argument specifies the type of the created map: resizable or fixed.
      * For a resizable map, you do not have to set the IFD dimensions at this stage: they will be calculated
      * automatically while {@link #complete(TiffMap) completion} of the image.
-     * See also the constructor {@link TiffMap#newMap(TiffIFD, boolean)}.</p>
+     * See also the constructor {@link TiffMap#TiffMap(TiffIFD, boolean)}.</p>
      *
      * <p>If <code>correctIFDForWriting</code> is <code>true</code>,
      * this method automatically calls {@link #correctIFDForWriting(TiffIFD)} method for
@@ -1307,7 +1293,8 @@ public class TiffWriter implements Closeable {
      *
      * @param ifd       newly created and probably customized IFD.
      * @param resizable if <code>true</code>, IFD dimensions may not be specified yet: this argument is passed
-     *                  to {@link TiffMap#newMap(TiffIFD, boolean)} method for creating the new map.
+     *                  to {@link TiffMap#newMapForWriting(TiffWriter, TiffIFD, boolean)} method
+     *                  for creating the new map.
      * @return map for writing further data.
      * @throws TiffException in the case of some problems.
      */
@@ -1320,7 +1307,7 @@ public class TiffWriter implements Closeable {
         if (correctIFDForWriting) {
             correctIFDForWriting(ifd);
         }
-        final TiffMap map = TiffMap.newMap(ifd, resizable);
+        final TiffMap map = TiffMap.newMapForWriting(this, ifd, resizable);
         map.buildTileGrid();
         // - useful to perform loops on all tiles, especially in non-resizable case
         ifd.removeNextIFDOffset();
@@ -1331,6 +1318,20 @@ public class TiffWriter implements Closeable {
         ifd.freeze();
         // - actually not necessary, but helps to avoid possible bugs
         return map;
+    }
+
+    /**
+     * Creates a new TIFF map for further writing data into the TIFF file by <code>writeXxx</code> methods.
+     *
+     * <p>Equivalent to <code>{@link #newMap(TiffIFD, boolean, boolean) newMap}(ifd, resizable, true)</code>.
+     *
+     * @param ifd       newly created and probably customized IFD.
+     * @param resizable if <code>true</code>, IFD dimensions may not be specified yet.
+     * @return map for writing further data.
+     * @throws TiffException in the case of some problems.
+     */
+    public TiffMap newMap(TiffIFD ifd, boolean resizable) throws TiffException {
+        return newMap(ifd, resizable, true);
     }
 
     public TiffMap newFixedMap(TiffIFD ifd) throws TiffException {
@@ -1362,7 +1363,7 @@ public class TiffWriter implements Closeable {
     public TiffMap existingMap(TiffIFD ifd) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         correctIFDForWriting(ifd, false);
-        final TiffMap map = TiffMap.newFixed(ifd);
+        final TiffMap map = TiffMap.newMapForWriting(this, ifd, false);
         final long[] offsets = ifd.cachedTileOrStripOffsets();
         final long[] byteCounts = ifd.cachedTileOrStripByteCounts();
         assert offsets != null;
@@ -1560,7 +1561,7 @@ public class TiffWriter implements Closeable {
 
     public TiffMap copyImage(TiffReader source, int sourceIfdIndex) throws IOException {
         Objects.requireNonNull(source, "Null source TIFF reader");
-        return copyImage(source, source.map(sourceIfdIndex));
+        return copyImage(source.map(sourceIfdIndex));
     }
 
     public TiffMap copyImage(
@@ -1568,20 +1569,19 @@ public class TiffWriter implements Closeable {
             int sourceIfdIndex,
             boolean decodeAndEncode) throws IOException {
         Objects.requireNonNull(source, "Null source TIFF reader");
-        return copyImage(source, source.map(sourceIfdIndex), null, decodeAndEncode);
+        return copyImage(source.map(sourceIfdIndex), null, decodeAndEncode);
     }
 
-    public TiffMap copyImage(TiffReader source, TiffMap sourceMap) throws IOException {
-        return copyImage(source, sourceMap, null, false);
+    public TiffMap copyImage(TiffMap sourceMap) throws IOException {
+        return copyImage(sourceMap, null, false);
     }
 
     public TiffMap copyImage(
-            TiffReader source,
             TiffMap sourceMap,
             Consumer<TiffIFD> correctingResultIFDAfterCopyingFromSource,
             boolean decodeAndEncode) throws IOException {
-        Objects.requireNonNull(source, "Null source TIFF reader");
         Objects.requireNonNull(sourceMap, "Null source TIFF map");
+        @SuppressWarnings("resource") final TiffReader source = sourceMap.owningReader();
         final TiffIFD targetIFD = new TiffIFD(sourceMap.ifd());
         // - creating a clone of IFD: we must not modify the source IFD
         if (correctingResultIFDAfterCopyingFromSource != null) {

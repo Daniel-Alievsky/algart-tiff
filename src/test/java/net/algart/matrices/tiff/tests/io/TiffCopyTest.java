@@ -108,9 +108,9 @@ public class TiffCopyTest {
                     final TiffMap readMap = maps.get(ifdIndex);
                     System.out.printf("\r  Copying #%d/%d: %s%n", ifdIndex, maps.size(), readMap.ifd());
                     if (rawCopy) {
-                        writer.copyImage(reader, readMap);
+                        writer.copyImage(readMap);
                     } else {
-                        writer.copyImage(reader, readMap, writeIFD -> {
+                        writer.copyImage(readMap, writeIFD -> {
                             if (uncompress) {
                                 writeIFD.putCompression(TagCompression.NONE);
                             }

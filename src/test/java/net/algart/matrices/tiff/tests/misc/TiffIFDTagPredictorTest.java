@@ -44,7 +44,8 @@ public class TiffIFDTagPredictorTest {
         }
         String diagnostic = "O'k";
         try {
-            TiffPrediction.subtractPredictionIfRequested(TiffMap.newResizable(ifd).getOrNew(0, 0).fillWhenEmpty());
+            TiffPrediction.subtractPredictionIfRequested(
+                    new TiffMap(ifd, true).getOrNew(0, 0).fillWhenEmpty());
         } catch (TiffException e) {
             diagnostic = e.getMessage();
         }

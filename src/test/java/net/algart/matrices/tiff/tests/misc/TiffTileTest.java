@@ -35,7 +35,7 @@ public class TiffTileTest {
         ifd.defaultTileSizes();
         ifd.putPixelInformation(numberOfChannels, sampleType);
         System.out.printf("%s%n", ifd.toString(TiffIFD.StringFormat.NORMAL));
-        TiffTile tile = TiffMap.newResizable(ifd).getOrNew(0, 0);
+        TiffTile tile = new TiffMap(ifd, true).getOrNew(0, 0);
 
         tile.setPartiallyDecodedData(new byte[testDataLength - 1]);
         System.out.printf("%s: %s stored length, %d estimated pixels%n",
