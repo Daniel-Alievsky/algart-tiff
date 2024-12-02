@@ -121,7 +121,7 @@ public class TiffWriteMixedTest {
             writer.writeCompletedTiles(updated);
             // - frees the memory (almost do not affect results)
             printReaderInfo(writer);
-            writer.complete(map);
+            writer.completeWriting(map);
             // writer.complete(map);
             // - we can call complete twice, it will spend little time for rewriting IFD, but has no effect
 

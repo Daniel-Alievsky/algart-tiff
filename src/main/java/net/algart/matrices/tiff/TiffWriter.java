@@ -1043,7 +1043,7 @@ public class TiffWriter implements Closeable {
      *
      * <p>The <code>resizable</code> argument specifies the type of the created map: resizable or fixed.
      * For a resizable map, you do not have to set the IFD dimensions at this stage: they will be calculated
-     * automatically while {@link #complete(TiffMapForWriting) completion} of the image.
+     * automatically while {@link #completeWriting(TiffMapForWriting) completion} of the image.
      * See also the constructor {@link TiffMap#TiffMap(TiffIFD, boolean)}.</p>
      *
      * <p>If <code>correctIFDForWriting</code> is <code>true</code>,
@@ -1161,7 +1161,7 @@ public class TiffWriter implements Closeable {
      * <p>Note: this method does nothing if the image is {@link TiffMap#isResizable() resizable}
      * or if this action is disabled by {@link #setWritingForwardAllowed(boolean) setWritingForwardAllowed(false)}
      * call.
-     * In this case, IFD will be written at the final stage ({@link #complete(TiffMapForWriting)} method).
+     * In this case, IFD will be written at the final stage ({@link #completeWriting(TiffMapForWriting)} method).
      *
      * @param map map, describing the image.
      */
@@ -1452,7 +1452,7 @@ public class TiffWriter implements Closeable {
         long t3 = debugTime();
         encode(map);
         long t4 = debugTime();
-        complete(map);
+        completeWriting(map);
         logWritingMatrix(map, "byte samples", sizeX, sizeY, t1, t2, t3, t4);
 
     }
@@ -1475,7 +1475,7 @@ public class TiffWriter implements Closeable {
         long t3 = debugTime();
         encode(map);
         long t4 = debugTime();
-        complete(map);
+        completeWriting(map);
         logWritingMatrix(map, "pixel array", sizeX, sizeY, t1, t2, t3, t4);
 
     }
@@ -1509,7 +1509,7 @@ public class TiffWriter implements Closeable {
         long t3 = debugTime();
         encode(map);
         long t4 = debugTime();
-        complete(map);
+        completeWriting(map);
         logWritingMatrix(map, matrix, t1, t2, t3, t4);
     }
 
@@ -1545,7 +1545,7 @@ public class TiffWriter implements Closeable {
         writeMatrix(map, Matrices.mergeLayers(net.algart.arrays.Arrays.SMM, channels), fromX, fromY);
     }
 
-    public int complete(final TiffMapForWriting map) throws IOException {
+    public int completeWriting(final TiffMapForWriting map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         final boolean resizable = map.isResizable();
         map.checkTooSmallDimensionsForCurrentGrid();
@@ -1622,7 +1622,7 @@ public class TiffWriter implements Closeable {
             targetMap.put(targetTile);
             writeTile(targetTile, true);
         }
-        complete(targetMap);
+        completeWriting(targetMap);
         return targetMap;
     }
 

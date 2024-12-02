@@ -365,8 +365,8 @@ public class TiffWriterTest {
                         // - usually not a problem to call twice, but file space will be used twice;
                         // if we have partially filled tiles on existing map, then preserveOldAccurately mode
                         // will not work properly (without 2nd preloadPartiallyOverwrittenTiles)
-                        writer.complete(map); // - called inside write, but not a problem to call twice
-                        writer.complete(map); // - called inside write, but not a problem to call twice
+                        writer.completeWriting(map); // - called inside write, but not a problem to call twice
+                        writer.completeWriting(map); // - called inside write, but not a problem to call twice
                         if (writer.stream().length() != length) {
                             throw new AssertionError("File increased!");
                         }

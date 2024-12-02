@@ -95,7 +95,7 @@ public class TiffWriteRepeatedPictureDemo {
             }
             System.out.println();
             System.out.printf("Completing image to %s...%n", map);
-            writer.complete(map);
+            writer.completeWriting(map);
         }
         System.out.println("Done");
     }
