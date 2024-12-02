@@ -53,6 +53,14 @@ public final class TiffMapForReading extends TiffMap {
         return owningReader;
     }
 
+    public Object readJavaArray() throws IOException {
+        return owningReader.readJavaArray(this);
+    }
+
+    public Object readJavaArray(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
+        return owningReader.readJavaArray(this, fromX, fromY, sizeX, sizeY);
+    }
+
     public Matrix<UpdatablePArray> readMatrix() throws IOException {
         return owningReader.readMatrix(this);
     }

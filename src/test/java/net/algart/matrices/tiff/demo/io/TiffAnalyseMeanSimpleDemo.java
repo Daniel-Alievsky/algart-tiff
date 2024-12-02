@@ -74,7 +74,6 @@ public class TiffAnalyseMeanSimpleDemo {
 
     private static double[] meanHighLevel(TiffMapForReading map) throws IOException {
         double[] sum = new double[map.numberOfChannels()];
-        @SuppressWarnings("resource") TiffReader reader = map.reader();
         for (int y = 0; y < map.dimY(); y += BLOCK_SIZE) {
             if (y > 5000) {
                 System.out.printf("\r%d/%d...\r", y, map.dimY());
@@ -82,7 +81,7 @@ public class TiffAnalyseMeanSimpleDemo {
             for (int x = 0; x < map.dimX(); x += BLOCK_SIZE) {
                 int sizeX = Math.min(map.dimX() - x, BLOCK_SIZE);
                 int sizeY = Math.min(map.dimY() - y, BLOCK_SIZE);
-                List<Matrix<UpdatablePArray>> matrices = reader.readChannels(map, x, y, sizeX, sizeY);
+                List<Matrix<UpdatablePArray>> matrices = map.readChannels(x, y, sizeX, sizeY);
                 for (int c = 0; c < sum.length; c++) {
                     sum[c] += Arrays.sumOf(ArrayContext.DEFAULT_SINGLE_THREAD, matrices.get(c).array());
                 }
@@ -104,7 +103,7 @@ public class TiffAnalyseMeanSimpleDemo {
             for (int x = 0; x < map.dimX(); x += BLOCK_SIZE) {
                 int sizeX = Math.min(map.dimX() - x, BLOCK_SIZE);
                 int sizeY = Math.min(map.dimY() - y, BLOCK_SIZE);
-                Object javaArray = reader.readJavaArray(map, x, y, sizeX, sizeY);
+                Object javaArray = map.readJavaArray(x, y, sizeX, sizeY);
                 int length = sizeX * sizeY;
                 for (int c = 0; c < sum.length; c++) {
                     sum[c] += sumLowLevel(javaArray, c * length, (c + 1) * length);

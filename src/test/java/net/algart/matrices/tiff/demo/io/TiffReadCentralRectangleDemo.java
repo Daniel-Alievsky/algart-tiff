@@ -70,7 +70,7 @@ public class TiffReadCentralRectangleDemo {
                 MatrixIO.writeBufferedImage(targetFile, bi);
             } else {
                 System.out.printf("Reading image %dx%d from %s...%n", sizeX, sizeY, map);
-                List<Matrix<UpdatablePArray>> image = reader.readChannels(map, fromX, fromY, sizeX, sizeY);
+                List<Matrix<UpdatablePArray>> image = map.readChannels(fromX, fromY, sizeX, sizeY);
                 MatrixIO.writeImage(targetFile, image);
             }
         }

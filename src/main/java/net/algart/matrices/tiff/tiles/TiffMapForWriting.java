@@ -286,6 +286,10 @@ public final class TiffMapForWriting extends TiffMap {
         return updateMatrix(Matrices.mergeLayers(net.algart.arrays.Arrays.SMM, channels), fromX, fromY);
     }
 
+    public void writeJavaArray(Object samplesArray) throws IOException {
+        owningWriter.writeJavaArray(this, samplesArray);
+    }
+
     public void writeMatrix(Matrix<? extends PArray> matrix) throws IOException {
         owningWriter.writeMatrix(this, matrix);
     }
