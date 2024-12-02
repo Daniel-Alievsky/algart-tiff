@@ -48,7 +48,7 @@ public class TiffAppendDemo {
         }
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
-            System.out.printf("    %s [-append] [-mono] source.jpg/png/bmp target.tiff%n",
+            System.out.printf("    %s [-mono] source.jpg/png/bmp target.tiff%n",
                     TiffAppendDemo.class.getName());
             return;
         }
@@ -71,7 +71,7 @@ public class TiffAppendDemo {
                     .putCompression(TagCompression.DEFLATE);
             final TiffMapForWriting map = writer.newFixedMap(ifd);
             System.out.printf("Appending image to %s...%n", map);
-            writer.writeChannels(map, image);
+            map.writeChannels(image);
         }
         System.out.println("Done");
     }

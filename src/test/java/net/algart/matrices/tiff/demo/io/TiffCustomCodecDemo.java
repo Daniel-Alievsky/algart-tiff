@@ -82,7 +82,7 @@ public class TiffCustomCodecDemo {
             ifd.putCompressionCode(MY_GZIP_COMPRESSION_CODE);
             // ifd.putCompression(TagCompression.DEFLATE); // - uncomment to compare sizes
             final var map = writer.newFixedMap(ifd);
-            writer.writeChannels(map, image);
+            map.writeChannels(image);
         }
         System.out.printf("%nReading TIFF %s...%n%n", tiffFile);
         try (TiffReader reader = new TiffReader(tiffFile) {

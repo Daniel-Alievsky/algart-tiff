@@ -885,18 +885,30 @@ public class TiffIFD {
 
     public int getImageDimX() throws TiffException {
         final int imageWidth = reqInt(Tags.IMAGE_WIDTH);
-        if (imageWidth <= 0) {
-            throw new TiffException("Zero or negative image width = " + imageWidth);
+        if (imageWidth == 0) {
+            throw new TiffException("Zero image width");
             // - impossible in a correct TIFF
+        }
+        if (imageWidth < 0) {
+            throw new TiffException("Very large TIFF image width " +
+                    (imageWidth & 0xFFFFFFFFL) + " >= 2^31 is not supported");
+            // Note: we cannot process image larger than 2^31 x 2^31 pixels,
+            // though TIFF supports maximal sizes 2^32 x 2^32
         }
         return imageWidth;
     }
 
     public int getImageDimY() throws TiffException {
         final int imageLength = reqInt(Tags.IMAGE_LENGTH);
-        if (imageLength <= 0) {
-            throw new TiffException("Zero or negative image height = " + imageLength);
+        if (imageLength == 0) {
+            throw new TiffException("Zero image height");
             // - impossible in a correct TIFF
+        }
+        if (imageLength < 0) {
+            throw new TiffException("Very large TIFF image height " +
+                    (imageLength & 0xFFFFFFFFL) + " >= 2^31 is not supported");
+            // Note: we cannot process image larger than 2^31 x 2^31 pixels,
+            // though TIFF supports maximal sizes 2^32 x 2^32
         }
         return imageLength;
     }

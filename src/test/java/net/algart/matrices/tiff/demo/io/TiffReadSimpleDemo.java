@@ -54,7 +54,7 @@ public class TiffReadSimpleDemo {
             // reader.setInterleaveResults(true); // - slows down reading (unnecessary interleaving+separating)
             final var map = reader.map(ifdIndex);
             System.out.printf("Reading %s...%n", map);
-            image = reader.readChannels(map);
+            image = map.readChannels();
         }
         System.out.printf("Writing %s...%n", targetFile);
         MatrixIO.writeImage(targetFile, image);

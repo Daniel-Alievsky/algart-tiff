@@ -51,7 +51,6 @@ public final class TiffTile {
     private final int samplesPerPixel;
     private final int bitsPerSample;
     private final int bitsPerPixel;
-    private final ByteOrder byteOrder;
     private final TiffTileIndex index;
     private int sizeX;
     private int sizeY;
@@ -85,7 +84,6 @@ public final class TiffTile {
         this.bitsPerSample = map.alignedBitsPerSample();
         this.bitsPerPixel = map.tileAlignedBitsPerPixel();
         assert this.bitsPerPixel == samplesPerPixel * bitsPerSample;
-        this.byteOrder = map.ifd().getByteOrder();
         assert index.ifd() == map.ifd() : "index retrieved ifd from its tile map!";
         setSizes(map.tileSizeX(), map.tileSizeY());
     }
@@ -163,16 +161,16 @@ public final class TiffTile {
         return opt.isPresent() ? OptionalInt.of(opt.getAsInt() * samplesPerPixel) : OptionalInt.empty();
     }
 
-    public ByteOrder byteOrder() {
-        return byteOrder;
-    }
-
     public TiffSampleType sampleType() {
         return map.sampleType();
     }
 
     public Class<?> elementType() {
         return map.elementType();
+    }
+
+    public ByteOrder byteOrder() {
+        return map.byteOrder();
     }
 
     public int compressionCode() {
@@ -555,7 +553,6 @@ public final class TiffTile {
     }
 
     public Matrix<UpdatablePArray> unpackedMatrix() {
-        Objects.requireNonNull(byteOrder, "Null byteOrder");
         final byte[] samples = unpackUnusualDecodedData();
         final Object javaArray = sampleType().javaArray(samples, byteOrder());
         return TiffSampleType.asMatrix(javaArray, sizeX, sizeY, samplesPerPixel, interleaved);

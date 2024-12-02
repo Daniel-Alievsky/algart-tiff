@@ -24,9 +24,15 @@
 
 package net.algart.matrices.tiff.tiles;
 
+import net.algart.arrays.Matrix;
+import net.algart.arrays.PackedBitArraysPer8;
+import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 public final class TiffMapForReading extends TiffMap {
@@ -47,6 +53,121 @@ public final class TiffMapForReading extends TiffMap {
         return owningReader;
     }
 
+    public Matrix<UpdatablePArray> readMatrix() throws IOException {
+        return owningReader.readMatrix(this);
+    }
+
+    public Matrix<UpdatablePArray> readMatrix(int fromX, int fromY, int sizeX, int sizeY)
+            throws IOException {
+        return owningReader.readMatrix(this, fromX, fromY, sizeX, sizeY);
+    }
+
+    public List<Matrix<UpdatablePArray>> readChannels() throws IOException {
+        return owningReader.readChannels(this);
+    }
+
+    public List<Matrix<UpdatablePArray>> readChannels(int fromX, int fromY, int sizeX, int sizeY)
+            throws IOException {
+        return owningReader.readChannels(this, fromX, fromY, sizeX, sizeY);
+    }
+
+    public byte[] readTileSamples(
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY,
+            boolean storeTilesInMap)
+            throws IOException {
+        TiffReader.checkRequestedArea(fromX, fromY, sizeX, sizeY);
+        final int sizeInBytes = sizeOfRegionWithPossibleNonStandardPrecisions(sizeX, sizeY);
+        final byte[] samples = new byte[sizeInBytes];
+
+        final byte byteFiller = owningReader.getByteFiller();
+        if (byteFiller != 0) {
+            // - Java already zero-fills samples array
+            Arrays.fill(samples, 0, sizeInBytes, byteFiller);
+        }
+        if (sizeX == 0 || sizeY == 0) {
+            // - if no pixels are updated, no need to expand the map and to check correct expansion
+            return samples;
+        }
+
+        final int mapTileSizeX = tileSizeX();
+        final int mapTileSizeY = tileSizeY();
+        final long bitsPerSample = alignedBitsPerSample();
+        // - "long" here leads to stricter requirements later on
+        final int numberOfSeparatedPlanes = numberOfSeparatedPlanes();
+        final int samplesPerPixel = tileSamplesPerPixel();
+
+        final boolean cropTilesToImageBoundaries = owningReader.isCropTilesToImageBoundaries();
+        final int toX = Math.min(fromX + sizeX, cropTilesToImageBoundaries ? dimX() : Integer.MAX_VALUE);
+        final int toY = Math.min(fromY + sizeY, cropTilesToImageBoundaries ? dimY() : Integer.MAX_VALUE);
+        // - crop by image sizes to avoid reading unpredictable content of the boundary tiles outside the image
+        final int minXIndex = Math.max(0, divFloor(fromX, mapTileSizeX));
+        final int minYIndex = Math.max(0, divFloor(fromY, mapTileSizeY));
+        if (minXIndex >= gridCountX() || minYIndex >= gridCountY() || toX < fromX || toY < fromY) {
+            return samples;
+        }
+        final int maxXIndex = Math.min(gridCountX() - 1, divFloor(toX - 1, mapTileSizeX));
+        final int maxYIndex = Math.min(gridCountY() - 1, divFloor(toY - 1, mapTileSizeY));
+        if (minYIndex > maxYIndex || minXIndex > maxXIndex) {
+            // - possible when fromX < 0 or fromY < 0
+            return samples;
+        }
+        final long tileOneChannelRowSizeInBits = (long) mapTileSizeX * bitsPerSample;
+        final long samplesOneChannelRowSizeInBits = (long) sizeX * bitsPerSample;
+
+        for (int p = 0; p < numberOfSeparatedPlanes; p++) {
+            // - for a rare case PlanarConfiguration=2 (RRR...GGG...BBB...)
+            for (int yIndex = minYIndex; yIndex <= maxYIndex; yIndex++) {
+                final int tileStartY = Math.max(yIndex * mapTileSizeY, fromY);
+                final int fromYInTile = tileStartY % mapTileSizeY;
+                final int yDiff = tileStartY - fromY;
+
+                for (int xIndex = minXIndex; xIndex <= maxXIndex; xIndex++) {
+                    final int tileStartX = Math.max(xIndex * mapTileSizeX, fromX);
+                    final int fromXInTile = tileStartX % mapTileSizeX;
+                    final int xDiff = tileStartX - fromX;
+
+                    final TiffTile tile = owningReader.readCachedTile(multiPlaneIndex(p, xIndex, yIndex));
+                    if (storeTilesInMap) {
+                        put(tile);
+                    }
+                    if (tile.isEmpty()) {
+                        continue;
+                    }
+                    if (!tile.isSeparated()) {
+                        throw new AssertionError("Illegal behavior of readTile: it returned interleaved tile!");
+                        // - theoretically possible in subclasses
+                    }
+                    byte[] data = tile.getDecodedData();
+
+                    final int tileSizeX = tile.getSizeX();
+                    final int tileSizeY = tile.getSizeY();
+                    final int sizeXInTile = Math.min(toX - tileStartX, tileSizeX - fromXInTile);
+                    assert sizeXInTile > 0 : "sizeXInTile=" + sizeXInTile;
+                    final int sizeYInTile = Math.min(toY - tileStartY, tileSizeY - fromYInTile);
+                    assert sizeYInTile > 0 : "sizeYInTile=" + sizeYInTile;
+
+                    final long partSizeXInBits = (long) sizeXInTile * bitsPerSample;
+                    for (int s = 0; s < samplesPerPixel; s++) {
+                        long tOffset = (((s * (long) tileSizeY) + fromYInTile)
+                                * (long) tileSizeX + fromXInTile) * bitsPerSample;
+                        long sOffset = (((p + s) * (long) sizeY + yDiff) * (long) sizeX + xDiff) * bitsPerSample;
+                        // (long) cast is important for processing large bit matrices!
+                        for (int i = 0; i < sizeYInTile; i++) {
+                            assert sOffset >= 0 && tOffset >= 0 : "possibly int instead of long";
+                            PackedBitArraysPer8.copyBitsNoSync(samples, sOffset, data, tOffset, partSizeXInBits);
+                            tOffset += tileOneChannelRowSizeInBits;
+                            sOffset += samplesOneChannelRowSizeInBits;
+                        }
+                    }
+                }
+            }
+        }
+        return samples;
+    }
+
     @Override
     public int hashCode() {
         return super.hashCode() ^ 'r';
@@ -55,5 +176,10 @@ public final class TiffMapForReading extends TiffMap {
     @Override
     String mapKindName() {
         return "map-for-reading";
+    }
+
+    static int divFloor(int a, int b) {
+        assert b > 0;
+        return a >= 0 ? a / b : (a - b + 1) / b;
     }
 }

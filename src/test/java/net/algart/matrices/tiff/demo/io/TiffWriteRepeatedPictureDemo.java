@@ -85,8 +85,8 @@ public class TiffWriteRepeatedPictureDemo {
             System.out.printf("Creating new resizable map: %s%n", map);
             for (int y = 0; y < yCount; y++) {
                 for (int x = 0; x < xCount; x++) {
-                    final List<TiffTile> updated = writer.updateChannels(
-                            map, pattern, x * (int) patternSizeX, y * (int) patternSizeY);
+                    final List<TiffTile> updated = map.updateChannels(
+                            pattern, x * (int) patternSizeX, y * (int) patternSizeY);
                     final int written = writer.writeCompletedTiles(updated);
                     // - if you comment this operator, OutOfMemoryError will be possible for a very large TIFF
                     System.out.printf("\rBlock (%d,%d) from (%d,%d) ready (%d written, %s memory used)        \r",
@@ -95,7 +95,7 @@ public class TiffWriteRepeatedPictureDemo {
             }
             System.out.println();
             System.out.printf("Completing image to %s...%n", map);
-            writer.completeWriting(map);
+            map.completeWriting();
         }
         System.out.println("Done");
     }

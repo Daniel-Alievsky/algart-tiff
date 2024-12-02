@@ -30,6 +30,7 @@ import net.algart.arrays.TooLargeArrayException;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.*;
 
+import java.nio.ByteOrder;
 import java.util.*;
 
 public sealed class TiffMap permits TiffMapForReading, TiffMapForWriting{
@@ -107,6 +108,7 @@ public sealed class TiffMap permits TiffMapForReading, TiffMapForWriting{
     private final TiffSampleType sampleType;
     private final boolean wholeBytes;
     private final Class<?> elementType;
+    private final ByteOrder byteOrder;
     private final long maxNumberOfSamplesInArray;
     private final TilingMode tilingMode;
     private final int tileSizeX;
@@ -185,6 +187,7 @@ public sealed class TiffMap permits TiffMapForReading, TiffMapForWriting{
                         " is too little: less than ifd.alignedBitDepth() = " + alignedBitsPerSample);
             }
             this.elementType = sampleType.elementType();
+            this.byteOrder = ifd.getByteOrder();
             this.maxNumberOfSamplesInArray = sampleType.maxNumberOfSamplesInArray();
             this.tileSizeX = ifd.getTileSizeX();
             this.tileSizeY = ifd.getTileSizeY();
@@ -332,6 +335,10 @@ public sealed class TiffMap permits TiffMapForReading, TiffMapForWriting{
 
     public Class<?> elementType() {
         return elementType;
+    }
+
+    public ByteOrder byteOrder() {
+        return byteOrder;
     }
 
     public int sizeOfRegionWithPossibleNonStandardPrecisions(long sizeX, long sizeY) throws TiffException {

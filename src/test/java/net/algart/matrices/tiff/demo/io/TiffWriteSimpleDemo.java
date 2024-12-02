@@ -58,7 +58,7 @@ public class TiffWriteSimpleDemo {
                 .putCompression(TagCompression.DEFLATE);
             final var map = writer.newFixedMap(ifd);
             System.out.printf("Writing image: %s...%n", map);
-            writer.writeChannels(map, image);
+            map.writeChannels(image);
         }
         System.out.println("Done");
     }
