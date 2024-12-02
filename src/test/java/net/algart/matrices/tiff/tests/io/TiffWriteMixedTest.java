@@ -106,7 +106,7 @@ public class TiffWriteMixedTest {
                     updated.size(),
                     updated.stream().map(TiffTile::toString).collect(Collectors.joining("%n  ".formatted())));
             printReaderInfo(writer);
-            writer.writeCompletedTiles(updated);
+            map.writeCompletedTiles(updated);
             // - frees the memory (almost do not affect results)
             printReaderInfo(writer);
 
@@ -118,10 +118,10 @@ public class TiffWriteMixedTest {
                     updated.size(),
                     updated.stream().map(TiffTile::toString).collect(Collectors.joining("%n  ".formatted())));
             printReaderInfo(writer);
-            writer.writeCompletedTiles(updated);
+            map.writeCompletedTiles(updated);
             // - frees the memory (almost do not affect results)
             printReaderInfo(writer);
-            writer.completeWriting(map);
+            map.completeWriting();
             // writer.complete(map);
             // - we can call complete twice, it will spend little time for rewriting IFD, but has no effect
 

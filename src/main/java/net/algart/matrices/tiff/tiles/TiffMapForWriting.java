@@ -35,8 +35,10 @@ import net.algart.matrices.tiff.TiffWriter;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 public final class TiffMapForWriting extends TiffMap {
     private final TiffWriter owningWriter;
@@ -297,6 +299,19 @@ public final class TiffMapForWriting extends TiffMap {
     public void writeChannels(List<? extends Matrix<? extends PArray>> channels)
             throws IOException {
         owningWriter.writeChannels(this, channels);
+    }
+
+    public int writeAllTiles(Collection<TiffTile> tiles) throws IOException {
+        return owningWriter.writeAllTiles(tiles);
+    }
+
+    public int writeCompletedTiles(Collection<TiffTile> tiles) throws IOException {
+        return owningWriter.writeCompletedTiles(tiles);
+    }
+
+    public int writeTiles(Collection<TiffTile> tiles, Predicate<TiffTile> needToWrite, boolean disposeAfterWriting)
+            throws IOException {
+        return owningWriter.writeTiles(tiles, needToWrite, disposeAfterWriting);
     }
 
     public int completeWriting() throws IOException {

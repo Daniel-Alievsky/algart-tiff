@@ -87,7 +87,7 @@ public class TiffWriteRepeatedPictureDemo {
                 for (int x = 0; x < xCount; x++) {
                     final List<TiffTile> updated = map.updateChannels(
                             pattern, x * (int) patternSizeX, y * (int) patternSizeY);
-                    final int written = writer.writeCompletedTiles(updated);
+                    final int written = map.writeCompletedTiles(updated);
                     // - if you comment this operator, OutOfMemoryError will be possible for a very large TIFF
                     System.out.printf("\rBlock (%d,%d) from (%d,%d) ready (%d written, %s memory used)        \r",
                             x + 1, y + 1, xCount, yCount, written, memory());
