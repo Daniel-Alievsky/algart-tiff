@@ -1270,19 +1270,18 @@ public class TiffReader implements Closeable {
         final TiffIFD ifd = map.ifd();
         final long sizeInPixels = (long) sizeX * (long) sizeY;
         // - can be >2^31 for bits
-        long t2 = debugTime();
 
-        byte[] samples = map.readTileSamples(fromX, fromY, sizeX, sizeY, storeTilesInMap);
+        byte[] samples = map.loadSamples(this::readCachedTile, fromX, fromY, sizeX, sizeY, storeTilesInMap);
         final int sizeInBytes = samples.length;
 
-        long t3 = debugTime();
+        long t2 = debugTime();
         boolean interleave = false;
         if (interleaveResults) {
             byte[] newSamples = map.toInterleavedSamples(samples, numberOfChannels, sizeInPixels);
             interleave = newSamples != samples;
             samples = newSamples;
         }
-        long t4 = debugTime();
+        long t3 = debugTime();
         boolean unpackingPrecision = false;
         if (autoUnpackUnusualPrecisions) {
             byte[] newSamples = TiffUnusualPrecisions.unpackUnusualPrecisions(
@@ -1296,38 +1295,41 @@ public class TiffReader implements Closeable {
             samples = PackedBitArraysPer8.unpackBitsToBytes(samples, 0, sizeInPixels, (byte) 0, (byte) 255);
         }
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
-            long t5 = debugTime();
+            long t4 = debugTime();
+            long timeNonClassified = t2 - t1 - (timeReading + timeDecoding);
             LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
                     "%s read %dx%dx%d samples (%.3f MB) in %.3f ms = " +
-                            "%.3f initializing + %.3f read/decode " +
-                            "(%.3f read, %.3f customize/bit-order, %.3f decode: " +
-                            "%.3f decode-main%s, " +
-                            "%.3f complete)" +
+                            "%.3f read/decode " +
+                            "(%.3f read; %.3f customize/bit-order, %.3f decode%s, " +
+                            "%.3f complete; %.3f tiles->array and other)" +
                             "%s%s, %.3f MB/s",
                     getClass().getSimpleName(),
                     sizeX, sizeY, numberOfChannels, sizeInBytes / 1048576.0,
-                    (t5 - t1) * 1e-6,
+                    (t4 - t1) * 1e-6,
                     (t2 - t1) * 1e-6,
-                    (t3 - t2) * 1e-6,
                     timeReading * 1e-6,
                     timeCustomizingDecoding * 1e-6,
                     timeDecoding * 1e-6,
-                    timeDecodingMain * 1e-6,
-                    timeDecodingBridge + timeDecodingAdditional > 0 ?
-                            String.format(Locale.US, " + %.3f decode-bridge + %.3f decode-additional",
-                                    timeDecodingBridge * 1e-6,
-                                    timeDecodingAdditional * 1e-6) :
-                            "",
+                    timeDecoding != timeDecodingMain || timeDecodingBridge + timeDecodingAdditional > 0 ?
+                            String.format(Locale.US, " [= %.3f main%s]",
+                                    timeDecodingMain * 1e-6,
+                                    timeDecodingBridge + timeDecodingAdditional > 0 ?
+                                            String.format(Locale.US,
+                                                    " + %.3f decode-bridge + %.3f decode-additional",
+                                                    timeDecodingBridge * 1e-6,
+                                                    timeDecodingAdditional * 1e-6) :
+                                            "") : "",
                     timeCompleteDecoding * 1e-6,
+                    timeNonClassified * 1e-6,
                     interleave ?
-                            String.format(Locale.US, " + %.3f interleave", (t4 - t3) * 1e-6) : "",
+                            String.format(Locale.US, " + %.3f interleave", (t3 - t2) * 1e-6) : "",
                     unpackingPrecision ?
                             String.format(Locale.US, " + %.3f unpacking %d-bit %s",
-                                    (t5 - t4) * 1e-6,
+                                    (t4 - t3) * 1e-6,
                                     map.alignedBitsPerSample(),
                                     map.sampleType().isFloatingPoint() ? "float values" : "integer values") :
                             "",
-                    sizeInBytes / 1048576.0 / ((t5 - t1) * 1e-9)));
+                    sizeInBytes / 1048576.0 / ((t4 - t1) * 1e-9)));
         }
         return samples;
     }

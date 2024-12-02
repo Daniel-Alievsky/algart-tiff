@@ -79,13 +79,15 @@ public final class TiffMapForReading extends TiffMap {
         return owningReader.readChannels(this, fromX, fromY, sizeX, sizeY);
     }
 
-    public byte[] readTileSamples(
+    public byte[] loadSamples(
+            TiffTileSupplier tileSupplier,
             int fromX,
             int fromY,
             int sizeX,
             int sizeY,
             boolean storeTilesInMap)
             throws IOException {
+        Objects.requireNonNull(tileSupplier, "Null tile supplier");
         TiffReader.checkRequestedArea(fromX, fromY, sizeX, sizeY);
         final int sizeInBytes = sizeOfRegionWithPossibleNonStandardPrecisions(sizeX, sizeY);
         final byte[] samples = new byte[sizeInBytes];
@@ -137,7 +139,8 @@ public final class TiffMapForReading extends TiffMap {
                     final int fromXInTile = tileStartX % mapTileSizeX;
                     final int xDiff = tileStartX - fromX;
 
-                    final TiffTile tile = owningReader.readCachedTile(multiPlaneIndex(p, xIndex, yIndex));
+                    final TiffTileIndex tileIndex = multiPlaneIndex(p, xIndex, yIndex);
+                    final TiffTile tile = tileSupplier.loadTile(tileIndex);
                     if (storeTilesInMap) {
                         put(tile);
                     }
