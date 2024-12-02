@@ -28,7 +28,6 @@ import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.tiles.TiffMap;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -53,7 +52,7 @@ public class TiffReadSimpleDemo {
             // reader.setEnforceUseExternalCodec(true); // - throws exception: no SCIFIO or other external codecs
             // reader.setContext(TiffTools.newSCIFIOContext()); // - throws exception without dependence on SCIFIO
             // reader.setInterleaveResults(true); // - slows down reading (unnecessary interleaving+separating)
-            TiffMap map = reader.map(ifdIndex);
+            final var map = reader.map(ifdIndex);
             System.out.printf("Reading %s...%n", map);
             image = reader.readChannels(map);
         }

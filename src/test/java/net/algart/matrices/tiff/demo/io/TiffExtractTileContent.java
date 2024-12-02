@@ -63,7 +63,7 @@ public class TiffExtractTileContent {
 
         try (TiffReader reader = new TiffReader(tiffFile)) {
             System.out.printf("Opening %s by %s...%n", tiffFile, reader);
-            final TiffMap map = reader.map(ifdIndex);
+            final var map = reader.map(ifdIndex);
             System.out.printf("TIFF map #%d: %s%n", ifdIndex, map);
             final TiffTileIndex tileIndex = map.multiPlaneIndex(separatedPlaneIndex, col, row);
             TiffTile tile;

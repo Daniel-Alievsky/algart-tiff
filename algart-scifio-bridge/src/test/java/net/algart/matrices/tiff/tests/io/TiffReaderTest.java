@@ -33,7 +33,7 @@ import net.algart.io.awt.MatrixToImage;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.compatibility.TiffParser;
 import net.algart.matrices.tiff.executable.TiffInfo;
-import net.algart.matrices.tiff.tiles.TiffMap;
+import net.algart.matrices.tiff.tiles.TiffMapForReading;
 import org.scijava.Context;
 
 import java.awt.image.BufferedImage;
@@ -143,7 +143,7 @@ public class TiffReaderTest {
                     System.out.printf("%nNo IFD #%d, using last IFD #%d instead%n%n", ifdIndex, numberOfIFDS - 1);
                     ifdIndex = numberOfIFDS - 1;
                 }
-                final TiffMap map;
+                final TiffMapForReading map;
                 if (compatibility) {
                     //noinspection deprecation
                     map = reader.newMap(TiffParser.toTiffIFD(((TiffParser) reader).getIFDs().get(ifdIndex)));

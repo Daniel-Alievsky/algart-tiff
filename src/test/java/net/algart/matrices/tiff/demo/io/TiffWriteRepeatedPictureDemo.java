@@ -30,7 +30,6 @@ import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 
 import java.io.IOException;
@@ -79,16 +78,16 @@ public class TiffWriteRepeatedPictureDemo {
         try (TiffWriter writer = new TiffWriter(targetFile)) {
             writer.setBigTiff(bigTiff);
             writer.create(append);
-            TiffIFD ifd = writer.newIFD(true)
+            final TiffIFD ifd = writer.newIFD(true)
                     .putPixelInformation(pattern.size(), pattern.get(0).elementType())
                     .putCompression(compression);
-            TiffMap map = writer.newResizableMap(ifd);
+            final var map = writer.newResizableMap(ifd);
             System.out.printf("Creating new resizable map: %s%n", map);
             for (int y = 0; y < yCount; y++) {
                 for (int x = 0; x < xCount; x++) {
-                    List<TiffTile> updated = writer.updateChannels(
+                    final List<TiffTile> updated = writer.updateChannels(
                             map, pattern, x * (int) patternSizeX, y * (int) patternSizeY);
-                    int written = writer.writeCompletedTiles(updated);
+                    final int written = writer.writeCompletedTiles(updated);
                     // - if you comment this operator, OutOfMemoryError will be possible for a very large TIFF
                     System.out.printf("\rBlock (%d,%d) from (%d,%d) ready (%d written, %s memory used)        \r",
                             x + 1, y + 1, xCount, yCount, written, memory());

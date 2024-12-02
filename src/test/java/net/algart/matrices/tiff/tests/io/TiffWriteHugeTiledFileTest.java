@@ -26,7 +26,6 @@ package net.algart.matrices.tiff.tests.io;
 
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
-import net.algart.matrices.tiff.tiles.TiffMap;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -65,7 +64,7 @@ public class TiffWriteHugeTiledFileTest {
                 ifd.putImageDimensions(IMAGE_WIDTH, IMAGE_HEIGHT);
                 ifd.putTileSizes(1024, 1024);
                 ifd.putPixelInformation(3, byte.class);
-                final TiffMap map = writer.newMap(ifd, false);
+                final var map = writer.newMap(ifd, false);
 
                 final byte[] samples = new byte[IMAGE_WIDTH * IMAGE_HEIGHT * 3];
                 Arrays.fill(samples, (byte) (10 * k));

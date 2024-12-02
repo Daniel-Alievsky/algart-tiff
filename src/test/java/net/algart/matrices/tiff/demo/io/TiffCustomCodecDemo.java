@@ -32,7 +32,6 @@ import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.codecs.TiffCodec;
-import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 
 import java.io.ByteArrayInputStream;
@@ -78,11 +77,11 @@ public class TiffCustomCodecDemo {
             }
         }) {
             // writer.setAutoInterleaveSource(false); // - leads to throwing exception
-            TiffIFD ifd = writer.newIFD();
+            final TiffIFD ifd = writer.newIFD();
             ifd.putChannelsInformation(image);
             ifd.putCompressionCode(MY_GZIP_COMPRESSION_CODE);
             // ifd.putCompression(TagCompression.DEFLATE); // - uncomment to compare sizes
-            TiffMap map = writer.newFixedMap(ifd);
+            final var map = writer.newFixedMap(ifd);
             writer.writeChannels(map, image);
         }
         System.out.printf("%nReading TIFF %s...%n%n", tiffFile);
@@ -97,7 +96,7 @@ public class TiffCustomCodecDemo {
         }) {
             // reader.setContext(TiffTools.newSCIFIOContext()); // - throws exception without dependence on SCIFIO
             // reader.setInterleaveResults(true); // - slows down reading (unnecessary interleaving+separating)
-            TiffMap map = reader.map(0);
+            final var map = reader.map(0);
             image = reader.readChannels(map);
         }
         System.out.printf("%nWriting %s for comparison with original file...%n", testFile);

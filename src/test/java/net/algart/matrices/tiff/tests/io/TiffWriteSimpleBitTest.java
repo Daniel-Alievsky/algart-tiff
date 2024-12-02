@@ -31,7 +31,6 @@ import net.algart.math.functions.Func2;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tiles.TiffMap;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -75,7 +74,7 @@ public class TiffWriteSimpleBitTest {
                 TiffIFD ifd = writer.newIFD();
                 ifd.putCompression(TagCompression.PACK_BITS);
                 ifd.putMatrixInformation(m);
-                final TiffMap map = writer.newMap(ifd, false);
+                final var map = writer.newMap(ifd, false);
 
                 long t1 = System.nanoTime();
                 writer.writeMatrix(map, m);

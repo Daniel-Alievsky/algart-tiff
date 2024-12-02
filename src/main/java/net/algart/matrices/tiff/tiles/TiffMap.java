@@ -32,7 +32,7 @@ import net.algart.matrices.tiff.*;
 
 import java.util.*;
 
-public final class TiffMap {
+public sealed class TiffMap permits TiffMapForReading, TiffMapForWriting{
     /**
      * Possible type of tiles in the TIFF map: 2D tile grid or horizontal strips.
      * You can know the tiling type of the map by {@link TiffMap#getTilingMode()} method.
@@ -92,12 +92,10 @@ public final class TiffMap {
      */
     public static final int MAX_TILE_INDEX = 1_000_000_000;
 
-    private final TiffReader owningReader;
-    private final TiffWriter owningWriter;
     private final TiffIFD ifd;
+    private final boolean resizable;
 
     private final Map<TiffTileIndex, TiffTile> tileMap = new LinkedHashMap<>();
-    private final boolean resizable;
     private final boolean planarSeparated;
     private final int numberOfChannels;
     private final int numberOfSeparatedPlanes;
@@ -125,9 +123,18 @@ public final class TiffMap {
     private volatile int gridCountY = 0;
     private volatile int numberOfGridTiles = 0;
 
-    private TiffMap(TiffReader owningReader, TiffWriter owningWriter, TiffIFD ifd, boolean resizable) {
-        this.owningReader = owningReader;
-        this.owningWriter = owningWriter;
+    /**
+     * Creates a new tile map.
+     *
+     * <p>Note: you should not change the tags of the passed IFD, describing sample type, number of samples
+     * and tile sizes, after creating this object. The constructor saves this information in this object
+     * (it is available via access methods) and will not be renewed automatically.</p>
+     *
+     * @param ifd       IFD.
+     * @param resizable whether maximal dimensions of this set will grow while adding new tiles,
+     *                  or they are fixed and must be specified in IFD.
+     */
+    public TiffMap(TiffIFD ifd, boolean resizable) {
         this.ifd = Objects.requireNonNull(ifd, "Null IFD");
         this.resizable = resizable;
         final boolean hasImageDimensions = ifd.hasImageDimensions();
@@ -205,70 +212,16 @@ public final class TiffMap {
         }
     }
 
-    /**
-     * Creates a new tile map.
-     *
-     * <p>Note: you should not change the tags of the passed IFD, describing sample type, number of samples
-     * and tile sizes, after creating this object. The constructor saves this information in this object
-     * (it is available via access methods) and will not be renewed automatically.</p>
-     *
-     * <p>Note: the map created by this constructor has no associated owning reader or writer:
-     * the methods {@link #owningReader()} and {@link #owningWriter()} will lead to exceptions.
-     * If you want to specify owning reader/writer, please use {@link #newMapForReading} and
-     * {@link #newMapForWriting} methods.</p>
-     *
-     * @param ifd       IFD.
-     * @param resizable whether maximal dimensions of this set will grow while adding new tiles,
-     *                  or they are fixed and must be specified in IFD.
-     */
-    public TiffMap(TiffIFD ifd, boolean resizable) {
-        this(null, null, ifd, resizable);
+    public static TiffMapForWriting newMapForWriting(TiffWriter owningWriter, TiffIFD ifd, boolean resizable) {
+        return new TiffMapForWriting(owningWriter, ifd, resizable);
     }
 
-    public static TiffMap newMapForWriting(TiffWriter owningWriter, TiffIFD ifd, boolean resizable) {
-        return new TiffMap(null, owningWriter, ifd, resizable);
-    }
-
-    public static TiffMap newMapForReading(TiffReader owningReader, TiffIFD ifd) {
-        return new TiffMap(owningReader, null, ifd, false);
+    public static TiffMapForReading newMapForReading(TiffReader owningReader, TiffIFD ifd) {
+        return new TiffMapForReading(owningReader, ifd);
     }
 
     public TiffIFD ifd() {
         return ifd;
-    }
-
-    public boolean hasOwningReader() {
-        return owningReader != null;
-    }
-
-    /**
-     * Returns the associated owning reader, passed to {@link #newMapForReading(TiffReader, TiffIFD)} method,
-     * or throws <code>IllegalStateException</code> if this map was created without specifying the owning reader.
-     *
-     * @return the reader-owner.
-     */
-    public TiffReader owningReader() {
-        if (owningReader == null) {
-            throw new IllegalStateException("This TIFF map has no associated owning reader");
-        }
-        return owningReader;
-    }
-
-    public boolean hasOwningWriter() {
-        return owningWriter != null;
-    }
-
-    /**
-     * Returns the associated owning writer, passed to {@link #newMapForWriting(TiffWriter, TiffIFD, boolean)} method,
-     * or throws <code>IllegalStateException</code> if this map was created without specifying the owning writer.
-     *
-     * @return the writer-owner.
-     */
-    public TiffWriter owningWriter() {
-        if (owningWriter == null) {
-            throw new IllegalStateException("This TIFF map has no associated owning writer");
-        }
-        return owningWriter;
     }
 
     public Map<TiffTileIndex, TiffTile> tileMap() {
@@ -624,7 +577,7 @@ public final class TiffMap {
         tiles.forEach(this::put);
     }
 
-    public TiffMap buildTileGrid() {
+    public void buildTileGrid() {
         for (int p = 0; p < numberOfSeparatedPlanes; p++) {
             for (int y = 0; y < gridCountY; y++) {
                 for (int x = 0; x < gridCountX; x++) {
@@ -632,7 +585,6 @@ public final class TiffMap {
                 }
             }
         }
-        return this;
     }
 
     public void cropAll() {
@@ -677,7 +629,7 @@ public final class TiffMap {
 
     @Override
     public String toString() {
-        return (resizable ? "resizable " : "") + "map " +
+        return (resizable ? "resizable " : "") + mapKindName() + " " +
                 dimX + "x" + dimY + "x" + numberOfChannels + " (" + alignedBitsPerSample + " bits) " +
                 "of " + tileMap.size() + " TIFF tiles (grid " + gridCountX + "x" + gridCountY +
                 ") at the image " + ifd;
@@ -806,6 +758,10 @@ public final class TiffMap {
         return interleave ?
                 toInterleavedBytes(samples, numberOfChannels, bytesPerSample, numberOfPixels) :
                 toSeparatedBytes(samples, numberOfChannels, bytesPerSample, numberOfPixels);
+    }
+
+    String mapKindName() {
+        return "map";
     }
 
     private static int checkSizes(int numberOfChannels, int bytesPerSample, long numberOfPixels) {

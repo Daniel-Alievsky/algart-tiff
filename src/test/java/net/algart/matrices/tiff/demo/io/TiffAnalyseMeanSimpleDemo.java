@@ -29,7 +29,7 @@ import net.algart.arrays.Arrays;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.tiles.TiffMap;
+import net.algart.matrices.tiff.tiles.TiffMapForReading;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -57,7 +57,7 @@ public class TiffAnalyseMeanSimpleDemo {
 
         System.out.printf("Analysing TIFF %s...%n", sourceFile);
         try (TiffReader reader = new TiffReader(sourceFile).setCaching(true)) {
-            TiffMap map = reader.map(ifdIndex);
+            TiffMapForReading map = reader.map(ifdIndex);
             long t1 = System.nanoTime();
             double[] mean = lowLevel ?
                     meanLowLevel(map) :
@@ -72,9 +72,9 @@ public class TiffAnalyseMeanSimpleDemo {
         System.out.println("Done");
     }
 
-    private static double[] meanHighLevel(TiffMap map) throws IOException {
+    private static double[] meanHighLevel(TiffMapForReading map) throws IOException {
         double[] sum = new double[map.numberOfChannels()];
-        @SuppressWarnings("resource") TiffReader reader = map.owningReader();
+        @SuppressWarnings("resource") TiffReader reader = map.reader();
         for (int y = 0; y < map.dimY(); y += BLOCK_SIZE) {
             if (y > 5000) {
                 System.out.printf("\r%d/%d...\r", y, map.dimY());
@@ -94,9 +94,9 @@ public class TiffAnalyseMeanSimpleDemo {
         return sum;
     }
 
-    private static double[] meanLowLevel(TiffMap map) throws IOException {
+    private static double[] meanLowLevel(TiffMapForReading map) throws IOException {
         double[] sum = new double[map.numberOfChannels()];
-        @SuppressWarnings("resource") TiffReader reader = map.owningReader();
+        @SuppressWarnings("resource") TiffReader reader = map.reader();
         for (int y = 0; y < map.dimY(); y += BLOCK_SIZE) {
             if (y > 5000) {
                 System.out.printf("\r%d/%d...\r", y, map.dimY());

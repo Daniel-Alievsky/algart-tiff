@@ -30,7 +30,6 @@ import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tiles.TiffMap;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -54,11 +53,11 @@ public class TiffWriteSimpleDemo {
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
         try (TiffWriter writer = new TiffWriter(targetFile, true)) {
-            TiffIFD ifd = writer.newIFD()
+            final TiffIFD ifd = writer.newIFD()
                 .putChannelsInformation(image)
                 .putCompression(TagCompression.DEFLATE);
-            TiffMap map = writer.newFixedMap(ifd);
-            System.out.printf("Writing image to %s...%n", map);
+            final var map = writer.newFixedMap(ifd);
+            System.out.printf("Writing image: %s...%n", map);
             writer.writeChannels(map, image);
         }
         System.out.println("Done");

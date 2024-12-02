@@ -35,7 +35,6 @@ import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.compatibility.TiffParser;
 import net.algart.matrices.tiff.tags.Tags;
-import net.algart.matrices.tiff.tiles.TiffMap;
 import org.scijava.Context;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.location.FileLocation;
@@ -165,7 +164,7 @@ public class TiffReadWriteTest {
                         // - not remove! Removing means default value!
                     }
                     writerIFD.putImageDimensions(w, h);
-                    final TiffMap map = writer.newMap(writerIFD, false);
+                    final var map = writer.newMap(writerIFD, false);
                     writer.writeSamples(map, bytes, START_X, START_Y, w, h);
                     long t3 = System.nanoTime();
                     System.out.printf("Effective IFD:%n%s%n", writerIFD);

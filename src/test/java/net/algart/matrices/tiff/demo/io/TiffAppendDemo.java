@@ -31,7 +31,7 @@ import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tiles.TiffMap;
+import net.algart.matrices.tiff.tiles.TiffMapForWriting;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -66,10 +66,10 @@ public class TiffAppendDemo {
         try (TiffWriter writer = new TiffWriter(targetFile)) {
             writer.openForAppend();
             // writer.create(); // - for comparison, this method always creates a new file
-            TiffIFD ifd = writer.newIFD()
+            final TiffIFD ifd = writer.newIFD()
                     .putChannelsInformation(image)
                     .putCompression(TagCompression.DEFLATE);
-            TiffMap map = writer.newFixedMap(ifd);
+            final TiffMapForWriting map = writer.newFixedMap(ifd);
             System.out.printf("Appending image to %s...%n", map);
             writer.writeChannels(map, image);
         }

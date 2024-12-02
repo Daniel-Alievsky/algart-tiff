@@ -34,10 +34,7 @@ import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.matrices.tiff.tags.TagTypes;
 import net.algart.matrices.tiff.tags.Tags;
-import net.algart.matrices.tiff.tiles.TiffMap;
-import net.algart.matrices.tiff.tiles.TiffTile;
-import net.algart.matrices.tiff.tiles.TiffTileIO;
-import net.algart.matrices.tiff.tiles.TiffTileIndex;
+import net.algart.matrices.tiff.tiles.*;
 import org.scijava.Context;
 import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
@@ -347,8 +344,8 @@ public class TiffReader implements Closeable {
      * Sets the flag, whether do we need to unpack binary images (one bit/pixel, black-and-white images)
      * into <code>byte</code> matrices: black pixels to the value 0, white pixels to value 255.
      *
-     * <p>By default this flag is cleared. In this case, {@link #readMatrix(TiffMap)} and similar methods return
-     * binary AlgART matrices.</p>
+     * <p>By default this flag is cleared. In this case, {@link #readMatrix(TiffMapForReading)}
+     * and similar methods return binary AlgART matrices.</p>
      *
      * <p>Note that TIFF images, using <i>m</i>&gt;1 bit per pixel where <i>m</i> is not divisible by 8,
      * for example 4-bit indexed images with a palette or 15-bit RGB image, 5+5+5 bits/channel,
@@ -374,7 +371,7 @@ public class TiffReader implements Closeable {
      * this flag enforces unpacking them to 32 bit) and 16- or 24-bit floating-point formats
      * (this flag enforces unpacking them to 32 bit {@code float} values).
      *
-     * <p>This flag is used after reading all tiles inside {@link #readSamples(TiffMap, int, int, int, int)}
+     * <p>This flag is used after reading all tiles inside {@link #readSamples(TiffMapForReading, int, int, int, int)}
      * method. Note that the data in {@link TiffTile}, in the case of unusual precision, are never unpacked.
      * On the other hand, all other precisions, like 4-bit or 12-bit (but not 1-channel 1-bit case),
      * are always unpacked into the nearest bit depth divided by 8 while decoding tiles.</p>
@@ -648,7 +645,7 @@ public class TiffReader implements Closeable {
      * @throws IOException              in the case of any problems with the input file.
      * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
      */
-    public TiffMap map(int ifdIndex) throws IOException {
+    public TiffMapForReading map(int ifdIndex) throws IOException {
         return newMap(ifd(ifdIndex));
     }
 
@@ -698,7 +695,7 @@ public class TiffReader implements Closeable {
     }
 
 
-    public List<TiffMap> allMaps() throws IOException {
+    public List<TiffMapForReading> allMaps() throws IOException {
         return allIFDs().stream().map(this::newMap).toList();
     }
 
@@ -1153,7 +1150,7 @@ public class TiffReader implements Closeable {
      * bytes: 1..7 bits are transformed to 8 bits/sample, 9..15 to 16 bits/sample, 17..23 to 24 bits/sample etc.
      * Thus, this method <b>does not unpack 3-byte samples</b> (to 4-byte) and
      * <b>does not unpack 16- or 24-bit</b> floating-point formats. These cases
-     * are processed after reading all tiles inside {@link #readSamples(TiffMap, int, int, int, int)}
+     * are processed after reading all tiles inside {@link #readSamples(TiffMapForReading, int, int, int, int)}
      * method, if {@link #isAutoUnpackUnusualPrecisions()} flag is set, or may be performed by external
      * code with help of {@link TiffUnusualPrecisions#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)}
      * method.
@@ -1230,16 +1227,18 @@ public class TiffReader implements Closeable {
         */
     }
 
-    public TiffMap newMap(TiffIFD ifd) {
-        return TiffMap.newMapForReading(this, ifd).buildTileGrid();
+    public TiffMapForReading newMap(TiffIFD ifd) {
+        final TiffMapForReading map = new TiffMapForReading(this, ifd);
+        map.buildTileGrid();
         // - building grid is useful to perform loops on all tiles
+        return map;
     }
 
-    public byte[] readSamples(TiffMap map) throws IOException {
+    public byte[] readSamples(TiffMapForReading map) throws IOException {
         return readSamples(map, false);
     }
 
-    public byte[] readSamples(TiffMap map, boolean storeTilesInMap) throws IOException {
+    public byte[] readSamples(TiffMapForReading map, boolean storeTilesInMap) throws IOException {
         return readSamples(map, 0, 0, map.dimX(), map.dimY(), storeTilesInMap);
     }
 
@@ -1250,11 +1249,17 @@ public class TiffReader implements Closeable {
      *
      * @return loaded samples in a normalized form of byte sequence.
      */
-    public byte[] readSamples(TiffMap map, int fromX, int fromY, int sizeX, int sizeY) throws IOException {
+    public byte[] readSamples(TiffMapForReading map, int fromX, int fromY, int sizeX, int sizeY) throws IOException {
         return readSamples(map, fromX, fromY, sizeX, sizeY, false);
     }
 
-    public byte[] readSamples(TiffMap map, int fromX, int fromY, int sizeX, int sizeY, boolean storeTilesInMap)
+    public byte[] readSamples(
+            TiffMapForReading map,
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY,
+            boolean storeTilesInMap)
             throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         long t1 = debugTime();
@@ -1337,16 +1342,22 @@ public class TiffReader implements Closeable {
         return samples;
     }
 
-    public Object readJavaArray(TiffMap map) throws IOException {
+    public Object readJavaArray(TiffMapForReading map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readJavaArray(map, 0, 0, map.dimX(), map.dimY());
     }
 
-    public Object readJavaArray(TiffMap map, int fromX, int fromY, int sizeX, int sizeY) throws IOException {
+    public Object readJavaArray(TiffMapForReading map, int fromX, int fromY, int sizeX, int sizeY) throws IOException {
         return readJavaArray(map, fromX, fromY, sizeX, sizeY, false);
     }
 
-    public Object readJavaArray(TiffMap map, int fromX, int fromY, int sizeX, int sizeY, boolean storeTilesInMap)
+    public Object readJavaArray(
+            TiffMapForReading map,
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY,
+            boolean storeTilesInMap)
             throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         final byte[] samples = readSamples(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
@@ -1394,18 +1405,18 @@ public class TiffReader implements Closeable {
      * @throws IOException              in the case of any problems with the input file.
      * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
      */
-    public Matrix<UpdatablePArray> readMatrix(TiffMap map) throws IOException {
+    public Matrix<UpdatablePArray> readMatrix(TiffMapForReading map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readMatrix(map, 0, 0, map.dimX(), map.dimY());
     }
 
-    public Matrix<UpdatablePArray> readMatrix(TiffMap map, int fromX, int fromY, int sizeX, int sizeY)
+    public Matrix<UpdatablePArray> readMatrix(TiffMapForReading map, int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
         return readMatrix(map, fromX, fromY, sizeX, sizeY, false);
     }
 
     public Matrix<UpdatablePArray> readMatrix(
-            TiffMap map,
+            TiffMapForReading map,
             int fromX,
             int fromY,
             int sizeX,
@@ -1429,25 +1440,25 @@ public class TiffReader implements Closeable {
      *                       and this was not detected while opening it.
      * @throws IOException   in the case of any other problems with the input file.
      */
-    public List<Matrix<UpdatablePArray>> readChannels(TiffMap map) throws IOException {
+    public List<Matrix<UpdatablePArray>> readChannels(TiffMapForReading map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readChannels(map, 0, 0, map.dimX(), map.dimY());
     }
 
-    public List<Matrix<UpdatablePArray>> readChannels(TiffMap map, int fromX, int fromY, int sizeX, int sizeY)
+    public List<Matrix<UpdatablePArray>> readChannels(TiffMapForReading map, int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
         return readChannels(map, fromX, fromY, sizeX, sizeY, false);
     }
 
     public List<Matrix<UpdatablePArray>> readChannels(
-            TiffMap map,
+            TiffMapForReading map,
             int fromX,
             int fromY,
             int sizeX,
             int sizeY,
             boolean storeTilesInMap)
             throws IOException {
-        Matrix<UpdatablePArray> mergedChannels = readMatrix(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
+        final Matrix<UpdatablePArray> mergedChannels = readMatrix(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
         return interleaveResults ?
                 Matrices.separate(null, mergedChannels, TiffIFD.MAX_NUMBER_OF_CHANNELS) :
                 Matrices.asLayers(mergedChannels, TiffIFD.MAX_NUMBER_OF_CHANNELS);
@@ -1693,7 +1704,7 @@ public class TiffReader implements Closeable {
 
     // Note: this method does not store tile in the tile map.
     private void readTiles(
-            TiffMap map,
+            TiffMapForReading map,
             byte[] resultSamples,
             int fromX,
             int fromY,

@@ -29,12 +29,10 @@ import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 import net.algart.matrices.tiff.tags.Tags;
-import net.algart.matrices.tiff.tiles.TiffMap;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 
 public class TiffFalsifyJPEGColorSpace {
     public static void main(String[] args) throws IOException {
@@ -67,17 +65,17 @@ public class TiffFalsifyJPEGColorSpace {
             writer.create();
 
             System.out.printf("Transforming to %s...%n", targetFile);
-            final List<TiffMap> maps = reader.allMaps();
+            final var maps = reader.allMaps();
             lastIFDIndex = Math.min(lastIFDIndex, maps.size() - 1);
             for (int i = firstIFDIndex; i <= lastIFDIndex; i++) {
-                final TiffMap readMap = maps.get(i);
+                final var readMap = maps.get(i);
                 if (readMap.compressionCode() != TiffIFD.COMPRESSION_JPEG) {
                     System.out.printf("\rCopying #%d/%d: %s%n", i, maps.size(), readMap.ifd());
                     writer.copyImage(readMap);
                     continue;
                 }
                 System.out.printf("\rTransforming #%d/%d: %s%n", i, maps.size(), readMap.ifd());
-                final TiffMap writeMap = writer.copyImage(readMap, writeIFD -> {
+                final var writeMap = writer.copyImage(readMap, writeIFD -> {
                             writeIFD.putPhotometricInterpretation(before);
                             writeIFD.put(Tags.Y_CB_CR_SUB_SAMPLING,
                                     before == TagPhotometricInterpretation.RGB ? new int[]{1, 1} : new int[]{2, 2});

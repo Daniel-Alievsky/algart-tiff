@@ -29,7 +29,6 @@ import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
-import java.util.Objects;
 
 /**
  * This is an adapted copy of com.twelvemonkeys.imageio.plugins.tiff.CCITTFaxDecoderStream class

@@ -31,7 +31,7 @@ import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
-import net.algart.matrices.tiff.tiles.TiffMap;
+import net.algart.matrices.tiff.tiles.TiffMapForWriting;
 import net.algart.matrices.tiff.tiles.TiffTile;
 
 import java.io.IOException;
@@ -63,9 +63,9 @@ public class TiffOverwriteDemo {
         try (TiffWriter writer = new TiffWriter(targetFile)) {
             writer.openExisting();
             final TiffReader reader = writer.newReaderOfThisFile(false);
-            TiffIFD ifd = reader.readSingleIFD(ifdIndex);
+            final TiffIFD ifd = reader.readSingleIFD(ifdIndex);
             ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
-            TiffMap map = writer.existingMap(ifd);
+            final var map = writer.existingMap(ifd);
             System.out.printf("Overwriting %s...%n", map);
             preloadPartiallyOverwrittenTiles(reader, map, x, y, imageToDrawSizeX, imageToDrawSizeY);
             writer.writeChannels(map, imageToDraw, x, y);
@@ -75,7 +75,7 @@ public class TiffOverwriteDemo {
 
     private static void preloadPartiallyOverwrittenTiles(
             TiffReader reader,
-            TiffMap mapForWriting,
+            TiffMapForWriting mapForWriting,
             int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
         // Note: the reader IS NOT mapForWriting.owningReader()

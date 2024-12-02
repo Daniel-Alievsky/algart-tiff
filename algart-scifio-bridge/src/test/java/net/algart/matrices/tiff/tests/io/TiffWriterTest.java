@@ -40,7 +40,7 @@ import net.algart.matrices.tiff.compatibility.TiffSaver;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagPredictor;
 import net.algart.matrices.tiff.tags.Tags;
-import net.algart.matrices.tiff.tiles.TiffMap;
+import net.algart.matrices.tiff.tiles.TiffMapForWriting;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import org.scijava.Context;
 
@@ -313,7 +313,7 @@ public class TiffWriterTest {
                             writer.create();
                         }
                     }
-                    final TiffMap map;
+                    final TiffMapForWriting map;
                     if (overwriteExisting) {
                         // - Ignoring previous IFD. It has no sense for k > 0:
                         // after writing first IFD (at firstIfdIndex), new number of IFD
@@ -394,11 +394,10 @@ public class TiffWriterTest {
     }
 
     private static void preloadPartiallyOverwrittenTiles(
-            TiffMap map,
+            TiffMapForWriting map,
             int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        @SuppressWarnings("resource")
-        final TiffReader reader = map.owningWriter().newReaderOfThisFile(true);
+        @SuppressWarnings("resource") final TiffReader reader = map.writer().newReaderOfThisFile(true);
         final IRectangularArea areaToWrite = IRectangularArea.valueOf(
                 fromX, fromY, fromX + sizeX - 1, fromY + sizeY - 1);
         for (TiffTile tile : map.tiles()) {

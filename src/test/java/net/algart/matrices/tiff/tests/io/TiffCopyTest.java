@@ -27,13 +27,11 @@ package net.algart.matrices.tiff.tests.io;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tiles.TiffMap;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 
 public class TiffCopyTest {
     boolean useContext = false;
@@ -102,10 +100,10 @@ public class TiffCopyTest {
 //                writer.setQuality(0.3);
                 writer.create();
 
-                final List<TiffMap> maps = reader.allMaps();
+                final var maps = reader.allMaps();
                 lastIFDIndex = Math.min(lastIFDIndex, maps.size() - 1);
                 for (int ifdIndex = firstIFDIndex; ifdIndex <= lastIFDIndex; ifdIndex++) {
-                    final TiffMap readMap = maps.get(ifdIndex);
+                    final var readMap = maps.get(ifdIndex);
                     System.out.printf("\r  Copying #%d/%d: %s%n", ifdIndex, maps.size(), readMap.ifd());
                     if (rawCopy) {
                         writer.copyImage(readMap);
