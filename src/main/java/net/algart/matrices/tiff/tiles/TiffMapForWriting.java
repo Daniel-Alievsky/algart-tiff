@@ -58,14 +58,14 @@ public final class TiffMapForWriting extends TiffMap {
         return owningWriter;
     }
 
-    public List<TiffTile> updateSamples(byte[] samples, long fromX, long fromY, long sizeX, long sizeY) {
+    public List<TiffTile> copySamplesToMap(byte[] samples, long fromX, long fromY, long sizeX, long sizeY) {
         Objects.requireNonNull(samples, "Null samples");
         TiffReader.checkRequestedArea(fromX, fromY, sizeX, sizeY);
         assert fromX == (int) fromX && fromY == (int) fromY && sizeX == (int) sizeX && sizeY == (int) sizeY;
-        return updateSamples(samples, (int) fromX, (int) fromY, (int) sizeX, (int) sizeY);
+        return copySamplesToMap(samples, (int) fromX, (int) fromY, (int) sizeX, (int) sizeY);
     }
 
-    public List<TiffTile> updateSamples(byte[] samples, int fromX, int fromY, int sizeX, int sizeY) {
+    public List<TiffTile> copySamplesToMap(byte[] samples, int fromX, int fromY, int sizeX, int sizeY) {
         Objects.requireNonNull(samples, "Null samples");
         TiffReader.checkRequestedArea(fromX, fromY, sizeX, sizeY);
         checkRequestedAreaInArray(samples, sizeX, sizeY, totalAlignedBitsPerPixel());
@@ -202,7 +202,7 @@ public final class TiffMapForWriting extends TiffMap {
         return updatedTiles;
     }
 
-    public List<TiffTile> updateJavaArray(
+    public List<TiffTile> copyJavaArrayToMap(
             Object samplesArray,
             int fromX,
             int fromY,
@@ -227,10 +227,10 @@ public final class TiffMapForWriting extends TiffMap {
                     maxNumberOfSamplesInArray());
         }
         final byte[] samples = TiffSampleType.bytes(samplesArray, numberOfSamples, byteOrder());
-        return updateSamples(samples, fromX, fromY, sizeX, sizeY);
+        return copySamplesToMap(samples, fromX, fromY, sizeX, sizeY);
     }
 
-    public List<TiffTile> updateMatrix(Matrix<? extends PArray> matrix, int fromX, int fromY) {
+    public List<TiffTile> copyMatrixToMap(Matrix<? extends PArray> matrix, int fromX, int fromY) {
         Objects.requireNonNull(matrix, "Null matrix");
         final boolean sourceInterleaved = isConsideredInterleaved();
         final Class<?> elementType = matrix.elementType();
@@ -264,12 +264,12 @@ public final class TiffMapForWriting extends TiffMap {
                     maxNumberOfSamplesInArray() + ")");
         }
         final byte[] samples = TiffSampleType.bytes(array, byteOrder());
-        return updateSamples(samples, fromX, fromY, sizeX, sizeY);
+        return copySamplesToMap(samples, fromX, fromY, sizeX, sizeY);
     }
 
     /**
      * Equivalent to
-     * <code>{@link #updateMatrix(Matrix, int, int)
+     * <code>{@link #copyMatrixToMap(Matrix, int, int)
      * updateMatrix}(Matrices.mergeLayers(Arrays.SMM, channels), fromX, fromY)</code>.
      *
      * <p>Note that this method requires the {@link TiffWriter#setAutoInterleaveSource(boolean) auto-interleave}
@@ -280,12 +280,12 @@ public final class TiffMapForWriting extends TiffMap {
      * @param fromY    starting y-coordinate for updating.
      * @return list of TIFF tiles where were updated as a result of this operation.
      */
-    public List<TiffTile> updateChannels(List<? extends Matrix<? extends PArray>> channels, int fromX, int fromY) {
+    public List<TiffTile> copyChannelsToMap(List<? extends Matrix<? extends PArray>> channels, int fromX, int fromY) {
         Objects.requireNonNull(channels, "Null channels");
         if (!owningWriter.isAutoInterleaveSource()) {
             throw new IllegalStateException("Cannot update image channels: autoInterleaveSource mode is not set");
         }
-        return updateMatrix(Matrices.mergeLayers(net.algart.arrays.Arrays.SMM, channels), fromX, fromY);
+        return copyMatrixToMap(Matrices.mergeLayers(net.algart.arrays.Arrays.SMM, channels), fromX, fromY);
     }
 
     public void writeJavaArray(Object samplesArray) throws IOException {

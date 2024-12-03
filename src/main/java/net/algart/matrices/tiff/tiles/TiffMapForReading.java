@@ -36,6 +36,11 @@ import java.util.List;
 import java.util.Objects;
 
 public final class TiffMapForReading extends TiffMap {
+    @FunctionalInterface
+    public interface TileSupplier {
+        TiffTile getTile(TiffTileIndex tiffTileIndex) throws IOException;
+    }
+
     private final TiffReader owningReader;
 
     public TiffMapForReading(TiffReader owningReader, TiffIFD ifd) {
@@ -79,8 +84,8 @@ public final class TiffMapForReading extends TiffMap {
         return owningReader.readChannels(this, fromX, fromY, sizeX, sizeY);
     }
 
-    public byte[] loadSamples(
-            TiffTileSupplier tileSupplier,
+    public byte[] copySamplesFromMap(
+            TileSupplier tileSupplier,
             int fromX,
             int fromY,
             int sizeX,
@@ -140,7 +145,7 @@ public final class TiffMapForReading extends TiffMap {
                     final int xDiff = tileStartX - fromX;
 
                     final TiffTileIndex tileIndex = multiPlaneIndex(p, xIndex, yIndex);
-                    final TiffTile tile = tileSupplier.loadTile(tileIndex);
+                    final TiffTile tile = tileSupplier.getTile(tileIndex);
                     if (storeTilesInMap) {
                         put(tile);
                     }
