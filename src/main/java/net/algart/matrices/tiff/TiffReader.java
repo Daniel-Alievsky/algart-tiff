@@ -158,6 +158,8 @@ public class TiffReader implements Closeable {
     private long currentCacheMemory = 0;
     private final Object tileCacheLock = new Object();
 
+    private volatile TiffMapForReading lastMap = null;
+
     private long timeReading = 0;
     private long timeCustomizingDecoding = 0;
     private long timeDecoding = 0;
@@ -1231,7 +1233,19 @@ public class TiffReader implements Closeable {
         final TiffMapForReading map = new TiffMapForReading(this, ifd);
         map.buildTileGrid();
         // - building grid is useful to perform loops on all tiles
+        this.lastMap = map;
         return map;
+    }
+
+    /**
+     * Returns a reference to the map, created by last call of {@link #newMap(TiffIFD)}
+     * or {@link #map(int)} methods.
+     * Returns <code>null</code> if no maps were created yet or after {@link #close()} method.
+     *
+     * @return last map, created by this object.
+     */
+    public TiffMapForReading lastMap() {
+        return lastMap;
     }
 
     public byte[] readSamples(TiffMapForReading map) throws IOException {
@@ -1476,6 +1490,7 @@ public class TiffReader implements Closeable {
 
     @Override
     public void close() throws IOException {
+        lastMap = null;
         synchronized (fileLock) {
             in.close();
         }

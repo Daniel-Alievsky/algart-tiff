@@ -95,7 +95,6 @@ public class TiffAnalyseMeanSimpleDemo {
 
     private static double[] meanLowLevel(TiffMapForReading map) throws IOException {
         double[] sum = new double[map.numberOfChannels()];
-        @SuppressWarnings("resource") TiffReader reader = map.reader();
         for (int y = 0; y < map.dimY(); y += BLOCK_SIZE) {
             if (y > 5000) {
                 System.out.printf("\r%d/%d...\r", y, map.dimY());

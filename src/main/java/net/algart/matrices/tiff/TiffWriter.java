@@ -98,6 +98,8 @@ public class TiffWriter implements Closeable {
     private final LinkedHashSet<Long> ifdOffsets = new LinkedHashSet<>();
     private volatile long positionOfLastIFDOffset = -1;
 
+    private volatile TiffMapForWriting lastMap = null;
+
     private long timeWriting = 0;
     private long timePreparingEncoding = 0;
     private long timeCustomizingEncoding = 0;
@@ -1080,6 +1082,7 @@ public class TiffWriter implements Closeable {
         }
         ifd.freeze();
         // - actually not necessary, but helps to avoid possible bugs
+        this.lastMap = map;
         return map;
     }
 
@@ -1149,7 +1152,19 @@ public class TiffWriter implements Closeable {
             tile.removeUnset();
             k++;
         }
+        this.lastMap = map;
         return map;
+    }
+
+    /**
+     * Returns a reference to the map, created by last call of {@link #newMap(TiffIFD, boolean, boolean)}
+     * or {@link #existingMap(TiffIFD)} methods.
+     * Returns <code>null</code> if no maps were created yet or after {@link #close()} method.
+     *
+     * @return last map, created by this object.
+     */
+    public TiffMapForWriting lastMap() {
+        return lastMap;
     }
 
     /**
@@ -1375,6 +1390,7 @@ public class TiffWriter implements Closeable {
 
     @Override
     public void close() throws IOException {
+        lastMap = null;
         synchronized (fileLock) {
             out.close();
         }
