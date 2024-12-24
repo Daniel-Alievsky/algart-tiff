@@ -38,7 +38,7 @@ You can use this library with the following Maven dependency in your POM:
     <dependency>
         <groupId>net.algart</groupId>
         <artifactId>algart-tiff</artifactId>
-        <version>1.3.8</version>
+        <version>1.3.9</version>
     </dependency>
     ...
 </dependencies>
