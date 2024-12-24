@@ -64,7 +64,7 @@ public class TiffReadTilesTest {
         try (TiffReader reader = new TiffReader(tiffFile)) {
             reader.setByteFiller((byte) 0x40);
             reader.setCropTilesToImageBoundaries(true);
-            final var map = reader.map(ifdIndex);
+            final var map = reader.newMap(ifdIndex);
             if (w < 0) {
                 w = Math.min(map.dimX(), MAX_IMAGE_DIM);
             }

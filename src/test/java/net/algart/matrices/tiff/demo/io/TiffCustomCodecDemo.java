@@ -96,7 +96,7 @@ public class TiffCustomCodecDemo {
         }) {
             // reader.setContext(TiffTools.newSCIFIOContext()); // - throws exception without dependence on SCIFIO
             // reader.setInterleaveResults(true); // - slows down reading (unnecessary interleaving+separating)
-            final var map = reader.map(0);
+            final var map = reader.newMap(0);
             image = reader.readChannels(map);
         }
         System.out.printf("%nWriting %s for comparison with original file...%n", testFile);

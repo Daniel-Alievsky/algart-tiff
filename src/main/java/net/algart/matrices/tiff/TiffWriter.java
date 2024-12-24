@@ -1341,7 +1341,7 @@ public class TiffWriter implements Closeable {
 
     public TiffMapForWriting copyImage(TiffReader source, int sourceIfdIndex) throws IOException {
         Objects.requireNonNull(source, "Null source TIFF reader");
-        return copyImage(source.map(sourceIfdIndex));
+        return copyImage(source.newMap(sourceIfdIndex));
     }
 
     public TiffMapForWriting copyImage(
@@ -1349,7 +1349,7 @@ public class TiffWriter implements Closeable {
             int sourceIfdIndex,
             boolean decodeAndEncode) throws IOException {
         Objects.requireNonNull(source, "Null source TIFF reader");
-        return copyImage(source.map(sourceIfdIndex), null, decodeAndEncode);
+        return copyImage(source.newMap(sourceIfdIndex), null, decodeAndEncode);
     }
 
     public TiffMapForWriting copyImage(TiffMapForReading sourceMap) throws IOException {

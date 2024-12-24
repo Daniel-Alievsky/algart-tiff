@@ -57,7 +57,7 @@ public class TiffAnalyseMeanSimpleDemo {
 
         System.out.printf("Analysing TIFF %s...%n", sourceFile);
         try (TiffReader reader = new TiffReader(sourceFile).setCaching(true)) {
-            TiffMapForReading map = reader.map(ifdIndex);
+            TiffMapForReading map = reader.newMap(ifdIndex);
             long t1 = System.nanoTime();
             double[] mean = lowLevel ?
                     meanLowLevel(map) :

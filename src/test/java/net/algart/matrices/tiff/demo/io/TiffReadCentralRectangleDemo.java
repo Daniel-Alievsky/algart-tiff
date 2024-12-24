@@ -58,7 +58,7 @@ public class TiffReadCentralRectangleDemo {
 
         System.out.printf("Reading TIFF %s and writing %s...%n", sourceFile, targetFile);
         try (TiffReader reader = new TiffReader(sourceFile)) {
-            final var map = reader.map(ifdIndex);
+            final var map = reader.newMap(ifdIndex);
             int sizeX = Math.min(width, map.dimX());
             int sizeY = Math.min(height, map.dimY());
             int fromX = (map.dimX() - sizeX) / 2;

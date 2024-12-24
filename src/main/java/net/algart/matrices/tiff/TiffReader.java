@@ -642,12 +642,12 @@ public class TiffReader implements Closeable {
      * @param ifdIndex index of IFD.
      * @return TIFF map, allowing to read this IFD
      * @throws TiffException            if <code>ifdIndex</code> is too large,
-     *                                  or if the file is not a correct TIFF file
+     *                                  or if the file is not a correct TIFF file,
      *                                  and this was not detected while opening it.
      * @throws IOException              in the case of any problems with the input file.
      * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
      */
-    public TiffMapForReading map(int ifdIndex) throws IOException {
+    public TiffMapForReading newMap(int ifdIndex) throws IOException {
         return newMap(ifd(ifdIndex));
     }
 
@@ -1239,7 +1239,7 @@ public class TiffReader implements Closeable {
 
     /**
      * Returns a reference to the map, created by last call of {@link #newMap(TiffIFD)}
-     * or {@link #map(int)} methods.
+     * or {@link #newMap(int)} methods.
      * Returns <code>null</code> if no maps were created yet or after {@link #close()} method.
      *
      * @return last map, created by this object.
@@ -1401,7 +1401,7 @@ public class TiffReader implements Closeable {
      * 3D matrix, which can be separated to channels by {@link Matrices#separate(ArrayContext, Matrix)} method.
      *
      * <p>The necessary TIFF map can be obtained, for example, by calling
-     * <code>{@link #map(int) reader.map}(ifdIndex)</code>.</p>
+     * <code>{@link #newMap(int) reader.newMap}(ifdIndex)</code>.</p>
      *
      * @param map TIFF map, constructed from one of the IFDs of this TIFF file.
      * @return content of the IFD image.
@@ -1438,7 +1438,7 @@ public class TiffReader implements Closeable {
      * For example, for RGB image, the result will be a list of three matrices R, G, B.
      *
      * <p>The necessary TIFF map can be obtained, for example, by calling
-     * <code>{@link #map(int) reader.map}(ifdIndex)</code>.</p>
+     * <code>{@link #newMap(int) reader.newMap}(ifdIndex)</code>.</p>
      *
      * @param map TIFF map, constructed from one of the IFDs of this TIFF file.
      * @return content of the TIFF image.

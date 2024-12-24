@@ -148,7 +148,7 @@ public class TiffReaderTest {
                     //noinspection deprecation
                     map = reader.newMap(TiffParser.toTiffIFD(((TiffParser) reader).getIFDs().get(ifdIndex)));
                 } else {
-                    map = reader.map(ifdIndex);
+                    map = reader.newMap(ifdIndex);
                 }
                 if (w < 0) {
                     w = Math.min(map.dimX(), MAX_IMAGE_DIM);

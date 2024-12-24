@@ -52,7 +52,7 @@ public class TiffReadSimpleDemo {
             // reader.setEnforceUseExternalCodec(true); // - throws exception: no SCIFIO or other external codecs
             // reader.setContext(TiffTools.newSCIFIOContext()); // - throws exception without dependence on SCIFIO
             // reader.setInterleaveResults(true); // - slows down reading (unnecessary interleaving+separating)
-            final var map = reader.map(ifdIndex);
+            final var map = reader.newMap(ifdIndex);
             System.out.printf("Reading %s...%n", map);
             image = map.readChannels();
         }
