@@ -639,21 +639,6 @@ public class TiffReader implements Closeable {
     }
 
     /**
-     * Equivalent to <code>{@link #newMap(TiffIFD) newMap}({@link #ifd(int) ifd}(ifdIndex))</code>.
-     *
-     * @param ifdIndex index of IFD.
-     * @return TIFF map, allowing to read this IFD
-     * @throws TiffException            if <code>ifdIndex</code> is too large,
-     *                                  or if the file is not a correct TIFF file,
-     *                                  and this was not detected while opening it.
-     * @throws IOException              in the case of any problems with the input file.
-     * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
-     */
-    public TiffMapForReading newMap(int ifdIndex) throws IOException {
-        return newMap(ifd(ifdIndex));
-    }
-
-    /**
      * Calls {@link #allIFDs()} and returns IFD with the specified index.
      * If <code>ifdIndex</code> is too big (&ge;{@link #numberOfImages()}), this method throws
      * {@link TiffException}.</p>
@@ -678,26 +663,32 @@ public class TiffReader implements Closeable {
         return ifdList.get(ifdIndex);
     }
 
-    /**
-     * Reads 1st IFD (#0).
-     *
-     * <p>Note: this method <i>does not</i> use {@link #allIFDs()} method.
-     * If you really need access only to the first IFD,
-     * this method may work faster than {@link #ifd(int)}.
-     */
-    public TiffIFD firstIFD() throws IOException {
-        TiffIFD firstIFD = this.firstIFD;
-        if (cachingIFDs && firstIFD != null) {
-            return this.firstIFD;
-        }
-        final long offset = readFirstIFDOffset();
-        firstIFD = readIFDAt(offset);
-        if (cachingIFDs) {
-            this.firstIFD = firstIFD;
-        }
-        return firstIFD;
+    public int dimX(int ifdIndex) throws IOException {
+        return ifd(ifdIndex).getImageDimX();
     }
 
+    public int dimY(int ifdIndex) throws IOException {
+        return ifd(ifdIndex).getImageDimY();
+    }
+
+    public int numberOfChannels(int ifdIndex) throws IOException {
+        return ifd(ifdIndex).getSamplesPerPixel();
+    }
+
+    /**
+     * Equivalent to <code>{@link #newMap(TiffIFD) newMap}({@link #ifd(int) ifd}(ifdIndex))</code>.
+     *
+     * @param ifdIndex index of IFD.
+     * @return TIFF map, allowing to read this IFD
+     * @throws TiffException            if <code>ifdIndex</code> is too large,
+     *                                  or if the file is not a correct TIFF file,
+     *                                  and this was not detected while opening it.
+     * @throws IOException              in the case of any problems with the input file.
+     * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
+     */
+    public TiffMapForReading newMap(int ifdIndex) throws IOException {
+        return newMap(ifd(ifdIndex));
+    }
 
     public List<TiffMapForReading> allMaps() throws IOException {
         return allIFDs().stream().map(this::newMap).toList();
@@ -765,6 +756,27 @@ public class TiffReader implements Closeable {
         }
         return ifds;
     }
+
+    /**
+     * Reads 1st IFD (#0).
+     *
+     * <p>Note: this method <i>does not</i> use {@link #allIFDs()} method.
+     * If you really need access only to the first IFD,
+     * this method may work faster than {@link #ifd(int)}.
+     */
+    public TiffIFD firstIFD() throws IOException {
+        TiffIFD firstIFD = this.firstIFD;
+        if (cachingIFDs && firstIFD != null) {
+            return this.firstIFD;
+        }
+        final long offset = readFirstIFDOffset();
+        firstIFD = readIFDAt(offset);
+        if (cachingIFDs) {
+            this.firstIFD = firstIFD;
+        }
+        return firstIFD;
+    }
+
 
     /**
      * Returns EXIF IFDs.

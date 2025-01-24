@@ -30,7 +30,6 @@ import net.algart.matrices.tiff.TiffReader;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 
 public class TiffReadIFDDemo {
     public static void main(String[] args) throws IOException {
@@ -47,15 +46,20 @@ public class TiffReadIFDDemo {
         }
         final Path sourceFile = Paths.get(args[startArgIndex]);
 
-        System.out.printf("Reading TIFF %s...%n%n", sourceFile);
+        System.out.printf("Reading TIFF %s...%n", sourceFile);
         try (TiffReader reader = new TiffReader(sourceFile, false)) {
             // - "false" argument helps to test also non-TIFF files
             if (reader.isValid()) {
-                List<TiffIFD> ifds = reader.allIFDs();
-                for (int i = 0, n = ifds.size(); i < n; i++) {
-                    TiffIFD ifd = ifds.get(i);
-                    String s = ifd.toString(json ? TiffIFD.StringFormat.JSON : TiffIFD.StringFormat.DETAILED);
-                    System.out.printf("**** TIFF image #%d/%d IFD information ****%n%s%n%n", i + 1, n, s);
+                for (int i = 0, n = reader.numberOfImages(); i < n; i++) {
+                    System.out.printf("%n**** TIFF image #%d/%d IFD information: %dx%d, %d channels ****%n",
+                            i + 1,
+                            n,
+                            reader.dimX(i),
+                            reader.dimY(i),
+                            reader.numberOfChannels(i));
+                    // - the simplest information, that can be got without TiffIDF or TiffMap classes
+                    TiffIFD ifd = reader.ifd(i);
+                    System.out.println(ifd.toString(json ? TiffIFD.StringFormat.JSON : TiffIFD.StringFormat.DETAILED));
                 }
             } else {
                 System.out.printf("This is not a TIFF file: %s%n", sourceFile);
