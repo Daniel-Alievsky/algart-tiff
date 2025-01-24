@@ -30,6 +30,7 @@ import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -82,6 +83,15 @@ public final class TiffMapForReading extends TiffMap {
     public List<Matrix<UpdatablePArray>> readChannels(int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
         return owningReader.readChannels(this, fromX, fromY, sizeX, sizeY);
+    }
+
+    public BufferedImage readBufferedImage() throws IOException {
+        return owningReader.readBufferedImage(this);
+    }
+
+    public BufferedImage readBufferedImage(int fromX, int fromY, int sizeX, int sizeY)
+            throws IOException {
+        return owningReader.readBufferedImage(this, fromX, fromY, sizeX, sizeY);
     }
 
     public byte[] copySamplesFromMap(

@@ -33,6 +33,7 @@ import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffSampleType;
 import net.algart.matrices.tiff.TiffWriter;
 
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -296,9 +297,12 @@ public final class TiffMapForWriting extends TiffMap {
         owningWriter.writeMatrix(this, matrix);
     }
 
-    public void writeChannels(List<? extends Matrix<? extends PArray>> channels)
-            throws IOException {
+    public void writeChannels(List<? extends Matrix<? extends PArray>> channels) throws IOException {
         owningWriter.writeChannels(this, channels);
+    }
+
+    public void writeBufferedImage(BufferedImage bufferedImage) throws IOException {
+        owningWriter.writeBufferedImage(this, bufferedImage);
     }
 
     public int writeAllTiles(Collection<TiffTile> tiles) throws IOException {

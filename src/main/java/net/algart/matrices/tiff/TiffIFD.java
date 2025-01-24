@@ -28,8 +28,10 @@ import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
 import net.algart.arrays.TooLargeArrayException;
+import net.algart.io.awt.ImageToMatrix;
 import net.algart.matrices.tiff.tags.*;
 
+import java.awt.image.BufferedImage;
 import java.lang.reflect.Array;
 import java.nio.ByteOrder;
 import java.util.*;
@@ -1167,6 +1169,17 @@ public class TiffIFD {
         final long dimY = matrix.dimY();
         putImageDimensions(dimX, dimY);
         putPixelInformation(numberOfChannels, TiffSampleType.valueOf(matrix.elementType(), signedIntegers));
+        return this;
+    }
+
+    public TiffIFD putChannelsInformation(BufferedImage bufferedImage) {
+        Objects.requireNonNull(bufferedImage, "Null bufferedImage");
+        final int numberOfChannels = ImageToMatrix.defaultNumberOfChannels(bufferedImage);
+        final int dimX = bufferedImage.getWidth();
+        final int dimY = bufferedImage.getHeight();
+        putImageDimensions(dimX, dimY);
+        putPixelInformation(numberOfChannels,
+                TiffSampleType.valueOf(ImageToMatrix.defaultElementType(bufferedImage), false));
         return this;
     }
 

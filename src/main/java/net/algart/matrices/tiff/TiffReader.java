@@ -25,6 +25,7 @@
 package net.algart.matrices.tiff;
 
 import net.algart.arrays.*;
+import net.algart.io.awt.MatrixToImage;
 import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.data.TiffJPEGDecodingHelper;
 import net.algart.matrices.tiff.data.TiffPrediction;
@@ -44,6 +45,7 @@ import org.scijava.io.location.BytesLocation;
 import org.scijava.io.location.FileLocation;
 import org.scijava.io.location.Location;
 
+import java.awt.image.BufferedImage;
 import java.io.Closeable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -1468,6 +1470,47 @@ public class TiffReader implements Closeable {
         return interleaveResults ?
                 Matrices.separate(null, mergedChannels, TiffIFD.MAX_NUMBER_OF_CHANNELS) :
                 Matrices.asLayers(mergedChannels, TiffIFD.MAX_NUMBER_OF_CHANNELS);
+    }
+
+    /**
+     * Reads the full image with the specified TIFF map as <code>BufferedImage</code>.
+     * For example, for RGB image, the result will be a list of three matrices R, G, B.
+     *
+     * <p>The necessary TIFF map can be obtained, for example, by calling
+     * <code>{@link #newMap(int) reader.newMap}(ifdIndex)</code>.</p>
+     *
+     * @param map TIFF map, constructed from one of the IFDs of this TIFF file.
+     * @return content of the TIFF image.
+     * @throws TiffException if the file is not a correct TIFF file,
+     *                       and this was not detected while opening it.
+     * @throws IOException   in the case of any other problems with the input file.
+     */
+    public BufferedImage readBufferedImage(TiffMapForReading map) throws IOException {
+        Objects.requireNonNull(map, "Null TIFF map");
+        return readBufferedImage(map, 0, 0, map.dimX(), map.dimY());
+    }
+
+    public BufferedImage readBufferedImage(TiffMapForReading map, int fromX, int fromY, int sizeX, int sizeY)
+            throws IOException {
+        return readBufferedImage(map, fromX, fromY, sizeX, sizeY, false);
+    }
+
+    public BufferedImage readBufferedImage(
+            TiffMapForReading map,
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY,
+            boolean storeTilesInMap)
+            throws IOException {
+        final Matrix<UpdatablePArray> mergedChannels = readMatrix(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
+        final Matrix<? extends PArray> interleavedChannels = interleaveResults ?
+                mergedChannels :
+                Matrices.interleave(mergedChannels.asLayers());
+        // Note: we do not call MatrixToImage.toBufferedImage, because we need to call setUnsignedInt32
+        return new MatrixToImage.InterleavedRGBToInterleaved()
+                .setUnsignedInt32(true)
+                .toBufferedImage(interleavedChannels);
     }
 
     public final byte[] decompressByScifioCodec(TiffIFD ifd, byte[] encodedData, Object scifioCodecOptions)

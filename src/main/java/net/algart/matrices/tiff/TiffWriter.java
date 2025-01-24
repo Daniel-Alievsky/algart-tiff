@@ -28,6 +28,7 @@ import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
 import net.algart.arrays.PackedBitArraysPer8;
+import net.algart.io.awt.ImageToMatrix;
 import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.data.TiffPacking;
 import net.algart.matrices.tiff.data.TiffPrediction;
@@ -39,6 +40,7 @@ import org.scijava.io.handle.DataHandles;
 import org.scijava.io.location.BytesLocation;
 import org.scijava.io.location.Location;
 
+import java.awt.image.BufferedImage;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -1278,7 +1280,7 @@ public class TiffWriter implements Closeable {
     /**
      * Equivalent to
      * <code>{@link #writeMatrix(TiffMapForWriting, Matrix)
-     * writeMatrix}(Matrices.mergeLayers(Arrays.SMM, channels))</code>.
+     * writeMatrix}(Matrices.mergeLayers(channels))</code>.
      *
      * <p>Note that this method requires the {@link #setAutoInterleaveSource(boolean) auto-interleave} mode to be set;
      * otherwise an exception is thrown.
@@ -1304,7 +1306,37 @@ public class TiffWriter implements Closeable {
         if (!autoInterleaveSource) {
             throw new IllegalStateException("Cannot write image channels: autoInterleaveSource mode is not set");
         }
-        writeMatrix(map, Matrices.mergeLayers(net.algart.arrays.Arrays.SMM, channels), fromX, fromY);
+        writeMatrix(map, Matrices.mergeLayers(channels), fromX, fromY);
+    }
+
+    /**
+     * Equivalent to
+     * <code>{@link #writeChannels(TiffMapForWriting, List)
+     * writeChannels}({@link ImageToMatrix#toChannels
+     * ImageToMatrix.toChannels}(bufferedImage))</code>.
+     *
+     * <p>Note that this method requires the {@link #setAutoInterleaveSource(boolean) auto-interleave} mode to be set;
+     * otherwise an exception is thrown.
+     *
+     * @param map           TIFF map.
+     * @param bufferedImage the image.
+     * @throws TiffException in the case of invalid TIFF IFD.
+     * @throws IOException   in the case of any I/O errors.
+     */
+    public void writeBufferedImage(TiffMapForWriting map, BufferedImage bufferedImage)
+            throws IOException {
+        Objects.requireNonNull(map, "Null TIFF map");
+        writeBufferedImage(map, bufferedImage, 0, 0);
+    }
+
+    public void writeBufferedImage(
+            TiffMapForWriting map,
+            BufferedImage bufferedImage,
+            int fromX,
+            int fromY) throws IOException {
+        Objects.requireNonNull(map, "Null TIFF map");
+        Objects.requireNonNull(bufferedImage, "Null bufferedImage");
+        writeChannels(map, ImageToMatrix.toChannels(bufferedImage), fromX, fromY);
     }
 
     public int completeWriting(final TiffMapForWriting map) throws IOException {
