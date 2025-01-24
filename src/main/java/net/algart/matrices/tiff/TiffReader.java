@@ -696,8 +696,9 @@ public class TiffReader implements Closeable {
 
     /**
      * Returns all IFDs in the file in unmodifiable list.
-     * When first called, reads all IFD from the file
-     * (but this can be disabled using {@link #setCachingIFDs(boolean)} method).
+     * On the first call, this method reads all IFD from the file,
+     * then the result is cached and quickly returned by all further calls.
+     * (But caching can be disabled using {@link #setCachingIFDs(boolean)} method).
      *
      * <p>Note: if this TIFF file is not valid ({@link #isValid()} returns <code>false</code>), this method
      * returns an empty list and does not throw an exception.
