@@ -1173,7 +1173,7 @@ public class TiffIFD {
         return this;
     }
 
-    public TiffIFD putChannelsInformation(BufferedImage bufferedImage) {
+    public TiffIFD putImageInformation(BufferedImage bufferedImage) {
         Objects.requireNonNull(bufferedImage, "Null bufferedImage");
         final int numberOfChannels = ImageToMatrix.defaultNumberOfChannels(bufferedImage);
         final int dimX = bufferedImage.getWidth();
