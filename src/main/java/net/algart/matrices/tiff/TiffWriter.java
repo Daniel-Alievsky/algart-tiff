@@ -29,6 +29,7 @@ import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
 import net.algart.arrays.PackedBitArraysPer8;
 import net.algart.io.awt.ImageToMatrix;
+import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.data.TiffPacking;
 import net.algart.matrices.tiff.data.TiffPrediction;
@@ -1113,17 +1114,15 @@ public class TiffWriter implements Closeable {
     /**
      * Starts overwriting existing IFD image.
      *
-     * <p>Usually you should avoid usage this method without necessity: though it allows modify some existing tiles,
-     * but all newly updated tiles will written at the file end, and the previously occupied space in the file
-     * will be lost. This method may be suitable if you need to perform little correction in 1-2 tiles of
-     * very large TIFF without full recompression of all its tiles.</p>
-     *
      * <p>Note: this method does not remove information about tile/strip offsets and byte counts. So, you can
-     * read some tiles from this IFD via {@link TiffReader} class (it is important for tiles, that you neeed to
+     * read some tiles from this IFD via {@link TiffReader} class (it is important for tiles, that you need to
      * partially fill, but partially load from the old file).</p>
      *
      * <p>Note: this method never performs {@link #setSmartIFDCorrection(boolean) "smart correction"}
      * of the specified IFD.</p>
+     *
+     * <p>This method is used, for example, inside
+     * {@link #preloadExistingTiles(int, int, int, int, int, boolean)}.</p>
      *
      * @param ifd IFD of some existing image, probably loaded from the current TIFF file.
      * @return map for writing further data.
@@ -1155,6 +1154,75 @@ public class TiffWriter implements Closeable {
             k++;
         }
         this.lastMap = map;
+        return map;
+    }
+
+    public TiffMapForWriting preloadExistingTiles(int ifdIndex, int fromX, int fromY, int sizeX, int sizeY)
+            throws IOException {
+        return preloadExistingTiles(ifdIndex, fromX, fromY, sizeX, sizeY, true);
+    }
+
+    /**
+     * Preloads all tiles intersecting the specified rectangle from the image #<code>ifdIndex</code>
+     * in the existing TIFF and stores them in the returned map.
+     * The map is created by {@link #existingMap(TiffIFD)} method based on the IFD
+     * loaded with help of TIFF reader created by {@link #newReaderOfThisFile(boolean)} method.
+     * This reader then loads there all tiles intersecting the rectangle
+     * <code>fromX&le;x&lt;fromX+sizeX</code>, <code>fromY&le;y&lt;fromY+sizeY</code>,
+     * and their content is copied to the corresponding tiles in the returned map.
+     *
+     * <p>This method helps to overwrite some portion of the existing TIFF:
+     * data written to TIFF using the returned map will be placed over the existing image.</p>
+     *
+     * <p>Generally, you should avoid using this method unnecessarily:
+     * although it allows modifying some existing tiles, all newly updated tiles
+     * will be written at the file end, and the previously occupied space in the file will be lost.
+     * This method may be suitable if you need to make a small correction in 1-2 tiles of
+     * a very large TIFF without completely recompressing all its tiles.</p>
+     *
+     * <p>You can set the argument <code>loadTilesFullyInsideRectangle</code> to <code>false</code>
+     * if you are going to fill the entire specified rectangle by some new data: in this case
+     * there is no necessity to preload tiles that will be completely rewritten.
+     * Otherwise, please set <code>loadTilesFullyInsideRectangle=true</code>.</p>
+     *
+     * <p>Note: zero sizes <code>sizeX</code> or <code>sizeY</code> are allowed,
+     * in this case the method does not load any tiles.</p>
+     *
+     * @param ifdIndex                      index of IFD.
+     * @param fromX                         starting x-coordinate for preloading.
+     * @param fromY                         starting y-coordinate for preloading.
+     * @param sizeX                         width of the preloaded rectangle.
+     * @param sizeY                         height of the preloaded rectangle.
+     * @param loadTilesFullyInsideRectangle whether this method should load tiles, that are completely
+     *                                      inside the specified rectangle.
+     * @return map for overwriting TIFF data.
+     * @throws IOException in the case of any problems with the TIFF file.
+     */
+    public TiffMapForWriting preloadExistingTiles(
+            int ifdIndex,
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY,
+            boolean loadTilesFullyInsideRectangle)
+            throws IOException {
+        TiffReader.checkRequestedArea(fromX, fromY, sizeX, sizeY);
+        @SuppressWarnings("resource") final TiffReader reader = newReaderOfThisFile(false);
+        final TiffIFD ifd = reader.readSingleIFD(ifdIndex);
+        ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
+        final TiffMapForWriting map = existingMap(ifd);
+        if (sizeX > 0 && sizeY > 0) {
+            // zero-size rectangle does not "intersect" anything
+            final IRectangularArea areaToWrite = IRectangularArea.valueOf(
+                    fromX, fromY, fromX + sizeX - 1, fromY + sizeY - 1);
+            for (TiffTile tile : map.tiles()) {
+                if (tile.rectangle().intersects(areaToWrite) &&
+                        (loadTilesFullyInsideRectangle || !areaToWrite.contains(tile.rectangle()))) {
+                    final TiffTile existing = reader.readCachedTile(tile.index());
+                    tile.setDecodedData(existing.getDecodedData());
+                }
+            }
+        }
         return map;
     }
 

@@ -27,12 +27,7 @@ package net.algart.matrices.tiff.demo.io;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
 import net.algart.io.MatrixIO;
-import net.algart.math.IRectangularArea;
-import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
-import net.algart.matrices.tiff.tiles.TiffMapForWriting;
-import net.algart.matrices.tiff.tiles.TiffTile;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -62,31 +57,12 @@ public class TiffOverwriteDemo {
         System.out.printf("Opening and rewriting TIFF %s...%n", targetFile);
         try (TiffWriter writer = new TiffWriter(targetFile)) {
             writer.openExisting();
-            final TiffReader reader = writer.newReaderOfThisFile(false);
-            final TiffIFD ifd = reader.readSingleIFD(ifdIndex);
-            ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
-            final var map = writer.existingMap(ifd);
+            var map = writer.preloadExistingTiles(
+                    ifdIndex, x, y, imageToDrawSizeX, imageToDrawSizeY, false);
             System.out.printf("Overwriting %s...%n", map);
-            preloadPartiallyOverwrittenTiles(reader, map, x, y, imageToDrawSizeX, imageToDrawSizeY);
             writer.writeChannels(map, imageToDraw, x, y);
         }
         System.out.println("Done");
-    }
-
-    private static void preloadPartiallyOverwrittenTiles(
-            TiffReader reader,
-            TiffMapForWriting mapForWriting,
-            int fromX, int fromY, int sizeX, int sizeY)
-            throws IOException {
-        // Note: the reader IS NOT mapForWriting.owningReader()
-        final IRectangularArea areaToWrite = IRectangularArea.valueOf(
-                fromX, fromY, fromX + sizeX - 1, fromY + sizeY - 1);
-        for (TiffTile tile : mapForWriting.tiles()) {
-            if (tile.rectangle().intersects(areaToWrite) && !areaToWrite.contains(tile.rectangle())) {
-                final TiffTile existing = reader.readCachedTile(tile.index());
-                tile.setDecodedData(existing.getDecodedData());
-            }
-        }
     }
 }
 

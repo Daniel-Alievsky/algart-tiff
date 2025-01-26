@@ -24,10 +24,7 @@
 
 package net.algart.matrices.tiff.tiles;
 
-import net.algart.arrays.Matrices;
-import net.algart.arrays.Matrix;
-import net.algart.arrays.PArray;
-import net.algart.arrays.PackedBitArraysPer8;
+import net.algart.arrays.*;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffSampleType;
@@ -236,8 +233,10 @@ public final class TiffMapForWriting extends TiffMap {
         final boolean sourceInterleaved = isConsideredInterleaved();
         final Class<?> elementType = matrix.elementType();
         if (elementType != elementType()) {
-            throw new IllegalArgumentException("Invalid element type of the matrix: " + elementType +
-                    ", although the specified TIFF map stores " + elementType() + " elements");
+            throw new IllegalArgumentException("Invalid element type of the matrix: \"" + elementType +
+                    "\" (" + Arrays.bitsPerElement(elementType) +
+                    "-bit), although the specified TIFF map stores \"" + elementType() +
+                    "\" (" + bitsPerUnpackedSample() + "-bit) elements");
         }
         if (matrix.dimCount() != 3 && !(matrix.dimCount() == 2 && numberOfChannels() == 1)) {
             throw new IllegalArgumentException("Illegal number of matrix dimensions " + matrix.dimCount() +

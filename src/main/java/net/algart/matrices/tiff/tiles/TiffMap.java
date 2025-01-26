@@ -310,7 +310,7 @@ public sealed class TiffMap permits TiffMapForReading, TiffMapForWriting{
      *     </li>
      *     <li>pixels are encoded as 16-bit or 24-bit floating point values:
      *     this method returns 32, {@link #alignedBitsPerSample()} returns 16/24
-     *     (in memory, such image will be unpacked into usual array of 32-bit <code>float</code> values).
+     *     (in memory, such an image will be unpacked into a usual array of 32-bit <code>float</code> values).
      *     </li>
      * </ul>
      *
