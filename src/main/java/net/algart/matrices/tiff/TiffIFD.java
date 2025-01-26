@@ -1176,9 +1176,9 @@ public class TiffIFD {
     public TiffIFD putImageInformation(BufferedImage bufferedImage) {
         Objects.requireNonNull(bufferedImage, "Null bufferedImage");
         final int numberOfChannels = ImageToMatrix.defaultNumberOfChannels(bufferedImage);
+        final Class<?> elementType = ImageToMatrix.defaultElementType(bufferedImage);
         final int dimX = bufferedImage.getWidth();
         final int dimY = bufferedImage.getHeight();
-        final Class<?> elementType = ImageToMatrix.defaultElementType(bufferedImage);
         putImageDimensions(dimX, dimY);
         putPixelInformation(numberOfChannels, TiffSampleType.valueOf(elementType, false));
         return this;
