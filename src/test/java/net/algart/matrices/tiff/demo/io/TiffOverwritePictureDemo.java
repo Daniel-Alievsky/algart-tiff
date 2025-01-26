@@ -34,17 +34,17 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
-public class TiffOverwriteDemo {
+public class TiffOverwritePictureDemo {
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         if (args.length < startArgIndex + 3) {
             System.out.println("Usage:");
-            System.out.printf("    %s image-to-draw.jpg/png/bmp target.tiff ifdIndex [x y]%n",
-                    TiffOverwriteDemo.class.getName());
+            System.out.printf("    %s target.tiff image-to-draw.jpg/png/bmp ifdIndex [x y]%n",
+                    TiffOverwritePictureDemo.class.getName());
             return;
         }
-        final Path imageToDrawFile = Paths.get(args[startArgIndex]);
-        final Path targetFile = Paths.get(args[startArgIndex + 1]);
+        final Path targetFile = Paths.get(args[startArgIndex]);
+        final Path imageToDrawFile = Paths.get(args[startArgIndex + 1]);
         final int ifdIndex = Integer.parseInt(args[startArgIndex + 2]);
         final int x = startArgIndex + 3 < args.length ? Integer.parseInt(args[startArgIndex + 3]) : 0;
         final int y = startArgIndex + 4 < args.length ? Integer.parseInt(args[startArgIndex + 4]) : 0;

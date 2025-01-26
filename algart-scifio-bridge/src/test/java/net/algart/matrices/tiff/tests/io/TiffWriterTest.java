@@ -317,9 +317,9 @@ public class TiffWriterTest {
                     if (overwriteExisting) {
                         // - Ignoring previous IFD. It has no sense for k > 0:
                         // after writing first IFD (at firstIfdIndex), new number of IFD
-                        // will become firstIfdIndex+1, i.e. there is no more IFDs.
+                        // will become firstIfdIndex+1, i.e., there are no more IFDs.
                         // Note: you CANNOT change properties (like color or grayscale) of image #firstIfdIndex,
-                        // but following images will be written with new properties.
+                        // but the following images will be written with new properties.
                         // Note: it seems that we need to "flush" current writer.getStream(),
                         // but DataHandle has not any analogs of flush() method.
                         final TiffReader reader = writer.newReaderOfThisFile(false);
