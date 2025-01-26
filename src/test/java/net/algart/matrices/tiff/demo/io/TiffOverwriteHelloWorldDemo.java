@@ -44,6 +44,8 @@ public class TiffOverwriteHelloWorldDemo {
             System.out.println("Usage:");
             System.out.printf("    %s target.tiff ifdIndex [x y]%n",
                     TiffOverwriteHelloWorldDemo.class.getName());
+            System.out.println("Try running this test with a very large TIFF file, like SVS 50000x50000: " +
+                    "you will see that it works very quickly!");
             return;
         }
         final Path targetFile = Paths.get(args[startArgIndex]);

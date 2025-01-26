@@ -50,7 +50,7 @@ public class TiffOverwritePictureDemo {
         final int y = startArgIndex + 4 < args.length ? Integer.parseInt(args[startArgIndex + 4]) : 0;
 
         System.out.printf("Reading %s...%n", imageToDrawFile);
-        List<? extends Matrix<? extends PArray>> imageToDraw = MatrixIO.readImage(imageToDrawFile);
+        final List<? extends Matrix<? extends PArray>> imageToDraw = MatrixIO.readImage(imageToDrawFile);
         final int imageToDrawSizeX = imageToDraw.get(0).dimX32();
         final int imageToDrawSizeY = imageToDraw.get(0).dimY32();
 
