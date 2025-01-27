@@ -626,6 +626,24 @@ public sealed class TiffMap permits TiffMapForReading, TiffMapForWriting{
         }
     }
 
+    public void copy(TiffMap source, boolean cloneData) {
+        Objects.requireNonNull(source, "Null source TIFF map");
+        if (source.numberOfSeparatedPlanes != this.numberOfSeparatedPlanes) {
+            throw new IllegalArgumentException("Number of separated planes in the source (" +
+                    source.numberOfSeparatedPlanes + ") and this map (" + this.numberOfSeparatedPlanes +
+                    ") do not match");
+        }
+        if (source.gridCountX != this.gridCountX || source.gridCountY != this.gridCountY) {
+            throw new IllegalArgumentException("Grid sizes in the source map (" +
+                    source.gridCountX + "x" + source.gridCountY + " tiles) and this map (" +
+                    this.gridCountX + "x" + source.gridCountY + " tiles) do not match");
+        }
+        for (TiffTile tile : source.tiles()) {
+            this.getOrNew(copyIndex(tile.index())).copy(tile, cloneData);
+        }
+    }
+
+
     public byte[] toInterleavedSamples(byte[] samples, int numberOfChannels, long numberOfPixels) {
         return toInterleaveOrSeparatedSamples(samples, numberOfChannels, numberOfPixels, true);
     }
@@ -639,6 +657,7 @@ public sealed class TiffMap permits TiffMapForReading, TiffMapForWriting{
         return (resizable ? "resizable " : "") + mapKindName() + " " +
                 dimX + "x" + dimY + "x" + numberOfChannels + " (" + alignedBitsPerSample + " bits) " +
                 "of " + tileMap.size() + " TIFF tiles (grid " + gridCountX + "x" + gridCountY +
+                (numberOfSeparatedPlanes == 1 ? "" : "x" + numberOfSeparatedPlanes) +
                 ") at the image " + ifd;
     }
 

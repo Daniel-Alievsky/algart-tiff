@@ -581,6 +581,16 @@ public final class TiffTile {
         return this;
     }
 
+    public TiffTile copy(TiffTile source, boolean cloneData) {
+        Objects.requireNonNull(source, "Null source tile");
+        if (source.isEmpty()) {
+            return free();
+        } else {
+            final byte[] data = cloneData ? source.data.clone() : source.data;
+            return setData(data, source.isEncoded(), false);
+        }
+    }
+
     public boolean isDisposed() {
         return disposed;
     }
@@ -926,7 +936,7 @@ public final class TiffTile {
             if ((bitsPerPixel & 7) != 0) {
                 throw new AssertionError("Unsupported bits per pixel " + bitsPerPixel);
                 // - for example, 1-bit RGB is not supported:
-                // we cannot calculate number of pixels to separate or interleave them
+                // we cannot calculate the number of pixels to separate or interleave them
             }
             final int bytesPerPixel = bitsPerPixel >>> 3;
             assert numberOfPixels == data.length / bytesPerPixel;

@@ -1219,7 +1219,7 @@ public class TiffWriter implements Closeable {
                 if (tile.rectangle().intersects(areaToWrite) &&
                         (loadTilesFullyInsideRectangle || !areaToWrite.contains(tile.rectangle()))) {
                     final TiffTile existing = reader.readCachedTile(tile.index());
-                    tile.setDecodedData(existing.getDecodedData());
+                    tile.copy(existing, false);
                 }
             }
         }
@@ -1478,8 +1478,7 @@ public class TiffWriter implements Closeable {
                 targetTile.setDecodedData(decodedData);
             } else {
                 final TiffTile sourceTile = source.readEncodedTile(index);
-                final byte[] encodedData = sourceTile.getEncodedData();
-                targetTile.setEncodedData(encodedData);
+                targetTile.copy(sourceTile, false);
             }
             targetMap.put(targetTile);
             writeTile(targetTile, true);

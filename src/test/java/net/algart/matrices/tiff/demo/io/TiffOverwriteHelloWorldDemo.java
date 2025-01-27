@@ -66,12 +66,11 @@ public class TiffOverwriteHelloWorldDemo {
             TiffMapForReading mapForReading = reader.newMap(ifd, false);
             final BufferedImage bufferedImage = reader.readBufferedImage(mapForReading,
                     x, y, imageToDrawSizeX, imageToDrawSizeY, true);
+            // - the last argument "true" leads to preserving all tiles in the map:
+            // this is necessary for boundary tiles that are partially covered by the image
             final TiffMapForWriting mapForWriting = writer.existingMap(ifd);
+            mapForWriting.copy(mapForReading, false);
             System.out.printf("Overwriting %s...%n", mapForWriting);
-            for (TiffTile existingTile : mapForReading.tiles()) {
-                final TiffTile newTile = mapForWriting.get(existingTile.index());
-                newTile.setDecodedData(existingTile.getDecodedData());
-            }
             drawTextOnImage(bufferedImage, "Hello, world!");
             // MatrixIO.writeBufferedImage(Path.of("/tmp/test.bmp"), bufferedImage);
             writer.writeBufferedImage(mapForWriting, bufferedImage, x, y);
