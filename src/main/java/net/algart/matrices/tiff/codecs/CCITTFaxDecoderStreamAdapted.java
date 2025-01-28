@@ -248,7 +248,7 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
                     Arrays.fill(decodedRow, (byte) 0);
                     decodedLength = decodedRow.length;
                 } else {
-                    // ...otherwise, just let client code try to read past the
+                    // ...otherwise, let client code try to read past the
                     // end of stream
                     decodedLength = -1;
                 }

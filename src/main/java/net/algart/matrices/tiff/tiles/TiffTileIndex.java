@@ -31,11 +31,9 @@ import java.util.Objects;
 /**
  * TIFF tile index, based of row, column and IFD reference (not content).
  *
- * <p>Note: for hashing this object uses IFD identity hash code.
- * Of course, this  cannot provide a good universal hash,
+ * <p>Note: for hashing, this object uses IFD identity hash code.
+ * Of course, this cannot provide a good universal hash,
  * but it is quite enough for our needs: usually we will not create new IDF.
- *
- * @author Denial Alievsky
  */
 public final class TiffTileIndex {
     private final TiffMap map;

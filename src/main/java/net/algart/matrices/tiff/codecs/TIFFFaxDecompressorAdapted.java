@@ -145,15 +145,15 @@ final class TIFFFaxDecompressorAdapted {
     private int lastChangingElement = 0;
 
     static int table1[] = {
-            0x00, // 0 bits are left in first byte - SHOULD NOT HAPPEN
-            0x01, // 1 bits are left in first byte
-            0x03, // 2 bits are left in first byte
-            0x07, // 3 bits are left in first byte
-            0x0f, // 4 bits are left in first byte
-            0x1f, // 5 bits are left in first byte
-            0x3f, // 6 bits are left in first byte
-            0x7f, // 7 bits are left in first byte
-            0xff  // 8 bits are left in first byte
+            0x00, // 0 bits are left in the first byte - SHOULD NOT HAPPEN
+            0x01, // 1 bit are left in the first byte
+            0x03, // 2 bits are left in the first byte
+            0x07, // 3 bits are left in the first byte
+            0x0f, // 4 bits are left in the first byte
+            0x1f, // 5 bits are left in the first byte
+            0x3f, // 6 bits are left in the first byte
+            0x7f, // 7 bits are left in the first byte
+            0xff  // 8 bits are left in the first byte
     };
 
     static int table2[] = {

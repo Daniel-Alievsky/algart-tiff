@@ -62,8 +62,8 @@ public class AWTWriteJpegBug {
         }
         if (imageTypeSpecifier != null) {
             writeParam.setDestinationType(imageTypeSpecifier);
-            // - Important! It informs getDefaultImageMetadata to add Adobe and SOF markers,
-            // that is detected by JPEGImageWriter and leads to correct outCsType = JPEG.JCS_RGB
+            // - Important! It informs getDefaultImageMetadata to add Adobe and SOF markers
+            // that are detected by JPEGImageWriter and leads to correct outCsType = JPEG.JCS_RGB
         }
         return writeParam;
     }
@@ -101,9 +101,9 @@ public class AWTWriteJpegBug {
             metadata = writer.getDefaultImageMetadata(imageTypeSpecifier, writeParam);
             // !!!!!! BUG #2!
             // If we shall pass imageTypeSpecifier instead of null as the 1st argument of getDefaultImageMetadata
-            // (it looks  absolutely correct!),
-            // then this method will IGNORE destination type, specified by writeParam.setDestinationType
-            // inside getJPEGWriteParam, and we will make Y/Cb/Cr instead of desired RGB color space. Why??
+            // (it looks absolutely correct!),
+            // then this method will IGNORE a destination type, specified by writeParam.setDestinationType
+            // inside getJPEGWriteParam. We will make Y/Cb/Cr instead of desired RGB color space. Why??
             // !!!!!!
         } else {
             metadata = writer.getDefaultImageMetadata(NEED_JCS_RGB ? null : imageTypeSpecifier, writeParam);

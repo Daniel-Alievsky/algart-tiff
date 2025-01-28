@@ -49,9 +49,9 @@ import java.util.Iterator;
 public class AWTJpegMetadataBug {
     public static final boolean NEED_JCS_RGB = false;
     // Please set to "false" to enforce bug.
-    // Please set fo "true" to write RGB-encoded JPEG file.
+    // Please set fo "true" to write an RGB-encoded JPEG file.
 
-    // This method ALWAYS leads to a bug: just try to call it instead of correctColorSpace below
+    // This method ALWAYS leads to a bug: try to call it instead of correctColorSpace below
     static void correctColorSpaceDummy(IIOMetadata metadata, String colorSpace) throws IIOInvalidTreeException {
         Node tree = metadata.getAsTree("javax_imageio_1.0");
         metadata.setFromTree("javax_imageio_1.0", tree); // - leads to duplicate APP0!
@@ -78,7 +78,7 @@ public class AWTJpegMetadataBug {
             }
         }
         metadata.setFromTree("javax_imageio_1.0", tree);
-        // !!!! BUG #1: if the tree was not actually changed and still contains "YCbCr" as ColorSpaceType,
+        // !!!! BUG #1: if the tree was not changed and still contains "YCbCr" as ColorSpaceType,
         // !!!! setFromTree writes JFIF marker into the native metadata twice!
     }
 
@@ -103,7 +103,7 @@ public class AWTJpegMetadataBug {
         // - lead to invalid metadata (duplicate APP0) in the case YCbCr
         IIOImage iioImage = new IIOImage(image, null, metadata);
         writer.write(null, iioImage, writeParam);
-        // !!!! BUG #2: even when metadata are incorrect and contain duplicated JFIF marker,
+        // !!!! BUG #2: even when metadata is incorrect and contains duplicated JFIF marker,
         // !!!! this "write" method works without exceptions and creates "strange" JPEG
     }
 

@@ -53,7 +53,7 @@ abstract class AbstractCodec implements TiffCodec {
      * @param in      The stream from which to read compressed data.
      * @param options Options to be used during decompression.
      * @return The decompressed data.
-     * @throws TiffException If data is not valid compressed data for this decompressor.
+     * @throws TiffException If data is not valid, compressed data for this decompressor.
      */
     abstract byte[] decompress(DataHandle<? extends Location> in, Options options) throws IOException;
 }

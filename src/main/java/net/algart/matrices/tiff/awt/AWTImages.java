@@ -737,7 +737,7 @@ public final class AWTImages {
             assert c == 3;
             byte[][] data = ((DataBufferByte) r.getDataBuffer()).getBankData();
             if (data.length == 1 && data[0].length == 3 * (long) w * (long) h) {
-                // - 2nd condition should be always true
+                // - 2nd condition should always be true
                 separateRGB(samples, rgbIndexes, data[0], w * h);
                 return samples;
             }

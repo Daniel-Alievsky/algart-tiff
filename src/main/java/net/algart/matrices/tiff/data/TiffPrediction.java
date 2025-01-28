@@ -35,7 +35,7 @@ import java.util.Objects;
 /**
  * Processing TIFF Tag Predictor.
  *
- * <p>Note that we support non-standard case of prediction for binary images (1 sample, 1 bit/pixel).
+ * <p>Note that we support a non-standard case of prediction for binary images (1 sample, 1 bit/pixel).
  * Images, written with this prediction, will not be readable by usual TIFF applications.
  * We do not recommend this mode for creating new TIFF images.</p>
  */

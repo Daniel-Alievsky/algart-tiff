@@ -64,13 +64,13 @@ public class LZWCodec extends AbstractCodec {
 
     /**
      * Size of hash table. Must be greater 3837 (the number of possible codes).
-     * Bigger size reduces number of rehashing steps -- at expence of
+     * Bigger size reduces the number of rehashing steps -- at the expense of
      * initialization time.
      */
     private static final int HASH_SIZE = 7349;
 
     /**
-     * Rehashing step. HASH_SIZE and HASH_STEP shoulg be coprime.
+     * Rehashing step. HASH_SIZE and HASH_STEP should be coprime.
      */
     private static final int HASH_STEP = 257;
 

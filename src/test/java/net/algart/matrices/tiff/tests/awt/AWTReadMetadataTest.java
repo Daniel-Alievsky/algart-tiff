@@ -74,7 +74,7 @@ public class AWTReadMetadataTest {
             System.out.printf("%s%n%s%n%s%n", c, c.getPackage(), c.getProtectionDomain());
 
             stream = ImageIO.createImageInputStream(srcFile);
-            // - reset stream (some plugins move file pointer by getStreamMetadata)
+            // - reset stream (some plugin move file pointer by getStreamMetadata)
             ImageReadParam param = reader.getDefaultReadParam();
             System.out.printf("Default read parameters: %s%n", param);
             reader.setInput(stream, true, false);

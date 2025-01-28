@@ -85,7 +85,7 @@ public class AWTImagesMakeBufferedImageTest {
 
         Object pixels = AWTImages.getPixels(bi1);
         System.out.printf("All pixels: %s, %d channels%n", pixels.getClass().getSimpleName(), Array.getLength(pixels));
-        // - Note: in packed mode, result type will be incorrect (int[][] instead of byte[][])!
+        // - Note: in packed mode, a result type will be incorrect (int[][] instead of byte[][])!
         // This problem is not resolved in current version of AWTImages.
         System.out.println();
 

@@ -66,8 +66,8 @@ public class JPEGEncoding {
         final ImageTypeSpecifier imageTypeSpecifier = new ImageTypeSpecifier(image);
         if (enforceRGB) {
             writeParam.setDestinationType(imageTypeSpecifier);
-            // - Important! It informs getDefaultImageMetadata to add Adobe and SOF markers,
-            // that is detected by JPEGImageWriter and leads to correct outCsType = JPEG.JCS_RGB
+            // - Important! It informs getDefaultImageMetadata to add Adobe and SOF markers
+            // that are detected by JPEGImageWriter and leads to correct outCsType = JPEG.JCS_RGB
         }
         final IIOMetadata metadata = jpegWriter.getDefaultImageMetadata(
                 enforceRGB ? null : imageTypeSpecifier,

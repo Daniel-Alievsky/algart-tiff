@@ -39,8 +39,6 @@ import java.util.function.Supplier;
 
 /**
  * TIFF tile: container for samples (encoded or decoded) with given {@link TiffTileIndex index}.
- *
- * @author Denial Alievsky
  */
 public final class TiffTile {
     private static final boolean DISABLE_CROPPING = false;
@@ -343,7 +341,7 @@ public final class TiffTile {
     }
 
     /**
-     * Reduces sizes of this tile so that it will completely lie inside map dimensions.
+     * Reduces the sizes of this tile so that it will completely lie inside map dimensions.
      *
      * <p>This operation can be useful for
      * {@link net.algart.matrices.tiff.tiles.TiffMap.TilingMode#STRIPS stripped TIFF image},
@@ -534,7 +532,7 @@ public final class TiffTile {
      * {@link TiffReader} automatically
      * if the {@link TiffReader#setAutoUnpackUnusualPrecisions(boolean)} mode is set.
      *
-     * <p>This method is necessary rarely: {@link #getDecodedData()} is enough for most needs.
+     * <p>This method is rarely necessary: {@link #getDecodedData()} is enough for most needs.
      *
      * @return unpacked data.
      * @see TiffUnusualPrecisions#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)
@@ -686,7 +684,7 @@ public final class TiffTile {
      * in this tile in the decoded form, or 0 after creating this object.
      *
      * <p>Note: that this method throws <code>IllegalStateException</code> if the data are
-     * {@link #isEncoded() encoded}, for example, immediately after reading tile from file.
+     * {@link #isEncoded() encoded}, for example, immediately after reading tile from the file.
      * If the tile is {@link #isEmpty() empty} (no data),
      * the exception is not thrown, though usually there is no sense to call this method in this situation.</p>
      *
@@ -695,14 +693,14 @@ public final class TiffTile {
      * <pre>{@link #getStoredDataLength()} == ({@link #getEstimatedNumberOfPixels()} * {@link
      * #bitsPerPixel()} + 7) / 8</pre>
      *
-     * <p>The only possible exception is when you sets the data with help of
+     * <p>The only possible exception is when you set the data with help of
      * {@link #setPartiallyDecodedData(byte[])} (when data are almost decoded, but, maybe, some additional
      * unpacking is necessary). This condition is always checked inside {@link #setDecodedData(byte[])} method.
      * You may also check this directly by {@link #checkDataLengthAlignment()} method.</p>
      *
      * <p><b>Warning:</b> the estimated number of pixels, returned by this method, may <b>differ</b> from the tile
      * size {@link #getSizeX()} * {@link #getSizeY()}! Usually it occurs after decoding encoded tile, when the
-     * decoding method returns only sequence of pixels and does not return information about the size.
+     * decoding method returns only a sequence of pixels and does not return information about the size.
      * In this situation, the external code sets the tile sizes from a-priory information, but the decoded tile
      * may be actually less; for example, it takes place for the last strip in non-tiled TIFF format.
      * You can check, does the actual number of stored pixels equal to tile size, via
@@ -806,7 +804,7 @@ public final class TiffTile {
             // - nothing to change: data has a correct length
             return this;
         }
-        // The following code is executed rarely (excepting 1-bit case), for example, while reading a stripped TIFF,
+        // The following code is rarely executed (excepting 1-bit case), for example, while reading a stripped TIFF,
         // where the last strip is not cropped correctly
         // (see resources\demo\images\tiff\algart\jpeg_rgb_stripped_with_uncropped_last_strip.tiff)
         if (newLength < data.length && !allowDecreasing) {
@@ -824,7 +822,7 @@ public final class TiffTile {
                 throw new AssertionError("Unsupported bits per pixel " + bitsPerPixel + " for " +
                         samplesPerPixel + " channel (more than one)");
                 // - for example, 1-bit RGB is not supported:
-                // we cannot calculate number of pixels to separate or interleave them
+                // we cannot calculate the number of pixels to separate or interleave them
             }
             newData = new byte[newLength];
             // - zero-filled by Java
@@ -834,8 +832,8 @@ public final class TiffTile {
             final long sizeToCopy = Math.min(size, newSize);
             for (long s = 0, disp = 0, newDisp = 0; s < samplesPerPixel; s++, disp += size, newDisp += newSize) {
                 PackedBitArraysPer8.copyBitsNoSync(newData, newDisp, data, disp, sizeToCopy);
-                // - actually this is equivalent to System.arraycopy,
-                // but we use copyBitsNoSync for possible future version, if they will allow multichannel 1-bit images
+                // - actually, this is equivalent to System.arraycopy,
+                // but we use copyBitsNoSync for possible future versions if they allow multichannel 1-bit images
             }
         }
         return setDecodedData(newData);

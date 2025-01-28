@@ -139,12 +139,12 @@ public class TiffIFD {
     public static final int COMPRESSION_PACK_BITS = 32773;
 
     /**
-     * Contiguous (chunked) samples format (PlanarConfiguration), for example: RGBRGBRGB....
+     * Contiguous (chunked) samples format (PlanarConfiguration), for example, RGBRGBRGB....
      */
     public static final int PLANAR_CONFIGURATION_CHUNKED = 1;
 
     /**
-     * Planar samples format (PlanarConfiguration), for example: RRR...GGG...BBB...
+     * Planar samples format (PlanarConfiguration), for example, RRR...GGG...BBB...
      * Note: the specification adds a warning that PlanarConfiguration=2 is not in widespread use and
      * that Baseline TIFF readers are not required to support it.
      */
@@ -283,7 +283,7 @@ public class TiffIFD {
             throw new IllegalArgumentException("Odd IFD file offset " + fileOffsetForWriting +
                     " is prohibited for writing valid TIFF");
             // - But we allow such offsets for reading!
-            // Such minor inconsistency in the file is not a reason to decline ability to read it.
+            // Such minor inconsistency in the file is not a reason to decline the ability to read it.
         }
         this.fileOffsetForWriting = fileOffsetForWriting;
         return this;
@@ -350,12 +350,12 @@ public class TiffIFD {
 
     /**
      * Disables most possible changes in this map,
-     * excepting the only ones, which are absolutely necessary for making final IFD inside the file.
+     * excepting the only ones, which are necessary for making final IFD inside the file.
      * Such "necessary" changes are performed by special "updateXxx" method.
      *
-     * <p>This method is usually called before writing process.
-     * This helps to avoid bugs, connected with changing IFD properties (such as compression, tile sizes etc.)
-     * when we already started to write image into the file, for example, have written some its tiles.
+     * <p>This method is usually called before a writing process.
+     * This helps to avoid bugs, connected with changing IFD properties (such as compression, tile sizes, etc.)
+     * when we already started to write image into the file, for example, have written some of its tiles.
      *
      * @return a reference to this object.
      */
@@ -919,7 +919,7 @@ public class TiffIFD {
         final long[] rowsPerStrip = getLongArray(Tags.ROWS_PER_STRIP);
         final int imageDimY = getImageDimY();
         if (rowsPerStrip == null || rowsPerStrip.length == 0) {
-            // - zero rowsPerStrip.length is possible only as a result of manual modification of this IFD
+            // - zero rowsPerStrip.length is possible only as a result of manual modifying this IFD
             return imageDimY == 0 ? 1 : imageDimY;
             // - imageDimY == 0 is checked to be on the safe side
         }
@@ -953,9 +953,9 @@ public class TiffIFD {
      */
     public int getTileSizeX() throws TiffException {
         if (hasTileInformation()) {
-            // - Note: we refuse to handle situation, when TileLength presents, but TileWidth not, or vice versa
+            // - Note: we refuse to handle a situation, when TileLength presents, but TileWidth not, or vice versa
             final int tileWidth = reqInt(Tags.TILE_WIDTH);
-            // - TIFF allows to use values <= 2^32-1, but in any case we cannot allocate Java array for such tile
+            // - TIFF allows using values <= 2^32-1, but in any case we cannot allocate Java array for such tile
             if (tileWidth <= 0) {
                 throw new TiffException("Zero or negative tile width = " + tileWidth);
                 // - impossible in a correct TIFF
@@ -1293,7 +1293,7 @@ public class TiffIFD {
      * Note that only {@link TagPredictor#HORIZONTAL} case is supported by this library
      * (besides {@link TagPredictor#NONE}).
      *
-     * <p>Note: if this image is binary (1 bit/pixel), we do not recommend to use this tag:
+     * <p>Note: if this image is binary (1 bit/pixel), we do not recommend using this tag:
      * this library supports this case, but this is non-standard, and the resulting TIFF will not be readable
      * by usual viewers.
      *
@@ -1468,12 +1468,12 @@ public class TiffIFD {
 
     /**
      * Puts new values for <code>TileOffsets</code> / <code>TileByteCounts</code> tags or
-     * <code>StripOffsets</code> / <code>StripByteCounts</code> tag, depending on result of
+     * <code>StripOffsets</code> / <code>StripByteCounts</code> tag, depending on the result of
      * {@link #hasTileInformation()} methods (<code>true</code> or <code>false</code> correspondingly).
      *
      * <p>Note: this method works even when IFD is frozen by {@link #freeze()} method.
      *
-     * @param offsets    byte offset of each tile/strip in TIFF file.
+     * @param offsets    byte offset of each tile/strip in a TIFF file.
      * @param byteCounts number of (compressed) bytes in each tile/strip.
      */
     public void updateDataPositioning(long[] offsets, long[] byteCounts) {
@@ -1842,7 +1842,7 @@ public class TiffIFD {
         final long n = multiplySizes(sizeX, sizeY);
         checkNumberOfChannels(numberOfChannels);
         checkBitsPerSample(bitsPerSample);
-        // - so, numberOfChannels * bitsPerSample is not too large value
+        // - so, numberOfChannels * bitsPerSample is not-too-large value
         final long size = n * numberOfChannels * bitsPerSample;
         if (size > MAX_NUMBER_OF_BITS_IN_BYTE_ARRAY) {
             throw new TooLargeTiffImageException("Too large requested image " + sizeX + "x" + sizeY +

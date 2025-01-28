@@ -164,8 +164,7 @@ class HuffmanCodecAdaptedAndReduced {
                         toStore += cb & 0xff;
                     } else {
                         // otherwise, only read the appropriate number of bits off
-                        // the back
-                        // side of the byte, in order to "finish" the current byte
+                        // the backside of the byte, to "finish" the current byte
                         // in the
                         // buffer.
                         toStore += cb & BACK_MASK[bitsLeft];
@@ -174,7 +173,7 @@ class HuffmanCodecAdaptedAndReduced {
                     currentByte++;
                 } else {
                     // We will be able to finish using the current byte.
-                    // read the appropriate number of bits off the front side of the
+                    // Read the appropriate number of bits off the front side of the
                     // byte,
                     // then push them into the int.
                     toStore = toStore << bitsToRead;

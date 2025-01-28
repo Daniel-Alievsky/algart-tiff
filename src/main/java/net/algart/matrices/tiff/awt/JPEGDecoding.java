@@ -108,7 +108,7 @@ public class JPEGDecoding {
                 && declaredSubsampling.length >= 2
                 && declaredSubsampling[0] == 1 && declaredSubsampling[1] == 1
                 && imageInformation.bufferedImage.getRaster().getNumBands() == 3;
-        // Rare case: YCbCr is encoded with non-standard sub-sampling (more exactly, without sub-sampling),
+        // Rare case: YCbCr is encoded with non-standard subsampling (more exactly, without subsampling),
         // and the JPEG is incorrectly detected as RGB; so, there is no sense to optimize this.
     }
 

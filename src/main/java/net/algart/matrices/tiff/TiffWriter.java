@@ -58,7 +58,7 @@ import java.util.stream.Collectors;
 /**
  * Writes the TIFF format.
  *
- * <p>This object is internally synchronized and thread-safe when used in multi-threaded environment.
+ * <p>This object is internally synchronized and thread-safe when used in multithreaded environment.
  * However, you should not modify objects, passed to the methods of this class, from a parallel thread;
  * in particular, it concerns the {@link TiffIFD} arguments and Java-arrays with samples.
  * The same is true for the result of {@link #stream()} method.</p>
@@ -148,7 +148,8 @@ public class TiffWriter implements Closeable {
      *
      * <p>If the argument <code>createNewFileAndOpen</code> is {@code true},
      * this constructor automatically removes the file with the specified path, if it exists,
-     * and calls {@link #create()} method. in the case of I/O exception in {@link #create()} method,
+     * and calls {@link #create()} method.
+     * In the case of I/O exception in {@link #create()} method,
      * this file is automatically closed. This behavior is alike
      * {@link java.io.FileWriter#FileWriter(File) FileWriter constructor}.
      *
@@ -318,7 +319,7 @@ public class TiffWriter implements Closeable {
      * (this class supports YCbCr encoding for JPEG only). And so on.</p>
      *
      * <p>If this mode is not set (this flag is <code>false</code>), such settings will lead to an exception.
-     * In this case we guarantee that TIFF writer never changes existing entries in the passed IFD, but may only
+     * In this case, we guarantee that TIFF writer never changes existing entries in the IFD, but may only
      * <i>add</i> some tag if they are necessary.</p>
      *
      * <p>Default value is <code>false</code>. You may set it to <code>true</code>, for example, when you need
@@ -679,12 +680,13 @@ public class TiffWriter implements Closeable {
      * You also may call {@link #rewritePreviousLastIFDOffset(long)} to correct
      * this mark inside the file in the previously written IFD, but usually there is no necessity to do this.</p>
      *
-     * <p>If <code>updateIFDLinkages</code> is <code>true</code>, this method also performs the following 2 actions.</p>
+     * <p>If <code>updateIFDLinkages</code> is <code>true</code>, this method also performs
+     * the following two actions.</p>
      *
      * <ol>
      *     <li>It updates the offset, stored in the file at {@link #positionOfLastIFDOffset()}, with start offset of
      *     this IFD (i.e. <code>startOffset</code> or position of the file end). This action is performed <b>only</b>
-     *     if this start offset is really new for this file, i.e. if it did not present in an existing file
+     *     if this start offset is really new for this file, i.e., if it did not present in an existing file
      *     while opening it by {@link #openExisting()} method and if some IFD was not already written
      *     at this position by methods of this object.</li>
      *     <li>It replaces the internal field, returned by {@link #positionOfLastIFDOffset()}, with
@@ -727,7 +729,7 @@ public class TiffWriter implements Closeable {
             writeIFDNextOffsetAt(ifd, positionOfNextOffset, updateIFDLinkages);
             if (updateIFDLinkages && !ifdOffsets.contains(startOffset)) {
                 // - Only if it is really newly added IFD!
-                // If this offset is already contained in the list, attempt to link to it
+                // If this offset is already contained in the list, an attempt to link to it
                 // will probably lead to infinite loop of IFDs.
                 writeIFDOffsetAt(startOffset, previousPositionOfLastIFDOffset, false);
                 ifdOffsets.add(startOffset);

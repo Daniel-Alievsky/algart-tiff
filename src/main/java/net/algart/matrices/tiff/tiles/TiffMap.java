@@ -33,6 +33,10 @@ import net.algart.matrices.tiff.*;
 import java.nio.ByteOrder;
 import java.util.*;
 
+/**
+ * TIFF map: an object storing detailed information about TIFF image
+ * and allowing to add and manipulate its tiles (strips).
+ */
 public sealed class TiffMap permits TiffMapForReading, TiffMapForWriting{
     /**
      * Possible type of tiles in the TIFF map: 2D tile grid or horizontal strips.
@@ -793,7 +797,7 @@ public sealed class TiffMap permits TiffMapForReading, TiffMapForWriting{
     private static int checkSizes(int numberOfChannels, int bytesPerSample, long numberOfPixels) {
         TiffIFD.checkNumberOfChannels(numberOfChannels);
         TiffIFD.checkBitsPerSample(8L * (long) bytesPerSample);
-        // - so, numberOfChannels * bytesPerSample is not too large value
+        // - so, numberOfChannels * bytesPerSample is not-too-large value
         if (numberOfPixels < 0) {
             throw new IllegalArgumentException("Negative numberOfPixels = " + numberOfPixels);
         }

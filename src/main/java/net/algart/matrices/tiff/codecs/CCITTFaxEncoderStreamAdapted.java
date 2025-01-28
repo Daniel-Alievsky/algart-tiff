@@ -169,7 +169,7 @@ final class CCITTFaxEncoderStreamAdapted extends OutputStream {
     private void encodeRowType4() throws IOException {
         writeEOL();
         if (optionG32D) {
-            // do k=1 only on first line. Detect first line by missing reference
+            // Do k=1 only on the first line. Detect first line by missing reference
             // line.
             if (changesReferenceRowLength == 0) {
                 write(1, 1);

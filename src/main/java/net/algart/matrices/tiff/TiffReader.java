@@ -66,9 +66,9 @@ import java.util.stream.Collectors;
 /**
  * Reads TIFF format.
  *
- * <p>This object is internally synchronized and thread-safe when used in multi-threaded environment.
+ * <p>This object is internally synchronized and thread-safe when used in multithreaded environment.
  * However, you should not modify objects, passed to the methods of this class from a parallel thread;
- * first of all, it concerns the {@link TiffIFD} arguments of many methods.
+ * first, it concerns the {@link TiffIFD} arguments of many methods.
  * The same is true for the result of {@link #stream()} method.</p>
  */
 public class TiffReader implements Closeable {
@@ -102,7 +102,7 @@ public class TiffReader implements Closeable {
     // If we use simple FileHandle for reading files (based on RandomAccessFile),
     // acceleration is up to 100 and more times:
     // on my computer, 23220 int32 values were loaded in 0.2 ms instead of 570 ms.
-    // Since scijava-common 2.95.1, we use optimized ReadBufferDataHandle for reading file;
+    // Since scijava-common 2.95.1, we use optimized ReadBufferDataHandle for reading a file;
     // now acceleration for 23220 int32 values is 0.2 ms instead of 0.4 ms.
 
     static final boolean USE_LEGACY_UNPACK_BYTES = false;
@@ -329,7 +329,7 @@ public class TiffReader implements Closeable {
      * RRR...GGG...BBB...
      *
      * <p>Note that this mode affects only the data returned by methods {@link #readMatrix} and other methods,
-     * reading an image from TIFF file. The tiles, returned by {@link #readTile(TiffTileIndex)} method,
+     * reading an image from a TIFF file. The tiles, returned by {@link #readTile(TiffTileIndex)} method,
      * are always {@link TiffTile#isSeparated() separated}.</p>
      *
      * @param interleaveResults new interleaving mode.
@@ -348,13 +348,13 @@ public class TiffReader implements Closeable {
      * Sets the flag, whether do we need to unpack binary images (one bit/pixel, black-and-white images)
      * into <code>byte</code> matrices: black pixels to the value 0, white pixels to value 255.
      *
-     * <p>By default this flag is cleared. In this case, {@link #readMatrix(TiffMapForReading)}
+     * <p>By default, this flag is cleared. In this case, {@link #readMatrix(TiffMapForReading)}
      * and similar methods return binary AlgART matrices.</p>
      *
      * <p>Note that TIFF images, using <i>m</i>&gt;1 bit per pixel where <i>m</i> is not divisible by 8,
-     * for example 4-bit indexed images with a palette or 15-bit RGB image, 5+5+5 bits/channel,
+     * for example, 4-bit indexed images with a palette or 15-bit RGB image, 5+5+5 bits/channel,
      * are always unpacked to format with an integer number of bytes per channel (<i>m</i>=8*<i>k</i>).
-     * The only exception is 1-bit monochrome images: in this case, unpacking into bytes depends
+     * The only exception is 1-bit monochrome images: in this case, unpacking into bytes
      * is controlled by this method.</p>
      *
      * @param autoUnpackBitsToBytes whether do we need to unpack bit matrices to byte ones (0->0, 1->255).
@@ -377,14 +377,14 @@ public class TiffReader implements Closeable {
      *
      * <p>This flag is used after reading all tiles inside {@link #readSamples(TiffMapForReading, int, int, int, int)}
      * method. Note that the data in {@link TiffTile}, in the case of unusual precision, are never unpacked.
-     * On the other hand, all other precisions, like 4-bit or 12-bit (but not 1-channel 1-bit case),
+     * On the other hand, all other precisions, like 4-bit or 12-bit (but not 1-channel 1-bit case)
      * are always unpacked into the nearest bit depth divided by 8 while decoding tiles.</p>
      *
-     * <p>If this flag is {@code false}, you cannot used high-level reading methods as
+     * <p>If this flag is {@code false}, you cannot use high-level reading methods as
      * {@link #readMatrix} and {@link #readJavaArray}; you must use {@link #readSamples} methods,
      * which return pixels as a sequences of bytes.</p>
      *
-     * <p>This flag is {@code true} by default. Usually there are not reasons to set it to {@code false},
+     * <p>This flag is {@code true} by default. Usually there are no reasons to set it to {@code false},
      * besides compatibility reasons or requirement to maximally save memory while processing 16/24-bit
      * float values.</p>
      *
@@ -410,14 +410,14 @@ public class TiffReader implements Closeable {
      * 5+5+5 "HiRes" RGB images. But the data returned by this class is always represented by 8-bit, 16-bit,
      * 32-bit integer values (signed or unsigned) or by 32- or 64-bit floating-point values
      * (these bit depths correspond to Java primitive types). If the source pixel values have another bit depth,
-     * they are automatically converted to the nearest "larger" type, for example, 4-bit integer is converted
+     * they are automatically converted to the nearest "larger" type: for example, 4-bit integer is converted
      * to 8-bit, 12-bit integer is converted to 16-bit, 24-bit to 32-bit.</p>
      *
      * <p>If this flag is <code>false</code>, this conversion is performed "as-is", so, values 0..15 in 4-bit source
      * data will be converted to the same values 0..15 with 8-bit precision.
      * This is good if you need to process these values using some kind of algorithm.
      * However, if you need to show the real picture to the end user, then values 0..15 with 8-bit
-     * precisions (or 0..4095 with 16-bit precision) will look almost black. To avoid this,
+     * precision (or 0..4095 with 16-bit precision) will look almost black. To avoid this,
      * you can use <code>true</code>
      * value of this flag, which causes automatic scaling returned values: multiplying by
      * (2<sup><i>n</i></sup>&minus;1)/(2<sup><i>k</i></sup>&minus;1), where <i>n</i> is the result bit depth
@@ -663,6 +663,18 @@ public class TiffReader implements Closeable {
         return ifdList.get(ifdIndex);
     }
 
+    /**
+     * Returns the width of TIFF image with the specified index.
+     * Equivalent to <code>{@link #ifd(int) ifd}(ifdIndex).{@link TiffIFD#getImageDimX() getImageDimX()}</code>.
+     *
+     * <p>Note that you can get this information and more by creating a new TIFF map with help of the call
+     * {@link #newMap(int) newMap(ifdIndex)}: the returned {@link TiffMap} object has many methods
+     * that allow you to quickly find various information about the TIFF image.</p>
+     *
+     * @param ifdIndex
+     * @return
+     * @throws IOException
+     */
     public int dimX(int ifdIndex) throws IOException {
         return ifd(ifdIndex).getImageDimX();
     }
@@ -917,7 +929,7 @@ public class TiffReader implements Closeable {
                 throw new TiffException("Too large number of IFD entries: " +
                         (numberOfEntries < 0 ? ">= 2^63" : numberOfEntries + " > " + MAX_NUMBER_OF_IFD_ENTRIES));
                 // - theoretically BigTIFF allows having more entries, but we prefer to make some restriction;
-                // in any case, billions if detailedEntries will probably lead to OutOfMemoryError or integer overflow
+                // in any case, billions if detailedEntries probably lead to OutOfMemoryError or integer overflow
             }
 
             final int bytesPerEntry = bigTiff ? BIG_TIFF_BYTES_PER_ENTRY : BYTES_PER_ENTRY;
@@ -1135,20 +1147,21 @@ public class TiffReader implements Closeable {
      * <li>{@link TagCompression#PACK_BITS}.</li>
      * </ul>
      *
-     * <p>1st correction: unpacking. TIFF supports storing pixel samples in any number of bits,
-     * not always divisible by 8, in other words, one pixel sample can occupy non-integer number of bytes.
-     * Most useful from these cases is 1-bit monochrome picture, where 8 pixels are packed into 1 byte.
+     * <p>First correction: unpacking. TIFF supports storing pixel samples in any number of bits,
+     * not always divisible by 8; in other words, one pixel sample can occupy non-integer number of bytes.
+     * Most useful in these cases is 1-bit monochrome picture, where 8 pixels are packed into 1 byte.
      * Sometimes the pictures with 4 bits/pixels (monochrome or with palette) or 3*4=12 bits/pixels (RGB) appear.
      * You can also meet old RGB 32-bit images with 5+5+5 or 5+6+5 bits/channel.</p>
      *
-     * <p>However, the API of this class represents any image as a sequence of <i>bytes</i>. This method performs
-     * all necessary unpacking so that the result image use an integer number of bytes per each pixel sample (channel).
+     * <p>However, the API of this class represents any image as a sequence of <i>bytes</i>.
+     * This method performs all necessary unpacking so that the result image uses
+     * an integer number of bytes per each pixel sample (channel).
      * For example, 1-bit binary image is converted to 8-bit: 0 transformed to 0, 1 to 255;
      * 4-bit grayscale image is converted by multiplying by 17 (so that maximal possible 4-bit value, 15,
      * will become maximal possible 8-bit value 255=17*15); 12-bit RGB image is converted to 16-bit
      * by multiplying each channel by (2<sup>16</sup>&minus;1)/(2<sup>12</sup>&minus;1), etc.</p>
      *
-     * <p>2nd correction: inversion. Some TIFF files use CMYK color space or WhiteIsZero interpretation of grayscale
+     * <p>Second correction: inversion. Some TIFF files use CMYK color space or WhiteIsZero interpretation of grayscale
      * images, where dark colors are represented by smaller values and bright colors by higher, in particular,
      * 0 is white, maximal value (255 for 8-bit) is black.</p>
      *
@@ -1158,11 +1171,12 @@ public class TiffReader implements Closeable {
      * For CMYK or WhiteIsZero it means inversion of the pixel samples: v is transformed to MAX&minus;v,
      * where MAX is the maximal possible value (255 for 8-bit).</p>
      *
-     * <p>3rd correction: conversion of YCbCr color space to usual RGB. It is a rare situation, when
-     * the image is stored as YCbCr, however not in JPEG format, but uncompressed or, for example, as LZW.
-     * This method performs necessary conversion to RGB (but only if the image is exactly 8-bit).</p>
+     * <p>Third correction: conversion of YCbCr color space to usual RGB. It is a rare situation, when
+     * the image is stored as YCbCr, however, not in JPEG format, but uncompressed or, for example, as LZW.
+     * This method performs the necessary conversion to RGB (but only if the image is exactly 8-bit).</p>
      *
-     * <p>Note: this method never increases number of <i>bytes</i>, necessary for representing a single pixel sample.
+     * <p>Note: this method never increases the number of <i>bytes</i>,
+     * necessary for representing a single pixel sample.
      * It can increase the number of <i>bits</i> per sample, but only to the nearest greater integer number of
      * bytes: 1..7 bits are transformed to 8 bits/sample, 9..15 to 16 bits/sample, 17..23 to 24 bits/sample etc.
      * Thus, this method <b>does not unpack 3-byte samples</b> (to 4-byte) and
@@ -1282,7 +1296,7 @@ public class TiffReader implements Closeable {
      *
      * <p>Note: you should not change IFD in a parallel thread while calling this method.
      *
-     * @return loaded samples in a normalized form of byte sequence.
+     * @return loaded samples in a normalized form of a byte sequence.
      */
     public byte[] readSamples(TiffMapForReading map, int fromX, int fromY, int sizeX, int sizeY) throws IOException {
         return readSamples(map, fromX, fromY, sizeX, sizeY, false);
@@ -1685,7 +1699,7 @@ public class TiffReader implements Closeable {
             in.seek(0);
             final long length = in.length();
             if (length < MINIMAL_ALLOWED_TIFF_FILE_LENGTH) {
-                // - sometimes we can meet 8-byte "TIFF-files" (or 16-byte "Big-TIFF"), containing only header
+                // - sometimes we can meet 8-byte "TIFF-files" (or 16-byte "Big-TIFF") that contain only header
                 // and no actual data (for example, results of debugging writing algorithm)
                 throw new TiffException("Too short TIFF file" + prettyInName() + ": only " + length +
                         " bytes (minimum " + MINIMAL_ALLOWED_TIFF_FILE_LENGTH + " bytes are required for valid TIFF)");
@@ -1748,8 +1762,9 @@ public class TiffReader implements Closeable {
         // tile.adjustNumberOfPixels() call if it called it without allowDecreasing=true argument.
         options.setInterleaved(true);
         // - Value "true" is necessary for most codecs, that work with high-level classes (like JPEG or JPEG-2000) and
-        // need to be instructed to interleave results (unlike LZW or DECOMPRESSED, which work with data "as-is"
-        // and suppose that data are interleaved according TIFF format specification).
+        // need to be instructed to interleave results.
+        // (For comparison, LZW or DECOMPRESSED work with data "as-is" and suppose
+        // that data are interleaved according to TIFF format specification).
         // For JPEG, TagCompression overrides this value to false because it works faster in this mode.
         options.setIfd(tile.ifd());
         return options;
