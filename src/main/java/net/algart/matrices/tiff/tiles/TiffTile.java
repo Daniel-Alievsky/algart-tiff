@@ -599,7 +599,7 @@ public final class TiffTile {
      * <p>After {@link #free()} method, the tile becomes {@link #isEmpty() empty},
      * but can be filled with some data again, for example using {@link #setDecodedData(byte[])}
      * or {@link #fillWhenEmpty()}.
-     * Unlike this, after {@link #dispose()} method,
+     * Unlike this, after this method,
      * the tile cannot be modified at all: any attempt to get or set data
      * ({@link #getDecodedData()}, {@link #getEncodedData()}, {@link  #setDecodedData(byte[])},
      * {@link #setEncodedData(byte[])}, {@link #fillWhenEmpty()} etc.) will result in an exception.</p>

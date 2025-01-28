@@ -29,7 +29,6 @@ import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tiles.TiffMapForReading;
 import net.algart.matrices.tiff.tiles.TiffMapForWriting;
-import net.algart.matrices.tiff.tiles.TiffTile;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
