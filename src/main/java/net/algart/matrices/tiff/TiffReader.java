@@ -643,7 +643,7 @@ public class TiffReader implements Closeable {
      * If <code>ifdIndex</code> is too big (&ge;{@link #numberOfImages()}), this method throws
      * {@link TiffException}.</p>
      *
-     * @param ifdIndex index of IFD.
+     * @param ifdIndex index of the TIFF image.
      * @return the IFD with the specified index.
      * @throws TiffException            if <code>ifdIndex</code> is too large,
      *                                  or if the file is not a correct TIFF file,
@@ -664,25 +664,50 @@ public class TiffReader implements Closeable {
     }
 
     /**
-     * Returns the width of TIFF image with the specified index.
+     * Returns the width of the TIFF image with the specified index.
      * Equivalent to <code>{@link #ifd(int) ifd}(ifdIndex).{@link TiffIFD#getImageDimX() getImageDimX()}</code>.
      *
      * <p>Note that you can get this information and more by creating a new TIFF map with help of the call
      * {@link #newMap(int) newMap(ifdIndex)}: the returned {@link TiffMap} object has many methods
      * that allow you to quickly find various information about the TIFF image.</p>
      *
-     * @param ifdIndex
-     * @return
-     * @throws IOException
+     * @param ifdIndex index of the TIFF image.
+     * @return width of this image.
+     * @throws IOException in the case of any problems with the input file.
      */
     public int dimX(int ifdIndex) throws IOException {
         return ifd(ifdIndex).getImageDimX();
     }
 
+    /**
+     * Returns the height of the TIFF image with the specified index.
+     * Equivalent to <code>{@link #ifd(int) ifd}(ifdIndex).{@link TiffIFD#getImageDimY() getImageDimY()}</code>.
+     *
+     * <p>Note that you can get this information and more by creating a new TIFF map with help of the call
+     * {@link #newMap(int) newMap(ifdIndex)}: the returned {@link TiffMap} object has many methods
+     * that allow you to quickly find various information about the TIFF image.</p>
+     *
+     * @param ifdIndex index of the TIFF image.
+     * @return height of this image.
+     * @throws IOException in the case of any problems with the input file.
+     */
     public int dimY(int ifdIndex) throws IOException {
         return ifd(ifdIndex).getImageDimY();
     }
 
+    /**
+     * Returns the number of channels (samples per pixel) in the TIFF image with the specified index.
+     * Equivalent to
+     * <code>{@link #ifd(int) ifd}(ifdIndex).{@link TiffIFD#getSamplesPerPixel() getSamplesPerPixel()}</code>.
+     *
+     * <p>Note that you can get this information and more by creating a new TIFF map with help of the call
+     * {@link #newMap(int) newMap(ifdIndex)}: the returned {@link TiffMap} object has many methods
+     * that allow you to quickly find various information about the TIFF image.</p>
+     *
+     * @param ifdIndex index of the TIFF image.
+     * @return number of channels in this image.
+     * @throws IOException in the case of any problems with the input file.
+     */
     public int numberOfChannels(int ifdIndex) throws IOException {
         return ifd(ifdIndex).getSamplesPerPixel();
     }
