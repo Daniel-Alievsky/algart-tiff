@@ -198,7 +198,7 @@ public class TiffIFD {
         // And it is the only way to clear this flag.
     }
 
-    public static TiffIFD valueOf(Map<Integer, Object> ifdEntries) {
+    public static TiffIFD of(Map<Integer, Object> ifdEntries) {
         return new TiffIFD(ifdEntries);
     }
 
@@ -786,7 +786,7 @@ public class TiffIFD {
     // we cannot be sure that we know all possible compressions!
     public Optional<TagCompression> optCompression() {
         final int code = optInt(Tags.COMPRESSION, -1);
-        return code == -1 ? Optional.empty() : Optional.ofNullable(TagCompression.valueOfCodeOrNull(code));
+        return code == -1 ? Optional.empty() : Optional.ofNullable(TagCompression.ofOrNull(code));
     }
 
     public int optPredictorCode() {
@@ -794,7 +794,7 @@ public class TiffIFD {
     }
 
     public TagPredictor optPredictor() {
-        return TagPredictor.valueOfCodeOrUnknown(optPredictorCode());
+        return TagPredictor.ofOrUnknown(optPredictorCode());
     }
 
     public String compressionPrettyName() {
@@ -802,7 +802,7 @@ public class TiffIFD {
         if (code == -1) {
             return "unspecified compression";
         }
-        final TagCompression compression = TagCompression.valueOfCodeOrNull(code);
+        final TagCompression compression = TagCompression.ofOrNull(code);
         return compression == null ? "unsupported compression " + code : compression.prettyName();
     }
 
@@ -812,7 +812,7 @@ public class TiffIFD {
             return TagPhotometricInterpretation.RGB;
         }
         final int code = getInt(Tags.PHOTOMETRIC_INTERPRETATION, -1);
-        return TagPhotometricInterpretation.valueOfCodeOrUnknown(code);
+        return TagPhotometricInterpretation.ofOrUnknown(code);
     }
 
     public int[] getYCbCrSubsampling() throws TiffException {
@@ -1148,7 +1148,7 @@ public class TiffIFD {
         final long dimX = matrix.dim(interleaved ? 1 : 0);
         final long dimY = matrix.dim(interleaved ? 2 : 1);
         putImageDimensions(dimX, dimY);
-        putPixelInformation((int) numberOfChannels, TiffSampleType.valueOf(matrix.elementType(), signedIntegers));
+        putPixelInformation((int) numberOfChannels, TiffSampleType.of(matrix.elementType(), signedIntegers));
         return this;
     }
 
@@ -1169,7 +1169,7 @@ public class TiffIFD {
         final long dimY = matrix.dimY();
         final Class<?> elementType = matrix.elementType();
         putImageDimensions(dimX, dimY);
-        putPixelInformation(numberOfChannels, TiffSampleType.valueOf(elementType, signedIntegers));
+        putPixelInformation(numberOfChannels, TiffSampleType.of(elementType, signedIntegers));
         return this;
     }
 
@@ -1180,7 +1180,7 @@ public class TiffIFD {
         final int dimX = bufferedImage.getWidth();
         final int dimY = bufferedImage.getHeight();
         putImageDimensions(dimX, dimY);
-        putPixelInformation(numberOfChannels, TiffSampleType.valueOf(elementType, false));
+        putPixelInformation(numberOfChannels, TiffSampleType.of(elementType, false));
         return this;
     }
 
@@ -1202,7 +1202,7 @@ public class TiffIFD {
     }
 
     public TiffIFD putPixelInformation(int numberOfChannels, Class<?> elementType) {
-        return putPixelInformation(numberOfChannels, TiffSampleType.valueOf(elementType, false));
+        return putPixelInformation(numberOfChannels, TiffSampleType.of(elementType, false));
     }
 
     /**
@@ -1727,7 +1727,7 @@ public class TiffIFD {
                                 "reversed bits order: lowest first (little-endian, 0-1-2-3-4-5-6-7)";
                         case Tags.PREDICTOR -> {
                             if (v instanceof Number number) {
-                                final TagPredictor predictor = TagPredictor.valueOfCodeOrUnknown(number.intValue());
+                                final TagPredictor predictor = TagPredictor.ofOrUnknown(number.intValue());
                                 if (predictor != TagPredictor.UNKNOWN) {
                                     additional = predictor.prettyName();
                                 }

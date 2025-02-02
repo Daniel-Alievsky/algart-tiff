@@ -48,7 +48,7 @@ public enum TagPredictor {
         this.name = Objects.requireNonNull(name);
     }
 
-    public static TagPredictor valueOfCodeOrUnknown(int code) {
+    public static TagPredictor ofOrUnknown(int code) {
         return LOOKUP.getOrDefault(code, UNKNOWN);
     }
 

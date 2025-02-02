@@ -1092,7 +1092,7 @@ public class TiffReader implements Closeable {
         prepareDecoding(tile);
 
         final byte[] encodedData = tile.getEncodedData();
-        final TagCompression compression = TagCompression.valueOfCodeOrNull(tile.compressionCode());
+        final TagCompression compression = TagCompression.ofOrNull(tile.compressionCode());
         TiffCodec codec = null;
         if (!enforceUseExternalCodec && compression != null) {
             codec = compression.codec();

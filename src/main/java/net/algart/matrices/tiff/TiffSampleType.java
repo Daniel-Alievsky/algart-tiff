@@ -134,7 +134,7 @@ public enum TiffSampleType {
         }
     }
 
-    public static TiffSampleType valueOfJavaArray(Object javaArray, boolean signedIntegers) {
+    public static TiffSampleType ofJavaArray(Object javaArray, boolean signedIntegers) {
         Objects.requireNonNull(javaArray, "Null Java array");
         Class<?> elementType = javaArray.getClass().getComponentType();
         if (elementType == null) {
@@ -144,15 +144,15 @@ public enum TiffSampleType {
         return javaArray instanceof long[] ?
                 // - packed long[]
                 TiffSampleType.BIT :
-                TiffSampleType.valueOf(elementType, signedIntegers);
+                TiffSampleType.of(elementType, signedIntegers);
     }
 
-    public static TiffSampleType valueOf(PArray array, boolean signedIntegers) {
+    public static TiffSampleType of(PArray array, boolean signedIntegers) {
         Objects.requireNonNull(array, "Null array");
-        return valueOf(array.elementType(), signedIntegers);
+        return of(array.elementType(), signedIntegers);
     }
 
-    public static TiffSampleType valueOf(Class<?> elementType, boolean signedIntegers) {
+    public static TiffSampleType of(Class<?> elementType, boolean signedIntegers) {
         Objects.requireNonNull(elementType, "Null elementType");
         if (elementType == boolean.class) {
             return BIT;
@@ -177,7 +177,7 @@ public enum TiffSampleType {
             int sizeY,
             int numberOfChannels,
             boolean interleavedSamples) {
-        valueOfJavaArray(javaArray, false);
+        ofJavaArray(javaArray, false);
         // - checks that javaArray is an array of supported primitive types
         if (sizeX < 0 || sizeY < 0) {
             throw new IllegalArgumentException("Negative sizeX = " + sizeX + " or sizeY = " + sizeY);

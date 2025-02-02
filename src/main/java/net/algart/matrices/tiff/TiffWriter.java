@@ -823,7 +823,7 @@ public class TiffWriter implements Closeable {
         prepareEncoding(tile);
         long t2 = debugTime();
 
-        final TagCompression compression = TagCompression.valueOfCodeOrNull(tile.compressionCode());
+        final TagCompression compression = TagCompression.ofOrNull(tile.compressionCode());
         TiffCodec codec = null;
         if (!enforceUseExternalCodec && compression != null) {
             codec = compression.codec();

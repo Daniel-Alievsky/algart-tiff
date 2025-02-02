@@ -150,12 +150,12 @@ public enum TagCompression {
         this.codec = codec;
     }
 
-    public static TagCompression valueOfCodeOrNull(int code) {
+    public static TagCompression ofOrNull(int code) {
         return LOOKUP.get(code);
     }
 
     public static String toPrettyString(int code) {
-        final TagCompression compression = valueOfCodeOrNull(code);
+        final TagCompression compression = ofOrNull(code);
         return "type " + code + (compression == null ? "" : ": \"" + compression.prettyName() + "\"");
     }
 
