@@ -22,7 +22,7 @@ See also [AlgART-TIFF page](https://algart.net/java/AlgART-TIFF/) on AlgART site
 * You can create large TIFF step-by-step: you _start_ writing new image, then add data tile-per-tile or by a sequence of rectangular fragments, then _complete_ writing this image 
 * If you add data by rectangular areas, you may control which tiles are already ready (filled with data), and flush them to file; so you can create a huge TIFF file without using a large amount of RAM
   
-This library is designed as a powerful alternative to the TIFF support included in the popular [SCIFIO](https://github.com/scifio/scifio) library. This library is independent on SCIFIO, but recognizes the situation when SCIFIO (`io.scif` package) is available in the classpath. In this case, the `TiffReader` and `TiffWriter` classes also "understand" all TIFF compressions supported by `io.scif.formats.tiff.TiffCompression` class, in addition to the built-in compression formats. 
+This library is compatible with the [SCIFIO](https://github.com/scifio/scifio). This library is independent on SCIFIO, but recognizes the situation when SCIFIO (`io.scif` package) is available in the classpath. In this case, the `TiffReader` and `TiffWriter` classes also "understand" all TIFF compressions supported by `io.scif.formats.tiff.TiffCompression` class, in addition to the built-in compression formats. 
 This is usually not important because this library supports almost all formats, but it may help to ensure compatibility when migrating from SCIFIO to AlgART-TIFF. 
 
 
