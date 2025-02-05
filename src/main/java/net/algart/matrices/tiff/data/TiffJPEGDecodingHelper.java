@@ -35,7 +35,7 @@ public class TiffJPEGDecodingHelper {
     private TiffJPEGDecodingHelper() {
     }
 
-    // For example, this is necessary in src/test/java/resources/demo/images/tiff/libtiffpic/quad-jpeg.tif
+    // For example, this is necessary in src/test/resources/demo/images/tiff/libtiffpic/quad-jpeg.tif
     public static void embedJPEGTableInDataIfRequested(TiffTile tile, boolean throwExceptionForStrangeDataStream)
             throws TiffException {
         final TiffIFD ifd = tile.ifd();

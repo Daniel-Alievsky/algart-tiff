@@ -2,7 +2,7 @@
   <configuration default="false" name="TiffReaderTest (large SVS)" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.tests.io.TiffReaderTest" />
     <module name="algart-scifio-bridge" />
-    <option name="PROGRAM_PARAMETERS" value="-cache src/test/java/resources/demo/images/tiff/openslide/CMU-1-Small-Region.svs  /tmp/test.png 0 0 0 -1 -1 5" />
+    <option name="PROGRAM_PARAMETERS" value="-cache src/test/resources/demo/images/tiff/openslide/CMU-1-Small-Region.svs  /tmp/test.png 0 0 0 -1 -1 5" />
     <option name="VM_PARAMETERS" value="-ea -esa -Dnet.algart.matrices.tiff.timing=true -Djava.util.logging.config.file=additional/logging.properties" />
     <method v="2">
       <option name="Make" enabled="true" />
