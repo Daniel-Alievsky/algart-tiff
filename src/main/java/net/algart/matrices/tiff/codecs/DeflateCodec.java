@@ -25,18 +25,12 @@
 package net.algart.matrices.tiff.codecs;
 
 import net.algart.matrices.tiff.TiffException;
-import org.scijava.io.handle.DataHandle;
-import org.scijava.io.handle.DataHandleInputStream;
-import org.scijava.io.location.Location;
 
 import java.io.ByteArrayOutputStream;
-import java.io.EOFException;
-import java.io.IOException;
 import java.util.Objects;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
-import java.util.zip.InflaterInputStream;
 
 /**
  * This class implements ZLIB compression/decompression.
