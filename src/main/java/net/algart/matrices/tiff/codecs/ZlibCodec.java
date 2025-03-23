@@ -38,7 +38,8 @@ import java.util.zip.InflaterInputStream;
  *
  * @author Melissa Linkert
  */
-public class ZlibCodec extends AbstractCodec {
+@Deprecated
+public class ZlibCodec extends StreamTiffCodec {
     // (It is placed here to avoid autocorrection by IntelliJ IDEA)
     /*
      * #%L
@@ -69,7 +70,7 @@ public class ZlibCodec extends AbstractCodec {
      * #L%
      */
 
-    static class ByteVector {
+    private static class ByteVector {
         private byte[] data;
 
         private int size;

@@ -92,7 +92,7 @@ public enum TagCompression {
     /**
      * Zlib deflate compression (ZIP), compatible with ZLib and {@link java.util.zip.DeflaterOutputStream} (type 8).
      */
-    DEFLATE(TiffIFD.COMPRESSION_DEFLATE, "ZLib-Deflate", ZlibCodec::new),
+    DEFLATE(TiffIFD.COMPRESSION_DEFLATE, "ZLib-Deflate", DeflateCodec::new),
 
     /**
      * Deflate compression, equivalent to "{@link #DEFLATE Zlib deflate}"
@@ -105,7 +105,7 @@ public enum TagCompression {
      *     In both cases each image segment (strip or tile) is written as a single complete zlib data stream.
      * </blockquote>
      */
-    DEFLATE_PROPRIETARY(TiffIFD.COMPRESSION_DEFLATE_PROPRIETARY, "ZLib-Deflate (PKZIP-style)", ZlibCodec::new),
+    DEFLATE_PROPRIETARY(TiffIFD.COMPRESSION_DEFLATE_PROPRIETARY, "ZLib-Deflate (32946)", DeflateCodec::new),
 
     /**
      * PackBits run-length compression (type 32773).

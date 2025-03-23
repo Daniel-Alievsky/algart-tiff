@@ -44,7 +44,7 @@ import java.util.Objects;
  *
  * @author Melissa Linkert
  */
-public class LosslessJPEGCodec extends AbstractCodec {
+public class LosslessJPEGCodec extends StreamTiffCodec {
     // (It is placed here to avoid autocorrection by IntelliJ IDEA)
     /*
      * #%L

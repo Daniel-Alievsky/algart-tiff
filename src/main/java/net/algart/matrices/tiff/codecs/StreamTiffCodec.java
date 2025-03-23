@@ -33,7 +33,7 @@ import org.scijava.io.location.Location;
 
 import java.io.IOException;
 
-abstract class AbstractCodec implements TiffCodec {
+abstract class StreamTiffCodec implements TiffCodec {
     @Override
     public byte[] decompress(byte[] data, Options options) throws TiffException {
         try {

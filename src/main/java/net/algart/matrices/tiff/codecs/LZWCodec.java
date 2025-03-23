@@ -31,7 +31,7 @@ import org.scijava.io.location.Location;
 import java.io.IOException;
 import java.util.Arrays;
 
-public class LZWCodec extends AbstractCodec {
+public class LZWCodec extends StreamTiffCodec {
     // (It is placed here to avoid autocorrection by IntelliJ IDEA)
     /*
      * #%L

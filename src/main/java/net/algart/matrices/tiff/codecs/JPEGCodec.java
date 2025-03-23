@@ -41,7 +41,7 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Objects;
 
-public class JPEGCodec extends AbstractCodec implements TiffCodec.Timing {
+public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
     public static class JPEGOptions extends Options {
         /**
          * Value of TIFF tag PhotometricInterpretation (READ/WRITE).
