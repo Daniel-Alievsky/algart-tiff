@@ -140,6 +140,14 @@ public class TiffWriterTest {
             }
             startArgIndex++;
         }
+        Double compressionLevel = null;
+        if (args.length > startArgIndex && args[startArgIndex].toLowerCase().startsWith("-compressionlevel=")) {
+            final String s = args[startArgIndex].toLowerCase().substring("-compressionlevel=".length());
+            if (!s.equals("null")) {
+                compressionLevel = Double.parseDouble(s);
+            }
+            startArgIndex++;
+        }
         boolean jpegRGB = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-jpegRGB")) {
             jpegRGB = true;
@@ -240,9 +248,8 @@ public class TiffWriterTest {
                 if (littleEndian) {
                     writer.setLittleEndian(true);
                 }
-                if (quality != null) {
-                    writer.setQuality(quality);
-                }
+                writer.setQuality(quality);
+                writer.setLosslessCompressionLevel(compressionLevel);
                 writer.setPreferRGB(jpegRGB);
 //                writer.setSmartIFDCorrection(true);
 //                writer.setByteFiller((byte) 0xE0);

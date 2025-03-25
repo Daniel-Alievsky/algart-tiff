@@ -43,8 +43,9 @@ public class DeflateCodec implements TiffCodec {
         final Double compressionLevel = options.getLosslessCompressionLevel();
         final Deflater deflater;
         if (compressionLevel != null) {
-            final int level = (int) Math.round(9.0 * Math.min(Math.max(compressionLevel, 0.0), 1.0));
-            assert level >= 0 && level <= 9;
+            final int level = compressionLevel <= 0.0 ? 0 :
+                    Math.max(1, (int) Math.round(9.0 * Math.min(compressionLevel, 1.0)));
+            assert level <= 9;
             deflater = new Deflater(level);
         } else {
             deflater = new Deflater();

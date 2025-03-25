@@ -229,7 +229,7 @@ public class TiffParser extends TiffReader {
     public void setCodecOptions(final CodecOptions codecOptions) {
         this.codecOptions = codecOptions;
         TiffCodec.Options options = getCodecOptions();
-        options.setToScifioStyleOptions(codecOptions);
+        options.setToSCIFIOStyleOptions(codecOptions);
         // - not too important, but also does not create problems
         //noinspection resource
         setCodecOptions(options);
@@ -1045,7 +1045,7 @@ public class TiffParser extends TiffReader {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(encodedData, "Null encoded data");
         Objects.requireNonNull(options, "Null options");
-        final CodecOptions codecOptions = options.toScifioStyleOptions(CodecOptions.class);
+        final CodecOptions codecOptions = options.toSCIFIOStyleOptions(CodecOptions.class);
         final TiffIFD ifd = tile.ifd();
         final int[] declaredSubsampling = ifd.getYCbCrSubsampling();
         if (ifd.getPhotometricInterpretation() == TagPhotometricInterpretation.Y_CB_CR &&
@@ -1053,7 +1053,7 @@ public class TiffParser extends TiffReader {
                 this.ycbcrCorrection) {
             codecOptions.ycbcr = true;
         }
-        return Optional.of(decompressByScifioCodec(tile.ifd(), encodedData, codecOptions));
+        return Optional.of(decompressBySCIFIOCodec(tile.ifd(), encodedData, codecOptions));
     }
 
     @Deprecated

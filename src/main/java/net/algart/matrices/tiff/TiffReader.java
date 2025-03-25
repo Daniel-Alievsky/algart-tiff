@@ -1571,7 +1571,7 @@ public class TiffReader implements Closeable {
                 .toBufferedImage(interleavedChannels);
     }
 
-    public final byte[] decompressByScifioCodec(TiffIFD ifd, byte[] encodedData, Object scifioCodecOptions)
+    public final byte[] decompressBySCIFIOCodec(TiffIFD ifd, byte[] encodedData, Object scifioCodecOptions)
             throws TiffException {
         final Object scifio = requireScifio(ifd);
         final int compressionCode = ifd.getCompressionCode();
@@ -1637,7 +1637,7 @@ public class TiffReader implements Closeable {
             return Optional.empty();
         }
         final Object scifioCodecOptions = options.toSCIFIOStyleOptions(SCIFIOBridge.codecOptionsClass());
-        final byte[] decodedData = decompressByScifioCodec(tile.ifd(), encodedData, scifioCodecOptions);
+        final byte[] decodedData = decompressBySCIFIOCodec(tile.ifd(), encodedData, scifioCodecOptions);
         return Optional.of(decodedData);
     }
 

@@ -144,7 +144,7 @@ public class TiffSaver extends TiffWriter {
     public TiffSaver setCodecOptions(final CodecOptions codecOptions) {
         this.options = codecOptions;
         TiffCodec.Options options = getCodecOptions();
-        options.setToScifioStyleOptions(codecOptions);
+        options.setToSCIFIOStyleOptions(codecOptions);
         // - This is not too important, but also does not create problems.
         // In particular, default quality=null may be replaced with quality=0.0,
         // but this is not a problem for old SCIFIO codecs.
