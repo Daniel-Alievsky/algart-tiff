@@ -195,16 +195,16 @@ public class JPEG2000Codec implements TiffCodec {
         }
 
         @Override
-        public <T> T toScifioStyleOptions(Class<T> scifioStyleClass) {
-            T result = super.toScifioStyleOptions(scifioStyleClass);
+        public <T> T toSCIFIOStyleOptions(Class<T> scifioStyleClass) {
+            T result = super.toSCIFIOStyleOptions(scifioStyleClass);
             setField(scifioStyleClass, result, "lossless", lossless);
             setField(scifioStyleClass, result, "colorModel", colorModel);
             return result;
         }
 
         @Override
-        public void setToScifioStyleOptions(Object scifioStyleOptions) {
-            super.setToScifioStyleOptions(scifioStyleOptions);
+        public void setToSCIFIOStyleOptions(Object scifioStyleOptions) {
+            super.setToSCIFIOStyleOptions(scifioStyleOptions);
             lossless = getField(scifioStyleOptions, Boolean.class, "lossless");
             colorModel = getField(scifioStyleOptions, ColorModel.class, "colorModel");
         }

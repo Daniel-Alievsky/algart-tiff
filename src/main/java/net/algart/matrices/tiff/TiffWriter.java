@@ -87,6 +87,7 @@ public class TiffWriter implements Closeable {
     private TiffCodec.Options codecOptions = new TiffCodec.Options();
     private boolean enforceUseExternalCodec = false;
     private Double quality = null;
+    private Double losslessCompressionLevel = null;
     private boolean preferRGB = false;
     private boolean missingTilesAllowed = false;
     private byte byteFiller = 0;
@@ -389,10 +390,11 @@ public class TiffWriter implements Closeable {
     /**
      * Sets the compression quality for JPEG tiles/strips to some non-negative value.
      *
-     * <p>Possible values are format-specific. For JPEG, it should be between 0.0 and 1.0 (1.0 means the best quality).
-     * For JPEG-2000, maximal possible value is <code>Double.MAX_VALUE</code>, that means loss-less compression.
+     * <p>Possible values are format-specific.
+     * For JPEG, they should be between 0.0 and 1.0 (1.0 means the best quality).
+     * For JPEG-2000, the maximal possible value is <code>Double.MAX_VALUE</code>, that means loss-less compression.
      *
-     * <p>If this method was not called (or after {@link #removeQuality()}), the compression quality is not specified.
+     * <p>If this method was not called or after {@link #removeQuality()}, the compression quality is not specified.
      * In this case, some default quality will be used. In particular, it will be 1.0 for JPEG (maximal JPEG quality),
      * 10 for JPEG-2000 (compression code 33003) or alternative JPEG-200 (code 33005),
      * <code>Double.MAX_VALUE</code> for lose-less JPEG-2000 ({@link TagCompression#JPEG_2000}, code 33004).
@@ -403,12 +405,14 @@ public class TiffWriter implements Closeable {
      * {@link #setCodecOptions(TiffCodec.Options)} method, is ignored,
      * if this value is set to non-{@code null} value.
      *
-     * <p>Please <b>remember</b> that this parameter may be different for different IFDs.
-     * In this case, you need to call this method every time before creating new IFD,
-     * not only once for the whole TIFF file!
+     * <p>Please <b>note</b> that this parameter may be different for different IFDs and
+     * even for different tiles inside the same IFD.
+     * In this case, you need to call this method every time before updating IFD,
+     * not only once for the whole TIFF file.
      *
-     * @param quality floating-point value, the desired quality level.
+     * @param quality floating-point value: the desired quality level.
      * @return a reference to this object.
+     * @throws IllegalArgumentException if the argument is negative.
      */
     public TiffWriter setQuality(double quality) {
         if (quality < 0.0) {
@@ -420,6 +424,59 @@ public class TiffWriter implements Closeable {
 
     public TiffWriter removeQuality() {
         this.quality = null;
+        return this;
+    }
+
+    public boolean hasLosslessCompressionLevel() {
+        return losslessCompressionLevel != null;
+    }
+
+    public Double getLosslessCompressionLevel() {
+        return losslessCompressionLevel;
+    }
+
+    public TiffWriter setLosslessCompressionLevel(Double losslessCompressionLevel) {
+        return losslessCompressionLevel == null ?
+                removeLosslessCompressionLevel() :
+                setLosslessCompressionLevel(losslessCompressionLevel.doubleValue());
+    }
+
+    /**
+     * Sets the compression level for lossless formats.
+     * In the current version, the only format that supports this parameter is {@link TagCompression#DEFLATE}.
+     *
+     * <p>Possible values are format-specific, but usually they should be between 0.0 and 1.0
+     * (1.0 means the best quality).
+     * Zero values means no compression if the compression algorithm supports this variant.
+     *
+     * <p>If this method was not called or after {@link #removeLosslessCompressionLevel()},
+     * this level is not specified: some default compression level will be used.
+     *
+     * <p>Note: the {@link TiffCodec.Options#setLosslessCompressionLevel(Double) lossless compression level},
+     * that can be set via
+     * {@link #setCodecOptions(TiffCodec.Options)} method, is ignored,
+     * if this value is set to non-{@code null} value.
+     *
+     * <p>Please <b>note</b> that this parameter may be different for different IFDs and
+     * even for different tiles inside the same IFD.
+     * In this case, you need to call this method every time before updating IFD,
+     * not only once for the whole TIFF file.
+     *
+     * @param losslessCompressionLevel floating-point value: the desired compression level.
+     * @return a reference to this object.
+     * @throws IllegalArgumentException if the argument is negative.
+     */
+    public TiffWriter setLosslessCompressionLevel(double losslessCompressionLevel) {
+        if (losslessCompressionLevel < 0.0) {
+            throw new IllegalArgumentException("Negative losslessCompressionLevel " + losslessCompressionLevel +
+                    " is not allowed");
+        }
+        this.losslessCompressionLevel = losslessCompressionLevel;
+        return this;
+    }
+
+    public TiffWriter removeLosslessCompressionLevel() {
+        this.losslessCompressionLevel = null;
         return this;
     }
 
@@ -1510,7 +1567,7 @@ public class TiffWriter implements Closeable {
         if (!SCIFIOBridge.isScifioInstalled()) {
             return Optional.empty();
         }
-        final Object scifioCodecOptions = options.toScifioStyleOptions(SCIFIOBridge.codecOptionsClass());
+        final Object scifioCodecOptions = options.toSCIFIOStyleOptions(SCIFIOBridge.codecOptionsClass());
         final int width = tile.getSizeX();
         final int height = tile.getSizeY();
         final byte[] encodedData = compressByScifioCodec(tile.ifd(), decodedData, width, height, scifioCodecOptions);
@@ -2043,6 +2100,9 @@ public class TiffWriter implements Closeable {
         options.setInterleaved(true);
         if (this.quality != null) {
             options.setQuality(this.quality);
+        }
+        if (this.losslessCompressionLevel != null) {
+            options.setLosslessCompressionLevel(this.losslessCompressionLevel);
         }
         options.setIfd(tile.ifd());
         return options;

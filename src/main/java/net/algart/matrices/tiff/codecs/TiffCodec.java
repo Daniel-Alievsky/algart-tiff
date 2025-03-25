@@ -62,6 +62,7 @@ public interface TiffCodec {
         boolean interleaved = false;
         int maxSizeInBytes = 0;
         private Double quality = null;
+        private Double losslessCompressionLevel = null;
         private TiffIFD ifd = null;
         // - used only if other information is not enough
 
@@ -210,6 +211,15 @@ public interface TiffCodec {
             return quality;
         }
 
+        public Double getLosslessCompressionLevel() {
+            return losslessCompressionLevel;
+        }
+
+        public Options setLosslessCompressionLevel(Double losslessCompressionLevel) {
+            this.losslessCompressionLevel = losslessCompressionLevel;
+            return this;
+        }
+
         public TiffIFD getIfd() {
             return ifd;
         }
@@ -221,21 +231,22 @@ public interface TiffCodec {
 
         public Options setTo(Options options) {
             Objects.requireNonNull(options, "Null options");
-            setWidth(options.width);
-            setHeight(options.height);
-            setNumberOfChannels(options.numberOfChannels);
-            setBitsPerSample(options.bitsPerSample);
-            setSigned(options.signed);
-            setFloatingPoint(options.floatingPoint);
-            setLittleEndian(options.littleEndian);
-            setInterleaved(options.interleaved);
-            setMaxSizeInBytes(options.maxSizeInBytes);
-            setQuality(options.quality);
-            setIfd(options.ifd);
+            this.width = options.width;
+            this.height = options.height;
+            this.numberOfChannels = options.numberOfChannels;
+            this.bitsPerSample = options.bitsPerSample;
+            this.signed = options.signed;
+            this.floatingPoint = options.floatingPoint;
+            this.littleEndian = options.littleEndian;
+            this.interleaved = options.interleaved;
+            this.maxSizeInBytes = options.maxSizeInBytes;
+            this.quality = options.quality;
+            this.losslessCompressionLevel = options.losslessCompressionLevel;
+            this.ifd = options.ifd;
             return this;
         }
 
-        public final Object toScifioStyleOptions(String scifioStyleClassName) {
+        public final Object toSCIFIOStyleOptions(String scifioStyleClassName) {
             Objects.requireNonNull(scifioStyleClassName, "Null scifioStyleClassName");
             final Class<?> c;
             try {
@@ -243,10 +254,10 @@ public interface TiffCodec {
             } catch (ClassNotFoundException e) {
                 throw new IllegalArgumentException("No class " + scifioStyleClassName, e);
             }
-            return toScifioStyleOptions(c);
+            return toSCIFIOStyleOptions(c);
         }
 
-        public <T> T toScifioStyleOptions(Class<T> scifioStyleClass) {
+        public <T> T toSCIFIOStyleOptions(Class<T> scifioStyleClass) {
             Objects.requireNonNull(scifioStyleClass, "Null scifioStyleClass");
             final T result;
             try {
@@ -269,7 +280,7 @@ public interface TiffCodec {
             return result;
         }
 
-        public void setToScifioStyleOptions(Object scifioStyleOptions) {
+        public void setToSCIFIOStyleOptions(Object scifioStyleOptions) {
             Objects.requireNonNull(scifioStyleOptions, "Null scifioStyleOptions");
             setWidth(getField(scifioStyleOptions, Integer.class, "width"));
             setHeight(getField(scifioStyleOptions, Integer.class, "height"));
@@ -292,10 +303,12 @@ public interface TiffCodec {
                     ", bitsPerSample=" + bitsPerSample +
                     ", signed=" + signed +
                     ", floatingPoint=" + floatingPoint +
+                    ", compressionCode=" + compressionCode +
                     ", littleEndian=" + littleEndian +
                     ", interleaved=" + interleaved +
                     ", maxSizeInBytes=" + maxSizeInBytes +
-                    ", quality=" + quality;
+                    ", quality=" + quality +
+                    ", losslessCompressionLevel=" + losslessCompressionLevel;
         }
 
         public Options clone() {

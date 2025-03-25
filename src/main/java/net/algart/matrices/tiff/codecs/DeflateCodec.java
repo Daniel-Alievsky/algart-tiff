@@ -39,7 +39,16 @@ public class DeflateCodec implements TiffCodec {
     @Override
     public byte[] compress(byte[] data, Options options) {
         Objects.requireNonNull(data, "Null data");
-        final Deflater deflater = new Deflater();
+        Objects.requireNonNull(options, "Null codec options");
+        final Double compressionLevel = options.getLosslessCompressionLevel();
+        final Deflater deflater;
+        if (compressionLevel != null) {
+            final int level = (int) Math.round(9.0 * Math.min(Math.max(compressionLevel, 0.0), 1.0));
+            assert level >= 0 && level <= 9;
+            deflater = new Deflater(level);
+        } else {
+            deflater = new Deflater();
+        }
         deflater.setInput(data);
         deflater.finish();
 
@@ -49,7 +58,8 @@ public class DeflateCodec implements TiffCodec {
             final int compressedSize = deflater.deflate(buffer);
             outputStream.write(buffer, 0, compressedSize);
         }
-        return outputStream.toByteArray();    }
+        return outputStream.toByteArray();
+    }
 
 
     @Override

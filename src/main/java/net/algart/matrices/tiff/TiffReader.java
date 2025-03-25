@@ -1636,7 +1636,7 @@ public class TiffReader implements Closeable {
         if (!SCIFIOBridge.isScifioInstalled()) {
             return Optional.empty();
         }
-        final Object scifioCodecOptions = options.toScifioStyleOptions(SCIFIOBridge.codecOptionsClass());
+        final Object scifioCodecOptions = options.toSCIFIOStyleOptions(SCIFIOBridge.codecOptionsClass());
         final byte[] decodedData = decompressByScifioCodec(tile.ifd(), encodedData, scifioCodecOptions);
         return Optional.of(decodedData);
     }
