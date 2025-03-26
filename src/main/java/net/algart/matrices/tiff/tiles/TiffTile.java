@@ -642,6 +642,11 @@ public final class TiffTile {
         return storedDataFileOffset >= 0;
     }
 
+    public TiffTile clearStoredInFile() {
+        storedDataFileOffset = -1;
+        return this;
+    }
+
     public long getStoredDataFileOffset() {
         checkStoredFilePosition();
         return storedDataFileOffset;
@@ -652,11 +657,6 @@ public final class TiffTile {
             throw new IllegalArgumentException("Negative storedDataFileOffset = " + storedDataFileOffset);
         }
         this.storedDataFileOffset = storedDataFileOffset;
-        return this;
-    }
-
-    public TiffTile removeStoredDataFileOffset() {
-        storedDataFileOffset = -1;
         return this;
     }
 
@@ -960,10 +960,6 @@ public final class TiffTile {
         this.storedDataLength = data.length;
         this.estimatedNumberOfPixels = (int) numberOfPixels;
         this.encoded = encoded;
-        if (!encoded) {
-            removeStoredDataFileOffset();
-            // - data file offset has no sense for decoded data
-        }
         return this;
     }
 
