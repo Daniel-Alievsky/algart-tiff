@@ -411,10 +411,10 @@ public final class TiffTile {
     }
 
     public boolean isCompleted() {
-        return !hasUnset();
+        return !hasUnsetArea();
     }
 
-    public boolean hasUnset() {
+    public boolean hasUnsetArea() {
         return unsetArea == null || !unsetArea.isEmpty();
     }
 
@@ -911,15 +911,17 @@ public final class TiffTile {
 
     @Override
     public String toString() {
+        final byte[] data = this.data;
+        // - unlike the field, this variable cannot be changed from a parallel thread
         return "TIFF " +
                 (disposed ? "(DISPOSED) " : isEmpty() ? "(empty) " : "") +
                 (encoded ? "encoded" : "non-encoded") +
                 (interleaved ? " interleaved" : "") +
                 " tile" +
-                (isEmpty() ?
+                (data == null ?
                         ", " + sizeX + "x" + sizeY + "x" + samplesPerPixel :
                         ", actual sizes " + sizeX + "x" + sizeY + "x" + samplesPerPixel + " (" +
-                                storedDataLength + " bytes)" +
+                                data.length + " bytes)" +
                                 (isCompleted() ? ", completed" : ", partial")) +
                 ", " + bitsPerSample + " bits/sample" +
                 ", index " + index +

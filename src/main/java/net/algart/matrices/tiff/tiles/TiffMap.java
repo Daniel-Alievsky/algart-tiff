@@ -607,7 +607,7 @@ public sealed class TiffMap permits TiffMapForReading, TiffMapForWriting{
     }
 
     public boolean hasUnset() {
-        return tileMap.values().stream().anyMatch(TiffTile::hasUnset);
+        return tileMap.values().stream().anyMatch(TiffTile::hasUnsetArea);
     }
 
     public void markAllAsUnset() {
