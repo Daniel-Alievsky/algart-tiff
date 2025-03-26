@@ -36,14 +36,13 @@ public class TiffTileIO {
     public static void read(TiffTile tile, DataHandle<?> in, long filePosition, int dataLength) throws IOException {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(in, "Null input stream");
+        if (filePosition < 0) {
+            throw new IllegalArgumentException("Negative file position to read data: " + filePosition);
+        }
+        if (dataLength < 0) {
+            throw new IllegalArgumentException("Negative length of data to read: " + dataLength);
+        }
         tile.setStoredDataFileRange(filePosition, dataLength);
-        read(tile, in, dataLength);
-    }
-
-    public static void read(TiffTile tile, DataHandle<?> in, int dataLength) throws IOException {
-        Objects.requireNonNull(tile, "Null tile");
-        Objects.requireNonNull(in, "Null input stream");
-        final long filePosition = tile.getStoredDataFileOffset();
         final byte[] data = new byte[dataLength];
         in.seek(filePosition);
         final int result = in.read(data);
