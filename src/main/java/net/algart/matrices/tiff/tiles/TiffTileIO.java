@@ -60,7 +60,7 @@ public class TiffTileIO {
             DataHandle<?> out,
             boolean disposeAfterWriting,
             boolean strictlyRequire32Bit) throws IOException {
-        System.out.printf("%s: %s%n", out, tile.toString());
+//        System.out.printf("%s: %s%n", out, tile.toString());
         setWritePositionToEnd(tile, out, strictlyRequire32Bit);
         write(tile, out, disposeAfterWriting);
     }
