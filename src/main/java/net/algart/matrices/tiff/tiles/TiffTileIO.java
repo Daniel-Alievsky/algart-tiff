@@ -37,14 +37,14 @@ public class TiffTileIO {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(in, "Null input stream");
         tile.setStoredDataFileRange(filePosition, dataLength);
-        read(tile, in);
+        read(tile, in, dataLength);
     }
 
-    public static void read(TiffTile tile, DataHandle<?> in) throws IOException {
+    public static void read(TiffTile tile, DataHandle<?> in, int dataLength) throws IOException {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(in, "Null input stream");
         final long filePosition = tile.getStoredDataFileOffset();
-        byte[] data = new byte[tile.getStoredDataLength()];
+        final byte[] data = new byte[dataLength];
         in.seek(filePosition);
         final int result = in.read(data);
         if (result < data.length) {
@@ -60,6 +60,13 @@ public class TiffTileIO {
             DataHandle<?> out,
             boolean disposeAfterWriting,
             boolean strictlyRequire32Bit) throws IOException {
+        System.out.printf("%s: %s%n", out, tile.toString());
+        setWritePositionToEnd(tile, out, strictlyRequire32Bit);
+        write(tile, out, disposeAfterWriting);
+    }
+
+    public static void setWritePositionToEnd(TiffTile tile, DataHandle<?> out, boolean strictlyRequire32Bit)
+            throws IOException {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(out, "Null output stream");
         final long length = out.length();
@@ -68,14 +75,13 @@ public class TiffTileIO {
                     0xFFFFFFF0L + "; such large files should be written in Big-TIFF mode");
         }
         tile.setStoredDataFileOffset(length);
-        write(tile, out, disposeAfterWriting);
     }
 
     public static void write(TiffTile tile, DataHandle<?> out, boolean disposeAfterWriting) throws IOException {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(out, "Null output stream");
         final long filePosition = tile.getStoredDataFileOffset();
-        byte[] encodedData = tile.getEncodedData();
+        final byte[] encodedData = tile.getEncodedData();
         out.seek(filePosition);
         out.write(encodedData);
         if (disposeAfterWriting) {

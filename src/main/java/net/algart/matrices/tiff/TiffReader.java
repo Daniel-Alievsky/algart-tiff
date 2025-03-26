@@ -1218,8 +1218,10 @@ public class TiffReader implements Closeable {
      * @param tile the tile that should be corrected.
      */
     public void completeDecoding(TiffTile tile) throws TiffException {
+        Objects.requireNonNull(tile, "Null tile");
         // scifio.tiff().undifference(tile.getDecodedData(), tile.ifd());
         // - this solution requires using SCIFIO context class; it is better to avoid this
+        tile.checkDecodedData();
         TiffPrediction.unsubtractPredictionIfRequested(tile);
 
         if (USE_LEGACY_UNPACK_BYTES) {

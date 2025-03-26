@@ -38,8 +38,8 @@ public class TiffTileTest {
         TiffTile tile = new TiffMap(ifd, true).getOrNew(0, 0);
 
         tile.setPartiallyDecodedData(new byte[testDataLength - 1]);
-        System.out.printf("%s: %s stored length, %d estimated pixels%n",
-                tile, tile.getStoredDataLength(), tile.getEstimatedNumberOfPixels());
+        System.out.printf("%s: %s decoded length, %d estimated pixels%n",
+                tile, tile.getDecodedDataLength(), tile.getEstimatedNumberOfPixels());
         try {
             tile.checkStoredNumberOfPixels();
         } catch (IllegalStateException e) {
@@ -52,8 +52,8 @@ public class TiffTileTest {
         }
 
         tile.setDecodedData(new byte[testDataLength]);
-        System.out.printf("%s: %s stored length, %d estimated pixels%n",
-                tile, tile.getStoredDataLength(), tile.getEstimatedNumberOfPixels());
+        System.out.printf("%s: %s decoded length, %d estimated pixels%n",
+                tile, tile.getDecodedDataLength(), tile.getEstimatedNumberOfPixels());
         // tile.setStoredDataFileRange(0, 111);
         // - uncomment the previos operator to see another possible exception
         try {
@@ -64,8 +64,8 @@ public class TiffTileTest {
         tile.checkDataLengthAlignment();
 
         tile.setDecodedData(new byte[tile.getSizeInBytes()]);
-        System.out.printf("%s: %s stored length, %d estimated pixels%n",
-                tile, tile.getStoredDataLength(), tile.getEstimatedNumberOfPixels());
+        System.out.printf("%s: %s decoded length, %d estimated pixels%n",
+                tile, tile.getDecodedDataLength(), tile.getEstimatedNumberOfPixels());
         tile.checkDataLengthAlignment();
         tile.checkStoredNumberOfPixels();
         System.out.println();

@@ -52,10 +52,11 @@ public class TiffUnpacking {
 
     public static boolean separateUnpackedSamples(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile);
+        final int decodedDataLength = tile.getDecodedDataLength();
         final TiffIFD ifd = tile.ifd();
 
-        AtomicBoolean simpleLossless = new AtomicBoolean();
-        if (!isSimpleRearrangingBytesEnough(ifd, simpleLossless)) {
+        final AtomicBoolean simpleNonJpegFormat = new AtomicBoolean();
+        if (!isSimpleRearrangingBytesEnough(ifd, simpleNonJpegFormat)) {
             return false;
         }
         if (!OPTIMIZE_SEPARATING_WHOLE_BYTES && tile.isInterleaved()) {
@@ -69,15 +70,15 @@ public class TiffUnpacking {
         // for all other cases isSimpleRearrangingBytesEnough returns false.
         // The only unusual case here is 3 bytes/sample: 24-bit float or 24-bit integer;
         // these cases (as well as 16-bit float) will be processed later in unpackUnusualPrecisions.
-        if (tile.getStoredDataLength() > tile.map().tileSizeInBytes() && !simpleLossless.get()) {
-            // - Strange situation: JPEG or some extended codec has decoded to large tile.
+        if (decodedDataLength > tile.map().tileSizeInBytes() && !simpleNonJpegFormat.get()) {
+            // - Strange situation: JPEG or some extended codec has decoded too large tile.
             // But for "simple" compressions (uncompressed, Deflate) we enable this situation:
             // it helps to create special tests (for example, an image with "fake" too little dimensions).
-            // (Note: for LZW compression, in current version, this situation is impossible, because
-            // LZWCodec creates result array on the base of options.maxBytes field.)
+            // (Note: for LZW compression, in the current version, this situation is impossible, because
+            // LZWCodec creates the result array on the base of options.maxBytes field.)
             // In comparison, further adjustNumberOfPixels throws IllegalArgumentException
             // in the same situation, when its argument is false.
-            throw new TiffException("Too large decoded TIFF data: " + tile.getStoredDataLength() +
+            throw new TiffException("Too large decoded TIFF data: " + decodedDataLength +
                     " bytes, its is greater than one " +
                     (tile.map().getTilingMode().isTileGrid() ? "tile" : "strip") +
                     " (" + tile.map().tileSizeInBytes() + " bytes); "
@@ -106,12 +107,12 @@ public class TiffUnpacking {
     public static boolean separateYCbCrToRGB(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile);
         final TiffIFD ifd = tile.ifd();
+        final byte[] data = tile.getDecodedData();
 
         if (!ifd.isStandardYCbCrNonJpeg()) {
             return false;
         }
         checkInterleaved(tile);
-        final byte[] data = tile.getDecodedData();
 
         final TiffMap map = tile.map();
         if (map.isPlanarSeparated()) {
@@ -242,6 +243,7 @@ public class TiffUnpacking {
             boolean correctInvertedBrightness)
             throws TiffException {
         Objects.requireNonNull(tile);
+        tile.checkDecodedData();
         final TiffIFD ifd = tile.ifd();
 
         if (OPTIMIZE_SEPARATING_WHOLE_BYTES && isSimpleRearrangingBytesEnough(ifd, null)) {
@@ -299,12 +301,12 @@ public class TiffUnpacking {
         return true;
     }
 
-    private static boolean isSimpleRearrangingBytesEnough(TiffIFD ifd, AtomicBoolean simpleLossless)
+    private static boolean isSimpleRearrangingBytesEnough(TiffIFD ifd, AtomicBoolean simpleNonJpegFormat)
             throws TiffException {
         final TagCompression compression = ifd.optCompression().orElse(null);
         final boolean advancedFormat = compression != null && (!compression.isStandard() || compression.isJpeg());
-        if (simpleLossless != null) {
-            simpleLossless.set(!advancedFormat);
+        if (simpleNonJpegFormat != null) {
+            simpleNonJpegFormat.set(!advancedFormat);
         }
         if (advancedFormat) {
             // JPEG codec and all non-standard codecs like JPEG-2000 should perform all necessary

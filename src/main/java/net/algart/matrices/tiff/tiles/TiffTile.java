@@ -242,7 +242,8 @@ public final class TiffTile {
         this.sizeInBits = sizeInPixels * bitsPerPixel;
         this.sizeInBytes = (sizeInBits + 7) >>> 3;
         this.lineSizeInBytesInsideTIFF = ((sizeX * bitsPerPixel + 7) >>> 3);
-        assert (long) lineSizeInBytesInsideTIFF * (long) sizeY <= Integer.MAX_VALUE : "too large " + lineSizeInBytesInsideTIFF + "*" + sizeY;
+        assert (long) lineSizeInBytesInsideTIFF * (long) sizeY <= Integer.MAX_VALUE :
+                "too large " + lineSizeInBytesInsideTIFF + "*" + sizeY;
         // - impossible because even the number of BITS is not greater than Integer.MAX_VALUE
         return this;
     }
@@ -459,7 +460,6 @@ public final class TiffTile {
         return encoded;
     }
 
-
     public void checkReadyForNewDecodedData(Boolean requiredInterleavedState) {
         if (encoded) {
             throw new IllegalStateException("TIFF tile is not ready to store new decoded data, because " +
@@ -472,11 +472,15 @@ public final class TiffTile {
         }
     }
 
-    public byte[] getEncodedData() {
+    public void checkEncodedData() {
         checkEmpty();
         if (!isEncoded()) {
             throw new IllegalStateException("TIFF tile is not encoded: " + this);
         }
+    }
+
+    public byte[] getEncodedData() {
+        checkEncodedData();
         return data;
     }
 
@@ -484,19 +488,11 @@ public final class TiffTile {
         return setData(data, true, false);
     }
 
-    public TiffTile fillWhenEmpty() {
-        return fillWhenEmpty(null);
-    }
-
-    public TiffTile fillWhenEmpty(Consumer<TiffTile> initializer) {
-        checkDisposed();
-        if (isEmpty()) {
-            setDecodedData(new byte[sizeInBytes]);
-            if (initializer != null) {
-                initializer.accept(this);
-            }
+    public void checkDecodedData() {
+        checkEmpty();
+        if (isEncoded()) {
+            throw new IllegalStateException("TIFF tile data are not decoded and cannot be retrieved: " + this);
         }
-        return this;
     }
 
     /**
@@ -519,11 +515,36 @@ public final class TiffTile {
      * @see #unpackUnusualDecodedData()
      */
     public byte[] getDecodedData() {
-        checkEmpty();
-        if (isEncoded()) {
-            throw new IllegalStateException("TIFF tile data are not decoded and cannot be retrieved: " + this);
-        }
+        checkDecodedData();
         return data;
+    }
+
+    public int getDecodedDataLength() {
+        checkDecodedData();
+        return data.length;
+    }
+
+    public TiffTile setDecodedData(byte[] data) {
+        return setData(data, false, true);
+    }
+
+    public TiffTile setPartiallyDecodedData(byte[] data) {
+        return setData(data, false, false);
+    }
+
+    public TiffTile fillWhenEmpty() {
+        return fillWhenEmpty(null);
+    }
+
+    public TiffTile fillWhenEmpty(Consumer<TiffTile> initializer) {
+        checkDisposed();
+        if (isEmpty()) {
+            setDecodedData(new byte[sizeInBytes]);
+            if (initializer != null) {
+                initializer.accept(this);
+            }
+        }
+        return this;
     }
 
     /**
@@ -554,14 +575,6 @@ public final class TiffTile {
         final byte[] samples = unpackUnusualDecodedData();
         final Object javaArray = sampleType().javaArray(samples, byteOrder());
         return TiffSampleType.asMatrix(javaArray, sizeX, sizeY, samplesPerPixel, interleaved);
-    }
-
-    public TiffTile setDecodedData(byte[] data) {
-        return setData(data, false, true);
-    }
-
-    public TiffTile setPartiallyDecodedData(byte[] data) {
-        return setData(data, false, false);
     }
 
     public boolean isEmpty() {
@@ -893,7 +906,10 @@ public final class TiffTile {
                                 (isCompleted() ? ", completed" : ", partial")) +
                 ", " + bitsPerSample + " bits/sample" +
                 ", index " + index +
-                (isStoredInFile() ? " at file offset " + storedDataFileOffset : ", no file offset");
+                (isStoredInFile() ?
+                        " at file region " + storedDataFileOffset + ".." +
+                                storedDataFileOffset + "+" + (storedDataLength - 1) :
+                        ", no file position");
     }
 
     @Override
