@@ -2249,7 +2249,7 @@ public class TiffReader implements Closeable {
             synchronized (tileCacheLock) {
                 if (caching && maxCachingMemory > 0) {
                     this.cachedTile = new SoftReference<>(tile);
-                    this.cachedDataLength = tile.getStoredDataLength();
+                    this.cachedDataLength = tile.getDecodedDataLength();
                     currentCacheMemory += this.cachedDataLength;
                     tileCache.add(this);
                     LOG.log(System.Logger.Level.TRACE, () -> "STORING tile in cache: " + tileIndex);
