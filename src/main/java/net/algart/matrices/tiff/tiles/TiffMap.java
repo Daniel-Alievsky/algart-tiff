@@ -610,12 +610,12 @@ public sealed class TiffMap permits TiffMapForReading, TiffMapForWriting{
         return tileMap.values().stream().anyMatch(TiffTile::hasUnset);
     }
 
-    public void unsetAll() {
-        tileMap.values().forEach(TiffTile::unsetAll);
+    public void markAllAsUnset() {
+        tileMap.values().forEach(TiffTile::markWholeTileAsUnset);
     }
 
     public void cropAllUnset() {
-        tileMap.values().forEach(TiffTile::cropUnsetToMap);
+        tileMap.values().forEach(TiffTile::cropUnsetAreaToMap);
     }
 
     public void clear(boolean clearDimensions) {

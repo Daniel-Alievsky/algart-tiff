@@ -55,7 +55,7 @@ public final class TiffTile {
     private int sizeInPixels;
     private int sizeInBytes;
     private int sizeInBits;
-    private int rowSizeInBytesInsideTIFF;
+    private int lineSizeInBytesInsideTIFF;
     private boolean interleaved = false;
     private boolean encoded = false;
     private byte[] data = null;
@@ -241,8 +241,8 @@ public final class TiffTile {
         this.sizeInPixels = sizeInPixels;
         this.sizeInBits = sizeInPixels * bitsPerPixel;
         this.sizeInBytes = (sizeInBits + 7) >>> 3;
-        this.rowSizeInBytesInsideTIFF = ((sizeX * bitsPerPixel + 7) >>> 3);
-        assert (long) rowSizeInBytesInsideTIFF * (long) sizeY <= Integer.MAX_VALUE : "too large " + rowSizeInBytesInsideTIFF + "*" + sizeY;
+        this.lineSizeInBytesInsideTIFF = ((sizeX * bitsPerPixel + 7) >>> 3);
+        assert (long) lineSizeInBytesInsideTIFF * (long) sizeY <= Integer.MAX_VALUE : "too large " + lineSizeInBytesInsideTIFF + "*" + sizeY;
         // - impossible because even the number of BITS is not greater than Integer.MAX_VALUE
         return this;
     }
@@ -282,19 +282,19 @@ public final class TiffTile {
      *
      * @return the number of bytes in each horizontal row of pixels.
      */
-    public int getRowSizeInBytesInsideTIFF() {
-        return rowSizeInBytesInsideTIFF;
+    public int getLineSizeInBytesInsideTIFF() {
+        return lineSizeInBytesInsideTIFF;
     }
 
     /**
-     * Returns {@link #getRowSizeInBytesInsideTIFF()} * {@link #getSizeY()}</code>:
+     * Returns {@link #getLineSizeInBytesInsideTIFF()} * {@link #getSizeY()}</code>:
      * the size of the unpacked tile according to storing rules of TIFF format.
      *
      * @return the length of the minimal <code>byte[]</code> data array, enough to store all tile pixels
      * after unpacking according TIFF rules (each line is byte-aligned).
      */
     public int getSizeInBytesInsideTIFF() {
-        return rowSizeInBytesInsideTIFF * sizeY;
+        return lineSizeInBytesInsideTIFF * sizeY;
     }
 
     /**
@@ -372,35 +372,35 @@ public final class TiffTile {
         return unsetArea == null ? List.of(rectangle()) : Collections.unmodifiableCollection(unsetArea);
     }
 
-    public TiffTile unsetAll() {
+    public TiffTile markWholeTileAsUnset() {
         unsetArea = null;
         return this;
     }
 
-    public TiffTile removeUnset() {
+    public TiffTile markWholeTileAsSet() {
         unsetArea = new LinkedList<>();
         return this;
     }
 
-    public TiffTile reduceUnset(IRectangularArea... newlyFilledArea) {
+    public TiffTile markNewAreaAsSet(IRectangularArea... newlyFilledArea) {
         Objects.requireNonNull(newlyFilledArea, "Null newlyFilledArea");
         initializeEmptyArea();
         IRectangularArea.subtractCollection(unsetArea, newlyFilledArea);
         return this;
     }
 
-    public TiffTile reduceUnsetInTile(int fromXInTile, int fromYInTile, int sizeXInTile, int sizeYInTile) {
+    public TiffTile markNewRectangleAsSet(int fromXInTile, int fromYInTile, int sizeXInTile, int sizeYInTile) {
         if (sizeXInTile > 0 && sizeYInTile > 0) {
-            reduceUnset(rectangleInTile(fromXInTile, fromYInTile, sizeXInTile, sizeYInTile));
+            markNewAreaAsSet(rectangleInTile(fromXInTile, fromYInTile, sizeXInTile, sizeYInTile));
         }
         return this;
     }
 
-    public TiffTile cropUnsetToMap() {
+    public TiffTile cropUnsetAreaToMap() {
         checkOutsideMap();
         if (!isFullyInsideMap()) {
             // - little optimization
-            reduceUnset(
+            markNewAreaAsSet(
                     IRectangularArea.valueOf(0, map.dimY(), Integer.MAX_VALUE, Integer.MAX_VALUE),
                     IRectangularArea.valueOf(map.dimX(), 0, Integer.MAX_VALUE, Integer.MAX_VALUE));
             // Integer.MAX_VALUE is enough: we work with 32-bit coordinates
@@ -893,7 +893,7 @@ public final class TiffTile {
                                 (isCompleted() ? ", completed" : ", partial")) +
                 ", " + bitsPerSample + " bits/sample" +
                 ", index " + index +
-                (isStoredInFile() ? " at file offset " + storedDataFileOffset : "");
+                (isStoredInFile() ? " at file offset " + storedDataFileOffset : ", no file offset");
     }
 
     @Override

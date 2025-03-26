@@ -1209,7 +1209,8 @@ public class TiffWriter implements Closeable {
             // - we "tell" that all tiles already exist in the file;
             // note we can use index k, because buildGrid() method, called above for an empty map,
             //  provided the correct tiles order
-            tile.removeUnset();
+            tile.markWholeTileAsSet();
+            // - we "tell" that each tile has no unset areas
             k++;
         }
         this.lastMap = map;

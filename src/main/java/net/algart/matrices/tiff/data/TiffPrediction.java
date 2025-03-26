@@ -76,7 +76,7 @@ public class TiffPrediction {
         checkBitDepthForPrediction(bitsPerSample, "for writing");
         final int samplesPerPixel = tile.samplesPerPixel();
         final int xSize = tile.getSizeX();
-        final int xSizeInBytes = tile.getRowSizeInBytesInsideTIFF();
+        final int xSizeInBytes = tile.getLineSizeInBytesInsideTIFF();
         // - getRowSizeInBytesInsideTIFF, because this method is called at the last stage
         // after repacking bits according TIFF format
         final int ySize = data.length / xSizeInBytes;
@@ -128,8 +128,8 @@ public class TiffPrediction {
         checkBitDepthForPrediction(bitsPerSample, "for reading");
         final int samplesPerPixel = tile.samplesPerPixel();
         final int xSize = tile.getSizeX();
-        final int xSizeInBytes = tile.getRowSizeInBytesInsideTIFF();
-        // - getRowSizeInBytesInsideTIFF, because this method is called at the first stage
+        final int xSizeInBytes = tile.getLineSizeInBytesInsideTIFF();
+        // - getLineSizeInBytesInsideTIFF, because this method is called at the first stage
         // before repacking bits from TIFF format (byte-aligned rows) into AlgART rules (no aligning)
         final int ySize = data.length / xSizeInBytes;
 

@@ -143,7 +143,7 @@ public final class TiffMapForWriting extends TiffMap {
                     assert sizeXInTile > 0 : "sizeXInTile=" + sizeXInTile;
                     final int sizeYInTile = Math.min(toY - tileStartY, tileSizeY - fromYInTile);
                     assert sizeYInTile > 0 : "sizeYInTile=" + sizeYInTile;
-                    tile.reduceUnsetInTile(fromXInTile, fromYInTile, sizeXInTile, sizeYInTile);
+                    tile.markNewRectangleAsSet(fromXInTile, fromYInTile, sizeXInTile, sizeYInTile);
 
                     // Tile must be interleaved always (RGBRGB...).
                     // A) planarSeparated=false, autoInterleave=false:
