@@ -52,7 +52,7 @@ public class TiffOverwriteHelloWorldDemo {
         final int x = startArgIndex + 2 < args.length ? Integer.parseInt(args[startArgIndex + 2]) : 0;
         final int y = startArgIndex + 3 < args.length ? Integer.parseInt(args[startArgIndex + 3]) : 0;
 
-        final int imageToDrawSizeX = 200;
+        final int imageToDrawSizeX = 250;
         final int imageToDrawSizeY = 50;
         // - estimated sizes sufficient for "Hello, world!"
 
@@ -79,7 +79,7 @@ public class TiffOverwriteHelloWorldDemo {
 
     static void drawTextOnImage(BufferedImage bufferedImage, String text) {
         final Graphics graphics = bufferedImage.getGraphics();
-        final Font font = new Font("SansSerif", Font.BOLD, 30);
+        final Font font = new Font("SansSerif", Font.BOLD, 40);
         graphics.setFont(font);
         graphics.setColor(new Color(0x00FF00));
         graphics.drawString(text, 0, graphics.getFontMetrics().getAscent());

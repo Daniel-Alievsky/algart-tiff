@@ -33,17 +33,22 @@ public class TiffTileIO {
     private TiffTileIO() {
     }
 
-    public static void read(TiffTile tile, DataHandle<?> in, long filePosition, int dataLength) throws IOException {
+    public static void read(TiffTile tile, DataHandle<?> in, long filePosition, long dataLength) throws IOException {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(in, "Null input stream");
         if (filePosition < 0) {
             throw new IllegalArgumentException("Negative file position to read data: " + filePosition);
         }
+        if (filePosition == 0) {
+            throw new IllegalArgumentException("Zero file position to read data is not allowed in TIFF format");
+        }
         if (dataLength < 0) {
             throw new IllegalArgumentException("Negative length of data to read: " + dataLength);
         }
-        tile.setStoredDataFileRange(filePosition, dataLength);
-        final byte[] data = new byte[dataLength];
+        if (dataLength > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Too large data length: " + dataLength + " > 2^31-1 bytes");
+        }
+        final byte[] data = new byte[(int) dataLength];
         in.seek(filePosition);
         final int result = in.read(data);
         if (result < data.length) {
@@ -51,6 +56,7 @@ public class TiffTileIO {
                     ": loaded " + result + " bytes instead of " + data.length +
                     " (" + in.get() + ")");
         }
+        tile.setStoredDataFileRange(filePosition, data.length);
         tile.setEncodedData(data);
     }
 
@@ -60,11 +66,29 @@ public class TiffTileIO {
             boolean disposeAfterWriting,
             boolean strictlyRequire32Bit) throws IOException {
 //        System.out.printf("%s: %s%n", out, tile.toString());
-        setWritePositionToEnd(tile, out, strictlyRequire32Bit);
-        write(tile, out, disposeAfterWriting);
+        final long filePosition = writePositionToEnd(tile, out, strictlyRequire32Bit);
+        write(tile, out, filePosition, disposeAfterWriting);
     }
 
-    public static void setWritePositionToEnd(TiffTile tile, DataHandle<?> out, boolean strictlyRequire32Bit)
+    public static void write(TiffTile tile, DataHandle<?> out, long filePosition, boolean disposeAfterWriting) throws IOException {
+        Objects.requireNonNull(tile, "Null tile");
+        Objects.requireNonNull(out, "Null output stream");
+        if (filePosition < 0) {
+            throw new IllegalArgumentException("Negative file position to write data: " + filePosition);
+        }
+        if (filePosition == 0) {
+            throw new IllegalArgumentException("Zero file position to write data is not allowed in TIFF format");
+        }
+        final byte[] encodedData = tile.getEncodedData();
+        out.seek(filePosition);
+        out.write(encodedData);
+        tile.setStoredDataFileRange(filePosition, encodedData.length);
+        if (disposeAfterWriting) {
+            tile.dispose();
+        }
+    }
+
+    private static long writePositionToEnd(TiffTile tile, DataHandle<?> out, boolean strictlyRequire32Bit)
             throws IOException {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(out, "Null output stream");
@@ -73,18 +97,6 @@ public class TiffTileIO {
             throw new IOException("Attempt to write TIFF tile outside maximal allowed 32-bit file length 2^32-16 = " +
                     0xFFFFFFF0L + "; such large files should be written in Big-TIFF mode");
         }
-        tile.setStoredDataFileOffset(length);
-    }
-
-    public static void write(TiffTile tile, DataHandle<?> out, boolean disposeAfterWriting) throws IOException {
-        Objects.requireNonNull(tile, "Null tile");
-        Objects.requireNonNull(out, "Null output stream");
-        final long filePosition = tile.getStoredDataFileOffset();
-        final byte[] encodedData = tile.getEncodedData();
-        out.seek(filePosition);
-        out.write(encodedData);
-        if (disposeAfterWriting) {
-            tile.dispose();
-        }
+        return length;
     }
 }
