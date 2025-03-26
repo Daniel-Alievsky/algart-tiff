@@ -472,6 +472,12 @@ public final class TiffTile {
         }
     }
 
+    /**
+     * Throws an exception if this tile does not contain encoded data.
+     * Called in the {@link #getEncodedData()} method.
+     *
+     * @throws IllegalStateException if the tile is {@link #isEmpty() empty} or not {@link #isEncoded() encoded}.
+     */
     public void checkEncodedData() {
         checkEmpty();
         if (!isEncoded()) {
@@ -488,6 +494,12 @@ public final class TiffTile {
         return setData(data, true, false);
     }
 
+    /**
+     * Throws an exception if this tile does not contain decoded data.
+     * Called in the {@link #getDecodedData()} method.
+     *
+     * @throws IllegalStateException if the tile is {@link #isEmpty() empty} or {@link #isEncoded() encoded}.
+     */
     public void checkDecodedData() {
         checkEmpty();
         if (isEncoded()) {
@@ -511,7 +523,7 @@ public final class TiffTile {
      * </ul>
      *
      * @return unpacked data.
-     * @throws IllegalStateException if the tile is {@link #isEncoded() encoded}.
+     * @throws IllegalStateException if the tile is {@link #isEmpty() empty} or {@link #isEncoded() encoded}.
      * @see #unpackUnusualDecodedData()
      */
     public byte[] getDecodedData() {
@@ -519,6 +531,11 @@ public final class TiffTile {
         return data;
     }
 
+    /**
+     * Equivalent to <code>{@link #getDecodedData()}.length</code>.
+     *
+     * @return the length of unpacked data <code>byte[]</code> array.
+     */
     public int getDecodedDataLength() {
         checkDecodedData();
         return data.length;
@@ -703,7 +720,7 @@ public final class TiffTile {
      *
      * <p>If the data are not {@link #isEncoded() encoded}, the following equality is <i>usually</i> true:</p>
      *
-     * <pre>{@link #getStoredDataLength()} == ({@link #getEstimatedNumberOfPixels()} * {@link
+     * <pre>{@link #getDecodedDataLength()} == ({@link #getEstimatedNumberOfPixels()} * {@link
      * #bitsPerPixel()} + 7) / 8</pre>
      *
      * <p>The only possible exception is when you set the data with help of
