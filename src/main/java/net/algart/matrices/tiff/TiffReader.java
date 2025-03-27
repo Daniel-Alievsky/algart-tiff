@@ -1075,7 +1075,7 @@ public class TiffReader implements Closeable {
                         tileIndex + ")");
                 // - note: old SCIFIO code allowed such offsets and returned zero-filled tile
             }
-            TiffTileIO.read(result, in, offset, byteCount);
+            TiffTileIO.readAt(result, in, offset, byteCount);
         }
         long t2 = debugTime();
         timeReading += t2 - t1;

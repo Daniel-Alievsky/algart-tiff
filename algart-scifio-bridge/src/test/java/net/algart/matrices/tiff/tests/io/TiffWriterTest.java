@@ -122,6 +122,11 @@ public class TiffWriterTest {
             longTags = true;
             startArgIndex++;
         }
+        boolean alwaysToEnd = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-alwaysToEnd")) {
+            alwaysToEnd = true;
+            startArgIndex++;
+        }
         boolean allowMissing = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-allowMissing")) {
             allowMissing = true;
@@ -254,6 +259,7 @@ public class TiffWriterTest {
 //                writer.setSmartIFDCorrection(true);
 //                writer.setByteFiller((byte) 0xE0);
                 writer.setTileInitializer(TiffWriterTest::customFillEmptyTile);
+                writer.setAlwaysWriteToFileEnd(alwaysToEnd);
                 writer.setMissingTilesAllowed(allowMissing);
                 if (writer instanceof TiffSaver saver) {
                     CodecOptions codecOptions = new CodecOptions();

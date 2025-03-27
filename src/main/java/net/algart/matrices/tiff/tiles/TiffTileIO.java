@@ -33,7 +33,7 @@ public class TiffTileIO {
     private TiffTileIO() {
     }
 
-    public static void read(TiffTile tile, DataHandle<?> in, long fileOffset, int dataLength) throws IOException {
+    public static void readAt(TiffTile tile, DataHandle<?> in, long fileOffset, int dataLength) throws IOException {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(in, "Null input stream");
         if (fileOffset < 0) {
@@ -53,19 +53,20 @@ public class TiffTileIO {
                     ": loaded " + result + " bytes instead of " + data.length +
                     " (" + in.get() + ")");
         }
-        tile.setStoredInFileDataRange(fileOffset, data.length);
+        tile.setStoredInFileDataRange(fileOffset, data.length, true);
         tile.setEncodedData(data);
     }
 
-    public static void writeAtExistingPositionIfPossible(
+    public static void write(
             TiffTile tile,
             DataHandle<?> out,
+            boolean alwaysWriteToFileEnd,
             boolean strictlyRequire32Bit) throws IOException {
         Objects.requireNonNull(tile, "Null tile");
-        if (tile.isEncodedDataFitsInCapacity()) {
-            write(tile, out, tile.getStoredInFileDataOffset());
-        } else {
+        if (alwaysWriteToFileEnd || !tile.isEncodedDataFitsInCapacity()) {
             writeAtEnd(tile, out, strictlyRequire32Bit);
+        } else {
+            writeAt(tile, out, tile.getStoredInFileDataOffset(), false);
         }
     }
 
@@ -73,13 +74,13 @@ public class TiffTileIO {
             TiffTile tile,
             DataHandle<?> out,
             boolean strictlyRequire32Bit) throws IOException {
-//        System.out.printf("%s: %s%n", out, tile.toString());
+//        System.out.printf("!!! Writing to end: %s: %s%n", out, tile.toString());
         final long fileOffset = offsetAtEnd(tile, out, strictlyRequire32Bit);
-        write(tile, out, fileOffset);
-        tile.resetStoredInFileDataCapacity();
+        writeAt(tile, out, fileOffset, true);
     }
 
-    public static void write(TiffTile tile, DataHandle<?> out, long fileOffset) throws IOException {
+    public static void writeAt(TiffTile tile, DataHandle<?> out, long fileOffset, boolean resetCapacity)
+            throws IOException {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(out, "Null output stream");
         if (fileOffset < 0) {
@@ -91,7 +92,7 @@ public class TiffTileIO {
         final byte[] encodedData = tile.getEncodedData();
         out.seek(fileOffset);
         out.write(encodedData);
-        tile.setStoredInFileDataRange(fileOffset, encodedData.length);
+        tile.setStoredInFileDataRange(fileOffset, encodedData.length, resetCapacity);
     }
 
     private static long offsetAtEnd(TiffTile tile, DataHandle<?> out, boolean strictlyRequire32Bit)

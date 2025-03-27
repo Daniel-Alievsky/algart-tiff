@@ -89,6 +89,7 @@ public class TiffWriter implements Closeable {
     private Double lossyQualityLevel = null;
     private Double losslessCompressionLevel = null;
     private boolean preferRGB = false;
+    private boolean alwaysWriteToFileEnd = false;
     private boolean missingTilesAllowed = false;
     private byte byteFiller = 0;
     private Consumer<TiffTile> tileInitializer = this::fillEmptyTile;
@@ -516,6 +517,26 @@ public class TiffWriter implements Closeable {
         return this;
     }
 
+    public boolean isAlwaysWriteToFileEnd() {
+        return alwaysWriteToFileEnd;
+    }
+
+    /**
+     * If <code>true</code>, any new pixel data will always be written to the end of the TIFF file.
+     * If <code>false</code>, a tile loaded from this file and modified will possibly be written
+     * to the same position if it does not destroy other data (in particular, if the new encoded data size
+     * is the same or smaller than the length of data written in the file).
+     *
+     * <p>Default value is <code>false</code> (more "smart" mode).
+     *
+     * @param alwaysWriteToFileEnd whether the new data are always added to the file end.
+     * @return a reference to this object.
+     */
+    public TiffWriter setAlwaysWriteToFileEnd(boolean alwaysWriteToFileEnd) {
+        this.alwaysWriteToFileEnd = alwaysWriteToFileEnd;
+        return this;
+    }
+
     public boolean isMissingTilesAllowed() {
         return missingTilesAllowed;
     }
@@ -863,7 +884,7 @@ public class TiffWriter implements Closeable {
         long t1 = debugTime();
         synchronized (fileLock) {
             checkVirginFile();
-            TiffTileIO.writeAtEnd(tile, out, !bigTiff);
+            TiffTileIO.write(tile, out, alwaysWriteToFileEnd, !bigTiff);
             if (disposeAfterWriting) {
                 tile.dispose();
             }
@@ -1208,7 +1229,7 @@ public class TiffWriter implements Closeable {
         // - actually not necessary, but helps to avoid possible bugs
         int k = 0;
         for (TiffTile tile : map.tiles()) {
-            tile.setStoredInFileDataRange(offsets[k], (int) byteCounts[k]);
+            tile.setStoredInFileDataRange(offsets[k], (int) byteCounts[k], true);
             // - we "tell" that all tiles already exist in the file;
             // note we can use index k, because buildGrid() method, called above for an empty map,
             //  provided the correct tiles order

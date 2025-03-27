@@ -682,7 +682,10 @@ public final class TiffTile {
         return this;
     }
 
-    public TiffTile setStoredInFileDataRange(long storedInFileDataOffset, int storedInFileDataLength) {
+    public TiffTile setStoredInFileDataRange
+            (long storedInFileDataOffset,
+             int storedInFileDataLength,
+             boolean resetCapacity) {
         if (storedInFileDataOffset < 0) {
             throw new IllegalArgumentException("Negative storedInFileDataOffset = " + storedInFileDataOffset);
         }
@@ -691,6 +694,9 @@ public final class TiffTile {
         }
         this.storedInFileDataOffset = storedInFileDataOffset;
         this.storedInFileDataLength = storedInFileDataLength;
+        if (resetCapacity) {
+            this.storedInFileDataCapacity = this.storedInFileDataLength;
+        }
         return this;
     }
 
@@ -716,10 +722,6 @@ public final class TiffTile {
         }
         this.storedInFileDataCapacity = storedInFileDataCapacity;
         return this;
-    }
-
-    public TiffTile resetStoredInFileDataCapacity() {
-        return setStoredInFileDataCapacity(this.storedInFileDataLength);
     }
 
     public TiffTile copyStoredInFileDataRange(TiffTile other) {
