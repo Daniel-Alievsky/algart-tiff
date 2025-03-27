@@ -33,12 +33,14 @@ public class TiffCodecOptionsTest {
 //                .setCodeBlockSize(new int[] {16, 16})
                 .setBitsPerSample(1)
 //                .setQuality(null)
-                .setSizes(2048, 1024);
+                .setSizes(2048, 1024)
+                .setLosslessCompressionLevel(0.5);
         System.out.println(options);
         System.out.println("Clone:");
         System.out.println(options.clone());
-        options.setQuality(null);
-        System.out.println("No quality:");
+        options.setLossyQualityLevel(null);
+        options.setLosslessCompressionLevel(null);
+        System.out.println("No quality/compression level:");
         System.out.println(options);
         System.out.println("Clone:");
         System.out.println(options.clone());

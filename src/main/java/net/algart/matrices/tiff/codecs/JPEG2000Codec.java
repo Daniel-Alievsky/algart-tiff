@@ -117,7 +117,7 @@ public class JPEG2000Codec implements TiffCodec {
         Integer resolution = null;
 
         public JPEG2000Options() {
-            setQuality(Double.MAX_VALUE);
+            setLossyQualityLevel(Double.MAX_VALUE);
         }
 
         public boolean isLossless() {
@@ -188,7 +188,7 @@ public class JPEG2000Codec implements TiffCodec {
             } else {
                 setLossless(lossless);
                 if (!hasQuality()) {
-                    setQuality(lossless ? Double.MAX_VALUE : DEFAULT_NORMAL_QUALITY);
+                    setLossyQualityLevel(lossless ? Double.MAX_VALUE : DEFAULT_NORMAL_QUALITY);
                 }
             }
             return this;
@@ -403,7 +403,7 @@ public class JPEG2000Codec implements TiffCodec {
         param.setLossless(options.lossless);
         param.setFilter(filter);
         param.setCodeBlockSize(options.getCodeBlockSize());
-        param.setEncodingRate(options.quality());
+        param.setEncodingRate(options.lossyQualityLevel());
 //      TIFF provides its own tile subsystem
 //        if (options.tileWidth > 0 && options.tileHeight > 0) {
 //            param.setTiling(options.tileWidth, options.tileHeight,

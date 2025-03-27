@@ -33,68 +33,68 @@ public class TiffTileIO {
     private TiffTileIO() {
     }
 
-    public static void read(TiffTile tile, DataHandle<?> in, long filePosition, int dataLength) throws IOException {
+    public static void read(TiffTile tile, DataHandle<?> in, long fileOffset, int dataLength) throws IOException {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(in, "Null input stream");
-        if (filePosition < 0) {
-            throw new IllegalArgumentException("Negative file position to read data: " + filePosition);
+        if (fileOffset < 0) {
+            throw new IllegalArgumentException("Negative file position to read data: " + fileOffset);
         }
-        if (filePosition == 0) {
+        if (fileOffset == 0) {
             throw new IllegalArgumentException("Zero file position to read data is not allowed in TIFF format");
         }
         if (dataLength < 0) {
             throw new IllegalArgumentException("Negative length of data to read: " + dataLength);
         }
         final byte[] data = new byte[dataLength];
-        in.seek(filePosition);
+        in.seek(fileOffset);
         final int result = in.read(data);
         if (result < data.length) {
-            throw new IOException("File exhausted at " + filePosition +
+            throw new IOException("File exhausted at " + fileOffset +
                     ": loaded " + result + " bytes instead of " + data.length +
                     " (" + in.get() + ")");
         }
-        tile.setStoredInFileDataRange(filePosition, data.length);
+        tile.setStoredInFileDataRange(fileOffset, data.length);
         tile.setEncodedData(data);
     }
 
-    public static void writeToEndOrExistingPosition(
+    public static void writeAtExistingPositionIfPossible(
             TiffTile tile,
             DataHandle<?> out,
-            boolean disposeAfterWriting,
             boolean strictlyRequire32Bit) throws IOException {
         Objects.requireNonNull(tile, "Null tile");
+        if (tile.isEncodedDataFitsInCapacity()) {
+            write(tile, out, tile.getStoredInFileDataOffset());
+        } else {
+            writeAtEnd(tile, out, strictlyRequire32Bit);
+        }
     }
 
-    public static void writeToEnd(
+    public static void writeAtEnd(
             TiffTile tile,
             DataHandle<?> out,
-            boolean disposeAfterWriting,
             boolean strictlyRequire32Bit) throws IOException {
 //        System.out.printf("%s: %s%n", out, tile.toString());
-        final long filePosition = writePositionToEnd(tile, out, strictlyRequire32Bit);
-        write(tile, out, filePosition, disposeAfterWriting);
+        final long fileOffset = offsetAtEnd(tile, out, strictlyRequire32Bit);
+        write(tile, out, fileOffset);
         tile.resetStoredInFileDataCapacity();
     }
 
-    public static void write(TiffTile tile, DataHandle<?> out, long filePosition, boolean disposeAfterWriting) throws IOException {
+    public static void write(TiffTile tile, DataHandle<?> out, long fileOffset) throws IOException {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(out, "Null output stream");
-        if (filePosition < 0) {
-            throw new IllegalArgumentException("Negative file position to write data: " + filePosition);
+        if (fileOffset < 0) {
+            throw new IllegalArgumentException("Negative file position to write data: " + fileOffset);
         }
-        if (filePosition == 0) {
+        if (fileOffset == 0) {
             throw new IllegalArgumentException("Zero file position to write data is not allowed in TIFF format");
         }
         final byte[] encodedData = tile.getEncodedData();
-        out.seek(filePosition);
+        out.seek(fileOffset);
         out.write(encodedData);
-        tile.setStoredInFileDataRange(filePosition, encodedData.length);
-        if (disposeAfterWriting) {
-            tile.dispose();
-        }
+        tile.setStoredInFileDataRange(fileOffset, encodedData.length);
     }
 
-    private static long writePositionToEnd(TiffTile tile, DataHandle<?> out, boolean strictlyRequire32Bit)
+    private static long offsetAtEnd(TiffTile tile, DataHandle<?> out, boolean strictlyRequire32Bit)
             throws IOException {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(out, "Null output stream");

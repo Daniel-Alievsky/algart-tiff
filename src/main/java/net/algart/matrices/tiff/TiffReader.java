@@ -1910,7 +1910,7 @@ public class TiffReader implements Closeable {
     private long readNextOffset(boolean updatePositionOfLastOffset, boolean requireValidTiff, boolean bigTiff)
             throws IOException {
         final long fileLength = in.length();
-        final long filePosition = in.offset();
+        final long fileOffset = in.offset();
         long offset;
         if (bigTiff) {
             offset = in.readLong();
@@ -1938,16 +1938,16 @@ public class TiffReader implements Closeable {
             if (offset < 0) {
                 // - possibly in Big-TIFF only
                 throw new TiffException("Invalid TIFF" + prettyInName() +
-                        ": negative 64-bit offset " + offset + " at file position " + filePosition +
+                        ": negative 64-bit offset " + offset + " at file position " + fileOffset +
                         ", probably the file is corrupted");
             }
             if (offset >= fileLength) {
                 throw new TiffException("Invalid TIFF" + prettyInName() + ": offset " + offset +
-                        " at file position " + filePosition + " is outside the file, probably the is corrupted");
+                        " at file position " + fileOffset + " is outside the file, probably the is corrupted");
             }
         }
         if (updatePositionOfLastOffset) {
-            this.positionOfLastIFDOffset = filePosition;
+            this.positionOfLastIFDOffset = fileOffset;
         }
         return offset;
     }

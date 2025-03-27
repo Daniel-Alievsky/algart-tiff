@@ -86,7 +86,7 @@ public class TiffWriter implements Closeable {
     private boolean smartIFDCorrection = false;
     private TiffCodec.Options codecOptions = new TiffCodec.Options();
     private boolean enforceUseExternalCodec = false;
-    private Double quality = null;
+    private Double lossyQualityLevel = null;
     private Double losslessCompressionLevel = null;
     private boolean preferRGB = false;
     private boolean missingTilesAllowed = false;
@@ -375,20 +375,20 @@ public class TiffWriter implements Closeable {
         return this;
     }
 
-    public boolean hasQuality() {
-        return quality != null;
+    public boolean hasLossyQualityLevel() {
+        return lossyQualityLevel != null;
     }
 
-    public Double getQuality() {
-        return quality;
+    public Double getLossyQualityLevel() {
+        return lossyQualityLevel;
     }
 
-    public TiffWriter setQuality(Double quality) {
-        return quality == null ? removeQuality() : setQuality(quality.doubleValue());
+    public TiffWriter setLossyQualityLevel(Double lossyQualityLevel) {
+        return lossyQualityLevel == null ? removeQuality() : setLossyQualityLevel(lossyQualityLevel.doubleValue());
     }
 
     /**
-     * Sets the compression quality for JPEG tiles/strips to some non-negative value.
+     * Sets the compression quality for lossy compression formats.
      *
      * <p>Possible values are format-specific.
      * For JPEG, they should be between 0.0 and 1.0 (1.0 means the best quality).
@@ -401,7 +401,7 @@ public class TiffWriter implements Closeable {
      * Note that the only difference between lose-less JPEG-2000 and the standard JPEG-2000 is these default values:
      * if this method is called, both compressions work identically (but write different TIFF compression tags).
      *
-     * <p>Note: the {@link TiffCodec.Options#setQuality(Double) quality}, that can be set via
+     * <p>Note: the {@link TiffCodec.Options#setLossyQualityLevel(Double) quality}, that can be set via
      * {@link #setCodecOptions(TiffCodec.Options)} method, is ignored,
      * if this value is set to non-{@code null} value.
      *
@@ -410,20 +410,20 @@ public class TiffWriter implements Closeable {
      * In this case, you need to call this method every time before updating IFD,
      * not only once for the whole TIFF file.
      *
-     * @param quality floating-point value: the desired quality level.
+     * @param quality floating-point value: the desired lossy quality level.
      * @return a reference to this object.
      * @throws IllegalArgumentException if the argument is negative.
      */
-    public TiffWriter setQuality(double quality) {
+    public TiffWriter setLossyQualityLevel(double quality) {
         if (quality < 0.0) {
             throw new IllegalArgumentException("Negative quality " + quality + " is not allowed");
         }
-        this.quality = quality;
+        this.lossyQualityLevel = quality;
         return this;
     }
 
     public TiffWriter removeQuality() {
-        this.quality = null;
+        this.lossyQualityLevel = null;
         return this;
     }
 
@@ -863,7 +863,10 @@ public class TiffWriter implements Closeable {
         long t1 = debugTime();
         synchronized (fileLock) {
             checkVirginFile();
-            TiffTileIO.writeToEnd(tile, out, disposeAfterWriting, !bigTiff);
+            TiffTileIO.writeAtEnd(tile, out, !bigTiff);
+            if (disposeAfterWriting) {
+                tile.dispose();
+            }
         }
         long t2 = debugTime();
         timeWriting += t2 - t1;
@@ -2099,8 +2102,8 @@ public class TiffWriter implements Closeable {
         options.setCompressionCode(tile.compressionCode());
         options.setByteOrder(tile.byteOrder());
         options.setInterleaved(true);
-        if (this.quality != null) {
-            options.setQuality(this.quality);
+        if (this.lossyQualityLevel != null) {
+            options.setLossyQualityLevel(this.lossyQualityLevel);
         }
         if (this.losslessCompressionLevel != null) {
             options.setLosslessCompressionLevel(this.losslessCompressionLevel);

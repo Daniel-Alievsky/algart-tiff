@@ -652,7 +652,7 @@ public final class TiffTile {
     }
 
     public long getStoredInFileDataOffset() {
-        checkStoredFilePosition();
+        checkStoredFileOffset();
         return storedInFileDataOffset;
     }
 
@@ -692,6 +692,17 @@ public final class TiffTile {
         this.storedInFileDataOffset = storedInFileDataOffset;
         this.storedInFileDataLength = storedInFileDataLength;
         return this;
+    }
+
+    /**
+     * Equivalent to <code>{@link #isStoredInFile()} &amp;&amp; {@link #getEncodedData()
+     * getEncodedData()}.length &lt;= {@link #getStoredInFileDataCapacity() getStoredInFileDataCapacity()}</code>.
+     *
+     * @return whether the encoded data can be rewritten into the same place of the file.
+     */
+    public boolean isEncodedDataFitsInCapacity() {
+        checkEncodedData();
+        return  isStoredInFile() && data.length <= getStoredInFileDataCapacity();
     }
 
     public int getStoredInFileDataCapacity() {
@@ -1041,7 +1052,7 @@ public final class TiffTile {
         }
     }
 
-    private void checkStoredFilePosition() {
+    private void checkStoredFileOffset() {
         if (storedInFileDataOffset < 0) {
             throw new IllegalStateException("File offset of the TIFF tile is not set yet: " + this);
         }
