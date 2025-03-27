@@ -85,7 +85,7 @@ public class TiffUnpacking {
                     + "probably TIFF file is corrupted or format is not properly supported");
         }
         tile.adjustNumberOfPixels(true);
-        // - Note: getStoredDataLength() is unpredictable, because it is the result of decompression by a codec;
+        // - Note: decodedDataLength is unpredictable, because it is the result of decompression by a codec;
         // in particular, for JPEG compression last strip in non-tiled TIFF may be shorter or even larger
         // than a full tile.
         // If cropping boundary tiles is enabled, the actual height of the last strip is reduced

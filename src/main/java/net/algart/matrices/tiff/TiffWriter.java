@@ -1965,7 +1965,7 @@ public class TiffWriter implements Closeable {
                     }
                     if (tile.isStoredInFile()) {
                         offsets[k] = tile.getStoredInFileDataOffset();
-                        byteCounts[k] = tile.getStoredDataLength();
+                        byteCounts[k] = tile.getStoredInFileDataLength();
                     } else {
                         assert tile.isEmpty() : "writeEncodedTile() call above did not store data file offset!";
                         if (!missingTilesAllowed) {
@@ -1981,7 +1981,7 @@ public class TiffWriter implements Closeable {
                                 // but its offset/byte-count is used many times!
                             }
                             offsets[k] = filler.getStoredInFileDataOffset();
-                            byteCounts[k] = filler.getStoredDataLength();
+                            byteCounts[k] = filler.getStoredInFileDataLength();
                             tile.copyStoredInFileDataRange(filler);
                         }
                         // else (if missingTilesAllowed) offsets[k]/byteCounts[k] stay to be zero

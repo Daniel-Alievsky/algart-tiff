@@ -33,7 +33,7 @@ public class TiffTileIO {
     private TiffTileIO() {
     }
 
-    public static void read(TiffTile tile, DataHandle<?> in, long filePosition, long dataLength) throws IOException {
+    public static void read(TiffTile tile, DataHandle<?> in, long filePosition, int dataLength) throws IOException {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(in, "Null input stream");
         if (filePosition < 0) {
@@ -45,10 +45,7 @@ public class TiffTileIO {
         if (dataLength < 0) {
             throw new IllegalArgumentException("Negative length of data to read: " + dataLength);
         }
-        if (dataLength > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("Too large data length: " + dataLength + " > 2^31-1 bytes");
-        }
-        final byte[] data = new byte[(int) dataLength];
+        final byte[] data = new byte[dataLength];
         in.seek(filePosition);
         final int result = in.read(data);
         if (result < data.length) {
@@ -60,6 +57,14 @@ public class TiffTileIO {
         tile.setEncodedData(data);
     }
 
+    public static void writeToEndOrExistingPosition(
+            TiffTile tile,
+            DataHandle<?> out,
+            boolean disposeAfterWriting,
+            boolean strictlyRequire32Bit) throws IOException {
+        Objects.requireNonNull(tile, "Null tile");
+    }
+
     public static void writeToEnd(
             TiffTile tile,
             DataHandle<?> out,
@@ -68,6 +73,7 @@ public class TiffTileIO {
 //        System.out.printf("%s: %s%n", out, tile.toString());
         final long filePosition = writePositionToEnd(tile, out, strictlyRequire32Bit);
         write(tile, out, filePosition, disposeAfterWriting);
+        tile.resetStoredInFileDataCapacity();
     }
 
     public static void write(TiffTile tile, DataHandle<?> out, long filePosition, boolean disposeAfterWriting) throws IOException {

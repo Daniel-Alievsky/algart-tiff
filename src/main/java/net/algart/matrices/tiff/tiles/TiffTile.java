@@ -60,7 +60,8 @@ public final class TiffTile {
     private boolean encoded = false;
     private byte[] data = null;
     private long storedInFileDataOffset = -1;
-    private int storedDataLength = 0;
+    private int storedInFileDataLength = 0;
+    private int storedInFileDataCapacity = 0;
     private int estimatedNumberOfPixels = 0;
     private Queue<IRectangularArea> unsetArea = null;
     // - null value marks that all is empty;
@@ -598,7 +599,7 @@ public final class TiffTile {
         return data == null;
     }
 
-    public TiffTile free() {
+    public void free() {
         this.data = null;
         this.interleaved = false;
         // - before possible setting new decoded data, we should restore default status interleaved = false
@@ -606,17 +607,17 @@ public final class TiffTile {
         // - method checkReadyForNewDecodedData() requires that the tile should not be declared as encoded
         // Note: we should not clear information about stored data file range, because
         // it will be used even after flushing data to disk (with freeing this tile)
-        return this;
     }
 
     public TiffTile copy(TiffTile source, boolean cloneData) {
         Objects.requireNonNull(source, "Null source tile");
         if (source.isEmpty()) {
-            return free();
+            free();
         } else {
             final byte[] data = cloneData ? source.data.clone() : source.data;
-            return setData(data, source.isEncoded(), false);
+            setData(data, source.isEncoded(), false);
         }
+        return this;
     }
 
     public boolean isDisposed() {
@@ -645,14 +646,18 @@ public final class TiffTile {
      *
      * @return a reference to this object.
      */
-    public TiffTile dispose() {
+    public void dispose() {
         free();
         this.disposed = true;
-        return this;
+    }
+
+    public long getStoredInFileDataOffset() {
+        checkStoredFilePosition();
+        return storedInFileDataOffset;
     }
 
     /**
-     * Return the length of the last non-null data array, stored in this tile,
+     * Return the length of the last non-null encoded data array, stored in the TIFF file,
      * or 0 after creating this object.
      *
      * <p>Immediately after reading tile from the file, as well as
@@ -662,10 +667,10 @@ public final class TiffTile {
      * <p>Note: {@link #free()} method does not change this value! So, you can know the stored data size
      * even after freeing data inside this object.
      *
-     * @return the length of the last non-null data array, which was stored in this object.
+     * @return the length of the last non-null encoded data, which was read or write to the TIFF file.
      */
-    public int getStoredDataLength() {
-        return storedDataLength;
+    public int getStoredInFileDataLength() {
+        return storedInFileDataLength;
     }
 
     public boolean isStoredInFile() {
@@ -677,35 +682,40 @@ public final class TiffTile {
         return this;
     }
 
-    public long getStoredInFileDataOffset() {
-        checkStoredFilePosition();
-        return storedInFileDataOffset;
-    }
-
-    public TiffTile setStoredInFileDataOffset(long storedInFileDataOffset) {
+    public TiffTile setStoredInFileDataRange(long storedInFileDataOffset, int storedInFileDataLength) {
         if (storedInFileDataOffset < 0) {
             throw new IllegalArgumentException("Negative storedInFileDataOffset = " + storedInFileDataOffset);
         }
+        if (storedInFileDataLength < 0) {
+            throw new IllegalArgumentException("Negative storedInFileDataLength = " + storedInFileDataLength);
+        }
         this.storedInFileDataOffset = storedInFileDataOffset;
+        this.storedInFileDataLength = storedInFileDataLength;
         return this;
     }
 
-    public TiffTile setStoredInFileDataRange(long storedInFileDataOffset, int storedDataLength) {
-        if (storedInFileDataOffset < 0) {
-            throw new IllegalArgumentException("Negative storedInFileDataOffset = " + storedInFileDataOffset);
+    public int getStoredInFileDataCapacity() {
+        return storedInFileDataCapacity;
+    }
+
+    public TiffTile setStoredInFileDataCapacity(int storedInFileDataCapacity) {
+        if (storedInFileDataCapacity < this.storedInFileDataLength) {
+            throw new IllegalArgumentException("Too small storedInFileDataCapacity = " + storedInFileDataCapacity +
+                    " < storedInFileDataLength = " + this.storedInFileDataLength);
         }
-        if (storedDataLength < 0) {
-            throw new IllegalArgumentException("Negative storedDataLength = " + storedDataLength);
-        }
-        this.storedDataLength = storedDataLength;
-        this.storedInFileDataOffset = storedInFileDataOffset;
+        this.storedInFileDataCapacity = storedInFileDataCapacity;
         return this;
+    }
+
+    public TiffTile resetStoredInFileDataCapacity() {
+        return setStoredInFileDataCapacity(this.storedInFileDataLength);
     }
 
     public TiffTile copyStoredInFileDataRange(TiffTile other) {
         Objects.requireNonNull(other, "Null other tile");
-        this.storedDataLength = other.storedDataLength;
         this.storedInFileDataOffset = other.storedInFileDataOffset;
+        this.storedInFileDataLength = other.storedInFileDataLength;
+        this.storedInFileDataCapacity = other.storedInFileDataCapacity;
         return this;
     }
 
@@ -791,10 +801,11 @@ public final class TiffTile {
         final int estimatedNumberOfPixels = getEstimatedNumberOfPixels();
         // - necessary to throw IllegalStateException if encoded
         assert !encoded;
-        if (data.length != storedDataLength) {
-            throw new IllegalStateException("Stored data length field " + storedDataLength +
-                    " is set to value, different than the actual data length " + data.length);
-        }
+        // Deprecated check (storedInFileDataLength was set =data.length in old versions)
+        // if (data.length != storedInFileDataLength) {
+        //     throw new IllegalStateException("Stored data length field " + storedInFileDataLength +
+        //             " is set to the value, different from the actual data length " + data.length);
+        // }
         if (data.length != sizeInBytes) {
             throw new IllegalStateException("Number of stored pixels " + estimatedNumberOfPixels +
                     " does not match tile sizes " + sizeX + "x" + sizeY + " = " + sizeInPixels);
@@ -808,7 +819,7 @@ public final class TiffTile {
         }
         // - in other words, checkDataLengthAlignment() must be unnecessary:
         // if bitsPerPixel = 1, unaligned data is impossible;
-        // if bitsPerPixel = 8*i, storedDataLength = sizeInBytes is divided by bytesPerPixel
+        // if bitsPerPixel = 8*i, dataLength = sizeInBytes is divided by bytesPerPixel
         return this;
     }
 
@@ -926,8 +937,9 @@ public final class TiffTile {
                 ", " + bitsPerSample + " bits/sample" +
                 ", index " + index +
                 (isStoredInFile() ?
-                        " at file region " + storedInFileDataOffset + ".." +
-                                storedInFileDataOffset + "+" + (storedDataLength - 1) :
+                        " at file region " + storedInFileDataOffset + ".." + storedInFileDataOffset +
+                                "+" + (storedInFileDataLength - 1) +
+                                "/" + (storedInFileDataCapacity - 1) :
                         ", no file position");
     }
 
@@ -944,7 +956,8 @@ public final class TiffTile {
                 interleaved == tiffTile.interleaved && encoded == tiffTile.encoded &&
                 samplesPerPixel == tiffTile.samplesPerPixel && bitsPerSample == tiffTile.bitsPerSample &&
                 storedInFileDataOffset == tiffTile.storedInFileDataOffset &&
-                storedDataLength == tiffTile.storedDataLength &&
+                storedInFileDataLength == tiffTile.storedInFileDataLength &&
+                storedInFileDataCapacity == tiffTile.storedInFileDataCapacity &&
                 Objects.equals(index, tiffTile.index) &&
                 Arrays.equals(data, tiffTile.data);
         // Note: doesn't check "map" to avoid infinite recursion!
@@ -953,7 +966,7 @@ public final class TiffTile {
     @Override
     public int hashCode() {
         int result = Objects.hash(index, sizeX, sizeY,
-                interleaved, encoded, storedInFileDataOffset, storedDataLength);
+                interleaved, encoded, storedInFileDataOffset, storedInFileDataLength, storedInFileDataCapacity);
         result = 31 * result + Arrays.hashCode(data);
         return result;
         // Note: doesn't check this.map to avoid infinite recursion!
@@ -992,7 +1005,9 @@ public final class TiffTile {
                     " pixels: very large TIFF tiles >= 2^31 pixels are not supported");
         }
         this.data = data;
-        this.storedDataLength = data.length;
+        // this.storedInFileDataLength = data.length;
+        // - this is a deprecated solution; now storedInFileDataLength has an independent sense
+        // and used to detect, whether new data can be overwritten at the same position in the file
         this.estimatedNumberOfPixels = (int) numberOfPixels;
         this.encoded = encoded;
         return this;
