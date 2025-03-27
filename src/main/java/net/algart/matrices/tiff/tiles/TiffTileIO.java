@@ -56,7 +56,7 @@ public class TiffTileIO {
                     ": loaded " + result + " bytes instead of " + data.length +
                     " (" + in.get() + ")");
         }
-        tile.setStoredDataFileRange(filePosition, data.length);
+        tile.setStoredInFileDataRange(filePosition, data.length);
         tile.setEncodedData(data);
     }
 
@@ -82,7 +82,7 @@ public class TiffTileIO {
         final byte[] encodedData = tile.getEncodedData();
         out.seek(filePosition);
         out.write(encodedData);
-        tile.setStoredDataFileRange(filePosition, encodedData.length);
+        tile.setStoredInFileDataRange(filePosition, encodedData.length);
         if (disposeAfterWriting) {
             tile.dispose();
         }

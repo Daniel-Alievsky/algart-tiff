@@ -1205,7 +1205,7 @@ public class TiffWriter implements Closeable {
         // - actually not necessary, but helps to avoid possible bugs
         int k = 0;
         for (TiffTile tile : map.tiles()) {
-            tile.setStoredDataFileRange(offsets[k], (int) byteCounts[k]);
+            tile.setStoredInFileDataRange(offsets[k], (int) byteCounts[k]);
             // - we "tell" that all tiles already exist in the file;
             // note we can use index k, because buildGrid() method, called above for an empty map,
             //  provided the correct tiles order
@@ -1964,7 +1964,7 @@ public class TiffWriter implements Closeable {
                         sizeInBytes += tile.getSizeInBytes();
                     }
                     if (tile.isStoredInFile()) {
-                        offsets[k] = tile.getStoredDataFileOffset();
+                        offsets[k] = tile.getStoredInFileDataOffset();
                         byteCounts[k] = tile.getStoredDataLength();
                     } else {
                         assert tile.isEmpty() : "writeEncodedTile() call above did not store data file offset!";
@@ -1980,9 +1980,9 @@ public class TiffWriter implements Closeable {
                                 // - note: unlike usual tiles, the filler tile is written once,
                                 // but its offset/byte-count is used many times!
                             }
-                            offsets[k] = filler.getStoredDataFileOffset();
+                            offsets[k] = filler.getStoredInFileDataOffset();
                             byteCounts[k] = filler.getStoredDataLength();
-                            tile.copyStoredDataFileRange(filler);
+                            tile.copyStoredInFileDataRange(filler);
                         }
                         // else (if missingTilesAllowed) offsets[k]/byteCounts[k] stay to be zero
                     }

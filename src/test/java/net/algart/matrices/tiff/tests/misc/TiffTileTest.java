@@ -54,7 +54,7 @@ public class TiffTileTest {
         tile.setDecodedData(new byte[testDataLength]);
         System.out.printf("%s: %s decoded length, %d estimated pixels%n",
                 tile, tile.getDecodedDataLength(), tile.getEstimatedNumberOfPixels());
-        // tile.setStoredDataFileRange(0, 111);
+//         tile.setStoredInFileDataRange(0, 111);
         // - uncomment the previos operator to see another possible exception
         try {
             tile.checkStoredNumberOfPixels();

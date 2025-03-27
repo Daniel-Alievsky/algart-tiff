@@ -59,7 +59,7 @@ public final class TiffTile {
     private boolean interleaved = false;
     private boolean encoded = false;
     private byte[] data = null;
-    private long storedDataFileOffset = -1;
+    private long storedInFileDataOffset = -1;
     private int storedDataLength = 0;
     private int estimatedNumberOfPixels = 0;
     private Queue<IRectangularArea> unsetArea = null;
@@ -669,43 +669,43 @@ public final class TiffTile {
     }
 
     public boolean isStoredInFile() {
-        return storedDataFileOffset >= 0;
+        return storedInFileDataOffset >= 0;
     }
 
     public TiffTile clearStoredInFile() {
-        storedDataFileOffset = -1;
+        storedInFileDataOffset = -1;
         return this;
     }
 
-    public long getStoredDataFileOffset() {
+    public long getStoredInFileDataOffset() {
         checkStoredFilePosition();
-        return storedDataFileOffset;
+        return storedInFileDataOffset;
     }
 
-    public TiffTile setStoredDataFileOffset(long storedDataFileOffset) {
-        if (storedDataFileOffset < 0) {
-            throw new IllegalArgumentException("Negative storedDataFileOffset = " + storedDataFileOffset);
+    public TiffTile setStoredInFileDataOffset(long storedInFileDataOffset) {
+        if (storedInFileDataOffset < 0) {
+            throw new IllegalArgumentException("Negative storedInFileDataOffset = " + storedInFileDataOffset);
         }
-        this.storedDataFileOffset = storedDataFileOffset;
+        this.storedInFileDataOffset = storedInFileDataOffset;
         return this;
     }
 
-    public TiffTile setStoredDataFileRange(long storedDataFileOffset, int storedDataLength) {
-        if (storedDataFileOffset < 0) {
-            throw new IllegalArgumentException("Negative storedDataFileOffset = " + storedDataFileOffset);
+    public TiffTile setStoredInFileDataRange(long storedInFileDataOffset, int storedDataLength) {
+        if (storedInFileDataOffset < 0) {
+            throw new IllegalArgumentException("Negative storedInFileDataOffset = " + storedInFileDataOffset);
         }
         if (storedDataLength < 0) {
             throw new IllegalArgumentException("Negative storedDataLength = " + storedDataLength);
         }
         this.storedDataLength = storedDataLength;
-        this.storedDataFileOffset = storedDataFileOffset;
+        this.storedInFileDataOffset = storedInFileDataOffset;
         return this;
     }
 
-    public TiffTile copyStoredDataFileRange(TiffTile other) {
+    public TiffTile copyStoredInFileDataRange(TiffTile other) {
         Objects.requireNonNull(other, "Null other tile");
         this.storedDataLength = other.storedDataLength;
-        this.storedDataFileOffset = other.storedDataFileOffset;
+        this.storedInFileDataOffset = other.storedInFileDataOffset;
         return this;
     }
 
@@ -926,8 +926,8 @@ public final class TiffTile {
                 ", " + bitsPerSample + " bits/sample" +
                 ", index " + index +
                 (isStoredInFile() ?
-                        " at file region " + storedDataFileOffset + ".." +
-                                storedDataFileOffset + "+" + (storedDataLength - 1) :
+                        " at file region " + storedInFileDataOffset + ".." +
+                                storedInFileDataOffset + "+" + (storedDataLength - 1) :
                         ", no file position");
     }
 
@@ -943,7 +943,7 @@ public final class TiffTile {
         return sizeX == tiffTile.sizeX && sizeY == tiffTile.sizeY &&
                 interleaved == tiffTile.interleaved && encoded == tiffTile.encoded &&
                 samplesPerPixel == tiffTile.samplesPerPixel && bitsPerSample == tiffTile.bitsPerSample &&
-                storedDataFileOffset == tiffTile.storedDataFileOffset &&
+                storedInFileDataOffset == tiffTile.storedInFileDataOffset &&
                 storedDataLength == tiffTile.storedDataLength &&
                 Objects.equals(index, tiffTile.index) &&
                 Arrays.equals(data, tiffTile.data);
@@ -953,7 +953,7 @@ public final class TiffTile {
     @Override
     public int hashCode() {
         int result = Objects.hash(index, sizeX, sizeY,
-                interleaved, encoded, storedDataFileOffset, storedDataLength);
+                interleaved, encoded, storedInFileDataOffset, storedDataLength);
         result = 31 * result + Arrays.hashCode(data);
         return result;
         // Note: doesn't check this.map to avoid infinite recursion!
@@ -1027,7 +1027,7 @@ public final class TiffTile {
     }
 
     private void checkStoredFilePosition() {
-        if (storedDataFileOffset < 0) {
+        if (storedInFileDataOffset < 0) {
             throw new IllegalStateException("File offset of the TIFF tile is not set yet: " + this);
         }
     }
