@@ -4,12 +4,6 @@
     <module name="algart-tiff" />
     <option name="PROGRAM_PARAMETERS" value="-append src/test/resources/demo/images/lenna.png /tmp/repeated.tiff 20 10 JPEG" />
     <option name="VM_PARAMETERS" value="-Xmx512m" />
-    <extension name="coverage">
-      <pattern>
-        <option name="PATTERN" value="net.algart.matrices.tiff.demo.io.*" />
-        <option name="ENABLED" value="true" />
-      </pattern>
-    </extension>
     <method v="2">
       <option name="Make" enabled="true" />
     </method>

@@ -4,12 +4,6 @@
     <module name="algart-tiff" />
     <option name="PROGRAM_PARAMETERS" value="/tmp/bit.tiff 50000 50000 3" />
     <option name="VM_PARAMETERS" value="-ea -esa -Dnet.algart.matrices.tiff.timing=true -Djava.util.logging.config.file=additional/logging.properties" />
-    <extension name="coverage">
-      <pattern>
-        <option name="PATTERN" value="net.algart.matrices.tiff.demo.io.*" />
-        <option name="ENABLED" value="true" />
-      </pattern>
-    </extension>
     <method v="2">
       <option name="Make" enabled="true" />
     </method>

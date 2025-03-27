@@ -4,12 +4,6 @@
     <module name="algart-tiff" />
     <option name="PROGRAM_PARAMETERS" value="1024 1600 1 12" />
     <option name="VM_PARAMETERS" value="-ea -esa" />
-    <extension name="coverage">
-      <pattern>
-        <option name="PATTERN" value="net.algart.matrices.tiff.tiles.*" />
-        <option name="ENABLED" value="true" />
-      </pattern>
-    </extension>
     <method v="2">
       <option name="Make" enabled="true" />
     </method>
