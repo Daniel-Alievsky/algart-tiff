@@ -1142,6 +1142,9 @@ public class TiffWriter implements Closeable {
      * in particular if you prefer to call the method {@link #correctIFDForWriting(TiffIFD, boolean)}
      * with non-standard <code>smartCorrection</code> flag.
      *
+     * <p>Note: this method <b>removes</b> tags {@link Tags#SUB_IFD SubIFD} and {@link Tags#EXIF Exif IFD},
+     * because this class does not support writing sub-IFDs.
+     *
      * @param ifd       newly created and probably customized IFD.
      * @param resizable if <code>true</code>, IFD dimensions may not be specified yet: this argument is passed
      *                  to {@link TiffMapForWriting#TiffMapForWriting(TiffWriter, TiffIFD, boolean)} constructor
@@ -1155,6 +1158,11 @@ public class TiffWriter implements Closeable {
             throw new IllegalStateException("IFD is already frozen for usage while writing TIFF; " +
                     "probably you called this method twice");
         }
+        ifd.remove(Tags.SUB_IFD);
+        ifd.remove(Tags.EXIF);
+        // - This class does not provide control over writing sub-IFD or EXIF IFD,
+        // so, the corresponding offsets will usually have no sense
+
         if (correctIFDForWriting) {
             correctIFDForWriting(ifd);
         }

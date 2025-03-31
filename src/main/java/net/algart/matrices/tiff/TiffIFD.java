@@ -348,6 +348,18 @@ public class TiffIFD {
         return subIFDType;
     }
 
+    /**
+     * Sets the "type" of this IFD if this is not a main IFD, but sub-IFD or EXIF IFD.
+     * This is an informational field only and does not affect the behavior.
+     *
+     * <p>This field is set automatically by {@link TiffReader} class.
+     *
+     * <p>Note that {@link TiffWriter} cannot write sub-IFD or EXIF IFD: the corresponding tags
+     * are automatically removed by {@link TiffWriter#newMap(TiffIFD, boolean, boolean)} method.
+     *
+     * @param subIFDType
+     * @return
+     */
     public TiffIFD setSubIFDType(Integer subIFDType) {
         this.subIFDType = subIFDType;
         return this;
