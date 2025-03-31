@@ -54,6 +54,7 @@ public class CreatingIFDTest {
         // - previous operator enforces exception while showing IFD
         showIFD(ifd, "Dimensions");
 
+        ifd.put(Tags.GPS_TAG, 111111);
         ifd.put(1577, true);
         ifd.put(1578, 56.0);
         ifd.put(1579, 'c');

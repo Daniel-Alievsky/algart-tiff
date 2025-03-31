@@ -222,7 +222,7 @@ class TagFriendlyNames {
                 GeoAsciiParamsTag = 34737
                 ExposureProgram = 34850
                 SpectralSensitivity = 34852
-                GPSInfo = 34853
+                GPSTag = 34853
                 ISOSpeedRatings = 34855
                 OECF = 34856
                 Interlace = 34857

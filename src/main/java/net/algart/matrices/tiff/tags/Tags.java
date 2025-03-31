@@ -106,15 +106,16 @@ public class Tags {
     public static final int Y_CB_CR_POSITIONING = 531;
     public static final int REFERENCE_BLACK_WHITE = 532;
     public static final int COPYRIGHT = 33432;
-    public static final int EXIF = 34665;
 
     /*
      * EXIF tags.
      */
+    public static final int EXIF = 34665;
     public static final int EXPOSURE_TIME = 33434;
     public static final int F_NUMBER = 33437;
     public static final int EXPOSURE_PROGRAM = 34850;
     public static final int SPECTRAL_SENSITIVITY = 34852;
+    public static final int GPS_TAG = 34853;
     public static final int ISO_SPEED_RATINGS = 34855;
     public static final int OECF = 34856;
     public static final int EXIF_VERSION = 36864;

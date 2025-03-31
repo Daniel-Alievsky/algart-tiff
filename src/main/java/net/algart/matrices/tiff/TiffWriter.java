@@ -776,6 +776,9 @@ public class TiffWriter implements Closeable {
      * (Actually, it will be a position after the IFD information, including all additional data
      * like arrays of offsets; but you should not use this fact.)</p>
      *
+     * <p>Also note: this method is intended for writing usual IFD, not sub-IFD, so it reserves a place for
+     * storing the next offset.</p>
+     *
      * @param ifd               IFD to write in the output stream.
      * @param updateIFDLinkages see comments above.
      * @throws IOException in the case of any I/O errors.
@@ -1142,8 +1145,10 @@ public class TiffWriter implements Closeable {
      * in particular if you prefer to call the method {@link #correctIFDForWriting(TiffIFD, boolean)}
      * with non-standard <code>smartCorrection</code> flag.
      *
-     * <p>Note: this method <b>removes</b> tags {@link Tags#SUB_IFD SubIFD} and {@link Tags#EXIF Exif IFD},
-     * because this class does not support writing sub-IFDs.
+     * <p>Note: this method <b>removes</b> tags {@link Tags#SUB_IFD SubIFD}, {@link Tags#EXIF Exif IFD}
+     * and {@link Tags#GPS_TAG GPS information}, because this class does not support writing sub-IFDs.
+     * If you still need to construct TIFF with such tags, you should use more low-level call of
+     * {@link TiffMapForWriting} constructor.
      *
      * @param ifd       newly created and probably customized IFD.
      * @param resizable if <code>true</code>, IFD dimensions may not be specified yet: this argument is passed
@@ -1160,8 +1165,9 @@ public class TiffWriter implements Closeable {
         }
         ifd.remove(Tags.SUB_IFD);
         ifd.remove(Tags.EXIF);
-        // - This class does not provide control over writing sub-IFD or EXIF IFD,
-        // so, the corresponding offsets will usually have no sense
+        ifd.remove(Tags.GPS_TAG);
+        // - These are also pointers (offsets) inside a file, but this class does not provide
+        // control over writing such IFDs, so, the corresponding offsets will usually have no sense
 
         if (correctIFDForWriting) {
             correctIFDForWriting(ifd);
