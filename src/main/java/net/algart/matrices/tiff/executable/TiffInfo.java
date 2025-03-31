@@ -128,7 +128,7 @@ public class TiffInfo {
                 }
                 final long fileLength = reader.stream().length();
                 if (size == fileLength) {
-                    System.out.printf("Total file length %d bytes is fully used%n", fileLength);
+                    System.out.printf("Total file length %d bytes are fully used%n", fileLength);
                 } else if (size > fileLength) {
                     System.out.printf("%d bytes in file used, but total file length is only %d bytes: " +
                                     "probably TIFF is corrupted!%n",
