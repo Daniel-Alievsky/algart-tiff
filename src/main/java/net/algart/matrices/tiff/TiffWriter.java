@@ -773,7 +773,7 @@ public class TiffWriter implements Closeable {
      * </ol>
      *
      * <p>Also note: this method changes position in the output stream.
-     * (Actually it will be a position after the IFD information, including all additional data
+     * (Actually, it will be a position after the IFD information, including all additional data
      * like arrays of offsets; but you should not use this fact.)</p>
      *
      * @param ifd               IFD to write in the output stream.
@@ -1680,9 +1680,10 @@ public class TiffWriter implements Closeable {
             // - theoretically BigTIFF allows writing more, but we prefer to make some restriction and
             // guarantee 32-bit number of bytes
         }
-        final int bytesPerEntry = bigTiff ? TiffReader.BIG_TIFF_BYTES_PER_ENTRY : TiffReader.BYTES_PER_ENTRY;
+        final int bytesPerEntry = TiffIFD.TiffEntry.bytesPerEntry(bigTiff);
         return (bigTiff ? 8 + 8 : 2 + 4) + bytesPerEntry * numberOfEntries;
-        // - includes starting number of entries (2 or 8) and ending next offset (4 or 8)
+        //TODO!! use IFD methods
+        // - includes starting number of entries (2 or 8 bytes) and ending next offset (4 or 8 bytes)
     }
 
     private void writeIFDNumberOfEntries(int numberOfEntries) throws IOException {

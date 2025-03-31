@@ -395,8 +395,7 @@ public class TiffSaver extends TiffWriter {
 
         final long offset = bigTiff ? 8 : 4; // offset to the IFD
 
-        final int bytesPerEntry = bigTiff ? TiffReader.BIG_TIFF_BYTES_PER_ENTRY
-                : TiffReader.BYTES_PER_ENTRY;
+        final int bytesPerEntry = bigTiff ? TiffIFD.BIG_TIFF_BYTES_PER_ENTRY : TiffIFD.BYTES_PER_ENTRY;
 
         raf.seek(offset);
 

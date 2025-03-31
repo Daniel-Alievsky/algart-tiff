@@ -38,6 +38,15 @@ import java.util.*;
 
 public class TiffIFD {
     /**
+     * The number of bytes in each IFD entry.
+     */
+    public static final int BYTES_PER_ENTRY = 12;
+    /**
+     * The number of bytes in each IFD entry of a BigTIFF file.
+     */
+    public static final int BIG_TIFF_BYTES_PER_ENTRY = 20;
+
+    /**
      * Maximal supported number of channels.
      * For comparison, the popular OpenCV library has a limit of 512 channels.
      *
@@ -2060,7 +2069,30 @@ public class TiffIFD {
         }
     }
 
-    // Helper class for internal needs, analog of SCIFIO TiffIFDEntry
-    record TiffEntry(int tag, int type, int valueCount, long valueOffset) {
+    // Helper class for internal needs
+    record TiffEntry(int tag, int type, int valueCount, long valueOffset, boolean bigTiff) {
+        long valueLength() {
+            return (long) valueCount * TagTypes.sizeOfType(type);
+        }
+
+        boolean builtInData() {
+            return builtInData(valueLength(), bigTiff);
+        }
+
+        int bytesPerEntry() {
+            return bytesPerEntry(this.bigTiff);
+        }
+
+        long sizeOf() {
+            return builtInData() ? bytesPerEntry() : bytesPerEntry() + valueLength();
+        }
+
+        static boolean builtInData(long valueLength, boolean bigTiff) {
+            return valueLength <= (bigTiff ? 8 : 4);
+        }
+
+        static int bytesPerEntry(boolean bigTiff) {
+            return bigTiff ? BIG_TIFF_BYTES_PER_ENTRY : BYTES_PER_ENTRY;
+        }
     }
 }

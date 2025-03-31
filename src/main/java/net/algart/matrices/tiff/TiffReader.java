@@ -83,14 +83,6 @@ public class TiffReader implements Closeable {
      * it is mostly probable that it is a corrupted file.
      */
     public static final int MAX_NUMBER_OF_IFD_ENTRIES = 1_000_000;
-    /**
-     * The number of bytes in each IFD entry.
-     */
-    public static final int BYTES_PER_ENTRY = 12;
-    /**
-     * The number of bytes in each IFD entry of a BigTIFF file.
-     */
-    public static final int BIG_TIFF_BYTES_PER_ENTRY = 20;
     // TIFF header constants
     public static final int FILE_USUAL_MAGIC_NUMBER = 42;
     public static final int FILE_BIG_TIFF_MAGIC_NUMBER = 43;
@@ -957,14 +949,12 @@ public class TiffReader implements Closeable {
                 // in any case, billions if detailedEntries probably lead to OutOfMemoryError or integer overflow
             }
 
-            final int bytesPerEntry = bigTiff ? BIG_TIFF_BYTES_PER_ENTRY : BYTES_PER_ENTRY;
+            final int bytesPerEntry = TiffIFD.TiffEntry.bytesPerEntry(bigTiff);
             final int baseOffset = bigTiff ? 8 : 2;
 
             for (long i = 0; i < numberOfEntries; i++) {
                 long tEntry1 = debugTime();
-                in.seek(startOffset + baseOffset + bytesPerEntry * i);
-
-                final TiffIFD.TiffEntry entry = readIFDEntry();
+                final TiffIFD.TiffEntry entry = readIFDEntry(startOffset + baseOffset + bytesPerEntry * i);
                 final int tag = entry.tag();
                 long tEntry2 = debugTime();
                 timeEntries += tEntry2 - tEntry1;
@@ -1879,7 +1869,7 @@ public class TiffReader implements Closeable {
 
     private void skipIFDEntries(long fileLength) throws IOException {
         final long offset = in.offset();
-        final int bytesPerEntry = bigTiff ? BIG_TIFF_BYTES_PER_ENTRY : BYTES_PER_ENTRY;
+        final int bytesPerEntry = TiffIFD.TiffEntry.bytesPerEntry(bigTiff);
         final long numberOfEntries = bigTiff ? in.readLong() : in.readUnsignedShort();
         if (numberOfEntries < 0 || numberOfEntries > Integer.MAX_VALUE / bytesPerEntry) {
             throw new TiffException(
@@ -2146,7 +2136,8 @@ public class TiffReader implements Closeable {
         return bytes;
     }
 
-    private TiffIFD.TiffEntry readIFDEntry() throws IOException {
+    private TiffIFD.TiffEntry readIFDEntry(long entryOffset) throws IOException {
+        in.seek(entryOffset);
         final int entryTag = in.readUnsignedShort();
         final int entryType = in.readUnsignedShort();
 
@@ -2158,10 +2149,10 @@ public class TiffReader implements Closeable {
         final int bytesPerElement = TagTypes.sizeOfType(entryType);
         // - will be zero for an unknown type; in this case we will set valueOffset=in.offset() below
         final long valueLength = valueCount * (long) bytesPerElement;
-        final int threshold = bigTiff ? 8 : 4;
-        final long valueOffset = valueLength > threshold ?
-                readNextOffset(false) :
-                in.offset();
+        final boolean builtInData = TiffIFD.TiffEntry.builtInData(valueLength, bigTiff);
+        final long valueOffset = builtInData ? in.offset() : readNextOffset(false);
+        // - position in the file will be different depending on builtInData,
+        // but it is not a problem: we will not use this position
         if (valueOffset < 0) {
             throw new TiffException("Invalid TIFF: negative offset of IFD values " + valueOffset);
         }
@@ -2170,8 +2161,10 @@ public class TiffReader implements Closeable {
                     " + total lengths of values " + valueLength + " = " + valueCount + "*" + bytesPerElement +
                     " is outside the file length " + in.length());
         }
-        final TiffIFD.TiffEntry result = new TiffIFD.TiffEntry(entryTag, entryType, (int) valueCount, valueOffset);
-        LOG.log(System.Logger.Level.TRACE, () -> String.format(
+        final var result = new TiffIFD.TiffEntry(entryTag, entryType, (int) valueCount, valueOffset, bigTiff);
+        assert result.valueLength() == valueLength;
+        assert result.builtInData() == builtInData;
+        LOG.log(System.Logger.Level.INFO, () -> String.format(
                 "Reading IFD entry: %s - %s", result, Tags.tiffTagName(result.tag(), true)));
         return result;
     }

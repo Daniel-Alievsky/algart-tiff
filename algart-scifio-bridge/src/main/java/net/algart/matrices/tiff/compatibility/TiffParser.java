@@ -390,11 +390,11 @@ public class TiffParser extends TiffReader {
      */
     @Deprecated
     public long[] getIFDOffsets() throws IOException {
+        @SuppressWarnings("resource")
         final DataHandle<Location> in = stream();
         final boolean bigTiff = isBigTiff();
 
-        final int bytesPerEntry = bigTiff ? TiffReader.BIG_TIFF_BYTES_PER_ENTRY
-                : TiffReader.BYTES_PER_ENTRY;
+        final int bytesPerEntry = bigTiff ? TiffIFD.BIG_TIFF_BYTES_PER_ENTRY : TiffIFD.BYTES_PER_ENTRY;
 
         final Vector<Long> offsets = new Vector<>();
         long offset = getFirstOffset();
@@ -470,8 +470,7 @@ public class TiffParser extends TiffReader {
         if (numEntries == 0 || numEntries == 1) return ifd;
         //?? Why numEntries == 1 should lead to EMPTY IFD?
 
-        final int bytesPerEntry = bigTiff ? TiffReader.BIG_TIFF_BYTES_PER_ENTRY
-                : TiffReader.BYTES_PER_ENTRY;
+        final int bytesPerEntry = bigTiff ? TiffIFD.BIG_TIFF_BYTES_PER_ENTRY : TiffIFD.BYTES_PER_ENTRY;
         final int baseOffset = bigTiff ? 8 : 2;
 
         for (int i = 0; i < numEntries; i++) {
@@ -741,8 +740,7 @@ public class TiffParser extends TiffReader {
         for (int i = 0; i < numEntries; i++) {
             in.seek(offset + // The beginning of the IFD
                     (bigTiff ? 8 : 2) + // The width of the initial numEntries field
-                    (bigTiff ? TiffReader.BIG_TIFF_BYTES_PER_ENTRY
-                            : TiffReader.BYTES_PER_ENTRY) * (long) i);
+                    (bigTiff ? TiffIFD.BIG_TIFF_BYTES_PER_ENTRY : TiffIFD.BYTES_PER_ENTRY) * (long) i);
 
             final TiffIFDEntry entry = readTiffIFDEntry();
             if (entry.getTag() == tag) {
@@ -786,7 +784,7 @@ public class TiffParser extends TiffReader {
 
     /**
      * This function is deprecated, because almost identical behavior is implemented by
-     * {@link #readSamples(TiffMap, int, int, int, int)}.
+     * {@link #readSamples(net.algart.matrices.tiff.tiles.TiffMapForReading, int, int, int, int)}.
      */
     @Deprecated
     public byte[] getSamples(final IFD ifd, final byte[] buf, final int x,
