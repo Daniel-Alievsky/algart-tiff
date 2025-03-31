@@ -116,7 +116,9 @@ public class TiffInfo {
                                 sizeOfMetadata + sizeOfData, sizeOfMetadata, sizeOfData);
                         size += sizeOfMetadata + sizeOfData;
                     }
-                    System.out.println();
+                    if (k < lastIFDIndex) {
+                        System.out.println();
+                    }
                     if (!(ifd.containsKey(Tags.STRIP_BYTE_COUNTS) || ifd.containsKey(Tags.TILE_BYTE_COUNTS))) {
                         throw new TiffException("Invalid IFD: doesn't contain StripByteCounts/TileByteCounts tag");
                     }
