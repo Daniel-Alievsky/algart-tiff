@@ -2164,7 +2164,7 @@ public class TiffReader implements Closeable {
         final var result = new TiffIFD.TiffEntry(entryTag, entryType, (int) valueCount, valueOffset, bigTiff);
         assert result.valueLength() == valueLength;
         assert result.builtInData() == builtInData;
-        LOG.log(System.Logger.Level.INFO, () -> String.format(
+        LOG.log(System.Logger.Level.TRACE, () -> String.format(
                 "Reading IFD entry: %s - %s", result, Tags.tiffTagName(result.tag(), true)));
         return result;
     }
