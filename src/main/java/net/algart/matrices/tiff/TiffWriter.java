@@ -1587,6 +1587,10 @@ public class TiffWriter implements Closeable {
         }
     }
 
+    public int sizeOfHeader() {
+        return TiffIFD.sizeOfHeader(bigTiff);
+    }
+
     @Override
     public String toString() {
         return "TIFF writer";
@@ -1671,7 +1675,7 @@ public class TiffWriter implements Closeable {
             throw new IllegalStateException("TIFF file is not yet created / opened for writing");
         }
         final boolean exists = out.exists();
-        if (!exists || out.length() < (bigTiff ? 16 : 8)) {
+        if (!exists || out.length() < sizeOfHeader()) {
             // - very improbable, but can occur as a result of direct operations with output stream
             throw new IllegalStateException(
                     (exists ?

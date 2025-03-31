@@ -24,10 +24,7 @@
 
 package net.algart.matrices.tiff;
 
-import net.algart.arrays.Matrices;
-import net.algart.arrays.Matrix;
-import net.algart.arrays.PArray;
-import net.algart.arrays.TooLargeArrayException;
+import net.algart.arrays.*;
 import net.algart.io.awt.ImageToMatrix;
 import net.algart.matrices.tiff.tags.*;
 
@@ -35,6 +32,7 @@ import java.awt.image.BufferedImage;
 import java.lang.reflect.Array;
 import java.nio.ByteOrder;
 import java.util.*;
+import java.util.Arrays;
 
 public class TiffIFD {
     /**
@@ -363,12 +361,60 @@ public class TiffIFD {
      * <p>Note that {@link TiffWriter} cannot write sub-IFD or EXIF IFD: the corresponding tags
      * are automatically removed by {@link TiffWriter#newMap(TiffIFD, boolean, boolean)} method.
      *
-     * @param subIFDType
-     * @return
+     * @param subIFDType new IFD type, probably <code>null</code> for regular IFD
+     *                   or {@link Tags#SUB_IFD} / {@link Tags#EXIF} for sub-IFD.
+     * @return a reference to this object.
      */
     public TiffIFD setSubIFDType(Integer subIFDType) {
         this.subIFDType = subIFDType;
         return this;
+    }
+
+    public static int sizeOfHeader(boolean bigTiff) {
+        return bigTiff ? 16 : 8;
+    }
+
+    public long sizeOf() throws TiffException {
+        long sizeOfMetadata = sizeOfMetadata();
+        return sizeOfMetadata == -1 ? -1 : Math.addExact(sizeOfMetadata, sizeOfData());
+    }
+
+    public long sizeOfMetadata() throws TiffException {
+        if (detailedEntries == null) {
+            return -1;
+        }
+        long result = lengthInFileExcludingEntries(bigTiff, isMainIFD());
+        for (TiffEntry entry : detailedEntries.values()) {
+            result = Math.addExact(result, entry.sizeOf());
+        }
+        return result;
+    }
+
+    public long sizeOfData() throws TiffException {
+        final long[] offsets = cachedTileOrStripOffsets();
+        final long[] byteCounts = cachedTileOrStripByteCounts();
+        final int n = Math.min(offsets.length, byteCounts.length);
+        // - should be equal, but there is not a guarantee: we can create "invalid" IFD
+        ArraySorter.getQuickSorter().sort(0, n,
+                (first, second) -> offsets[first] < offsets[second],
+                (first, second) -> {
+                    long temp = offsets[first];
+                    offsets[first] = offsets[second];
+                    offsets[second] = temp;
+                    temp = byteCounts[first];
+                    byteCounts[first] = byteCounts[second];
+                    byteCounts[second] = temp;
+                });
+
+        long sum = 0;
+        for (int i = 0; i < n; i++) {
+            if (i == 0 || offsets[i] != offsets[i - 1]) {
+                // - identical tiles CAN be written at the same offset:
+                // TiffWriter writes empty tiles in such manner
+                sum = Math.addExact(sum, byteCounts[i]);
+            }
+        }
+        return sum;
     }
 
     public boolean isFrozen() {
@@ -810,7 +856,7 @@ public class TiffIFD {
     }
 
     // Note: there is no getCompression() method, which ALWAYS returns some compression:
-    // we cannot be sure that we know all possible compressions!
+// we cannot be sure that we know all possible compressions!
     public Optional<TagCompression> optCompression() {
         final int code = optInt(Tags.COMPRESSION, -1);
         return code == -1 ? Optional.empty() : Optional.ofNullable(TagCompression.ofOrNull(code));
@@ -1800,20 +1846,20 @@ public class TiffIFD {
         return sb.toString();
     }
 
-    public static int lengthInFile(long numberOfEntries, boolean bigTiff, boolean mainIFD) {
-        final int bytesPerEntry = TiffEntry.bytesPerEntry(bigTiff);
-        int result;
-        try {
-            result = (bigTiff ? 8 : 2) + bytesPerEntry * checkNumberOfEntries(numberOfEntries, bigTiff);
-            // - includes starting number of entries (2 or 8 bytes)
-        } catch (TiffException e) {
-            throw new IllegalArgumentException(e.getMessage());
-        }
+    public static int lengthInFileExcludingEntries(boolean bigTiff, boolean mainIFD) {
+        int result = (bigTiff ? 8 : 2);
+        // - includes starting number of entries (2 or 8 bytes)
         if (mainIFD) {
             result += bigTiff ? 8 : 4;
             // - includes the next offset (4 or 8 bytes)
         }
         return result;
+    }
+
+    public static int lengthInFile(long numberOfEntries, boolean bigTiff, boolean mainIFD) throws TiffException {
+        final int bytesPerEntry = TiffEntry.bytesPerEntry(bigTiff);
+        final int n = checkNumberOfEntries(numberOfEntries, bigTiff);
+        return lengthInFileExcludingEntries(bigTiff, mainIFD) + bytesPerEntry * n;
     }
 
     public static int checkNumberOfEntries(long numberOfEntries, boolean bigTiff) throws TiffException {

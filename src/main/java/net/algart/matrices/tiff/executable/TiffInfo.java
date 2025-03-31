@@ -105,15 +105,35 @@ public class TiffInfo {
                         ifdCount,
                         reader.isBigTiff() ? "BigTIFF" : "not BigTIFF",
                         reader.isLittleEndian() ? "little" : "big");
+                long size = reader.sizeOfHeader();
                 for (int k = firstIFDIndex; k <= lastIFDIndex; k++) {
                     final TiffIFD ifd = ifdList.get(k);
-                    System.out.println(ifdInfo(ifd, k, ifdCount));
+                    System.out.print(ifdInfo(ifd, k, ifdCount));
+                    final long sizeOfMetadata = ifd.sizeOfMetadata();
+                    final long sizeOfData = ifd.sizeOfData();
+                    if (sizeOfMetadata > 0) {
+                        System.out.printf("%d bytes in file occupied (%d metadata + %d image data)%n",
+                                sizeOfMetadata + sizeOfData, sizeOfMetadata, sizeOfData);
+                        size += sizeOfMetadata + sizeOfData;
+                    }
+                    System.out.println();
                     if (!(ifd.containsKey(Tags.STRIP_BYTE_COUNTS) || ifd.containsKey(Tags.TILE_BYTE_COUNTS))) {
                         throw new TiffException("Invalid IFD: doesn't contain StripByteCounts/TileByteCounts tag");
                     }
                     if (!(ifd.containsKey(Tags.STRIP_OFFSETS) || ifd.containsKey(Tags.TILE_OFFSETS))) {
                         throw new TiffException("Invalid IFD: doesn't contain StripOffsets/TileOffsets tag");
                     }
+                }
+                final long fileLength = reader.stream().length();
+                if (size == fileLength) {
+                    System.out.printf("Total file length %d bytes is fully used%n", fileLength);
+                } else if (size > fileLength) {
+                    System.out.printf("%d bytes in file used, but total file length is only %d bytes: " +
+                                    "probably TIFF is corrupted!%n",
+                            size, fileLength);
+                } else {
+                    System.out.printf("%d bytes in file used, %d bytes lost/unknown, total file length %d bytes%n",
+                            size, fileLength - size, fileLength);
                 }
             }
             System.out.println();

@@ -918,7 +918,7 @@ public class TiffReader implements Closeable {
         if (startOffset < 0) {
             throw new IllegalArgumentException("Negative file offset = " + startOffset);
         }
-        if (startOffset < (bigTiff ? 16 : 8)) {
+        if (startOffset < sizeOfHeader()) {
             throw new IllegalArgumentException("Attempt to read IFD from too small start offset " + startOffset);
         }
         long t1 = debugTime();
@@ -1575,6 +1575,10 @@ public class TiffReader implements Closeable {
         synchronized (fileLock) {
             in.close();
         }
+    }
+
+    public int sizeOfHeader() {
+        return TiffIFD.sizeOfHeader(bigTiff);
     }
 
     @Override
