@@ -797,7 +797,7 @@ public class TiffWriter implements Closeable {
             out.seek(startOffset);
             final Map<Integer, Object> sortedIFD = new TreeMap<>(ifd.map());
             final int numberOfEntries = sortedIFD.size();
-            final int mainIFDLength = mainIFDLength(numberOfEntries);
+            final int mainIFDLength = TiffIFD.lengthInFile(numberOfEntries, bigTiff, true);
             writeIFDNumberOfEntries(numberOfEntries);
 
             final long positionOfNextOffset = writeIFDEntries(sortedIFD, startOffset, mainIFDLength);
@@ -1679,19 +1679,6 @@ public class TiffWriter implements Closeable {
                             "TIFF file does not exists yet") +
                             ": probably file header was not written correctly by startWriting() method");
         }
-    }
-
-    private int mainIFDLength(int numberOfEntries) {
-        final int numberOfEntriesLimit = bigTiff ? TiffReader.MAX_NUMBER_OF_IFD_ENTRIES : 65535;
-        if (numberOfEntries > numberOfEntriesLimit) {
-            throw new IllegalStateException("Too many IFD entries: " + numberOfEntries + " > " + numberOfEntriesLimit);
-            // - theoretically BigTIFF allows writing more, but we prefer to make some restriction and
-            // guarantee 32-bit number of bytes
-        }
-        final int bytesPerEntry = TiffIFD.TiffEntry.bytesPerEntry(bigTiff);
-        return (bigTiff ? 8 + 8 : 2 + 4) + bytesPerEntry * numberOfEntries;
-        //TODO!! use IFD methods
-        // - includes starting number of entries (2 or 8 bytes) and ending next offset (4 or 8 bytes)
     }
 
     private void writeIFDNumberOfEntries(int numberOfEntries) throws IOException {

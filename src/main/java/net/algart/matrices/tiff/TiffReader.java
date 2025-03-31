@@ -77,13 +77,6 @@ public class TiffReader implements Closeable {
                     "net.algart.matrices.tiff.defaultMaxCachingMemory", 256 * 1048576L));
     // - 256 MB maximal cache by default
 
-
-    /**
-     * IFD with number of entries, greater than this limit, is not allowed:
-     * it is mostly probable that it is a corrupted file.
-     */
-    public static final int MAX_NUMBER_OF_IFD_ENTRIES = 1_000_000;
-    // TIFF header constants
     public static final int FILE_USUAL_MAGIC_NUMBER = 42;
     public static final int FILE_BIG_TIFF_MAGIC_NUMBER = 43;
     public static final int FILE_PREFIX_LITTLE_ENDIAN = 0x49;
@@ -942,12 +935,7 @@ public class TiffReader implements Closeable {
             // read in directory entries for this IFD
             in.seek(startOffset);
             final long numberOfEntries = bigTiff ? in.readLong() : in.readUnsignedShort();
-            if (numberOfEntries < 0 || numberOfEntries > MAX_NUMBER_OF_IFD_ENTRIES) {
-                throw new TiffException("Too large number of IFD entries: " +
-                        (numberOfEntries < 0 ? ">= 2^63" : numberOfEntries + " > " + MAX_NUMBER_OF_IFD_ENTRIES));
-                // - theoretically BigTIFF allows having more entries, but we prefer to make some restriction;
-                // in any case, billions if detailedEntries probably lead to OutOfMemoryError or integer overflow
-            }
+            TiffIFD.checkNumberOfEntries(numberOfEntries, bigTiff);
 
             final int bytesPerEntry = TiffIFD.TiffEntry.bytesPerEntry(bigTiff);
             final int baseOffset = bigTiff ? 8 : 2;

@@ -68,6 +68,7 @@ public class TiffWriteMixedTest {
 
         System.out.println("Writing TIFF " + targetFile + "...");
         try (final TiffWriter writer = new TiffWriter(targetFile)) {
+//            writer.setBigTiff(true);
             writer.setByteFiller((byte) 0);
             writer.setByteOrder(ByteOrder.LITTLE_ENDIAN);
 //            writer.setSmartIFDCorrection(true);

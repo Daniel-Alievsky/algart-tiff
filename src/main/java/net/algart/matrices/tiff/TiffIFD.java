@@ -38,6 +38,12 @@ import java.util.*;
 
 public class TiffIFD {
     /**
+     * An IFD with number of entries, greater than this limit, is not allowed even in BigTIFF:
+     * it is mostly probable that it is a corrupted file.
+     * Note that in regular files (non-BigTIFF) the limit is 65536 (2^16).
+     */
+    public static final int MAX_NUMBER_OF_IFD_ENTRIES = 10_000_000;
+    /**
      * The number of bytes in each IFD entry.
      */
     public static final int BYTES_PER_ENTRY = 12;
@@ -1792,6 +1798,36 @@ public class TiffIFD {
             sb.append("\n  }\n}");
         }
         return sb.toString();
+    }
+
+    public static int lengthInFile(long numberOfEntries, boolean bigTiff, boolean mainIFD) {
+        final int bytesPerEntry = TiffEntry.bytesPerEntry(bigTiff);
+        int result;
+        try {
+            result = (bigTiff ? 8 : 2) + bytesPerEntry * checkNumberOfEntries(numberOfEntries, bigTiff);
+            // - includes starting number of entries (2 or 8 bytes)
+        } catch (TiffException e) {
+            throw new IllegalArgumentException(e.getMessage());
+        }
+        if (mainIFD) {
+            result += bigTiff ? 8 : 4;
+            // - includes the next offset (4 or 8 bytes)
+        }
+        return result;
+    }
+
+    public static int checkNumberOfEntries(long numberOfEntries, boolean bigTiff) throws TiffException {
+        if (numberOfEntries < 0) {
+            throw new TiffException("Negative number of IFD entries: " + numberOfEntries);
+        }
+        final int numberOfEntriesLimit = bigTiff ? MAX_NUMBER_OF_IFD_ENTRIES : 65535;
+        if (numberOfEntries > numberOfEntriesLimit) {
+            throw new TiffException("Too many IFD entries: " + numberOfEntries + " > " + numberOfEntriesLimit);
+            // - theoretically BigTIFF allows having more entries, but we prefer to make some restriction;
+            // in any case, billions if entries probably lead to OutOfMemoryError or integer overflow;
+            // also we guarantee that the result can be multiplied by bytesPerEntry without overflow
+        }
+        return (int) numberOfEntries;
     }
 
     public static void checkNumberOfChannels(long numberOfChannels) {
