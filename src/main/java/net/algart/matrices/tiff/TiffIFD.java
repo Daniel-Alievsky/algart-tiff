@@ -384,15 +384,28 @@ public class TiffIFD {
             return -1;
         }
         long result = lengthInFileExcludingEntries(bigTiff, isMainIFD());
+        long previousSizeOf = -1;
         for (TiffEntry entry : detailedEntries.values()) {
-            result = Math.addExact(result, entry.sizeOf());
+            if (previousSizeOf >= 0 && (previousSizeOf & 1) != 0 && (entry.valueOffset & 1) == 0) {
+                // if the data offset is correctly aligned, we suppose skipping a byte
+                // before it for aligning the previous entry
+                result++;
+            }
+            previousSizeOf = entry.sizeOf();
+            result += previousSizeOf;
+            // - overflow is impossible: the number of entries is restricted by MAX_NUMBER_OF_IFD_ENTRIES,
+            // the number of elements in each entry is 31-bit integer
+        }
+        if ((result & 1) != 0) {
+            result++;
         }
         return result;
     }
 
     public long sizeOfData() throws TiffException {
-        final long[] offsets = cachedTileOrStripOffsets();
-        final long[] byteCounts = cachedTileOrStripByteCounts();
+        final long[] offsets = cachedTileOrStripOffsets().clone();
+        final long[] byteCounts = cachedTileOrStripByteCounts().clone();
+        // - cloning is IMPORTANT here! we must not destroy existing cached arrays
         final int n = Math.min(offsets.length, byteCounts.length);
         // - should be equal, but there is not a guarantee: we can create "invalid" IFD
         ArraySorter.getQuickSorter().sort(0, n,
@@ -405,14 +418,17 @@ public class TiffIFD {
                     byteCounts[first] = byteCounts[second];
                     byteCounts[second] = temp;
                 });
-
+        // - sorting BOTH arrays offsets/byteCounts in increasing order of offsets
         long sum = 0;
         for (int i = 0; i < n; i++) {
             if (i == 0 || offsets[i] != offsets[i - 1]) {
                 // - identical tiles CAN be written at the same offset:
-                // TiffWriter writes empty tiles in such manner
+                // TiffWriter writes empty tiles in such a manner
                 sum = Math.addExact(sum, byteCounts[i]);
             }
+        }
+        if ((sum & 1) != 0) {
+            sum = Math.addExact(sum, 1);
         }
         return sum;
     }
@@ -2165,19 +2181,19 @@ public class TiffIFD {
 
     // Helper class for internal needs
     record TiffEntry(int tag, int type, int valueCount, long valueOffset, boolean bigTiff) {
-        long valueLength() {
+        public long valueLength() {
             return (long) valueCount * TagTypes.sizeOfType(type);
         }
 
-        boolean builtInData() {
+        public boolean builtInData() {
             return builtInData(valueLength(), bigTiff);
         }
 
-        int bytesPerEntry() {
+        public int bytesPerEntry() {
             return bytesPerEntry(this.bigTiff);
         }
 
-        long sizeOf() {
+        public long sizeOf() {
             return builtInData() ? bytesPerEntry() : bytesPerEntry() + valueLength();
         }
 
