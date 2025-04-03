@@ -36,25 +36,58 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
-public class TiffWriteSimpleDemo {
+public class TiffWriteCustomDemo {
     public static void main(String[] args) throws IOException {
-        if (args.length < 2) {
+        int startArgIndex = 0;
+        boolean bigTiff = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-bigTiff")) {
+            bigTiff = true;
+            startArgIndex++;
+        }
+        boolean littleEndian = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-littleEndian")) {
+            littleEndian = true;
+            startArgIndex++;
+        }
+        Double quality = null;
+        if (args.length > startArgIndex && args[startArgIndex].toLowerCase().startsWith("-quality=")) {
+            final String s = args[startArgIndex].toLowerCase().substring("-quality=".length());
+            quality = Double.parseDouble(s);
+            startArgIndex++;
+        }
+        Double compressionLevel = null;
+        if (args.length > startArgIndex && args[startArgIndex].toLowerCase().startsWith("-compressionlevel=")) {
+            final String s = args[startArgIndex].toLowerCase().substring("-compressionlevel=".length());
+            compressionLevel = Double.parseDouble(s);
+            startArgIndex++;
+        }
+        if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
-            System.out.printf("    %s source.jpg/png/bmp target.tiff%n",
-                    TiffWriteSimpleDemo.class.getName());
+            System.out.printf("    %s [-bigTiff] [-littleEndian] [-quality=0.3] [-compressionLevel=1.0] " +
+                            "source.jpg/png/bmp target.tiff [compression]%n" +
+                            "Possible \"compression\": NONE, LZW, DEFLATE, JPEG, JPEG_2000, ...",
+                    TiffWriteCustomDemo.class.getName());
             return;
         }
-        final Path sourceFile = Paths.get(args[0]);
-        final Path targetFile = Paths.get(args[1]);
+        final Path sourceFile = Paths.get(args[startArgIndex]);
+        final Path targetFile = Paths.get(args[startArgIndex + 1]);
+        final TagCompression compression = startArgIndex + 2 < args.length ?
+                TagCompression.valueOf(args[startArgIndex + 2]) : null;
 
         System.out.printf("Reading %s...%n", sourceFile);
         final List<? extends Matrix<? extends PArray>> image = MatrixIO.readImage(sourceFile);
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
-        try (TiffWriter writer = new TiffWriter(targetFile, true)) {
+        try (TiffWriter writer = new TiffWriter(targetFile)) {
+            writer.setBigTiff(bigTiff);
+            writer.setLittleEndian(littleEndian);
+            // - must be called BEFORE creating the new file
+            writer.create();
+            writer.setLossyQualityLevel(quality);
+            writer.setLosslessCompressionLevel(compressionLevel);
             final TiffIFD ifd = writer.newIFD()
                 .putChannelsInformation(image)
-                .putCompression(TagCompression.DEFLATE);
+                .putCompression(compression);
             final var map = writer.newFixedMap(ifd);
             System.out.printf("Writing image: %s...%n", map);
             map.writeChannels(image);

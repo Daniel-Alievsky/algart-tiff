@@ -214,7 +214,8 @@ public class TiffWriter implements Closeable {
 
     /**
      * Sets whether little-endian data should be written.
-     * <p>Note that the default order is <b>big-endian</b>.
+     * This flag must be set before creating the file by {@link #create()} method.
+     * The default order is <b>big-endian</b>.
      *
      * @param littleEndian new byte while writing the file: big-endian (<code>false</code>) or
      *                     little-endian (<code>true</code>); default is <code>false</code>.
@@ -233,6 +234,13 @@ public class TiffWriter implements Closeable {
         return isLittleEndian() ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
     }
 
+    /**
+     * Equivalent to <code>{@link #setLittleEndian setLittleEndian}(byteOrder == ByteOrder.LITTLE_ENDIAN)</code>.
+     * The default order is <b>big-endian</b>.
+     *
+     * @param byteOrder desired byte order.
+     * @throws NullPointerException if the argument is <code>null</code>.
+     */
     public TiffWriter setByteOrder(ByteOrder byteOrder) {
         Objects.requireNonNull(byteOrder);
         return setLittleEndian(byteOrder == ByteOrder.LITTLE_ENDIAN);
@@ -247,6 +255,8 @@ public class TiffWriter implements Closeable {
 
     /**
      * Sets whether BigTIFF data should be written.
+     * This flag must be set before creating the file by {@link #create()} method.
+     * Default value is <code>false</code>.
      */
     public TiffWriter setBigTiff(final boolean bigTiff) {
         this.bigTiff = bigTiff;
@@ -1687,7 +1697,7 @@ public class TiffWriter implements Closeable {
                     (exists ?
                             "Existing TIFF file is too short (" + out.length() + " bytes)" :
                             "TIFF file does not exists yet") +
-                            ": probably file header was not written correctly by startWriting() method");
+                            ": probably file header was not written correctly by open()/create() methods");
         }
     }
 
