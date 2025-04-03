@@ -2,7 +2,7 @@
   <configuration default="false" name="TiffWriteCustomDemo" type="Application" factoryName="Application" nameIsGenerated="true">
     <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.demo.io.TiffWriteCustomDemo" />
     <module name="algart-tiff" />
-    <option name="PROGRAM_PARAMETERS" value="-bigTiff -quality=0.1 src/test/resources/demo/images/lenna.png /tmp/lenna_custom.tiff JPEG" />
+    <option name="PROGRAM_PARAMETERS" value="-littleEndian -quality=0.1 src/test/resources/demo/images/lenna.png /tmp/lenna_custom.tiff JPEG" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="net.algart.matrices.tiff.demo.io.*" />

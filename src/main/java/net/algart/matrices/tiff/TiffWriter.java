@@ -1549,7 +1549,7 @@ public class TiffWriter implements Closeable {
         final int count = completeWritingMap(map);
         map.cropAllUnset();
         appendFileUntilEvenLength();
-        // - not absolutely necessary, but good idea
+        // - not strictly necessary, but good idea (let the length be always even)
 
         if (ifd.hasFileOffsetForWriting()) {
             // - usually it means that we did call writeForward
@@ -1731,18 +1731,19 @@ public class TiffWriter implements Closeable {
         final long afterMain = startOffset + mainIFDLength;
         final BytesLocation bytesLocation = new BytesLocation(0, "memory-buffer");
         final long positionOfNextOffset;
-        try (final DataHandle<Location> extraHandle = TiffReader.getBytesHandle(bytesLocation)) {
+        try (final DataHandle<Location> extraBuffer = TiffReader.getBytesHandle(bytesLocation)) {
+            extraBuffer.setLittleEndian(isLittleEndian());
             for (final Map.Entry<Integer, Object> e : ifd.entrySet()) {
-                writeIFDValueAtCurrentPosition(extraHandle, afterMain, e.getKey(), e.getValue());
+                writeIFDValueAtCurrentPosition(extraBuffer, afterMain, e.getKey(), e.getValue());
+                appendUntilEvenPosition(extraBuffer);
             }
 
             positionOfNextOffset = out.offset();
             writeOffset(TiffIFD.LAST_IFD_OFFSET);
             // - not too important: will be rewritten in writeIFDNextOffset
-            final int extraLength = (int) extraHandle.offset();
-            extraHandle.seek(0L);
-            DataHandles.copy(extraHandle, out, extraLength);
-            appendUntilEvenPosition(out);
+            final int extraLength = (int) extraBuffer.offset();
+            extraBuffer.seek(0L);
+            DataHandles.copy(extraBuffer, out, extraLength);
         }
         return positionOfNextOffset;
     }
@@ -1771,9 +1772,6 @@ public class TiffWriter implements Closeable {
             final long bufferOffsetInResultFile,
             final int tag,
             Object value) throws IOException {
-        extraBuffer.setLittleEndian(isLittleEndian());
-        appendUntilEvenPosition(extraBuffer);
-
         // convert singleton objects into arrays, for simplicity
         if (value instanceof Short v) {
             value = new short[]{v};
