@@ -1325,7 +1325,7 @@ public class TiffReader implements Closeable {
         final long sizeInPixels = (long) sizeX * (long) sizeY;
         // - can be >2^31 for bits
 
-        byte[] samples = map.copySamplesFromMap(this::readCachedTile, fromX, fromY, sizeX, sizeY, storeTilesInMap);
+        byte[] samples = map.loadSamples(this::readCachedTile, fromX, fromY, sizeX, sizeY, storeTilesInMap);
         final int sizeInBytes = samples.length;
 
         long t2 = debugTime();

@@ -85,7 +85,7 @@ public class TiffWriteRepeatedPictureDemo {
             System.out.printf("Creating new resizable map: %s%n", map);
             for (int y = 0; y < yCount; y++) {
                 for (int x = 0; x < xCount; x++) {
-                    final List<TiffTile> updated = map.copyChannelsToMap(
+                    final List<TiffTile> updated = map.updateChannels(
                             pattern, x * (int) patternSizeX, y * (int) patternSizeY);
                     final int written = map.writeCompletedTiles(updated);
                     // - if you comment this operator, OutOfMemoryError will be possible for a very large TIFF

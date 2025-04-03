@@ -94,7 +94,7 @@ public final class TiffMapForReading extends TiffMap {
         return owningReader.readBufferedImage(this, fromX, fromY, sizeX, sizeY);
     }
 
-    public byte[] copySamplesFromMap(
+    public byte[] loadSamples(
             TileSupplier tileSupplier,
             int fromX,
             int fromY,

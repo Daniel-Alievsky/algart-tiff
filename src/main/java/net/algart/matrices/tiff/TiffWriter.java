@@ -575,7 +575,7 @@ public class TiffWriter implements Closeable {
      * byte count (<code>TileByteCounts</code> or <code>StripByteCounts</code> tag) contains zero value.
      * In this mode, this writer will use zero offset and byte-count, if
      * the written tile is actually empty &mdash; no pixels were written in it via
-     * {@link TiffMapForWriting#copySamplesToMap(byte[], int, int, int, int)} or other methods.
+     * {@link TiffMapForWriting#updateSamples(byte[], int, int, int, int)} or other methods.
      * In another case, this writer will create a normal tile, filled by
      * the {@link #setByteFiller(byte) default filler}.
      *
@@ -1404,7 +1404,7 @@ public class TiffWriter implements Closeable {
 
         clearTime();
         long t1 = debugTime();
-        map.copySamplesToMap(samples, fromX, fromY, sizeX, sizeY);
+        map.updateSamples(samples, fromX, fromY, sizeX, sizeY);
         long t2 = debugTime();
         writeForward(map);
         long t3 = debugTime();
@@ -1427,7 +1427,7 @@ public class TiffWriter implements Closeable {
         Objects.requireNonNull(samplesArray, "Null samplesArray");
         clearTime();
         long t1 = debugTime();
-        map.copyJavaArrayToMap(samplesArray, fromX, fromY, sizeX, sizeY);
+        map.updateJavaArray(samplesArray, fromX, fromY, sizeX, sizeY);
         long t2 = debugTime();
         writeForward(map);
         long t3 = debugTime();
@@ -1461,7 +1461,7 @@ public class TiffWriter implements Closeable {
         Objects.requireNonNull(matrix, "Null matrix");
         clearTime();
         long t1 = debugTime();
-        map.copyMatrixToMap(matrix, fromX, fromY);
+        map.updateMatrix(matrix, fromX, fromY);
         long t2 = debugTime();
         writeForward(map);
         long t3 = debugTime();
