@@ -123,7 +123,7 @@ public class TiffWriter implements Closeable {
      * <pre>
      *     var writer = new {@link #TiffWriter(Path, boolean) TiffWriter}(path, true);
      * </pre>
-     * <p>But in this case you will not be able to customize the created object
+     * <p>But in this case, you will not be able to customize the created object
      * before writing TIFF header
      * and will not be able to open an existing TIFF file for modifications.</p>
      *
@@ -132,6 +132,18 @@ public class TiffWriter implements Closeable {
      */
     public TiffWriter(Path file) throws IOException {
         this(file, false);
+    }
+
+    /**
+     * Equivalent to <code>new {@link #TiffWriter(Path, boolean, boolean)
+     * TiffWriter(file, createNewFileAndOpen, false)}</code>.
+     *
+     * @param file output TIFF tile.
+     * @param createNewFileAndOpen whether you need to call {@link #create()} method inside the constructor.
+     * @throws IOException in the case of any I/O errors.
+     */
+    public TiffWriter(Path file, boolean createNewFileAndOpen) throws IOException {
+        this(file, createNewFileAndOpen, false);
     }
 
     /**
@@ -151,26 +163,32 @@ public class TiffWriter implements Closeable {
      * <p>If the argument <code>createNewFileAndOpen</code> is {@code true},
      * this constructor automatically removes the file with the specified path, if it exists,
      * and calls {@link #create()} method.
+     * If <code>bigTiff</code> argument is <code>true</code>, the created file will be written
+     * in BigTIFF format (allowing to store &ge;4GB data), if <code>false</code>, it will be a regular TIFF.
      * In the case of I/O exception in {@link #create()} method,
      * this file is automatically closed. This behavior is alike
      * {@link java.io.FileWriter#FileWriter(File) FileWriter constructor}.
      *
      * <p>This is the simplest way to create a new TIFF file and automatically open it with writing the standard
      * TIFF header. After that, this object is ready for adding new TIFF images.
-     * However, this way does not allow customizing this writer, for example, to choose Big-TIFF mode
+     * However, this way does not allow customizing this writer, for example, to choose little-endian byte order
      * (an indicator, written into the TIFF header)
      * and does not allow opening an existing TIFF, for example, for adding new images (IFD).
-     * If you need this, please set
-     * <code>createNewFileAndOpen&nbsp;=&nbsp;false</code>.
+     * If you need this, please call this constructor with
+     * <code>createNewFileAndOpen&nbsp;=&nbsp;false</code>,
+     * perform necessary customizing and call then {@link #create()} method.
      *
      * @param file                 output TIFF tile.
      * @param createNewFileAndOpen whether you need to call {@link #create()} method inside the constructor.
+     * @param bigTiff              whether BigTIFF should be created.
      * @throws IOException in the case of any I/O errors.
      */
-    public TiffWriter(Path file, boolean createNewFileAndOpen) throws IOException {
+    public TiffWriter(Path file, boolean createNewFileAndOpen, boolean bigTiff) throws IOException {
         this(openWithDeletingPreviousFileIfRequested(file, createNewFileAndOpen));
         if (createNewFileAndOpen) {
             try {
+                //noinspection resource
+                setBigTiff(bigTiff);
                 create();
             } catch (IOException exception) {
                 try {
@@ -254,7 +272,7 @@ public class TiffWriter implements Closeable {
     }
 
     /**
-     * Sets whether BigTIFF data should be written.
+     * Sets whether BigTIFF file should be created.
      * This flag must be set before creating the file by {@link #create()} method.
      * Default value is <code>false</code>.
      */
@@ -1736,7 +1754,7 @@ public class TiffWriter implements Closeable {
      * specified by the second argument; {@link #rewriteIFD(TiffIFD, boolean)} method does it automatically.
      *
      * <p>Here "extra" data means all data, for which IFD contains their offsets instead of data itself,
-     * like arrays or text strings. The "main" data is 12-byte IFD record (20-byte for Big-TIFF),
+     * like arrays or text strings. The "main" data is 12-byte IFD record (20-byte for BigTIFF),
      * which is written by this method into the main output stream from its current position.
      *
      * @param extraBuffer              buffer to which "extra" IFD information should be written.
@@ -2084,7 +2102,7 @@ public class TiffWriter implements Closeable {
         } else {
             if (offset > 0xFFFFFFF0L) {
                 throw new TiffException("Attempt to write too large 64-bit offset as unsigned 32-bit: " + offset
-                        + " > 2^32-16; such large files should be written in Big-TIFF mode");
+                        + " > 2^32-16; such large files should be written in BigTIFF mode");
             }
             out.writeInt((int) offset);
             // - masking by 0xFFFFFFFF is unnecessary: cast to (int) works properly also for 32-bit unsigned values

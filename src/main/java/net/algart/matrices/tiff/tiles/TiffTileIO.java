@@ -102,7 +102,7 @@ public class TiffTileIO {
         final long length = out.length();
         if (strictlyRequire32Bit && length > 0xFFFFFFF0L - tile.getEncodedData().length) {
             throw new IOException("Attempt to write TIFF tile outside maximal allowed 32-bit file length 2^32-16 = " +
-                    0xFFFFFFF0L + "; such large files should be written in Big-TIFF mode");
+                    0xFFFFFFF0L + "; such large files should be written in BigTIFF mode");
         }
         return length;
     }

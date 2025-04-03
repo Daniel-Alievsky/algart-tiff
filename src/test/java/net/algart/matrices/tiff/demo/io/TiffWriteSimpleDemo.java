@@ -38,20 +38,26 @@ import java.util.List;
 
 public class TiffWriteSimpleDemo {
     public static void main(String[] args) throws IOException {
-        if (args.length < 2) {
+        int startArgIndex = 0;
+        boolean bigTiff = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-bigTiff")) {
+            bigTiff = true;
+            startArgIndex++;
+        }
+        if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
             System.out.printf("    %s source.jpg/png/bmp target.tiff%n",
                     TiffWriteSimpleDemo.class.getName());
             return;
         }
-        final Path sourceFile = Paths.get(args[0]);
-        final Path targetFile = Paths.get(args[1]);
+        final Path sourceFile = Paths.get(args[startArgIndex]);
+        final Path targetFile = Paths.get(args[startArgIndex + 1]);
 
         System.out.printf("Reading %s...%n", sourceFile);
         final List<? extends Matrix<? extends PArray>> image = MatrixIO.readImage(sourceFile);
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
-        try (TiffWriter writer = new TiffWriter(targetFile, true)) {
+        try (TiffWriter writer = new TiffWriter(targetFile, true, bigTiff)) {
             final TiffIFD ifd = writer.newIFD()
                 .putChannelsInformation(image)
                 .putCompression(TagCompression.DEFLATE);

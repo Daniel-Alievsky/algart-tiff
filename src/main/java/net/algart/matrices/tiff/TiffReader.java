@@ -1708,7 +1708,7 @@ public class TiffReader implements Closeable {
             in.seek(0);
             final long length = in.length();
             if (length < MINIMAL_ALLOWED_TIFF_FILE_LENGTH) {
-                // - sometimes we can meet 8-byte "TIFF-files" (or 16-byte "Big-TIFF") that contain only header
+                // - sometimes we can meet 8-byte "TIFF files" (or 16-byte "BigTIFF") that contain only header
                 // and no actual data (for example, results of debugging writing algorithm)
                 throw new TiffException("Too short TIFF file" + prettyInName() + ": only " + length +
                         " bytes (minimum " + MINIMAL_ALLOWED_TIFF_FILE_LENGTH + " bytes are required for valid TIFF)");
@@ -1802,7 +1802,7 @@ public class TiffReader implements Closeable {
         if (value instanceof long[] byteCounts && byteCounts.length == 1) {
             // - Here we process a rare case of using TiffParser compatibility class:
             // we call TiffParser.getIFD to read this IFD,
-            // and this file is Big-TIFF (TileByteCounts or StripByteCounts is IFDType.LONG8),
+            // and this file is BigTIFF (TileByteCounts or StripByteCounts is IFDType.LONG8),
             // and if we set "equal-strip" mode by TiffParser.setAssumeEqualStrips.
             long result = byteCounts[0];
             if (result >= 0 && result < Integer.MAX_VALUE) {
@@ -1918,7 +1918,7 @@ public class TiffReader implements Closeable {
         }
         if (requireValidTiff) {
             if (offset < 0) {
-                // - possibly in Big-TIFF only
+                // - possibly in BigTIFF only
                 throw new TiffException("Invalid TIFF" + prettyInName() +
                         ": negative 64-bit offset " + offset + " at file position " + fileOffset +
                         ", probably the file is corrupted");
