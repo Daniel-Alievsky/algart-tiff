@@ -1839,12 +1839,13 @@ public class TiffIFD {
                 if (entries != null) {
                     final TiffEntry tiffEntry = entries.get(tag);
                     if (tiffEntry != null) {
-                        sb.append(" : ").append(TagTypes.typeToString(tiffEntry.type()));
+                        final int tagType = tiffEntry.type();
+                        sb.append(" : ").append(TagTypes.typeToString(tagType));
                         int valueCount = tiffEntry.valueCount();
                         if (valueCount != 1) {
                             sb.append("[").append(valueCount).append("]");
                         }
-                        if (manyValues) {
+                        if (manyValues || tagType == TagTypes.ASCII) {
                             sb.append(" at @").append(tiffEntry.valueOffset());
                         }
                     }

@@ -131,8 +131,12 @@ public class TiffInfo {
                     System.out.printf("Total file length %d bytes, it is fully used%n", tiffFileLength);
                 } else if (size > tiffFileLength) {
                     System.out.printf("%d bytes in file used, but total file length is only %d bytes, " +
-                                    "%d \"extra\" bytes: probably TIFF is corrupted!%n",
+                                    "%d \"extra\" bytes: probably TIFF is corrupted?%n",
                             size, tiffFileLength, size - tiffFileLength);
+                    // - however, this is possible in some files: for example, in
+                    // "signed-integral-8bit.tif" from the TwelveMonkey demo image set,
+                    // we have ASCII IFD entry at the end of the file, and the image before it has odd length;
+                    // this ASCII offset is not aligned, so we consider that here is 1 extra byte
                 } else {
                     System.out.printf("%d bytes in file used, %d bytes lost/unknown, total file length %d bytes%n",
                             size, tiffFileLength - size, tiffFileLength);
