@@ -106,16 +106,12 @@ public class TiffInfo {
                         reader.isBigTiff() ? "BigTIFF" : "not BigTIFF",
                         reader.isLittleEndian() ? "little" : "big");
                 long size = reader.sizeOfHeader();
-                final long fileLength = reader.stream().length();
-                final boolean evenFileLength = fileLength % 2 == 0;
+                final long tiffFileLength = reader.stream().length();
                 for (int k = firstIFDIndex; k <= lastIFDIndex; k++) {
                     final TiffIFD ifd = ifdList.get(k);
                     System.out.print(ifdInfo(ifd, k, ifdCount));
-                    final long sizeOfMetadata = ifd.sizeOfMetadata();
-                    final boolean padToEvenBoundary = k < ifdCount - 1 || evenFileLength;
-                    // - the last image CAN be odd length, not padded by 1 byte to even boundary
-                    // (any other images are usually padded to provide the even offset for the next IFD)
-                    final long sizeOfData = ifd.sizeOfData(padToEvenBoundary);
+                    final long sizeOfMetadata = ifd.sizeOfMetadata(tiffFileLength);
+                    final long sizeOfData = ifd.sizeOfData(tiffFileLength);
                     if (sizeOfMetadata > 0) {
                         System.out.printf("%d bytes in file occupied (%d metadata + %d image data)%n",
                                 sizeOfMetadata + sizeOfData, sizeOfMetadata, sizeOfData);
@@ -131,15 +127,15 @@ public class TiffInfo {
                         throw new TiffException("Invalid IFD: doesn't contain StripOffsets/TileOffsets tag");
                     }
                 }
-                if (size == fileLength) {
-                    System.out.printf("Total file length %d bytes, it is fully used%n", fileLength);
-                } else if (size > fileLength) {
-                    System.out.printf("%d bytes in file used, but total file length is only %d bytes: " +
-                                    "probably TIFF is corrupted!%n",
-                            size, fileLength);
+                if (size == tiffFileLength) {
+                    System.out.printf("Total file length %d bytes, it is fully used%n", tiffFileLength);
+                } else if (size > tiffFileLength) {
+                    System.out.printf("%d bytes in file used, but total file length is only %d bytes, " +
+                                    "%d \"extra\" bytes: probably TIFF is corrupted!%n",
+                            size, tiffFileLength, size - tiffFileLength);
                 } else {
                     System.out.printf("%d bytes in file used, %d bytes lost/unknown, total file length %d bytes%n",
-                            size, fileLength - size, fileLength);
+                            size, tiffFileLength - size, tiffFileLength);
                 }
             }
             System.out.println();

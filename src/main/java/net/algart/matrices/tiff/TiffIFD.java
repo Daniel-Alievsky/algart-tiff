@@ -29,6 +29,7 @@ import net.algart.io.awt.ImageToMatrix;
 import net.algart.matrices.tiff.tags.*;
 
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.lang.reflect.Array;
 import java.nio.ByteOrder;
 import java.util.*;
@@ -374,35 +375,28 @@ public class TiffIFD {
         return bigTiff ? 16 : 8;
     }
 
-    public long sizeOf(boolean padToEvenBoundary) throws TiffException {
-        long sizeOfMetadata = sizeOfMetadata();
-        return sizeOfMetadata == -1 ? -1 : Math.addExact(sizeOfMetadata, sizeOfData(padToEvenBoundary));
+    public long sizeOfImage(long tiffFileLength) throws IOException {
+        long sizeOfMetadata = sizeOfMetadata(tiffFileLength);
+        return sizeOfMetadata == -1 ? -1 : Math.addExact(sizeOfMetadata, sizeOfData(tiffFileLength));
     }
 
-    public long sizeOfMetadata() throws TiffException {
+    public long sizeOfMetadata(long tiffFileLength) {
+        if (tiffFileLength < 0) {
+            throw new IllegalArgumentException("Negative TIFF file length");
+        }
         if (detailedEntries == null) {
             return -1;
         }
         long result = lengthInFileExcludingEntries(bigTiff, isMainIFD());
-        long previousSizeOf = -1;
         for (TiffEntry entry : detailedEntries.values()) {
-            if (previousSizeOf >= 0 && (previousSizeOf & 1) != 0 && (entry.valueOffset & 1) == 0) {
-                // if the data offset is correctly aligned, we suppose skipping a byte
-                // before it for aligning the previous entry
-                result++;
-            }
-            previousSizeOf = entry.sizeOf();
-            result += previousSizeOf;
+            result += entry.sizeOf(tiffFileLength);
             // - overflow is impossible: the number of entries is restricted by MAX_NUMBER_OF_IFD_ENTRIES,
             // the number of elements in each entry is 31-bit integer
-        }
-        if ((result & 1) != 0) {
-            result++;
         }
         return result;
     }
 
-    public long sizeOfData(boolean padToEvenBoundary) throws TiffException {
+    public long sizeOfData(long tiffFileLength) throws TiffException {
         final long[] offsets = cachedTileOrStripOffsets().clone();
         final long[] byteCounts = cachedTileOrStripByteCounts().clone();
         // - cloning is IMPORTANT here! we must not destroy existing cached arrays
@@ -427,10 +421,12 @@ public class TiffIFD {
                 sum = Math.addExact(sum, byteCounts[i]);
             }
         }
-        if (padToEvenBoundary && (sum & 1) != 0) {
+        if ((sum & 1) != 0 && offsets[n - 1] + byteCounts[n - 1] < tiffFileLength) {
+            // - note: if (sum & 1) != 0, then n > 0;
+            // also note: in a normal TIFF, here it is possible "== tiffFileLength", not ">")
             sum = Math.addExact(sum, 1);
             // - Every IFD should have an even offset, as if each actual image data were podded to 16-bit boundary.
-            // This can lead to an "extra" byte at the end of the file when it has uneven length.
+            // However, this is not required if the last tile/strip is placed at the end of the file.
         }
         return sum;
     }
@@ -2183,20 +2179,34 @@ public class TiffIFD {
 
     // Helper class for internal needs
     record TiffEntry(int tag, int type, int valueCount, long valueOffset, boolean bigTiff) {
-        public long valueLength() {
+        long valueLength() {
             return (long) valueCount * TagTypes.sizeOfType(type);
         }
 
-        public boolean builtInData() {
+        boolean builtInData() {
             return builtInData(valueLength(), bigTiff);
         }
 
-        public int bytesPerEntry() {
+        int bytesPerEntry() {
             return bytesPerEntry(this.bigTiff);
         }
 
-        public long sizeOf() {
-            return builtInData() ? bytesPerEntry() : bytesPerEntry() + valueLength();
+        long sizeOf(long tiffFileLength) {
+            if (tiffFileLength < 0) {
+                throw new IllegalArgumentException("Negative TIFF file length");
+            }
+            final int builtInLength = bytesPerEntry();
+            if (builtInData()) {
+                return builtInLength;
+            }
+            long valueLength = valueLength();
+            if ((valueLength & 1) != 0 && valueOffset + valueLength < tiffFileLength) {
+                // in a correct TIFF file, each IFD entry occupies even number of bytes;
+                // however, if this IFD is placed at the end of the file, this is not required
+                // (really, in a normal TIFF, here it is possible "== tiffFileLength", not ">")
+                valueLength++;
+            }
+            return builtInLength + valueLength;
         }
 
         static boolean builtInData(long valueLength, boolean bigTiff) {
