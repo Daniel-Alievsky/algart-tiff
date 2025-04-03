@@ -374,9 +374,9 @@ public class TiffIFD {
         return bigTiff ? 16 : 8;
     }
 
-    public long sizeOf() throws TiffException {
+    public long sizeOf(boolean padToEvenBoundary) throws TiffException {
         long sizeOfMetadata = sizeOfMetadata();
-        return sizeOfMetadata == -1 ? -1 : Math.addExact(sizeOfMetadata, sizeOfData());
+        return sizeOfMetadata == -1 ? -1 : Math.addExact(sizeOfMetadata, sizeOfData(padToEvenBoundary));
     }
 
     public long sizeOfMetadata() throws TiffException {
@@ -402,7 +402,7 @@ public class TiffIFD {
         return result;
     }
 
-    public long sizeOfData() throws TiffException {
+    public long sizeOfData(boolean padToEvenBoundary) throws TiffException {
         final long[] offsets = cachedTileOrStripOffsets().clone();
         final long[] byteCounts = cachedTileOrStripByteCounts().clone();
         // - cloning is IMPORTANT here! we must not destroy existing cached arrays
@@ -427,8 +427,10 @@ public class TiffIFD {
                 sum = Math.addExact(sum, byteCounts[i]);
             }
         }
-        if ((sum & 1) != 0) {
+        if (padToEvenBoundary && (sum & 1) != 0) {
             sum = Math.addExact(sum, 1);
+            // - Every IFD should have an even offset, as if each actual image data were podded to 16-bit boundary.
+            // This can lead to an "extra" byte at the end of the file when it has uneven length.
         }
         return sum;
     }

@@ -106,11 +106,16 @@ public class TiffInfo {
                         reader.isBigTiff() ? "BigTIFF" : "not BigTIFF",
                         reader.isLittleEndian() ? "little" : "big");
                 long size = reader.sizeOfHeader();
+                final long fileLength = reader.stream().length();
+                final boolean evenFileLength = fileLength % 2 == 0;
                 for (int k = firstIFDIndex; k <= lastIFDIndex; k++) {
                     final TiffIFD ifd = ifdList.get(k);
                     System.out.print(ifdInfo(ifd, k, ifdCount));
                     final long sizeOfMetadata = ifd.sizeOfMetadata();
-                    final long sizeOfData = ifd.sizeOfData();
+                    final boolean padToEvenBoundary = k < ifdCount - 1 || evenFileLength;
+                    // - the last image CAN be odd length, not padded by 1 byte to even boundary
+                    // (any other images are usually padded to provide the even offset for the next IFD)
+                    final long sizeOfData = ifd.sizeOfData(padToEvenBoundary);
                     if (sizeOfMetadata > 0) {
                         System.out.printf("%d bytes in file occupied (%d metadata + %d image data)%n",
                                 sizeOfMetadata + sizeOfData, sizeOfMetadata, sizeOfData);
@@ -126,9 +131,8 @@ public class TiffInfo {
                         throw new TiffException("Invalid IFD: doesn't contain StripOffsets/TileOffsets tag");
                     }
                 }
-                final long fileLength = reader.stream().length();
                 if (size == fileLength) {
-                    System.out.printf("Total file length %d bytes are fully used%n", fileLength);
+                    System.out.printf("Total file length %d bytes, it is fully used%n", fileLength);
                 } else if (size > fileLength) {
                     System.out.printf("%d bytes in file used, but total file length is only %d bytes: " +
                                     "probably TIFF is corrupted!%n",
