@@ -182,6 +182,8 @@ public class TiffIFD {
 
     public static final int FILETYPE_REDUCED_IMAGE = 1;
 
+    private static final System.Logger LOG = System.getLogger(TiffIFD.class.getName());
+
     private final Map<Integer, Object> map;
     private final Map<Integer, TiffEntry> detailedEntries;
     private boolean littleEndian = false;
@@ -419,6 +421,10 @@ public class TiffIFD {
                 // - identical tiles CAN be written at the same offset:
                 // TiffWriter writes empty tiles in such a manner
                 sum = Math.addExact(sum, byteCounts[i]);
+            }
+            if (offsets[i] + byteCounts[i] > tiffFileLength) {
+                LOG.log(System.Logger.Level.DEBUG, "IFD tile/strip is outside the file length " +
+                        tiffFileLength + ": offset " + offsets[i] + ", length " + byteCounts[i]);
             }
         }
         if ((sum & 1) != 0 && offsets[n - 1] + byteCounts[n - 1] < tiffFileLength) {
@@ -2206,6 +2212,10 @@ public class TiffIFD {
                 // however, if this IFD is placed at the end of the file, this is not required
                 // (really, in a normal TIFF, here it is possible "== tiffFileLength", not ">")
                 valueLength++;
+            }
+            if (valueOffset + valueLength > tiffFileLength) {
+                LOG.log(System.Logger.Level.DEBUG, "IFD entry is outside the file length " +
+                        tiffFileLength + ": " + this);
             }
             return builtInLength + valueLength;
         }
