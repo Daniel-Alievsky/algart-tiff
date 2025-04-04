@@ -182,8 +182,6 @@ public class TiffIFD {
 
     public static final int FILETYPE_REDUCED_IMAGE = 1;
 
-    private static final System.Logger LOG = System.getLogger(TiffIFD.class.getName());
-
     private final Map<Integer, Object> map;
     private final Map<Integer, TiffEntry> detailedEntries;
     private boolean littleEndian = false;
@@ -382,7 +380,7 @@ public class TiffIFD {
         return sizeOfMetadata == -1 ? -1 : Math.addExact(sizeOfMetadata, sizeOfData(tiffFileLength));
     }
 
-    public long sizeOfMetadata(long tiffFileLength) {
+    public long sizeOfMetadata(long tiffFileLength) throws TiffException {
         if (tiffFileLength < 0) {
             throw new IllegalArgumentException("Negative TIFF file length");
         }
@@ -423,7 +421,7 @@ public class TiffIFD {
                 sum = Math.addExact(sum, byteCounts[i]);
             }
             if (offsets[i] + byteCounts[i] > tiffFileLength) {
-                LOG.log(System.Logger.Level.DEBUG, "IFD tile/strip is outside the file length " +
+                throw new TiffException("IFD tile/strip is outside the file length " +
                         tiffFileLength + ": offset " + offsets[i] + ", length " + byteCounts[i]);
             }
         }
@@ -2198,7 +2196,7 @@ public class TiffIFD {
             return bytesPerEntry(this.bigTiff);
         }
 
-        long sizeOf(long tiffFileLength) {
+        long sizeOf(long tiffFileLength) throws TiffException {
             if (tiffFileLength < 0) {
                 throw new IllegalArgumentException("Negative TIFF file length");
             }
@@ -2207,15 +2205,14 @@ public class TiffIFD {
                 return builtInLength;
             }
             long valueLength = valueLength();
+            if (valueOffset + valueLength > tiffFileLength) {
+                throw new TiffException("IFD entry is outside the file length " + tiffFileLength + ": " + this);
+            }
             if ((valueLength & 1) != 0 && valueOffset + valueLength < tiffFileLength) {
                 // in a correct TIFF file, each IFD entry occupies even number of bytes;
                 // however, if this IFD is placed at the end of the file, this is not required
                 // (really, in a normal TIFF, here it is possible "== tiffFileLength", not ">")
                 valueLength++;
-            }
-            if (valueOffset + valueLength > tiffFileLength) {
-                LOG.log(System.Logger.Level.DEBUG, "IFD entry is outside the file length " +
-                        tiffFileLength + ": " + this);
             }
             return builtInLength + valueLength;
         }
