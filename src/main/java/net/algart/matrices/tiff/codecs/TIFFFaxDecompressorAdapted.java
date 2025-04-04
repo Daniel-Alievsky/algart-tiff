@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023-2024 Daniel Alievsky, AlgART Laboratory (http://algart.net)
+ * Copyright (c) 2023-2025 Daniel Alievsky, AlgART Laboratory (http://algart.net)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,13 +32,13 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.util.Objects;
 
-/**
- * This is an adapted copy of com.github.jaiimageio.impl.plugins.tiff.TIFFFaxDecompressor class
- * from <a href="https://github.com/jai-imageio/jai-imageio-core">jai-imageio-core 1.4.0</a>.
- * Below is the copyright notice, copied from the source code of this class.
- * (Not used in the current version.)
- */
 final class TIFFFaxDecompressorAdapted {
+    /*
+     * This is an adapted copy of com.github.jaiimageio.impl.plugins.tiff.TIFFFaxDecompressor class
+     * from <a href="https://github.com/jai-imageio/jai-imageio-core">jai-imageio-core 1.4.0</a>.
+     * Below is the copyright notice, copied from the source code of this class.
+     * (Not used in the current version.)
+     */
     // (It is placed here to avoid autocorrection by IntelliJ IDEA)
     /*
 		Copyright (c) 2005 Sun Microsystems, Inc.

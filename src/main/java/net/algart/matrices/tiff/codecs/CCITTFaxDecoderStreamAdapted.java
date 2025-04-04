@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023-2024 Daniel Alievsky, AlgART Laboratory (http://algart.net)
+ * Copyright (c) 2023-2025 Daniel Alievsky, AlgART Laboratory (http://algart.net)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,19 +30,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 
-/**
- * This is an adapted copy of com.twelvemonkeys.imageio.plugins.tiff.CCITTFaxDecoderStream class
- * from <a href="https://github.com/haraldk/TwelveMonkeys">TwelveMonkeys 3.11</a>.
- * Below (after the class declaration) is the copyright notice, copied from the source code of this class.
- * - Daniel Alievsky.
- *
- * <p>CCITT Modified Huffman RLE, Group 3 (T4) and Group 4 (T6) fax compression.
- *
- * @author <a href="mailto:harald.kuhr@gmail.com">Harald Kuhr</a>
- * @author <a href="https://github.com/Schmidor">Oliver Schmidtmer</a>
- * @author last modified by $Author: haraldk$
- */
 final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
+    /*
+     * This is an adapted copy of com.twelvemonkeys.imageio.plugins.tiff.CCITTFaxDecoderStream class
+     * from <a href="https://github.com/haraldk/TwelveMonkeys">TwelveMonkeys 3.11</a>.
+     * Below (after the class declaration) is the copyright notice, copied from the source code of this class.
+     * - Daniel Alievsky.
+     *
+     * <p>CCITT Modified Huffman RLE, Group 3 (T4) and Group 4 (T6) fax compression.
+     *
+     * @author <a href="mailto:harald.kuhr@gmail.com">Harald Kuhr</a>
+     * @author <a href="https://github.com/Schmidor">Oliver Schmidtmer</a>
+     * @author last modified by $Author: haraldk$
+     */
     // (It is placed here to avoid autocorrection by IntelliJ IDEA)
     /*
      * Copyright (c) 2012, Harald Kuhr
