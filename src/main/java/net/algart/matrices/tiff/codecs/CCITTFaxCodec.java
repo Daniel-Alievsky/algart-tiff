@@ -86,21 +86,4 @@ public class CCITTFaxCodec implements TiffCodec {
             throw new TiffException(e);
         }
     }
-
-    public byte[] decompressViaJAIImageIO(byte[] data, Options options) throws TiffException {
-        Objects.requireNonNull(data, "Null data");
-        Objects.requireNonNull(options, "Null codec options");
-
-        final int bitsPerPixel = options.numberOfChannels * options.bitsPerSample;
-        final int bytesPerRow = (bitsPerPixel * options.width + 7) / 8;
-        final int resultSize = bytesPerRow * options.height;
-        byte[] result = new byte[resultSize];
-        final TIFFFaxDecompressorAdapted decompressor = new TIFFFaxDecompressorAdapted(options);
-        try {
-            decompressor.unpackBytes(result, data, bitsPerPixel, bytesPerRow);
-        } catch (IOException e) {
-            throw new TiffException(e);
-        }
-        return result;
-    }
 }
