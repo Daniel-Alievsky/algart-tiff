@@ -1622,7 +1622,7 @@ public class TiffWriter implements Closeable {
     }
 
     public int sizeOfHeader() {
-        return TiffIFD.sizeOfHeader(bigTiff);
+        return TiffIFD.sizeOfFileHeader(bigTiff);
     }
 
     @Override

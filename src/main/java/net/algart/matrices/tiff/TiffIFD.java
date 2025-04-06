@@ -42,10 +42,22 @@ public class TiffIFD {
      * Note that in regular files (non-BigTIFF) the limit is 65536 (2^16).
      */
     public static final int MAX_NUMBER_OF_IFD_ENTRIES = 10_000_000;
+
+    /**
+     * The number of bytes in TIFF file header.
+     */
+    public static final int TIFF_FILE_HEADER_LENGTH = 8;
+
+    /**
+     * The number of bytes in BigTIFF file header.
+     */
+    public static final int BIG_TIFF_FILE_HEADER_LENGTH = 16;
+
     /**
      * The number of bytes in each IFD entry.
      */
     public static final int BYTES_PER_ENTRY = 12;
+
     /**
      * The number of bytes in each IFD entry of a BigTIFF file.
      */
@@ -57,6 +69,7 @@ public class TiffIFD {
      *
      * <p>This limit helps to avoid "crazy" or corrupted TIFF and also help to avoid arithmetic overflow.
      */
+
     public static final int MAX_NUMBER_OF_CHANNELS = 128;
     /**
      * Maximal supported number of bits per sample.
@@ -371,8 +384,8 @@ public class TiffIFD {
         return this;
     }
 
-    public static int sizeOfHeader(boolean bigTiff) {
-        return bigTiff ? 16 : 8;
+    public static int sizeOfFileHeader(boolean bigTiff) {
+        return bigTiff ? BIG_TIFF_FILE_HEADER_LENGTH : TIFF_FILE_HEADER_LENGTH;
     }
 
     public long sizeOfImage(long tiffFileLength) throws IOException {
@@ -397,6 +410,9 @@ public class TiffIFD {
     }
 
     public long sizeOfData(long tiffFileLength) throws TiffException {
+        if (tiffFileLength < 0) {
+            throw new IllegalArgumentException("Negative TIFF file length");
+        }
         final long[] offsets = cachedTileOrStripOffsets().clone();
         final long[] byteCounts = cachedTileOrStripByteCounts().clone();
         // - cloning is IMPORTANT here! we must not destroy existing cached arrays
@@ -425,13 +441,13 @@ public class TiffIFD {
                         tiffFileLength + ": offset " + offsets[i] + ", length " + byteCounts[i]);
             }
         }
-        if ((sum & 1) != 0 && offsets[n - 1] + byteCounts[n - 1] < tiffFileLength) {
-            // - note: if (sum & 1) != 0, then n > 0;
-            // also note: in a normal TIFF, here it is possible "== tiffFileLength", not ">")
-//            System.out.printf("!!!Correcting image length %d%n", sum);
-            sum = Math.addExact(sum, 1);
-            // - Every IFD should have an even offset, as if each actual image data were podded to 16-bit boundary.
-            // However, this is not required if the last tile/strip is placed at the end of the file.
+        if (n > 0) {
+            final long lastEnd = offsets[n - 1] + byteCounts[n - 1];
+            if ((lastEnd & 1) != 0 && lastEnd < tiffFileLength) {
+                // - Every IFD should have an even offset, and the lastEnd is a probable offset for a new IFD
+//                System.out.printf("!!!Correcting image length %d%n", sum);
+                sum = Math.addExact(sum, 1);
+            }
         }
         return sum;
     }
