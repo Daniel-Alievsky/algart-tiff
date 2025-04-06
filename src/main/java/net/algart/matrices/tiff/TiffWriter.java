@@ -1548,8 +1548,9 @@ public class TiffWriter implements Closeable {
 
         final int count = completeWritingMap(map);
         map.cropAllUnset();
-        appendFileUntilEvenLength();
-        // - not strictly necessary, but good idea (let the length be always even)
+        // - We could call here appendFileUntilEvenLength(),
+        // but it not a standard behavior and not a good idea
+        // (in this case we will need to "teach" TiffIFD.sizeOfImage method to consider this)
 
         if (ifd.hasFileOffsetForWriting()) {
             // - usually it means that we did call writeForward
@@ -1734,8 +1735,8 @@ public class TiffWriter implements Closeable {
         try (final DataHandle<Location> extraBuffer = TiffReader.getBytesHandle(bytesLocation)) {
             extraBuffer.setLittleEndian(isLittleEndian());
             for (final Map.Entry<Integer, Object> e : ifd.entrySet()) {
-                writeIFDValueAtCurrentPosition(extraBuffer, afterMain, e.getKey(), e.getValue());
                 appendUntilEvenPosition(extraBuffer);
+                writeIFDValueAtCurrentPosition(extraBuffer, afterMain, e.getKey(), e.getValue());
             }
 
             positionOfNextOffset = out.offset();
@@ -2139,6 +2140,7 @@ public class TiffWriter implements Closeable {
 
     private static void appendUntilEvenPosition(DataHandle<Location> handle) throws IOException {
         if ((handle.offset() & 0x1) != 0) {
+//            System.out.println("Correction " + handle.offset());
             handle.writeByte(0);
             // - Well-formed IFD requires even offsets
         }

@@ -402,18 +402,15 @@ public class TiffIFD {
             return -1;
         }
         long result = lengthInFileExcludingEntries(bigTiff, isMainIFD());
-        AtomicBoolean wasAlignd = new AtomicBoolean(false);
-        AtomicBoolean wasAligndToFileEnd = new AtomicBoolean(false);
+        AtomicBoolean wasAligned = new AtomicBoolean(false);
         for (TiffEntry entry : detailedEntries.values()) {
-            result += entry.sizeOf(tiffFileLength, wasAlignd, wasAligndToFileEnd);
+            result += entry.sizeOf(wasAligned);
             // - overflow is impossible: the number of entries is restricted by MAX_NUMBER_OF_IFD_ENTRIES,
             // the number of elements in each entry is 31-bit integer
         }
-        if (wasAlignd.get() && !wasAligndToFileEnd.get()) {
+        if (wasAligned.get()) {
             // - The last non-built-in entry may end with an odd byte, either if it is the end of the file
             // or if there is image data after it: if it was aligned, this was an unnecessary operation.
-            // However, this is still necessary if the entry ends 1 byte before the end of the file:
-            // it means that we aligned the file itself (TiffWriter performs such an operation).
             // (Note that this entry may be not the last entry: we speak about NON-BUILT-IN entries only.)
             result--;
         }
@@ -2231,7 +2228,7 @@ public class TiffIFD {
             return bytesPerEntry(this.bigTiff);
         }
 
-        long sizeOf(long tiffFileLength, AtomicBoolean wasAligned, AtomicBoolean wasAlignedToFileEnd) {
+        long sizeOf(AtomicBoolean wasAligned) {
             final int builtInLength = bytesPerEntry();
             if (builtInData()) {
                 return builtInLength;
@@ -2241,9 +2238,6 @@ public class TiffIFD {
                 // in a correct TIFF file, each IFD entry occupies even number of bytes;
                 valueLength++;
                 wasAligned.set(true);
-                if (valueLength == tiffFileLength) {
-                    wasAlignedToFileEnd.set(true);
-                }
             }
             return builtInLength + valueLength;
         }
