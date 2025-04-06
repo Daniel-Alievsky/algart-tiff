@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TiffInfo {
     boolean strict = false;
@@ -111,10 +112,14 @@ public class TiffInfo {
                     final TiffIFD ifd = ifdList.get(k);
                     System.out.print(ifdInfo(ifd, k, ifdCount));
                     final long sizeOfMetadata = ifd.sizeOfMetadata(tiffFileLength);
-                    final long sizeOfData = ifd.sizeOfData(tiffFileLength);
+                    AtomicBoolean wasAligned = new AtomicBoolean(false);
+                    final long sizeOfData = ifd.sizeOfDataWithAlignment(tiffFileLength, wasAligned);
                     if (sizeOfMetadata > 0) {
-                        System.out.printf("%d bytes in file occupied (%d metadata + %d image data)%n",
-                                sizeOfMetadata + sizeOfData, sizeOfMetadata, sizeOfData);
+                        System.out.printf("%d bytes in file occupied (%d metadata + %d image data%s)%n",
+                                sizeOfMetadata + sizeOfData,
+                                sizeOfMetadata,
+                                sizeOfData,
+                                wasAligned.get() ? ", " + (sizeOfData - 1) + " unaligned" : "");
                         size += sizeOfMetadata + sizeOfData;
                     }
                     if (k < lastIFDIndex) {

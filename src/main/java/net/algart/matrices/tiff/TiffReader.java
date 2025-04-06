@@ -932,7 +932,7 @@ public class TiffReader implements Closeable {
                 throw new TiffException("TIFF IFD offset " + startOffset + " is outside the file");
             }
             final Map<Integer, Object> map = new LinkedHashMap<>();
-            final Map<Integer, TiffIFD.TiffEntry> detailedEntries = new LinkedHashMap<>();
+            final LinkedHashMap<Integer, TiffIFD.TiffEntry> detailedEntries = new LinkedHashMap<>();
 
             // read in directory entries for this IFD
             in.seek(startOffset);

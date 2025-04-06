@@ -34,6 +34,7 @@ import java.lang.reflect.Array;
 import java.nio.ByteOrder;
 import java.util.*;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TiffIFD {
     /**
@@ -196,7 +197,7 @@ public class TiffIFD {
     public static final int FILETYPE_REDUCED_IMAGE = 1;
 
     private final Map<Integer, Object> map;
-    private final Map<Integer, TiffEntry> detailedEntries;
+    private final LinkedHashMap<Integer, TiffEntry> detailedEntries;
     private boolean littleEndian = false;
     private boolean bigTiff = false;
     private long fileOffsetForReading = -1;
@@ -234,7 +235,7 @@ public class TiffIFD {
     }
 
     // Note: detailedEntries is not cloned by this constructor.
-    TiffIFD(Map<Integer, Object> ifdEntries, Map<Integer, TiffEntry> detailedEntries) {
+    TiffIFD(Map<Integer, Object> ifdEntries, LinkedHashMap<Integer, TiffEntry> detailedEntries) {
         Objects.requireNonNull(ifdEntries);
         this.map = new LinkedHashMap<>(ifdEntries);
         this.detailedEntries = detailedEntries;
@@ -390,7 +391,7 @@ public class TiffIFD {
 
     public long sizeOfImage(long tiffFileLength) throws IOException {
         long sizeOfMetadata = sizeOfMetadata(tiffFileLength);
-        return sizeOfMetadata == -1 ? -1 : Math.addExact(sizeOfMetadata, sizeOfData(tiffFileLength));
+        return sizeOfMetadata == -1 ? -1 : Math.addExact(sizeOfMetadata, sizeOfDataWithAlignment(tiffFileLength));
     }
 
     public long sizeOfMetadata(long tiffFileLength) throws TiffException {
@@ -401,15 +402,26 @@ public class TiffIFD {
             return -1;
         }
         long result = lengthInFileExcludingEntries(bigTiff, isMainIFD());
+        AtomicBoolean wasAlignd = new AtomicBoolean(false);
         for (TiffEntry entry : detailedEntries.values()) {
-            result += entry.sizeOf(tiffFileLength);
+            result += entry.sizeOf(wasAlignd);
             // - overflow is impossible: the number of entries is restricted by MAX_NUMBER_OF_IFD_ENTRIES,
             // the number of elements in each entry is 31-bit integer
+        }
+        if (wasAlignd.get()) {
+            // - The last non-built-in entry may end with an odd byte, either if it is the end of the file
+            // or if there is image data after it: if it was aligned, this was an unnecessary operation.
+            // (Note that this entry may be not the last entry: we speak about NON-BUILT-IN entries only.)
+            result--;
         }
         return result;
     }
 
-    public long sizeOfData(long tiffFileLength) throws TiffException {
+    public long sizeOfDataWithAlignment(long tiffFileLength) throws TiffException {
+        return sizeOfDataWithAlignment(tiffFileLength, null);
+    }
+
+    public long sizeOfDataWithAlignment(long tiffFileLength, AtomicBoolean wasAligned) throws TiffException {
         if (tiffFileLength < 0) {
             throw new IllegalArgumentException("Negative TIFF file length");
         }
@@ -446,6 +458,9 @@ public class TiffIFD {
             if ((lastEnd & 1) != 0 && lastEnd < tiffFileLength) {
                 // - Every IFD should have an even offset, and the lastEnd is a probable offset for a new IFD
 //                System.out.printf("!!!Correcting image length %d%n", sum);
+                if (wasAligned != null) {
+                    wasAligned.set(true);
+                }
                 sum = Math.addExact(sum, 1);
             }
         }
@@ -2213,23 +2228,16 @@ public class TiffIFD {
             return bytesPerEntry(this.bigTiff);
         }
 
-        long sizeOf(long tiffFileLength) throws TiffException {
-            if (tiffFileLength < 0) {
-                throw new IllegalArgumentException("Negative TIFF file length");
-            }
+        long sizeOf(AtomicBoolean wasAligned) {
             final int builtInLength = bytesPerEntry();
             if (builtInData()) {
                 return builtInLength;
             }
             long valueLength = valueLength();
-            if (valueOffset + valueLength > tiffFileLength) {
-                throw new TiffException("IFD entry is outside the file length " + tiffFileLength + ": " + this);
-            }
-            if ((valueLength & 1) != 0 && valueOffset + valueLength < tiffFileLength) {
+            if ((valueLength & 1) != 0) {
                 // in a correct TIFF file, each IFD entry occupies even number of bytes;
-                // however, if this IFD is placed at the end of the file, this is not required
-                // (really, in a normal TIFF, here it is possible "== tiffFileLength", not ">")
                 valueLength++;
+                wasAligned.set(true);
             }
             return builtInLength + valueLength;
         }
