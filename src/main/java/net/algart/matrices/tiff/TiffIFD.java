@@ -391,7 +391,7 @@ public class TiffIFD {
 
     public long sizeOfImage(long tiffFileLength) throws IOException {
         long sizeOfMetadata = sizeOfMetadata(tiffFileLength);
-        return sizeOfMetadata == -1 ? -1 : Math.addExact(sizeOfMetadata, sizeOfDataWithAlignment(tiffFileLength));
+        return sizeOfMetadata == -1 ? -1 : Math.addExact(sizeOfMetadata, sizeOfData(tiffFileLength));
     }
 
     public long sizeOfMetadata(long tiffFileLength) throws TiffException {
@@ -403,25 +403,28 @@ public class TiffIFD {
         }
         long result = lengthInFileExcludingEntries(bigTiff, isMainIFD());
         AtomicBoolean wasAlignd = new AtomicBoolean(false);
+        AtomicBoolean wasAligndToFileEnd = new AtomicBoolean(false);
         for (TiffEntry entry : detailedEntries.values()) {
-            result += entry.sizeOf(wasAlignd);
+            result += entry.sizeOf(tiffFileLength, wasAlignd, wasAligndToFileEnd);
             // - overflow is impossible: the number of entries is restricted by MAX_NUMBER_OF_IFD_ENTRIES,
             // the number of elements in each entry is 31-bit integer
         }
-        if (wasAlignd.get()) {
+        if (wasAlignd.get() && !wasAligndToFileEnd.get()) {
             // - The last non-built-in entry may end with an odd byte, either if it is the end of the file
             // or if there is image data after it: if it was aligned, this was an unnecessary operation.
+            // However, this is still necessary if the entry ends 1 byte before the end of the file:
+            // it means that we aligned the file itself (TiffWriter performs such an operation).
             // (Note that this entry may be not the last entry: we speak about NON-BUILT-IN entries only.)
             result--;
         }
         return result;
     }
 
-    public long sizeOfDataWithAlignment(long tiffFileLength) throws TiffException {
-        return sizeOfDataWithAlignment(tiffFileLength, null);
+    public long sizeOfData(long tiffFileLength) throws TiffException {
+        return sizeOfData(tiffFileLength, null);
     }
 
-    public long sizeOfDataWithAlignment(long tiffFileLength, AtomicBoolean wasAligned) throws TiffException {
+    public long sizeOfData(long tiffFileLength, AtomicBoolean wasAligned) throws TiffException {
         if (tiffFileLength < 0) {
             throw new IllegalArgumentException("Negative TIFF file length");
         }
@@ -2228,7 +2231,7 @@ public class TiffIFD {
             return bytesPerEntry(this.bigTiff);
         }
 
-        long sizeOf(AtomicBoolean wasAligned) {
+        long sizeOf(long tiffFileLength, AtomicBoolean wasAligned, AtomicBoolean wasAlignedToFileEnd) {
             final int builtInLength = bytesPerEntry();
             if (builtInData()) {
                 return builtInLength;
@@ -2238,6 +2241,9 @@ public class TiffIFD {
                 // in a correct TIFF file, each IFD entry occupies even number of bytes;
                 valueLength++;
                 wasAligned.set(true);
+                if (valueLength == tiffFileLength) {
+                    wasAlignedToFileEnd.set(true);
+                }
             }
             return builtInLength + valueLength;
         }

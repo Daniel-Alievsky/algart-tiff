@@ -113,7 +113,7 @@ public class TiffInfo {
                     System.out.print(ifdInfo(ifd, k, ifdCount));
                     final long sizeOfMetadata = ifd.sizeOfMetadata(tiffFileLength);
                     AtomicBoolean wasAligned = new AtomicBoolean(false);
-                    final long sizeOfData = ifd.sizeOfDataWithAlignment(tiffFileLength, wasAligned);
+                    final long sizeOfData = ifd.sizeOfData(tiffFileLength, wasAligned);
                     if (sizeOfMetadata > 0) {
                         System.out.printf("%d bytes in file occupied (%d metadata + %d image data%s)%n",
                                 sizeOfMetadata + sizeOfData,
