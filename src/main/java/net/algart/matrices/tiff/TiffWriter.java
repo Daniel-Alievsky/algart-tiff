@@ -86,7 +86,7 @@ public class TiffWriter implements Closeable {
     private boolean smartIFDCorrection = false;
     private TiffCodec.Options codecOptions = new TiffCodec.Options();
     private boolean enforceUseExternalCodec = false;
-    private Double lossyQualityLevel = null;
+    private Double lossyCompressionQuality = null;
     private Double losslessCompressionLevel = null;
     private boolean preferRGB = false;
     private boolean alwaysWriteToFileEnd = false;
@@ -404,16 +404,16 @@ public class TiffWriter implements Closeable {
         return this;
     }
 
-    public boolean hasLossyQualityLevel() {
-        return lossyQualityLevel != null;
+    public boolean hasLossyCompressionQuality() {
+        return lossyCompressionQuality != null;
     }
 
-    public Double getLossyQualityLevel() {
-        return lossyQualityLevel;
+    public Double getLossyCompressionQuality() {
+        return lossyCompressionQuality;
     }
 
-    public TiffWriter setLossyQualityLevel(Double lossyQualityLevel) {
-        return lossyQualityLevel == null ? removeQuality() : setLossyQualityLevel(lossyQualityLevel.doubleValue());
+    public TiffWriter setLossyCompressionQuality(Double lossyCompressionQuality) {
+        return lossyCompressionQuality == null ? removeLossyCompressionQuality() : setLossyCompressionQuality(lossyCompressionQuality.doubleValue());
     }
 
     /**
@@ -423,14 +423,14 @@ public class TiffWriter implements Closeable {
      * For JPEG, they should be between 0.0 and 1.0 (1.0 means the best quality).
      * For JPEG-2000, the maximal possible value is <code>Double.MAX_VALUE</code>, that means loss-less compression.
      *
-     * <p>If this method was not called or after {@link #removeQuality()}, the compression quality is not specified.
+     * <p>If this method was not called or after {@link #removeLossyCompressionQuality()}, the compression quality is not specified.
      * In this case, some default quality will be used. In particular, it will be 1.0 for JPEG (maximal JPEG quality),
      * 10 for JPEG-2000 (compression code 33003) or alternative JPEG-200 (code 33005),
      * <code>Double.MAX_VALUE</code> for lose-less JPEG-2000 ({@link TagCompression#JPEG_2000}, code 33004).
      * Note that the only difference between lose-less JPEG-2000 and the standard JPEG-2000 is these default values:
      * if this method is called, both compressions work identically (but write different TIFF compression tags).
      *
-     * <p>Note: the {@link TiffCodec.Options#setLossyQualityLevel(Double) quality}, that can be set via
+     * <p>Note: the {@link TiffCodec.Options#setLossyCompressionQuality(Double) quality}, that can be set via
      * {@link #setCodecOptions(TiffCodec.Options)} method, is ignored,
      * if this value is set to non-{@code null} value.
      *
@@ -443,16 +443,16 @@ public class TiffWriter implements Closeable {
      * @return a reference to this object.
      * @throws IllegalArgumentException if the argument is negative.
      */
-    public TiffWriter setLossyQualityLevel(double quality) {
+    public TiffWriter setLossyCompressionQuality(double quality) {
         if (quality < 0.0) {
             throw new IllegalArgumentException("Negative quality " + quality + " is not allowed");
         }
-        this.lossyQualityLevel = quality;
+        this.lossyCompressionQuality = quality;
         return this;
     }
 
-    public TiffWriter removeQuality() {
-        this.lossyQualityLevel = null;
+    public TiffWriter removeLossyCompressionQuality() {
+        this.lossyCompressionQuality = null;
         return this;
     }
 
@@ -2155,8 +2155,8 @@ public class TiffWriter implements Closeable {
         options.setCompressionCode(tile.compressionCode());
         options.setByteOrder(tile.byteOrder());
         options.setInterleaved(true);
-        if (this.lossyQualityLevel != null) {
-            options.setLossyQualityLevel(this.lossyQualityLevel);
+        if (this.lossyCompressionQuality != null) {
+            options.setLossyCompressionQuality(this.lossyCompressionQuality);
         }
         if (this.losslessCompressionLevel != null) {
             options.setLosslessCompressionLevel(this.losslessCompressionLevel);

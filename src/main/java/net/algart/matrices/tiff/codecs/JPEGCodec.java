@@ -53,7 +53,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         private int[] yCbCrSubsampling = {2, 2};
 
         public JPEGOptions() {
-            setLossyQualityLevel(1.0);
+            setLossyCompressionQuality(1.0);
         }
 
         public TagPhotometricInterpretation getPhotometricInterpretation() {
@@ -84,13 +84,13 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
                 this.photometricInterpretation = o.photometricInterpretation;
                 this.yCbCrSubsampling = o.yCbCrSubsampling.clone();
             } else {
-                Double quality = getLossyQualityLevel();
+                Double quality = getLossyCompressionQuality();
                 if (quality == null) {
-                    setLossyQualityLevel(1.0);
+                    setLossyCompressionQuality(1.0);
                 } else if (quality > 1.0) {
                     // - for JPEG, maximal possible quality is 1.0
                     // (for comparison, maximal quality in JPEG-2000 is Double.MAX_VALUE)
-                    setLossyQualityLevel(1.0);
+                    setLossyCompressionQuality(1.0);
                 }
             }
             return this;
@@ -147,7 +147,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         final TagPhotometricInterpretation colorSpace = options instanceof JPEGOptions extended ?
                 extended.getPhotometricInterpretation() :
                 TagPhotometricInterpretation.Y_CB_CR;
-        final double jpegQuality = Math.min(options.lossyQualityLevel(), 1.0);
+        final double jpegQuality = Math.min(options.lossyCompressionQuality(), 1.0);
         // - for JPEG, maximal possible quality is 1.0, but it is better to allow greater qualities
         // (for comparison, maximal quality in JPEG-2000 is Double.MAX_VALUE)
         try {

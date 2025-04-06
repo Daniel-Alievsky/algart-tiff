@@ -38,7 +38,7 @@ public class TiffCodecOptionsTest {
         System.out.println(options);
         System.out.println("Clone:");
         System.out.println(options.clone());
-        options.setLossyQualityLevel(null);
+        options.setLossyCompressionQuality(null);
         options.setLosslessCompressionLevel(null);
         System.out.println("No quality/compression level:");
         System.out.println(options);

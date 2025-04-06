@@ -428,6 +428,7 @@ public class TiffIFD {
         if ((sum & 1) != 0 && offsets[n - 1] + byteCounts[n - 1] < tiffFileLength) {
             // - note: if (sum & 1) != 0, then n > 0;
             // also note: in a normal TIFF, here it is possible "== tiffFileLength", not ">")
+//            System.out.printf("!!!Correcting image length %d%n", sum);
             sum = Math.addExact(sum, 1);
             // - Every IFD should have an even offset, as if each actual image data were podded to 16-bit boundary.
             // However, this is not required if the last tile/strip is placed at the end of the file.
