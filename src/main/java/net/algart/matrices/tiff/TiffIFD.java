@@ -402,13 +402,13 @@ public class TiffIFD {
             return -1;
         }
         long result = lengthInFileExcludingEntries(bigTiff, isMainIFD());
-        AtomicBoolean wasAligned = new AtomicBoolean(false);
+        AtomicBoolean lastNonBuiltInWasAligned = new AtomicBoolean(false);
         for (TiffEntry entry : detailedEntries.values()) {
-            result += entry.sizeOf(wasAligned);
+            result += entry.sizeOf(lastNonBuiltInWasAligned);
             // - overflow is impossible: the number of entries is restricted by MAX_NUMBER_OF_IFD_ENTRIES,
             // the number of elements in each entry is 31-bit integer
         }
-        if (wasAligned.get()) {
+        if (lastNonBuiltInWasAligned.get()) {
             // - The last non-built-in entry may end with an odd byte, either if it is the end of the file
             // or if there is image data after it: if it was aligned, this was an unnecessary operation.
             // (Note that this entry may be not the last entry: we speak about NON-BUILT-IN entries only.)
@@ -2228,16 +2228,17 @@ public class TiffIFD {
             return bytesPerEntry(this.bigTiff);
         }
 
-        long sizeOf(AtomicBoolean wasAligned) {
+        long sizeOf(AtomicBoolean nonBuiltInWasAligned) {
             final int builtInLength = bytesPerEntry();
             if (builtInData()) {
                 return builtInLength;
             }
             long valueLength = valueLength();
-            if ((valueLength & 1) != 0) {
+            boolean needToAlign = (valueLength & 1) != 0;
+            nonBuiltInWasAligned.set(needToAlign);
+            if (needToAlign) {
                 // in a correct TIFF file, each IFD entry occupies even number of bytes;
                 valueLength++;
-                wasAligned.set(true);
             }
             return builtInLength + valueLength;
         }
