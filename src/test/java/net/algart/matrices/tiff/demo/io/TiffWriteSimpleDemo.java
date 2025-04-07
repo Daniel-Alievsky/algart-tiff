@@ -27,6 +27,7 @@ package net.algart.matrices.tiff.demo.io;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
 import net.algart.io.MatrixIO;
+import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
@@ -36,7 +37,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
-import static net.algart.matrices.tiff.TiffWriter.CreateMode.*;
 
 public class TiffWriteSimpleDemo {
     public static void main(String[] args) throws IOException {
@@ -59,7 +59,7 @@ public class TiffWriteSimpleDemo {
         final List<? extends Matrix<? extends PArray>> image = MatrixIO.readImage(sourceFile);
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
-        try (TiffWriter writer = new TiffWriter(targetFile, bigTiff ? CREATE_BIG : CREATE)) {
+        try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.createNew(bigTiff, false))) {
             final TiffIFD ifd = writer.newIFD()
                 .putChannelsInformation(image)
                 .putCompression(TagCompression.DEFLATE);

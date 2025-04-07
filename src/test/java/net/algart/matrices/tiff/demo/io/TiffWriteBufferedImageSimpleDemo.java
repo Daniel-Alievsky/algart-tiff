@@ -25,6 +25,7 @@
 package net.algart.matrices.tiff.demo.io;
 
 import net.algart.io.UnsupportedImageFormatException;
+import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
@@ -54,7 +55,7 @@ public class TiffWriteBufferedImageSimpleDemo {
         }
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
-        try (TiffWriter writer = new TiffWriter(targetFile, true)) {
+        try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.CREATE)) {
             final TiffIFD ifd = writer.newIFD()
                 .putImageInformation(image)
                 .putCompression(TagCompression.DEFLATE);

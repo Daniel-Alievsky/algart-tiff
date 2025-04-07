@@ -28,6 +28,7 @@ import net.algart.arrays.ColorMatrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
 import net.algart.io.MatrixIO;
+import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
@@ -63,9 +64,8 @@ public class TiffAppendDemo {
         }
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
-        try (TiffWriter writer = new TiffWriter(targetFile)) {
-            writer.openForAppend();
-            // writer.create(); // - for comparison, this method always creates a new file
+        try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.APPEND)) {
+            // - for comparison, TiffCreateMode.CREATE always creates a new file
             final TiffIFD ifd = writer.newIFD()
                     .putChannelsInformation(image)
                     .putCompression(TagCompression.DEFLATE);

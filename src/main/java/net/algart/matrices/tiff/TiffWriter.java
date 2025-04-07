@@ -64,49 +64,6 @@ import java.util.stream.Collectors;
  * The same is true for the result of {@link #stream()} method.</p>
  */
 public class TiffWriter implements Closeable {
-    public enum CreateMode {
-        NO_ACTIONS(false, false, false) {
-            @Override
-            public void open(TiffWriter writer) {
-            }
-        },
-        CREATE(true, false, false),
-        CREATE_BIG(true, true, false),
-        CREATE_LE(true, false, true),
-        CREATE_LE_BIG(true, true, true),
-        APPEND(false, false, false) {
-            @Override
-            public void open(TiffWriter writer) throws IOException {
-                writer.openForAppend();
-            }
-        },
-        OPEN_EXISTING(false, false, false);
-
-        private final boolean createNew;
-        private final boolean needBigTiff;
-        private final boolean needLittleEndian;
-
-        CreateMode(boolean createNew, boolean needBigTiff, boolean needLittleEndian) {
-            this.createNew = createNew;
-            this.needBigTiff = needBigTiff;
-            this.needLittleEndian = needLittleEndian;
-        }
-
-        public void open(TiffWriter writer) throws IOException {
-            if (needBigTiff) {
-                writer.setBigTiff(true);
-            }
-            if (needLittleEndian) {
-                writer.setLittleEndian(true);
-            }
-            if (createNew) {
-                writer.create();
-            } else {
-                writer.openExisting();
-            }
-        }
-    }
-
     /**
      * If the file grows to about this limit and {@link #setBigTiff(boolean) big-TIFF} mode is not set,
      * attempt to write new IFD at the file end by methods of this class throw IO exception.
@@ -157,76 +114,66 @@ public class TiffWriter implements Closeable {
     private long timeEncodingAdditional = 0;
 
     /**
-     * Equivalent to <code>new {@link #TiffWriter(Path, CreateMode)
-     * TiffWriter}(file, {@link CreateMode#NO_ACTIONS NO_ACTIONS)}</code>.
+     * Equivalent to <code>new {@link #TiffWriter(Path, TiffCreateMode)
+     * TiffWriter}(file, {@link TiffCreateMode#NO_ACTIONS NO_ACTIONS)}</code>.
      *
      * <p>Note: unlike classes like {@link java.io.FileWriter},
      * this constructor <b>does not try to open or create file</b>.
-     * If you need, you can use another constructor with the argument {@link CreateMode}, for example:</p>
+     * If you need, you can use another constructor with the argument {@link TiffCreateMode}, for example:</p>
      * <pre>
-     *     var writer = new {@link #TiffWriter(Path, CreateMode)
-     *     TiffWriter}(path, {@link CreateMode#CREATE CreateMode.CREATE});
+     *     var writer = new {@link #TiffWriter(Path, TiffCreateMode)
+     *     TiffWriter}(path, {@link TiffCreateMode#CREATE CreateMode.CREATE});
      * </pre>
      *
      * @param file output TIFF tile.
-     * @throws IOException in the case of any I/O errors.
      */
-    public TiffWriter(Path file) throws IOException {
-        this(file, CreateMode.NO_ACTIONS);
-    }
-
-    /**
-     * Equivalent to <code>new {@link #TiffWriter(Path, boolean, boolean)
-     * TiffWriter(file, createNewFileAndOpen, false)}</code>.
-     *
-     * @param file output TIFF tile.
-     * @param createNewFileAndOpen whether you need to call {@link #create()} method inside the constructor.
-     * @throws IOException in the case of any I/O errors.
-     */
-    public TiffWriter(Path file, boolean createNewFileAndOpen) throws IOException {
-        this(file, createNewFileAndOpen ? CreateMode.CREATE : CreateMode.NO_ACTIONS);
+    public TiffWriter(Path file) {
+        this(TiffReader.getFileHandle(file));
     }
 
     /**
      * Creates a new TIFF writer.
      *
-     * <p>If the argument <code>createNewFileAndOpen</code> is {@code false},
-     * this constructor <b>does not try to open or create file</b> and, so, never
+     * <p>If the argument <code>createMode</code> is {@link TiffCreateMode#NO_ACTIONS},
+     * this constructor does not try to open or create a file and, so, never
      * throw {@link IOException}.
      * This behavior <b>differ</b> from the constructor of {@link java.io.FileWriter#FileWriter(File) FileWriter}
      * and similar classes, which create and open a file.
-     *
-     * <p>You may create the file&nbsp;&mdash; or open an existing TIFF file&nbsp;&mdash; later via
+     * In this case, you may create the file&nbsp;&mdash; or open an existing TIFF file&nbsp;&mdash; later via
      * one of methods {@link #create()} or {@link #open(boolean)}.
-     * Before this, you can customize this object, for example, with help of
+     * Before doing so, you can customize this object, for example, with help of
      * {@link #setBigTiff(boolean)}, {@link #setLittleEndian(boolean)} and other methods.
      *
-     * <p>If the argument <code>createNewFileAndOpen</code> is {@code true},
-     * this constructor automatically removes the file with the specified path, if it exists,
+     * <p>If the argument <code>createMode</code> is one of the values
+     * {@link TiffCreateMode#CREATE},
+     * {@link TiffCreateMode#CREATE_BIG},
+     * {@link TiffCreateMode#CREATE_LE},
+     * {@link TiffCreateMode#CREATE_LE_BIG},
+     * this constructor automatically removes the file at the specified path, if it exists,
      * and calls {@link #create()} method.
-     * If <code>bigTiff</code> argument is <code>true</code>, the created file will be written
-     * in BigTIFF format (allowing to store &ge;4GB data), if <code>false</code>, it will be a regular TIFF.
-     * In the case of I/O exception in {@link #create()} method,
-     * this file is automatically closed. This behavior is alike
-     * {@link java.io.FileWriter#FileWriter(File) FileWriter constructor}.
+     * The variants {@link TiffCreateMode#CREATE_BIG}, {@link TiffCreateMode#CREATE_LE_BIG}
+     * create a file written in BigTIFF format (allowing to store &ge;4GB data).
+     * The variants {@link TiffCreateMode#CREATE_LE}, {@link TiffCreateMode#CREATE_LE_BIG}
+     * create a file with little-endian byte order (the default is big-endian).
+     * The other variants {@link TiffCreateMode#APPEND} and {@link TiffCreateMode#OPEN_EXISTING}
+     * allow you to open an existing file using the {@link #openForAppend()} and {@link #openExisting()} methods
+     * correspondingly.
+     * In the case of I/O exception, the file is automatically closed.
+     * This behavior is alike {@link java.io.FileWriter#FileWriter(File) FileWriter constructor}.
      *
      * <p>This is the simplest way to create a new TIFF file and automatically open it with writing the standard
      * TIFF header. After that, this object is ready for adding new TIFF images.
-     * However, this way does not allow customizing this writer, for example, to choose little-endian byte order
-     * (an indicator, written into the TIFF header)
-     * and does not allow opening an existing TIFF, for example, for adding new images (IFD).
-     * If you need this, please call this constructor with
-     * <code>createNewFileAndOpen&nbsp;=&nbsp;false</code>,
-     * perform necessary customizing and call then {@link #create()} method.
+     * Instead, you may use the single-argument constructor {@link #TiffWriter(Path)},
+     * perform necessary customizing, and then call {@link #create()} or {@link #open(boolean)} method.
      *
-     * @param file                 output TIFF tile.
-     * @param createNewFileAndOpen whether you need to call {@link #create()} method inside the constructor.
+     * @param file       output TIFF tile.
+     * @param createMode what do you need to do with this file?
      * @throws IOException in the case of any I/O errors.
      */
-    public TiffWriter(Path file, CreateMode createMode) throws IOException {
+    public TiffWriter(Path file, TiffCreateMode createMode) throws IOException {
         this(openWithDeletingPreviousFileIfRequested(file, createMode));
         try {
-            createMode.open(this);
+            createMode.customize(this);
         } catch (IOException exception) {
             try {
                 out.close();
@@ -242,8 +189,9 @@ public class TiffWriter implements Closeable {
      * <p>Note: this method does not do anything with the file stream, in particular, does not call
      * {@link #create()} method. You can do this later.
      *
-     * <p>Unlike other constructors, this one never throws an exception. This is helpful because it allows
-     * making constructors in subclasses, which do not declare any exceptions to be thrown.
+     * <p>This constructor never throws an exception.
+     * This is helpful because it allows making constructors in subclasses,
+     * which do not declare any exceptions to be thrown.
      *
      * @param outputStream output stream.
      */
@@ -2318,11 +2266,11 @@ public class TiffWriter implements Closeable {
         return TiffReader.BUILT_IN_TIMING && LOGGABLE_DEBUG ? System.nanoTime() : 0;
     }
 
-    private static DataHandle<Location> openWithDeletingPreviousFileIfRequested(Path file, CreateMode createMode)
+    private static DataHandle<Location> openWithDeletingPreviousFileIfRequested(Path file, TiffCreateMode createMode)
             throws IOException {
         Objects.requireNonNull(file, "Null file");
         Objects.requireNonNull(createMode, "Null createMode");
-        if (createMode.createNew) {
+        if (createMode.isCreateNewFile()) {
             Files.deleteIfExists(file);
         }
         return TiffReader.getFileHandle(file);

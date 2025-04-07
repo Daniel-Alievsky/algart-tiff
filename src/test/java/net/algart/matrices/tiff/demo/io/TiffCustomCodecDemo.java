@@ -27,10 +27,7 @@ package net.algart.matrices.tiff.demo.io;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.io.MatrixIO;
-import net.algart.matrices.tiff.TiffException;
-import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.TiffWriter;
+import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.tiles.TiffTile;
 
@@ -67,7 +64,7 @@ public class TiffCustomCodecDemo {
         System.out.printf("%nReading %s...%n", sourceFile);
         List<Matrix<UpdatablePArray>> image = MatrixIO.readImage(sourceFile);
         System.out.printf("Writing TIFF %s...%n%n", tiffFile);
-        try (TiffWriter writer = new TiffWriter(tiffFile, TiffWriter.CreateMode.CREATE) {
+        try (TiffWriter writer = new TiffWriter(tiffFile, TiffCreateMode.CREATE) {
             @Override
             protected Optional<byte[]> encodeByExternalCodec(
                     TiffTile tile, byte[] decodedData, TiffCodec.Options options) throws TiffException {

@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff.demo.io;
 
+import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
@@ -57,8 +58,7 @@ public class TiffOverwriteHelloWorldDemo {
         // - estimated sizes sufficient for "Hello, world!"
 
         System.out.printf("Opening and rewriting TIFF %s...%n", targetFile);
-        try (TiffWriter writer = new TiffWriter(targetFile)) {
-            writer.openExisting();
+        try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
             final TiffReader reader = writer.newReaderOfThisFile(false);
             final TiffIFD ifd = reader.readSingleIFD(ifdIndex);
             ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());

@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff.tests.io;
 
+import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 
@@ -40,8 +41,8 @@ public class TiffReaderWriterConstructorTest {
         System.out.println("Closing " + fileToRead + "...");
         tiffReader.close();
         System.out.println("Creating " + fileToWrite + "...");
-        TiffWriter tiffWriter = new TiffWriter(fileToWrite, true);
-        // - in the case of exception, the file must be closed! (but this is very improbable situation)
+        TiffWriter tiffWriter = new TiffWriter(fileToWrite, TiffCreateMode.CREATE);
+        // - in the case of exception, the file must be closed! (But this is a very improbable situation.)
         System.out.println("Closing " + fileToWrite + "...");
         tiffWriter.close();
     }
