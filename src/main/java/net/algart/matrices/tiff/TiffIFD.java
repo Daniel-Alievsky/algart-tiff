@@ -389,19 +389,25 @@ public class TiffIFD {
         return bigTiff ? BIG_TIFF_FILE_HEADER_LENGTH : TIFF_FILE_HEADER_LENGTH;
     }
 
-    public long sizeOfImage(long tiffFileLength) throws IOException {
-        long sizeOfMetadata = sizeOfMetadata(tiffFileLength);
-        return sizeOfMetadata == -1 ? -1 : Math.addExact(sizeOfMetadata, sizeOfData(tiffFileLength));
+    public OptionalLong sizeOfAll(long tiffFileLength) throws IOException {
+        final OptionalLong sizeOfIFD = sizeOfIFD(tiffFileLength);
+        return sizeOfIFD.isEmpty() ?
+                OptionalLong.empty() :
+                OptionalLong.of(Math.addExact(sizeOfIFD.getAsLong(), sizeOfData(tiffFileLength)));
     }
 
-    public long sizeOfMetadata(long tiffFileLength) {
+    public long sizeOfIFDTable() throws TiffException {
+        return sizeOfIFDTable(numberOfEntries(), bigTiff, isMainIFD());
+    }
+
+    public OptionalLong sizeOfIFD(long tiffFileLength) throws TiffException {
         if (tiffFileLength < 0) {
             throw new IllegalArgumentException("Negative TIFF file length");
         }
         if (detailedEntries == null) {
-            return -1;
+            return OptionalLong.empty();
         }
-        long result = lengthInFileExcludingEntries(bigTiff, isMainIFD());
+        long result = sizeOfIFDTableExcludingEntries(bigTiff, isMainIFD());
         AtomicBoolean lastAligning = new AtomicBoolean(false);
         for (TiffEntry entry : detailedEntries.values()) {
             result += entry.sizeOf(tiffFileLength, lastAligning);
@@ -414,7 +420,7 @@ public class TiffIFD {
             // (Note that this entry may be not the last entry: we speak about NON-BUILT-IN entries only.)
             result--;
         }
-        return result;
+        return OptionalLong.of(result);
     }
 
     public long sizeOfData(long tiffFileLength) throws TiffException {
@@ -1881,7 +1887,7 @@ public class TiffIFD {
                         if (valueCount != 1) {
                             sb.append("[").append(valueCount).append("]");
                         }
-                        if (manyValues || tagType == TagTypes.ASCII) {
+                        if (!tiffEntry.builtInData()) {
                             final long offset = tiffEntry.valueOffset();
                             final long length = tiffEntry.valueLength();
                             sb.append(" at @").append(offset).append("..").append(offset + length - 1)
@@ -1900,7 +1906,7 @@ public class TiffIFD {
         return sb.toString();
     }
 
-    public static int lengthInFileExcludingEntries(boolean bigTiff, boolean mainIFD) {
+    public static int sizeOfIFDTableExcludingEntries(boolean bigTiff, boolean mainIFD) {
         int result = (bigTiff ? 8 : 2);
         // - includes starting number of entries (2 or 8 bytes)
         if (mainIFD) {
@@ -1910,10 +1916,10 @@ public class TiffIFD {
         return result;
     }
 
-    public static int lengthInFile(long numberOfEntries, boolean bigTiff, boolean mainIFD) throws TiffException {
+    public static int sizeOfIFDTable(long numberOfEntries, boolean bigTiff, boolean mainIFD) throws TiffException {
         final int bytesPerEntry = TiffEntry.bytesPerEntry(bigTiff);
         final int n = checkNumberOfEntries(numberOfEntries, bigTiff);
-        return lengthInFileExcludingEntries(bigTiff, mainIFD) + bytesPerEntry * n;
+        return sizeOfIFDTableExcludingEntries(bigTiff, mainIFD) + bytesPerEntry * n;
     }
 
     public static int checkNumberOfEntries(long numberOfEntries, boolean bigTiff) throws TiffException {
@@ -2248,6 +2254,16 @@ public class TiffIFD {
                 valueLength++;
             }
             return builtInLength + valueLength;
+        }
+
+        @Override
+        public String toString() {
+            return "TiffEntry: " +
+                    "tag " + Tags.tiffTagName(tag, true) +
+                    ", type " + TagTypes.typeToString(type) +
+                    ", valueCount " + valueCount +
+                    ", valueOffset " + valueOffset +
+                    (bigTiff ? ", bigTiff" : "");
         }
 
         static boolean builtInData(long valueLength, boolean bigTiff) {

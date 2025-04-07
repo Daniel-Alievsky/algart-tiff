@@ -828,7 +828,7 @@ public class TiffWriter implements Closeable {
             out.seek(startOffset);
             final Map<Integer, Object> sortedIFD = new TreeMap<>(ifd.map());
             final int numberOfEntries = sortedIFD.size();
-            final int mainIFDLength = TiffIFD.lengthInFile(numberOfEntries, bigTiff, true);
+            final int mainIFDLength = TiffIFD.sizeOfIFDTable(numberOfEntries, bigTiff, true);
             writeIFDNumberOfEntries(numberOfEntries);
 
             final long positionOfNextOffset = writeIFDEntries(sortedIFD, startOffset, mainIFDLength);

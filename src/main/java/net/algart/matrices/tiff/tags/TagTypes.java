@@ -63,7 +63,7 @@ public class TagTypes {
             case LONG8 -> "LONG8";
             case SLONG8 -> "SLONG8";
             case IFD8 -> "IFD8";
-            default -> "Unknown type";
+            default -> "Unknown type (" + tagType + ")";
         };
     }
 
