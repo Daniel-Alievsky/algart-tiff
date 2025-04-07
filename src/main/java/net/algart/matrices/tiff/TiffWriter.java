@@ -64,6 +64,49 @@ import java.util.stream.Collectors;
  * The same is true for the result of {@link #stream()} method.</p>
  */
 public class TiffWriter implements Closeable {
+    public enum CreateMode {
+        NO_ACTIONS(false, false, false) {
+            @Override
+            public void open(TiffWriter writer) {
+            }
+        },
+        CREATE(true, false, false),
+        CREATE_BIG(true, true, false),
+        CREATE_LE(true, false, true),
+        CREATE_LE_BIG(true, true, true),
+        APPEND(false, false, false) {
+            @Override
+            public void open(TiffWriter writer) throws IOException {
+                writer.openForAppend();
+            }
+        },
+        OPEN_EXISTING(false, false, false);
+
+        private final boolean createNew;
+        private final boolean needBigTiff;
+        private final boolean needLittleEndian;
+
+        CreateMode(boolean createNew, boolean needBigTiff, boolean needLittleEndian) {
+            this.createNew = createNew;
+            this.needBigTiff = needBigTiff;
+            this.needLittleEndian = needLittleEndian;
+        }
+
+        public void open(TiffWriter writer) throws IOException {
+            if (needBigTiff) {
+                writer.setBigTiff(true);
+            }
+            if (needLittleEndian) {
+                writer.setLittleEndian(true);
+            }
+            if (createNew) {
+                writer.create();
+            } else {
+                writer.openExisting();
+            }
+        }
+    }
+
     /**
      * If the file grows to about this limit and {@link #setBigTiff(boolean) big-TIFF} mode is not set,
      * attempt to write new IFD at the file end by methods of this class throw IO exception.
@@ -114,24 +157,22 @@ public class TiffWriter implements Closeable {
     private long timeEncodingAdditional = 0;
 
     /**
-     * Equivalent to <code>new {@link #TiffWriter(Path, boolean) TiffWriter(file, false)}</code>.
+     * Equivalent to <code>new {@link #TiffWriter(Path, CreateMode)
+     * TiffWriter}(file, {@link CreateMode#NO_ACTIONS NO_ACTIONS)}</code>.
      *
      * <p>Note: unlike classes like {@link java.io.FileWriter},
      * this constructor <b>does not try to open or create file</b>.
-     * If you need, you can use another constructor with the argument
-     * <code>createNewFileAndOpen&nbsp;=&nbsp;true</code>:</p>
+     * If you need, you can use another constructor with the argument {@link CreateMode}, for example:</p>
      * <pre>
-     *     var writer = new {@link #TiffWriter(Path, boolean) TiffWriter}(path, true);
+     *     var writer = new {@link #TiffWriter(Path, CreateMode)
+     *     TiffWriter}(path, {@link CreateMode#CREATE CreateMode.CREATE});
      * </pre>
-     * <p>But in this case, you will not be able to customize the created object
-     * before writing TIFF header
-     * and will not be able to open an existing TIFF file for modifications.</p>
      *
      * @param file output TIFF tile.
      * @throws IOException in the case of any I/O errors.
      */
     public TiffWriter(Path file) throws IOException {
-        this(file, false);
+        this(file, CreateMode.NO_ACTIONS);
     }
 
     /**
@@ -143,7 +184,7 @@ public class TiffWriter implements Closeable {
      * @throws IOException in the case of any I/O errors.
      */
     public TiffWriter(Path file, boolean createNewFileAndOpen) throws IOException {
-        this(file, createNewFileAndOpen, false);
+        this(file, createNewFileAndOpen ? CreateMode.CREATE : CreateMode.NO_ACTIONS);
     }
 
     /**
@@ -180,23 +221,18 @@ public class TiffWriter implements Closeable {
      *
      * @param file                 output TIFF tile.
      * @param createNewFileAndOpen whether you need to call {@link #create()} method inside the constructor.
-     * @param bigTiff              whether BigTIFF should be created.
      * @throws IOException in the case of any I/O errors.
      */
-    public TiffWriter(Path file, boolean createNewFileAndOpen, boolean bigTiff) throws IOException {
-        this(openWithDeletingPreviousFileIfRequested(file, createNewFileAndOpen));
-        if (createNewFileAndOpen) {
+    public TiffWriter(Path file, CreateMode createMode) throws IOException {
+        this(openWithDeletingPreviousFileIfRequested(file, createMode));
+        try {
+            createMode.open(this);
+        } catch (IOException exception) {
             try {
-                //noinspection resource
-                setBigTiff(bigTiff);
-                create();
-            } catch (IOException exception) {
-                try {
-                    out.close();
-                } catch (Exception ignored) {
-                }
-                throw exception;
+                out.close();
+            } catch (Exception ignored) {
             }
+            throw exception;
         }
     }
 
@@ -413,7 +449,8 @@ public class TiffWriter implements Closeable {
     }
 
     public TiffWriter setLossyCompressionQuality(Double lossyCompressionQuality) {
-        return lossyCompressionQuality == null ? removeLossyCompressionQuality() : setLossyCompressionQuality(lossyCompressionQuality.doubleValue());
+        return lossyCompressionQuality == null ? removeLossyCompressionQuality() :
+                setLossyCompressionQuality(lossyCompressionQuality.doubleValue());
     }
 
     /**
@@ -423,7 +460,8 @@ public class TiffWriter implements Closeable {
      * For JPEG, they should be between 0.0 and 1.0 (1.0 means the best quality).
      * For JPEG-2000, the maximal possible value is <code>Double.MAX_VALUE</code>, that means loss-less compression.
      *
-     * <p>If this method was not called or after {@link #removeLossyCompressionQuality()}, the compression quality is not specified.
+     * <p>If this method was not called or after {@link #removeLossyCompressionQuality()}, the compression quality is
+     * not specified.
      * In this case, some default quality will be used. In particular, it will be 1.0 for JPEG (maximal JPEG quality),
      * 10 for JPEG-2000 (compression code 33003) or alternative JPEG-200 (code 33005),
      * <code>Double.MAX_VALUE</code> for lose-less JPEG-2000 ({@link TagCompression#JPEG_2000}, code 33004).
@@ -2280,10 +2318,11 @@ public class TiffWriter implements Closeable {
         return TiffReader.BUILT_IN_TIMING && LOGGABLE_DEBUG ? System.nanoTime() : 0;
     }
 
-    private static DataHandle<Location> openWithDeletingPreviousFileIfRequested(Path file, boolean deleteExisting)
+    private static DataHandle<Location> openWithDeletingPreviousFileIfRequested(Path file, CreateMode createMode)
             throws IOException {
         Objects.requireNonNull(file, "Null file");
-        if (deleteExisting) {
+        Objects.requireNonNull(createMode, "Null createMode");
+        if (createMode.createNew) {
             Files.deleteIfExists(file);
         }
         return TiffReader.getFileHandle(file);
