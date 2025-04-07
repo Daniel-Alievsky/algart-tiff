@@ -476,6 +476,9 @@ public class TiffIFD {
         // - cloning is IMPORTANT here! we must not destroy existing cached arrays
         final int n = Math.min(offsets.length, byteCounts.length);
         // - should be equal, but there is not a guarantee: we can create "invalid" IFD
+        if (n == 0) {
+            return 0;
+        }
         ArraySorter.getQuickSorter().sort(0, n,
                 (first, second) -> offsets[first] < offsets[second],
                 (first, second) -> {
@@ -488,6 +491,12 @@ public class TiffIFD {
                 });
         // - sorting BOTH arrays offsets/byteCounts in increasing order of offsets
         long sum = 0;
+        if (!isBigTiff() && offsets[0] == BIG_TIFF_FILE_HEADER_LENGTH) {
+            sum = BIG_TIFF_FILE_HEADER_LENGTH - TIFF_FILE_HEADER_LENGTH;
+            // - some SVS files start from the offset 16 even for non-BifTIFF files;
+            // we will "include" extra 8 bytes in the first image:
+            // this is not correct, but helps to avoid a message about "lost" bytes
+        }
         for (int i = 0; i < n; i++) {
             if (i == 0 || offsets[i] != offsets[i - 1]) {
                 // - identical tiles CAN be written at the same offset:
@@ -499,16 +508,14 @@ public class TiffIFD {
                         tiffFileLength + ": offset " + offsets[i] + ", length " + byteCounts[i]);
             }
         }
-        if (n > 0) {
-            final long lastEnd = offsets[n - 1] + byteCounts[n - 1];
-            if ((lastEnd & 1) != 0 && !offsetCannotBeFreeSpace(lastEnd, tiffFileLength)) {
-                // - Every IFD should have an even offset, and the lastEnd is a probable offset for a new IFD
+        final long lastEnd = offsets[n - 1] + byteCounts[n - 1];
+        if ((lastEnd & 1) != 0 && !offsetCannotBeFreeSpace(lastEnd, tiffFileLength)) {
+            // - Every IFD should have an even offset, and the lastEnd is a probable offset for a new IFD
 //                System.out.printf("!!!Correcting image length %d%n", sum);
-                if (wasAligned != null) {
-                    wasAligned.set(true);
-                }
-                sum = Math.addExact(sum, 1);
+            if (wasAligned != null) {
+                wasAligned.set(true);
             }
+            sum = Math.addExact(sum, 1);
         }
         return sum;
     }
