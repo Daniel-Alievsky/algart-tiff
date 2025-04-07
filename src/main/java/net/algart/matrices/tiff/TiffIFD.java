@@ -394,7 +394,7 @@ public class TiffIFD {
         return sizeOfMetadata == -1 ? -1 : Math.addExact(sizeOfMetadata, sizeOfData(tiffFileLength));
     }
 
-    public long sizeOfMetadata(long tiffFileLength) throws TiffException {
+    public long sizeOfMetadata(long tiffFileLength) {
         if (tiffFileLength < 0) {
             throw new IllegalArgumentException("Negative TIFF file length");
         }
@@ -402,13 +402,13 @@ public class TiffIFD {
             return -1;
         }
         long result = lengthInFileExcludingEntries(bigTiff, isMainIFD());
-        AtomicBoolean lastNonBuiltInWasAligned = new AtomicBoolean(false);
+        AtomicBoolean lastAligning = new AtomicBoolean(false);
         for (TiffEntry entry : detailedEntries.values()) {
-            result += entry.sizeOf(lastNonBuiltInWasAligned);
+            result += entry.sizeOf(tiffFileLength, lastAligning);
             // - overflow is impossible: the number of entries is restricted by MAX_NUMBER_OF_IFD_ENTRIES,
             // the number of elements in each entry is 31-bit integer
         }
-        if (lastNonBuiltInWasAligned.get()) {
+        if (lastAligning.get()) {
             // - The last non-built-in entry may end with an odd byte, either if it is the end of the file
             // or if there is image data after it: if it was aligned, this was an unnecessary operation.
             // (Note that this entry may be not the last entry: we speak about NON-BUILT-IN entries only.)
@@ -1882,7 +1882,10 @@ public class TiffIFD {
                             sb.append("[").append(valueCount).append("]");
                         }
                         if (manyValues || tagType == TagTypes.ASCII) {
-                            sb.append(" at @").append(tiffEntry.valueOffset());
+                            final long offset = tiffEntry.valueOffset();
+                            final long length = tiffEntry.valueLength();
+                            sb.append(" at @").append(offset).append("..").append(offset + length - 1)
+                                    .append(" (").append(length).append(" bytes)");
                         }
                     }
                 }
@@ -2228,14 +2231,18 @@ public class TiffIFD {
             return bytesPerEntry(this.bigTiff);
         }
 
-        long sizeOf(AtomicBoolean nonBuiltInWasAligned) {
+        long sizeOf(long tiffFileLength, AtomicBoolean lastAligning) {
             final int builtInLength = bytesPerEntry();
             if (builtInData()) {
                 return builtInLength;
             }
             long valueLength = valueLength();
             boolean needToAlign = (valueLength & 1) != 0;
-            nonBuiltInWasAligned.set(needToAlign);
+            if (valueOffset + valueLength == tiffFileLength) {
+                needToAlign = false;
+                // - special case: some information added at the end of the file
+            }
+            lastAligning.set(needToAlign);
             if (needToAlign) {
                 // in a correct TIFF file, each IFD entry occupies even number of bytes;
                 valueLength++;
