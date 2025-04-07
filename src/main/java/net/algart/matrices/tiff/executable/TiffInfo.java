@@ -114,15 +114,21 @@ public class TiffInfo {
                     System.out.print(ifdInfo(ifd, k, ifdCount));
                     final OptionalLong sizeOfIFDOptional = ifd.sizeOfIFD(tiffFileLength);
                     AtomicBoolean wasAligned = new AtomicBoolean(false);
-                    final long sizeOfData = ifd.sizeOfData(tiffFileLength, wasAligned);
+                    final long sizeOfData = ifd.sizeOfImageData(tiffFileLength, wasAligned);
                     if (sizeOfIFDOptional.isPresent()) {
                         final long sizeOfIFD = sizeOfIFDOptional.getAsLong();
+                        final long sizeOfIFDTable = ifd.sizeOfIFDTable();
+                        if (ifd.isMainIFD() && sizeOfIFDTable != (ifd.isBigTiff() ?
+                                16L + 20L * ifd.numberOfEntries() :
+                                6L + 12L * ifd.numberOfEntries())) {
+                            throw new AssertionError("Invalid sizeOfIFDTable");
+                        }
                         System.out.printf("%d bytes in file occupied: " +
                                         "%d metadata (%d table + %d external) + %d image data%s%n",
                                 sizeOfIFD + sizeOfData,
-                                sizeOfIFD, ifd.sizeOfIFDTable(), sizeOfIFD - ifd.sizeOfIFDTable(),
+                                sizeOfIFD, sizeOfIFDTable, sizeOfIFD - sizeOfIFDTable,
                                 sizeOfData,
-                                wasAligned.get() ? ", " + (sizeOfData - 1) + " unaligned" : "");
+                                wasAligned.get() ? " (" + (sizeOfData - 1) + " unaligned)" : "");
                         size += sizeOfIFD + sizeOfData;
                     }
                     if (k < lastIFDIndex) {

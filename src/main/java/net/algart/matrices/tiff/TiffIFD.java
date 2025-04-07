@@ -393,13 +393,35 @@ public class TiffIFD {
         final OptionalLong sizeOfIFD = sizeOfIFD(tiffFileLength);
         return sizeOfIFD.isEmpty() ?
                 OptionalLong.empty() :
-                OptionalLong.of(Math.addExact(sizeOfIFD.getAsLong(), sizeOfData(tiffFileLength)));
+                OptionalLong.of(Math.addExact(sizeOfIFD.getAsLong(), sizeOfImageData(tiffFileLength)));
     }
 
+    /**
+     * Returns the length of IFD table in the TIFF file, including the
+     * link (offset) to the next IFD that follows it.
+     * For normal ({@link #isMainIFD() main}) IFD, this is
+     * 6+12*n for non-BigTIFF or 16+20*n bytes for BigTIFF, where n={@link #numberOfEntries()}.
+     *
+     * <p>Note that some IFD entries in this table are stored separately in other positions in the file.
+     * The total number of bytes occupied by all IFD entries is returned by {@link #sizeOfIFD(long)};
+     * usually it is greater than the result of this method.</p>
+     *
+     * @return the length of IFD table in bytes, including the following offset of the next IFD.
+     * @throws TiffException in the case of incorrect TIFF.
+     */
     public long sizeOfIFDTable() throws TiffException {
         return sizeOfIFDTable(numberOfEntries(), bigTiff, isMainIFD());
     }
 
+    /**
+     * Returns the total number of bytes occupied by the IFD metadata (IFD entries) in the TIFF file.
+     * This method works well only if this object was read from a TIFF file by {@link TiffReader} class;
+     * if you constructed this object yourself, this object will return <code>OptionalLong.empty()</code>.
+     *
+     * @param tiffFileLength must contain the total length of the TIFF file.
+     * @return the summary size of all IFD entries.
+     * @throws TiffException in the case of incorrect TIFF.
+     */
     public OptionalLong sizeOfIFD(long tiffFileLength) throws TiffException {
         if (tiffFileLength < 0) {
             throw new IllegalArgumentException("Negative TIFF file length");
@@ -423,11 +445,29 @@ public class TiffIFD {
         return OptionalLong.of(result);
     }
 
-    public long sizeOfData(long tiffFileLength) throws TiffException {
-        return sizeOfData(tiffFileLength, null);
+    /**
+     * Equivalent to <code>{@link #sizeOfImageData(long, AtomicBoolean)
+     * sizeOfImageData}(tiffFileLength, null)</code>.
+     *
+     * @param tiffFileLength must contain the total length of the TIFF file.
+     * @return the size of all image data occupied in the TIFF file.
+     * @throws TiffException in the case of incorrect TIFF.
+     */
+    public long sizeOfImageData(long tiffFileLength) throws TiffException {
+        return sizeOfImageData(tiffFileLength, null);
     }
 
-    public long sizeOfData(long tiffFileLength, AtomicBoolean wasAligned) throws TiffException {
+    /**
+     * Returns the total number of bytes occupied by the tiles/strips in the TIFF file.
+     *
+     * @param tiffFileLength must contain the total length of the TIFF file.
+     * @param wasAligned     if not <code>null</code>, will contain a flag indicating whether the returned size
+     *                       was aligned on a 16-bit boundary; in this case, the result is 1 greater than
+     *                       the summary length of all tiles/strips.
+     * @return the size of all image data occupied in the TIFF file.
+     * @throws TiffException in the case of incorrect TIFF.
+     */
+    public long sizeOfImageData(long tiffFileLength, AtomicBoolean wasAligned) throws TiffException {
         if (tiffFileLength < 0) {
             throw new IllegalArgumentException("Negative TIFF file length");
         }
@@ -461,7 +501,7 @@ public class TiffIFD {
         }
         if (n > 0) {
             final long lastEnd = offsets[n - 1] + byteCounts[n - 1];
-            if ((lastEnd & 1) != 0 && lastEnd < tiffFileLength) {
+            if ((lastEnd & 1) != 0 && !offsetCannotBeFreeSpace(lastEnd, tiffFileLength)) {
                 // - Every IFD should have an even offset, and the lastEnd is a probable offset for a new IFD
 //                System.out.printf("!!!Correcting image length %d%n", sum);
                 if (wasAligned != null) {
@@ -2038,6 +2078,23 @@ public class TiffIFD {
                 detailedEntries.remove(tag);
             }
         }
+    }
+
+    private boolean offsetCannotBeFreeSpace(long offset, long tiffFileLength) {
+        if (offset == tiffFileLength) {
+            return true;
+        }
+        if (detailedEntries == null) {
+            return false;
+        }
+        for (TiffEntry entry : detailedEntries.values()) {
+            if (offset == entry.valueOffset()) {
+                return true;
+                // - this position is already occupied by some IFD
+                // (probably incorrectly: this method is used for checking odd offsets)
+            }
+        }
+        return false;
     }
 
     private static boolean isOrdinaryPrecisionWithCheckingEquality(int[] bitsPerSample) throws UnsupportedTiffFormatException {
