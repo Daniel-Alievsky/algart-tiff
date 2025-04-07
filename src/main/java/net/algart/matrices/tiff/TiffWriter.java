@@ -1735,7 +1735,6 @@ public class TiffWriter implements Closeable {
         try (final DataHandle<Location> extraBuffer = TiffReader.getBytesHandle(bytesLocation)) {
             extraBuffer.setLittleEndian(isLittleEndian());
             for (final Map.Entry<Integer, Object> e : ifd.entrySet()) {
-                appendUntilEvenPosition(extraBuffer);
                 writeIFDValueAtCurrentPosition(extraBuffer, afterMain, e.getKey(), e.getValue());
             }
 
@@ -1799,6 +1798,7 @@ public class TiffWriter implements Closeable {
 
         final boolean bigTiff = this.bigTiff;
         final int dataLength = bigTiff ? 8 : 4;
+        final int dataLengthDiv4 = dataLength / 4;
 
         // write directory entry to output buffers
         writeUnsignedShort(out, tag);
@@ -1815,6 +1815,7 @@ public class TiffWriter implements Closeable {
                     out.writeByte(0);
                 }
             } else {
+                appendUntilEvenPosition(extraBuffer);
                 writeOffset(bufferOffsetInResultFile + extraBuffer.offset());
                 extraBuffer.write(q);
             }
@@ -1829,6 +1830,7 @@ public class TiffWriter implements Closeable {
                     out.writeByte(0);
                 }
             } else {
+                appendUntilEvenPosition(extraBuffer);
                 writeOffset(bufferOffsetInResultFile + extraBuffer.offset());
                 for (short shortValue : q) {
                     extraBuffer.writeByte(shortValue);
@@ -1849,6 +1851,7 @@ public class TiffWriter implements Closeable {
                     out.writeByte(0);
                 }
             } else {
+                appendUntilEvenPosition(extraBuffer);
                 writeOffset(bufferOffsetInResultFile + extraBuffer.offset());
                 for (char charValue : q) {
                     writeUnsignedByte(extraBuffer, charValue);
@@ -1876,6 +1879,7 @@ public class TiffWriter implements Closeable {
                     out.writeShort(0);
                 }
             } else {
+                appendUntilEvenPosition(extraBuffer);
                 writeOffset(bufferOffsetInResultFile + extraBuffer.offset());
                 for (int intValue : q) {
                     extraBuffer.writeShort(intValue);
@@ -1919,6 +1923,7 @@ public class TiffWriter implements Closeable {
                     writeIntOrLong(out, 0);
                 }
             } else {
+                appendUntilEvenPosition(extraBuffer);
                 writeOffset(bufferOffsetInResultFile + extraBuffer.offset());
                 for (long longValue : q) {
                     writeIntOrLong(extraBuffer, longValue);
@@ -1931,6 +1936,7 @@ public class TiffWriter implements Closeable {
                 out.writeInt((int) q[0].getNumerator());
                 out.writeInt((int) q[0].getDenominator());
             } else {
+                appendUntilEvenPosition(extraBuffer);
                 writeOffset(bufferOffsetInResultFile + extraBuffer.offset());
                 for (TagRational tagRational : q) {
                     extraBuffer.writeInt((int) tagRational.getNumerator());
@@ -1940,15 +1946,16 @@ public class TiffWriter implements Closeable {
         } else if (value instanceof float[] q) {
             out.writeShort(TagTypes.FLOAT);
             writeIntOrLong(out, q.length);
-            if (q.length <= dataLength / 4) {
+            if (q.length <= dataLengthDiv4) {
                 for (float floatValue : q) {
                     out.writeFloat(floatValue); // value
                     // - in old SCIFIO code, here was a bug (for a case bigTiff): q[0] was always written
                 }
-                for (int i = q.length; i < dataLength / 4; i++) {
+                for (int i = q.length; i < dataLengthDiv4; i++) {
                     out.writeInt(0); // padding
                 }
             } else {
+                appendUntilEvenPosition(extraBuffer);
                 writeOffset(bufferOffsetInResultFile + extraBuffer.offset());
                 for (float floatValue : q) {
                     extraBuffer.writeFloat(floatValue);
@@ -1957,6 +1964,7 @@ public class TiffWriter implements Closeable {
         } else if (value instanceof double[] q) {
             out.writeShort(TagTypes.DOUBLE);
             writeIntOrLong(out, q.length);
+            appendUntilEvenPosition(extraBuffer);
             writeOffset(bufferOffsetInResultFile + extraBuffer.offset());
             for (final double doubleValue : q) {
                 extraBuffer.writeDouble(doubleValue);
