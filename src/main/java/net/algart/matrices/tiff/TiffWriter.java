@@ -1798,7 +1798,8 @@ public class TiffWriter implements Closeable {
 
         final boolean bigTiff = this.bigTiff;
         final int dataLength = bigTiff ? 8 : 4;
-        final int dataLengthDiv4 = dataLength / 4;
+        final int dataLengthDiv2 = dataLength >> 1;
+        final int dataLengthDiv4 = dataLength >> 2;
 
         // write directory entry to output buffers
         writeUnsignedShort(out, tag);
@@ -1871,11 +1872,11 @@ public class TiffWriter implements Closeable {
             }
             out.writeShort(TagTypes.SHORT);
             writeIntOrLong(out, q.length);
-            if (q.length <= dataLength / 2) {
+            if (q.length <= dataLengthDiv2) {
                 for (int intValue : q) {
                     writeUnsignedShort(out, intValue);
                 }
-                for (int i = q.length; i < dataLength / 2; i++) {
+                for (int i = q.length; i < dataLengthDiv2; i++) {
                     out.writeShort(0);
                 }
             } else {
