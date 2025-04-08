@@ -95,7 +95,7 @@ public class TiffInfo {
     private void showTiffInfo(Path tiffFile, int firstIFDIndex, int lastIFDIndex) throws IOException {
         try (TiffReader reader = new TiffReader(tiffFile, false)) {
             if (!reader.isValid()) {
-                System.out.printf("%nFile %s: not TIFF%n", tiffFile);
+                System.out.printf("%nFile %s: not TIFF%n  %s%n", tiffFile, reader.openingException().getMessage());
             } else {
                 reader.setRequireValidTiff(strict);
                 var ifdList = reader.allIFDs();

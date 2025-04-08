@@ -1713,7 +1713,8 @@ public class TiffReader implements Closeable {
                 // - sometimes we can meet 8-byte "TIFF files" (or 16-byte "BigTIFF") that contain only header
                 // and no actual data (for example, results of debugging writing algorithm)
                 throw new TiffException("Too short TIFF file" + prettyInName() + ": only " + length +
-                        " bytes (minimum " + MINIMAL_ALLOWED_TIFF_FILE_LENGTH + " bytes are required for valid TIFF)");
+                        " bytes (a valid TIFF must contain at least " + MINIMAL_ALLOWED_TIFF_FILE_LENGTH +
+                        " bytes); probably the TIFF writing process was not completed normally");
             }
             final int endianOne = in.read();
             final int endianTwo = in.read();
@@ -1856,7 +1857,8 @@ public class TiffReader implements Closeable {
         final long offset = readNextOffset(updatePositionOfLastOffset, true, bigTiff);
         if (offset == 0) {
             throw new TiffException("Invalid TIFF" + prettyInName() +
-                    ": zero first offset (TIFF must contain at least one IFD!)");
+                    ": the file does not contain any images; " +
+                    "probably the TIFF writing process was not completed normally");
         }
         return offset;
     }

@@ -559,7 +559,7 @@ public class TiffWriter implements Closeable {
      * Sets the special mode, when a TIFF file is allowed to contain "missing" tiles or strips,
      * for which the offset (<code>TileOffsets</code> or <code>StripOffsets</code> tag) and/or
      * byte count (<code>TileByteCounts</code> or <code>StripByteCounts</code> tag) contains zero value.
-     * In this mode, this writer will use zero offset and byte-count, if
+     * In this mode, this writer will use zero offset and byte-count if
      * the written tile is actually empty &mdash; no pixels were written in it via
      * {@link TiffMapForWriting#updateSamples(byte[], int, int, int, int)} or other methods.
      * In another case, this writer will create a normal tile, filled by
@@ -619,7 +619,7 @@ public class TiffWriter implements Closeable {
      * Returns position in the file of the last IFD offset, written by methods of this object.
      * It is updated by {@link #rewriteIFD(TiffIFD, boolean)}.
      *
-     * <p>Immediately after creating new object this position is <code>-1</code>.
+     * <p>Immediately after creating a new object this position is <code>-1</code>.
      *
      * @return file position of the last IFD offset.
      */
