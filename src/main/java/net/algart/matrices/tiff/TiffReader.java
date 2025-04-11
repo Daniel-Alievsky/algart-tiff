@@ -77,8 +77,8 @@ public class TiffReader implements Closeable {
                     "net.algart.matrices.tiff.defaultMaxCachingMemory", 256 * 1048576L));
     // - 256 MB maximal cache by default
 
-    public static final int FILE_USUAL_MAGIC_NUMBER = 42;
-    public static final int FILE_BIG_TIFF_MAGIC_NUMBER = 43;
+    public static final int FILE_USUAL_MAGIC_NUMBER = 0x2a;
+    public static final int FILE_BIG_TIFF_MAGIC_NUMBER = 0x2b;
     public static final int FILE_PREFIX_LITTLE_ENDIAN = 0x49;
     public static final int FILE_PREFIX_BIG_ENDIAN = 0x4d;
 
@@ -122,7 +122,8 @@ public class TiffReader implements Closeable {
 
     private final Exception openingException;
     private final DataHandle<Location> in;
-    private final boolean valid;
+    private final boolean tiff;
+    private final boolean validTiff;
     private final boolean bigTiff;
 
     /**
@@ -162,11 +163,13 @@ public class TiffReader implements Closeable {
     }
 
     public TiffReader(Path file, boolean requireValidTiff) throws IOException {
-        this(getExistingFileHandle(file), requireValidTiff, true);
+        // We should not use getExistingFileHandle() here: if the file does not exist,
+        // the exception should be suppressed when requireValidTiff=false
+        this(getFileHandle(file), requireValidTiff, true);
     }
 
     /**
-     * Equivalent to {@link #TiffReader(DataHandle, boolean, boolean)} with <code>false</code> last argument.
+     * Equivalent to {@link #TiffReader(DataHandle, boolean, boolean)} with the <code>false</code> last argument.
      * Note that you <b>should not</b> call this constructor from another constructor, creating this
      * <code>DataHandle</code>: in this case, the handle will never be closed!
      *
@@ -184,19 +187,27 @@ public class TiffReader implements Closeable {
     /**
      * Constructs new reader.
      *
-     * <p>If <code>requireValidTiff</code> is <code>true</code> (standard variant), it will throw an exception
-     * in the case of incorrect TIFF header or some other I/O errors.
-     * In this case, <code>closeStreamOnException</code> flag specifies, whether this function
+     * <p>If <code>requireValidTiff</code> is <code>true</code> (standard variant), this constructor throws
+     * an exception in case of an incorrect TIFF header or any other problems, including I/O errors.
+     *
+     * <p>If <code>requireValidTiff</code> is <code>false</code>, this constructor throws an exception
+     * <b>only</b> if it has successfully read 8-byte file header and found that it
+     * is indeed a TIFF file header, but then something went wrong.
+     * (Example of a possible problem: the file is too short for a valid TIFF).
+     * All other errors including a non-existing file do not result in exceptions (they are caught),
+     * but you can detect this situation by the fact that {@link #isValidTiff()} method will return <code>false</code>,
+     * and you can know the occurred exception by {@link #openingException()} method.
+     * Note: if you need to suppress <i>all</i> exceptions, you should use the constructor
+     * {@link #TiffReader(DataHandle, Consumer)}.
+     *
+     * <p>In the case where an exception is thrown (not caught),
+     * <code>closeStreamOnException</code> argument specifies whether this function
      * must close the input stream or no. It <b>should</b> be true when you call this constructor
      * from another constructor, which creates <code>DataHandle</code>: it is the only way to close
      * an invalid file. In other situation this flag may be <code>false</code>, then you must close
      * the input stream yourself.
      *
-     * <p>If <code>requireValidTiff</code> is <code>false</code>, all exceptions are caught and not thrown,
-     * and {@link #isValid()} method will return <code>false</code>.
-     * In this case, you can know the occurred exception by {@link #openingException()} method.
-     *
-     * @param inputStream            input stream; automatically replaced (wrapped) with {@link ReadBufferDataHandle},
+     * @param inputStream            input stream; automatically replaced (wrapped) with {@link ReadBufferDataHandle}
      *                               if this stream is still not an instance of this class.
      * @param requireValidTiff       whether the input file must exist and be a readable TIFF-file
      *                               with a correct header.
@@ -209,7 +220,9 @@ public class TiffReader implements Closeable {
             throws IOException {
         this(inputStream, null);
         this.requireValidTiff = requireValidTiff;
-        if (requireValidTiff && openingException != null) {
+        assert tiff || !validTiff;
+        final boolean tiffButInvalid = this.tiff && !validTiff;
+        if (requireValidTiff ? !validTiff : tiffButInvalid) {
             if (closeStreamOnException) {
                 try {
                     inputStream.close();
@@ -250,11 +263,14 @@ public class TiffReader implements Closeable {
         this.in = inputStream instanceof ReadBufferDataHandle ?
                 inputStream :
                 new ReadBufferDataHandle<>(inputStream);
+        AtomicBoolean tiff = new AtomicBoolean(false);
         AtomicBoolean bigTiff = new AtomicBoolean(false);
-        this.openingException = startReading(bigTiff);
-        this.valid = openingException == null;
+        this.openingException = startReading(tiff, bigTiff);
+        this.tiff = tiff.get();
         this.bigTiff = bigTiff.get();
-        if (exceptionHandler != null) {
+        this.validTiff = openingException == null;
+        assert !(this.validTiff && !this.tiff);
+        if (exceptionHandler != null && openingException != null) {
             exceptionHandler.accept(openingException);
         }
     }
@@ -571,23 +587,53 @@ public class TiffReader implements Closeable {
         }
     }
 
-    public boolean isValid() {
-        return valid;
-    }
-
     public Exception openingException() {
         return openingException;
     }
 
     /**
-     * Returns whether the current TIFF file contains BigTIFF data.
+     * Returns whether this file is a TIFF file, both ordinary or BigTIFF
+     * (i.e., whether it contains the correct TIFF or BigTIFF file header).
+     *
+     * <p>Note: if this method returns <code>true</code>, the file can be still invalid.
+     * If the problem was detected while opening the file, you can know about this
+     * by <code>false</code> result of {@link #isValidTiff()} method.
+     *
+     * @return whether this is a TIFF.
+     */
+    public boolean isTiff() {
+        return tiff;
+    }
+
+    /**
+     * Returns whether this file is a BigTIFF file (i.e., whether it contains the BigTIFF file header).
+     *
+     * @return whether this is a BigTIFF.
      */
     public boolean isBigTiff() {
         return bigTiff;
     }
 
     /**
+     * Returns <code>true</code> if the file is a TIFF file and if the constructor did not detect
+     * any problems while opening the file. However, this is not guarantee that problems
+     * (like format errors) will not be found later while reading IFDs or image data.
+     *
+     * <p>Note: usually this method returns the same result as {@link #isTiff()}.
+     * The only situation when this method returns <code>false</code> and {@link #isTiff()}
+     * returns <code>true</code> is using the special constructor {@link #TiffReader(DataHandle, Consumer)}
+     * for some invalid TIFF files (usually not written correctly).
+     *
+     * @return whether this is a probably correct TIFF/BigTIFF file.
+     */
+    public boolean isValidTiff() {
+        return validTiff;
+    }
+
+    /**
      * Returns whether we are reading little-endian data.
+     *
+     * @return whether this is a little-endian TIFF.
      */
     public boolean isLittleEndian() {
         return in.isLittleEndian();
@@ -595,6 +641,8 @@ public class TiffReader implements Closeable {
 
     /**
      * Returns <code>{@link #isLittleEndian()} ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN</code>.
+     *
+     * @return byte order in the TIFF file.
      */
     public ByteOrder getByteOrder() {
         return isLittleEndian() ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
@@ -724,7 +772,7 @@ public class TiffReader implements Closeable {
      * then the result is cached and quickly returned by all further calls.
      * (But caching can be disabled using {@link #setCachingIFDs(boolean)} method).
      *
-     * <p>Note: if this TIFF file is not valid ({@link #isValid()} returns <code>false</code>), this method
+     * <p>Note: if this TIFF file is not valid ({@link #isValidTiff()} returns <code>false</code>), this method
      * returns an empty list and does not throw an exception.
      * For a valid TIFF, the result cannot be empty.
      *
@@ -867,13 +915,13 @@ public class TiffReader implements Closeable {
     /**
      * Gets the offsets to every IFD in the file.
      *
-     * <p>Note: if this TIFF file is not valid ({@link #isValid()} returns <code>false</code>), this method
+     * <p>Note: if this TIFF file is not valid ({@link #isValidTiff()} returns <code>false</code>), this method
      * returns an empty array and does not throw an exception.
      * For a valid TIFF, the result cannot be empty.
      */
     public long[] readIFDOffsets() throws IOException {
         synchronized (fileLock) {
-            if (!requireValidTiff && !valid) {
+            if (!requireValidTiff && !validTiff) {
                 return new long[0];
             }
             final long fileLength = in.length();
@@ -1606,14 +1654,6 @@ public class TiffReader implements Closeable {
         return SCIFIOBridge.getDefaultScifioContext();
     }
 
-    public static DataHandle<Location> getExistingFileHandle(Path file) throws FileNotFoundException {
-        if (!Files.isRegularFile(file)) {
-            throw new FileNotFoundException("File " + file
-                    + (Files.exists(file) ? " is not a regular file" : " does not exist"));
-        }
-        return getFileHandle(file);
-    }
-
     protected Optional<byte[]> decodeByExternalCodec(TiffTile tile, byte[] encodedData, TiffCodec.Options options)
             throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
@@ -1625,6 +1665,15 @@ public class TiffReader implements Closeable {
         final Object scifioCodecOptions = options.toSCIFIOStyleOptions(SCIFIOBridge.codecOptionsClass());
         final byte[] decodedData = decompressBySCIFIOCodec(tile.ifd(), encodedData, scifioCodecOptions);
         return Optional.of(decodedData);
+    }
+
+    // Note used in the current version. It was used in the constructor with Path argument: see comments there.
+    static DataHandle<Location> getExistingFileHandle(Path file) throws FileNotFoundException {
+        if (!Files.isRegularFile(file)) {
+            throw new FileNotFoundException("File " + file
+                    + (Files.exists(file) ? " is not a regular file" : " does not exist"));
+        }
+        return getFileHandle(file);
     }
 
     static DataHandle<Location> getFileHandle(Path file) {
@@ -1687,16 +1736,19 @@ public class TiffReader implements Closeable {
         timeCompleteDecoding = 0;
     }
 
-    // We prefer make this.bigTiff a final field, so we cannot set it outside the constructor
-    private Exception startReading(AtomicBoolean bigTiffReference) {
+    // We prefer make this.tiff and this.bigTiff final fields, so we cannot set them outside the constructor
+    private Exception startReading(AtomicBoolean tiffReference, AtomicBoolean bigTiffReference) {
+        tiffReference.set(false);
+        bigTiffReference.set(false);
         try {
             synchronized (fileLock) {
                 // - this synchronization is extra, but may become useful
                 // if we will decide to make this method public and called not only from the constructor
                 if (!in.exists()) {
-                    return new FileNotFoundException("Input TIFF file" + prettyInName() + " does not exist");
+                    return new FileNotFoundException("File not found:" + prettyInName());
                 }
-                testHeader(bigTiffReference);
+                testHeader(tiffReference, bigTiffReference);
+                assert tiffReference.get();
                 return null;
             }
         } catch (IOException e) {
@@ -1704,42 +1756,62 @@ public class TiffReader implements Closeable {
         }
     }
 
-    private void testHeader(AtomicBoolean bigTiffReference) throws IOException {
+    private void testHeader(AtomicBoolean tiffReference, AtomicBoolean bigTiffReference) throws IOException {
+        // TIFF file header:
+        //  16 bits - TIFF byte-order identifier:
+        //                  4949h ("II", little-endian, Intel format)
+        //                  4D4Dh ("MM", big-endian, Motorola format)
+        //                  any other means non-TIFF
+        //  16 bits - TIFF version (this and following information is written in little-endian or big-endian format):
+        //                  002Ah usual TIFF
+        //                  002Bh BigTIFF
+        //                  any other means non-TIFF
+        //  TIFF:
+        //      32 bits - the offset of the first IFD
+        //  BigTIFF:
+        //      16 bits - always 8 (means the number of bytes in BigTIFF offsets)
+        //      16 bits - always 0
+        //      64 bits - the offset of the first IFD
         final long savedOffset = in.offset();
         try {
             in.seek(0);
             final long length = in.length();
+            if (length < 8) {
+                throw new TiffException("The file" + prettyInName() + " is not TIFF (only " + length +
+                        " bytes, but a valid TIFF cannot be shorter than 8 bytes)");
+            }
+            final int endianOne = in.readByte() & 0xff;
+            final int endianTwo = in.readByte() & 0xff;
+            final boolean littleEndian = endianOne == FILE_PREFIX_LITTLE_ENDIAN &&
+                    endianTwo == FILE_PREFIX_LITTLE_ENDIAN;
+            final boolean bigEndian = endianOne == FILE_PREFIX_BIG_ENDIAN &&
+                    endianTwo == FILE_PREFIX_BIG_ENDIAN;
+            if (!littleEndian && !bigEndian) {
+                throw new TiffException("The file" + prettyInName() + " is not TIFF");
+            }
+            in.setLittleEndian(littleEndian);
+            final short magic = in.readShort();
+            // - not readByte()! the result depends on the previous in.setLittleEndian()
+            final boolean bigTiff = magic == FILE_BIG_TIFF_MAGIC_NUMBER;
+            if (magic != FILE_USUAL_MAGIC_NUMBER && magic != FILE_BIG_TIFF_MAGIC_NUMBER) {
+                throw new TiffException("The file" + prettyInName() + " is not TIFF");
+            }
+            tiffReference.set(true);
+            bigTiffReference.set(bigTiff);
+            // - this is definitely TIFF, but, probably, non-valid; in the latter case we will throw exceptions
+            if (bigTiff) {
+                in.seek(8);
+            }
             if (length < MINIMAL_ALLOWED_TIFF_FILE_LENGTH) {
                 // - sometimes we can meet 8-byte "TIFF files" (or 16-byte "BigTIFF") that contain only header
-                // and no actual data (for example, results of debugging writing algorithm)
+                // and no actual data: possible results of debugging writing algorithm or bugs while writing
+                // (forgotten completeWriting() call).
                 throw new TiffException("Too short TIFF file" + prettyInName() + ": only " + length +
                         " bytes (a valid TIFF must contain at least " + MINIMAL_ALLOWED_TIFF_FILE_LENGTH +
                         " bytes); probably the TIFF writing process was not completed normally");
             }
-            final int endianOne = in.read();
-            final int endianTwo = in.read();
-            // byte order must be II or MM
-            final boolean littleEndian = endianOne == FILE_PREFIX_LITTLE_ENDIAN &&
-                    endianTwo == FILE_PREFIX_LITTLE_ENDIAN; // II
-            final boolean bigEndian = endianOne == FILE_PREFIX_BIG_ENDIAN &&
-                    endianTwo == FILE_PREFIX_BIG_ENDIAN; // MM
-            if (!littleEndian && !bigEndian) {
-                throw new TiffException("The file" + prettyInName() + " is not TIFF");
-            }
-
-            // check magic number (42)
-            in.setLittleEndian(littleEndian);
-            final short magic = in.readShort();
-            final boolean bigTiff = magic == FILE_BIG_TIFF_MAGIC_NUMBER;
-            bigTiffReference.set(bigTiff);
-            if (magic != FILE_USUAL_MAGIC_NUMBER && magic != FILE_BIG_TIFF_MAGIC_NUMBER) {
-                throw new TiffException("The file" + prettyInName() + " is not TIFF");
-            }
-            if (bigTiff) {
-                in.seek(8);
-            }
             readFirstOffsetFromCurrentPosition(false, bigTiff);
-            // - additional check, filling positionOfLastOffset
+            // - additional check of zero offset, filling positionOfLastOffset
         } finally {
             in.seek(savedOffset);
             // - for maximal compatibility: in old versions, constructor of this class
@@ -1856,7 +1928,7 @@ public class TiffReader implements Closeable {
             throws IOException {
         final long offset = readNextOffset(updatePositionOfLastOffset, true, bigTiff);
         if (offset == 0) {
-            throw new TiffException("Invalid TIFF" + prettyInName() +
+            throw new TiffException("Uncompleted TIFF" + prettyInName() +
                     ": the file does not contain any images; " +
                     "probably the TIFF writing process was not completed normally");
         }

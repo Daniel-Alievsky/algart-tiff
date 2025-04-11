@@ -62,7 +62,7 @@ public class TiffIFDAndIFDOffsetsTest {
         try {
             reader.readFirstIFDOffset();
             // - should throw exception for invalid file
-            if (!reader.isValid()) {
+            if (!reader.isValidTiff()) {
                 throw new AssertionError();
             }
         } catch (TiffException ignored) {

@@ -50,7 +50,7 @@ public class TiffWriteMixedTest {
         try {
             final TiffReader reader = writer.newReaderOfThisFile(false);
             System.out.printf("%s, %s%n",
-                    reader.isValid() ? "valid" : "INVALID: " + reader.openingException(),
+                    reader.isValidTiff() ? "valid" : "INVALID: " + reader.openingException(),
                     reader.numberOfImages() == 0 ? "no IFD" : "#0 " + reader.ifd(0));
         } catch (IOException e) {
             e.printStackTrace(System.out);
@@ -76,12 +76,12 @@ public class TiffWriteMixedTest {
             writer.create();
             // writer.startNewFile(); // - not a problem to call twice
             TiffIFD ifd = new TiffIFD();
-            final int[] bitsPerSample = {16, 16, 16};
+            final int[] bitsPerSample = {8, 8, 8};
             int numberOfChannels = bitsPerSample.length;
             ifd.putImageDimensions(IMAGE_WIDTH, IMAGE_HEIGHT);
             ifd.putNumberOfChannels(numberOfChannels);
             ifd.putTileSizes(256, 256);
-            ifd.putCompression(TagCompression.NONE);
+            ifd.putCompression(TagCompression.DEFLATE);
 //            ifd.putPhotometricInterpretation(TagPhotometricInterpretation.WHITE_IS_ZERO);
             ifd.put(Tags.BITS_PER_SAMPLE, bitsPerSample);
             ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_UINT);

@@ -49,7 +49,7 @@ public class TiffReadIFDDemo {
         System.out.printf("Reading TIFF %s...%n", sourceFile);
         try (TiffReader reader = new TiffReader(sourceFile, false)) {
             // - "false" argument helps to test also non-TIFF files
-            if (reader.isValid()) {
+            if (reader.isValidTiff()) {
                 for (int i = 0, n = reader.numberOfImages(); i < n; i++) {
                     System.out.printf("%n**** TIFF image #%d/%d IFD information: %dx%d, %d channels ****%n",
                             i + 1,

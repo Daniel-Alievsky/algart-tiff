@@ -88,14 +88,20 @@ public class TiffInfo {
         try {
             showTiffInfo(tiffFile, firstIFDIndex, lastIFDIndex);
         } catch (IOException e) {
-            System.err.printf("%nFile %s is invalid: %s%n", tiffFile, e.getMessage());
+            System.err.printf("%nFile %s is invalid:%n  %s%n", tiffFile, e.getMessage());
         }
     }
 
     private void showTiffInfo(Path tiffFile, int firstIFDIndex, int lastIFDIndex) throws IOException {
         try (TiffReader reader = new TiffReader(tiffFile, false)) {
-            if (!reader.isValid()) {
-                System.out.printf("%nFile %s: not TIFF%n  %s%n", tiffFile, reader.openingException().getMessage());
+            if (reader.isTiff() != reader.isValidTiff()) {
+                // - impossible with this form of the constructor
+                throw new AssertionError();
+            }
+            if (!reader.isTiff()) {
+                final Exception e = reader.openingException();
+                System.out.printf("%nFile %s: not TIFF%s", tiffFile,
+                        e instanceof TiffException ? "" : "%n  (%s)".formatted( e.getMessage()));
             } else {
                 reader.setRequireValidTiff(strict);
                 var ifdList = reader.allIFDs();
@@ -124,7 +130,7 @@ public class TiffInfo {
                             throw new AssertionError("Invalid sizeOfIFDTable");
                         }
                         System.out.printf("%d bytes in file occupied: " +
-                                        "%d metadata (%d table + %d external) + %d image data%s%n",
+                                        "%d metadata (%d table + %d external) + %d image data%s",
                                 sizeOfIFD + sizeOfData,
                                 sizeOfIFD, sizeOfIFDTable, sizeOfIFD - sizeOfIFDTable,
                                 sizeOfData,
@@ -142,17 +148,17 @@ public class TiffInfo {
                     }
                 }
                 if (size == tiffFileLength) {
-                    System.out.printf("Total file length %d bytes, it is fully used%n", tiffFileLength);
+                    System.out.printf("%nTotal file length %d bytes, it is fully used", tiffFileLength);
                 } else if (size > tiffFileLength) {
-                    System.out.printf("%d bytes in file used, but total file length is only %d bytes, " +
-                                    "%d \"extra\" bytes: probably TIFF is not valid?%n",
+                    System.out.printf("%n%d bytes in file used, but total file length is only %d bytes, " +
+                                    "%d \"extra\" bytes: probably TIFF is not valid?",
                             size, tiffFileLength, size - tiffFileLength);
                     // - however, this is possible in some files: for example, in
                     // "signed-integral-8bit.tif" from the TwelveMonkey demo image set,
                     // we have ASCII IFD entry at the end of the file, and the image before it has odd length;
                     // this ASCII offset is not aligned, so we consider that here is 1 extra byte
                 } else {
-                    System.out.printf("%d bytes in file used, %d bytes lost/unknown, total file length %d bytes%n",
+                    System.out.printf("%n%d bytes in file used, %d bytes lost/unknown, total file length %d bytes",
                             size, tiffFileLength - size, tiffFileLength);
                 }
             }

@@ -342,7 +342,7 @@ public class TiffParser extends TiffReader {
     /**
      * Tests this stream to see if it represents a TIFF file.
      *
-     * <p>Deprecated. Use {@link #isValid()} instead.
+     * <p>Deprecated. Use {@link #isValidTiff()} instead.
      */
     @Deprecated
     public boolean isValidHeader() {
@@ -354,7 +354,7 @@ public class TiffParser extends TiffReader {
     }
 
     /**
-     * Deprecated. Use {@link #isValid()} and {@link #isBigTiff()} instead.
+     * Deprecated. Use {@link #isValidTiff()} and {@link #isBigTiff()} instead.
      */
     @Deprecated
     public Boolean checkHeader() throws IOException {
@@ -416,7 +416,7 @@ public class TiffParser extends TiffReader {
     }
 
     /**
-     * Use {@link #readFirstIFDOffset()} instead, together with {@link #isValid()} check.
+     * Use {@link #readFirstIFDOffset()} instead, together with {@link #isValidTiff()} check.
      */
     @Deprecated
     public long getFirstOffset() throws IOException {
@@ -430,7 +430,7 @@ public class TiffParser extends TiffReader {
     }
 
     /**
-     * Use {@link #firstIFD()} instead, together with {@link #isValid()} check.
+     * Use {@link #firstIFD()} instead, together with {@link #isValidTiff()} check.
      */
     @Deprecated
     public IFD getFirstIFD() throws IOException {

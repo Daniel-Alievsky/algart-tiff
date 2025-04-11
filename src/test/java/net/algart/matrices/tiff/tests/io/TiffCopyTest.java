@@ -82,7 +82,7 @@ public class TiffCopyTest {
             if (useContext) {
                 reader.setContext(TiffReader.newSCIFIOContext());
             }
-            if (!reader.isValid()) {
+            if (!reader.isTiff()) {
                 System.out.printf("Skipping %s: not a TIFF%n", sourceFile);
                 return;
             }

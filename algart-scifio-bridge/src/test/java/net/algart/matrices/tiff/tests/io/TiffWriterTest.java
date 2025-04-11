@@ -63,7 +63,7 @@ public class TiffWriterTest {
             final TiffReader reader = writer.newReaderOfThisFile(false);
             final int n = reader.numberOfImages();
             System.out.printf("%s, %s%n",
-                    reader.isValid() ? "valid" : "INVALID: " + reader.openingException(),
+                    reader.isValidTiff() ? "valid" : "INVALID: " + reader.openingException(),
                     n == 0 ? "no IFD" : "#0/" + n + ": " + reader.ifd(0));
         } catch (IOException e) {
             e.printStackTrace(System.out);

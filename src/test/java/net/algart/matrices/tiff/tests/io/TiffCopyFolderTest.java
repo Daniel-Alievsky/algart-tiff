@@ -87,6 +87,6 @@ public class TiffCopyFolderTest {
                 }
             }
         }
-        System.out.printf("%d from %d copied successfully%n", successful, total);
+        System.out.printf("%d from %d processed successfully%n", successful, total);
     }
 }
