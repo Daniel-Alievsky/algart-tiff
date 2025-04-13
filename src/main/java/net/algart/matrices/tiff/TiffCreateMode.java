@@ -40,7 +40,7 @@ public enum TiffCreateMode {
     CREATE_BIG(true, true, false),
     CREATE_LE(true, false, true),
     CREATE_LE_BIG(true, true, true),
-    APPEND(false, false, false),
+    OPEN_FOR_APPEND(false, false, false),
     OPEN_EXISTING(false, false, false);
 
     private final boolean createNewFile;
@@ -81,7 +81,7 @@ public enum TiffCreateMode {
         if (createNewFile) {
             writer.create();
         } else {
-            writer.open(this == APPEND);
+            writer.open(this == OPEN_FOR_APPEND);
         }
     }
 }

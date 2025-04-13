@@ -155,7 +155,7 @@ public class TiffWriter implements Closeable {
      * create a file written in BigTIFF format (allowing to store &ge;4GB data).
      * The variants {@link TiffCreateMode#CREATE_LE}, {@link TiffCreateMode#CREATE_LE_BIG}
      * create a file with little-endian byte order (the default is big-endian).
-     * The other variants {@link TiffCreateMode#APPEND} and {@link TiffCreateMode#OPEN_EXISTING}
+     * The other variants {@link TiffCreateMode#OPEN_FOR_APPEND} and {@link TiffCreateMode#OPEN_EXISTING}
      * allow you to open an existing file using the {@link #openForAppend()} and {@link #openExisting()} methods
      * correspondingly.
      * In the case of I/O exception, the file is automatically closed.
