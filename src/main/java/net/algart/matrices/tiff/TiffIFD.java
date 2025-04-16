@@ -430,18 +430,25 @@ public class TiffIFD {
             return OptionalLong.empty();
         }
         long result = sizeOfIFDTableExcludingEntries(bigTiff, isMainIFD());
-        AtomicBoolean lastAligning = new AtomicBoolean(false);
-        for (TiffEntry entry : detailedEntries.values()) {
-            result += entry.sizeOf(tiffFileLength, lastAligning);
+        final List<TiffEntry> entries = new ArrayList<>(detailedEntries.values());
+        entries.sort(Comparator.comparingLong(TiffEntry::valueOffset));
+        long lastOffsetAfter = -Long.MAX_VALUE;
+        long lastOffset = 0;
+        for (TiffEntry entry : entries) {
+            if (((lastOffset | entry.valueOffset) & 1) == 0 && lastOffsetAfter + 1 == entry.valueOffset) {
+                // - we have 1 "extra" byte because of aligning entry offset
+                // (this is impossible for built-in data)
+                result++;
+            }
+            final long size = entry.sizeOf();
+            result += size;
             // - overflow is impossible: the number of entries is restricted by MAX_NUMBER_OF_IFD_ENTRIES,
             // the number of elements in each entry is 31-bit integer
+            lastOffset = entry.valueOffset;
+            lastOffsetAfter = entry.offsetAfter();
         }
-        if (lastAligning.get()) {
-            // - The last non-built-in entry may end with an odd byte, either if it is the end of the file
-            // or if there is image data after it: if it was aligned, this was an unnecessary operation.
-            // (Note that this entry may be not the last entry: we speak about NON-BUILT-IN entries only.)
-            result--;
-        }
+        // - Note: the last non-built-in entry may end with an odd byte, either if it is the end of the file
+        // or if there is image data after it.
         return OptionalLong.of(result);
     }
 
@@ -2097,8 +2104,10 @@ public class TiffIFD {
         for (TiffEntry entry : detailedEntries.values()) {
             if (offset == entry.valueOffset()) {
                 return true;
-                // - this position is already occupied by some IFD
-                // (probably incorrectly: this method is used for checking odd offsets)
+                // - This position is already occupied by some IFD.
+                // This is incorrect: this method is usually called with an odd "offset" argument;
+                // we have such a situation for ImageDescription tag in the file
+                // test/resources/demo/images/tiff/twelvemonkeys/signed-integral-8bit.tif
             }
         }
         return false;
@@ -2289,8 +2298,21 @@ public class TiffIFD {
 
     // Helper class for internal needs
     record TiffEntry(int tag, int type, int valueCount, long valueOffset, boolean bigTiff) {
+        TiffEntry {
+            if (valueCount < 0) {
+                throw new IllegalArgumentException("Negative valueCount = " + valueCount);
+            }
+            if (valueOffset < 0) {
+                throw new IllegalArgumentException("Negative valueOffset = " + valueOffset);
+            }
+        }
+
         long valueLength() {
             return (long) valueCount * TagTypes.sizeOfType(type);
+        }
+
+        long offsetAfter() {
+            return valueOffset + valueLength();
         }
 
         boolean builtInData() {
@@ -2301,22 +2323,12 @@ public class TiffIFD {
             return bytesPerEntry(this.bigTiff);
         }
 
-        long sizeOf(long tiffFileLength, AtomicBoolean lastAligning) {
+        long sizeOf() {
             final int builtInLength = bytesPerEntry();
             if (builtInData()) {
                 return builtInLength;
             }
             long valueLength = valueLength();
-            boolean needToAlign = (valueLength & 1) != 0;
-            if (valueOffset + valueLength == tiffFileLength) {
-                needToAlign = false;
-                // - special case: some information added at the end of the file
-            }
-            lastAligning.set(needToAlign);
-            if (needToAlign) {
-                // in a correct TIFF file, each IFD entry occupies even number of bytes;
-                valueLength++;
-            }
             return builtInLength + valueLength;
         }
 
