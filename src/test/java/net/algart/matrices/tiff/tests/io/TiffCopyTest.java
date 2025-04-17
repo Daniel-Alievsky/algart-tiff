@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff.tests.io;
 
+import net.algart.matrices.tiff.TiffOpenMode;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
@@ -78,7 +79,7 @@ public class TiffCopyTest {
             int firstIFDIndex,
             int lastIFDIndex)
             throws IOException {
-        try (TiffReader reader = new TiffReader(sourceFile, false)) {
+        try (TiffReader reader = new TiffReader(sourceFile, TiffOpenMode.ALLOW_NON_TIFF)) {
             if (useContext) {
                 reader.setContext(TiffReader.newSCIFIOContext());
             }

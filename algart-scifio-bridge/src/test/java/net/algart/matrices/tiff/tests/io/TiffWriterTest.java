@@ -31,10 +31,7 @@ import net.algart.arrays.Matrix;
 import net.algart.arrays.PackedBitArrays;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.math.IRectangularArea;
-import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.TiffSampleType;
-import net.algart.matrices.tiff.TiffWriter;
+import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.compatibility.TiffParser;
 import net.algart.matrices.tiff.compatibility.TiffSaver;
 import net.algart.matrices.tiff.tags.TagCompression;
@@ -57,13 +54,13 @@ public class TiffWriterTest {
     private final static int IMAGE_WIDTH = 1011;
     private final static int IMAGE_HEIGHT = 1051;
 
-    private static void printReaderInfo(TiffWriter writer) throws IOException {
+    private static void printReaderInfo(TiffWriter writer) {
         System.out.print("Checking file by the reader: ");
         try {
-            final TiffReader reader = writer.newReaderOfThisFile(false);
+            final TiffReader reader = writer.newReaderOfThisFile(TiffOpenMode.NO_CHECKS);
             final int n = reader.numberOfImages();
             System.out.printf("%s, %s%n",
-                    reader.isValidTiff() ? "valid" : "INVALID: " + reader.openingException(),
+                    reader.isValidTiff() ? "valid" : "INVALID: \"" + reader.openingException() + "\"",
                     n == 0 ? "no IFD" : "#0/" + n + ": " + reader.ifd(0));
         } catch (IOException e) {
             e.printStackTrace(System.out);
@@ -329,13 +326,13 @@ public class TiffWriterTest {
                     final TiffMapForWriting map;
                     if (overwriteExisting) {
                         // - Ignoring previous IFD. It has no sense for k > 0:
-                        // after writing first IFD (at firstIfdIndex), new number of IFD
+                        // after writing the first IFD (at firstIfdIndex), the new number of IFD
                         // will become firstIfdIndex+1, i.e., there are no more IFDs.
                         // Note: you CANNOT change properties (like color or grayscale) of image #firstIfdIndex,
                         // but the following images will be written with new properties.
                         // Note: it seems that we need to "flush" current writer.getStream(),
                         // but DataHandle has not any analogs of flush() method.
-                        final TiffReader reader = writer.newReaderOfThisFile(false);
+                        final TiffReader reader = writer.newReaderOfThisFile();
                         ifd = reader.readSingleIFD(ifdIndex);
                         ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
                     }
@@ -410,7 +407,7 @@ public class TiffWriterTest {
             TiffWriter writer,
             int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        final TiffReader reader = writer.newReaderOfThisFile(true);
+        final TiffReader reader = writer.newReaderOfThisFile(TiffOpenMode.VALID_TIFF);
         final IRectangularArea areaToWrite = IRectangularArea.valueOf(
                 fromX, fromY, fromX + sizeX - 1, fromY + sizeY - 1);
         for (TiffTile tile : writer.lastMap().tiles()) {

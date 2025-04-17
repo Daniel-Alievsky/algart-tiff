@@ -59,7 +59,7 @@ public class TiffReaderWriterScifioTest {
             System.out.printf("%nTest %d%n", test);
 
             DataHandle<Location> bytesHandle = TiffReader.getBytesHandle(new BytesLocation(10));
-            TiffReader reader = new TiffReader(bytesHandle, false);
+            TiffReader reader = new TiffReader(bytesHandle, TiffOpenMode.NO_CHECKS);
             checkContext(reader);
             Context context = TiffReader.newSCIFIOContext();
             reader.setContext(context);

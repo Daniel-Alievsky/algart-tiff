@@ -26,6 +26,7 @@ package net.algart.matrices.tiff.executable;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.TiffOpenMode;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.tags.Tags;
 
@@ -38,16 +39,11 @@ import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TiffInfo {
-    boolean strict = false;
     TiffIFD.StringFormat stringFormat = TiffIFD.StringFormat.NORMAL;
 
     public static void main(String[] args) {
         TiffInfo info = new TiffInfo();
         int startArgIndex = 0;
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-strict")) {
-            info.strict = true;
-            startArgIndex++;
-        }
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-detailed")) {
             info.stringFormat = TiffIFD.StringFormat.DETAILED;
             startArgIndex++;
@@ -93,7 +89,7 @@ public class TiffInfo {
     }
 
     private void showTiffInfo(Path tiffFile, int firstIFDIndex, int lastIFDIndex) throws IOException {
-        try (TiffReader reader = new TiffReader(tiffFile, false)) {
+        try (TiffReader reader = new TiffReader(tiffFile, TiffOpenMode.ALLOW_NON_TIFF)) {
             if (reader.isTiff() != reader.isValidTiff()) {
                 // - impossible with this form of the constructor
                 throw new AssertionError();
@@ -101,9 +97,9 @@ public class TiffInfo {
             if (!reader.isTiff()) {
                 final Exception e = reader.openingException();
                 System.out.printf("%nFile %s: not TIFF%s", tiffFile,
-                        e instanceof TiffException ? "" : "%n  (%s)".formatted( e.getMessage()));
+                        e instanceof TiffException ? "" : "%n  (%s)".formatted(e == null ? "??" : e.getMessage()));
+                // "??" should not appear here
             } else {
-                reader.setRequireValidTiff(strict);
                 var ifdList = reader.allIFDs();
                 final int ifdCount = ifdList.size();
                 firstIFDIndex = Math.max(firstIFDIndex, 0);

@@ -26,6 +26,7 @@ package net.algart.matrices.tiff.tests.misc;
 
 import net.algart.arrays.JArrays;
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.TiffOpenMode;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.tags.Tags;
 
@@ -44,7 +45,7 @@ public class TiffIFDTileOffsetsTest {
         final Path file = Paths.get(args[0]);
         final int ifdIndex = Integer.parseInt(args[1]);
 
-        TiffReader reader = new TiffReader(file, false);
+        TiffReader reader = new TiffReader(file, TiffOpenMode.VALID_TIFF);
         long t1 = System.nanoTime();
         TiffIFD ifd = reader.readSingleIFD(ifdIndex);
         long t2 = System.nanoTime();

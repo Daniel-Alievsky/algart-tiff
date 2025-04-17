@@ -25,10 +25,11 @@
 package net.algart.matrices.tiff;
 
 import java.io.IOException;
+import java.nio.file.Path;
 
 /**
- * Mode of creating/opening TIFF file by {@link TiffWriter}.
- * See comments to {@link TiffWriter#TiffWriter(java.nio.file.Path, TiffCreateMode)} constructor.
+ * Mode of creating/opening a TIFF file by {@link TiffWriter}.
+ * See comments to {@link TiffWriter#TiffWriter(Path, TiffCreateMode)} constructor.
  */
 public enum TiffCreateMode {
     NO_ACTIONS(false, false, false) {

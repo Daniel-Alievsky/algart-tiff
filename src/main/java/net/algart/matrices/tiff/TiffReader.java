@@ -47,6 +47,7 @@ import org.scijava.io.location.Location;
 
 import java.awt.image.BufferedImage;
 import java.io.Closeable;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.ref.Reference;
@@ -105,7 +106,6 @@ public class TiffReader implements Closeable {
     private static final System.Logger LOG = System.getLogger(TiffReader.class.getName());
     private static final boolean LOGGABLE_DEBUG = LOG.isLoggable(System.Logger.Level.DEBUG);
 
-    private boolean requireValidTiff;
     private boolean caching = false;
     private long maxCachingMemory = DEFAULT_MAX_CACHING_MEMORY;
     private boolean interleaveResults = false;
@@ -158,71 +158,93 @@ public class TiffReader implements Closeable {
     private long timeDecodingAdditional = 0;
     private long timeCompleteDecoding = 0;
 
+    /**
+     * Equivalent to {@link #TiffReader(Path, TiffOpenMode) TiffReader(file, TiffOpenMode.VALID_TIFF)}.
+     *
+     * @param file input TIFF tile.
+     * @throws IOException in the case of any I/O errors, including a non-TIFF file or non-existing file.
+     */
     public TiffReader(Path file) throws IOException {
-        this(file, true);
-    }
-
-    public TiffReader(Path file, boolean requireValidTiff) throws IOException {
-        // We should not use getExistingFileHandle() here: if the file does not exist,
-        // the exception should be suppressed when requireValidTiff=false
-        this(getFileHandle(file), requireValidTiff, true);
+        this(file, TiffOpenMode.VALID_TIFF);
     }
 
     /**
-     * Equivalent to {@link #TiffReader(DataHandle, boolean, boolean)} with the <code>false</code> last argument.
+     * Equivalent to {@link #TiffReader(DataHandle, TiffOpenMode, boolean)
+     * TiffReader(inputStream, openMode, true)}, where the <code>inputStream</code> argument is<br>
+     * <code>new {@link FileHandle#FileHandle(FileLocation)
+     * FileHandle}(new {@link FileLocation#FileLocation(File)
+     * FileLocation}(file.toFile()))</code>
+     *
+     * @param file     input TIFF tile.
+     * @param openMode what should be checked while opening?
+     * @throws IOException in the case of any I/O errors, including a non-TIFF file or non-existing file.
+     */
+    public TiffReader(Path file, TiffOpenMode openMode) throws IOException {
+        // We should not use getExistingFileHandle() here: if the file does not exist,
+        // the exception should be suppressed when requireValidTiff=false
+        this(getFileHandle(file), openMode, true);
+    }
+
+    /**
+     * Equivalent to {@link #TiffReader(DataHandle, TiffOpenMode, boolean)} with the <code>false</code> last argument.
      * Note that you <b>should not</b> call this constructor from another constructor, creating this
      * <code>DataHandle</code>: in this case, the handle will never be closed!
      *
-     * @param inputStream      input stream; automatically replaced (wrapped) with {@link ReadBufferDataHandle},
-     *                         if this stream is still not an instance of this class.
-     * @param requireValidTiff whether the input file must exist and be a readable TIFF-file
-     *                         with a correct header.
+     * @param inputStream input stream; automatically replaced (wrapped) with {@link ReadBufferDataHandle},
+     *                    if this stream is still not an instance of this class.
+     * @param openMode    whether the input file must exist and be a readable TIFF-file
+     *                    with a correct header.
      * @throws TiffException if the file is not a correct TIFF file
      * @throws IOException   in the case of any problems with the input file
      */
-    public TiffReader(DataHandle<Location> inputStream, boolean requireValidTiff) throws IOException {
-        this(inputStream, requireValidTiff, false);
+    public TiffReader(DataHandle<Location> inputStream, TiffOpenMode openMode) throws IOException {
+        this(inputStream, openMode, false);
     }
 
     /**
-     * Constructs new reader.
+     * Constructs a new TIFF reader.
      *
-     * <p>If <code>requireValidTiff</code> is <code>true</code> (standard variant), this constructor throws
-     * an exception in case of an incorrect TIFF header or any other problems, including I/O errors.
+     * <p>If <code>openMode</code> is {@link TiffOpenMode#VALID_TIFF} (standard variant), the constructor throws
+     * an exception in case of an incorrect TIFF header (non-TIFF file) or any other problems including I/O errors.
      *
-     * <p>If <code>requireValidTiff</code> is <code>false</code>, this constructor throws an exception
-     * <b>only</b> if it has successfully read 8-byte file header and found that it
-     * is indeed a TIFF file header, but then something went wrong.
+     * <p>If <code>openMode</code> is {@link TiffOpenMode#ALLOW_NON_TIFF}, the constructor
+     * allows opening non-TIFF files, but the list of IFDs returned by {@link #allIFDs()} will be empty.
+     * You can detect whether the opened file is TIFF using {@link #isTiff()} method.
+     * Non-existing file is also successfully "opened", but {@link #isTiff()} will return <code>false</code>.
+     * However, the constructor throws an exception if it has successfully read the 8-byte file header
+     * and found that it is indeed a TIFF file header, but then something went wrong.
      * (Example of a possible problem: the file is too short for a valid TIFF).
      * All other errors including a non-existing file do not result in exceptions (they are caught),
-     * but you can detect this situation by the fact that {@link #isValidTiff()} method will return <code>false</code>,
      * and you can know the occurred exception by {@link #openingException()} method.
-     * Note: if you need to suppress <i>all</i> exceptions, you should use the constructor
-     * {@link #TiffReader(DataHandle, Consumer)}.
+     *
+     * <p>If <code>openMode</code> is {@link TiffOpenMode#NO_CHECKS}, the constructor catches
+     * all possible exceptions. In the case of any exception, {@link #isValidTiff()} method will return
+     * <code>false</code> and you can know the occurred exception by {@link #openingException()} method.
      *
      * <p>In the case where an exception is thrown (not caught),
      * <code>closeStreamOnException</code> argument specifies whether this function
      * must close the input stream or no. It <b>should</b> be true when you call this constructor
      * from another constructor, which creates <code>DataHandle</code>: it is the only way to close
-     * an invalid file. In other situation this flag may be <code>false</code>, then you must close
+     * an invalid file. In another situation this flag may be <code>false</code>, then you must close
      * the input stream yourself.
      *
      * @param inputStream            input stream; automatically replaced (wrapped) with {@link ReadBufferDataHandle}
      *                               if this stream is still not an instance of this class.
-     * @param requireValidTiff       whether the input file must exist and be a readable TIFF-file
-     *                               with a correct header.
+     * @param openMode               what should be checked while opening?
      * @param closeStreamOnException if <code>true</code>, the input stream is closed in the case of any exception;
-     *                               ignored if <code>requireValidTiff</code> is <code>false</code>.
+     *                               ignored if <code>openMode</code> is {@link TiffOpenMode#NO_CHECKS}.
      * @throws TiffException if the file is not a correct TIFF file.
      * @throws IOException   in the case of any problems with the input file.
      */
-    public TiffReader(DataHandle<Location> inputStream, boolean requireValidTiff, boolean closeStreamOnException)
+    public TiffReader(DataHandle<Location> inputStream, TiffOpenMode openMode, boolean closeStreamOnException)
             throws IOException {
-        this(inputStream, null);
-        this.requireValidTiff = requireValidTiff;
-        assert tiff || !validTiff;
-        final boolean tiffButInvalid = this.tiff && !validTiff;
-        if (requireValidTiff ? !validTiff : tiffButInvalid) {
+        this(checkNonNull(inputStream, openMode), (Consumer<Exception>) null);
+        assert this.tiff || !this.validTiff;
+        if (!openMode.isAnythingChecked()) {
+            return;
+        }
+        final boolean tiffButInvalid = this.tiff && !this.validTiff;
+        if (openMode.isRequireValidTiff() ? !this.validTiff : tiffButInvalid) {
             if (closeStreamOnException) {
                 try {
                     inputStream.close();
@@ -237,10 +259,13 @@ public class TiffReader implements Closeable {
             }
             throw new TiffException(openingException);
         }
+        // assert this.validTiff == this.tiff; // - this is redundant
     }
 
     /**
      * Universal constructor, called from other constructors.
+     * Its behavior is equivalent to the constructor
+     * {@link #TiffReader(DataHandle, TiffOpenMode)} with the argument {@link TiffOpenMode#NO_CHECKS}.
      *
      * <p>Unlike other constructors, this one never throws an exception.
      * This is helpful because it allows
@@ -248,18 +273,23 @@ public class TiffReader implements Closeable {
      *
      * <p>If the file is not a correct TIFF or in the case of any other I/O problem,
      * the information about the problem is stored in an exception, which can be retrieved later
-     * by {@link #openingException()} method and which is passed to <code>exceptionHandler</code>
-     * (if it is not {@code null}).
+     * by {@link #openingException()} method.
+     *
+     * <p>The argument <code>exceptionHandler</code> may be used to handle the caught exceptions.
+     * But the main goal of adding this argument is to avoid calling this constructor by a mistake.
+     * If we instead provided a constructor with a single inputStream argument,
+     * you might think it would be a good idea to use it by default, but it is not so:
+     * typically you need {@link TiffOpenMode#VALID_TIFF} variant of behavior.
      *
      * @param inputStream      input stream; automatically replaced (wrapped) with {@link ReadBufferDataHandle},
      *                         if this stream is still not an instance of this class.
      * @param exceptionHandler if not {@code null}, it will be called in the case of some checked exception;
      *                         for example, it may log it. But usually it is better idea to use the main
-     *                         constructor {@link #TiffReader(DataHandle, boolean, boolean)} with catching exception.
+     *                         constructor {@link #TiffReader(DataHandle, TiffOpenMode, boolean)}
+     *                         with catching exception.
      */
     public TiffReader(DataHandle<Location> inputStream, Consumer<Exception> exceptionHandler) {
         Objects.requireNonNull(inputStream, "Null in stream");
-        this.requireValidTiff = false;
         this.in = inputStream instanceof ReadBufferDataHandle ?
                 inputStream :
                 new ReadBufferDataHandle<>(inputStream);
@@ -273,23 +303,6 @@ public class TiffReader implements Closeable {
         if (exceptionHandler != null && openingException != null) {
             exceptionHandler.accept(openingException);
         }
-    }
-
-    public boolean isRequireValidTiff() {
-        return requireValidTiff;
-    }
-
-    /**
-     * Sets whether the parser should always require a file with the valid TIFF format.
-     * Default value is specified in the constructor or is <code>false</code>
-     * when using a constructor without such argument.
-     *
-     * @param requireValidTiff whether a TIFF file should be correct.
-     * @return a reference to this object.
-     */
-    public TiffReader setRequireValidTiff(boolean requireValidTiff) {
-        this.requireValidTiff = requireValidTiff;
-        return this;
     }
 
     public boolean isCaching() {
@@ -354,9 +367,9 @@ public class TiffReader implements Closeable {
      * <p>By default, this flag is cleared. In this case, {@link #readMatrix(TiffMapForReading)}
      * and similar methods return binary AlgART matrices.</p>
      *
-     * <p>Note that TIFF images, using <i>m</i>&gt;1 bit per pixel where <i>m</i> is not divisible by 8,
-     * for example, 4-bit indexed images with a palette or 15-bit RGB image, 5+5+5 bits/channel,
-     * are always unpacked to format with an integer number of bytes per channel (<i>m</i>=8*<i>k</i>).
+     * <p>Note that some TIFF images use <i>m</i>&gt;1 bit per pixel, where <i>m</i> is not divisible by 8,
+     * such as 4-bit indexed images with a palette or 15-bit RGB image, 5+5+5 bits/channel.
+     * Such images are always unpacked to format with an integer number of bytes per channel (<i>m</i>=8*<i>k</i>).
      * The only exception is 1-bit monochrome images: in this case, unpacking into bytes
      * is controlled by this method.</p>
      *
@@ -425,7 +438,7 @@ public class TiffReader implements Closeable {
      * value of this flag, which causes automatic scaling returned values: multiplying by
      * (2<sup><i>n</i></sup>&minus;1)/(2<sup><i>k</i></sup>&minus;1), where <i>n</i> is the result bit depth
      * and <i>k</i> is the source one (for example, for 12-bit image <i>k</i>=12 and <i>n</i>=16).
-     * As the result, the returned picture will look alike the source one.</p>
+     * As a result, the returned picture will look alike the source one.</p>
      *
      * <p>Default value is <code>true</code>. However, the scaling is still not performed if
      * PhotometricInterpretation TIFF tag is "Palette" (3) or "Transparency Mask" (4): in these cases,
@@ -433,7 +446,7 @@ public class TiffReader implements Closeable {
      *
      * @param autoScaleWhenIncreasingBitDepth whether do we need to scale pixel samples, represented with <i>k</i>
      *                                        bits/sample, <i>k</i>%8&nbsp;&ne;&nbsp;0, when increasing bit depth
-     *                                        to nearest <i>n</i> bits/sample, where
+     *                                        to the nearest <i>n</i> bits/sample, where
      *                                        <i>n</i>&nbsp;&gt;&nbsp;<i>k</i> and <i>n</i> is divided by 8.
      * @return a reference to this object.
      */
@@ -595,9 +608,12 @@ public class TiffReader implements Closeable {
      * Returns whether this file is a TIFF file, both ordinary or BigTIFF
      * (i.e., whether it contains the correct TIFF or BigTIFF file header).
      *
+     * <p>Note: this method always returns <code>true</code> if you used a constructor with
+     * the open mode {@link TiffOpenMode#VALID_TIFF}.
+     *
      * <p>Note: if this method returns <code>true</code>, the file can be still invalid.
-     * If the problem was detected while opening the file, you can know about this
-     * by <code>false</code> result of {@link #isValidTiff()} method.
+     * If the problem was detected while opening the file in the mode {@link TiffOpenMode#NO_CHECKS},
+     * you can know about this by <code>false</code> result of {@link #isValidTiff()} method.
      *
      * @return whether this is a TIFF.
      */
@@ -616,13 +632,14 @@ public class TiffReader implements Closeable {
 
     /**
      * Returns <code>true</code> if the file is a TIFF file and if the constructor did not detect
-     * any problems while opening the file. However, this is not guarantee that problems
+     * any problems while opening the file.
+     * However, this is not a guarantee that problems
      * (like format errors) will not be found later while reading IFDs or image data.
      *
-     * <p>Note: usually this method returns the same result as {@link #isTiff()}.
-     * The only situation when this method returns <code>false</code> and {@link #isTiff()}
-     * returns <code>true</code> is using the special constructor {@link #TiffReader(DataHandle, Consumer)}
-     * for some invalid TIFF files (usually not written correctly).
+     * <p>Note: this method always returns <code>true</code> if you used a constructor with
+     * any {@link TiffOpenMode open mode} besides {@link TiffOpenMode#NO_CHECKS}.
+     *
+     * <p>Note: this method is equivalent to the check <code>{@link #openingException()} == null</code>.
      *
      * @return whether this is a probably correct TIFF/BigTIFF file.
      */
@@ -921,7 +938,7 @@ public class TiffReader implements Closeable {
      */
     public long[] readIFDOffsets() throws IOException {
         synchronized (fileLock) {
-            if (!requireValidTiff && !validTiff) {
+            if (!validTiff) {
                 return new long[0];
             }
             final long fileLength = in.length();
@@ -939,9 +956,6 @@ public class TiffReader implements Closeable {
                 }
                 skipIFDEntries(fileLength);
                 offset = readNextOffset(true);
-            }
-            if (requireValidTiff && ifdOffsets.isEmpty()) {
-                throw new AssertionError("No IFDs, but it was not checked in readFirstIFDOffset");
             }
             return ifdOffsets.stream().mapToLong(v -> v).toArray();
         }
@@ -1676,9 +1690,18 @@ public class TiffReader implements Closeable {
         return getFileHandle(file);
     }
 
+    /**
+     * Warning: you should never call {@link DataHandle#set(Object)} method of the returned result!
+     * It can lead to unpredictable <code>ClassCastException</code>.
+     */
+    @SuppressWarnings("rawtypes, unchecked")
     static DataHandle<Location> getFileHandle(Path file) {
         Objects.requireNonNull(file, "Null file");
-        return getFileHandle(new FileLocation(file.toFile()));
+        FileHandle fileHandle = new FileHandle(new FileLocation(file.toFile()));
+        fileHandle.setLittleEndian(false);
+        // - in the current implementation it is an extra operator: BigEndian is defaulted in scijava;
+        // but we want to be sure that this behavior will be the same in all future versions
+        return (DataHandle) fileHandle;
     }
 
     /**
@@ -1926,7 +1949,7 @@ public class TiffReader implements Closeable {
 
     private long readFirstOffsetFromCurrentPosition(boolean updatePositionOfLastOffset, boolean bigTiff)
             throws IOException {
-        final long offset = readNextOffset(updatePositionOfLastOffset, true, bigTiff);
+        final long offset = readNextOffset(updatePositionOfLastOffset, bigTiff);
         if (offset == 0) {
             throw new TiffException("Uncompleted TIFF" + prettyInName() +
                     ": the file does not contain any images; " +
@@ -1956,7 +1979,7 @@ public class TiffReader implements Closeable {
     }
 
     private long readNextOffset(boolean updatePositionOfLastOffset) throws IOException {
-        return readNextOffset(updatePositionOfLastOffset, this.requireValidTiff, this.bigTiff);
+        return readNextOffset(updatePositionOfLastOffset, this.bigTiff);
     }
 
     /**
@@ -1965,7 +1988,7 @@ public class TiffReader implements Closeable {
      * For other Tiffs, a 32-bit number is read and possibly adjusted for a possible carry-over
      * from the previous offset.
      */
-    private long readNextOffset(boolean updatePositionOfLastOffset, boolean requireValidTiff, boolean bigTiff)
+    private long readNextOffset(boolean updatePositionOfLastOffset, boolean bigTiff)
             throws IOException {
         final long fileLength = in.length();
         final long fileOffset = in.offset();
@@ -1992,17 +2015,15 @@ public class TiffReader implements Closeable {
             offset = (long) in.readInt() & 0xffffffffL;
             // - in usual TIFF format, offset if 32-bit UNSIGNED value
         }
-        if (requireValidTiff) {
-            if (offset < 0) {
-                // - possibly in BigTIFF only
-                throw new TiffException("Invalid TIFF" + prettyInName() +
-                        ": negative 64-bit offset " + offset + " at file position " + fileOffset +
-                        ", probably the file is corrupted");
-            }
-            if (offset >= fileLength) {
-                throw new TiffException("Invalid TIFF" + prettyInName() + ": offset " + offset +
-                        " at file position " + fileOffset + " is outside the file, probably the is corrupted");
-            }
+        if (offset < 0) {
+            // - possibly in BigTIFF only
+            throw new TiffException("Invalid TIFF" + prettyInName() +
+                    ": negative 64-bit offset " + offset + " at file position " + fileOffset +
+                    ", probably the file is corrupted");
+        }
+        if (offset >= fileLength) {
+            throw new TiffException("Invalid TIFF" + prettyInName() + ": offset " + offset +
+                    " at file position " + fileOffset + " is outside the file, probably the is corrupted");
         }
         if (updatePositionOfLastOffset) {
             this.positionOfLastIFDOffset = fileOffset;
@@ -2262,6 +2283,12 @@ public class TiffReader implements Closeable {
 
     private static long debugTime() {
         return BUILT_IN_TIMING && LOGGABLE_DEBUG ? System.nanoTime() : 0;
+    }
+
+    private static DataHandle<Location> checkNonNull(DataHandle<Location> inputStream, TiffOpenMode openMode) {
+        Objects.requireNonNull(inputStream, "Null input stream");
+        Objects.requireNonNull(openMode, "Null open mode");
+        return inputStream;
     }
 
     class CachedTile {

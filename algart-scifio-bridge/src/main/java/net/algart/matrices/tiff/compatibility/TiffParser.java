@@ -51,6 +51,7 @@ import org.scijava.util.IntRect;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Consumer;
 
 /**
  * Legacy version of {@link TiffReader} with some deprecated method,
@@ -132,7 +133,7 @@ public class TiffParser extends TiffReader {
      */
     @Deprecated
     public TiffParser(final Context context, final DataHandle<Location> in) {
-        super(in, null);
+        super(in, (Consumer<Exception>) null);
         Objects.requireNonNull(context, "Null context");
         setContext(context);
         // Disable new features of TiffReader for compatibility:

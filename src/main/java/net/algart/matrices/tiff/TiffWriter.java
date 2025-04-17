@@ -135,7 +135,7 @@ public class TiffWriter implements Closeable {
      * Creates a new TIFF writer.
      *
      * <p>If the argument <code>createMode</code> is {@link TiffCreateMode#NO_ACTIONS},
-     * this constructor does not try to open or create a file and, so, never
+     * the constructor does not try to open or create a file and, so, never
      * throw {@link IOException}.
      * This behavior <b>differ</b> from the constructor of {@link java.io.FileWriter#FileWriter(File) FileWriter}
      * and similar classes, which create and open a file.
@@ -149,7 +149,7 @@ public class TiffWriter implements Closeable {
      * {@link TiffCreateMode#CREATE_BIG},
      * {@link TiffCreateMode#CREATE_LE},
      * {@link TiffCreateMode#CREATE_LE_BIG},
-     * this constructor automatically removes the file at the specified path, if it exists,
+     * the constructor automatically removes the file at the specified path, if it exists,
      * and calls {@link #create()} method.
      * The variants {@link TiffCreateMode#CREATE_BIG}, {@link TiffCreateMode#CREATE_LE_BIG}
      * create a file written in BigTIFF format (allowing to store &ge;4GB data).
@@ -201,8 +201,12 @@ public class TiffWriter implements Closeable {
         // - we do not use WriteBufferDataHandle here: this is not too important for efficiency
     }
 
-    public TiffReader newReaderOfThisFile(boolean requireValidTiff) throws IOException {
-        return new TiffReader(out, requireValidTiff, false);
+    public TiffReader newReaderOfThisFile() throws IOException {
+        return newReaderOfThisFile(TiffOpenMode.VALID_TIFF);
+    }
+
+    public TiffReader newReaderOfThisFile(TiffOpenMode openMode) throws IOException {
+        return new TiffReader(out, openMode, false);
     }
 
     /**
@@ -672,7 +676,7 @@ public class TiffWriter implements Closeable {
                 // In this branch, we MUST NOT try to analyze the file: it is not a correct TIFF!
             } else {
                 ifdOffsets.clear();
-                final TiffReader reader = new TiffReader(out, true, false);
+                final TiffReader reader = new TiffReader(out, TiffOpenMode.VALID_TIFF, false);
                 // - note: we should NOT close the reader in the case of any problem,
                 // because it uses the same stream with this writer
                 final long[] offsets = reader.readIFDOffsets();
@@ -1278,7 +1282,7 @@ public class TiffWriter implements Closeable {
      * Preloads all tiles intersecting the specified rectangle from the image #<code>ifdIndex</code>
      * in the existing TIFF and stores them in the returned map.
      * The map is created by {@link #existingMap(TiffIFD)} method based on the IFD
-     * loaded with help of TIFF reader created by {@link #newReaderOfThisFile(boolean)} method.
+     * loaded with help of TIFF reader created by {@link #newReaderOfThisFile()} method.
      * This reader then loads there all tiles intersecting the rectangle
      * <code>fromX&le;x&lt;fromX+sizeX</code>, <code>fromY&le;y&lt;fromY+sizeY</code>,
      * and their content is copied to the corresponding tiles in the returned map.
@@ -1319,7 +1323,7 @@ public class TiffWriter implements Closeable {
             boolean loadTilesFullyInsideRectangle)
             throws IOException {
         TiffReader.checkRequestedArea(fromX, fromY, sizeX, sizeY);
-        @SuppressWarnings("resource") final TiffReader reader = newReaderOfThisFile(false);
+        @SuppressWarnings("resource") final TiffReader reader = newReaderOfThisFile();
         final TiffIFD ifd = reader.readSingleIFD(ifdIndex);
         ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
         final TiffMapForWriting map = existingMap(ifd);

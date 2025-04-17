@@ -26,6 +26,7 @@ package net.algart.matrices.tiff.tests.misc;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.TiffOpenMode;
 import net.algart.matrices.tiff.TiffReader;
 
 import java.io.IOException;
@@ -46,22 +47,23 @@ public class TiffIFDAndIFDOffsetsTest {
         final int ifdIndex = Integer.parseInt(args[1]);
         System.out.printf("Reading IFD #%d from %s...%n", ifdIndex, file);
 
-        TiffReader reader = new TiffReader(file, false);
+        TiffReader reader = new TiffReader(file, TiffOpenMode.ALLOW_NON_TIFF);
         final int n1 = reader.allMaps().size();
         final int n2 = reader.readIFDOffsets().length;
         // - should not throw exception for invalid file
         if (n1 != n2) {
             throw new AssertionError();
         }
+        System.out.printf("Number of IFDs: %d%n", n1);
         // reader.allMaps().set(0, null); // - should not be possible (result must be immutable)
         // reader.allIFDs().clear(); // - should not be possible (result must be immutable)
         reader.close();
-        reader = new TiffReader(file, false);
+        reader = new TiffReader(file, TiffOpenMode.ALLOW_NON_TIFF);
 
         System.out.println("Analysing...");
         try {
             reader.readFirstIFDOffset();
-            // - should throw exception for invalid file
+            // - should throw exception for an invalid file
             if (!reader.isValidTiff()) {
                 throw new AssertionError();
             }
