@@ -153,9 +153,10 @@ public class TiffSaver extends TiffWriter {
         return this;
     }
 
+    @SuppressWarnings("unchecked")
     @Deprecated
     public DataHandle<Location> getStream() {
-        return super.stream();
+        return (DataHandle<Location>) super.output();
     }
 
     /**
@@ -165,7 +166,7 @@ public class TiffSaver extends TiffWriter {
      */
     @Deprecated
     public void writeHeader() throws IOException {
-        final DataHandle<Location> out = stream();
+        final DataHandle<Location> out = getStream();
         final boolean bigTiff = isBigTiff();
 
         // write endianness indicator
@@ -206,7 +207,7 @@ public class TiffSaver extends TiffWriter {
     @Deprecated
     public void writeIFD(final IFD ifd, final long nextOffset) throws IOException, FormatException {
         TiffIFD tiffIFD = net.algart.matrices.tiff.compatibility.TiffParser.toTiffIFD(ifd);
-        tiffIFD.setFileOffsetForWriting(stream().offset());
+        tiffIFD.setFileOffsetForWriting(getStream().offset());
         tiffIFD.setNextIFDOffset(nextOffset);
         rewriteIFD(tiffIFD, true);
     }
@@ -215,7 +216,7 @@ public class TiffSaver extends TiffWriter {
     public void writeIFDValue(final DataHandle<Location> extraOut,
                               final long offset, final int tag, Object value) throws FormatException,
             IOException {
-        final DataHandle<Location> out = stream();
+        final DataHandle<Location> out = getStream();
         final boolean bigTiff = isBigTiff();
         extraOut.setLittleEndian(isLittleEndian());
 
@@ -358,7 +359,7 @@ public class TiffSaver extends TiffWriter {
         if (handle == null) throw new FormatException("Output cannot be null");
         final io.scif.formats.tiff.TiffParser parser = new io.scif.formats.tiff.TiffParser(getContext(), handle);
         parser.getIFDOffsets();
-        final DataHandle<Location> out = stream();
+        final DataHandle<Location> out = getStream();
         out.seek(handle.offset() - (isBigTiff() ? 8 : 4));
         writeIntValue(out, 0);
     }
@@ -379,7 +380,7 @@ public class TiffSaver extends TiffWriter {
 //        log.debug("overwriteIFDValue (ifd=" + ifd + "; tag=" + tag + "; value=" +
 //                value + ")");
 
-        final DataHandle<Location> out = stream();
+        final DataHandle<Location> out = getStream();
         raf.seek(0);
         final io.scif.formats.tiff.TiffParser parser = new io.scif.formats.tiff.TiffParser(getContext(), raf);
         final Boolean valid = parser.checkHeader();
@@ -685,7 +686,7 @@ public class TiffSaver extends TiffWriter {
     private void writeImageIFD(IFD ifd, final long planeIndex,
                                final byte[][] strips, final int nChannels, final boolean last, final int x,
                                final int y) throws IOException, FormatException {
-        DataHandle<Location> out = stream();
+        DataHandle<Location> out = getStream();
         log.debug("Attempting to write image IFD.");
         final int tilesPerRow = (int) ifd.getTilesPerRow();
         final int tilesPerColumn = (int) ifd.getTilesPerColumn();

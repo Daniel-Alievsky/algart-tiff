@@ -110,7 +110,7 @@ public class TiffInfo {
                         reader.isBigTiff() ? "BigTIFF" : "not BigTIFF",
                         reader.isLittleEndian() ? "little" : "big");
                 long size = reader.sizeOfHeader();
-                final long tiffFileLength = reader.stream().length();
+                final long tiffFileLength = reader.input().length();
                 for (int k = firstIFDIndex; k <= lastIFDIndex; k++) {
                     final TiffIFD ifd = ifdList.get(k);
                     System.out.print(ifdInfo(ifd, k, ifdCount));

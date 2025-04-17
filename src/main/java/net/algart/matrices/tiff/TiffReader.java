@@ -121,7 +121,7 @@ public class TiffReader implements Closeable {
     private volatile Context context = null;
 
     private final Exception openingException;
-    private final DataHandle<Location> in;
+    private final DataHandle<? extends Location> in;
     private final boolean tiff;
     private final boolean validTiff;
     private final boolean bigTiff;
@@ -159,13 +159,25 @@ public class TiffReader implements Closeable {
     private long timeCompleteDecoding = 0;
 
     /**
-     * Equivalent to {@link #TiffReader(Path, TiffOpenMode) TiffReader(file, TiffOpenMode.VALID_TIFF)}.
+     * Equivalent to <code>{@link #TiffReader(Path, TiffOpenMode)
+     * TiffReader}(file, {@link TiffOpenMode#VALID_TIFF})</code>.
      *
      * @param file input TIFF tile.
      * @throws IOException in the case of any I/O errors, including a non-TIFF file or non-existing file.
      */
     public TiffReader(Path file) throws IOException {
         this(file, TiffOpenMode.VALID_TIFF);
+    }
+
+    /**
+     * Equivalent to <code>{@link #TiffReader(Path, TiffOpenMode)
+     * TiffReader}(file, {@link TiffOpenMode#of}(requireValidTiff))</code>.
+     *
+     * @param file input TIFF tile.
+     * @throws IOException in the case of any I/O errors, including a non-TIFF file or non-existing file.
+     */
+    public TiffReader(Path file, boolean requireValidTiff) throws IOException {
+        this(file, TiffOpenMode.of(requireValidTiff));
     }
 
     /**
@@ -197,7 +209,7 @@ public class TiffReader implements Closeable {
      * @throws TiffException if the file is not a correct TIFF file
      * @throws IOException   in the case of any problems with the input file
      */
-    public TiffReader(DataHandle<Location> inputStream, TiffOpenMode openMode) throws IOException {
+    public TiffReader(DataHandle<? extends Location> inputStream, TiffOpenMode openMode) throws IOException {
         this(inputStream, openMode, false);
     }
 
@@ -236,7 +248,7 @@ public class TiffReader implements Closeable {
      * @throws TiffException if the file is not a correct TIFF file.
      * @throws IOException   in the case of any problems with the input file.
      */
-    public TiffReader(DataHandle<Location> inputStream, TiffOpenMode openMode, boolean closeStreamOnException)
+    public TiffReader(DataHandle<? extends Location> inputStream, TiffOpenMode openMode, boolean closeStreamOnException)
             throws IOException {
         this(checkNonNull(inputStream, openMode), (Consumer<Exception>) null);
         assert this.tiff || !this.validTiff;
@@ -288,7 +300,7 @@ public class TiffReader implements Closeable {
      *                         constructor {@link #TiffReader(DataHandle, TiffOpenMode, boolean)}
      *                         with catching exception.
      */
-    public TiffReader(DataHandle<Location> inputStream, Consumer<Exception> exceptionHandler) {
+    public TiffReader(DataHandle<? extends Location> inputStream, Consumer<Exception> exceptionHandler) {
         Objects.requireNonNull(inputStream, "Null in stream");
         this.in = inputStream instanceof ReadBufferDataHandle ?
                 inputStream :
@@ -591,9 +603,9 @@ public class TiffReader implements Closeable {
     }
 
     /**
-     * Gets the stream from which TIFF data is being parsed.
+     * Returns the input stream from which TIFF data is being parsed.
      */
-    public DataHandle<Location> stream() {
+    public DataHandle<? extends Location> input() {
         synchronized (fileLock) {
             // - we prefer not to return this stream in the middle of I/O operations
             return in;
@@ -1682,7 +1694,7 @@ public class TiffReader implements Closeable {
     }
 
     // Note used in the current version. It was used in the constructor with Path argument: see comments there.
-    static DataHandle<Location> getExistingFileHandle(Path file) throws FileNotFoundException {
+    static DataHandle<? extends Location> getExistingFileHandle(Path file) throws FileNotFoundException {
         if (!Files.isRegularFile(file)) {
             throw new FileNotFoundException("File " + file
                     + (Files.exists(file) ? " is not a regular file" : " does not exist"));
@@ -1690,44 +1702,28 @@ public class TiffReader implements Closeable {
         return getFileHandle(file);
     }
 
-    /**
-     * Warning: you should never call {@link DataHandle#set(Object)} method of the returned result!
-     * It can lead to unpredictable <code>ClassCastException</code>.
-     */
-    @SuppressWarnings("rawtypes, unchecked")
-    static DataHandle<Location> getFileHandle(Path file) {
+    static DataHandle<? extends Location> getFileHandle(Path file) {
         Objects.requireNonNull(file, "Null file");
         FileHandle fileHandle = new FileHandle(new FileLocation(file.toFile()));
         fileHandle.setLittleEndian(false);
         // - in the current implementation it is an extra operator: BigEndian is defaulted in scijava;
         // but we want to be sure that this behavior will be the same in all future versions
-        return (DataHandle) fileHandle;
+        return fileHandle;
     }
 
-    /**
-     * Warning: you should never call {@link DataHandle#set(Object)} method of the returned result!
-     * It can lead to unpredictable <code>ClassCastException</code>.
-     */
-    @SuppressWarnings("rawtypes, unchecked")
-    static DataHandle<Location> getBytesHandle(BytesLocation bytesLocation) {
+    static DataHandle<? extends Location> getBytesHandle(BytesLocation bytesLocation) {
         Objects.requireNonNull(bytesLocation, "Null bytesLocation");
-        BytesHandle bytesHandle = new BytesHandle(bytesLocation);
-        return (DataHandle) bytesHandle;
+        return new BytesHandle(bytesLocation);
     }
 
 
-    /**
-     * Warning: you should never call {@link DataHandle#set(Object)} method of the returned result!
-     * It can lead to unpredictable <code>ClassCastException</code>.
-     */
-    @SuppressWarnings("rawtypes, unchecked")
-    static DataHandle<Location> getFileHandle(FileLocation fileLocation) {
+    static DataHandle<? extends Location> getFileHandle(FileLocation fileLocation) {
         Objects.requireNonNull(fileLocation, "Null fileLocation");
         FileHandle fileHandle = new FileHandle(fileLocation);
         fileHandle.setLittleEndian(false);
         // - in the current implementation it is an extra operator: BigEndian is defaulted in scijava;
         // but we want to be sure that this behavior will be the same in all future versions
-        return (DataHandle) fileHandle;
+        return fileHandle;
     }
 
     Object scifio() {
@@ -2258,7 +2254,7 @@ public class TiffReader implements Closeable {
         return result;
     }
 
-    static String prettyFileName(String format, DataHandle<Location> handle) {
+    static String prettyFileName(String format, DataHandle<? extends Location> handle) {
         if (handle == null) {
             return "";
         }
@@ -2285,7 +2281,9 @@ public class TiffReader implements Closeable {
         return BUILT_IN_TIMING && LOGGABLE_DEBUG ? System.nanoTime() : 0;
     }
 
-    private static DataHandle<Location> checkNonNull(DataHandle<Location> inputStream, TiffOpenMode openMode) {
+    private static DataHandle<? extends Location> checkNonNull(
+            DataHandle<? extends Location> inputStream,
+            TiffOpenMode openMode) {
         Objects.requireNonNull(inputStream, "Null input stream");
         Objects.requireNonNull(openMode, "Null open mode");
         return inputStream;

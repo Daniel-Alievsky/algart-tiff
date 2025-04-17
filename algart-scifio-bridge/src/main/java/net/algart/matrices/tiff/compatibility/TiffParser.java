@@ -182,9 +182,10 @@ public class TiffParser extends TiffReader {
         return result;
     }
 
+    @SuppressWarnings("unchecked")
     @Deprecated
     public DataHandle<Location> getStream() {
-        return super.stream();
+        return (DataHandle<Location>) super.input();
     }
 
     /**
@@ -359,7 +360,7 @@ public class TiffParser extends TiffReader {
      */
     @Deprecated
     public Boolean checkHeader() throws IOException {
-        final DataHandle<Location> in = stream();
+        final DataHandle<Location> in = getStream();
         if (in.length() < 4) return null;
 
         // byte order must be II or MM
@@ -392,7 +393,7 @@ public class TiffParser extends TiffReader {
     @Deprecated
     public long[] getIFDOffsets() throws IOException {
         @SuppressWarnings("resource")
-        final DataHandle<Location> in = stream();
+        final DataHandle<Location> in = getStream();
         final boolean bigTiff = isBigTiff();
 
         final int bytesPerEntry = bigTiff ? TiffIFD.BIG_TIFF_BYTES_PER_ENTRY : TiffIFD.BYTES_PER_ENTRY;
@@ -421,7 +422,7 @@ public class TiffParser extends TiffReader {
      */
     @Deprecated
     public long getFirstOffset() throws IOException {
-        final DataHandle<Location> in = stream();
+        final DataHandle<Location> in = getStream();
         final boolean bigTiff = isBigTiff();
 
         final Boolean header = checkHeader();
@@ -449,7 +450,7 @@ public class TiffParser extends TiffReader {
      */
     @Deprecated
     public IFD getIFD(long offset) throws IOException {
-        final DataHandle<Location> in = stream();
+        final DataHandle<Location> in = getStream();
         final boolean bigTiff = isBigTiff();
         final boolean doCaching = isCachingIFDs();
 
@@ -568,7 +569,7 @@ public class TiffParser extends TiffReader {
      */
     @Deprecated
     public Object getIFDValue(final TiffIFDEntry entry) throws IOException {
-        DataHandle<Location> in = stream();
+        DataHandle<Location> in = getStream();
         final IFDType type = entry.getType();
         final int count = entry.getValueCount();
         final long offset = entry.getValueOffset();
@@ -731,7 +732,7 @@ public class TiffParser extends TiffReader {
             return null;
         }
 
-        final DataHandle<Location> in = stream();
+        final DataHandle<Location> in = getStream();
         final boolean bigTiff = isBigTiff();
 
         // The following loosely resembles the logic of readIFD()...
@@ -810,7 +811,7 @@ public class TiffParser extends TiffReader {
     public byte[] getSamples(final IFD ifd, final byte[] buf, final int x,
                              final int y, final long width, final long height, final int overlapX,
                              final int overlapY) throws IOException, FormatException {
-        final DataHandle<Location> in = stream();
+        final DataHandle<Location> in = getStream();
         // get internal non-IFD entries
         in.setLittleEndian(ifd.isLittleEndian());
 
@@ -1004,7 +1005,7 @@ public class TiffParser extends TiffReader {
     // The equivalent method in TiffReader became private: no reasons to declare it public
     @Deprecated
     public TiffIFDEntry readTiffIFDEntry() throws IOException {
-        DataHandle<Location> in = stream();
+        DataHandle<Location> in = getStream();
         final int entryTag = in.readUnsignedShort();
 
         // Parse the entry's "Type"
@@ -1066,7 +1067,7 @@ public class TiffParser extends TiffReader {
     // This trick is deprecated
     @Deprecated
     private long getNextOffset(final long previous) throws IOException {
-        DataHandle<Location> in = stream();
+        DataHandle<Location> in = getStream();
         if (isBigTiff() || fakeBigTiff) {
             // ?? getFirstOffset did not check fakeBigTiff, so it cannot work! - Daniel Alievsky
             return in.readLong();

@@ -54,6 +54,17 @@ public enum TiffOpenMode {
         this.anythingChecked = requireValid;
     }
 
+    /**
+     * Equivalent to <code>requireValidTiff ? VALID_TIFF : ALLOW_NON_TIFF</code>.
+     *
+     * @param requireValidTiff whether the file must be a valid existing TIFF file.
+     * @return {@link #VALID_TIFF} if <code>requireValidTiff</code> is <code>true</code>,
+     * otherwise {@link #ALLOW_NON_TIFF}.
+     */
+    public static TiffOpenMode of(boolean requireValidTiff) {
+        return requireValidTiff ? VALID_TIFF : ALLOW_NON_TIFF;
+    }
+
     public boolean isRequireValidTiff() {
         return requireValidTiff;
     }

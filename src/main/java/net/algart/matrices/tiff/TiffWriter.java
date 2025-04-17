@@ -95,7 +95,7 @@ public class TiffWriter implements Closeable {
     private Consumer<TiffTile> tileInitializer = this::fillEmptyTile;
     private volatile Context context = null;
 
-    private final DataHandle<Location> out;
+    private final DataHandle<? extends Location> out;
     private volatile Object scifio = null;
 
     private final Object fileLock = new Object();
@@ -195,7 +195,7 @@ public class TiffWriter implements Closeable {
      *
      * @param outputStream output stream.
      */
-    public TiffWriter(DataHandle<Location> outputStream) {
+    public TiffWriter(DataHandle<? extends Location> outputStream) {
         Objects.requireNonNull(outputStream, "Null data handle (output stream)");
         this.out = outputStream;
         // - we do not use WriteBufferDataHandle here: this is not too important for efficiency
@@ -610,9 +610,9 @@ public class TiffWriter implements Closeable {
     }
 
     /**
-     * Gets the stream from which TIFF data is being saved.
+     * Returns the output stream from which TIFF data is being saved.
      */
-    public DataHandle<Location> stream() {
+    public DataHandle<? extends Location> output() {
         synchronized (fileLock) {
             // - we prefer not to return this stream in the middle of I/O operations
             return out;
@@ -1722,7 +1722,7 @@ public class TiffWriter implements Closeable {
         final long afterMain = startOffset + mainIFDLength;
         final BytesLocation bytesLocation = new BytesLocation(0, "memory-buffer");
         final long positionOfNextOffset;
-        try (final DataHandle<Location> extraBuffer = TiffReader.getBytesHandle(bytesLocation)) {
+        try (final DataHandle<? extends Location> extraBuffer = TiffReader.getBytesHandle(bytesLocation)) {
             extraBuffer.setLittleEndian(isLittleEndian());
             for (final Map.Entry<Integer, Object> e : ifd.entrySet()) {
                 writeIFDValueAtCurrentPosition(extraBuffer, afterMain, e.getKey(), e.getValue());
@@ -1733,7 +1733,7 @@ public class TiffWriter implements Closeable {
             // - not too important: will be rewritten in writeIFDNextOffset
             final int extraLength = (int) extraBuffer.offset();
             extraBuffer.seek(0L);
-            DataHandles.copy(extraBuffer, out, extraLength);
+            copyData(extraBuffer, out, extraLength);
         }
         return positionOfNextOffset;
     }
@@ -1758,7 +1758,7 @@ public class TiffWriter implements Closeable {
      * @param value                    IFD value to write.
      */
     private void writeIFDValueAtCurrentPosition(
-            final DataHandle<Location> extraBuffer,
+            final DataHandle<? extends Location> extraBuffer,
             final long bufferOffsetInResultFile,
             final int tag,
             Object value) throws IOException {
@@ -2056,7 +2056,7 @@ public class TiffWriter implements Closeable {
      * 'bigTiff' flag is set, then the value will be written as an 8-byte long;
      * otherwise, it will be written as a 4-byte integer.
      */
-    private void writeIntOrLong(DataHandle<Location> handle, long value) throws IOException {
+    private void writeIntOrLong(DataHandle<? extends Location> handle, long value) throws IOException {
         if (bigTiff) {
             handle.writeLong(value);
         } else {
@@ -2069,7 +2069,7 @@ public class TiffWriter implements Closeable {
         }
     }
 
-    private void writeIntOrLong(DataHandle<Location> handle, int value) throws IOException {
+    private void writeIntOrLong(DataHandle<? extends Location> handle, int value) throws IOException {
         if (bigTiff) {
             handle.writeLong(value);
         } else {
@@ -2077,14 +2077,14 @@ public class TiffWriter implements Closeable {
         }
     }
 
-    private static void writeUnsignedShort(DataHandle<Location> handle, int value) throws IOException {
+    private static void writeUnsignedShort(DataHandle<? extends Location> handle, int value) throws IOException {
         if (value < 0 || value > 0xFFFF) {
             throw new TiffException("Attempt to write 32-bit value as 16-bit: " + value);
         }
         handle.writeShort(value);
     }
 
-    private static void writeUnsignedByte(DataHandle<Location> handle, int value) throws IOException {
+    private static void writeUnsignedByte(DataHandle<? extends Location> handle, int value) throws IOException {
         if (value < 0 || value > 0xFF) {
             throw new TiffException("Attempt to write 16/32-bit value as 8-bit: " + value);
         }
@@ -2137,7 +2137,7 @@ public class TiffWriter implements Closeable {
         }
     }
 
-    private static void appendUntilEvenPosition(DataHandle<Location> handle) throws IOException {
+    private static void appendUntilEvenPosition(DataHandle<? extends Location> handle) throws IOException {
         if ((handle.offset() & 0x1) != 0) {
 //            System.out.println("Correction " + handle.offset());
             handle.writeByte(0);
@@ -2250,6 +2250,13 @@ public class TiffWriter implements Closeable {
         }
     }
 
+    // Necessary to avoid a problem in DataHandles class: invalid generic type
+    @SuppressWarnings("unchecked")
+    private static long copyData(DataHandle<? extends Location> in, DataHandle<? extends Location> out, int length)
+            throws IOException {
+        return DataHandles.copy((DataHandle<Location>) in, (DataHandle<Location>) out, length);
+    }
+
     private static void checkPhotometricInterpretation(
             TagPhotometricInterpretation photometricInterpretation,
             EnumSet<TagPhotometricInterpretation> allowed,
@@ -2270,7 +2277,9 @@ public class TiffWriter implements Closeable {
         return TiffReader.BUILT_IN_TIMING && LOGGABLE_DEBUG ? System.nanoTime() : 0;
     }
 
-    private static DataHandle<Location> openWithDeletingPreviousFileIfRequested(Path file, TiffCreateMode createMode)
+    private static DataHandle<? extends Location> openWithDeletingPreviousFileIfRequested(
+            Path file,
+            TiffCreateMode createMode)
             throws IOException {
         Objects.requireNonNull(file, "Null file");
         Objects.requireNonNull(createMode, "Null createMode");
