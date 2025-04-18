@@ -51,8 +51,9 @@ public class TiffWriteMixedTest {
         try {
             final TiffReader reader = writer.newReaderOfThisFile(TiffOpenMode.NO_CHECKS);
             final int n = reader.numberOfImages();
-            System.out.printf("%s, %s%n",
+            System.out.printf("%s, %d bytes, %s%n",
                     reader.isValidTiff() ? "valid" : "INVALID: \"" + reader.openingException() + "\"",
+                    reader.input().length(),
                     n == 0 ? "no IFD" : "#0/" + n + ": " + reader.ifd(0));
         } catch (IOException e) {
             e.printStackTrace(System.out);

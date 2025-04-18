@@ -67,10 +67,10 @@ import java.util.stream.Collectors;
 /**
  * Reads TIFF format.
  *
- * <p>This object is internally synchronized and thread-safe when used in multithreaded environment.
+ * <p>This object is internally synchronized and thread-safe for concurrent use.
  * However, you should not modify objects, passed to the methods of this class from a parallel thread;
  * first, it concerns the {@link TiffIFD} arguments of many methods.
- * The same is true for the result of {@link #stream()} method.</p>
+ * The same is true for the result of {@link #input()} method.</p>
  */
 public class TiffReader implements Closeable {
     public static final long DEFAULT_MAX_CACHING_MEMORY = Math.max(0,
@@ -99,7 +99,7 @@ public class TiffReader implements Closeable {
 
     private static final int MINIMAL_ALLOWED_TIFF_FILE_LENGTH =
             TiffIFD.TIFF_FILE_HEADER_LENGTH + 2 + TiffIFD.BYTES_PER_ENTRY + 4;
-    // - 8 bytes header + at least 1 IFD entry (usually at least 2 entries required: ImageWidth + ImageLength):
+    // - 8 bytes header and at least 1 IFD entry (usually at least 2 entries required: ImageWidth + ImageLength):
     // see TiffIFD.lengthInFileExcludingEntries;
     // note that this constant should be > 16 to detect a "fake" BigTIFF file, containing header only
 
@@ -363,7 +363,7 @@ public class TiffReader implements Closeable {
 
     /**
      * Sets the flag, whether do we need to unpack binary images (one bit/pixel, black-and-white images)
-     * into <code>byte</code> matrices: black pixels to the value 0, white pixels to value 255.
+     * into <code>byte</code> matrices: black pixels to value 0, white pixels to value 255.
      *
      * <p>By default, this flag is cleared. In this case, {@link #readMatrix(TiffMapForReading)}
      * and similar methods return binary AlgART matrices.</p>
@@ -374,7 +374,7 @@ public class TiffReader implements Closeable {
      * The only exception is 1-bit monochrome images: in this case, unpacking into bytes
      * is controlled by this method.</p>
      *
-     * @param autoUnpackBitsToBytes whether do we need to unpack bit matrices to byte ones (0->0, 1->255).
+     * @param autoUnpackBitsToBytes whether do we need to unpack bit matrices to byte ones (0->0, 1->255)?
      * @return a reference to this object.
      */
     public TiffReader setAutoUnpackBitsToBytes(boolean autoUnpackBitsToBytes) {
@@ -399,13 +399,13 @@ public class TiffReader implements Closeable {
      *
      * <p>If this flag is {@code false}, you cannot use high-level reading methods as
      * {@link #readMatrix} and {@link #readJavaArray}; you must use {@link #readSamples} methods,
-     * which return pixels as a sequences of bytes.</p>
+     * which return pixels as a sequence of bytes.</p>
      *
      * <p>This flag is {@code true} by default. Usually there are no reasons to set it to {@code false},
      * besides compatibility reasons or requirement to maximally save memory while processing 16/24-bit
      * float values.</p>
      *
-     * @param autoUnpackUnusualPrecisions whether do we need to unpack unusual precisions.
+     * @param autoUnpackUnusualPrecisions whether do we need to unpack unusual precisions?
      * @return a reference to this object.
      * @see #completeDecoding(TiffTile)
      * @see TiffMap#bitsPerUnpackedSample()
@@ -420,7 +420,7 @@ public class TiffReader implements Closeable {
     }
 
     /**
-     * Sets the flag, whether do we need to scale pixel sample values when automatic increasing bit depths,
+     * Sets the flag, whether do we need to scale pixel sample values when automatically increasing bit depths,
      * for example, when we decode 12-bit grayscale image into 16-bit result.
      *
      * <p>This class can successfully read TIFF with bit depths not divided by 8, such as 4-bit, 12-bit images or
@@ -473,7 +473,7 @@ public class TiffReader implements Closeable {
      * is to show the image to a user.
      *
      * @param autoCorrectInvertedBrightness whether do we need to invert samples for "WhiteIsZero" and "CMYK"
-     *                                      photometric interpretations.
+     *                                      photometric interpretations?
      * @return a reference to this object.
      */
     public TiffReader setAutoCorrectInvertedBrightness(boolean autoCorrectInvertedBrightness) {
@@ -1091,13 +1091,13 @@ public class TiffReader implements Closeable {
         long t1 = debugTime();
         final TiffIFD ifd = tileIndex.ifd();
         final int index = tileIndex.linearIndex();
-        // - also checks that tile index is not out of image bounds
+        // - also checks that the tile index is not out of image bounds
         final long offset = ifd.cachedTileOrStripOffset(index);
         assert offset >= 0 : "offset " + offset + " was not checked in TiffIFD";
         int byteCount = cachedByteCountWithCompatibilityTrick(ifd, index);
 
         final TiffTile result = new TiffTile(tileIndex);
-        // - No reasons to put it into the map: this class does not provide access to a temporary created map.
+        // - No reasons to put it into the map: this class does not provide access to a temporarily created map.
 
         if (cropTilesToImageBoundaries) {
             result.cropToMap();
@@ -1108,7 +1108,7 @@ public class TiffReader implements Closeable {
 
         byteCount = correctZeroByteCount(tileIndex, byteCount, offset);
         if (byteCount == -1) {
-            // - possible when missingTilesAllowed flag is set
+            // - possible when the missingTilesAllowed flag is set
             return result;
         }
 
@@ -1125,7 +1125,7 @@ public class TiffReader implements Closeable {
         return result;
     }
 
-    // Note: result is usually interleaved (RGBRGB...) or monochrome; it is always so in UNCOMPRESSED, LZW, DEFLATE
+    // Note: the result is usually interleaved (RGBRGB...) or monochrome; it is always so in UNCOMPRESSED, LZW, DEFLATE
     public boolean decode(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         if (!tile.isEncoded()) {
@@ -1186,7 +1186,7 @@ public class TiffReader implements Closeable {
     public void prepareDecoding(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         if (tile.isEmpty()) {
-            // - unlike full decoding, here it is better not to throw exception for empty tile
+            // - unlike full decoding, here it is better not to throw exception for an empty tile
             return;
         }
         if (tile.ifd().isReversedFillOrder()) {
@@ -1201,7 +1201,7 @@ public class TiffReader implements Closeable {
      * Completes decoding tile after decoding by some {@link TiffCodec}. This method is automatically called
      * at the end of {@link #decode(TiffTile)} method.
      *
-     * <p>First of all, this method always rearranges data in the file: if the codec returned
+     * <p>First, this method always rearranges data in the file: if the codec returned
      * {@link TiffTile#isInterleaved() interleaved} data, this method
      * {@link TiffTile#separateSamplesIfNecessary() separates} them.
      * Interleaved data are the standard for internal pixel storage for simple formats like
@@ -1216,8 +1216,8 @@ public class TiffReader implements Closeable {
      * </ul>
      *
      * <p>First correction: unpacking. TIFF supports storing pixel samples in any number of bits,
-     * not always divisible by 8; in other words, one pixel sample can occupy non-integer number of bytes.
-     * Most useful in these cases is 1-bit monochrome picture, where 8 pixels are packed into 1 byte.
+     * not always divisible by 8; in other words, one pixel sample can occupy a non-integer number of bytes.
+     * Most useful in these cases is a 1-bit monochrome picture, where 8 pixels are packed into 1 byte.
      * Sometimes the pictures with 4 bits/pixels (monochrome or with palette) or 3*4=12 bits/pixels (RGB) appear.
      * You can also meet old RGB 32-bit images with 5+5+5 or 5+6+5 bits/channel.</p>
      *
@@ -1407,7 +1407,7 @@ public class TiffReader implements Closeable {
                     samples, ifd, numberOfChannels, sizeInPixels, autoScaleWhenIncreasingBitDepth);
             unpackingPrecision = newSamples != samples;
             samples = newSamples;
-            // - note: the size of sample array can be increased here!
+            // - note: the size of the sample array can be increased here!
         }
         if (autoUnpackBitsToBytes && map.isBinary()) {
             unpackingPrecision = true;
@@ -1540,7 +1540,7 @@ public class TiffReader implements Closeable {
 
     /**
      * Reads the full image with the specified TIFF map as a list of 2-dimensional matrices containing color channels.
-     * For example, for RGB image, the result will be a list of three matrices R, G, B.
+     * For example, for the RGB image, the result will be a list of three matrices R, G, B.
      *
      * <p>The necessary TIFF map can be obtained, for example, by calling
      * <code>{@link #newMap(int) reader.newMap}(ifdIndex)</code>.</p>
@@ -1577,7 +1577,7 @@ public class TiffReader implements Closeable {
 
     /**
      * Reads the full image with the specified TIFF map as <code>BufferedImage</code>.
-     * For example, for RGB image, the result will be a list of three matrices R, G, B.
+     * For example, for the RGB image, the result will be a list of three matrices R, G, B.
      *
      * <p>The necessary TIFF map can be obtained, for example, by calling
      * <code>{@link #newMap(int) reader.newMap}(ifdIndex)</code>.</p>
@@ -1744,14 +1744,14 @@ public class TiffReader implements Closeable {
         timeCompleteDecoding = 0;
     }
 
-    // We prefer make this.tiff and this.bigTiff final fields, so we cannot set them outside the constructor
+    // We prefer to make this.tiff and this.bigTiff final fields, so we cannot set them outside the constructor
     private Exception startReading(AtomicBoolean tiffReference, AtomicBoolean bigTiffReference) {
         tiffReference.set(false);
         bigTiffReference.set(false);
         try {
             synchronized (fileLock) {
                 // - this synchronization is extra, but may become useful
-                // if we will decide to make this method public and called not only from the constructor
+                // if we decide to make this method public and called not only from the constructor
                 if (!in.exists()) {
                     return new FileNotFoundException("File not found:" + prettyInName());
                 }
@@ -1822,7 +1822,7 @@ public class TiffReader implements Closeable {
             // - additional check of zero offset, filling positionOfLastOffset
         } finally {
             in.seek(savedOffset);
-            // - for maximal compatibility: in old versions, constructor of this class
+            // - for maximal compatibility: in old versions, the constructor of this class
             // guaranteed that file position in the input stream will not change
             // (that is illogical, because "little-endian" mode was still changed)
         }
@@ -1848,12 +1848,12 @@ public class TiffReader implements Closeable {
         // last and usual strips in stripped image, and its behavior could be described by the following assignment:
         //      final int samplesLength = tile.map().tileSizeInBytes();
         // For many codecs (like DEFLATE or JPEG) this is not important, but at least
-        // LZWCodec creates result array on the base of options.maxSizeInBytes.
+        // LZWCodec creates a result array on the base of options.maxSizeInBytes.
         // If it is invalid (too large value), the returned decoded data will be too large,
         // and that is not too good: this class could throw an exception "data may be lost" in further
         // tile.adjustNumberOfPixels() call if it called it without allowDecreasing=true argument.
         options.setInterleaved(true);
-        // - Value "true" is necessary for most codecs, that work with high-level classes (like JPEG or JPEG-2000) and
+        // - Value "true" is necessary for most codecs that work with high-level classes (like JPEG or JPEG-2000) and
         // need to be instructed to interleave results.
         // (For comparison, LZW or DECOMPRESSED work with data "as-is" and suppose
         // that data are interleaved according to TIFF format specification).
@@ -1871,8 +1871,8 @@ public class TiffReader implements Closeable {
             }
             return tile;
             // So, we store (without an ability to remove) all CachedTile objects in the cache tileMap.
-            // It is not a problem, because CachedTile is a very lightweight object.
-            // In any case, this.ifds already contains comparable amount of data:
+            // It is not a problem because CachedTile is a very lightweight object.
+            // In any case, "this.ifds" already contains a comparable amount of data:
             // strip offsets and strip byte counts for all tiles.
         }
     }
@@ -1923,10 +1923,6 @@ public class TiffReader implements Closeable {
         }
         return byteCount;
     }
-
-
-    // Unlike AbstractCodec.decompress, this method does not require using "handles" field, annotated as @Parameter
-    // This function is not universal, it cannot be applied to any codec!
 
     private String prettyInName() {
         return prettyFileName(" %s", in);

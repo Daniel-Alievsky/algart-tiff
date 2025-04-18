@@ -59,8 +59,9 @@ public class TiffWriterTest {
         try {
             final TiffReader reader = writer.newReaderOfThisFile(TiffOpenMode.NO_CHECKS);
             final int n = reader.numberOfImages();
-            System.out.printf("%s, %s%n",
+            System.out.printf("%s, %d bytes, %s%n",
                     reader.isValidTiff() ? "valid" : "INVALID: \"" + reader.openingException() + "\"",
+                    reader.input().length(),
                     n == 0 ? "no IFD" : "#0/" + n + ": " + reader.ifd(0));
         } catch (IOException e) {
             e.printStackTrace(System.out);
@@ -270,7 +271,7 @@ public class TiffWriterTest {
                         targetFile,
                         context == null ? "" : " (SCIFIO context " + context + ")");
                 for (int k = 0; k < numberOfImages; k++) {
-//                    printReaderInfo(writer); // - should show invalid file
+                    printReaderInfo(writer); // - may show an invalid file
                     final int ifdIndex = firstIfdIndex + k;
                     TiffIFD ifd = new TiffIFD();
                     if (!resizable) {

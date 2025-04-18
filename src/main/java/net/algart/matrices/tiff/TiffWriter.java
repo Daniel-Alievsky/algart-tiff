@@ -37,7 +37,6 @@ import net.algart.matrices.tiff.tags.*;
 import net.algart.matrices.tiff.tiles.*;
 import org.scijava.Context;
 import org.scijava.io.handle.DataHandle;
-import org.scijava.io.handle.DataHandles;
 import org.scijava.io.location.BytesLocation;
 import org.scijava.io.location.Location;
 
@@ -58,10 +57,10 @@ import java.util.stream.Collectors;
 /**
  * Writes the TIFF format.
  *
- * <p>This object is internally synchronized and thread-safe when used in multithreaded environment.
+ * <p>This object is internally synchronized and thread-safe for concurrent use.
  * However, you should not modify objects, passed to the methods of this class, from a parallel thread;
  * in particular, it concerns the {@link TiffIFD} arguments and Java-arrays with samples.
- * The same is true for the result of {@link #stream()} method.</p>
+ * The same is true for the result of {@link #output()} method.</p>
  */
 public class TiffWriter implements Closeable {
     /**
@@ -158,10 +157,10 @@ public class TiffWriter implements Closeable {
      * The other variants {@link TiffCreateMode#OPEN_FOR_APPEND} and {@link TiffCreateMode#OPEN_EXISTING}
      * allow you to open an existing file using the {@link #openForAppend()} and {@link #openExisting()} methods
      * correspondingly.
-     * In the case of I/O exception, the file is automatically closed.
+     * In the case of the I/O exception, the file is automatically closed.
      * This behavior is alike {@link java.io.FileWriter#FileWriter(File) FileWriter constructor}.
      *
-     * <p>This is the simplest way to create a new TIFF file and automatically open it with writing the standard
+     * <p>This is the simplest way to create a new TIFF file and automatically open it by writing the standard
      * TIFF header. After that, this object is ready for adding new TIFF images.
      * Instead, you may use the single-argument constructor {@link #TiffWriter(Path)},
      * perform necessary customizing, and then call {@link #create()} or {@link #open(boolean)} method.
@@ -260,7 +259,7 @@ public class TiffWriter implements Closeable {
     }
 
     /**
-     * Sets whether BigTIFF file should be created.
+     * Sets whether a BigTIFF file should be created.
      * This flag must be set before creating the file by {@link #create()} method.
      * Default value is <code>false</code>.
      */
@@ -325,7 +324,7 @@ public class TiffWriter implements Closeable {
      *
      * <p>If the settings in the specified IFD are absolutely incorrect, this class always throws
      * {@link TiffException}. If the settings look possible in principle, but this class does not support
-     * writing in this mode, the behavior depends on the flag, setting by this method.</p>
+     * writing in this mode, the behavior depends on the flag setting by this method.</p>
      *
      * <p>If this mode is set to <code>true</code> (the "smart" IFD correction), the writer may try to change IFD to
      * some similar settings, so that it will be able to write the image. In particular, if number of bits
@@ -337,8 +336,8 @@ public class TiffWriter implements Closeable {
      * (this class supports YCbCr encoding for JPEG only). And so on.</p>
      *
      * <p>If this mode is not set (this flag is <code>false</code>), such settings will lead to an exception.
-     * In this case, we guarantee that TIFF writer never changes existing entries in the IFD, but may only
-     * <i>add</i> some tag if they are necessary.</p>
+     * In this case, we guarantee that the TIFF writer never changes existing entries in the IFD but may only
+     * <i>add</i> some tags if they are necessary.</p>
      *
      * <p>Default value is <code>false</code>. You may set it to <code>true</code>, for example, when you need
      * to encode a new copy of some existing TIFF file.</p>
@@ -466,7 +465,7 @@ public class TiffWriter implements Closeable {
      *
      * <p>Possible values are format-specific, but usually they should be between 0.0 and 1.0
      * (1.0 means the best quality).
-     * Zero values means no compression if the compression algorithm supports this variant.
+     * Zero values mean no compression if the compression algorithm supports this variant.
      *
      * <p>If this method was not called or after {@link #removeLosslessCompressionLevel()},
      * this level is not specified: some default compression level will be used.
@@ -512,8 +511,8 @@ public class TiffWriter implements Closeable {
      * If this flag is <code>false</code>, the writer uses YCbCr photometric interpretation &mdash;
      * a standard encoding for JPEG, but not so popular in TIFF.
      *
-     * <p>This flag is used if a photometric interpretation in not specified in the IFD. Otherwise,
-     * this flag is ignored and the writer uses the photometric interpretation from the IFD
+     * <p>This flag is used if a photometric interpretation is not specified in the IFD.
+     * Otherwise, this flag is ignored, and the writer uses the photometric interpretation from the IFD
      * (but, for JPEG, only YCbCr and RGB options are allowed).
      *
      * <p>Please <b>remember</b> that this parameter may vary between different IFDs.
@@ -731,7 +730,7 @@ public class TiffWriter implements Closeable {
                 out.writeByte(TiffReader.FILE_PREFIX_BIG_ENDIAN);
                 out.writeByte(TiffReader.FILE_PREFIX_BIG_ENDIAN);
             }
-            // Writing magic number:
+            // Writing the magic number:
             if (bigTiff) {
                 out.writeShort(TiffReader.FILE_BIG_TIFF_MAGIC_NUMBER);
             } else {
@@ -746,7 +745,7 @@ public class TiffWriter implements Closeable {
             positionOfLastIFDOffset = out.offset();
             writeOffset(TiffIFD.LAST_IFD_OFFSET);
             // Truncating the file if it already existed:
-            // it is necessary, because this class writes all new information
+            // it is necessary because this class writes all new information
             // to the file end (to avoid damaging existing content)
             out.setLength(out.offset());
         }
@@ -829,7 +828,7 @@ public class TiffWriter implements Closeable {
             if (updateIFDLinkages && !ifdOffsets.contains(startOffset)) {
                 // - Only if it is really newly added IFD!
                 // If this offset is already contained in the list, an attempt to link to it
-                // will probably lead to infinite loop of IFDs.
+                // will probably lead to an infinite loop of IFDs.
                 writeIFDOffsetAt(startOffset, previousPositionOfLastIFDOffset, false);
                 ifdOffsets.add(startOffset);
             }
@@ -840,7 +839,7 @@ public class TiffWriter implements Closeable {
      * Rewrites the offset, stored in the file at the {@link #positionOfLastIFDOffset()},
      * with the specified value.
      * This method is useful if you want to organize the sequence of IFD inside the file manually,
-     * without automatic updating IFD linkage.
+     * without automatically updating IFD linkage.
      *
      * @param nextLastIFDOffset new last IFD offset.
      * @throws IOException in the case of any I/O errors.
@@ -854,7 +853,7 @@ public class TiffWriter implements Closeable {
                 throw new IllegalStateException("Writing to this TIFF file is not started yet");
             }
             writeIFDOffsetAt(nextLastIFDOffset, positionOfLastIFDOffset, false);
-            // - last argument is not important: positionOfLastIFDOffset will not change in any case
+            // - last argument is not important: the positionOfLastIFDOffset will not change in any case
         }
     }
 
@@ -1034,7 +1033,7 @@ public class TiffWriter implements Closeable {
 
         if (!ifd.containsKey(Tags.COMPRESSION)) {
             ifd.put(Tags.COMPRESSION, TiffIFD.COMPRESSION_NONE);
-            // - We prefer explicitly specify this case
+            // - We prefer to explicitly specify this case
         }
         final TagCompression compression = ifd.optCompression().orElse(null);
 
@@ -1071,11 +1070,11 @@ public class TiffWriter implements Closeable {
                 // There are no reasons to create custom photometric interpretations for 1 channel,
                 // excepting RGB palette, BLACK_IS_ZERO, WHITE_IS_ZERO
                 // (we do not support TRANSPARENCY_MASK, that should be used together with other IFD).
-                // We have no special support for interpretations other that BLACK_IS_ZERO,
+                // We have no special support for interpretations other than BLACK_IS_ZERO,
                 // but if the user wants, he can prepare correct data for them.
                 // We do not try to invert data for WHITE_IS_ZERO,
-                // as well as we do not invert values for CMYK below.
-                // This is important, because TiffReader (by default) also does not invert brightness in these cases:
+                // as well as we do not invert values for the CMYK below.
+                // This is important because TiffReader (by default) also does not invert brightness in these cases:
                 // autoCorrectInvertedBrightness=false, so, TiffReader+TiffWriter can copy such IFD correctly.
                 if (newPhotometric == TagPhotometricInterpretation.RGB_PALETTE && !hasColorMap) {
                     throw new TiffException("Cannot write TIFF image: newPhotometric interpretation \"" +
@@ -1103,7 +1102,7 @@ public class TiffWriter implements Closeable {
                         // - TiffReader automatically decodes YCbCr into RGB while reading;
                         // we cannot encode pixels back to YCbCr,
                         // and it would be better to change newPhotometric interpretation to RGB.
-                        // Note that for JPEG we have no this problem: we CAN encode JPEG as YCbCr.
+                        // Note that for JPEG we have no such problem: we CAN encode JPEG as YCbCr.
                         // For other models (like CMYK or CIE Lab), we ignore newPhotometric interpretation
                         // and suppose that the user herself prepared channels in the necessary model.
                         newPhotometric = TagPhotometricInterpretation.RGB;
@@ -1185,7 +1184,7 @@ public class TiffWriter implements Closeable {
         ifd.remove(Tags.EXIF);
         ifd.remove(Tags.GPS_TAG);
         // - These are also pointers (offsets) inside a file, but this class does not provide
-        // control over writing such IFDs, so, the corresponding offsets will usually have no sense
+        // control over writing such IFDs, so the corresponding offsets will usually have no sense
 
         if (correctIFDForWriting) {
             correctIFDForWriting(ifd);
@@ -1255,7 +1254,7 @@ public class TiffWriter implements Closeable {
             throw new ConcurrentModificationException("Strange length of tile offsets " + offsets.length +
                     " or byte counts " + byteCounts.length);
             // - should not occur: it is checked in getTileOrStripOffsets/getTileOrStripByteCounts methods
-            // (only possible way is modification from parallel thread)
+            // (the only possible way is modification from parallel thread)
         }
         ifd.freeze();
         // - actually not necessary, but helps to avoid possible bugs
@@ -1309,7 +1308,7 @@ public class TiffWriter implements Closeable {
      * @param fromY                         starting y-coordinate for preloading.
      * @param sizeX                         width of the preloaded rectangle.
      * @param sizeY                         height of the preloaded rectangle.
-     * @param loadTilesFullyInsideRectangle whether this method should load tiles, that are completely
+     * @param loadTilesFullyInsideRectangle whether this method should load tiles that are completely
      *                                      inside the specified rectangle.
      * @return map for overwriting TIFF data.
      * @throws IOException in the case of any problems with the TIFF file.
@@ -1328,7 +1327,7 @@ public class TiffWriter implements Closeable {
         ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
         final TiffMapForWriting map = existingMap(ifd);
         if (sizeX > 0 && sizeY > 0) {
-            // zero-size rectangle does not "intersect" anything
+            // a zero-size rectangle does not "intersect" anything
             final IRectangularArea areaToWrite = IRectangularArea.valueOf(
                     fromX, fromY, fromX + sizeX - 1, fromY + sizeY - 1);
             for (TiffTile tile : map.tiles()) {
@@ -1354,8 +1353,8 @@ public class TiffWriter implements Closeable {
     }
 
     /**
-     * Prepare to write new image with known fixed sizes.
-     * This method writes image header (IFD) to the end of the TIFF file,
+     * Prepare to write a new image with known fixed sizes.
+     * This method writes an image header (IFD) to the end of the TIFF file,
      * so it will be placed before actually written data: it helps
      * to improve the performance of future reading this file.
      *
@@ -1433,7 +1432,7 @@ public class TiffWriter implements Closeable {
      *
      * <p>Note: unlike {@link #writeJavaArray(TiffMapForWriting, Object)} and
      * {@link #writeSamples(TiffMapForWriting, byte[])},
-     * this method always use the actual sizes of the passed matrix and, so, <i>does not require</i>
+     * this method always uses the actual sizes of the passed matrix and, so, <i>does not require</i>
      * the map to have correct non-zero dimensions (a situation, possible for resizable maps).</p>
      *
      * @param map    TIFF map.
@@ -1701,7 +1700,7 @@ public class TiffWriter implements Closeable {
         }
         final boolean exists = out.exists();
         if (!exists || out.length() < sizeOfHeader()) {
-            // - very improbable, but can occur as a result of direct operations with output stream
+            // - very improbable, but can occur as a result of direct operations with the output stream
             throw new IllegalStateException(
                     (exists ?
                             "Existing TIFF file is too short (" + out.length() + " bytes)" :
@@ -1731,7 +1730,8 @@ public class TiffWriter implements Closeable {
             positionOfNextOffset = out.offset();
             writeOffset(TiffIFD.LAST_IFD_OFFSET);
             // - not too important: will be rewritten in writeIFDNextOffset
-            final int extraLength = (int) extraBuffer.offset();
+            final long extraLength = extraBuffer.length();
+            assert extraBuffer.offset() == extraLength;
             extraBuffer.seek(0L);
             copyData(extraBuffer, out, extraLength);
         }
@@ -1739,13 +1739,13 @@ public class TiffWriter implements Closeable {
     }
 
     /**
-     * Writes the given IFD value to the {@link #stream() main output stream}, excepting "extra" data,
+     * Writes the given IFD value to the {@link #output() main output stream}, excepting "extra" data,
      * which are written into the specified <code>extraBuffer</code>. After calling this method, you
      * should copy full content of <code>extraBuffer</code> into the main stream at the position,
      * specified by the second argument; {@link #rewriteIFD(TiffIFD, boolean)} method does it automatically.
      *
      * <p>Here "extra" data means all data, for which IFD contains their offsets instead of data itself,
-     * like arrays or text strings. The "main" data is 12-byte IFD record (20-byte for BigTIFF),
+     * like arrays or text strings. The "main" data is a 12-byte IFD record (20-byte for BigTIFF),
      * which is written by this method into the main output stream from its current position.
      *
      * @param extraBuffer              buffer to which "extra" IFD information should be written.
@@ -1851,7 +1851,7 @@ public class TiffWriter implements Closeable {
             }
         } else if (value instanceof int[] q) { // suppose SHORT (unsigned 16-bit)
             if (q.length == 1) {
-                // - we should allow using usual int values for 32-bit tags, to avoid a lot of obvious bugs
+                // - we should allow using usual int values for 32-bit tags to avoid a lot of obvious bugs
                 final int v = q[0];
                 if (v >= 0xFFFF) {
                     out.writeShort(TagTypes.LONG);
@@ -1881,7 +1881,7 @@ public class TiffWriter implements Closeable {
                 // - note: inside TIFF, long[1] is saved in the same way as Long; we have a difference in Java only
                 final long v = q[0];
                 if (v == (int) v) {
-                    // - it is probable for the following tags, if they are added
+                    // - it is probable for the following tags if they are added
                     // manually via TiffIFD.put with "long" argument
                     switch (tag) {
                         case Tags.IMAGE_WIDTH,
@@ -2010,7 +2010,7 @@ public class TiffWriter implements Closeable {
                     TiffTileIndex tileIndex = map.multiPlaneIndex(p, xIndex, yIndex);
                     TiffTile tile = map.getOrNew(tileIndex);
                     // - non-existing is created (empty) and saved in the map;
-                    // this is necessary to inform the map about new data file range for this tile
+                    // this is necessary to inform the map about the new data file range for this tile
                     // and to avoid twice writing it while twice calling "complete()" method
                     tile.cropToMap();
                     // - like in updateSamples
@@ -2250,11 +2250,22 @@ public class TiffWriter implements Closeable {
         }
     }
 
-    // Necessary to avoid a problem in DataHandles class: invalid generic type
-    @SuppressWarnings("unchecked")
-    private static long copyData(DataHandle<? extends Location> in, DataHandle<? extends Location> out, int length)
+    // A simplified clone of the function DataHandles.copy without the problem with invalid generic types
+    private static long copyData(DataHandle<? extends Location> in, DataHandle<? extends Location> out, long length)
             throws IOException {
-        return DataHandles.copy((DataHandle<Location>) in, (DataHandle<Location>) out, length);
+        if (length < 0) {
+            throw new IllegalArgumentException("Negative length: " + length);
+        }
+        final byte[] buffer = new byte[64 * 1024];
+        long result = 0;
+        while (result < length) {
+            final int len = (int) Math.min(length - result, buffer.length);
+            int actuallyRead = in.read(buffer, 0, len);
+            if (actuallyRead <= 0) break; // EOF
+            out.write(buffer, 0, actuallyRead);
+            result += actuallyRead;
+        }
+        return result;
     }
 
     private static void checkPhotometricInterpretation(
