@@ -170,17 +170,6 @@ public class TiffReader implements Closeable {
     }
 
     /**
-     * Equivalent to <code>{@link #TiffReader(Path, TiffOpenMode)
-     * TiffReader}(file, {@link TiffOpenMode#of}(requireValidTiff))</code>.
-     *
-     * @param file input TIFF tile.
-     * @throws IOException in the case of any I/O errors, including a non-TIFF file or non-existing file.
-     */
-    public TiffReader(Path file, boolean requireValidTiff) throws IOException {
-        this(file, TiffOpenMode.of(requireValidTiff));
-    }
-
-    /**
      * Equivalent to {@link #TiffReader(DataHandle, TiffOpenMode, boolean)
      * TiffReader(inputStream, openMode, true)}, where the <code>inputStream</code> argument is<br>
      * <code>new {@link FileHandle#FileHandle(FileLocation)
@@ -193,7 +182,7 @@ public class TiffReader implements Closeable {
      */
     public TiffReader(Path file, TiffOpenMode openMode) throws IOException {
         // We should not use getExistingFileHandle() here: if the file does not exist,
-        // the exception should be suppressed when requireValidTiff=false
+        // the exception should be suppressed when openMode=TiffOpenMode.NO_CHECKS
         this(getFileHandle(file), openMode, true);
     }
 
@@ -256,7 +245,7 @@ public class TiffReader implements Closeable {
             return;
         }
         final boolean tiffButInvalid = this.tiff && !this.validTiff;
-        if (openMode.isRequireValidTiff() ? !this.validTiff : tiffButInvalid) {
+        if (openMode.isRequireTiff() ? !this.validTiff : tiffButInvalid) {
             if (closeStreamOnException) {
                 try {
                     inputStream.close();
