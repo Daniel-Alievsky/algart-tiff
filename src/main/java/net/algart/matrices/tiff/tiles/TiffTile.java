@@ -491,6 +491,16 @@ public final class TiffTile {
         return data;
     }
 
+    /**
+     * Equivalent to <code>{@link #getEncodedData()}.length</code>.
+     *
+     * @return the length of encoded data <code>byte[]</code> array.
+     */
+    public int getEncodedDataLength() {
+        checkEncodedData();
+        return data.length;
+    }
+
     public TiffTile setEncodedData(byte[] data) {
         return setData(data, true, false);
     }
@@ -535,7 +545,7 @@ public final class TiffTile {
     /**
      * Equivalent to <code>{@link #getDecodedData()}.length</code>.
      *
-     * @return the length of unpacked data <code>byte[]</code> array.
+     * @return the length of decoded data <code>byte[]</code> array.
      */
     public int getDecodedDataLength() {
         checkDecodedData();
@@ -695,24 +705,18 @@ public final class TiffTile {
         this.storedInFileDataOffset = storedInFileDataOffset;
         this.storedInFileDataLength = storedInFileDataLength;
         if (resetCapacity) {
-            this.storedInFileDataCapacity = this.storedInFileDataLength;
+            resetStoredInFileDataCapacity();
         }
         return this;
     }
 
-    /**
-     * Equivalent to <code>{@link #isStoredInFile()} &amp;&amp; {@link #getEncodedData()
-     * getEncodedData()}.length &lt;= {@link #getStoredInFileDataCapacity() getStoredInFileDataCapacity()}</code>.
-     *
-     * @return whether the encoded data can be rewritten into the same place of the file.
-     */
-    public boolean isEncodedDataFitsInCapacity() {
-        checkEncodedData();
-        return  isStoredInFile() && data.length <= getStoredInFileDataCapacity();
-    }
-
     public int getStoredInFileDataCapacity() {
         return storedInFileDataCapacity;
+    }
+
+    public TiffTile resetStoredInFileDataCapacity() {
+        this.storedInFileDataCapacity = this.storedInFileDataLength;
+        return this;
     }
 
     public TiffTile setStoredInFileDataCapacity(int storedInFileDataCapacity) {
