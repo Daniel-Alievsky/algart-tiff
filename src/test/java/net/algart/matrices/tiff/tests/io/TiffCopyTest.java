@@ -38,20 +38,20 @@ import java.nio.file.Paths;
 public class TiffCopyTest {
     boolean useContext = false;
     boolean bigTiff = false;
-    boolean repack = false;
+    boolean direct = false;
     boolean uncompress = false;
 
     public static void main(String[] args) throws IOException {
         TiffCopyTest copier = new TiffCopyTest();
         int startArgIndex = 0;
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-repack")) {
-            copier.repack = true;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-direct")) {
+            copier.direct = true;
             startArgIndex++;
         }
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
             System.out.println("    " + TiffCopyTest.class.getName()
-                    + " [-rawCopy] source.tif target.tif [firstIFDIndex lastIFDIndex [numberOfTests]]");
+                    + " [-direct] source.tif target.tif [firstIFDIndex lastIFDIndex [numberOfTests]]");
             return;
         }
         final Path sourceFile = Paths.get(args[startArgIndex++]);
@@ -106,16 +106,17 @@ public class TiffCopyTest {
                 lastIFDIndex = Math.min(lastIFDIndex, maps.size() - 1);
                 for (int ifdIndex = firstIFDIndex; ifdIndex <= lastIFDIndex; ifdIndex++) {
                     final var readMap = maps.get(ifdIndex);
-                    if (!repack) {
+                    if (direct) {
                         System.out.printf("\r  Raw copying #%d/%d: %s%n", ifdIndex, maps.size(), readMap.ifd());
-                        TiffCopier.copyImage(writer, readMap);
+                        TiffCopier.fastDirectCopy(writer, readMap);
                     } else {
                         System.out.printf("\r  Repacking #%d/%d: %s%n", ifdIndex, maps.size(), readMap.ifd());
-                        TiffCopier.copyImage(writer, readMap, writeIFD -> {
-                            if (uncompress) {
-                                writeIFD.putCompression(TagCompression.NONE);
-                            }
-                        }, true);
+                        final TiffCopier copier = new TiffCopier();
+                        assert !copier.isDirectCopyIfPossible() : "direct-copy should be disabled by default";
+                        if (uncompress) {
+                            copier.setIfdCorrector(ifd -> ifd.putCompression(TagCompression.NONE));
+                        }
+                        copier.copyImage(writer, readMap);
                     }
                 }
                 ok = true;

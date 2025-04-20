@@ -40,14 +40,14 @@ public class TiffCopyDemo {
             append = true;
             startArgIndex++;
         }
-        boolean repack = false;
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-repack")) {
-            repack = true;
+        boolean direct = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-direct")) {
+            direct = true;
             startArgIndex++;
         }
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
-            System.out.printf("    [-append] [-repack] %s source.tiff target.tiff [firstIFDIndex lastIFDIndex]%n",
+            System.out.printf("    [-append] [-direct] %s source.tiff target.tiff [firstIFDIndex lastIFDIndex]%n",
                     TiffCopyDemo.class.getName());
             return;
         }
@@ -59,19 +59,23 @@ public class TiffCopyDemo {
                 Integer.MAX_VALUE;
 
         System.out.printf("Copying %s to %s %s...%n",
-                sourceFile, targetFile, repack ? "with recompression" : "as-is");
+                sourceFile, targetFile, direct ? "as-is" : "with recompression");
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
+        final var copier = new TiffCopier().setDirectCopyIfPossible(direct);
+        copier.setProgressCallback(() ->
+                System.out.printf("\r%d/%d...", copier.copiedTileCount(), copier.totalTileCount()));
         try (var reader = new TiffReader(sourceFile); var writer = new TiffWriter(targetFile)) {
             lastIFDIndex = Math.min(lastIFDIndex, reader.numberOfImages() - 1);
             if (lastIFDIndex >= firstIFDIndex) {
                 writer.create(append);
                 for (int i = firstIFDIndex; i <= lastIFDIndex; i++) {
                     System.out.printf("Copying image %d...%n", i);
-                    TiffCopier.copyImage(writer, reader, i, repack);
+                    copier.copyImage(writer, reader, i);
+                    System.out.print("\r               \r");
                 }
             }
         }
-        System.out.println("Done");
+        System.out.printf("Done%n");
     }
 }

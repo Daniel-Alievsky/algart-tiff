@@ -31,57 +31,151 @@ import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
 import java.io.IOException;
 import java.util.Objects;
-import java.util.function.Consumer;
+import java.util.Set;
 
+@SuppressWarnings("UnusedReturnValue")
 public class TiffCopier {
+    @FunctionalInterface
+    public interface IFDCorrector {
+        /**
+         * Corrects IFD, usually before writing it to the target TIFF.
+         *
+         * @param ifd IFD to be corrected.
+         */
+        void correct(TiffIFD ifd);
+    }
+
+    @FunctionalInterface
+    public interface ProgressCallback {
+        void onProgress();
+
+        default boolean shouldContinue() {
+            onProgress();
+            return true;
+        }
+    }
+
+    private boolean directCopyIfPossible = false;
+    private IFDCorrector ifdCorrector = null;
+    private ProgressCallback progressCallback = null;
+
+    private int copiedTileCount = 0;
+    private int totalTileCount = 0;
+
+
     public TiffCopier() {
     }
 
-    public static TiffWriteMap copyImage(TiffWriter writer, TiffReader source, int sourceIfdIndex) throws IOException {
-        Objects.requireNonNull(source, "Null source TIFF reader");
-        return copyImage(writer, source.newMap(sourceIfdIndex));
+    /**
+     * Returns the flag that instructs this object to copy TIFF image tiles directly.
+     *
+     * @return <code>true</code> if the direct copying of TIFF tiles should be used,
+     */
+    public boolean isDirectCopyIfPossible() {
+        return directCopyIfPossible;
     }
 
-    public static TiffWriteMap copyImage(
-            TiffWriter writer,
-            TiffReader source,
-            int sourceIfdIndex,
-            boolean decodeAndEncode) throws IOException {
-        Objects.requireNonNull(source, "Null source TIFF reader");
-        return copyImage(writer, source.newMap(sourceIfdIndex), null, decodeAndEncode);
+    /**
+     * Sets the flag that enforces direct copying of TIFF image tiles without decompression/compression
+     * when it is possible.
+     * Default value is <code>false</code>.
+     *
+     * @param directCopyIfPossible whether the direct copying of TIFF tiles should be used.
+     * @return a reference to this object.
+     */
+    public TiffCopier setDirectCopyIfPossible(boolean directCopyIfPossible) {
+        this.directCopyIfPossible = directCopyIfPossible;
+        return this;
     }
 
-    public static TiffWriteMap copyImage(TiffWriter writer, TiffReadMap sourceMap) throws IOException {
-        return copyImage(writer, sourceMap, null, false);
+    /**
+     * Returns a function that corrects IFD from the source TIFF read map before writing it to the target TIFF.
+     *
+     * @return a function that corrects IFD writing it to the target TIFF.
+     */
+    public IFDCorrector getIfdCorrector() {
+        return ifdCorrector;
     }
 
-    public static TiffWriteMap copyImage(
-            TiffWriter writer,
-            TiffReadMap sourceMap,
-            Consumer<TiffIFD> correctingResultIFDAfterCopyingFromSource,
-            boolean decodeAndEncode) throws IOException {
-        Objects.requireNonNull(sourceMap, "Null source TIFF map");
-        @SuppressWarnings("resource") final TiffReader source = sourceMap.reader();
-        final TiffIFD targetIFD = new TiffIFD(sourceMap.ifd());
-        // - creating a clone of IFD: we must not modify the source IFD
-        if (correctingResultIFDAfterCopyingFromSource != null) {
-            correctingResultIFDAfterCopyingFromSource.accept(targetIFD);
+    /**
+     * Sets a function that corrects IFD from the source TIFF read map before writing it to the target TIFF.
+     * Usually you should not use this method if the flag {@link #isDirectCopyIfPossible()}
+     * is set to <code>true</code>.
+     * Default value is <code>null</code>, meaning that no correction is performed.
+     *
+     * @param ifdCorrector function that corrects IFD writing it to the target TIFF;
+     *                     may be <code>null</code>, than it is ignored.
+     * @return a reference to this object.
+     */
+    public TiffCopier setIfdCorrector(IFDCorrector ifdCorrector) {
+        this.ifdCorrector = ifdCorrector;
+        return this;
+    }
+
+    public ProgressCallback getProgressCallback() {
+        return progressCallback;
+    }
+
+    public TiffCopier setProgressCallback(ProgressCallback progressCallback) {
+        this.progressCallback = progressCallback;
+        return this;
+    }
+
+    public int copiedTileCount() {
+        return copiedTileCount;
+    }
+
+    public int totalTileCount() {
+        return totalTileCount;
+    }
+
+    public static void fastDirectCopy(TiffWriter writer, TiffReadMap readMap) throws IOException {
+        copy(writer, readMap, true);
+    }
+
+    public static void copy(TiffWriter writer, TiffReadMap readMap, boolean fastDirectCopy)
+            throws IOException {
+        new TiffCopier().setDirectCopyIfPossible(fastDirectCopy).copyImage(writer, readMap);
+    }
+
+    public TiffWriteMap copyImage(TiffWriter writer, TiffReader reader, int sourceIfdIndex) throws IOException {
+        Objects.requireNonNull(reader, "Null TIFF reader");
+        final TiffReadMap readMap = reader.newMap(sourceIfdIndex);
+        return copyImage(writer, readMap);
+    }
+
+    public TiffWriteMap copyImage(TiffWriter writer, TiffReadMap readMap) throws IOException {
+        Objects.requireNonNull(writer, "Null writer");
+        Objects.requireNonNull(readMap, "Null TIFF read map");
+        copiedTileCount = 0;
+        totalTileCount = 0;
+        @SuppressWarnings("resource") final TiffReader reader = readMap.reader();
+        final TiffIFD targetIFD = new TiffIFD(readMap.ifd());
+        // - creating a clone of IFD: we must not modify the reader IFD
+        if (ifdCorrector != null) {
+            ifdCorrector.correct(targetIFD);
         }
-        final TiffWriteMap targetMap = writer.newMap(targetIFD, false, decodeAndEncode);
-        // - there is no sense to call correctIFDForWriting() method if we will not decode/encode tile
+        final TiffWriteMap targetMap = writer.newMap(targetIFD, false, !directCopyIfPossible);
+        // - there is no sense to call correctIFDForWriting() method if we use direct copying
         writer.writeForward(targetMap);
-        for (TiffTileIndex index : sourceMap.indexes()) {
+        final Set<TiffTileIndex> indexes = readMap.indexes();
+        totalTileCount = indexes.size();
+        for (TiffTileIndex index : indexes) {
             final TiffTile targetTile = targetMap.getOrNew(targetMap.copyIndex(index));
-            if (decodeAndEncode) {
-                final TiffTile sourceTile = source.readCachedTile(index);
+            if (!directCopyIfPossible) {
+                final TiffTile sourceTile = reader.readCachedTile(index);
                 final byte[] decodedData = sourceTile.unpackUnusualDecodedData();
                 targetTile.setDecodedData(decodedData);
             } else {
-                final TiffTile sourceTile = source.readEncodedTile(index);
+                final TiffTile sourceTile = reader.readEncodedTile(index);
                 targetTile.copy(sourceTile, false);
             }
             targetMap.put(targetTile);
             writer.writeTile(targetTile, true);
+            copiedTileCount++;
+            if (progressCallback != null && !progressCallback.shouldContinue()) {
+                break;
+            }
         }
         writer.completeWriting(targetMap);
         return targetMap;
