@@ -30,7 +30,7 @@ import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.Tags;
-import net.algart.matrices.tiff.tiles.TiffMapForWriting;
+import net.algart.matrices.tiff.tiles.TiffWriteMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 
 import java.io.IOException;
@@ -94,7 +94,7 @@ public class TiffWriteMixedTest {
 
             System.out.printf("Desired IFD:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.NORMAL));
 
-            final TiffMapForWriting map = writer.newFixedMap(ifd);
+            final TiffWriteMap map = writer.newFixedMap(ifd);
             // map = writer.newMap(ifd); - will throw an exception
             System.out.printf("IFD to save:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.NORMAL));
 
@@ -139,7 +139,7 @@ public class TiffWriteMixedTest {
     }
 
     private static Object makeSamples(
-            TiffMapForWriting map,
+            TiffWriteMap map,
             int sizeX,
             int sizeY,
             int numberOfChannels,

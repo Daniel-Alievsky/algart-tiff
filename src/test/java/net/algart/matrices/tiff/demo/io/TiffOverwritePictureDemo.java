@@ -28,7 +28,7 @@ import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
 import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffWriter;
-import net.algart.matrices.tiff.tiles.TiffMapForWriting;
+import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -59,7 +59,7 @@ public class TiffOverwritePictureDemo {
         try (TiffWriter writer = new TiffWriter(targetFile)) {
             writer.openExisting();
             // - possible solution instead of using TiffCreateMode.OPEN_EXISTING
-            final TiffMapForWriting map = writer.preloadExistingTiles(
+            final TiffWriteMap map = writer.preloadExistingTiles(
                     ifdIndex, x, y, imageToDrawSizeX, imageToDrawSizeY, false);
             System.out.printf("Overwriting %s...%n", map);
             writer.writeChannels(map, imageToDraw, x, y);

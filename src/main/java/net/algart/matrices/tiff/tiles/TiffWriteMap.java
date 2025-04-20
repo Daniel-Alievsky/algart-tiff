@@ -38,10 +38,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
-public final class TiffMapForWriting extends TiffMap {
+public final class TiffWriteMap extends TiffMap {
     private final TiffWriter owningWriter;
 
-    public TiffMapForWriting(TiffWriter owningWriter, TiffIFD ifd, boolean resizable) {
+    public TiffWriteMap(TiffWriter owningWriter, TiffIFD ifd, boolean resizable) {
         super(ifd, resizable);
         this.owningWriter = Objects.requireNonNull(owningWriter, "Null owning writer");
     }
@@ -91,15 +91,15 @@ public final class TiffMapForWriting extends TiffMap {
         final long bitsPerPixel = tileAlignedBitsPerPixel();
         // - "long" here leads to stricter requirements later on
 
-        final int minXIndex = Math.max(0, TiffMapForReading.divFloor(fromX, mapTileSizeX));
-        final int minYIndex = Math.max(0, TiffMapForReading.divFloor(fromY, mapTileSizeY));
+        final int minXIndex = Math.max(0, TiffReadMap.divFloor(fromX, mapTileSizeX));
+        final int minYIndex = Math.max(0, TiffReadMap.divFloor(fromY, mapTileSizeY));
         if (minXIndex >= gridCountX() || minYIndex >= gridCountY()) {
             throw new AssertionError("Map was not expanded/checked properly: minimal tile index (" +
                     minXIndex + "," + minYIndex + ") is out of tile grid 0<=x<" +
                     gridCountX() + ", 0<=y<" + gridCountY() + "; map: " + this);
         }
-        final int maxXIndex = Math.min(gridCountX() - 1, TiffMapForReading.divFloor(toX - 1, mapTileSizeX));
-        final int maxYIndex = Math.min(gridCountY() - 1, TiffMapForReading.divFloor(toY - 1, mapTileSizeY));
+        final int maxXIndex = Math.min(gridCountX() - 1, TiffReadMap.divFloor(toX - 1, mapTileSizeX));
+        final int maxYIndex = Math.min(gridCountY() - 1, TiffReadMap.divFloor(toY - 1, mapTileSizeY));
         if (minYIndex > maxYIndex || minXIndex > maxXIndex) {
             // - possible when fromX < 0 or fromY < 0
             return updatedTiles;

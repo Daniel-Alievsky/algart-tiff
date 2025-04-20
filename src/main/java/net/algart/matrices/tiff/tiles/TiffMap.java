@@ -37,7 +37,7 @@ import java.util.*;
  * TIFF map: an object storing detailed information about TIFF image
  * and allowing to add and manipulate its tiles (strips).
  */
-public sealed class TiffMap permits TiffMapForReading, TiffMapForWriting{
+public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
     /**
      * Possible type of tiles in the TIFF map: 2D tile grid or horizontal strips.
      * You can know the tiling type of the map by {@link TiffMap#getTilingMode()} method.
@@ -219,12 +219,12 @@ public sealed class TiffMap permits TiffMapForReading, TiffMapForWriting{
         }
     }
 
-    public static TiffMapForWriting newMapForWriting(TiffWriter owningWriter, TiffIFD ifd, boolean resizable) {
-        return new TiffMapForWriting(owningWriter, ifd, resizable);
+    public static TiffWriteMap newWriteMap(TiffWriter owningWriter, TiffIFD ifd, boolean resizable) {
+        return new TiffWriteMap(owningWriter, ifd, resizable);
     }
 
-    public static TiffMapForReading newMapForReading(TiffReader owningReader, TiffIFD ifd) {
-        return new TiffMapForReading(owningReader, ifd);
+    public static TiffReadMap newReadMap(TiffReader owningReader, TiffIFD ifd) {
+        return new TiffReadMap(owningReader, ifd);
     }
 
     public TiffIFD ifd() {

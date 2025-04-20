@@ -102,7 +102,7 @@ public class TiffWriter implements Closeable {
     private final LinkedHashSet<Long> ifdOffsets = new LinkedHashSet<>();
     private volatile long positionOfLastIFDOffset = -1;
 
-    private volatile TiffMapForWriting lastMap = null;
+    private volatile TiffWriteMap lastMap = null;
 
     private long timeWriting = 0;
     private long timePreparingEncoding = 0;
@@ -564,7 +564,7 @@ public class TiffWriter implements Closeable {
      * byte count (<code>TileByteCounts</code> or <code>StripByteCounts</code> tag) contains zero value.
      * In this mode, this writer will use zero offset and byte-count if
      * the written tile is actually empty &mdash; no pixels were written in it via
-     * {@link TiffMapForWriting#updateSamples(byte[], int, int, int, int)} or other methods.
+     * {@link TiffWriteMap#updateSamples(byte[], int, int, int, int)} or other methods.
      * In another case, this writer will create a normal tile, filled by
      * the {@link #setByteFiller(byte) default filler}.
      *
@@ -987,7 +987,7 @@ public class TiffWriter implements Closeable {
         TiffPrediction.subtractPredictionIfRequested(tile);
     }
 
-    public void encode(TiffMapForWriting map) throws TiffException {
+    public void encode(TiffWriteMap map) throws TiffException {
         encode(map, null);
     }
 
@@ -1151,7 +1151,7 @@ public class TiffWriter implements Closeable {
      *
      * <p>The <code>resizable</code> argument specifies the type of the created map: resizable or fixed.
      * For a resizable map, you do not have to set the IFD dimensions at this stage: they will be calculated
-     * automatically while {@link #completeWriting(TiffMapForWriting) completion} of the image.
+     * automatically while {@link #completeWriting(TiffWriteMap) completion} of the image.
      * See also the constructor {@link TiffMap#TiffMap(TiffIFD, boolean)}.</p>
      *
      * <p>If <code>correctIFDForWriting</code> is <code>true</code>,
@@ -1165,16 +1165,16 @@ public class TiffWriter implements Closeable {
      * <p>Note: this method <b>removes</b> tags {@link Tags#SUB_IFD SubIFD}, {@link Tags#EXIF Exif IFD}
      * and {@link Tags#GPS_TAG GPS information}, because this class does not support writing sub-IFDs.
      * If you still need to construct TIFF with such tags, you should use more low-level call of
-     * {@link TiffMapForWriting} constructor.
+     * {@link TiffWriteMap} constructor.
      *
      * @param ifd       newly created and probably customized IFD.
      * @param resizable if <code>true</code>, IFD dimensions may not be specified yet: this argument is passed
-     *                  to {@link TiffMapForWriting#TiffMapForWriting(TiffWriter, TiffIFD, boolean)} constructor
+     *                  to {@link TiffWriteMap#TiffWriteMap(TiffWriter, TiffIFD, boolean)} constructor
      *                  for creating the new map.
      * @return map for writing further data.
      * @throws TiffException in the case of some problems.
      */
-    public TiffMapForWriting newMap(TiffIFD ifd, boolean resizable, boolean correctIFDForWriting) throws TiffException {
+    public TiffWriteMap newMap(TiffIFD ifd, boolean resizable, boolean correctIFDForWriting) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         if (ifd.isFrozen()) {
             throw new IllegalStateException("IFD is already frozen for usage while writing TIFF; " +
@@ -1189,7 +1189,7 @@ public class TiffWriter implements Closeable {
         if (correctIFDForWriting) {
             correctIFDForWriting(ifd);
         }
-        final TiffMapForWriting map = new TiffMapForWriting(this, ifd, resizable);
+        final TiffWriteMap map = new TiffWriteMap(this, ifd, resizable);
         map.buildTileGrid();
         // - useful to perform loops on all tiles, especially in non-resizable case
         ifd.removeNextIFDOffset();
@@ -1213,15 +1213,15 @@ public class TiffWriter implements Closeable {
      * @return map for writing further data.
      * @throws TiffException in the case of some problems.
      */
-    public TiffMapForWriting newMap(TiffIFD ifd, boolean resizable) throws TiffException {
+    public TiffWriteMap newMap(TiffIFD ifd, boolean resizable) throws TiffException {
         return newMap(ifd, resizable, true);
     }
 
-    public TiffMapForWriting newFixedMap(TiffIFD ifd) throws TiffException {
+    public TiffWriteMap newFixedMap(TiffIFD ifd) throws TiffException {
         return newMap(ifd, false);
     }
 
-    public TiffMapForWriting newResizableMap(TiffIFD ifd) throws TiffException {
+    public TiffWriteMap newResizableMap(TiffIFD ifd) throws TiffException {
         return newMap(ifd, true);
     }
 
@@ -1241,10 +1241,10 @@ public class TiffWriter implements Closeable {
      * @param ifd IFD of some existing image, probably loaded from the current TIFF file.
      * @return map for writing further data.
      */
-    public TiffMapForWriting existingMap(TiffIFD ifd) throws TiffException {
+    public TiffWriteMap existingMap(TiffIFD ifd) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         correctIFDForWriting(ifd, false);
-        final TiffMapForWriting map = new TiffMapForWriting(this, ifd, false);
+        final TiffWriteMap map = new TiffWriteMap(this, ifd, false);
         final long[] offsets = ifd.cachedTileOrStripOffsets();
         final long[] byteCounts = ifd.cachedTileOrStripByteCounts();
         assert offsets != null;
@@ -1272,7 +1272,7 @@ public class TiffWriter implements Closeable {
         return map;
     }
 
-    public TiffMapForWriting preloadExistingTiles(int ifdIndex, int fromX, int fromY, int sizeX, int sizeY)
+    public TiffWriteMap preloadExistingTiles(int ifdIndex, int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
         return preloadExistingTiles(ifdIndex, fromX, fromY, sizeX, sizeY, true);
     }
@@ -1313,7 +1313,7 @@ public class TiffWriter implements Closeable {
      * @return map for overwriting TIFF data.
      * @throws IOException in the case of any problems with the TIFF file.
      */
-    public TiffMapForWriting preloadExistingTiles(
+    public TiffWriteMap preloadExistingTiles(
             int ifdIndex,
             int fromX,
             int fromY,
@@ -1325,7 +1325,7 @@ public class TiffWriter implements Closeable {
         @SuppressWarnings("resource") final TiffReader reader = newReaderOfThisFile();
         final TiffIFD ifd = reader.readSingleIFD(ifdIndex);
         ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
-        final TiffMapForWriting map = existingMap(ifd);
+        final TiffWriteMap map = existingMap(ifd);
         if (sizeX > 0 && sizeY > 0) {
             // a zero-size rectangle does not "intersect" anything
             final IRectangularArea areaToWrite = IRectangularArea.valueOf(
@@ -1348,7 +1348,7 @@ public class TiffWriter implements Closeable {
      *
      * @return last map, created by this object.
      */
-    public TiffMapForWriting lastMap() {
+    public TiffWriteMap lastMap() {
         return lastMap;
     }
 
@@ -1361,11 +1361,11 @@ public class TiffWriter implements Closeable {
      * <p>Note: this method does nothing if the image is {@link TiffMap#isResizable() resizable}
      * or if this action is disabled by {@link #setWritingForwardAllowed(boolean) setWritingForwardAllowed(false)}
      * call.
-     * In this case, IFD will be written at the final stage ({@link #completeWriting(TiffMapForWriting)} method).
+     * In this case, IFD will be written at the final stage ({@link #completeWriting(TiffWriteMap)} method).
      *
      * @param map map, describing the image.
      */
-    public void writeForward(TiffMapForWriting map) throws IOException {
+    public void writeForward(TiffWriteMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         if (!writingForwardAllowed || map.isResizable()) {
             return;
@@ -1380,13 +1380,13 @@ public class TiffWriter implements Closeable {
         }
     }
 
-    public void writeSamples(final TiffMapForWriting map, byte[] samples) throws IOException {
+    public void writeSamples(final TiffWriteMap map, byte[] samples) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         map.checkZeroDimensions();
         writeSamples(map, samples, 0, 0, map.dimX(), map.dimY());
     }
 
-    public void writeSamples(TiffMapForWriting map, byte[] samples, int fromX, int fromY, int sizeX, int sizeY)
+    public void writeSamples(TiffWriteMap map, byte[] samples, int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(samples, "Null samples");
@@ -1404,13 +1404,13 @@ public class TiffWriter implements Closeable {
 
     }
 
-    public void writeJavaArray(TiffMapForWriting map, Object samplesArray) throws IOException {
+    public void writeJavaArray(TiffWriteMap map, Object samplesArray) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         map.checkZeroDimensions();
         writeJavaArray(map, samplesArray, 0, 0, map.dimX(), map.dimY());
     }
 
-    public void writeJavaArray(TiffMapForWriting map, Object samplesArray, int fromX, int fromY, int sizeX, int sizeY)
+    public void writeJavaArray(TiffWriteMap map, Object samplesArray, int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(samplesArray, "Null samplesArray");
@@ -1430,8 +1430,8 @@ public class TiffWriter implements Closeable {
     /**
      * Writes the matrix at the position (0,0).
      *
-     * <p>Note: unlike {@link #writeJavaArray(TiffMapForWriting, Object)} and
-     * {@link #writeSamples(TiffMapForWriting, byte[])},
+     * <p>Note: unlike {@link #writeJavaArray(TiffWriteMap, Object)} and
+     * {@link #writeSamples(TiffWriteMap, byte[])},
      * this method always uses the actual sizes of the passed matrix and, so, <i>does not require</i>
      * the map to have correct non-zero dimensions (a situation, possible for resizable maps).</p>
      *
@@ -1440,12 +1440,12 @@ public class TiffWriter implements Closeable {
      * @throws TiffException in the case of invalid TIFF IFD.
      * @throws IOException   in the case of any I/O errors.
      */
-    public void writeMatrix(TiffMapForWriting map, Matrix<? extends PArray> matrix) throws IOException {
+    public void writeMatrix(TiffWriteMap map, Matrix<? extends PArray> matrix) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         writeMatrix(map, matrix, 0, 0);
     }
 
-    public void writeMatrix(TiffMapForWriting map, Matrix<? extends PArray> matrix, int fromX, int fromY) throws IOException {
+    public void writeMatrix(TiffWriteMap map, Matrix<? extends PArray> matrix, int fromX, int fromY) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(matrix, "Null matrix");
         clearTime();
@@ -1462,7 +1462,7 @@ public class TiffWriter implements Closeable {
 
     /**
      * Equivalent to
-     * <code>{@link #writeMatrix(TiffMapForWriting, Matrix)
+     * <code>{@link #writeMatrix(TiffWriteMap, Matrix)
      * writeMatrix}(Matrices.mergeLayers(channels))</code>.
      *
      * <p>Note that this method requires the {@link #setAutoInterleaveSource(boolean) auto-interleave} mode to be set;
@@ -1473,14 +1473,14 @@ public class TiffWriter implements Closeable {
      * @throws TiffException in the case of invalid TIFF IFD.
      * @throws IOException   in the case of any I/O errors.
      */
-    public void writeChannels(TiffMapForWriting map, List<? extends Matrix<? extends PArray>> channels)
+    public void writeChannels(TiffWriteMap map, List<? extends Matrix<? extends PArray>> channels)
             throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         writeChannels(map, channels, 0, 0);
     }
 
     public void writeChannels(
-            TiffMapForWriting map,
+            TiffWriteMap map,
             List<? extends Matrix<? extends PArray>> channels,
             int fromX,
             int fromY) throws IOException {
@@ -1494,7 +1494,7 @@ public class TiffWriter implements Closeable {
 
     /**
      * Equivalent to
-     * <code>{@link #writeChannels(TiffMapForWriting, List)
+     * <code>{@link #writeChannels(TiffWriteMap, List)
      * writeChannels}({@link ImageToMatrix#toChannels
      * ImageToMatrix.toChannels}(bufferedImage))</code>.
      *
@@ -1506,14 +1506,14 @@ public class TiffWriter implements Closeable {
      * @throws TiffException in the case of invalid TIFF IFD.
      * @throws IOException   in the case of any I/O errors.
      */
-    public void writeBufferedImage(TiffMapForWriting map, BufferedImage bufferedImage)
+    public void writeBufferedImage(TiffWriteMap map, BufferedImage bufferedImage)
             throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         writeBufferedImage(map, bufferedImage, 0, 0);
     }
 
     public void writeBufferedImage(
-            TiffMapForWriting map,
+            TiffWriteMap map,
             BufferedImage bufferedImage,
             int fromX,
             int fromY) throws IOException {
@@ -1522,7 +1522,7 @@ public class TiffWriter implements Closeable {
         writeChannels(map, ImageToMatrix.toChannels(bufferedImage), fromX, fromY);
     }
 
-    public int completeWriting(final TiffMapForWriting map) throws IOException {
+    public int completeWriting(final TiffWriteMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         final boolean resizable = map.isResizable();
         map.checkTooSmallDimensionsForCurrentGrid();
@@ -1555,12 +1555,12 @@ public class TiffWriter implements Closeable {
         return count;
     }
 
-    public TiffMapForWriting copyImage(TiffReader source, int sourceIfdIndex) throws IOException {
+    public TiffWriteMap copyImage(TiffReader source, int sourceIfdIndex) throws IOException {
         Objects.requireNonNull(source, "Null source TIFF reader");
         return copyImage(source.newMap(sourceIfdIndex));
     }
 
-    public TiffMapForWriting copyImage(
+    public TiffWriteMap copyImage(
             TiffReader source,
             int sourceIfdIndex,
             boolean decodeAndEncode) throws IOException {
@@ -1568,12 +1568,12 @@ public class TiffWriter implements Closeable {
         return copyImage(source.newMap(sourceIfdIndex), null, decodeAndEncode);
     }
 
-    public TiffMapForWriting copyImage(TiffMapForReading sourceMap) throws IOException {
+    public TiffWriteMap copyImage(TiffReadMap sourceMap) throws IOException {
         return copyImage(sourceMap, null, false);
     }
 
-    public TiffMapForWriting copyImage(
-            TiffMapForReading sourceMap,
+    public TiffWriteMap copyImage(
+            TiffReadMap sourceMap,
             Consumer<TiffIFD> correctingResultIFDAfterCopyingFromSource,
             boolean decodeAndEncode) throws IOException {
         Objects.requireNonNull(sourceMap, "Null source TIFF map");
@@ -1583,7 +1583,7 @@ public class TiffWriter implements Closeable {
         if (correctingResultIFDAfterCopyingFromSource != null) {
             correctingResultIFDAfterCopyingFromSource.accept(targetIFD);
         }
-        final TiffMapForWriting targetMap = newMap(targetIFD, false, decodeAndEncode);
+        final TiffWriteMap targetMap = newMap(targetIFD, false, decodeAndEncode);
         // - there is no sense to call correctIFDForWriting() method if we will not decode/encode tile
         writeForward(targetMap);
         for (TiffTileIndex index : sourceMap.indexes()) {
@@ -1976,7 +1976,7 @@ public class TiffWriter implements Closeable {
                 updatePositionOfLastIFDOffset);
     }
 
-    private void encode(TiffMapForWriting map, String stage) throws TiffException {
+    private void encode(TiffWriteMap map, String stage) throws TiffException {
         Objects.requireNonNull(map, "Null TIFF map");
         long t1 = debugTime();
         int count = 0;
@@ -1992,7 +1992,7 @@ public class TiffWriter implements Closeable {
         logTiles(map, stage, "encoded", count, sizeInBytes, t1, t2);
     }
 
-    private int completeWritingMap(TiffMapForWriting map) throws IOException {
+    private int completeWritingMap(TiffWriteMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         final long[] offsets = new long[map.numberOfGridTiles()];
         final long[] byteCounts = new long[map.numberOfGridTiles()];
@@ -2166,7 +2166,7 @@ public class TiffWriter implements Closeable {
         return options;
     }
 
-    private void logWritingMatrix(TiffMapForWriting map, Matrix<?> matrix, long t1, long t2, long t3, long t4) {
+    private void logWritingMatrix(TiffWriteMap map, Matrix<?> matrix, long t1, long t2, long t3, long t4) {
         if (TiffReader.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             final boolean sourceInterleaved = map.isConsideredInterleaved();
             final long dimX = matrix.dim(sourceInterleaved ? 1 : 0);
@@ -2210,7 +2210,7 @@ public class TiffWriter implements Closeable {
     }
 
     private void logWritingMatrix(
-            TiffMapForWriting map,
+            TiffWriteMap map,
             String name,
             long dimX,
             long dimY,

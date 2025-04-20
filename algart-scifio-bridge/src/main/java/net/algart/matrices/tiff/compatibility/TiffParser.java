@@ -38,6 +38,7 @@ import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.matrices.tiff.tiles.TiffMap;
+import net.algart.matrices.tiff.tiles.TiffReadMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIndex;
 import org.scijava.Context;
@@ -786,7 +787,7 @@ public class TiffParser extends TiffReader {
 
     /**
      * This function is deprecated, because almost identical behavior is implemented by
-     * {@link #readSamples(net.algart.matrices.tiff.tiles.TiffMapForReading, int, int, int, int)}.
+     * {@link #readSamples(TiffReadMap, int, int, int, int)}.
      */
     @Deprecated
     public byte[] getSamples(final IFD ifd, final byte[] buf, final int x,

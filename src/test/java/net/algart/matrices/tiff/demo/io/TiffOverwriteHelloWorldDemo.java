@@ -28,8 +28,8 @@ import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
-import net.algart.matrices.tiff.tiles.TiffMapForReading;
-import net.algart.matrices.tiff.tiles.TiffMapForWriting;
+import net.algart.matrices.tiff.tiles.TiffReadMap;
+import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -62,17 +62,17 @@ public class TiffOverwriteHelloWorldDemo {
             final TiffReader reader = writer.newReaderOfThisFile();
             final TiffIFD ifd = reader.readSingleIFD(ifdIndex);
             ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
-            TiffMapForReading mapForReading = reader.newMap(ifd, false);
-            final BufferedImage bufferedImage = reader.readBufferedImage(mapForReading,
+            TiffReadMap readMap = reader.newMap(ifd, false);
+            final BufferedImage bufferedImage = reader.readBufferedImage(readMap,
                     x, y, imageToDrawSizeX, imageToDrawSizeY, true);
             // - the last argument "true" leads to preserving all tiles in the map:
             // this is necessary for boundary tiles that are partially covered by the image
-            final TiffMapForWriting mapForWriting = writer.existingMap(ifd);
-            mapForWriting.copy(mapForReading, false);
-            System.out.printf("Overwriting %s...%n", mapForWriting);
+            final TiffWriteMap writeMap = writer.existingMap(ifd);
+            writeMap.copy(readMap, false);
+            System.out.printf("Overwriting %s...%n", writeMap);
             drawTextOnImage(bufferedImage, "Hello, world!");
             // MatrixIO.writeBufferedImage(Path.of("/tmp/test.bmp"), bufferedImage);
-            writer.writeBufferedImage(mapForWriting, bufferedImage, x, y);
+            writer.writeBufferedImage(writeMap, bufferedImage, x, y);
         }
         System.out.println("Done");
     }

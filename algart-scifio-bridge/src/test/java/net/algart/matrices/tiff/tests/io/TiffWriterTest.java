@@ -37,7 +37,7 @@ import net.algart.matrices.tiff.compatibility.TiffSaver;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagPredictor;
 import net.algart.matrices.tiff.tags.Tags;
-import net.algart.matrices.tiff.tiles.TiffMapForWriting;
+import net.algart.matrices.tiff.tiles.TiffWriteMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import org.scijava.Context;
 
@@ -324,7 +324,7 @@ public class TiffWriterTest {
                             writer.create();
                         }
                     }
-                    final TiffMapForWriting map;
+                    final TiffWriteMap map;
                     if (overwriteExisting) {
                         // - Ignoring previous IFD. It has no sense for k > 0:
                         // after writing the first IFD (at firstIfdIndex), the new number of IFD

@@ -36,7 +36,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-public final class TiffMapForReading extends TiffMap {
+public final class TiffReadMap extends TiffMap {
     @FunctionalInterface
     public interface TileSupplier {
         TiffTile getTile(TiffTileIndex tiffTileIndex) throws IOException;
@@ -44,7 +44,7 @@ public final class TiffMapForReading extends TiffMap {
 
     private final TiffReader owningReader;
 
-    public TiffMapForReading(TiffReader owningReader, TiffIFD ifd) {
+    public TiffReadMap(TiffReader owningReader, TiffIFD ifd) {
         super(ifd, false);
         this.owningReader = Objects.requireNonNull(owningReader, "Null owning reader");
     }
