@@ -56,7 +56,7 @@ public class TiffCopier {
         boolean shouldContinue();
     }
 
-    private boolean directCopyIfPossible = false;
+    private boolean directCopy = false;
     private IFDCorrector ifdCorrector = null;
     private ProgressUpdater progressUpdater = null;
     private CancellationChecker cancellationChecker = null;
@@ -74,20 +74,20 @@ public class TiffCopier {
      *
      * @return <code>true</code> if the direct copying of TIFF tiles should be used,
      */
-    public boolean isDirectCopyIfPossible() {
-        return directCopyIfPossible;
+    public boolean isDirectCopy() {
+        return directCopy;
     }
 
     /**
-     * Sets the flag that enforces direct copying of TIFF image tiles without decompression/compression
-     * when it is possible.
-     * Default value is <code>false</code>.
+     * Sets the flag that enforces direct copying of TIFF image tiles without decompression/compression.
+     * Default value is <code>false</code>, meaning that TIFF tiles are always decompressed and compressed
+     * during the copy process.
      *
-     * @param directCopyIfPossible whether the direct copying of TIFF tiles should be used.
+     * @param directCopy whether the direct copying of TIFF tiles should be used.
      * @return a reference to this object.
      */
-    public TiffCopier setDirectCopyIfPossible(boolean directCopyIfPossible) {
-        this.directCopyIfPossible = directCopyIfPossible;
+    public TiffCopier setDirectCopy(boolean directCopy) {
+        this.directCopy = directCopy;
         return this;
     }
 
@@ -102,7 +102,7 @@ public class TiffCopier {
 
     /**
      * Sets a function that corrects IFD from the source TIFF read map before writing it to the target TIFF.
-     * Usually you should not use this method if the flag {@link #isDirectCopyIfPossible()}
+     * Usually you should not use this method if the flag {@link #isDirectCopy()}
      * is set to <code>true</code>.
      * Default value is <code>null</code>, meaning that no correction is performed.
      *
@@ -149,14 +149,14 @@ public class TiffCopier {
         return totalTileCount;
     }
 
-    public static void copyAll(Path targetTiffFile, Path sourceTiffFile, boolean fastDirectCopy)
+    public static void copyAll(Path targetTiffFile, Path sourceTiffFile, boolean directCopy)
             throws IOException {
-        new TiffCopier().setDirectCopyIfPossible(fastDirectCopy).copyAll(targetTiffFile, sourceTiffFile);
+        new TiffCopier().setDirectCopy(directCopy).copyAll(targetTiffFile, sourceTiffFile);
     }
 
-    public static void copyImage(TiffWriter writer, TiffReadMap readMap, boolean fastDirectCopy)
+    public static void copyImage(TiffWriter writer, TiffReadMap readMap, boolean directCopy)
             throws IOException {
-        new TiffCopier().setDirectCopyIfPossible(fastDirectCopy).copyImage(writer, readMap);
+        new TiffCopier().setDirectCopy(directCopy).copyImage(writer, readMap);
     }
 
     public void copyAll(Path targetTiffFile, Path sourceTiffFile) throws IOException {
@@ -201,14 +201,14 @@ public class TiffCopier {
         if (ifdCorrector != null) {
             ifdCorrector.correct(targetIFD);
         }
-        final TiffWriteMap targetMap = writer.newMap(targetIFD, false, !directCopyIfPossible);
+        final TiffWriteMap targetMap = writer.newMap(targetIFD, false, !directCopy);
         // - there is no sense to call correctIFDForWriting() method if we use direct copying
         writer.writeForward(targetMap);
         final Set<TiffTileIndex> indexes = readMap.indexes();
         totalTileCount = indexes.size();
         for (TiffTileIndex index : indexes) {
             final TiffTile targetTile = targetMap.getOrNew(targetMap.copyIndex(index));
-            if (!directCopyIfPossible) {
+            if (!directCopy) {
                 final TiffTile sourceTile = reader.readCachedTile(index);
                 final byte[] decodedData = sourceTile.unpackUnusualDecodedData();
                 targetTile.setDecodedData(decodedData);

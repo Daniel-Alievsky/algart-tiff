@@ -62,7 +62,7 @@ public class TiffCopyCustomDemo {
                 sourceFile, targetFile, direct ? "as-is" : "with recompression");
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
-        final var copier = new TiffCopier().setDirectCopyIfPossible(direct);
+        final var copier = new TiffCopier().setDirectCopy(direct);
         copier.setProgressUpdater(() ->
                 System.out.printf("\r%d/%d...", copier.copiedTileCount(), copier.totalTileCount()));
         try (var reader = new TiffReader(sourceFile); var writer = new TiffWriter(targetFile)) {

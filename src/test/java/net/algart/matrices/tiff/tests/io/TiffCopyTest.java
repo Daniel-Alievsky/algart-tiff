@@ -126,7 +126,7 @@ public class TiffCopyTest {
 
     private TiffCopier getCopier() {
         final TiffCopier copier = new TiffCopier();
-        assert !copier.isDirectCopyIfPossible() : "direct-copy should be disabled by default";
+        assert !copier.isDirectCopy() : "direct-copy should be disabled by default";
         copier.setProgressUpdater(() -> System.out.printf(
                 "\r%d/%d...", copier.copiedTileCount(), copier.totalTileCount()));
         // copier.setCancellationChecker(() -> copier.copiedTileCount() < 12);

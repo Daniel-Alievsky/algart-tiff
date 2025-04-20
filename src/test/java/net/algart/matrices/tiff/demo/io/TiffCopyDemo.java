@@ -47,15 +47,17 @@ public class TiffCopyDemo {
         final Path sourceFile = Paths.get(args[startArgIndex++]);
         final Path targetFile = Paths.get(args[startArgIndex++]);
         if (direct) {
-            System.out.printf("Direct copying %s to %s...%n", sourceFile, targetFile);
+            System.out.printf("Direct copying %s to %s...", sourceFile, targetFile);
             TiffCopier.copyAll(targetFile, sourceFile, true);
         } else {
             System.out.printf("Copying %s to %s with recompression...%n", sourceFile, targetFile);
-            final var copier = new TiffCopier().setDirectCopyIfPossible(direct);
+            final var copier = new TiffCopier().setDirectCopy(direct);
             copier.setProgressUpdater(() ->
                     System.out.printf("\rImage %d/%d, tile %d/%d...",
                             copier.copiedImageCount(), copier.totalImageCount(),
                             copier.copiedTileCount(), copier.totalTileCount()));
+            copier.setDirectCopy(false);
+            // - unnecessary (it is the default); true value means the direct copy
             copier.copyAll(targetFile, sourceFile);
         }
         System.out.printf("%nDone%n");
