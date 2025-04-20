@@ -108,7 +108,7 @@ public class TiffCopyTest {
                     final var readMap = maps.get(ifdIndex);
                     if (direct) {
                         System.out.printf("\r  Raw copying #%d/%d: %s%n", ifdIndex, maps.size(), readMap.ifd());
-                        TiffCopier.fastDirectCopy(writer, readMap);
+                        TiffCopier.copyImage(writer, readMap, true);
                     } else {
                         System.out.printf("\r  Repacking #%d/%d: %s%n", ifdIndex, maps.size(), readMap.ifd());
                         final TiffCopier copier = getCopier();

@@ -30,6 +30,7 @@ import net.algart.matrices.tiff.tiles.TiffTileIndex;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Set;
 
@@ -62,7 +63,8 @@ public class TiffCopier {
 
     private int copiedTileCount = 0;
     private int totalTileCount = 0;
-
+    private int copiedImageCount = 0;
+    private int totalImageCount = 0;
 
     public TiffCopier() {
     }
@@ -131,6 +133,14 @@ public class TiffCopier {
         return this;
     }
 
+    public int copiedImageCount() {
+        return copiedImageCount;
+    }
+
+    public int totalImageCount() {
+        return totalImageCount;
+    }
+
     public int copiedTileCount() {
         return copiedTileCount;
     }
@@ -139,16 +149,42 @@ public class TiffCopier {
         return totalTileCount;
     }
 
-    public static void fastDirectCopy(TiffWriter writer, TiffReadMap readMap) throws IOException {
-        copy(writer, readMap, true);
+    public static void copyAll(Path targetTiffFile, Path sourceTiffFile, boolean fastDirectCopy)
+            throws IOException {
+        new TiffCopier().setDirectCopyIfPossible(fastDirectCopy).copyAll(targetTiffFile, sourceTiffFile);
     }
 
-    public static void copy(TiffWriter writer, TiffReadMap readMap, boolean fastDirectCopy)
+    public static void copyImage(TiffWriter writer, TiffReadMap readMap, boolean fastDirectCopy)
             throws IOException {
         new TiffCopier().setDirectCopyIfPossible(fastDirectCopy).copyImage(writer, readMap);
     }
 
+    public void copyAll(Path targetTiffFile, Path sourceTiffFile) throws IOException {
+        try (TiffReader reader = new TiffReader(sourceTiffFile);
+             TiffWriter writer = new TiffWriter(targetTiffFile)) {
+            writer.setBigTiff(reader.isBigTiff());
+            writer.setLittleEndian(reader.isLittleEndian());
+            writer.create();
+            copyAll(writer, reader);
+        }
+    }
+
+    public void copyAll(TiffWriter writer, TiffReader reader) throws IOException {
+        Objects.requireNonNull(writer, "Null TIFF writer");
+        Objects.requireNonNull(reader, "Null TIFF reader");
+        for (int i = 0, n = reader.numberOfImages(); i < n; i++) {
+            copiedImageCount = i;
+            totalImageCount = n;
+            copyImage(writer, reader, i);
+            if (progressUpdater != null) {
+                copiedImageCount = i + 1;
+                progressUpdater.onProgress();
+            }
+        }
+    }
+
     public TiffWriteMap copyImage(TiffWriter writer, TiffReader reader, int sourceIfdIndex) throws IOException {
+        Objects.requireNonNull(writer, "Null TIFF writer");
         Objects.requireNonNull(reader, "Null TIFF reader");
         final TiffReadMap readMap = reader.newMap(sourceIfdIndex);
         return copyImage(writer, readMap);

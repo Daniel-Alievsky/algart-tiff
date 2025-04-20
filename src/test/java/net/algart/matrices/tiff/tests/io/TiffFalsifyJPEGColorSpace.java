@@ -66,24 +66,25 @@ public class TiffFalsifyJPEGColorSpace {
             System.out.printf("Transforming to %s...%n", targetFile);
             final var maps = reader.allMaps();
             lastIFDIndex = Math.min(lastIFDIndex, maps.size() - 1);
+            final TiffCopier copier = new TiffCopier()
+                    .setIfdCorrector(ifd -> {
+                        ifd.putPhotometricInterpretation(before);
+                        ifd.put(Tags.Y_CB_CR_SUB_SAMPLING,
+                                before == TagPhotometricInterpretation.RGB ? new int[]{1, 1} : new int[]{2, 2});
+                        // - instruct Java AWT to store as RGB and disable subsampling
+                        // (RGB are encoded without subsampling)
+                    });
             for (int i = firstIFDIndex; i <= lastIFDIndex; i++) {
                 final var readMap = maps.get(i);
                 if (readMap.compressionCode() != TiffIFD.COMPRESSION_JPEG) {
                     System.out.printf("\rCopying #%d/%d: %s%n", i, maps.size(), readMap.ifd());
-                    TiffCopier.fastDirectCopy(writer, readMap);
+                    TiffCopier.copyImage(writer, readMap, true);
                     continue;
                 }
                 System.out.printf("\rTransforming #%d/%d: %s%n", i, maps.size(), readMap.ifd());
                 // - instruct Java AWT to store as RGB and disable subsampling
                 // (RGB are encoded without subsampling)
-                final var writeMap = new TiffCopier()
-                        .setIfdCorrector(writeIFD -> {
-                            writeIFD.putPhotometricInterpretation(before);
-                            writeIFD.put(Tags.Y_CB_CR_SUB_SAMPLING,
-                                    before == TagPhotometricInterpretation.RGB ? new int[]{1, 1} : new int[]{2, 2});
-                            // - instruct Java AWT to store as RGB and disable subsampling
-                            // (RGB are encoded without subsampling)
-                        })
+                final var writeMap = copier
                         .copyImage(writer, readMap);
                 final TiffIFD cloneIFD = new TiffIFD(writeMap.ifd());
                 // - writeMap is frozen and cannot be modified

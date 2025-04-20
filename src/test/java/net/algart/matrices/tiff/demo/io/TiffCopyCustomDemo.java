@@ -25,14 +25,21 @@
 package net.algart.matrices.tiff.demo.io;
 
 import net.algart.matrices.tiff.TiffCopier;
+import net.algart.matrices.tiff.TiffReader;
+import net.algart.matrices.tiff.TiffWriter;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class TiffCopyDemo {
+public class TiffCopyCustomDemo {
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
+        boolean append = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-append")) {
+            append = true;
+            startArgIndex++;
+        }
         boolean direct = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-direct")) {
             direct = true;
@@ -40,24 +47,35 @@ public class TiffCopyDemo {
         }
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
-            System.out.printf("   [-direct] %s source.tiff target.tiff%n",
-                    TiffCopyDemo.class.getName());
+            System.out.printf("    [-append] [-direct] %s source.tiff target.tiff [firstIFDIndex lastIFDIndex]%n",
+                    TiffCopyCustomDemo.class.getName());
             return;
         }
         final Path sourceFile = Paths.get(args[startArgIndex++]);
         final Path targetFile = Paths.get(args[startArgIndex++]);
-        if (direct) {
-            System.out.printf("Direct copying %s to %s...%n", sourceFile, targetFile);
-            TiffCopier.copyAll(targetFile, sourceFile, true);
-        } else {
-            System.out.printf("Copying %s to %swith recompression...%n", sourceFile, targetFile);
-            final var copier = new TiffCopier().setDirectCopyIfPossible(direct);
-            copier.setProgressUpdater(() ->
-                    System.out.printf("\rImage %d/%d, tile %d/%d...",
-                            copier.copiedImageCount(), copier.totalImageCount(),
-                            copier.copiedTileCount(), copier.totalTileCount()));
-            copier.copyAll(targetFile, sourceFile);
+        final int firstIFDIndex = startArgIndex < args.length ? Integer.parseInt(args[startArgIndex]) : 0;
+        int lastIFDIndex = startArgIndex + 1 < args.length ?
+                Integer.parseInt(args[startArgIndex + 1]) :
+                Integer.MAX_VALUE;
+
+        System.out.printf("Copying %s to %s %s...%n",
+                sourceFile, targetFile, direct ? "as-is" : "with recompression");
+
+        System.out.printf("Writing TIFF %s...%n", targetFile);
+        final var copier = new TiffCopier().setDirectCopyIfPossible(direct);
+        copier.setProgressUpdater(() ->
+                System.out.printf("\r%d/%d...", copier.copiedTileCount(), copier.totalTileCount()));
+        try (var reader = new TiffReader(sourceFile); var writer = new TiffWriter(targetFile)) {
+            lastIFDIndex = Math.min(lastIFDIndex, reader.numberOfImages() - 1);
+            if (lastIFDIndex >= firstIFDIndex) {
+                writer.create(append);
+                for (int i = firstIFDIndex; i <= lastIFDIndex; i++) {
+                    System.out.printf("Copying image %d...%n", i);
+                    copier.copyImage(writer, reader, i);
+                    System.out.print("\r               \r");
+                }
+            }
         }
-        System.out.printf("%nDone%n");
+        System.out.printf("Done%n");
     }
 }
