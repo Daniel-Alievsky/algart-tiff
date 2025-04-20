@@ -78,7 +78,7 @@ public class TiffWriteCustomDemo {
         final List<? extends Matrix<? extends PArray>> image = MatrixIO.readImage(sourceFile);
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
-        try (TiffWriter writer = new TiffWriter(targetFile)) {
+        try (var writer = new TiffWriter(targetFile)) {
             writer.setBigTiff(bigTiff);
             writer.setLittleEndian(littleEndian);
             // - must be called BEFORE creating the new file

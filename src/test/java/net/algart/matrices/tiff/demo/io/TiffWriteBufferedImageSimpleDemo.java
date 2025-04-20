@@ -55,7 +55,7 @@ public class TiffWriteBufferedImageSimpleDemo {
         }
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
-        try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.CREATE)) {
+        try (var writer = new TiffWriter(targetFile, TiffCreateMode.CREATE)) {
             final TiffIFD ifd = writer.newIFD()
                 .putImageInformation(image)
                 .putCompression(TagCompression.DEFLATE);

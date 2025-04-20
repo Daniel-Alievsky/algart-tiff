@@ -56,7 +56,7 @@ public class TiffOverwritePictureDemo {
         final int imageToDrawSizeY = imageToDraw.get(0).dimY32();
 
         System.out.printf("Opening and rewriting TIFF %s...%n", targetFile);
-        try (TiffWriter writer = new TiffWriter(targetFile)) {
+        try (var writer = new TiffWriter(targetFile)) {
             writer.openExisting();
             // - possible solution instead of using TiffCreateMode.OPEN_EXISTING
             final TiffWriteMap map = writer.preloadExistingTiles(

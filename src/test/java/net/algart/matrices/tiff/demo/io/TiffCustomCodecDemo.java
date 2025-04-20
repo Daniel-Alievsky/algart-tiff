@@ -64,7 +64,7 @@ public class TiffCustomCodecDemo {
         System.out.printf("%nReading %s...%n", sourceFile);
         List<Matrix<UpdatablePArray>> image = MatrixIO.readImage(sourceFile);
         System.out.printf("Writing TIFF %s...%n%n", tiffFile);
-        try (TiffWriter writer = new TiffWriter(tiffFile, TiffCreateMode.CREATE) {
+        try (var writer = new TiffWriter(tiffFile, TiffCreateMode.CREATE) {
             @Override
             protected Optional<byte[]> encodeByExternalCodec(
                     TiffTile tile, byte[] decodedData, TiffCodec.Options options) throws TiffException {
@@ -82,7 +82,7 @@ public class TiffCustomCodecDemo {
             map.writeChannels(image);
         }
         System.out.printf("%nReading TIFF %s...%n%n", tiffFile);
-        try (TiffReader reader = new TiffReader(tiffFile) {
+        try (var reader = new TiffReader(tiffFile) {
             @Override
             protected Optional<byte[]> decodeByExternalCodec(
                     TiffTile tile, byte[] encodedData, TiffCodec.Options options) throws TiffException {

@@ -60,7 +60,7 @@ public class TiffExtractTileContent {
 
         // new TiffInfo().showTiffInfo(tiffFile);
 
-        try (TiffReader reader = new TiffReader(tiffFile)) {
+        try (var reader = new TiffReader(tiffFile)) {
             System.out.printf("Opening %s by %s...%n", tiffFile, reader);
             final var map = reader.newMap(ifdIndex);
             System.out.printf("TIFF map #%d: %s%n", ifdIndex, map);

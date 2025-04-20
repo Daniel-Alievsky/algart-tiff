@@ -75,7 +75,7 @@ public class TiffWriteRepeatedPictureDemo {
                 patternSizeX, patternSizeY, pattern.size(), pattern.get(0).elementType());
 
         System.out.printf("%s TIFF %s...%n", append ? "Appending" : "Writing", targetFile);
-        try (TiffWriter writer = new TiffWriter(targetFile)) {
+        try (var writer = new TiffWriter(targetFile)) {
             writer.setBigTiff(bigTiff);
             writer.create(append);
             final TiffIFD ifd = writer.newIFD(true)

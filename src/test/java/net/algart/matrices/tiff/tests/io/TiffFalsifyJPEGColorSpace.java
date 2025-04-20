@@ -57,9 +57,7 @@ public class TiffFalsifyJPEGColorSpace {
 
         System.out.printf("Opening %s...%n", sourceFile);
 
-        try (TiffReader reader = new TiffReader(sourceFile);
-             TiffWriter writer = new TiffWriter(targetFile)) {
-
+        try (var reader = new TiffReader(sourceFile); var writer = new TiffWriter(targetFile)) {
             writer.setBigTiff(reader.isBigTiff());
             writer.setLittleEndian(reader.isLittleEndian());
             writer.create();

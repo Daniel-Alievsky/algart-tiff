@@ -61,8 +61,7 @@ public class TiffCopyDemo {
                 sourceFile, targetFile, repack ? "with recompression" : "as-is");
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
-        try (TiffReader reader = new TiffReader(sourceFile);
-                TiffWriter writer = new TiffWriter(targetFile)) {
+        try (var reader = new TiffReader(sourceFile); var writer = new TiffWriter(targetFile)) {
             lastIFDIndex = Math.min(lastIFDIndex, reader.numberOfImages() - 1);
             if (lastIFDIndex >= firstIFDIndex) {
                 writer.create(append);

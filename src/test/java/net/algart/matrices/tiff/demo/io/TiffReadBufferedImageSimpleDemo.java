@@ -46,7 +46,7 @@ public class TiffReadBufferedImageSimpleDemo {
 
         System.out.printf("Reading TIFF %s...%n", sourceFile);
         BufferedImage image;
-        try (TiffReader reader = new TiffReader(sourceFile)) {
+        try (var reader = new TiffReader(sourceFile)) {
             // reader.setEnforceUseExternalCodec(true); // - throws exception: no SCIFIO or other external codecs
             // reader.setContext(TiffTools.newSCIFIOContext()); // - throws exception without dependence on SCIFIO
             // reader.setInterleaveResults(true); // - slows down reading (unnecessary interleaving+separating)

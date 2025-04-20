@@ -64,7 +64,7 @@ public class TiffAppendDemo {
         }
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
-        try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_FOR_APPEND)) {
+        try (var writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_FOR_APPEND)) {
             // - for comparison, TiffCreateMode.CREATE always creates a new file
             final TiffIFD ifd = writer.newIFD()
                     .putChannelsInformation(image)

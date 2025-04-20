@@ -66,7 +66,7 @@ public enum TiffCreateMode {
         return littleEndian;
     }
 
-    public static TiffCreateMode createNew(boolean bigTiff, boolean littleEndian) {
+    public static TiffCreateMode ofCreateOptions(boolean bigTiff, boolean littleEndian) {
         return bigTiff ?
                 (littleEndian ? CREATE_LE_BIG : CREATE_BIG) :
                 (littleEndian ? CREATE_LE : CREATE);

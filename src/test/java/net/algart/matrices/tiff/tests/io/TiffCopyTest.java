@@ -79,7 +79,7 @@ public class TiffCopyTest {
             int firstIFDIndex,
             int lastIFDIndex)
             throws IOException {
-        try (TiffReader reader = new TiffReader(sourceFile, TiffOpenMode.ALLOW_NON_TIFF)) {
+        try (var reader = new TiffReader(sourceFile, TiffOpenMode.ALLOW_NON_TIFF)) {
             if (useContext) {
                 reader.setContext(TiffReader.newSCIFIOContext());
             }
@@ -90,7 +90,7 @@ public class TiffCopyTest {
             System.out.printf("Copying %s to %s...%n", sourceFile, targetFile);
             reader.setByteFiller((byte) 0xC0);
             boolean ok = false;
-            try (TiffWriter writer = new TiffWriter(targetFile)) {
+            try (var writer = new TiffWriter(targetFile)) {
                 if (useContext) {
                     writer.setContext(TiffReader.newSCIFIOContext());
                 }

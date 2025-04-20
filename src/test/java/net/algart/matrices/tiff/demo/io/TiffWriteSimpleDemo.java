@@ -59,7 +59,7 @@ public class TiffWriteSimpleDemo {
         final List<? extends Matrix<? extends PArray>> image = MatrixIO.readImage(sourceFile);
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
-        try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.createNew(bigTiff, false))) {
+        try (var writer = new TiffWriter(targetFile, TiffCreateMode.ofCreateOptions(bigTiff, false))) {
             final TiffIFD ifd = writer.newIFD()
                 .putChannelsInformation(image)
                 .putCompression(TagCompression.DEFLATE);

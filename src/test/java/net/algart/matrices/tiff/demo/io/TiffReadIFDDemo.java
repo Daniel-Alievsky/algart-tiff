@@ -48,7 +48,7 @@ public class TiffReadIFDDemo {
         final Path sourceFile = Paths.get(args[startArgIndex]);
 
         System.out.printf("Reading TIFF %s...%n", sourceFile);
-        try (TiffReader reader = new TiffReader(sourceFile, TiffOpenMode.ALLOW_NON_TIFF)) {
+        try (var reader = new TiffReader(sourceFile, TiffOpenMode.ALLOW_NON_TIFF)) {
             // - "false" argument helps to test also non-TIFF files
             if (reader.isValidTiff()) {
                 for (int i = 0, n = reader.numberOfImages(); i < n; i++) {

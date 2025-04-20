@@ -58,7 +58,7 @@ public class TiffOverwriteHelloWorldDemo {
         // - estimated sizes sufficient for "Hello, world!"
 
         System.out.printf("Opening and rewriting TIFF %s...%n", targetFile);
-        try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
+        try (var writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
             final TiffReader reader = writer.newReaderOfThisFile();
             final TiffIFD ifd = reader.readSingleIFD(ifdIndex);
             ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());

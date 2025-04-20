@@ -89,7 +89,7 @@ public class TiffInfo {
     }
 
     private void showTiffInfo(Path tiffFile, int firstIFDIndex, int lastIFDIndex) throws IOException {
-        try (TiffReader reader = new TiffReader(tiffFile, TiffOpenMode.ALLOW_NON_TIFF)) {
+        try (var reader = new TiffReader(tiffFile, TiffOpenMode.ALLOW_NON_TIFF)) {
             if (reader.isTiff() != reader.isValidTiff()) {
                 // - impossible with this form of the constructor
                 throw new AssertionError();

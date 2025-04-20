@@ -53,7 +53,7 @@ public class TiffFalsifyTags {
             photometricInterpretation = TagPhotometricInterpretation.valueOf(args[startArgIndex]);
         }
 
-        try (TiffReader reader = new TiffReader(targetFile);
+        try (var reader = new TiffReader(targetFile);
              TiffWriter writer = new TiffWriter(targetFile)) {
             writer.openExisting();
 
