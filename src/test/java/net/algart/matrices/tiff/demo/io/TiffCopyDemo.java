@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff.demo.io;
 
+import net.algart.matrices.tiff.TiffCopier;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 
@@ -67,7 +68,7 @@ public class TiffCopyDemo {
                 writer.create(append);
                 for (int i = firstIFDIndex; i <= lastIFDIndex; i++) {
                     System.out.printf("Copying image %d...%n", i);
-                    writer.copyImage(reader, i, repack);
+                    TiffCopier.copyImage(writer, reader, i, repack);
                 }
             }
         }

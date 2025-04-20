@@ -45,8 +45,8 @@ public class TiffCopyFolderTest {
             copier.bigTiff = true;
             startArgIndex++;
         }
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-rawCopy")) {
-            copier.rawCopy = true;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-repack")) {
+            copier.repack = true;
             startArgIndex++;
         }
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-uncompress")) {

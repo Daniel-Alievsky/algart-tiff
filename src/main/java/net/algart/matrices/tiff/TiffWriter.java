@@ -1555,54 +1555,6 @@ public class TiffWriter implements Closeable {
         return count;
     }
 
-    public TiffWriteMap copyImage(TiffReader source, int sourceIfdIndex) throws IOException {
-        Objects.requireNonNull(source, "Null source TIFF reader");
-        return copyImage(source.newMap(sourceIfdIndex));
-    }
-
-    public TiffWriteMap copyImage(
-            TiffReader source,
-            int sourceIfdIndex,
-            boolean decodeAndEncode) throws IOException {
-        Objects.requireNonNull(source, "Null source TIFF reader");
-        return copyImage(source.newMap(sourceIfdIndex), null, decodeAndEncode);
-    }
-
-    public TiffWriteMap copyImage(TiffReadMap sourceMap) throws IOException {
-        return copyImage(sourceMap, null, false);
-    }
-
-    public TiffWriteMap copyImage(
-            TiffReadMap sourceMap,
-            Consumer<TiffIFD> correctingResultIFDAfterCopyingFromSource,
-            boolean decodeAndEncode) throws IOException {
-        Objects.requireNonNull(sourceMap, "Null source TIFF map");
-        @SuppressWarnings("resource") final TiffReader source = sourceMap.reader();
-        final TiffIFD targetIFD = new TiffIFD(sourceMap.ifd());
-        // - creating a clone of IFD: we must not modify the source IFD
-        if (correctingResultIFDAfterCopyingFromSource != null) {
-            correctingResultIFDAfterCopyingFromSource.accept(targetIFD);
-        }
-        final TiffWriteMap targetMap = newMap(targetIFD, false, decodeAndEncode);
-        // - there is no sense to call correctIFDForWriting() method if we will not decode/encode tile
-        writeForward(targetMap);
-        for (TiffTileIndex index : sourceMap.indexes()) {
-            final TiffTile targetTile = targetMap.getOrNew(targetMap.copyIndex(index));
-            if (decodeAndEncode) {
-                final TiffTile sourceTile = source.readCachedTile(index);
-                final byte[] decodedData = sourceTile.unpackUnusualDecodedData();
-                targetTile.setDecodedData(decodedData);
-            } else {
-                final TiffTile sourceTile = source.readEncodedTile(index);
-                targetTile.copy(sourceTile, false);
-            }
-            targetMap.put(targetTile);
-            writeTile(targetTile, true);
-        }
-        completeWriting(targetMap);
-        return targetMap;
-    }
-
     @Override
     public void close() throws IOException {
         lastMap = null;

@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff.tests.io;
 
+import net.algart.matrices.tiff.TiffCopier;
 import net.algart.matrices.tiff.TiffOpenMode;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
@@ -37,14 +38,14 @@ import java.nio.file.Paths;
 public class TiffCopyTest {
     boolean useContext = false;
     boolean bigTiff = false;
-    boolean rawCopy = false;
+    boolean repack = false;
     boolean uncompress = false;
 
     public static void main(String[] args) throws IOException {
         TiffCopyTest copier = new TiffCopyTest();
         int startArgIndex = 0;
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-rawCopy")) {
-            copier.rawCopy = true;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-repack")) {
+            copier.repack = true;
             startArgIndex++;
         }
         if (args.length < startArgIndex + 2) {
@@ -105,11 +106,12 @@ public class TiffCopyTest {
                 lastIFDIndex = Math.min(lastIFDIndex, maps.size() - 1);
                 for (int ifdIndex = firstIFDIndex; ifdIndex <= lastIFDIndex; ifdIndex++) {
                     final var readMap = maps.get(ifdIndex);
-                    System.out.printf("\r  Copying #%d/%d: %s%n", ifdIndex, maps.size(), readMap.ifd());
-                    if (rawCopy) {
-                        writer.copyImage(readMap);
+                    if (!repack) {
+                        System.out.printf("\r  Raw copying #%d/%d: %s%n", ifdIndex, maps.size(), readMap.ifd());
+                        TiffCopier.copyImage(writer, readMap);
                     } else {
-                        writer.copyImage(readMap, writeIFD -> {
+                        System.out.printf("\r  Repacking #%d/%d: %s%n", ifdIndex, maps.size(), readMap.ifd());
+                        TiffCopier.copyImage(writer, readMap, writeIFD -> {
                             if (uncompress) {
                                 writeIFD.putCompression(TagCompression.NONE);
                             }

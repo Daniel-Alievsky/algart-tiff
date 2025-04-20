@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff.tests.io;
 
+import net.algart.matrices.tiff.TiffCopier;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
@@ -69,11 +70,11 @@ public class TiffFalsifyJPEGColorSpace {
                 final var readMap = maps.get(i);
                 if (readMap.compressionCode() != TiffIFD.COMPRESSION_JPEG) {
                     System.out.printf("\rCopying #%d/%d: %s%n", i, maps.size(), readMap.ifd());
-                    writer.copyImage(readMap);
+                    TiffCopier.copyImage(writer, readMap);
                     continue;
                 }
                 System.out.printf("\rTransforming #%d/%d: %s%n", i, maps.size(), readMap.ifd());
-                final var writeMap = writer.copyImage(readMap, writeIFD -> {
+                final var writeMap = TiffCopier.copyImage(writer, readMap, writeIFD -> {
                             writeIFD.putPhotometricInterpretation(before);
                             writeIFD.put(Tags.Y_CB_CR_SUB_SAMPLING,
                                     before == TagPhotometricInterpretation.RGB ? new int[]{1, 1} : new int[]{2, 2});
