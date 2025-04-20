@@ -35,7 +35,7 @@ import java.util.Objects;
 import java.util.Set;
 
 @SuppressWarnings("UnusedReturnValue")
-public class TiffCopier {
+public final class TiffCopier {
     @FunctionalInterface
     public interface IFDCorrector {
         /**
