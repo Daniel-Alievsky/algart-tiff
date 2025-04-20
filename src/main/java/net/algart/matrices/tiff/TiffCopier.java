@@ -46,18 +46,19 @@ public class TiffCopier {
     }
 
     @FunctionalInterface
-    public interface ProgressCallback {
+    public interface ProgressUpdater {
         void onProgress();
+    }
 
-        default boolean shouldContinue() {
-            onProgress();
-            return true;
-        }
+    @FunctionalInterface
+    public interface CancellationChecker {
+        boolean shouldContinue();
     }
 
     private boolean directCopyIfPossible = false;
     private IFDCorrector ifdCorrector = null;
-    private ProgressCallback progressCallback = null;
+    private ProgressUpdater progressUpdater = null;
+    private CancellationChecker cancellationChecker = null;
 
     private int copiedTileCount = 0;
     private int totalTileCount = 0;
@@ -112,12 +113,21 @@ public class TiffCopier {
         return this;
     }
 
-    public ProgressCallback getProgressCallback() {
-        return progressCallback;
+    public ProgressUpdater getProgressUpdater() {
+        return progressUpdater;
     }
 
-    public TiffCopier setProgressCallback(ProgressCallback progressCallback) {
-        this.progressCallback = progressCallback;
+    public TiffCopier setProgressUpdater(ProgressUpdater progressUpdater) {
+        this.progressUpdater = progressUpdater;
+        return this;
+    }
+
+    public CancellationChecker getCancellationChecker() {
+        return cancellationChecker;
+    }
+
+    public TiffCopier setCancellationChecker(CancellationChecker cancellationChecker) {
+        this.cancellationChecker = cancellationChecker;
         return this;
     }
 
@@ -173,7 +183,10 @@ public class TiffCopier {
             targetMap.put(targetTile);
             writer.writeTile(targetTile, true);
             copiedTileCount++;
-            if (progressCallback != null && !progressCallback.shouldContinue()) {
+            if (progressUpdater != null) {
+                progressUpdater.onProgress();
+            }
+            if (cancellationChecker != null && !cancellationChecker.shouldContinue()) {
                 break;
             }
         }

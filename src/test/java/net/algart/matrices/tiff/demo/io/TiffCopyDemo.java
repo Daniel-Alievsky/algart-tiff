@@ -63,7 +63,7 @@ public class TiffCopyDemo {
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
         final var copier = new TiffCopier().setDirectCopyIfPossible(direct);
-        copier.setProgressCallback(() ->
+        copier.setProgressUpdater(() ->
                 System.out.printf("\r%d/%d...", copier.copiedTileCount(), copier.totalTileCount()));
         try (var reader = new TiffReader(sourceFile); var writer = new TiffWriter(targetFile)) {
             lastIFDIndex = Math.min(lastIFDIndex, reader.numberOfImages() - 1);
