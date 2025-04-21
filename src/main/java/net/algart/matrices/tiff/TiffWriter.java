@@ -263,11 +263,17 @@ public class TiffWriter implements Closeable {
      * This flag must be set before creating the file by {@link #create()} method.
      * Default value is <code>false</code>.
      */
-    public TiffWriter setBigTiff(final boolean bigTiff) {
+    public TiffWriter setBigTiff(boolean bigTiff) {
         this.bigTiff = bigTiff;
         return this;
     }
 
+    public TiffWriter setFormatLike(TiffReader reader) {
+        Objects.requireNonNull(reader, "Null TIFF reader");
+        this.setBigTiff(reader.isBigTiff());
+        this.setLittleEndian(reader.isLittleEndian());
+        return this;
+    }
 
     public boolean isWritingForwardAllowed() {
         return writingForwardAllowed;
@@ -680,7 +686,7 @@ public class TiffWriter implements Closeable {
                 // because it uses the same stream with this writer
                 final long[] offsets = reader.readIFDOffsets();
                 final long readerPositionOfLastOffset = reader.positionOfLastIFDOffset();
-                this.setBigTiff(reader.isBigTiff()).setLittleEndian(reader.isLittleEndian());
+                this.setFormatLike(reader);
                 ifdOffsets.addAll(Arrays.stream(offsets).boxed().toList());
                 positionOfLastIFDOffset = readerPositionOfLastOffset;
                 seekToEnd();

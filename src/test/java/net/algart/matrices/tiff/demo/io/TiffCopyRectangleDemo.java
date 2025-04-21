@@ -27,12 +27,13 @@ package net.algart.matrices.tiff.demo.io;
 import net.algart.matrices.tiff.TiffCopier;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
+import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class TiffCopyCustomDemo {
+public class TiffCopyRectangleDemo {
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         boolean append = false;
@@ -45,33 +46,38 @@ public class TiffCopyCustomDemo {
             direct = true;
             startArgIndex++;
         }
-        if (args.length < startArgIndex + 2) {
+        if (args.length < startArgIndex + 3) {
             System.out.println("Usage:");
-            System.out.printf("    [-append] [-direct] %s source.tiff target.tiff [firstIFDIndex lastIFDIndex]%n",
-                    TiffCopyCustomDemo.class.getName());
+            System.out.printf("    [-append] [-direct] %s source.tiff target.tiff ifdIndex [x y width height]%n",
+                    TiffCopyRectangleDemo.class.getName());
             return;
         }
         final Path sourceFile = Paths.get(args[startArgIndex++]);
         final Path targetFile = Paths.get(args[startArgIndex++]);
-        final int firstIFDIndex = startArgIndex < args.length ? Integer.parseInt(args[startArgIndex]) : 0;
-        int lastIFDIndex = startArgIndex + 1 < args.length ?
-                Integer.parseInt(args[startArgIndex + 1]) :
-                Integer.MAX_VALUE;
-
-        System.out.printf("Copying %s to %s %s...%n",
+        final int ifdIndex = Integer.parseInt(args[startArgIndex]);
+        final int x = args.length <= ++startArgIndex ? 0 : Integer.parseInt(args[startArgIndex]);
+        final int y = args.length <= ++startArgIndex ? 0 : Integer.parseInt(args[startArgIndex]);
+        int w = args.length <= ++startArgIndex ? -1 : Integer.parseInt(args[startArgIndex]);
+        int h = args.length <= ++startArgIndex ? -1 : Integer.parseInt(args[startArgIndex]);
+        System.out.printf("Copying rectangle from %s to %s %s...%n",
                 sourceFile, targetFile, direct ? "as-is" : "with recompression");
+
         final var copier = new TiffCopier().setDirectCopy(direct);
         copier.setProgressUpdater(c -> System.out.printf("\r%d/%d...", c.copiedTileCount(), c.tileCount()));
         try (var reader = new TiffReader(sourceFile); var writer = new TiffWriter(targetFile)) {
-            lastIFDIndex = Math.min(lastIFDIndex, reader.numberOfImages() - 1);
-            if (lastIFDIndex >= firstIFDIndex) {
-                writer.create(append);
-                for (int i = firstIFDIndex; i <= lastIFDIndex; i++) {
-                    System.out.printf("Copying image %d...%n", i);
-                    copier.copyImage(writer, reader, i);
-                    System.out.print("\r               \r");
-                }
+            final TiffReadMap readMap = reader.newMap(ifdIndex);
+            if (w < 0) {
+                w = readMap.dimX() - x;
             }
+            if (h < 0) {
+                h = readMap.dimY() - y;
+            }
+            writer.setFormatLike(reader);
+            // - without this command, direct copy will be impossible for LE format
+            writer.create(append);
+            System.out.printf("Copying image %d...%n", ifdIndex);
+            copier.copyImage(writer, readMap, x, y, w, h);
+            System.out.print("\r               \r");
         }
         System.out.printf("Done%n");
     }

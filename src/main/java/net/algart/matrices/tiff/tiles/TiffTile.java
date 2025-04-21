@@ -176,6 +176,14 @@ public final class TiffTile {
         return map.compressionCode();
     }
 
+    public int fromX() {
+        return index.fromX();
+    }
+
+    public int fromY() {
+        return index.fromY();
+    }
+
     public int getSizeX() {
         return sizeX;
     }

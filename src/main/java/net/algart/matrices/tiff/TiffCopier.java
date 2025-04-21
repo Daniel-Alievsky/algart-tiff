@@ -154,8 +154,7 @@ public final class TiffCopier {
     public void copyAll(Path targetTiffFile, Path sourceTiffFile) throws IOException {
         try (TiffReader reader = new TiffReader(sourceTiffFile);
              TiffWriter writer = new TiffWriter(targetTiffFile)) {
-            writer.setBigTiff(reader.isBigTiff());
-            writer.setLittleEndian(reader.isLittleEndian());
+            writer.setFormatLike(reader);
             writer.create();
             copyAll(writer, reader);
         }
@@ -215,12 +214,13 @@ public final class TiffCopier {
                 break;
             }
         }
-        writer.completeWriting(writeMap);
+        writeMap.completeWriting();
         return writeMap;
     }
 
     public TiffWriteMap copyImage(TiffWriter writer, TiffReadMap readMap, int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
+        // - note that this area may be outside readMap!
         Objects.requireNonNull(writer, "Null TIFF writer");
         Objects.requireNonNull(readMap, "Null TIFF read map");
         TiffReader.checkRequestedArea(fromX, fromY, sizeX, sizeY);
@@ -231,8 +231,36 @@ public final class TiffCopier {
         writeIFD.putImageDimensions(sizeX, sizeY);
         final TiffWriteMap writeMap = getWriteMap(writer, writeIFD);
         writer.writeForward(writeMap);
-        //TODO!!
-
+        tileCount = writeMap.numberOfGridTiles();
+        final int mapTileSizeX = writeMap.tileSizeX();
+        final int mapTileSizeY = writeMap.tileSizeY();
+        final int gridCountY = writeMap.gridCountY();
+        final int gridCountX = writeMap.gridCountX();
+        final int numberOfSeparatedPlanes = writeMap.numberOfSeparatedPlanes();
+        for (int yIndex = 0, y = 0; yIndex < gridCountY; yIndex++, y += mapTileSizeY) {
+            final int tileStartY = fromY + y;
+            final int sizeYInTile = Math.min(sizeY - y, mapTileSizeY);
+            for (int xIndex = 0, x = 0; xIndex < gridCountX; xIndex++, x += mapTileSizeX) {
+                final int tileStartX = fromX + x;
+                final int sizeXInTile = Math.min(sizeX - x, mapTileSizeX);
+                if (directCopy) {
+                    for (int p = 0; p < numberOfSeparatedPlanes; p++) {
+                        //TODO!! optimize when possible
+                    }
+                }
+                final byte[] samples = readMap.loadSamples(tileStartX, tileStartY, sizeXInTile, sizeYInTile);
+                writeMap.updateSamples(samples, x, y, sizeXInTile, sizeYInTile);
+                //TODO!! add flush: now very slow for large image
+                copiedTileCount++;
+                if (progressUpdater != null) {
+                    progressUpdater.accept(this);
+                }
+                if (interruptionChecker != null && interruptionChecker.getAsBoolean()) {
+                    break;
+                }
+            }
+        }
+        writeMap.completeWriting();
         return writeMap;
     }
 

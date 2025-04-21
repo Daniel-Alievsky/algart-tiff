@@ -94,6 +94,15 @@ public final class TiffReadMap extends TiffMap {
         return owningReader.readBufferedImage(this, fromX, fromY, sizeX, sizeY);
     }
 
+    public byte[] loadSamples(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
+        return loadSamples(fromX, fromY, sizeX, sizeY, false);
+    }
+
+    public byte[] loadSamples( int fromX, int fromY, int sizeX, int sizeY, boolean storeTilesInMap)
+            throws IOException {
+        return loadSamples(owningReader::readCachedTile, fromX, fromY, sizeX, sizeY, storeTilesInMap);
+    }
+
     public byte[] loadSamples(
             TileSupplier tileSupplier,
             int fromX,
