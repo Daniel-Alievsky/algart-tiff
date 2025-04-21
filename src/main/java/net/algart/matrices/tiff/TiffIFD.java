@@ -84,6 +84,8 @@ public class TiffIFD {
      */
     public static final long MAX_NUMBER_OF_BITS_IN_BYTE_ARRAY = (1L << 34) - 1;
 
+    private static final boolean USE_LONG_IMAGE_DIMENSIONS = true;
+
     private static final long MAX_LONG_DIV_MAX_BITS_PER_PIXEL = Long.MAX_VALUE /
             (MAX_NUMBER_OF_CHANNELS * MAX_BITS_PER_SAMPLE);
 
@@ -1650,8 +1652,16 @@ public class TiffIFD {
             // - if the sizes are already set correctly, leave them untouched to avoid changing the type
             return this;
         }
-        map.put(Tags.IMAGE_WIDTH, (int) dimX);
-        map.put(Tags.IMAGE_LENGTH, (int) dimY);
+        if (USE_LONG_IMAGE_DIMENSIONS) {
+            // - long values enforce using LONG 32-bit format, but old TIFFs often use 16-bit SHORT here
+            // (int values are also possible: they will be stored as 32-bit LONG
+            // in TiffWriter.writeIFDValueAtCurrentPosition when they are >0xFFFF)
+            map.put(Tags.IMAGE_WIDTH, dimX);
+            map.put(Tags.IMAGE_LENGTH, dimY);
+        } else {
+            map.put(Tags.IMAGE_WIDTH, (int) dimX);
+            map.put(Tags.IMAGE_LENGTH, (int) dimY);
+        }
         return this;
     }
 
