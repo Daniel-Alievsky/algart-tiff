@@ -127,9 +127,9 @@ public class TiffCopyTest {
     private TiffCopier getCopier() {
         final TiffCopier copier = new TiffCopier();
         assert !copier.isDirectCopy() : "direct-copy should be disabled by default";
-        copier.setProgressUpdater(() -> System.out.printf(
-                "\r%d/%d...", copier.copiedTileCount(), copier.totalTileCount()));
-        // copier.setCancellationChecker(() -> copier.copiedTileCount() < 12);
+        copier.setProgressUpdater(
+                c -> System.out.printf("\r%d/%d...", c.copiedTileCount(), c.tileCount()));
+        // copier.setCancellationChecker(() -> copier.copiedTileCount() == 12);
         // - uncomment to cancel copying after 12 tiles
         if (uncompress) {
             copier.setIfdCorrector(ifd -> ifd.putCompression(TagCompression.NONE));

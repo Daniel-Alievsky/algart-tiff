@@ -52,10 +52,10 @@ public class TiffCopyDemo {
         } else {
             System.out.printf("Copying %s to %s with recompression...%n", sourceFile, targetFile);
             final var copier = new TiffCopier().setDirectCopy(direct);
-            copier.setProgressUpdater(() ->
+            copier.setProgressUpdater(c ->
                     System.out.printf("\rImage %d/%d, tile %d/%d...",
-                            copier.copiedImageCount(), copier.totalImageCount(),
-                            copier.copiedTileCount(), copier.totalTileCount()));
+                            c.copiedIfdCount(), c.ifdCount(),
+                            c.copiedTileCount(), c.tileCount()));
             copier.setDirectCopy(false);
             // - unnecessary (it is the default); true value means the direct copy
             copier.copyAll(targetFile, sourceFile);

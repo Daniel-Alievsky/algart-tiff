@@ -33,6 +33,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 
 @SuppressWarnings("UnusedReturnValue")
 public final class TiffCopier {
@@ -46,25 +48,15 @@ public final class TiffCopier {
         void correct(TiffIFD ifd);
     }
 
-    @FunctionalInterface
-    public interface ProgressUpdater {
-        void onProgress();
-    }
-
-    @FunctionalInterface
-    public interface CancellationChecker {
-        boolean shouldContinue();
-    }
-
     private boolean directCopy = false;
     private IFDCorrector ifdCorrector = null;
-    private ProgressUpdater progressUpdater = null;
-    private CancellationChecker cancellationChecker = null;
+    private Consumer<TiffCopier> progressUpdater = null;
+    private BooleanSupplier interruptionChecker = null;
 
     private int copiedTileCount = 0;
-    private int totalTileCount = 0;
-    private int copiedImageCount = 0;
-    private int totalImageCount = 0;
+    private int tileCount = 0;
+    private int copiedIfdCount = 0;
+    private int ifdCount = 0;
 
     public TiffCopier() {
     }
@@ -115,38 +107,38 @@ public final class TiffCopier {
         return this;
     }
 
-    public ProgressUpdater getProgressUpdater() {
+    public Consumer<TiffCopier> progressUpdater() {
         return progressUpdater;
     }
 
-    public TiffCopier setProgressUpdater(ProgressUpdater progressUpdater) {
+    public TiffCopier setProgressUpdater(Consumer<TiffCopier> progressUpdater) {
         this.progressUpdater = progressUpdater;
         return this;
     }
 
-    public CancellationChecker getCancellationChecker() {
-        return cancellationChecker;
+    public BooleanSupplier cancellationChecker() {
+        return interruptionChecker;
     }
 
-    public TiffCopier setCancellationChecker(CancellationChecker cancellationChecker) {
-        this.cancellationChecker = cancellationChecker;
+    public TiffCopier setInterruptionChecker(BooleanSupplier interruptionChecker) {
+        this.interruptionChecker = interruptionChecker;
         return this;
     }
 
-    public int copiedImageCount() {
-        return copiedImageCount;
+    public int copiedIfdCount() {
+        return copiedIfdCount;
     }
 
-    public int totalImageCount() {
-        return totalImageCount;
+    public int ifdCount() {
+        return ifdCount;
     }
 
     public int copiedTileCount() {
         return copiedTileCount;
     }
 
-    public int totalTileCount() {
-        return totalTileCount;
+    public int tileCount() {
+        return tileCount;
     }
 
     public static void copyAll(Path targetTiffFile, Path sourceTiffFile, boolean directCopy)
@@ -173,12 +165,12 @@ public final class TiffCopier {
         Objects.requireNonNull(writer, "Null TIFF writer");
         Objects.requireNonNull(reader, "Null TIFF reader");
         for (int i = 0, n = reader.numberOfImages(); i < n; i++) {
-            copiedImageCount = i;
-            totalImageCount = n;
+            copiedIfdCount = i;
+            ifdCount = n;
             copyImage(writer, reader, i);
             if (progressUpdater != null) {
-                copiedImageCount = i + 1;
-                progressUpdater.onProgress();
+                copiedIfdCount = i + 1;
+                progressUpdater.accept(this);
             }
         }
     }
@@ -194,7 +186,7 @@ public final class TiffCopier {
         Objects.requireNonNull(writer, "Null writer");
         Objects.requireNonNull(readMap, "Null TIFF read map");
         copiedTileCount = 0;
-        totalTileCount = 0;
+        tileCount = 0;
         @SuppressWarnings("resource") final TiffReader reader = readMap.reader();
         final TiffIFD targetIFD = new TiffIFD(readMap.ifd());
         // - creating a clone of IFD: we must not modify the reader IFD
@@ -205,7 +197,7 @@ public final class TiffCopier {
         // - there is no sense to call correctIFDForWriting() method if we use direct copying
         writer.writeForward(targetMap);
         final Set<TiffTileIndex> indexes = readMap.indexes();
-        totalTileCount = indexes.size();
+        tileCount = indexes.size();
         for (TiffTileIndex index : indexes) {
             final TiffTile targetTile = targetMap.getOrNew(targetMap.copyIndex(index));
             if (!directCopy) {
@@ -220,9 +212,9 @@ public final class TiffCopier {
             writer.writeTile(targetTile, true);
             copiedTileCount++;
             if (progressUpdater != null) {
-                progressUpdater.onProgress();
+                progressUpdater.accept(this);
             }
-            if (cancellationChecker != null && !cancellationChecker.shouldContinue()) {
+            if (interruptionChecker != null && interruptionChecker.getAsBoolean()) {
                 break;
             }
         }
