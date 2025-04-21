@@ -40,12 +40,17 @@ public class TiffCopyTest {
     boolean bigTiff = false;
     boolean direct = false;
     boolean uncompress = false;
+    boolean copyRectangle = false;
 
     public static void main(String[] args) throws IOException {
-        TiffCopyTest copier = new TiffCopyTest();
+        TiffCopyTest coptTest = new TiffCopyTest();
         int startArgIndex = 0;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-direct")) {
-            copier.direct = true;
+            coptTest.direct = true;
+            startArgIndex++;
+        }
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-copyRectangle")) {
+            coptTest.copyRectangle = true;
             startArgIndex++;
         }
         if (args.length < startArgIndex + 2) {
@@ -66,7 +71,7 @@ public class TiffCopyTest {
 
         for (int test = 1; test <= numberOfTests; test++) {
             System.out.printf("Test #%d%n", test);
-            copier.copyTiff(sourceFile, targetFile, firstIFDIndex, lastIFDIndex);
+            coptTest.copyTiff(sourceFile, targetFile, firstIFDIndex, lastIFDIndex);
         }
         System.out.println("Done");
     }
@@ -106,7 +111,15 @@ public class TiffCopyTest {
                 lastIFDIndex = Math.min(lastIFDIndex, maps.size() - 1);
                 for (int ifdIndex = firstIFDIndex; ifdIndex <= lastIFDIndex; ifdIndex++) {
                     final var readMap = maps.get(ifdIndex);
-                    if (direct) {
+                    if (copyRectangle) {
+                        // - for debugging: should lead to the same results!
+                        System.out.printf("\r  Copying rectangle (%s) #%d/%d: %s%n",
+                                direct ? "raw" : "repacking",
+                                ifdIndex, maps.size(), readMap.ifd());
+                        final TiffCopier copier = getCopier();
+                        copier.setDirectCopy(direct);
+                        copier.copyImage(writer, readMap, 0, 0, readMap.dimX(), readMap.dimY());
+                    } else if (direct) {
                         System.out.printf("\r  Raw copying #%d/%d: %s%n", ifdIndex, maps.size(), readMap.ifd());
                         TiffCopier.copyImage(writer, readMap, true);
                     } else {

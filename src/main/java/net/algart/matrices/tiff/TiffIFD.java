@@ -1638,14 +1638,20 @@ public class TiffIFD {
             throw new IllegalArgumentException("Too large image height = " + dimY + " (>2^31-1)");
         }
         if (!containsKey(Tags.TILE_WIDTH) || !containsKey(Tags.TILE_LENGTH)) {
-            // - we prefer not to throw exception here, like in hasTileInformation method
+            // - we prefer not to throw an exception here, like in hasTileInformation method
             checkImmutable("Image dimensions cannot be updated in non-tiled TIFF");
         }
         clearCache();
         removeEntries(Tags.IMAGE_WIDTH, Tags.IMAGE_LENGTH);
         // - to avoid illegal detection of the type
-        map.put(Tags.IMAGE_WIDTH, dimX);
-        map.put(Tags.IMAGE_LENGTH, dimY);
+        assert dimX == (int) dimX;
+        assert dimY == (int) dimY;
+        if (optInt(Tags.IMAGE_WIDTH, -1) == dimX && optInt(Tags.IMAGE_LENGTH, -1) == dimY) {
+            // - if the sizes are already set correctly, leave them untouched to avoid changing the type
+            return this;
+        }
+        map.put(Tags.IMAGE_WIDTH, (int) dimX);
+        map.put(Tags.IMAGE_LENGTH, (int) dimY);
         return this;
     }
 
