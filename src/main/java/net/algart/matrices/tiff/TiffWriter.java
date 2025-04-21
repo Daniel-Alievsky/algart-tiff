@@ -1162,6 +1162,9 @@ public class TiffWriter implements Closeable {
      * in particular if you prefer to call the method {@link #correctIFDForWriting(TiffIFD, boolean)}
      * with non-standard <code>smartCorrection</code> flag.
      *
+     * <p>Note: this method calls {@link TiffMap#buildTileGrid()} and {@link TiffIFD#freeze() freeze}
+     * the passed <code>ifd</code>. So you should use this method after completely building IFD.</p>
+     *
      * <p>Note: this method <b>removes</b> tags {@link Tags#SUB_IFD SubIFD}, {@link Tags#EXIF Exif IFD}
      * and {@link Tags#GPS_TAG GPS information}, because this class does not support writing sub-IFDs.
      * If you still need to construct TIFF with such tags, you should use more low-level call of

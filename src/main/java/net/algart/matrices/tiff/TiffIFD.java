@@ -516,7 +516,7 @@ public class TiffIFD {
             }
         }
         final long lastEnd = offsets[n - 1] + byteCounts[n - 1];
-        if ((lastEnd & 1) != 0 && !offsetCannotBeFreeSpace(lastEnd, tiffFileLength)) {
+        if ((lastEnd & 1) != 0 && !offsetCannotBeCorrectFreeSpace(lastEnd, tiffFileLength)) {
             // - Every IFD should have an even offset, and the lastEnd is a probable offset for a new IFD
 //                System.out.printf("!!!Correcting image length %d%n", sum);
             if (wasAligned != null) {
@@ -2094,8 +2094,9 @@ public class TiffIFD {
         }
     }
 
-    private boolean offsetCannotBeFreeSpace(long offset, long tiffFileLength) {
-        if (offset == tiffFileLength) {
+    private boolean offsetCannotBeCorrectFreeSpace(long offset, long tiffFileLength) {
+        if (offset == tiffFileLength || offset + 1 == tiffFileLength) {
+            // - the second condition: such "free space" is not correct and should be interpreted as a lost byte
             return true;
         }
         if (detailedEntries == null) {

@@ -115,8 +115,8 @@ public class TiffInfo {
                     final TiffIFD ifd = ifdList.get(k);
                     System.out.print(ifdInfo(ifd, k, ifdCount));
                     final OptionalLong sizeOfIFDOptional = ifd.sizeOfIFD(tiffFileLength);
-                    AtomicBoolean wasAligned = new AtomicBoolean(false);
-                    final long sizeOfData = ifd.sizeOfImageData(tiffFileLength, wasAligned);
+                    AtomicBoolean imageDataAligned = new AtomicBoolean(false);
+                    final long sizeOfData = ifd.sizeOfImageData(tiffFileLength, imageDataAligned);
                     if (sizeOfIFDOptional.isPresent()) {
                         final long sizeOfIFD = sizeOfIFDOptional.getAsLong();
                         final long sizeOfIFDTable = ifd.sizeOfIFDTable();
@@ -130,7 +130,7 @@ public class TiffInfo {
                                 sizeOfIFD + sizeOfData,
                                 sizeOfIFD, sizeOfIFDTable, sizeOfIFD - sizeOfIFDTable,
                                 sizeOfData,
-                                wasAligned.get() ? " (" + (sizeOfData - 1) + " unaligned)" : "");
+                                imageDataAligned.get() ? " (" + (sizeOfData - 1) + " unaligned)" : "");
                         size += sizeOfIFD + sizeOfData;
                     }
                     if (k < lastIFDIndex) {
@@ -146,16 +146,16 @@ public class TiffInfo {
                 if (size == tiffFileLength) {
                     System.out.printf("%nTotal file length %d bytes, it is fully used", tiffFileLength);
                 } else if (size > tiffFileLength) {
-                    System.out.printf("%n%d bytes in file used, but total file length is only %d bytes, " +
-                                    "%d \"extra\" bytes: probably TIFF is not valid?",
-                            size, tiffFileLength, size - tiffFileLength);
+                    System.out.printf("%n%d bytes in file used, but the file length is only %d bytes, " +
+                                    "%d \"extra\" bytes: probably TIFF is not valid? (%s)",
+                            size, tiffFileLength, size - tiffFileLength, tiffFile);
                     // - however, this is possible in some files: for example, in
                     // "signed-integral-8bit.tif" from the TwelveMonkey demo image set,
                     // we have ASCII IFD entry at the end of the file, and the image before it has odd length;
                     // this ASCII offset is not aligned, so we consider that here is 1 extra byte
                 } else {
-                    System.out.printf("%n%d bytes in file used, %d bytes lost/unknown, total file length %d bytes",
-                            size, tiffFileLength - size, tiffFileLength);
+                    System.out.printf("%n%d bytes in file used, %d bytes lost/unknown, the file length %d bytes (%s)",
+                            size, tiffFileLength - size, tiffFileLength, tiffFile);
                 }
             }
             System.out.println();

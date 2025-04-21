@@ -31,8 +31,8 @@ import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
@@ -183,32 +183,29 @@ public final class TiffCopier {
     }
 
     public TiffWriteMap copyImage(TiffWriter writer, TiffReadMap readMap) throws IOException {
-        Objects.requireNonNull(writer, "Null writer");
+        Objects.requireNonNull(writer, "Null TIFF writer");
         Objects.requireNonNull(readMap, "Null TIFF read map");
-        copiedTileCount = 0;
-        tileCount = 0;
+        resetCounters();
         @SuppressWarnings("resource") final TiffReader reader = readMap.reader();
-        final TiffIFD targetIFD = new TiffIFD(readMap.ifd());
+        final TiffIFD writeIFD = new TiffIFD(readMap.ifd());
         // - creating a clone of IFD: we must not modify the reader IFD
-        if (ifdCorrector != null) {
-            ifdCorrector.correct(targetIFD);
-        }
-        final TiffWriteMap targetMap = writer.newMap(targetIFD, false, !directCopy);
+        final TiffWriteMap writeMap = getWriteMap(writer, writeIFD);
         // - there is no sense to call correctIFDForWriting() method if we use direct copying
-        writer.writeForward(targetMap);
-        final Set<TiffTileIndex> indexes = readMap.indexes();
-        tileCount = indexes.size();
-        for (TiffTileIndex index : indexes) {
-            final TiffTile targetTile = targetMap.getOrNew(targetMap.copyIndex(index));
+        writer.writeForward(writeMap);
+        final Collection<TiffTile> targetTiles = writeMap.tiles();
+        tileCount = targetTiles.size();
+        for (TiffTile targetTile : targetTiles) {
+            final TiffTileIndex readIndex = readMap.copyIndex(targetTile.index());
+            // - important to copy index: targetTile.index() refer to the writeIFD instead of some source IFD
             if (!directCopy) {
-                final TiffTile sourceTile = reader.readCachedTile(index);
+                final TiffTile sourceTile = reader.readCachedTile(readIndex);
                 final byte[] decodedData = sourceTile.unpackUnusualDecodedData();
                 targetTile.setDecodedData(decodedData);
             } else {
-                final TiffTile sourceTile = reader.readEncodedTile(index);
+                final TiffTile sourceTile = reader.readEncodedTile(readIndex);
                 targetTile.copy(sourceTile, false);
             }
-            targetMap.put(targetTile);
+            writeMap.put(targetTile);
             writer.writeTile(targetTile, true);
             copiedTileCount++;
             if (progressUpdater != null) {
@@ -218,7 +215,39 @@ public final class TiffCopier {
                 break;
             }
         }
-        writer.completeWriting(targetMap);
-        return targetMap;
+        writer.completeWriting(writeMap);
+        return writeMap;
+    }
+
+    public TiffWriteMap copyImage(TiffWriter writer, TiffReadMap readMap, int fromX, int fromY, int sizeX, int sizeY)
+            throws IOException {
+        Objects.requireNonNull(writer, "Null TIFF writer");
+        Objects.requireNonNull(readMap, "Null TIFF read map");
+        TiffReader.checkRequestedArea(fromX, fromY, sizeX, sizeY);
+        resetCounters();
+        @SuppressWarnings("resource") final TiffReader reader = readMap.reader();
+        final TiffIFD writeIFD = new TiffIFD(readMap.ifd());
+        // - creating a clone of IFD: we must not modify the reader IFD
+        writeIFD.putImageDimensions(sizeX, sizeY);
+        final TiffWriteMap writeMap = getWriteMap(writer, writeIFD);
+        writer.writeForward(writeMap);
+        //TODO!!
+
+        return writeMap;
+    }
+
+    private TiffWriteMap getWriteMap(TiffWriter writer, TiffIFD targetIFD) throws TiffException {
+        if (ifdCorrector != null) {
+            ifdCorrector.correct(targetIFD);
+        }
+        // - there is no sense to call correctIFDForWriting() method if we use direct copying
+        return writer.newMap(targetIFD, false, !directCopy);
+    }
+
+    private void resetCounters() {
+        copiedTileCount = 0;
+        tileCount = 0;
+        copiedIfdCount = 0;
+        ifdCount = 0;
     }
 }
