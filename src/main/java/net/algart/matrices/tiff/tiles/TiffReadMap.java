@@ -163,7 +163,7 @@ public final class TiffReadMap extends TiffMap {
                     final int fromXInTile = tileStartX % mapTileSizeX;
                     final int xDiff = tileStartX - fromX;
 
-                    final TiffTileIndex tileIndex = multiPlaneIndex(p, xIndex, yIndex);
+                    final TiffTileIndex tileIndex = index(p, xIndex, yIndex);
                     final TiffTile tile = tileSupplier.getTile(tileIndex);
                     if (storeTilesInMap) {
                         put(tile);
@@ -201,6 +201,18 @@ public final class TiffReadMap extends TiffMap {
             }
         }
         return samples;
+    }
+
+    public TiffTile readCachedTile(TiffTileIndex tileIndex) throws IOException {
+        return owningReader.readCachedTile(tileIndex);
+    }
+
+    public TiffTile readTile(TiffTileIndex tileIndex) throws IOException {
+        return owningReader.readTile(tileIndex);
+    }
+
+    public TiffTile readEncodedTile(TiffTileIndex tileIndex) throws IOException {
+        return owningReader.readEncodedTile(tileIndex);
     }
 
     @Override

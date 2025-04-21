@@ -32,6 +32,7 @@ import net.algart.matrices.tiff.tiles.TiffWriteMap;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -185,7 +186,6 @@ public final class TiffCopier {
         Objects.requireNonNull(writer, "Null TIFF writer");
         Objects.requireNonNull(readMap, "Null TIFF read map");
         resetCounters();
-        @SuppressWarnings("resource") final TiffReader reader = readMap.reader();
         final TiffIFD writeIFD = new TiffIFD(readMap.ifd());
         // - creating a clone of IFD: we must not modify the reader IFD
         final TiffWriteMap writeMap = getWriteMap(writer, writeIFD);
@@ -197,20 +197,17 @@ public final class TiffCopier {
             final TiffTileIndex readIndex = readMap.copyIndex(targetTile.index());
             // - important to copy index: targetTile.index() refer to the writeIFD instead of some source IFD
             if (!directCopy) {
-                final TiffTile sourceTile = reader.readCachedTile(readIndex);
+                final TiffTile sourceTile = readMap.readCachedTile(readIndex);
                 final byte[] decodedData = sourceTile.unpackUnusualDecodedData();
                 targetTile.setDecodedData(decodedData);
             } else {
-                final TiffTile sourceTile = reader.readEncodedTile(readIndex);
+                final TiffTile sourceTile = readMap.readEncodedTile(readIndex);
                 targetTile.copy(sourceTile, false);
             }
             writeMap.put(targetTile);
-            writer.writeTile(targetTile, true);
+            writeMap.writeTile(targetTile, true);
             copiedTileCount++;
-            if (progressUpdater != null) {
-                progressUpdater.accept(this);
-            }
-            if (interruptionChecker != null && interruptionChecker.getAsBoolean()) {
+            if (shouldBreak()) {
                 break;
             }
         }
@@ -225,37 +222,34 @@ public final class TiffCopier {
         Objects.requireNonNull(readMap, "Null TIFF read map");
         TiffReader.checkRequestedArea(fromX, fromY, sizeX, sizeY);
         resetCounters();
-        @SuppressWarnings("resource") final TiffReader reader = readMap.reader();
         final TiffIFD writeIFD = new TiffIFD(readMap.ifd());
         // - creating a clone of IFD: we must not modify the reader IFD
         writeIFD.putImageDimensions(sizeX, sizeY);
         final TiffWriteMap writeMap = getWriteMap(writer, writeIFD);
         writer.writeForward(writeMap);
         tileCount = writeMap.numberOfGridTiles();
-        final int mapTileSizeX = writeMap.tileSizeX();
-        final int mapTileSizeY = writeMap.tileSizeY();
         final int gridCountY = writeMap.gridCountY();
         final int gridCountX = writeMap.gridCountX();
-        final int numberOfSeparatedPlanes = writeMap.numberOfSeparatedPlanes();
+        final int mapTileSizeX = writeMap.tileSizeX();
+        final int mapTileSizeY = writeMap.tileSizeY();
+        final boolean directCopy = canBeCopiedDirectly(writeMap, readMap, fromX, fromY);
+        final int fromXIndex = directCopy ? fromX / mapTileSizeX : Integer.MIN_VALUE;
+        final int fromYIndex = directCopy ? fromY / mapTileSizeY : Integer.MIN_VALUE;
         for (int yIndex = 0, y = 0; yIndex < gridCountY; yIndex++, y += mapTileSizeY) {
-            final int tileStartY = fromY + y;
             final int sizeYInTile = Math.min(sizeY - y, mapTileSizeY);
             for (int xIndex = 0, x = 0; xIndex < gridCountX; xIndex++, x += mapTileSizeX) {
-                final int tileStartX = fromX + x;
                 final int sizeXInTile = Math.min(sizeX - x, mapTileSizeX);
-                if (directCopy) {
-                    for (int p = 0; p < numberOfSeparatedPlanes; p++) {
-                        //TODO!! optimize when possible
-                    }
+                if (directCopy && sizeXInTile == mapTileSizeX && sizeYInTile == mapTileSizeY) {
+                    final int readXIndex = fromXIndex + xIndex;
+                    final int readYIndex = fromYIndex + yIndex;
+                    copyEncodedTile(writeMap, readMap, xIndex, yIndex, readXIndex, readYIndex);
+                } else {
+                    final int readX = fromX + x;
+                    final int readY = fromY + y;
+                    copyRectangle(writeMap, readMap, x, y, readX, readY, sizeXInTile, sizeYInTile);
                 }
-                final byte[] samples = readMap.loadSamples(tileStartX, tileStartY, sizeXInTile, sizeYInTile);
-                writeMap.updateSamples(samples, x, y, sizeXInTile, sizeYInTile);
-                //TODO!! add flush: now very slow for large image
                 copiedTileCount++;
-                if (progressUpdater != null) {
-                    progressUpdater.accept(this);
-                }
-                if (interruptionChecker != null && interruptionChecker.getAsBoolean()) {
+                if (shouldBreak()) {
                     break;
                 }
             }
@@ -263,6 +257,48 @@ public final class TiffCopier {
         writeMap.completeWriting();
         return writeMap;
     }
+
+    private boolean canBeCopiedDirectly(TiffWriteMap writeMap, TiffReadMap readMap, int fromX, int fromY) {
+        final int mapTileSizeX = writeMap.tileSizeX();
+        final int mapTileSizeY = writeMap.tileSizeY();
+        return this.directCopy &&
+                readMap.compressionCode() == writeMap.compressionCode() &&
+                readMap.numberOfSeparatedPlanes() == writeMap.numberOfSeparatedPlanes() &&
+                readMap.tileSizeX() == mapTileSizeX && readMap.tileSizeY() == mapTileSizeY &&
+                fromX % mapTileSizeX == 0 && fromY % mapTileSizeY == 0;
+    }
+
+    private static void copyRectangle(
+            TiffWriteMap writeMap,
+            TiffReadMap readMap,
+            int writeX,
+            int writeY,
+            int readX,
+            int readY,
+            int sizeX,
+            int sizeY) throws IOException {
+        final byte[] samples = readMap.loadSamples(readX, readY, sizeX, sizeY);
+        List<TiffTile> tiles = writeMap.updateSamples(samples, writeX, writeY, sizeX, sizeY);
+        writeMap.writeCompletedTiles(tiles);
+    }
+
+    private static void copyEncodedTile(
+            TiffWriteMap writeMap,
+            TiffReadMap readMap,
+            int writeXIndex,
+            int writeYIndex,
+            int readXIndex,
+            int readYIndex) throws IOException {
+        final int numberOfSeparatedPlanes = writeMap.numberOfSeparatedPlanes();
+        for (int p = 0; p < numberOfSeparatedPlanes; p++) {
+            TiffTile targetTile = writeMap.getOrNew(p, writeXIndex, writeYIndex);
+            final TiffTile sourceTile = readMap.readEncodedTile(readMap.index(p, readXIndex, readYIndex));
+            targetTile.copy(sourceTile, false);
+            writeMap.put(targetTile);
+            writeMap.writeTile(targetTile, true);
+        }
+    }
+
 
     private TiffWriteMap getWriteMap(TiffWriter writer, TiffIFD targetIFD) throws TiffException {
         if (ifdCorrector != null) {
@@ -278,4 +314,12 @@ public final class TiffCopier {
         copiedIfdCount = 0;
         ifdCount = 0;
     }
+
+    private boolean shouldBreak() {
+        if (progressUpdater != null) {
+            progressUpdater.accept(this);
+        }
+        return interruptionChecker != null && interruptionChecker.getAsBoolean();
+    }
 }
+

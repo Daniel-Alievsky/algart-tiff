@@ -517,7 +517,7 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
         return new TiffTileIndex(this, 0, x, y);
     }
 
-    public TiffTileIndex multiPlaneIndex(int separatedPlaneIndex, int x, int y) {
+    public TiffTileIndex index(int separatedPlaneIndex, int x, int y) {
         return new TiffTileIndex(this, separatedPlaneIndex, x, y);
     }
 
@@ -544,8 +544,8 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
         return getOrNew(index(x, y));
     }
 
-    public TiffTile getOrNewMultiPlane(int separatedPlaneIndex, int x, int y) {
-        return getOrNew(multiPlaneIndex(separatedPlaneIndex, x, y));
+    public TiffTile getOrNew(int separatedPlaneIndex, int x, int y) {
+        return getOrNew(index(separatedPlaneIndex, x, y));
     }
 
     public TiffTile getOrNew(TiffTileIndex tileIndex) {
@@ -592,7 +592,7 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
         for (int p = 0; p < numberOfSeparatedPlanes; p++) {
             for (int y = 0; y < gridCountY; y++) {
                 for (int x = 0; x < gridCountX; x++) {
-                    getOrNewMultiPlane(p, x, y).cropToMap();
+                    getOrNew(p, x, y).cropToMap();
                 }
             }
         }

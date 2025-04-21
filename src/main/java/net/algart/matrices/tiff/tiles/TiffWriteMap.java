@@ -123,7 +123,7 @@ public final class TiffWriteMap extends TiffMap {
                     final int fromXInTile = tileStartX % mapTileSizeX;
                     final int xDiff = tileStartX - fromX;
 
-                    final TiffTile tile = getOrNewMultiPlane(p, xIndex, yIndex);
+                    final TiffTile tile = getOrNew(p, xIndex, yIndex);
                     if (tile.isDisposed()) {
                         // - we cannot write to already dispose tile: it will result in an exception
                         continue;
@@ -302,6 +302,10 @@ public final class TiffWriteMap extends TiffMap {
 
     public void writeBufferedImage(BufferedImage bufferedImage) throws IOException {
         owningWriter.writeBufferedImage(this, bufferedImage);
+    }
+
+    public void writeTile(TiffTile tile, boolean disposeAfterWriting) throws IOException {
+        owningWriter.writeTile(tile, disposeAfterWriting);
     }
 
     public int writeAllTiles(Collection<TiffTile> tiles) throws IOException {

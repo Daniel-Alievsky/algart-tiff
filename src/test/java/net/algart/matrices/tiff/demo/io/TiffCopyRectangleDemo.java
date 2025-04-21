@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff.demo.io;
 
+import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.TiffCopier;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
@@ -59,8 +60,8 @@ public class TiffCopyRectangleDemo {
         final int y = args.length <= ++startArgIndex ? 0 : Integer.parseInt(args[startArgIndex]);
         int w = args.length <= ++startArgIndex ? -1 : Integer.parseInt(args[startArgIndex]);
         int h = args.length <= ++startArgIndex ? -1 : Integer.parseInt(args[startArgIndex]);
-        System.out.printf("Copying rectangle from %s to %s %s...%n",
-                sourceFile, targetFile, direct ? "as-is" : "with recompression");
+        System.out.printf("Copying rectangle from %s to %s%s...%n",
+                sourceFile, targetFile, direct ? "" : " with recompression");
 
         final var copier = new TiffCopier().setDirectCopy(direct);
         copier.setProgressUpdater(c -> System.out.printf("\r%d/%d...", c.copiedTileCount(), c.tileCount()));
@@ -75,7 +76,7 @@ public class TiffCopyRectangleDemo {
             writer.setFormatLike(reader);
             // - without this command, direct copy will be impossible for LE format
             writer.create(append);
-            System.out.printf("Copying image %d...%n", ifdIndex);
+            System.out.printf("Copying image %d, rectangle %d..%dx%d..%d%n", ifdIndex, x, x + w - 1, y, y + h - 1);
             copier.copyImage(writer, readMap, x, y, w, h);
             System.out.print("\r               \r");
         }
