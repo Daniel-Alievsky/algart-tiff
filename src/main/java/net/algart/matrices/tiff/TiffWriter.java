@@ -2150,7 +2150,7 @@ public class TiffWriter implements Closeable {
 
     private void logTiles(TiffMap map, String stage, String action, int count, long sizeInBytes, long t1, long t2) {
         if (TiffReader.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
-            LOG.log(System.Logger.Level.DEBUG,
+            LOG.log(System.Logger.Level.TRACE, () ->
                     count == 0 ?
                             String.format(Locale.US,
                                     "%s%s %s no tiles in %.3f ms",
@@ -2182,7 +2182,7 @@ public class TiffWriter implements Closeable {
         if (TiffReader.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t5 = debugTime();
             final long sizeInBytes = map.totalSizeInBytes();
-            LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
+            LOG.log(System.Logger.Level.DEBUG, () -> String.format(Locale.US,
                     "%s wrote %dx%dx%d %s (%.3f MB) in %.3f ms = " +
                             "%.3f conversion/copying data + %.3f writing IFD " +
                             "+ %.3f/%.3f encoding/writing " +

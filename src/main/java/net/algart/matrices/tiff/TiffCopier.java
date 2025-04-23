@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -48,6 +49,9 @@ public final class TiffCopier {
          */
         void correct(TiffIFD ifd);
     }
+
+    private static final System.Logger LOG = System.getLogger(TiffCopier.class.getName());
+    private static final boolean LOGGABLE_DEBUG = LOG.isLoggable(System.Logger.Level.DEBUG);
 
     private boolean directCopy = false;
     private IFDCorrector ifdCorrector = null;
@@ -185,6 +189,7 @@ public final class TiffCopier {
     public TiffWriteMap copyImage(TiffWriter writer, TiffReadMap readMap) throws IOException {
         Objects.requireNonNull(writer, "Null TIFF writer");
         Objects.requireNonNull(readMap, "Null TIFF read map");
+        long t1 = debugTime();
         resetCounters();
         final TiffIFD writeIFD = new TiffIFD(readMap.ifd());
         // - creating a clone of IFD: we must not modify the reader IFD
@@ -193,6 +198,7 @@ public final class TiffCopier {
         writer.writeForward(writeMap);
         final Collection<TiffTile> targetTiles = writeMap.tiles();
         tileCount = targetTiles.size();
+        long t2 = debugTime();
         for (TiffTile targetTile : targetTiles) {
             final TiffTileIndex readIndex = readMap.copyIndex(targetTile.index());
             // - important to copy index: targetTile.index() refer to the writeIFD instead of some source IFD
@@ -211,7 +217,23 @@ public final class TiffCopier {
                 break;
             }
         }
+        long t3 = debugTime();
         writeMap.completeWriting();
+        if (TiffReader.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+            final long sizeInBytes = writeMap.totalSizeInBytes();
+            long t4 = debugTime();
+            LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
+                    "%s copied entire image %s %dx%dx%d (%.3f MB) in %.3f ms = " +
+                            "%.3f prepare + %.3f copy + %.3f complete, %.3f MB/s",
+                    getClass().getSimpleName(),
+                    directCopy ? "directly" : "with repacking",
+                    writeMap.dimX(), writeMap.dimY(), writeMap.numberOfChannels(),
+                    sizeInBytes / 1048576.0,
+                    (t4 - t1) * 1e-6,
+                    (t2 - t1) * 1e-6, (t3 - t2) * 1e-6, (t4 - t3) * 1e-6,
+                    sizeInBytes / 1048576.0 / ((t4 - t1) * 1e-9)));
+
+        }
         return writeMap;
     }
 
@@ -221,6 +243,7 @@ public final class TiffCopier {
         Objects.requireNonNull(writer, "Null TIFF writer");
         Objects.requireNonNull(readMap, "Null TIFF read map");
         TiffReader.checkRequestedArea(fromX, fromY, sizeX, sizeY);
+        long t1 = debugTime();
         resetCounters();
         final TiffIFD writeIFD = new TiffIFD(readMap.ifd());
         // - creating a clone of IFD: we must not modify the reader IFD
@@ -235,6 +258,8 @@ public final class TiffCopier {
         final boolean directCopy = canBeCopiedDirectly(writeMap, readMap, fromX, fromY);
         final int fromXIndex = directCopy ? fromX / mapTileSizeX : Integer.MIN_VALUE;
         final int fromYIndex = directCopy ? fromY / mapTileSizeY : Integer.MIN_VALUE;
+        long t2 = debugTime();
+        int repackCount = 0;
         for (int yIndex = 0, y = 0; yIndex < gridCountY; yIndex++, y += mapTileSizeY) {
             final int sizeYInTile = Math.min(sizeY - y, mapTileSizeY);
             for (int xIndex = 0, x = 0; xIndex < gridCountX; xIndex++, x += mapTileSizeX) {
@@ -247,6 +272,7 @@ public final class TiffCopier {
                     final int readX = fromX + x;
                     final int readY = fromY + y;
                     copyRectangle(writeMap, readMap, x, y, readX, readY, sizeXInTile, sizeYInTile);
+                    repackCount++;
                 }
                 copiedTileCount++;
                 if (shouldBreak()) {
@@ -254,7 +280,24 @@ public final class TiffCopier {
                 }
             }
         }
+        long t3 = debugTime();
         writeMap.completeWriting();
+        if (TiffReader.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+            final long sizeInBytes = writeMap.totalSizeInBytes();
+            long t4 = debugTime();
+            LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
+                    "%s copied %s %dx%dx%d samples in %d tiles%s (%.3f MB) in %.3f ms = " +
+                            "%.3f prepare + %.3f copy + %.3f complete, %.3f MB/s",
+                    getClass().getSimpleName(),
+                    directCopy ? "directly" : "with repacking" + (this.directCopy ? " (direct mode rejected)" : ""),
+                    sizeX, sizeY, writeMap.numberOfChannels(),
+                    copiedTileCount, repackCount < copiedTileCount ? " (" + repackCount + " with repacking)" : "",
+                    sizeInBytes / 1048576.0,
+                    (t4 - t1) * 1e-6,
+                    (t2 - t1) * 1e-6, (t3 - t2) * 1e-6, (t4 - t3) * 1e-6,
+                    sizeInBytes / 1048576.0 / ((t4 - t1) * 1e-9)));
+
+        }
         return writeMap;
     }
 
@@ -320,6 +363,10 @@ public final class TiffCopier {
             progressUpdater.accept(this);
         }
         return interruptionChecker != null && interruptionChecker.getAsBoolean();
+    }
+
+    private static long debugTime() {
+        return TiffReader.BUILT_IN_TIMING && LOGGABLE_DEBUG ? System.nanoTime() : 0;
     }
 }
 
