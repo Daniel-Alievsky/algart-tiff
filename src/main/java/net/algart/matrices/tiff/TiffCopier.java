@@ -301,9 +301,27 @@ public final class TiffCopier {
         return writeMap;
     }
 
+    private static void checkImageCompatibility(TiffWriteMap writeMap, TiffReadMap readMap) {
+        // Note: this method does not check ANY possible incompatibilities
+        if (writeMap.byteOrder() != readMap.byteOrder()) {
+            throw new IllegalArgumentException("Incompatible byte orders: " +
+                    writeMap.byteOrder() + " in target TIFF, " + readMap.byteOrder() + " in source TIFF");
+        }
+        if (writeMap.sampleType() != readMap.sampleType()) {
+            throw new IllegalArgumentException("Incompatible sample types: " +
+                    writeMap.sampleType() + " in target TIFF, " + readMap.sampleType() + " in source TIFF");
+        }
+        if (writeMap.numberOfChannels() != readMap.numberOfChannels()) {
+            throw new IllegalArgumentException("Incompatible number of channels: " +
+                    writeMap.numberOfChannels() + " in target TIFF, " + readMap.numberOfChannels() + " in source TIFF");
+        }
+    }
+
     private boolean canBeImageCopiedDirectly(TiffWriteMap writeMap, TiffReadMap readMap) {
+        checkImageCompatibility(writeMap, readMap);
         return this.directCopy &&
                 readMap.byteOrder() == writeMap.byteOrder() &&
+                readMap.sampleType() == writeMap.sampleType() &&
                 readMap.compressionCode() == writeMap.compressionCode() &&
                 readMap.numberOfSeparatedPlanes() == writeMap.numberOfSeparatedPlanes();
     }
