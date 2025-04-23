@@ -496,7 +496,7 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
         }
     }
 
-    public int linearIndex(int separatedPlaneIndex, int xIndex, int yIndex) {
+    public int linearIndex(int xIndex, int yIndex, int separatedPlaneIndex) {
         if (separatedPlaneIndex < 0 || separatedPlaneIndex >= numberOfSeparatedPlanes) {
             throw new IndexOutOfBoundsException("Separated plane index " + separatedPlaneIndex +
                     " is out of range 0.." + (numberOfSeparatedPlanes - 1));
@@ -514,16 +514,16 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
     }
 
     public TiffTileIndex index(int x, int y) {
-        return new TiffTileIndex(this, 0, x, y);
+        return new TiffTileIndex(this, x, y, 0);
     }
 
-    public TiffTileIndex index(int separatedPlaneIndex, int x, int y) {
-        return new TiffTileIndex(this, separatedPlaneIndex, x, y);
+    public TiffTileIndex index(int x, int y, int separatedPlaneIndex) {
+        return new TiffTileIndex(this, x, y, separatedPlaneIndex);
     }
 
     public TiffTileIndex copyIndex(TiffTileIndex other) {
         Objects.requireNonNull(other, "Null other index");
-        return new TiffTileIndex(this, other.channelPlane(), other.xIndex(), other.yIndex());
+        return new TiffTileIndex(this, other.xIndex(), other.yIndex(), other.separatedPlaneIndex());
     }
 
     public void checkTileIndexIFD(TiffTileIndex tileIndex) {
@@ -544,8 +544,8 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
         return getOrNew(index(x, y));
     }
 
-    public TiffTile getOrNew(int separatedPlaneIndex, int x, int y) {
-        return getOrNew(index(separatedPlaneIndex, x, y));
+    public TiffTile getOrNew(int x, int y, int separatedPlaneIndex) {
+        return getOrNew(index(x, y, separatedPlaneIndex));
     }
 
     public TiffTile getOrNew(TiffTileIndex tileIndex) {
@@ -592,7 +592,7 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
         for (int p = 0; p < numberOfSeparatedPlanes; p++) {
             for (int y = 0; y < gridCountY; y++) {
                 for (int x = 0; x < gridCountX; x++) {
-                    getOrNew(p, x, y).cropToMap();
+                    getOrNew(x, y, p).cropToMap();
                 }
             }
         }

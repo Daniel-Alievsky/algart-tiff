@@ -123,7 +123,7 @@ public final class TiffWriteMap extends TiffMap {
                     final int fromXInTile = tileStartX % mapTileSizeX;
                     final int xDiff = tileStartX - fromX;
 
-                    final TiffTile tile = getOrNew(p, xIndex, yIndex);
+                    final TiffTile tile = getOrNew(xIndex, yIndex, p);
                     if (tile.isDisposed()) {
                         // - we cannot write to already dispose tile: it will result in an exception
                         continue;

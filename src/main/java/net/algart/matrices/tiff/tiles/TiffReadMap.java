@@ -163,7 +163,7 @@ public final class TiffReadMap extends TiffMap {
                     final int fromXInTile = tileStartX % mapTileSizeX;
                     final int xDiff = tileStartX - fromX;
 
-                    final TiffTileIndex tileIndex = index(p, xIndex, yIndex);
+                    final TiffTileIndex tileIndex = index(xIndex, yIndex, p);
                     final TiffTile tile = tileSupplier.getTile(tileIndex);
                     if (storeTilesInMap) {
                         put(tile);

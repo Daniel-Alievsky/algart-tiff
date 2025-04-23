@@ -39,35 +39,35 @@ public final class TiffTileIndex {
     private final TiffMap map;
     private final TiffIFD ifd;
     private final int ifdIdentity;
-    private final int channelPlane;
     private final int xIndex;
     private final int yIndex;
+    private final int separatedPlaneIndex;
     private final int fromX;
     private final int fromY;
     private final int toX;
     private final int toY;
 
     /**
-     * Creates new tile index.
+     * Creates a new tile index.
      *
-     * @param map          containing tile map.
-     * @param channelPlane channel-plane index (used only in the case of
-     *                     {@link TiffIFD#PLANAR_CONFIGURATION_SEPARATE},
-     *                     always 0 for usual case {@link TiffIFD#PLANAR_CONFIGURATION_CHUNKED})
-     * @param xIndex       x-index of the tile (0, 1, 2, ...).
-     * @param yIndex       y-index of the tile (0, 1, 2, ...).
+     * @param map                 containing tile map.
+     * @param xIndex              x-index of the tile (0, 1, 2, ...).
+     * @param yIndex              y-index of the tile (0, 1, 2, ...).
+     * @param separatedPlaneIndex channel-plane index (used only in the case of
+     *                            {@link TiffIFD#PLANAR_CONFIGURATION_SEPARATE},
+     *                            always 0 for usual case {@link TiffIFD#PLANAR_CONFIGURATION_CHUNKED})
      */
-    public TiffTileIndex(TiffMap map, int channelPlane, int xIndex, int yIndex) {
+    public TiffTileIndex(TiffMap map, int xIndex, int yIndex, int separatedPlaneIndex) {
         Objects.requireNonNull(map, "Null containing tile map");
         if (!map.isPlanarSeparated()) {
-            if (channelPlane != 0) {
-                throw new IllegalArgumentException("Non-zero channelPlane = " + channelPlane
+            if (separatedPlaneIndex != 0) {
+                throw new IllegalArgumentException("Non-zero separatedPlaneIndex = " + separatedPlaneIndex
                         + " is allowed only in planar-separated images");
             }
         } else {
             assert map.numberOfSeparatedPlanes() == map.numberOfChannels();
-            if (channelPlane < 0 || channelPlane >= map.numberOfChannels()) {
-                throw new IllegalArgumentException("Index of channelPlane " + channelPlane +
+            if (separatedPlaneIndex < 0 || separatedPlaneIndex >= map.numberOfChannels()) {
+                throw new IllegalArgumentException("Index of separatedPlaneIndex " + separatedPlaneIndex +
                         " is out of range 0.." + (map.numberOfChannels() - 1));
             }
         }
@@ -99,9 +99,9 @@ public final class TiffTileIndex {
         this.ifdIdentity = System.identityHashCode(ifd);
         // - not a universal solution, but suitable for our optimization needs:
         // usually we do not create new IFD instances without necessity
-        this.channelPlane = channelPlane;
         this.xIndex = xIndex;
         this.yIndex = yIndex;
+        this.separatedPlaneIndex = separatedPlaneIndex;
         this.fromX = (int) fromX;
         this.fromY = (int) fromY;
         this.toX = (int) toX;
@@ -116,16 +116,16 @@ public final class TiffTileIndex {
         return ifd;
     }
 
-    public int channelPlane() {
-        return channelPlane;
-    }
-
     public int xIndex() {
         return xIndex;
     }
 
     public int yIndex() {
         return yIndex;
+    }
+
+    public int separatedPlaneIndex() {
+        return separatedPlaneIndex;
     }
 
     public int fromX() {
@@ -145,11 +145,11 @@ public final class TiffTileIndex {
     }
 
     public int linearIndex() {
-        return map.linearIndex(channelPlane, xIndex, yIndex);
+        return map.linearIndex(xIndex, yIndex, separatedPlaneIndex);
     }
 
     public boolean isInBounds() {
-        assert channelPlane < map.numberOfSeparatedPlanes() : "must be checked in the constructor!";
+        assert separatedPlaneIndex < map.numberOfSeparatedPlanes() : "must be checked in the constructor!";
         return xIndex < map.gridCountX() && yIndex < map.gridCountY();
     }
 
@@ -163,7 +163,7 @@ public final class TiffTileIndex {
     @Override
     public String toString() {
         return "(" + xIndex + ", " + yIndex + ")" +
-                (map.isPlanarSeparated() ? ", channel " + channelPlane : "") +
+                (map.isPlanarSeparated() ? ", channel " + separatedPlaneIndex : "") +
                 " [coordinates (" + fromX + ", " + fromY + ")" +
                 " in IFD @" + Integer.toHexString(ifdIdentity) + "]";
     }
@@ -177,7 +177,7 @@ public final class TiffTileIndex {
             return false;
         }
         final TiffTileIndex that = (TiffTileIndex) o;
-        return channelPlane == that.channelPlane && xIndex == that.xIndex && yIndex == that.yIndex && ifd == that.ifd;
+        return separatedPlaneIndex == that.separatedPlaneIndex && xIndex == that.xIndex && yIndex == that.yIndex && ifd == that.ifd;
         // - Important! Comparing references to IFD, not content and not tile map!
         // Different tile maps may refer to the same IFD;
         // on the other hand, we usually do not need to create identical IFDs.
@@ -186,7 +186,7 @@ public final class TiffTileIndex {
     @Override
     public int hashCode() {
         int result = ifdIdentity;
-        result = 31 * result + channelPlane;
+        result = 31 * result + separatedPlaneIndex;
         result = 31 * result + yIndex;
         result = 31 * result + xIndex;
         return result;

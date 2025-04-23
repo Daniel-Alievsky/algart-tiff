@@ -100,7 +100,7 @@ public class TiffReadTilesTest {
         final TiffTileIndex i = tile.index();
         return resultFolder.resolve("tile_x" + i.xIndex() +
                 "_y" + i.yIndex() +
-                (tile.isPlanarSeparated() ? "_p" + i.channelPlane() : "") +
+                (tile.isPlanarSeparated() ? "_p" + i.separatedPlaneIndex() : "") +
                 "." + ((tile.ifd().isJpeg()) ? "jpg" : "bmp"));
     }
 

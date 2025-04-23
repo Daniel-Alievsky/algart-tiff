@@ -2,7 +2,7 @@
   <configuration default="false" name="TiffCopyRectangleDemo" type="Application" factoryName="Application" nameIsGenerated="true">
     <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.demo.io.TiffCopyRectangleDemo" />
     <module name="algart-tiff" />
-    <option name="PROGRAM_PARAMETERS" value="-direct /tmp/test.tiff /tmp/part.tiff 0 0 0 1000 1000" />
+    <option name="PROGRAM_PARAMETERS" value="-direct /tmp/test.tiff /tmp/part.tiff 0 0 0 500 1000" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="net.algart.matrices.tiff.demo.io.*" />

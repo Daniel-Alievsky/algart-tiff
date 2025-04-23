@@ -291,8 +291,8 @@ public final class TiffCopier {
             int readYIndex) throws IOException {
         final int numberOfSeparatedPlanes = writeMap.numberOfSeparatedPlanes();
         for (int p = 0; p < numberOfSeparatedPlanes; p++) {
-            TiffTile targetTile = writeMap.getOrNew(p, writeXIndex, writeYIndex);
-            final TiffTile sourceTile = readMap.readEncodedTile(readMap.index(p, readXIndex, readYIndex));
+            TiffTile targetTile = writeMap.getOrNew(writeXIndex, writeYIndex, p);
+            final TiffTile sourceTile = readMap.readEncodedTile(readMap.index(readXIndex, readYIndex, p));
             targetTile.copy(sourceTile, false);
             writeMap.put(targetTile);
             writeMap.writeTile(targetTile, true);

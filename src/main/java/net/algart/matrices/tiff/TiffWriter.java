@@ -1968,7 +1968,7 @@ public class TiffWriter implements Closeable {
         for (int p = 0, k = 0; p < numberOfSeparatedPlanes; p++) {
             for (int yIndex = 0; yIndex < gridCountY; yIndex++) {
                 for (int xIndex = 0; xIndex < gridCountX; xIndex++, k++) {
-                    TiffTileIndex tileIndex = map.index(p, xIndex, yIndex);
+                    TiffTileIndex tileIndex = map.index(xIndex, yIndex, p);
                     TiffTile tile = map.getOrNew(tileIndex);
                     // - non-existing is created (empty) and saved in the map;
                     // this is necessary to inform the map about the new data file range for this tile
