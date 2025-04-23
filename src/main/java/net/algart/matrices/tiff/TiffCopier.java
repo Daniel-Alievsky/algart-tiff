@@ -194,21 +194,21 @@ public final class TiffCopier {
         final TiffIFD writeIFD = new TiffIFD(readMap.ifd());
         // - creating a clone of IFD: we must not modify the reader IFD
         final TiffWriteMap writeMap = getWriteMap(writer, writeIFD);
-        // - there is no sense to call correctIFDForWriting() method if we use direct copying
         writer.writeForward(writeMap);
         final Collection<TiffTile> targetTiles = writeMap.tiles();
         tileCount = targetTiles.size();
+        final boolean directCopy = canBeImageCopiedDirectly(writeMap, readMap);
         long t2 = debugTime();
         for (TiffTile targetTile : targetTiles) {
             final TiffTileIndex readIndex = readMap.copyIndex(targetTile.index());
             // - important to copy index: targetTile.index() refer to the writeIFD instead of some source IFD
-            if (!directCopy) {
+            if (directCopy) {
+                final TiffTile sourceTile = readMap.readEncodedTile(readIndex);
+                targetTile.copy(sourceTile, false);
+            } else {
                 final TiffTile sourceTile = readMap.readCachedTile(readIndex);
                 final byte[] decodedData = sourceTile.unpackUnusualDecodedData();
                 targetTile.setDecodedData(decodedData);
-            } else {
-                final TiffTile sourceTile = readMap.readEncodedTile(readIndex);
-                targetTile.copy(sourceTile, false);
             }
             writeMap.put(targetTile);
             writeMap.writeTile(targetTile, true);
@@ -226,7 +226,7 @@ public final class TiffCopier {
                     "%s copied entire image %s %dx%dx%d (%.3f MB) in %.3f ms = " +
                             "%.3f prepare + %.3f copy + %.3f complete, %.3f MB/s",
                     getClass().getSimpleName(),
-                    directCopy ? "directly" : "with repacking",
+                    directCopy ? "directly" : "with repacking" + (this.directCopy ? " (direct mode rejected)" : ""),
                     writeMap.dimX(), writeMap.dimY(), writeMap.numberOfChannels(),
                     sizeInBytes / 1048576.0,
                     (t4 - t1) * 1e-6,
@@ -255,7 +255,7 @@ public final class TiffCopier {
         final int gridCountX = writeMap.gridCountX();
         final int mapTileSizeX = writeMap.tileSizeX();
         final int mapTileSizeY = writeMap.tileSizeY();
-        final boolean directCopy = canBeCopiedDirectly(writeMap, readMap, fromX, fromY);
+        final boolean directCopy = canBeRectangleCopiedDirectly(writeMap, readMap, fromX, fromY);
         final int fromXIndex = directCopy ? fromX / mapTileSizeX : Integer.MIN_VALUE;
         final int fromYIndex = directCopy ? fromY / mapTileSizeY : Integer.MIN_VALUE;
         long t2 = debugTime();
@@ -301,12 +301,17 @@ public final class TiffCopier {
         return writeMap;
     }
 
-    private boolean canBeCopiedDirectly(TiffWriteMap writeMap, TiffReadMap readMap, int fromX, int fromY) {
+    private boolean canBeImageCopiedDirectly(TiffWriteMap writeMap, TiffReadMap readMap) {
+        return this.directCopy &&
+                readMap.byteOrder() == writeMap.byteOrder() &&
+                readMap.compressionCode() == writeMap.compressionCode() &&
+                readMap.numberOfSeparatedPlanes() == writeMap.numberOfSeparatedPlanes();
+    }
+
+    private boolean canBeRectangleCopiedDirectly(TiffWriteMap writeMap, TiffReadMap readMap, int fromX, int fromY) {
         final int mapTileSizeX = writeMap.tileSizeX();
         final int mapTileSizeY = writeMap.tileSizeY();
-        return this.directCopy &&
-                readMap.compressionCode() == writeMap.compressionCode() &&
-                readMap.numberOfSeparatedPlanes() == writeMap.numberOfSeparatedPlanes() &&
+        return canBeImageCopiedDirectly(writeMap, readMap) &&
                 readMap.tileSizeX() == mapTileSizeX && readMap.tileSizeY() == mapTileSizeY &&
                 fromX % mapTileSizeX == 0 && fromY % mapTileSizeY == 0;
     }
@@ -347,8 +352,8 @@ public final class TiffCopier {
         if (ifdCorrector != null) {
             ifdCorrector.correct(targetIFD);
         }
-        // - there is no sense to call correctIFDForWriting() method if we use direct copying
         return writer.newMap(targetIFD, false, !directCopy);
+        // - there is no sense to call correctIFDForEncoding() method if we use direct copying
     }
 
     private void resetCounters() {

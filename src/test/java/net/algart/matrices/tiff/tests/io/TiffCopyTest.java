@@ -102,6 +102,7 @@ public class TiffCopyTest {
                 }
                 writer.setBigTiff(bigTiff || reader.isBigTiff());
                 writer.setLittleEndian(reader.isLittleEndian());
+                // writer.setLittleEndian(true);
                 // writer.setJpegInPhotometricRGB(true);
                 // - should not be important for copying, when PhotometricInterpretation is already specified
 //                writer.setQuality(0.3);

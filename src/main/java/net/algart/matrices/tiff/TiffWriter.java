@@ -348,7 +348,7 @@ public class TiffWriter implements Closeable {
      * <p>Default value is <code>false</code>. You may set it to <code>true</code>, for example, when you need
      * to encode a new copy of some existing TIFF file.</p>
      *
-     * <p>Note that this flag is passed to {@link #correctIFDForWriting(TiffIFD, boolean)} method,
+     * <p>Note that this flag is passed to {@link #correctIFDForEncoding(TiffIFD, boolean)} method,
      * called inside <code>writeSamples</code>/<code>writeJavaArray</code> methods.
      *
      * @param smartIFDCorrection <code>true</code> means that we enable smart correction of the specified IFD
@@ -998,17 +998,17 @@ public class TiffWriter implements Closeable {
     }
 
     /**
-     * Equivalent to <code>{@link #correctIFDForWriting(TiffIFD, boolean)
-     * correctIFDForWriting}(ifd, thisObject.{@link #isSmartIFDCorrection() isSmartIFDCorrection()})</code>.
+     * Equivalent to <code>{@link #correctIFDForEncoding(TiffIFD, boolean)
+     * correctIFDForEncoding}(ifd, thisObject.{@link #isSmartIFDCorrection() isSmartIFDCorrection()})</code>.
      *
      * @param ifd IFD to be corrected.
      * @throws TiffException in the case of some problems, in particular, if IFD settings are not supported.
      */
-    public void correctIFDForWriting(TiffIFD ifd) throws TiffException {
-        correctIFDForWriting(ifd, isSmartIFDCorrection());
+    public void correctIFDForEncoding(TiffIFD ifd) throws TiffException {
+        correctIFDForEncoding(ifd, isSmartIFDCorrection());
     }
 
-    public void correctIFDForWriting(TiffIFD ifd, boolean smartCorrection) throws TiffException {
+    public void correctIFDForEncoding(TiffIFD ifd, boolean smartCorrection) throws TiffException {
         final int samplesPerPixel = ifd.getSamplesPerPixel();
         if (!ifd.containsKey(Tags.BITS_PER_SAMPLE)) {
             ifd.put(Tags.BITS_PER_SAMPLE, new int[]{1});
@@ -1130,7 +1130,10 @@ public class TiffWriter implements Closeable {
         if (newPhotometric != suggestedPhotometric) {
             ifd.putPhotometricInterpretation(newPhotometric);
         }
+        correctIFDForEntireTiff(ifd);
+    }
 
+    public void correctIFDForEntireTiff(TiffIFD ifd) throws TiffException {
         ifd.setLittleEndian(out.isLittleEndian());
         // - will be used, for example, in getCompressionCodecOptions
         ifd.setBigTiff(bigTiff);
@@ -1160,12 +1163,12 @@ public class TiffWriter implements Closeable {
      * automatically while {@link #completeWriting(TiffWriteMap) completion} of the image.
      * See also the constructor {@link TiffMap#TiffMap(TiffIFD, boolean)}.</p>
      *
-     * <p>If <code>correctIFDForWriting</code> is <code>true</code>,
-     * this method automatically calls {@link #correctIFDForWriting(TiffIFD)} method for
+     * <p>If <code>correctIFDForEncoding</code> is <code>true</code>,
+     * this method automatically calls {@link #correctIFDForEncoding(TiffIFD)} method for
      * the specified <code>ifd</code> argument.
      * While typical usage, this argument should be <code>true</code>.
      * But you may set it to <code>false</code> if you want to control all IFD settings yourself,
-     * in particular if you prefer to call the method {@link #correctIFDForWriting(TiffIFD, boolean)}
+     * in particular if you prefer to call the method {@link #correctIFDForEncoding(TiffIFD, boolean)}
      * with non-standard <code>smartCorrection</code> flag.
      *
      * <p>Note: this method calls {@link TiffMap#buildTileGrid()} and {@link TiffIFD#freeze() freeze}
@@ -1183,7 +1186,7 @@ public class TiffWriter implements Closeable {
      * @return map for writing further data.
      * @throws TiffException in the case of some problems.
      */
-    public TiffWriteMap newMap(TiffIFD ifd, boolean resizable, boolean correctIFDForWriting) throws TiffException {
+    public TiffWriteMap newMap(TiffIFD ifd, boolean resizable, boolean correctIFDForEncoding) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         if (ifd.isFrozen()) {
             throw new IllegalStateException("IFD is already frozen for usage while writing TIFF; " +
@@ -1195,8 +1198,11 @@ public class TiffWriter implements Closeable {
         // - These are also pointers (offsets) inside a file, but this class does not provide
         // control over writing such IFDs, so the corresponding offsets will usually have no sense
 
-        if (correctIFDForWriting) {
-            correctIFDForWriting(ifd);
+        if (correctIFDForEncoding) {
+            correctIFDForEncoding(ifd);
+        } else {
+            correctIFDForEntireTiff(ifd);
+            // - this is still necessary: ifd and TiffWriteMap must "know" about the actual file format
         }
         final TiffWriteMap map = new TiffWriteMap(this, ifd, resizable);
         map.buildTileGrid();
@@ -1252,7 +1258,7 @@ public class TiffWriter implements Closeable {
      */
     public TiffWriteMap existingMap(TiffIFD ifd) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
-        correctIFDForWriting(ifd, false);
+        correctIFDForEncoding(ifd, false);
         final TiffWriteMap map = new TiffWriteMap(this, ifd, false);
         final long[] offsets = ifd.cachedTileOrStripOffsets();
         final long[] byteCounts = ifd.cachedTileOrStripByteCounts();

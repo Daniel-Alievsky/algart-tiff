@@ -3,6 +3,7 @@
     <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.demo.io.TiffCopyRectangleDemo" />
     <module name="algart-tiff" />
     <option name="PROGRAM_PARAMETERS" value="-direct /tmp/test.tiff /tmp/part.tiff 0 0 0 500 1000" />
+    <option name="VM_PARAMETERS" value="-ea -esa -Dnet.algart.matrices.tiff.timing=true -Djava.util.logging.config.file=additional/logging.properties" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="net.algart.matrices.tiff.demo.io.*" />

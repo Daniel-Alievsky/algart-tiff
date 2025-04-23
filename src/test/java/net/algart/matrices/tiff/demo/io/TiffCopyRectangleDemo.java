@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.demo.io;
 
-import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.TiffCopier;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
