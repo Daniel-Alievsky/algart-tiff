@@ -1323,7 +1323,7 @@ public class TiffIFD {
         return putMatrixInformation(matrix, signedIntegers, false);
     }
 
-    // interleaved is usually false, but may be used together with TiffWriter.updateMatrix for interleaved matrices
+    // interleaved is usually false but may be used together with TiffWriter.updateMatrix for interleaved matrices
     public TiffIFD putMatrixInformation(Matrix<? extends PArray> matrix, boolean signedIntegers, boolean interleaved) {
         Objects.requireNonNull(matrix, "Null matrix");
         final int dimChannelsIndex = interleaved ? 0 : 2;
@@ -1374,9 +1374,45 @@ public class TiffIFD {
         return putImageDimensions((long) dimX, (long) dimY);
     }
 
+    /**
+     * Sets new values for <code>ImageWidth</code> and <code>ImageLength</code> tags.
+     * The arguments are <code>long</code> to simplify use together with API oriented to <code>long</code>
+     * values like {@link Matrix AlgART matrices}, but they
+     * must actually be in the range <code>1..Integer.MAX_VALUE</code>.
+     *
+     * <p>Note that the tags <code>ImageWidth</code> and <code>ImageLength</code> set by this method
+     * will be saved in the TIFF file as {@link TagTypes#LONG} type (32-bit).
+     *
+     * @param dimX new TIFF image width (<code>ImageWidth</code> tag);
+     *             must be in the range <code>1..Integer.MAX_VALUE</code>.
+     * @param dimY new TIFF image height (<code>ImageLength</code> tag);
+     *             must be in the range <code>1..Integer.MAX_VALUE</code>.
+     * @return a reference to this object.
+     */
     public TiffIFD putImageDimensions(long dimX, long dimY) {
+        putImageDimensions(dimX, dimY, true);
+        return this;
+    }
+
+    /**
+     * Equivalent to {@link #putImageDimensions(long, long)} with the only difference that this method
+     * does nothing when <code>forceUpdate=false</code> and the actual tags
+     * <code>ImageWidth</code> and <code>ImageLength</code> already
+     * set to values equal to the specified arguments.
+     *
+     * <p>This can be useful if you want to preserve the type of already existing
+     * <code>ImageWidth</code> and <code>ImageLength</code>, for example, when they are stored as
+     * {@link TagTypes#SHORT} type (16-bit).
+     *
+     * @param dimX new TIFF image width (<code>ImageWidth</code> tag);
+     *             must be in the range <code>1..Integer.MAX_VALUE</code>.
+     * @param dimY new TIFF image height (<code>ImageLength</code> tag);
+     *             must be in the range <code>1..Integer.MAX_VALUE</code>.
+     * @return a reference to this object.
+     */
+    public TiffIFD putImageDimensions(long dimX, long dimY, boolean forceUpdate) {
         checkImmutable();
-        updateImageDimensions(dimX, dimY);
+        updateImageDimensions(dimX, dimY, forceUpdate);
         return this;
     }
 
@@ -1620,13 +1656,21 @@ public class TiffIFD {
 
     /**
      * Puts new values for <code>ImageWidth</code> and <code>ImageLength</code> tags.
+     * The <code>forceUpdate</code> argument enforce updating even in the case
+     * then the tags <code>ImageWidth</code> and <code>ImageLength</code> already
+     * set to values equal to <code>dimX</code> and <code>dimY</code> arguments.
      *
-     * <p>Note: this method works even when IFD is frozen by {@link #freeze()} method.
+     * <p>Note: unlike {@link #putImageDimensions(long, long, boolean)},
+     * this method works even when IFD is frozen by {@link #freeze()} method.
      *
-     * @param dimX new TIFF image width (<code>ImageWidth</code> tag); must be in 1..Integer.MAX_VALUE range.
-     * @param dimY new TIFF image height (<code>ImageLength</code> tag); must be in 1..Integer.MAX_VALUE range.
+     * @param dimX new TIFF image width (<code>ImageWidth</code> tag);
+     *             must be in the range <code>1..Integer.MAX_VALUE</code>.
+     * @param dimY new TIFF image height (<code>ImageLength</code> tag);
+     *             must be in the range <code>1..Integer.MAX_VALUE</code>.
+     * @param forceUpdate whether to always update <code>ImageWidth</code> and <code>ImageLength</code> tags.
+     * @return a reference to this object.
      */
-    public TiffIFD updateImageDimensions(long dimX, long dimY) {
+    public TiffIFD updateImageDimensions(long dimX, long dimY, boolean forceUpdate) {
         if (dimX <= 0) {
             throw new IllegalArgumentException("Zero or negative image width (x-dimension): " + dimX);
         }
@@ -1648,7 +1692,9 @@ public class TiffIFD {
         // - to avoid illegal detection of the type
         assert dimX == (int) dimX;
         assert dimY == (int) dimY;
-        if (optInt(Tags.IMAGE_WIDTH, -1) == dimX && optInt(Tags.IMAGE_LENGTH, -1) == dimY) {
+        if (!forceUpdate
+                && optInt(Tags.IMAGE_WIDTH, -1) == dimX
+                && optInt(Tags.IMAGE_LENGTH, -1) == dimY) {
             // - if the sizes are already set correctly, leave them untouched to avoid changing the type
             return this;
         }

@@ -1541,7 +1541,7 @@ public class TiffWriter implements Closeable {
 
         final TiffIFD ifd = map.ifd();
         if (resizable) {
-            ifd.updateImageDimensions(map.dimX(), map.dimY());
+            ifd.updateImageDimensions(map.dimX(), map.dimY(), true);
         }
 
         final int count = completeWritingMap(map);

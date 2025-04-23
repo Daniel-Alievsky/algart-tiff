@@ -29,7 +29,7 @@ import net.algart.matrices.tiff.TiffIFD;
 import java.util.Objects;
 
 /**
- * TIFF tile index, based of row, column and IFD reference (not content).
+ * TIFF tile index, based on row, column, channel plane and IFD reference (not content).
  *
  * <p>Note: for hashing, this object uses IFD identity hash code.
  * Of course, this cannot provide a good universal hash,

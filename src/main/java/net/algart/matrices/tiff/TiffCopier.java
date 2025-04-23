@@ -224,7 +224,7 @@ public final class TiffCopier {
         resetCounters();
         final TiffIFD writeIFD = new TiffIFD(readMap.ifd());
         // - creating a clone of IFD: we must not modify the reader IFD
-        writeIFD.putImageDimensions(sizeX, sizeY);
+        writeIFD.putImageDimensions(sizeX, sizeY, false);
         final TiffWriteMap writeMap = getWriteMap(writer, writeIFD);
         writer.writeForward(writeMap);
         tileCount = writeMap.numberOfGridTiles();
