@@ -118,7 +118,7 @@ public enum TagCompression {
      *
      * <p>Note that while writing TIFF in this format, {@link net.algart.matrices.tiff.TiffWriter}
      * does not try to use YCbCr encoding,
-     * as Aperio recommends for the type 33003.
+     * as Aperio recommends for type 33003.
      */
     JPEG_2000_LOSSLESS(33003, "JPEG-2000 lossless", JPEG2000Codec::new),
 
@@ -189,7 +189,24 @@ public enum TagCompression {
 
     public boolean isStandard() {
         return code <= 10 || this == PACK_BITS;
-        // - actually maximal supported standard compression is DEFLATE=8
+        // - actually, the maximal supported standard compression is DEFLATE=8
+    }
+
+    /**
+     * Should return <code>true</code> if the format of compressed data can depend on the byte order in the entire
+     * TIFF file ({@link TiffCodec.Options#isLittleEndian()}) even in the case when we have 8 or fewer bits per sample,
+     * such as in typical 8-bit JPEG RGB or YCbCr images.
+     *
+     * This is highly unusual and not common in standard TIFF usage,
+     * but theoretically, a codec might use this metadata when encoding control or auxiliary information.
+     *
+     * @return whether the byte order may affect encoding in the case of byte-sized or binary samples;
+     *         usually <code>false</code>.
+     */
+    public boolean canUseByteOrderForByteData() {
+        return isJpeg2000();
+        // - probably even JPEG-2000 does not depend on it for byte samples, but
+        // for future compatibility we prefer to return <code>true</code> here
     }
 
     public TiffCodec.Options customizeReading(TiffTile tile, TiffCodec.Options options) throws TiffException {

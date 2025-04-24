@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff;
 
+import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIndex;
@@ -308,6 +309,7 @@ public final class TiffCopier {
                     writeMap.byteOrder() + " in target TIFF, " + readMap.byteOrder() + " in source TIFF");
         }
         if (writeMap.sampleType() != readMap.sampleType()) {
+            //TODO!! support this situation
             throw new IllegalArgumentException("Incompatible sample types: " +
                     writeMap.sampleType() + " in target TIFF, " + readMap.sampleType() + " in source TIFF");
         }
@@ -319,10 +321,17 @@ public final class TiffCopier {
 
     private boolean canBeImageCopiedDirectly(TiffWriteMap writeMap, TiffReadMap readMap) {
         checkImageCompatibility(writeMap, readMap);
+        final TiffSampleType sampleType = readMap.sampleType();
+        final int compressionCode = readMap.compressionCode();
+        final TagCompression compression = TagCompression.ofOrNull(compressionCode);
+        final boolean byteOrderIsNotUsedForImageData =
+                (sampleType.isBinary() || sampleType.bitsPerSample() == 8)
+                && (compression != null && !compression.canUseByteOrderForByteData());
+        // - for unknown compressions, we cannot be sure in this fact even for 1-bit or 8-bit samples
         return this.directCopy &&
-                readMap.byteOrder() == writeMap.byteOrder() &&
-                readMap.sampleType() == writeMap.sampleType() &&
-                readMap.compressionCode() == writeMap.compressionCode() &&
+                sampleType == writeMap.sampleType() &&
+                (readMap.byteOrder() == writeMap.byteOrder() || byteOrderIsNotUsedForImageData) &&
+                compressionCode == writeMap.compressionCode() &&
                 readMap.numberOfSeparatedPlanes() == writeMap.numberOfSeparatedPlanes();
     }
 
