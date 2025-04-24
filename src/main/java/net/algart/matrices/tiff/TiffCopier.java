@@ -63,6 +63,7 @@ public final class TiffCopier {
     private int tileCount = 0;
     private int copiedIfdCount = 0;
     private int ifdCount = 0;
+    private boolean actuallyDirectCopy = false;
 
     public TiffCopier() {
     }
@@ -147,6 +148,10 @@ public final class TiffCopier {
         return tileCount;
     }
 
+    public boolean actuallyDirectCopy() {
+        return actuallyDirectCopy;
+    }
+
     public static void copyAll(Path targetTiffFile, Path sourceTiffFile, boolean directCopy)
             throws IOException {
         new TiffCopier().setDirectCopy(directCopy).copyAll(targetTiffFile, sourceTiffFile);
@@ -198,12 +203,12 @@ public final class TiffCopier {
         writer.writeForward(writeMap);
         final Collection<TiffTile> targetTiles = writeMap.tiles();
         tileCount = targetTiles.size();
-        final boolean directCopy = canBeImageCopiedDirectly(writeMap, readMap);
+        this.actuallyDirectCopy = canBeImageCopiedDirectly(writeMap, readMap);
         long t2 = debugTime();
         for (TiffTile targetTile : targetTiles) {
             final TiffTileIndex readIndex = readMap.copyIndex(targetTile.index());
             // - important to copy index: targetTile.index() refer to the writeIFD instead of some source IFD
-            if (directCopy) {
+            if (actuallyDirectCopy) {
                 final TiffTile sourceTile = readMap.readEncodedTile(readIndex);
                 targetTile.copy(sourceTile, false);
             } else {
@@ -227,7 +232,7 @@ public final class TiffCopier {
                     "%s copied entire image %s %dx%dx%d (%.3f MB) in %.3f ms = " +
                             "%.3f prepare + %.3f copy + %.3f complete, %.3f MB/s",
                     getClass().getSimpleName(),
-                    directCopy ? "directly" : "with repacking" + (this.directCopy ? " (direct mode rejected)" : ""),
+                    actuallyDirectCopy ? "directly" : "with repacking" + (this.directCopy ? " (direct mode rejected)" : ""),
                     writeMap.dimX(), writeMap.dimY(), writeMap.numberOfChannels(),
                     sizeInBytes / 1048576.0,
                     (t4 - t1) * 1e-6,
@@ -265,7 +270,8 @@ public final class TiffCopier {
             final int sizeYInTile = Math.min(sizeY - y, mapTileSizeY);
             for (int xIndex = 0, x = 0; xIndex < gridCountX; xIndex++, x += mapTileSizeX) {
                 final int sizeXInTile = Math.min(sizeX - x, mapTileSizeX);
-                if (directCopy && sizeXInTile == mapTileSizeX && sizeYInTile == mapTileSizeY) {
+                this.actuallyDirectCopy = directCopy && sizeXInTile == mapTileSizeX && sizeYInTile == mapTileSizeY;
+                if (this.actuallyDirectCopy) {
                     final int readXIndex = fromXIndex + xIndex;
                     final int readYIndex = fromYIndex + yIndex;
                     copyEncodedTile(writeMap, readMap, xIndex, yIndex, readXIndex, readYIndex);
