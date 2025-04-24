@@ -1,0 +1,1 @@
+java -cp %~dp0\lib\* net.algart.matrices.tiff.executable.TiffInfo %1 %2 %3 %4 %5
