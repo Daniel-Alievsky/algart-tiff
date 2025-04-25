@@ -278,7 +278,11 @@ public final class TiffCopier {
                 } else {
                     final int readX = fromX + x;
                     final int readY = fromY + y;
-                    copyRectangle(writeMap, readMap, x, y, readX, readY, sizeXInTile, sizeYInTile);
+                    final int written = copyRectangle(writeMap, readMap, x, y, readX, readY, sizeXInTile, sizeYInTile);
+                    if (written != writeMap.numberOfSeparatedPlanes()) {
+                        throw new AssertionError("Number of written tiles " + written + " != " +
+                                writeMap.numberOfSeparatedPlanes());
+                    }
                     repackCount++;
                 }
                 copiedTileCount++;
@@ -288,7 +292,10 @@ public final class TiffCopier {
             }
         }
         long t3 = debugTime();
-        writeMap.completeWriting();
+        final int written = writeMap.completeWriting();
+        if (written != 0) {
+            throw new AssertionError("Number of tiles when completion " + written + " != 0");
+        }
         if (TiffReader.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             final long sizeInBytes = writeMap.totalSizeInBytes();
             long t4 = debugTime();
@@ -349,7 +356,7 @@ public final class TiffCopier {
                 fromX % mapTileSizeX == 0 && fromY % mapTileSizeY == 0;
     }
 
-    private static void copyRectangle(
+    private static int copyRectangle(
             TiffWriteMap writeMap,
             TiffReadMap readMap,
             int writeX,
@@ -360,7 +367,7 @@ public final class TiffCopier {
             int sizeY) throws IOException {
         final byte[] samples = readMap.loadSamples(readX, readY, sizeX, sizeY);
         List<TiffTile> tiles = writeMap.updateSamples(samples, writeX, writeY, sizeX, sizeY);
-        writeMap.writeCompletedTiles(tiles);
+        return writeMap.flushCompletedTiles(tiles);
     }
 
     private static void copyEncodedTile(

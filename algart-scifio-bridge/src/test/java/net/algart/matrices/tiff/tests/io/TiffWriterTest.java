@@ -412,7 +412,7 @@ public class TiffWriterTest {
         final IRectangularArea areaToWrite = IRectangularArea.valueOf(
                 fromX, fromY, fromX + sizeX - 1, fromY + sizeY - 1);
         for (TiffTile tile : writer.lastMap().tiles()) {
-            if (tile.rectangle().intersects(areaToWrite) && !areaToWrite.contains(tile.rectangle())) {
+            if (tile.actualRectangle().intersects(areaToWrite) && !areaToWrite.contains(tile.actualRectangle())) {
                 final TiffTile existing = reader.readCachedTile(tile.index());
                 tile.setDecodedData(existing.getDecodedData());
             }

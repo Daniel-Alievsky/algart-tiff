@@ -879,7 +879,7 @@ public class TiffWriter implements Closeable {
         return writeTiles(tiles, tile -> true, true);
     }
 
-    public int writeCompletedTiles(Collection<TiffTile> tiles) throws IOException {
+    public int flushCompletedTiles(Collection<TiffTile> tiles) throws IOException {
         return writeTiles(tiles, TiffTile::isCompleted, true);
     }
 
@@ -1346,8 +1346,8 @@ public class TiffWriter implements Closeable {
             final IRectangularArea areaToWrite = IRectangularArea.valueOf(
                     fromX, fromY, fromX + sizeX - 1, fromY + sizeY - 1);
             for (TiffTile tile : map.tiles()) {
-                if (tile.rectangle().intersects(areaToWrite) &&
-                        (loadTilesFullyInsideRectangle || !areaToWrite.contains(tile.rectangle()))) {
+                if (tile.actualRectangle().intersects(areaToWrite) &&
+                        (loadTilesFullyInsideRectangle || !areaToWrite.contains(tile.actualRectangle()))) {
                     final TiffTile existing = reader.readCachedTile(tile.index());
                     tile.copy(existing, false);
                 }
@@ -1979,7 +1979,7 @@ public class TiffWriter implements Closeable {
                     // - non-existing is created (empty) and saved in the map;
                     // this is necessary to inform the map about the new data file range for this tile
                     // and to avoid twice writing it while twice calling "complete()" method
-                    tile.cropToMap();
+                    tile.cropStripToMap();
                     // - like in updateSamples
                     if (!tile.isEmpty()) {
                         writeEncodedTile(tile, true);

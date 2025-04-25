@@ -79,6 +79,7 @@ public final class TiffTile {
     public TiffTile(TiffTileIndex index) {
         this.index = Objects.requireNonNull(index, "Null tile index");
         this.map = index.map();
+        assert this.map != null : "Null map for tile index " + index;
         this.samplesPerPixel = map.tileSamplesPerPixel();
         this.bitsPerSample = map.alignedBitsPerSample();
         this.bitsPerPixel = map.tileAlignedBitsPerPixel();
@@ -116,7 +117,7 @@ public final class TiffTile {
     }
 
     /**
-     * Returns number of bits per each sample of this tile.
+     * Returns the number of bits per each sample of this tile.
      * Always equal to {@link #map()}.{@link TiffMap#alignedBitsPerSample() bitsPerSample()}.
      * Note that this number is always the same for all channels and is always divided by 8,
      * excepting the only case 1-channel 1-bit pixels.
@@ -318,8 +319,21 @@ public final class TiffTile {
         return sizeInBits;
     }
 
-    public IRectangularArea rectangle() {
-        return rectangleInTile(0, 0, sizeX, sizeY);
+    /**
+     * Returns the rectangle inside the tile (starting at coordinates (0,0))
+     * that may contain some useful data.
+     *
+     * <p>Usually it is the entire tile rectangle <code>0..{@link #getSizeX()}-1 x 0..{@link #getSizeY()}-1</code>,
+     * but it is cropped by the overall map dimensions in the case when the map
+     * is not {@link TiffMap#isResizable() resizable}. (For a resizable map, we cannot be sure that its sizes
+     * will not be increased by future operations.)</p>
+     *
+     * @return the rectangle inside the tile that may contain data.
+     */
+    public IRectangularArea actualRectangle() {
+        final int sizeXInTile = map.isResizable() ? sizeX : Math.min(sizeX, map.dimX() - fromX());
+        final int sizeYInTile = map.isResizable() ? sizeY : Math.min(sizeY, map.dimY() - fromY());
+        return rectangleInTile(0, 0, sizeXInTile, sizeYInTile);
     }
 
     public IRectangularArea rectangleInTile(int fromXInTile, int fromYInTile, int sizeXInTile, int sizeYInTile) {
@@ -346,7 +360,7 @@ public final class TiffTile {
      * @return a reference to this object.
      * @throws IllegalStateException if this tile is completely outside map dimensions.
      */
-    public TiffTile cropToMap() {
+    public TiffTile cropStripToMap() {
         return cropToMap(true);
     }
 
@@ -358,7 +372,7 @@ public final class TiffTile {
      * especially while writing.
      * But there are no reasons to call this for
      * {@link net.algart.matrices.tiff.tiles.TiffMap.TilingMode#TILE_GRID tiled image}.
-     * For tiled image, a TIFF file usually contains full-size encoded tiles even on image boundary;
+     * For tiled image, a TIFF file usually contains full-size encoded tiles even on the image boundary;
      * they should be cropped after decoding by external means. You can disable an attempt to reduce
      * tile in tiled image by passing <code>strippedOnly=true</code>.
      *
@@ -378,8 +392,14 @@ public final class TiffTile {
         }
     }
 
+    /**
+     * Returns the current unset area in this tile.
+     * Note that initially the unset area consists from a single rectangle equal to {@link #actualRectangle()}.
+     *
+     * @return the current unset area in this tile.
+     */
     public Collection<IRectangularArea> getUnsetArea() {
-        return unsetArea == null ? List.of(rectangle()) : Collections.unmodifiableCollection(unsetArea);
+        return unsetArea == null ? List.of(actualRectangle()) : Collections.unmodifiableCollection(unsetArea);
     }
 
     public TiffTile markWholeTileAsUnset() {
@@ -1041,7 +1061,7 @@ public final class TiffTile {
     private void initializeEmptyArea() {
         if (unsetArea == null) {
             unsetArea = new LinkedList<>();
-            unsetArea.add(rectangle());
+            unsetArea.add(actualRectangle());
         }
     }
 

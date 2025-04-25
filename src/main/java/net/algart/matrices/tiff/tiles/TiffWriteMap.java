@@ -129,7 +129,7 @@ public final class TiffWriteMap extends TiffMap {
                         continue;
                     }
                     tile.checkReadyForNewDecodedData(false);
-                    tile.cropToMap();
+                    tile.cropStripToMap();
                     // - In stripped image, we should correct the height of the last row.
                     // It is important for writing: without this correction, GIMP and other libtiff-based programs
                     // will report about an error (see libtiff, tif_jpeg.c, assigning segment_width/segment_height)
@@ -312,8 +312,8 @@ public final class TiffWriteMap extends TiffMap {
         return owningWriter.writeAllTiles(tiles);
     }
 
-    public int writeCompletedTiles(Collection<TiffTile> tiles) throws IOException {
-        return owningWriter.writeCompletedTiles(tiles);
+    public int flushCompletedTiles(Collection<TiffTile> tiles) throws IOException {
+        return owningWriter.flushCompletedTiles(tiles);
     }
 
     public int writeTiles(Collection<TiffTile> tiles, Predicate<TiffTile> needToWrite, boolean disposeAfterWriting)

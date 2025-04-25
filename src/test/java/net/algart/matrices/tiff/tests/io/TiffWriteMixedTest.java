@@ -110,7 +110,7 @@ public class TiffWriteMixedTest {
                     updated.size(),
                     updated.stream().map(TiffTile::toString).collect(Collectors.joining("%n  ".formatted())));
             printReaderInfo(writer);
-            map.writeCompletedTiles(updated);
+            map.flushCompletedTiles(updated);
             // - frees the memory (almost do not affect results)
             printReaderInfo(writer);
 
@@ -122,7 +122,7 @@ public class TiffWriteMixedTest {
                     updated.size(),
                     updated.stream().map(TiffTile::toString).collect(Collectors.joining("%n  ".formatted())));
             printReaderInfo(writer);
-            map.writeCompletedTiles(updated);
+            map.flushCompletedTiles(updated);
             // - frees the memory (almost do not affect results)
             printReaderInfo(writer);
             map.completeWriting();

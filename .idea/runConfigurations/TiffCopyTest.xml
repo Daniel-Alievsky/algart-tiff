@@ -2,7 +2,7 @@
   <configuration default="false" name="TiffCopyTest" type="Application" factoryName="Application" nameIsGenerated="true">
     <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.tests.io.TiffCopyTest" />
     <module name="algart-tiff" />
-    <option name="PROGRAM_PARAMETERS" value="-direct /tmp/test.tiff /tmp/copy.tiff" />
+    <option name="PROGRAM_PARAMETERS" value="/tmp/test.tiff /tmp/copy.tiff" />
     <option name="VM_PARAMETERS" value="-ea -esa -Dnet.algart.matrices.tiff.timing=true -Djava.util.logging.config.file=additional/logging.properties" />
     <method v="2">
       <option name="Make" enabled="true" />

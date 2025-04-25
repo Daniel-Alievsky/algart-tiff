@@ -109,6 +109,7 @@ public final class TiffTileIndex {
     }
 
     public TiffMap map() {
+        assert map != null;
         return map;
     }
 

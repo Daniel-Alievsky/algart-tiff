@@ -588,17 +588,23 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
         tiles.forEach(this::put);
     }
 
+    /**
+     * Builds the tile map by calling {@link #getOrNew(int, int, int)} for the regular grid of tiles.
+     * If the map is a {@link net.algart.matrices.tiff.tiles.TiffMap.TilingMode#STRIPS stripped TIFF image},
+     * each created tile (i.e. a strip) is automatically cropped by the grid dimensions using
+     * {@link TiffTile#cropStripToMap()}.
+     */
     public void buildTileGrid() {
         for (int p = 0; p < numberOfSeparatedPlanes; p++) {
             for (int y = 0; y < gridCountY; y++) {
                 for (int x = 0; x < gridCountX; x++) {
-                    getOrNew(x, y, p).cropToMap();
+                    getOrNew(x, y, p).cropStripToMap();
                 }
             }
         }
     }
 
-    public void cropAll() {
+    public void cropAllStrips() {
         cropAll(true);
     }
 
