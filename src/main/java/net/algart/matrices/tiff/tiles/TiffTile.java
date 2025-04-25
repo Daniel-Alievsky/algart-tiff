@@ -691,6 +691,10 @@ public final class TiffTile {
         } else {
             final Object javaArray = source.getUnpackedJavaArray();
             setUnpackedJavaArray(javaArray);
+            // - theoretically, we could use a quicker algorithm for reordering bytes
+            // via ByteBuffer without copying into a separate Java array,
+            // but usually there is no sense to optimize this:
+            // the actual data decompression/compression by the codec is much slower
         }
         return this;
     }
