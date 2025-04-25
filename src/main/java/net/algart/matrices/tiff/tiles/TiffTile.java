@@ -581,6 +581,16 @@ public final class TiffTile {
         return data.length;
     }
 
+    /**
+     * Sets the decoded data.
+     *
+     * <p>Note that we have no a separate method "setUnpackedData":
+     * the unpacked samples can be set via this method.
+     * We do not support writing non-standard precision.</p>
+     *
+     * @param data decoded (unpacked) data.
+     * @return a reference to this object.
+     */
     public TiffTile setDecodedData(byte[] data) {
         return setData(data, false, true);
     }
@@ -653,21 +663,7 @@ public final class TiffTile {
         return TiffSampleType.asMatrix(getUnpackedJavaArray(), sizeX, sizeY, samplesPerPixel, interleaved);
     }
 
-    public boolean isEmpty() {
-        return data == null;
-    }
-
-    public void free() {
-        this.data = null;
-        this.interleaved = false;
-        // - before possible setting new decoded data, we should restore default status interleaved = false
-        this.encoded = false;
-        // - method checkReadyForNewDecodedData() requires that the tile should not be declared as encoded
-        // Note: we should not clear information about stored data file range, because
-        // it will be used even after flushing data to disk (with freeing this tile)
-    }
-
-    public TiffTile copy(TiffTile source, boolean cloneData) {
+    public TiffTile copyData(TiffTile source, boolean cloneData) {
         Objects.requireNonNull(source, "Null source tile");
         if (source.isEmpty()) {
             free();
@@ -678,14 +674,18 @@ public final class TiffTile {
         return this;
     }
 
-    public TiffTile copyUnpacked(TiffTile source) {
+    private boolean isByteOrderCompatible(TiffTile source) {
+        return map.isByteOrderCompatible(source.map);
+    }
+
+    public TiffTile copyUnpackedData(TiffTile source) {
         Objects.requireNonNull(source, "Null source tile");
         if (source.isEmpty()) {
             free();
             return this;
         }
         source.checkDecodedData();
-        if (map.isByteOrderCompatible(source.map)) {
+        if (isByteOrderCompatible(source)) {
             final byte[] decodedData = source.getUnpackedData();
             setDecodedData(decodedData);
         } else {
@@ -699,8 +699,22 @@ public final class TiffTile {
         return this;
     }
 
+    public boolean isEmpty() {
+        return data == null;
+    }
+
     public boolean isDisposed() {
         return disposed;
+    }
+
+    public void free() {
+        this.data = null;
+        this.interleaved = false;
+        // - before possible setting new decoded data, we should restore default status interleaved = false
+        this.encoded = false;
+        // - method checkReadyForNewDecodedData() requires that the tile should not be declared as encoded
+        // Note: we should not clear information about stored data file range, because
+        // it will be used even after flushing data to disk (with freeing this tile)
     }
 
     /**

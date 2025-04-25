@@ -210,10 +210,10 @@ public final class TiffCopier {
             // - important to copy index: targetTile.index() refer to the writeIFD instead of some source IFD
             if (actuallyDirectCopy) {
                 final TiffTile sourceTile = readMap.readEncodedTile(readIndex);
-                targetTile.copy(sourceTile, false);
+                targetTile.copyData(sourceTile, false);
             } else {
                 final TiffTile sourceTile = readMap.readCachedTile(readIndex);
-                targetTile.copyUnpacked(sourceTile);
+                targetTile.copyUnpackedData(sourceTile);
             }
             writeMap.put(targetTile);
             writeMap.writeTile(targetTile, true);
@@ -395,7 +395,7 @@ public final class TiffCopier {
         for (int p = 0; p < numberOfSeparatedPlanes; p++) {
             TiffTile targetTile = writeMap.getOrNew(writeXIndex, writeYIndex, p);
             final TiffTile sourceTile = readMap.readEncodedTile(readMap.index(readXIndex, readYIndex, p));
-            targetTile.copy(sourceTile, false);
+            targetTile.copyData(sourceTile, false);
             writeMap.put(targetTile);
             writeMap.writeTile(targetTile, true);
         }

@@ -649,7 +649,7 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
                     this.gridCountX + "x" + source.gridCountY + " tiles) do not match");
         }
         for (TiffTile tile : source.tiles()) {
-            this.getOrNew(copyIndex(tile.index())).copy(tile, cloneData);
+            this.getOrNew(copyIndex(tile.index())).copyData(tile, cloneData);
         }
     }
 

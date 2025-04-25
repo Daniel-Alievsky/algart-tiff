@@ -1349,7 +1349,7 @@ public class TiffWriter implements Closeable {
                 if (tile.actualRectangle().intersects(areaToWrite) &&
                         (loadTilesFullyInsideRectangle || !areaToWrite.contains(tile.actualRectangle()))) {
                     final TiffTile existing = reader.readCachedTile(tile.index());
-                    tile.copy(existing, false);
+                    tile.copyData(existing, false);
                 }
             }
         }
