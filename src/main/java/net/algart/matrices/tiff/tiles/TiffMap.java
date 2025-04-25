@@ -268,7 +268,7 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
     }
 
     public boolean isBinary() {
-        return sampleType().isBinary();
+        return sampleType.isBinary();
     }
 
     public boolean isWholeBytes() {
@@ -653,6 +653,16 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
         }
     }
 
+    public boolean isByteOrderCompatible(TiffMap source) {
+        Objects.requireNonNull(source, "Null source TIFF map");
+        if (source.sampleType != this.sampleType) {
+            // - we prefer to return false instead of throwing an exception here
+            // (as a rule, we should not use this method for different sample types at all)
+            return false;
+        }
+        return source.byteOrder == this.byteOrder || sampleType.isBinary() || sampleType.bitsPerSample() == 8;
+        // - most typical cases; we do not try to optimize "strange" bit numbers like 4-bit samples
+    }
 
     public byte[] toInterleavedSamples(byte[] samples, int numberOfChannels, long numberOfPixels) {
         return toInterleaveOrSeparatedSamples(samples, numberOfChannels, numberOfPixels, true);

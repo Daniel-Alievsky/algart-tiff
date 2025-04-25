@@ -75,7 +75,7 @@ public class TiffCopyRectangleDemo {
                 h = readMap.dimY() - y;
             }
             writer.setFormatLike(reader);
-            // - without this command, direct copy will be impossible for LE format
+            // - without this operator, direct copy will be impossible for LE format
             writer.create(append);
             System.out.printf("Copying image %d, rectangle %d..%dx%d..%d%n", ifdIndex, x, x + w - 1, y, y + h - 1);
             copier.copyImage(writer, readMap, x, y, w, h);

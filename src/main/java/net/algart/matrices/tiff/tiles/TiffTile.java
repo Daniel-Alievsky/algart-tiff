@@ -32,6 +32,7 @@ import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.data.TiffUnusualPrecisions;
 
+import java.lang.reflect.Array;
 import java.nio.ByteOrder;
 import java.util.*;
 import java.util.function.Consumer;
@@ -135,7 +136,7 @@ public final class TiffTile {
      *     16- or 24-bit floating-point formats.</li>
      * </ol>
      * <p>Inside this class, you are always dealing with the variant #2 (excepting call of
-     * {@link #unpackUnusualDecodedData()} method). The {@link TiffReader} class
+     * {@link #getUnpackedData()} method). The {@link TiffReader} class
      * usually returns data in the option #1, unless you disable this by
      * {@link TiffReader#setAutoUnpackUnusualPrecisions(boolean)} method.
      * The {@link TiffWriter} class always takes the data in the variant #1.</p>
@@ -549,8 +550,8 @@ public final class TiffTile {
     /**
      * Returns the decoded data. Every pixel in the unpacked data consists of {@link #samplesPerPixel()}
      * <i>samples</i>, and every sample is represented with either 1 bit or 1, 2, 3 or 4 whole bytes.
-     * If the samples in TIFF file are K-bit integers where <code>K%8&nbsp;&ne;&nbsp;0</code>, they are automatically
-     * unpacked into <code>&#8968;K/8&#8969;*8</code> bit integers while decoding.
+     * If the samples in the TIFF file are K-bit integers where <code>K%8&nbsp;&ne;&nbsp;0</code>,
+     * they are automatically unpacked into <code>&#8968;K/8&#8969;*8</code> bit integers while decoding.
      *
      * <p>In addition to the standard precisions provided by {@link TiffSampleType}, samples can be represented
      * in the following unusual precisions:</p>
@@ -563,7 +564,7 @@ public final class TiffTile {
      *
      * @return unpacked data.
      * @throws IllegalStateException if the tile is {@link #isEmpty() empty} or {@link #isEncoded() encoded}.
-     * @see #unpackUnusualDecodedData()
+     * @see #getUnpackedData()
      */
     public byte[] getDecodedData() {
         checkDecodedData();
@@ -616,7 +617,7 @@ public final class TiffTile {
      * @see #bitsPerSample()
      * @see TiffMap#bitsPerUnpackedSample()
      */
-    public byte[] unpackUnusualDecodedData() {
+    public byte[] getUnpackedData() {
         byte[] samples = getDecodedData();
         try {
             samples = TiffUnusualPrecisions.unpackUnusualPrecisions(
@@ -627,10 +628,29 @@ public final class TiffTile {
         return samples;
     }
 
-    public Matrix<UpdatablePArray> unpackedMatrix() {
-        final byte[] samples = unpackUnusualDecodedData();
-        final Object javaArray = sampleType().javaArray(samples, byteOrder());
-        return TiffSampleType.asMatrix(javaArray, sizeX, sizeY, samplesPerPixel, interleaved);
+    private Object getUnpackedJavaArray() {
+        final byte[] samples = getUnpackedData();
+        return sampleType().javaArray(samples, byteOrder());
+    }
+
+    public TiffTile setUnpackedJavaArray(Object samplesArray) {
+        Objects.requireNonNull(samplesArray, "Null samplesArray");
+        final Class<?> elementType = samplesArray.getClass().getComponentType();
+        if (elementType == null) {
+            throw new IllegalArgumentException("The specified samplesArray is not actual an array: " +
+                    "it is " + samplesArray.getClass());
+        }
+        if (elementType != elementType()) {
+            throw new IllegalArgumentException("Invalid element type of samples array: " + elementType +
+                    ", but the specified TIFF tile stores " + elementType() + " elements");
+        }
+        final int length = Array.getLength(samplesArray);
+        final byte[] samples = TiffSampleType.bytes(samplesArray, length, byteOrder());
+        return setDecodedData(samples);
+    }
+
+    public Matrix<UpdatablePArray> getUnpackedMatrix() {
+        return TiffSampleType.asMatrix(getUnpackedJavaArray(), sizeX, sizeY, samplesPerPixel, interleaved);
     }
 
     public boolean isEmpty() {
@@ -654,6 +674,23 @@ public final class TiffTile {
         } else {
             final byte[] data = cloneData ? source.data.clone() : source.data;
             setData(data, source.isEncoded(), false);
+        }
+        return this;
+    }
+
+    public TiffTile copyUnpacked(TiffTile source) {
+        Objects.requireNonNull(source, "Null source tile");
+        if (source.isEmpty()) {
+            free();
+            return this;
+        }
+        source.checkDecodedData();
+        if (map.isByteOrderCompatible(source.map)) {
+            final byte[] decodedData = source.getUnpackedData();
+            setDecodedData(decodedData);
+        } else {
+            final Object javaArray = source.getUnpackedJavaArray();
+            setUnpackedJavaArray(javaArray);
         }
         return this;
     }
