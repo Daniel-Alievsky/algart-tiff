@@ -265,11 +265,12 @@ public class TiffWriterTest {
                     saver.setCodecOptions(codecOptions);
                     // - should not have effect
                 }
-                System.out.printf("%nTest #%d/%d: %s %s%s...%n",
+                System.out.printf("%nTest #%d/%d: %s %s%s by %s...%n",
                         test, numberOfTests,
                         existingFile ? "writing to" : "creating",
                         targetFile,
-                        context == null ? "" : " (SCIFIO context " + context + ")");
+                        context == null ? "" : " (SCIFIO context " + context + ")",
+                        writer);
                 for (int k = 0; k < numberOfImages; k++) {
                     printReaderInfo(writer); // - may show an invalid file
                     final int ifdIndex = firstIfdIndex + k;
@@ -354,7 +355,8 @@ public class TiffWriterTest {
                     }
 
                     Object samplesArray = makeSamples(ifdIndex, map.numberOfChannels(), map.sampleType(), w, h);
-                    final boolean interleaved = !writer.isAutoInterleaveSource() && map.alignedBitsPerSample() == 8;
+                    final boolean interleaved = writer instanceof TiffSaver ||
+                            (!writer.isAutoInterleaveSource() && map.alignedBitsPerSample() == 8);
                     if (interleaved) {
                         samplesArray = map.toInterleavedSamples(
                                 (byte[]) samplesArray, map.numberOfChannels(), (long) w * (long) h);
