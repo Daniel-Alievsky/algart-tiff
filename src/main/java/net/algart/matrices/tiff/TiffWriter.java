@@ -307,6 +307,9 @@ public class TiffWriter implements Closeable {
      * i.e., for 1-channel images and if {@link Tags#PLANAR_CONFIGURATION} is
      * {@link TiffIFD#PLANAR_CONFIGURATION_SEPARATE}.
      *
+     * <p>The main goal of adding this flag is compatibility with the old SCIFIO <code>TiffSaver</code>
+     * class, which does not perform interleaving itself.
+     *
      * @param autoInterleaveSource new auto-interleave mode. Default value is <code>true</code>.
      * @return a reference to this object.
      */

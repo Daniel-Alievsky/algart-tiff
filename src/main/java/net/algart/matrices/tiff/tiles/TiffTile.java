@@ -1002,7 +1002,8 @@ public final class TiffTile {
             throw new IllegalStateException("TIFF tile is already interleaved: " + this);
         }
         data = map.toInterleavedSamples(data, samplesPerPixel, getEstimatedNumberOfPixels());
-        // - getEstimatedNumberOfPixels can return invalid value only for 1 channel, when this argument is not used
+        // - getEstimatedNumberOfPixels can return an invalid value only for 1 channel,
+        // when the 3rd argument is not used
         setInterleaved(true);
         setDecodedData(data);
         return this;
