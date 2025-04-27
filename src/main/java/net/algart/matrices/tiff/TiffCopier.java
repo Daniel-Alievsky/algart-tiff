@@ -402,7 +402,6 @@ public final class TiffCopier {
         }
     }
 
-
     private TiffWriteMap getWriteMap(TiffWriter writer, TiffIFD targetIFD, boolean correctIFDForEncoding)
             throws TiffException {
         if (ifdCorrector != null) {
