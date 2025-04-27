@@ -1156,10 +1156,12 @@ public class TiffWriter implements Closeable {
      * If you still need to construct TIFF with such tags, you should use more low-level call of
      * {@link TiffWriteMap} constructor.
      *
-     * @param ifd       newly created and probably customized IFD.
-     * @param resizable if <code>true</code>, IFD dimensions may not be specified yet: this argument is passed
-     *                  to {@link TiffWriteMap#TiffWriteMap(TiffWriter, TiffIFD, boolean)} constructor
-     *                  for creating the new map.
+     * @param ifd                   newly created and probably customized IFD.
+     * @param resizable             if <code>true</code>, IFD dimensions may not be specified yet: this argument is
+     *                              passed to {@link TiffWriteMap#TiffWriteMap(TiffWriter, TiffIFD, boolean)}
+     *                              constructor for creating the new map.
+     * @param correctIFDForEncoding whether {@link #correctIFDForEncoding(TiffIFD)} should be called;
+     *                              usually <code>true</code>.
      * @return map for writing further data.
      * @throws TiffException in the case of some problems.
      */
@@ -1382,7 +1384,7 @@ public class TiffWriter implements Closeable {
      * (that is the typical usage), then the passes samples are automatically re-packed into chunked (interleaved)
      * form RGBRGBRGB...
      *
-     * @param map    TIFF map.
+     * @param map     TIFF map.
      * @param samples the samples in unpacked form.
      * @throws TiffException in the case of invalid TIFF IFD.
      * @throws IOException   in the case of any I/O errors.
