@@ -73,7 +73,6 @@ public class TiffCustomCodecDemo {
                         Optional.empty();
             }
         }) {
-            // writer.setAutoInterleaveSource(false); // - leads to throwing exception
             final TiffIFD ifd = writer.newIFD();
             ifd.putChannelsInformation(image);
             ifd.putCompressionCode(MY_GZIP_COMPRESSION_CODE);

@@ -39,6 +39,10 @@ import java.util.Objects;
 import java.util.function.Predicate;
 
 public final class TiffWriteMap extends TiffMap {
+    private static final boolean AUTO_INTERLEAVE_SOURCE = true;
+    // See TiffWriter.AUTO_INTERLEAVE_SOURCE.
+    // IF YOU CHANGE IT, YOU MUST CORRECT ALSO TiffWriter.AUTO_INTERLEAVE_SOURCE.
+
     private final TiffWriter owningWriter;
 
     public TiffWriteMap(TiffWriter owningWriter, TiffIFD ifd, boolean resizable) {
@@ -110,7 +114,8 @@ public final class TiffWriteMap extends TiffMap {
         final long tileOneChannelRowSizeInBits = (long) mapTileSizeX * bitsPerSample;
         final long samplesOneChannelRowSizeInBits = (long) sizeX * bitsPerSample;
 
-        final boolean sourceInterleaved = isConsideredInterleaved();
+        final boolean sourceInterleaved = !isPlanarSeparated() && !AUTO_INTERLEAVE_SOURCE;
+        // - actually false since 1.4.0
         for (int p = 0; p < numberOfSeparatedPlanes; p++) {
             // - for a rare case PlanarConfiguration=2 (RRR...GGG...BBB...)
             for (int yIndex = minYIndex; yIndex <= maxYIndex; yIndex++) {
@@ -230,7 +235,7 @@ public final class TiffWriteMap extends TiffMap {
 
     public List<TiffTile> updateMatrix(Matrix<? extends PArray> matrix, int fromX, int fromY) {
         Objects.requireNonNull(matrix, "Null matrix");
-        final boolean sourceInterleaved = isConsideredInterleaved();
+        final boolean sourceInterleaved = !isPlanarSeparated() && !AUTO_INTERLEAVE_SOURCE;
         final Class<?> elementType = matrix.elementType();
         if (elementType != elementType()) {
             throw new IllegalArgumentException("Invalid element type of the matrix: \"" + elementType +
@@ -272,9 +277,6 @@ public final class TiffWriteMap extends TiffMap {
      * <code>{@link #updateMatrix(Matrix, int, int)
      * updateMatrix}(Matrices.mergeLayers(Arrays.SMM, channels), fromX, fromY)</code>.
      *
-     * <p>Note that this method requires the {@link TiffWriter#setAutoInterleaveSource(boolean) auto-interleave}
-     * mode to be set in the owning writer; otherwise an exception is thrown.
-     *
      * @param channels color channels of the image (2-dimensional matrices).
      * @param fromX    starting x-coordinate for updating.
      * @param fromY    starting y-coordinate for updating.
@@ -282,7 +284,7 @@ public final class TiffWriteMap extends TiffMap {
      */
     public List<TiffTile> updateChannels(List<? extends Matrix<? extends PArray>> channels, int fromX, int fromY) {
         Objects.requireNonNull(channels, "Null channels");
-        if (!owningWriter.isAutoInterleaveSource()) {
+        if (!AUTO_INTERLEAVE_SOURCE) {
             throw new IllegalStateException("Cannot update image channels: autoInterleaveSource mode is not set");
         }
         return updateMatrix(Matrices.mergeLayers(net.algart.arrays.Arrays.SMM, channels), fromX, fromY);
@@ -323,10 +325,6 @@ public final class TiffWriteMap extends TiffMap {
 
     public int completeWriting() throws IOException {
         return owningWriter.completeWriting(this);
-    }
-
-    public boolean isConsideredInterleaved() {
-        return !isPlanarSeparated() && !owningWriter.isAutoInterleaveSource();
     }
 
     @Override

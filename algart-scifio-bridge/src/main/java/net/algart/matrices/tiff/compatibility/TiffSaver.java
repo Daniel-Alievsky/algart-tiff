@@ -114,7 +114,6 @@ public class TiffSaver extends TiffWriter {
         this.dataHandleService = ctx.getService(DataHandleService.class);
         // Disable new features of TiffWriter for compatibility:
         this.setWritingSequentially(false);
-        this.setAutoInterleaveSource(false);
         this.setEnforceUseExternalCodec(true);
     }
 
@@ -127,8 +126,8 @@ public class TiffSaver extends TiffWriter {
      */
     public TiffSaver(final DataHandle<Location> out, final BytesLocation bytes) {
         this(new Context(), (Location) out);
-        // Note: it the old SCIFIO TiffSaver class, "bytes" parameter was stored in a field,
-        // but logic of the algorithm did not allow to use it - it was an obvious bug.
+        // Note: it the old SCIFIO TiffSaver class, the "bytes" parameter was stored in a field,
+        // but the logic of the algorithm did not allow to use it - it was an obvious bug.
     }
 
     /**

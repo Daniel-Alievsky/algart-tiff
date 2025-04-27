@@ -456,11 +456,10 @@ public final class TiffTile {
      *
      * <p>By default, the data are considered to be <b>not</b> interleaved, in other words, {@link #isSeparated()
      * separated}. Methods, reading and decoding the tile from TIFF, always return separated tile.
-     * Methods, encoding the file for writing to TIFF, may work both with interleaved tiles,
-     * but it should be explicitly declared, like in
-     * {@link TiffWriter#setAutoInterleaveSource(boolean)} method (with <code>false</code> argument).</p>
+     * Methods encoding the file for writing to TIFF may work both with interleaved tiles,
+     * but it should be explicitly declared.</p>
      *
-     * <p>This is purely informational property, not affecting processing the stored data
+     * <p>This is a purely informational property, not affecting processing the stored data
      * by methods of this object and supported for additional convenience of usage this class.</p>
      *
      * @return whether the data in the tile are interleaved.
@@ -721,7 +720,7 @@ public final class TiffTile {
      * Calls {@link #free()} and marks this tile as <i>disposed</i>.
      *
      * <p>After {@link #free()} method, the tile becomes {@link #isEmpty() empty},
-     * but can be filled with some data again, for example using {@link #setDecodedData(byte[])}
+     * but can be filled with some data again, for example, using {@link #setDecodedData(byte[])}
      * or {@link #fillWhenEmpty()}.
      * Unlike this, after this method,
      * the tile cannot be modified at all: any attempt to get or set data
@@ -736,8 +735,6 @@ public final class TiffTile {
      * usually there is no any sense to work with a tile after once it has been written into the TIFF file.</p>
      *
      * <p>Note: there is no way to clear the <i>disposed</i> status in this object.</p>
-     *
-     * @return a reference to this object.
      */
     public void dispose() {
         free();
@@ -1028,7 +1025,7 @@ public final class TiffTile {
         return "TIFF " +
                 (disposed ? "(DISPOSED) " : isEmpty() ? "(empty) " : "") +
                 (encoded ? "encoded" : "non-encoded") +
-                (interleaved ? " interleaved" : "") +
+                (interleaved ? " interleaved" : " separated") +
                 " tile" +
                 (data == null ?
                         ", " + sizeX + "x" + sizeY + "x" + samplesPerPixel :

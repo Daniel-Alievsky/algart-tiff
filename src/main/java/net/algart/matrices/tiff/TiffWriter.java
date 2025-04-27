@@ -76,12 +76,20 @@ public class TiffWriter implements Closeable {
     // did not understand LONG8 values for some popular tags like image sizes.
     // In any case, real BigTIFF files usually store most tags in standard LONG type (32 bits), not in LONG8.
 
+    private static final boolean AUTO_INTERLEAVE_SOURCE = true;
+    // - Should be true. The alternative mode (false), where the source data may already be interleaved,
+    // was implemented in the past for compatibility with TiffSaver class.
+    // It is no longer supported since the version 1.4.0, because this makes the behavior
+    // of TiffWriter nonpredictable without analyzing this mode; but it still can be enabled by this flag.
+    // Note that the alternate mode (false) was never supported in writeChannels and writeBufferedImage methods.
+    // IF YOU CHANGE IT, YOU MUST CORRECT ALSO TiffWriteMap.AUTO_INTERLEAVE_SOURCE
+    // (and, for testing, the "interleaved" variable in TiffWriterTest)
+
     private static final System.Logger LOG = System.getLogger(TiffWriter.class.getName());
     private static final boolean LOGGABLE_DEBUG = LOG.isLoggable(System.Logger.Level.DEBUG);
 
     private boolean bigTiff = false;
     private boolean writingForwardAllowed = true;
-    private boolean autoInterleaveSource = true;
     private boolean smartIFDCorrection = false;
     private TiffCodec.Options codecOptions = new TiffCodec.Options();
     private boolean enforceUseExternalCodec = false;
@@ -281,40 +289,6 @@ public class TiffWriter implements Closeable {
 
     public TiffWriter setWritingForwardAllowed(boolean writingForwardAllowed) {
         this.writingForwardAllowed = writingForwardAllowed;
-        return this;
-    }
-
-    public boolean isAutoInterleaveSource() {
-        return autoInterleaveSource;
-    }
-
-    /**
-     * Sets auto-interleave mode.
-     *
-     * <p>If set, then the samples array in <code>write...</code> methods is always supposed to be unpacked.
-     * For multichannel images it means the samples order like RRR..GGG..BBB...: standard form, supposed by
-     * <code>io.scif.Plane</code> class and returned by {@link TiffReader}. If the desired IFD format is
-     * chunked, i.e. {@link Tags#PLANAR_CONFIGURATION} is {@link TiffIFD#PLANAR_CONFIGURATION_CHUNKED}
-     * (that is the typical usage), then the passes samples are automatically re-packed into chunked (interleaved)
-     * form RGBRGBRGB...
-     *
-     * <p>If this mode is not set, as well as if {@link Tags#PLANAR_CONFIGURATION} is
-     * {@link TiffIFD#PLANAR_CONFIGURATION_SEPARATE}, the passed data for writing must be represented as unpacked
-     * RRR...GGG..BBB...  for {@link TiffIFD#PLANAR_CONFIGURATION_SEPARATE} or as interleaved RGBRGBRGB...
-     * for {@link TiffIFD#PLANAR_CONFIGURATION_CHUNKED}.
-     *
-     * <p>Note that this flag is ignored if the result data in the file should not be interleaved,
-     * i.e., for 1-channel images and if {@link Tags#PLANAR_CONFIGURATION} is
-     * {@link TiffIFD#PLANAR_CONFIGURATION_SEPARATE}.
-     *
-     * <p>The main goal of adding this flag is compatibility with the old SCIFIO <code>TiffSaver</code>
-     * class, which does not perform interleaving itself.
-     *
-     * @param autoInterleaveSource new auto-interleave mode. Default value is <code>true</code>.
-     * @return a reference to this object.
-     */
-    public TiffWriter setAutoInterleaveSource(boolean autoInterleaveSource) {
-        this.autoInterleaveSource = autoInterleaveSource;
         return this;
     }
 
@@ -979,7 +953,7 @@ public class TiffWriter implements Closeable {
 
     public void prepareEncoding(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
-        if (autoInterleaveSource) {
+        if (AUTO_INTERLEAVE_SOURCE) {
             if (tile.isInterleaved()) {
                 throw new IllegalArgumentException("Tile for encoding and writing to TIFF file must not be " +
                         "interleaved:: " + tile);
@@ -1398,6 +1372,21 @@ public class TiffWriter implements Closeable {
         }
     }
 
+    /**
+     * Writes the matrix at the position (0,0).
+     *
+     * <p>Note that then the samples array in all <code>write...</code> methods is always supposed to be separated.
+     * For multichannel images it means the samples order like RRR..GGG..BBB...: standard form,
+     * returned by {@link TiffReader}. If the desired IFD format is
+     * chunked, i.e. {@link Tags#PLANAR_CONFIGURATION} is {@link TiffIFD#PLANAR_CONFIGURATION_CHUNKED}
+     * (that is the typical usage), then the passes samples are automatically re-packed into chunked (interleaved)
+     * form RGBRGBRGB...
+     *
+     * @param map    TIFF map.
+     * @param samples the samples in unpacked form.
+     * @throws TiffException in the case of invalid TIFF IFD.
+     * @throws IOException   in the case of any I/O errors.
+     */
     public void writeSamples(final TiffWriteMap map, byte[] samples) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         map.checkZeroDimensions();
@@ -1483,9 +1472,6 @@ public class TiffWriter implements Closeable {
      * <code>{@link #writeMatrix(TiffWriteMap, Matrix)
      * writeMatrix}(Matrices.mergeLayers(channels))</code>.
      *
-     * <p>Note that this method requires the {@link #setAutoInterleaveSource(boolean) auto-interleave} mode to be set;
-     * otherwise an exception is thrown.
-     *
      * @param map      TIFF map.
      * @param channels color channels of the image (2-dimensional matrices).
      * @throws TiffException in the case of invalid TIFF IFD.
@@ -1504,7 +1490,7 @@ public class TiffWriter implements Closeable {
             int fromY) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(channels, "Null channels");
-        if (!autoInterleaveSource) {
+        if (!AUTO_INTERLEAVE_SOURCE) {
             throw new IllegalStateException("Cannot write image channels: autoInterleaveSource mode is not set");
         }
         writeMatrix(map, Matrices.mergeLayers(channels), fromX, fromY);
@@ -1515,9 +1501,6 @@ public class TiffWriter implements Closeable {
      * <code>{@link #writeChannels(TiffWriteMap, List)
      * writeChannels}({@link ImageToMatrix#toChannels
      * ImageToMatrix.toChannels}(bufferedImage))</code>.
-     *
-     * <p>Note that this method requires the {@link #setAutoInterleaveSource(boolean) auto-interleave} mode to be set;
-     * otherwise an exception is thrown.
      *
      * @param map           TIFF map.
      * @param bufferedImage the image.
@@ -2138,7 +2121,7 @@ public class TiffWriter implements Closeable {
 
     private void logWritingMatrix(TiffWriteMap map, Matrix<?> matrix, long t1, long t2, long t3, long t4) {
         if (TiffReader.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
-            final boolean sourceInterleaved = map.isConsideredInterleaved();
+            final boolean sourceInterleaved = !map.isPlanarSeparated() && !AUTO_INTERLEAVE_SOURCE;
             final long dimX = matrix.dim(sourceInterleaved ? 1 : 0);
             final long dimY = matrix.dim(sourceInterleaved ? 2 : 1);
             // - already checked that they are actually "int"

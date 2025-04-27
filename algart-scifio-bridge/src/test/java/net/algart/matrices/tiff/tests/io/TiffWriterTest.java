@@ -80,11 +80,6 @@ public class TiffWriterTest {
             resizable = true;
             startArgIndex++;
         }
-        boolean interleaveOutside = false;
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-interleaveOutside")) {
-            interleaveOutside = true;
-            startArgIndex++;
-        }
         boolean append = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-append")) {
             append = true;
@@ -192,6 +187,7 @@ public class TiffWriterTest {
             resizable = false;
             // - TiffSaver does not support these features
             compatibility = true;
+            useContext = true;
             startArgIndex++;
         }
         if (args.length < startArgIndex + 2) {
@@ -221,10 +217,6 @@ public class TiffWriterTest {
         final int numberOfTests = ++startArgIndex < args.length ? Integer.parseInt(args[startArgIndex]) : 1;
         final int firstIfdIndex = ++startArgIndex < args.length ? Integer.parseInt(args[startArgIndex]) : 0;
         final int numberOfChannels = color ? 3 : 1;
-        if (planarSeparated) {
-            // - we must not interleave data at all
-            interleaveOutside = false;
-        }
         final boolean existingFile = append || randomAccess;
 
         System.out.printf("%d images %s, %d total test%n",
@@ -243,9 +235,6 @@ public class TiffWriterTest {
                 writer.setContext(context);
 //                 TiffWriter writer = new TiffSaver(context, targetFile.toString())) {
 //                writer.setEnforceUseExternalCodec(true);
-                if (interleaveOutside && sampleType.bitsPerSample() == 8) {
-                    writer.setAutoInterleaveSource(false);
-                }
 //                writer.setWritingForwardAllowed(false);
                 writer.setBigTiff(bigTiff);
                 if (littleEndian) {
@@ -355,16 +344,18 @@ public class TiffWriterTest {
                     }
 
                     Object samplesArray = makeSamples(ifdIndex, map.numberOfChannels(), map.sampleType(), w, h);
-                    final boolean interleaved = writer instanceof TiffSaver ||
-                            (!writer.isAutoInterleaveSource() && map.alignedBitsPerSample() == 8);
+                    final boolean interleaved = writer instanceof TiffSaver && samplesArray instanceof byte[]
+                        && !planarSeparated;
+                    // - or true if the internal constants TiffWriter/TiffWriteMap.AUTO_INTERLEAVE_SOURCE are true
                     if (interleaved) {
                         samplesArray = map.toInterleavedSamples(
                                 (byte[]) samplesArray, map.numberOfChannels(), (long) w * (long) h);
                     }
                     Matrix<UpdatablePArray> matrix = TiffSampleType.asMatrix(
                             samplesArray, w, h, map.numberOfChannels(), interleaved);
-                    if (writer instanceof TiffSaver saver && samplesArray instanceof byte[] bytes) {
-                        saver.writeImage(bytes, TiffParser.toScifioIFD(map.ifd(), null),
+                    if (writer instanceof TiffSaver tiffSaver && samplesArray instanceof byte[] bytes) {
+                        System.out.println("Writing by TiffSaver.writeImage...");
+                        tiffSaver.writeImage(bytes, TiffParser.toScifioIFD(map.ifd(), null),
                                 ifdIndex, FormatTools.UINT8,
                                 x, y, w, h, k == numberOfImages - 1);
                     } else {
@@ -447,7 +438,7 @@ public class TiffWriterTest {
             case BIT -> {
                 boolean[] channels = new boolean[matrixSize * bandCount];
                 for (int y = 0; y < dimY; y++) {
-                    int c1 = (y / 32) % (bandCount + 1) - 1;
+                    int c1 = (y / 32 + 1) % (bandCount + 1) - 1;
                     int c2 = c1;
                     if (c1 == -1) {
                         c1 = 0;
@@ -464,7 +455,7 @@ public class TiffWriterTest {
             case UINT8, INT8 -> {
                 byte[] channels = new byte[matrixSize * bandCount];
                 for (int y = 0; y < dimY; y++) {
-                    int c1 = (y / 32) % (bandCount + 1) - 1;
+                    int c1 = (y / 32 + 1) % (bandCount + 1) - 1;
                     int c2 = c1;
                     if (c1 == -1) {
                         c1 = 0;
@@ -481,7 +472,7 @@ public class TiffWriterTest {
             case UINT16, INT16 -> {
                 short[] channels = new short[matrixSize * bandCount];
                 for (int y = 0; y < dimY; y++) {
-                    int c1 = (y / 32) % (bandCount + 1) - 1;
+                    int c1 = (y / 32 + 1) % (bandCount + 1) - 1;
                     int c2 = c1;
                     if (c1 == -1) {
                         c1 = 0;
@@ -502,7 +493,7 @@ public class TiffWriterTest {
             case INT32, UINT32 -> {
                 int[] channels = new int[matrixSize * bandCount];
                 for (int y = 0, disp = 0; y < dimY; y++) {
-                    final int c = (y / 32) % bandCount;
+                    final int c = (y / 32 + 1) % bandCount;
                     for (int x = 0; x < dimX; x++, disp++) {
                         channels[disp + c * matrixSize] = 157 * 65536 * (50 * ifdIndex + Math.min(x, 500)  + y);
                     }
@@ -512,7 +503,7 @@ public class TiffWriterTest {
             case FLOAT -> {
                 float[] channels = new float[matrixSize * bandCount];
                 for (int y = 0, disp = 0; y < dimY; y++) {
-                    final int c = (y / 32) % bandCount;
+                    final int c = (y / 32 + 1) % bandCount;
                     for (int x = 0; x < dimX; x++, disp++) {
                         int v = (50 * ifdIndex + Math.min(x, 500) + y) & 0xFF;
                         channels[disp + c * matrixSize] = (float) (0.5 + 1.5 * (v / 256.0 - 0.5));
@@ -523,7 +514,7 @@ public class TiffWriterTest {
             case DOUBLE -> {
                 double[] channels = new double[matrixSize * bandCount];
                 for (int y = 0, disp = 0; y < dimY; y++) {
-                    final int c = (y / 32) % bandCount;
+                    final int c = (y / 32 + 1) % bandCount;
                     for (int x = 0; x < dimX; x++, disp++) {
                         int v = (50 * ifdIndex + Math.min(x, 500)  + y) & 0xFF;
                         channels[disp + c * matrixSize] = (float) (0.5 + 1.5 * (v / 256.0 - 0.5));
