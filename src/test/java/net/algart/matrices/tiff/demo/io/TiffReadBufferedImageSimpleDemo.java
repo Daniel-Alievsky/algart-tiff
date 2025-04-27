@@ -56,9 +56,9 @@ public class TiffReadBufferedImageSimpleDemo {
         }
         System.out.printf("Writing %s...%n", targetFile);
         final String formatName = extension(targetFile.getFileName().toString());
-        // - Not ideal solution: some Java AWT codecs, such as JPEG-2000, use format name different
+        // - Not an ideal solution: some Java AWT codecs, such as JPEG-2000, use format name different
         // from the extension. But it's very simple.
-        // Better solution is using MatrixIO class.
+        // A better solution is using the MatrixIO class.
         if (!ImageIO.write(image, formatName, targetFile.toFile())) {
             throw new IOException("Failed to write image " + targetFile);
         }

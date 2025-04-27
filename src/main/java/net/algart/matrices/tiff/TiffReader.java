@@ -1502,8 +1502,7 @@ public class TiffReader implements Closeable {
      * Reads the full image with the specified TIFF map.
      * The result is a 3-dimensional matrix, where each 2-dimensional {@link Matrices#asLayers(Matrix) layer}
      * contains one of color channels.
-     * However, if {@link #setInterleaveResults interleave results} flag is cleared, the result will an interleaved
-     * 3D matrix, which can be separated to channels by {@link Matrices#separate(ArrayContext, Matrix)} method.
+     * In other words, the samples are returned in a separated form: RRR...GGG...BBB...
      *
      * <p>The necessary TIFF map can be obtained, for example, by calling
      * <code>{@link #newMap(int) reader.newMap}(ifdIndex)</code>.</p>
@@ -1536,6 +1535,30 @@ public class TiffReader implements Closeable {
             throws IOException {
         final Object samplesArray = readJavaArray(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
         return TiffSampleType.asMatrix(samplesArray, sizeX, sizeY, map.numberOfChannels(), interleaveResults);
+    }
+
+    public Matrix<UpdatablePArray> readInterleavedMatrix(TiffReadMap map) throws IOException {
+        Objects.requireNonNull(map, "Null TIFF map");
+        return readInterleavedMatrix(map, 0, 0, map.dimX(), map.dimY());
+    }
+
+    public Matrix<UpdatablePArray> readInterleavedMatrix(TiffReadMap map, int fromX, int fromY, int sizeX, int sizeY)
+            throws IOException {
+        return readInterleavedMatrix(map, fromX, fromY, sizeX, sizeY, false);
+    }
+
+    public Matrix<UpdatablePArray> readInterleavedMatrix(
+            TiffReadMap map,
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY,
+            boolean storeTilesInMap)
+            throws IOException {
+        final Matrix<UpdatablePArray> mergedChannels = readMatrix(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
+        return interleaveResults ?
+                mergedChannels :
+                Matrices.interleave(mergedChannels.asLayers());
     }
 
     /**
@@ -1606,14 +1629,12 @@ public class TiffReader implements Closeable {
             int sizeY,
             boolean storeTilesInMap)
             throws IOException {
-        final Matrix<UpdatablePArray> mergedChannels = readMatrix(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
-        final Matrix<? extends PArray> interleavedChannels = interleaveResults ?
-                mergedChannels :
-                Matrices.interleave(mergedChannels.asLayers());
-        // Note: we do not call MatrixToImage.toBufferedImage, because we need to call setUnsignedInt32
+        final Matrix<? extends PArray> interleaved =
+                readInterleavedMatrix(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
+        // Note: we do not use MatrixToImage.toBufferedImage, because we need to call setUnsignedInt32
         return new MatrixToImage.InterleavedRGBToInterleaved()
                 .setUnsignedInt32(true)
-                .toBufferedImage(interleavedChannels);
+                .toBufferedImage(interleaved);
     }
 
     public final byte[] decompressBySCIFIOCodec(TiffIFD ifd, byte[] encodedData, Object scifioCodecOptions)

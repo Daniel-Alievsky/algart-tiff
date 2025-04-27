@@ -76,6 +76,15 @@ public final class TiffReadMap extends TiffMap {
         return owningReader.readMatrix(this, fromX, fromY, sizeX, sizeY);
     }
 
+    public Matrix<UpdatablePArray> readInterleavedMatrix() throws IOException {
+        return owningReader.readInterleavedMatrix(this);
+    }
+
+    public Matrix<UpdatablePArray> readInterleavedMatrix(int fromX, int fromY, int sizeX, int sizeY)
+            throws IOException {
+        return owningReader.readInterleavedMatrix(this, fromX, fromY, sizeX, sizeY);
+    }
+
     public List<Matrix<UpdatablePArray>> readChannels() throws IOException {
         return owningReader.readChannels(this);
     }
