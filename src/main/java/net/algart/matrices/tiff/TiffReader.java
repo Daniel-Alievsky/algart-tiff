@@ -108,7 +108,6 @@ public class TiffReader implements Closeable {
 
     private boolean caching = false;
     private long maxCachingMemory = DEFAULT_MAX_CACHING_MEMORY;
-    private boolean interleaveResults = false;
     private boolean autoUnpackBitsToBytes = false;
     private boolean autoUnpackUnusualPrecisions = true;
     private boolean autoScaleWhenIncreasingBitDepth = true;
@@ -336,26 +335,6 @@ public class TiffReader implements Closeable {
         return this;
     }
 
-    public boolean isInterleaveResults() {
-        return interleaveResults;
-    }
-
-    /**
-     * Sets the interleaving mode: the loaded samples will be returned in chunked form, for example, RGBRGBRGB...
-     * in the case of RGB image. If not set (default behavior), the samples are returned in unpacked form:
-     * RRR...GGG...BBB...
-     *
-     * <p>Note that this mode affects only the data returned by methods {@link #readMatrix} and other methods,
-     * reading an image from a TIFF file. The tiles, returned by {@link #readTile(TiffTileIndex)} method,
-     * are always {@link TiffTile#isSeparated() separated}.</p>
-     *
-     * @param interleaveResults new interleaving mode.
-     * @return a reference to this object.
-     */
-    public TiffReader setInterleaveResults(boolean interleaveResults) {
-        this.interleaveResults = interleaveResults;
-        return this;
-    }
 
     public boolean isAutoUnpackBitsToBytes() {
         return autoUnpackBitsToBytes;
@@ -1394,13 +1373,13 @@ public class TiffReader implements Closeable {
         // - can be >2^31 for bits
 
         long t2 = debugTime();
-        boolean interleave = false;
-        if (interleaveResults) {
-            byte[] newSamples = map.toInterleavedSamples(samples, numberOfChannels, sizeInPixels);
-            interleave = newSamples != samples;
-            samples = newSamples;
-        }
-        long t3 = debugTime();
+        // Deprecated since 1.4.0: use readInterleavedMatrix instead of this flag
+        // boolean interleave = false;
+        // if (interleaveResults) {
+        //     byte[] newSamples = map.toInterleavedSamples(samples, numberOfChannels, sizeInPixels);
+        //     interleave = newSamples != samples;
+        //     samples = newSamples;
+        // }
         boolean unpackingPrecision = false;
         if (autoUnpackUnusualPrecisions) {
             byte[] newSamples = TiffUnusualPrecisions.unpackUnusualPrecisions(
@@ -1414,17 +1393,17 @@ public class TiffReader implements Closeable {
             samples = PackedBitArraysPer8.unpackBitsToBytes(samples, 0, sizeInPixels, (byte) 0, (byte) 255);
         }
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
-            long t4 = debugTime();
+            long t3 = debugTime();
             long timeNonClassified = t2 - t1 - (timeReading + timeDecoding);
             LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
                     "%s read %dx%dx%d samples (%.3f MB) in %.3f ms = " +
                             "%.3f read/decode " +
                             "(%.3f read; %.3f customize/bit-order, %.3f decode%s, " +
                             "%.3f complete; %.3f tiles->array and other)" +
-                            "%s%s, %.3f MB/s",
+                            "%s, %.3f MB/s",
                     getClass().getSimpleName(),
                     sizeX, sizeY, numberOfChannels, sizeInBytes / 1048576.0,
-                    (t4 - t1) * 1e-6,
+                    (t3 - t1) * 1e-6,
                     (t2 - t1) * 1e-6,
                     timeReading * 1e-6,
                     timeCustomizingDecoding * 1e-6,
@@ -1440,15 +1419,13 @@ public class TiffReader implements Closeable {
                                             "") : "",
                     timeCompleteDecoding * 1e-6,
                     timeNonClassified * 1e-6,
-                    interleave ?
-                            String.format(Locale.US, " + %.3f interleave", (t3 - t2) * 1e-6) : "",
                     unpackingPrecision ?
                             String.format(Locale.US, " + %.3f unpacking %d-bit %s",
-                                    (t4 - t3) * 1e-6,
+                                    (t3 - t2) * 1e-6,
                                     map.alignedBitsPerSample(),
                                     map.sampleType().isFloatingPoint() ? "float values" : "integer values") :
                             "",
-                    sizeInBytes / 1048576.0 / ((t4 - t1) * 1e-9)));
+                    sizeInBytes / 1048576.0 / ((t3 - t1) * 1e-9)));
         }
         return samples;
     }
@@ -1534,7 +1511,7 @@ public class TiffReader implements Closeable {
             boolean storeTilesInMap)
             throws IOException {
         final Object samplesArray = readJavaArray(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
-        return TiffSampleType.asMatrix(samplesArray, sizeX, sizeY, map.numberOfChannels(), interleaveResults);
+        return TiffSampleType.asMatrix(samplesArray, sizeX, sizeY, map.numberOfChannels(), false);
     }
 
     public Matrix<UpdatablePArray> readInterleavedMatrix(TiffReadMap map) throws IOException {
@@ -1556,9 +1533,7 @@ public class TiffReader implements Closeable {
             boolean storeTilesInMap)
             throws IOException {
         final Matrix<UpdatablePArray> mergedChannels = readMatrix(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
-        return interleaveResults ?
-                mergedChannels :
-                Matrices.interleave(mergedChannels.asLayers());
+        return Matrices.interleave(mergedChannels.asLayers());
     }
 
     /**
@@ -1593,9 +1568,7 @@ public class TiffReader implements Closeable {
             boolean storeTilesInMap)
             throws IOException {
         final Matrix<UpdatablePArray> mergedChannels = readMatrix(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
-        return interleaveResults ?
-                Matrices.separate(null, mergedChannels, TiffIFD.MAX_NUMBER_OF_CHANNELS) :
-                Matrices.asLayers(mergedChannels, TiffIFD.MAX_NUMBER_OF_CHANNELS);
+        return Matrices.asLayers(mergedChannels, TiffIFD.MAX_NUMBER_OF_CHANNELS);
     }
 
     /**

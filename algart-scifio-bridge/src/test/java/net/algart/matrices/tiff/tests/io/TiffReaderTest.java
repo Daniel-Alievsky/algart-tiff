@@ -110,12 +110,11 @@ public class TiffReaderTest {
 //                reader.setAutoUnpackUnusualPrecisions(false);
 //                reader.setAutoUnpackBitToByte(true);
 //                reader.setAutoScaleWhenIncreasingBitDepth(false);
-                reader.setInterleaveResults(interleave);
                 reader.setAutoCorrectInvertedBrightness(true);
 //                reader.setMissingTilesAllowed(true);
                 reader.setByteFiller((byte) 0x80);
                 if (reader instanceof TiffParser parser) {
-                    CodecOptions codecOptions = new CodecOptions();
+                    final CodecOptions codecOptions = new CodecOptions();
                     codecOptions.maxBytes = 1000;
                     parser.setCodecOptions(codecOptions);
                     assert reader.getCodecOptions().getMaxSizeInBytes() == 1000;
@@ -166,7 +165,9 @@ public class TiffReaderTest {
                     }
                     t1 = System.nanoTime();
 //                    map.ifd().put(258, new double[] {3}); // - should lead to exception
-                    matrix = reader.readMatrix(map, x, y, w, h);
+                    matrix = interleave ?
+                            map.readInterleavedMatrix(x, y, w, h) :
+                            map.readMatrix(x, y, w, h);
                     t2 = System.nanoTime();
                     System.out.printf(Locale.US, "Test #%d: %dx%d loaded in %.3f ms%n",
                             test, w, h, (t2 - t1) * 1e-6);
