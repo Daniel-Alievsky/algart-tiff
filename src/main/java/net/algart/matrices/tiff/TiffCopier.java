@@ -199,7 +199,7 @@ public final class TiffCopier {
         resetCounters();
         final TiffIFD writeIFD = new TiffIFD(readMap.ifd());
         // - creating a clone of IFD: we must not modify the reader IFD
-        final TiffWriteMap writeMap = getWriteMap(writer, writeIFD);
+        final TiffWriteMap writeMap = getWriteMap(writer, writeIFD, !directCopy);
         writer.writeForward(writeMap);
         final Collection<TiffTile> targetTiles = writeMap.tiles();
         tileCount = targetTiles.size();
@@ -214,6 +214,7 @@ public final class TiffCopier {
             } else {
                 final TiffTile sourceTile = readMap.readCachedTile(readIndex);
                 targetTile.copyUnpackedData(sourceTile);
+                // - this method performs necessary unpacking/packing bytes when the byte order is incompatible
             }
             writeMap.put(targetTile);
             writeMap.writeTile(targetTile, true);
@@ -253,7 +254,7 @@ public final class TiffCopier {
         final TiffIFD writeIFD = new TiffIFD(readMap.ifd());
         // - creating a clone of IFD: we must not modify the reader IFD
         writeIFD.putImageDimensions(sizeX, sizeY, false);
-        final TiffWriteMap writeMap = getWriteMap(writer, writeIFD);
+        final TiffWriteMap writeMap = getWriteMap(writer, writeIFD, true);
         writer.writeForward(writeMap);
         tileCount = writeMap.numberOfGridTiles();
         final int gridCountY = writeMap.gridCountY();
@@ -402,12 +403,13 @@ public final class TiffCopier {
     }
 
 
-    private TiffWriteMap getWriteMap(TiffWriter writer, TiffIFD targetIFD) throws TiffException {
+    private TiffWriteMap getWriteMap(TiffWriter writer, TiffIFD targetIFD, boolean correctIFDForEncoding)
+            throws TiffException {
         if (ifdCorrector != null) {
             ifdCorrector.correct(targetIFD);
         }
-        return writer.newMap(targetIFD, false, !directCopy);
-        // - there is no sense to call correctIFDForEncoding() method if we use direct copying
+        return writer.newMap(targetIFD, false, correctIFDForEncoding);
+        // - there is no sense to call correctIFDForEncoding() method if we use tile-per-tile direct copying
     }
 
     private void resetCounters() {
