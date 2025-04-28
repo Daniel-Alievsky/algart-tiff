@@ -162,14 +162,27 @@ public class TiffWriter implements Closeable {
      * create a file written in BigTIFF format (allowing to store &ge;4GB data).
      * The variants {@link TiffCreateMode#CREATE_LE}, {@link TiffCreateMode#CREATE_LE_BIG}
      * create a file with little-endian byte order (the default is big-endian).
-     * The other variants {@link TiffCreateMode#OPEN_FOR_APPEND} and {@link TiffCreateMode#OPEN_EXISTING}
-     * allow you to open an existing file using the {@link #openForAppend()} and {@link #openExisting()} methods
-     * correspondingly.
-     * In the case of the I/O exception, the file is automatically closed.
-     * This behavior is alike {@link java.io.FileWriter#FileWriter(File) FileWriter constructor}.
      *
-     * <p>This is the simplest way to create a new TIFF file and automatically open it by writing the standard
-     * TIFF header. After that, this object is ready for adding new TIFF images.
+     * <p>The other options allow you to open an existing file using the {@link #openForAppend()}
+     * or {@link #openExisting()} methods.
+     * The variants {@link TiffCreateMode#APPEND}, {@link TiffCreateMode#APPEND_BIG},
+     * {@link TiffCreateMode#APPEND_LE}, {@link TiffCreateMode#APPEND_LE_BIG} call the
+     * {@link #openForAppend()} method.
+     * The difference is what to do if the file does not exist:
+     * whether the new TIFF file should be BigTIFF or not, little-endian or big-endian,
+     * as in the cases of {@link TiffCreateMode#CREATE}, {@link TiffCreateMode#CREATE_BIG},
+     * {@link TiffCreateMode#CREATE_LE}, {@link TiffCreateMode#CREATE_LE_BIG}.
+     *
+     * <p>The variant {@link TiffCreateMode#OPEN_EXISTING} calls {@link #openExisting()} method;
+     * in this case, the BigTIFF mode and the byte order are determined automatically from the existing file.
+     *
+     * <p>In the case of the I/O exception, the file is automatically closed.
+     *
+     * <p>In all cases excepting {@link TiffCreateMode#NO_ACTIONS},
+     * the behavior is alike {@link java.io.FileWriter#FileWriter(File) FileWriter constructor}.
+     *
+     * <p>This constructor is the simplest way to create a new TIFF file and automatically open
+     * it by writing the standard TIFF header. After that, this object is ready for adding new TIFF images.
      * Instead, you may use the single-argument constructor {@link #TiffWriter(Path)},
      * perform necessary customizing, and then call {@link #create()} or {@link #open(boolean)} method.
      *
@@ -180,7 +193,7 @@ public class TiffWriter implements Closeable {
     public TiffWriter(Path file, TiffCreateMode createMode) throws IOException {
         this(openWithDeletingPreviousFileIfRequested(file, createMode));
         try {
-            createMode.customize(this);
+            createMode.configureWriter(this);
         } catch (IOException exception) {
             try {
                 out.close();
@@ -2249,7 +2262,7 @@ public class TiffWriter implements Closeable {
             throws IOException {
         Objects.requireNonNull(file, "Null file");
         Objects.requireNonNull(createMode, "Null createMode");
-        if (createMode.isCreateNewFile()) {
+        if (createMode.isForceCreateNewFile()) {
             Files.deleteIfExists(file);
         }
         return TiffReader.getFileHandle(file);

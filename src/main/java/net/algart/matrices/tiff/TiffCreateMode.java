@@ -34,28 +34,36 @@ import java.nio.file.Path;
 public enum TiffCreateMode {
     NO_ACTIONS(false, false, false) {
         @Override
-        public void customize(TiffWriter writer) {
+        public void configureWriter(TiffWriter writer) {
         }
     },
     CREATE(true, false, false),
     CREATE_BIG(true, true, false),
     CREATE_LE(true, false, true),
     CREATE_LE_BIG(true, true, true),
-    OPEN_FOR_APPEND(false, false, false),
-    OPEN_EXISTING(false, false, false);
+    APPEND(false, false, false),
+    APPEND_BIG(false, true, false),
+    APPEND_LE(false, false, true),
+    APPEND_LE_BIG(false, true, true),
+    OPEN_EXISTING(false, false, false) {
+        @Override
+        boolean createIfNotExist() {
+            return false;
+        }
+    };
 
-    private final boolean createNewFile;
+    private final boolean forceCreateNewFile;
     private final boolean bigTiff;
     private final boolean littleEndian;
 
-    TiffCreateMode(boolean createNewFile, boolean bigTiff, boolean littleEndian) {
-        this.createNewFile = createNewFile;
+    TiffCreateMode(boolean forceCreateNewFile, boolean bigTiff, boolean littleEndian) {
+        this.forceCreateNewFile = forceCreateNewFile;
         this.bigTiff = bigTiff;
         this.littleEndian = littleEndian;
     }
 
-    public boolean isCreateNewFile() {
-        return createNewFile;
+    public boolean isForceCreateNewFile() {
+        return forceCreateNewFile;
     }
 
     public boolean isBigTiff() {
@@ -72,17 +80,21 @@ public enum TiffCreateMode {
                 (littleEndian ? CREATE_LE : CREATE);
     }
 
-    void customize(TiffWriter writer) throws IOException {
+    void configureWriter(TiffWriter writer) throws IOException {
         if (bigTiff) {
             writer.setBigTiff(true);
         }
         if (littleEndian) {
             writer.setLittleEndian(true);
         }
-        if (createNewFile) {
+        if (forceCreateNewFile) {
             writer.create();
         } else {
-            writer.open(this == OPEN_FOR_APPEND);
+            writer.open(createIfNotExist());
         }
+    }
+
+    boolean createIfNotExist() {
+        return true;
     }
 }
