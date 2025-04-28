@@ -30,25 +30,35 @@ import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 import java.io.IOException;
+import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class TiffCopyRectangleDemo {
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
-        boolean append = false;
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-append")) {
-            append = true;
-            startArgIndex++;
-        }
         boolean direct = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-direct")) {
             direct = true;
             startArgIndex++;
         }
+        boolean smart = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-smart")) {
+            smart = true;
+            startArgIndex++;
+        }
+        ByteOrder byteOrder = null;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-le")) {
+            byteOrder = ByteOrder.LITTLE_ENDIAN;
+            startArgIndex++;
+        } else if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-be")) {
+            byteOrder = ByteOrder.BIG_ENDIAN;
+            startArgIndex++;
+        }
         if (args.length < startArgIndex + 3) {
             System.out.println("Usage:");
-            System.out.printf("    [-append] [-direct] %s source.tiff target.tiff ifdIndex [x y width height]%n",
+            System.out.printf("    [-direct] [-smart] [-le|-be] %s " +
+                            "source.tiff target.tiff ifdIndex [x y width height]%n",
                     TiffCopyRectangleDemo.class.getName());
             return;
         }
@@ -74,10 +84,15 @@ public class TiffCopyRectangleDemo {
             if (h < 0) {
                 h = readMap.dimY() - y;
             }
-//            writer.setSmartIFDCorrection(true);
+            if (smart) {
+                writer.setSmartIFDCorrection(true);
+            }
             writer.setFormatLike(reader);
             // - without this operator, direct copy will be impossible for LE format
-            writer.create(append);
+            if (byteOrder != null) {
+                writer.setByteOrder(byteOrder);
+            }
+            writer.create();
             System.out.printf("Copying image %d, rectangle %d..%dx%d..%d%n", ifdIndex, x, x + w - 1, y, y + h - 1);
             copier.copyImage(writer, readMap, x, y, w, h);
             System.out.print("\r               \r");
