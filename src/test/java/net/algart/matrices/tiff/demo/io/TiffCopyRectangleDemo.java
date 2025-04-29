@@ -75,8 +75,8 @@ public class TiffCopyRectangleDemo {
         final var copier = new TiffCopier().setDirectCopy(direct);
         // copier.setIfdCorrector(ifd -> ifd.putCompression(net.algart.matrices.tiff.tags.TagCompression.NONE));
         // - possible correction
-        copier.setProgressUpdater(c -> System.out.printf("\r%d/%d...",
-                c.progress().tileIndex(), c.progress().tileCount()));
+        copier.setProgressUpdater(p ->
+                System.out.printf("\r%d/%d...", p.tileIndex() + 1, p.tileCount()));
         try (var reader = new TiffReader(sourceFile); var writer = new TiffWriter(targetFile)) {
             final TiffReadMap readMap = reader.newMap(ifdIndex);
             if (w < 0) {

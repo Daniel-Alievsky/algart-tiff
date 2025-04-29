@@ -61,8 +61,8 @@ public class TiffCopyCustomDemo {
         System.out.printf("Copying %s to %s %s...%n",
                 sourceFile, targetFile, direct ? "as-is" : "with recompression");
         final var copier = new TiffCopier().setDirectCopy(direct);
-        copier.setProgressUpdater(c ->
-                System.out.printf("\r%d/%d...", c.progress().tileIndex() + 1, c.progress().tileCount()));
+        copier.setProgressUpdater(p ->
+                System.out.printf("\r%d/%d...", p.tileIndex() + 1, p.tileCount()));
         try (var reader = new TiffReader(sourceFile); var writer = new TiffWriter(targetFile)) {
             lastIFDIndex = Math.min(lastIFDIndex, reader.numberOfImages() - 1);
             if (lastIFDIndex >= firstIFDIndex) {

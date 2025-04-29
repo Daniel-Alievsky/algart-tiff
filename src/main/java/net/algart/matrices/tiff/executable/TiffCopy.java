@@ -118,14 +118,13 @@ public class TiffCopy {
         System.out.printf(Locale.US, "Copying finished in %.3f seconds%n",  (t2 - t1) * 1e-9);
     }
 
-    private void updateProgress(TiffCopier copier) {
+    private void updateProgress(TiffCopier.ProgressInformation p) {
         long t = System.currentTimeMillis();
-        var p = copier.progress();
         if (t - lastProgressTime > 200 || p.isLastTileCopied()) {
             System.out.printf("\rImage %d/%d, tile %d/%d (%s)%s",
                     p.imageIndex() + 1, p.imageCount(),
                     p.tileIndex() + 1, p.tileCount(),
-                    copier.actuallyDirectCopy() ? "direct" : "repacking",
+                    p.copier().actuallyDirectCopy() ? "direct" : "repacking",
                     p.isLastTileCopied() ? "" : "...");
             if (p.isLastTileCopied()) {
                 System.out.println();

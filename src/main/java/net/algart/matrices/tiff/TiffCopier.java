@@ -52,11 +52,16 @@ public final class TiffCopier {
         void correct(TiffIFD ifd);
     }
 
-    public static final class ProgressInformation {
+    public final class ProgressInformation {
         private int imageIndex = 0;
         private int imageCount = 0;
         private int tileIndex = 0;
         private int tileCount = 0;
+
+        public TiffCopier copier() {
+            return TiffCopier.this;
+        }
+
         public int imageIndex() {
             return imageIndex;
         }
@@ -87,9 +92,9 @@ public final class TiffCopier {
 
     private boolean directCopy = false;
     private IFDCorrector ifdCorrector = null;
-    private Consumer<TiffCopier> progressUpdater = null;
+    private Consumer<ProgressInformation> progressUpdater = null;
     private BooleanSupplier interruptionChecker = null;
-    private final ProgressInformation progress = new ProgressInformation();
+    private final ProgressInformation progressInformation = new ProgressInformation();
 
     private boolean actuallyDirectCopy = false;
 
@@ -142,11 +147,11 @@ public final class TiffCopier {
         return this;
     }
 
-    public Consumer<TiffCopier> progressUpdater() {
+    public Consumer<ProgressInformation> progressUpdater() {
         return progressUpdater;
     }
 
-    public TiffCopier setProgressUpdater(Consumer<TiffCopier> progressUpdater) {
+    public TiffCopier setProgressUpdater(Consumer<ProgressInformation> progressUpdater) {
         this.progressUpdater = progressUpdater;
         return this;
     }
@@ -160,8 +165,8 @@ public final class TiffCopier {
         return this;
     }
 
-    public ProgressInformation progress() {
-        return progress;
+    public ProgressInformation progressInformation() {
+        return progressInformation;
     }
 
     public boolean actuallyDirectCopy() {
@@ -192,8 +197,8 @@ public final class TiffCopier {
         Objects.requireNonNull(reader, "Null TIFF reader");
         resetAllCounters();
         for (int i = 0, n = reader.numberOfImages(); i < n; i++) {
-            progress.imageIndex = i;
-            progress.imageCount = n;
+            progressInformation.imageIndex = i;
+            progressInformation.imageCount = n;
             copyImage(writer, reader, i);
         }
     }
@@ -224,7 +229,7 @@ public final class TiffCopier {
         this.actuallyDirectCopy = actuallyDirectCopy;
         writer.writeForward(writeMap);
         final Collection<TiffTile> targetTiles = writeMap.tiles();
-        progress.tileCount = targetTiles.size();
+        progressInformation.tileCount = targetTiles.size();
         int tileCount = 0;
         long t2 = debugTime();
         for (TiffTile targetTile : targetTiles) {
@@ -240,7 +245,7 @@ public final class TiffCopier {
             }
             writeMap.put(targetTile);
             writeMap.writeTile(targetTile, true);
-            progress.tileIndex = tileCount;
+            progressInformation.tileIndex = tileCount;
             if (shouldBreak()) {
                 break;
             }
@@ -279,7 +284,7 @@ public final class TiffCopier {
         writeIFD.putImageDimensions(sizeX, sizeY, false);
         final TiffWriteMap writeMap = getWriteMap(writer, writeIFD, true);
         writer.writeForward(writeMap);
-        progress.tileCount = writeMap.numberOfGridTiles();
+        progressInformation.tileCount = writeMap.numberOfGridTiles();
         final int gridCountY = writeMap.gridCountY();
         final int gridCountX = writeMap.gridCountX();
         final int mapTileSizeX = writeMap.tileSizeX();
@@ -314,7 +319,7 @@ public final class TiffCopier {
                     }
                     repackCount++;
                 }
-                progress.tileIndex = tileCount;
+                progressInformation.tileIndex = tileCount;
                 if (shouldBreak()) {
                     break;
                 }
@@ -465,19 +470,19 @@ public final class TiffCopier {
     }
 
     private void resetAllCounters() {
-        progress.imageIndex = 0;
-        progress.imageCount = 0;
+        progressInformation.imageIndex = 0;
+        progressInformation.imageCount = 0;
         resetImageCounters();
     }
 
     private void resetImageCounters() {
-        progress.tileIndex = 0;
-        progress.tileCount = 0;
+        progressInformation.tileIndex = 0;
+        progressInformation.tileCount = 0;
     }
 
     private boolean shouldBreak() {
         if (progressUpdater != null) {
-            progressUpdater.accept(this);
+            progressUpdater.accept(progressInformation);
         }
         return interruptionChecker != null && interruptionChecker.getAsBoolean();
     }
