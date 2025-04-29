@@ -1124,6 +1124,12 @@ public class TiffWriter implements Closeable {
     }
 
     public void correctFormatForEntireTiff(TiffIFD ifd) throws TiffException {
+        ifd.remove(Tags.SUB_IFD);
+        ifd.remove(Tags.EXIF);
+        ifd.remove(Tags.GPS_TAG);
+        // - These are also pointers (offsets) inside a file, but this class does not provide
+        // control over writing such IFDs, so the corresponding offsets will usually have no sense
+
         ifd.setLittleEndian(out.isLittleEndian());
         // - will be used, for example, in getCompressionCodecOptions
         ifd.setBigTiff(bigTiff);
@@ -1185,12 +1191,6 @@ public class TiffWriter implements Closeable {
             throw new IllegalStateException("IFD is already frozen for usage while writing TIFF; " +
                     "probably you called this method twice");
         }
-        ifd.remove(Tags.SUB_IFD);
-        ifd.remove(Tags.EXIF);
-        ifd.remove(Tags.GPS_TAG);
-        // - These are also pointers (offsets) inside a file, but this class does not provide
-        // control over writing such IFDs, so the corresponding offsets will usually have no sense
-
         if (correctFormatForEncoding) {
             correctFormatForEncoding(ifd);
         } else {
@@ -1198,15 +1198,7 @@ public class TiffWriter implements Closeable {
             // - this is still necessary: ifd and TiffWriteMap must "know" about the actual file format
         }
         final TiffWriteMap map = new TiffWriteMap(this, ifd, resizable);
-        map.buildTileGrid();
-        // - useful to perform loops on all tiles, especially in non-resizable case
-        ifd.removeNextIFDOffset();
-        ifd.removeDataPositioning();
-        if (resizable) {
-            ifd.removeImageDimensions();
-        }
-        ifd.freeze();
-        // - actually not necessary, but helps to avoid possible bugs
+        prepareNewMap(map);
         this.lastMap = map;
         return map;
     }
@@ -1231,6 +1223,21 @@ public class TiffWriter implements Closeable {
 
     public TiffWriteMap newResizableMap(TiffIFD ifd) throws TiffException {
         return newMap(ifd, true);
+    }
+
+    public void prepareNewMap(TiffWriteMap map) {
+        Objects.requireNonNull(map, "Null TIFF map");
+        map.buildTileGrid();
+        // - useful to perform loops on all tiles, especially in non-resizable case
+        TiffIFD ifd = map.ifd();
+        ifd.removeNextIFDOffset();
+        ifd.removeDataPositioning();
+        if (map.isResizable()) {
+            ifd.removeImageDimensions();
+        }
+        ifd.freeze();
+        // - actually not necessary, but helps to avoid possible bugs
+
     }
 
     /**

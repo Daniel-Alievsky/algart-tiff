@@ -103,24 +103,23 @@ public class TiffCopy {
             writer.create();
             copier.copyAll(writer, reader);
         }
-        printProgress(copier);
         final long t2 = System.nanoTime();
-        System.out.printf(Locale.US, "%nCopying finished in %.3f seconds%n",  (t2 - t1) * 1e-9);
+        System.out.printf(Locale.US, "Copying finished in %.3f seconds%n",  (t2 - t1) * 1e-9);
     }
 
-    private void updateProgress(TiffCopier c) {
+    private void updateProgress(TiffCopier copier) {
         long t = System.currentTimeMillis();
-        if (t - lastProgressTime > 200) {
-            printProgress(c);
+        var p = copier.progress();
+        if (t - lastProgressTime > -200 || p.isLastTileCopied()) {
+            System.out.printf("\rImage %d/%d, tile %d/%d (%s)%-20s",
+                    p.imageIndex() + 1, p.imageCount(),
+                    p.tileIndex() + 1, p.tileCount(),
+                    copier.actuallyDirectCopy() ? "direct" : "repacking",
+                    p.isLastTileCopied() ? "" : "...");
+            if (p.isLastTileCopied()) {
+                System.out.println();
+            }
             lastProgressTime = t;
         }
-    }
-
-    private static void printProgress(TiffCopier c) {
-        System.out.printf("\rImage %d/%d, tile %d/%d (%s)...%20s",
-                c.copiedIfdCount(), c.ifdCount(),
-                c.copiedTileCount(), c.tileCount(),
-                c.actuallyDirectCopy() ? "direct" : "repacking",
-                "");
     }
 }

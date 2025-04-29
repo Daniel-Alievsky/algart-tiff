@@ -679,9 +679,9 @@ public final class TiffTile {
 
     public TiffTile copyUnpackedData(TiffTile source) {
         Objects.requireNonNull(source, "Null source tile");
-        if (bitsPerSample != source.bitsPerSample) {
+        if (sampleType() != source.sampleType()) {
             throw new IllegalArgumentException("The specified source tile has incompatible " +
-                    "bits per sample (" + source.bitsPerSample + ") than this tile: " + this);
+                    "sample type (" + source.elementType().getSimpleName() + ") than this tile: " + this);
         }
         if (samplesPerPixel != source.samplesPerPixel) {
             throw new IllegalArgumentException("The specified source tile has incompatible " +
@@ -1035,11 +1035,10 @@ public final class TiffTile {
                 (encoded ? "encoded" : "non-encoded") +
                 (interleaved ? " interleaved" : " separated") +
                 " tile" +
+                ", " + elementType().getSimpleName() + "[" + sizeX + "x" + sizeY + "x" + samplesPerPixel + "]" +
                 (data == null ?
-                        ", " + sizeX + "x" + sizeY + "x" + samplesPerPixel :
-                        ", actual sizes " + sizeX + "x" + sizeY + "x" + samplesPerPixel + " (" +
-                                data.length + " bytes)" +
-                                (isCompleted() ? ", completed" : ", partial")) +
+                        "" :
+                        " (" + data.length + " bytes)" + (isCompleted() ? ", completed" : ", partial")) +
                 ", " + bitsPerSample + " bits/sample" +
                 ", index " + index +
                 (isStoredInFile() ?

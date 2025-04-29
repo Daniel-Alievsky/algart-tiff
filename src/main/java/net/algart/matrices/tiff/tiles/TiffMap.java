@@ -653,6 +653,13 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
         }
     }
 
+    public boolean isByteOrderCompatible(ByteOrder byteOrder) {
+        Objects.requireNonNull(byteOrder, "Null byte order");
+        return byteOrder == this.byteOrder || sampleType.isBinary() || sampleType.bitsPerSample() == 8;
+        // - most typical cases; we do not try to optimize "strange" bit numbers like 4-bit samples
+    }
+
+    @Deprecated
     public boolean isByteOrderCompatible(TiffMap source) {
         Objects.requireNonNull(source, "Null source TIFF map");
         if (source.sampleType != this.sampleType) {

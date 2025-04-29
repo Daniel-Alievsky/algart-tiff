@@ -31,6 +31,7 @@ import net.algart.matrices.tiff.tiles.TiffTileIndex;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
 import java.io.IOException;
+import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
@@ -51,6 +52,36 @@ public final class TiffCopier {
         void correct(TiffIFD ifd);
     }
 
+    public static final class ProgressInformation {
+        private int imageIndex = 0;
+        private int imageCount = 0;
+        private int tileIndex = 0;
+        private int tileCount = 0;
+        public int imageIndex() {
+            return imageIndex;
+        }
+
+        public int imageCount() {
+            return imageCount;
+        }
+
+        public boolean isLastImageCopied() {
+            return imageIndex == imageCount - 1;
+        }
+
+        public int tileIndex() {
+            return tileIndex;
+        }
+
+        public int tileCount() {
+            return tileCount;
+        }
+
+        public boolean isLastTileCopied() {
+            return tileIndex == tileCount - 1;
+        }
+    }
+
     private static final System.Logger LOG = System.getLogger(TiffCopier.class.getName());
     private static final boolean LOGGABLE_DEBUG = LOG.isLoggable(System.Logger.Level.DEBUG);
 
@@ -58,11 +89,8 @@ public final class TiffCopier {
     private IFDCorrector ifdCorrector = null;
     private Consumer<TiffCopier> progressUpdater = null;
     private BooleanSupplier interruptionChecker = null;
+    private final ProgressInformation progress = new ProgressInformation();
 
-    private int copiedTileCount = 0;
-    private int tileCount = 0;
-    private int copiedIfdCount = 0;
-    private int ifdCount = 0;
     private boolean actuallyDirectCopy = false;
 
     public TiffCopier() {
@@ -132,20 +160,8 @@ public final class TiffCopier {
         return this;
     }
 
-    public int copiedIfdCount() {
-        return copiedIfdCount;
-    }
-
-    public int ifdCount() {
-        return ifdCount;
-    }
-
-    public int copiedTileCount() {
-        return copiedTileCount;
-    }
-
-    public int tileCount() {
-        return tileCount;
+    public ProgressInformation progress() {
+        return progress;
     }
 
     public boolean actuallyDirectCopy() {
@@ -176,13 +192,9 @@ public final class TiffCopier {
         Objects.requireNonNull(reader, "Null TIFF reader");
         resetAllCounters();
         for (int i = 0, n = reader.numberOfImages(); i < n; i++) {
-            copiedIfdCount = i;
-            ifdCount = n;
+            progress.imageIndex = i;
+            progress.imageCount = n;
             copyImage(writer, reader, i);
-            if (progressUpdater != null) {
-                copiedIfdCount = i + 1;
-                progressUpdater.accept(this);
-            }
         }
     }
 
@@ -200,16 +212,25 @@ public final class TiffCopier {
         resetImageCounters();
         final TiffIFD writeIFD = new TiffIFD(readMap.ifd());
         // - creating a clone of IFD: we must not modify the reader IFD
-        final TiffWriteMap writeMap = getWriteMap(writer, writeIFD, !directCopy);
+        if (ifdCorrector != null) {
+            ifdCorrector.correct(writeIFD);
+            // - theoretically, we can essentially modify IFD here
+        }
+        final boolean actuallyDirectCopy = canBeImageCopiedDirectly(writeIFD, writer.getByteOrder(), readMap);
+        final boolean correctFormatForEncoding = !actuallyDirectCopy;
+        // - there is no sense to call correctFormatForEncoding() method if we use tile-per-tile direct copying
+        final TiffWriteMap writeMap = writer.newMap(writeIFD, false, correctFormatForEncoding);
+        checkImageCompatibility(writeMap, readMap);
+        this.actuallyDirectCopy = actuallyDirectCopy;
         writer.writeForward(writeMap);
         final Collection<TiffTile> targetTiles = writeMap.tiles();
-        tileCount = targetTiles.size();
-        this.actuallyDirectCopy = canBeImageCopiedDirectly(writeMap, readMap);
+        progress.tileCount = targetTiles.size();
+        int tileCount = 0;
         long t2 = debugTime();
         for (TiffTile targetTile : targetTiles) {
             final TiffTileIndex readIndex = readMap.copyIndex(targetTile.index());
             // - important to copy index: targetTile.index() refer to the writeIFD instead of some source IFD
-            if (actuallyDirectCopy) {
+            if (this.actuallyDirectCopy) {
                 final TiffTile sourceTile = readMap.readEncodedTile(readIndex);
                 targetTile.copyData(sourceTile, false);
             } else {
@@ -219,10 +240,11 @@ public final class TiffCopier {
             }
             writeMap.put(targetTile);
             writeMap.writeTile(targetTile, true);
-            copiedTileCount++;
+            progress.tileIndex = tileCount;
             if (shouldBreak()) {
                 break;
             }
+            tileCount++;
         }
         long t3 = debugTime();
         writeMap.completeWriting();
@@ -257,7 +279,7 @@ public final class TiffCopier {
         writeIFD.putImageDimensions(sizeX, sizeY, false);
         final TiffWriteMap writeMap = getWriteMap(writer, writeIFD, true);
         writer.writeForward(writeMap);
-        tileCount = writeMap.numberOfGridTiles();
+        progress.tileCount = writeMap.numberOfGridTiles();
         final int gridCountY = writeMap.gridCountY();
         final int gridCountX = writeMap.gridCountX();
         final int mapTileSizeX = writeMap.tileSizeX();
@@ -268,6 +290,7 @@ public final class TiffCopier {
         final int fromYIndex = directCopy ? fromY / mapTileSizeY : Integer.MIN_VALUE;
         long t2 = debugTime();
         int repackCount = 0;
+        int tileCount = 0;
         for (int yIndex = 0, y = 0; yIndex < gridCountY; yIndex++, y += mapTileSizeY) {
             final int sizeYInTile = Math.min(sizeY - y, mapTileSizeY);
             for (int xIndex = 0, x = 0; xIndex < gridCountX; xIndex++, x += mapTileSizeX) {
@@ -291,10 +314,11 @@ public final class TiffCopier {
                     }
                     repackCount++;
                 }
-                copiedTileCount++;
+                progress.tileIndex = tileCount;
                 if (shouldBreak()) {
                     break;
                 }
+                tileCount++;
             }
         }
         long t3 = debugTime();
@@ -312,7 +336,8 @@ public final class TiffCopier {
                     directCopy ? "directly" : "with repacking" + (this.directCopy ? " (direct mode rejected)" : ""),
                     unpackBytes ? " and reordering bytes" : "",
                     sizeX, sizeY, writeMap.numberOfChannels(),
-                    copiedTileCount, repackCount < copiedTileCount ? " (" + repackCount + " with repacking)" : "",
+                    tileCount,
+                    repackCount < tileCount ? " (" + repackCount + " with repacking)" : "",
                     sizeInBytes / 1048576.0,
                     (t4 - t1) * 1e-6,
                     (t2 - t1) * 1e-6, (t3 - t2) * 1e-6, (t4 - t3) * 1e-6,
@@ -323,15 +348,42 @@ public final class TiffCopier {
     }
 
     private static void checkImageCompatibility(TiffWriteMap writeMap, TiffReadMap readMap) {
-        // Note: this method does not check ANY possible incompatibilities
+        // Note: this method does not check ANY possible incompatibilities.
+        // On the other hand, incompatibilities are improbable here;
+        // they can appear only as a result of using ifdCorrector.
         if (writeMap.sampleType() != readMap.sampleType()) {
             throw new IllegalArgumentException("Incompatible sample types: " +
                     writeMap.sampleType() + " in target TIFF, " + readMap.sampleType() + " in source TIFF");
         }
         if (writeMap.numberOfChannels() != readMap.numberOfChannels()) {
             throw new IllegalArgumentException("Incompatible number of channels: " +
-                    writeMap.numberOfChannels() + " in target TIFF, " + readMap.numberOfChannels() + " in source TIFF");
+                    writeMap.numberOfChannels() + " in target TIFF, " +
+                    readMap.numberOfChannels() + " in source TIFF");
         }
+        if (writeMap.isPlanarSeparated() != readMap.isPlanarSeparated()) {
+            throw new IllegalArgumentException("Incompatible \"planar separated\" mode: " +
+                    writeMap.isPlanarSeparated() + " in target TIFF, " +
+                    readMap.isPlanarSeparated() + " in source TIFF");
+
+        }
+    }
+
+    private boolean canBeImageCopiedDirectly(TiffIFD writeIFD, ByteOrder writeByteOrder, TiffReadMap readMap)
+            throws TiffException {
+        if (!readMap.isByteOrderCompatible(writeByteOrder)) {
+            // - theoretically, this check is extra: byteOrderIsNotUsedForImageData will be false
+            return false;
+        }
+        final int compressionCode = readMap.compressionCode();
+        final TagCompression compression = TagCompression.ofOrNull(compressionCode);
+        final boolean byteOrderIsNotUsedForImageData =
+                isByteOrBinary(readMap) && (compression != null && !compression.canUseByteOrderForByteData());
+        // - for unknown compressions, we cannot be sure of this fact even for 1-bit or 8-bit samples
+        return this.directCopy &&
+                (readMap.byteOrder() == writeByteOrder || byteOrderIsNotUsedForImageData) &&
+                compressionCode == writeIFD.getCompressionCode();
+        // - note that the compatibility of the sample type and pixel structure (number of channels,
+        // planar separated mode) will be checked later in checkImageCompatibility() method
     }
 
     private static boolean isByteOrBinary(TiffReadMap readMap) {
@@ -413,14 +465,14 @@ public final class TiffCopier {
     }
 
     private void resetAllCounters() {
-        copiedIfdCount = 0;
-        ifdCount = 0;
+        progress.imageIndex = 0;
+        progress.imageCount = 0;
         resetImageCounters();
     }
 
     private void resetImageCounters() {
-        copiedTileCount = 0;
-        tileCount = 0;
+        progress.tileIndex = 0;
+        progress.tileCount = 0;
     }
 
     private boolean shouldBreak() {

@@ -2,7 +2,7 @@
   <configuration default="false" name="TiffCopy (rare precision)" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.executable.TiffCopy" />
     <module name="algart-tiff" />
-    <option name="PROGRAM_PARAMETERS" value=" -repack -be src/test/resources/demo/images/tiff/rare_precisions/rgba16f.tif /tmp/copy.tiff" />
+    <option name="PROGRAM_PARAMETERS" value=" -smart -be src/test/resources/demo/images/tiff/rare_precisions/rgba16f.tif /tmp/copy.tiff" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="net.algart.matrices.tiff.executable.*" />
