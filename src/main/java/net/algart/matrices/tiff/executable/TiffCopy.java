@@ -38,6 +38,7 @@ public class TiffCopy {
     boolean repack = false;
     boolean smart = false;
     ByteOrder byteOrder = null;
+    Boolean bigTiff = null;
 
     private long lastProgressTime = Integer.MIN_VALUE;
 
@@ -59,9 +60,16 @@ public class TiffCopy {
             copy.byteOrder = ByteOrder.BIG_ENDIAN;
             startArgIndex++;
         }
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-bigTiff")) {
+            copy.bigTiff = true;
+            startArgIndex++;
+        } else if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-noBigTiff")) {
+            copy.bigTiff = false;
+            startArgIndex++;
+        }
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
-            System.out.printf("   [-repack] [-smart] [-le|-be] %s source.tiff target.tiff%n",
+            System.out.printf("   [-repack] [-smart] [-le|-be] [-bigTiff|-noBigTIFF] %s source.tiff target.tiff%n",
                     TiffCopy.class.getName());
             System.out.println("""
                     The source TIFF file is completely parsed, and its content is copied to the target file\
@@ -99,6 +107,9 @@ public class TiffCopy {
             if (byteOrder != null) {
                 writer.setByteOrder(byteOrder);
             }
+            if (bigTiff != null) {
+                writer.setBigTiff(bigTiff);
+            }
             writer.setSmartFormatCorrection(smart);
             writer.create();
             copier.copyAll(writer, reader);
@@ -110,14 +121,15 @@ public class TiffCopy {
     private void updateProgress(TiffCopier copier) {
         long t = System.currentTimeMillis();
         var p = copier.progress();
-        if (t - lastProgressTime > -200 || p.isLastTileCopied()) {
-            System.out.printf("\rImage %d/%d, tile %d/%d (%s)%-20s",
+        if (t - lastProgressTime > 200 || p.isLastTileCopied()) {
+            System.out.printf("\rImage %d/%d, tile %d/%d (%s)%s",
                     p.imageIndex() + 1, p.imageCount(),
                     p.tileIndex() + 1, p.tileCount(),
                     copier.actuallyDirectCopy() ? "direct" : "repacking",
                     p.isLastTileCopied() ? "" : "...");
             if (p.isLastTileCopied()) {
                 System.out.println();
+                // - so, we guarantee that the line cannot become shorter without println()
             }
             lastProgressTime = t;
         }

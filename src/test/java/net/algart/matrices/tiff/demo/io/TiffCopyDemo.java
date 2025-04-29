@@ -54,8 +54,8 @@ public class TiffCopyDemo {
             final var copier = new TiffCopier().setDirectCopy(direct);
             copier.setProgressUpdater(c ->
                     System.out.printf("\rImage %d/%d, tile %d/%d...",
-                            c.copiedIfdCount(), c.ifdCount(),
-                            c.copiedTileCount(), c.tileCount()));
+                            c.progress().imageIndex() + 1, c.progress().imageCount(),
+                            c.progress().tileIndex() + 1, c.progress().tileCount()));
             copier.setDirectCopy(false);
             // - unnecessary (it is the default); true value means the direct copy
             copier.copyAll(targetFile, sourceFile);
