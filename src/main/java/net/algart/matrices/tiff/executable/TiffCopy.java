@@ -90,7 +90,7 @@ public class TiffCopy {
                 sourceFile,
                 targetFile,
                 repack ? "with recompression" : "directly",
-                byteOrder == null ? "" : " (" + byteOrder + ")",
+                byteOrder == null ? "" : byteOrder == ByteOrder.LITTLE_ENDIAN ? ", little-endian" : ", big-endian",
                 smart ? ", smart mode" : "");
         final long t1 = System.nanoTime();
         try (TiffReader reader = new TiffReader(sourceFile);

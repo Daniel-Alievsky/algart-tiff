@@ -679,6 +679,14 @@ public final class TiffTile {
 
     public TiffTile copyUnpackedData(TiffTile source) {
         Objects.requireNonNull(source, "Null source tile");
+        if (bitsPerSample != source.bitsPerSample) {
+            throw new IllegalArgumentException("The specified source tile has incompatible " +
+                    "bits per sample (" + source.bitsPerSample + ") than this tile: " + this);
+        }
+        if (samplesPerPixel != source.samplesPerPixel) {
+            throw new IllegalArgumentException("The specified source tile has incompatible " +
+                    "samples per pixel (" + source.samplesPerPixel + ") than this tile: " + this);
+        }
         if (source.isEmpty()) {
             free();
             return this;
