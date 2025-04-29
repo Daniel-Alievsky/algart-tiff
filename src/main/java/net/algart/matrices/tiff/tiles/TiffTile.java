@@ -674,7 +674,7 @@ public final class TiffTile {
     }
 
     private boolean isByteOrderCompatible(TiffTile source) {
-        return map.isByteOrderCompatible(source.map);
+        return map.isByteOrderCompatible(source.byteOrder());
     }
 
     public TiffTile copyUnpackedData(TiffTile source) {

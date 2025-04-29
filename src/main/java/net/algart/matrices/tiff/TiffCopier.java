@@ -282,7 +282,12 @@ public final class TiffCopier {
         final TiffIFD writeIFD = new TiffIFD(readMap.ifd());
         // - creating a clone of IFD: we must not modify the reader IFD
         writeIFD.putImageDimensions(sizeX, sizeY, false);
-        final TiffWriteMap writeMap = getWriteMap(writer, writeIFD, true);
+        if (ifdCorrector != null) {
+            ifdCorrector.correct(writeIFD);
+        }
+        final TiffWriteMap writeMap = writer.newMap(writeIFD, false, true);
+        // - here we MUST call correctFormatForEncoding() method: this behavior should not depend on fromX/fromY
+        checkImageCompatibility(writeMap, readMap);
         writer.writeForward(writeMap);
         progressInformation.tileCount = writeMap.numberOfGridTiles();
         final int gridCountY = writeMap.gridCountY();
@@ -290,7 +295,7 @@ public final class TiffCopier {
         final int mapTileSizeX = writeMap.tileSizeX();
         final int mapTileSizeY = writeMap.tileSizeY();
         final boolean directCopy = canBeRectangleCopiedDirectly(writeMap, readMap, fromX, fromY);
-        final boolean unpackBytes = !writeMap.isByteOrderCompatible(readMap);
+        final boolean unpackBytes = !readMap.isByteOrderCompatible(writeMap.byteOrder());
         final int fromXIndex = directCopy ? fromX / mapTileSizeX : Integer.MIN_VALUE;
         final int fromYIndex = directCopy ? fromY / mapTileSizeY : Integer.MIN_VALUE;
         long t2 = debugTime();
@@ -387,7 +392,7 @@ public final class TiffCopier {
         return this.directCopy &&
                 (readMap.byteOrder() == writeByteOrder || byteOrderIsNotUsedForImageData) &&
                 compressionCode == writeIFD.getCompressionCode();
-        // - note that the compatibility of the sample type and pixel structure (number of channels,
+        // - note that the compatibility of the sample type and pixel structure (number of channels and
         // planar separated mode) will be checked later in checkImageCompatibility() method
     }
 
@@ -395,29 +400,11 @@ public final class TiffCopier {
         return readMap.isBinary() || readMap.sampleType().bitsPerSample() == 8;
     }
 
-    private boolean canBeImageCopiedDirectly(TiffWriteMap writeMap, TiffReadMap readMap) {
-        checkImageCompatibility(writeMap, readMap);
-        if (!writeMap.isByteOrderCompatible(readMap)) {
-            // - theoretically, this check is extra: byteOrderIsNotUsedForImageData will be false
-            return false;
-        }
-        final TiffSampleType sampleType = readMap.sampleType();
-        final int compressionCode = readMap.compressionCode();
-        final TagCompression compression = TagCompression.ofOrNull(compressionCode);
-        final boolean byteOrderIsNotUsedForImageData =
-                isByteOrBinary(readMap) && (compression != null && !compression.canUseByteOrderForByteData());
-        // - for unknown compressions, we cannot be sure of this fact even for 1-bit or 8-bit samples
-        return this.directCopy &&
-                sampleType == writeMap.sampleType() &&
-                (readMap.byteOrder() == writeMap.byteOrder() || byteOrderIsNotUsedForImageData) &&
-                compressionCode == writeMap.compressionCode() &&
-                readMap.numberOfSeparatedPlanes() == writeMap.numberOfSeparatedPlanes();
-    }
-
-    private boolean canBeRectangleCopiedDirectly(TiffWriteMap writeMap, TiffReadMap readMap, int fromX, int fromY) {
+    private boolean canBeRectangleCopiedDirectly(TiffWriteMap writeMap, TiffReadMap readMap, int fromX, int fromY)
+            throws TiffException {
         final int mapTileSizeX = writeMap.tileSizeX();
         final int mapTileSizeY = writeMap.tileSizeY();
-        return canBeImageCopiedDirectly(writeMap, readMap) &&
+        return canBeImageCopiedDirectly(writeMap.ifd(), writeMap.byteOrder(), readMap) &&
                 readMap.tileSizeX() == mapTileSizeX && readMap.tileSizeY() == mapTileSizeY &&
                 fromX % mapTileSizeX == 0 && fromY % mapTileSizeY == 0;
     }
@@ -458,15 +445,6 @@ public final class TiffCopier {
             writeMap.put(targetTile);
             writeMap.writeTile(targetTile, true);
         }
-    }
-
-    private TiffWriteMap getWriteMap(TiffWriter writer, TiffIFD targetIFD, boolean correctFormatForEncoding)
-            throws TiffException {
-        if (ifdCorrector != null) {
-            ifdCorrector.correct(targetIFD);
-        }
-        return writer.newMap(targetIFD, false, correctFormatForEncoding);
-        // - there is no sense to call correctFormatForEncoding() method if we use tile-per-tile direct copying
     }
 
     private void resetAllCounters() {

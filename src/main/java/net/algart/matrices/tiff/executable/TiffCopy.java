@@ -94,10 +94,10 @@ public class TiffCopy {
         copier.setDirectCopy(!repack);
         copier.setProgressUpdater(this::updateProgress);
 
-        System.out.printf("Copying %s to %s %s%s%s...%n",
+        System.out.printf("Copying %s to %s%s%s%s...%n",
                 sourceFile,
                 targetFile,
-                repack ? "with recompression" : "directly",
+                repack ? " with recompression" : "",
                 byteOrder == null ? "" : byteOrder == ByteOrder.LITTLE_ENDIAN ? ", little-endian" : ", big-endian",
                 smart ? ", smart mode" : "");
         final long t1 = System.nanoTime();
