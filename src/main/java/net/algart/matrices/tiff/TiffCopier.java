@@ -174,6 +174,7 @@ public final class TiffCopier {
     public void copyAll(TiffWriter writer, TiffReader reader) throws IOException {
         Objects.requireNonNull(writer, "Null TIFF writer");
         Objects.requireNonNull(reader, "Null TIFF reader");
+        resetAllCounters();
         for (int i = 0, n = reader.numberOfImages(); i < n; i++) {
             copiedIfdCount = i;
             ifdCount = n;
@@ -196,7 +197,7 @@ public final class TiffCopier {
         Objects.requireNonNull(writer, "Null TIFF writer");
         Objects.requireNonNull(readMap, "Null TIFF read map");
         long t1 = debugTime();
-        resetCounters();
+        resetImageCounters();
         final TiffIFD writeIFD = new TiffIFD(readMap.ifd());
         // - creating a clone of IFD: we must not modify the reader IFD
         final TiffWriteMap writeMap = getWriteMap(writer, writeIFD, !directCopy);
@@ -250,7 +251,7 @@ public final class TiffCopier {
         Objects.requireNonNull(readMap, "Null TIFF read map");
         TiffReader.checkRequestedArea(fromX, fromY, sizeX, sizeY);
         long t1 = debugTime();
-        resetCounters();
+        resetImageCounters();
         final TiffIFD writeIFD = new TiffIFD(readMap.ifd());
         // - creating a clone of IFD: we must not modify the reader IFD
         writeIFD.putImageDimensions(sizeX, sizeY, false);
@@ -402,20 +403,24 @@ public final class TiffCopier {
         }
     }
 
-    private TiffWriteMap getWriteMap(TiffWriter writer, TiffIFD targetIFD, boolean correctIFDForEncoding)
+    private TiffWriteMap getWriteMap(TiffWriter writer, TiffIFD targetIFD, boolean correctFormatForEncoding)
             throws TiffException {
         if (ifdCorrector != null) {
             ifdCorrector.correct(targetIFD);
         }
-        return writer.newMap(targetIFD, false, correctIFDForEncoding);
-        // - there is no sense to call correctIFDForEncoding() method if we use tile-per-tile direct copying
+        return writer.newMap(targetIFD, false, correctFormatForEncoding);
+        // - there is no sense to call correctFormatForEncoding() method if we use tile-per-tile direct copying
     }
 
-    private void resetCounters() {
-        copiedTileCount = 0;
-        tileCount = 0;
+    private void resetAllCounters() {
         copiedIfdCount = 0;
         ifdCount = 0;
+        resetImageCounters();
+    }
+
+    private void resetImageCounters() {
+        copiedTileCount = 0;
+        tileCount = 0;
     }
 
     private boolean shouldBreak() {

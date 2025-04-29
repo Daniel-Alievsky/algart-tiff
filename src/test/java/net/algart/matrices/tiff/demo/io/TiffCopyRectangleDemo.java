@@ -85,7 +85,7 @@ public class TiffCopyRectangleDemo {
                 h = readMap.dimY() - y;
             }
             if (smart) {
-                writer.setSmartIFDCorrection(true);
+                writer.setSmartFormatCorrection(true);
             }
             writer.setFormatLike(reader);
             // - without this operator, direct copy will be impossible for LE format

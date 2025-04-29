@@ -100,7 +100,7 @@ public class TiffCopyTest {
                 if (useContext) {
                     writer.setContext(TiffReader.newSCIFIOContext());
                 }
-//                writer.setSmartIFDCorrection(true);
+//                writer.setSmartFormatCorrection(true);
                 writer.setBigTiff(bigTiff || reader.isBigTiff());
                 writer.setLittleEndian(reader.isLittleEndian());
                 // - without this operator, direct copy will be impossible for LE format

@@ -243,7 +243,7 @@ public class TiffWriterTest {
                 writer.setLossyCompressionQuality(quality);
                 writer.setLosslessCompressionLevel(compressionLevel);
                 writer.setPreferRGB(jpegRGB);
-//                writer.setSmartIFDCorrection(true);
+//                writer.setSmartFormatCorrection(true);
 //                writer.setByteFiller((byte) 0xE0);
                 writer.setTileInitializer(TiffWriterTest::customFillEmptyTile);
                 writer.setAlwaysWriteToFileEnd(alwaysToEnd);
