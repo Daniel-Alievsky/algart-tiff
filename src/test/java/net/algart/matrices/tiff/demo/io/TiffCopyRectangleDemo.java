@@ -78,6 +78,8 @@ public class TiffCopyRectangleDemo {
         copier.setProgressUpdater(p ->
                 System.out.printf("\r%d/%d...", p.tileIndex() + 1, p.tileCount()));
         try (var reader = new TiffReader(sourceFile); var writer = new TiffWriter(targetFile)) {
+            // reader.setAutoUnpackBitsToBytes(true);
+            // - should not affect the result
             final TiffReadMap readMap = reader.newMap(ifdIndex);
             if (w < 0) {
                 w = readMap.dimX() - x;
