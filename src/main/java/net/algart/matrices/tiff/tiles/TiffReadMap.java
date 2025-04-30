@@ -29,7 +29,6 @@ import net.algart.arrays.PackedBitArraysPer8;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.data.TiffUnusualPrecisions;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -60,8 +59,8 @@ public final class TiffReadMap extends TiffMap {
         return owningReader;
     }
 
-    public boolean isAutoUnpackBitsToBytes() {
-        return owningReader.isAutoUnpackBitsToBytes();
+    public TiffReader.UnpackBitsMode getAutoUnpackBitsMode() {
+        return owningReader.getAutoUnpackBitsMode();
     }
 
     public boolean isAutoScaleWhenIncreasingBitDepth() {
@@ -194,7 +193,7 @@ public final class TiffReadMap extends TiffMap {
             int fromY,
             int sizeX,
             int sizeY,
-            boolean autoUnpackBitsToBytes,
+            TiffReader.UnpackBitsMode autoUnpackBitsToBytes,
             boolean autoUnpackUnusualPrecisions,
             boolean storeTilesInMap) throws IOException {
         return owningReader.readSamples(

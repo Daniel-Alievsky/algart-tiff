@@ -138,7 +138,7 @@ public class TiffParser extends TiffReader {
         Objects.requireNonNull(context, "Null context");
         setContext(context);
         // Disable new features of TiffReader for compatibility:
-        this.setAutoUnpackBitsToBytes(true);
+        this.setAutoUnpackBitsMode(UnpackBitsMode.UNPACK_TO_0_255);
         this.setAutoUnpackUnusualPrecisions(false);
         this.setCropTilesToImageBoundaries(false);
         this.setEnforceUseExternalCodec(true);
@@ -797,7 +797,7 @@ public class TiffParser extends TiffReader {
         final byte[] result = readSamples(
                 newMap(toTiffIFD(ifd)),
                 x, y, (int) width, (int) height,
-                true,
+                UnpackBitsMode.UNPACK_TO_0_255,
                 false,
                 false);
         if (result.length > buf.length) {

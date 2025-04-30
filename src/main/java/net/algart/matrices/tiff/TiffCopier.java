@@ -431,7 +431,7 @@ public final class TiffCopier {
         } else {
             final byte[] samples = readMap.readSamples(
                     readX, readY, sizeX, sizeY,
-                    false,
+                    TiffReader.UnpackBitsMode.NONE,
                     true,
                     false);
             tiles = writeMap.updateSamples(samples, writeX, writeY, sizeX, sizeY);

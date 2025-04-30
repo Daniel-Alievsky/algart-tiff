@@ -73,6 +73,26 @@ import java.util.stream.Collectors;
  * The same is true for the result of {@link #input()} method.</p>
  */
 public class TiffReader implements Closeable {
+    public enum UnpackBitsMode {
+        NONE((byte) 0),
+        UNPACK_TO_0_1((byte) 1),
+        UNPACK_TO_0_255((byte) 255);
+
+        private final byte bit1Value;
+
+        UnpackBitsMode(byte bit1Value) {
+            this.bit1Value = bit1Value;
+        }
+
+        public boolean isEnabled() {
+            return this != NONE;
+        }
+
+        public byte bit1Value() {
+            return bit1Value;
+        }
+    }
+
     public static final long DEFAULT_MAX_CACHING_MEMORY = Math.max(0,
             net.algart.arrays.Arrays.SystemSettings.getLongProperty(
                     "net.algart.matrices.tiff.defaultMaxCachingMemory", 256 * 1048576L));
@@ -109,7 +129,7 @@ public class TiffReader implements Closeable {
 
     private boolean caching = true;
     private long maxCachingMemory = DEFAULT_MAX_CACHING_MEMORY;
-    private boolean autoUnpackBitsToBytes = false;
+    private UnpackBitsMode autoUnpackBitsMode = UnpackBitsMode.NONE;
     private boolean autoUnpackUnusualPrecisions = true;
     private boolean autoScaleWhenIncreasingBitDepth = true;
     private boolean autoCorrectInvertedBrightness = false;
@@ -338,16 +358,16 @@ public class TiffReader implements Closeable {
     }
 
 
-    public boolean isAutoUnpackBitsToBytes() {
-        return autoUnpackBitsToBytes;
+    public UnpackBitsMode getAutoUnpackBitsMode() {
+        return autoUnpackBitsMode;
     }
 
     /**
-     * Sets the flag, whether do we need to unpack binary images (one bit/pixel, black-and-white images)
-     * into <code>byte</code> matrices: black pixels to value 0, white pixels to value 255.
+     * Sets the mode, describing whether do we need to unpack binary images (one bit/pixel, black-and-white images)
+     * into <code>byte</code> matrices: black pixels to value 0, white pixels to value depending on the mode.
      *
-     * <p>By default, this flag is cleared. In this case, {@link #readMatrix(TiffReadMap)}
-     * and similar methods return binary AlgART matrices.</p>
+     * <p>By default, this mode is {@link UnpackBitsMode#NONE}.
+     * In this case, {@link #readMatrix(TiffReadMap)} and similar methods return binary AlgART matrices.</p>
      *
      * <p>Note that some TIFF images use <i>m</i>&gt;1 bit per pixel, where <i>m</i> is not divisible by 8,
      * such as 4-bit indexed images with a palette or 15-bit RGB image, 5+5+5 bits/channel.
@@ -355,11 +375,11 @@ public class TiffReader implements Closeable {
      * The only exception is 1-bit monochrome images: in this case, unpacking into bytes
      * is controlled by this method.</p>
      *
-     * @param autoUnpackBitsToBytes whether do we need to unpack bit matrices to byte ones (0->0, 1->255)?
+     * @param autoUnpackBitsMode whether do we need to unpack bit matrices to byte ones?
      * @return a reference to this object.
      */
-    public TiffReader setAutoUnpackBitsToBytes(boolean autoUnpackBitsToBytes) {
-        this.autoUnpackBitsToBytes = autoUnpackBitsToBytes;
+    public TiffReader setAutoUnpackBitsMode(UnpackBitsMode autoUnpackBitsMode) {
+        this.autoUnpackBitsMode = Objects.requireNonNull(autoUnpackBitsMode, "Null autoUnpackBitsMode");
         return this;
     }
 
@@ -1348,7 +1368,7 @@ public class TiffReader implements Closeable {
         return readSamples(
                 map,
                 fromX, fromY, sizeX, sizeY,
-                autoUnpackBitsToBytes,
+                autoUnpackBitsMode,
                 autoUnpackUnusualPrecisions,
                 false);
     }
@@ -1359,11 +1379,12 @@ public class TiffReader implements Closeable {
             int fromY,
             int sizeX,
             int sizeY,
-            boolean autoUnpackBitsToBytes,
+            UnpackBitsMode autoUnpackBitsMode,
             boolean autoUnpackUnusualPrecisions,
             boolean storeTilesInMap)
             throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
+        Objects.requireNonNull(autoUnpackBitsMode, "Null autoUnpackBitsMode");
         long t1 = debugTime();
         clearTiming();
         TiffMap.checkRequestedArea(fromX, fromY, sizeX, sizeY);
@@ -1392,9 +1413,14 @@ public class TiffReader implements Closeable {
             samples = newSamples;
             // - note: the size of the sample array can be increased here!
         }
-        if (autoUnpackBitsToBytes && map.isBinary()) {
+        if (autoUnpackBitsMode.isEnabled() && map.isBinary()) {
             unpackingPrecision = true;
-            samples = PackedBitArraysPer8.unpackBitsToBytes(samples, 0, sizeInPixels, (byte) 0, (byte) 255);
+            samples = PackedBitArraysPer8.unpackBitsToBytes(
+                    samples,
+                    0,
+                    sizeInPixels,
+                    (byte) 0,
+                    autoUnpackBitsMode.bit1Value());
         }
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t3 = debugTime();
@@ -1453,10 +1479,10 @@ public class TiffReader implements Closeable {
             throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         final byte[] samples = readSamples(
-                map, fromX, fromY, sizeX, sizeY, autoUnpackBitsToBytes, true, storeTilesInMap);
+                map, fromX, fromY, sizeX, sizeY, autoUnpackBitsMode, true, storeTilesInMap);
         long t1 = debugTime();
         final TiffSampleType sampleType = map.sampleType();
-        final Object samplesArray = autoUnpackBitsToBytes && map.isBinary() ?
+        final Object samplesArray = autoUnpackBitsMode.isEnabled() && map.isBinary() ?
                 samples :
                 sampleType.javaArray(samples, getByteOrder());
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
