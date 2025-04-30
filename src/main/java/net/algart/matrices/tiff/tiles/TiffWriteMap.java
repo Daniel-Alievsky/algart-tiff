@@ -219,7 +219,7 @@ public final class TiffWriteMap extends TiffMap {
         }
         if (elementType != elementType()) {
             throw new IllegalArgumentException("Invalid element type of samples array: " + elementType +
-                    ", but the specified TIFF map stores " + elementType() + " elements");
+                    ", but the specified TIFF map stores " + sampleType().prettyName() + " elements");
         }
         final long numberOfSamples = Math.multiplyExact(numberOfPixels, numberOfChannels());
         // - overflow impossible after checkRequestedArea

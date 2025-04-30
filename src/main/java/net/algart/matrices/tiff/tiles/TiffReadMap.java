@@ -180,13 +180,13 @@ public final class TiffReadMap extends TiffMap {
         }
         return samples;
     }
-/*
+
     public byte[] readSamples() throws IOException {
-        return readSamples(0, 0, dimX(), dimY());
+        return owningReader.readSamples(this);
     }
 
     public byte[] readSamples(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
-        return readSamples(fromX, fromY, sizeX, sizeY, false);
+        return owningReader.readSamples(this, fromX, fromY, sizeX, sizeY);
     }
 
     public byte[] readSamples(
@@ -194,40 +194,20 @@ public final class TiffReadMap extends TiffMap {
             int fromY,
             int sizeX,
             int sizeY,
-            boolean storeTilesInMap)
-            throws IOException {
-        checkRequestedArea(fromX, fromY, sizeX, sizeY);
-        // - note: we allow this area to be outside the image
-        final int numberOfChannels = numberOfChannels();
-        final TiffIFD ifd = ifd();
-
-        byte[] samples = loadSamples(this::readCachedTile, fromX, fromY, sizeX, sizeY, storeTilesInMap);
-        final int sizeInBytes = samples.length;
-        final long sizeInPixels = (long) sizeX * (long) sizeY;
-        // - can be >2^31 for bits
-
-        // Deprecated since 1.4.0: use readInterleavedMatrix instead of this flag
-        // boolean interleave = false;
-        // if (interleaveResults) {
-        //     byte[] newSamples = map.toInterleavedSamples(samples, numberOfChannels, sizeInPixels);
-        //     interleave = newSamples != samples;
-        //     samples = newSamples;
-        // }
-        boolean unpackingPrecision = false;
-        if (owningReader.isAutoUnpackUnusualPrecisions()) {
-            byte[] newSamples = TiffUnusualPrecisions.unpackUnusualPrecisions(
-                    samples, ifd, numberOfChannels, sizeInPixels, owningReader.isAutoScaleWhenIncreasingBitDepth());
-            unpackingPrecision = newSamples != samples;
-            samples = newSamples;
-            // - note: the size of the sample array can be increased here!
-        }
-        if (owningReader.isAutoUnpackBitsToBytes() && isBinary()) {
-            unpackingPrecision = true;
-            samples = PackedBitArraysPer8.unpackBitsToBytes(samples, 0, sizeInPixels, (byte) 0, (byte) 255);
-        }
-        return samples;
+            boolean autoUnpackBitsToBytes,
+            boolean autoUnpackUnusualPrecisions,
+            boolean storeTilesInMap) throws IOException {
+        return owningReader.readSamples(
+                this,
+                fromX,
+                fromY,
+                sizeX,
+                sizeY,
+                autoUnpackBitsToBytes,
+                autoUnpackUnusualPrecisions,
+                storeTilesInMap);
     }
-*/
+
     public Object readJavaArray() throws IOException {
         return owningReader.readJavaArray(this);
     }

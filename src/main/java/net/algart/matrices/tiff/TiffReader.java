@@ -373,14 +373,19 @@ public class TiffReader implements Closeable {
      * this flag enforces unpacking them to 32 bit) and 16- or 24-bit floating-point formats
      * (this flag enforces unpacking them to 32 bit {@code float} values).
      *
-     * <p>This flag is used after reading all tiles inside {@link #readSamples(TiffReadMap, int, int, int, int)}
-     * method. Note that the data in {@link TiffTile}, in the case of unusual precision, are never unpacked.
-     * On the other hand, all other precisions, like 4-bit or 12-bit (but not 1-channel 1-bit case)
-     * are always unpacked into the nearest bit depth divided by 8 while decoding tiles.</p>
+     * <p>This flag is only used inside {@link #readSamples(TiffReadMap, int, int, int, int)}
+     * method after all tiles have been read.
+     * This is just the default value of <code>autoUnpackUnusualPrecisions</code>
+     * argument of the more verbose method
+     * {@link #readSamples(TiffReadMap, int, int, int, int, boolean, boolean)}.
      *
-     * <p>If this flag is {@code false}, you cannot use high-level reading methods as
-     * {@link #readMatrix} and {@link #readJavaArray}; you must use {@link #readSamples} methods,
-     * which return pixels as a sequence of bytes.</p>
+     * <p>Note that the decoded data in {@link TiffTile} in case of unusual precisions is not unpacked
+     * (but you may request unpacking with {@link TiffTile#getUnpackedSamples(boolean)} method).
+     * On the other hand, all other precisions such as 4-bit or 12-bit (but not 1-channel 1-bit case)
+     * are always unpacked to the nearest bit depth divided by 8 when decoding tiles.</p>
+     *
+     * <p>This flag is ignored (as if it was {@code true}) when using high-level reading methods like
+     * {@link #readMatrix} and {@link #readJavaArray}.</p>
      *
      * <p>This flag is {@code true} by default. Usually there are no reasons to set it to {@code false},
      * besides compatibility reasons or requirement to maximally save memory while processing 16/24-bit
@@ -1340,7 +1345,12 @@ public class TiffReader implements Closeable {
     }
 
     public byte[] readSamples(TiffReadMap map, int fromX, int fromY, int sizeX, int sizeY) throws IOException {
-        return readSamples(map, fromX, fromY, sizeX, sizeY, false);
+        return readSamples(
+                map,
+                fromX, fromY, sizeX, sizeY,
+                autoUnpackBitsToBytes,
+                autoUnpackUnusualPrecisions,
+                false);
     }
 
     public byte[] readSamples(
@@ -1349,6 +1359,8 @@ public class TiffReader implements Closeable {
             int fromY,
             int sizeX,
             int sizeY,
+            boolean autoUnpackBitsToBytes,
+            boolean autoUnpackUnusualPrecisions,
             boolean storeTilesInMap)
             throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
@@ -1440,14 +1452,10 @@ public class TiffReader implements Closeable {
             boolean storeTilesInMap)
             throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
-        final byte[] samples = readSamples(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
+        final byte[] samples = readSamples(
+                map, fromX, fromY, sizeX, sizeY, true, autoUnpackBitsToBytes, storeTilesInMap);
         long t1 = debugTime();
         final TiffSampleType sampleType = map.sampleType();
-        if (!autoUnpackUnusualPrecisions && map.alignedBitsPerSample() != sampleType.bitsPerSample()) {
-            throw new IllegalStateException("Cannot convert TIFF pixels, " + map.alignedBitsPerSample() +
-                    " bits/sample, to \"" + sampleType.elementType() + "\" " + sampleType.bitsPerSample() +
-                    "-bit Java type: unpacking unusual prevision mode is disabled");
-        }
         final Object samplesArray = autoUnpackBitsToBytes && map.isBinary() ?
                 samples :
                 sampleType.javaArray(samples, getByteOrder());

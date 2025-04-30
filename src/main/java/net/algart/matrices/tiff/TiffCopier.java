@@ -257,7 +257,8 @@ public final class TiffCopier {
                     "%s copied entire image %s %dx%dx%d (%.3f MB) in %.3f ms = " +
                             "%.3f prepare + %.3f copy + %.3f complete, %.3f MB/s",
                     getClass().getSimpleName(),
-                    actuallyDirectCopy ? "directly" : "with repacking" + (this.directCopy ? " (direct mode rejected)" : ""),
+                    actuallyDirectCopy ? "directly" : "with repacking" + (this.directCopy ?
+                            " (direct mode rejected)" : ""),
                     writeMap.dimX(), writeMap.dimY(), writeMap.numberOfChannels(),
                     sizeInBytes / 1048576.0,
                     (t4 - t1) * 1e-6,
@@ -401,9 +402,12 @@ public final class TiffCopier {
             throws TiffException {
         final int mapTileSizeX = writeMap.tileSizeX();
         final int mapTileSizeY = writeMap.tileSizeY();
-        return canBeImageCopiedDirectly(writeMap.ifd(), writeMap.byteOrder(), readMap) &&
-                readMap.tileSizeX() == mapTileSizeX && readMap.tileSizeY() == mapTileSizeY &&
-                fromX % mapTileSizeX == 0 && fromY % mapTileSizeY == 0;
+        final boolean equalTiles = readMap.tileSizeX() == mapTileSizeX && readMap.tileSizeY() == mapTileSizeY;
+        // - note: for stripped images, this flag will be false almost always:
+        // the strip "size-X" is the image width
+        return equalTiles &&
+                fromX % mapTileSizeX == 0 && fromY % mapTileSizeY == 0 &&
+                canBeImageCopiedDirectly(writeMap.ifd(), writeMap.byteOrder(), readMap);
     }
 
     private static int copyRectangle(
@@ -421,7 +425,11 @@ public final class TiffCopier {
             final Object unpacked = readMap.readJavaArray(readX, readY, sizeX, sizeY);
             tiles = writeMap.updateJavaArray(unpacked, writeX, writeY, sizeX, sizeY);
         } else {
-            final byte[] samples = readMap.loadSamples(readX, readY, sizeX, sizeY);
+            final byte[] samples = readMap.readSamples(
+                    readX, readY, sizeX, sizeY,
+                    false,
+                    true,
+                    false);
             tiles = writeMap.updateSamples(samples, writeX, writeY, sizeX, sizeY);
         }
         return writeMap.flushCompletedTiles(tiles);
