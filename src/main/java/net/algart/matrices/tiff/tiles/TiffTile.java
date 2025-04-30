@@ -621,24 +621,32 @@ public final class TiffTile {
      *
      * <p>This method is rarely necessary: {@link #getDecodedData()} is enough for most needs.
      *
+     * <p>The argument <code>autoScaleWhenIncreasingBitDepth</code> specifies how to unpack 3-byte integer data.
+     * Usually it should be equal to {@link TiffReader#setAutoScaleWhenIncreasingBitDepth(boolean)
+     * the corresponding flag} of {@link TiffReader} class used for reading this tile.
+     * The typical value is <code>true</code>.
+     *
+     * @param autoScaleWhenIncreasingBitDepth the last argument passed to of
+     *                                        {@link TiffUnusualPrecisions#unpackUnusualPrecisions} method for
+     *                                        unpacking data.
      * @return unpacked data.
      * @see TiffUnusualPrecisions#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)
      * @see #bitsPerSample()
      * @see TiffMap#bitsPerUnpackedSample()
      */
-    public byte[] getUnpackedData() {
+    public byte[] getUnpackedData(boolean autoScaleWhenIncreasingBitDepth) {
         byte[] samples = getDecodedData();
         try {
             samples = TiffUnusualPrecisions.unpackUnusualPrecisions(
-                    samples, ifd(), samplesPerPixel, sizeInPixels, true);
+                    samples, ifd(), samplesPerPixel, sizeInPixels, autoScaleWhenIncreasingBitDepth);
         } catch (TiffException e) {
             throw new IllegalStateException("Illegal IFD inside the tile map", e);
         }
         return samples;
     }
 
-    private Object getUnpackedJavaArray() {
-        final byte[] samples = getUnpackedData();
+    public Object getUnpackedJavaArray(boolean autoScaleWhenIncreasingBitDepth) {
+        final byte[] samples = getUnpackedData(autoScaleWhenIncreasingBitDepth);
         return sampleType().javaArray(samples, byteOrder());
     }
 
@@ -659,7 +667,13 @@ public final class TiffTile {
     }
 
     public Matrix<UpdatablePArray> getUnpackedMatrix() {
-        return TiffSampleType.asMatrix(getUnpackedJavaArray(), sizeX, sizeY, samplesPerPixel, interleaved);
+        return getUnpackedMatrix(true);
+    }
+
+    public Matrix<UpdatablePArray> getUnpackedMatrix(boolean autoScaleWhenIncreasingBitDepth) {
+        return TiffSampleType.asMatrix(
+                getUnpackedJavaArray(autoScaleWhenIncreasingBitDepth),
+                sizeX, sizeY, samplesPerPixel, interleaved);
     }
 
     public TiffTile copyData(TiffTile source, boolean cloneData) {
@@ -677,7 +691,7 @@ public final class TiffTile {
         return map.isByteOrderCompatible(source.byteOrder());
     }
 
-    public TiffTile copyUnpackedData(TiffTile source) {
+    public TiffTile copyUnpackedData(TiffTile source, boolean autoScaleWhenIncreasingBitDepth) {
         Objects.requireNonNull(source, "Null source tile");
         if (sampleType() != source.sampleType()) {
             throw new IllegalArgumentException("The specified source tile has incompatible " +
@@ -693,10 +707,10 @@ public final class TiffTile {
         }
         source.checkDecodedData();
         if (isByteOrderCompatible(source)) {
-            final byte[] decodedData = source.getUnpackedData();
+            final byte[] decodedData = source.getUnpackedData(autoScaleWhenIncreasingBitDepth);
             setDecodedData(decodedData);
         } else {
-            final Object javaArray = source.getUnpackedJavaArray();
+            final Object javaArray = source.getUnpackedJavaArray(autoScaleWhenIncreasingBitDepth);
             setUnpackedJavaArray(javaArray);
             // - theoretically, we could use a quicker algorithm for reordering bytes
             // via ByteBuffer without copying into a separate Java array,

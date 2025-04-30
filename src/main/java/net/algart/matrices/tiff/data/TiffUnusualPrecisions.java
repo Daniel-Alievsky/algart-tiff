@@ -43,11 +43,11 @@ public class TiffUnusualPrecisions {
     /**
      * Unpacks pixel samples, stored in unusual precisions (2 or 3 bytes/sample), and returns unpacked data
      * (4 bytes/sample). Returns a reference to the source {@code samples} array if IFD does not
-     * specify an unusual precision.
+     * specify unusual precision.
      *
      * <p>We call <b>unusual precisions</b> the following two cases:</p>
      * <ol>
-     *     <li>every channel is encoded as N-bit integer value, where 17&le;N&le;24, and, so, requires 3 bytes;
+     *     <li>every channel is encoded as an N-bit integer value, where 17&le;N&le;24, and, so, requires 3 bytes;
      *     </li>
      *     <li>every channel is encoded as 16-bit or 24-bit floating point values.
      *     </li>
@@ -58,11 +58,11 @@ public class TiffUnusualPrecisions {
      * See also {@link TiffMap#bitsPerUnpackedSample()}.</p>
      *
      * @param samples            the source pixel samples.
-     * @param ifd                IFD (it is analysed to detect an unusual precision).
+     * @param ifd                IFD (it is analyzed to detect unusual precision).
      * @param numberOfChannels   number of samples per pixel; note that this value may differ from
      *                           {@link TiffIFD#getSamplesPerPixel() ifd.getSamplesPerPixel()} when this
      *                           method is used for unpacking a single tile, for example, in
-     *                           {@link TiffTile#getUnpackedData()} method
+     *                           {@link TiffTile#getUnpackedData(boolean)} method
      *                           (in which case {@code numberOfChannels} can be 1 even for several channels
      *                           when {@link TiffIFD#isPlanarSeparated()} is {@code true}).
      * @param numberOfPixels     number of pixels in {@code samples} array.
@@ -72,7 +72,7 @@ public class TiffUnusualPrecisions {
      *                           in bits 8..31 of the 4-byte result samples.
      * @return the unpacked samples.
      * @throws TiffException in the case of incorrect IFD.
-     * @see TiffTile#getUnpackedData()
+     * @see TiffTile#getUnpackedData(boolean)
      */
     public static byte[] unpackUnusualPrecisions(
             final byte[] samples,
