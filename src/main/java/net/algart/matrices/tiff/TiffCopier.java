@@ -294,6 +294,10 @@ public final class TiffCopier {
         final int mapTileSizeY = writeMap.tileSizeY();
         final boolean directCopy = canBeRectangleCopiedDirectly(writeMap, readMap, fromX, fromY);
         final boolean unpackBytes = !readMap.isByteOrderCompatible(writeMap.byteOrder());
+        if (unpackBytes && directCopy) {
+            throw new AssertionError("If we use unpackBytes branch, " +
+                    "we must be sure that no tiles will be coped directly");
+        }
         final int fromXIndex = directCopy ? fromX / mapTileSizeX : Integer.MIN_VALUE;
         final int fromYIndex = directCopy ? fromY / mapTileSizeY : Integer.MIN_VALUE;
         long t2 = debugTime();
@@ -316,7 +320,7 @@ public final class TiffCopier {
                     if (written != writeMap.numberOfSeparatedPlanes()) {
                         // - we copy exactly one tile, and it should be completed: we created a non-resizable map,
                         // so, the initial unset area of the tile, i.e. actualRectangle(),
-                        // was equal to the rectangle calculated above
+                        // was cropped, i.e. equal to the rectangle calculated above
                         throw new AssertionError("Number of written tiles " + written + " != " +
                                 writeMap.numberOfSeparatedPlanes());
                     }

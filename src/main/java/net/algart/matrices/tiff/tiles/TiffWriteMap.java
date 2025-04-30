@@ -134,7 +134,7 @@ public final class TiffWriteMap extends TiffMap {
                     }
                     tile.checkReadyForNewDecodedData(false);
                     tile.cropStripToMap();
-                    // - In stripped image, we should correct the height of the last row.
+                    // - In a stripped image, we should correct the height of the last row.
                     // It is important for writing: without this correction, GIMP and other libtiff-based programs
                     // will report about an error (see libtiff, tif_jpeg.c, assigning segment_width/segment_height)
                     // However, if tiling is requested via TILE_WIDTH/TILE_LENGTH tags, we SHOULD NOT do this.

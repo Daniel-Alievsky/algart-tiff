@@ -377,7 +377,7 @@ public class TiffReader implements Closeable {
      * method after all tiles have been read.
      * This is just the default value of <code>autoUnpackUnusualPrecisions</code>
      * argument of the more verbose method
-     * {@link #readSamples(TiffReadMap, int, int, int, int, boolean, boolean)}.
+     * {@link #readSamples(TiffReadMap, int, int, int, int, boolean, boolean, boolean)}.
      *
      * <p>Note that the decoded data in {@link TiffTile} in case of unusual precisions is not unpacked
      * (but you may request unpacking with {@link TiffTile#getUnpackedSamples(boolean)} method).
@@ -1453,7 +1453,7 @@ public class TiffReader implements Closeable {
             throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         final byte[] samples = readSamples(
-                map, fromX, fromY, sizeX, sizeY, true, autoUnpackBitsToBytes, storeTilesInMap);
+                map, fromX, fromY, sizeX, sizeY, autoUnpackBitsToBytes, true, storeTilesInMap);
         long t1 = debugTime();
         final TiffSampleType sampleType = map.sampleType();
         final Object samplesArray = autoUnpackBitsToBytes && map.isBinary() ?
