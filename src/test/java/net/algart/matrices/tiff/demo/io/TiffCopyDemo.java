@@ -45,7 +45,7 @@ public class TiffCopyDemo {
             return;
         }
         final Path sourceFile = Paths.get(args[startArgIndex++]);
-        final Path targetFile = Paths.get(args[startArgIndex++]);
+        final Path targetFile = Paths.get(args[startArgIndex]);
         if (direct) {
             System.out.printf("Direct copying %s to %s...", sourceFile, targetFile);
             TiffCopier.copyAll(targetFile, sourceFile, true);

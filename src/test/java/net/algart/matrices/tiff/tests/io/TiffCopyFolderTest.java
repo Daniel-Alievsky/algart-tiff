@@ -49,6 +49,10 @@ public class TiffCopyFolderTest {
             copyTest.direct = true;
             startArgIndex++;
         }
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-smart")) {
+            copyTest.smart = true;
+            startArgIndex++;
+        }
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-uncompress")) {
             copyTest.uncompress = true;
             startArgIndex++;

@@ -39,6 +39,7 @@ public class TiffCopyTest {
     boolean useContext = false;
     boolean bigTiff = false;
     boolean direct = false;
+    boolean smart = false;
     boolean uncompress = false;
     boolean copyRectangle = false;
 
@@ -47,6 +48,10 @@ public class TiffCopyTest {
         int startArgIndex = 0;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-direct")) {
             coptTest.direct = true;
+            startArgIndex++;
+        }
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-smart")) {
+            coptTest.smart = true;
             startArgIndex++;
         }
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-copyRectangle")) {
@@ -100,7 +105,7 @@ public class TiffCopyTest {
                 if (useContext) {
                     writer.setContext(TiffReader.newSCIFIOContext());
                 }
-//                writer.setSmartFormatCorrection(true);
+                writer.setSmartFormatCorrection(smart);
                 writer.setBigTiff(bigTiff || reader.isBigTiff());
                 writer.setLittleEndian(reader.isLittleEndian());
                 // - without this operator, direct copy will be impossible for LE format

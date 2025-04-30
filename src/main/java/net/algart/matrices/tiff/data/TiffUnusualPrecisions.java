@@ -62,7 +62,7 @@ public class TiffUnusualPrecisions {
      * @param numberOfChannels   number of samples per pixel; note that this value may differ from
      *                           {@link TiffIFD#getSamplesPerPixel() ifd.getSamplesPerPixel()} when this
      *                           method is used for unpacking a single tile, for example, in
-     *                           {@link TiffTile#getUnpackedData(boolean)} method
+     *                           {@link TiffTile#getUnpackedSamples(boolean)} method
      *                           (in which case {@code numberOfChannels} can be 1 even for several channels
      *                           when {@link TiffIFD#isPlanarSeparated()} is {@code true}).
      * @param numberOfPixels     number of pixels in {@code samples} array.
@@ -72,7 +72,7 @@ public class TiffUnusualPrecisions {
      *                           in bits 8..31 of the 4-byte result samples.
      * @return the unpacked samples.
      * @throws TiffException in the case of incorrect IFD.
-     * @see TiffTile#getUnpackedData(boolean)
+     * @see TiffTile#getUnpackedSamples(boolean)
      */
     public static byte[] unpackUnusualPrecisions(
             final byte[] samples,

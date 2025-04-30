@@ -29,6 +29,7 @@ import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 
 import java.io.IOException;
+import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -64,8 +65,13 @@ public class TiffCopyCustomDemo {
         copier.setProgressUpdater(p ->
                 System.out.printf("\r%d/%d...", p.tileIndex() + 1, p.tileCount()));
         try (var reader = new TiffReader(sourceFile); var writer = new TiffWriter(targetFile)) {
+            if (writer.getByteOrder() != ByteOrder.BIG_ENDIAN) throw new AssertionError();
+            writer.setSmartFormatCorrection(true);
+            // - allows non-direct copying even "strange" precisions
             lastIFDIndex = Math.min(lastIFDIndex, reader.numberOfImages() - 1);
             if (lastIFDIndex >= firstIFDIndex) {
+                reader.setAutoScaleWhenIncreasingBitDepth(false);
+                // - this flag affects the behavior for source TIFF like 6-bit or 24-bit in non-direct mode
                 writer.create(append);
                 for (int i = firstIFDIndex; i <= lastIFDIndex; i++) {
                     System.out.printf("Copying image %d...%n", i);

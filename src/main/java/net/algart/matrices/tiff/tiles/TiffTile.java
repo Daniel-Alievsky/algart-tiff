@@ -583,7 +583,7 @@ public final class TiffTile {
     /**
      * Sets the decoded data.
      *
-     * <p>Note that we have no a separate method "setUnpackedData":
+     * <p>Note that we have no a separate method "setUnpackedSamples":
      * the unpacked samples can be set via this method.
      * We do not support writing non-standard precision.</p>
      *
@@ -634,7 +634,7 @@ public final class TiffTile {
      * @see #bitsPerSample()
      * @see TiffMap#bitsPerUnpackedSample()
      */
-    public byte[] getUnpackedData(boolean autoScaleWhenIncreasingBitDepth) {
+    public byte[] getUnpackedSamples(boolean autoScaleWhenIncreasingBitDepth) {
         byte[] samples = getDecodedData();
         try {
             samples = TiffUnusualPrecisions.unpackUnusualPrecisions(
@@ -646,7 +646,7 @@ public final class TiffTile {
     }
 
     public Object getUnpackedJavaArray(boolean autoScaleWhenIncreasingBitDepth) {
-        final byte[] samples = getUnpackedData(autoScaleWhenIncreasingBitDepth);
+        final byte[] samples = getUnpackedSamples(autoScaleWhenIncreasingBitDepth);
         return sampleType().javaArray(samples, byteOrder());
     }
 
@@ -691,7 +691,7 @@ public final class TiffTile {
         return map.isByteOrderCompatible(source.byteOrder());
     }
 
-    public TiffTile copyUnpackedData(TiffTile source, boolean autoScaleWhenIncreasingBitDepth) {
+    public TiffTile copyUnpackedSamples(TiffTile source, boolean autoScaleWhenIncreasingBitDepth) {
         Objects.requireNonNull(source, "Null source tile");
         if (sampleType() != source.sampleType()) {
             throw new IllegalArgumentException("The specified source tile has incompatible " +
@@ -707,7 +707,7 @@ public final class TiffTile {
         }
         source.checkDecodedData();
         if (isByteOrderCompatible(source)) {
-            final byte[] decodedData = source.getUnpackedData(autoScaleWhenIncreasingBitDepth);
+            final byte[] decodedData = source.getUnpackedSamples(autoScaleWhenIncreasingBitDepth);
             setDecodedData(decodedData);
         } else {
             final Object javaArray = source.getUnpackedJavaArray(autoScaleWhenIncreasingBitDepth);
