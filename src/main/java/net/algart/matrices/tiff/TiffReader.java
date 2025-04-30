@@ -76,7 +76,8 @@ public class TiffReader implements Closeable {
     public static final long DEFAULT_MAX_CACHING_MEMORY = Math.max(0,
             net.algart.arrays.Arrays.SystemSettings.getLongProperty(
                     "net.algart.matrices.tiff.defaultMaxCachingMemory", 256 * 1048576L));
-    // - 256 MB maximal cache by default
+    // - 256 MB maximal cache by default: enough to store 256 RGBA tiles 512x512
+    // (for example, one tiles row in the image 131072x131072)
 
     public static final int FILE_USUAL_MAGIC_NUMBER = 0x2a;
     public static final int FILE_BIG_TIFF_MAGIC_NUMBER = 0x2b;
@@ -106,7 +107,7 @@ public class TiffReader implements Closeable {
     private static final System.Logger LOG = System.getLogger(TiffReader.class.getName());
     private static final boolean LOGGABLE_DEBUG = LOG.isLoggable(System.Logger.Level.DEBUG);
 
-    private boolean caching = false;
+    private boolean caching = true;
     private long maxCachingMemory = DEFAULT_MAX_CACHING_MEMORY;
     private boolean autoUnpackBitsToBytes = false;
     private boolean autoUnpackUnusualPrecisions = true;
@@ -313,7 +314,8 @@ public class TiffReader implements Closeable {
      * Enables or disables caching tile. If caching is enabled, {@link #readCachedTile(TiffTileIndex)} method
      * works very quickly when the tile is found in the cache.
      *
-     * <p>By default, the caching is disabled.</p>
+     * <p>By default, the caching is enabled (<code>true</code>). We recommend disabling it to save memory
+     * if you are not going to read fragments of this file many times.</p>
      *
      * @param caching whether reading data from the fill should be cached.
      * @return a reference to this object.

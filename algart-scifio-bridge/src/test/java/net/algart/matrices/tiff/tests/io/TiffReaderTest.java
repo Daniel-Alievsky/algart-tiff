@@ -102,6 +102,8 @@ public class TiffReaderTest {
                 if (cache) {
                     reader.setCaching(true)
                             .setMaxCachingMemory(tiny ? 1000000 : TiffReader.DEFAULT_MAX_CACHING_MEMORY);
+                } else {
+                    reader.setCaching(false);
                 }
                 reader.setContext(context);
                 long t2 = System.nanoTime();
