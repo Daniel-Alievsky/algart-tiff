@@ -1335,11 +1335,8 @@ public class TiffReader implements Closeable {
     }
 
     public byte[] readSamples(TiffReadMap map) throws IOException {
-        return readSamples(map, false);
-    }
-
-    public byte[] readSamples(TiffReadMap map, boolean storeTilesInMap) throws IOException {
-        return readSamples(map, 0, 0, map.dimX(), map.dimY(), storeTilesInMap);
+        Objects.requireNonNull(map, "Null TIFF map");
+        return readSamples(map, 0, 0, map.dimX(), map.dimY());
     }
 
     /**
