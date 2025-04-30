@@ -70,7 +70,7 @@ public class TiffCopyCustomDemo {
             // - allows non-direct copying even "strange" precisions
             lastIFDIndex = Math.min(lastIFDIndex, reader.numberOfImages() - 1);
             if (lastIFDIndex >= firstIFDIndex) {
-                reader.setAutoScaleWhenIncreasingBitDepth(false);
+                // reader.setAutoScaleWhenIncreasingBitDepth(false);
                 // - this flag affects the behavior for source TIFF like 6-bit or 24-bit in non-direct mode
                 writer.create(append);
                 for (int i = firstIFDIndex; i <= lastIFDIndex; i++) {

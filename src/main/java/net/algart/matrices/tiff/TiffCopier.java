@@ -237,7 +237,7 @@ public final class TiffCopier {
                 targetTile.copyData(sourceTile, false);
             } else {
                 final TiffTile sourceTile = readMap.readCachedTile(readIndex);
-                targetTile.copyUnpackedSamples(sourceTile, true);
+                targetTile.copyUnpackedSamples(sourceTile, readMap.isAutoScaleWhenIncreasingBitDepth());
                 // - this method performs necessary unpacking/packing bytes when the byte order is incompatible
             }
             writeMap.put(targetTile);
