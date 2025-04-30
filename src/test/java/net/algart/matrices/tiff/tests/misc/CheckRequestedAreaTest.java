@@ -24,17 +24,19 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
-import net.algart.matrices.tiff.TiffReader;
+import net.algart.arrays.TooLargeArrayException;
+import net.algart.matrices.tiff.TooLargeTiffImageException;
+import net.algart.matrices.tiff.tiles.TiffMap;
 
 public class CheckRequestedAreaTest {
     private static void callCheckRequestedArea(long fromX, long fromY, long sizeX, long sizeY, boolean exception) {
         System.out.printf("%d, %d, %d x %d    ", fromX, fromY, sizeX, sizeY);
         try {
-            TiffReader.checkRequestedArea(fromX, fromY, sizeX, sizeY);
+            TiffMap.checkRequestedArea(fromX, fromY, sizeX, sizeY);
             if (exception) {
                 throw new AssertionError("No exception!");
             }
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | TooLargeArrayException e) {
             if (!exception) {
                 throw new AssertionError(e);
             }

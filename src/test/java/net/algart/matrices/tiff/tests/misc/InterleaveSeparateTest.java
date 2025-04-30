@@ -22,7 +22,9 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.tiles;
+package net.algart.matrices.tiff.tests.misc;
+
+import net.algart.matrices.tiff.tiles.TiffMap;
 
 import java.util.Arrays;
 import java.util.Random;

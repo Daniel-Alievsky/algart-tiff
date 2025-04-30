@@ -25,10 +25,7 @@
 package net.algart.matrices.tiff;
 
 import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tiles.TiffReadMap;
-import net.algart.matrices.tiff.tiles.TiffTile;
-import net.algart.matrices.tiff.tiles.TiffTileIndex;
-import net.algart.matrices.tiff.tiles.TiffWriteMap;
+import net.algart.matrices.tiff.tiles.*;
 
 import java.io.IOException;
 import java.nio.ByteOrder;
@@ -276,7 +273,7 @@ public final class TiffCopier {
         // - note that this area may be outside readMap!
         Objects.requireNonNull(writer, "Null TIFF writer");
         Objects.requireNonNull(readMap, "Null TIFF read map");
-        TiffReader.checkRequestedArea(fromX, fromY, sizeX, sizeY);
+        TiffMap.checkRequestedArea(fromX, fromY, sizeX, sizeY);
         long t1 = debugTime();
         resetImageCounters();
         final TiffIFD writeIFD = new TiffIFD(readMap.ifd());

@@ -1339,13 +1339,6 @@ public class TiffReader implements Closeable {
         return readSamples(map, 0, 0, map.dimX(), map.dimY());
     }
 
-    /**
-     * Reads samples in <code>byte[]</code> array.
-     *
-     * <p>Note: you should not change IFD in a parallel thread while calling this method.
-     *
-     * @return loaded samples in a normalized form of a byte sequence.
-     */
     public byte[] readSamples(TiffReadMap map, int fromX, int fromY, int sizeX, int sizeY) throws IOException {
         return readSamples(map, fromX, fromY, sizeX, sizeY, false);
     }
@@ -1361,7 +1354,7 @@ public class TiffReader implements Closeable {
         Objects.requireNonNull(map, "Null TIFF map");
         long t1 = debugTime();
         clearTiming();
-        checkRequestedArea(fromX, fromY, sizeX, sizeY);
+        TiffMap.checkRequestedArea(fromX, fromY, sizeX, sizeY);
         // - note: we allow this area to be outside the image
         final int numberOfChannels = map.numberOfChannels();
         final TiffIFD ifd = map.ifd();
@@ -1642,20 +1635,6 @@ public class TiffReader implements Closeable {
     @Override
     public String toString() {
         return "TIFF reader";
-    }
-
-    public static long checkRequestedArea(long fromX, long fromY, long sizeX, long sizeY) {
-        final long result = TiffIFD.multiplySizes(sizeX, sizeY);
-        if (fromX != (int) fromX || fromY != (int) fromY) {
-            throw new IllegalArgumentException("Too large absolute values of fromX = " + fromX +
-                    " or fromY = " + fromY + " (out of -2^31..2^31-1 ranges)");
-        }
-        if (sizeX >= Integer.MAX_VALUE - fromX || sizeY >= Integer.MAX_VALUE - fromY) {
-            // - Note: ">=" instead of ">"! This allows to use "toX = fromX + sizeX" without overflow
-            throw new IllegalArgumentException("Requested area [" + fromX + ".." + (fromX + sizeX - 1) +
-                    " x " + fromY + ".." + (fromY + sizeY - 1) + "] is outside the 0..2^31-2 ranges");
-        }
-        return result;
     }
 
     public static Context newSCIFIOContext() {

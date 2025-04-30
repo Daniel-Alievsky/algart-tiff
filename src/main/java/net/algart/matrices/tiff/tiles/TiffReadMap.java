@@ -59,48 +59,8 @@ public final class TiffReadMap extends TiffMap {
         return owningReader;
     }
 
-    public Object readJavaArray() throws IOException {
-        return owningReader.readJavaArray(this);
-    }
-
-    public Object readJavaArray(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
-        return owningReader.readJavaArray(this, fromX, fromY, sizeX, sizeY);
-    }
-
-    public Matrix<UpdatablePArray> readMatrix() throws IOException {
-        return owningReader.readMatrix(this);
-    }
-
-    public Matrix<UpdatablePArray> readMatrix(int fromX, int fromY, int sizeX, int sizeY)
-            throws IOException {
-        return owningReader.readMatrix(this, fromX, fromY, sizeX, sizeY);
-    }
-
-    public Matrix<UpdatablePArray> readInterleavedMatrix() throws IOException {
-        return owningReader.readInterleavedMatrix(this);
-    }
-
-    public Matrix<UpdatablePArray> readInterleavedMatrix(int fromX, int fromY, int sizeX, int sizeY)
-            throws IOException {
-        return owningReader.readInterleavedMatrix(this, fromX, fromY, sizeX, sizeY);
-    }
-
-    public List<Matrix<UpdatablePArray>> readChannels() throws IOException {
-        return owningReader.readChannels(this);
-    }
-
-    public List<Matrix<UpdatablePArray>> readChannels(int fromX, int fromY, int sizeX, int sizeY)
-            throws IOException {
-        return owningReader.readChannels(this, fromX, fromY, sizeX, sizeY);
-    }
-
-    public BufferedImage readBufferedImage() throws IOException {
-        return owningReader.readBufferedImage(this);
-    }
-
-    public BufferedImage readBufferedImage(int fromX, int fromY, int sizeX, int sizeY)
-            throws IOException {
-        return owningReader.readBufferedImage(this, fromX, fromY, sizeX, sizeY);
+    public byte[] loadSamples() throws IOException {
+        return loadSamples(0, 0, dimX(), dimY());
     }
 
     public byte[] loadSamples(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
@@ -121,7 +81,7 @@ public final class TiffReadMap extends TiffMap {
             boolean storeTilesInMap)
             throws IOException {
         Objects.requireNonNull(tileSupplier, "Null tile supplier");
-        TiffReader.checkRequestedArea(fromX, fromY, sizeX, sizeY);
+        checkRequestedArea(fromX, fromY, sizeX, sizeY);
         final int sizeInBytes = sizeOfRegionWithPossibleNonStandardPrecisions(sizeX, sizeY);
         final byte[] samples = new byte[sizeInBytes];
 
@@ -210,6 +170,99 @@ public final class TiffReadMap extends TiffMap {
             }
         }
         return samples;
+    }
+
+/*
+    public byte[] readSamples() throws IOException {
+        return readSamples(0, 0, dimX(), dimY());
+    }
+
+    public byte[] readSamples(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
+        return readSamples(fromX, fromY, sizeX, sizeY, false);
+    }
+
+    public byte[] readSamples(
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY,
+            boolean storeTilesInMap)
+            throws IOException {
+        checkRequestedArea(fromX, fromY, sizeX, sizeY);
+        // - note: we allow this area to be outside the image
+        final int numberOfChannels = numberOfChannels();
+        final TiffIFD ifd = ifd();
+
+        byte[] samples = loadSamples(this::readCachedTile, fromX, fromY, sizeX, sizeY, storeTilesInMap);
+        final int sizeInBytes = samples.length;
+        final long sizeInPixels = (long) sizeX * (long) sizeY;
+        // - can be >2^31 for bits
+
+        // Deprecated since 1.4.0: use readInterleavedMatrix instead of this flag
+        // boolean interleave = false;
+        // if (interleaveResults) {
+        //     byte[] newSamples = map.toInterleavedSamples(samples, numberOfChannels, sizeInPixels);
+        //     interleave = newSamples != samples;
+        //     samples = newSamples;
+        // }
+        boolean unpackingPrecision = false;
+        if (owningReader.isAutoUnpackUnusualPrecisions()) {
+            byte[] newSamples = TiffUnusualPrecisions.unpackUnusualPrecisions(
+                    samples, ifd, numberOfChannels, sizeInPixels, owningReader.isAutoScaleWhenIncreasingBitDepth());
+            unpackingPrecision = newSamples != samples;
+            samples = newSamples;
+            // - note: the size of the sample array can be increased here!
+        }
+        if (owningReader.isAutoUnpackBitsToBytes() && isBinary()) {
+            unpackingPrecision = true;
+            samples = PackedBitArraysPer8.unpackBitsToBytes(samples, 0, sizeInPixels, (byte) 0, (byte) 255);
+        }
+        return samples;
+    }
+*/
+
+    public Object readJavaArray() throws IOException {
+        return owningReader.readJavaArray(this);
+    }
+
+    public Object readJavaArray(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
+        return owningReader.readJavaArray(this, fromX, fromY, sizeX, sizeY);
+    }
+
+    public Matrix<UpdatablePArray> readMatrix() throws IOException {
+        return owningReader.readMatrix(this);
+    }
+
+    public Matrix<UpdatablePArray> readMatrix(int fromX, int fromY, int sizeX, int sizeY)
+            throws IOException {
+        return owningReader.readMatrix(this, fromX, fromY, sizeX, sizeY);
+    }
+
+    public Matrix<UpdatablePArray> readInterleavedMatrix() throws IOException {
+        return owningReader.readInterleavedMatrix(this);
+    }
+
+    public Matrix<UpdatablePArray> readInterleavedMatrix(int fromX, int fromY, int sizeX, int sizeY)
+            throws IOException {
+        return owningReader.readInterleavedMatrix(this, fromX, fromY, sizeX, sizeY);
+    }
+
+    public List<Matrix<UpdatablePArray>> readChannels() throws IOException {
+        return owningReader.readChannels(this);
+    }
+
+    public List<Matrix<UpdatablePArray>> readChannels(int fromX, int fromY, int sizeX, int sizeY)
+            throws IOException {
+        return owningReader.readChannels(this, fromX, fromY, sizeX, sizeY);
+    }
+
+    public BufferedImage readBufferedImage() throws IOException {
+        return owningReader.readBufferedImage(this);
+    }
+
+    public BufferedImage readBufferedImage(int fromX, int fromY, int sizeX, int sizeY)
+            throws IOException {
+        return owningReader.readBufferedImage(this, fromX, fromY, sizeX, sizeY);
     }
 
     public TiffTile readCachedTile(TiffTileIndex tileIndex) throws IOException {

@@ -793,7 +793,7 @@ public class TiffParser extends TiffReader {
     public byte[] getSamples(final IFD ifd, final byte[] buf, final int x,
                              final int y, final long width, final long height) throws FormatException,
             IOException {
-        TiffReader.checkRequestedArea(x, y, width, height);
+        TiffMap.checkRequestedArea(x, y, width, height);
         byte[] result = readSamples(newMap(toTiffIFD(ifd)), x, y, (int) width, (int) height);
         if (result.length > buf.length) {
             throw new IllegalArgumentException(

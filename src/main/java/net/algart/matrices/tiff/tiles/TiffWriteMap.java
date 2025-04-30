@@ -26,7 +26,6 @@ package net.algart.matrices.tiff.tiles;
 
 import net.algart.arrays.*;
 import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffSampleType;
 import net.algart.matrices.tiff.TiffWriter;
 
@@ -62,14 +61,14 @@ public final class TiffWriteMap extends TiffMap {
 
     public List<TiffTile> updateSamples(byte[] samples, long fromX, long fromY, long sizeX, long sizeY) {
         Objects.requireNonNull(samples, "Null samples");
-        TiffReader.checkRequestedArea(fromX, fromY, sizeX, sizeY);
+        checkRequestedArea(fromX, fromY, sizeX, sizeY);
         assert fromX == (int) fromX && fromY == (int) fromY && sizeX == (int) sizeX && sizeY == (int) sizeY;
         return updateSamples(samples, (int) fromX, (int) fromY, (int) sizeX, (int) sizeY);
     }
 
     public List<TiffTile> updateSamples(byte[] samples, int fromX, int fromY, int sizeX, int sizeY) {
         Objects.requireNonNull(samples, "Null samples");
-        TiffReader.checkRequestedArea(fromX, fromY, sizeX, sizeY);
+        checkRequestedArea(fromX, fromY, sizeX, sizeY);
         checkRequestedAreaInArray(samples, sizeX, sizeY, totalAlignedBitsPerPixel());
         List<TiffTile> updatedTiles = new ArrayList<>();
         if (sizeX == 0 || sizeY == 0) {
@@ -212,7 +211,7 @@ public final class TiffWriteMap extends TiffMap {
             int sizeX,
             int sizeY) {
         Objects.requireNonNull(samplesArray, "Null samplesArray");
-        final long numberOfPixels = TiffReader.checkRequestedArea(fromX, fromY, sizeX, sizeY);
+        final long numberOfPixels = checkRequestedArea(fromX, fromY, sizeX, sizeY);
         final Class<?> elementType = samplesArray.getClass().getComponentType();
         if (elementType == null) {
             throw new IllegalArgumentException("The specified samplesArray is not actual an array: " +
@@ -343,7 +342,7 @@ public final class TiffWriteMap extends TiffMap {
             throw new IllegalArgumentException("Zero or negative bitsPerPixel = " + bitsPerPixel);
         }
         final long arrayBits = (long) array.length * 8;
-        TiffReader.checkRequestedArea(0, 0, sizeX, sizeY);
+        checkRequestedArea(0, 0, sizeX, sizeY);
         if (sizeX * sizeY > arrayBits || sizeX * sizeY * (long) bitsPerPixel > arrayBits) {
             throw new IllegalArgumentException("Requested area " + sizeX + "x" + sizeY +
                     " is too large for array of " + array.length + " bytes, " + bitsPerPixel + " per pixel");

@@ -1336,7 +1336,7 @@ public class TiffWriter implements Closeable {
             int sizeY,
             boolean loadTilesFullyInsideRectangle)
             throws IOException {
-        TiffReader.checkRequestedArea(fromX, fromY, sizeX, sizeY);
+        TiffMap.checkRequestedArea(fromX, fromY, sizeX, sizeY);
         @SuppressWarnings("resource") final TiffReader reader = newReaderOfThisFile();
         final TiffIFD ifd = reader.readSingleIFD(ifdIndex);
         ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
