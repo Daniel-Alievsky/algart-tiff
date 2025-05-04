@@ -219,7 +219,10 @@ public final class TiffCopier {
         }
         final boolean actuallyDirectCopy = canBeImageCopiedDirectly(writeIFD, writer.getByteOrder(), readMap);
         final boolean correctFormatForEncoding = !actuallyDirectCopy;
-        // - there is no sense to call correctFormatForEncoding() method if we use tile-per-tile direct copying
+        // - There is no sense to call correctFormatForEncoding() method if we use tile-per-tile direct copying.
+        // We could use smartFormatCorrection mode always by explicitly calling correctFormatForEncoding(ifd, true),
+        // but we prefer not to do this.
+        // Let this class depend on the smartFormatCorrection flag in the writer.
         final TiffWriteMap writeMap = writer.newMap(writeIFD, false, correctFormatForEncoding);
         checkImageCompatibility(writeMap, readMap);
         this.actuallyDirectCopy = actuallyDirectCopy;
@@ -283,7 +286,8 @@ public final class TiffCopier {
             ifdCorrector.correct(writeIFD);
         }
         final TiffWriteMap writeMap = writer.newMap(writeIFD, false, true);
-        // - here we MUST call correctFormatForEncoding() method: this behavior should not depend on fromX/fromY
+        // - Unlike copying the entire image, here we MUST call correctFormatForEncoding() even for direct copying:
+        // the direct mode will be disabled for some fromX/fromY, and this behavior should not depend on it
         checkImageCompatibility(writeMap, readMap);
         writer.writeForward(writeMap);
         progressInformation.tileCount = writeMap.numberOfGridTiles();
