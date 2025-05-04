@@ -139,7 +139,7 @@ public class TiffParser extends TiffReader {
         setContext(context);
         // Disable new features of TiffReader for compatibility:
         this.setAutoUnpackBits(UnpackBits.UNPACK_TO_0_255);
-        this.setAutoUnpackUnusualPrecisions(false);
+        this.setUnusualPrecisions(UnusualPrecisions.NONE);
         this.setCropTilesToImageBoundaries(false);
         this.setEnforceUseExternalCodec(true);
         this.setMissingTilesAllowed(true);
@@ -798,7 +798,7 @@ public class TiffParser extends TiffReader {
                 newMap(toTiffIFD(ifd)),
                 x, y, (int) width, (int) height,
                 UnpackBits.UNPACK_TO_0_255,
-                false,
+                UnusualPrecisions.NONE,
                 false);
         if (result.length > buf.length) {
             throw new IllegalArgumentException(

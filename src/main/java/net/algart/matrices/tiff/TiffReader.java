@@ -96,7 +96,11 @@ public class TiffReader implements Closeable {
     public enum UnusualPrecisions {
         NONE,
         DISABLE,
-        UNPACK
+        UNPACK;
+
+        UnusualPrecisions unpackIfEnabled() {
+            return this == NONE ? UNPACK : this;
+        }
     }
 
     public static final long DEFAULT_MAX_CACHING_MEMORY = Math.max(0,
@@ -136,7 +140,7 @@ public class TiffReader implements Closeable {
     private boolean caching = true;
     private long maxCachingMemory = DEFAULT_MAX_CACHING_MEMORY;
     private UnpackBits autoUnpackBits = UnpackBits.NONE;
-    private boolean autoUnpackUnusualPrecisions = true;
+    private UnusualPrecisions unusualPrecisions = UnusualPrecisions.UNPACK;
     private boolean autoScaleWhenIncreasingBitDepth = true;
     private boolean autoCorrectInvertedBrightness = false;
     private boolean enforceUseExternalCodec = false;
@@ -389,41 +393,45 @@ public class TiffReader implements Closeable {
         return this;
     }
 
-    public boolean isAutoUnpackUnusualPrecisions() {
-        return autoUnpackUnusualPrecisions;
+    public UnusualPrecisions getUnusualPrecisions() {
+        return unusualPrecisions;
     }
 
     /**
-     * Sets the flag, whether do we need to automatically unpack precisions (bits/sample), differ than all precisions
-     * supported by {@link TiffSampleType} class. These are 3-byte samples (17..24 bits/sample;
-     * this flag enforces unpacking them to 32 bit) and 16- or 24-bit floating-point formats
-     * (this flag enforces unpacking them to 32 bit {@code float} values).
+     * Sets the mode, what do we need with unusual precisions (bits/sample), differ than all precisions
+     * supported by {@link TiffSampleType} class.
+     * These are 3-byte samples (17..24 bits/sample)
+     * and 16- or 24-bit floating-point formats.
+     * They will be unpacked (to 32-bit integer or floating-point values)
+     * when this mode is {@link UnusualPrecisions#UNPACK},
+     * or they will lead to an exception when it is {@link UnusualPrecisions#DISABLE},
+     * or they will be loaded as-is if it is {@link UnusualPrecisions#NONE}.
      *
-     * <p>This flag is only used inside {@link #readSamples(TiffReadMap, int, int, int, int)}
+     * <p>This mode is used inside {@link #readSamples(TiffReadMap, int, int, int, int)}
      * method after all tiles have been read.
-     * This is just the default value of <code>autoUnpackUnusualPrecisions</code>
+     * This is just the default value of <code>unusualPrecisions</code>
      * argument of the more verbose method
-     * {@link #readSamples(TiffReadMap, int, int, int, int, UnpackBits, boolean, boolean)}.
+     * {@link #readSamples(TiffReadMap, int, int, int, int, UnpackBits, UnusualPrecisions, boolean)}.
      *
      * <p>Note that the decoded data in {@link TiffTile} in case of unusual precisions is not unpacked
      * (but you may request unpacking with {@link TiffTile#getUnpackedSamples(boolean)} method).
      * On the other hand, all other precisions such as 4-bit or 12-bit (but not 1-channel 1-bit case)
      * are always unpacked to the nearest bit depth divided by 8 when decoding tiles.</p>
      *
-     * <p>This flag is ignored (as if it was {@code true}) when using high-level reading methods like
-     * {@link #readMatrix} and {@link #readJavaArray}.</p>
+     * <p>The {@link UnusualPrecisions#NONE} mode is ignored (as if it was {@link UnusualPrecisions#UNPACK})
+     * when using high-level reading methods like {@link #readMatrix} and {@link #readJavaArray}.</p>
      *
      * <p>This flag is {@code true} by default. Usually there are no reasons to set it to {@code false},
      * besides compatibility reasons or requirement to maximally save memory while processing 16/24-bit
      * float values.</p>
      *
-     * @param autoUnpackUnusualPrecisions whether do we need to unpack unusual precisions?
+     * @param unusualPrecisions whether do we need to unpack unusual precisions?
      * @return a reference to this object.
      * @see #completeDecoding(TiffTile)
      * @see TiffMap#bitsPerUnpackedSample()
      */
-    public TiffReader setAutoUnpackUnusualPrecisions(boolean autoUnpackUnusualPrecisions) {
-        this.autoUnpackUnusualPrecisions = autoUnpackUnusualPrecisions;
+    public TiffReader setUnusualPrecisions(UnusualPrecisions unusualPrecisions) {
+        this.unusualPrecisions = Objects.requireNonNull(unusualPrecisions, "Null unusualPrecisions");
         return this;
     }
 
@@ -1262,10 +1270,11 @@ public class TiffReader implements Closeable {
      * Thus, this method <b>does not unpack 3-byte samples</b> (to 4-byte) and
      * <b>does not unpack 16- or 24-bit</b> floating-point formats. These cases
      * are processed after reading all tiles inside {@link #readSamples(TiffReadMap, int, int, int, int)}
-     * method, if {@link #isAutoUnpackUnusualPrecisions()} flag is set, or may be performed by external
+     * method, if {@link #getUnusualPrecisions()} mode is {@link UnusualPrecisions#UNPACK},
+     * or may be performed by external
      * code with help of {@link TiffUnusualPrecisions#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)}
      * method.
-     * See {@link TiffReader#setAutoUnpackUnusualPrecisions(boolean)}.
+     * See {@link TiffReader#setUnusualPrecisions(UnusualPrecisions)}.
      *
      * <p>This method does not allow 5, 6, 7 or greater than 8 bytes/sample
      * (but 8 bytes/sample is allowed: it is probably <code>double</code> precision).</p>
@@ -1375,7 +1384,7 @@ public class TiffReader implements Closeable {
                 map,
                 fromX, fromY, sizeX, sizeY,
                 autoUnpackBits,
-                autoUnpackUnusualPrecisions,
+                unusualPrecisions,
                 false);
     }
 
@@ -1386,7 +1395,7 @@ public class TiffReader implements Closeable {
             int sizeX,
             int sizeY,
             UnpackBits autoUnpackBits,
-            boolean autoUnpackUnusualPrecisions,
+            UnusualPrecisions unusualPrecisions,
             boolean storeTilesInMap)
             throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
@@ -1412,12 +1421,21 @@ public class TiffReader implements Closeable {
         //     samples = newSamples;
         // }
         boolean unpackingPrecision = false;
-        if (autoUnpackUnusualPrecisions) {
-            byte[] newSamples = TiffUnusualPrecisions.unpackUnusualPrecisions(
-                    samples, ifd, numberOfChannels, sizeInPixels, autoScaleWhenIncreasingBitDepth);
-            unpackingPrecision = newSamples != samples;
-            samples = newSamples;
-            // - note: the size of the sample array can be increased here!
+        switch (unusualPrecisions) {
+            case DISABLE -> {
+                if (TiffUnusualPrecisions.isUnusualPrecisions(ifd)) {
+                    throw new UnsupportedTiffFormatException("Support of unusual TIFF bit depth is disabled: " +
+                            Arrays.toString(ifd.getBitsPerSample()) + " bits/sample for " +
+                            map.sampleType().prettyName() + " values");
+                }
+            }
+            case UNPACK -> {
+                byte[] newSamples = TiffUnusualPrecisions.unpackUnusualPrecisions(
+                        samples, ifd, numberOfChannels, sizeInPixels, autoScaleWhenIncreasingBitDepth);
+                unpackingPrecision = newSamples != samples;
+                samples = newSamples;
+                // - note: the size of the sample array can be increased here!
+            }
         }
         if (autoUnpackBits.isEnabled() && map.isBinary()) {
             unpackingPrecision = true;
@@ -1485,7 +1503,9 @@ public class TiffReader implements Closeable {
             throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         final byte[] samples = readSamples(
-                map, fromX, fromY, sizeX, sizeY, autoUnpackBits, true, storeTilesInMap);
+                map, fromX, fromY, sizeX, sizeY,
+                autoUnpackBits,
+                unusualPrecisions.unpackIfEnabled(), storeTilesInMap);
         long t1 = debugTime();
         final TiffSampleType sampleType = map.sampleType();
         final Object samplesArray = autoUnpackBits.isEnabled() && map.isBinary() ?

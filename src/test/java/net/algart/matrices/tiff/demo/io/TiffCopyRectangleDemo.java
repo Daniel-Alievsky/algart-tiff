@@ -81,15 +81,16 @@ public class TiffCopyRectangleDemo {
             // reader.setCaching(false); // - slows down copying when the rectangle does not consist of whole tiles
             // reader.setAutoUnpackBits(TiffReader.UnpackBits.UNPACK_TO_0_255);
             // - should not affect the result
+            if (smart) {
+                writer.setSmartFormatCorrection(true);
+            }
+
             final TiffReadMap readMap = reader.newMap(ifdIndex);
             if (w < 0) {
                 w = readMap.dimX() - x;
             }
             if (h < 0) {
                 h = readMap.dimY() - y;
-            }
-            if (smart) {
-                writer.setSmartFormatCorrection(true);
             }
             writer.setFormatLike(reader);
             // - without this operator, direct copy will be impossible for LE format

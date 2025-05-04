@@ -125,7 +125,7 @@ public final class TiffTile {
      *
      * <p><i>Warning:</i> this number can be smaller than the result of the same method of {@link #sampleType()}
      * object! This is possible for unusual precisions, like 24-bit integer or 16/24-bit float samples.
-     * See {@link TiffReader#setAutoUnpackUnusualPrecisions(boolean)} and
+     * See {@link TiffReader#setUnusualPrecisions(net.algart.matrices.tiff.TiffReader.UnusualPrecisions)} and
      * {@link TiffReader#completeDecoding(TiffTile)} methods.</p>
      *
      * <p>Note that you can see unpacked data only in two variants:</p>
@@ -138,7 +138,7 @@ public final class TiffTile {
      * <p>Inside this class, you are always dealing with the variant #2 (excepting call of
      * {@link #getUnpackedSamples(boolean)} method). The {@link TiffReader} class
      * usually returns data in the option #1, unless you disable this by
-     * {@link TiffReader#setAutoUnpackUnusualPrecisions(boolean)} method.
+     * {@link TiffReader#setUnusualPrecisions} method.
      * The {@link TiffWriter} class always takes the data in the variant #1.</p>
      *
      * @return number of bits per each sample (1 channel for 1 pixel).
@@ -617,7 +617,8 @@ public final class TiffTile {
      * Gets the decoded data with unpacking non-usual precisions: 16/24-bit floating points data
      * and any 3-byte/sample integer data. The same operations are performed by
      * {@link TiffReader} automatically
-     * if the {@link TiffReader#setAutoUnpackUnusualPrecisions(boolean)} mode is set.
+     * if the {@link TiffReader#setUnusualPrecisions unusual precision} parameter is set
+     * to {@link net.algart.matrices.tiff.TiffReader.UnusualPrecisions#UNPACK}.
      *
      * <p>This method is rarely necessary: {@link #getDecodedData()} is enough for most needs.
      *

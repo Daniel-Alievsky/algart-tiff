@@ -71,6 +71,7 @@ public class TiffReaderTest {
         boolean compatibility = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-compatibility")) {
             compatibility = true;
+            useContext = true;
             startArgIndex++;
         }
 
@@ -109,7 +110,7 @@ public class TiffReaderTest {
                 long t2 = System.nanoTime();
 //                reader.setEnforceUseExternalCodec(true);
 //                reader.setCachingIFDs(false);
-//                reader.setAutoUnpackUnusualPrecisions(false);
+//                reader.setUnusualPrecisions(TiffReader.UnusualPrecisions.NONE);
 //                reader.setAutoUnpackBits(TiffReader.UnpackBits.UNPACK_TO_0_1);
 //                reader.setAutoScaleWhenIncreasingBitDepth(false);
                 reader.setAutoCorrectInvertedBrightness(true);

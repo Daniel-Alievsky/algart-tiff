@@ -39,6 +39,11 @@ public class TiffUnusualPrecisions {
     private TiffUnusualPrecisions() {
     }
 
+    public static boolean isUnusualPrecisions(
+            final TiffIFD ifd) throws TiffException {
+        Objects.requireNonNull(ifd, "Null IFD");
+        return getInfo(ifd).isUnusual();
+    }
 
     /**
      * Unpacks pixel samples, stored in unusual precisions (2 or 3 bytes/sample), and returns unpacked data
@@ -86,6 +91,59 @@ public class TiffUnusualPrecisions {
         if (numberOfPixels < 0) {
             throw new IllegalArgumentException("Negative numberOfPixels = " + numberOfPixels);
         }
+        PrecisionsInfo info = getInfo(ifd);
+        // If the data were correctly loaded into a tile with usage TiffReader.completeDecoding method, then:
+        // 1) they are aligned by 8-bit (by unpackBitsAndInvertValues method);
+        // 2) number of bytes per sample may be only 1..4 or 8: other cases are rejected by unpackBitsAndInvertValues.
+        // So, we only need to check a case 3 bytes (17..24 bits before correction) and special cases float16/float24.
+        if (!info.isUnusual()) {
+            return samples;
+        }
+        assert info.packedBytesPerSample <= 4;
+        // Following code is necessary in a very rare case, and no sense to seriously optimize it
+        final ByteOrder byteOrder = ifd.getByteOrder();
+
+        final long size;
+        if (numberOfPixels > Integer.MAX_VALUE ||
+                (size = numberOfPixels * numberOfChannels * 4L) > Integer.MAX_VALUE) {
+            throw new TooLargeArrayException("Too large number of pixels " + numberOfPixels +
+                    " (" + numberOfChannels + " samples/pixel, 4 bytes/sample): it requires > 2 GB to store");
+        }
+        final int numberOfSamples = (int) (numberOfChannels * numberOfPixels);
+        if ((long) numberOfSamples * info.packedBytesPerSample > samples.length) {
+            throw new IllegalArgumentException("Too short samples array byte[" + samples.length +
+                    "]: it does not contain " + numberOfPixels + " pixels per " + numberOfChannels +
+                    " samples, " + info.packedBytesPerSample + " bytes/sample");
+        }
+        final byte[] unpacked = new byte[(int) size];
+        if (info.int24) {
+            for (int i = 0, disp = 0; i < numberOfSamples; i++, disp += info.packedBytesPerSample) {
+                // - very rare case, no sense to optimize
+                final long value = JArrays.getBytes8(samples, disp, info.packedBytesPerSample, byteOrder);
+                final long newValue = scaleUnsignedInt24 ? value << 8 : value;
+                JArrays.setBytes8(unpacked, i * 4, newValue, 4, byteOrder);
+            }
+            return unpacked;
+        }
+
+//        final int mantissaBits = float16 ? 10 : 16;
+//        final int exponentBits = float16 ? 5 : 7;
+        for (int i = 0, disp = 0; i < numberOfSamples; i++, disp += info.packedBytesPerSample) {
+            final int packedValue = (int) JArrays.getBytes8(samples, disp, info.packedBytesPerSample, byteOrder);
+//            final int valueToCompare = unpackFloatBits(packedValue, mantissaBits, exponentBits);
+            final int value = info.float16 ?
+                    unpackFloat16Bit((short) packedValue) :
+                    unpackFloat24Bit(packedValue);
+//            if (value != valueToCompare) {
+//                System.out.printf("%h %f != %h %f%n", value, Float.intBitsToFloat(value),
+//                        valueToCompare, Float.intBitsToFloat(valueToCompare));
+//            }
+            JArrays.setBytes8(unpacked, i * 4, value, 4, byteOrder);
+        }
+        return unpacked;
+    }
+
+    private static PrecisionsInfo getInfo(TiffIFD ifd) throws TiffException {
         final int packedBytesPerSample = (ifd.alignedBitDepth() + 7) >>> 3;
         final TiffSampleType sampleType = ifd.sampleType();
         final boolean floatingPoint = sampleType.isFloatingPoint();
@@ -100,55 +158,13 @@ public class TiffUnusualPrecisions {
         final boolean float16 = bitsPerSample == 16 && floatingPoint;
         final boolean float24 = bitsPerSample == 24 && floatingPoint;
         final boolean int24 = packedBytesPerSample == 3 && !float24;
-        // If the data were correctly loaded into a tile with usage TiffReader.completeDecoding method, then:
-        // 1) they are aligned by 8-bit (by unpackBitsAndInvertValues method);
-        // 2) number of bytes per sample may be only 1..4 or 8: other cases are rejected by unpackBitsAndInvertValues.
-        // So, we only need to check a case 3 bytes (17..24 bits before correction) and special cases float16/float24.
-        if (!float16 && !float24 && !int24) {
-            return samples;
-        }
-        assert packedBytesPerSample <= 4;
-        // Following code is necessary in a very rare case, and no sense to seriously optimize it
-        final ByteOrder byteOrder = ifd.getByteOrder();
+        return new PrecisionsInfo(packedBytesPerSample, float16, float24, int24);
+    }
 
-        final long size;
-        if (numberOfPixels > Integer.MAX_VALUE ||
-                (size = numberOfPixels * numberOfChannels * 4L) > Integer.MAX_VALUE) {
-            throw new TooLargeArrayException("Too large number of pixels " + numberOfPixels +
-                    " (" + numberOfChannels + " samples/pixel, 4 bytes/sample): it requires > 2 GB to store");
+    private record PrecisionsInfo(int packedBytesPerSample, boolean float16, boolean float24, boolean int24) {
+        public boolean isUnusual() {
+            return float16 || float24 || int24;
         }
-        final int numberOfSamples = (int) (numberOfChannels * numberOfPixels);
-        if ((long) numberOfSamples * packedBytesPerSample > samples.length) {
-            throw new IllegalArgumentException("Too short samples array byte[" + samples.length +
-                    "]: it does not contain " + numberOfPixels + " pixels per " + numberOfChannels +
-                    " samples, " + packedBytesPerSample + " bytes/sample");
-        }
-        final byte[] unpacked = new byte[(int) size];
-        if (int24) {
-            for (int i = 0, disp = 0; i < numberOfSamples; i++, disp += packedBytesPerSample) {
-                // - very rare case, no sense to optimize
-                final long value = JArrays.getBytes8(samples, disp, packedBytesPerSample, byteOrder);
-                final long newValue = scaleUnsignedInt24 ? value << 8 : value;
-                JArrays.setBytes8(unpacked, i * 4, newValue, 4, byteOrder);
-            }
-            return unpacked;
-        }
-
-//        final int mantissaBits = float16 ? 10 : 16;
-//        final int exponentBits = float16 ? 5 : 7;
-        for (int i = 0, disp = 0; i < numberOfSamples; i++, disp += packedBytesPerSample) {
-            final int packedValue = (int) JArrays.getBytes8(samples, disp, packedBytesPerSample, byteOrder);
-//            final int valueToCompare = unpackFloatBits(packedValue, mantissaBits, exponentBits);
-            final int value = float16 ?
-                    unpackFloat16Bit((short) packedValue) :
-                    unpackFloat24Bit(packedValue);
-//            if (value != valueToCompare) {
-//                System.out.printf("%h %f != %h %f%n", value, Float.intBitsToFloat(value),
-//                        valueToCompare, Float.intBitsToFloat(valueToCompare));
-//            }
-            JArrays.setBytes8(unpacked, i * 4, value, 4, byteOrder);
-        }
-        return unpacked;
     }
 
     // Common prototype, based on SCIFIO code

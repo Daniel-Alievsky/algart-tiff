@@ -323,7 +323,7 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
      * it is not allowed to write image with precisions listed above.</p>
      *
      * @return number of bytes, used for storing one channel of the pixel in memory.
-     * @see TiffReader#setAutoUnpackUnusualPrecisions(boolean)
+     * @see TiffReader#setUnusualPrecisions(net.algart.matrices.tiff.TiffReader.UnusualPrecisions)
      */
     public int bitsPerUnpackedSample() {
         return bitsPerUnpackedSample;
