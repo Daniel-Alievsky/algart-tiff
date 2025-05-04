@@ -431,7 +431,7 @@ public class TiffReader implements Closeable {
      * method after all tiles have been read.
      * This is just the default value of <code>unusualPrecisions</code>
      * argument of the more verbose method
-     * {@link #readSamples(TiffReadMap, int, int, int, int, UnpackBits, UnusualPrecisions, boolean)}.
+     * {@link #readSamples(TiffReadMap, int, int, int, int, UnusualPrecisions, boolean)}.
      *
      * <p>Note that the decoded data in {@link TiffTile} in case of unusual precisions is not unpacked
      * (but you may request unpacking with {@link TiffTile#getUnpackedSamples(boolean)} method).
