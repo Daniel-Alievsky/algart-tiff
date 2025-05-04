@@ -59,7 +59,7 @@ public class TiffOverwriteHelloWorldDemo {
 
         System.out.printf("Opening and rewriting TIFF %s...%n", targetFile);
         try (var writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
-            final TiffReader reader = writer.newReaderOfThisFile();
+            final TiffReader reader = writer.reader();
             final TiffIFD ifd = reader.readSingleIFD(ifdIndex);
             ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
             TiffReadMap readMap = reader.newMap(ifd, false);

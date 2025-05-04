@@ -103,6 +103,7 @@ public class TiffWriter implements Closeable {
     private volatile Context context = null;
 
     private final DataHandle<? extends Location> out;
+    private volatile TiffReader reader = null;
     private volatile Object scifio = null;
 
     private final Object fileLock = new Object();
@@ -221,11 +222,19 @@ public class TiffWriter implements Closeable {
         // - we do not use WriteBufferDataHandle here: this is not too important for efficiency
     }
 
-    public TiffReader newReaderOfThisFile() throws IOException {
-        return newReaderOfThisFile(TiffOpenMode.VALID_TIFF);
+    public TiffReader reader() throws IOException {
+        return reader(false);
     }
 
-    public TiffReader newReaderOfThisFile(TiffOpenMode openMode) throws IOException {
+    public TiffReader reader(boolean alwaysCreateNew) throws IOException {
+        TiffReader reader = this.reader;
+        if (alwaysCreateNew || reader == null) {
+            this.reader = reader = newReader(TiffOpenMode.NO_CHECKS);
+        }
+        return reader;
+    }
+
+    public TiffReader newReader(TiffOpenMode openMode) throws IOException {
         return new TiffReader(out, openMode, false);
     }
 
@@ -1296,7 +1305,7 @@ public class TiffWriter implements Closeable {
      * Preloads all tiles intersecting the specified rectangle from the image #<code>ifdIndex</code>
      * in the existing TIFF and stores them in the returned map.
      * The map is created by {@link #existingMap(TiffIFD)} method based on the IFD
-     * loaded with help of TIFF reader created by {@link #newReaderOfThisFile()} method.
+     * loaded with help of TIFF reader created by {@link #reader()} method.
      * This reader then loads there all tiles intersecting the rectangle
      * <code>fromX&le;x&lt;fromX+sizeX</code>, <code>fromY&le;y&lt;fromY+sizeY</code>,
      * and their content is copied to the corresponding tiles in the returned map.
@@ -1337,7 +1346,7 @@ public class TiffWriter implements Closeable {
             boolean loadTilesFullyInsideRectangle)
             throws IOException {
         TiffMap.checkRequestedArea(fromX, fromY, sizeX, sizeY);
-        @SuppressWarnings("resource") final TiffReader reader = newReaderOfThisFile();
+        @SuppressWarnings("resource") final TiffReader reader = reader();
         final TiffIFD ifd = reader.readSingleIFD(ifdIndex);
         ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
         final TiffWriteMap map = existingMap(ifd);

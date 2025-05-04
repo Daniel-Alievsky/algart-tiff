@@ -49,7 +49,7 @@ public class TiffWriteMixedTest {
     private static void printReaderInfo(TiffWriter writer) {
         System.out.print("Checking file by the reader: ");
         try {
-            final TiffReader reader = writer.newReaderOfThisFile(TiffOpenMode.NO_CHECKS);
+            final TiffReader reader = writer.reader();
             final int n = reader.numberOfImages();
             System.out.printf("%s, %d bytes, %s%n",
                     reader.isValidTiff() ? "valid" : "INVALID: \"" + reader.openingException() + "\"",
