@@ -129,7 +129,7 @@ public class TiffWriteMixedTest {
             // writer.complete(map);
             // - we can call complete twice, it will spend little time for rewriting IFD, but has no effect
 
-//            writer.writeJavaArray(map, samples, 0, 0, sizeX, sizeY);
+            // writer.writeJavaArray(map, samples, 0, 0, sizeX, sizeY);
             // - equivalent to previous 3 TiffWriter methods
             printReaderInfo(writer);
 

@@ -136,7 +136,7 @@ public final class TiffTile {
      *     16- or 24-bit floating-point formats.</li>
      * </ol>
      * <p>Inside this class, you are always dealing with the variant #2 (excepting call of
-     * {@link #getUnpackedData()} method). The {@link TiffReader} class
+     * {@link #getUnpackedSamples(boolean)} method). The {@link TiffReader} class
      * usually returns data in the option #1, unless you disable this by
      * {@link TiffReader#setAutoUnpackUnusualPrecisions(boolean)} method.
      * The {@link TiffWriter} class always takes the data in the variant #1.</p>
@@ -563,7 +563,7 @@ public final class TiffTile {
      *
      * @return unpacked data.
      * @throws IllegalStateException if the tile is {@link #isEmpty() empty} or {@link #isEncoded() encoded}.
-     * @see #getUnpackedData()
+     * @see #getUnpackedSamples(boolean)
      */
     public byte[] getDecodedData() {
         checkDecodedData();

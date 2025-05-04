@@ -217,7 +217,7 @@ public final class TiffWriteMap extends TiffMap {
             throw new IllegalArgumentException("The specified samplesArray is not actual an array: " +
                     "it is " + samplesArray.getClass());
         }
-        if (elementType != elementType()) {
+        if (!(elementType == elementType() || isBinary() && elementType == long.class)) {
             throw new IllegalArgumentException("Invalid element type of samples array: " + elementType +
                     ", but the specified TIFF map stores " + sampleType().prettyName() + " elements");
         }

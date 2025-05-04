@@ -38,14 +38,16 @@ import java.nio.file.Paths;
 import java.util.Locale;
 
 public class TiffWriteSimpleBitTest {
-    private final static int IMAGE_WIDTH = 10 * 1024;
-    private final static int IMAGE_HEIGHT = 10 * 1024;
-
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         boolean bigTiff = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-bigTiff")) {
             bigTiff = true;
+            startArgIndex++;
+        }
+        boolean javaArray = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-javaArray")) {
+            javaArray = true;
             startArgIndex++;
         }
         if (args.length < startArgIndex + 3) {
@@ -65,7 +67,7 @@ public class TiffWriteSimpleBitTest {
                 (Func2) (x, y) -> ((int) (x - y) & 0xFFFF) < 0x8000 ? 0 : 1,
                 BitArray.class, dimX, dimY).clone();
 
-        System.out.println("Writing huge TIFF " + targetFile);
+        System.out.println("Writing TIFF " + targetFile);
         try (final TiffWriter writer = new TiffWriter(targetFile)) {
             writer.setBigTiff(bigTiff);
             writer.setLittleEndian(true);
@@ -77,7 +79,12 @@ public class TiffWriteSimpleBitTest {
                 final var map = writer.newMap(ifd, false);
 
                 long t1 = System.nanoTime();
-                writer.writeMatrix(map, m);
+                if (javaArray) {
+                    map.writeJavaArray(m.array().jaBit());
+                    // - this branch helps to test the correct processing of the long[] type for binary arrays
+                } else {
+                    map.writeMatrix(m);
+                }
                 long t2 = System.nanoTime();
                 System.out.printf(Locale.US, "Test #%d/%d: bit matrix %dx%d (%,d elements) " +
                                 "written in %.3f ms, %.3f MB/sec%n",
