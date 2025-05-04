@@ -81,6 +81,9 @@ public class TiffCopyRectangleDemo {
             // reader.setCaching(false); // - slows down copying when the rectangle does not consist of whole tiles
             // reader.setAutoUnpackBits(TiffReader.UnpackBits.UNPACK_TO_0_255);
             // - should not affect the result
+            // reader.setUnusualPrecisions(TiffReader.UnusualPrecisions.DISABLE);
+            // - should block the ability to load non-standard precisions like 16-bit float
+
             if (smart) {
                 writer.setSmartFormatCorrection(true);
             }

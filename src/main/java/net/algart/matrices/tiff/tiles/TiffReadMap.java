@@ -72,12 +72,28 @@ public final class TiffReadMap extends TiffMap {
     }
 
     public byte[] loadSamples(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
-        return loadSamples(fromX, fromY, sizeX, sizeY, false);
+        return loadSamples(fromX, fromY, sizeX, sizeY, owningReader.getUnusualPrecisions());
     }
 
-    public byte[] loadSamples( int fromX, int fromY, int sizeX, int sizeY, boolean storeTilesInMap)
+    public byte[] loadSamples(
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY,
+            TiffReader.UnusualPrecisions unusualPrecisions) throws IOException {
+        return loadSamples(fromX, fromY, sizeX, sizeY, unusualPrecisions, false);
+    }
+
+    public byte[] loadSamples(
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY,
+            TiffReader.UnusualPrecisions unusualPrecisions,
+            boolean storeTilesInMap)
             throws IOException {
-        return loadSamples(owningReader::readCachedTile, fromX, fromY, sizeX, sizeY, storeTilesInMap);
+        return loadSamples(
+                owningReader::readCachedTile, fromX, fromY, sizeX, sizeY, unusualPrecisions, storeTilesInMap);
     }
 
     public byte[] loadSamples(
@@ -86,11 +102,17 @@ public final class TiffReadMap extends TiffMap {
             int fromY,
             int sizeX,
             int sizeY,
+            TiffReader.UnusualPrecisions unusualPrecisions,
             boolean storeTilesInMap)
             throws IOException {
         Objects.requireNonNull(tileSupplier, "Null tile supplier");
+        Objects.requireNonNull(unusualPrecisions, "Null unusualPrecisions");
         checkRequestedArea(fromX, fromY, sizeX, sizeY);
         final int sizeInBytes = sizeOfRegionWithPossibleNonStandardPrecisions(sizeX, sizeY);
+        final long sizeInPixels = (long) sizeX * (long) sizeY;
+        unusualPrecisions.throwIfDisabled(this);
+        assert unusualPrecisions == TiffReader.UnusualPrecisions.NONE ||
+                unusualPrecisions == TiffReader.UnusualPrecisions.UNPACK;
         final byte[] samples = new byte[sizeInBytes];
 
         final byte byteFiller = owningReader.getByteFiller();
@@ -117,13 +139,13 @@ public final class TiffReadMap extends TiffMap {
         final int minXIndex = Math.max(0, divFloor(fromX, mapTileSizeX));
         final int minYIndex = Math.max(0, divFloor(fromY, mapTileSizeY));
         if (minXIndex >= gridCountX() || minYIndex >= gridCountY() || toX < fromX || toY < fromY) {
-            return samples;
+            return unusualPrecisions.unpackIfNecessary(this, samples, sizeInPixels);
         }
         final int maxXIndex = Math.min(gridCountX() - 1, divFloor(toX - 1, mapTileSizeX));
         final int maxYIndex = Math.min(gridCountY() - 1, divFloor(toY - 1, mapTileSizeY));
         if (minYIndex > maxYIndex || minXIndex > maxXIndex) {
             // - possible when fromX < 0 or fromY < 0
-            return samples;
+            return unusualPrecisions.unpackIfNecessary(this, samples, sizeInPixels);
         }
         final long tileOneChannelRowSizeInBits = (long) mapTileSizeX * bitsPerSample;
         final long samplesOneChannelRowSizeInBits = (long) sizeX * bitsPerSample;
@@ -177,7 +199,7 @@ public final class TiffReadMap extends TiffMap {
                 }
             }
         }
-        return samples;
+        return unusualPrecisions.unpackIfNecessary(this, samples, sizeInPixels);
     }
 
     public byte[] readSamples() throws IOException {

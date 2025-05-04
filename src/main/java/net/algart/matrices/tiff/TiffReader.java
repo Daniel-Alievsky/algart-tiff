@@ -101,6 +101,26 @@ public class TiffReader implements Closeable {
         UnusualPrecisions unpackIfEnabled() {
             return this == NONE ? UNPACK : this;
         }
+
+        public void throwIfDisabled(TiffReadMap map) throws TiffException {
+            Objects.requireNonNull(map, "Null TIFF map");
+            if (this == DISABLE && TiffUnusualPrecisions.isUnusualPrecisions(map.ifd())) {
+                throw new UnsupportedTiffFormatException("Support of unusual TIFF bit depth is disabled: " +
+                        Arrays.toString(map.ifd().getBitsPerSample()) + " bits/sample for " +
+                        map.sampleType().prettyName() + " values");
+            }
+        }
+
+        public byte[] unpackIfNecessary(TiffReadMap map, byte[] samples, long numberOfPixels) throws TiffException {
+            Objects.requireNonNull(map, "Null TIFF map");
+            Objects.requireNonNull(samples, "Null samples");
+            throwIfDisabled(map);
+            return this != TiffReader.UnusualPrecisions.UNPACK ?
+                    samples :
+                    TiffUnusualPrecisions.unpackUnusualPrecisions(
+                            samples, map.ifd(), map.numberOfChannels(), numberOfPixels,
+                            map.isAutoScaleWhenIncreasingBitDepth());
+        }
     }
 
     public static final long DEFAULT_MAX_CACHING_MEMORY = Math.max(0,
@@ -801,7 +821,11 @@ public class TiffReader implements Closeable {
     }
 
     public List<TiffReadMap> allMaps() throws IOException {
-        return allIFDs().stream().map(this::newMap).toList();
+        final List<TiffReadMap> result = new ArrayList<>();
+        for (TiffIFD tiffIFD : allIFDs()) {
+            result.add(newMap(tiffIFD));
+        }
+        return result;
     }
 
     /**
@@ -1349,12 +1373,13 @@ public class TiffReader implements Closeable {
         */
     }
 
-    public TiffReadMap newMap(TiffIFD ifd) {
+    public TiffReadMap newMap(TiffIFD ifd) throws TiffException {
         return newMap(ifd, true);
     }
 
-    public TiffReadMap newMap(TiffIFD ifd, boolean builtTileGrid) {
+    public TiffReadMap newMap(TiffIFD ifd, boolean builtTileGrid) throws TiffException {
         final TiffReadMap map = new TiffReadMap(this, ifd);
+        unusualPrecisions.throwIfDisabled(map);
         if (builtTileGrid) {
             map.buildTileGrid();
         }
@@ -1404,10 +1429,10 @@ public class TiffReader implements Closeable {
         clearTiming();
         TiffMap.checkRequestedArea(fromX, fromY, sizeX, sizeY);
         // - note: we allow this area to be outside the image
-        final int numberOfChannels = map.numberOfChannels();
         final TiffIFD ifd = map.ifd();
 
-        byte[] samples = map.loadSamples(this::readCachedTile, fromX, fromY, sizeX, sizeY, storeTilesInMap);
+        byte[] samples = map.loadSamples(
+                this::readCachedTile, fromX, fromY, sizeX, sizeY, unusualPrecisions, storeTilesInMap);
         final int sizeInBytes = samples.length;
         final long sizeInPixels = (long) sizeX * (long) sizeY;
         // - can be >2^31 for bits
@@ -1420,25 +1445,9 @@ public class TiffReader implements Closeable {
         //     interleave = newSamples != samples;
         //     samples = newSamples;
         // }
-        boolean unpackingPrecision = false;
-        switch (unusualPrecisions) {
-            case DISABLE -> {
-                if (TiffUnusualPrecisions.isUnusualPrecisions(ifd)) {
-                    throw new UnsupportedTiffFormatException("Support of unusual TIFF bit depth is disabled: " +
-                            Arrays.toString(ifd.getBitsPerSample()) + " bits/sample for " +
-                            map.sampleType().prettyName() + " values");
-                }
-            }
-            case UNPACK -> {
-                byte[] newSamples = TiffUnusualPrecisions.unpackUnusualPrecisions(
-                        samples, ifd, numberOfChannels, sizeInPixels, autoScaleWhenIncreasingBitDepth);
-                unpackingPrecision = newSamples != samples;
-                samples = newSamples;
-                // - note: the size of the sample array can be increased here!
-            }
-        }
+        boolean unpackingBits = false;
         if (autoUnpackBits.isEnabled() && map.isBinary()) {
-            unpackingPrecision = true;
+            unpackingBits = true;
             samples = PackedBitArraysPer8.unpackBitsToBytes(
                     samples,
                     0,
@@ -1456,7 +1465,7 @@ public class TiffReader implements Closeable {
                             "%.3f complete; %.3f tiles->array and other)" +
                             "%s, %.3f MB/s",
                     getClass().getSimpleName(),
-                    sizeX, sizeY, numberOfChannels, sizeInBytes / 1048576.0,
+                    sizeX, sizeY, map.numberOfChannels(), sizeInBytes / 1048576.0,
                     (t3 - t1) * 1e-6,
                     (t2 - t1) * 1e-6,
                     timeReading * 1e-6,
@@ -1473,11 +1482,10 @@ public class TiffReader implements Closeable {
                                             "") : "",
                     timeCompleteDecoding * 1e-6,
                     timeNonClassified * 1e-6,
-                    unpackingPrecision ?
-                            String.format(Locale.US, " + %.3f unpacking %d-bit %s",
+                    unpackingBits ?
+                            String.format(Locale.US, " + %.3f unpacking %d-bit",
                                     (t3 - t2) * 1e-6,
-                                    map.alignedBitsPerSample(),
-                                    map.sampleType().isFloatingPoint() ? "float values" : "integer values") :
+                                    map.alignedBitsPerSample()) :
                             "",
                     sizeInBytes / 1048576.0 / ((t3 - t1) * 1e-9)));
         }
