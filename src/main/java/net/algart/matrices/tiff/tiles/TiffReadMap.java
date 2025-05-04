@@ -215,7 +215,6 @@ public final class TiffReadMap extends TiffMap {
             int fromY,
             int sizeX,
             int sizeY,
-            TiffReader.UnpackBits autoUnpackBitsToBytes,
             TiffReader.UnusualPrecisions autoUnpackUnusualPrecisions,
             boolean storeTilesInMap) throws IOException {
         return owningReader.readSamples(
@@ -224,7 +223,6 @@ public final class TiffReadMap extends TiffMap {
                 fromY,
                 sizeX,
                 sizeY,
-                autoUnpackBitsToBytes,
                 autoUnpackUnusualPrecisions,
                 storeTilesInMap);
     }

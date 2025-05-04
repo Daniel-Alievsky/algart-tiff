@@ -797,7 +797,6 @@ public class TiffParser extends TiffReader {
         final byte[] result = readSamples(
                 newMap(toTiffIFD(ifd)),
                 x, y, (int) width, (int) height,
-                UnpackBits.UNPACK_TO_0_255,
                 UnusualPrecisions.NONE,
                 false);
         if (result.length > buf.length) {

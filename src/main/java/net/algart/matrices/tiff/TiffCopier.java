@@ -433,11 +433,8 @@ public final class TiffCopier {
             final Object unpacked = readMap.readJavaArray(readX, readY, sizeX, sizeY);
             tiles = writeMap.updateJavaArray(unpacked, writeX, writeY, sizeX, sizeY);
         } else {
-            final byte[] samples = readMap.readSamples(
-                    readX, readY, sizeX, sizeY,
-                    TiffReader.UnpackBits.NONE,
-                    TiffReader.UnusualPrecisions.UNPACK,
-                    false);
+            final byte[] samples = readMap.loadSamples(
+                    readX, readY, sizeX, sizeY, TiffReader.UnusualPrecisions.UNPACK);
             tiles = writeMap.updateSamples(samples, writeX, writeY, sizeX, sizeY);
         }
         return writeMap.flushCompletedTiles(tiles);

@@ -1408,7 +1408,6 @@ public class TiffReader implements Closeable {
         return readSamples(
                 map,
                 fromX, fromY, sizeX, sizeY,
-                autoUnpackBits,
                 unusualPrecisions,
                 false);
     }
@@ -1419,17 +1418,15 @@ public class TiffReader implements Closeable {
             int fromY,
             int sizeX,
             int sizeY,
-            UnpackBits autoUnpackBits,
             UnusualPrecisions unusualPrecisions,
             boolean storeTilesInMap)
             throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
-        Objects.requireNonNull(autoUnpackBits, "Null autoUnpackBits");
+        Objects.requireNonNull(unusualPrecisions, "Null unusualPrecisions");
         long t1 = debugTime();
         clearTiming();
         TiffMap.checkRequestedArea(fromX, fromY, sizeX, sizeY);
         // - note: we allow this area to be outside the image
-        final TiffIFD ifd = map.ifd();
 
         byte[] samples = map.loadSamples(
                 this::readCachedTile, fromX, fromY, sizeX, sizeY, unusualPrecisions, storeTilesInMap);
@@ -1512,7 +1509,6 @@ public class TiffReader implements Closeable {
         Objects.requireNonNull(map, "Null TIFF map");
         final byte[] samples = readSamples(
                 map, fromX, fromY, sizeX, sizeY,
-                autoUnpackBits,
                 unusualPrecisions.unpackIfEnabled(), storeTilesInMap);
         long t1 = debugTime();
         final TiffSampleType sampleType = map.sampleType();
