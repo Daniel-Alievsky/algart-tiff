@@ -73,14 +73,14 @@ import java.util.stream.Collectors;
  * The same is true for the result of {@link #input()} method.</p>
  */
 public class TiffReader implements Closeable {
-    public enum UnpackBitsMode {
+    public enum UnpackBits {
         NONE((byte) 0),
         UNPACK_TO_0_1((byte) 1),
         UNPACK_TO_0_255((byte) 255);
 
         private final byte bit1Value;
 
-        UnpackBitsMode(byte bit1Value) {
+        UnpackBits(byte bit1Value) {
             this.bit1Value = bit1Value;
         }
 
@@ -91,6 +91,12 @@ public class TiffReader implements Closeable {
         public byte bit1Value() {
             return bit1Value;
         }
+    }
+
+    public enum UnusualPrecisions {
+        NONE,
+        DISABLE,
+        UNPACK
     }
 
     public static final long DEFAULT_MAX_CACHING_MEMORY = Math.max(0,
@@ -129,7 +135,7 @@ public class TiffReader implements Closeable {
 
     private boolean caching = true;
     private long maxCachingMemory = DEFAULT_MAX_CACHING_MEMORY;
-    private UnpackBitsMode autoUnpackBitsMode = UnpackBitsMode.NONE;
+    private UnpackBits autoUnpackBits = UnpackBits.NONE;
     private boolean autoUnpackUnusualPrecisions = true;
     private boolean autoScaleWhenIncreasingBitDepth = true;
     private boolean autoCorrectInvertedBrightness = false;
@@ -358,15 +364,15 @@ public class TiffReader implements Closeable {
     }
 
 
-    public UnpackBitsMode getAutoUnpackBitsMode() {
-        return autoUnpackBitsMode;
+    public UnpackBits getAutoUnpackBits() {
+        return autoUnpackBits;
     }
 
     /**
      * Sets the mode, describing whether do we need to unpack binary images (one bit/pixel, black-and-white images)
      * into <code>byte</code> matrices: black pixels to value 0, white pixels to value depending on the mode.
      *
-     * <p>By default, this mode is {@link UnpackBitsMode#NONE}.
+     * <p>By default, this mode is {@link UnpackBits#NONE}.
      * In this case, {@link #readMatrix(TiffReadMap)} and similar methods return binary AlgART matrices.</p>
      *
      * <p>Note that some TIFF images use <i>m</i>&gt;1 bit per pixel, where <i>m</i> is not divisible by 8,
@@ -375,11 +381,11 @@ public class TiffReader implements Closeable {
      * The only exception is 1-bit monochrome images: in this case, unpacking into bytes
      * is controlled by this method.</p>
      *
-     * @param autoUnpackBitsMode whether do we need to unpack bit matrices to byte ones?
+     * @param autoUnpackBits whether do we need to unpack bit matrices to byte ones?
      * @return a reference to this object.
      */
-    public TiffReader setAutoUnpackBitsMode(UnpackBitsMode autoUnpackBitsMode) {
-        this.autoUnpackBitsMode = Objects.requireNonNull(autoUnpackBitsMode, "Null autoUnpackBitsMode");
+    public TiffReader setAutoUnpackBits(UnpackBits autoUnpackBits) {
+        this.autoUnpackBits = Objects.requireNonNull(autoUnpackBits, "Null autoUnpackBits");
         return this;
     }
 
@@ -397,7 +403,7 @@ public class TiffReader implements Closeable {
      * method after all tiles have been read.
      * This is just the default value of <code>autoUnpackUnusualPrecisions</code>
      * argument of the more verbose method
-     * {@link #readSamples(TiffReadMap, int, int, int, int, UnpackBitsMode, boolean, boolean)}.
+     * {@link #readSamples(TiffReadMap, int, int, int, int, UnpackBits, boolean, boolean)}.
      *
      * <p>Note that the decoded data in {@link TiffTile} in case of unusual precisions is not unpacked
      * (but you may request unpacking with {@link TiffTile#getUnpackedSamples(boolean)} method).
@@ -1368,7 +1374,7 @@ public class TiffReader implements Closeable {
         return readSamples(
                 map,
                 fromX, fromY, sizeX, sizeY,
-                autoUnpackBitsMode,
+                autoUnpackBits,
                 autoUnpackUnusualPrecisions,
                 false);
     }
@@ -1379,12 +1385,12 @@ public class TiffReader implements Closeable {
             int fromY,
             int sizeX,
             int sizeY,
-            UnpackBitsMode autoUnpackBitsMode,
+            UnpackBits autoUnpackBits,
             boolean autoUnpackUnusualPrecisions,
             boolean storeTilesInMap)
             throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
-        Objects.requireNonNull(autoUnpackBitsMode, "Null autoUnpackBitsMode");
+        Objects.requireNonNull(autoUnpackBits, "Null autoUnpackBits");
         long t1 = debugTime();
         clearTiming();
         TiffMap.checkRequestedArea(fromX, fromY, sizeX, sizeY);
@@ -1413,14 +1419,14 @@ public class TiffReader implements Closeable {
             samples = newSamples;
             // - note: the size of the sample array can be increased here!
         }
-        if (autoUnpackBitsMode.isEnabled() && map.isBinary()) {
+        if (autoUnpackBits.isEnabled() && map.isBinary()) {
             unpackingPrecision = true;
             samples = PackedBitArraysPer8.unpackBitsToBytes(
                     samples,
                     0,
                     sizeInPixels,
                     (byte) 0,
-                    autoUnpackBitsMode.bit1Value());
+                    autoUnpackBits.bit1Value());
         }
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t3 = debugTime();
@@ -1479,10 +1485,10 @@ public class TiffReader implements Closeable {
             throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         final byte[] samples = readSamples(
-                map, fromX, fromY, sizeX, sizeY, autoUnpackBitsMode, true, storeTilesInMap);
+                map, fromX, fromY, sizeX, sizeY, autoUnpackBits, true, storeTilesInMap);
         long t1 = debugTime();
         final TiffSampleType sampleType = map.sampleType();
-        final Object samplesArray = autoUnpackBitsMode.isEnabled() && map.isBinary() ?
+        final Object samplesArray = autoUnpackBits.isEnabled() && map.isBinary() ?
                 samples :
                 sampleType.javaArray(samples, getByteOrder());
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {

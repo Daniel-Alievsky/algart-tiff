@@ -79,7 +79,7 @@ public class TiffCopyRectangleDemo {
                 System.out.printf("\r%d/%d...", p.tileIndex() + 1, p.tileCount()));
         try (var reader = new TiffReader(sourceFile); var writer = new TiffWriter(targetFile)) {
             // reader.setCaching(false); // - slows down copying when the rectangle does not consist of whole tiles
-            // reader.setAutoUnpackBitsMode(TiffReader.UnpackBitsMode.UNPACK_TO_0_255);
+            // reader.setAutoUnpackBits(TiffReader.UnpackBits.UNPACK_TO_0_255);
             // - should not affect the result
             final TiffReadMap readMap = reader.newMap(ifdIndex);
             if (w < 0) {

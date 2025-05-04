@@ -59,8 +59,8 @@ public final class TiffReadMap extends TiffMap {
         return owningReader;
     }
 
-    public TiffReader.UnpackBitsMode getAutoUnpackBitsMode() {
-        return owningReader.getAutoUnpackBitsMode();
+    public TiffReader.UnpackBits getAutoUnpackBits() {
+        return owningReader.getAutoUnpackBits();
     }
 
     public boolean isAutoScaleWhenIncreasingBitDepth() {
@@ -193,7 +193,7 @@ public final class TiffReadMap extends TiffMap {
             int fromY,
             int sizeX,
             int sizeY,
-            TiffReader.UnpackBitsMode autoUnpackBitsToBytes,
+            TiffReader.UnpackBits autoUnpackBitsToBytes,
             boolean autoUnpackUnusualPrecisions,
             boolean storeTilesInMap) throws IOException {
         return owningReader.readSamples(
