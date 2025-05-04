@@ -694,14 +694,13 @@ public final class TiffTile {
             throw new IllegalArgumentException("The specified source tile has incompatible " +
                     "sample type (" + source.elementType().getSimpleName() + ") than this tile: " + this);
         }
-        if (map.alignedBitsPerSample() != source.map.alignedBitsPerSample()) {
-            throw new IllegalArgumentException("The specified source tile has incompatible " +
-                    "bits per sample (" + source.map.alignedBitsPerSample() + ") than this tile: " + this);
-        }
         if (samplesPerPixel != source.samplesPerPixel) {
             throw new IllegalArgumentException("The specified source tile has incompatible " +
                     "samples per pixel (" + source.samplesPerPixel + ") than this tile: " + this);
         }
+        // Note: map.alignedBitsPerSample() MAY BE != source.map.alignedBitsPerSample()
+        // This situation occurs when we need to copy unusual precisions,
+        // for example, 16-bit float into 32-bit floats
         if (source.isEmpty()) {
             free();
             return this;
