@@ -133,6 +133,7 @@ public class TiffCopyTest {
                     } else {
                         System.out.printf("\r  Repacking #%d/%d: %s%n", ifdIndex, maps.size(), readMap.ifd());
                         final TiffCopier copier = getCopier();
+                        copier.setDirectCopy(false);
                         copier.copyImage(writer, readMap);
                     }
                 }
@@ -147,7 +148,7 @@ public class TiffCopyTest {
 
     private TiffCopier getCopier() {
         final TiffCopier copier = new TiffCopier();
-        assert !copier.isDirectCopy() : "direct-copy should be disabled by default";
+        if (!copier.isDirectCopy()) throw new AssertionError("direct-copy should be enabled by default");
         copier.setProgressUpdater(
                 p ->
                         System.out.printf("\r%d/%d...", p.tileIndex() + 1, p.tileCount()));

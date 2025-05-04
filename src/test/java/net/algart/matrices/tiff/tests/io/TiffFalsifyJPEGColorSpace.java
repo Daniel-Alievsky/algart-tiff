@@ -66,6 +66,7 @@ public class TiffFalsifyJPEGColorSpace {
             final var maps = reader.allMaps();
             lastIFDIndex = Math.min(lastIFDIndex, maps.size() - 1);
             final TiffCopier copier = new TiffCopier()
+                    .setDirectCopy(false)
                     .setIfdCorrector(ifd -> {
                         ifd.putPhotometricInterpretation(before);
                         ifd.put(Tags.Y_CB_CR_SUB_SAMPLING,
@@ -83,8 +84,7 @@ public class TiffFalsifyJPEGColorSpace {
                 System.out.printf("\rTransforming #%d/%d: %s%n", i, maps.size(), readMap.ifd());
                 // - instruct Java AWT to store as RGB and disable subsampling
                 // (RGB are encoded without subsampling)
-                final var writeMap = copier
-                        .copyImage(writer, readMap);
+                final var writeMap = copier.copyImage(writer, readMap);
                 final TiffIFD cloneIFD = new TiffIFD(writeMap.ifd());
                 // - writeMap is frozen and cannot be modified
                 cloneIFD.putPhotometricInterpretation(after);

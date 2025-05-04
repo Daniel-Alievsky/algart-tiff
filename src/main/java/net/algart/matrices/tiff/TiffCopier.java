@@ -87,7 +87,7 @@ public final class TiffCopier {
     private static final System.Logger LOG = System.getLogger(TiffCopier.class.getName());
     private static final boolean LOGGABLE_DEBUG = LOG.isLoggable(System.Logger.Level.DEBUG);
 
-    private boolean directCopy = false;
+    private boolean directCopy = true;
     private IFDCorrector ifdCorrector = null;
     private Consumer<ProgressInformation> progressUpdater = null;
     private BooleanSupplier interruptionChecker = null;
@@ -109,8 +109,7 @@ public final class TiffCopier {
 
     /**
      * Sets the flag that enforces direct copying of TIFF image tiles without decompression/compression.
-     * Default value is <code>false</code>, meaning that TIFF tiles are always decompressed and compressed
-     * during the copy process.
+     * Default value is <code>true</code>.
      *
      * @param directCopy whether the direct copying of TIFF tiles should be used.
      * @return a reference to this object.
