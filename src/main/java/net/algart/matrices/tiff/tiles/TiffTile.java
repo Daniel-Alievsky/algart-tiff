@@ -687,15 +687,15 @@ public final class TiffTile {
         return this;
     }
 
-    private boolean isByteOrderCompatible(TiffTile source) {
-        return map.isByteOrderCompatible(source.byteOrder());
-    }
-
     public TiffTile copyUnpackedSamples(TiffTile source, boolean autoScaleWhenIncreasingBitDepth) {
         Objects.requireNonNull(source, "Null source tile");
         if (sampleType() != source.sampleType()) {
             throw new IllegalArgumentException("The specified source tile has incompatible " +
                     "sample type (" + source.elementType().getSimpleName() + ") than this tile: " + this);
+        }
+        if (map.alignedBitsPerSample() != source.map.alignedBitsPerSample()) {
+            throw new IllegalArgumentException("The specified source tile has incompatible " +
+                    "bits per sample (" + source.map.alignedBitsPerSample() + ") than this tile: " + this);
         }
         if (samplesPerPixel != source.samplesPerPixel) {
             throw new IllegalArgumentException("The specified source tile has incompatible " +
@@ -706,7 +706,7 @@ public final class TiffTile {
             return this;
         }
         source.checkDecodedData();
-        if (isByteOrderCompatible(source)) {
+        if (map.isCopyCompatible(source.byteOrder())) {
             final byte[] decodedData = source.getUnpackedSamples(autoScaleWhenIncreasingBitDepth);
             setDecodedData(decodedData);
         } else {

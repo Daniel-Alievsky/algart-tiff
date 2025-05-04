@@ -162,7 +162,7 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
             this.numberOfSeparatedPlanes = planarSeparated ? numberOfChannels : 1;
             this.tileSamplesPerPixel = planarSeparated ? 1 : numberOfChannels;
             this.alignedBitsPerSample = ifd.alignedBitDepth();
-            // - so, we allow only EQUAL number of bytes/sample (but number if bits/sample can be different)
+            // - so, we allow only EQUAL number of bytes/sample (but the number if bits/sample can be different)
             assert (long) numberOfChannels * (long) alignedBitsPerSample <
                     TiffIFD.MAX_NUMBER_OF_CHANNELS * TiffIFD.MAX_BITS_PER_SAMPLE;
             // - actually must be in 8 times less
@@ -653,7 +653,7 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
         }
     }
 
-    public boolean isByteOrderCompatible(ByteOrder byteOrder) {
+    public boolean isCopyCompatible(ByteOrder byteOrder) {
         Objects.requireNonNull(byteOrder, "Null byte order");
         return byteOrder == this.byteOrder || sampleType.isBinary() || sampleType.bitsPerSample() == 8;
         // - most typical cases; we do not try to optimize "strange" bit numbers like 4-bit samples

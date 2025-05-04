@@ -293,7 +293,7 @@ public final class TiffCopier {
         final int mapTileSizeX = writeMap.tileSizeX();
         final int mapTileSizeY = writeMap.tileSizeY();
         final boolean directCopy = canBeRectangleCopiedDirectly(writeMap, readMap, fromX, fromY);
-        final boolean unpackBytes = !readMap.isByteOrderCompatible(writeMap.byteOrder());
+        final boolean unpackBytes = !readMap.isCopyCompatible(writeMap.byteOrder());
         if (unpackBytes && directCopy) {
             throw new AssertionError("If we use unpackBytes branch, " +
                     "we must be sure that no tiles will be coped directly");
@@ -382,7 +382,7 @@ public final class TiffCopier {
 
     private boolean canBeImageCopiedDirectly(TiffIFD writeIFD, ByteOrder writeByteOrder, TiffReadMap readMap)
             throws TiffException {
-        if (!readMap.isByteOrderCompatible(writeByteOrder)) {
+        if (!readMap.isCopyCompatible(writeByteOrder)) {
             // - theoretically, this check is extra: byteOrderIsNotUsedForImageData will be false
             return false;
         }
@@ -393,9 +393,13 @@ public final class TiffCopier {
         // - for unknown compressions, we cannot be sure of this fact even for 1-bit or 8-bit samples
         return this.directCopy &&
                 (readMap.byteOrder() == writeByteOrder || byteOrderIsNotUsedForImageData) &&
-                compressionCode == writeIFD.getCompressionCode();
-        // - note that the compatibility of the sample type and pixel structure (number of channels and
-        // planar separated mode) will be checked later in checkImageCompatibility() method
+                compressionCode == writeIFD.getCompressionCode() &&
+                readMap.alignedBitsPerSample() == writeIFD.alignedBitDepth();
+        // - Number of bits per sample MAY become different in the case of unusual precisions like 16-bit float:
+        // for writing, it will be transformed into 32-bit float values.
+        // Also note that the compatibility of the sample type and pixel structure (number of channels and
+        // planar separated mode) will be checked later in checkImageCompatibility() method.
+
     }
 
     private static boolean isByteOrBinary(TiffReadMap readMap) {

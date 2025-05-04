@@ -1239,7 +1239,7 @@ public class TiffIFD {
      *     <li>in another case, if all the values <code>(B[i]+7)/8</code> (<code>&#8968;(double)B[i]/8&#8969;</code>)
      *     are equal to the same value <code>b</code>, the result is b*8
      *     (this is the number of whole bytes needed to store each sample);</li>
-     *     <li>if some of values <code>(B[i]+7)/8</code> are different, {@link UnsupportedTiffFormatException}
+     *     <li>if some of the values <code>(B[i]+7)/8</code> are different, {@link UnsupportedTiffFormatException}
      *     is thrown.</li>
      * </ol>
      *
