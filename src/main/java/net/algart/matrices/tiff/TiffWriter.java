@@ -227,11 +227,12 @@ public class TiffWriter implements Closeable {
     }
 
     public TiffReader reader(boolean alwaysCreateNew) throws IOException {
-        TiffReader reader = this.reader;
-        if (alwaysCreateNew || reader == null) {
-            this.reader = reader = newReader(TiffOpenMode.NO_CHECKS);
+        synchronized (fileLock) {
+            if (alwaysCreateNew || this.reader == null) {
+                this.reader = newReader(TiffOpenMode.NO_CHECKS);
+            }
+            return this.reader;
         }
-        return reader;
     }
 
     public TiffReader newReader(TiffOpenMode openMode) throws IOException {
@@ -670,6 +671,7 @@ public class TiffWriter implements Closeable {
      */
     public final void open(boolean createIfNotExists) throws IOException {
         synchronized (fileLock) {
+            clearReader();
             if (!out.exists()) {
                 if (createIfNotExists) {
                     create();
@@ -680,8 +682,10 @@ public class TiffWriter implements Closeable {
                 // In this branch, we MUST NOT try to analyze the file: it is not a correct TIFF!
             } else {
                 ifdOffsets.clear();
-                final TiffReader reader = new TiffReader(out, TiffOpenMode.VALID_TIFF, false);
-                // - note: we should NOT close the reader in the case of any problem,
+                this.reader = newReader(TiffOpenMode.VALID_TIFF);
+                // - The first opening TIFF is the only place when we MUST use VALID_TIFF mode
+                // instead of the usual NO_CHECKS used inside reader() method
+                // Note: we should NOT close the reader in the case of any problem,
                 // because it uses the same stream with this writer
                 final long[] offsets = reader.readIFDOffsets();
                 final long readerPositionOfLastOffset = reader.positionOfLastIFDOffset();
@@ -725,6 +729,7 @@ public class TiffWriter implements Closeable {
      */
     public final void create() throws IOException {
         synchronized (fileLock) {
+            clearReader();
             ifdOffsets.clear();
             out.seek(0);
             // - this call actually creates and opens the file if it was not opened before
@@ -808,6 +813,7 @@ public class TiffWriter implements Closeable {
     public void writeIFDAt(TiffIFD ifd, Long startOffset, boolean updateIFDLinkages) throws IOException {
         synchronized (fileLock) {
             checkVirginFile();
+            clearReader();
             if (startOffset == null) {
                 appendFileUntilEvenLength();
                 startOffset = out.length();
@@ -909,6 +915,7 @@ public class TiffWriter implements Closeable {
         long t1 = debugTime();
         synchronized (fileLock) {
             checkVirginFile();
+            clearReader();
             TiffTileIO.write(tile, out, alwaysWriteToFileEnd, !bigTiff);
             if (disposeAfterWriting) {
                 tile.dispose();
@@ -1590,9 +1597,10 @@ public class TiffWriter implements Closeable {
 
     @Override
     public void close() throws IOException {
-        lastMap = null;
         synchronized (fileLock) {
+            lastMap = null;
             out.close();
+            clearReader();
         }
     }
 
@@ -1677,6 +1685,12 @@ public class TiffWriter implements Closeable {
         timeEncodingMain = 0;
         timeEncodingBridge = 0;
         timeEncodingAdditional = 0;
+    }
+
+    private void clearReader() {
+        synchronized (fileLock) {
+            this.reader = null;
+        }
     }
 
     private void checkVirginFile() throws IOException {
@@ -2096,6 +2110,7 @@ public class TiffWriter implements Closeable {
             throws IOException {
         synchronized (fileLock) {
             // - to be on the safe side (this synchronization is not necessary)
+            clearReader();
             final long savedPosition = out.offset();
             try {
                 out.seek(positionToWrite);
