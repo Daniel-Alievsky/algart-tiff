@@ -88,11 +88,14 @@ public class TiffUnusualPrecisions {
         }
         final int packedBytesPerSample = (ifd.alignedBitDepth() + 7) >>> 3;
         final TiffSampleType sampleType = ifd.sampleType();
-        if (packedBytesPerSample <= 1 || packedBytesPerSample > 4) {
-            throw new AssertionError("sampleType() did not check supported bit depth: " + ifd);
-        }
         final boolean floatingPoint = sampleType.isFloatingPoint();
         // - actually DOUBLE is not used below
+        if (packedBytesPerSample < 1 ||
+                (floatingPoint ?
+                        packedBytesPerSample > 4 && packedBytesPerSample != 8 :
+                        packedBytesPerSample > 4)) {
+            throw new AssertionError("sampleType() did not check supported bit depth: " + ifd);
+        }
         final int bitsPerSample = ifd.tryEqualBitDepth().orElse(-1);
         final boolean float16 = bitsPerSample == 16 && floatingPoint;
         final boolean float24 = bitsPerSample == 24 && floatingPoint;
