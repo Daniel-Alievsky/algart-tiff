@@ -218,6 +218,10 @@ public final class TiffCopier {
             // - theoretically, we can essentially modify IFD here
         }
         final boolean actuallyDirectCopy = canBeImageCopiedDirectly(writeIFD, writer.getByteOrder(), readMap);
+        // - Note: unlike copying a rectangle in the other method, here we check compatibility
+        // BEFORE calling newMap and, so, without correction of writeIFD by correctFormatForEncoding.
+        // Thus, most of the checks besides the byte order will usually be unnecessary
+        // (unless they have been changed by ifdCorrector).
         final boolean correctFormatForEncoding = !actuallyDirectCopy;
         // - There is no sense to call correctFormatForEncoding() method if we use tile-per-tile direct copying.
         // We could use smartFormatCorrection mode always by explicitly calling correctFormatForEncoding(ifd, true),
