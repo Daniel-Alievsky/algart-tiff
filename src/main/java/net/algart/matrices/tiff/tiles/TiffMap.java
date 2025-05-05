@@ -283,10 +283,6 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
         return bitsPerSample.clone();
     }
 
-    public OptionalInt tryEqualBitDepth() throws TiffException {
-        return TiffIFD.tryEqualBitDepth(bitsPerSample);
-    }
-
     /**
      * Minimal number of bits, necessary to store one channel of the pixel:
      * the value of BitsPerSample TIFF tag, aligned to the nearest non-lesser multiple of 8,
