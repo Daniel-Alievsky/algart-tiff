@@ -42,6 +42,11 @@ import java.util.List;
 public class TiffAppendDemo {
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
+        boolean bigTiff = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-bigTiff")) {
+            bigTiff = true;
+            startArgIndex++;
+        }
         boolean mono = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-mono")) {
             mono = true;
@@ -60,11 +65,11 @@ public class TiffAppendDemo {
         List<? extends Matrix<? extends PArray>> image = MatrixIO.readImage(sourceFile);
         if (mono && image.size() > 1) {
             System.out.println("Conversion color image to monochrome...");
-            image = List.of(ColorMatrices.asRGBIntensity(image).clone());
+            image = List.of(ColorMatrices.toRGBIntensity(image));
         }
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
-        try (var writer = new TiffWriter(targetFile, TiffCreateMode.APPEND_LE)) {
+        try (var writer = new TiffWriter(targetFile, TiffCreateMode.ofAppendOptions(bigTiff, true))) {
             // - for comparison, TiffCreateMode.CREATE always creates a new file
             final TiffIFD ifd = writer.newIFD()
                     .putChannelsInformation(image)

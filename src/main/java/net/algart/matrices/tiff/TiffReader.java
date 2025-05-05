@@ -84,6 +84,11 @@ public class TiffReader implements Closeable {
             this.bit1Value = bit1Value;
         }
 
+        public static UnpackBits of(boolean unpack) {
+            return unpack ? UNPACK_TO_0_255 : NONE;
+        }
+
+
         public boolean isEnabled() {
             return this != NONE;
         }
@@ -100,6 +105,10 @@ public class TiffReader implements Closeable {
 
         UnusualPrecisions unpackIfEnabled() {
             return this == NONE ? UNPACK : this;
+        }
+
+        public static UnusualPrecisions of(boolean unpack) {
+            return unpack ? UNPACK : NONE;
         }
 
         public void throwIfDisabled(TiffReadMap map) throws TiffException {

@@ -80,6 +80,12 @@ public enum TiffCreateMode {
                 (littleEndian ? CREATE_LE : CREATE);
     }
 
+    public static TiffCreateMode ofAppendOptions(boolean bigTiff, boolean littleEndian) {
+        return bigTiff ?
+                (littleEndian ? APPEND_LE_BIG : APPEND_BIG) :
+                (littleEndian ? APPEND_LE : APPEND);
+    }
+
     void configureWriter(TiffWriter writer) throws IOException {
         if (bigTiff) {
             writer.setBigTiff(true);
