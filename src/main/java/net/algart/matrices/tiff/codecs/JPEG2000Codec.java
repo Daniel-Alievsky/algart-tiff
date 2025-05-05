@@ -75,6 +75,9 @@ public class JPEG2000Codec implements TiffCodec {
      * #L%
      */
 
+    private static final boolean WRITE_CODE_STREAM_ONLY = true;
+    // - Should be true for better compatibility with Aperio Image Viewer, GIMP and other applications.
+
     /**
      * Options for compressing and decompressing JPEG-2000 data.
      */
@@ -220,7 +223,7 @@ public class JPEG2000Codec implements TiffCodec {
         }
     }
 
-    // Copy of equivalent SCIFIO method, not using jaiIIOService field
+    // Copy of the equivalent SCIFIO method, not using jaiIIOService field
     public byte[] compress(byte[] data, Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
@@ -385,8 +388,9 @@ public class JPEG2000Codec implements TiffCodec {
         return rtn;
     }
 
-    private static void writeImage(final OutputStream out, final BufferedImage img,
-                                   final JPEG2000Options options) throws IOException {
+    private static void writeImage(
+            final OutputStream out, final BufferedImage img,
+            final JPEG2000Options options) throws IOException {
         final ImageOutputStream ios = ImageIO.createImageOutputStream(out);
 
         final J2KImageWriter writer = new J2KImageWriter(null);
@@ -402,6 +406,8 @@ public class JPEG2000Codec implements TiffCodec {
         param.setCompressionType("JPEG2000");
         param.setLossless(options.lossless);
         param.setFilter(filter);
+        param.setWriteCodeStreamOnly(WRITE_CODE_STREAM_ONLY);
+        // - thanks ChatGPT: important addition (5.05.2025)
         param.setCodeBlockSize(options.getCodeBlockSize());
         param.setEncodingRate(options.lossyCompressionQuality());
 //      TIFF provides its own tile subsystem

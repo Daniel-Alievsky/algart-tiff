@@ -114,6 +114,11 @@ public enum TagCompression {
     PACK_BITS(TiffIFD.COMPRESSION_PACK_BITS, "PackBits", PackBitsCodec::new),
 
     /**
+     * JPEG-2000 standard compression (type 34712).
+     */
+    JPEG_2000(34712, "JPEG-2000", JPEG2000Codec::new),
+
+    /**
      * JPEG-2000 Aperio lossless compression (type 33003).
      *
      * <p>Note that while writing TIFF in this format, {@link net.algart.matrices.tiff.TiffWriter}
@@ -125,17 +130,12 @@ public enum TagCompression {
     /**
      * JPEG-2000 Aperio lossy compression (type 33004).
      */
-    JPEG_2000(33004, "JPEG-2000 lossy", JPEG2000Codec::new),
+    JPEG_2000_LOSSY(33004, "JPEG-2000 lossy", JPEG2000Codec::new),
 
     /**
      * JPEG-2000 Aperio lossless compression for RGB (type 33005).
      */
-    JPEG_2000_LOSSLESS_ALTERNATIVE(33005, "JPEG-2000 lossless alternative", JPEG2000Codec::new),
-
-    /**
-     * JPEG-2000 Olympus lossless compression (type 34712).
-     */
-    JPEG_2000_LOSSLESS_OLYMPUS(34712, "JPEG-2000 lossless Olympus", JPEG2000Codec::new);
+    JPEG_2000_LOSSLESS_ALTERNATIVE(33005, "JPEG-2000 lossless alternative", JPEG2000Codec::new);
 
     private static final Map<Integer, TagCompression> LOOKUP =
             Arrays.stream(values()).collect(Collectors.toMap(TagCompression::code, v -> v));
@@ -180,11 +180,11 @@ public enum TagCompression {
 
     public boolean isJpeg2000() {
         return this == JPEG_2000_LOSSLESS || this == JPEG_2000_LOSSLESS_ALTERNATIVE ||
-                this == JPEG_2000_LOSSLESS_OLYMPUS || this == JPEG_2000;
+                this == JPEG_2000 || this == JPEG_2000_LOSSY;
     }
 
     public boolean isJpeg2000Lossy() {
-        return this == JPEG_2000;
+        return this == JPEG_2000_LOSSY || this == JPEG_2000;
     }
 
     public boolean isStandard() {
