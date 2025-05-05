@@ -24,18 +24,37 @@
 
 package net.algart.matrices.tiff.demo.io;
 
+import net.algart.arrays.ColorMatrices;
+import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
 import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffWriter;
+import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class TiffOverwritePictureDemo {
+    private static List<? extends Matrix<? extends PArray>> tryToAdjust(
+            List<? extends Matrix<? extends PArray>> image,
+            TiffMap map) {
+        if (map.numberOfChannels() == 1) {
+            image = List.of(ColorMatrices.toRGBIntensity(image));
+        }
+        if (image.get(0).elementType() != map.elementType()) {
+            image = image.stream().map(
+                    m -> Matrices.asPrecision(m, map.elementType()))
+                    .collect(Collectors.toList());
+        }
+        return image;
+    }
+
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         if (args.length < startArgIndex + 3) {
@@ -62,7 +81,7 @@ public class TiffOverwritePictureDemo {
             final TiffWriteMap map = writer.preloadExistingTiles(
                     ifdIndex, x, y, imageToDrawSizeX, imageToDrawSizeY, false);
             System.out.printf("Overwriting %s...%n", map);
-            writer.writeChannels(map, imageToDraw, x, y);
+            writer.writeChannels(map, tryToAdjust(imageToDraw, map), x, y);
         }
         System.out.println("Done");
     }
