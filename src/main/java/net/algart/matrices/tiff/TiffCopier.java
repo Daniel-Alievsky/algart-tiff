@@ -394,12 +394,20 @@ public final class TiffCopier {
         final boolean byteOrderIsNotUsedForImageData =
                 isByteOrBinary(readMap) && (compression != null && !compression.canUseByteOrderForByteData());
         // - for unknown compressions, we cannot be sure of this fact even for 1-bit or 8-bit samples
+        final boolean bitDepthEqual = readMap.tryEqualBitDepth().orElse(-1) == writeIFD.alignedBitDepth();
+        // - Number of bits per sample MAY become different after smart correction by correctFormatForEncoding:
+        // 1) in the case of unusual precisions like 16-bit float:
+        // for writing, it will be transformed into 32-bit float values;
+        // 2) in the case of non-whole bytes: N bits per samples, N > 1 and N%8 != 1;
+        // they are always unpacked to format with an integer number of bytes per sample.
+        final boolean photometricInterpretationEqual =
+                readMap.photometricInterpretationCode() == writeIFD.getPhotometricInterpretationCode();
+        // - Photometric interpretation MAY become different after smart correction by correctFormatForEncoding
         return this.directCopy &&
                 (readMap.byteOrder() == writeByteOrder || byteOrderIsNotUsedForImageData) &&
                 compressionCode == writeIFD.getCompressionCode() &&
-                readMap.alignedBitsPerSample() == writeIFD.alignedBitDepth();
-        // - Number of bits per sample MAY become different in the case of unusual precisions like 16-bit float:
-        // for writing, it will be transformed into 32-bit float values.
+                bitDepthEqual &&
+                photometricInterpretationEqual;
         // Also note that the compatibility of the sample type and pixel structure (number of channels and
         // planar separated mode) will be checked later in checkImageCompatibility() method.
 

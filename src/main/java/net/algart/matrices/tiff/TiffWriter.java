@@ -1014,6 +1014,25 @@ public class TiffWriter implements Closeable {
         correctFormatForEncoding(ifd, isSmartFormatCorrection());
     }
 
+    /**
+     * Fixes the IFD so that it can be written by this class or throws an exception if it is impossible.
+     * This method may change the following tags:
+     * <ul>
+     *     <li><code>BitsPerSample</code> (258) and <code>SampleFormat</code> (339) &mdash; in the smart mode,
+     *     if the actual number of bits per sample is not 1, 8, 16, 32, 64;</li>
+     *     <li><code>Compression</code> (259) &mdash; if it is not specified,
+     *     it is set to {@link TiffIFD#COMPRESSION_NONE});</li>
+     *     <li><code>PhotometricInterpretation</code> (262) &mdash; if it is not specified or in the smart mode;</li>
+     *     <li><code>SubIFD</code> (330), <code>Exif IFD</code> (34665), <code>GPSInfo</code> (34853) &mdash;
+     *     these tags are always removed (both by this method and by {@link #correctFormatForEntireTiff(TiffIFD)}),
+     *     because this writer does not support writing the corresponding IFD inside the TIFF.
+     *     </li>
+     * </ul>
+     *
+     * @param ifd IFD to be corrected.
+     * @param smartCorrection more smart correction.
+     * @throws TiffException in the case of some problems, in particular, if IFD settings are not supported.
+     */
     public void correctFormatForEncoding(TiffIFD ifd, boolean smartCorrection) throws TiffException {
         final int samplesPerPixel = ifd.getSamplesPerPixel();
         if (!ifd.containsKey(Tags.BITS_PER_SAMPLE)) {
@@ -1021,7 +1040,7 @@ public class TiffWriter implements Closeable {
             // - Default value of BitsPerSample is 1 bit/pixel!
             // This is a rare case, however, we CANNOT set here another value:
             // probably we created this IFD as a copy of another IFD, like in copyImage method,
-            // and changing the supposed number of bits can lead to unpredictable behaviour
+            // and changing the supposed number of bits can lead to unpredictable behavior
             // (for example, passing too short data to TiffTile.setDecodedData() method).
         }
         final TiffSampleType sampleType;
@@ -1032,15 +1051,15 @@ public class TiffWriter implements Closeable {
                     "requested combination of number of bits per sample and sample format is not supported: " +
                     e.getMessage());
         }
-        if (!smartCorrection) {
-            final int bits = ifd.ordinaryBitDepth();
+        if (smartCorrection) {
+            ifd.putSampleType(sampleType);
+        } else {
+            final int bits = ifd.checkSupportedBitDepth();
             if (sampleType == TiffSampleType.FLOAT && bits != 32) {
                 throw new UnsupportedTiffFormatException("Cannot write TIFF, because " +
                         "requested number of bits per sample is not supported: " +
                         bits + " bits for floating-point precision");
             }
-        } else {
-            ifd.putSampleType(sampleType);
         }
 
         if (!ifd.containsKey(Tags.COMPRESSION)) {

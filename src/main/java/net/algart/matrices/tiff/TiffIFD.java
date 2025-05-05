@@ -991,12 +991,16 @@ public class TiffIFD {
         return compression == null ? "unsupported compression " + code : compression.prettyName();
     }
 
+    public int getPhotometricInterpretationCode() throws TiffException {
+        return getInt(Tags.PHOTOMETRIC_INTERPRETATION, -1);
+    }
+
     public TagPhotometricInterpretation getPhotometricInterpretation() throws TiffException {
         if (!containsKey(Tags.PHOTOMETRIC_INTERPRETATION)
                 && getInt(Tags.COMPRESSION, 0) == COMPRESSION_OLD_JPEG) {
             return TagPhotometricInterpretation.RGB;
         }
-        final int code = getInt(Tags.PHOTOMETRIC_INTERPRETATION, -1);
+        final int code = getPhotometricInterpretationCode();
         return TagPhotometricInterpretation.ofOrUnknown(code);
     }
 
@@ -1217,6 +1221,10 @@ public class TiffIFD {
      */
     public OptionalInt tryEqualBitDepth() throws TiffException {
         final int[] bitsPerSample = getBitsPerSample();
+        return tryEqualBitDepth(bitsPerSample);
+    }
+
+    public static OptionalInt tryEqualBitDepth(int[] bitsPerSample) {
         final int bits0 = bitsPerSample[0];
         for (int i = 1; i < bitsPerSample.length; i++) {
             if (bitsPerSample[i] != bits0) {
@@ -1254,6 +1262,10 @@ public class TiffIFD {
      */
     public int alignedBitDepth() throws TiffException {
         final int[] bitsPerSample = getBitsPerSample();
+        return alignedBitDepth(bitsPerSample);
+    }
+
+    public static int alignedBitDepth(int[] bitsPerSample) throws TiffException {
         if (bitsPerSample.length == 1 && bitsPerSample[0] == 1) {
             // - we do not support the BIT format for RGB and other multi-channels TIFF;
             // if this situation occurred, we process this in a common way like any N-bit image, N <= 8
@@ -1268,9 +1280,8 @@ public class TiffIFD {
         for (int k = 1; k < bitsPerSample.length; k++) {
             if ((bitsPerSample[k] + 7) >>> 3 != bytes0) {
                 throw new UnsupportedTiffFormatException("Unsupported TIFF IFD: " +
-                        "different number of bytes per samples " +
-                        Arrays.toString(getBytesPerSample()) + ", based on the following number of bits: " +
-                        Arrays.toString(getBitsPerSample()));
+                        "different number of bytes per samples, based on the following number of bits: " +
+                        Arrays.toString(bitsPerSample));
             }
             // - note that LibTiff does not support different BitsPerSample values for different components;
             // we do not support different number of BYTES for different components
@@ -1278,9 +1289,9 @@ public class TiffIFD {
         return bytes0 << 3;
     }
 
-    public int ordinaryBitDepth() throws TiffException {
+    public int checkSupportedBitDepth() throws TiffException {
         final int[] bitsPerSample = getBitsPerSample();
-        if (!isOrdinaryPrecisionWithCheckingEquality(bitsPerSample)) {
+        if (!isSupportedPrecisionWithCheckingEquality(bitsPerSample)) {
             throw new UnsupportedTiffFormatException("The number of bits per sample " +
                     bitsPerSample[0] + " bits per sample for " + bitsPerSample.length +
                     " samples is not supported: " +
@@ -2176,7 +2187,8 @@ public class TiffIFD {
         return false;
     }
 
-    private static boolean isOrdinaryPrecisionWithCheckingEquality(int[] bitsPerSample) throws UnsupportedTiffFormatException {
+    private static boolean isSupportedPrecisionWithCheckingEquality(int[] bitsPerSample)
+            throws UnsupportedTiffFormatException {
         final int bits = bitsPerSample[0];
         for (int i = 1; i < bitsPerSample.length; i++) {
             if (bitsPerSample[i] != bits) {

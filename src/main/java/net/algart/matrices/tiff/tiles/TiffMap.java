@@ -105,6 +105,7 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
     private final int numberOfChannels;
     private final int numberOfSeparatedPlanes;
     private final int tileSamplesPerPixel;
+    private final int[] bitsPerSample;
     private final int alignedBitsPerSample;
     private final int bitsPerUnpackedSample;
     private final int tileAlignedBitsPerPixel;
@@ -123,6 +124,7 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
     // SHOULD NOT store information about image sizes (like number of tiles):
     // it is probable that we do not know final sizes while creating tiles of the image!
     private final int compressionCode;
+    private final int photometricInterpretationCode;
     private volatile int dimX = 0;
     private volatile int dimY = 0;
     private volatile int gridCountX = 0;
@@ -161,8 +163,9 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
             assert numberOfChannels <= TiffIFD.MAX_NUMBER_OF_CHANNELS;
             this.numberOfSeparatedPlanes = planarSeparated ? numberOfChannels : 1;
             this.tileSamplesPerPixel = planarSeparated ? 1 : numberOfChannels;
-            this.alignedBitsPerSample = ifd.alignedBitDepth();
-            // - so, we allow only EQUAL number of bytes/sample (but the number if bits/sample can be different)
+            this.bitsPerSample = ifd.getBitsPerSample().clone();
+            this.alignedBitsPerSample = TiffIFD.alignedBitDepth(bitsPerSample);
+            // - we allow only EQUAL number of bytes/sample (but the number if bits/sample can be different)
             assert (long) numberOfChannels * (long) alignedBitsPerSample <
                     TiffIFD.MAX_NUMBER_OF_CHANNELS * TiffIFD.MAX_BITS_PER_SAMPLE;
             // - actually must be in 8 times less
@@ -197,6 +200,7 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
             this.tileSizeY = ifd.getTileSizeY();
             assert tileSizeX > 0 && tileSizeY > 0 : "non-positive tile sizes are not checked in IFD methods";
             this.compressionCode = ifd.getCompressionCode();
+            this.photometricInterpretationCode = ifd.getPhotometricInterpretationCode();
             if (hasImageDimensions) {
                 setDimensions(ifd.getImageDimX(), ifd.getImageDimY(), false);
             }
@@ -273,6 +277,14 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
 
     public boolean isWholeBytes() {
         return wholeBytes;
+    }
+
+    public int[] bitsPerSample() {
+        return bitsPerSample.clone();
+    }
+
+    public OptionalInt tryEqualBitDepth() throws TiffException {
+        return TiffIFD.tryEqualBitDepth(bitsPerSample);
     }
 
     /**
@@ -379,6 +391,10 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
 
     public int compressionCode() {
         return compressionCode;
+    }
+
+    public int photometricInterpretationCode() {
+        return photometricInterpretationCode;
     }
 
     public int dimX() {
