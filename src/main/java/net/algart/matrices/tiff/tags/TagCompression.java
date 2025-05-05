@@ -115,6 +115,8 @@ public enum TagCompression {
 
     /**
      * JPEG-2000 standard compression (type 34712).
+     * Default quality is chosen as for lossy JPEG-2000 formats
+     * (see {@link JPEG2000Codec.JPEG2000Options#DEFAULT_NORMAL_QUALITY}).
      */
     JPEG_2000(34712, "JPEG-2000", JPEG2000Codec::new),
 
@@ -122,8 +124,7 @@ public enum TagCompression {
      * JPEG-2000 Aperio lossless compression (type 33003).
      *
      * <p>Note that while writing TIFF in this format, {@link net.algart.matrices.tiff.TiffWriter}
-     * does not try to use YCbCr encoding,
-     * as Aperio recommends for type 33003.
+     * does not try to use YCbCr encoding, as Aperio recommends for type 33003.
      */
     JPEG_2000_LOSSLESS(33003, "JPEG-2000 lossless", JPEG2000Codec::new),
 
