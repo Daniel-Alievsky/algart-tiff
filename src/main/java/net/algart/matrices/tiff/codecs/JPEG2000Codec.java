@@ -120,7 +120,7 @@ public class JPEG2000Codec implements TiffCodec {
         Integer resolution = null;
 
         public JPEG2000Options() {
-            setLossyCompressionQuality(Double.MAX_VALUE);
+            setCompressionQuality(Double.MAX_VALUE);
         }
 
         public boolean isLossless() {
@@ -191,7 +191,7 @@ public class JPEG2000Codec implements TiffCodec {
             } else {
                 setLossless(lossless);
                 if (!hasQuality()) {
-                    setLossyCompressionQuality(lossless ? Double.MAX_VALUE : DEFAULT_NORMAL_QUALITY);
+                    setCompressionQuality(lossless ? Double.MAX_VALUE : DEFAULT_NORMAL_QUALITY);
                 }
             }
             return this;
@@ -409,7 +409,7 @@ public class JPEG2000Codec implements TiffCodec {
         param.setWriteCodeStreamOnly(WRITE_CODE_STREAM_ONLY);
         // - thanks ChatGPT: important addition (5.05.2025)
         param.setCodeBlockSize(options.getCodeBlockSize());
-        param.setEncodingRate(options.lossyCompressionQuality());
+        param.setEncodingRate(options.compressionQuality());
 //      TIFF provides its own tile subsystem
 //        if (options.tileWidth > 0 && options.tileHeight > 0) {
 //            param.setTiling(options.tileWidth, options.tileHeight,

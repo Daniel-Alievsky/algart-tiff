@@ -61,7 +61,7 @@ public interface TiffCodec {
         boolean littleEndian = false;
         boolean interleaved = false;
         int maxSizeInBytes = 0;
-        private Double lossyCompressionQuality = null;
+        private Double compressionQuality = null;
         private Double losslessCompressionLevel = null;
         private TiffIFD ifd = null;
         // - used only if other information is not enough
@@ -192,23 +192,23 @@ public interface TiffCodec {
         }
 
         public boolean hasQuality() {
-            return lossyCompressionQuality != null;
+            return compressionQuality != null;
         }
 
-        public Double getLossyCompressionQuality() {
-            return lossyCompressionQuality;
+        public Double getCompressionQuality() {
+            return compressionQuality;
         }
 
-        public Options setLossyCompressionQuality(Double lossyCompressionQuality) {
-            this.lossyCompressionQuality = lossyCompressionQuality;
+        public Options setCompressionQuality(Double compressionQuality) {
+            this.compressionQuality = compressionQuality;
             return this;
         }
 
-        public double lossyCompressionQuality() {
-            if (lossyCompressionQuality == null) {
+        public double compressionQuality() {
+            if (compressionQuality == null) {
                 throw new IllegalStateException("Lossy quality level is required, but is not set");
             }
-            return lossyCompressionQuality;
+            return compressionQuality;
         }
 
         public Double getLosslessCompressionLevel() {
@@ -240,7 +240,7 @@ public interface TiffCodec {
             this.littleEndian = options.littleEndian;
             this.interleaved = options.interleaved;
             this.maxSizeInBytes = options.maxSizeInBytes;
-            this.lossyCompressionQuality = options.lossyCompressionQuality;
+            this.compressionQuality = options.compressionQuality;
             this.losslessCompressionLevel = options.losslessCompressionLevel;
             this.ifd = options.ifd;
             return this;
@@ -274,8 +274,8 @@ public interface TiffCodec {
             setField(scifioStyleClass, result, "littleEndian", littleEndian);
             setField(scifioStyleClass, result, "interleaved", interleaved);
             setField(scifioStyleClass, result, "maxBytes", maxSizeInBytes);
-            if (lossyCompressionQuality != null) {
-                setField(scifioStyleClass, result, "quality", lossyCompressionQuality);
+            if (compressionQuality != null) {
+                setField(scifioStyleClass, result, "quality", compressionQuality);
             }
             return result;
         }
@@ -291,7 +291,7 @@ public interface TiffCodec {
             setLittleEndian(getField(scifioStyleOptions, Boolean.class, "littleEndian"));
             setInterleaved(getField(scifioStyleOptions, Boolean.class, "interleaved"));
             setMaxSizeInBytes(getField(scifioStyleOptions, Integer.class, "maxBytes"));
-            setLossyCompressionQuality(getField(scifioStyleOptions, Double.class, "quality"));
+            setCompressionQuality(getField(scifioStyleOptions, Double.class, "quality"));
         }
 
         @Override
@@ -307,7 +307,7 @@ public interface TiffCodec {
                     ", littleEndian=" + littleEndian +
                     ", interleaved=" + interleaved +
                     ", maxSizeInBytes=" + maxSizeInBytes +
-                    ", lossyCompressionQuality=" + lossyCompressionQuality +
+                    ", compressionQuality=" + compressionQuality +
                     ", losslessCompressionLevel=" + losslessCompressionLevel;
         }
 

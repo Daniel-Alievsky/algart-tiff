@@ -117,7 +117,7 @@ public class TiffReadWriteTest {
                 writer.setContext(context);
                 writer.setBigTiff(bigTiff);
                 writer.setLittleEndian(true);
-                writer.setPreferRGB(jpegRGB).setLossyCompressionQuality(0.8);
+                writer.setPreferRGB(jpegRGB).setCompressionQuality(0.8);
                 writer.create();
 
                 TiffParser parser = null;

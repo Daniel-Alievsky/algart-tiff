@@ -83,7 +83,7 @@ public class TiffWriteCustomDemo {
             writer.setLittleEndian(littleEndian);
             // - must be called BEFORE creating the new file
             writer.create();
-            writer.setLossyCompressionQuality(quality);
+            writer.setCompressionQuality(quality);
             writer.setLosslessCompressionLevel(compressionLevel);
             final TiffIFD ifd = writer.newIFD()
                 .putChannelsInformation(image)

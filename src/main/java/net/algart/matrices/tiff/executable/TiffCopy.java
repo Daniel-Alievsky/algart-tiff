@@ -39,6 +39,7 @@ public class TiffCopy {
     boolean smart = false;
     ByteOrder byteOrder = null;
     Boolean bigTiff = null;
+    Double quality = null;
 
     private long lastProgressTime = Integer.MIN_VALUE;
 
@@ -67,9 +68,19 @@ public class TiffCopy {
             copy.bigTiff = false;
             startArgIndex++;
         }
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-quality")) {
+            startArgIndex++;
+            final String s = args[startArgIndex].toLowerCase();
+            if (!s.equals("null")) {
+                copy.quality = Double.parseDouble(s);
+            }
+            startArgIndex++;
+        }
+
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
-            System.out.printf("   [-repack] [-smart] [-le|-be] [-bigTiff|-noBigTIFF] %s source.tiff target.tiff%n",
+            System.out.printf("   [-repack] [-smart] [-le|-be] [-bigTiff|-noBigTIFF] [-quality xxx] " +
+                            "%s source.tiff target.tiff%n",
                     TiffCopy.class.getName());
             System.out.println("""
                     The source TIFF file is completely parsed, and its content is copied to the target file\
@@ -98,6 +109,7 @@ public class TiffCopy {
                 sourceFile,
                 targetFile,
                 repack ? " with recompression" : "",
+                quality == null ? "" : " (quality " + quality + ")",
                 byteOrder == null ? "" : byteOrder == ByteOrder.LITTLE_ENDIAN ? ", little-endian" : ", big-endian",
                 smart ? ", smart mode" : "");
         final long t1 = System.nanoTime();
@@ -111,6 +123,9 @@ public class TiffCopy {
                 writer.setBigTiff(bigTiff);
             }
             writer.setSmartFormatCorrection(smart);
+            if (quality != null) {
+                writer.setCompressionQuality(quality);
+            }
             writer.create();
             copier.copyAll(writer, reader);
         }

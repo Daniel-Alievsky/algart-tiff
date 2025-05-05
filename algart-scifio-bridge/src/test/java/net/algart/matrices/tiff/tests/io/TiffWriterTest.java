@@ -240,7 +240,7 @@ public class TiffWriterTest {
                 if (littleEndian) {
                     writer.setLittleEndian(true);
                 }
-                writer.setLossyCompressionQuality(quality);
+                writer.setCompressionQuality(quality);
                 writer.setLosslessCompressionLevel(compressionLevel);
                 writer.setPreferRGB(jpegRGB);
 //                writer.setSmartFormatCorrection(true);
