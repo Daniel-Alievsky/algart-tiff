@@ -602,6 +602,7 @@ public final class TiffTile {
 
     public TiffTile fillWhenEmpty(Consumer<TiffTile> initializer) {
         checkFrozen();
+        // - if frozen, then isEmpty() below returns true
         if (isEmpty()) {
             setDecodedData(new byte[sizeInBytes]);
             if (initializer != null) {
