@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff;
 
+import net.algart.arrays.JArrays;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.*;
 
@@ -297,10 +298,14 @@ public final class TiffCopier {
         final int mapTileSizeX = writeMap.tileSizeX();
         final int mapTileSizeY = writeMap.tileSizeY();
         final boolean directCopy = canBeRectangleCopiedDirectly(writeMap, readMap, fromX, fromY);
-        final boolean unpackBytes = !readMap.isCopyCompatible(writeMap.byteOrder());
-        if (unpackBytes && directCopy) {
-            throw new AssertionError("If we use unpackBytes branch, " +
+        final boolean swapOrder = !readMap.isByteOrderCompatible(writeMap.byteOrder());
+        if (swapOrder && directCopy) {
+            throw new AssertionError("If we use swapOrder branch, " +
                     "we must be sure that no tiles will be coped directly");
+        }
+        if (swapOrder) {
+            assert readMap.byteOrder() != writeMap.byteOrder();
+            assert readMap.elementType() != boolean.class;
         }
         final int fromXIndex = directCopy ? fromX / mapTileSizeX : Integer.MIN_VALUE;
         final int fromYIndex = directCopy ? fromY / mapTileSizeY : Integer.MIN_VALUE;
@@ -320,7 +325,7 @@ public final class TiffCopier {
                     final int readX = fromX + x;
                     final int readY = fromY + y;
                     final int written = copyRectangle(
-                            writeMap, readMap, x, y, readX, readY, sizeXInTile, sizeYInTile, unpackBytes);
+                            writeMap, readMap, x, y, readX, readY, sizeXInTile, sizeYInTile, swapOrder);
                     if (written != writeMap.numberOfSeparatedPlanes()) {
                         // - we copy exactly one tile, and it should be completed: we created a non-resizable map,
                         // so, the initial unset area of the tile, i.e. actualRectangle(),
@@ -350,7 +355,7 @@ public final class TiffCopier {
                             "%.3f prepare + %.3f copy + %.3f complete, %.3f MB/s",
                     getClass().getSimpleName(),
                     directCopy ? "directly" : "with repacking" + (this.directCopy ? " (direct mode rejected)" : ""),
-                    unpackBytes ? " and reordering bytes" : "",
+                    swapOrder ? " and reordering bytes" : "",
                     sizeX, sizeY, writeMap.numberOfChannels(),
                     tileCount,
                     repackCount < tileCount ? " (" + repackCount + " with repacking)" : "",
@@ -386,7 +391,7 @@ public final class TiffCopier {
 
     private boolean canBeImageCopiedDirectly(TiffIFD writeIFD, ByteOrder writeByteOrder, TiffReadMap readMap)
             throws TiffException {
-        if (!readMap.isCopyCompatible(writeByteOrder)) {
+        if (!readMap.isByteOrderCompatible(writeByteOrder)) {
             // - theoretically, this check is extra: byteOrderIsNotUsedForImageData will be false
             return false;
         }
@@ -440,16 +445,14 @@ public final class TiffCopier {
             int readY,
             int sizeX,
             int sizeY,
-            boolean unpackBytes) throws IOException {
+            boolean swapOrder) throws IOException {
         List<TiffTile> tiles;
-        if (unpackBytes) {
-            final Object unpacked = readMap.readJavaArray(readX, readY, sizeX, sizeY);
-            tiles = writeMap.updateJavaArray(unpacked, writeX, writeY, sizeX, sizeY);
-        } else {
-            final byte[] samples = readMap.loadSamples(
-                    readX, readY, sizeX, sizeY, TiffReader.UnusualPrecisions.UNPACK);
-            tiles = writeMap.updateSamples(samples, writeX, writeY, sizeX, sizeY);
+        byte[] samples = readMap.loadSamples(
+                readX, readY, sizeX, sizeY, TiffReader.UnusualPrecisions.UNPACK);
+        if (swapOrder) {
+            samples = JArrays.copyAndSwapByteOrder(samples, readMap.elementType());
         }
+        tiles = writeMap.updateSamples(samples, writeX, writeY, sizeX, sizeY);
         return writeMap.flushCompletedTiles(tiles);
     }
 

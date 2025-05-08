@@ -24,10 +24,7 @@
 
 package net.algart.matrices.tiff.tiles;
 
-import net.algart.arrays.Matrix;
-import net.algart.arrays.PackedBitArraysPer8;
-import net.algart.arrays.TooLargeArrayException;
-import net.algart.arrays.UpdatablePArray;
+import net.algart.arrays.*;
 import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.data.TiffUnusualPrecisions;
@@ -35,6 +32,7 @@ import net.algart.matrices.tiff.data.TiffUnusualPrecisions;
 import java.lang.reflect.Array;
 import java.nio.ByteOrder;
 import java.util.*;
+import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -706,16 +704,15 @@ public final class TiffTile {
             return this;
         }
         source.checkDecodedData();
-        if (map.isCopyCompatible(source.byteOrder())) {
+        if (map.isByteOrderCompatible(source.byteOrder())) {
             final byte[] decodedData = source.getUnpackedSamples(autoScaleWhenIncreasingBitDepth);
             setDecodedData(decodedData);
         } else {
-            final Object javaArray = source.getUnpackedJavaArray(autoScaleWhenIncreasingBitDepth);
-            setUnpackedJavaArray(javaArray);
-            // - theoretically, we could use a quicker algorithm for reordering bytes
-            // via ByteBuffer without copying into a separate Java array,
-            // but usually there is no sense to optimize this:
-            // the actual data decompression/compression by the codec is much slower
+            assert byteOrder() != source.byteOrder();
+            assert elementType() != boolean.class;
+            final byte[] decodedData = source.getUnpackedSamples(autoScaleWhenIncreasingBitDepth);
+            final byte[] swapped = JArrays.copyAndSwapByteOrder(decodedData, elementType());
+            setDecodedData(swapped);
         }
         return this;
     }

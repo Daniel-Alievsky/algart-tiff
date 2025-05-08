@@ -129,7 +129,7 @@ public final class TiffWriteMap extends TiffMap {
 
                     final TiffTile tile = getOrNew(xIndex, yIndex, p);
                     if (tile.isDisposed()) {
-                        // - we cannot write to already dispose tile: it will result in an exception
+                        // - we cannot write to an already disposed tile: it will result in an exception
                         continue;
                     }
                     tile.checkReadyForNewDecodedData(false);

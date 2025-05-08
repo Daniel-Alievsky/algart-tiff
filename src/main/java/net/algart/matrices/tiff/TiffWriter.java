@@ -226,10 +226,28 @@ public class TiffWriter implements Closeable {
         return reader(false);
     }
 
+    /**
+     * Returns the TIFF reader for reading the same file stream {@link #output()} used by this object.
+     * You <b>don't need</b> to close it: this stream will be closed when closing this writer.
+     *
+     * <p>This reader is created in {@link TiffOpenMode#NO_CHECKS} mode.
+     * Caching in the reader is disabled by
+     * {@link TiffReader#setCaching(boolean) setCaching(false)}: usually this reader
+     * should be used while you are modifying the TIFF, so the cache may work incorrectly.
+     * But you can enable caching when you finish the writing.
+     *
+     * <p>The returned reference is stored inside this object, and will be returned by further calls
+     * of this method, unless you set <code>alwaysCreateNew=true</code>.
+     *
+     * @param alwaysCreateNew whether you need to ignore the previously created reader (it if exists)
+     *                        and create a new one.
+     * @return new TIFF reader.
+     * @throws IOException in the case of any I/O errors.
+     */
     public TiffReader reader(boolean alwaysCreateNew) throws IOException {
         synchronized (fileLock) {
             if (alwaysCreateNew || this.reader == null) {
-                this.reader = newReader(TiffOpenMode.NO_CHECKS);
+                this.reader = newReader(TiffOpenMode.NO_CHECKS).setCaching(false);
             }
             return this.reader;
         }
@@ -1029,7 +1047,7 @@ public class TiffWriter implements Closeable {
      *     </li>
      * </ul>
      *
-     * @param ifd IFD to be corrected.
+     * @param ifd             IFD to be corrected.
      * @param smartCorrection more smart correction.
      * @throws TiffException in the case of some problems, in particular, if IFD settings are not supported.
      */

@@ -665,7 +665,7 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
         }
     }
 
-    public boolean isCopyCompatible(ByteOrder byteOrder) {
+    public boolean isByteOrderCompatible(ByteOrder byteOrder) {
         Objects.requireNonNull(byteOrder, "Null byte order");
         return byteOrder == this.byteOrder || sampleType.isBinary() || sampleType.bitsPerSample() == 8;
         // - most typical cases; we do not try to optimize "strange" bit numbers like 4-bit samples

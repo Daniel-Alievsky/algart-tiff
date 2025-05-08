@@ -32,6 +32,7 @@ import net.algart.arrays.PackedBitArrays;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
+import net.algart.matrices.tiff.codecs.JPEG2000Codec;
 import net.algart.matrices.tiff.compatibility.TiffParser;
 import net.algart.matrices.tiff.compatibility.TiffSaver;
 import net.algart.matrices.tiff.tags.TagCompression;
@@ -151,6 +152,11 @@ public class TiffWriterTest {
             jpegRGB = true;
             startArgIndex++;
         }
+        boolean jp2Metadata = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-jp2Metadata")) {
+            jp2Metadata = true;
+            startArgIndex++;
+        }
         boolean singleStrip = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-singleStrip")) {
             singleStrip = true;
@@ -243,6 +249,9 @@ public class TiffWriterTest {
                 writer.setCompressionQuality(quality);
                 writer.setLosslessCompressionLevel(compressionLevel);
                 writer.setPreferRGB(jpegRGB);
+                if (jp2Metadata) {
+                    writer.setCodecOptions(new JPEG2000Codec.JPEG2000Options().setWriteMetadata(true));
+                }
 //                writer.setSmartFormatCorrection(true);
 //                writer.setByteFiller((byte) 0xE0);
                 writer.setTileInitializer(TiffWriterTest::customFillEmptyTile);

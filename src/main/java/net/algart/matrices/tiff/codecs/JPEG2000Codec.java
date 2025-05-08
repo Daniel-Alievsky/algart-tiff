@@ -75,14 +75,13 @@ public class JPEG2000Codec implements TiffCodec {
      * #L%
      */
 
-    private static final boolean WRITE_CODE_STREAM_ONLY = true;
-    // - Should be true for better compatibility with Aperio Image Viewer, GIMP and other applications.
-
     /**
      * Options for compressing and decompressing JPEG-2000 data.
      */
     public static class JPEG2000Options extends Options {
         public static final double DEFAULT_NORMAL_QUALITY = 10.0;
+        public static final boolean DEFAULT_WRITE_METADATA = false;
+        // - Should be false for better compatibility with Aperio Image Viewer, GIMP and other applications.
 
         /**
          * The lossless mode affects the default quality and the argument of J2KImageWriteParam.setFilter method
@@ -118,6 +117,8 @@ public class JPEG2000Codec implements TiffCodec {
          * as the default.
          */
         Integer resolution = null;
+
+        boolean writeMetadata = DEFAULT_WRITE_METADATA;
 
         public JPEG2000Options() {
             setCompressionQuality(Double.MAX_VALUE);
@@ -174,6 +175,15 @@ public class JPEG2000Codec implements TiffCodec {
             return this;
         }
 
+        public boolean writeMetadata() {
+            return writeMetadata;
+        }
+
+        public JPEG2000Options setWriteMetadata(boolean writeMetadata) {
+            this.writeMetadata = writeMetadata;
+            return this;
+        }
+
         // Note: this method SHOULD be overridden to provide correct clone() behavior.
         @Override
         public JPEG2000Options setTo(Options options) {
@@ -188,6 +198,7 @@ public class JPEG2000Codec implements TiffCodec {
                 setCodeBlockSize(o.codeBlockSize);
                 setNumberOfDecompositionLevels(o.numberOfDecompositionLevels);
                 setResolution(o.resolution);
+                setWriteMetadata(o.writeMetadata);
             } else {
                 setLossless(lossless);
                 if (!hasQuality()) {
@@ -214,12 +225,14 @@ public class JPEG2000Codec implements TiffCodec {
 
         @Override
         public String toString() {
-            return super.toString() +
-                    ", lossless=" + lossless +
+            return "JPEG2000Options{" +
+                    "lossless=" + lossless +
                     ", colorModel=" + colorModel +
                     ", codeBlockSize=" + Arrays.toString(codeBlockSize) +
-                    ", numDecompositionLevels=" + numberOfDecompositionLevels +
-                    ", resolution=" + resolution;
+                    ", numberOfDecompositionLevels=" + numberOfDecompositionLevels +
+                    ", resolution=" + resolution +
+                    ", writeMetadata=" + writeMetadata +
+                    '}';
         }
     }
 
@@ -406,7 +419,7 @@ public class JPEG2000Codec implements TiffCodec {
         param.setCompressionType("JPEG2000");
         param.setLossless(options.lossless);
         param.setFilter(filter);
-        param.setWriteCodeStreamOnly(WRITE_CODE_STREAM_ONLY);
+        param.setWriteCodeStreamOnly(!options.writeMetadata);
         // - thanks ChatGPT: important addition (5.05.2025)
         param.setCodeBlockSize(options.getCodeBlockSize());
         param.setEncodingRate(options.compressionQuality());

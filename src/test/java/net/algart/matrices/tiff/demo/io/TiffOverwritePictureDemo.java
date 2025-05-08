@@ -48,9 +48,8 @@ public class TiffOverwritePictureDemo {
             image = List.of(ColorMatrices.toRGBIntensity(image));
         }
         if (image.get(0).elementType() != map.elementType()) {
-            image = image.stream().map(
-                    m -> Matrices.asPrecision(m, map.elementType()))
-                    .collect(Collectors.toList());
+            image = Matrices.applyToChannels(
+                    m -> Matrices.asPrecision(m, map.elementType()), image);
         }
         return image;
     }
