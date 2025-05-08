@@ -65,7 +65,7 @@ public final class TiffTile {
     private Queue<IRectangularArea> unsetArea = null;
     // - null value marks that all is empty;
     // it helps to defer actual subtracting until the moment when we know the correct tile sizes
-    private boolean disposed = false;
+    private boolean frozen = false;
 
     /**
      * Creates new tile with given index.
@@ -601,7 +601,7 @@ public final class TiffTile {
     }
 
     public TiffTile fillWhenEmpty(Consumer<TiffTile> initializer) {
-        checkDisposed();
+        checkFrozen();
         if (isEmpty()) {
             setDecodedData(new byte[sizeInBytes]);
             if (initializer != null) {
@@ -678,7 +678,7 @@ public final class TiffTile {
     public TiffTile copyData(TiffTile source, boolean cloneData) {
         Objects.requireNonNull(source, "Null source tile");
         if (source.isEmpty()) {
-            free();
+            freeData();
         } else {
             final byte[] data = cloneData ? source.data.clone() : source.data;
             setData(data, source.isEncoded(), false);
@@ -700,7 +700,7 @@ public final class TiffTile {
         // This situation occurs when we need to copy unusual precisions,
         // for example, 16-bit float into 32-bit floats
         if (source.isEmpty()) {
-            free();
+            freeData();
             return this;
         }
         source.checkDecodedData();
@@ -721,14 +721,14 @@ public final class TiffTile {
         return data == null;
     }
 
-    public boolean isDisposed() {
-        return disposed;
+    public boolean isFrozen() {
+        return frozen;
     }
 
-    public void free() {
+    public void freeData() {
         this.data = null;
         this.interleaved = false;
-        // - before possible setting new decoded data, we should restore default status interleaved = false
+        // - before possibly setting new decoded data, we should restore default status interleaved = false
         this.encoded = false;
         // - method checkReadyForNewDecodedData() requires that the tile should not be declared as encoded
         // Note: we should not clear information about stored data file range, because
@@ -736,9 +736,9 @@ public final class TiffTile {
     }
 
     /**
-     * Calls {@link #free()} and marks this tile as <i>disposed</i>.
+     * Calls {@link #freeData()} and marks this tile as <i>frozen</i>.
      *
-     * <p>After {@link #free()} method, the tile becomes {@link #isEmpty() empty},
+     * <p>After {@link #freeData()} method, the tile becomes {@link #isEmpty() empty},
      * but can be filled with some data again, for example, using {@link #setDecodedData(byte[])}
      * or {@link #fillWhenEmpty()}.
      * Unlike this, after this method,
@@ -746,18 +746,18 @@ public final class TiffTile {
      * ({@link #getDecodedData()}, {@link #getEncodedData()}, {@link  #setDecodedData(byte[])},
      * {@link #setEncodedData(byte[])}, {@link #fillWhenEmpty()} etc.) will result in an exception.</p>
      *
-     * <p>{@link TiffWriter} class checks {@link #isDisposed()} method and does not attempt to update
-     * <i>disposed</i> tiles.</p>
+     * <p>{@link TiffWriter} class checks {@link #isFrozen()} method and does not attempt to update
+     * <i>frozen</i> tiles.</p>
      *
      * <p>This method is automatically called by {@link TiffWriter#writeTile(TiffTile, boolean)} method
      * when its second argument is <code>true</code>:
      * usually there is no any sense to work with a tile after once it has been written into the TIFF file.</p>
      *
-     * <p>Note: there is no way to clear the <i>disposed</i> status in this object.</p>
+     * <p>Note: there is no way to clear the <i>frozen</i> status in this object.</p>
      */
-    public void dispose() {
-        free();
-        this.disposed = true;
+    public void freeAndFreeze() {
+        freeData();
+        this.frozen = true;
     }
 
     public long getStoredInFileDataOffset() {
@@ -773,7 +773,7 @@ public final class TiffTile {
      * immediately before/after writing it into file, this method returns the number of encoded bytes,
      * which are actually stored in the file for this tile.
      *
-     * <p>Note: {@link #free()} method does not change this value! So, you can know the stored data size
+     * <p>Note: {@link #freeData()} method does not change this value! So, you can know the stored data size
      * even after freeing data inside this object.
      *
      * @return the length of the last non-null encoded data, which was read or write to the TIFF file.
@@ -1042,7 +1042,7 @@ public final class TiffTile {
         final byte[] data = this.data;
         // - unlike the field, this variable cannot be changed from a parallel thread
         return "TIFF " +
-                (disposed ? "(DISPOSED) " : isEmpty() ? "(empty) " : "") +
+                (frozen ? "(FROZEN) " : isEmpty() ? "(empty) " : "") +
                 (encoded ? "encoded" : "non-encoded") +
                 (interleaved ? " interleaved" : " separated") +
                 " tile" +
@@ -1090,7 +1090,7 @@ public final class TiffTile {
 
     private TiffTile setData(byte[] data, boolean encoded, boolean checkAligned) {
         Objects.requireNonNull(data, "Null " + (encoded ? "encoded" : "decoded") + " data");
-        checkDisposed();
+        checkFrozen();
         final long numberOfBits = 8L * (long) data.length;
         final long numberOfPixels = numberOfBits / bitsPerPixel;
         if (bitsPerPixel > 1) {
@@ -1138,15 +1138,15 @@ public final class TiffTile {
 
     private void checkEmpty() {
         if (data == null) {
-            checkDisposed();
+            checkFrozen();
             throw new IllegalStateException("TIFF tile is still not filled by any data: " + this);
         }
     }
 
-    private void checkDisposed() {
-        if (disposed) {
-            assert isEmpty() : "disposed tile must be empty";
-            throw new IllegalStateException("TIFF tile is disposed, access to its data is prohibited: " + this);
+    private void checkFrozen() {
+        if (frozen) {
+            assert isEmpty() : "frozen tile must be empty";
+            throw new IllegalStateException("TIFF tile is frozen, access to its data is prohibited: " + this);
         }
     }
 

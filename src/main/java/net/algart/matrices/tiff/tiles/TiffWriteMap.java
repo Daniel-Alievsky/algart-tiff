@@ -25,6 +25,7 @@
 package net.algart.matrices.tiff.tiles;
 
 import net.algart.arrays.*;
+import net.algart.io.awt.ImageToMatrix;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffSampleType;
 import net.algart.matrices.tiff.TiffWriter;
@@ -128,8 +129,8 @@ public final class TiffWriteMap extends TiffMap {
                     final int xDiff = tileStartX - fromX;
 
                     final TiffTile tile = getOrNew(xIndex, yIndex, p);
-                    if (tile.isDisposed()) {
-                        // - we cannot write to an already disposed tile: it will result in an exception
+                    if (tile.isFrozen()) {
+                        // - we cannot write to an already frozen tile: it will result in an exception
                         continue;
                     }
                     tile.checkReadyForNewDecodedData(false);
@@ -289,6 +290,11 @@ public final class TiffWriteMap extends TiffMap {
         return updateMatrix(Matrices.mergeLayers(net.algart.arrays.Arrays.SMM, channels), fromX, fromY);
     }
 
+    public List<TiffTile> updateBufferedImage(BufferedImage bufferedImage, int fromX, int fromY) {
+        Objects.requireNonNull(bufferedImage, "Null bufferedImage");
+        return updateChannels(ImageToMatrix.toChannels(bufferedImage), fromX, fromY);
+    }
+
     public void writeJavaArray(Object samplesArray) throws IOException {
         owningWriter.writeJavaArray(this, samplesArray);
     }
@@ -305,8 +311,8 @@ public final class TiffWriteMap extends TiffMap {
         owningWriter.writeBufferedImage(this, bufferedImage);
     }
 
-    public void writeTile(TiffTile tile, boolean disposeAfterWriting) throws IOException {
-        owningWriter.writeTile(tile, disposeAfterWriting);
+    public void writeTile(TiffTile tile, boolean freeAndFreezeAfterWriting) throws IOException {
+        owningWriter.writeTile(tile, freeAndFreezeAfterWriting);
     }
 
     public int writeAllTiles(Collection<TiffTile> tiles) throws IOException {
@@ -314,12 +320,19 @@ public final class TiffWriteMap extends TiffMap {
     }
 
     public int flushCompletedTiles(Collection<TiffTile> tiles) throws IOException {
-        return owningWriter.flushCompletedTiles(tiles);
+        return flushCompletedTiles(tiles, true);
     }
 
-    public int writeTiles(Collection<TiffTile> tiles, Predicate<TiffTile> needToWrite, boolean disposeAfterWriting)
+    public int flushCompletedTiles(Collection<TiffTile> tiles, boolean freeAndFreezeAfterWriting) throws IOException {
+        return owningWriter.flushCompletedTiles(tiles, freeAndFreezeAfterWriting);
+    }
+
+    public int writeTiles(
+            Collection<TiffTile> tiles,
+            Predicate<TiffTile> needToWrite,
+            boolean freeAndFreezeAfterWriting)
             throws IOException {
-        return owningWriter.writeTiles(tiles, needToWrite, disposeAfterWriting);
+        return owningWriter.writeTiles(tiles, needToWrite, freeAndFreezeAfterWriting);
     }
 
     public int completeWriting() throws IOException {

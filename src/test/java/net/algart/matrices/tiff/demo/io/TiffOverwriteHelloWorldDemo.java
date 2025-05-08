@@ -29,6 +29,7 @@ import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
+import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
 import java.awt.*;
@@ -36,6 +37,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 public class TiffOverwriteHelloWorldDemo {
     public static void main(String[] args) throws IOException {
@@ -63,16 +65,21 @@ public class TiffOverwriteHelloWorldDemo {
             final TiffIFD ifd = reader.readSingleIFD(ifdIndex);
             ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
             TiffReadMap readMap = reader.newMap(ifd, false);
+            final TiffWriteMap writeMap = writer.existingMap(ifd);
             final BufferedImage bufferedImage = reader.readBufferedImage(readMap,
                     x, y, imageToDrawSizeX, imageToDrawSizeY, true);
             // - the last argument "true" leads to preserving all tiles in the map:
             // this is necessary for boundary tiles that are partially covered by the image
-            final TiffWriteMap writeMap = writer.existingMap(ifd);
             writeMap.copy(readMap, false);
             System.out.printf("Overwriting %s...%n", writeMap);
             drawTextOnImage(bufferedImage, "Hello, world!");
             // MatrixIO.writeBufferedImage(Path.of("/tmp/test.bmp"), bufferedImage);
-            writer.writeBufferedImage(writeMap, bufferedImage, x, y);
+            final List<TiffTile> tiles = writeMap.updateBufferedImage(bufferedImage, x, y);
+            int m = writeMap.flushCompletedTiles(tiles);
+            System.out.printf("Flushed %d tiles%n", m);
+            m = writeMap.completeWriting();
+            System.out.printf("Completed %d tiles%n", m);
+            // - should be 0, because all tiles were preloaded
         }
         System.out.println("Done");
     }

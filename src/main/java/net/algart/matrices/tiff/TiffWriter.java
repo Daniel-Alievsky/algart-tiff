@@ -893,20 +893,23 @@ public class TiffWriter implements Closeable {
         }
     }
 
-    public void writeTile(TiffTile tile, boolean disposeAfterWriting) throws IOException {
+    public void writeTile(TiffTile tile, boolean freeAndFreezeAfterWriting) throws IOException {
         encode(tile);
-        writeEncodedTile(tile, disposeAfterWriting);
+        writeEncodedTile(tile, freeAndFreezeAfterWriting);
     }
 
     public int writeAllTiles(Collection<TiffTile> tiles) throws IOException {
         return writeTiles(tiles, tile -> true, true);
     }
 
-    public int flushCompletedTiles(Collection<TiffTile> tiles) throws IOException {
-        return writeTiles(tiles, TiffTile::isCompleted, true);
+    public int flushCompletedTiles(Collection<TiffTile> tiles, boolean freeAndFreezeAfterWriting) throws IOException {
+        return writeTiles(tiles, TiffTile::isCompleted, freeAndFreezeAfterWriting);
     }
 
-    public int writeTiles(Collection<TiffTile> tiles, Predicate<TiffTile> needToWrite, boolean disposeAfterWriting)
+    public int writeTiles(
+            Collection<TiffTile> tiles,
+            Predicate<TiffTile> needToWrite,
+            boolean freeAndFreezeAfterWriting)
             throws IOException {
         Objects.requireNonNull(tiles, "Null tiles");
         Objects.requireNonNull(needToWrite, "Null needToWrite");
@@ -915,7 +918,7 @@ public class TiffWriter implements Closeable {
         long sizeInBytes = 0;
         for (TiffTile tile : tiles) {
             if (needToWrite.test(tile)) {
-                writeTile(tile, disposeAfterWriting);
+                writeTile(tile, freeAndFreezeAfterWriting);
                 count++;
                 sizeInBytes += tile.getSizeInBytes();
             }
@@ -925,7 +928,7 @@ public class TiffWriter implements Closeable {
         return count;
     }
 
-    public void writeEncodedTile(TiffTile tile, boolean disposeAfterWriting) throws IOException {
+    public void writeEncodedTile(TiffTile tile, boolean freeAndFreezeAfterWriting) throws IOException {
         Objects.requireNonNull(tile, "Null tile");
         if (tile.isEmpty()) {
             return;
@@ -935,8 +938,8 @@ public class TiffWriter implements Closeable {
             checkVirginFile();
             clearReader();
             TiffTileIO.write(tile, out, alwaysWriteToFileEnd, !bigTiff);
-            if (disposeAfterWriting) {
-                tile.dispose();
+            if (freeAndFreezeAfterWriting) {
+                tile.freeAndFreeze();
             }
         }
         long t2 = debugTime();
@@ -1441,8 +1444,8 @@ public class TiffWriter implements Closeable {
         final long[] offsets = new long[map.numberOfGridTiles()];
         final long[] byteCounts = new long[map.numberOfGridTiles()];
         // - zero-filled by Java
-        map.ifd().updateDataPositioning(offsets, byteCounts);
         final TiffIFD ifd = map.ifd();
+        ifd.updateDataPositioning(offsets, byteCounts);
         if (!ifd.hasFileOffsetForWriting()) {
             writeIFDAtFileEnd(ifd, false);
         }
