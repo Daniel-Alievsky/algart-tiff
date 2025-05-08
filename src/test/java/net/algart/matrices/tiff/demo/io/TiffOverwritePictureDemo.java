@@ -48,7 +48,7 @@ public class TiffOverwritePictureDemo {
             image = List.of(ColorMatrices.toRGBIntensity(image));
         }
         if (image.get(0).elementType() != map.elementType()) {
-            image = Matrices.applyToChannels(
+            image = Matrices.apply(
                     m -> Matrices.asPrecision(m, map.elementType()), image);
         }
         return image;
