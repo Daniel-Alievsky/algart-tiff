@@ -99,7 +99,8 @@ public class TiffWriterTest {
             startArgIndex++;
         }
         boolean preserveOldAccurately = false;
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-preserveOldAccurately")) {
+        if (args.length > startArgIndex && args[startArgIndex]
+                .equalsIgnoreCase("-preserveOldAccurately")) {
             preserveOldAccurately = preserveOld = true;
             startArgIndex++;
         }
