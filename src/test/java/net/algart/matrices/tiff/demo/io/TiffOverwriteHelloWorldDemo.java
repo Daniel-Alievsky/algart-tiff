@@ -60,10 +60,8 @@ public class TiffOverwriteHelloWorldDemo {
         final int sizeY = 50;
         // - estimated sizes sufficient for "Hello, world!"
         try (var writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
-            final TiffReader reader = writer.reader();
-            final TiffIFD ifd = reader.readSingleIFD(ifdIndex);
-            ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
-            TiffReadMap readMap = reader.newMap(ifd, false);
+            final TiffIFD ifd = writer.existingIFD(ifdIndex);
+            TiffReadMap readMap = writer.reader().newMap(ifd, false);
             final TiffWriteMap writeMap = writer.existingMap(ifd);
             overwrite(writeMap, readMap, x, y, sizeX, sizeY);
             overwrite(writeMap, readMap, x + sizeX / 2, y + sizeY / 2, sizeX, sizeY);

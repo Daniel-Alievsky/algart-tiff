@@ -636,6 +636,20 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
         tileMap.values().forEach(TiffTile::cropUnsetAreaToMap);
     }
 
+    /**
+     * Calls {@link TiffTile#freeData()} for all tiles in the map,
+     * Unlike {@link #clear}, this method does not remove tiles from the map:
+     * some special tile information like {@link TiffTile#getStoredInFileDataLength()} stays available.
+     */
+    public void freeAllData() {
+        tileMap.values().forEach(TiffTile::freeData);
+    }
+
+    /**
+     * Removes all tiles from the map.
+     *
+     * @param clearDimensions whether we need also to set map dimensions to 0x0.
+     */
     public void clear(boolean clearDimensions) {
         tileMap.clear();
         if (clearDimensions) {

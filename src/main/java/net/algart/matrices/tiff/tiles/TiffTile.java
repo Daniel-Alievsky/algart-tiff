@@ -748,7 +748,7 @@ public final class TiffTile {
     public void freeData() {
         this.data = null;
         this.interleaved = false;
-        // - before possibly setting new decoded data, we should restore default status interleaved = false
+        // - before possibly setting new decoded data, we should restore the default status interleaved = false
         this.encoded = false;
         // - method checkReadyForNewDecodedData() requires that the tile should not be declared as encoded
         // Note: we should not clear information about stored data file range, because
@@ -794,8 +794,8 @@ public final class TiffTile {
      * Return the length of the last non-null encoded data array, stored in the TIFF file,
      * or 0 after creating this object.
      *
-     * <p>Immediately after reading tile from the file, as well as
-     * immediately before/after writing it into file, this method returns the number of encoded bytes,
+     * <p>Immediately after reading a tile from the file, as well as
+     * immediately before/after writing it into the file, this method returns the number of encoded bytes,
      * which are actually stored in the file for this tile.
      *
      * <p>Note: {@link #freeData()} method does not change this value! So, you can know the stored data size
