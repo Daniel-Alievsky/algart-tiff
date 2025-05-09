@@ -65,16 +65,16 @@ public class TiffOverwriteHelloWorldDemo {
             ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
             TiffReadMap readMap = reader.newMap(ifd, false);
             final TiffWriteMap writeMap = writer.existingMap(ifd);
-            overwritePart(writeMap, readMap, x, y, sizeX, sizeY);
-            overwritePart(writeMap, readMap, x + sizeX / 2, y + sizeY / 2, sizeX, sizeY);
+            overwrite(writeMap, readMap, x, y, sizeX, sizeY);
+            overwrite(writeMap, readMap, x + sizeX / 2, y + sizeY / 2, sizeX, sizeY);
             int m = writeMap.completeWriting();
-            System.out.printf("Completed %d tiles%n", m);
+            System.out.printf("Completed %d tile, file length: %d%n", m, writeMap.fileLength());
             // - should be 0, because all tiles were preloaded
         }
         System.out.println("Done");
     }
 
-    private static void overwritePart(TiffWriteMap writeMap, TiffReadMap readMap, int x, int y, int sizeX, int sizeY)
+    private static void overwrite(TiffWriteMap writeMap, TiffReadMap readMap, int x, int y, int sizeX, int sizeY)
             throws IOException {
         final BufferedImage bufferedImage = readMap.readBufferedImage(
                 x, y, sizeX, sizeY, true);
@@ -86,7 +86,7 @@ public class TiffOverwriteHelloWorldDemo {
         // MatrixIO.writeBufferedImage(Path.of("/tmp/test.bmp"), bufferedImage);
         final List<TiffTile> tiles = writeMap.updateBufferedImage(bufferedImage, x, y);
         int m = writeMap.writeCompletedTiles(tiles);
-        System.out.printf("Written %d completed tiles%n", m);
+        System.out.printf("Written %d completed tiles, file length: %d%n", m, writeMap.fileLength());
     }
 
     static void drawTextOnImage(BufferedImage bufferedImage, String text) {

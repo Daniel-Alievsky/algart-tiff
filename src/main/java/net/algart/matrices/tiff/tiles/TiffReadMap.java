@@ -59,6 +59,15 @@ public final class TiffReadMap extends TiffMap {
         return owningReader;
     }
 
+    public long fileLength() {
+        try {
+            return owningReader.input().length();
+        } catch (IOException e) {
+            // - very improbable, it is better just to return something
+            return 0;
+        }
+    }
+
     public TiffReader.UnpackBits getAutoUnpackBits() {
         return owningReader.getAutoUnpackBits();
     }

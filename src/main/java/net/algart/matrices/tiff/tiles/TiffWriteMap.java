@@ -62,6 +62,15 @@ public final class TiffWriteMap extends TiffMap {
         return owningWriter;
     }
 
+    public long fileLength() {
+        try {
+            return owningWriter.output().length();
+        } catch (IOException e) {
+            // - very improbable, it is better just to return something
+            return 0;
+        }
+    }
+
     public List<TiffTile> updateSamples(byte[] samples, long fromX, long fromY, long sizeX, long sizeY) {
         Objects.requireNonNull(samples, "Null samples");
         checkRequestedArea(fromX, fromY, sizeX, sizeY);
