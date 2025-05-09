@@ -1214,6 +1214,7 @@ public class TiffWriter implements Closeable {
     public TiffIFD existingIFD(int ifdIndex) throws IOException {
         @SuppressWarnings("resource") final TiffReader reader = reader();
         final TiffIFD ifd = reader.readSingleIFD(ifdIndex);
+        // - no sense to read and cache all IFD: this reader will probably be cleared after TIFF changes
         ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
         return ifd;
     }
