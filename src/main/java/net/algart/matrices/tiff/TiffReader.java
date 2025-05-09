@@ -288,8 +288,11 @@ public class TiffReader implements Closeable {
      * an invalid file. In another situation this flag may be <code>false</code>, then you must close
      * the input stream yourself.
      *
-     * @param inputStream            input stream; automatically replaced (wrapped) with {@link ReadBufferDataHandle}
-     *                               if this stream is still not an instance of this class.
+     * <p>The specified input stream is automatically replaced (wrapped) with {@link ReadBufferDataHandle}
+     * if this stream is still not an instance of this class.
+     * Note: as a result, you cannot use the stream returned by {@link #input()} method to modify the file.
+     *
+     * @param inputStream            input stream.
      * @param openMode               what should be checked while opening?
      * @param closeStreamOnException if <code>true</code>, the input stream is closed in the case of any exception;
      *                               ignored if <code>openMode</code> is {@link TiffOpenMode#NO_CHECKS}.
@@ -341,8 +344,11 @@ public class TiffReader implements Closeable {
      * you might think it would be a good idea to use it by default, but it is not so:
      * typically you need {@link TiffOpenMode#VALID_TIFF} variant of behavior.
      *
-     * @param inputStream      input stream; automatically replaced (wrapped) with {@link ReadBufferDataHandle},
-     *                         if this stream is still not an instance of this class.
+     * <p>The specified input stream is automatically replaced (wrapped) with {@link ReadBufferDataHandle}
+     * if this stream is still not an instance of this class.
+     * Note: as a result, you cannot use the stream returned by {@link #input()} method to modify the file.
+     *
+     * @param inputStream      input stream.
      * @param exceptionHandler if not {@code null}, it will be called in the case of some checked exception;
      *                         for example, it may log it. But usually it is better idea to use the main
      *                         constructor {@link #TiffReader(DataHandle, TiffOpenMode, boolean)}

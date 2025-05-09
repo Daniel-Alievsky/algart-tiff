@@ -76,7 +76,8 @@ public class TiffWriteMixedTest {
 //            writer.setSmartFormatCorrection(true);
 
             writer.create();
-            // writer.startNewFile(); // - not a problem to call twice
+            writer.create(); // - not a problem to call twice
+            // writer.reader().input().setLength(0); // - throws an exception (read-only
             TiffIFD ifd = new TiffIFD();
             final int[] bitsPerSample = {8, 8, 8};
             int numberOfChannels = bitsPerSample.length;

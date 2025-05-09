@@ -230,14 +230,26 @@ public class TiffWriter implements Closeable {
      * Returns the TIFF reader for reading the same file stream {@link #output()} used by this object.
      * You <b>don't need</b> to close it: this stream will be closed when closing this writer.
      *
+     * <p>The returned reference is stored inside this object, and will be returned by further calls
+     * of this method, unless you set <code>alwaysCreateNew=true</code>.
+     * However, the stored reference is cleared to {@code null} (so that the following call
+     * of this method will re-create the reader) in the following cases:
+     *
+     * <ul>
+     *     <li>opening/creating the TIFF file via {@link #create()}, {@link #open(boolean)}
+     *     and equivalent methods;</li>
+     *     <li>writing IFD into the file;</li>
+     *     <li>writing a tile into the file ({@link #writeEncodedTile(TiffTile, boolean)} method);</li>
+     *     <li>correction of the IFD offset by {@link #rewritePreviousLastIFDOffset(long)} method.</li>
+     * </ul>
+     *
      * <p>This reader is created in {@link TiffOpenMode#NO_CHECKS} mode.
      * Caching in the reader is disabled by
      * {@link TiffReader#setCaching(boolean) setCaching(false)}: usually this reader
-     * should be used while you are modifying the TIFF, so the cache may work incorrectly.
+     * should be used while you are modifying the TIFF, so the caching has no sense.
+     * (As noted above, any write to the TIFF will destroy the stored reader together with
+     * all cached tiles.)
      * But you can enable caching when you finish the writing.
-     *
-     * <p>The returned reference is stored inside this object, and will be returned by further calls
-     * of this method, unless you set <code>alwaysCreateNew=true</code>.
      *
      * @param alwaysCreateNew whether you need to ignore the previously created reader (it if exists)
      *                        and create a new one.
