@@ -693,8 +693,8 @@ public final class TiffTile {
         } else {
             final byte[] data = cloneData ? source.data.clone() : source.data;
             setData(data, source.encoded, false, true);
-            frozen = source.frozen;
         }
+        frozen = source.frozen;
         return this;
     }
 
@@ -713,6 +713,7 @@ public final class TiffTile {
         // for example, 16-bit float into 32-bit floats
         if (source.isEmpty()) {
             freeData();
+            frozen = source.frozen;
             return this;
         }
         source.checkDecodedData();
@@ -727,6 +728,7 @@ public final class TiffTile {
             setDecodedData(swapped, true);
         }
         frozen = source.frozen;
+        // - actually should be false
         return this;
     }
 
@@ -734,6 +736,11 @@ public final class TiffTile {
         return data == null;
     }
 
+    /**
+     * Returns {@code true} if this tile was <i>frozen</i> by {@link #freeAndFreeze()} method.
+     *
+     * @return whether the tile is empty and frozen.
+     */
     public boolean isFrozen() {
         return frozen;
     }
@@ -755,7 +762,7 @@ public final class TiffTile {
      * but can be filled with some data again, for example, using {@link #setDecodedData(byte[])}
      * or {@link #fillWhenEmpty()}.
      * Unlike this, after this method,
-     * the tile cannot be modified at all: any attempt to get or set data
+     * the tile usually cannot be modified: any attempt to get or set data
      * ({@link #getDecodedData()}, {@link #getEncodedData()}, {@link  #setDecodedData(byte[])},
      * {@link #setEncodedData(byte[])}, {@link #fillWhenEmpty()} etc.) will result in an exception.</p>
      *
@@ -766,7 +773,12 @@ public final class TiffTile {
      * when its second argument is <code>true</code>:
      * usually there is no any sense to work with a tile after once it has been written into the TIFF file.</p>
      *
-     * <p>Note: there is no way to clear the <i>frozen</i> status in this object.</p>
+     * <p>The <i>frozen</i> status may be cleared ("unfreezing") by the methods
+     * {@link #setDecodedData(byte[], boolean)} and {@link #setEncodedData(byte[], boolean)}
+     * with additional {@code boolean} argument "unfreeze".
+     * Also, the <i>frozen</i> status is copied from the source tile by
+     * {@link #copyData(TiffTile, boolean)} and {@link #copyUnpackedSamples(TiffTile, boolean)} methods.
+     * There are no other ways to clear the <i>frozen</i> status in this object.</p>
      */
     public void freeAndFreeze() {
         freeData();
@@ -1142,7 +1154,7 @@ public final class TiffTile {
         this.estimatedNumberOfPixels = (int) numberOfPixels;
         this.encoded = encoded;
         if (unfreeze) {
-            frozen = false;
+            this.frozen = false;
         }
         return this;
     }
