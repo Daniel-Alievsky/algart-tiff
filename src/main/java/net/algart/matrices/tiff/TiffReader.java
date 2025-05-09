@@ -359,6 +359,8 @@ public class TiffReader implements Closeable {
         this.in = inputStream instanceof ReadBufferDataHandle ?
                 inputStream :
                 new ReadBufferDataHandle<>(inputStream);
+        // - Note: the argument inputStream cannot be ReadBufferDataHandle if we use TiffWriter.newReader method.
+        // ReadBufferDataHandle is read-only (cannot write anything), so it cannot be used in TiffWriter.
         AtomicBoolean tiff = new AtomicBoolean(false);
         AtomicBoolean bigTiff = new AtomicBoolean(false);
         this.openingException = startReading(tiff, bigTiff);

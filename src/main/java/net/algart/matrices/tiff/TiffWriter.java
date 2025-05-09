@@ -222,53 +222,6 @@ public class TiffWriter implements Closeable {
         // - we do not use WriteBufferDataHandle here: this is not too important for efficiency
     }
 
-    public TiffReader reader() throws IOException {
-        return reader(false);
-    }
-
-    /**
-     * Returns the TIFF reader for reading the same file stream {@link #output()} used by this object.
-     * You <b>don't need</b> to close it: this stream will be closed when closing this writer.
-     *
-     * <p>The returned reference is stored inside this object, and will be returned by further calls
-     * of this method, unless you set <code>alwaysCreateNew=true</code>.
-     * However, the stored reference is cleared to {@code null} (so that the following call
-     * of this method will re-create the reader) in the following cases:
-     *
-     * <ul>
-     *     <li>opening/creating the TIFF file via {@link #create()}, {@link #open(boolean)}
-     *     and equivalent methods;</li>
-     *     <li>writing IFD into the file;</li>
-     *     <li>writing a tile into the file ({@link #writeEncodedTile(TiffTile, boolean)} method);</li>
-     *     <li>correction of the IFD offset by {@link #rewritePreviousLastIFDOffset(long)} method.</li>
-     * </ul>
-     *
-     * <p>This reader is created in {@link TiffOpenMode#NO_CHECKS} mode.
-     * Caching in the reader is disabled by
-     * {@link TiffReader#setCaching(boolean) setCaching(false)}: usually this reader
-     * should be used while you are modifying the TIFF, so the caching has no sense.
-     * (As noted above, any write to the TIFF will destroy the stored reader together with
-     * all cached tiles.)
-     * But you can enable caching when you finish the writing.
-     *
-     * @param alwaysCreateNew whether you need to ignore the previously created reader (it if exists)
-     *                        and create a new one.
-     * @return new TIFF reader.
-     * @throws IOException in the case of any I/O errors.
-     */
-    public TiffReader reader(boolean alwaysCreateNew) throws IOException {
-        synchronized (fileLock) {
-            if (alwaysCreateNew || this.reader == null) {
-                this.reader = newReader(TiffOpenMode.NO_CHECKS).setCaching(false);
-            }
-            return this.reader;
-        }
-    }
-
-    public TiffReader newReader(TiffOpenMode openMode) throws IOException {
-        return new TiffReader(out, openMode, false);
-    }
-
     /**
      * Returns whether we are writing little-endian data.
      */
@@ -791,6 +744,53 @@ public class TiffWriter implements Closeable {
         }
     }
 
+    public TiffReader reader() throws IOException {
+        return reader(false);
+    }
+
+    /**
+     * Returns the TIFF reader for reading the same file stream {@link #output()} used by this object.
+     * You <b>don't need</b> to close it: this stream will be closed when closing this writer.
+     *
+     * <p>The returned reference is stored inside this object, and will be returned by further calls
+     * of this method, unless you set <code>alwaysCreateNew=true</code>.
+     * However, the stored reference is cleared to {@code null} (so that the following call
+     * of this method will re-create the reader) in the following cases:
+     *
+     * <ul>
+     *     <li>opening/creating the TIFF file via {@link #create()}, {@link #open(boolean)}
+     *     and equivalent methods;</li>
+     *     <li>writing IFD into the file;</li>
+     *     <li>writing a tile into the file ({@link #writeEncodedTile(TiffTile, boolean)} method);</li>
+     *     <li>correction of the IFD offset by {@link #rewritePreviousLastIFDOffset(long)} method.</li>
+     * </ul>
+     *
+     * <p>This reader is created in {@link TiffOpenMode#NO_CHECKS} mode.
+     * Caching in the reader is disabled by
+     * {@link TiffReader#setCaching(boolean) setCaching(false)}: usually this reader
+     * should be used while you are modifying the TIFF, so the caching has no sense.
+     * (As noted above, any write to the TIFF will destroy the stored reader together with
+     * all cached tiles.)
+     * But you can enable caching when you finish the writing.
+     *
+     * @param alwaysCreateNew whether you need to ignore the previously created reader (it if exists)
+     *                        and create a new one.
+     * @return new TIFF reader.
+     * @throws IOException in the case of any I/O errors.
+     */
+    public TiffReader reader(boolean alwaysCreateNew) throws IOException {
+        synchronized (fileLock) {
+            if (alwaysCreateNew || this.reader == null) {
+                this.reader = newReader(TiffOpenMode.NO_CHECKS).setCaching(false);
+            }
+            return this.reader;
+        }
+    }
+
+    public TiffReader newReader(TiffOpenMode openMode) throws IOException {
+        return new TiffReader(out, openMode, false);
+    }
+
     public void rewriteIFD(final TiffIFD ifd, boolean updateIFDLinkages) throws IOException {
         Objects.requireNonNull(ifd, "Null IFD");
         if (!ifd.hasFileOffsetForWriting()) {
@@ -1211,6 +1211,13 @@ public class TiffWriter implements Closeable {
         return ifd;
     }
 
+    public TiffIFD existingIFD(int ifdIndex) throws IOException {
+        @SuppressWarnings("resource") final TiffReader reader = reader();
+        final TiffIFD ifd = reader.readSingleIFD(ifdIndex);
+        ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
+        return ifd;
+    }
+
     /**
      * Creates a new TIFF map for further writing data to the TIFF file by <code>writeXxx</code> methods.
      *
@@ -1297,7 +1304,6 @@ public class TiffWriter implements Closeable {
         }
         ifd.freeze();
         // - actually not necessary, but helps to avoid possible bugs
-
     }
 
     /**
@@ -1397,14 +1403,13 @@ public class TiffWriter implements Closeable {
             boolean loadTilesFullyInsideRectangle)
             throws IOException {
         TiffMap.checkRequestedArea(fromX, fromY, sizeX, sizeY);
-        @SuppressWarnings("resource") final TiffReader reader = reader();
-        final TiffIFD ifd = reader.readSingleIFD(ifdIndex);
-        ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
+        final TiffIFD ifd = existingIFD(ifdIndex);
         final TiffWriteMap map = existingMap(ifd);
         if (sizeX > 0 && sizeY > 0) {
             // a zero-size rectangle does not "intersect" anything
             final IRectangularArea areaToWrite = IRectangularArea.valueOf(
                     fromX, fromY, fromX + sizeX - 1, fromY + sizeY - 1);
+            @SuppressWarnings("resource") final TiffReader reader = reader();
             for (TiffTile tile : map.tiles()) {
                 if (tile.actualRectangle().intersects(areaToWrite) &&
                         (loadTilesFullyInsideRectangle || !areaToWrite.contains(tile.actualRectangle()))) {
