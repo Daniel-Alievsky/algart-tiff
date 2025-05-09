@@ -40,8 +40,10 @@ import java.util.function.Predicate;
 
 public final class TiffWriteMap extends TiffMap {
     private static final boolean AUTO_INTERLEAVE_SOURCE = true;
-    // See TiffWriter.AUTO_INTERLEAVE_SOURCE.
+    // - See TiffWriter.AUTO_INTERLEAVE_SOURCE.
     // IF YOU CHANGE IT, YOU MUST CORRECT ALSO TiffWriter.AUTO_INTERLEAVE_SOURCE.
+    private static final boolean IGNORE_WRITING_OUTSIDE_MAP = true;
+    // - Should be true. The false value simulates the early versions, but this is inconvenient for using.
 
     private final TiffWriter owningWriter;
 
@@ -67,24 +69,35 @@ public final class TiffWriteMap extends TiffMap {
         return updateSamples(samples, (int) fromX, (int) fromY, (int) sizeX, (int) sizeY);
     }
 
-    public List<TiffTile> updateSamples(byte[] samples, int fromX, int fromY, int sizeX, int sizeY) {
+    public List<TiffTile> updateSamples(
+            final byte[] samples,
+            final int fromX,
+            final int fromY,
+            final int sizeX,
+            final int sizeY) {
         Objects.requireNonNull(samples, "Null samples");
         checkRequestedArea(fromX, fromY, sizeX, sizeY);
         checkRequestedAreaInArray(samples, sizeX, sizeY, totalAlignedBitsPerPixel());
-        List<TiffTile> updatedTiles = new ArrayList<>();
+        final List<TiffTile> updatedTiles = new ArrayList<>();
         if (sizeX == 0 || sizeY == 0) {
             // - if no pixels are updated, no need to expand the map and to check correct expansion
             return updatedTiles;
         }
-        final int toX = fromX + sizeX;
-        final int toY = fromY + sizeY;
+        int toX = fromX + sizeX;
+        int toY = fromY + sizeY;
         if (needToExpandDimensions(toX, toY)) {
-            if (!isResizable()) {
-                throw new IndexOutOfBoundsException("Requested area [" + fromX + ".." + (fromX + sizeX - 1) +
-                        " x " + fromY + ".." + (fromY + sizeY - 1) + "] is outside the TIFF image dimensions " +
-                        dimX() + "x" + dimY() + ": this is not allowed for non-resizable tile map");
+            if (isResizable()) {
+                expandDimensions(toX, toY);
+            } else {
+                if (!IGNORE_WRITING_OUTSIDE_MAP) {
+                    throw new IndexOutOfBoundsException("Requested area [" + fromX + ".." + (fromX + sizeX - 1) +
+                            " x " + fromY + ".." + (fromY + sizeY - 1) + "] is outside the TIFF image dimensions " +
+                            dimX() + "x" + dimY() + ": this is not allowed for non-resizable tile map");
+                }
+                toX = Math.min(toX, dimX());
+                toY = Math.min(toY, dimY());
+                // Note: we MUST NOT change sizeX/sizeY, they specify the structure of the samples array
             }
-            expandDimensions(toX, toY);
         }
 
         final int mapTileSizeX = tileSizeX();
@@ -97,7 +110,7 @@ public final class TiffWriteMap extends TiffMap {
 
         final int minXIndex = Math.max(0, TiffReadMap.divFloor(fromX, mapTileSizeX));
         final int minYIndex = Math.max(0, TiffReadMap.divFloor(fromY, mapTileSizeY));
-        if (minXIndex >= gridCountX() || minYIndex >= gridCountY()) {
+        if (isResizable() && (minXIndex >= gridCountX() || minYIndex >= gridCountY())) {
             throw new AssertionError("Map was not expanded/checked properly: minimal tile index (" +
                     minXIndex + "," + minYIndex + ") is out of tile grid 0<=x<" +
                     gridCountX() + ", 0<=y<" + gridCountY() + "; map: " + this);
@@ -105,7 +118,7 @@ public final class TiffWriteMap extends TiffMap {
         final int maxXIndex = Math.min(gridCountX() - 1, TiffReadMap.divFloor(toX - 1, mapTileSizeX));
         final int maxYIndex = Math.min(gridCountY() - 1, TiffReadMap.divFloor(toY - 1, mapTileSizeY));
         if (minYIndex > maxYIndex || minXIndex > maxXIndex) {
-            // - possible when fromX < 0 or fromY < 0
+            // - possible when the area is outside the map, in particular when fromX < 0 or fromY < 0
             return updatedTiles;
         }
 
