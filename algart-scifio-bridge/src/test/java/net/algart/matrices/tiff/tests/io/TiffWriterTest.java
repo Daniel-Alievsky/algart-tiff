@@ -52,8 +52,10 @@ import java.util.List;
 import java.util.OptionalInt;
 
 public class TiffWriterTest {
-    private final static int IMAGE_WIDTH = 1011;
-    private final static int IMAGE_HEIGHT = 1051;
+    private static final boolean AUTO_INTERLEAVE_SOURCE = true;
+    // - must be the same as AUTO_INTERLEAVE_SOURCE internal constants in TiffWriter/TiffWriteMap
+    private static final int IMAGE_WIDTH = 1011;
+    private static final int IMAGE_HEIGHT = 1051;
 
     private static void printReaderInfo(TiffWriter writer) {
         System.out.print("Checking file by the reader: ");
@@ -353,9 +355,8 @@ public class TiffWriterTest {
                     }
 
                     Object samplesArray = makeSamples(ifdIndex, map.numberOfChannels(), map.sampleType(), w, h);
-                    final boolean interleaved = writer instanceof TiffSaver && samplesArray instanceof byte[]
-                        && !planarSeparated;
-                    // - or true if the internal constants TiffWriter/TiffWriteMap.AUTO_INTERLEAVE_SOURCE are true
+                    final boolean interleaved = !AUTO_INTERLEAVE_SOURCE
+                            || (writer instanceof TiffSaver && samplesArray instanceof byte[] && !planarSeparated);
                     if (interleaved) {
                         samplesArray = map.toInterleavedSamples(
                                 (byte[]) samplesArray, map.numberOfChannels(), (long) w * (long) h);
@@ -504,7 +505,7 @@ public class TiffWriterTest {
                 for (int y = 0, disp = 0; y < dimY; y++) {
                     final int c = (y / 32 + 1) % bandCount;
                     for (int x = 0; x < dimX; x++, disp++) {
-                        channels[disp + c * matrixSize] = 157 * 65536 * (50 * ifdIndex + Math.min(x, 500)  + y);
+                        channels[disp + c * matrixSize] = 157 * 65536 * (50 * ifdIndex + Math.min(x, 500) + y);
                     }
                 }
                 return channels;
@@ -525,7 +526,7 @@ public class TiffWriterTest {
                 for (int y = 0, disp = 0; y < dimY; y++) {
                     final int c = (y / 32 + 1) % bandCount;
                     for (int x = 0; x < dimX; x++, disp++) {
-                        int v = (50 * ifdIndex + Math.min(x, 500)  + y) & 0xFF;
+                        int v = (50 * ifdIndex + Math.min(x, 500) + y) & 0xFF;
                         channels[disp + c * matrixSize] = (float) (0.5 + 1.5 * (v / 256.0 - 0.5));
                     }
                 }

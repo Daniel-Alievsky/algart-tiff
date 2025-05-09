@@ -55,33 +55,38 @@ public class TiffOverwriteHelloWorldDemo {
         final int x = startArgIndex + 2 < args.length ? Integer.parseInt(args[startArgIndex + 2]) : 0;
         final int y = startArgIndex + 3 < args.length ? Integer.parseInt(args[startArgIndex + 3]) : 0;
 
-        final int imageToDrawSizeX = 250;
-        final int imageToDrawSizeY = 50;
-        // - estimated sizes sufficient for "Hello, world!"
-
         System.out.printf("Opening and rewriting TIFF %s...%n", targetFile);
+        final int sizeX = 250;
+        final int sizeY = 50;
+        // - estimated sizes sufficient for "Hello, world!"
         try (var writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
             final TiffReader reader = writer.reader();
             final TiffIFD ifd = reader.readSingleIFD(ifdIndex);
             ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
             TiffReadMap readMap = reader.newMap(ifd, false);
             final TiffWriteMap writeMap = writer.existingMap(ifd);
-            final BufferedImage bufferedImage = reader.readBufferedImage(readMap,
-                    x, y, imageToDrawSizeX, imageToDrawSizeY, true);
-            // - the last argument "true" leads to preserving all tiles in the map:
-            // this is necessary for boundary tiles that are partially covered by the image
-            writeMap.copy(readMap, false);
-            System.out.printf("Overwriting %s...%n", writeMap);
-            drawTextOnImage(bufferedImage, "Hello, world!");
-            // MatrixIO.writeBufferedImage(Path.of("/tmp/test.bmp"), bufferedImage);
-            final List<TiffTile> tiles = writeMap.updateBufferedImage(bufferedImage, x, y);
-            int m = writeMap.writeCompletedTiles(tiles);
-            System.out.printf("Written %d completed tiles%n", m);
-            m = writeMap.completeWriting();
+            overwritePart(writeMap, readMap, x, y, sizeX, sizeY);
+            overwritePart(writeMap, readMap, x + sizeX / 2, y + sizeY / 2, sizeX, sizeY);
+            int m = writeMap.completeWriting();
             System.out.printf("Completed %d tiles%n", m);
             // - should be 0, because all tiles were preloaded
         }
         System.out.println("Done");
+    }
+
+    private static void overwritePart(TiffWriteMap writeMap, TiffReadMap readMap, int x, int y, int sizeX, int sizeY)
+            throws IOException {
+        final BufferedImage bufferedImage = readMap.readBufferedImage(
+                x, y, sizeX, sizeY, true);
+        // - the last argument "true" leads to preserving all tiles in the map:
+        // this is necessary for boundary tiles that are partially covered by the image
+        writeMap.copy(readMap, false);
+        System.out.printf("Overwriting %s...%n", writeMap);
+        drawTextOnImage(bufferedImage, "Hello, world!");
+        // MatrixIO.writeBufferedImage(Path.of("/tmp/test.bmp"), bufferedImage);
+        final List<TiffTile> tiles = writeMap.updateBufferedImage(bufferedImage, x, y);
+        int m = writeMap.writeCompletedTiles(tiles);
+        System.out.printf("Written %d completed tiles%n", m);
     }
 
     static void drawTextOnImage(BufferedImage bufferedImage, String text) {

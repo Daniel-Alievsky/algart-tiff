@@ -160,6 +160,7 @@ public final class TiffWriteMap extends TiffMap {
                     //      source pixels are RRR...GGG..BBB..., we will have separate RRR tiles, GGG tiles, BBB tiles
                     //      (actually each tile is monochrome).
                     if (sourceInterleaved) {
+                        assert !AUTO_INTERLEAVE_SOURCE : "AUTO_INTERLEAVE_SOURCE=false, but sourceInterleaved=true";
 //                        System.out.printf("!!!Chunked: %d%n", samplesPerPixel);
                         // - Case A: source data are already interleaved (like RGBRGB...): maybe, external code
                         // prefers to use interleaved form, for example, OpenCV library.

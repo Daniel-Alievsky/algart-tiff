@@ -528,7 +528,11 @@ public final class TiffTile {
     }
 
     public TiffTile setEncodedData(byte[] data) {
-        return setData(data, true, false);
+        return setEncodedData(data, false);
+    }
+
+    public TiffTile setEncodedData(byte[] data, boolean unfreeze) {
+        return setData(data, true, false, unfreeze);
     }
 
     /**
@@ -578,6 +582,10 @@ public final class TiffTile {
         return data.length;
     }
 
+    public TiffTile setDecodedData(byte[] data) {
+        return setDecodedData(data, false);
+    }
+
     /**
      * Sets the decoded data.
      *
@@ -585,15 +593,17 @@ public final class TiffTile {
      * the unpacked samples can be set via this method.
      * We do not support writing non-standard precision.</p>
      *
-     * @param data decoded (unpacked) data.
+     * @param data     decoded (unpacked) data.
+     * @param unfreeze if {@code true}, the {@link #isFrozen() frozen} flag is cleared;
+     *                 usually should be {@code false}.
      * @return a reference to this object.
      */
-    public TiffTile setDecodedData(byte[] data) {
-        return setData(data, false, true);
+    public TiffTile setDecodedData(byte[] data, boolean unfreeze) {
+        return setData(data, false, true, unfreeze);
     }
 
     public TiffTile setPartiallyDecodedData(byte[] data) {
-        return setData(data, false, false);
+        return setData(data, false, false, false);
     }
 
     public TiffTile fillWhenEmpty() {
@@ -682,7 +692,8 @@ public final class TiffTile {
             freeData();
         } else {
             final byte[] data = cloneData ? source.data.clone() : source.data;
-            setData(data, source.isEncoded(), false);
+            setData(data, source.encoded, false, true);
+            frozen = source.frozen;
         }
         return this;
     }
@@ -707,14 +718,15 @@ public final class TiffTile {
         source.checkDecodedData();
         if (map.isByteOrderCompatible(source.byteOrder())) {
             final byte[] decodedData = source.getUnpackedSamples(autoScaleWhenIncreasingBitDepth);
-            setDecodedData(decodedData);
+            setDecodedData(decodedData, true);
         } else {
             assert byteOrder() != source.byteOrder();
             assert elementType() != boolean.class;
             final byte[] decodedData = source.getUnpackedSamples(autoScaleWhenIncreasingBitDepth);
             final byte[] swapped = JArrays.copyAndSwapByteOrder(decodedData, elementType());
-            setDecodedData(swapped);
+            setDecodedData(swapped, true);
         }
+        frozen = source.frozen;
         return this;
     }
 
@@ -1089,9 +1101,11 @@ public final class TiffTile {
         // Note: doesn't check this.map to avoid infinite recursion!
     }
 
-    private TiffTile setData(byte[] data, boolean encoded, boolean checkAligned) {
+    private TiffTile setData(byte[] data, boolean encoded, boolean checkAligned, boolean unfreeze) {
         Objects.requireNonNull(data, "Null " + (encoded ? "encoded" : "decoded") + " data");
-        checkFrozen();
+        if (!unfreeze) {
+            checkFrozen();
+        }
         final long numberOfBits = 8L * (long) data.length;
         final long numberOfPixels = numberOfBits / bitsPerPixel;
         if (bitsPerPixel > 1) {
@@ -1124,9 +1138,12 @@ public final class TiffTile {
         this.data = data;
         // this.storedInFileDataLength = data.length;
         // - this is a deprecated solution; now storedInFileDataLength has an independent sense
-        // and used to detect, whether new data can be overwritten at the same position in the file
+        // and used to detect whether new data can be overwritten at the same position in the file
         this.estimatedNumberOfPixels = (int) numberOfPixels;
         this.encoded = encoded;
+        if (unfreeze) {
+            frozen = false;
+        }
         return this;
     }
 

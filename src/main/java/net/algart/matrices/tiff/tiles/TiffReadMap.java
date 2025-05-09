@@ -235,6 +235,11 @@ public final class TiffReadMap extends TiffMap {
         return owningReader.readJavaArray(this, fromX, fromY, sizeX, sizeY);
     }
 
+    public Object readJavaArray(int fromX, int fromY, int sizeX, int sizeY, boolean storeTilesInMap)
+            throws IOException {
+        return owningReader.readJavaArray(this, fromX, fromY, sizeX, sizeY, storeTilesInMap);
+    }
+
     public Matrix<UpdatablePArray> readMatrix() throws IOException {
         return owningReader.readMatrix(this);
     }
@@ -242,6 +247,11 @@ public final class TiffReadMap extends TiffMap {
     public Matrix<UpdatablePArray> readMatrix(int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
         return owningReader.readMatrix(this, fromX, fromY, sizeX, sizeY);
+    }
+
+    public Matrix<UpdatablePArray> readMatrix(int fromX, int fromY, int sizeX, int sizeY, boolean storeTilesInMap)
+            throws IOException {
+        return owningReader.readMatrix(this, fromX, fromY, sizeX, sizeY, storeTilesInMap);
     }
 
     public Matrix<UpdatablePArray> readInterleavedMatrix() throws IOException {
@@ -253,6 +263,16 @@ public final class TiffReadMap extends TiffMap {
         return owningReader.readInterleavedMatrix(this, fromX, fromY, sizeX, sizeY);
     }
 
+    public Matrix<UpdatablePArray> readInterleavedMatrix(
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY,
+            boolean storeTilesInMap)
+            throws IOException {
+        return owningReader.readInterleavedMatrix(this, fromX, fromY, sizeX, sizeY, storeTilesInMap);
+    }
+
     public List<Matrix<UpdatablePArray>> readChannels() throws IOException {
         return owningReader.readChannels(this);
     }
@@ -262,6 +282,16 @@ public final class TiffReadMap extends TiffMap {
         return owningReader.readChannels(this, fromX, fromY, sizeX, sizeY);
     }
 
+    public List<Matrix<UpdatablePArray>> readChannels(
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY,
+            boolean storeTilesInMap)
+            throws IOException {
+        return owningReader.readChannels(this, fromX, fromY, sizeX, sizeY, storeTilesInMap);
+    }
+
     public BufferedImage readBufferedImage() throws IOException {
         return owningReader.readBufferedImage(this);
     }
@@ -269,6 +299,11 @@ public final class TiffReadMap extends TiffMap {
     public BufferedImage readBufferedImage(int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
         return owningReader.readBufferedImage(this, fromX, fromY, sizeX, sizeY);
+    }
+
+    public BufferedImage readBufferedImage(int fromX, int fromY, int sizeX, int sizeY, boolean storeTilesInMap)
+            throws IOException {
+        return owningReader.readBufferedImage(this, fromX, fromY, sizeX, sizeY, storeTilesInMap);
     }
 
     public TiffTile readCachedTile(TiffTileIndex tileIndex) throws IOException {
