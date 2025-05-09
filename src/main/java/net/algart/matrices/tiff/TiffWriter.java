@@ -898,14 +898,6 @@ public class TiffWriter implements Closeable {
         writeEncodedTile(tile, freeAndFreezeAfterWriting);
     }
 
-    public int writeAllTiles(Collection<TiffTile> tiles) throws IOException {
-        return writeTiles(tiles, tile -> true, true);
-    }
-
-    public int flushCompletedTiles(Collection<TiffTile> tiles, boolean freeAndFreezeAfterWriting) throws IOException {
-        return writeTiles(tiles, TiffTile::isCompleted, freeAndFreezeAfterWriting);
-    }
-
     public int writeTiles(
             Collection<TiffTile> tiles,
             Predicate<TiffTile> needToWrite,

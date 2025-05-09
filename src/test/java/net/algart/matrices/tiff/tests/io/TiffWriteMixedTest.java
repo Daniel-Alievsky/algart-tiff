@@ -25,7 +25,6 @@
 package net.algart.matrices.tiff.tests.io;
 
 import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.TiffOpenMode;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
@@ -110,7 +109,7 @@ public class TiffWriteMixedTest {
                     updated.size(),
                     updated.stream().map(TiffTile::toString).collect(Collectors.joining("%n  ".formatted())));
             printReaderInfo(writer);
-            map.flushCompletedTiles(updated);
+            map.writeCompletedTiles(updated);
             // - frees the memory (almost do not affect results)
             printReaderInfo(writer);
 
@@ -122,11 +121,14 @@ public class TiffWriteMixedTest {
                     updated.size(),
                     updated.stream().map(TiffTile::toString).collect(Collectors.joining("%n  ".formatted())));
             printReaderInfo(writer);
-            map.flushCompletedTiles(updated);
+            int n = map.writeCompletedTiles(updated);
+            System.out.printf("%d completed tiles written%n", n);
             // - frees the memory (almost do not affect results)
             printReaderInfo(writer);
-            map.completeWriting();
-            // writer.complete(map);
+            n = map.completeWriting();
+            System.out.printf("1st: %d tiles written while the final completion%n", n);
+            n = writer.completeWriting(map);
+            System.out.printf("2nd: %d tiles written while the final completion%n", n);
             // - we can call complete twice, it will spend little time for rewriting IFD, but has no effect
 
             // writer.writeJavaArray(map, samples, 0, 0, sizeX, sizeY);

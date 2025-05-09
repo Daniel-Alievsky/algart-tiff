@@ -75,8 +75,8 @@ public class TiffOverwriteHelloWorldDemo {
             drawTextOnImage(bufferedImage, "Hello, world!");
             // MatrixIO.writeBufferedImage(Path.of("/tmp/test.bmp"), bufferedImage);
             final List<TiffTile> tiles = writeMap.updateBufferedImage(bufferedImage, x, y);
-            int m = writeMap.flushCompletedTiles(tiles);
-            System.out.printf("Flushed %d tiles%n", m);
+            int m = writeMap.writeCompletedTiles(tiles);
+            System.out.printf("Written %d completed tiles%n", m);
             m = writeMap.completeWriting();
             System.out.printf("Completed %d tiles%n", m);
             // - should be 0, because all tiles were preloaded

@@ -453,7 +453,7 @@ public final class TiffCopier {
             samples = JArrays.copyAndSwapByteOrder(samples, readMap.elementType());
         }
         tiles = writeMap.updateSamples(samples, writeX, writeY, sizeX, sizeY);
-        return writeMap.flushCompletedTiles(tiles);
+        return writeMap.writeCompletedTiles(tiles);
     }
 
     private static void copyEncodedTile(
