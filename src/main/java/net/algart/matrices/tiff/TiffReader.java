@@ -67,7 +67,7 @@ import java.util.stream.Collectors;
  * <p>This object is internally synchronized and thread-safe for concurrent use.
  * However, you should not modify objects, passed to the methods of this class from a parallel thread;
  * first, it concerns the {@link TiffIFD} arguments of many methods.
- * The same is true for the result of {@link #input()} method.</p>
+ * The same is true for the result of {@link #stream()} method.</p>
  */
 public class TiffReader extends TiffIO {
     public enum UnpackBits {
@@ -166,7 +166,6 @@ public class TiffReader extends TiffIO {
     private byte byteFiller = 0;
 
     private final Exception openingException;
-    private final DataHandle<? extends Location> in;
     private final boolean tiff;
     private final boolean validTiff;
     private final boolean bigTiff;
@@ -273,7 +272,7 @@ public class TiffReader extends TiffIO {
      *
      * <p>The specified input stream is automatically replaced (wrapped) with {@link ReadBufferDataHandle}
      * if this stream is still not an instance of this class.
-     * Note: as a result, you cannot use the stream returned by {@link #input()} method to modify the file.
+     * Note: as a result, you cannot use the stream returned by {@link #stream()} method to modify the file.
      *
      * @param inputStream            input stream.
      * @param openMode               what should be checked while opening?
@@ -332,7 +331,7 @@ public class TiffReader extends TiffIO {
      *
      * <p>The specified input stream is automatically replaced (wrapped) with {@link ReadBufferDataHandle}
      * if this stream is still not an instance of this class.
-     * Note: as a result, you cannot use the stream returned by {@link #input()} method to modify the file.
+     * Note: as a result, you cannot use the stream returned by {@link #stream()} method to modify the file.
      *
      * @param inputStream      input stream.
      * @param exceptionHandler if not {@code null}, it will be called in the case of some checked exception;
@@ -341,10 +340,9 @@ public class TiffReader extends TiffIO {
      *                         with catching exception.
      */
     public TiffReader(DataHandle<? extends Location> inputStream, Consumer<Exception> exceptionHandler) {
-        Objects.requireNonNull(inputStream, "Null in stream");
-        this.in = inputStream instanceof ReadBufferDataHandle ?
+        super(inputStream instanceof ReadBufferDataHandle ?
                 inputStream :
-                new ReadBufferDataHandle<>(inputStream);
+                new ReadBufferDataHandle<>(inputStream));
         // - Note: the argument inputStream cannot be ReadBufferDataHandle if we use TiffWriter.newReader method.
         // ReadBufferDataHandle is read-only (cannot write anything), so it cannot be used in TiffWriter.
         AtomicBoolean tiff = new AtomicBoolean(false);
@@ -624,16 +622,6 @@ public class TiffReader extends TiffIO {
         return this;
     }
 
-    /**
-     * Returns the input stream from which TIFF data is being parsed.
-     */
-    public DataHandle<? extends Location> input() {
-        synchronized (fileLock) {
-            // - we prefer not to return this stream in the middle of I/O operations
-            return in;
-        }
-    }
-
     public Exception openingException() {
         return openingException;
     }
@@ -687,7 +675,7 @@ public class TiffReader extends TiffIO {
      * @return whether this is a little-endian TIFF.
      */
     public boolean isLittleEndian() {
-        return in.isLittleEndian();
+        return stream.isLittleEndian();
     }
 
     /**
@@ -930,7 +918,7 @@ public class TiffReader extends TiffIO {
      */
     public long readFirstIFDOffset() throws IOException {
         synchronized (fileLock) {
-            in.seek(bigTiff ? 8 : 4);
+            stream.seek(bigTiff ? 8 : 4);
             return readFirstOffsetFromCurrentPosition(true, this.bigTiff);
         }
     }
@@ -947,14 +935,14 @@ public class TiffReader extends TiffIO {
             throw new IllegalArgumentException("Negative ifdIndex = " + ifdIndex);
         }
         synchronized (fileLock) {
-            final long fileLength = in.length();
+            final long fileLength = stream.length();
             long offset = readFirstIFDOffset();
 
             while (offset > 0 && offset < fileLength) {
                 if (ifdIndex-- <= 0) {
                     return offset;
                 }
-                in.seek(offset);
+                stream.seek(offset);
                 skipIFDEntries(fileLength);
                 final long newOffset = readNextOffset(true);
                 if (newOffset == offset) {
@@ -979,12 +967,12 @@ public class TiffReader extends TiffIO {
             if (!validTiff) {
                 return new long[0];
             }
-            final long fileLength = in.length();
+            final long fileLength = stream.length();
             final LinkedHashSet<Long> ifdOffsets = new LinkedHashSet<>();
             long offset = readFirstIFDOffset();
 
             while (offset > 0 && offset < fileLength) {
-                in.seek(offset);
+                stream.seek(offset);
                 final boolean wasNotPresent = ifdOffsets.add(offset);
                 if (!wasNotPresent) {
                     throw new TiffException("TIFF file is broken - infinite loop of IFD offsets is detected " +
@@ -1028,15 +1016,15 @@ public class TiffReader extends TiffIO {
         long timeArrays = 0;
         final TiffIFD ifd;
         synchronized (fileLock) {
-            if (startOffset >= in.length()) {
+            if (startOffset >= stream.length()) {
                 throw new TiffException("TIFF IFD offset " + startOffset + " is outside the file");
             }
             final Map<Integer, Object> map = new LinkedHashMap<>();
             final LinkedHashMap<Integer, TiffIFD.TiffEntry> detailedEntries = new LinkedHashMap<>();
 
             // read in directory entries for this IFD
-            in.seek(startOffset);
-            final long numberOfEntries = bigTiff ? in.readLong() : in.readUnsignedShort();
+            stream.seek(startOffset);
+            final long numberOfEntries = bigTiff ? stream.readLong() : stream.readUnsignedShort();
             TiffIFD.checkNumberOfEntries(numberOfEntries, bigTiff);
 
             final int bytesPerEntry = TiffIFD.TiffEntry.bytesPerEntry(bigTiff);
@@ -1049,7 +1037,7 @@ public class TiffReader extends TiffIO {
                 long tEntry2 = debugTime();
                 timeEntries += tEntry2 - tEntry1;
 
-                final Object value = readIFDValueAtEntryOffset(in, entry);
+                final Object value = readIFDValueAtEntryOffset(stream, entry);
                 long tEntry3 = debugTime();
                 timeArrays += tEntry3 - tEntry2;
 //            System.err.printf("%d values from %d: %.6f ms%n", valueCount, valueOffset, (tEntry3 - tEntry2) * 1e-6);
@@ -1063,18 +1051,18 @@ public class TiffReader extends TiffIO {
                 }
             }
             final long positionOfNextOffset = startOffset + baseOffset + bytesPerEntry * numberOfEntries;
-            in.seek(positionOfNextOffset);
+            stream.seek(positionOfNextOffset);
 
             ifd = new TiffIFD(map, detailedEntries);
             ifd.setLoadedFromFile(true);
-            ifd.setLittleEndian(in.isLittleEndian());
+            ifd.setLittleEndian(stream.isLittleEndian());
             ifd.setBigTiff(bigTiff);
             ifd.setFileOffsetForReading(startOffset);
             ifd.setSubIFDType(subIFDType);
             if (readNextOffset) {
                 final long nextOffset = readNextOffset(false);
                 ifd.setNextIFDOffset(nextOffset);
-                in.seek(positionOfNextOffset);
+                stream.seek(positionOfNextOffset);
                 // - this "in.seek" provides maximal compatibility with old code (which did not read next IFD offset)
                 // and also with the behavior of this method, when readNextOffset is not requested
             }
@@ -1151,12 +1139,12 @@ public class TiffReader extends TiffIO {
         }
 
         synchronized (fileLock) {
-            if (offset >= in.length()) {
+            if (offset >= stream.length()) {
                 throw new TiffException("Offset of TIFF tile/strip " + offset + " is out of file length (tile " +
                         tileIndex + ")");
                 // - note: old SCIFIO code allowed such offsets and returned zero-filled tile
             }
-            TiffTileIO.readAt(result, in, offset, byteCount);
+            TiffTileIO.readAt(result, stream, offset, byteCount);
         }
         long t2 = debugTime();
         timeReading += t2 - t1;
@@ -1686,7 +1674,7 @@ public class TiffReader extends TiffIO {
     public void close() throws IOException {
         lastMap = null;
         synchronized (fileLock) {
-            in.close();
+            stream.close();
         }
     }
 
@@ -1763,7 +1751,7 @@ public class TiffReader extends TiffIO {
             synchronized (fileLock) {
                 // - this synchronization is extra, but may become useful
                 // if we decide to make this method public and called not only from the constructor
-                if (!in.exists()) {
+                if (!stream.exists()) {
                     return new FileNotFoundException("File not found:" + prettyInName());
                 }
                 testHeader(tiffReference, bigTiffReference);
@@ -1791,16 +1779,16 @@ public class TiffReader extends TiffIO {
         //      16 bits - always 8 (means the number of bytes in BigTIFF offsets)
         //      16 bits - always 0
         //      64 bits - the offset of the first IFD
-        final long savedOffset = in.offset();
+        final long savedOffset = stream.offset();
         try {
-            in.seek(0);
-            final long length = in.length();
+            stream.seek(0);
+            final long length = stream.length();
             if (length < 8) {
                 throw new TiffException("The file" + prettyInName() + " is not TIFF (only " + length +
                         " bytes, but a valid TIFF cannot be shorter than 8 bytes)");
             }
-            final int endianOne = in.readByte() & 0xff;
-            final int endianTwo = in.readByte() & 0xff;
+            final int endianOne = stream.readByte() & 0xff;
+            final int endianTwo = stream.readByte() & 0xff;
             final boolean littleEndian = endianOne == FILE_PREFIX_LITTLE_ENDIAN &&
                     endianTwo == FILE_PREFIX_LITTLE_ENDIAN;
             final boolean bigEndian = endianOne == FILE_PREFIX_BIG_ENDIAN &&
@@ -1808,8 +1796,8 @@ public class TiffReader extends TiffIO {
             if (!littleEndian && !bigEndian) {
                 throw new TiffException("The file" + prettyInName() + " is not TIFF");
             }
-            in.setLittleEndian(littleEndian);
-            final short magic = in.readShort();
+            stream.setLittleEndian(littleEndian);
+            final short magic = stream.readShort();
             // - not readByte()! the result depends on the previous in.setLittleEndian()
             final boolean bigTiff = magic == FILE_BIG_TIFF_MAGIC_NUMBER;
             if (magic != FILE_USUAL_MAGIC_NUMBER && magic != FILE_BIG_TIFF_MAGIC_NUMBER) {
@@ -1819,7 +1807,7 @@ public class TiffReader extends TiffIO {
             bigTiffReference.set(bigTiff);
             // - this is definitely TIFF, but, probably, non-valid; in the latter case we will throw exceptions
             if (bigTiff) {
-                in.seek(8);
+                stream.seek(8);
             }
             if (length < MINIMAL_ALLOWED_TIFF_FILE_LENGTH) {
                 // - sometimes we can meet 8-byte "TIFF files" (or 16-byte "BigTIFF") that contain only header
@@ -1832,7 +1820,7 @@ public class TiffReader extends TiffIO {
             readFirstOffsetFromCurrentPosition(false, bigTiff);
             // - additional check of zero offset, filling positionOfLastOffset
         } finally {
-            in.seek(savedOffset);
+            stream.seek(savedOffset);
             // - for maximal compatibility: in old versions, the constructor of this class
             // guaranteed that file position in the input stream will not change
             // (that is illogical, because "little-endian" mode was still changed)
@@ -1919,7 +1907,7 @@ public class TiffReader extends TiffIO {
                 // (so, byteCount == 0): a rare case:
                 // some TIFF files have only one IFD with one tile with zero StripByteCounts,
                 // that means that we must use all space in the file
-                final long left = in.length() - offset;
+                final long left = stream.length() - offset;
                 if (left <= Math.min(Integer.MAX_VALUE, 2L * tileIndex.map().tileSizeInBytes() + 1000L)) {
                     // - Additional check that we are really not too far from the file end
                     // (it is improbable that a compressed tile requires > 2*N+1000 bytes,
@@ -1936,7 +1924,7 @@ public class TiffReader extends TiffIO {
     }
 
     private String prettyInName() {
-        return prettyFileName(" %s", in);
+        return prettyFileName(" %s", stream);
     }
 
     private long readFirstOffsetFromCurrentPosition(boolean updatePositionOfLastOffset, boolean bigTiff)
@@ -1951,9 +1939,9 @@ public class TiffReader extends TiffIO {
     }
 
     private void skipIFDEntries(long fileLength) throws IOException {
-        final long offset = in.offset();
+        final long offset = stream.offset();
         final int bytesPerEntry = TiffIFD.TiffEntry.bytesPerEntry(bigTiff);
-        final long numberOfEntries = bigTiff ? in.readLong() : in.readUnsignedShort();
+        final long numberOfEntries = bigTiff ? stream.readLong() : stream.readUnsignedShort();
         if (numberOfEntries < 0 || numberOfEntries > Integer.MAX_VALUE / bytesPerEntry) {
             throw new TiffException(
                     "Too large number of IFD entries in Big TIFF: " +
@@ -1967,7 +1955,7 @@ public class TiffReader extends TiffIO {
                             (offset + skippedIFDBytes) + " after " + numberOfEntries +
                             " entries is outside the file (probably file is broken)");
         }
-        in.skipBytes((int) skippedIFDBytes);
+        stream.skipBytes((int) skippedIFDBytes);
     }
 
     private long readNextOffset(boolean updatePositionOfLastOffset) throws IOException {
@@ -1982,11 +1970,11 @@ public class TiffReader extends TiffIO {
      */
     private long readNextOffset(boolean updatePositionOfLastOffset, boolean bigTiff)
             throws IOException {
-        final long fileLength = in.length();
-        final long fileOffset = in.offset();
+        final long fileLength = stream.length();
+        final long fileOffset = stream.offset();
         long offset;
         if (bigTiff) {
-            offset = in.readLong();
+            offset = stream.readLong();
         } else {
             // Below is a deprecated solution
             // (this "trick" cannot help if a SINGLE image is very large (>2^32): for example,
@@ -2004,7 +1992,7 @@ public class TiffReader extends TiffIO {
             // }
             // return offset;
 
-            offset = (long) in.readInt() & 0xffffffffL;
+            offset = (long) stream.readInt() & 0xffffffffL;
             // - in usual TIFF format, offset if 32-bit UNSIGNED value
         }
         if (offset < 0) {
@@ -2218,11 +2206,11 @@ public class TiffReader extends TiffIO {
     }
 
     private TiffIFD.TiffEntry readIFDEntry(long entryOffset) throws IOException {
-        in.seek(entryOffset);
-        final int entryTag = in.readUnsignedShort();
-        final int entryType = in.readUnsignedShort();
+        stream.seek(entryOffset);
+        final int entryTag = stream.readUnsignedShort();
+        final int entryType = stream.readUnsignedShort();
 
-        final long valueCount = bigTiff ? in.readLong() : ((long) in.readInt()) & 0xFFFFFFFFL;
+        final long valueCount = bigTiff ? stream.readLong() : ((long) stream.readInt()) & 0xFFFFFFFFL;
         if (valueCount < 0 || valueCount > Integer.MAX_VALUE) {
             throw new TiffException("Invalid TIFF: very large number of IFD values in array " +
                     (valueCount < 0 ? " >= 2^63" : valueCount + " >= 2^31") + " is not supported");
@@ -2231,16 +2219,16 @@ public class TiffReader extends TiffIO {
         // - will be zero for an unknown type; in this case we will set valueOffset=in.offset() below
         final long valueLength = valueCount * (long) bytesPerElement;
         final boolean builtInData = TiffIFD.TiffEntry.builtInData(valueLength, bigTiff);
-        final long valueOffset = builtInData ? in.offset() : readNextOffset(false);
+        final long valueOffset = builtInData ? stream.offset() : readNextOffset(false);
         // - position in the file will be different depending on builtInData,
         // but it is not a problem: we will not use this position
         if (valueOffset < 0) {
             throw new TiffException("Invalid TIFF: negative offset of IFD values " + valueOffset);
         }
-        if (valueOffset > in.length() - valueLength) {
+        if (valueOffset > stream.length() - valueLength) {
             throw new TiffException("Invalid TIFF: offset of IFD values " + valueOffset +
                     " + total lengths of values " + valueLength + " = " + valueCount + "*" + bytesPerElement +
-                    " is outside the file length " + in.length());
+                    " is outside the file length " + stream.length());
         }
         final var result = new TiffIFD.TiffEntry(entryTag, entryType, (int) valueCount, valueOffset, bigTiff);
         assert result.valueLength() == valueLength;

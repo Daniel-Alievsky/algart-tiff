@@ -154,7 +154,7 @@ public class TiffSaver extends TiffWriter {
     @SuppressWarnings("unchecked")
     @Deprecated
     public DataHandle<Location> getStream() {
-        return (DataHandle<Location>) super.output();
+        return (DataHandle<Location>) super.stream();
     }
 
     /**

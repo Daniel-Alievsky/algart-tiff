@@ -32,6 +32,7 @@ import org.scijava.io.location.Location;
 
 import java.io.Closeable;
 import java.net.URI;
+import java.util.Objects;
 
 public abstract class TiffIO implements Closeable {
     public static final int FILE_USUAL_MAGIC_NUMBER = 0x2a;
@@ -44,10 +45,25 @@ public abstract class TiffIO implements Closeable {
 
     static final boolean BUILT_IN_TIMING = getBooleanProperty("net.algart.matrices.tiff.timing");
 
+    final DataHandle<? extends Location> stream;
     final Object fileLock = new Object();
 
     volatile Context context = null;
     volatile Object scifio = null;
+
+    public TiffIO(DataHandle<? extends Location> stream) {
+        this.stream = Objects.requireNonNull(stream, "Null data handle (input/output stream)");
+    }
+
+    /**
+     * Returns the input/output stream for operation with this TIFF file.
+     */
+    public DataHandle<? extends Location> stream() {
+        synchronized (fileLock) {
+            // - we prefer not to return this stream in the middle of I/O operations
+            return stream;
+        }
+    }
 
     public Context getContext() {
         return context;

@@ -70,7 +70,7 @@ public final class TiffWriteMap extends TiffIOMap {
 
     public long fileLength() {
         try {
-            return owner.output().length();
+            return owner.stream().length();
         } catch (IOException e) {
             // - very improbable, it is better just to return something
             return 0;

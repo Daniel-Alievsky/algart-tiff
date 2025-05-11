@@ -69,7 +69,7 @@ public class TiffWriterTest {
             final int n = reader.numberOfImages();
             System.out.printf("%s, %d bytes, %s%n",
                     reader.isValidTiff() ? "valid" : "INVALID: \"" + reader.openingException() + "\"",
-                    reader.input().length(),
+                    reader.stream().length(),
                     n == 0 ? "no IFD" : "#0/" + n + ": " + reader.ifd(0));
         } catch (IOException e) {
             e.printStackTrace(System.out);
@@ -380,14 +380,14 @@ public class TiffWriterTest {
 //                    writer.writeJavaArray(map, samplesArray, x, y, w, h); // - alternate way to write this matrix
                     printReaderInfo(writer);
                     if (thoroughTesting) {
-                        long length = writer.output().length();
+                        long length = writer.stream().length();
                         // writer.writeJavaArray(map, samplesArray, x, y, w, h);
                         // - usually not a problem to call twice, but file space will be used twice;
                         // if we have partially filled tiles on existing map, then preserveOldAccurately mode
                         // will not work properly (without 2nd preloadPartiallyOverwrittenTiles)
                         writer.completeWriting(map); // - called inside write, but not a problem to call twice
                         writer.completeWriting(map); // - called inside write, but not a problem to call twice
-                        if (writer.output().length() != length) {
+                        if (writer.stream().length() != length) {
                             throw new AssertionError("File increased!");
                         }
                     }

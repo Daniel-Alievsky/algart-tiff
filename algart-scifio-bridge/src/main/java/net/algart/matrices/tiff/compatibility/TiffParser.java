@@ -186,7 +186,7 @@ public class TiffParser extends TiffReader {
     @SuppressWarnings("unchecked")
     @Deprecated
     public DataHandle<Location> getStream() {
-        return (DataHandle<Location>) super.input();
+        return (DataHandle<Location>) super.stream();
     }
 
     /**
