@@ -56,6 +56,7 @@ public class TiffTileIO {
         }
         tile.setStoredInFileDataRange(fileOffset, data.length, true);
         tile.setEncodedData(data, true);
+        tile.markWholeTileAsSet();
     }
 
     public static void write(

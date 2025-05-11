@@ -623,7 +623,7 @@ public class TiffWriter extends TiffIO {
      */
     public final void open(boolean createIfNotExists) throws IOException {
         synchronized (fileLock) {
-            clearReader();
+            resetReader();
             if (!stream.exists()) {
                 if (createIfNotExists) {
                     create();
@@ -639,6 +639,8 @@ public class TiffWriter extends TiffIO {
                 // instead of the usual NO_CHECKS used inside reader() method
                 // Note: we should NOT close the reader in the case of any problem,
                 // because it uses the same stream with this writer
+                this.reader.setCaching(false);
+                // - MUST be compatible with reader() method contract
                 final long[] offsets = reader.readIFDOffsets();
                 final long readerPositionOfLastOffset = reader.positionOfLastIFDOffset();
                 this.setFormatLike(reader);
@@ -681,7 +683,7 @@ public class TiffWriter extends TiffIO {
      */
     public final void create() throws IOException {
         synchronized (fileLock) {
-            clearReader();
+            resetReader();
             ifdOffsets.clear();
             stream.seek(0);
             // - this call actually creates and opens the file if it was not opened before
@@ -717,14 +719,15 @@ public class TiffWriter extends TiffIO {
         return reader(false);
     }
 
+
     /**
      * Returns the TIFF reader for reading the same file stream {@link #stream()} used by this object.
      * You <b>don't need</b> to close it: this stream will be closed when closing this writer.
      *
      * <p>The returned reference is stored inside this object, and will be returned by further calls
      * of this method, unless you set <code>alwaysCreateNew=true</code>.
-     * However, the stored reference is cleared to {@code null} (so that the following call
-     * of this method will re-create the reader) in the following cases:
+     * However, the stored reference is cleared to {@code null} by {@link #resetReader()} method
+     * (so that the following call of this method will re-create the reader) in the following cases:
      *
      * <ul>
      *     <li>opening/creating the TIFF file via {@link #create()}, {@link #open(boolean)}
@@ -738,7 +741,7 @@ public class TiffWriter extends TiffIO {
      * Caching in the reader is disabled by
      * {@link TiffReader#setCaching(boolean) setCaching(false)}: usually this reader
      * should be used while you are modifying the TIFF, so the caching has no sense.
-     * (As noted above, any write to the TIFF will destroy the stored reader together with
+     * (As noted above, any writing to the TIFF will destroy the stored reader together with
      * all cached tiles.)
      * But you can enable caching when you finish the writing.
      *
@@ -757,6 +760,17 @@ public class TiffWriter extends TiffIO {
                 this.reader.setCaching(false);
             }
             return this.reader;
+        }
+    }
+
+    /**
+     * Clears the reference to the TIFF reader stored inside this object and returned by {@link #reader()} method.
+     * Ensures that the next call of {@link #reader()} will create a new reader.
+     * Usually you don't need to call this method, because it is called automatically.
+     */
+    public void resetReader() {
+        synchronized (fileLock) {
+            this.reader = null;
         }
     }
 
@@ -816,7 +830,7 @@ public class TiffWriter extends TiffIO {
     public void writeIFDAt(TiffIFD ifd, Long startOffset, boolean updateIFDLinkages) throws IOException {
         synchronized (fileLock) {
             checkVirginFile();
-            clearReader();
+            resetReader();
             if (startOffset == null) {
                 appendFileUntilEvenLength();
                 startOffset = stream.length();
@@ -913,7 +927,7 @@ public class TiffWriter extends TiffIO {
         long t1 = debugTime();
         synchronized (fileLock) {
             checkVirginFile();
-            clearReader();
+            resetReader();
             TiffTileIO.write(tile, stream, alwaysWriteToFileEnd, !bigTiff);
             if (freeAndFreezeAfterWriting) {
                 tile.freeAndFreeze();
@@ -1611,7 +1625,7 @@ public class TiffWriter extends TiffIO {
     public void close() throws IOException {
         lastMap = null;
         super.close();
-        clearReader();
+        resetReader();
     }
 
     public int sizeOfHeader() {
@@ -1701,12 +1715,6 @@ public class TiffWriter extends TiffIO {
         timeEncodingMain = 0;
         timeEncodingBridge = 0;
         timeEncodingAdditional = 0;
-    }
-
-    private void clearReader() {
-        synchronized (fileLock) {
-            this.reader = null;
-        }
     }
 
     private void checkVirginFile() throws IOException {
@@ -2126,7 +2134,7 @@ public class TiffWriter extends TiffIO {
             throws IOException {
         synchronized (fileLock) {
             // - to be on the safe side (this synchronization is not necessary)
-            clearReader();
+            resetReader();
             final long savedPosition = stream.offset();
             try {
                 stream.seek(positionToWrite);

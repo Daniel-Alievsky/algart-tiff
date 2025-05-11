@@ -22,11 +22,12 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.demo.io;
+package net.algart.matrices.tiff.tests.io;
 
 import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
+import net.algart.matrices.tiff.tiles.TiffReadMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
@@ -37,13 +38,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
-public class TiffOverwriteHelloWorldDemo {
+public class TiffOverwriteHelloWorldTest {
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
             System.out.printf("    %s target.tiff ifdIndex [x y]%n",
-                    TiffOverwriteHelloWorldDemo.class.getName());
+                    TiffOverwriteHelloWorldTest.class.getName());
             System.out.println("Try running this test with a very large TIFF file, like SVS 50000x50000: " +
                     "you will see that it works very quickly!");
             return;
@@ -58,12 +59,16 @@ public class TiffOverwriteHelloWorldDemo {
         final int sizeY = 50;
         // - estimated sizes sufficient for "Hello, world!"
         try (var writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
-            writer.setAlwaysWriteToFileEnd(true); // - should not affect the results
-            final TiffIFD ifd = writer.existingIFD(ifdIndex);
-            final TiffWriteMap writeMap = writer.existingMap(ifd);
-            overwrite(writeMap, x, y, sizeX, sizeY);
-            overwrite(writeMap, x + sizeX / 2, y + sizeY / 2, sizeX, sizeY);
-            overwrite(writeMap, x + sizeX / 2, y - sizeY / 2, sizeX, sizeY);
+            TiffIFD ifd = writer.existingIFD(ifdIndex);
+            TiffWriteMap writeMap = writer.existingMap(ifd);
+            TiffReadMap readMap = writer.reader().newMap(ifd, false);
+            overwrite(writeMap, readMap, x, y, sizeX, sizeY);
+
+            ifd = writer.existingIFD(ifdIndex);
+            readMap = writer.reader().newMap(ifd, false);
+            // - Note: without these calls we will use the previous reader and previous IFD,
+            // so we can load tiles from the previous positions!
+            overwrite(writeMap, readMap, x + sizeX / 2, y + sizeY / 2, sizeX, sizeY);
             int m = writeMap.completeWriting();
             System.out.printf("Completed %d tile, file length: %d%n", m, writeMap.fileLength());
             // - should be 0, because all tiles were preloaded
@@ -74,12 +79,14 @@ public class TiffOverwriteHelloWorldDemo {
         System.out.println("Done");
     }
 
-    private static void overwrite(TiffWriteMap writeMap, int x, int y, int sizeX, int sizeY)
+    private static void overwrite(TiffWriteMap writeMap, TiffReadMap readMap, int x, int y, int sizeX, int sizeY)
             throws IOException {
-        final BufferedImage bufferedImage = writeMap.readBufferedImage(
+        final BufferedImage bufferedImage = readMap.readBufferedImage(
                 x, y, sizeX, sizeY, true);
         // - the last argument "true" leads to preserving all tiles in the map:
         // this is necessary for boundary tiles that are partially covered by the image
+        writeMap.copyAllData(readMap, false);
+        // - old-style processing: using a separate TiffReadMap
         System.out.printf("%nOverwriting %d..%dx%d..%d in %s...%n", x, x + sizeX - 1, y, y + sizeY - 1, writeMap);
         drawTextOnImage(bufferedImage, "Hello, world!");
         // MatrixIO.writeBufferedImage(Path.of("/tmp/test.bmp"), bufferedImage);
@@ -88,6 +95,8 @@ public class TiffOverwriteHelloWorldDemo {
 //        System.out.printf("Completed tiles:%n%s%n",
 //                writeMap.tiles().stream().filter(t -> !t.isEmpty() && t.isCompleted()).map(TiffTile::index)
 //                        .collect(Collectors.toList()));
+        readMap.freeAllData();
+        // - necessary if you don't want to rewrite its tiles in the next calls
         System.out.printf("Written %d completed tiles, file length: %d%n", m, writeMap.fileLength());
     }
 
