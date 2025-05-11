@@ -75,6 +75,15 @@ public abstract class TiffIO implements Closeable {
         this.context = context;
     }
 
+    public long fileLength() {
+        try {
+            return stream.length();
+        } catch (IOException e) {
+            // - very improbable, it is better just to return something
+            return 0;
+        }
+    }
+
     @Override
     public void close() throws IOException {
         synchronized (fileLock) {

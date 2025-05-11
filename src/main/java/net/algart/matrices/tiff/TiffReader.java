@@ -704,12 +704,19 @@ public class TiffReader extends TiffIO {
     /**
      * Returns <code>{@link #allIFDs()}.size()</code>.
      *
+     * <p>Note: for maximum usability, this method returns 0 instead of throwing an exception
+     * if there are any problems with the input file.
+     * But you will get the same exception when any
+     * attempt to read IFDs, for example, when calling {@link #allIFDs()}.
+     *
      * @return number of existing IFDs.
-     * @throws TiffException if the file is not a correct TIFF file.
-     * @throws IOException   in the case of any problems with the input file.
      */
-    public int numberOfImages() throws IOException {
-        return allIFDs().size();
+    public int numberOfImages() {
+        try {
+            return allIFDs().size();
+        } catch (IOException e) {
+            return 0;
+        }
     }
 
     /**

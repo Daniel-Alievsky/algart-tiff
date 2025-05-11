@@ -25,6 +25,7 @@
 package net.algart.matrices.tiff.tests.io;
 
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.TiffOpenMode;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
@@ -47,14 +48,20 @@ public class TiffWriteMixedTest {
 
     private static void printReaderInfo(TiffWriter writer) {
         System.out.print("Checking file by the reader: ");
+        final TiffReader reader;
         try {
-            final TiffReader reader = writer.reader();
+            reader = writer.newReader(TiffOpenMode.NO_CHECKS);
+        } catch (IOException e) {
+            throw new AssertionError("Impossible in NO_CHECKS mode", e);
+        }
+        try {
             final int n = reader.numberOfImages();
             System.out.printf("%s, %d bytes, %s%n",
                     reader.isValidTiff() ? "valid" : "INVALID: \"" + reader.openingException() + "\"",
-                    reader.stream().length(),
+                    reader.fileLength(),
                     n == 0 ? "no IFD" : "#0/" + n + ": " + reader.ifd(0));
         } catch (IOException e) {
+            // - possible while reading IFD #0
             e.printStackTrace(System.out);
         }
     }

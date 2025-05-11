@@ -69,12 +69,7 @@ public final class TiffWriteMap extends TiffIOMap {
     }
 
     public long fileLength() {
-        try {
-            return owner.stream().length();
-        } catch (IOException e) {
-            // - very improbable, it is better just to return something
-            return 0;
-        }
+        return owner.fileLength();
     }
 
     public List<TiffTile> updateSamples(byte[] samples, long fromX, long fromY, long sizeX, long sizeY) {
