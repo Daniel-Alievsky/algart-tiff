@@ -24,16 +24,20 @@
 
 package net.algart.matrices.tiff.tiles;
 
+import net.algart.arrays.Matrix;
 import net.algart.arrays.PackedBitArraysPer8;
+import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffIO;
 import net.algart.matrices.tiff.TiffReader;
 
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
-abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, TiffWriteMap {
+public abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, TiffWriteMap {
     public abstract TiffIO owner();
 
     public abstract TiffReader reader();
@@ -167,6 +171,64 @@ abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, TiffWriteMa
             }
         }
         return unusualPrecisions.unpackIfNecessary(this, samples, sizeInPixels, scaleUnsignedInt24);
+    }
+
+    public byte[] readSamples(
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY,
+            TiffReader.UnusualPrecisions autoUnpackUnusualPrecisions,
+            boolean storeTilesInMap) throws IOException {
+        @SuppressWarnings("resource") final TiffReader reader = reader();
+        return reader.readSamples(
+                this,
+                fromX,
+                fromY,
+                sizeX,
+                sizeY,
+                autoUnpackUnusualPrecisions,
+                storeTilesInMap);
+    }
+
+    public Object readJavaArray(int fromX, int fromY, int sizeX, int sizeY, boolean storeTilesInMap)
+            throws IOException {
+        @SuppressWarnings("resource") final TiffReader reader = reader();
+        return reader.readJavaArray(this, fromX, fromY, sizeX, sizeY, storeTilesInMap);
+    }
+
+    public Matrix<UpdatablePArray> readMatrix(int fromX, int fromY, int sizeX, int sizeY, boolean storeTilesInMap)
+            throws IOException {
+        @SuppressWarnings("resource") final TiffReader reader = reader();
+        return reader.readMatrix(this, fromX, fromY, sizeX, sizeY, storeTilesInMap);
+    }
+
+    public Matrix<UpdatablePArray> readInterleavedMatrix(
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY,
+            boolean storeTilesInMap)
+            throws IOException {
+        @SuppressWarnings("resource") final TiffReader reader = reader();
+        return reader.readInterleavedMatrix(this, fromX, fromY, sizeX, sizeY, storeTilesInMap);
+    }
+
+    public List<Matrix<UpdatablePArray>> readChannels(
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY,
+            boolean storeTilesInMap)
+            throws IOException {
+        @SuppressWarnings("resource") final TiffReader reader = reader();
+        return reader.readChannels(this, fromX, fromY, sizeX, sizeY, storeTilesInMap);
+    }
+
+    public BufferedImage readBufferedImage(int fromX, int fromY, int sizeX, int sizeY, boolean storeTilesInMap)
+            throws IOException {
+        @SuppressWarnings("resource") final TiffReader reader = reader();
+        return reader.readBufferedImage(this, fromX, fromY, sizeX, sizeY, storeTilesInMap);
     }
 
     static int divFloor(int a, int b) {

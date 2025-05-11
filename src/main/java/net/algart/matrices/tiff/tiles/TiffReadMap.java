@@ -96,34 +96,12 @@ public final class TiffReadMap extends TiffIOMap {
         return owner.readSamples(this, fromX, fromY, sizeX, sizeY);
     }
 
-    public byte[] readSamples(
-            int fromX,
-            int fromY,
-            int sizeX,
-            int sizeY,
-            TiffReader.UnusualPrecisions autoUnpackUnusualPrecisions,
-            boolean storeTilesInMap) throws IOException {
-        return owner.readSamples(
-                this,
-                fromX,
-                fromY,
-                sizeX,
-                sizeY,
-                autoUnpackUnusualPrecisions,
-                storeTilesInMap);
-    }
-
     public Object readJavaArray() throws IOException {
         return owner.readJavaArray(this);
     }
 
     public Object readJavaArray(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
         return owner.readJavaArray(this, fromX, fromY, sizeX, sizeY);
-    }
-
-    public Object readJavaArray(int fromX, int fromY, int sizeX, int sizeY, boolean storeTilesInMap)
-            throws IOException {
-        return owner.readJavaArray(this, fromX, fromY, sizeX, sizeY, storeTilesInMap);
     }
 
     public Matrix<UpdatablePArray> readMatrix() throws IOException {
@@ -135,11 +113,6 @@ public final class TiffReadMap extends TiffIOMap {
         return owner.readMatrix(this, fromX, fromY, sizeX, sizeY);
     }
 
-    public Matrix<UpdatablePArray> readMatrix(int fromX, int fromY, int sizeX, int sizeY, boolean storeTilesInMap)
-            throws IOException {
-        return owner.readMatrix(this, fromX, fromY, sizeX, sizeY, storeTilesInMap);
-    }
-
     public Matrix<UpdatablePArray> readInterleavedMatrix() throws IOException {
         return owner.readInterleavedMatrix(this);
     }
@@ -147,16 +120,6 @@ public final class TiffReadMap extends TiffIOMap {
     public Matrix<UpdatablePArray> readInterleavedMatrix(int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
         return owner.readInterleavedMatrix(this, fromX, fromY, sizeX, sizeY);
-    }
-
-    public Matrix<UpdatablePArray> readInterleavedMatrix(
-            int fromX,
-            int fromY,
-            int sizeX,
-            int sizeY,
-            boolean storeTilesInMap)
-            throws IOException {
-        return owner.readInterleavedMatrix(this, fromX, fromY, sizeX, sizeY, storeTilesInMap);
     }
 
     public List<Matrix<UpdatablePArray>> readChannels() throws IOException {
@@ -168,16 +131,6 @@ public final class TiffReadMap extends TiffIOMap {
         return owner.readChannels(this, fromX, fromY, sizeX, sizeY);
     }
 
-    public List<Matrix<UpdatablePArray>> readChannels(
-            int fromX,
-            int fromY,
-            int sizeX,
-            int sizeY,
-            boolean storeTilesInMap)
-            throws IOException {
-        return owner.readChannels(this, fromX, fromY, sizeX, sizeY, storeTilesInMap);
-    }
-
     public BufferedImage readBufferedImage() throws IOException {
         return owner.readBufferedImage(this);
     }
@@ -185,11 +138,6 @@ public final class TiffReadMap extends TiffIOMap {
     public BufferedImage readBufferedImage(int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
         return owner.readBufferedImage(this, fromX, fromY, sizeX, sizeY);
-    }
-
-    public BufferedImage readBufferedImage(int fromX, int fromY, int sizeX, int sizeY, boolean storeTilesInMap)
-            throws IOException {
-        return owner.readBufferedImage(this, fromX, fromY, sizeX, sizeY, storeTilesInMap);
     }
 
     public TiffTile readCachedTile(TiffTileIndex tileIndex) throws IOException {

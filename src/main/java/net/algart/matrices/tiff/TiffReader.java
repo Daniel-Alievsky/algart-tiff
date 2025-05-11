@@ -1393,12 +1393,12 @@ public class TiffReader extends TiffIO {
         return lastMap;
     }
 
-    public byte[] readSamples(TiffReadMap map) throws IOException {
+    public byte[] readSamples(TiffIOMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readSamples(map, 0, 0, map.dimX(), map.dimY());
     }
 
-    public byte[] readSamples(TiffReadMap map, int fromX, int fromY, int sizeX, int sizeY) throws IOException {
+    public byte[] readSamples(TiffIOMap map, int fromX, int fromY, int sizeX, int sizeY) throws IOException {
         return readSamples(
                 map,
                 fromX, fromY, sizeX, sizeY,
@@ -1407,7 +1407,7 @@ public class TiffReader extends TiffIO {
     }
 
     public byte[] readSamples(
-            TiffReadMap map,
+            TiffIOMap map,
             int fromX,
             int fromY,
             int sizeX,
@@ -1483,17 +1483,17 @@ public class TiffReader extends TiffIO {
         return samples;
     }
 
-    public Object readJavaArray(TiffReadMap map) throws IOException {
+    public Object readJavaArray(TiffIOMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readJavaArray(map, 0, 0, map.dimX(), map.dimY());
     }
 
-    public Object readJavaArray(TiffReadMap map, int fromX, int fromY, int sizeX, int sizeY) throws IOException {
+    public Object readJavaArray(TiffIOMap map, int fromX, int fromY, int sizeX, int sizeY) throws IOException {
         return readJavaArray(map, fromX, fromY, sizeX, sizeY, false);
     }
 
     public Object readJavaArray(
-            TiffReadMap map,
+            TiffIOMap map,
             int fromX,
             int fromY,
             int sizeX,
@@ -1542,18 +1542,18 @@ public class TiffReader extends TiffIO {
      * @throws IOException              in the case of any problems with the input file.
      * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
      */
-    public Matrix<UpdatablePArray> readMatrix(TiffReadMap map) throws IOException {
+    public Matrix<UpdatablePArray> readMatrix(TiffIOMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readMatrix(map, 0, 0, map.dimX(), map.dimY());
     }
 
-    public Matrix<UpdatablePArray> readMatrix(TiffReadMap map, int fromX, int fromY, int sizeX, int sizeY)
+    public Matrix<UpdatablePArray> readMatrix(TiffIOMap map, int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
         return readMatrix(map, fromX, fromY, sizeX, sizeY, false);
     }
 
     public Matrix<UpdatablePArray> readMatrix(
-            TiffReadMap map,
+            TiffIOMap map,
             int fromX,
             int fromY,
             int sizeX,
@@ -1564,18 +1564,18 @@ public class TiffReader extends TiffIO {
         return TiffSampleType.asMatrix(samplesArray, sizeX, sizeY, map.numberOfChannels(), false);
     }
 
-    public Matrix<UpdatablePArray> readInterleavedMatrix(TiffReadMap map) throws IOException {
+    public Matrix<UpdatablePArray> readInterleavedMatrix(TiffIOMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readInterleavedMatrix(map, 0, 0, map.dimX(), map.dimY());
     }
 
-    public Matrix<UpdatablePArray> readInterleavedMatrix(TiffReadMap map, int fromX, int fromY, int sizeX, int sizeY)
+    public Matrix<UpdatablePArray> readInterleavedMatrix(TiffIOMap map, int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
         return readInterleavedMatrix(map, fromX, fromY, sizeX, sizeY, false);
     }
 
     public Matrix<UpdatablePArray> readInterleavedMatrix(
-            TiffReadMap map,
+            TiffIOMap map,
             int fromX,
             int fromY,
             int sizeX,
@@ -1599,18 +1599,18 @@ public class TiffReader extends TiffIO {
      *                       and this was not detected while opening it.
      * @throws IOException   in the case of any other problems with the input file.
      */
-    public List<Matrix<UpdatablePArray>> readChannels(TiffReadMap map) throws IOException {
+    public List<Matrix<UpdatablePArray>> readChannels(TiffIOMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readChannels(map, 0, 0, map.dimX(), map.dimY());
     }
 
-    public List<Matrix<UpdatablePArray>> readChannels(TiffReadMap map, int fromX, int fromY, int sizeX, int sizeY)
+    public List<Matrix<UpdatablePArray>> readChannels(TiffIOMap map, int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
         return readChannels(map, fromX, fromY, sizeX, sizeY, false);
     }
 
     public List<Matrix<UpdatablePArray>> readChannels(
-            TiffReadMap map,
+            TiffIOMap map,
             int fromX,
             int fromY,
             int sizeX,
@@ -1634,18 +1634,18 @@ public class TiffReader extends TiffIO {
      *                       and this was not detected while opening it.
      * @throws IOException   in the case of any other problems with the input file.
      */
-    public BufferedImage readBufferedImage(TiffReadMap map) throws IOException {
+    public BufferedImage readBufferedImage(TiffIOMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readBufferedImage(map, 0, 0, map.dimX(), map.dimY());
     }
 
-    public BufferedImage readBufferedImage(TiffReadMap map, int fromX, int fromY, int sizeX, int sizeY)
+    public BufferedImage readBufferedImage(TiffIOMap map, int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
         return readBufferedImage(map, fromX, fromY, sizeX, sizeY, false);
     }
 
     public BufferedImage readBufferedImage(
-            TiffReadMap map,
+            TiffIOMap map,
             int fromX,
             int fromY,
             int sizeX,
