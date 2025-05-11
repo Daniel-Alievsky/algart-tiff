@@ -394,8 +394,11 @@ public final class TiffTile {
     /**
      * Returns the current unset area in this tile.
      * Note that initially the unset area consists from a single rectangle equal to {@link #actualRectangle()}.
-     * Note that this information is <i>independent</i> on data: this area is not changed by the methods
+     *
+     * <p>Note that this information is <i>independent</i> on data: this area is not changed by the methods
      * like {@link #setDecodedData(byte[])} or {@link #copyData(TiffTile, boolean)}.
+     * However, this area is set to empty ({@link #markWholeTileAsSet()}) when loading the tile from the file
+     * by {@link TiffTileIO#readAt} method.
      *
      * @return the current unset area in this tile.
      */
