@@ -62,7 +62,7 @@ import java.util.stream.Collectors;
  * in particular, it concerns the {@link TiffIFD} arguments and Java-arrays with samples.
  * The same is true for the result of {@link #output()} method.</p>
  */
-public class TiffWriter implements Closeable {
+public class TiffWriter extends TiffIO {
     /**
      * If the file grows to about this limit and {@link #setBigTiff(boolean) big-TIFF} mode is not set,
      * attempt to write new IFD at the file end by methods of this class throw IO exception.
@@ -744,7 +744,7 @@ public class TiffWriter implements Closeable {
         }
     }
 
-    public TiffReader reader() throws IOException {
+    public TiffReader reader() {
         return reader(false);
     }
 
@@ -776,7 +776,6 @@ public class TiffWriter implements Closeable {
      * @param alwaysCreateNew whether you need to ignore the previously created reader (it if exists)
      *                        and create a new one.
      * @return new TIFF reader.
-     * @throws IOException in the case of any I/O errors.
      */
     public TiffReader reader(boolean alwaysCreateNew) {
         synchronized (fileLock) {
@@ -784,7 +783,7 @@ public class TiffWriter implements Closeable {
                 try {
                     this.reader = new TiffReader(out, TiffOpenMode.NO_CHECKS, false);
                 } catch (IOException e) {
-                    throw new AssertionError(e);
+                    throw new AssertionError("Impossible in NO_CHECKS mode", e);
                 }
                 this.reader.setCaching(false);
             }

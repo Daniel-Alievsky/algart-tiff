@@ -39,7 +39,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
-public final class TiffWriteMap extends TiffReadWriteMap {
+public final class TiffWriteMap extends TiffIOMap {
     private static final boolean AUTO_INTERLEAVE_SOURCE = true;
     // - See TiffWriter.AUTO_INTERLEAVE_SOURCE.
     // IF YOU CHANGE IT, YOU MUST CORRECT ALSO TiffWriter.AUTO_INTERLEAVE_SOURCE.
@@ -65,11 +65,7 @@ public final class TiffWriteMap extends TiffReadWriteMap {
 
     @Override
     public TiffReader reader() {
-        try {
-            return owner.reader();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return owner.reader();
     }
 
     public long fileLength() {

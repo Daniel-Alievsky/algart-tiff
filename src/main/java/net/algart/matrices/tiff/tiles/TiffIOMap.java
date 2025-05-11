@@ -27,10 +27,10 @@ package net.algart.matrices.tiff.tiles;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 
-abstract sealed class TiffReadWriteMap extends TiffMap permits TiffReadMap, TiffWriteMap {
+abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, TiffWriteMap {
     public abstract TiffReader reader();
 
-    public TiffReadWriteMap(TiffIFD ifd, boolean resizable) {
+    public TiffIOMap(TiffIFD ifd, boolean resizable) {
         super(ifd, resizable);
     }
 }

@@ -72,7 +72,7 @@ import java.util.stream.Collectors;
  * first, it concerns the {@link TiffIFD} arguments of many methods.
  * The same is true for the result of {@link #input()} method.</p>
  */
-public class TiffReader implements Closeable {
+public class TiffReader extends TiffIO {
     public enum UnpackBits {
         NONE((byte) 0),
         UNPACK_TO_0_1((byte) 1),

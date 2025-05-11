@@ -36,7 +36,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-public final class TiffReadMap extends TiffReadWriteMap {
+public final class TiffReadMap extends TiffIOMap {
     @FunctionalInterface
     public interface TileSupplier {
         TiffTile getTile(TiffTileIndex tiffTileIndex) throws IOException;
