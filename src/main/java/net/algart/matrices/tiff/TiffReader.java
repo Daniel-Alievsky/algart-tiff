@@ -181,8 +181,6 @@ public class TiffReader extends TiffIO {
      */
     private volatile TiffIFD firstIFD;
 
-    private final Object fileLock = new Object();
-
     private TiffCodec.Options codecOptions = new TiffCodec.Options();
 
     private volatile long positionOfLastIFDOffset = -1;

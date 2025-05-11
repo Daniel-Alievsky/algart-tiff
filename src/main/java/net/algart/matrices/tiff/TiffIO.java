@@ -44,6 +44,8 @@ public abstract class TiffIO implements Closeable {
 
     static final boolean BUILT_IN_TIMING = getBooleanProperty("net.algart.matrices.tiff.timing");
 
+    final Object fileLock = new Object();
+
     volatile Context context = null;
     volatile Object scifio = null;
 

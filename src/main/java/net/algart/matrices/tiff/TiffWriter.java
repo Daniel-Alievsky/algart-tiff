@@ -99,8 +99,6 @@ public class TiffWriter extends TiffIO {
     private final DataHandle<? extends Location> out;
     private volatile TiffReader reader = null;
 
-    private final Object fileLock = new Object();
-
     private final LinkedHashSet<Long> ifdOffsets = new LinkedHashSet<>();
     private volatile long positionOfLastIFDOffset = -1;
 
