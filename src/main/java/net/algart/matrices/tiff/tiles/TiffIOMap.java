@@ -25,13 +25,21 @@
 package net.algart.matrices.tiff.tiles;
 
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.TiffIO;
 import net.algart.matrices.tiff.TiffReader;
 
 abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, TiffWriteMap {
+    public abstract TiffIO owner();
+
     public abstract TiffReader reader();
 
     public TiffIOMap(TiffIFD ifd, boolean resizable) {
         super(ifd, resizable);
+    }
+
+    public long fileLength() {
+        //noinspection resource
+        return owner().fileLength();
     }
 }
 

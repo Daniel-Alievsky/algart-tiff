@@ -55,17 +55,14 @@ public final class TiffReadMap extends TiffIOMap {
      *
      * @return the reader-owner.
      */
-    public TiffReader reader() {
+    @Override
+    public TiffReader owner() {
         return owner;
     }
 
-    public long fileLength() {
-        try {
-            return owner.stream().length();
-        } catch (IOException e) {
-            // - very improbable, it is better just to return something
-            return 0;
-        }
+    @Override
+    public TiffReader reader() {
+        return owner;
     }
 
     public TiffReader.UnpackBits getAutoUnpackBits() {

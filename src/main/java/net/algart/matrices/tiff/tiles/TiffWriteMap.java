@@ -59,17 +59,14 @@ public final class TiffWriteMap extends TiffIOMap {
      *
      * @return the writer-owner.
      */
-    public TiffWriter writer() {
+    @Override
+    public TiffWriter owner() {
         return owner;
     }
 
     @Override
     public TiffReader reader() {
         return owner.reader();
-    }
-
-    public long fileLength() {
-        return owner.fileLength();
     }
 
     public List<TiffTile> updateSamples(byte[] samples, long fromX, long fromY, long sizeX, long sizeY) {
