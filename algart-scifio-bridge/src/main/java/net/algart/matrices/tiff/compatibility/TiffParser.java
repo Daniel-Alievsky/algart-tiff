@@ -168,7 +168,7 @@ public class TiffParser extends TiffReader {
             }
             ifdEntries.put(key, entry.getValue());
         }
-        return TiffIFD.of(ifdEntries).setBigTiff(bigTiff).setLittleEndian(littleEndian);
+        return new TiffIFD(ifdEntries).setBigTiff(bigTiff).setLittleEndian(littleEndian);
     }
 
     public IFD toScifioIFD(TiffIFD ifd) {

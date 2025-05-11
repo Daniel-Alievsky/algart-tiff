@@ -222,7 +222,7 @@ public class TiffReadWriteTest {
                             compareResults(buf2, bytes, "Old parser");
                             differ = true;
                         }
-                        writerIFD = TiffIFD.of(removeUndesirableTags(scifioIFD));
+                        writerIFD = new TiffIFD(removeUndesirableTags(scifioIFD));
                         if (singleStrip) {
                             writerIFD.putStripSize(h);
                             // - not remove! Removing means default value!

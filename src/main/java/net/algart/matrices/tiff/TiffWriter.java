@@ -1293,20 +1293,6 @@ public class TiffWriter implements Closeable {
         return newMap(ifd, true);
     }
 
-    public void prepareNewMap(TiffWriteMap map) {
-        Objects.requireNonNull(map, "Null TIFF map");
-        map.buildTileGrid();
-        // - useful to perform loops on all tiles, especially in non-resizable case
-        TiffIFD ifd = map.ifd();
-        ifd.removeNextIFDOffset();
-        ifd.removeDataPositioning();
-        if (map.isResizable()) {
-            ifd.removeImageDimensions();
-        }
-        ifd.freeze();
-        // - actually not necessary, but helps to avoid possible bugs
-    }
-
     /**
      * Starts overwriting existing IFD image.
      *
@@ -1325,6 +1311,9 @@ public class TiffWriter implements Closeable {
      */
     public TiffWriteMap existingMap(TiffIFD ifd) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
+        if (!ifd.isLoadedFromFile()) {
+            throw new IllegalArgumentException("IFD must be read from TIFF file");
+        }
         correctFormatForEncoding(ifd, false);
         final TiffWriteMap map = new TiffWriteMap(this, ifd, false);
         final long[] offsets = ifd.cachedTileOrStripOffsets();
@@ -1684,6 +1673,20 @@ public class TiffWriter implements Closeable {
             this.scifio = scifio = SCIFIOBridge.createScifioFromContext(context);
         }
         return scifio;
+    }
+
+    private void prepareNewMap(TiffWriteMap map) {
+        Objects.requireNonNull(map, "Null TIFF map");
+        map.buildTileGrid();
+        // - useful to perform loops on all tiles, especially in non-resizable case
+        TiffIFD ifd = map.ifd();
+        ifd.removeNextIFDOffset();
+        ifd.removeDataPositioning();
+        if (map.isResizable()) {
+            ifd.removeImageDimensions();
+        }
+        ifd.freeze();
+        // - actually not necessary, but helps to avoid possible bugs
     }
 
     private byte[] compressByScifioCodec(

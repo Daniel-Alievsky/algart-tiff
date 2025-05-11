@@ -200,6 +200,7 @@ public class TiffIFD {
 
     private final Map<Integer, Object> map;
     private final LinkedHashMap<Integer, TiffEntry> detailedEntries;
+    private boolean loadedFromFile = false;
     private boolean littleEndian = false;
     private boolean bigTiff = false;
     private long fileOffsetForReading = -1;
@@ -217,6 +218,7 @@ public class TiffIFD {
 
     @SuppressWarnings("CopyConstructorMissesField")
     public TiffIFD(TiffIFD ifd) {
+        loadedFromFile = ifd.loadedFromFile;
         fileOffsetForReading = ifd.fileOffsetForReading;
         fileOffsetForWriting = ifd.fileOffsetForWriting;
         nextIFDOffset = ifd.nextIFDOffset;
@@ -228,19 +230,32 @@ public class TiffIFD {
         // And it is the only way to clear this flag.
     }
 
-    public static TiffIFD of(Map<Integer, Object> ifdEntries) {
-        return new TiffIFD(ifdEntries);
-    }
-
-    private TiffIFD(Map<Integer, Object> ifdEntries) {
+    public TiffIFD(Map<Integer, Object> ifdEntries) {
         this(ifdEntries, null);
     }
 
+    // This constructor is called while reading from the TIFF file.
     // Note: detailedEntries is not cloned by this constructor.
     TiffIFD(Map<Integer, Object> ifdEntries, LinkedHashMap<Integer, TiffEntry> detailedEntries) {
         Objects.requireNonNull(ifdEntries);
         this.map = new LinkedHashMap<>(ifdEntries);
         this.detailedEntries = detailedEntries;
+    }
+
+    public boolean isLoadedFromFile() {
+        return loadedFromFile;
+    }
+
+    /**
+     * Sets the information flag that this IFD was read from a TIFF file.
+     * Usually this method should not be used: this flag is set automatically by {@link TiffReader} class.
+     *
+     * @param loadedFromFile whether this IFD was read from a TIFF file.
+     * @return a reference to this object.
+     */
+    public TiffIFD setLoadedFromFile(boolean loadedFromFile) {
+        this.loadedFromFile = loadedFromFile;
+        return this;
     }
 
     public boolean isLittleEndian() {

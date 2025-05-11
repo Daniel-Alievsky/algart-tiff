@@ -1090,6 +1090,7 @@ public class TiffReader implements Closeable {
             in.seek(positionOfNextOffset);
 
             ifd = new TiffIFD(map, detailedEntries);
+            ifd.setLoadedFromFile(true);
             ifd.setLittleEndian(in.isLittleEndian());
             ifd.setBigTiff(bigTiff);
             ifd.setFileOffsetForReading(startOffset);
@@ -1395,6 +1396,10 @@ public class TiffReader implements Closeable {
     }
 
     public TiffReadMap newMap(TiffIFD ifd, boolean builtTileGrid) throws TiffException {
+        Objects.requireNonNull(ifd, "Null IFD");
+        if (!ifd.isLoadedFromFile()) {
+            throw new IllegalArgumentException("IFD must be read from TIFF file");
+        }
         final TiffReadMap map = new TiffReadMap(this, ifd);
         unusualPrecisions.throwIfDisabled(map);
         if (builtTileGrid) {
