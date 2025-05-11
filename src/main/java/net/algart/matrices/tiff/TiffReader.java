@@ -36,7 +36,6 @@ import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.matrices.tiff.tags.TagTypes;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.*;
-import org.scijava.Context;
 import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.FileHandle;
@@ -46,7 +45,6 @@ import org.scijava.io.location.FileLocation;
 import org.scijava.io.location.Location;
 
 import java.awt.image.BufferedImage;
-import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -58,8 +56,8 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.*;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -138,11 +136,6 @@ public class TiffReader extends TiffIO {
     // - 256 MB maximal cache by default: enough to store 256 RGBA tiles 512x512
     // (for example, one tiles row in the image 131072x131072)
 
-    public static final int FILE_USUAL_MAGIC_NUMBER = 0x2a;
-    public static final int FILE_BIG_TIFF_MAGIC_NUMBER = 0x2b;
-    public static final int FILE_PREFIX_LITTLE_ENDIAN = 0x49;
-    public static final int FILE_PREFIX_BIG_ENDIAN = 0x4d;
-
     private static final boolean OPTIMIZE_READING_IFD_ARRAYS = true;
     // - Note: this optimization allows speeding up reading a large array of offsets.
     // If we use simple FileHandle for reading files (based on RandomAccessFile),
@@ -177,7 +170,6 @@ public class TiffReader extends TiffIO {
     private boolean cachingIFDs = true;
     private boolean missingTilesAllowed = false;
     private byte byteFiller = 0;
-    private volatile Context context = null;
 
     private final Exception openingException;
     private final DataHandle<? extends Location> in;
@@ -194,7 +186,6 @@ public class TiffReader extends TiffIO {
      * Cached first IFD in the current file.
      */
     private volatile TiffIFD firstIFD;
-    private volatile Object scifio = null;
 
     private final Object fileLock = new Object();
 
@@ -638,16 +629,6 @@ public class TiffReader extends TiffIO {
      */
     public TiffReader setByteFiller(byte byteFiller) {
         this.byteFiller = byteFiller;
-        return this;
-    }
-
-    public Context getContext() {
-        return context;
-    }
-
-    public TiffReader setContext(Context context) {
-        this.scifio = null;
-        this.context = context;
         return this;
     }
 
@@ -1726,10 +1707,6 @@ public class TiffReader extends TiffIO {
         return "TIFF reader";
     }
 
-    public static Context newSCIFIOContext() {
-        return SCIFIOBridge.getDefaultScifioContext();
-    }
-
     protected Optional<byte[]> decodeByExternalCodec(TiffTile tile, byte[] encodedData, TiffCodec.Options options)
             throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
@@ -1774,14 +1751,6 @@ public class TiffReader extends TiffIO {
         // - in the current implementation it is an extra operator: BigEndian is defaulted in scijava;
         // but we want to be sure that this behavior will be the same in all future versions
         return fileHandle;
-    }
-
-    Object scifio() {
-        Object scifio = this.scifio;
-        if (scifio == null) {
-            this.scifio = scifio = SCIFIOBridge.createScifioFromContext(context);
-        }
-        return scifio;
     }
 
     private Object requireScifio(TiffIFD ifd) throws UnsupportedTiffFormatException {

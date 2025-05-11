@@ -168,7 +168,7 @@ public class TiffParser extends TiffReader {
             }
             ifdEntries.put(key, entry.getValue());
         }
-        return new TiffIFD(ifdEntries).setBigTiff(bigTiff).setLittleEndian(littleEndian);
+        return new TiffIFD(ifdEntries).setLoadedFromFile(true).setBigTiff(bigTiff).setLittleEndian(littleEndian);
     }
 
     public IFD toScifioIFD(TiffIFD ifd) {
@@ -368,10 +368,10 @@ public class TiffParser extends TiffReader {
         in.seek(0);
         final int endianOne = in.read();
         final int endianTwo = in.read();
-        final boolean littleEndian = endianOne == TiffReader.FILE_PREFIX_LITTLE_ENDIAN &&
-                endianTwo == TiffReader.FILE_PREFIX_LITTLE_ENDIAN; // II
-        final boolean bigEndian = endianOne == TiffReader.FILE_PREFIX_BIG_ENDIAN &&
-                endianTwo == TiffReader.FILE_PREFIX_BIG_ENDIAN; // MM
+        final boolean littleEndian = endianOne == FILE_PREFIX_LITTLE_ENDIAN &&
+                endianTwo == FILE_PREFIX_LITTLE_ENDIAN; // II
+        final boolean bigEndian = endianOne == FILE_PREFIX_BIG_ENDIAN &&
+                endianTwo == FILE_PREFIX_BIG_ENDIAN; // MM
         if (!littleEndian && !bigEndian) return null;
 
         // check magic number (42)
@@ -379,8 +379,8 @@ public class TiffParser extends TiffReader {
         final short magic = in.readShort();
         // bigTiff = magic == TiffConstants.BIG_TIFF_MAGIC_NUMBER;
         // - already set by the constructor
-        if (magic != TiffReader.FILE_USUAL_MAGIC_NUMBER &&
-                magic != TiffReader.FILE_BIG_TIFF_MAGIC_NUMBER) {
+        if (magic != FILE_USUAL_MAGIC_NUMBER &&
+                magic != FILE_BIG_TIFF_MAGIC_NUMBER) {
             return null;
         }
 

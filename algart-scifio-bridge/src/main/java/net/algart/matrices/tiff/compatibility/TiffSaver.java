@@ -27,11 +27,10 @@ package net.algart.matrices.tiff.compatibility;
 import io.scif.FormatException;
 import io.scif.SCIFIO;
 import io.scif.codec.CodecOptions;
-import io.scif.formats.tiff.TiffParser;
 import io.scif.formats.tiff.*;
+import io.scif.formats.tiff.TiffParser;
 import io.scif.util.FormatTools;
 import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.tags.TagRational;
@@ -172,16 +171,16 @@ public class TiffSaver extends TiffWriter {
         synchronized (this) {
             out.seek(0);
             if (isLittleEndian()) {
-                out.writeByte(TiffReader.FILE_PREFIX_LITTLE_ENDIAN);
-                out.writeByte(TiffReader.FILE_PREFIX_LITTLE_ENDIAN);
+                out.writeByte(FILE_PREFIX_LITTLE_ENDIAN);
+                out.writeByte(FILE_PREFIX_LITTLE_ENDIAN);
             } else {
-                out.writeByte(TiffReader.FILE_PREFIX_BIG_ENDIAN);
-                out.writeByte(TiffReader.FILE_PREFIX_BIG_ENDIAN);
+                out.writeByte(FILE_PREFIX_BIG_ENDIAN);
+                out.writeByte(FILE_PREFIX_BIG_ENDIAN);
             }
             // write magic number
             if (bigTiff) {
-                out.writeShort(TiffReader.FILE_BIG_TIFF_MAGIC_NUMBER);
-            } else out.writeShort(TiffReader.FILE_USUAL_MAGIC_NUMBER);
+                out.writeShort(FILE_BIG_TIFF_MAGIC_NUMBER);
+            } else out.writeShort(FILE_USUAL_MAGIC_NUMBER);
 
             // write the offset to the first IFD
 

@@ -35,13 +35,11 @@ import net.algart.matrices.tiff.data.TiffPacking;
 import net.algart.matrices.tiff.data.TiffPrediction;
 import net.algart.matrices.tiff.tags.*;
 import net.algart.matrices.tiff.tiles.*;
-import org.scijava.Context;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.location.BytesLocation;
 import org.scijava.io.location.Location;
 
 import java.awt.image.BufferedImage;
-import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -100,11 +98,9 @@ public class TiffWriter extends TiffIO {
     private boolean missingTilesAllowed = false;
     private byte byteFiller = 0;
     private Consumer<TiffTile> tileInitializer = this::fillEmptyTile;
-    private volatile Context context = null;
 
     private final DataHandle<? extends Location> out;
     private volatile TiffReader reader = null;
-    private volatile Object scifio = null;
 
     private final Object fileLock = new Object();
 
@@ -587,16 +583,6 @@ public class TiffWriter extends TiffIO {
         return this;
     }
 
-    public Context getContext() {
-        return context;
-    }
-
-    public TiffWriter setContext(Context context) {
-        this.scifio = null;
-        this.context = context;
-        return this;
-    }
-
     /**
      * Returns the output stream from which TIFF data is being saved.
      */
@@ -717,17 +703,17 @@ public class TiffWriter extends TiffIO {
             out.seek(0);
             // - this call actually creates and opens the file if it was not opened before
             if (isLittleEndian()) {
-                out.writeByte(TiffReader.FILE_PREFIX_LITTLE_ENDIAN);
-                out.writeByte(TiffReader.FILE_PREFIX_LITTLE_ENDIAN);
+                out.writeByte(FILE_PREFIX_LITTLE_ENDIAN);
+                out.writeByte(FILE_PREFIX_LITTLE_ENDIAN);
             } else {
-                out.writeByte(TiffReader.FILE_PREFIX_BIG_ENDIAN);
-                out.writeByte(TiffReader.FILE_PREFIX_BIG_ENDIAN);
+                out.writeByte(FILE_PREFIX_BIG_ENDIAN);
+                out.writeByte(FILE_PREFIX_BIG_ENDIAN);
             }
             // Writing the magic number:
             if (bigTiff) {
-                out.writeShort(TiffReader.FILE_BIG_TIFF_MAGIC_NUMBER);
+                out.writeShort(FILE_BIG_TIFF_MAGIC_NUMBER);
             } else {
-                out.writeShort(TiffReader.FILE_USUAL_MAGIC_NUMBER);
+                out.writeShort(FILE_USUAL_MAGIC_NUMBER);
             }
             if (bigTiff) {
                 out.writeShort(8);
@@ -1669,14 +1655,6 @@ public class TiffWriter extends TiffIO {
         final int height = tile.getSizeY();
         final byte[] encodedData = compressByScifioCodec(tile.ifd(), decodedData, width, height, scifioCodecOptions);
         return Optional.of(encodedData);
-    }
-
-    Object scifio() {
-        Object scifio = this.scifio;
-        if (scifio == null) {
-            this.scifio = scifio = SCIFIOBridge.createScifioFromContext(context);
-        }
-        return scifio;
     }
 
     private void prepareNewMap(TiffWriteMap map) {

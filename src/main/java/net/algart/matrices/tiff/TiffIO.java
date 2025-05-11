@@ -24,7 +24,37 @@
 
 package net.algart.matrices.tiff;
 
+import org.scijava.Context;
+
 import java.io.Closeable;
 
 public abstract class TiffIO implements Closeable {
+    public static final int FILE_USUAL_MAGIC_NUMBER = 0x2a;
+    public static final int FILE_BIG_TIFF_MAGIC_NUMBER = 0x2b;
+    public static final int FILE_PREFIX_LITTLE_ENDIAN = 0x49;
+    public static final int FILE_PREFIX_BIG_ENDIAN = 0x4d;
+
+    volatile Context context = null;
+    volatile Object scifio = null;
+
+    public Context getContext() {
+        return context;
+    }
+
+    public void setContext(Context context) {
+        this.scifio = null;
+        this.context = context;
+    }
+
+    Object scifio() {
+        Object scifio = this.scifio;
+        if (scifio == null) {
+            this.scifio = scifio = SCIFIOBridge.createScifioFromContext(context);
+        }
+        return scifio;
+    }
+
+    public static Context newSCIFIOContext() {
+        return SCIFIOBridge.getDefaultScifioContext();
+    }
 }
