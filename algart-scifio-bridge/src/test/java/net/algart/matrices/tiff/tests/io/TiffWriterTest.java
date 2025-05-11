@@ -388,7 +388,7 @@ public class TiffWriterTest {
                     }
                     if (test == 1) {
                         if (map.hasUnset()) {
-                            List<TiffTile> unset = map.tiles().stream().filter(TiffTile::hasUnsetArea).toList();
+                            List<TiffTile> unset = map.findTiles(TiffTile::hasUnsetArea);
                             System.out.printf(
                                     "  Image #%d: %d tiles, %d are not completely filled%n",
                                     k, map.numberOfTiles(), unset.size());

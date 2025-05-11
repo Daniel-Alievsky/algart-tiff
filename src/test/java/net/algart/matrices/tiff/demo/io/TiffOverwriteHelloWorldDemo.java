@@ -26,7 +26,6 @@ package net.algart.matrices.tiff.demo.io;
 
 import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
@@ -68,6 +67,9 @@ public class TiffOverwriteHelloWorldDemo {
             int m = writeMap.completeWriting();
             System.out.printf("Completed %d tile, file length: %d%n", m, writeMap.fileLength());
             // - should be 0, because all tiles were preloaded
+            if (m != 0) {
+                throw new AssertionError("Not all tiles were written inside overwrite");
+            }
         }
         System.out.println("Done");
     }
@@ -78,12 +80,16 @@ public class TiffOverwriteHelloWorldDemo {
                 x, y, sizeX, sizeY, true);
         // - the last argument "true" leads to preserving all tiles in the map:
         // this is necessary for boundary tiles that are partially covered by the image
-        writeMap.copy(readMap, false);
-        System.out.printf("Overwriting %s...%n", writeMap);
+        writeMap.copyAllData(readMap, false);
+        System.out.printf("%nOverwriting %d..%dx%d..%d in %s...%n", x, x + sizeX - 1, y, y + sizeY - 1, writeMap);
         drawTextOnImage(bufferedImage, "Hello, world!");
         // MatrixIO.writeBufferedImage(Path.of("/tmp/test.bmp"), bufferedImage);
         final List<TiffTile> tiles = writeMap.updateBufferedImage(bufferedImage, x, y);
         int m = writeMap.writeCompletedTiles(tiles);
+//        System.out.printf("Completed tiles:%n%s%n",
+//                writeMap.tiles().stream().filter(t -> !t.isEmpty() && t.isCompleted()).map(TiffTile::index)
+//                        .collect(Collectors.toList()));
+        readMap.freeAllData();
         System.out.printf("Written %d completed tiles, file length: %d%n", m, writeMap.fileLength());
     }
 

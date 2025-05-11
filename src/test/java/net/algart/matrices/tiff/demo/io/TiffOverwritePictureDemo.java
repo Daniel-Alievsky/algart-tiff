@@ -31,6 +31,7 @@ import net.algart.arrays.PArray;
 import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tiles.TiffMap;
+import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
 import java.io.IOException;
@@ -80,7 +81,13 @@ public class TiffOverwritePictureDemo {
             final TiffWriteMap map = writer.preloadExistingTiles(
                     ifdIndex, x, y, imageToDrawSizeX, imageToDrawSizeY, false);
             System.out.printf("Overwriting %s...%n", map);
-            writer.writeChannels(map, tryToAdjust(imageToDraw, map), x, y);
+            List<TiffTile> tiles = map.updateChannels(tryToAdjust(imageToDraw, map), x, y);
+            int n = map.writeCompletedTiles(tiles);
+            System.out.printf("Written %d completed tiles%n", n);
+            n = map.completeWriting();
+            if (n != 0) {
+                throw new AssertionError("Not all tiles were written in writeCompletedTiles");
+            }
         }
         System.out.println("Done");
     }

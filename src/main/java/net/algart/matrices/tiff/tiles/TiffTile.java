@@ -394,6 +394,8 @@ public final class TiffTile {
     /**
      * Returns the current unset area in this tile.
      * Note that initially the unset area consists from a single rectangle equal to {@link #actualRectangle()}.
+     * Note that this information is <i>indepentent</i> on data: this area is not changed by the methods
+     * like {@link #setDecodedData(byte[])} or {@link #copyData(TiffTile, boolean)}.
      *
      * @return the current unset area in this tile.
      */
@@ -440,6 +442,10 @@ public final class TiffTile {
 
     public boolean isCompleted() {
         return !hasUnsetArea();
+    }
+
+    public boolean isCompletelyUnset() {
+        return unsetArea == null;
     }
 
     public boolean hasUnsetArea() {
@@ -1072,9 +1078,8 @@ public final class TiffTile {
                 (interleaved ? " interleaved" : " separated") +
                 " tile" +
                 ", " + elementType().getSimpleName() + "[" + sizeX + "x" + sizeY + "x" + samplesPerPixel + "]" +
-                (data == null ?
-                        "" :
-                        " (" + data.length + " bytes)" + (isCompleted() ? ", completed" : ", partial")) +
+                (data == null ? "" : " (" + data.length + " bytes)") +
+                (isCompleted() ? ", completed" : isCompletelyUnset() ? ", completely unset " : ", partial") +
                 ", " + bitsPerSample + " bits/sample" +
                 ", index " + index +
                 (isStoredInFile() ?

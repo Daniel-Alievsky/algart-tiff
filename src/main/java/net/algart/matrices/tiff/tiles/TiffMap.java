@@ -32,6 +32,8 @@ import net.algart.matrices.tiff.*;
 
 import java.nio.ByteOrder;
 import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * TIFF map: an object storing detailed information about TIFF image
@@ -636,6 +638,15 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
         tileMap.values().forEach(TiffTile::cropUnsetAreaToMap);
     }
 
+    public List<TiffTile> findCompletedTiles() {
+        return findTiles(TiffTile::isCompleted);
+    }
+
+    public List<TiffTile> findTiles(Predicate<TiffTile> filter) {
+        Objects.requireNonNull(filter, "Null filter");
+        return tileMap.values().stream().filter(filter).collect(Collectors.toList());
+    }
+
     /**
      * Calls {@link TiffTile#freeData()} for all tiles in the map,
      * Unlike {@link #clear}, this method does not remove tiles from the map:
@@ -662,7 +673,7 @@ public sealed class TiffMap permits TiffReadMap, TiffWriteMap {
         }
     }
 
-    public void copy(TiffMap source, boolean cloneData) {
+    public void copyAllData(TiffMap source, boolean cloneData) {
         Objects.requireNonNull(source, "Null source TIFF map");
         if (source.numberOfSeparatedPlanes != this.numberOfSeparatedPlanes) {
             throw new IllegalArgumentException("Number of separated planes in the source (" +
