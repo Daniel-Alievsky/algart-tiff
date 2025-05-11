@@ -115,15 +115,15 @@ public final class TiffWriteMap extends TiffIOMap {
         final long bitsPerPixel = tileAlignedBitsPerPixel();
         // - "long" here leads to stricter requirements later on
 
-        final int minXIndex = Math.max(0, TiffReadMap.divFloor(fromX, mapTileSizeX));
-        final int minYIndex = Math.max(0, TiffReadMap.divFloor(fromY, mapTileSizeY));
+        final int minXIndex = Math.max(0, divFloor(fromX, mapTileSizeX));
+        final int minYIndex = Math.max(0, divFloor(fromY, mapTileSizeY));
         if (isResizable() && (minXIndex >= gridCountX() || minYIndex >= gridCountY())) {
             throw new AssertionError("Map was not expanded/checked properly: minimal tile index (" +
                     minXIndex + "," + minYIndex + ") is out of tile grid 0<=x<" +
                     gridCountX() + ", 0<=y<" + gridCountY() + "; map: " + this);
         }
-        final int maxXIndex = Math.min(gridCountX() - 1, TiffReadMap.divFloor(toX - 1, mapTileSizeX));
-        final int maxYIndex = Math.min(gridCountY() - 1, TiffReadMap.divFloor(toY - 1, mapTileSizeY));
+        final int maxXIndex = Math.min(gridCountX() - 1, divFloor(toX - 1, mapTileSizeX));
+        final int maxYIndex = Math.min(gridCountY() - 1, divFloor(toY - 1, mapTileSizeY));
         if (minYIndex > maxYIndex || minXIndex > maxXIndex) {
             // - possible when the area is outside the map, in particular when fromX < 0 or fromY < 0
             return updatedTiles;

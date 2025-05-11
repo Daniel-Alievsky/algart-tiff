@@ -108,7 +108,7 @@ public class TiffReader extends TiffIO {
             return unpack ? UNPACK : NONE;
         }
 
-        public void throwIfDisabled(TiffReadMap map) throws TiffException {
+        public void throwIfDisabled(TiffMap map) throws TiffException {
             Objects.requireNonNull(map, "Null TIFF map");
             if (this == DISABLE && TiffUnusualPrecisions.isUnusualPrecisions(map.ifd())) {
                 throw new UnsupportedTiffFormatException("Support of unusual TIFF bit depth is disabled: " +
@@ -117,7 +117,8 @@ public class TiffReader extends TiffIO {
             }
         }
 
-        public byte[] unpackIfNecessary(TiffReadMap map, byte[] samples, long numberOfPixels) throws TiffException {
+        public byte[] unpackIfNecessary(TiffMap map, byte[] samples, long numberOfPixels, boolean scaleUnsignedInt24)
+                throws TiffException {
             Objects.requireNonNull(map, "Null TIFF map");
             Objects.requireNonNull(samples, "Null samples");
             throwIfDisabled(map);
@@ -125,7 +126,7 @@ public class TiffReader extends TiffIO {
                     samples :
                     TiffUnusualPrecisions.unpackUnusualPrecisions(
                             samples, map.ifd(), map.numberOfChannels(), numberOfPixels,
-                            map.isAutoScaleWhenIncreasingBitDepth());
+                            scaleUnsignedInt24);
         }
     }
 
