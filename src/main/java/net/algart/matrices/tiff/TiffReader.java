@@ -51,7 +51,6 @@ import java.io.IOException;
 import java.lang.ref.Reference;
 import java.lang.ref.SoftReference;
 import java.lang.reflect.InvocationTargetException;
-import java.net.URI;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -148,16 +147,11 @@ public class TiffReader extends TiffIO {
     // - Should be false for better performance; necessary for debugging needs only
     // (together with uncommenting unpackBytesLegacy call)
 
-    static final boolean BUILT_IN_TIMING = getBooleanProperty("net.algart.matrices.tiff.timing");
-
     private static final int MINIMAL_ALLOWED_TIFF_FILE_LENGTH =
             TiffIFD.TIFF_FILE_HEADER_LENGTH + 2 + TiffIFD.BYTES_PER_ENTRY + 4;
     // - 8 bytes header and at least 1 IFD entry (usually at least 2 entries required: ImageWidth + ImageLength):
     // see TiffIFD.lengthInFileExcludingEntries;
     // note that this constant should be > 16 to detect a "fake" BigTIFF file, containing header only
-
-    private static final System.Logger LOG = System.getLogger(TiffReader.class.getName());
-    private static final boolean LOGGABLE_DEBUG = LOG.isLoggable(System.Logger.Level.DEBUG);
 
     private boolean caching = true;
     private long maxCachingMemory = DEFAULT_MAX_CACHING_MEMORY;
@@ -1753,17 +1747,6 @@ public class TiffReader extends TiffIO {
         return fileHandle;
     }
 
-    private Object requireScifio(TiffIFD ifd) throws UnsupportedTiffFormatException {
-        Object scifio = scifio();
-        if (scifio == null) {
-            // - in other words, this.context is not set
-            throw new UnsupportedTiffFormatException("Reading with TIFF compression " +
-                    TagCompression.toPrettyString(ifd.optInt(Tags.COMPRESSION, TiffIFD.COMPRESSION_NONE)) +
-                    " is not supported without external codecs");
-        }
-        return scifio;
-    }
-
     private void clearTiming() {
         timeReading = 0;
         timeCustomizingDecoding = 0;
@@ -2267,33 +2250,6 @@ public class TiffReader extends TiffIO {
         LOG.log(System.Logger.Level.TRACE, () -> String.format(
                 "Reading IFD entry: %s - %s", result, Tags.tiffTagName(result.tag(), true)));
         return result;
-    }
-
-    static String prettyFileName(String format, DataHandle<? extends Location> handle) {
-        if (handle == null) {
-            return "";
-        }
-        Location location = handle.get();
-        if (location == null) {
-            return "";
-        }
-        URI uri = location.getURI();
-        if (uri == null) {
-            return "";
-        }
-        return format.formatted(uri);
-    }
-
-    static boolean getBooleanProperty(String propertyName) {
-        try {
-            return Boolean.getBoolean(propertyName);
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    private static long debugTime() {
-        return BUILT_IN_TIMING && LOGGABLE_DEBUG ? System.nanoTime() : 0;
     }
 
     private static DataHandle<? extends Location> checkNonNull(

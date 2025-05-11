@@ -24,15 +24,25 @@
 
 package net.algart.matrices.tiff;
 
+import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tags.Tags;
 import org.scijava.Context;
+import org.scijava.io.handle.DataHandle;
+import org.scijava.io.location.Location;
 
 import java.io.Closeable;
+import java.net.URI;
 
 public abstract class TiffIO implements Closeable {
     public static final int FILE_USUAL_MAGIC_NUMBER = 0x2a;
     public static final int FILE_BIG_TIFF_MAGIC_NUMBER = 0x2b;
     public static final int FILE_PREFIX_LITTLE_ENDIAN = 0x49;
     public static final int FILE_PREFIX_BIG_ENDIAN = 0x4d;
+
+    static final System.Logger LOG = System.getLogger(TiffIO.class.getName());
+    static final boolean LOGGABLE_DEBUG = LOG.isLoggable(System.Logger.Level.DEBUG);
+
+    static final boolean BUILT_IN_TIMING = getBooleanProperty("net.algart.matrices.tiff.timing");
 
     volatile Context context = null;
     volatile Object scifio = null;
@@ -46,6 +56,10 @@ public abstract class TiffIO implements Closeable {
         this.context = context;
     }
 
+    public static Context newSCIFIOContext() {
+        return SCIFIOBridge.getDefaultScifioContext();
+    }
+
     Object scifio() {
         Object scifio = this.scifio;
         if (scifio == null) {
@@ -54,7 +68,41 @@ public abstract class TiffIO implements Closeable {
         return scifio;
     }
 
-    public static Context newSCIFIOContext() {
-        return SCIFIOBridge.getDefaultScifioContext();
+    Object requireScifio(TiffIFD ifd) throws UnsupportedTiffFormatException {
+        Object scifio = scifio();
+        if (scifio == null) {
+            // - in other words, this.context is not set
+            throw new UnsupportedTiffFormatException("Reading with TIFF compression " +
+                    TagCompression.toPrettyString(ifd.optInt(Tags.COMPRESSION, TiffIFD.COMPRESSION_NONE)) +
+                    " is not supported without external codecs");
+        }
+        return scifio;
+    }
+
+    static long debugTime() {
+        return BUILT_IN_TIMING && LOGGABLE_DEBUG ? System.nanoTime() : 0;
+    }
+
+    static String prettyFileName(String format, DataHandle<? extends Location> handle) {
+        if (handle == null) {
+            return "";
+        }
+        Location location = handle.get();
+        if (location == null) {
+            return "";
+        }
+        URI uri = location.getURI();
+        if (uri == null) {
+            return "";
+        }
+        return format.formatted(uri);
+    }
+
+    static boolean getBooleanProperty(String propertyName) {
+        try {
+            return Boolean.getBoolean(propertyName);
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

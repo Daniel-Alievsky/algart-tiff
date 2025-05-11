@@ -83,9 +83,6 @@ public class TiffWriter extends TiffIO {
     // IF YOU CHANGE IT, YOU MUST CORRECT ALSO TiffWriteMap.AUTO_INTERLEAVE_SOURCE
     // (and, for testing, the AUTO_INTERLEAVE_SOURCE constant in TiffWriterTest)
 
-    private static final System.Logger LOG = System.getLogger(TiffWriter.class.getName());
-    private static final boolean LOGGABLE_DEBUG = LOG.isLoggable(System.Logger.Level.DEBUG);
-
     private boolean bigTiff = false;
     private boolean writingForwardAllowed = true;
     private boolean smartFormatCorrection = false;
@@ -646,7 +643,7 @@ public class TiffWriter extends TiffIO {
                     create();
                 } else {
                     throw new FileNotFoundException("Output TIFF file " +
-                            TiffReader.prettyFileName("%s", out) + " does not exist");
+                            prettyFileName("%s", out) + " does not exist");
                 }
                 // In this branch, we MUST NOT try to analyze the file: it is not a correct TIFF!
             } else {
@@ -964,7 +961,7 @@ public class TiffWriter extends TiffIO {
         if (codec != null) {
             options = compression.customizeWriting(tile, options);
             if (codec instanceof TiffCodec.Timing timing) {
-                timing.setTiming(TiffReader.BUILT_IN_TIMING && LOGGABLE_DEBUG);
+                timing.setTiming(BUILT_IN_TIMING && LOGGABLE_DEBUG);
                 timing.clearTiming();
             }
             final byte[] encodedData = codec.compress(data, options);
@@ -2202,7 +2199,7 @@ public class TiffWriter extends TiffIO {
     }
 
     private void logWritingMatrix(TiffWriteMap map, Matrix<?> matrix, long t1, long t2, long t3, long t4) {
-        if (TiffReader.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+        if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             final boolean sourceInterleaved = !map.isPlanarSeparated() && !AUTO_INTERLEAVE_SOURCE;
             final long dimX = matrix.dim(sourceInterleaved ? 1 : 0);
             final long dimY = matrix.dim(sourceInterleaved ? 2 : 1);
@@ -2223,7 +2220,7 @@ public class TiffWriter extends TiffIO {
     }
 
     private void logTiles(TiffMap map, String stage, String action, int count, long sizeInBytes, long t1, long t2) {
-        if (TiffReader.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+        if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             LOG.log(System.Logger.Level.TRACE, () ->
                     count == 0 ?
                             String.format(Locale.US,
@@ -2253,7 +2250,7 @@ public class TiffWriter extends TiffIO {
             long t2,
             long t3,
             long t4) {
-        if (TiffReader.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+        if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t5 = debugTime();
             final long sizeInBytes = map.totalSizeInBytes();
             LOG.log(System.Logger.Level.DEBUG, () -> String.format(Locale.US,
@@ -2318,11 +2315,6 @@ public class TiffWriter extends TiffIO {
             }
         }
     }
-
-    private static long debugTime() {
-        return TiffReader.BUILT_IN_TIMING && LOGGABLE_DEBUG ? System.nanoTime() : 0;
-    }
-
     private static DataHandle<? extends Location> openWithDeletingPreviousFileIfRequested(
             Path file,
             TiffCreateMode createMode)

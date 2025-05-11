@@ -108,7 +108,7 @@ public class TiffReaderTest {
                 }
                 reader.setContext(context);
                 long t2 = System.nanoTime();
-                reader.setEnforceUseExternalCodec(true);
+//                reader.setEnforceUseExternalCodec(true);
 //                reader.setCachingIFDs(false);
 //                reader.setUnusualPrecisions(TiffReader.UnusualPrecisions.NONE);
 //                reader.setAutoUnpackBits(TiffReader.UnpackBits.UNPACK_TO_0_255);

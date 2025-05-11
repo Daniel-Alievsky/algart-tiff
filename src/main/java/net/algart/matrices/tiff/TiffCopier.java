@@ -207,7 +207,7 @@ public final class TiffCopier {
     public TiffWriteMap copyImage(TiffWriter writer, TiffReadMap readMap) throws IOException {
         Objects.requireNonNull(writer, "Null TIFF writer");
         Objects.requireNonNull(readMap, "Null TIFF read map");
-        long t1 = debugTime();
+        long t1 = TiffIO.debugTime();
         resetImageCounters();
         final TiffIFD writeIFD = new TiffIFD(readMap.ifd());
         // - creating a clone of IFD: we must not modify the reader IFD
@@ -232,7 +232,7 @@ public final class TiffCopier {
         final Collection<TiffTile> targetTiles = writeMap.tiles();
         progressInformation.tileCount = targetTiles.size();
         int tileCount = 0;
-        long t2 = debugTime();
+        long t2 = TiffIO.debugTime();
         for (TiffTile targetTile : targetTiles) {
             final TiffTileIndex readIndex = readMap.copyIndex(targetTile.index());
             // - important to copy index: targetTile.index() refer to the writeIFD instead of some source IFD
@@ -252,11 +252,11 @@ public final class TiffCopier {
             }
             tileCount++;
         }
-        long t3 = debugTime();
+        long t3 = TiffIO.debugTime();
         writeMap.completeWriting();
-        if (TiffReader.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+        if (TiffIO.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             final long sizeInBytes = writeMap.totalSizeInBytes();
-            long t4 = debugTime();
+            long t4 = TiffIO.debugTime();
             LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
                     "%s copied entire image %s %dx%dx%d (%.3f MB) in %.3f ms = " +
                             "%.3f prepare + %.3f copy + %.3f complete, %.3f MB/s",
@@ -279,7 +279,7 @@ public final class TiffCopier {
         Objects.requireNonNull(writer, "Null TIFF writer");
         Objects.requireNonNull(readMap, "Null TIFF read map");
         TiffMap.checkRequestedArea(fromX, fromY, sizeX, sizeY);
-        long t1 = debugTime();
+        long t1 = TiffIO.debugTime();
         resetImageCounters();
         final TiffIFD writeIFD = new TiffIFD(readMap.ifd());
         // - creating a clone of IFD: we must not modify the reader IFD
@@ -309,7 +309,7 @@ public final class TiffCopier {
         }
         final int fromXIndex = directCopy ? fromX / mapTileSizeX : Integer.MIN_VALUE;
         final int fromYIndex = directCopy ? fromY / mapTileSizeY : Integer.MIN_VALUE;
-        long t2 = debugTime();
+        long t2 = TiffIO.debugTime();
         int repackCount = 0;
         int tileCount = 0;
         for (int yIndex = 0, y = 0; yIndex < gridCountY; yIndex++, y += mapTileSizeY) {
@@ -342,14 +342,14 @@ public final class TiffCopier {
                 tileCount++;
             }
         }
-        long t3 = debugTime();
+        long t3 = TiffIO.debugTime();
         final int written = writeMap.completeWriting();
         if (written != 0) {
             throw new AssertionError("Number of tiles when completion " + written + " != 0");
         }
-        if (TiffReader.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+        if (TiffIO.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             final long sizeInBytes = writeMap.totalSizeInBytes();
-            long t4 = debugTime();
+            long t4 = TiffIO.debugTime();
             LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
                     "%s copied %s%s %dx%dx%d samples in %d tiles%s (%.3f MB) in %.3f ms = " +
                             "%.3f prepare + %.3f copy + %.3f complete, %.3f MB/s",
@@ -489,10 +489,6 @@ public final class TiffCopier {
             progressUpdater.accept(progressInformation);
         }
         return interruptionChecker != null && interruptionChecker.getAsBoolean();
-    }
-
-    private static long debugTime() {
-        return TiffReader.BUILT_IN_TIMING && LOGGABLE_DEBUG ? System.nanoTime() : 0;
     }
 }
 
