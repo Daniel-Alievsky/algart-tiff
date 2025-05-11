@@ -149,6 +149,10 @@ public final class TiffTileIndex {
         return map.linearIndex(xIndex, yIndex, separatedPlaneIndex);
     }
 
+    public TiffTile existingTile() {
+        return map.get(this);
+    }
+
     public boolean isInBounds() {
         assert separatedPlaneIndex < map.numberOfSeparatedPlanes() : "must be checked in the constructor!";
         return xIndex < map.gridCountX() && yIndex < map.gridCountY();

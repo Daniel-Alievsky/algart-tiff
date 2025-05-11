@@ -1280,6 +1280,10 @@ public class TiffWriter extends TiffIO {
         return newMap(ifd, true);
     }
 
+    public TiffWriteMap existingMap(int ifdIndex) throws IOException {
+        return existingMap(existingIFD(ifdIndex));
+    }
+
     /**
      * Starts overwriting existing IFD image.
      *

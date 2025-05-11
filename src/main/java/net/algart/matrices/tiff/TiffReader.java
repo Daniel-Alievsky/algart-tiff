@@ -1126,9 +1126,21 @@ public class TiffReader extends TiffIO {
         final TiffIFD ifd = tileIndex.ifd();
         final int index = tileIndex.linearIndex();
         // - also checks that the tile index is not out of image bounds
-        final long offset = ifd.cachedTileOrStripOffset(index);
-        assert offset >= 0 : "offset " + offset + " was not checked in TiffIFD";
-        int byteCount = cachedByteCountWithCompatibilityTrick(ifd, index);
+        long offset;
+        int byteCount;
+        final TiffTile existingTile = tileIndex.existingTile();
+        if (existingTile != null && existingTile.isStoredInFile()) {
+            // - can be true when using TiffWriteMap for re-reading already written tiles;
+            // without this, we'll read the previously written tile instead of the actual data!
+            offset = existingTile.getStoredInFileDataOffset();
+            byteCount = existingTile.getStoredInFileDataLength();
+            assert offset >= 0 && byteCount >= 0;
+        } else {
+            offset = ifd.cachedTileOrStripOffset(index);
+            assert offset >= 0 : "offset " + offset + " was not checked in TiffIFD";
+            byteCount = cachedByteCountWithCompatibilityTrick(ifd, index);
+            byteCount = correctZeroByteCount(tileIndex, byteCount, offset);
+        }
 
         final TiffTile result = new TiffTile(tileIndex);
         // - No reasons to put it into the map: this class does not provide access to a temporarily created map.
@@ -1140,7 +1152,6 @@ public class TiffReader extends TiffIO {
         // Note the last encoded strip can have actually full strip sizes,
         // i.e., larger than necessary; this situation is quite possible.
 
-        byteCount = correctZeroByteCount(tileIndex, byteCount, offset);
         if (byteCount == -1) {
             // - possible when the missingTilesAllowed flag is set
             return result;
