@@ -1609,11 +1609,9 @@ public class TiffWriter extends TiffIO {
 
     @Override
     public void close() throws IOException {
-        synchronized (fileLock) {
-            lastMap = null;
-            stream.close();
-            clearReader();
-        }
+        lastMap = null;
+        super.close();
+        clearReader();
     }
 
     public int sizeOfHeader() {

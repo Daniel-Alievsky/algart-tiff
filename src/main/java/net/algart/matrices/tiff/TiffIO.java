@@ -31,6 +31,7 @@ import org.scijava.io.handle.DataHandle;
 import org.scijava.io.location.Location;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.net.URI;
 import java.util.Objects;
 
@@ -72,6 +73,13 @@ public abstract class TiffIO implements Closeable {
     public void setContext(Context context) {
         this.scifio = null;
         this.context = context;
+    }
+
+    @Override
+    public void close() throws IOException {
+        synchronized (fileLock) {
+            stream.close();
+        }
     }
 
     public static Context newSCIFIOContext() {

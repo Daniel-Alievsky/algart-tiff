@@ -295,7 +295,7 @@ public class TiffReader extends TiffIO {
         if (openMode.isRequireTiff() ? !this.validTiff : tiffButInvalid) {
             if (closeStreamOnException) {
                 try {
-                    inputStream.close();
+                    stream.close();
                 } catch (Exception ignored) {
                 }
             }
@@ -1673,9 +1673,7 @@ public class TiffReader extends TiffIO {
     @Override
     public void close() throws IOException {
         lastMap = null;
-        synchronized (fileLock) {
-            stream.close();
-        }
+        super.close();
     }
 
     public int sizeOfHeader() {
