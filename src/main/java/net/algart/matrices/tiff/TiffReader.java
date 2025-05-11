@@ -299,7 +299,10 @@ public class TiffReader implements Closeable {
      * @throws TiffException if the file is not a correct TIFF file.
      * @throws IOException   in the case of any problems with the input file.
      */
-    public TiffReader(DataHandle<? extends Location> inputStream, TiffOpenMode openMode, boolean closeStreamOnException)
+    public TiffReader(
+            DataHandle<? extends Location> inputStream,
+            TiffOpenMode openMode,
+            boolean closeStreamOnException)
             throws IOException {
         this(checkNonNull(inputStream, openMode), (Consumer<Exception>) null);
         assert this.tiff || !this.validTiff;

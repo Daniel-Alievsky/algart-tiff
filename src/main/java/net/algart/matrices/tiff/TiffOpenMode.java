@@ -35,23 +35,21 @@ public enum TiffOpenMode {
      * All exceptions are caught and not thrown, but can be retrieved using {@link TiffReader#openingException()}.
      * Usually not recommended.
      */
-    NO_CHECKS(false, false),
+    NO_CHECKS(false),
     /**
      * No exceptions for non-existing file or non-TIFF file;
      * {@link TiffReader#isTiff()} should be checked before usage.
      */
-    ALLOW_NON_TIFF(false, true),
+    ALLOW_NON_TIFF(false),
     /**
      * The file must be a valid existing TIFF file, any problem leads to an exception.
      */
-    VALID_TIFF(true, true);
+    VALID_TIFF(true);
 
     private final boolean requireTiff;
-    private final boolean anythingChecked;
 
-    TiffOpenMode(boolean requireTiff, boolean requireValid) {
+    TiffOpenMode(boolean requireTiff) {
         this.requireTiff = requireTiff;
-        this.anythingChecked = requireValid;
     }
 
     /**
@@ -70,6 +68,6 @@ public enum TiffOpenMode {
     }
 
     public boolean isAnythingChecked() {
-        return anythingChecked;
+        return this != NO_CHECKS;
     }
 }

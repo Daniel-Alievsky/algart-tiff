@@ -27,6 +27,7 @@ package net.algart.matrices.tiff.tiles;
 import net.algart.arrays.*;
 import net.algart.io.awt.ImageToMatrix;
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffSampleType;
 import net.algart.matrices.tiff.TiffWriter;
 
@@ -38,18 +39,18 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
-public final class TiffWriteMap extends TiffMap {
+public final class TiffWriteMap extends TiffReadWriteMap {
     private static final boolean AUTO_INTERLEAVE_SOURCE = true;
     // - See TiffWriter.AUTO_INTERLEAVE_SOURCE.
     // IF YOU CHANGE IT, YOU MUST CORRECT ALSO TiffWriter.AUTO_INTERLEAVE_SOURCE.
     private static final boolean IGNORE_WRITING_OUTSIDE_MAP = true;
     // - Should be true. The false value simulates the early versions, but this is inconvenient for using.
 
-    private final TiffWriter owningWriter;
+    private final TiffWriter owner;
 
-    public TiffWriteMap(TiffWriter owningWriter, TiffIFD ifd, boolean resizable) {
+    public TiffWriteMap(TiffWriter owner, TiffIFD ifd, boolean resizable) {
         super(ifd, resizable);
-        this.owningWriter = Objects.requireNonNull(owningWriter, "Null owning writer");
+        this.owner = Objects.requireNonNull(owner, "Null owning writer");
     }
 
     /**
@@ -59,12 +60,21 @@ public final class TiffWriteMap extends TiffMap {
      * @return the writer-owner.
      */
     public TiffWriter writer() {
-        return owningWriter;
+        return owner;
+    }
+
+    @Override
+    public TiffReader reader() {
+        try {
+            return owner.reader();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public long fileLength() {
         try {
-            return owningWriter.output().length();
+            return owner.output().length();
         } catch (IOException e) {
             // - very improbable, it is better just to return something
             return 0;
@@ -161,7 +171,7 @@ public final class TiffWriteMap extends TiffMap {
                     // It is important for writing: without this correction, GIMP and other libtiff-based programs
                     // will report about an error (see libtiff, tif_jpeg.c, assigning segment_width/segment_height)
                     // However, if tiling is requested via TILE_WIDTH/TILE_LENGTH tags, we SHOULD NOT do this.
-                    tile.fillWhenEmpty(owningWriter.getTileInitializer());
+                    tile.fillWhenEmpty(owner.getTileInitializer());
                     final byte[] data = tile.getDecodedData();
 
                     final int tileSizeX = tile.getSizeX();
@@ -319,23 +329,23 @@ public final class TiffWriteMap extends TiffMap {
     }
 
     public void writeJavaArray(Object samplesArray) throws IOException {
-        owningWriter.writeJavaArray(this, samplesArray);
+        owner.writeJavaArray(this, samplesArray);
     }
 
     public void writeMatrix(Matrix<? extends PArray> matrix) throws IOException {
-        owningWriter.writeMatrix(this, matrix);
+        owner.writeMatrix(this, matrix);
     }
 
     public void writeChannels(List<? extends Matrix<? extends PArray>> channels) throws IOException {
-        owningWriter.writeChannels(this, channels);
+        owner.writeChannels(this, channels);
     }
 
     public void writeBufferedImage(BufferedImage bufferedImage) throws IOException {
-        owningWriter.writeBufferedImage(this, bufferedImage);
+        owner.writeBufferedImage(this, bufferedImage);
     }
 
     public void writeTile(TiffTile tile, boolean freeAndFreezeAfterWriting) throws IOException {
-        owningWriter.writeTile(tile, freeAndFreezeAfterWriting);
+        owner.writeTile(tile, freeAndFreezeAfterWriting);
     }
 
     public int writeAllTiles(Collection<TiffTile> tiles) throws IOException {
@@ -355,11 +365,11 @@ public final class TiffWriteMap extends TiffMap {
             Predicate<TiffTile> needToWrite,
             boolean freeAndFreezeAfterWriting)
             throws IOException {
-        return owningWriter.writeTiles(tiles, needToWrite, freeAndFreezeAfterWriting);
+        return owner.writeTiles(tiles, needToWrite, freeAndFreezeAfterWriting);
     }
 
     public int completeWriting() throws IOException {
-        return owningWriter.completeWriting(this);
+        return owner.completeWriting(this);
     }
 
     @Override

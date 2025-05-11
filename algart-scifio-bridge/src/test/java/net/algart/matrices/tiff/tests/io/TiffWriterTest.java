@@ -59,8 +59,13 @@ public class TiffWriterTest {
 
     private static void printReaderInfo(TiffWriter writer) {
         System.out.print("Checking file by the reader: ");
+        final TiffReader reader;
         try {
-            final TiffReader reader = writer.newReader(TiffOpenMode.NO_CHECKS);
+            reader = writer.newReader(TiffOpenMode.NO_CHECKS);
+        } catch (IOException e) {
+            throw new AssertionError("Impossible in NO_CHECKS mode", e);
+        }
+        try {
             final int n = reader.numberOfImages();
             System.out.printf("%s, %d bytes, %s%n",
                     reader.isValidTiff() ? "valid" : "INVALID: \"" + reader.openingException() + "\"",

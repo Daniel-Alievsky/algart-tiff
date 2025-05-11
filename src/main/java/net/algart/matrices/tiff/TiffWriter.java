@@ -778,10 +778,15 @@ public class TiffWriter implements Closeable {
      * @return new TIFF reader.
      * @throws IOException in the case of any I/O errors.
      */
-    public TiffReader reader(boolean alwaysCreateNew) throws IOException {
+    public TiffReader reader(boolean alwaysCreateNew) {
         synchronized (fileLock) {
             if (alwaysCreateNew || this.reader == null) {
-                this.reader = newReader(TiffOpenMode.NO_CHECKS).setCaching(false);
+                try {
+                    this.reader = new TiffReader(out, TiffOpenMode.NO_CHECKS, false);
+                } catch (IOException e) {
+                    throw new AssertionError(e);
+                }
+                this.reader.setCaching(false);
             }
             return this.reader;
         }
