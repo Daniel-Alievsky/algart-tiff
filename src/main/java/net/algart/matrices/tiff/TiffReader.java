@@ -1129,7 +1129,8 @@ public class TiffReader extends TiffIO {
         long offset;
         int byteCount;
         final TiffTile existingTile = tileIndex.existingTile();
-        if (existingTile != null && existingTile.isStoredInFile()) {
+        final boolean alreadyStored = existingTile != null && existingTile.isStoredInFile();
+        if (alreadyStored) {
             // - can be true when using TiffWriteMap for re-reading already written tiles;
             // without this, we'll read the previously written tile instead of the actual data!
             offset = existingTile.getStoredInFileDataOffset();
@@ -1164,6 +1165,9 @@ public class TiffReader extends TiffIO {
                 // - note: old SCIFIO code allowed such offsets and returned zero-filled tile
             }
             TiffTileIO.readAt(result, stream, offset, byteCount);
+            if (alreadyStored) {
+                result.expandStoredInFileDataCapacity(existingTile.getStoredInFileDataCapacity());
+            }
         }
         long t2 = debugTime();
         timeReading += t2 - t1;

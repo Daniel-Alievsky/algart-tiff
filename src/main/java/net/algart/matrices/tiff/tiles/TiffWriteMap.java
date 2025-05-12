@@ -165,9 +165,13 @@ public final class TiffWriteMap extends TiffIOMap {
                     final int tileSizeX = tile.getSizeX();
                     final int tileSizeY = tile.getSizeY();
                     final int sizeXInTile = Math.min(toX - tileStartX, tileSizeX - fromXInTile);
-                    assert sizeXInTile > 0 : "sizeXInTile=" + sizeXInTile;
+                    if (sizeXInTile <= 0) {
+                        throw new AssertionError("sizeXInTile=" + sizeXInTile);
+                    }
                     final int sizeYInTile = Math.min(toY - tileStartY, tileSizeY - fromYInTile);
-                    assert sizeYInTile > 0 : "sizeYInTile=" + sizeYInTile;
+                    if (sizeYInTile <= 0) {
+                        throw new AssertionError("sizeYInTile=" + sizeYInTile);
+                    }
                     tile.markNewRectangleAsSet(fromXInTile, fromYInTile, sizeXInTile, sizeYInTile);
 
                     // Tile must be interleaved always (RGBRGB...).

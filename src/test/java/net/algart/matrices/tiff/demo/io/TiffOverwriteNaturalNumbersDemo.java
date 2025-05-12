@@ -70,11 +70,16 @@ public class TiffOverwriteNaturalNumbersDemo {
             final TiffWriteMap writeMap = writer.existingMap(ifdIndex);
             System.out.printf("Overwriting %s...%n", writeMap);
             long t1 = System.nanoTime();
-            for (int k = 0, value = 1; k < numberOfValues; k++) {
+            long maxLength = 0;
+            for (int k = 0, value = 0; k < numberOfValues; k++) {
                 overwrite(writeMap, x, y, sizeX, sizeY, value);
                 x += dx;
                 y += dy;
                 value += increment;
+                if (writeMap.fileLength() > maxLength) {
+                    System.out.printf("  File length increased from to %d%n", writeMap.fileLength());
+                    maxLength = writeMap.fileLength();
+                }
             }
             long t2 = System.nanoTime();
             int m = writeMap.completeWriting();
@@ -98,8 +103,7 @@ public class TiffOverwriteNaturalNumbersDemo {
         final List<TiffTile> tiles = writeMap.updateBufferedImage(bufferedImage, x, y);
         if (WRITE_IMMEDIATELY) {
             int m = writeMap.writeCompletedTiles(tiles);
-            System.out.printf("written %d completed tiles, file length: %d ",
-                    m, writeMap.fileLength());
+            System.out.printf("written %d completed tiles ", m);
         }
         if (ACCURATE_MEMORY_MEASURING) {
             System.gc();

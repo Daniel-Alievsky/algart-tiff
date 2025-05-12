@@ -30,6 +30,10 @@ import java.io.IOException;
 import java.util.Objects;
 
 public class TiffTileIO {
+    private static final boolean SMART_WRITING_TO_FILE_END = true;
+    // - Should be true. Allows reducing file size if the tile is located at the file end and
+    // it is smaller than the previously written one.
+
     private TiffTileIO() {
     }
 
@@ -100,15 +104,19 @@ public class TiffTileIO {
             return false;
         }
         final long fileOffset = tile.getStoredInFileDataOffset();
-        if (fileOffset + tile.getStoredInFileDataLength() == outputStream.length()) {
+        if (SMART_WRITING_TO_FILE_END && fileOffset + tile.getStoredInFileDataLength() == outputStream.length()) {
             writeAt(tile, outputStream, fileOffset, true);
             outputStream.setLength(outputStream.offset());
+//            System.out.printf("!!! Write to end: %s %d + %d %d: %d%n", tile.index(), fileOffset,
+//                    tile.getEncodedDataLength(), tile.getStoredInFileDataLength(), outputStream.length());
             return true;
         }
         if (tile.getEncodedDataLength() <= tile.getStoredInFileDataCapacity()) {
             writeAt(tile, outputStream, fileOffset, false);
             return true;
         }
+//        System.out.printf("!!! Cannot write in-place: %s %d > %d%n", tile.index(),
+//                tile.getEncodedDataLength(), tile.getStoredInFileDataCapacity());
         return false;
     }
 

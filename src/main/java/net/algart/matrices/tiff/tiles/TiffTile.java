@@ -852,12 +852,12 @@ public final class TiffTile {
         return this;
     }
 
-    public TiffTile setStoredInFileDataCapacity(int storedInFileDataCapacity) {
-        if (storedInFileDataCapacity < this.storedInFileDataLength) {
-            throw new IllegalArgumentException("Too small storedInFileDataCapacity = " + storedInFileDataCapacity +
-                    " < storedInFileDataLength = " + this.storedInFileDataLength);
+    public TiffTile expandStoredInFileDataCapacity(int newStoredInFileDataCapacity) {
+        if (newStoredInFileDataCapacity >= this.storedInFileDataLength) {
+            // - probably extra check: usually there are no ways to make
+            // storedInFileDataCapacity < storedInFileDataLength outside this method
+            this.storedInFileDataCapacity = Math.max(this.storedInFileDataCapacity, newStoredInFileDataCapacity);
         }
-        this.storedInFileDataCapacity = storedInFileDataCapacity;
         return this;
     }
 
