@@ -794,7 +794,7 @@ public class TiffParser extends TiffReader {
                              final int y, final long width, final long height) throws FormatException,
             IOException {
         TiffMap.checkRequestedArea(x, y, width, height);
-        final byte[] result = readSamples(
+        final byte[] result = readSampleBytes(
                 newMap(toTiffIFD(ifd)),
                 x, y, (int) width, (int) height,
                 UnusualPrecisions.NONE,

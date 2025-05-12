@@ -134,7 +134,7 @@ public final class TiffTile {
      *     16- or 24-bit floating-point formats.</li>
      * </ol>
      * <p>Inside this class, you are always dealing with the variant #2 (excepting call of
-     * {@link #getUnpackedSamples(boolean)} method). The {@link TiffReader} class
+     * {@link #getUnpackedSampleBytes(boolean)} method). The {@link TiffReader} class
      * usually returns data in the option #1, unless you disable this by
      * {@link TiffReader#setUnusualPrecisions} method.
      * The {@link TiffWriter} class always takes the data in the variant #1.</p>
@@ -574,7 +574,7 @@ public final class TiffTile {
      *
      * @return unpacked data.
      * @throws IllegalStateException if the tile is {@link #isEmpty() empty} or {@link #isEncoded() encoded}.
-     * @see #getUnpackedSamples(boolean)
+     * @see #getUnpackedSampleBytes(boolean)
      */
     public byte[] getDecodedData() {
         checkDecodedData();
@@ -653,7 +653,7 @@ public final class TiffTile {
      * @see #bitsPerSample()
      * @see TiffMap#bitsPerUnpackedSample()
      */
-    public byte[] getUnpackedSamples(boolean autoScaleWhenIncreasingBitDepth) {
+    public byte[] getUnpackedSampleBytes(boolean autoScaleWhenIncreasingBitDepth) {
         byte[] samples = getDecodedData();
         try {
             samples = TiffUnusualPrecisions.unpackUnusualPrecisions(
@@ -665,7 +665,7 @@ public final class TiffTile {
     }
 
     public Object getUnpackedJavaArray(boolean autoScaleWhenIncreasingBitDepth) {
-        final byte[] samples = getUnpackedSamples(autoScaleWhenIncreasingBitDepth);
+        final byte[] samples = getUnpackedSampleBytes(autoScaleWhenIncreasingBitDepth);
         return sampleType().javaArray(samples, byteOrder());
     }
 
@@ -727,12 +727,12 @@ public final class TiffTile {
         }
         source.checkDecodedData();
         if (map.isByteOrderCompatible(source.byteOrder())) {
-            final byte[] decodedData = source.getUnpackedSamples(autoScaleWhenIncreasingBitDepth);
+            final byte[] decodedData = source.getUnpackedSampleBytes(autoScaleWhenIncreasingBitDepth);
             setDecodedData(decodedData, true);
         } else {
             assert byteOrder() != source.byteOrder();
             assert elementType() != boolean.class;
-            final byte[] decodedData = source.getUnpackedSamples(autoScaleWhenIncreasingBitDepth);
+            final byte[] decodedData = source.getUnpackedSampleBytes(autoScaleWhenIncreasingBitDepth);
             final byte[] swapped = JArrays.copyAndSwapByteOrder(decodedData, elementType());
             setDecodedData(swapped, true);
         }

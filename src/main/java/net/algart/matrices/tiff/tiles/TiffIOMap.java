@@ -51,7 +51,7 @@ public abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, Tiff
         return owner().fileLength();
     }
 
-    public byte[] loadSamples(
+    public byte[] loadSampleBytes(
             int fromX,
             int fromY,
             int sizeX,
@@ -60,11 +60,11 @@ public abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, Tiff
             boolean storeTilesInMap)
             throws IOException {
         @SuppressWarnings("resource") final TiffReader reader = reader();
-        return loadSamples(
+        return loadSampleBytes(
                 reader::readCachedTile, fromX, fromY, sizeX, sizeY, unusualPrecisions, storeTilesInMap);
     }
 
-    public byte[] loadSamples(
+    public byte[] loadSampleBytes(
             TiffReadMap.TileSupplier tileSupplier,
             int fromX,
             int fromY,
@@ -173,7 +173,7 @@ public abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, Tiff
         return unusualPrecisions.unpackIfNecessary(this, samples, sizeInPixels, scaleUnsignedInt24);
     }
 
-    public byte[] readSamples(
+    public byte[] readSampleBytes(
             int fromX,
             int fromY,
             int sizeX,
@@ -181,7 +181,7 @@ public abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, Tiff
             TiffReader.UnusualPrecisions autoUnpackUnusualPrecisions,
             boolean storeTilesInMap) throws IOException {
         @SuppressWarnings("resource") final TiffReader reader = reader();
-        return reader.readSamples(
+        return reader.readSampleBytes(
                 this,
                 fromX,
                 fromY,

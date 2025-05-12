@@ -542,7 +542,7 @@ public class TiffWriter extends TiffIO {
      * byte count (<code>TileByteCounts</code> or <code>StripByteCounts</code> tag) contains zero value.
      * In this mode, this writer will use zero offset and byte-count if
      * the written tile is actually empty &mdash; no pixels were written in it via
-     * {@link TiffWriteMap#updateSamples(byte[], int, int, int, int)} or other methods.
+     * {@link TiffWriteMap#updateSampleBytes(byte[], int, int, int, int)} or other methods.
      * In another case, this writer will create a normal tile, filled by
      * the {@link #setByteFiller(byte) default filler}.
      *
@@ -1456,20 +1456,20 @@ public class TiffWriter extends TiffIO {
      * @throws TiffException in the case of invalid TIFF IFD.
      * @throws IOException   in the case of any I/O errors.
      */
-    public void writeSamples(final TiffWriteMap map, byte[] samples) throws IOException {
+    public void writeSampleBytes(final TiffWriteMap map, byte[] samples) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         map.checkZeroDimensions();
-        writeSamples(map, samples, 0, 0, map.dimX(), map.dimY());
+        writeSampleBytes(map, samples, 0, 0, map.dimX(), map.dimY());
     }
 
-    public void writeSamples(TiffWriteMap map, byte[] samples, int fromX, int fromY, int sizeX, int sizeY)
+    public void writeSampleBytes(TiffWriteMap map, byte[] samples, int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(samples, "Null samples");
 
         clearTime();
         long t1 = debugTime();
-        map.updateSamples(samples, fromX, fromY, sizeX, sizeY);
+        map.updateSampleBytes(samples, fromX, fromY, sizeX, sizeY);
         long t2 = debugTime();
         writeForward(map);
         long t3 = debugTime();
@@ -1507,7 +1507,7 @@ public class TiffWriter extends TiffIO {
      * Writes the matrix at the position (0,0).
      *
      * <p>Note: unlike {@link #writeJavaArray(TiffWriteMap, Object)} and
-     * {@link #writeSamples(TiffWriteMap, byte[])},
+     * {@link #writeSampleBytes(TiffWriteMap, byte[])},
      * this method always uses the actual sizes of the passed matrix and, so, <i>does not require</i>
      * the map to have correct non-zero dimensions (a situation, possible for resizable maps).</p>
      *

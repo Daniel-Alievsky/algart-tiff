@@ -69,14 +69,14 @@ public final class TiffWriteMap extends TiffIOMap {
         return owner.reader();
     }
 
-    public List<TiffTile> updateSamples(byte[] samples, long fromX, long fromY, long sizeX, long sizeY) {
+    public List<TiffTile> updateSampleBytes(byte[] samples, long fromX, long fromY, long sizeX, long sizeY) {
         Objects.requireNonNull(samples, "Null samples");
         checkRequestedArea(fromX, fromY, sizeX, sizeY);
         assert fromX == (int) fromX && fromY == (int) fromY && sizeX == (int) sizeX && sizeY == (int) sizeY;
-        return updateSamples(samples, (int) fromX, (int) fromY, (int) sizeX, (int) sizeY);
+        return updateSampleBytes(samples, (int) fromX, (int) fromY, (int) sizeX, (int) sizeY);
     }
 
-    public List<TiffTile> updateSamples(
+    public List<TiffTile> updateSampleBytes(
             final byte[] samples,
             final int fromX,
             final int fromY,
@@ -251,7 +251,7 @@ public final class TiffWriteMap extends TiffIOMap {
                     maxNumberOfSamplesInArray());
         }
         final byte[] samples = TiffSampleType.bytes(samplesArray, numberOfSamples, byteOrder());
-        return updateSamples(samples, fromX, fromY, sizeX, sizeY);
+        return updateSampleBytes(samples, fromX, fromY, sizeX, sizeY);
     }
 
     public List<TiffTile> updateMatrix(Matrix<? extends PArray> matrix, int fromX, int fromY) {
@@ -290,7 +290,7 @@ public final class TiffWriteMap extends TiffIOMap {
                     maxNumberOfSamplesInArray() + ")");
         }
         final byte[] samples = TiffSampleType.bytes(array, byteOrder());
-        return updateSamples(samples, fromX, fromY, sizeX, sizeY);
+        return updateSampleBytes(samples, fromX, fromY, sizeX, sizeY);
     }
 
     /**

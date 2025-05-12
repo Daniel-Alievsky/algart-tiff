@@ -71,29 +71,29 @@ public final class TiffReadMap extends TiffIOMap {
         return owner.isAutoScaleWhenIncreasingBitDepth();
     }
 
-    public byte[] loadSamples() throws IOException {
-        return loadSamples(0, 0, dimX(), dimY());
+    public byte[] loadSampleBytes() throws IOException {
+        return loadSampleBytes(0, 0, dimX(), dimY());
     }
 
-    public byte[] loadSamples(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
-        return loadSamples(fromX, fromY, sizeX, sizeY, owner.getUnusualPrecisions());
+    public byte[] loadSampleBytes(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
+        return loadSampleBytes(fromX, fromY, sizeX, sizeY, owner.getUnusualPrecisions());
     }
 
-    public byte[] loadSamples(
+    public byte[] loadSampleBytes(
             int fromX,
             int fromY,
             int sizeX,
             int sizeY,
             TiffReader.UnusualPrecisions unusualPrecisions) throws IOException {
-        return loadSamples(fromX, fromY, sizeX, sizeY, unusualPrecisions, false);
+        return loadSampleBytes(fromX, fromY, sizeX, sizeY, unusualPrecisions, false);
     }
 
-    public byte[] readSamples() throws IOException {
-        return owner.readSamples(this);
+    public byte[] readSampleBytes() throws IOException {
+        return owner.readSampleBytes(this);
     }
 
-    public byte[] readSamples(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
-        return owner.readSamples(this, fromX, fromY, sizeX, sizeY);
+    public byte[] readSampleBytes(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
+        return owner.readSampleBytes(this, fromX, fromY, sizeX, sizeY);
     }
 
     public Object readJavaArray() throws IOException {

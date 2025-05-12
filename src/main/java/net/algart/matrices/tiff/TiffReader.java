@@ -436,7 +436,7 @@ public class TiffReader extends TiffIO {
      * {@link #readSamples(TiffReadMap, int, int, int, int, UnusualPrecisions, boolean)}.
      *
      * <p>Note that the decoded data in {@link TiffTile} in case of unusual precisions is not unpacked
-     * (but you may request unpacking with {@link TiffTile#getUnpackedSamples(boolean)} method).
+     * (but you may request unpacking with {@link TiffTile#getUnpackedSampleBytes(boolean)} method).
      * On the other hand, all other precisions such as 4-bit or 12-bit (but not 1-channel 1-bit case)
      * are always unpacked to the nearest bit depth divided by 8 when decoding tiles.</p>
      *
@@ -1404,20 +1404,20 @@ public class TiffReader extends TiffIO {
         return lastMap;
     }
 
-    public byte[] readSamples(TiffIOMap map) throws IOException {
+    public byte[] readSampleBytes(TiffIOMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
-        return readSamples(map, 0, 0, map.dimX(), map.dimY());
+        return readSampleBytes(map, 0, 0, map.dimX(), map.dimY());
     }
 
-    public byte[] readSamples(TiffIOMap map, int fromX, int fromY, int sizeX, int sizeY) throws IOException {
-        return readSamples(
+    public byte[] readSampleBytes(TiffIOMap map, int fromX, int fromY, int sizeX, int sizeY) throws IOException {
+        return readSampleBytes(
                 map,
                 fromX, fromY, sizeX, sizeY,
                 unusualPrecisions,
                 false);
     }
 
-    public byte[] readSamples(
+    public byte[] readSampleBytes(
             TiffIOMap map,
             int fromX,
             int fromY,
@@ -1433,7 +1433,7 @@ public class TiffReader extends TiffIO {
         TiffMap.checkRequestedArea(fromX, fromY, sizeX, sizeY);
         // - note: we allow this area to be outside the image
 
-        byte[] samples = map.loadSamples(
+        byte[] samples = map.loadSampleBytes(
                 this::readCachedTile, fromX, fromY, sizeX, sizeY, unusualPrecisions, storeTilesInMap);
         final int sizeInBytes = samples.length;
         final long sizeInPixels = (long) sizeX * (long) sizeY;
@@ -1512,7 +1512,7 @@ public class TiffReader extends TiffIO {
             boolean storeTilesInMap)
             throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
-        final byte[] samples = readSamples(
+        final byte[] samples = readSampleBytes(
                 map, fromX, fromY, sizeX, sizeY,
                 unusualPrecisions.unpackIfEnabled(), storeTilesInMap);
         long t1 = debugTime();
