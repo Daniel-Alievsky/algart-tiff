@@ -39,11 +39,13 @@ import java.util.Locale;
 
 public class TiffOverwriteNaturalNumbersDemo {
     private static final boolean WRITE_IMMEDIATELY = true;
+    private static final boolean ACCURATE_MEMORY_MEASURING = true;
+
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         if (args.length < startArgIndex + 7) {
             System.out.println("Usage:");
-            System.out.printf("    %s target.tiff ifdIndex start-x start-y dx dy number-of-values%n",
+            System.out.printf("    %s target.tiff ifdIndex start-x start-y dx dy number-of-values [increment]%n",
                     TiffOverwriteNaturalNumbersDemo.class.getName());
             System.out.println("Note that target.tiff will be modified!");
             System.out.println("Try running this test with a very large TIFF file, like SVS 50000x50000: " +
@@ -57,6 +59,7 @@ public class TiffOverwriteNaturalNumbersDemo {
         final int dx = Integer.parseInt(args[startArgIndex + 4]);
         final int dy = Integer.parseInt(args[startArgIndex + 5]);
         final int numberOfValues = Integer.parseInt(args[startArgIndex + 6]);
+        final int increment = args.length > startArgIndex + 7 ? Integer.parseInt(args[startArgIndex + 7]) : 1;
 
         System.out.printf("Opening and rewriting TIFF %s...%n", targetFile);
         final int sizeX = 100;
@@ -67,10 +70,11 @@ public class TiffOverwriteNaturalNumbersDemo {
             final TiffWriteMap writeMap = writer.existingMap(ifdIndex);
             System.out.printf("Overwriting %s...%n", writeMap);
             long t1 = System.nanoTime();
-            for (int i = 1; i <= numberOfValues; i++) {
-                overwrite(writeMap, x, y, sizeX, sizeY, i);
+            for (int k = 0, value = 1; k < numberOfValues; k++) {
+                overwrite(writeMap, x, y, sizeX, sizeY, value);
                 x += dx;
                 y += dy;
+                value += increment;
             }
             long t2 = System.nanoTime();
             int m = writeMap.completeWriting();
@@ -94,10 +98,13 @@ public class TiffOverwriteNaturalNumbersDemo {
         final List<TiffTile> tiles = writeMap.updateBufferedImage(bufferedImage, x, y);
         if (WRITE_IMMEDIATELY) {
             int m = writeMap.writeCompletedTiles(tiles);
-            System.out.printf("written %d completed tiles, file length: %d (%s)",
-                    m, writeMap.fileLength(), memory());
+            System.out.printf("written %d completed tiles, file length: %d ",
+                    m, writeMap.fileLength());
         }
-        System.out.println();
+        if (ACCURATE_MEMORY_MEASURING) {
+            System.gc();
+        }
+        System.out.println(memory());
     }
 
     private static void drawNumberOnImage(BufferedImage bufferedImage, int value) {
