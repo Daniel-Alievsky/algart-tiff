@@ -45,7 +45,8 @@ public class TiffOverwriteNaturalNumbersDemo {
         int startArgIndex = 0;
         if (args.length < startArgIndex + 7) {
             System.out.println("Usage:");
-            System.out.printf("    %s target.tiff ifdIndex start-x start-y dx dy number-of-values [increment]%n",
+            System.out.printf("    %s target.tiff ifdIndex " +
+                            "start-x start-y dx dy number-of-values [increment] [number-of-repeats]%n",
                     TiffOverwriteNaturalNumbersDemo.class.getName());
             System.out.println("Note that target.tiff will be modified!");
             System.out.println("Try running this test with a very large TIFF file, like SVS 50000x50000: " +
@@ -54,12 +55,13 @@ public class TiffOverwriteNaturalNumbersDemo {
         }
         final Path targetFile = Paths.get(args[startArgIndex]);
         final int ifdIndex = Integer.parseInt(args[startArgIndex + 1]);
-        int x = Integer.parseInt(args[startArgIndex + 2]);
-        int y = Integer.parseInt(args[startArgIndex + 3]);
+        int x0 = Integer.parseInt(args[startArgIndex + 2]);
+        int y0 = Integer.parseInt(args[startArgIndex + 3]);
         final int dx = Integer.parseInt(args[startArgIndex + 4]);
         final int dy = Integer.parseInt(args[startArgIndex + 5]);
         final int numberOfValues = Integer.parseInt(args[startArgIndex + 6]);
         final int increment = args.length > startArgIndex + 7 ? Integer.parseInt(args[startArgIndex + 7]) : 1;
+        final int numberOfRepeats = args.length > startArgIndex + 8 ? Integer.parseInt(args[startArgIndex + 8]) : 1;
 
         System.out.printf("Opening and rewriting TIFF %s...%n", targetFile);
         final int sizeX = 100;
@@ -70,25 +72,30 @@ public class TiffOverwriteNaturalNumbersDemo {
             final TiffWriteMap writeMap = writer.existingMap(ifdIndex);
             System.out.printf("Overwriting %s...%n", writeMap);
             long t1 = System.nanoTime();
-            long maxLength = 0;
-            for (int k = 0, value = 0; k < numberOfValues; k++) {
-                System.out.printf("Writing %d at %d..%dx%d..%d...  ", value,  x, x + sizeX - 1, y, y + sizeY - 1);
-                int m = overwrite(writeMap, x, y, sizeX, sizeY, value);
-                if (m >= 0) {
-                    System.out.printf("written %d completed tiles ", m);
+            long maxLength = writeMap.fileLength();
+            for (int repeat = 0; repeat < numberOfRepeats; repeat++) {
+                System.out.printf("%nRepetition #%d/%d...%n", repeat + 1, numberOfRepeats);
+                int x = x0;
+                int y = y0;
+                for (int k = 0, value = 0; k < numberOfValues; k++) {
+                    System.out.printf("Writing %d at %d..%dx%d..%d...  ", value, x, x + sizeX - 1, y, y + sizeY - 1);
+                    int m = overwrite(writeMap, x, y, sizeX, sizeY, value);
+                    if (m >= 0) {
+                        System.out.printf("written %d completed tiles ", m);
+                    }
+                    x += dx;
+                    y += dy;
+                    value += increment;
+                    if (ACCURATE_MEMORY_MEASURING) {
+                        System.gc();
+                    }
+                    System.out.print(memory());
+                    if (writeMap.fileLength() > maxLength) {
+                        System.out.printf("  [file length increased from to %d]", writeMap.fileLength());
+                        maxLength = writeMap.fileLength();
+                    }
+                    System.out.println();
                 }
-                x += dx;
-                y += dy;
-                value += increment;
-                if (ACCURATE_MEMORY_MEASURING) {
-                    System.gc();
-                }
-                System.out.print(memory());
-                if (writeMap.fileLength() > maxLength) {
-                    System.out.printf("  [file length increased from to %d]", writeMap.fileLength());
-                    maxLength = writeMap.fileLength();
-                }
-                System.out.println();
             }
             long t2 = System.nanoTime();
             int m = writeMap.completeWriting();
