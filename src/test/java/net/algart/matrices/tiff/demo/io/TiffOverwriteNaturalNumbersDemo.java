@@ -25,7 +25,6 @@
 package net.algart.matrices.tiff.demo.io;
 
 import net.algart.matrices.tiff.TiffCreateMode;
-import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
@@ -36,64 +35,83 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Locale;
 
-public class TiffOverwriteHelloWorldDemo {
+public class TiffOverwriteNaturalNumbersDemo {
+    private static final boolean WRITE_IMMEDIATELY = true;
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
-        if (args.length < startArgIndex + 2) {
+        if (args.length < startArgIndex + 7) {
             System.out.println("Usage:");
-            System.out.printf("    %s target.tiff ifdIndex [x y]%n",
-                    TiffOverwriteHelloWorldDemo.class.getName());
+            System.out.printf("    %s target.tiff ifdIndex start-x start-y dx dy number-of-values%n",
+                    TiffOverwriteNaturalNumbersDemo.class.getName());
             System.out.println("Note that target.tiff will be modified!");
+            System.out.println("Try running this test with a very large TIFF file, like SVS 50000x50000: " +
+                    "you will see that it works very quickly.");
             return;
         }
         final Path targetFile = Paths.get(args[startArgIndex]);
         final int ifdIndex = Integer.parseInt(args[startArgIndex + 1]);
-        final int x = startArgIndex + 2 < args.length ? Integer.parseInt(args[startArgIndex + 2]) : 0;
-        final int y = startArgIndex + 3 < args.length ? Integer.parseInt(args[startArgIndex + 3]) : 0;
+        int x = Integer.parseInt(args[startArgIndex + 2]);
+        int y = Integer.parseInt(args[startArgIndex + 3]);
+        final int dx = Integer.parseInt(args[startArgIndex + 4]);
+        final int dy = Integer.parseInt(args[startArgIndex + 5]);
+        final int numberOfValues = Integer.parseInt(args[startArgIndex + 6]);
 
         System.out.printf("Opening and rewriting TIFF %s...%n", targetFile);
-        final int sizeX = 250;
+        final int sizeX = 100;
         final int sizeY = 50;
-        // - estimated sizes sufficient for "Hello, world!"
+        // - estimated sizes sufficient for integer number like "151"
         try (var writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
             // writer.setAlwaysWriteToFileEnd(true); // - should not affect the results
             final TiffWriteMap writeMap = writer.existingMap(ifdIndex);
-            overwrite(writeMap, x, y, sizeX, sizeY);
-            overwrite(writeMap, x + sizeX / 2, y + sizeY / 2, sizeX, sizeY);
-            overwrite(writeMap, x + sizeX / 2, y - sizeY / 2, sizeX, sizeY);
+            System.out.printf("Overwriting %s...%n", writeMap);
+            long t1 = System.nanoTime();
+            for (int i = 1; i <= numberOfValues; i++) {
+                overwrite(writeMap, x, y, sizeX, sizeY, i);
+                x += dx;
+                y += dy;
+            }
+            long t2 = System.nanoTime();
             int m = writeMap.completeWriting();
+            long t3 = System.nanoTime();
             System.out.printf("Completed %d tile, file length: %d%n", m, writeMap.fileLength());
-            // - should be 0, because all tiles were preloaded
-            if (m != 0) {
+            System.out.printf(Locale.US, "Writing time: %.3f ms + %.3f ms for completion%n",
+                    (t2 - t1) * 1e-6, (t3 - t2) * 1e-6);
+            if (WRITE_IMMEDIATELY && m != 0) {
+                // - should be 0, because all tiles were preloaded
                 throw new AssertionError("Not all tiles were written inside overwrite");
             }
         }
         System.out.println("Done");
     }
 
-    private static void overwrite(TiffWriteMap writeMap, int x, int y, int sizeX, int sizeY)
+    private static void overwrite(TiffWriteMap writeMap, int x, int y, int sizeX, int sizeY, int value)
             throws IOException {
         final BufferedImage bufferedImage = writeMap.readBufferedImage(x, y, sizeX, sizeY, true);
-        // - the last argument "true" leads to preserving all tiles in the map:
-        // this is necessary for boundary tiles that are partially covered by the image
-        System.out.printf("%nOverwriting %d..%dx%d..%d in %s...%n", x, x + sizeX - 1, y, y + sizeY - 1, writeMap);
-        drawTextOnImage(bufferedImage, "Hello, world!");
-        // MatrixIO.writeBufferedImage(Path.of("/tmp/test.bmp"), bufferedImage);
+        System.out.printf("Writing %d at %d..%dx%d..%d...  ", value,    x, x + sizeX - 1, y, y + sizeY - 1);
+        drawNumberOnImage(bufferedImage, value);
         final List<TiffTile> tiles = writeMap.updateBufferedImage(bufferedImage, x, y);
-        int m = writeMap.writeCompletedTiles(tiles);
-//        System.out.printf("Completed tiles:%n%s%n",
-//                writeMap.tiles().stream().filter(t -> !t.isEmpty() && t.isCompleted()).map(TiffTile::index)
-//                        .collect(Collectors.toList()));
-        System.out.printf("Written %d completed tiles, file length: %d%n", m, writeMap.fileLength());
+        if (WRITE_IMMEDIATELY) {
+            int m = writeMap.writeCompletedTiles(tiles);
+            System.out.printf("written %d completed tiles, file length: %d (%s)",
+                    m, writeMap.fileLength(), memory());
+        }
+        System.out.println();
     }
 
-    private static void drawTextOnImage(BufferedImage bufferedImage, String text) {
+    private static void drawNumberOnImage(BufferedImage bufferedImage, int value) {
         final Graphics graphics = bufferedImage.getGraphics();
-        final Font font = new Font("SansSerif", Font.BOLD, 40);
+        final Font font = new Font("SansSerif", Font.BOLD, 20);
         graphics.setFont(font);
-        graphics.setColor(new Color(0x00FF00));
-        graphics.drawString(text, 0, graphics.getFontMetrics().getAscent());
+        graphics.setColor(new Color(0xFF0000 >> (8 * (value % 3))));
+        graphics.drawString(String.valueOf(value), 0, graphics.getFontMetrics().getAscent());
+    }
+
+    private static String memory() {
+        Runtime rt = Runtime.getRuntime();
+        return String.format("%.2f/%.2f MB",
+                (rt.totalMemory() - rt.freeMemory()) / 1048576.0, rt.totalMemory() / 1048576.0);
     }
 }
 

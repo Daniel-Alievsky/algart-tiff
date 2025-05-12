@@ -61,6 +61,7 @@ public class TiffOverwritePictureDemo {
             System.out.println("Usage:");
             System.out.printf("    %s target.tiff image-to-draw.jpg/png/bmp ifdIndex [x y]%n",
                     TiffOverwritePictureDemo.class.getName());
+            System.out.println("Note that target.tiff will be modified!");
             return;
         }
         final Path targetFile = Paths.get(args[startArgIndex]);

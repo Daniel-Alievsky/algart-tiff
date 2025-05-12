@@ -289,7 +289,9 @@ public final class TiffCopier {
         }
         final TiffWriteMap writeMap = writer.newMap(writeIFD, false, true);
         // - Unlike copying the entire image, here we MUST call correctFormatForEncoding() even for direct copying:
-        // the direct mode will be disabled for some fromX/fromY, and this behavior should not depend on it
+        // the direct mode will be disabled for some fromX/fromY, and this behavior should not depend on it.
+        // correctFormatForEncoding(), in particular, corrects PhotometricInterpretation, and this may be necessary
+        // if we need to encode tiles.
         checkImageCompatibility(writeMap, readMap);
         writer.writeForward(writeMap);
         progressInformation.tileCount = writeMap.numberOfGridTiles();
