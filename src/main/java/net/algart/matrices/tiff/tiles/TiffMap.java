@@ -744,10 +744,13 @@ public sealed class TiffMap permits TiffIOMap {
 
     public static long checkRequestedArea(long fromX, long fromY, long sizeX, long sizeY) {
         final long result = TiffIFD.multiplySizes(sizeX, sizeY);
+        assert sizeX >= 0 && sizeY >= 0 : "multiplySizes did not check sizes";
+        assert sizeX <= Integer.MAX_VALUE && sizeY <= Integer.MAX_VALUE : "multiplySizes did not check sizes";
         if (fromX != (int) fromX || fromY != (int) fromY) {
             throw new IllegalArgumentException("Too large absolute values of fromX = " + fromX +
                     " or fromY = " + fromY + " (out of -2^31..2^31-1 ranges)");
         }
+        // - Note: now all 4 numbers are in -2^31..2^31-1 range, but they are long
         if (sizeX >= Integer.MAX_VALUE - fromX || sizeY >= Integer.MAX_VALUE - fromY) {
             // - Note: ">=" instead of ">"! This allows to use "toX = fromX + sizeX" without overflow
             throw new IllegalArgumentException("Requested area [" + fromX + ".." + (fromX + sizeX - 1) +

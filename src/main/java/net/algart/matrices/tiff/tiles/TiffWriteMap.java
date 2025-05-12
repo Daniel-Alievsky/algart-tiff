@@ -104,6 +104,10 @@ public final class TiffWriteMap extends TiffIOMap {
                 toX = Math.min(toX, dimX());
                 toY = Math.min(toY, dimY());
                 // Note: we MUST NOT change sizeX/sizeY, they specify the structure of the samples array
+                if (toX <= fromX || toY <= fromY) {
+                    // Note: below we need a guarantee that fromX < toX, fromY < toY
+                    return updatedTiles;
+                }
             }
         }
 

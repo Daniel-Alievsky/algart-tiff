@@ -72,14 +72,23 @@ public class TiffOverwriteNaturalNumbersDemo {
             long t1 = System.nanoTime();
             long maxLength = 0;
             for (int k = 0, value = 0; k < numberOfValues; k++) {
-                overwrite(writeMap, x, y, sizeX, sizeY, value);
+                System.out.printf("Writing %d at %d..%dx%d..%d...  ", value,  x, x + sizeX - 1, y, y + sizeY - 1);
+                int m = overwrite(writeMap, x, y, sizeX, sizeY, value);
+                if (m >= 0) {
+                    System.out.printf("written %d completed tiles ", m);
+                }
                 x += dx;
                 y += dy;
                 value += increment;
+                if (ACCURATE_MEMORY_MEASURING) {
+                    System.gc();
+                }
+                System.out.print(memory());
                 if (writeMap.fileLength() > maxLength) {
-                    System.out.printf("  File length increased from to %d%n", writeMap.fileLength());
+                    System.out.printf("  [file length increased from to %d]", writeMap.fileLength());
                     maxLength = writeMap.fileLength();
                 }
+                System.out.println();
             }
             long t2 = System.nanoTime();
             int m = writeMap.completeWriting();
@@ -95,20 +104,16 @@ public class TiffOverwriteNaturalNumbersDemo {
         System.out.println("Done");
     }
 
-    private static void overwrite(TiffWriteMap writeMap, int x, int y, int sizeX, int sizeY, int value)
+    private static int overwrite(TiffWriteMap writeMap, int x, int y, int sizeX, int sizeY, int value)
             throws IOException {
         final BufferedImage bufferedImage = writeMap.readBufferedImage(x, y, sizeX, sizeY, true);
-        System.out.printf("Writing %d at %d..%dx%d..%d...  ", value,    x, x + sizeX - 1, y, y + sizeY - 1);
         drawNumberOnImage(bufferedImage, value);
         final List<TiffTile> tiles = writeMap.updateBufferedImage(bufferedImage, x, y);
         if (WRITE_IMMEDIATELY) {
-            int m = writeMap.writeCompletedTiles(tiles);
-            System.out.printf("written %d completed tiles ", m);
+            return writeMap.writeCompletedTiles(tiles);
+        } else {
+            return -1;
         }
-        if (ACCURATE_MEMORY_MEASURING) {
-            System.gc();
-        }
-        System.out.println(memory());
     }
 
     private static void drawNumberOnImage(BufferedImage bufferedImage, int value) {

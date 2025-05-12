@@ -2107,7 +2107,7 @@ public class TiffIFD {
      * <code>sizeX&nbsp;*&nbsp;sizeY&nbsp;*&nbsp;{@link
      * #MAX_NUMBER_OF_CHANNELS}&nbsp;*&nbsp;{@link #MAX_BITS_PER_SAMPLE}</code>
      * value must be &le;Long.MAX_VALUE
-     * (so we have a guarantee than we can calculate total number of pixel bits without 64-bit overflow).
+     * (so we have a guarantee that we can calculate the total number of pixel bits without 64-bit overflow).
      *
      * @param sizeX X-size of some region.
      * @param sizeY Y-size of some region.
