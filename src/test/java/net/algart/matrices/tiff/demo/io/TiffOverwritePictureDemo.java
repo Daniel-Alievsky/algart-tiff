@@ -37,9 +37,7 @@ import net.algart.matrices.tiff.tiles.TiffWriteMap;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class TiffOverwritePictureDemo {
     private static List<? extends Matrix<? extends PArray>> tryToAdjust(
@@ -71,26 +69,38 @@ public class TiffOverwritePictureDemo {
         final int y = startArgIndex + 4 < args.length ? Integer.parseInt(args[startArgIndex + 4]) : 0;
 
         System.out.printf("Reading %s...%n", imageToDrawFile);
-        final List<? extends Matrix<? extends PArray>> imageToDraw = MatrixIO.readImage(imageToDrawFile);
-        final int imageToDrawSizeX = imageToDraw.get(0).dimX32();
-        final int imageToDrawSizeY = imageToDraw.get(0).dimY32();
-
+        List<? extends Matrix<? extends PArray>> imageToDraw = MatrixIO.readImage(imageToDrawFile);
         System.out.printf("Opening and rewriting TIFF %s...%n", targetFile);
         try (var writer = new TiffWriter(targetFile)) {
             writer.openExisting();
             // - possible solution instead of using TiffCreateMode.OPEN_EXISTING
-            final TiffWriteMap map = writer.preloadExistingTiles(
-                    ifdIndex, x, y, imageToDrawSizeX, imageToDrawSizeY, false);
-            System.out.printf("Overwriting %s...%n", map);
-            List<TiffTile> tiles = map.updateChannels(tryToAdjust(imageToDraw, map), x, y);
-            int n = map.writeCompletedTiles(tiles);
-            System.out.printf("Written %d completed tiles%n", n);
-            n = map.completeWriting();
+            final TiffWriteMap writeMap = writer.existingMap(ifdIndex);
+            imageToDraw = tryToAdjust(imageToDraw, writeMap);
+            overwrite(writeMap, imageToDraw, x, y);
+            overwrite(writeMap, imageToDraw, x + 100, y + 100);
+            int n = writeMap.completeWriting();
             if (n != 0) {
                 throw new AssertionError("Not all tiles were written in writeCompletedTiles");
             }
         }
         System.out.println("Done");
     }
+
+    private static void overwrite(
+            TiffWriteMap writeMap,
+            final List<? extends Matrix<? extends PArray>> imageToDraw,
+            int x,
+            int y)
+            throws IOException {
+        final int sizeX = imageToDraw.get(0).dimX32();
+        final int sizeY = imageToDraw.get(0).dimY32();
+        System.out.printf("%nOverwriting %d..%dx%d..%d in %s...%n", x, x + sizeX - 1, y, y + sizeY - 1, writeMap);
+        writeMap.preloadAndStore(x, y, sizeX, sizeY, false);
+        List<TiffTile> tiles = writeMap.updateChannels(imageToDraw, x, y);
+        int n = writeMap.writeCompletedTiles(tiles);
+        System.out.printf("Written %d completed tiles%n", n);
+    }
+
+
 }
 

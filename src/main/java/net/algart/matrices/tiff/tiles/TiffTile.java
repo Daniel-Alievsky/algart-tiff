@@ -786,12 +786,15 @@ public final class TiffTile {
      * {@link #setDecodedData(byte[], boolean)} and {@link #setEncodedData(byte[], boolean)}
      * with additional {@code boolean} argument "unfreeze".
      * Also, the <i>frozen</i> status is copied from the source tile by
-     * {@link #copyData(TiffTile, boolean)} and {@link #copyUnpackedSamples(TiffTile, boolean)} methods.
-     * There are no other ways to clear the <i>frozen</i> status in this object.</p>
+     * {@link #copyData(TiffTile, boolean)} and {@link #copyUnpackedSamples(TiffTile, boolean)} methods.</p>
      */
     public void freeAndFreeze() {
         freeData();
         this.frozen = true;
+    }
+
+    public void unfreeze() {
+        this.frozen = false;
     }
 
     public long getStoredInFileDataOffset() {

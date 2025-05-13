@@ -26,6 +26,7 @@ package net.algart.matrices.tiff.tiles;
 
 import net.algart.arrays.*;
 import net.algart.io.awt.ImageToMatrix;
+import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffSampleType;
@@ -113,6 +114,68 @@ public final class TiffWriteMap extends TiffIOMap {
             throws IOException {
         return readBufferedImage(fromX, fromY, sizeX, sizeY, true, cachedTileSupplier());
     }
+
+    public void preloadAndStore(
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY,
+            boolean loadTilesFullyInsideRectangle) throws IOException {
+        preloadAndStore(fromX, fromY, sizeX, sizeY, loadTilesFullyInsideRectangle, cachedTileSupplier());
+    }
+
+    /**
+     * Preloads all tiles, containing in this map and intersecting the specified rectangle
+     * <code>fromX&le;x&lt;fromX+sizeX</code>, <code>fromY&le;y&lt;fromY+sizeY</code>.
+     *
+     * <p>This method helps to overwrite some portion of the existing TIFF:
+     * data written to TIFF using the returned map will be placed over the existing image.</p>
+     *
+     * <p>You can set the argument <code>loadTilesFullyInsideRectangle</code> to <code>false</code>
+     * if you are going to fill the entire specified rectangle by some new data: in this case
+     * there is no necessity to preload tiles that will be completely rewritten.
+     * Otherwise, please set <code>loadTilesFullyInsideRectangle=true</code>.</p>
+     *
+     * <p>Note: zero sizes <code>sizeX</code> or <code>sizeY</code> are allowed,
+     * in this case the method does not load any tiles.</p>
+     *
+     * @param fromX                         starting x-coordinate for preloading.
+     * @param fromY                         starting y-coordinate for preloading.
+     * @param sizeX                         width of the preloaded rectangle.
+     * @param sizeY                         height of the preloaded rectangle.
+     * @param loadTilesFullyInsideRectangle whether this method should load tiles that are completely
+     *                                      inside the specified rectangle.
+     * @param tileSupplier                  a supplier of tiles that will be used for loading.
+     * @throws NullPointerException if the specified supplier is <code>null</code>.
+     * @throws IOException          in the case of any problems with the TIFF file.
+     */
+    public void preloadAndStore(
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY,
+            boolean loadTilesFullyInsideRectangle,
+            TileSupplier tileSupplier)
+            throws IOException {
+        checkRequestedArea(fromX, fromY, sizeX, sizeY);
+        if (sizeX > 0 && sizeY > 0) {
+            // a zero-size rectangle does not "intersect" anything
+            final IRectangularArea areaToWrite = IRectangularArea.valueOf(
+                    fromX, fromY, fromX + sizeX - 1, fromY + sizeY - 1);
+            for (TiffTile tile : tiles()) {
+                if (tile.actualRectangle().intersects(areaToWrite)) {
+                    if (loadTilesFullyInsideRectangle || !areaToWrite.contains(tile.actualRectangle())) {
+                        final TiffTile existing = tileSupplier.getTile(tile.index());
+                        tile.copyData(existing, false);
+                    } else {
+                        tile.unfreeze();
+                        // - we declare that this tile should be rewritten by further overwriting data
+                    }
+                }
+            }
+        }
+    }
+
 
     public List<TiffTile> updateSampleBytes(byte[] samples, long fromX, long fromY, long sizeX, long sizeY) {
         Objects.requireNonNull(samples, "Null samples");
