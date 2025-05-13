@@ -38,13 +38,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
-public class TiffOverwriteHelloWorldTest {
+public class TiffOverwriteHelloWorldAlternativeTest {
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
             System.out.printf("    %s target.tiff ifdIndex [x y]%n",
-                    TiffOverwriteHelloWorldTest.class.getName());
+                    TiffOverwriteHelloWorldAlternativeTest.class.getName());
             System.out.println("Try running this test with a very large TIFF file, like SVS 50000x50000: " +
                     "you will see that it works very quickly!");
             return;
@@ -64,10 +64,18 @@ public class TiffOverwriteHelloWorldTest {
             TiffReadMap readMap = writer.reader().newMap(ifd, false);
             overwriteUsingReadMap(writeMap, readMap, x, y, sizeX, sizeY);
 
-            ifd = writer.existingIFD(ifdIndex);
+            writeMap.completeWriting();
+            // 1) necessary to save new tile positions in the IFD
+
+            // ifd = writer.existingIFD(ifdIndex);
+            // 2) re-read ifd (not necessary)
+
             readMap = writer.reader().newMap(ifd, false);
-            // - Note: without these calls we will use the previous reader and previous IFD,
+            // 3) re-initialize writeMap: necessary to switch to new reader() without any cached information
+
+            // - Note: without calls 1 and 3 we will use the previous reader and previous IFD,
             // so we can load tiles from the previous positions!
+
             overwriteUsingReadMap(writeMap, readMap, x + sizeX / 2, y + sizeY / 2, sizeX, sizeY);
             int m = writeMap.completeWriting();
             System.out.printf("Completed %d tile, file length: %d%n", m, writeMap.fileLength());
@@ -79,13 +87,15 @@ public class TiffOverwriteHelloWorldTest {
         System.out.println("Done");
     }
 
+    // - Note: this way is not necessary in new versions of TiffWriteMap
+    // allowing to read data without TiffReadMap: see TiffOverwriteHelloWorldDemo
     private static void overwriteUsingReadMap(
             TiffWriteMap writeMap,
             TiffReadMap readMap,
             int x, int y, int sizeX, int sizeY)
             throws IOException {
         final BufferedImage bufferedImage = readMap.readBufferedImage(
-                x, y, sizeX, sizeY, true, readMap.cachedTileSupplier());
+                x, y, sizeX, sizeY, true, readMap.simpleTileSupplier());
         // - the last argument "true" leads to preserving all tiles in the map:
         // this is necessary for boundary tiles that are partially covered by the image
         writeMap.copyAllData(readMap, false);
