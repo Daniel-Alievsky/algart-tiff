@@ -106,6 +106,9 @@ public class TiffTileIO {
         final long fileOffset = tile.getStoredInFileDataOffset();
         if (SMART_WRITING_TO_FILE_END && fileOffset + tile.getStoredInFileDataLength() == outputStream.length()) {
             writeAt(tile, outputStream, fileOffset, true);
+            // - Minus: this operation can REDUCE it, but reset is necessary:
+            // the next data can be written after the file end.
+            // Plus: this operation allows reducing the file itself and avoiding lost space.
             outputStream.setLength(outputStream.offset());
 //            System.out.printf("!!! Write to end: %s %d + %d %d: %d%n", tile.index(), fileOffset,
 //                    tile.getEncodedDataLength(), tile.getStoredInFileDataLength(), outputStream.length());
