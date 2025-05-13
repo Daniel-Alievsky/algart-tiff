@@ -59,7 +59,7 @@ public class TiffUnusualPrecisions {
      * </ol>
      * <p>However, in the 1st case, this method assumes that N=24: if N=17..23 (not divisible by 8),
      * the bits should be unpacked to whole bytes (3 bytes/sample, N=24) while reading/decoding TIFF tiles,
-     * i.e. before using this method.
+     * i.e., before using this method.
      * See also {@link TiffMap#bitsPerUnpackedSample()}.</p>
      *
      * @param samples            the source pixel samples.

@@ -38,19 +38,19 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TiffIFD {
     /**
-     * An IFD with number of entries, greater than this limit, is not allowed even in BigTIFF:
+     * An IFD with the number of entries, greater than this limit, is not allowed even in BigTIFF:
      * it is mostly probable that it is a corrupted file.
      * Note that in regular files (non-BigTIFF) the limit is 65536 (2^16).
      */
     public static final int MAX_NUMBER_OF_IFD_ENTRIES = 10_000_000;
 
     /**
-     * The number of bytes in TIFF file header.
+     * The number of bytes in the TIFF file header.
      */
     public static final int TIFF_FILE_HEADER_LENGTH = 8;
 
     /**
-     * The number of bytes in BigTIFF file header.
+     * The number of bytes in the BigTIFF file header.
      */
     public static final int BIG_TIFF_FILE_HEADER_LENGTH = 16;
 
@@ -65,7 +65,7 @@ public class TiffIFD {
     public static final int BIG_TIFF_BYTES_PER_ENTRY = 20;
 
     /**
-     * Maximal supported number of channels.
+     * The maximally supported number of channels.
      * For comparison, the popular OpenCV library has a limit of 512 channels.
      *
      * <p>This limit helps to avoid "crazy" or corrupted TIFF and also help to avoid arithmetic overflow.
@@ -414,7 +414,7 @@ public class TiffIFD {
     }
 
     /**
-     * Returns the length of IFD table in the TIFF file, including the
+     * Returns the length of the IFD table in the TIFF file, including the
      * link (offset) to the next IFD that follows it.
      * For normal ({@link #isMainIFD() main}) IFD, this is
      * 6+12*n for non-BigTIFF or 16+20*n bytes for BigTIFF, where n={@link #numberOfEntries()}.
@@ -516,7 +516,7 @@ public class TiffIFD {
         long sum = 0;
         if (!isBigTiff() && offsets[0] == BIG_TIFF_FILE_HEADER_LENGTH) {
             sum = BIG_TIFF_FILE_HEADER_LENGTH - TIFF_FILE_HEADER_LENGTH;
-            // - some SVS files start from the offset 16 even for non-BifTIFF files;
+            // - some SVS files start from offset 16 even for non-BifTIFF files;
             // we will "include" extra 8 bytes in the first image:
             // this is not correct, but helps to avoid a message about "lost" bytes
         }
@@ -872,7 +872,7 @@ public class TiffIFD {
         long[] counts = getLongArray(tag);
         if (tiled && counts == null) {
             counts = getLongArray(Tags.STRIP_BYTE_COUNTS);
-            // - rare situation, when tile byte counts are actually stored in StripByteCounts
+            // - rare situation when tile byte counts are actually stored in StripByteCounts
         }
         if (counts == null) {
             throw new TiffException("Invalid IFD: no required StripByteCounts/TileByteCounts tag");
@@ -2146,7 +2146,7 @@ public class TiffIFD {
         final long n = multiplySizes(sizeX, sizeY);
         checkNumberOfChannels(numberOfChannels);
         checkBitsPerSample(bitsPerSample);
-        // - so, numberOfChannels * bitsPerSample is not-too-large value
+        // - so, numberOfChannels * bitsPerSample is a not-too-large value
         final long size = n * numberOfChannels * bitsPerSample;
         if (size > MAX_NUMBER_OF_BITS_IN_BYTE_ARRAY) {
             throw new TooLargeTiffImageException("Too large requested image " + sizeX + "x" + sizeY +

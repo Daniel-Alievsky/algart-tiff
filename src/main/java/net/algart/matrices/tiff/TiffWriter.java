@@ -766,7 +766,7 @@ public class TiffWriter extends TiffIO {
     /**
      * Clears the reference to the TIFF reader stored inside this object and returned by {@link #reader()} method.
      * Ensures that the next call of {@link #reader()} will create a new reader.
-     * Usually you don't need to call this method, because it is called automatically.
+     * Usually you don't need to call this method because it is called automatically.
      */
     public void resetReader() {
         synchronized (fileLock) {

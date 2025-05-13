@@ -819,7 +819,7 @@ public class TiffReader extends TiffIO {
     }
 
     /**
-     * Returns all IFDs in the file in unmodifiable list.
+     * Returns all IFDs in the file in an unmodifiable list.
      * On the first call, this method reads all IFD from the file,
      * then the result is cached and quickly returned by all further calls.
      * (But caching can be disabled using {@link #setCachingIFDs(boolean)} method).
@@ -1289,8 +1289,9 @@ public class TiffReader extends TiffIO {
      * For CMYK or WhiteIsZero it means inversion of the pixel samples: v is transformed to MAX&minus;v,
      * where MAX is the maximal possible value (255 for 8-bit).</p>
      *
-     * <p>Third correction: conversion of YCbCr color space to usual RGB. It is a rare situation, when
-     * the image is stored as YCbCr, however, not in JPEG format, but uncompressed or, for example, as LZW.
+     * <p>Third correction: conversion of YCbCr color space to usual RGB.
+     * It is a rare situation when the image is stored as YCbCr,
+     * however, not in JPEG format, but uncompressed or, for example, as LZW.
      * This method performs the necessary conversion to RGB (but only if the image is exactly 8-bit).</p>
      *
      * <p>Note: this method never increases the number of <i>bytes</i>,
@@ -1339,7 +1340,7 @@ public class TiffReader extends TiffIO {
         /*
         // The following code is equivalent to the analogous code from SCIFIO 0.46.0 and earlier version,
         // which performed correction of channels with different precision in a rare case PLANAR_CONFIG_SEPARATE.
-        // But it is deprecated: we do not support different number of BYTES in different samples,
+        // But it is deprecated: we do not support different numbers of BYTES in different samples,
         // and it is checked inside getBytesPerSampleBasedOnBits() method.
 
         byte[] samples = tile.getDecodedData();

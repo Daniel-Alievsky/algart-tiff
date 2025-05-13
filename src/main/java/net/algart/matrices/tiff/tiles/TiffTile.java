@@ -264,7 +264,7 @@ public final class TiffTile {
 
     public boolean equalSizes(TiffTile other) {
         return other != null && sizeX == other.sizeX && sizeY == other.sizeY;
-        // - note: there is no sense to check samplesPerPixel, it is not a "size", but property of pixel format
+        // - note: there is no sense to check samplesPerPixel, it is not a "size", but a property of pixel format
     }
 
     /**
@@ -569,7 +569,7 @@ public final class TiffTile {
      * <ul>
      *     <li>16-bit floating points values,</li>
      *     <li>24-bit floating points values,</li>
-     *     <li>24-bit integer values (for a case of K-bit samples, 16&le;K&lt;24).</li>
+     *     <li>24-bit integer values (for the case of K-bit samples, 16&le;K&lt;24).</li>
      * </ul>
      *
      * @return unpacked data.
@@ -891,7 +891,7 @@ public final class TiffTile {
      * <p><b>Warning:</b> the estimated number of pixels, returned by this method, may <b>differ</b> from the tile
      * size {@link #getSizeX()} * {@link #getSizeY()}! Usually it occurs after decoding encoded tile, when the
      * decoding method returns only a sequence of pixels and does not return information about the size.
-     * In this situation, the external code sets the tile sizes from a-priory information, but the decoded tile
+     * In this situation, the external code sets the tile sizes from the a-priory information, but the decoded tile
      * may be actually less; for example, it takes place for the last strip in non-tiled TIFF format.
      * You can check, does the actual number of stored pixels equal to tile size, via
      * {@link #checkStoredNumberOfPixels()} method.
@@ -900,7 +900,7 @@ public final class TiffTile {
      */
     @SuppressWarnings("JavadocDeclaration")
     public int getEstimatedNumberOfPixels() {
-        // - This method is private, because it does not return exact number of pixels for 1-bit channels
+        // - This method is private because it does not return the exact number of pixels for 1-bit channels
         // and should be used carefully.
         // Maybe in future we will support better field "numberOfPixels", always correct also for 1-bit channels,
         // then this method will become public.

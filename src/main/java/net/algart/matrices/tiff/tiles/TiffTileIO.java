@@ -31,7 +31,7 @@ import java.util.Objects;
 
 public class TiffTileIO {
     private static final boolean SMART_WRITING_TO_FILE_END = true;
-    // - Should be true. Allows reducing file size if the tile is located at the file end and
+    // - Should be true. Allows reducing file size if the tile is located at the file end, and
     // it is smaller than the previously written one.
 
     private TiffTileIO() {

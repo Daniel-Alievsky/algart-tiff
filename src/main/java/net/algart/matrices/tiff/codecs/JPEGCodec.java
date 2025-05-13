@@ -88,8 +88,8 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
                 if (quality == null) {
                     setCompressionQuality(1.0);
                 } else if (quality > 1.0) {
-                    // - for JPEG, maximal possible quality is 1.0
-                    // (for comparison, maximal quality in JPEG-2000 is Double.MAX_VALUE)
+                    // - for JPEG, the maximal possible quality is 1.0
+                    // (for comparison, the maximal quality in JPEG-2000 is Double.MAX_VALUE)
                     setCompressionQuality(1.0);
                 }
             }

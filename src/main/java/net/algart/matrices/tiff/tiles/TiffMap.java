@@ -36,7 +36,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
- * TIFF map: an object storing detailed information about TIFF image
+ * TIFF map: an object storing detailed information about a TIFF image
  * and allowing to add and manipulate its tiles (strips).
  */
 public sealed class TiffMap permits TiffIOMap {
@@ -318,7 +318,7 @@ public sealed class TiffMap permits TiffIOMap {
      * <ul>
      *     <li>every channel is encoded as N-bit integer value, where 17&le;N&le;24, and, so, requires 3 bytes:
      *     this method returns 32, {@link #alignedBitsPerSample()} returns 24
-     *     (image, stored in memory, must have 2<sup>k</sup> bytes (k=1..3) per every sample, to allow to represent
+     *     (image, stored in memory, must have 2<sup>k</sup> bytes (k=1..3) per every sample, to allow representing
      *     it by one of Java types <code>byte</code>, <code>short</code>, <code>int</code>,
      *     <code>float</code>, <code>double</code>);
      *     </li>
@@ -440,7 +440,7 @@ public sealed class TiffMap permits TiffIOMap {
      * <p>Note: if both new x/y-sizes are not greater than existing ones, this method does nothing
      * and can be called even if not {@link #isResizable()}.</p>
      *
-     * <p>Also note: negative arguments are allowed, but have no effect (as if they would be zero).</p>
+     * <p>Also note: negative arguments are allowed but have no effect (as if they would be zero).</p>
      *
      * @param newMinimalDimX new minimal value for {@link #dimX() sizeX}.
      * @param newMinimalDimY new minimal value for {@link #dimY() sizeY}.
@@ -544,7 +544,7 @@ public sealed class TiffMap permits TiffIOMap {
         Objects.requireNonNull(tileIndex, "Null tile index");
         if (tileIndex.ifd() != this.ifd) {
             // - Checking references, not content!
-            // Checking IFD, not reference to map ("this"): there is no sense to disable creating new map
+            // Checking IFD, not reference to map ("this"): there is no sense to disable creating a new map
             // and copying the tiles from the given map there.
             throw new IllegalArgumentException("Illegal tile index: tile map cannot process tiles from different IFD");
         }
@@ -605,7 +605,7 @@ public sealed class TiffMap permits TiffIOMap {
     /**
      * Builds the tile map by calling {@link #getOrNew(int, int, int)} for the regular grid of tiles.
      * If the map is a {@link net.algart.matrices.tiff.tiles.TiffMap.TilingMode#STRIPS stripped TIFF image},
-     * each created tile (i.e. a strip) is automatically cropped by the grid dimensions using
+     * each created tile (i.e., a strip) is automatically cropped by the grid dimensions using
      * {@link TiffTile#cropStripToMap()}.
      */
     public void buildTileGrid() {
@@ -862,7 +862,7 @@ public sealed class TiffMap permits TiffIOMap {
     private static int checkSizes(int numberOfChannels, int bytesPerSample, long numberOfPixels) {
         TiffIFD.checkNumberOfChannels(numberOfChannels);
         TiffIFD.checkBitsPerSample(8L * (long) bytesPerSample);
-        // - so, numberOfChannels * bytesPerSample is not-too-large value
+        // - so, numberOfChannels * bytesPerSample is a not-too-large value
         if (numberOfPixels < 0) {
             throw new IllegalArgumentException("Negative numberOfPixels = " + numberOfPixels);
         }

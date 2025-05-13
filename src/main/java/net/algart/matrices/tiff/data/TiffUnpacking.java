@@ -60,12 +60,12 @@ public class TiffUnpacking {
             return false;
         }
         if (!OPTIMIZE_SEPARATING_WHOLE_BYTES && tile.isInterleaved()) {
-            // - if tile is not interleaved, we MUST use this method:
+            // - if a tile is not interleaved, we MUST use this method:
             // separateBitsAndInvertValues does not "understand" this situation
             return false;
         }
 
-        // We have equal number N of bits/sample for all samples,
+        // We have an equal number N of bits/sample for all samples,
         // N % 8 == 0, N / 8 is 1, 2, 3, 4 or 8;
         // for all other cases isSimpleRearrangingBytesEnough returns false.
         // The only unusual case here is 3 bytes/sample: 24-bit float or 24-bit integer;
@@ -85,9 +85,9 @@ public class TiffUnpacking {
                     + "probably TIFF file is corrupted or format is not properly supported");
         }
         tile.adjustNumberOfPixels(true);
-        // - Note: decodedDataLength is unpredictable, because it is the result of decompression by a codec;
-        // in particular, for JPEG compression last strip in non-tiled TIFF may be shorter or even larger
-        // than a full tile.
+        // - Note: decodedDataLength is unpredictable because it is the result of decompression by a codec;
+        // in particular, for JPEG compression,
+        // the last strip in non-tiled TIFF may be shorter or even larger than a full tile.
         // If cropping boundary tiles is enabled, the actual height of the last strip is reduced
         // (see readEncodedTile method), so larger data is possible (it is a minor format separately).
         // If cropping boundary tiles is disabled, larger data MAY be considered as a format error,
@@ -202,7 +202,7 @@ public class TiffUnpacking {
                     final int pixel = i % block;
                     final long r = (long) subY * (t / numberOfXBlocks) + (pixel / subX);
                     final long c = (long) subX * (t % numberOfXBlocks) + (pixel % subX);
-                    // - these formulas were used in original SCIFIO code
+                    // - these formulas were used in the original SCIFIO code
                     assert t / numberOfXBlocks == yBlockIndex;
                     assert t % numberOfXBlocks == blockIndex - lineAligned;
                     assert c == resultXIndex;
@@ -546,7 +546,7 @@ public class TiffUnpacking {
                     final int bits = bitsPerSample[s];
                     assert bits <= 32 : "the check \"bytesPerSample > 4\" was not performed!";
                     final long maxValue = (1L << bits) - 1;
-                    // - we need long type, because maximal number of bits here is 32
+                    // - we need a long type because the maximal number of bits here is 32
                     // (but if not ALL bits/sample are 32 - such cases do not require this method)
                     final int outputIndex = (s * numberOfPixels + i) * bytesPerSample;
 

@@ -78,7 +78,7 @@ public class TiffPrediction {
         final int xSize = tile.getSizeX();
         final int xSizeInBytes = tile.getLineSizeInBytesInsideTIFF();
         // - getRowSizeInBytesInsideTIFF, because this method is called at the last stage
-        // after repacking bits according TIFF format
+        // after repacking bits according to TIFF format
         final int ySize = data.length / xSizeInBytes;
         // - not tile.getSizeY(): we want to process also the ending tiles in the end image strip,
         // when they are written incorrectly and contain more or less then tile.getSizeY() lines

@@ -226,7 +226,7 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                         if (huffmanTables != null) {
                             huffmanOptions.table = huffmanTables[dcTable[i]];
                         }
-                        int v = 0;
+                        int v;
 
                         if (huffmanOptions.table != null) {
                             v = huffman.getSample(bb, huffmanOptions);
