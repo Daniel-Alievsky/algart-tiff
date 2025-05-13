@@ -60,7 +60,7 @@ import java.util.stream.Collectors;
  * in particular, it concerns the {@link TiffIFD} arguments and Java-arrays with samples.
  * The same is true for the result of {@link #stream()} method.</p>
  */
-public class TiffWriter extends TiffIO {
+public non-sealed class TiffWriter extends TiffIO {
     /**
      * If the file grows to about this limit and {@link #setBigTiff(boolean) big-TIFF} mode is not set,
      * attempt to write new IFD at the file end by methods of this class throw IO exception.
