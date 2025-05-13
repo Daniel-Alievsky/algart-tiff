@@ -197,7 +197,6 @@ public enum TagCompression {
      * Should return <code>true</code> if the format of compressed data can depend on the byte order in the entire
      * TIFF file ({@link TiffCodec.Options#isLittleEndian()}) even in the case when we have 8 or fewer bits per sample,
      * such as in typical 8-bit JPEG RGB or YCbCr images.
-     *
      * This is highly unusual and not common in standard TIFF usage,
      * but theoretically, a codec might use this metadata when encoding control or auxiliary information.
      *

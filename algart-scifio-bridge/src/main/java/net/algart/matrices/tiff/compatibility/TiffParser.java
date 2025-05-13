@@ -136,8 +136,9 @@ public class TiffParser extends TiffReader {
     public TiffParser(final Context context, final DataHandle<Location> in) {
         super(in, (Consumer<Exception>) null);
         Objects.requireNonNull(context, "Null context");
-        setContext(context);
+        this.setContext(context);
         // Disable new features of TiffReader for compatibility:
+        this.setCaching(false);
         this.setAutoUnpackBits(UnpackBits.UNPACK_TO_0_255);
         this.setUnusualPrecisions(UnusualPrecisions.NONE);
         this.setCropTilesToImageBoundaries(false);
@@ -787,18 +788,20 @@ public class TiffParser extends TiffReader {
 
     /**
      * This function is deprecated, because almost identical behavior is implemented by
-     * {@link #readSamples(TiffReadMap, int, int, int, int)}.
+     * {@link #readSampleBytes(net.algart.matrices.tiff.tiles.TiffIOMap, int, int, int, int)}.
      */
     @Deprecated
     public byte[] getSamples(final IFD ifd, final byte[] buf, final int x,
                              final int y, final long width, final long height) throws FormatException,
             IOException {
         TiffMap.checkRequestedArea(x, y, width, height);
+        final var map = newMap(toTiffIFD(ifd));
         final byte[] result = readSampleBytes(
-                newMap(toTiffIFD(ifd)),
+                map,
                 x, y, (int) width, (int) height,
                 UnusualPrecisions.NONE,
-                false);
+                false,
+                this::readTile);
         if (result.length > buf.length) {
             throw new IllegalArgumentException(
                     "Insufficient length of the result buf array: " +

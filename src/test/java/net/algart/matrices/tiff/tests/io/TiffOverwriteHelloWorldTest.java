@@ -62,13 +62,13 @@ public class TiffOverwriteHelloWorldTest {
             TiffIFD ifd = writer.existingIFD(ifdIndex);
             TiffWriteMap writeMap = writer.existingMap(ifd);
             TiffReadMap readMap = writer.reader().newMap(ifd, false);
-            overwrite(writeMap, readMap, x, y, sizeX, sizeY);
+            overwriteUsingReadMap(writeMap, readMap, x, y, sizeX, sizeY);
 
             ifd = writer.existingIFD(ifdIndex);
             readMap = writer.reader().newMap(ifd, false);
             // - Note: without these calls we will use the previous reader and previous IFD,
             // so we can load tiles from the previous positions!
-            overwrite(writeMap, readMap, x + sizeX / 2, y + sizeY / 2, sizeX, sizeY);
+            overwriteUsingReadMap(writeMap, readMap, x + sizeX / 2, y + sizeY / 2, sizeX, sizeY);
             int m = writeMap.completeWriting();
             System.out.printf("Completed %d tile, file length: %d%n", m, writeMap.fileLength());
             // - should be 0, because all tiles were preloaded
@@ -79,14 +79,17 @@ public class TiffOverwriteHelloWorldTest {
         System.out.println("Done");
     }
 
-    private static void overwrite(TiffWriteMap writeMap, TiffReadMap readMap, int x, int y, int sizeX, int sizeY)
+    private static void overwriteUsingReadMap(
+            TiffWriteMap writeMap,
+            TiffReadMap readMap,
+            int x, int y, int sizeX, int sizeY)
             throws IOException {
         final BufferedImage bufferedImage = readMap.readBufferedImage(
-                x, y, sizeX, sizeY, true);
+                x, y, sizeX, sizeY, true, readMap.cachedTileSupplier());
         // - the last argument "true" leads to preserving all tiles in the map:
         // this is necessary for boundary tiles that are partially covered by the image
         writeMap.copyAllData(readMap, false);
-        // - old-style processing: using a separate TiffReadMap
+        // - TiffReadMap-style processing: using a separate TiffReadMap
         System.out.printf("%nOverwriting %d..%dx%d..%d in %s...%n", x, x + sizeX - 1, y, y + sizeY - 1, writeMap);
         drawTextOnImage(bufferedImage, "Hello, world!");
         // MatrixIO.writeBufferedImage(Path.of("/tmp/test.bmp"), bufferedImage);

@@ -334,10 +334,10 @@ final class CCITTFaxEncoderStreamAdapted extends OutputStream {
         for (int i = 0; i < codeLength; i++) {
             boolean codeBit = ((code >> (codeLength - i - 1)) & 1) == 1;
             if (fillOrder == TinyTwelveMonkey.FILL_LEFT_TO_RIGHT) {
-                outputBuffer |= (codeBit ? 1 << (7 - ((outputBufferBitLength) % 8)) : 0);
+                outputBuffer |= codeBit ? (byte) (1 << (7 - ((outputBufferBitLength) % 8))) : 0;
             }
             else {
-                outputBuffer |= (codeBit ? 1 << (((outputBufferBitLength) % 8)) : 0);
+                outputBuffer |= codeBit ? (byte) (1 << (((outputBufferBitLength) % 8))) : 0;
             }
             outputBufferBitLength++;
 

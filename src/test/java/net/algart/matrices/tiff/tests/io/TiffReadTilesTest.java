@@ -72,10 +72,13 @@ public class TiffReadTilesTest {
                 h = Math.min(map.dimY(), MAX_IMAGE_DIM);
             }
             Matrix<? extends PArray> matrix = null;
+            if (numberOfTests <= 0) {
+                return;
+            }
             for (int test = 1; test <= numberOfTests; test++) {
                 System.out.printf("Reading image from %s...%n", tiffFile);
                 long t1 = System.nanoTime();
-                matrix = reader.readMatrix(map, x, y, w, h, true);
+                matrix = map.readMatrix(x, y, w, h, true, map.cachedTileSupplier());
                 long t2 = System.nanoTime();
                 System.out.printf(Locale.US, "Test #%d: %dx%d loaded in %.3f ms%n",
                         test, w, h, (t2 - t1) * 1e-6);

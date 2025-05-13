@@ -188,7 +188,7 @@ public class TiffReadWriteTest {
                         @SuppressWarnings("deprecation")
                         byte[] buf1 = parser.getSamples(scifioIFD, bytes, START_X, START_Y, paddedW, paddedH);
                         // - this deprecated method is implemented via new methods
-                        // and actually equivalent to TiffReader.readSamples
+                        // and actually equivalent to TiffReader.readSampleBytes
                         assert buf1 == bytes;
                         buf1 = new byte[bytes.length];
                         byte[] buf2 = new byte[bytes.length];

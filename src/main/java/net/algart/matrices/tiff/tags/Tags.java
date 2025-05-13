@@ -37,7 +37,7 @@ public class Tags {
     public static final int BITS_PER_SAMPLE = 258;
     public static final int COMPRESSION = 259;
     public static final int PHOTOMETRIC_INTERPRETATION = 262;
-    public static final int THRESHHOLDING = 263;
+    public static final int THRESHOLDING = 263;
     public static final int CELL_WIDTH = 264;
     public static final int CELL_LENGTH = 265;
     public static final int FILL_ORDER = 266;

@@ -113,7 +113,7 @@ public class TiffOverwriteNaturalNumbersDemo {
 
     private static int overwrite(TiffWriteMap writeMap, int x, int y, int sizeX, int sizeY, int value)
             throws IOException {
-        final BufferedImage bufferedImage = writeMap.readBufferedImage(x, y, sizeX, sizeY, true);
+        final BufferedImage bufferedImage = writeMap.readBufferedImageAndStore(x, y, sizeX, sizeY);
         drawNumberOnImage(bufferedImage, value);
         final List<TiffTile> tiles = writeMap.updateBufferedImage(bufferedImage, x, y);
         if (WRITE_IMMEDIATELY) {

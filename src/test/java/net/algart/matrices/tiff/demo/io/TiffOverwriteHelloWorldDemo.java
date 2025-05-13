@@ -25,7 +25,6 @@
 package net.algart.matrices.tiff.demo.io;
 
 import net.algart.matrices.tiff.TiffCreateMode;
-import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
@@ -74,7 +73,7 @@ public class TiffOverwriteHelloWorldDemo {
 
     private static void overwrite(TiffWriteMap writeMap, int x, int y, int sizeX, int sizeY)
             throws IOException {
-        final BufferedImage bufferedImage = writeMap.readBufferedImage(x, y, sizeX, sizeY, true);
+        final BufferedImage bufferedImage = writeMap.readBufferedImageAndStore(x, y, sizeX, sizeY);
         // - the last argument "true" leads to preserving all tiles in the map:
         // this is necessary for boundary tiles that are partially covered by the image
         System.out.printf("%nOverwriting %d..%dx%d..%d in %s...%n", x, x + sizeX - 1, y, y + sizeY - 1, writeMap);

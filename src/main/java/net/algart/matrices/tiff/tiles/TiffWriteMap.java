@@ -53,6 +53,11 @@ public final class TiffWriteMap extends TiffIOMap {
         this.owner = Objects.requireNonNull(owner, "Null owning writer");
     }
 
+    @Override
+    public TiffReader reader() {
+        return owner.reader();
+    }
+
     /**
      * Returns the associated owning writer, passed to the constructor.
      * Never returns <code>null</code>.
@@ -64,9 +69,49 @@ public final class TiffWriteMap extends TiffIOMap {
         return owner;
     }
 
-    @Override
-    public TiffReader reader() {
-        return owner.reader();
+    public byte[] readSampleBytesAndStore(
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY,
+            TiffReader.UnusualPrecisions autoUnpackUnusualPrecisions) throws IOException {
+        return readSampleBytes(
+                fromX,
+                fromY,
+                sizeX,
+                sizeY,
+                autoUnpackUnusualPrecisions,
+                true,
+                cachedTileSupplier());
+    }
+
+    public Object readJavaArrayAndStore(int fromX, int fromY, int sizeX, int sizeY)
+            throws IOException {
+        return readJavaArray(fromX, fromY, sizeX, sizeY, true, cachedTileSupplier());
+    }
+
+    public Matrix<UpdatablePArray> readMatrixAndStore(int fromX, int fromY, int sizeX, int sizeY)
+            throws IOException {
+        return readMatrix(fromX, fromY, sizeX, sizeY, true, cachedTileSupplier());
+    }
+
+    public Matrix<UpdatablePArray> readInterleavedMatrixAndStore(int fromX, int fromY, int sizeX, int sizeY)
+            throws IOException {
+        return readInterleavedMatrix(fromX, fromY, sizeX, sizeY, true, cachedTileSupplier());
+    }
+
+    public List<Matrix<UpdatablePArray>> readChannelsAndStore(
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY)
+            throws IOException {
+        return readChannels(fromX, fromY, sizeX, sizeY, true, cachedTileSupplier());
+    }
+
+    public BufferedImage readBufferedImageAndStore(int fromX, int fromY, int sizeX, int sizeY)
+            throws IOException {
+        return readBufferedImage(fromX, fromY, sizeX, sizeY, true, cachedTileSupplier());
     }
 
     public List<TiffTile> updateSampleBytes(byte[] samples, long fromX, long fromY, long sizeX, long sizeY) {

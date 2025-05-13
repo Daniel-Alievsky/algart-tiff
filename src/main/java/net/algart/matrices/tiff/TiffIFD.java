@@ -437,9 +437,8 @@ public class TiffIFD {
      *
      * @param tiffFileLength must contain the total length of the TIFF file.
      * @return the summary size of all IFD entries.
-     * @throws TiffException in the case of incorrect TIFF.
      */
-    public OptionalLong sizeOfIFD(long tiffFileLength) throws TiffException {
+    public OptionalLong sizeOfIFD(long tiffFileLength) {
         if (tiffFileLength < 0) {
             throw new IllegalArgumentException("Negative TIFF file length");
         }

@@ -82,7 +82,7 @@ class TagFriendlyNames {
                 BitsPerSample = 258
                 Compression = 259
                 PhotometricInterpretation = 262
-                Threshholding = 263
+                Thresholding = 263
                 CellWidth = 264
                 CellLength = 265
                 FillOrder = 266

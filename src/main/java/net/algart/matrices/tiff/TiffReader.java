@@ -399,7 +399,7 @@ public class TiffReader extends TiffIO {
      * into <code>byte</code> matrices: black pixels to value 0, white pixels to value depending on the mode.
      *
      * <p>By default, this mode is {@link UnpackBits#NONE}.
-     * In this case, {@link #readMatrix(TiffReadMap)} and similar methods return binary AlgART matrices.</p>
+     * In this case, {@link #readMatrix(TiffIOMap)} and similar methods return binary AlgART matrices.</p>
      *
      * <p>Note that some TIFF images use <i>m</i>&gt;1 bit per pixel, where <i>m</i> is not divisible by 8,
      * such as 4-bit indexed images with a palette or 15-bit RGB image, 5+5+5 bits/channel.
@@ -429,11 +429,12 @@ public class TiffReader extends TiffIO {
      * or they will lead to an exception when it is {@link UnusualPrecisions#DISABLE},
      * or they will be loaded as-is if it is {@link UnusualPrecisions#NONE}.
      *
-     * <p>This mode is used inside {@link #readSamples(TiffReadMap, int, int, int, int)}
+     * <p>This mode is used inside {@link #readSampleBytes(TiffIOMap, int, int, int, int)}
      * method after all tiles have been read.
      * This is just the default value of <code>unusualPrecisions</code>
      * argument of the more verbose method
-     * {@link #readSamples(TiffReadMap, int, int, int, int, UnusualPrecisions, boolean)}.
+     * {@link #readSampleBytes(TiffIOMap, int, int, int, int, UnusualPrecisions, boolean, TiffIOMap.TileSupplier)}.
+     * </p>
      *
      * <p>Note that the decoded data in {@link TiffTile} in case of unusual precisions is not unpacked
      * (but you may request unpacking with {@link TiffTile#getUnpackedSampleBytes(boolean)} method).
@@ -1298,7 +1299,7 @@ public class TiffReader extends TiffIO {
      * bytes: 1..7 bits are transformed to 8 bits/sample, 9..15 to 16 bits/sample, 17..23 to 24 bits/sample etc.
      * Thus, this method <b>does not unpack 3-byte samples</b> (to 4-byte) and
      * <b>does not unpack 16- or 24-bit</b> floating-point formats. These cases
-     * are processed after reading all tiles inside {@link #readSamples(TiffReadMap, int, int, int, int)}
+     * are processed after reading all tiles inside {@link #readSampleBytes(TiffIOMap, int, int, int, int)}
      * method, if {@link #getUnusualPrecisions()} mode is {@link UnusualPrecisions#UNPACK},
      * or may be performed by external
      * code with help of {@link TiffUnusualPrecisions#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)}
@@ -1418,7 +1419,8 @@ public class TiffReader extends TiffIO {
                 map,
                 fromX, fromY, sizeX, sizeY,
                 unusualPrecisions,
-                false);
+                false,
+                this::readCachedTile);
     }
 
     public byte[] readSampleBytes(
@@ -1428,17 +1430,19 @@ public class TiffReader extends TiffIO {
             int sizeX,
             int sizeY,
             UnusualPrecisions unusualPrecisions,
-            boolean storeTilesInMap)
+            boolean storeTilesInMap,
+            TiffIOMap.TileSupplier tileSupplier)
             throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(unusualPrecisions, "Null unusualPrecisions");
+        Objects.requireNonNull(tileSupplier, "Null tileSupplier");
         long t1 = debugTime();
         clearTiming();
         TiffMap.checkRequestedArea(fromX, fromY, sizeX, sizeY);
         // - note: we allow this area to be outside the image
 
         byte[] samples = map.loadSampleBytes(
-                this::readCachedTile, fromX, fromY, sizeX, sizeY, unusualPrecisions, storeTilesInMap);
+                fromX, fromY, sizeX, sizeY, unusualPrecisions, storeTilesInMap, tileSupplier);
         final int sizeInBytes = samples.length;
         final long sizeInPixels = (long) sizeX * (long) sizeY;
         // - can be >2^31 for bits
@@ -1504,7 +1508,7 @@ public class TiffReader extends TiffIO {
     }
 
     public Object readJavaArray(TiffIOMap map, int fromX, int fromY, int sizeX, int sizeY) throws IOException {
-        return readJavaArray(map, fromX, fromY, sizeX, sizeY, false);
+        return readJavaArray(map, fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
     }
 
     public Object readJavaArray(
@@ -1513,12 +1517,14 @@ public class TiffReader extends TiffIO {
             int fromY,
             int sizeX,
             int sizeY,
-            boolean storeTilesInMap)
+            boolean storeTilesInMap,
+            TiffIOMap.TileSupplier tileSupplier)
             throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
+        Objects.requireNonNull(tileSupplier, "Null tileSupplier");
         final byte[] samples = readSampleBytes(
                 map, fromX, fromY, sizeX, sizeY,
-                unusualPrecisions.unpackIfEnabled(), storeTilesInMap);
+                unusualPrecisions.unpackIfEnabled(), storeTilesInMap, tileSupplier);
         long t1 = debugTime();
         final TiffSampleType sampleType = map.sampleType();
         final Object samplesArray = autoUnpackBits.isEnabled() && map.isBinary() ?
@@ -1564,7 +1570,7 @@ public class TiffReader extends TiffIO {
 
     public Matrix<UpdatablePArray> readMatrix(TiffIOMap map, int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        return readMatrix(map, fromX, fromY, sizeX, sizeY, false);
+        return readMatrix(map, fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
     }
 
     public Matrix<UpdatablePArray> readMatrix(
@@ -1573,9 +1579,10 @@ public class TiffReader extends TiffIO {
             int fromY,
             int sizeX,
             int sizeY,
-            boolean storeTilesInMap)
+            boolean storeTilesInMap,
+            TiffIOMap.TileSupplier tileSupplier)
             throws IOException {
-        final Object samplesArray = readJavaArray(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
+        final Object samplesArray = readJavaArray(map, fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
         return TiffSampleType.asMatrix(samplesArray, sizeX, sizeY, map.numberOfChannels(), false);
     }
 
@@ -1586,7 +1593,7 @@ public class TiffReader extends TiffIO {
 
     public Matrix<UpdatablePArray> readInterleavedMatrix(TiffIOMap map, int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        return readInterleavedMatrix(map, fromX, fromY, sizeX, sizeY, false);
+        return readInterleavedMatrix(map, fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
     }
 
     public Matrix<UpdatablePArray> readInterleavedMatrix(
@@ -1595,9 +1602,11 @@ public class TiffReader extends TiffIO {
             int fromY,
             int sizeX,
             int sizeY,
-            boolean storeTilesInMap)
+            boolean storeTilesInMap,
+            TiffIOMap.TileSupplier tileSupplier)
             throws IOException {
-        final Matrix<UpdatablePArray> mergedChannels = readMatrix(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
+        final Matrix<UpdatablePArray> mergedChannels =
+                readMatrix(map, fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
         return Matrices.interleave(mergedChannels.asLayers());
     }
 
@@ -1621,7 +1630,7 @@ public class TiffReader extends TiffIO {
 
     public List<Matrix<UpdatablePArray>> readChannels(TiffIOMap map, int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        return readChannels(map, fromX, fromY, sizeX, sizeY, false);
+        return readChannels(map, fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
     }
 
     public List<Matrix<UpdatablePArray>> readChannels(
@@ -1630,9 +1639,11 @@ public class TiffReader extends TiffIO {
             int fromY,
             int sizeX,
             int sizeY,
-            boolean storeTilesInMap)
+            boolean storeTilesInMap,
+            TiffIOMap.TileSupplier tileSupplier)
             throws IOException {
-        final Matrix<UpdatablePArray> mergedChannels = readMatrix(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
+        final Matrix<UpdatablePArray> mergedChannels =
+                readMatrix(map, fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
         return Matrices.asLayers(mergedChannels, TiffIFD.MAX_NUMBER_OF_CHANNELS);
     }
 
@@ -1656,7 +1667,7 @@ public class TiffReader extends TiffIO {
 
     public BufferedImage readBufferedImage(TiffIOMap map, int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        return readBufferedImage(map, fromX, fromY, sizeX, sizeY, false);
+        return readBufferedImage(map, fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
     }
 
     public BufferedImage readBufferedImage(
@@ -1665,10 +1676,11 @@ public class TiffReader extends TiffIO {
             int fromY,
             int sizeX,
             int sizeY,
-            boolean storeTilesInMap)
+            boolean storeTilesInMap,
+            TiffIOMap.TileSupplier tileSupplier)
             throws IOException {
         final Matrix<? extends PArray> interleaved =
-                readInterleavedMatrix(map, fromX, fromY, sizeX, sizeY, storeTilesInMap);
+                readInterleavedMatrix(map, fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
         // Note: we do not use MatrixToImage.toBufferedImage, because we need to call setUnsignedInt32
         return new MatrixToImage.InterleavedRGBToInterleaved()
                 .setUnsignedInt32(true)
