@@ -107,9 +107,26 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
      *                {@code COMPRESSION_CCITT_T4} or {@code COMPRESSION_CCITT_T6}.
      * @param options CCITT T.4 or T.6 options.
      */
-    public CCITTFaxDecoderStreamAdapted(final InputStream stream, final int columns, final int type,
-                                        final long options) {
+    public CCITTFaxDecoderStreamAdapted(
+            final InputStream stream, final int columns, final int type,
+            final long options) {
         this(stream, columns, -1, type, options, type == TinyTwelveMonkey.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE);
+    }
+
+    public boolean optionG32D() {
+        return optionG32D;
+    }
+
+    public boolean optionG3Fill() {
+        return optionG3Fill;
+    }
+
+    public boolean optionUncompressed() {
+        return optionUncompressed;
+    }
+
+    public boolean optionByteAligned() {
+        return optionByteAligned;
     }
 
     /**
@@ -124,13 +141,15 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
      * @param options     CCITT T.4 or T.6 options.
      * @param byteAligned enable byte alignment used in PDF files (EncodedByteAlign).
      */
-    public CCITTFaxDecoderStreamAdapted(final InputStream stream, final int columns, final int type,
-                                        final long options, final boolean byteAligned) {
+    public CCITTFaxDecoderStreamAdapted(
+            final InputStream stream, final int columns, final int type,
+            final long options, final boolean byteAligned) {
         this(stream, columns, -1, type, options, byteAligned);
     }
 
-    CCITTFaxDecoderStreamAdapted(final InputStream stream, final int columns, final int rows, final int type,
-                                 final long options, final boolean byteAligned) {
+    CCITTFaxDecoderStreamAdapted(
+            final InputStream stream, final int columns, final int rows, final int type,
+            final long options, final boolean byteAligned) {
         super(TinyTwelveMonkey.notNull(stream, "stream"));
 
         this.columns = TinyTwelveMonkey.isTrue(columns > 0, columns, "width must be greater than 0");

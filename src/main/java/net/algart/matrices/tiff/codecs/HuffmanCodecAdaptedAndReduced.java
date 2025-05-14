@@ -32,7 +32,7 @@ import java.awt.image.ColorModel;
 import java.io.IOException;
 import java.util.HashMap;
 
-// Reduced version of analogous SCIFIO class (for compatibility).
+// Reduced version of the analogous SCIFIO class (for compatibility).
 class HuffmanCodecAdaptedAndReduced {
     // (It is placed here to avoid autocorrection by IntelliJ IDEA)
     /*

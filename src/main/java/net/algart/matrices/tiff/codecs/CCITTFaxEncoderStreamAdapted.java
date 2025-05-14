@@ -76,8 +76,8 @@ final class CCITTFaxEncoderStreamAdapted extends OutputStream {
     private int currentBufferLength = 0;
     private final byte[] inputBuffer;
     private final int inputBufferLength;
-    private int columns;
-    private int rows;
+    private final int columns;
+    private final int rows;
 
     private int[] changesCurrentRow;
     private int[] changesReferenceRow;
@@ -86,15 +86,16 @@ final class CCITTFaxEncoderStreamAdapted extends OutputStream {
     private int changesReferenceRowLength = 0;
     private byte outputBuffer = 0;
     private byte outputBufferBitLength = 0;
-    private int type;
-    private int fillOrder;
+    private final int type;
+    private final int fillOrder;
     private boolean optionG32D;
     private boolean optionG3Fill;
     private boolean optionUncompressed;
-    private OutputStream stream;
+    private final OutputStream stream;
 
-    public CCITTFaxEncoderStreamAdapted(final OutputStream stream, final int columns, final int rows, final int type, final int fillOrder,
-                                        final long options) {
+    public CCITTFaxEncoderStreamAdapted(
+            final OutputStream stream, final int columns, final int rows, final int type, final int fillOrder,
+            final long options) {
 
         this.stream = stream;
         this.type = type;
@@ -199,13 +200,11 @@ final class CCITTFaxEncoderStreamAdapted extends OutputStream {
             if (changesReferenceRowLength == 0) {
                 write(1, 1);
                 encode1D();
-            }
-            else {
+            } else {
                 write(0, 1);
                 encode2D();
             }
-        }
-        else {
+        } else {
             encode1D();
         }
         if (optionG3Fill) {
@@ -230,7 +229,7 @@ final class CCITTFaxEncoderStreamAdapted extends OutputStream {
     }
 
     private int[] getNextChanges(int pos, boolean white) {
-        int[] result = new int[] {columns, columns};
+        int[] result = new int[]{columns, columns};
         for (int i = 0; i < changesCurrentRowLength; i++) {
             if (pos < changesCurrentRow[i] || (pos == 0 && white)) {
                 result[0] = changesCurrentRow[i];
@@ -251,8 +250,7 @@ final class CCITTFaxEncoderStreamAdapted extends OutputStream {
             if (nonterm >= codes.length) {
                 write(codes[codes.length - 1].code, codes[codes.length - 1].length);
                 nonterm -= codes.length;
-            }
-            else {
+            } else {
                 write(codes[nonterm - 1].code, codes[nonterm - 1].length);
                 nonterm = 0;
             }
@@ -275,16 +273,14 @@ final class CCITTFaxEncoderStreamAdapted extends OutputStream {
                 // PMODE
                 write(1, 4);
                 index = nextRefs[1];
-            }
-            else if (difference > 3 || difference < -3) {
+            } else if (difference > 3 || difference < -3) {
                 // HMODE
                 write(1, 3);
                 writeRun(nextChanges[0] - index, white);
                 writeRun(nextChanges[1] - nextChanges[0], !white);
                 index = nextChanges[1];
 
-            }
-            else {
+            } else {
                 // VMODE
                 switch (difference) {
                     case 0:
@@ -316,7 +312,7 @@ final class CCITTFaxEncoderStreamAdapted extends OutputStream {
     }
 
     private int[] getNextRefChanges(int a0, boolean white) {
-        int[] result = new int[] {columns, columns};
+        int[] result = new int[]{columns, columns};
         for (int i = (white ? 0 : 1); i < changesReferenceRowLength; i += 2) {
             if (changesReferenceRow[i] > a0 || (a0 == 0 && i == 0)) {
                 result[0] = changesReferenceRow[i];
@@ -335,8 +331,7 @@ final class CCITTFaxEncoderStreamAdapted extends OutputStream {
             boolean codeBit = ((code >> (codeLength - i - 1)) & 1) == 1;
             if (fillOrder == TinyTwelveMonkey.FILL_LEFT_TO_RIGHT) {
                 outputBuffer |= codeBit ? (byte) (1 << (7 - ((outputBufferBitLength) % 8))) : 0;
-            }
-            else {
+            } else {
                 outputBuffer |= codeBit ? (byte) (1 << (((outputBufferBitLength) % 8))) : 0;
             }
             outputBufferBitLength++;
@@ -400,8 +395,7 @@ final class CCITTFaxEncoderStreamAdapted extends OutputStream {
 
                 if (value < 64) {
                     WHITE_TERMINATING_CODES[value] = new Code(code, bitLength);
-                }
-                else {
+                } else {
                     WHITE_NONTERMINATING_CODES[(value / 64) - 1] = new Code(code, bitLength);
                 }
             }
@@ -417,8 +411,7 @@ final class CCITTFaxEncoderStreamAdapted extends OutputStream {
 
                 if (value < 64) {
                     BLACK_TERMINATING_CODES[value] = new Code(code, bitLength);
-                }
-                else {
+                } else {
                     BLACK_NONTERMINATING_CODES[(value / 64) - 1] = new Code(code, bitLength);
                 }
             }

@@ -99,7 +99,6 @@ class TinyTwelveMonkey {
             throw new IllegalArgumentException(String.format(message == null ? "expression may not be %s" : message,
                     value));
         }
-
         return value;
     }
 
