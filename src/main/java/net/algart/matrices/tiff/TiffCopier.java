@@ -295,6 +295,8 @@ public final class TiffCopier {
         checkImageCompatibility(writeMap, readMap);
         writer.writeForward(writeMap);
         progressInformation.tileCount = writeMap.numberOfGridTiles();
+        final int readDimX = readMap.dimX();
+        final int readDimY = readMap.dimY();
         final int gridCountY = writeMap.gridCountY();
         final int gridCountX = writeMap.gridCountX();
         final int mapTileSizeX = writeMap.tileSizeX();
@@ -316,16 +318,21 @@ public final class TiffCopier {
         int tileCount = 0;
         for (int yIndex = 0, y = 0; yIndex < gridCountY; yIndex++, y += mapTileSizeY) {
             final int sizeYInTile = Math.min(sizeY - y, mapTileSizeY);
+            final int readY = fromY + y;
             for (int xIndex = 0, x = 0; xIndex < gridCountX; xIndex++, x += mapTileSizeX) {
                 final int sizeXInTile = Math.min(sizeX - x, mapTileSizeX);
-                this.actuallyDirectCopy = directCopy && sizeXInTile == mapTileSizeX && sizeYInTile == mapTileSizeY;
+                final int readX = fromX + x;
+                this.actuallyDirectCopy = directCopy
+                        && sizeXInTile == mapTileSizeX
+                        && sizeYInTile == mapTileSizeY
+                        && readY <= readDimY - sizeYInTile
+                        && readX <= readDimX - sizeXInTile;
+                // - note that the tile must be completely inside BOTH maps to be copied directly
                 if (this.actuallyDirectCopy) {
                     final int readXIndex = fromXIndex + xIndex;
                     final int readYIndex = fromYIndex + yIndex;
                     copyEncodedTile(writeMap, readMap, xIndex, yIndex, readXIndex, readYIndex);
                 } else {
-                    final int readX = fromX + x;
-                    final int readY = fromY + y;
                     final int written = copyRectangle(
                             writeMap, readMap, x, y, readX, readY, sizeXInTile, sizeYInTile, swapOrder);
                     if (written != writeMap.numberOfSeparatedPlanes()) {
