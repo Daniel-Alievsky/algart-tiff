@@ -64,16 +64,17 @@ public class TiffOverwriteNaturalNumbersDemo {
         final int numberOfRepeats = args.length > startArgIndex + 8 ? Integer.parseInt(args[startArgIndex + 8]) : 1;
 
         System.out.printf("Opening and rewriting TIFF %s...%n", targetFile);
-        final int sizeX = 100;
-        final int sizeY = 50;
+        final int sizeX = 50;
+        final int sizeY = 30;
         // - estimated sizes sufficient for integer number like "151"
         try (var writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
             // writer.setAlwaysWriteToFileEnd(true); // - should not affect the results
             final TiffWriteMap writeMap = writer.existingMap(ifdIndex);
             System.out.printf("Overwriting %s...%n", writeMap);
             long t1 = System.nanoTime();
-            long maxLength = writeMap.fileLength();
             for (int repeat = 0; repeat < numberOfRepeats; repeat++) {
+                final long initialFileLength = writeMap.fileLength();
+                long maxLength = initialFileLength;
                 System.out.printf("%nRepetition #%d/%d...%n", repeat + 1, numberOfRepeats);
                 int x = x0;
                 int y = y0;
@@ -95,6 +96,9 @@ public class TiffOverwriteNaturalNumbersDemo {
                         maxLength = writeMap.fileLength();
                     }
                     System.out.println();
+                }
+                if (maxLength == initialFileLength) {
+                    System.out.println("The file length has not increased");
                 }
             }
             long t2 = System.nanoTime();
