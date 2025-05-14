@@ -511,8 +511,8 @@ public final class TiffWriteMap extends TiffIOMap {
         for (int p = 0, k = 0; p < numberOfSeparatedPlanes; p++) {
             for (int yIndex = 0; yIndex < gridCountY; yIndex++) {
                 for (int xIndex = 0; xIndex < gridCountX; xIndex++, k++) {
-                    TiffTileIndex tileIndex = index(xIndex, yIndex, p);
-                    TiffTile tile = get(tileIndex);
+                    final TiffTileIndex tileIndex = index(xIndex, yIndex, p);
+                    final TiffTile tile = get(tileIndex);
                     if (tile != null && tile.isStoredInFile()) {
                         offsets[k] = tile.getStoredInFileDataOffset();
                         byteCounts[k] = tile.getStoredInFileDataLength();
