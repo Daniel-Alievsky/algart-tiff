@@ -79,7 +79,7 @@ public class JPEG2000Codec implements TiffCodec {
      * Options for compressing and decompressing JPEG-2000 data.
      */
     public static class JPEG2000Options extends Options {
-        public static final double DEFAULT_NORMAL_QUALITY = 10.0;
+        public static final double DEFAULT_NORMAL_QUALITY = 5.0;
         public static final boolean DEFAULT_WRITE_METADATA = false;
         // - Should be false for better compatibility with Aperio Image Viewer, GIMP and other applications.
 

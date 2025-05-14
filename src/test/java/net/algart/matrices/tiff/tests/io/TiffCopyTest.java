@@ -112,7 +112,7 @@ public class TiffCopyTest {
 
                 // writer.setJpegInPhotometricRGB(true);
                 // - should not be important for copying, when PhotometricInterpretation is already specified
-//                writer.setQuality(0.3);
+                // writer.setCompressionQuality(0.3);
                 writer.create();
 
                 final var maps = reader.allMaps();
@@ -134,6 +134,8 @@ public class TiffCopyTest {
                         System.out.printf("\r  Repacking #%d/%d: %s%n", ifdIndex, maps.size(), readMap.ifd());
                         final TiffCopier copier = getCopier();
                         copier.setDirectCopy(false);
+//                        copier.setIfdCorrector(
+//                                ifd -> ifd.putCompression(TagCompression.JPEG_2000_APERIO_LOSSLESS));
                         copier.copyImage(writer, readMap);
                     }
                 }
