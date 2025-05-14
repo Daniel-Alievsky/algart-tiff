@@ -355,7 +355,7 @@ public class TiffWriterTest {
                         }
                         map = writer.existingMap(ifd);
                         if (preserveOldAccurately) {
-                            preloadPartiallyOverwrittenTiles(writer, x, y, w, h);
+                            map.preloadAndStore(x, y, w, h, false);
                         }
                     } else {
                         map = writer.newMap(ifd, resizable);
@@ -414,6 +414,7 @@ public class TiffWriterTest {
         System.out.println("Done");
     }
 
+    // Old-style solution: replaced with TiffWriteMap.preloadAndStore
     private static void preloadPartiallyOverwrittenTiles(
             TiffWriter writer,
             int fromX, int fromY, int sizeX, int sizeY)

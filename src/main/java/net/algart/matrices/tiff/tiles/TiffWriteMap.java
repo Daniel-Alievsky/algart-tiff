@@ -129,6 +129,14 @@ public final class TiffWriteMap extends TiffIOMap {
             int fromX,
             int fromY,
             int sizeX,
+            int sizeY) throws IOException {
+        preloadAndStore(fromX, fromY, sizeX, sizeY, true);
+    }
+
+    public void preloadAndStore(
+            int fromX,
+            int fromY,
+            int sizeX,
             int sizeY,
             boolean loadTilesFullyInsideRectangle) throws IOException {
         preloadAndStore(fromX, fromY, sizeX, sizeY, loadTilesFullyInsideRectangle, cachedTileSupplier());
