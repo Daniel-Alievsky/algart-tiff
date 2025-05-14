@@ -126,7 +126,7 @@ public enum TagCompression {
      * <p>Note that while writing TIFF in this format, {@link net.algart.matrices.tiff.TiffWriter}
      * does not try to use YCbCr encoding, as Aperio recommends for type 33003.
      */
-    JPEG_2000_APERIO_PROPRIETARY(33003, "JPEG-2000 Aperio 33003",
+    JPEG_2000_APERIO_PROPRIETARY(33003, "JPEG-2000 Aperio proprietary 33003",
             JPEG2000Codec::new, false),
 
     /**
