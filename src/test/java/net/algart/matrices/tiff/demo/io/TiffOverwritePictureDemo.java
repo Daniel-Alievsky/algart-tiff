@@ -57,7 +57,8 @@ public class TiffOverwritePictureDemo {
         int startArgIndex = 0;
         if (args.length < startArgIndex + 3) {
             System.out.println("Usage:");
-            System.out.printf("    %s target.tiff image-to-draw.jpg/png/bmp ifdIndex [x y]%n",
+            System.out.printf("    %s target.tiff image-to-draw.jpg/png/bmp " +
+                            "ifdIndex [x y] [dx dy] [number-of-repeats]%n",
                     TiffOverwritePictureDemo.class.getName());
             System.out.println("Note that target.tiff will be modified!");
             return;
@@ -67,6 +68,9 @@ public class TiffOverwritePictureDemo {
         final int ifdIndex = Integer.parseInt(args[startArgIndex + 2]);
         final int x = startArgIndex + 3 < args.length ? Integer.parseInt(args[startArgIndex + 3]) : 0;
         final int y = startArgIndex + 4 < args.length ? Integer.parseInt(args[startArgIndex + 4]) : 0;
+        final int dx = startArgIndex + 5 < args.length ? Integer.parseInt(args[startArgIndex + 5]) : 100;
+        final int dy = startArgIndex + 6 < args.length ? Integer.parseInt(args[startArgIndex + 6]) : 100;
+        final int numberOfRepeats = args.length > startArgIndex + 7 ? Integer.parseInt(args[startArgIndex + 7]) : 1;
 
         System.out.printf("Reading %s...%n", imageToDrawFile);
         List<? extends Matrix<? extends PArray>> imageToDraw = MatrixIO.readImage(imageToDrawFile);
@@ -76,8 +80,16 @@ public class TiffOverwritePictureDemo {
             // - possible solution instead of using TiffCreateMode.OPEN_EXISTING
             final TiffWriteMap writeMap = writer.existingMap(ifdIndex);
             imageToDraw = tryToAdjust(imageToDraw, writeMap);
-            overwrite(writeMap, imageToDraw, x, y);
-            overwrite(writeMap, imageToDraw, x + 100, y + 100);
+            for (int repeat = 1; repeat <= numberOfRepeats; repeat++) {
+                System.out.printf("Correction #%d, file length %d%n", repeat, writeMap.fileLength());
+                overwrite(writeMap, imageToDraw, x, y);
+                overwrite(writeMap, imageToDraw, x + dx, y + dy);
+                // - If these two images overlap, the file length may increase even if
+                // you call this test again with the same image:
+                // the first "overwrite" call changes the tiles, and the second "overwrite" changes them again.
+                // But if you run this loop several times, the file length should stabilize:
+                // the maximal tile capacity is stored in the memory (TiffTile object), not on disk.
+            }
             int n = writeMap.completeWriting();
             if (n != 0) {
                 throw new AssertionError("Not all tiles were written in writeCompletedTiles");
@@ -94,11 +106,11 @@ public class TiffOverwritePictureDemo {
             throws IOException {
         final int sizeX = imageToDraw.get(0).dimX32();
         final int sizeY = imageToDraw.get(0).dimY32();
-        System.out.printf("%nOverwriting %d..%dx%d..%d in %s...%n", x, x + sizeX - 1, y, y + sizeY - 1, writeMap);
+        System.out.printf("  Overwriting %d..%dx%d..%d in %s...%n", x, x + sizeX - 1, y, y + sizeY - 1, writeMap);
         writeMap.preloadAndStore(x, y, sizeX, sizeY, false);
         List<TiffTile> tiles = writeMap.updateChannels(imageToDraw, x, y);
         int n = writeMap.writeCompletedTiles(tiles);
-        System.out.printf("Written %d completed tiles%n", n);
+        System.out.printf("  Written %d completed tiles, file length %d%n", n, writeMap.fileLength());
     }
 
 
