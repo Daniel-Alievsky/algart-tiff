@@ -391,10 +391,9 @@ public non-sealed class TiffWriter extends TiffIO {
      * <p>If this method was not called or after {@link #removeCompressionQuality()}, the compression quality is
      * not specified.
      * In this case, some default quality will be used. In particular, it will be 1.0 for JPEG (maximal JPEG quality),
-     * 10 for JPEG-2000 (compression code 33003) or alternative JPEG-200 (code 33005),
-     * <code>Double.MAX_VALUE</code> for lossless JPEG-2000
-     * ({@link TagCompression#JPEG_2000_APERIO_LOSSLESS}, code 33004).
-     * Note that the only difference between lose-less JPEG-2000 and the standard JPEG-2000 is these default values:
+     * 5.0 for JPEG-2000 formats, <code>Double.MAX_VALUE</code> for
+     * {@link TagCompression#JPEG_2000_APERIO_LOSSLESS} (code 33004).
+     * Note that the only difference between lossless JPEG-2000 and the usual JPEG-2000 is these default values:
      * if this method is called, both compressions work identically (but write different TIFF compression tags).
      *
      * <p>Note: the {@link TiffCodec.Options#setCompressionQuality(Double) quality}, that can be set via
