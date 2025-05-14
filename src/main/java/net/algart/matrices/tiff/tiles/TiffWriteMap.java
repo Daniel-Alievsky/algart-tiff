@@ -25,19 +25,14 @@
 package net.algart.matrices.tiff.tiles;
 
 import net.algart.arrays.*;
+import net.algart.arrays.Arrays;
 import net.algart.io.awt.ImageToMatrix;
 import net.algart.math.IRectangularArea;
-import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.TiffSampleType;
-import net.algart.matrices.tiff.TiffWriter;
+import net.algart.matrices.tiff.*;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Predicate;
 
 public final class TiffWriteMap extends TiffIOMap {
@@ -48,10 +43,20 @@ public final class TiffWriteMap extends TiffIOMap {
     // - Should be true. The false value simulates the early versions, but this is inconvenient for using.
 
     private final TiffWriter owner;
+    private final boolean existing;
 
-    public TiffWriteMap(TiffWriter owner, TiffIFD ifd, boolean resizable) {
+    public TiffWriteMap(TiffWriter owner, TiffIFD ifd, boolean resizable, boolean existing) {
         super(ifd, resizable);
+        if (existing) {
+            if (!ifd.isLoadedFromFile()) {
+                throw new IllegalArgumentException("For existing map, IFD must be read from TIFF file");
+            }
+            if (resizable) {
+                throw new IllegalArgumentException("Existing TIFF write map must not be resizable");
+            }
+        }
         this.owner = Objects.requireNonNull(owner, "Null owning writer");
+        this.existing = existing;
     }
 
     @Override
@@ -68,6 +73,11 @@ public final class TiffWriteMap extends TiffIOMap {
     @Override
     public TiffWriter owner() {
         return owner;
+    }
+
+    @Override
+    public boolean isExisting() {
+        return existing;
     }
 
     public byte[] readSampleBytesAndStore(
@@ -476,6 +486,43 @@ public final class TiffWriteMap extends TiffIOMap {
         return owner.completeWriting(this);
     }
 
+    public void updateIFD() throws TiffException {
+        if (!isExisting()) {
+            throw new IllegalStateException("IFD can be updated only for existing maps");
+        }
+        if (isResizable()) {
+            throw new AssertionError("Existing map cannot be resizable");
+        }
+        final TiffIFD ifd = ifd();
+        final long[] offsets = ifd.cachedTileOrStripOffsets();
+        final long[] byteCounts = ifd.cachedTileOrStripByteCounts();
+        assert offsets != null;
+        assert byteCounts != null;
+        final int numberOfSeparatedPlanes = numberOfSeparatedPlanes();
+        final int gridCountY = gridCountY();
+        final int gridCountX = gridCountX();
+        final int n = numberOfGridTiles();
+        assert n == gridCountX * gridCountY * numberOfSeparatedPlanes;
+        if (offsets.length != n || byteCounts.length != n) {
+            throw new IllegalStateException("IFD offsets and byteCounts has been modified " +
+                    "after creating this TIFF map: offsets.length = " + offsets.length +
+                    ", byteCounts.length = " + byteCounts.length + ", but number of grids = " + n);
+        }
+        for (int p = 0, k = 0; p < numberOfSeparatedPlanes; p++) {
+            for (int yIndex = 0; yIndex < gridCountY; yIndex++) {
+                for (int xIndex = 0; xIndex < gridCountX; xIndex++, k++) {
+                    TiffTileIndex tileIndex = index(xIndex, yIndex, p);
+                    TiffTile tile = get(tileIndex);
+                    if (tile != null && tile.isStoredInFile()) {
+                        offsets[k] = tile.getStoredInFileDataOffset();
+                        byteCounts[k] = tile.getStoredInFileDataLength();
+                    }
+                }
+            }
+        }
+        ifd.updateDataPositioning(offsets, byteCounts);
+    }
+
     @Override
     public int hashCode() {
         return super.hashCode() ^ 'w';
@@ -483,7 +530,7 @@ public final class TiffWriteMap extends TiffIOMap {
 
     @Override
     String mapKindName() {
-        return "map-for-writing";
+        return "map-for-writing" + (existing ? " (existing)" : " (new)");
     }
 
     private static void checkRequestedAreaInArray(byte[] array, long sizeX, long sizeY, int bitsPerPixel) {

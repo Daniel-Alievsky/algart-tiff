@@ -51,6 +51,8 @@ public abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, Tiff
 
     public abstract TiffIO owner();
 
+    public abstract boolean isExisting();
+
     @SuppressWarnings("resource")
     public TileSupplier simpleTileSupplier() {
         return reader()::readTile;
@@ -92,6 +94,10 @@ public abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, Tiff
         checkRequestedArea(fromX, fromY, sizeX, sizeY);
         final int sizeInBytes = sizeOfRegionWithPossibleNonStandardPrecisions(sizeX, sizeY);
         final long sizeInPixels = (long) sizeX * (long) sizeY;
+        if (!isExisting()) {
+            throw new IllegalStateException("Image data can only be read from a TIFF map for an existing IFD, " +
+                    "not for a newly created map for writing new image");
+        }
         unusualPrecisions.throwIfDisabled(this);
         assert unusualPrecisions == TiffReader.UnusualPrecisions.NONE ||
                 unusualPrecisions == TiffReader.UnusualPrecisions.UNPACK;

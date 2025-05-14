@@ -39,6 +39,9 @@ public final class TiffReadMap extends TiffIOMap {
 
     public TiffReadMap(TiffReader owner, TiffIFD ifd) {
         super(ifd, false);
+        if (!ifd.isLoadedFromFile()) {
+            throw new IllegalArgumentException("IFD must be read from TIFF file");
+        }
         this.owner = Objects.requireNonNull(owner, "Null owning reader");
     }
 
@@ -56,6 +59,11 @@ public final class TiffReadMap extends TiffIOMap {
     @Override
     public TiffReader reader() {
         return owner;
+    }
+
+    @Override
+    public boolean isExisting() {
+        return true;
     }
 
     public TiffReader.UnpackBits getAutoUnpackBits() {

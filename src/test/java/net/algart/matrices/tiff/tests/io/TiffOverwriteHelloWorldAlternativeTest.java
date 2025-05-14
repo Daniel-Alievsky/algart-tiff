@@ -64,16 +64,13 @@ public class TiffOverwriteHelloWorldAlternativeTest {
             TiffReadMap readMap = writer.reader().newMap(ifd, false);
             overwriteUsingReadMap(writeMap, readMap, x, y, sizeX, sizeY);
 
-            writeMap.completeWriting();
-            // 1) necessary to save new tile positions in the IFD
-
-            // ifd = writer.existingIFD(ifdIndex);
-            // 2) re-read ifd (not necessary)
+            writeMap.updateIFD();
+            // 1) necessary to save new tile positions in the IFD (more lightweight call than completeWriting())
 
             readMap = writer.reader().newMap(ifd, false);
-            // 3) re-initialize writeMap: necessary to switch to new reader() without any cached information
+            // 2) re-initialize writeMap: necessary to switch to new reader() without any cached information
 
-            // - Note: without calls 1 and 3 we will use the previous reader and previous IFD,
+            // - Note: without these 2 calls we will use the previous reader and previous IFD,
             // so we can load tiles from the previous positions!
 
             overwriteUsingReadMap(writeMap, readMap, x + sizeX / 2, y + sizeY / 2, sizeX, sizeY);

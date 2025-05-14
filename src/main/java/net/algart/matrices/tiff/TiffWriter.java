@@ -1232,7 +1232,8 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @param ifd                      newly created and probably customized IFD.
      * @param resizable                if <code>true</code>, IFD dimensions may not be specified yet: this argument is
-     *                                 passed to {@link TiffWriteMap#TiffWriteMap(TiffWriter, TiffIFD, boolean)}
+     *                                 passed to {@link
+     *                                 TiffWriteMap#TiffWriteMap(TiffWriter, TiffIFD, boolean, boolean)}
      *                                 constructor for creating the new map.
      * @param correctFormatForEncoding whether {@link #correctFormatForEncoding(TiffIFD)} should be called;
      *                                 usually <code>true</code>.
@@ -1252,7 +1253,7 @@ public non-sealed class TiffWriter extends TiffIO {
             correctFormatForEntireTiff(ifd);
             // - this is still necessary: ifd and TiffWriteMap must "know" about the actual file format
         }
-        final TiffWriteMap map = new TiffWriteMap(this, ifd, resizable);
+        final TiffWriteMap map = new TiffWriteMap(this, ifd, resizable, false);
         prepareNewMap(map);
         this.lastMap = map;
         return map;
@@ -1306,7 +1307,7 @@ public non-sealed class TiffWriter extends TiffIO {
             throw new IllegalArgumentException("IFD must be read from TIFF file");
         }
         correctFormatForEncoding(ifd, false);
-        final TiffWriteMap map = new TiffWriteMap(this, ifd, false);
+        final TiffWriteMap map = new TiffWriteMap(this, ifd, false, true);
         final long[] offsets = ifd.cachedTileOrStripOffsets();
         final long[] byteCounts = ifd.cachedTileOrStripByteCounts();
         assert offsets != null;

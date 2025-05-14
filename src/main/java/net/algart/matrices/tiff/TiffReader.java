@@ -1386,9 +1386,6 @@ public non-sealed class TiffReader extends TiffIO {
 
     public TiffReadMap newMap(TiffIFD ifd, boolean builtTileGrid) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
-        if (!ifd.isLoadedFromFile()) {
-            throw new IllegalArgumentException("IFD must be read from TIFF file");
-        }
         final TiffReadMap map = new TiffReadMap(this, ifd);
         unusualPrecisions.throwIfDisabled(map);
         if (builtTileGrid) {
