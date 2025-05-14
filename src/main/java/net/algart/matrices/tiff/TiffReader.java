@@ -1255,7 +1255,7 @@ public non-sealed class TiffReader extends TiffIO {
      * {@link TiffTile#isInterleaved() interleaved} data, this method
      * {@link TiffTile#separateSamplesIfNecessary() separates} them.
      * Interleaved data are the standard for internal pixel storage for simple formats like
-     * {@link TagCompression#LZW} and may be returned by complex codecs like {@link TagCompression#JPEG_2000_LOSSLESS}.
+     * {@link TagCompression#LZW} and may be returned by complex codecs like {@link TagCompression#JPEG_2000}.
      *
      * <p>This method does 3 other corrections for some standard compression algorithms:
      * <ul>

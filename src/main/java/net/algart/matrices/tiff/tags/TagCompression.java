@@ -118,25 +118,28 @@ public enum TagCompression {
      * Default quality is chosen as for lossy JPEG-2000 formats
      * (see {@link JPEG2000Codec.JPEG2000Options#DEFAULT_NORMAL_QUALITY}).
      */
-    JPEG_2000(34712, "JPEG-2000", JPEG2000Codec::new),
+    JPEG_2000(34712, "JPEG-2000", JPEG2000Codec::new, false),
 
     /**
-     * JPEG-2000 Aperio lossless compression (type 33003).
+     * JPEG-2000 Aperio compression (type 33003).
      *
      * <p>Note that while writing TIFF in this format, {@link net.algart.matrices.tiff.TiffWriter}
      * does not try to use YCbCr encoding, as Aperio recommends for type 33003.
      */
-    JPEG_2000_LOSSLESS(33003, "JPEG-2000 lossless", JPEG2000Codec::new),
+    JPEG_2000_APERIO_PROPRIETARY(33003, "JPEG-2000 Aperio 33003",
+            JPEG2000Codec::new, false),
 
     /**
-     * JPEG-2000 Aperio lossy compression (type 33004).
+     * JPEG-2000 Aperio compression (type 33004, probably lossless).
      */
-    JPEG_2000_LOSSY(33004, "JPEG-2000 lossy", JPEG2000Codec::new),
+    JPEG_2000_APERIO_LOSSLESS(33004, "JPEG-2000 Aperio 33004 lossless",
+            JPEG2000Codec::new, true),
 
     /**
-     * JPEG-2000 Aperio lossless compression for RGB (type 33005).
+     * JPEG-2000 Aperio compression for RGB (type 33005).
      */
-    JPEG_2000_LOSSLESS_ALTERNATIVE(33005, "JPEG-2000 lossless alternative", JPEG2000Codec::new);
+    JPEG_2000_APERIO(33005, "JPEG-2000 Aperio 33005",
+            JPEG2000Codec::new, false);
 
     private static final Map<Integer, TagCompression> LOOKUP =
             Arrays.stream(values()).collect(Collectors.toMap(TagCompression::code, v -> v));
@@ -144,11 +147,17 @@ public enum TagCompression {
     private final int code;
     private final String name;
     private final Supplier<TiffCodec> codec;
+    private final Boolean jpeg2000Lossless;
 
     TagCompression(int code, String name, Supplier<TiffCodec> codec) {
+        this(code, name, codec, null);
+    }
+
+    TagCompression(int code, String name, Supplier<TiffCodec> codec, Boolean jpeg2000Lossless) {
         this.code = code;
         this.name = Objects.requireNonNull(name);
         this.codec = codec;
+        this.jpeg2000Lossless = jpeg2000Lossless;
     }
 
     public static TagCompression ofOrNull(int code) {
@@ -180,12 +189,11 @@ public enum TagCompression {
     }
 
     public boolean isJpeg2000() {
-        return this == JPEG_2000_LOSSLESS || this == JPEG_2000_LOSSLESS_ALTERNATIVE ||
-                this == JPEG_2000 || this == JPEG_2000_LOSSY;
+        return jpeg2000Lossless != null;
     }
 
     public boolean isJpeg2000Lossy() {
-        return this == JPEG_2000_LOSSY || this == JPEG_2000;
+        return jpeg2000Lossless != null && !jpeg2000Lossless;
     }
 
     public boolean isStandard() {
