@@ -44,7 +44,8 @@ public class TiffIFDTagCompressionTest {
         if (ifd.containsKey(Tags.COMPRESSION) != requiredContains) {
             throw new AssertionError("Invalid containsKey() = " + ifd.containsKey(Tags.COMPRESSION));
         }
-        System.out.printf("Compression: %s, code: %d%n", ifd.optCompression(), ifd.getCompressionCode());
+        System.out.printf("Compression: %s, code: %d, \"%s\"%n",
+                ifd.optCompression(), ifd.getCompressionCode(), ifd.compressionPrettyName());
     }
 
     public static void main(String[] args) throws TiffException {

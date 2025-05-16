@@ -29,6 +29,7 @@ import net.algart.arrays.Matrix;
 import net.algart.arrays.TooLargeArrayException;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.*;
+import net.algart.matrices.tiff.tags.TagCompression;
 
 import java.nio.ByteOrder;
 import java.util.*;
@@ -126,6 +127,7 @@ public sealed class TiffMap permits TiffIOMap {
     // SHOULD NOT store information about image sizes (like number of tiles):
     // it is probable that we do not know final sizes while creating tiles of the image!
     private final int compressionCode;
+    private final TagCompression compression;
     private final int photometricInterpretationCode;
     private volatile int dimX = 0;
     private volatile int dimY = 0;
@@ -202,6 +204,7 @@ public sealed class TiffMap permits TiffIOMap {
             this.tileSizeY = ifd.getTileSizeY();
             assert tileSizeX > 0 && tileSizeY > 0 : "non-positive tile sizes are not checked in IFD methods";
             this.compressionCode = ifd.getCompressionCode();
+            this.compression = ifd.optCompression();
             this.photometricInterpretationCode = ifd.getPhotometricInterpretationCode();
             if (hasImageDimensions) {
                 setDimensions(ifd.getImageDimX(), ifd.getImageDimY(), false);
@@ -381,6 +384,10 @@ public sealed class TiffMap permits TiffIOMap {
 
     public int compressionCode() {
         return compressionCode;
+    }
+
+    public TagCompression compression() {
+        return compression;
     }
 
     public int photometricInterpretationCode() {

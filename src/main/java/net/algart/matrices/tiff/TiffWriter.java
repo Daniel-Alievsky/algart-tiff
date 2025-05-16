@@ -947,7 +947,7 @@ public non-sealed class TiffWriter extends TiffIO {
         prepareEncoding(tile);
         long t2 = debugTime();
 
-        final TagCompression compression = TagCompression.ofOrNull(tile.compressionCode());
+        final TagCompression compression = tile.compression();
         TiffCodec codec = null;
         if (!enforceUseExternalCodec && compression != null) {
             codec = compression.codec();
@@ -2243,6 +2243,7 @@ public non-sealed class TiffWriter extends TiffIO {
             }
         }
     }
+
     private static DataHandle<? extends Location> openWithDeletingPreviousFileIfRequested(
             Path file,
             TiffCreateMode createMode)

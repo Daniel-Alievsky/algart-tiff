@@ -212,9 +212,8 @@ public enum TagCompression {
      *         usually <code>false</code>.
      */
     public boolean canUseByteOrderForByteData() {
-        return isJpeg2000();
-        // - probably even JPEG-2000 does not depend on it for byte samples, but
-        // for future compatibility we prefer to return <code>true</code> here
+        return false;
+        // - none of our codecs use byte order information for 8-bit samples
     }
 
     public TiffCodec.Options customizeReading(TiffTile tile, TiffCodec.Options options) throws TiffException {
@@ -230,7 +229,7 @@ public enum TagCompression {
 
 
     // Note: corrections, performed by this method, may be tested with the image jpeg_ycbcr_encoded_as_rgb.tiff
-    public static TiffCodec.Options customizeReadingJpeg(TiffTile tile, TiffCodec.Options options)
+    static TiffCodec.Options customizeReadingJpeg(TiffTile tile, TiffCodec.Options options)
             throws TiffException {
         TiffIFD ifd = tile.ifd();
         return new JPEGCodec.JPEGOptions()
@@ -242,7 +241,7 @@ public enum TagCompression {
     }
 
     @SuppressWarnings("RedundantThrows")
-    public static TiffCodec.Options customizeWritingJpeg(TiffTile tile, TiffCodec.Options options)
+    static TiffCodec.Options customizeWritingJpeg(TiffTile tile, TiffCodec.Options options)
             throws TiffException {
         final JPEGCodec.JPEGOptions result = new JPEGCodec.JPEGOptions().setTo(options);
         if (tile.ifd().optInt(Tags.PHOTOMETRIC_INTERPRETATION, -1) ==
@@ -252,7 +251,7 @@ public enum TagCompression {
         return result;
     }
 
-    public static JPEG2000Codec.JPEG2000Options customizeWritingJpeg2000(
+    static JPEG2000Codec.JPEG2000Options customizeWritingJpeg2000(
             TiffTile tile,
             TiffCodec.Options defaultOptions,
             boolean lossless) {

@@ -986,6 +986,20 @@ public class TiffIFD {
 
     // Note: there is no getCompression() method, which ALWAYS returns some compression:
     // we cannot be sure that we know all possible compressions!
+
+    /**
+     * Returns the compression, stored in the {@link Tags#COMPRESSION} tag, or <code>null</code>
+     * if this tag is missing or contains an unknown value.
+     *
+     * <p>Note: if you called {@link #putCompression(TagCompression)} method,
+     * then the result will be equal to its argument.
+     * This is important when you have several {@link TagCompression} objects with the same code.
+     * However, if the actual tag value in the IFD map differs from that argument
+     * (possible, for example, if you changed it by a direct call of the {@link #put(int, Object)} method),
+     * then the result will be returned based on the actual tag value stored in the map.
+     *
+     * @return TIFF compression.
+     */
     public TagCompression optCompression() {
         final int code = optInt(Tags.COMPRESSION, -1);
         if (code == -1) {
@@ -1010,7 +1024,7 @@ public class TiffIFD {
         if (code == -1) {
             return "unspecified compression";
         }
-        final TagCompression compression = TagCompression.ofOrNull(code);
+        final TagCompression compression = optCompression();
         return compression == null ? "unsupported compression " + code : compression.prettyName();
     }
 

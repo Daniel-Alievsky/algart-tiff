@@ -28,6 +28,7 @@ import net.algart.arrays.*;
 import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.data.TiffUnusualPrecisions;
+import net.algart.matrices.tiff.tags.TagCompression;
 
 import java.lang.reflect.Array;
 import java.nio.ByteOrder;
@@ -174,6 +175,10 @@ public final class TiffTile {
 
     public int compressionCode() {
         return map.compressionCode();
+    }
+
+    public TagCompression compression() {
+        return map.compression();
     }
 
     public int fromX() {
