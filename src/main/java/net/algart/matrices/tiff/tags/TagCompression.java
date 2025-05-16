@@ -29,11 +29,10 @@ import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.codecs.*;
 import net.algart.matrices.tiff.tiles.TiffTile;
 
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 /**
  * Possible values (compression types) for TIFF Compression Tag (259).
@@ -121,6 +120,12 @@ public enum TagCompression {
     JPEG_2000(34712, "JPEG-2000", JPEG2000Codec::new, false),
 
     /**
+     * The same compression code as in {@link #JPEG_2000},
+     * but the default quality is chosen as for lossless JPEG-2000 formats.
+     */
+    JPEG_2000_LOSSLESS(34712, "JPEG-2000 lossless", JPEG2000Codec::new, true),
+
+    /**
      * JPEG-2000 Aperio compression (type 33003).
      *
      * <p>Note that while writing TIFF in this format, {@link net.algart.matrices.tiff.TiffWriter}
@@ -141,8 +146,15 @@ public enum TagCompression {
     JPEG_2000_APERIO(33005, "JPEG-2000 Aperio 33005",
             JPEG2000Codec::new, false);
 
-    private static final Map<Integer, TagCompression> LOOKUP =
-            Arrays.stream(values()).collect(Collectors.toMap(TagCompression::code, v -> v));
+    private static final Map<Integer, TagCompression> LOOKUP;
+
+    static {
+        final Map<Integer, TagCompression> map = new HashMap<>();
+        for (TagCompression v : values()) {
+            map.putIfAbsent(v.code(), v);
+        }
+        LOOKUP = map;
+    }
 
     private final int code;
     private final String name;
