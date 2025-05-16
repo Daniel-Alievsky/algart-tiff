@@ -129,18 +129,18 @@ public enum TagCompression {
     // and cannot appear when parsing an existing TIFF.
 
     /**
-     * JPEG-2000 Aperio compression (type 33003).
+     * JPEG-2000 Aperio proprietary compression (type 33003).
      *
      * <p>Note that while writing TIFF in this format, {@link net.algart.matrices.tiff.TiffWriter}
      * does not try to use YCbCr encoding, as Aperio recommends for type 33003.
      */
-    JPEG_2000_APERIO_PROPRIETARY(33003, "JPEG-2000 Aperio proprietary 33003",
+    JPEG_2000_APERIO_33003(33003, "JPEG-2000 Aperio proprietary 33003",
             JPEG2000Codec::new, false),
 
     /**
      * JPEG-2000 Aperio compression (type 33004, probably lossless).
      */
-    JPEG_2000_APERIO_LOSSLESS(33004, "JPEG-2000 Aperio 33004 lossless",
+    JPEG_2000_APERIO_33004(33004, "JPEG-2000 Aperio 33004 lossless",
             JPEG2000Codec::new, true),
 
     /**
