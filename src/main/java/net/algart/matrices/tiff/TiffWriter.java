@@ -386,13 +386,14 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * <p>Possible values are format-specific.
      * For JPEG, they should be between 0.0 and 1.0 (1.0 means the best quality).
-     * For JPEG-2000, the maximal possible value is <code>Double.MAX_VALUE</code>, that means loss-less compression.
+     * For JPEG-2000, the maximal possible value is <code>Double.MAX_VALUE</code> that means lossless compression.
      *
      * <p>If this method was not called or after {@link #removeCompressionQuality()}, the compression quality is
      * not specified.
-     * In this case, some default quality will be used. In particular, it will be 1.0 for JPEG (maximal JPEG quality),
-     * 5.0 for JPEG-2000 formats, <code>Double.MAX_VALUE</code> for
-     * {@link TagCompression#JPEG_2000_APERIO_LOSSLESS} (code 33004).
+     * In this case, some default quality will be used.
+     * In particular, it will be 1.0 for JPEG (maximal JPEG quality),
+     * 5.0 for usual (lossy) JPEG-2000 formats, <code>Double.MAX_VALUE</code> for lossless JPEG-2000 like
+     * {@link TagCompression#JPEG_2000_LOSSLESS}.
      * Note that the only difference between lossless JPEG-2000 and the usual JPEG-2000 is these default values:
      * if this method is called, both compressions work identically (but write different TIFF compression tags).
      *
@@ -1291,11 +1292,13 @@ public non-sealed class TiffWriter extends TiffIO {
      * read some tiles from this IFD via {@link TiffReader} class (it is important for tiles, that you need to
      * partially fill, but partially load from the old file).</p>
      *
+     * <p>This method builds the grid ({@link TiffMap#buildTileGrid()} method). For each tile in the grid,
+     * it calls {@link TiffTile#setStoredInFileDataRange} to set the actual offset and byte counts
+     * and calls {@link TiffTile#markWholeTileAsSet()} to indicate
+     * that the tile is probably filled with actual data.</p>
+     *
      * <p>Note: this method never performs {@link #setSmartFormatCorrection(boolean) "smart correction"}
      * of the specified IFD.</p>
-     *
-     * <p>This method is used, for example, inside
-     * {@link #preloadExistingTiles(int, int, int, int, int, boolean)}.</p>
      *
      * @param ifd IFD of some existing image, probably loaded from the current TIFF file.
      * @return map for writing further data.
