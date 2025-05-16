@@ -46,7 +46,7 @@ public class TiffPrediction {
     // Analog of the function DefaultTiffService.difference
     public static void subtractPredictionIfRequested(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
-        final TagPredictor predictor = tile.ifd().optPredictor();
+        final TagPredictor predictor = tile.ifd().getPredictor();
         switch (predictor) {
             case NONE -> {
             }
@@ -59,7 +59,7 @@ public class TiffPrediction {
     // Analog of the function DefaultTiffService.undifference
     public static void unsubtractPredictionIfRequested(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
-        final TagPredictor predictor = tile.ifd().optPredictor();
+        final TagPredictor predictor = tile.ifd().getPredictor();
         switch (predictor) {
             case NONE -> {
             }

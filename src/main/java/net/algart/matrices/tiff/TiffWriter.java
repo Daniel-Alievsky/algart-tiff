@@ -1077,7 +1077,7 @@ public non-sealed class TiffWriter extends TiffIO {
             ifd.put(Tags.COMPRESSION, TiffIFD.COMPRESSION_NONE);
             // - We prefer to explicitly specify this case
         }
-        final TagCompression compression = ifd.optCompression().orElse(null);
+        final TagCompression compression = ifd.optCompression();
 
         final TagPhotometricInterpretation suggestedPhotometric =
                 ifd.containsKey(Tags.PHOTOMETRIC_INTERPRETATION) ? ifd.getPhotometricInterpretation() : null;

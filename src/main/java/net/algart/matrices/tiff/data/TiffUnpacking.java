@@ -303,7 +303,7 @@ public class TiffUnpacking {
 
     private static boolean isSimpleRearrangingBytesEnough(TiffIFD ifd, AtomicBoolean simpleNonJpegFormat)
             throws TiffException {
-        final TagCompression compression = ifd.optCompression().orElse(null);
+        final TagCompression compression = ifd.optCompression();
         final boolean advancedFormat = compression != null && (!compression.isStandard() || compression.isJpeg());
         if (simpleNonJpegFormat != null) {
             simpleNonJpegFormat.set(!advancedFormat);

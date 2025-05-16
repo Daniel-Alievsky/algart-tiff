@@ -33,7 +33,7 @@ import net.algart.matrices.tiff.tiles.TiffMap;
 
 public class TiffIFDTagPredictorTest {
     private static void check(TiffIFD ifd, TagPredictor requiredPredictor, int requiredCode, boolean requiredContains) {
-        if (ifd.optPredictor() != requiredPredictor) {
+        if (ifd.getPredictor() != requiredPredictor) {
             throw new AssertionError("Invalid predictor");
         }
         if (ifd.optPredictorCode() != requiredCode) {
@@ -51,7 +51,7 @@ public class TiffIFDTagPredictorTest {
         }
         System.out.printf("%s: %s%s; subtractPredictionIfRequested: %s%n",
                 ifd.optPredictorCode(),
-                ifd.optPredictor(),
+                ifd.getPredictor(),
                 ifd.containsKey(Tags.PREDICTOR) ? "" : " (no tag)",
                 diagnostic);
     }

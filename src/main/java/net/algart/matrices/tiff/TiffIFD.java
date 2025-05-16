@@ -199,6 +199,8 @@ public class TiffIFD {
     public static final int FILETYPE_REDUCED_IMAGE = 1;
 
     private final Map<Integer, Object> map;
+    private TagCompression detailedCompression = null;
+    // - allows clarifying optCompression() if we have several compressions with the same code
     private final LinkedHashMap<Integer, TiffEntry> detailedEntries;
     private boolean loadedFromFile = false;
     private boolean littleEndian = false;
@@ -223,6 +225,7 @@ public class TiffIFD {
         fileOffsetForWriting = ifd.fileOffsetForWriting;
         nextIFDOffset = ifd.nextIFDOffset;
         map = new LinkedHashMap<>(ifd.map);
+        detailedCompression = ifd.detailedCompression;
         detailedEntries = ifd.detailedEntries == null ? null : new LinkedHashMap<>(ifd.detailedEntries);
         subIFDType = ifd.subIFDType;
         frozen = false;
@@ -982,17 +985,23 @@ public class TiffIFD {
     }
 
     // Note: there is no getCompression() method, which ALWAYS returns some compression:
-// we cannot be sure that we know all possible compressions!
-    public Optional<TagCompression> optCompression() {
+    // we cannot be sure that we know all possible compressions!
+    public TagCompression optCompression() {
         final int code = optInt(Tags.COMPRESSION, -1);
-        return code == -1 ? Optional.empty() : Optional.ofNullable(TagCompression.ofOrNull(code));
+        if (code == -1) {
+            return null;
+        }
+        if (detailedCompression != null && detailedCompression.code() == code) {
+            return detailedCompression;
+        }
+        return TagCompression.ofOrNull(code);
     }
 
     public int optPredictorCode() {
         return optInt(Tags.PREDICTOR, TagPredictor.NONE.code());
     }
 
-    public TagPredictor optPredictor() {
+    public TagPredictor getPredictor() {
         return TagPredictor.ofOrUnknown(optPredictorCode());
     }
 
@@ -1315,23 +1324,23 @@ public class TiffIFD {
     }
 
     public boolean isStandardYCbCrNonJpeg() throws TiffException {
-        final TagCompression compression = optCompression().orElse(null);
+        final TagCompression compression = optCompression();
         return compression != null && compression.isStandard() && !compression.isJpeg() &&
                 getPhotometricInterpretation() == TagPhotometricInterpretation.Y_CB_CR;
     }
 
     public boolean isStandardCompression() {
-        final TagCompression compression = optCompression().orElse(null);
+        final TagCompression compression = optCompression();
         return compression != null && compression.isStandard();
     }
 
     public boolean isJpeg() {
-        final TagCompression compression = optCompression().orElse(null);
+        final TagCompression compression = optCompression();
         return compression != null && compression.isJpeg();
     }
 
     public boolean isStandardInvertedCompression() throws TiffException {
-        final TagCompression compression = optCompression().orElse(null);
+        final TagCompression compression = optCompression();
         return compression != null && compression.isStandard() && !compression.isJpeg() &&
                 getPhotometricInterpretation().isInvertedBrightness();
     }
@@ -1518,11 +1527,13 @@ public class TiffIFD {
         } else {
             putCompressionCode(compression.code());
         }
+        this.detailedCompression = compression;
         return this;
     }
 
     public TiffIFD putCompressionCode(int compression) {
         put(Tags.COMPRESSION, compression);
+        this.detailedCompression = null;
         return this;
     }
 
@@ -1688,10 +1699,10 @@ public class TiffIFD {
      * <p>Note: unlike {@link #putImageDimensions(long, long, boolean)},
      * this method works even when IFD is frozen by {@link #freeze()} method.
      *
-     * @param dimX new TIFF image width (<code>ImageWidth</code> tag);
-     *             must be in the range <code>1..Integer.MAX_VALUE</code>.
-     * @param dimY new TIFF image height (<code>ImageLength</code> tag);
-     *             must be in the range <code>1..Integer.MAX_VALUE</code>.
+     * @param dimX        new TIFF image width (<code>ImageWidth</code> tag);
+     *                    must be in the range <code>1..Integer.MAX_VALUE</code>.
+     * @param dimY        new TIFF image height (<code>ImageLength</code> tag);
+     *                    must be in the range <code>1..Integer.MAX_VALUE</code>.
      * @param forceUpdate whether to always update <code>ImageWidth</code> and <code>ImageLength</code> tags.
      * @return a reference to this object.
      */
