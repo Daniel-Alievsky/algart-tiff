@@ -124,6 +124,9 @@ public enum TagCompression {
      * but the default quality is chosen as for lossless JPEG-2000 formats.
      */
     JPEG_2000_LOSSLESS(34712, "JPEG-2000 lossless", JPEG2000Codec::new, true),
+    // - Note: this variant has the same code as the previous one;
+    // it must be specified AFTER: it can only be a result of setting compression for writing
+    // and cannot appear when parsing an existing TIFF.
 
     /**
      * JPEG-2000 Aperio compression (type 33003).
