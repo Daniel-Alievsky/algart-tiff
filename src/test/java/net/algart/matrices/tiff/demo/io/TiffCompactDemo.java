@@ -31,7 +31,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class TiffCompactDemo {
-    private static final int DEFAULT_MAX_IN_MEMORY_TEMP_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
+    private static final int DEFAULT_MAX_IN_MEMORY_TEMP_FILE_SIZE = 256 * 1024 * 1024; // 256 MB
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         boolean repack = false;

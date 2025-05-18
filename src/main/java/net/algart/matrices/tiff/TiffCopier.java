@@ -566,18 +566,23 @@ public final class TiffCopier {
         progressInformation.copyingTemporaryFile = true;
         try {
             long t1 = TiffIO.debugTime();
+            final long sizeInBytes;
             shouldBreak();
             // - ignore the result: no sense to break at this last stage
             if (tempBytes != null) {
-                try (DataHandle<?> sourceStream = TiffIO.getFileHandle(tiffFile)) {
-                    TiffIO.copyData(tempBytes, sourceStream);
+                sizeInBytes = tempBytes.length();
+                try (DataHandle<?> tiffStream = TiffIO.getFileHandle(tiffFile)) {
+                    final long length = TiffIO.copyFile(tempBytes, tiffStream);
+                    if (length != sizeInBytes) {
+                        throw new IOException("Copied only " + length + " bytes from  " + sizeInBytes);
+                    }
                 }
             } else {
+                sizeInBytes = Files.size(tempFile);
                 Files.copy(tempFile, tiffFile, StandardCopyOption.REPLACE_EXISTING);
             }
             if (TiffIO.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
                 long t2 = TiffIO.debugTime();
-                final long sizeInBytes = tempBytes != null ? tempBytes.length() : Files.size(tempFile);
                 LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
                         "%s copied %d bytes%s (%.3f MB) in %.3f ms, %.3f MB/s",
                         getClass().getSimpleName(),

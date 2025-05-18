@@ -103,12 +103,18 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     }
 
     @SuppressWarnings("UnusedReturnValue")
-    public static long copyData(DataHandle<?> in, DataHandle<?> out) throws IOException {
-        return copyData(in, out, in.length());
+    public static long copyFile(DataHandle<?> inputStream, DataHandle<?> outputStream) throws IOException {
+        Objects.requireNonNull(inputStream, "Null input stream");
+        Objects.requireNonNull(outputStream, "Null output stream");
+        inputStream.seek(0);
+        outputStream.seek(0);
+        final long result = copyData(inputStream, outputStream, inputStream.length());
+        outputStream.setLength(outputStream.offset());
+        return result;
     }
 
     // A simplified clone of the function DataHandles.copy without the problem with invalid generic types
-    public static long copyData(DataHandle<?> in, DataHandle<?> out, long length)
+    static long copyData(DataHandle<?> in, DataHandle<?> out, long length)
             throws IOException {
         if (length < 0) {
             throw new IllegalArgumentException("Negative length: " + length);
