@@ -557,8 +557,6 @@ public non-sealed class TiffWriter extends TiffIO {
 
     /**
      * Opens an existing TIFF file for appending new images.
-     * To use this method, you must not use the constructor with the argument
-     * <code>createNewFileAndOpen = true</code>.
      *
      * @throws IOException in the case of any I/O errors.
      */
@@ -567,9 +565,17 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Opens the TIFF file for possible appending new images if it exists, or creates a new TIFF file otherwise.
-     * To use this method, you must not use the constructor with the argument
-     * <code>createNewFileAndOpen = true</code>.
+     * Opens the TIFF file for possible appending new images if it exists, or creates a new TIFF file
+     * if there is not such a file or if exists but has a zero length.
+     *
+     * <p>Note that a zero-length file is processed in the same way as a non-existing file.
+     * It is important if you want to create a temporary TIFF file using
+     * {@link Files#createTempFile(Path, String, String, java.nio.file.attribute.FileAttribute[])
+     * Files.createTempFile} or similar methods.
+     * In this case, we should not delete this file and create it again
+     * (the behavior of the constructor called with the mode {@link TiffCreateMode#CREATE} or similar parameter):
+     * there is a chance that some other process will create the same temporary file
+     * between removing and re-creating by this class.</p>
      *
      * @throws IOException in the case of any I/O errors.
      */
@@ -587,7 +593,9 @@ public non-sealed class TiffWriter extends TiffIO {
     public final void open(boolean createIfNotExists) throws IOException {
         synchronized (fileLock) {
             resetReader();
-            if (!stream.exists()) {
+            if (!stream.exists() || stream.length() == 0L) {
+                // - Important: we ALLOW appending to zero-length files.
+                // It is necessary when creating temporary zero-length files: we should never remove/recreate it!
                 if (createIfNotExists) {
                     create();
                 } else {
@@ -639,8 +647,6 @@ public non-sealed class TiffWriter extends TiffIO {
      * Creates a new TIFF file and writes the standard TIFF header in the beginning.
      * If the file already exists before creating this object,
      * this method truncates it to a zero length before writing the header.
-     * This method is called automatically in the constructor, when it is called with the argument
-     * <code>createNewFileAndOpen = true</code>.
      *
      * @throws IOException in the case of any I/O errors.
      */
