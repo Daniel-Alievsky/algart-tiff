@@ -80,13 +80,18 @@ public enum TagCompression {
 
     /**
      * The same compression code as in {@link #JPEG},
-     * but the default photometric interpretation (when not explicitly specified)
+     * but the default photometric interpretation (when it is not explicitly specified)
      * is set to {@link TagPhotometricInterpretation#RGB}.
      * In comparison, {@link #JPEG} variant uses {@link TagPhotometricInterpretation#Y_CB_CR}
      * as the default color space: this is more typical for JPEG format.
-     * If you set photometric interpretation yourself using
+     *
+     * <p>Note: if the photometric interpretation is already set in {@link TiffIFD}, for example, using
      * {@link TiffIFD#putPhotometricInterpretation(TagPhotometricInterpretation)} method,
      * behavior of this variant and {@link #JPEG} is identical.
+     * This option makes sense when the IFD does not contain this tag,
+     * and we need to choose the default photometric interpretation.
+     * This is typically useful when creating a new IFD image with help of {@link net.algart.matrices.tiff.TiffWriter}
+     * on the base of a newly created IFD.
      *
      * <p>This compression never appears while reading TIFF by {@link net.algart.matrices.tiff.TiffReader},
      * but can be useful while writing by {@link net.algart.matrices.tiff.TiffWriter}.</p>
