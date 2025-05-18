@@ -33,10 +33,10 @@ import net.algart.matrices.tiff.awt.AWTImages;
 import net.algart.matrices.tiff.awt.UnsignedIntBuffer;
 
 import javax.imageio.IIOImage;
-import javax.imageio.ImageIO;
 import javax.imageio.ImageWriteParam;
 import javax.imageio.stream.ImageOutputStream;
 import javax.imageio.stream.MemoryCacheImageInputStream;
+import javax.imageio.stream.MemoryCacheImageOutputStream;
 import java.awt.image.*;
 import java.io.*;
 import java.util.Arrays;
@@ -404,7 +404,9 @@ public class JPEG2000Codec implements TiffCodec {
     private static void writeImage(
             final OutputStream out, final BufferedImage img,
             final JPEG2000Options options) throws IOException {
-        final ImageOutputStream ios = ImageIO.createImageOutputStream(out);
+        final ImageOutputStream ios = new MemoryCacheImageOutputStream(out);
+        // - Important: this codec is implemented for writing separate tiles, that SHOULD be not too large
+        // to be located in memory. For comparison, other codecs like DeflateCodec always work in memory.
 
         final J2KImageWriter writer = new J2KImageWriter(null);
         writer.setOutput(ios);

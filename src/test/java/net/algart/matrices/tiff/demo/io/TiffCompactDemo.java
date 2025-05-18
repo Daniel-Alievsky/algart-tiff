@@ -30,7 +30,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class TiffCopyDemo {
+public class TiffCompactDemo {
+    private static final int DEFAULT_MAX_IN_MEMORY_TEMP_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         boolean repack = false;
@@ -38,29 +39,34 @@ public class TiffCopyDemo {
             repack = true;
             startArgIndex++;
         }
-        if (args.length < startArgIndex + 2) {
+        boolean inMemory = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-inMemory")) {
+            inMemory = true;
+            startArgIndex++;
+        }
+        if (args.length < startArgIndex + 1) {
             System.out.println("Usage:");
-            System.out.printf("   [-repack] %s source.tiff target.tiff%n",
-                    TiffCopyDemo.class.getName());
+            System.out.printf("   [-repack] [-inMemory] %s file-to-compact.tiff%n",
+                    TiffCompactDemo.class.getName());
             return;
         }
-        final Path sourceFile = Paths.get(args[startArgIndex++]);
-        final Path targetFile = Paths.get(args[startArgIndex]);
-        if (!repack) {
-            System.out.printf("Direct copying %s to %s...", sourceFile, targetFile);
-            // - simplest variant of usage:
-            TiffCopier.copyFile(targetFile, sourceFile);
-        } else {
-            System.out.printf("Copying %s to %s with recompression...%n", sourceFile, targetFile);
-            final TiffCopier copier = new TiffCopier();
-            copier.setProgressUpdater(p ->
-                    System.out.printf("\rImage %d/%d, tile %d/%d...",
-                            p.imageIndex() + 1, p.imageCount(),
-                            p.tileIndex() + 1, p.tileCount()));
-            copier.setDirectCopy(false);
-            // - unnecessary (it is the default); true value means the repack copy
-            copier.copy(targetFile, sourceFile);
+        final Path tiffFile = Paths.get(args[startArgIndex++]);
+        System.out.printf("Compacting %s...%n", tiffFile);
+        final TiffCopier copier = new TiffCopier();
+        copier.setProgressUpdater(p -> {
+            if (p.isCopyingTemporaryFile()) {
+                System.out.printf("\rCopying temporary file...%20s", "");
+            } else {
+                System.out.printf("\rImage %d/%d, tile %d/%d...",
+                        p.imageIndex() + 1, p.imageCount(),
+                        p.tileIndex() + 1, p.tileCount());
+            }
+        });
+        copier.setDirectCopy(!repack);
+        if (inMemory) {
+            copier.setMaxInMemoryTempFileSize(DEFAULT_MAX_IN_MEMORY_TEMP_FILE_SIZE);
         }
+        copier.compact(tiffFile);
         System.out.printf("%nDone%n");
     }
 }

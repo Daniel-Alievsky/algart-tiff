@@ -29,6 +29,7 @@ import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.*;
 import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
+import org.scijava.io.location.BytesLocation;
 
 import java.io.IOException;
 import java.nio.ByteOrder;
@@ -56,6 +57,7 @@ public final class TiffCopier {
         private int imageCount = 0;
         private int tileIndex = 0;
         private int tileCount = 0;
+        private boolean copyingTemporaryFile = false;
 
         public TiffCopier copier() {
             return TiffCopier.this;
@@ -83,6 +85,10 @@ public final class TiffCopier {
 
         public boolean isLastTileCopied() {
             return tileIndex == tileCount - 1;
+        }
+
+        public boolean isCopyingTemporaryFile() {
+            return copyingTemporaryFile;
         }
     }
 
@@ -127,16 +133,29 @@ public final class TiffCopier {
     }
 
     /**
-     * Sets the threshold used by {@link #copyInPlace(Path)} method.
-     * If the source TIFF file size is not less than this limit, the source TIFF file
+     * Sets the threshold used by {@link #compact(Path)} method.
+     * If the source TIFF file size is not longer than this limit, the source TIFF file
      * is copied to temporary "file" in memory ({@link BytesHandle},
-     * otherwise we create a real temporary file using {@link Files#create}
-     * for
+     * otherwise we create a real temporary file using
+     * {@link Files#createTempFile(Path, String, String, java.nio.file.attribute.FileAttribute[])
+     * Files.createTempFile} method.
      *
-     * @param maxInMemoryTempFileSize
-     * @return
+     * <p>The default value is 0, which means that this feature is disabled.
+     * You may set this limit to some value like 100 MB, depending on the available memory.
+     * Please note that the actual size of the temporary file may become larger than this limit;
+     * for example, this is possible when the source TIFF contains multiple tiles with identical offsets.
+     * Another possible situation &mdash; if you enforce recompression of all tiles via the call
+     * {@link #setDirectCopy(boolean) setDirectCopy(false)}; however, this optimization is not as useful
+     * in the latter case.
+     *
+     * @param maxInMemoryTempFileSize maximal TIFF file size to be compacted in-memory.
+     * @return a reference to this object.
+     * @throws IllegalArgumentException if the argument is negative.
      */
     public TiffCopier setMaxInMemoryTempFileSize(int maxInMemoryTempFileSize) {
+        if (maxInMemoryTempFileSize < 0) {
+            throw new IllegalArgumentException("Negative maxInMemoryTempFileSize: " + maxInMemoryTempFileSize);
+        }
         this.maxInMemoryTempFileSize = maxInMemoryTempFileSize;
         return this;
     }
@@ -191,12 +210,19 @@ public final class TiffCopier {
         return actuallyDirectCopy;
     }
 
-    public static void copyTiff(Path targetTiffFile, Path sourceTiffFile)
+    public static void copyFile(Path targetTiffFile, Path sourceTiffFile)
             throws IOException {
-        new TiffCopier().copyFile(targetTiffFile, sourceTiffFile);
+        new TiffCopier().copy(targetTiffFile, sourceTiffFile);
     }
 
-    public void copyInPlace(Path tiffFile) throws IOException {
+    /**
+     * <i>Compacts</i> the TIFF file: copies it to itself via a temporary file (which is automatically deleted).
+     * This operation helps to reorder all IFD headers, eliminate possible fragmentation (unused space), etc.
+     *
+     * @param tiffFile file to be compacted.
+     * @throws IOException in the case of any I/O errors.
+     */
+    public void compact(Path tiffFile) throws IOException {
         Path tempFile = null;
         BytesHandle tempBytes = null;
         final boolean inMemory;
@@ -204,42 +230,42 @@ public final class TiffCopier {
             try (TiffReader reader = new TiffReader(tiffFile)) {
                 DataHandle<?> stream;
                 inMemory = reader.fileLength() <= maxInMemoryTempFileSize;
+                // - note: a correct TIFF cannot have a zero length
                 if (inMemory) {
-                    // - note: a correct TIFF cannot have zero length
-                    tempBytes = new BytesHandle();
+                    tempBytes = new BytesHandle(new BytesLocation(0));
                     stream = tempBytes;
                 } else {
                     tempFile = Files.createTempFile("temp_tiff_", ".tiff");
                     stream = TiffIO.getFileHandle(tempFile);
                 }
                 try (TiffWriter writer = new TiffWriter(stream)) {
-                    copyFile(writer, reader);
+                    copy(writer, reader);
                 }
             }
+            progressInformation.copyingTemporaryFile = true;
             if (inMemory) {
                 try (DataHandle<?> sourceStream = TiffIO.getFileHandle(tiffFile)) {
-                    TiffWriter.copyData(tempBytes, sourceStream);
+                    TiffIO.copyData(tempBytes, sourceStream);
                 }
             } else {
                 Files.copy(tempFile, tiffFile, StandardCopyOption.REPLACE_EXISTING);
             }
         } finally {
             if (tempFile != null) {
-                Files.delete(tempFile);
+//                Files.delete(tempFile);
             }
+            progressInformation.copyingTemporaryFile = false;
         }
     }
 
-    public void copyFile(Path targetTiffFile, Path sourceTiffFile) throws IOException {
+    public void copy(Path targetTiffFile, Path sourceTiffFile) throws IOException {
         try (TiffReader reader = new TiffReader(sourceTiffFile);
              TiffWriter writer = new TiffWriter(targetTiffFile, TiffCreateMode.NO_ACTIONS)) {
-            writer.setFormatLike(reader);
-            writer.create();
-            copyAllImages(writer, reader);
+            copy(writer, reader);
         }
     }
 
-    public void copyFile(TiffWriter writer, TiffReader reader) throws IOException {
+    public void copy(TiffWriter writer, TiffReader reader) throws IOException {
         Objects.requireNonNull(writer, "Null TIFF writer");
         Objects.requireNonNull(reader, "Null TIFF reader");
         writer.setFormatLike(reader);
@@ -552,6 +578,7 @@ public final class TiffCopier {
     private void resetImageCounters() {
         progressInformation.tileIndex = 0;
         progressInformation.tileCount = 0;
+        progressInformation.copyingTemporaryFile = false;
     }
 
     private boolean shouldBreak() {

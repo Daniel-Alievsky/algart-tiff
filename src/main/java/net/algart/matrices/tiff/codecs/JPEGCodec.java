@@ -31,7 +31,6 @@ import net.algart.matrices.tiff.awt.JPEGEncoding;
 import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.DataHandleInputStream;
-import org.scijava.io.location.Location;
 
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
@@ -148,8 +147,8 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
                 extended.getPhotometricInterpretation() :
                 TagPhotometricInterpretation.Y_CB_CR;
         final double jpegQuality = Math.min(options.compressionQuality(), 1.0);
-        // - for JPEG, maximal possible quality is 1.0, but it is better to allow greater qualities
-        // (for comparison, maximal quality in JPEG-2000 is Double.MAX_VALUE)
+        // - for JPEG, the maximal possible quality is 1.0, but it is better to allow greater qualities
+        // (for comparison, the maximal quality in JPEG-2000 is Double.MAX_VALUE)
         try {
             JPEGEncoding.writeJPEG(image, output, colorSpace, jpegQuality);
         } catch (final IOException e) {

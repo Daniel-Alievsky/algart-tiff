@@ -29,6 +29,7 @@ import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 import javax.imageio.*;
 import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.stream.ImageOutputStream;
+import javax.imageio.stream.MemoryCacheImageOutputStream;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -55,7 +56,10 @@ public class JPEGEncoding {
         }
         final boolean enforceRGB = colorSpace == TagPhotometricInterpretation.RGB;
 
-        final ImageOutputStream ios = ImageIO.createImageOutputStream(out);
+        final ImageOutputStream ios = new MemoryCacheImageOutputStream(out);
+        // - Important: this codec is implemented for writing separate tiles, that SHOULD be not too large
+        // to be located in memory. For comparison, other codecs like DeflateCodec always work in memory.
+
         final ImageWriter jpegWriter = getJPEGWriter();
         jpegWriter.setOutput(ios);
 

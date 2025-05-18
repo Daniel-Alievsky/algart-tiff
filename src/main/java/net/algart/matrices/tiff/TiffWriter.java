@@ -36,7 +36,6 @@ import net.algart.matrices.tiff.tags.*;
 import net.algart.matrices.tiff.tiles.*;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.location.BytesLocation;
-import org.scijava.io.location.Location;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -2180,28 +2179,6 @@ public non-sealed class TiffWriter extends TiffIO {
                     timeWriting * 1e-6,
                     sizeInBytes / 1048576.0 / ((t5 - t1) * 1e-9)));
         }
-    }
-
-    static long copyData(DataHandle<?> in, DataHandle<?> out) throws IOException {
-        return copyData(in, out, in.length());
-    }
-
-    // A simplified clone of the function DataHandles.copy without the problem with invalid generic types
-    static long copyData(DataHandle<?> in, DataHandle<?> out, long length)
-            throws IOException {
-        if (length < 0) {
-            throw new IllegalArgumentException("Negative length: " + length);
-        }
-        final byte[] buffer = new byte[64 * 1024];
-        long result = 0;
-        while (result < length) {
-            final int len = (int) Math.min(length - result, buffer.length);
-            int actuallyRead = in.read(buffer, 0, len);
-            if (actuallyRead <= 0) break; // EOF
-            out.write(buffer, 0, actuallyRead);
-            result += actuallyRead;
-        }
-        return result;
     }
 
     private static void checkPhotometricInterpretation(

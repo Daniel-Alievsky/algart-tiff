@@ -102,6 +102,29 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return SCIFIOBridge.getDefaultScifioContext();
     }
 
+    @SuppressWarnings("UnusedReturnValue")
+    public static long copyData(DataHandle<?> in, DataHandle<?> out) throws IOException {
+        return copyData(in, out, in.length());
+    }
+
+    // A simplified clone of the function DataHandles.copy without the problem with invalid generic types
+    public static long copyData(DataHandle<?> in, DataHandle<?> out, long length)
+            throws IOException {
+        if (length < 0) {
+            throw new IllegalArgumentException("Negative length: " + length);
+        }
+        final byte[] buffer = new byte[256 * 1024];
+        long result = 0;
+        while (result < length) {
+            final int len = (int) Math.min(length - result, buffer.length);
+            int actuallyRead = in.read(buffer, 0, len);
+            if (actuallyRead <= 0) break; // EOF
+            out.write(buffer, 0, actuallyRead);
+            result += actuallyRead;
+        }
+        return result;
+    }
+
     Object scifio() {
         Object scifio = this.scifio;
         if (scifio == null) {
