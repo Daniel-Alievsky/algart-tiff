@@ -223,42 +223,37 @@ public final class TiffCopier {
      * @throws IOException in the case of any I/O errors.
      */
     public void compact(Path tiffFile) throws IOException {
-        Path tempFile = null;
-        BytesHandle tempBytes = null;
-        final boolean inMemory;
-        try {
-            try (TiffReader reader = new TiffReader(tiffFile)) {
-                DataHandle<?> stream;
-                inMemory = reader.fileLength() <= maxInMemoryTempFileSize;
-                // - note: a correct TIFF cannot have a zero length
-                if (inMemory) {
-                    tempBytes = new BytesHandle(new BytesLocation(0));
-                    stream = tempBytes;
-                } else {
+        Objects.requireNonNull(tiffFile, "Null TIFF file");
+        final boolean inMemory = Files.size(tiffFile) <= maxInMemoryTempFileSize;
+        // - note: a correct TIFF cannot have a zero length
+        if (inMemory) {
+            BytesHandle tempBytes = new BytesHandle(new BytesLocation(0));
+            try (TiffReader reader = new TiffReader(tiffFile);
+                 TiffWriter writer = new TiffWriter(tempBytes)) {
+                copy(writer, reader);
+            }
+            copyTempFileBackToTiff(tiffFile, null, tempBytes);
+        } else {
+            Path tempFile = null;
+            try {
+                try (TiffReader reader = new TiffReader(tiffFile)) {
                     tempFile = Files.createTempFile("temp_tiff_", ".tiff");
-                    stream = TiffIO.getFileHandle(tempFile);
+                    try (TiffWriter writer = new TiffWriter(tempFile, TiffCreateMode.NO_ACTIONS)) {
+                        copy(writer, reader);
+                    }
                 }
-                try (TiffWriter writer = new TiffWriter(stream)) {
-                    copy(writer, reader);
+                copyTempFileBackToTiff(tiffFile, tempFile, null);
+            } finally {
+                if (tempFile != null) {
+                    Files.delete(tempFile);
                 }
             }
-            progressInformation.copyingTemporaryFile = true;
-            if (inMemory) {
-                try (DataHandle<?> sourceStream = TiffIO.getFileHandle(tiffFile)) {
-                    TiffIO.copyData(tempBytes, sourceStream);
-                }
-            } else {
-                Files.copy(tempFile, tiffFile, StandardCopyOption.REPLACE_EXISTING);
-            }
-        } finally {
-            if (tempFile != null) {
-//                Files.delete(tempFile);
-            }
-            progressInformation.copyingTemporaryFile = false;
         }
     }
 
     public void copy(Path targetTiffFile, Path sourceTiffFile) throws IOException {
+        Objects.requireNonNull(targetTiffFile, "Null target TIFF file");
+        Objects.requireNonNull(sourceTiffFile, "Null source TIFF file");
         try (TiffReader reader = new TiffReader(sourceTiffFile);
              TiffWriter writer = new TiffWriter(targetTiffFile, TiffCreateMode.NO_ACTIONS)) {
             copy(writer, reader);
@@ -355,7 +350,6 @@ public final class TiffCopier {
                     (t4 - t1) * 1e-6,
                     (t2 - t1) * 1e-6, (t3 - t2) * 1e-6, (t4 - t3) * 1e-6,
                     sizeInBytes / 1048576.0 / ((t4 - t1) * 1e-9)));
-
         }
         return writeMap;
     }
@@ -459,7 +453,6 @@ public final class TiffCopier {
                     (t4 - t1) * 1e-6,
                     (t2 - t1) * 1e-6, (t3 - t2) * 1e-6, (t4 - t3) * 1e-6,
                     sizeInBytes / 1048576.0 / ((t4 - t1) * 1e-9)));
-
         }
         return writeMap;
     }
@@ -566,6 +559,37 @@ public final class TiffCopier {
             targetTile.copyData(sourceTile, false);
             writeMap.put(targetTile);
             writeMap.writeTile(targetTile, true);
+        }
+    }
+
+    private void copyTempFileBackToTiff(Path tiffFile, Path tempFile, BytesHandle tempBytes) throws IOException {
+        progressInformation.copyingTemporaryFile = true;
+        try {
+            long t1 = TiffIO.debugTime();
+            shouldBreak();
+            // - ignore the result: no sense to break at this last stage
+            if (tempBytes != null) {
+                try (DataHandle<?> sourceStream = TiffIO.getFileHandle(tiffFile)) {
+                    TiffIO.copyData(tempBytes, sourceStream);
+                }
+            } else {
+                Files.copy(tempFile, tiffFile, StandardCopyOption.REPLACE_EXISTING);
+            }
+            if (TiffIO.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+                long t2 = TiffIO.debugTime();
+                final long sizeInBytes = Files.size(tempFile);
+                LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
+                        "%s copied %d bytes%s (%.3f MB) in %.3f ms, %.3f MB/s",
+                        getClass().getSimpleName(),
+                        sizeInBytes,
+                        tempBytes != null ? " from memory" : "",
+                        sizeInBytes / 1048576.0,
+                        (t2 - t1) * 1e-6,
+                        sizeInBytes / 1048576.0 / ((t2 - t1) * 1e-9)));
+
+            }
+        } finally {
+            progressInformation.copyingTemporaryFile = false;
         }
     }
 
