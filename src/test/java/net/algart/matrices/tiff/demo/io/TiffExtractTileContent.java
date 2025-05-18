@@ -25,8 +25,8 @@
 package net.algart.matrices.tiff.demo.io;
 
 import net.algart.io.MatrixIO;
+import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIndex;
 
@@ -89,7 +89,7 @@ public class TiffExtractTileContent {
                     }
                 }
                 System.out.println("Done");
-                if (tile.compressionCode() == TagCompression.JPEG.code()) {
+                if (tile.compressionCode() == TiffIFD.COMPRESSION_JPEG) {
                     System.out.println();
                     System.out.println("Note: sometimes the saved JPEG will have different colors than " +
                             "the colors in the original TIFF (for example, in some SVS files).");

@@ -1086,7 +1086,7 @@ public non-sealed class TiffWriter extends TiffIO {
         // - note: it is possible that we DO NOT KNOW this newPhotometric interpretation;
         // in this case, newPhotometric will be UNKNOWN, but we should not prevent writing such an image
         // in simple formats like UNCOMPRESSED or LZW: maybe, the client knows how to process it
-        if (compression == TagCompression.JPEG) {
+        if (compression.isStandardJpeg()) {
             if (samplesPerPixel != 1 && samplesPerPixel != 3) {
                 throw new TiffException("JPEG compression for " + samplesPerPixel + " channels is not supported");
             }

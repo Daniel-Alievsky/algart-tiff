@@ -198,12 +198,13 @@ public enum TagCompression {
     public TiffCodec codec() {
         return codec == null ? null : codec.get();
     }
+
     public boolean isStandardJpeg() {
-        return this == JPEG;
+        return code == TiffIFD.COMPRESSION_JPEG;
     }
 
     public boolean isJpegOrOldJpeg() {
-        return this == JPEG || this == OLD_JPEG;
+        return isStandardJpeg() || this == OLD_JPEG;
     }
 
     public boolean isJpeg2000() {

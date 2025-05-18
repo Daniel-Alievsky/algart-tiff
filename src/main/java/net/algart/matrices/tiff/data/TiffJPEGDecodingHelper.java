@@ -62,7 +62,7 @@ public class TiffJPEGDecodingHelper {
         if (data.length < 2 || data[0] != (byte) 0xFF || data[1] != (byte) 0xD8) {
             // - the same check is performed inside Java API ImageIO (JPEGImageReaderSpi),
             // and we prefer to repeat it here for better diagnostics
-            if (compression == TagCompression.JPEG) {
+            if (compression.isStandardJpeg()) {
                 throw new TiffException(
                         "Invalid TIFF image: it is declared as JPEG, but the data are not actually JPEG");
             } else {
