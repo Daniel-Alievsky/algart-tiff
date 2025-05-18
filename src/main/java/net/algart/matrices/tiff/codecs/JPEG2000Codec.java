@@ -405,7 +405,7 @@ public class JPEG2000Codec implements TiffCodec {
             final OutputStream out, final BufferedImage img,
             final JPEG2000Options options) throws IOException {
         final ImageOutputStream ios = new MemoryCacheImageOutputStream(out);
-        // - Important: this codec is implemented for writing separate tiles, that SHOULD be not too large
+        // - Important: this codec is implemented for writing separate tiles, which SHOULD be not too large
         // to be located in memory. For comparison, other codecs like DeflateCodec always work in memory.
 
         final J2KImageWriter writer = new J2KImageWriter(null);

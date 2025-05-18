@@ -30,12 +30,12 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import javax.imageio.IIOException;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReadParam;
 import javax.imageio.ImageReader;
 import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.stream.ImageInputStream;
+import javax.imageio.stream.MemoryCacheImageInputStream;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
@@ -54,19 +54,18 @@ public class JPEGDecoding {
      * Also reads metadata (but not thumbnails).
      */
     public static ImageInformation readJPEG(InputStream in) throws IOException {
-        ImageInputStream stream = ImageIO.createImageInputStream(in);
-        if (stream == null) {
-            throw new IIOException("Cannot decompress JPEG tile");
-        }
-        ImageReader reader = getImageReaderOrNull(stream);
+        final ImageInputStream stream = new MemoryCacheImageInputStream(in);
+        // - Important: this codec is implemented for reading separate tiles, which SHOULD be not too large
+        // to be located in memory. For comparison, other codecs like DeflateCodec always work in memory.
+        final ImageReader reader = getImageReaderOrNull(stream);
         if (reader == null) {
             return null;
         }
-        ImageReadParam param = reader.getDefaultReadParam();
+        final ImageReadParam param = reader.getDefaultReadParam();
         reader.setInput(stream, true, true);
         try {
-            IIOMetadata imageMetadata = reader.getImageMetadata(0);
-            BufferedImage image = reader.read(0, param);
+            final IIOMetadata imageMetadata = reader.getImageMetadata(0);
+            final BufferedImage image = reader.read(0, param);
             return new ImageInformation(image, imageMetadata);
         } finally {
             reader.dispose();
