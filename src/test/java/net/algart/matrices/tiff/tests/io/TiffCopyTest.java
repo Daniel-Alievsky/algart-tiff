@@ -70,7 +70,8 @@ public class TiffCopyTest {
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
             System.out.println("    " + TiffCopyTest.class.getName()
-                    + " [-direct] source.tif target.tif [firstIFDIndex lastIFDIndex [numberOfTests]]");
+                    + " [-repack] [-smart] [-le|-be] " +
+                    "source.tif target.tif [firstIFDIndex lastIFDIndex [numberOfTests]]");
             return;
         }
         final Path sourceFile = Paths.get(args[startArgIndex++]);
@@ -136,8 +137,8 @@ public class TiffCopyTest {
                         copier.setDirectCopy(!repack);
                         copier.copyImage(writer, readMap, 0, 0, readMap.dimX(), readMap.dimY());
                     } else if (!repack && byteOrder == null && !uncompress) {
-                        // - below is an example of the simplest usage for a single IFD image
                         System.out.printf("\r  Direct copying #%d/%d: %s%n", ifdIndex, maps.size(), readMap.ifd());
+                        // - below is an example of the simplest usage for a single IFD image:
                         new TiffCopier().copyImage(writer, readMap);
                     } else {
                         System.out.printf("\r  %s #%d/%d: %s%n",

@@ -167,9 +167,9 @@ public final class TiffCopier {
         return actuallyDirectCopy;
     }
 
-    public static void copyAll(Path targetTiffFile, Path sourceTiffFile, boolean directCopy)
+    public static void copyFile(Path targetTiffFile, Path sourceTiffFile)
             throws IOException {
-        new TiffCopier().setDirectCopy(directCopy).copyAll(targetTiffFile, sourceTiffFile);
+        new TiffCopier().copyAll(targetTiffFile, sourceTiffFile);
     }
 
     public void copyAll(Path targetTiffFile, Path sourceTiffFile) throws IOException {

@@ -33,31 +33,32 @@ import java.nio.file.Paths;
 public class TiffCopyDemo {
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
-        boolean direct = false;
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-direct")) {
-            direct = true;
+        boolean repack = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-repack")) {
+            repack = true;
             startArgIndex++;
         }
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
-            System.out.printf("   [-direct] %s source.tiff target.tiff%n",
+            System.out.printf("   [-repack] %s source.tiff target.tiff%n",
                     TiffCopyDemo.class.getName());
             return;
         }
         final Path sourceFile = Paths.get(args[startArgIndex++]);
         final Path targetFile = Paths.get(args[startArgIndex]);
-        if (direct) {
+        if (!repack) {
             System.out.printf("Direct copying %s to %s...", sourceFile, targetFile);
-            TiffCopier.copyAll(targetFile, sourceFile, true);
+            // - simplest variant of usage:
+            TiffCopier.copyFile(targetFile, sourceFile);
         } else {
             System.out.printf("Copying %s to %s with recompression...%n", sourceFile, targetFile);
-            final var copier = new TiffCopier().setDirectCopy(direct);
+            final TiffCopier copier = new TiffCopier().setDirectCopy(false);
             copier.setProgressUpdater(p ->
                     System.out.printf("\rImage %d/%d, tile %d/%d...",
                             p.imageIndex() + 1, p.imageCount(),
                             p.tileIndex() + 1, p.tileCount()));
             copier.setDirectCopy(false);
-            // - unnecessary (it is the default); true value means the direct copy
+            // - unnecessary (it is the default); true value means the repack copy
             copier.copyAll(targetFile, sourceFile);
         }
         System.out.printf("%nDone%n");
