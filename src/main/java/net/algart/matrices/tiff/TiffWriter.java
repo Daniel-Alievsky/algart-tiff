@@ -111,7 +111,7 @@ public non-sealed class TiffWriter extends TiffIO {
 
     /**
      * Equivalent to <code>new {@link #TiffWriter(Path, TiffCreateMode)
-     * TiffWriter}(file, {@link TiffCreateMode#NO_ACTIONS NO_ACTIONS)}</code>.
+     * TiffWriter}(file, {@link TiffCreateMode#NO_ACTIONS TiffCreateMode.NO_ACTIONS)}</code>.
      *
      * <p>Note: unlike classes like {@link java.io.FileWriter},
      * this constructor <b>does not try to open or create file</b>.
@@ -204,7 +204,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @param outputStream output stream.
      */
-    public TiffWriter(DataHandle<? extends Location> outputStream) {
+    public TiffWriter(DataHandle<?> outputStream) {
         super(outputStream);
         // - we do not use WriteBufferDataHandle here: this is not too important for efficiency
     }
@@ -1652,7 +1652,7 @@ public non-sealed class TiffWriter extends TiffIO {
         final long afterMain = startOffset + mainIFDLength;
         final BytesLocation bytesLocation = new BytesLocation(0, "memory-buffer");
         final long positionOfNextOffset;
-        try (final DataHandle<? extends Location> extraBuffer = getBytesHandle(bytesLocation)) {
+        try (final DataHandle<?> extraBuffer = getBytesHandle(bytesLocation)) {
             extraBuffer.setLittleEndian(isLittleEndian());
             for (final Map.Entry<Integer, Object> e : ifd.entrySet()) {
                 writeIFDValueAtCurrentPosition(extraBuffer, afterMain, e.getKey(), e.getValue());
@@ -1689,7 +1689,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param value                    IFD value to write.
      */
     private void writeIFDValueAtCurrentPosition(
-            final DataHandle<? extends Location> extraBuffer,
+            final DataHandle<?> extraBuffer,
             final long bufferOffsetInResultFile,
             final int tag,
             Object value) throws IOException {
@@ -1987,7 +1987,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * 'bigTiff' flag is set, then the value will be written as an 8-byte long;
      * otherwise, it will be written as a 4-byte integer.
      */
-    private void writeIntOrLong(DataHandle<? extends Location> handle, long value) throws IOException {
+    private void writeIntOrLong(DataHandle<?> handle, long value) throws IOException {
         if (bigTiff) {
             handle.writeLong(value);
         } else {
@@ -2000,7 +2000,7 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    private void writeIntOrLong(DataHandle<? extends Location> handle, int value) throws IOException {
+    private void writeIntOrLong(DataHandle<?> handle, int value) throws IOException {
         if (bigTiff) {
             handle.writeLong(value);
         } else {
@@ -2008,14 +2008,14 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    private static void writeUnsignedShort(DataHandle<? extends Location> handle, int value) throws IOException {
+    private static void writeUnsignedShort(DataHandle<?> handle, int value) throws IOException {
         if (value < 0 || value > 0xFFFF) {
             throw new TiffException("Attempt to write 32-bit value as 16-bit: " + value);
         }
         handle.writeShort(value);
     }
 
-    private static void writeUnsignedByte(DataHandle<? extends Location> handle, int value) throws IOException {
+    private static void writeUnsignedByte(DataHandle<?> handle, int value) throws IOException {
         if (value < 0 || value > 0xFF) {
             throw new TiffException("Attempt to write 16/32-bit value as 8-bit: " + value);
         }
@@ -2069,7 +2069,7 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    private static void appendUntilEvenPosition(DataHandle<? extends Location> handle) throws IOException {
+    private static void appendUntilEvenPosition(DataHandle<?> handle) throws IOException {
         if ((handle.offset() & 0x1) != 0) {
 //            System.out.println("Correction " + handle.offset());
             handle.writeByte(0);
@@ -2182,8 +2182,12 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
+    static long copyData(DataHandle<?> in, DataHandle<?> out) throws IOException {
+        return copyData(in, out, in.length());
+    }
+
     // A simplified clone of the function DataHandles.copy without the problem with invalid generic types
-    private static long copyData(DataHandle<? extends Location> in, DataHandle<? extends Location> out, long length)
+    static long copyData(DataHandle<?> in, DataHandle<?> out, long length)
             throws IOException {
         if (length < 0) {
             throw new IllegalArgumentException("Negative length: " + length);
@@ -2216,7 +2220,7 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    private static DataHandle<? extends Location> openWithDeletingPreviousFileIfRequested(
+    private static DataHandle<?> openWithDeletingPreviousFileIfRequested(
             Path file,
             TiffCreateMode createMode)
             throws IOException {

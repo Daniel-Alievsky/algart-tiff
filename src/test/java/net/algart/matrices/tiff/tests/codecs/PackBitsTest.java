@@ -40,7 +40,7 @@ public class PackBitsTest {
     // Note: for invalid data, this algorithm can generate extra "unpacked" bytes
     // (it does not check that in.read() is -1 or in.read(b) < b.length).
     private static byte[] oldDecompress(byte[] bytes, int maxSizeInBytes) throws IOException {
-        try (DataHandle<? extends Location> in = new BytesHandle(new BytesLocation(bytes))) {
+        try (DataHandle<?> in = new BytesHandle(new BytesLocation(bytes))) {
             final long fp = in.offset();
             // Adapted from the TIFF 6.0 specification, page 42.
             final ByteArrayOutputStream output = new ByteArrayOutputStream(1024);

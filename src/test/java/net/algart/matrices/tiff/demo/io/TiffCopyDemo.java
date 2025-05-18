@@ -49,7 +49,7 @@ public class TiffCopyDemo {
         if (!repack) {
             System.out.printf("Direct copying %s to %s...", sourceFile, targetFile);
             // - simplest variant of usage:
-            TiffCopier.copyFile(targetFile, sourceFile);
+            TiffCopier.copyTiff(targetFile, sourceFile);
         } else {
             System.out.printf("Copying %s to %s with recompression...%n", sourceFile, targetFile);
             final TiffCopier copier = new TiffCopier().setDirectCopy(false);
@@ -59,7 +59,7 @@ public class TiffCopyDemo {
                             p.tileIndex() + 1, p.tileCount()));
             copier.setDirectCopy(false);
             // - unnecessary (it is the default); true value means the repack copy
-            copier.copyAll(targetFile, sourceFile);
+            copier.copyFile(targetFile, sourceFile);
         }
         System.out.printf("%nDone%n");
     }

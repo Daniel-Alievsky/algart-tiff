@@ -27,10 +27,14 @@ package net.algart.matrices.tiff;
 import net.algart.arrays.JArrays;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.*;
+import org.scijava.io.handle.BytesHandle;
+import org.scijava.io.handle.DataHandle;
 
 import java.io.IOException;
 import java.nio.ByteOrder;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -86,6 +90,7 @@ public final class TiffCopier {
     private static final boolean LOGGABLE_DEBUG = LOG.isLoggable(System.Logger.Level.DEBUG);
 
     private boolean directCopy = true;
+    private int maxInMemoryTempFileSize = 0;
     private IFDCorrector ifdCorrector = null;
     private Consumer<ProgressInformation> progressUpdater = null;
     private BooleanSupplier interruptionChecker = null;
@@ -114,6 +119,25 @@ public final class TiffCopier {
      */
     public TiffCopier setDirectCopy(boolean directCopy) {
         this.directCopy = directCopy;
+        return this;
+    }
+
+    public int getMaxInMemoryTempFileSize() {
+        return maxInMemoryTempFileSize;
+    }
+
+    /**
+     * Sets the threshold used by {@link #copyInPlace(Path)} method.
+     * If the source TIFF file size is not less than this limit, the source TIFF file
+     * is copied to temporary "file" in memory ({@link BytesHandle},
+     * otherwise we create a real temporary file using {@link Files#create}
+     * for
+     *
+     * @param maxInMemoryTempFileSize
+     * @return
+     */
+    public TiffCopier setMaxInMemoryTempFileSize(int maxInMemoryTempFileSize) {
+        this.maxInMemoryTempFileSize = maxInMemoryTempFileSize;
         return this;
     }
 
@@ -167,21 +191,63 @@ public final class TiffCopier {
         return actuallyDirectCopy;
     }
 
-    public static void copyFile(Path targetTiffFile, Path sourceTiffFile)
+    public static void copyTiff(Path targetTiffFile, Path sourceTiffFile)
             throws IOException {
-        new TiffCopier().copyAll(targetTiffFile, sourceTiffFile);
+        new TiffCopier().copyFile(targetTiffFile, sourceTiffFile);
     }
 
-    public void copyAll(Path targetTiffFile, Path sourceTiffFile) throws IOException {
-        try (TiffReader reader = new TiffReader(sourceTiffFile);
-             TiffWriter writer = new TiffWriter(targetTiffFile)) {
-            writer.setFormatLike(reader);
-            writer.create();
-            copyAll(writer, reader);
+    public void copyInPlace(Path tiffFile) throws IOException {
+        Path tempFile = null;
+        BytesHandle tempBytes = null;
+        final boolean inMemory;
+        try {
+            try (TiffReader reader = new TiffReader(tiffFile)) {
+                DataHandle<?> stream;
+                inMemory = reader.fileLength() <= maxInMemoryTempFileSize;
+                if (inMemory) {
+                    // - note: a correct TIFF cannot have zero length
+                    tempBytes = new BytesHandle();
+                    stream = tempBytes;
+                } else {
+                    tempFile = Files.createTempFile("temp_tiff_", ".tiff");
+                    stream = TiffIO.getFileHandle(tempFile);
+                }
+                try (TiffWriter writer = new TiffWriter(stream)) {
+                    copyFile(writer, reader);
+                }
+            }
+            if (inMemory) {
+                try (DataHandle<?> sourceStream = TiffIO.getFileHandle(tiffFile)) {
+                    TiffWriter.copyData(tempBytes, sourceStream);
+                }
+            } else {
+                Files.copy(tempFile, tiffFile, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } finally {
+            if (tempFile != null) {
+                Files.delete(tempFile);
+            }
         }
     }
 
-    public void copyAll(TiffWriter writer, TiffReader reader) throws IOException {
+    public void copyFile(Path targetTiffFile, Path sourceTiffFile) throws IOException {
+        try (TiffReader reader = new TiffReader(sourceTiffFile);
+             TiffWriter writer = new TiffWriter(targetTiffFile, TiffCreateMode.NO_ACTIONS)) {
+            writer.setFormatLike(reader);
+            writer.create();
+            copyAllImages(writer, reader);
+        }
+    }
+
+    public void copyFile(TiffWriter writer, TiffReader reader) throws IOException {
+        Objects.requireNonNull(writer, "Null TIFF writer");
+        Objects.requireNonNull(reader, "Null TIFF reader");
+        writer.setFormatLike(reader);
+        writer.create();
+        copyAllImages(writer, reader);
+    }
+
+    public void copyAllImages(TiffWriter writer, TiffReader reader) throws IOException {
         Objects.requireNonNull(writer, "Null TIFF writer");
         Objects.requireNonNull(reader, "Null TIFF reader");
         resetAllCounters();

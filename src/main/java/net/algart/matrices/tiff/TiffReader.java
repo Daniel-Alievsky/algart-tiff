@@ -237,7 +237,7 @@ public non-sealed class TiffReader extends TiffIO {
      * @throws TiffException if the file is not a correct TIFF file
      * @throws IOException   in the case of any problems with the input file
      */
-    public TiffReader(DataHandle<? extends Location> inputStream, TiffOpenMode openMode) throws IOException {
+    public TiffReader(DataHandle<?> inputStream, TiffOpenMode openMode) throws IOException {
         this(inputStream, openMode, false);
     }
 
@@ -280,7 +280,7 @@ public non-sealed class TiffReader extends TiffIO {
      * @throws IOException   in the case of any problems with the input file.
      */
     public TiffReader(
-            DataHandle<? extends Location> inputStream,
+            DataHandle<?> inputStream,
             TiffOpenMode openMode,
             boolean closeStreamOnException)
             throws IOException {
@@ -337,7 +337,7 @@ public non-sealed class TiffReader extends TiffIO {
      *                         constructor {@link #TiffReader(DataHandle, TiffOpenMode, boolean)}
      *                         with catching exception.
      */
-    public TiffReader(DataHandle<? extends Location> inputStream, Consumer<Exception> exceptionHandler) {
+    public TiffReader(DataHandle<?> inputStream, Consumer<Exception> exceptionHandler) {
         super(inputStream instanceof ReadBufferDataHandle ?
                 inputStream :
                 new ReadBufferDataHandle<>(inputStream));
@@ -2233,9 +2233,7 @@ public non-sealed class TiffReader extends TiffIO {
         return result;
     }
 
-    private static DataHandle<? extends Location> checkNonNull(
-            DataHandle<? extends Location> inputStream,
-            TiffOpenMode openMode) {
+    private static DataHandle<?> checkNonNull(DataHandle<?> inputStream, TiffOpenMode openMode) {
         Objects.requireNonNull(inputStream, "Null input stream");
         Objects.requireNonNull(openMode, "Null open mode");
         return inputStream;

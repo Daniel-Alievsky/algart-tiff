@@ -1,4 +1,3 @@
-
 /*
  * The MIT License (MIT)
  *
@@ -23,37 +22,43 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.codecs;
+package net.algart.matrices.tiff;
 
-import net.algart.matrices.tiff.TiffException;
 import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
-import org.scijava.io.location.BytesLocation;
-import org.scijava.io.location.Location;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
-abstract class StreamTiffCodec implements TiffCodec {
-    @Override
-    public byte[] decompress(byte[] data, Options options) throws TiffException {
-        try {
-            try (DataHandle<?> handle = new BytesHandle(new BytesLocation(data))) {
-                return decompress(handle, options);
+@FunctionalInterface
+public interface TempTiffFileCreator {
+    DataHandle<?> createTempFile(TiffReader existingTiffReader) throws IOException;
+
+    class Default implements TempTiffFileCreator {
+        private long maxTiffFileSizeForMemory = 1024 * 1024 * 1024L;
+
+        public long getMaxTiffFileSizeForMemory() {
+            return maxTiffFileSizeForMemory;
+        }
+
+        public Default setMaxTiffFileSizeForMemory(long maxTiffFileSizeForMemory) {
+            if (maxTiffFileSizeForMemory < 0) {
+                throw new IllegalArgumentException("Negative maxTiffFileSizeForMemory = " + maxTiffFileSizeForMemory);
             }
-        } catch (IOException e) {
-            throw e instanceof TiffException tiffException ? tiffException : new TiffException(e);
-            // - last variant is very improbable
+            this.maxTiffFileSizeForMemory = maxTiffFileSizeForMemory;
+            return this;
+        }
+
+        @Override
+        public DataHandle<?> createTempFile(TiffReader existingTiffReader) throws IOException {
+            if (existingTiffReader.fileLength() < maxTiffFileSizeForMemory) {
+                return new BytesHandle();
+
+            }
+            Path tempFile = Files.createTempFile(null, null);
+            tempFile.toFile().deleteOnExit();
+            return TiffIO.getFileHandle(tempFile);
         }
     }
-
-
-    /**
-     * Decompresses data from the given DataHandle.
-     *
-     * @param in      The stream from which to read compressed data.
-     * @param options Options to be used during decompression.
-     * @return The decompressed data.
-     * @throws TiffException If data is not valid, compressed data for this decompressor.
-     */
-    abstract byte[] decompress(DataHandle<?> in, Options options) throws IOException;
 }

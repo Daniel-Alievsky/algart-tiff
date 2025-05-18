@@ -53,20 +53,20 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
     static final boolean BUILT_IN_TIMING = getBooleanProperty("net.algart.matrices.tiff.timing");
 
-    final DataHandle<? extends Location> stream;
+    final DataHandle<?> stream;
     final Object fileLock = new Object();
 
     volatile Context context = null;
     volatile Object scifio = null;
 
-    public TiffIO(DataHandle<? extends Location> stream) {
+    public TiffIO(DataHandle<?> stream) {
         this.stream = Objects.requireNonNull(stream, "Null data handle (input/output stream)");
     }
 
     /**
      * Returns the input/output stream for operation with this TIFF file.
      */
-    public DataHandle<? extends Location> stream() {
+    public DataHandle<?> stream() {
         synchronized (fileLock) {
             // - we prefer not to return this stream in the middle of I/O operations
             return stream;
@@ -123,7 +123,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
     // Note used in the current version.
     // It was used in the TiffReader constructor with Path argument: see comments in its implementation.
-    static DataHandle<? extends Location> getExistingFileHandle(Path file) throws FileNotFoundException {
+    static DataHandle<?> getExistingFileHandle(Path file) throws FileNotFoundException {
         if (!Files.isRegularFile(file)) {
             throw new FileNotFoundException("File " + file
                     + (Files.exists(file) ? " is not a regular file" : " does not exist"));
@@ -131,7 +131,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return getFileHandle(file);
     }
 
-    static DataHandle<? extends Location> getFileHandle(Path file) {
+    static DataHandle<?> getFileHandle(Path file) {
         Objects.requireNonNull(file, "Null file");
         FileHandle fileHandle = new FileHandle(new FileLocation(file.toFile()));
         fileHandle.setLittleEndian(false);
@@ -140,12 +140,12 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return fileHandle;
     }
 
-    static DataHandle<? extends Location> getBytesHandle(BytesLocation bytesLocation) {
+    static DataHandle<?> getBytesHandle(BytesLocation bytesLocation) {
         Objects.requireNonNull(bytesLocation, "Null bytesLocation");
         return new BytesHandle(bytesLocation);
     }
 
-    static DataHandle<? extends Location> getFileHandle(FileLocation fileLocation) {
+    static DataHandle<?> getFileHandle(FileLocation fileLocation) {
         Objects.requireNonNull(fileLocation, "Null fileLocation");
         FileHandle fileHandle = new FileHandle(fileLocation);
         fileHandle.setLittleEndian(false);
@@ -158,7 +158,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return BUILT_IN_TIMING && LOGGABLE_DEBUG ? System.nanoTime() : 0;
     }
 
-    static String prettyFileName(String format, DataHandle<? extends Location> handle) {
+    static String prettyFileName(String format, DataHandle<?> handle) {
         if (handle == null) {
             return "";
         }
@@ -173,6 +173,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return format.formatted(uri);
     }
 
+    @SuppressWarnings("SameParameterValue")
     static boolean getBooleanProperty(String propertyName) {
         try {
             return Boolean.getBoolean(propertyName);

@@ -127,7 +127,7 @@ public class TiffCopy {
                 writer.setCompressionQuality(quality);
             }
             writer.create();
-            copier.copyAll(writer, reader);
+            copier.copyAllImages(writer, reader);
         }
         final long t2 = System.nanoTime();
         System.out.printf(Locale.US, "Copying finished in %.3f seconds%n",  (t2 - t1) * 1e-9);
