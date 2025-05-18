@@ -577,7 +577,7 @@ public final class TiffCopier {
             }
             if (TiffIO.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
                 long t2 = TiffIO.debugTime();
-                final long sizeInBytes = Files.size(tempFile);
+                final long sizeInBytes = tempBytes != null ? tempBytes.length() : Files.size(tempFile);
                 LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
                         "%s copied %d bytes%s (%.3f MB) in %.3f ms, %.3f MB/s",
                         getClass().getSimpleName(),
