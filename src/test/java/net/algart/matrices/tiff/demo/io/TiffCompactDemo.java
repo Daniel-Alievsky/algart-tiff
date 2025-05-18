@@ -66,7 +66,9 @@ public class TiffCompactDemo {
         if (inMemory) {
             copier.setMaxInMemoryTempFileSize(DEFAULT_MAX_IN_MEMORY_TEMP_FILE_SIZE);
         }
+        long t1 = System.nanoTime();
         copier.compact(tiffFile);
-        System.out.printf("%nDone%n");
+        long t2 = System.nanoTime();
+        System.out.printf("%nDone in %.3f seconds%n", (t2 - t1) * 1e-9);
     }
 }

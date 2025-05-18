@@ -582,7 +582,7 @@ public final class TiffCopier {
                         "%s copied %d bytes%s (%.3f MB) in %.3f ms, %.3f MB/s",
                         getClass().getSimpleName(),
                         sizeInBytes,
-                        tempBytes != null ? " from memory" : "",
+                        tempBytes != null ? " from memory" : " from temporary file",
                         sizeInBytes / 1048576.0,
                         (t2 - t1) * 1e-6,
                         sizeInBytes / 1048576.0 / ((t2 - t1) * 1e-9)));
