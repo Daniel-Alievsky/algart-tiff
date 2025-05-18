@@ -27,12 +27,19 @@ package net.algart.matrices.tiff;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.Tags;
 import org.scijava.Context;
+import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
+import org.scijava.io.handle.FileHandle;
+import org.scijava.io.location.BytesLocation;
+import org.scijava.io.location.FileLocation;
 import org.scijava.io.location.Location;
 
 import java.io.Closeable;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Objects;
 
 public sealed abstract class TiffIO implements Closeable permits TiffReader, TiffWriter{
@@ -112,6 +119,39 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     " is not supported without external codecs");
         }
         return scifio;
+    }
+
+    // Note used in the current version.
+    // It was used in the TiffReader constructor with Path argument: see comments in its implementation.
+    static DataHandle<? extends Location> getExistingFileHandle(Path file) throws FileNotFoundException {
+        if (!Files.isRegularFile(file)) {
+            throw new FileNotFoundException("File " + file
+                    + (Files.exists(file) ? " is not a regular file" : " does not exist"));
+        }
+        return getFileHandle(file);
+    }
+
+    static DataHandle<? extends Location> getFileHandle(Path file) {
+        Objects.requireNonNull(file, "Null file");
+        FileHandle fileHandle = new FileHandle(new FileLocation(file.toFile()));
+        fileHandle.setLittleEndian(false);
+        // - in the current implementation it is an extra operator: BigEndian is defaulted in scijava;
+        // but we want to be sure that this behavior will be the same in all future versions
+        return fileHandle;
+    }
+
+    static DataHandle<? extends Location> getBytesHandle(BytesLocation bytesLocation) {
+        Objects.requireNonNull(bytesLocation, "Null bytesLocation");
+        return new BytesHandle(bytesLocation);
+    }
+
+    static DataHandle<? extends Location> getFileHandle(FileLocation fileLocation) {
+        Objects.requireNonNull(fileLocation, "Null fileLocation");
+        FileHandle fileHandle = new FileHandle(fileLocation);
+        fileHandle.setLittleEndian(false);
+        // - in the current implementation it is an extra operator: BigEndian is defaulted in scijava;
+        // but we want to be sure that this behavior will be the same in all future versions
+        return fileHandle;
     }
 
     static long debugTime() {

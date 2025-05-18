@@ -124,7 +124,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param file output TIFF tile.
      */
     public TiffWriter(Path file) {
-        this(TiffReader.getFileHandle(file));
+        this(getFileHandle(file));
     }
 
     /**
@@ -1646,7 +1646,7 @@ public non-sealed class TiffWriter extends TiffIO {
         final long afterMain = startOffset + mainIFDLength;
         final BytesLocation bytesLocation = new BytesLocation(0, "memory-buffer");
         final long positionOfNextOffset;
-        try (final DataHandle<? extends Location> extraBuffer = TiffReader.getBytesHandle(bytesLocation)) {
+        try (final DataHandle<? extends Location> extraBuffer = getBytesHandle(bytesLocation)) {
             extraBuffer.setLittleEndian(isLittleEndian());
             for (final Map.Entry<Integer, Object> e : ifd.entrySet()) {
                 writeIFDValueAtCurrentPosition(extraBuffer, afterMain, e.getKey(), e.getValue());
@@ -2219,6 +2219,6 @@ public non-sealed class TiffWriter extends TiffIO {
         if (createMode.isForceCreateNewFile()) {
             Files.deleteIfExists(file);
         }
-        return TiffReader.getFileHandle(file);
+        return getFileHandle(file);
     }
 }
