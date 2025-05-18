@@ -76,17 +76,26 @@ public enum TagCompression {
     /**
      * JPEG compression (type 7).
      */
-    JPEG(TiffIFD.COMPRESSION_JPEG, "JPEG", JPEGCodec::new) {
-        @Override
-        public TiffCodec.Options customizeReading(TiffTile tile, TiffCodec.Options options) throws TiffException {
-            return customizeReadingJpeg(tile, options);
-        }
+    JPEG(TiffIFD.COMPRESSION_JPEG, "JPEG", JPEGCodec::new),
 
-        @Override
-        public TiffCodec.Options customizeWriting(TiffTile tile, TiffCodec.Options options) throws TiffException {
-            return customizeWritingJpeg(tile, options);
-        }
-    },
+    /**
+     * The same compression code as in {@link #JPEG},
+     * but the default photometric interpretation (when not explicitly specified)
+     * is set to {@link TagPhotometricInterpretation#RGB}.
+     * In comparison, {@link #JPEG} variant uses {@link TagPhotometricInterpretation#Y_CB_CR}
+     * as the default color space: this is more typical for JPEG format.
+     * If you set photometric interpretation yourself using
+     * {@link TiffIFD#putPhotometricInterpretation(TagPhotometricInterpretation)} method,
+     * behavior of this variant and {@link #JPEG} is identical.
+     *
+     * <p>This compression never appears while reading TIFF by {@link net.algart.matrices.tiff.TiffReader},
+     * but can be useful while writing by {@link net.algart.matrices.tiff.TiffWriter}.</p>
+     *
+     * <p>This compression is ignored (equivalent to {@link #JPEG}) if the TIFF writer
+     * is {@link net.algart.matrices.tiff.TiffWriter#setEnforceUseExternalCodec(boolean)
+     * enforced to use external codec}.
+     */
+    JPEG_RGB(TiffIFD.COMPRESSION_JPEG, "JPEG (RGB)", JPEGCodec::new),
 
     /**
      * Zlib deflate compression (ZIP), compatible with ZLib and {@link java.util.zip.DeflaterOutputStream} (type 8).
@@ -122,6 +131,9 @@ public enum TagCompression {
     /**
      * The same compression code as in {@link #JPEG_2000},
      * but the default quality is chosen as for lossless JPEG-2000 formats.
+     *
+     * <p>This compression never appears while reading TIFF by {@link net.algart.matrices.tiff.TiffReader},
+     * but can be useful while writing by {@link net.algart.matrices.tiff.TiffWriter}.</p>
      */
     JPEG_2000_LOSSLESS(34712, "JPEG-2000 lossless", JPEG2000Codec::new, true),
     // - Note: this variant has the same code as the previous one;
@@ -199,12 +211,21 @@ public enum TagCompression {
         return codec == null ? null : codec.get();
     }
 
+    /**
+     * Returns <code>true</code> for {@link #JPEG} and {@link #JPEG_RGB}.
+     *
+     * @return whether it is the standard JPEG compression (code {@value TiffIFD#COMPRESSION_JPEG}).
+     */
     public boolean isStandardJpeg() {
         return code == TiffIFD.COMPRESSION_JPEG;
     }
 
     public boolean isJpegOrOldJpeg() {
         return isStandardJpeg() || this == OLD_JPEG;
+    }
+
+    public boolean isPreferRGB() {
+        return this == JPEG_RGB;
     }
 
     public boolean isJpeg2000() {
@@ -236,10 +257,16 @@ public enum TagCompression {
     }
 
     public TiffCodec.Options customizeReading(TiffTile tile, TiffCodec.Options options) throws TiffException {
+        if (isStandardJpeg()) {
+            return customizeReadingJpeg(tile, options);
+        }
         return options;
     }
 
     public TiffCodec.Options customizeWriting(TiffTile tile, TiffCodec.Options options) throws TiffException {
+        if (isStandardJpeg()) {
+            return customizeWritingJpeg(tile, options);
+        }
         if (isJpeg2000()) {
             return customizeWritingJpeg2000(tile, options, !isJpeg2000Lossy());
         }

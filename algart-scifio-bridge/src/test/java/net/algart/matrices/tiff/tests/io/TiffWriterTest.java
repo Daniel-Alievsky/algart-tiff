@@ -156,11 +156,6 @@ public class TiffWriterTest {
             }
             startArgIndex++;
         }
-        boolean jpegRGB = false;
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-jpegRGB")) {
-            jpegRGB = true;
-            startArgIndex++;
-        }
         boolean jp2Metadata = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-jp2Metadata")) {
             jp2Metadata = true;
@@ -198,7 +193,6 @@ public class TiffWriterTest {
         }
         boolean compatibility = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-compatibility")) {
-            jpegRGB = false;
             resizable = false;
             // - TiffSaver does not support these features
             compatibility = true;
@@ -257,7 +251,6 @@ public class TiffWriterTest {
                 }
                 writer.setCompressionQuality(quality);
                 writer.setLosslessCompressionLevel(compressionLevel);
-                writer.setPreferRGB(jpegRGB);
                 if (jp2Metadata) {
                     writer.setCodecOptions(new JPEG2000Codec.JPEG2000Options().setWriteMetadata(true));
                 }

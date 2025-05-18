@@ -89,7 +89,6 @@ public non-sealed class TiffWriter extends TiffIO {
     private boolean enforceUseExternalCodec = false;
     private Double compressionQuality = null;
     private Double losslessCompressionLevel = null;
-    private boolean preferRGB = false;
     private boolean alwaysWriteToFileEnd = false;
     private boolean missingTilesAllowed = false;
     private byte byteFiller = 0;
@@ -473,42 +472,6 @@ public non-sealed class TiffWriter extends TiffIO {
 
     public TiffWriter removeLosslessCompressionLevel() {
         this.losslessCompressionLevel = null;
-        return this;
-    }
-
-    public boolean isPreferRGB() {
-        return preferRGB;
-    }
-
-    /**
-     * Sets whether you need to prefer RGB photometric interpretation even in such formats, where another
-     * color space is more traditional. Default value is <code>false</code>.
-     *
-     * <p>In the current version, it only applies to {@link TagCompression#JPEG} format: this flag enforces the writer
-     * to compress JPEG tiles/stripes with photometric interpretation RGB.
-     * If this flag is <code>false</code>, the writer uses YCbCr photometric interpretation &mdash;
-     * a standard encoding for JPEG, but not so popular in TIFF.
-     *
-     * <p>This flag is used if a photometric interpretation is not specified in the IFD.
-     * Otherwise, this flag is ignored, and the writer uses the photometric interpretation from the IFD
-     * (but, for JPEG, only YCbCr and RGB options are allowed).
-     *
-     * <p>Please <b>remember</b> that this parameter may vary between different IFDs.
-     * In this case, you need to call this method every time before creating a new IFD,
-     * not just once for the entire TIFF file!
-     *
-     * <p>This parameter is ignored (as if it is <code>false</code>), if {@link #isEnforceUseExternalCodec()}
-     * return <code>true</code>.
-     *
-     * <p>This flag affects the results of {@link #newMap(TiffIFD, boolean)} method: it helps to choose
-     * correct photometric interpretation tag. Once a TIFF map is created and information is stored in an IFD object,
-     * this object no longer uses this flag.
-     *
-     * @param preferRGB whether you want to compress JPEG in RGB encoding.
-     * @return a reference to this object.
-     */
-    public TiffWriter setPreferRGB(boolean preferRGB) {
-        this.preferRGB = preferRGB;
         return this;
     }
 
@@ -1092,7 +1055,7 @@ public non-sealed class TiffWriter extends TiffIO {
             }
             if (newPhotometric == null) {
                 newPhotometric = samplesPerPixel == 1 ? TagPhotometricInterpretation.BLACK_IS_ZERO :
-                        (preferRGB || !ifd.isChunked()) ?
+                        (compression.isPreferRGB() || !ifd.isChunked()) ?
                                 TagPhotometricInterpretation.RGB : TagPhotometricInterpretation.Y_CB_CR;
             } else {
                 checkPhotometricInterpretation(newPhotometric,

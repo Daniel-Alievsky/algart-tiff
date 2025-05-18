@@ -67,11 +67,6 @@ public class TiffReadWriteTest {
             bigTiff = true;
             startArgIndex++;
         }
-        boolean jpegRGB = false;
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-jpegRGB")) {
-            jpegRGB = true;
-            startArgIndex++;
-        }
         boolean singleStrip = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-singleStrip")) {
             singleStrip = true;
@@ -117,7 +112,7 @@ public class TiffReadWriteTest {
                 writer.setContext(context);
                 writer.setBigTiff(bigTiff);
                 writer.setLittleEndian(true);
-                writer.setPreferRGB(jpegRGB).setCompressionQuality(0.8);
+                writer.setCompressionQuality(0.8);
                 writer.create();
 
                 TiffParser parser = null;
