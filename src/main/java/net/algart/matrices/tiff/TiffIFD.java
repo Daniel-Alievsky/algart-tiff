@@ -991,9 +991,10 @@ public class TiffIFD {
      * Returns the compression, stored in the {@link Tags#COMPRESSION} tag, or <code>null</code>
      * if this tag is missing or contains an unknown value.
      *
-     * <p>Note: if you called {@link #putCompression(TagCompression)} method,
-     * then the result will be equal to its argument.
-     * This is important when you have several {@link TagCompression} objects with the same code.
+     * <p>Note: if you called {@link #putCompression(TagCompression)} method
+     * and did not change the stored compression in other ways,
+     * then the result will always be equal to its argument,
+     * even if you have several {@link TagCompression} objects with the same code.
      * However, if the actual tag value in the IFD map differs from that argument
      * (possible, for example, if you changed it by a direct call of the {@link #put(int, Object)} method),
      * then the result will be returned based on the actual tag value stored in the map.
@@ -1339,7 +1340,7 @@ public class TiffIFD {
 
     public boolean isStandardYCbCrNonJpeg() throws TiffException {
         final TagCompression compression = optCompression();
-        return compression != null && compression.isStandard() && !compression.isJpeg() &&
+        return compression != null && compression.isStandard() && !compression.isJpegOrOldJpeg() &&
                 getPhotometricInterpretation() == TagPhotometricInterpretation.Y_CB_CR;
     }
 
@@ -1348,14 +1349,15 @@ public class TiffIFD {
         return compression != null && compression.isStandard();
     }
 
-    public boolean isJpeg() {
+    public boolean isJpegOrOldJpeg() {
         final TagCompression compression = optCompression();
-        return compression != null && compression.isJpeg();
+        return compression != null && compression.isJpegOrOldJpeg();
     }
 
     public boolean isStandardInvertedCompression() throws TiffException {
         final TagCompression compression = optCompression();
-        return compression != null && compression.isStandard() && !compression.isJpeg() &&
+        return compression != null && compression.isStandard() &&
+                !compression.isJpegOrOldJpeg() &&
                 getPhotometricInterpretation().isInvertedBrightness();
     }
 
@@ -1547,7 +1549,7 @@ public class TiffIFD {
 
     public TiffIFD putCompressionCode(int compression) {
         put(Tags.COMPRESSION, compression);
-        this.detailedCompression = null;
+        assert this.detailedCompression == null : "must be cleared in put method";
         return this;
     }
 
@@ -1809,7 +1811,11 @@ public class TiffIFD {
     public Object put(int key, Object value) {
         checkImmutable();
         removeEntries(key);
-        // - necessary to avoid possible bugs with detection of type
+        // - necessary to avoid possible bugs with detection of the type
+        if (key == Tags.COMPRESSION) {
+            detailedCompression = null;
+            // - forget the previous saved compression: let detect it on the base of compression code
+        }
         clearCache();
         return map.put(key, value);
     }

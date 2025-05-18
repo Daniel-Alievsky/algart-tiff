@@ -62,7 +62,25 @@ public class TiffIFDTagCompressionTest {
         ifd.putCompression(null, true);
         check(ifd, TagCompression.NONE, TiffIFD.COMPRESSION_NONE, true);
 
-        ifd.putCompressionCode(157000);
+        ifd.put(Tags.COMPRESSION, 157000);
         check(ifd, null, 157000, true);
+
+        if (TagCompression.JPEG_2000.code() != TagCompression.JPEG_2000_LOSSLESS.code()) throw new AssertionError();
+        ifd.putCompression(TagCompression.JPEG_2000_LOSSLESS);
+        ifd.putTileSizes(512, 512);
+        // - should not remove the stored JPEG_2000_LOSSLESS
+        check(ifd, TagCompression.JPEG_2000_LOSSLESS, TagCompression.JPEG_2000_LOSSLESS.code(), true);
+
+        ifd.put(Tags.COMPRESSION, 1);
+        check(ifd, TagCompression.NONE, 1, true);
+
+        ifd.put(Tags.COMPRESSION, TagCompression.JPEG_2000.code());
+        check(ifd, TagCompression.JPEG_2000, TagCompression.JPEG_2000.code(), true);
+
+        ifd.putCompression(TagCompression.JPEG_2000_LOSSLESS);
+        ifd.putCompressionCode(TagCompression.JPEG_2000_LOSSLESS.code());
+        // - removes the stored JPEG_2000_LOSSLESS!
+        check(ifd, TagCompression.JPEG_2000, TagCompression.JPEG_2000.code(), true);
+
     }
 }

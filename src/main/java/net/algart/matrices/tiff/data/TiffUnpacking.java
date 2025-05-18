@@ -253,7 +253,7 @@ public class TiffUnpacking {
             return false;
         }
         checkInterleaved(tile);
-        if (!ifd.isStandardCompression() || ifd.isJpeg()) {
+        if (!ifd.isStandardCompression() || ifd.isJpegOrOldJpeg()) {
             throw new IllegalStateException("Corrupted IFD, probably by direct modifications (" +
                     "non-standard/JPEG compression, though it was already checked)");
             // - was checked in isSimpleRearrangingBytesEnough
@@ -304,7 +304,8 @@ public class TiffUnpacking {
     private static boolean isSimpleRearrangingBytesEnough(TiffIFD ifd, AtomicBoolean simpleNonJpegFormat)
             throws TiffException {
         final TagCompression compression = ifd.optCompression();
-        final boolean advancedFormat = compression != null && (!compression.isStandard() || compression.isJpeg());
+        final boolean advancedFormat = compression != null &&
+                (!compression.isStandard() || compression.isJpegOrOldJpeg());
         if (simpleNonJpegFormat != null) {
             simpleNonJpegFormat.set(!advancedFormat);
         }

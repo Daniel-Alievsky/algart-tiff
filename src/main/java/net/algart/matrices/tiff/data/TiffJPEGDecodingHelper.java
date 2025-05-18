@@ -40,7 +40,7 @@ public class TiffJPEGDecodingHelper {
             throws TiffException {
         final TiffIFD ifd = tile.ifd();
         final TagCompression compression = ifd.optCompression();
-        if (compression == null || !compression.isJpeg()) {
+        if (compression == null || !compression.isJpegOrOldJpeg()) {
             return;
         }
         final byte[] data = tile.getEncodedData();
