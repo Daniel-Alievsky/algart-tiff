@@ -41,16 +41,16 @@ public class TiffCopyFolderTest {
             copyTest.useContext = true;
             startArgIndex++;
         }
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-bigTiff")) {
-            copyTest.bigTiff = true;
-            startArgIndex++;
-        }
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-direct")) {
-            copyTest.direct = true;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-repack")) {
+            copyTest.repack = true;
             startArgIndex++;
         }
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-smart")) {
             copyTest.smart = true;
+            startArgIndex++;
+        }
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-bigTiff")) {
+            copyTest.bigTiff = true;
             startArgIndex++;
         }
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-uncompress")) {

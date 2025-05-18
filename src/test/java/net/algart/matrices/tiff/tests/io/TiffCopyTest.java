@@ -31,6 +31,7 @@ import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
 
 import java.io.IOException;
+import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -38,24 +39,32 @@ import java.nio.file.Paths;
 public class TiffCopyTest {
     boolean useContext = false;
     boolean bigTiff = false;
-    boolean direct = false;
+    boolean repack = false;
     boolean smart = false;
+    ByteOrder byteOrder = null;
     boolean uncompress = false;
     boolean copyRectangle = false;
 
     public static void main(String[] args) throws IOException {
-        TiffCopyTest coptTest = new TiffCopyTest();
+        TiffCopyTest copyTest = new TiffCopyTest();
         int startArgIndex = 0;
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-direct")) {
-            coptTest.direct = true;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-repack")) {
+            copyTest.repack = true;
             startArgIndex++;
         }
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-smart")) {
-            coptTest.smart = true;
+            copyTest.smart = true;
+            startArgIndex++;
+        }
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-le")) {
+            copyTest.byteOrder = ByteOrder.LITTLE_ENDIAN;
+            startArgIndex++;
+        } else if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-be")) {
+            copyTest.byteOrder = ByteOrder.BIG_ENDIAN;
             startArgIndex++;
         }
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-copyRectangle")) {
-            coptTest.copyRectangle = true;
+            copyTest.copyRectangle = true;
             startArgIndex++;
         }
         if (args.length < startArgIndex + 2) {
@@ -76,7 +85,7 @@ public class TiffCopyTest {
 
         for (int test = 1; test <= numberOfTests; test++) {
             System.out.printf("Test #%d%n", test);
-            coptTest.copyTiff(sourceFile, targetFile, firstIFDIndex, lastIFDIndex);
+            copyTest.copyTiff(sourceFile, targetFile, firstIFDIndex, lastIFDIndex);
         }
         System.out.println("Done");
     }
@@ -107,8 +116,7 @@ public class TiffCopyTest {
                 }
                 writer.setSmartFormatCorrection(smart);
                 writer.setBigTiff(bigTiff || reader.isBigTiff());
-                writer.setLittleEndian(reader.isLittleEndian());
-                // - without this operator, direct copy will be impossible for LE format
+                writer.setByteOrder(byteOrder != null ? byteOrder : reader.getByteOrder());
 
                 // writer.setJpegInPhotometricRGB(true);
                 // - should not be important for copying, when PhotometricInterpretation is already specified
@@ -122,20 +130,21 @@ public class TiffCopyTest {
                     if (copyRectangle) {
                         // - for debugging: should lead to the same results!
                         System.out.printf("\r  Copying rectangle (%s) #%d/%d: %s%n",
-                                direct ? "raw" : "repacking",
+                                repack ? "repacking" : "raw",
                                 ifdIndex, maps.size(), readMap.ifd());
                         final TiffCopier copier = getCopier();
-                        copier.setDirectCopy(direct);
+                        copier.setDirectCopy(!repack);
                         copier.copyImage(writer, readMap, 0, 0, readMap.dimX(), readMap.dimY());
-                    } else if (direct) {
-                        System.out.printf("\r  Raw copying #%d/%d: %s%n", ifdIndex, maps.size(), readMap.ifd());
-                        TiffCopier.copyImage(writer, readMap, true);
+                    } else if (!repack && byteOrder == null && !uncompress) {
+                        // - below is an example of the simplest usage for a single IFD image
+                        System.out.printf("\r  Direct copying #%d/%d: %s%n", ifdIndex, maps.size(), readMap.ifd());
+                        new TiffCopier().copyImage(writer, readMap);
                     } else {
-                        System.out.printf("\r  Repacking #%d/%d: %s%n", ifdIndex, maps.size(), readMap.ifd());
+                        System.out.printf("\r  %s #%d/%d: %s%n",
+                                repack ? "Repacking" : "Attempt of direct copying",
+                                ifdIndex, maps.size(), readMap.ifd());
                         final TiffCopier copier = getCopier();
-                        copier.setDirectCopy(false);
-//                        copier.setIfdCorrector(
-//                                ifd -> ifd.putCompression(TagCompression.JPEG_2000_APERIO_LOSSLESS));
+                        copier.setDirectCopy(!repack);
                         copier.copyImage(writer, readMap);
                     }
                 }
@@ -150,8 +159,10 @@ public class TiffCopyTest {
 
     private TiffCopier getCopier() {
         final TiffCopier copier = new TiffCopier();
-        if (!copier.isDirectCopy()) throw new AssertionError("direct-copy should be enabled by default");
-        copier.setProgressUpdater(
+        if (!copier.isDirectCopy()) {
+            throw new AssertionError("direct-copy should be enabled by default");
+        }
+       copier.setProgressUpdater(
                 p ->
                         System.out.printf("\r%d/%d...", p.tileIndex() + 1, p.tileCount()));
         // copier.setCancellationChecker(() -> copier.copiedTileCount() == 12);

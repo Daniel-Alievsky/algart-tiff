@@ -51,11 +51,14 @@ public class TiffIFDTagCompressionTest {
     public static void main(String[] args) throws TiffException {
         TiffIFD ifd = new TiffIFD();
         check(ifd, null, TiffIFD.COMPRESSION_NONE, false);
+        System.out.println();
 
         for (TagCompression compression : TagCompression.values()) {
             ifd.putCompression(compression);
             check(ifd, compression, compression.code(), true);
         }
+        System.out.println();
+
         ifd.putCompression(null);
         check(ifd, null, TiffIFD.COMPRESSION_NONE, false);
 
@@ -77,10 +80,10 @@ public class TiffIFDTagCompressionTest {
         ifd.put(Tags.COMPRESSION, TagCompression.JPEG_2000.code());
         check(ifd, TagCompression.JPEG_2000, TagCompression.JPEG_2000.code(), true);
 
-        ifd.putCompression(TagCompression.JPEG_2000_LOSSLESS);
-        ifd.putCompressionCode(TagCompression.JPEG_2000_LOSSLESS.code());
-        // - removes the stored JPEG_2000_LOSSLESS!
-        check(ifd, TagCompression.JPEG_2000, TagCompression.JPEG_2000.code(), true);
+        ifd.putCompression(TagCompression.JPEG_RGB);
+        ifd.putCompressionCode(TagCompression.JPEG_RGB.code());
+        // - removes the stored JPEG_RGB!
+        check(ifd, TagCompression.JPEG, TagCompression.JPEG.code(), true);
 
     }
 }

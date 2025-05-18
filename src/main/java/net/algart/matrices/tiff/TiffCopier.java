@@ -172,11 +172,6 @@ public final class TiffCopier {
         new TiffCopier().setDirectCopy(directCopy).copyAll(targetTiffFile, sourceTiffFile);
     }
 
-    public static void copyImage(TiffWriter writer, TiffReadMap readMap, boolean directCopy)
-            throws IOException {
-        new TiffCopier().setDirectCopy(directCopy).copyImage(writer, readMap);
-    }
-
     public void copyAll(Path targetTiffFile, Path sourceTiffFile) throws IOException {
         try (TiffReader reader = new TiffReader(sourceTiffFile);
              TiffWriter writer = new TiffWriter(targetTiffFile)) {
