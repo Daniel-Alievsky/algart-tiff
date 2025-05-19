@@ -86,7 +86,7 @@ public final class TiffCopier {
     private static final boolean LOGGABLE_DEBUG = LOG.isLoggable(System.Logger.Level.DEBUG);
 
     private boolean directCopy = true;
-    private int maxInMemoryTempFileSize = 0;
+    private int maxInMemoryTemporaryFileSize = 0;
     private TemporaryFileCreator temporaryFileCreator = TemporaryFileCreator.DEFAULT;
     private TiffIFDCorrector ifdCorrector = null;
     private Consumer<ProgressInformation> progressUpdater = null;
@@ -119,8 +119,8 @@ public final class TiffCopier {
         return this;
     }
 
-    public int getMaxInMemoryTempFileSize() {
-        return maxInMemoryTempFileSize;
+    public int getMaxInMemoryTemporaryFileSize() {
+        return maxInMemoryTemporaryFileSize;
     }
 
     /**
@@ -139,15 +139,16 @@ public final class TiffCopier {
      * {@link #setDirectCopy(boolean) setDirectCopy(false)}; however, this optimization is not as useful
      * in the latter case.
      *
-     * @param maxInMemoryTempFileSize maximal TIFF file size to be compacted in-memory.
+     * @param maxInMemoryTemporaryFileSize maximal TIFF file size to be compacted in-memory.
      * @return a reference to this object.
      * @throws IllegalArgumentException if the argument is negative.
      */
-    public TiffCopier setMaxInMemoryTempFileSize(int maxInMemoryTempFileSize) {
-        if (maxInMemoryTempFileSize < 0) {
-            throw new IllegalArgumentException("Negative maxInMemoryTempFileSize: " + maxInMemoryTempFileSize);
+    public TiffCopier setMaxInMemoryTemporaryFileSize(int maxInMemoryTemporaryFileSize) {
+        if (maxInMemoryTemporaryFileSize < 0) {
+            throw new IllegalArgumentException("Negative maxInMemoryTemporaryFileSize: " +
+                    maxInMemoryTemporaryFileSize);
         }
-        this.maxInMemoryTempFileSize = maxInMemoryTempFileSize;
+        this.maxInMemoryTemporaryFileSize = maxInMemoryTemporaryFileSize;
         return this;
     }
 
@@ -155,6 +156,14 @@ public final class TiffCopier {
         return temporaryFileCreator;
     }
 
+    /**
+     * Sets the tool used for creating temporary files by {@link #compact(Path)} method.
+     * Default value is {@link TemporaryFileCreator#DEFAULT}.
+     *
+     * @param temporaryFileCreator the temporary file creator.
+     * @return a reference to this object.
+     * @throws NullPointerException if the argument is {@code null}.
+     */
     public TiffCopier setTemporaryFileCreator(TemporaryFileCreator temporaryFileCreator) {
         this.temporaryFileCreator = Objects.requireNonNull(temporaryFileCreator,
                 "Null temporary file creator");
@@ -225,7 +234,7 @@ public final class TiffCopier {
      */
     public void compact(Path tiffFile) throws IOException {
         Objects.requireNonNull(tiffFile, "Null TIFF file");
-        final boolean inMemory = Files.size(tiffFile) <= maxInMemoryTempFileSize;
+        final boolean inMemory = Files.size(tiffFile) <= maxInMemoryTemporaryFileSize;
         // - note: a correct TIFF cannot have a zero length
         if (inMemory) {
             BytesHandle tempBytes = new BytesHandle(new BytesLocation(0));

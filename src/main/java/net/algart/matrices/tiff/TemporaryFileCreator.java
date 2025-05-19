@@ -27,10 +27,28 @@ package net.algart.matrices.tiff;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileAttribute;
 
+/**
+ * Supplier for temporary files.
+ */
 @FunctionalInterface
 public interface TemporaryFileCreator {
+    /**
+     * Creates a new empty temporary file.
+     * Usually calls {@link Files#createTempFile(String, String, FileAttribute[])} or a similar function.
+     *
+     * @return the path to the newly created file that did not exist before this method was invoked.
+     * @throws IOException in the case of any I/O errors.
+     */
     Path createTemporaryFile() throws IOException;
 
+    /**
+     * The simplest default implementation of {@link TemporaryFileCreator}.
+     * The current implementation is the following:
+     * <pre>
+     *     Files.createTempFile("atiff_", ".tmp")
+     * </pre>
+     */
     TemporaryFileCreator DEFAULT = () -> Files.createTempFile("atiff_", ".tmp");
 }
