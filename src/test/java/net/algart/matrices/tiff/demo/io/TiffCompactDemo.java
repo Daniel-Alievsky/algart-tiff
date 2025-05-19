@@ -27,6 +27,7 @@ package net.algart.matrices.tiff.demo.io;
 import net.algart.matrices.tiff.TiffCopier;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -62,6 +63,8 @@ public class TiffCompactDemo {
                         p.tileIndex() + 1, p.tileCount());
             }
         });
+        // copier.setTemporaryFileCreator(() -> Files.createTempFile(Path.of("/tmp/"), "my-", ".tmp"));
+        // - uncomment if you want to change the way of creating temporary files
         copier.setDirectCopy(!repack);
         if (inMemory) {
             copier.setMaxInMemoryTempFileSize(DEFAULT_MAX_IN_MEMORY_TEMP_FILE_SIZE);

@@ -42,16 +42,6 @@ import java.util.function.Consumer;
 
 @SuppressWarnings("UnusedReturnValue")
 public final class TiffCopier {
-    @FunctionalInterface
-    public interface IFDCorrector {
-        /**
-         * Corrects IFD, usually before writing it to the target TIFF.
-         *
-         * @param ifd IFD to be corrected.
-         */
-        void correct(TiffIFD ifd);
-    }
-
     public final class ProgressInformation {
         private int imageIndex = 0;
         private int imageCount = 0;
@@ -97,7 +87,8 @@ public final class TiffCopier {
 
     private boolean directCopy = true;
     private int maxInMemoryTempFileSize = 0;
-    private IFDCorrector ifdCorrector = null;
+    private TemporaryFileCreator temporaryFileCreator = TemporaryFileCreator.DEFAULT;
+    private TiffIFDCorrector ifdCorrector = null;
     private Consumer<ProgressInformation> progressUpdater = null;
     private BooleanSupplier interruptionChecker = null;
     private final ProgressInformation progressInformation = new ProgressInformation();
@@ -160,12 +151,22 @@ public final class TiffCopier {
         return this;
     }
 
+    public TemporaryFileCreator getTemporaryFileCreator() {
+        return temporaryFileCreator;
+    }
+
+    public TiffCopier setTemporaryFileCreator(TemporaryFileCreator temporaryFileCreator) {
+        this.temporaryFileCreator = Objects.requireNonNull(temporaryFileCreator,
+                "Null temporary file creator");
+        return this;
+    }
+
     /**
      * Returns a function that corrects IFD from the source TIFF read map before writing it to the target TIFF.
      *
      * @return a function that corrects IFD writing it to the target TIFF.
      */
-    public IFDCorrector getIfdCorrector() {
+    public TiffIFDCorrector getIfdCorrector() {
         return ifdCorrector;
     }
 
@@ -175,12 +176,12 @@ public final class TiffCopier {
      * is set to <code>true</code>.
      * Default value is <code>null</code>, meaning that no correction is performed.
      *
-     * @param ifdCorrector function that corrects IFD writing it to the target TIFF;
+     * @param tiffIfdCorrector function that corrects IFD writing it to the target TIFF;
      *                     may be <code>null</code>, than it is ignored.
      * @return a reference to this object.
      */
-    public TiffCopier setIfdCorrector(IFDCorrector ifdCorrector) {
-        this.ifdCorrector = ifdCorrector;
+    public TiffCopier setIfdCorrector(TiffIFDCorrector tiffIfdCorrector) {
+        this.ifdCorrector = tiffIfdCorrector;
         return this;
     }
 
@@ -237,7 +238,7 @@ public final class TiffCopier {
             Path tempFile = null;
             try {
                 try (TiffReader reader = new TiffReader(tiffFile)) {
-                    tempFile = Files.createTempFile("temp_tiff_", ".tiff");
+                    tempFile = temporaryFileCreator.createTemporaryFile();
                     try (TiffWriter writer = new TiffWriter(tempFile, TiffCreateMode.NO_ACTIONS)) {
                         copy(writer, reader);
                     }
