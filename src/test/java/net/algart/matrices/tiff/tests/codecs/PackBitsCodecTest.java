@@ -28,14 +28,13 @@ import net.algart.matrices.tiff.codecs.PackBitsCodec;
 import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.location.BytesLocation;
-import org.scijava.io.location.Location;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Random;
 
-public class PackBitsTest {
+public class PackBitsCodecTest {
     // Old SCIFIO code.
     // Note: for invalid data, this algorithm can generate extra "unpacked" bytes
     // (it does not check that in.read() is -1 or in.read(b) < b.length).
