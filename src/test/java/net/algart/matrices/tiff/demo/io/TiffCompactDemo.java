@@ -46,11 +46,13 @@ public class TiffCompactDemo {
         }
         if (args.length < startArgIndex + 1) {
             System.out.println("Usage:");
-            System.out.printf("   [-repack] [-inMemory] %s file-to-compact.tiff%n",
+            System.out.printf("   [-repack] [-inMemory] %s file-to-compact.tiff [number_of_tests]%n",
                     TiffCompactDemo.class.getName());
             return;
         }
         final Path tiffFile = Paths.get(args[startArgIndex++]);
+        final int numberOfTests = startArgIndex < args.length ? Integer.parseInt(args[startArgIndex]) : 1;
+
         System.out.printf("Compacting %s...%n", tiffFile);
         final TiffCopier copier = new TiffCopier();
         copier.setProgressUpdater(p -> {
@@ -68,9 +70,12 @@ public class TiffCompactDemo {
         if (inMemory) {
             copier.setMaxInMemoryTemporaryFileSize(DEFAULT_MAX_IN_MEMORY_TEMP_FILE_SIZE);
         }
-        long t1 = System.nanoTime();
-        copier.compact(tiffFile);
-        long t2 = System.nanoTime();
-        System.out.printf("%nDone in %.3f seconds%n", (t2 - t1) * 1e-9);
+        for (int test = 1; test <= numberOfTests; test++) {
+            System.out.printf("Test %d/%d...%n", test, numberOfTests);
+            long t1 = System.nanoTime();
+            copier.compact(tiffFile);
+            long t2 = System.nanoTime();
+            System.out.printf("%nDone in %.3f seconds%n", (t2 - t1) * 1e-9);
+        }
     }
 }

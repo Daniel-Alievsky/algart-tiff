@@ -238,7 +238,7 @@ public final class TiffCopier {
         // - note: a correct TIFF cannot have a zero length
         if (inMemory) {
             final BytesHandle tempBytes = new BytesHandle(new BytesLocation(0));
-            try (TiffReader reader = new TiffReader(tiffFile);
+            try (TiffReader reader = new TiffReader(tiffFile, TiffOpenMode.VALID_TIFF);
                  TiffWriter writer = new TiffWriter(tempBytes)) {
                 copyAllTiff(writer, reader);
             }
@@ -325,19 +325,30 @@ public final class TiffCopier {
         progressInformation.tileCount = targetTiles.size();
         int tileCount = 0;
         long t2 = TiffIO.debugTime();
+        long timeReading = 0;
+        long timeCopying = 0;
+        long timeWriting = 0;
         for (TiffTile targetTile : targetTiles) {
             final TiffTileIndex readIndex = readMap.copyIndex(targetTile.index());
             // - important to copy index: targetTile.index() refer to the writeIFD instead of some source IFD
+            long t1Tile = TiffIO.debugTime(), t2Tile;
             if (this.actuallyDirectCopy) {
                 final TiffTile sourceTile = readMap.readEncodedTile(readIndex);
+                t2Tile = TiffIO.debugTime();
                 targetTile.copyData(sourceTile, false);
             } else {
                 final TiffTile sourceTile = readMap.readCachedTile(readIndex);
+                t2Tile = TiffIO.debugTime();
                 targetTile.copyUnpackedSamples(sourceTile, readMap.isAutoScaleWhenIncreasingBitDepth());
                 // - this method performs necessary unpacking/packing bytes when the byte order is incompatible
             }
             writeMap.put(targetTile);
+            long t3Tile = TiffIO.debugTime();
             writeMap.writeTile(targetTile, true);
+            long t4Tile = TiffIO.debugTime();
+            timeReading += t2Tile - t1Tile;
+            timeCopying += t3Tile - t2Tile;
+            timeWriting += t4Tile - t3Tile;
             progressInformation.tileIndex = tileCount;
             if (shouldBreak()) {
                 break;
@@ -351,14 +362,20 @@ public final class TiffCopier {
             long t4 = TiffIO.debugTime();
             LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
                     "%s copied entire image %s %dx%dx%d (%.3f MB) in %.3f ms = " +
-                            "%.3f prepare + %.3f copy + %.3f complete, %.3f MB/s",
+                            "%.3f prepare " +
+                            "+ %.3f copy " +
+                            "(%.3f read + %.3f copy data + %.3f write) " +
+                            "+ %.3f complete, %.3f MB/s",
                     getClass().getSimpleName(),
                     actuallyDirectCopy ? "directly" : "with repacking" + (this.directCopy ?
                             " (direct mode rejected)" : ""),
                     writeMap.dimX(), writeMap.dimY(), writeMap.numberOfChannels(),
                     sizeInBytes / 1048576.0,
                     (t4 - t1) * 1e-6,
-                    (t2 - t1) * 1e-6, (t3 - t2) * 1e-6, (t4 - t3) * 1e-6,
+                    (t2 - t1) * 1e-6,
+                    (t3 - t2) * 1e-6,
+                    timeReading * 1e-6, timeCopying * 1e-6, timeWriting * 1e-6,
+                    (t4 - t3) * 1e-6,
                     sizeInBytes / 1048576.0 / ((t4 - t1) * 1e-9)));
         }
         return writeMap;
