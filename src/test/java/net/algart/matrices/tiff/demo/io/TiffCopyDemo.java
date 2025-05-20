@@ -59,7 +59,7 @@ public class TiffCopyDemo {
                             p.tileIndex() + 1, p.tileCount()));
             copier.setDirectCopy(false);
             // - unnecessary (it is the default); true value means the repack copy
-            copier.copy(targetFile, sourceFile);
+            copier.copyAllTiff(targetFile, sourceFile);
         }
         System.out.printf("%nDone%n");
     }

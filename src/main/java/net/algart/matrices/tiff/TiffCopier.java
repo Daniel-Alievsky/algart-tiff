@@ -222,7 +222,7 @@ public final class TiffCopier {
 
     public static void copyFile(Path targetTiffFile, Path sourceTiffFile)
             throws IOException {
-        new TiffCopier().copy(targetTiffFile, sourceTiffFile);
+        new TiffCopier().copyAllTiff(targetTiffFile, sourceTiffFile);
     }
 
     /**
@@ -240,7 +240,7 @@ public final class TiffCopier {
             BytesHandle tempBytes = new BytesHandle(new BytesLocation(0));
             try (TiffReader reader = new TiffReader(tiffFile);
                  TiffWriter writer = new TiffWriter(tempBytes)) {
-                copy(writer, reader);
+                copyAllTiff(writer, reader);
             }
             copyTempFileBackToTiff(tiffFile, null, tempBytes);
         } else {
@@ -249,7 +249,7 @@ public final class TiffCopier {
                 try (TiffReader reader = new TiffReader(tiffFile)) {
                     tempFile = temporaryFileCreator.createTemporaryFile();
                     try (TiffWriter writer = new TiffWriter(tempFile, TiffCreateMode.NO_ACTIONS)) {
-                        copy(writer, reader);
+                        copyAllTiff(writer, reader);
                     }
                 }
                 copyTempFileBackToTiff(tiffFile, tempFile, null);
@@ -261,16 +261,16 @@ public final class TiffCopier {
         }
     }
 
-    public void copy(Path targetTiffFile, Path sourceTiffFile) throws IOException {
+    public void copyAllTiff(Path targetTiffFile, Path sourceTiffFile) throws IOException {
         Objects.requireNonNull(targetTiffFile, "Null target TIFF file");
         Objects.requireNonNull(sourceTiffFile, "Null source TIFF file");
         try (TiffReader reader = new TiffReader(sourceTiffFile);
              TiffWriter writer = new TiffWriter(targetTiffFile, TiffCreateMode.NO_ACTIONS)) {
-            copy(writer, reader);
+            copyAllTiff(writer, reader);
         }
     }
 
-    public void copy(TiffWriter writer, TiffReader reader) throws IOException {
+    public void copyAllTiff(TiffWriter writer, TiffReader reader) throws IOException {
         Objects.requireNonNull(writer, "Null TIFF writer");
         Objects.requireNonNull(reader, "Null TIFF reader");
         writer.setFormatLike(reader);

@@ -43,6 +43,11 @@ import java.util.Iterator;
 import java.util.Objects;
 
 public class JPEGDecoding {
+    static final boolean USE_MEMORY_CACHE = true;
+    // - Must be true for normal performance.
+    // Important: our codec is implemented for reading separate tiles, which SHOULD be not too large
+    // to be located in memory. For comparison, other codecs like DeflateCodec always work in memory.
+
     public record ImageInformation(BufferedImage bufferedImage, IIOMetadata metadata) {
     }
 
@@ -54,9 +59,9 @@ public class JPEGDecoding {
      * Also reads metadata (but not thumbnails).
      */
     public static ImageInformation readJPEG(InputStream in) throws IOException {
-        final ImageInputStream stream = new MemoryCacheImageInputStream(in);
-        // - Important: this codec is implemented for reading separate tiles, which SHOULD be not too large
-        // to be located in memory. For comparison, other codecs like DeflateCodec always work in memory.
+        final ImageInputStream stream = USE_MEMORY_CACHE ?
+                new MemoryCacheImageInputStream(in) :
+                ImageIO.createImageInputStream(in);
         final ImageReader reader = getImageReaderOrNull(stream);
         if (reader == null) {
             return null;

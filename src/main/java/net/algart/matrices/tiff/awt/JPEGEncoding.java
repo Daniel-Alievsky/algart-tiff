@@ -56,9 +56,9 @@ public class JPEGEncoding {
         }
         final boolean enforceRGB = colorSpace == TagPhotometricInterpretation.RGB;
 
-        final ImageOutputStream ios = new MemoryCacheImageOutputStream(out);
-        // - Important: this codec is implemented for writing separate tiles, which SHOULD be not too large
-        // to be located in memory. For comparison, other codecs like DeflateCodec always work in memory.
+        final ImageOutputStream ios = JPEGDecoding.USE_MEMORY_CACHE ?
+                new MemoryCacheImageOutputStream(out) :
+                ImageIO.createImageOutputStream(out);
 
         final ImageWriter jpegWriter = getJPEGWriter();
         jpegWriter.setOutput(ios);
