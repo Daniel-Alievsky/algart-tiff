@@ -55,15 +55,7 @@ public class TiffCompactDemo {
 
         System.out.printf("Compacting %s...%n", tiffFile);
         final TiffCopier copier = new TiffCopier();
-        copier.setProgressUpdater(p -> {
-            if (p.isCopyingTemporaryFile()) {
-                System.out.printf("\rCopying temporary file...%20s", "");
-            } else {
-                System.out.printf("\rImage %d/%d, tile %d/%d...",
-                        p.imageIndex() + 1, p.imageCount(),
-                        p.tileIndex() + 1, p.tileCount());
-            }
-        });
+        copier.setProgressUpdater(TiffCompactDemo::updateProgress);
         // copier.setTemporaryFileCreator(() -> Files.createTempFile(Path.of("/tmp/"), "my-", ".tmp"));
         // - uncomment if you want to change the way of creating temporary files
         copier.setDirectCopy(!repack);
@@ -76,6 +68,21 @@ public class TiffCompactDemo {
             copier.compact(tiffFile);
             long t2 = System.nanoTime();
             System.out.printf("%nDone in %.3f seconds%n", (t2 - t1) * 1e-9);
+        }
+    }
+
+    private static long lastProgressTime = Integer.MIN_VALUE;
+    private static void updateProgress(TiffCopier.ProgressInformation p) {
+        long t = System.currentTimeMillis();
+        if (t - lastProgressTime > 200 || p.isLastTileCopied()) {
+            if (p.isCopyingTemporaryFile()) {
+                System.out.printf("\rCopying temporary file...%20s", "");
+            } else {
+                System.out.printf("\rImage %d/%d, tile %d/%d...",
+                        p.imageIndex() + 1, p.imageCount(),
+                        p.tileIndex() + 1, p.tileCount());
+            }
+            lastProgressTime = t;
         }
     }
 }

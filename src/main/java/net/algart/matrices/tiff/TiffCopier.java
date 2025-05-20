@@ -238,6 +238,8 @@ public final class TiffCopier {
         // - note: a correct TIFF cannot have a zero length
         if (inMemory) {
             final BytesHandle tempBytes = new BytesHandle(new BytesLocation(0));
+            // final BytesHandle sourceBytes = TiffIO.getBytesHandle(Files.readAllBytes(tiffFile));
+            // - not-too-serious optimization: TiffReader automatically uses buffered reading
             try (TiffReader reader = new TiffReader(tiffFile, TiffOpenMode.VALID_TIFF);
                  TiffWriter writer = new TiffWriter(tempBytes)) {
                 copyAllTiff(writer, reader);
@@ -361,7 +363,7 @@ public final class TiffCopier {
             final long sizeInBytes = writeMap.totalSizeInBytes();
             long t4 = TiffIO.debugTime();
             LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
-                    "%s copied entire image %s %dx%dx%d (%.3f MB) in %.3f ms = " +
+                    "%s copied entire image %s %dx%dx%d (%d tiles, %.3f MB) in %.3f ms = " +
                             "%.3f prepare " +
                             "+ %.3f copy " +
                             "(%.3f read + %.3f copy data + %.3f write) " +
@@ -370,6 +372,7 @@ public final class TiffCopier {
                     actuallyDirectCopy ? "directly" : "with repacking" + (this.directCopy ?
                             " (direct mode rejected)" : ""),
                     writeMap.dimX(), writeMap.dimY(), writeMap.numberOfChannels(),
+                    tileCount,
                     sizeInBytes / 1048576.0,
                     (t4 - t1) * 1e-6,
                     (t2 - t1) * 1e-6,
