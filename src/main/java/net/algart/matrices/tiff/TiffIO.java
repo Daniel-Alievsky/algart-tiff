@@ -35,6 +35,7 @@ import org.scijava.io.location.FileLocation;
 import org.scijava.io.location.Location;
 
 import java.io.Closeable;
+import java.io.EOFException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
@@ -108,8 +109,13 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         Objects.requireNonNull(outputStream, "Null output stream");
         inputStream.seek(0);
         outputStream.seek(0);
-        final long result = copyData(inputStream, outputStream, inputStream.length());
+        final long inputLength = inputStream.length();
+        final long result = copyData(inputStream, outputStream, inputLength);
         outputStream.setLength(outputStream.offset());
+        if (result != inputLength) {
+            throw new EOFException("Copied only " + result + " bytes from all " + inputLength + " bytes");
+            // - should not occur in the normal situation
+        }
         return result;
     }
 
@@ -124,7 +130,9 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         while (result < length) {
             final int len = (int) Math.min(length - result, buffer.length);
             int actuallyRead = in.read(buffer, 0, len);
-            if (actuallyRead <= 0) break; // EOF
+            if (actuallyRead <= 0) {
+                break; // EOF
+            }
             out.write(buffer, 0, actuallyRead);
             result += actuallyRead;
         }
