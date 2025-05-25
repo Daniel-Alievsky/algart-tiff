@@ -63,13 +63,14 @@ public class TiffCropAllToRectangleDemo {
         final Double width = args.length <= ++startArgIndex ? null : Double.parseDouble(args[startArgIndex]);
         final Double height = args.length <= ++startArgIndex ? null : Double.parseDouble(args[startArgIndex]);
         System.out.printf("Cropping from %s to %s%s...%n",
-                sourceFile, targetFile, wholeTiles ? "" : " (attempt to optimize by copying whole tiles");
+                sourceFile, targetFile, wholeTiles ? " (attempt to optimize by copying whole tiles)" : "");
 
         final var copier = new TiffCopier();
         if (!copier.isDirectCopy()) {
             throw new AssertionError("direct mode must be enabled by default");
         }
         copier.setProgressUpdater(TiffCopyDemo::updateProgress);
+        long t1 = System.nanoTime();
         try (var reader = new TiffReader(sourceFile); var writer = new TiffWriter(targetFile)) {
             writer.setFormatLike(reader);
             writer.create();
@@ -89,12 +90,13 @@ public class TiffCropAllToRectangleDemo {
                     toX = alignUp(toX, readMap.tileSizeX());
                     toY = alignUp(toY, readMap.tileSizeY());
                 }
-                System.out.printf("Copying image %d, rectangle %d..%dx%d..%d%n", ifdIndex, fromX, fromY, toX, toY);
+                System.out.printf("Copying image %d, rectangle %d..%dx%d..%d%n", ifdIndex, fromX, toX, fromY, toY);
                 copier.copyImage(writer, readMap, fromX, fromY, toX - fromX, toY - fromY);
-                System.out.println("\r                                 \r");
+                System.out.print("\r                                 \r");
             }
         }
-        System.out.printf("Done%n");
+        long t2 = System.nanoTime();
+        System.out.printf("Done in %.3f seconds%n", (t2 - t1) * 1e-9);
     }
 
     private static int alignDown(int value, int step) {
