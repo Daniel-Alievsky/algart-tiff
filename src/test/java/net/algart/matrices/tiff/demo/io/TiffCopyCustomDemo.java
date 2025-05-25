@@ -41,14 +41,14 @@ public class TiffCopyCustomDemo {
             append = true;
             startArgIndex++;
         }
-        boolean direct = false;
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-direct")) {
-            direct = true;
+        boolean repack = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-repack")) {
+            repack = true;
             startArgIndex++;
         }
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
-            System.out.printf("    [-append] [-direct] %s source.tiff target.tiff [firstIFDIndex lastIFDIndex]%n",
+            System.out.printf("    [-append] [-repack] %s source.tiff target.tiff [firstIFDIndex lastIFDIndex]%n",
                     TiffCopyCustomDemo.class.getName());
             return;
         }
@@ -60,23 +60,23 @@ public class TiffCopyCustomDemo {
                 Integer.MAX_VALUE;
 
         System.out.printf("Copying %s to %s %s...%n",
-                sourceFile, targetFile, direct ? "as-is" : "with recompression");
-        final var copier = new TiffCopier().setDirectCopy(direct);
+                sourceFile, targetFile, !repack ? "as-is" : "with recompression");
+        final var copier = new TiffCopier().setDirectCopy(!repack);
         copier.setProgressUpdater(p ->
                 System.out.printf("\r%d/%d...", p.tileIndex() + 1, p.tileCount()));
         try (var reader = new TiffReader(sourceFile); var writer = new TiffWriter(targetFile)) {
             if (writer.getByteOrder() != ByteOrder.BIG_ENDIAN) throw new AssertionError();
             writer.setSmartFormatCorrection(true);
-            // - allows non-direct copying even "strange" precisions
+            // - allows non-repack copying even "strange" precisions
             lastIFDIndex = Math.min(lastIFDIndex, reader.numberOfImages() - 1);
             if (lastIFDIndex >= firstIFDIndex) {
                 // reader.setAutoScaleWhenIncreasingBitDepth(false);
-                // - this flag affects the behavior for source TIFF like 6-bit or 24-bit in non-direct mode
+                // - this flag affects the behavior for source TIFF like 6-bit or 24-bit in non-repack mode
                 writer.create(append);
                 for (int i = firstIFDIndex; i <= lastIFDIndex; i++) {
                     System.out.printf("Copying image %d...%n", i);
                     copier.copyImage(writer, reader, i);
-                    System.out.print("\r               \r");
+                    System.out.print("\r                                 \r");
                 }
             }
         }

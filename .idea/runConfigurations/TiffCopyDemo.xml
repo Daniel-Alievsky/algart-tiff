@@ -2,7 +2,7 @@
   <configuration default="false" name="TiffCopyDemo" type="Application" factoryName="Application" nameIsGenerated="true">
     <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.demo.io.TiffCopyDemo" />
     <module name="algart-tiff" />
-    <option name="PROGRAM_PARAMETERS" value="/tmp/test.tiff /tmp/copy.tiff" />
+    <option name="PROGRAM_PARAMETERS" value="-repack /tmp/test.tiff /tmp/copy.tiff" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="net.algart.matrices.tiff.demo.io.*" />

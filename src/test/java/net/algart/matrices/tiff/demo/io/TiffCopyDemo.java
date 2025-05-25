@@ -31,6 +31,21 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class TiffCopyDemo {
+    static long lastProgressTime = Integer.MIN_VALUE;
+    static void updateProgress(TiffCopier.ProgressInformation p) {
+        long t = System.currentTimeMillis();
+        if (t - lastProgressTime > 200 || p.isLastTileCopied() || p.isCopyingTemporaryFile()) {
+            if (p.isCopyingTemporaryFile()) {
+                System.out.printf("\rCopying temporary file...%20s", "");
+            } else {
+                System.out.printf("\rImage %d/%d, tile %d/%d...",
+                        p.imageIndex() + 1, p.imageCount(),
+                        p.tileIndex() + 1, p.tileCount());
+            }
+            lastProgressTime = t;
+        }
+    }
+
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         boolean repack = false;
@@ -53,10 +68,7 @@ public class TiffCopyDemo {
         } else {
             System.out.printf("Copying %s to %s with recompression...%n", sourceFile, targetFile);
             final TiffCopier copier = new TiffCopier();
-            copier.setProgressUpdater(p ->
-                    System.out.printf("\rImage %d/%d, tile %d/%d...",
-                            p.imageIndex() + 1, p.imageCount(),
-                            p.tileIndex() + 1, p.tileCount()));
+            copier.setProgressUpdater(TiffCopyDemo::updateProgress);
             copier.setDirectCopy(false);
             // - unnecessary (it is the default); true value means the repack copy
             copier.copyAllTiff(targetFile, sourceFile);
