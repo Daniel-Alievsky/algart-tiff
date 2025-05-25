@@ -34,13 +34,17 @@ public class TiffCopyDemo {
     static long lastProgressTime = Integer.MIN_VALUE;
     static void updateProgress(TiffCopier.ProgressInformation p) {
         long t = System.currentTimeMillis();
-        if (t - lastProgressTime > 200 || p.isLastTileCopied() || p.isCopyingTemporaryFile()) {
+        if (t - lastProgressTime > 500 || p.isLastTileCopied() || p.isCopyingTemporaryFile()) {
             if (p.isCopyingTemporaryFile()) {
                 System.out.printf("\rCopying temporary file...%20s", "");
-            } else {
+            } else if (p.imageCount() > 0) {
+                // - we use methods like compact() or copyAllImages()
                 System.out.printf("\rImage %d/%d, tile %d/%d...",
                         p.imageIndex() + 1, p.imageCount(),
                         p.tileIndex() + 1, p.tileCount());
+            } else {
+                // - we use methods copying a single image
+                System.out.printf("\rTile %d/%d...", p.tileIndex() + 1, p.tileCount());
             }
             lastProgressTime = t;
         }

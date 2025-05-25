@@ -32,6 +32,7 @@ import net.algart.matrices.tiff.tiles.TiffReadMap;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Locale;
 
 public class TiffCropAllToRectangleDemo {
     public static void main(String[] args) throws IOException {
@@ -41,7 +42,7 @@ public class TiffCropAllToRectangleDemo {
             relative = true;
             startArgIndex++;
         }
-        boolean wholeTiles= false;
+        boolean wholeTiles = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-wholeTiles")) {
             wholeTiles = true;
             startArgIndex++;
@@ -87,8 +88,8 @@ public class TiffCropAllToRectangleDemo {
                 if (wholeTiles) {
                     fromX = alignDown(fromX, readMap.tileSizeX());
                     fromY = alignDown(fromY, readMap.tileSizeY());
-                    toX = alignUp(toX, readMap.tileSizeX());
-                    toY = alignUp(toY, readMap.tileSizeY());
+                    toX = Math.min(dimX, alignUp(toX, readMap.tileSizeX()));
+                    toY = Math.min(dimY, alignUp(toY, readMap.tileSizeY()));
                 }
                 System.out.printf("Copying image %d, rectangle %d..%dx%d..%d%n", ifdIndex, fromX, toX, fromY, toY);
                 copier.copyImage(writer, readMap, fromX, fromY, toX - fromX, toY - fromY);
@@ -96,7 +97,7 @@ public class TiffCropAllToRectangleDemo {
             }
         }
         long t2 = System.nanoTime();
-        System.out.printf("Done in %.3f seconds%n", (t2 - t1) * 1e-9);
+        System.out.printf(Locale.US, "Done in %.3f seconds%n", (t2 - t1) * 1e-9);
     }
 
     private static int alignDown(int value, int step) {

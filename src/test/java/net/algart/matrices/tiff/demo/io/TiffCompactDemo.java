@@ -29,9 +29,11 @@ import net.algart.matrices.tiff.TiffCopier;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Locale;
 
 public class TiffCompactDemo {
     private static final int DEFAULT_MAX_IN_MEMORY_TEMP_FILE_SIZE = 256 * 1024 * 1024; // 256 MB
+
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         boolean repack = false;
@@ -67,7 +69,7 @@ public class TiffCompactDemo {
             long t1 = System.nanoTime();
             copier.compact(tiffFile);
             long t2 = System.nanoTime();
-            System.out.printf("%nDone in %.3f seconds%n", (t2 - t1) * 1e-9);
+            System.out.printf(Locale.US, "%nDone in %.3f seconds%n", (t2 - t1) * 1e-9);
         }
     }
 }
