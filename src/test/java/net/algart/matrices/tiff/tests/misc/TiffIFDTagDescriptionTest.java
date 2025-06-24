@@ -28,28 +28,17 @@ import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 
 public class TiffIFDTagDescriptionTest {
-    private static void testDescription(TiffIFD ifd, String s, boolean exceptionExpected) {
-        boolean exceptionOccurred = false;
-        try {
-            ifd.putDescription(s);
-        } catch (Exception e) {
-            if (!exceptionExpected) {
-                throw new AssertionError("Unexpected exception", e);
-            }
-            exceptionOccurred = true;
-        }
+    private static void testDescription(TiffIFD ifd, String s) {
+        ifd.putDescription(s);
         System.out.printf("Description: %s%n", ifd.optDescription());
         System.out.println(ifd.toString(TiffIFD.StringFormat.NORMAL));
         System.out.println();
-        if (exceptionExpected && !exceptionOccurred) {
-            throw new AssertionError("Exception did not occur!");
-        }
     }
 
     public static void main(String[] args) throws TiffException {
         TiffIFD ifd = new TiffIFD();
-        testDescription(ifd, "Hello", false);
-        testDescription(ifd, "\u041F\u0440\u0438\u0432\u0435\u0442!", true);
+        testDescription(ifd, "Hello");
+        testDescription(ifd, "\u041F\u0440\u0438\u0432\u0435\u0442!");
         // - russian translation of "Hello"
     }
 }

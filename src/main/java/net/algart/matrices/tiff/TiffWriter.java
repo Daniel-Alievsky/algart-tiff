@@ -43,6 +43,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -1759,14 +1760,14 @@ public non-sealed class TiffWriter extends TiffIO {
             }
         } else if (value instanceof String stringValue) { // suppose ASCII
             stream.writeShort(TagTypes.ASCII);
-            final char[] q = stringValue.toCharArray();
+            final byte[] q = stringValue.getBytes(StandardCharsets.UTF_8);
             writeIntOrLong(stream, emptyStringList ? 0 : q.length + 1);
             // - with concluding zero bytes, excepting an empty string list (produced by ASCII byte[0])
             if (q.length < dataLength) {
                 // - this branch is the same for an empty string list (byte[0])
                 // and for an empty string (byte[1] which contains 0)
-                for (char c : q) {
-                    writeUnsignedByte(stream, c);
+                for (byte c : q) {
+                    writeUnsignedByte(stream, c & 0xFF);
                 }
                 for (int i = q.length; i < dataLength; i++) {
                     stream.writeByte(0);
@@ -1774,12 +1775,12 @@ public non-sealed class TiffWriter extends TiffIO {
             } else {
                 appendUntilEvenPosition(extraBuffer);
                 writeOffset(bufferOffsetInResultFile + extraBuffer.offset());
-                for (char charValue : q) {
-                    if (charValue > 0xFF) {
-                        throw new TiffException("Attempt to write a character with code " + (int) charValue +
-                                " > 255; only ASCII characters with 0..255 codes are supported in string TIFF tags");
-                    }
-                    writeUnsignedByte(extraBuffer, charValue);
+                for (byte c : q) {
+//                    if (charValue > 0xFF) {
+//                        throw new TiffException("Attempt to write a character with code " + (int) charValue +
+//                                " > 255; only ASCII characters with 0..255 codes are supported in string TIFF tags");
+//                    }
+                    writeUnsignedByte(extraBuffer, c & 0xFF);
                 }
                 extraBuffer.writeByte(0); // concluding zero bytes
             }

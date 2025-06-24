@@ -316,9 +316,11 @@ public class TiffWriterTest {
                         // - unusual mode: no special putXxx method
                     }
                     ifd.putPixelInformation(numberOfChannels, sampleType);
-                    ifd.putDescription("TiffWriter test image\0Second description");
-//                     + "\u041F\u0440\u0438\u0432\u0435\u0442!");
-                    // - above is a non-ASCII (russian) string; an attempt to write will lead to exception
+                    ifd.putDescription("TiffWriter test image\0" +
+                            "\u041F\u0440\u0438\u0432\u0435\u0442\0" +
+                            "\u05E9\u05DC\u05D5\u05DD");
+                    // - above are non-ASCII string (Russian and Hebrew): should be written as UTF-8
+                    // ifd.putDescription("Д"); // - testing little another writing algorithm (inside a TIFF entry)
                     final boolean overwriteExisting = randomAccess && k == 0;
                     if (k == 0) {
                         if (existingFile) {

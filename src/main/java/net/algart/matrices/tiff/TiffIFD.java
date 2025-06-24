@@ -1690,12 +1690,6 @@ public class TiffIFD {
 
     public TiffIFD putDescription(String imageDescription) {
         Objects.requireNonNull(imageDescription, "Null image description");
-        for (char charValue : imageDescription.toCharArray()) {
-            if (charValue > 0xFF) {
-                throw new IllegalArgumentException("Image description contains a character with code " +
-                        (int) charValue + " > 255; only ASCII characters with 0..255 codes are allowed");
-            }
-        }
         put(Tags.IMAGE_DESCRIPTION, imageDescription);
         return this;
     }
