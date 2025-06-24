@@ -1757,9 +1757,9 @@ public non-sealed class TiffWriter extends TiffIO {
                     extraBuffer.writeByte(shortValue);
                 }
             }
-        } else if (value instanceof String) { // suppose ASCII
+        } else if (value instanceof String stringValue) { // suppose ASCII
             stream.writeShort(TagTypes.ASCII);
-            final char[] q = ((String) value).toCharArray();
+            final char[] q = stringValue.toCharArray();
             writeIntOrLong(stream, emptyStringList ? 0 : q.length + 1);
             // - with concluding zero bytes, excepting an empty string list (produced by ASCII byte[0])
             if (q.length < dataLength) {
@@ -1775,6 +1775,10 @@ public non-sealed class TiffWriter extends TiffIO {
                 appendUntilEvenPosition(extraBuffer);
                 writeOffset(bufferOffsetInResultFile + extraBuffer.offset());
                 for (char charValue : q) {
+                    if (charValue > 0xFF) {
+                        throw new TiffException("Attempt to write a character with code " + (int) charValue +
+                                " > 255; only ASCII characters with 0..255 codes are supported in string TIFF tags");
+                    }
                     writeUnsignedByte(extraBuffer, charValue);
                 }
                 extraBuffer.writeByte(0); // concluding zero bytes

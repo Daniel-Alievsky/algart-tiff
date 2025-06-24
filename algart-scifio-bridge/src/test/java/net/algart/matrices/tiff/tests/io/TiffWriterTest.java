@@ -316,7 +316,9 @@ public class TiffWriterTest {
                         // - unusual mode: no special putXxx method
                     }
                     ifd.putPixelInformation(numberOfChannels, sampleType);
-                    ifd.putImageDescription("TiffWriter test image");
+                    ifd.putDescription("TiffWriter test image\0Second description");
+//                     + "\u041F\u0440\u0438\u0432\u0435\u0442!");
+                    // - above is a non-ASCII (russian) string; an attempt to write will lead to exception
                     final boolean overwriteExisting = randomAccess && k == 0;
                     if (k == 0) {
                         if (existingFile) {
