@@ -6,7 +6,7 @@
 
     <groupId>net.algart</groupId>
     <artifactId>algart-scifio-bridge</artifactId>
-    <version>1.4.0</version>
+    <version>1.5.0</version>
 
     <name>AlgART-SCIFIO bridge</name>
     <description>Module helping to use and test AlgART-TIFF together with io.scif:scifio</description>
@@ -35,8 +35,7 @@
     </scm>
 
     <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     <dependencies>
@@ -66,7 +65,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>3.3.0</version>
+                <version>3.3.1</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
@@ -89,8 +88,9 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>3.5.0</version>
+                        <version>3.11.2</version>
                         <configuration>
+                            <release>${maven.compiler.release}</release>
                             <encoding>UTF-8</encoding>
                             <doclint>none</doclint>
                         </configuration>
