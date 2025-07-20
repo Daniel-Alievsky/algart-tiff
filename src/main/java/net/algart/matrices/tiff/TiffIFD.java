@@ -2298,6 +2298,7 @@ public class TiffIFD {
                 v instanceof float[] || v instanceof double[] ||
                 v instanceof Number[];
         if (!numeric && jsonMode) {
+            // Note: we don't try to correctly include into JSON strings and other complex values
             return;
         }
         if (!jsonMode && v instanceof byte[] bytes) {
@@ -2321,7 +2322,7 @@ public class TiffIFD {
             if (mask != 0) {
                 o = ((Number) o).intValue() & mask;
             }
-            if (jsonMode && o instanceof TagRational) {
+            if (o instanceof String || (jsonMode && o instanceof TagRational)) {
                 sb.append("\"").append(o).append("\"");
             } else {
                 sb.append(o);

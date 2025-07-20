@@ -192,9 +192,7 @@ public class TiffReaderTest {
             final Matrix<? extends PArray> interleave = interleaved ?
                     matrix :
                     Matrices.interleave(tryToExtractRGB(matrix.asLayers()));
-            final BufferedImage bi = new MatrixToImage.InterleavedRGBToInterleaved()
-                    .setUnsignedInt32(true)
-                    .toBufferedImage(interleave);
+            final BufferedImage bi = MatrixToImage.ofInterleaved(interleave);
             MatrixIO.writeBufferedImage(file, bi);
         }
     }
