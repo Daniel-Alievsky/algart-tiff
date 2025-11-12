@@ -153,7 +153,7 @@ public sealed class TiffMap permits TiffIOMap {
         try {
             if (!hasImageDimensions && !resizable) {
                 throw new IllegalArgumentException("TIFF image sizes (ImageWidth and ImageLength tags) " +
-                        "are not specified; it is not allowed for non-resizable tile map");
+                        "are not specified; it is not allowed for non-resizable tile " + mapKindName());
             }
             this.tilingMode = ifd.hasTileInformation() ? TilingMode.TILE_GRID : TilingMode.STRIPS;
             if (resizable && !tilingMode.isTileGrid()) {

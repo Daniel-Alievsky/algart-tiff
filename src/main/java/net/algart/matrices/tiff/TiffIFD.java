@@ -1398,7 +1398,7 @@ public class TiffIFD {
         if (numberOfChannels == 0) {
             throw new IllegalArgumentException("Empty channels list");
         }
-        Matrix<? extends PArray> matrix = channels.get(0);
+        Matrix<? extends PArray> matrix = channels.getFirst();
         checkNumberOfChannels(numberOfChannels);
         final long dimX = matrix.dimX();
         final long dimY = matrix.dimY();
@@ -1694,7 +1694,7 @@ public class TiffIFD {
         return this;
     }
 
-    public TiffIFD removeImageDescription() {
+    public TiffIFD removeDescription() {
         remove(Tags.IMAGE_DESCRIPTION);
         return this;
     }
