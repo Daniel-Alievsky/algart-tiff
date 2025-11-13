@@ -28,7 +28,7 @@ import net.algart.matrices.tiff.TiffException;
 
 import java.util.*;
 
-public abstract class SVSImageMetadata {
+public abstract class SVSImageDescription {
     public record Attribute(String name, String value) {
         public Attribute {
             Objects.requireNonNull(name, "Null SVS attribute name");
@@ -39,15 +39,15 @@ public abstract class SVSImageMetadata {
     final List<String> text = new ArrayList<>();
     final Map<String, Attribute> attributes = new LinkedHashMap<>();
 
-    SVSImageMetadata() {
+    SVSImageDescription() {
     }
 
-    public static SVSImageMetadata of(String imageDescriptionTagValue) {
-        SVSImageMetadata result = new StandardImageMetadata(imageDescriptionTagValue);
+    public static SVSImageDescription of(String imageDescriptionTagValue) {
+        SVSImageDescription result = new StandardImageDescription(imageDescriptionTagValue);
         if (result.isSVSMetadata()) {
             return result;
         }
-        return new EmptyImageMetadata(imageDescriptionTagValue);
+        return new EmptyImageDescription(imageDescriptionTagValue);
     }
 
     public final List<String> getText() {

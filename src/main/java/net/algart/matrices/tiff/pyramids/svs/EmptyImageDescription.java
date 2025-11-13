@@ -28,8 +28,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-class EmptyImageMetadata extends SVSImageMetadata {
-    EmptyImageMetadata(String imageDescriptionTagValue) {
+class EmptyImageDescription extends SVSImageDescription {
+    EmptyImageDescription(String imageDescriptionTagValue) {
     }
 
     @Override

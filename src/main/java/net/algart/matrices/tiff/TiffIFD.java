@@ -436,10 +436,11 @@ public class TiffIFD {
     /**
      * Returns the total number of bytes occupied by the IFD metadata (IFD entries) in the TIFF file.
      * This method works well only if this object was read from a TIFF file by {@link TiffReader} class;
-     * if you constructed this object yourself, this object will return <code>OptionalLong.empty()</code>.
+     * if you constructed this object yourself, this object will return {@code OptionalLong.empty()} .
      *
      * @param tiffFileLength must contain the total length of the TIFF file.
-     * @return the summary size of all IFD entries.
+     * @return the summary size of all IFD entries or {@code OptionalLong.empty()}
+     * if this object has no such information (it was not read by {@link TiffReader}).
      */
     public OptionalLong sizeOfIFD(long tiffFileLength) {
         if (tiffFileLength < 0) {
@@ -485,6 +486,7 @@ public class TiffIFD {
 
     /**
      * Returns the total number of bytes occupied by the tiles/strips in the TIFF file.
+     * The result cannot be negative.
      *
      * @param tiffFileLength must contain the total length of the TIFF file.
      * @param wasAligned     if not <code>null</code>, will contain a flag indicating whether the returned size
@@ -527,7 +529,11 @@ public class TiffIFD {
             if (i == 0 || offsets[i] != offsets[i - 1]) {
                 // - identical tiles CAN be written at the same offset:
                 // TiffWriter writes empty tiles in such a manner
-                sum = Math.addExact(sum, byteCounts[i]);
+                final long byteCount = byteCounts[i];
+                if (byteCount < 0) {
+                    throw new TiffException("Negative byte count in an IFD entry");
+                }
+                sum = Math.addExact(sum, byteCount);
             }
             if (offsets[i] + byteCounts[i] > tiffFileLength) {
                 throw new TiffException("IFD tile/strip is outside the file length " +

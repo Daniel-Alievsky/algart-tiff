@@ -28,7 +28,7 @@ import net.algart.matrices.tiff.TiffException;
 
 import java.util.*;
 
-class StandardImageMetadata extends SVSImageMetadata {
+class StandardImageDescription extends SVSImageDescription {
     private static final String MICRON_PER_PIXEL_ATTRIBUTE = "MPP";
     private static final String MAGNIFICATION_ATTRIBUTE = "AppMag";
     private static final String LEFT_ATTRIBUTE = "Left";
@@ -37,7 +37,7 @@ class StandardImageMetadata extends SVSImageMetadata {
 
     private static final Set<String> IMPORTANT = Set.of("ScanScope ID", "Date", "Time");
 
-    StandardImageMetadata(String imageDescriptionTagValue) {
+    StandardImageDescription(String imageDescriptionTagValue) {
         if (imageDescriptionTagValue != null) {
             imageDescriptionTagValue = imageDescriptionTagValue.trim();
             if (!imageDescriptionTagValue.isEmpty()) {

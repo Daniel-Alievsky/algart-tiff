@@ -305,7 +305,10 @@ public non-sealed class TiffReader extends TiffIO {
             }
             throw new TiffException(openingException);
         }
-        // assert this.validTiff == this.tiff; // - this is redundant
+        if (openMode.isRequireTiff()) {
+            checkFirstOffset();
+            // - additional check of zero or extremely large offset
+        }
     }
 
     /**
@@ -1812,8 +1815,6 @@ public non-sealed class TiffReader extends TiffIO {
                         " bytes (a valid TIFF must contain at least " + MINIMAL_ALLOWED_TIFF_FILE_LENGTH +
                         " bytes); probably the TIFF writing process was not completed normally");
             }
-            readFirstOffsetFromCurrentPosition(false, bigTiff);
-            // - additional check of zero offset, filling positionOfLastOffset
         } finally {
             stream.seek(savedOffset);
             // - for maximal compatibility: in old versions, the constructor of this class
@@ -1920,6 +1921,18 @@ public non-sealed class TiffReader extends TiffIO {
 
     private String prettyInName() {
         return prettyFileName(" %s", stream);
+    }
+
+    public void checkFirstOffset() throws IOException {
+        synchronized (fileLock) {
+            final long savedOffset = stream.offset();
+            try {
+                stream.seek(bigTiff ? 8 : 4);
+                readFirstOffsetFromCurrentPosition(false, this.bigTiff);
+            } finally {
+                stream.seek(savedOffset);
+            }
+        }
     }
 
     private long readFirstOffsetFromCurrentPosition(boolean updatePositionOfLastOffset, boolean bigTiff)

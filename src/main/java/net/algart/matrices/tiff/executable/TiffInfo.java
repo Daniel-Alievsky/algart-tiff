@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.List;
 import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -98,13 +99,21 @@ public class TiffInfo {
                 final Exception e = reader.openingException();
                 System.out.printf("%nFile %s: not TIFF%s", tiffFile,
                         e instanceof TiffException ? "" : "%n  (%s)".formatted(e == null ? "??" : e.getMessage()));
-                // "??" should not appear here
             } else {
-                var ifdList = reader.allIFDs();
+                final List<TiffIFD> ifdList;
+                try {
+                    ifdList = reader.allIFDs();
+                } catch (IOException e) {
+                    System.err.printf("File %s (%s, %s-endian) cannot be loaded correctly",
+                            tiffFile,
+                            reader.isBigTiff() ? "BigTIFF" : "not BigTIFF",
+                            reader.isLittleEndian() ? "little" : "big");
+                    throw e;
+                }
                 final int ifdCount = ifdList.size();
                 firstIFDIndex = Math.max(firstIFDIndex, 0);
                 lastIFDIndex = Math.min(lastIFDIndex, ifdCount - 1);
-                System.out.printf("%nFile %s: %d images, %s, %s-endian%n",
+                System.out.printf("File %s: %d images, %s, %s-endian%n",
                         tiffFile,
                         ifdCount,
                         reader.isBigTiff() ? "BigTIFF" : "not BigTIFF",
@@ -116,31 +125,41 @@ public class TiffInfo {
                     System.out.print(ifdInfo(ifd, k, ifdCount));
                     final OptionalLong sizeOfIFDOptional = ifd.sizeOfIFD(tiffFileLength);
                     AtomicBoolean imageDataAligned = new AtomicBoolean(false);
-                    final long sizeOfData = ifd.sizeOfImageData(tiffFileLength, imageDataAligned);
                     if (sizeOfIFDOptional.isPresent()) {
                         final long sizeOfIFD = sizeOfIFDOptional.getAsLong();
-                        final long sizeOfIFDTable = ifd.sizeOfIFDTable();
-                        if (ifd.isMainIFD() && sizeOfIFDTable != (ifd.isBigTiff() ?
-                                16L + 20L * ifd.numberOfEntries() :
-                                6L + 12L * ifd.numberOfEntries())) {
-                            throw new AssertionError("Invalid sizeOfIFDTable");
+                        size += sizeOfIFD;
+                        long sizeOfData = -1;
+                        try {
+                            sizeOfData = ifd.sizeOfImageData(tiffFileLength, imageDataAligned);
+                            final long sizeOfIFDTable = ifd.sizeOfIFDTable();
+                            if (ifd.isMainIFD() && sizeOfIFDTable != (ifd.isBigTiff() ?
+                                    16L + 20L * ifd.numberOfEntries() :
+                                    6L + 12L * ifd.numberOfEntries())) {
+                                throw new AssertionError("Invalid sizeOfIFDTable");
+                            }
+                            System.out.printf("%d bytes in the file occupied: " +
+                                            "%d metadata (%d table + %d external) + %d image data%s",
+                                    sizeOfIFD + sizeOfData,
+                                    sizeOfIFD, sizeOfIFDTable, sizeOfIFD - sizeOfIFDTable,
+                                    sizeOfData,
+                                    imageDataAligned.get() ? " (" + (sizeOfData - 1) + " unaligned)" : "");
+                            size += sizeOfData;
+                        } catch (TiffException e) {
+                            System.out.printf("%d bytes in the file occupied by metadata, " +
+                                            "but cannot detect the size occupied by image data: %s",
+                                    sizeOfIFD, e.getMessage());
                         }
-                        System.out.printf("%d bytes in file occupied: " +
-                                        "%d metadata (%d table + %d external) + %d image data%s",
-                                sizeOfIFD + sizeOfData,
-                                sizeOfIFD, sizeOfIFDTable, sizeOfIFD - sizeOfIFDTable,
-                                sizeOfData,
-                                imageDataAligned.get() ? " (" + (sizeOfData - 1) + " unaligned)" : "");
-                        size += sizeOfIFD + sizeOfData;
                     }
                     if (k < lastIFDIndex) {
                         System.out.println();
                     }
                     if (!(ifd.containsKey(Tags.STRIP_BYTE_COUNTS) || ifd.containsKey(Tags.TILE_BYTE_COUNTS))) {
-                        throw new TiffException("Invalid IFD: doesn't contain StripByteCounts/TileByteCounts tag");
+                        System.err.printf("WARNING! Invalid IFD #%d in %s: no StripByteCounts/TileByteCounts tag%n",
+                                k, tiffFile);
                     }
                     if (!(ifd.containsKey(Tags.STRIP_OFFSETS) || ifd.containsKey(Tags.TILE_OFFSETS))) {
-                        throw new TiffException("Invalid IFD: doesn't contain StripOffsets/TileOffsets tag");
+                        System.err.printf("WARNING! Invalid IFD #%d in %s: no StripOffsets/TileOffsets tag%n",
+                                k, tiffFile);
                     }
                 }
                 if (size == tiffFileLength) {
