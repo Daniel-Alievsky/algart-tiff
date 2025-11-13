@@ -36,7 +36,7 @@ import java.util.*;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class TiffIFD {
+public final class TiffIFD {
     /**
      * An IFD with the number of entries, greater than this limit, is not allowed even in BigTIFF:
      * it is mostly probable that it is a corrupted file.

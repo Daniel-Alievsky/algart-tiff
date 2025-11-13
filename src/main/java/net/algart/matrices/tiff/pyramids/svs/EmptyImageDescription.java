@@ -48,7 +48,7 @@ class EmptyImageDescription extends SVSImageDescription {
     }
 
     @Override
-    public boolean isSVSMetadata() {
+    public boolean isSVSDescription() {
         return false;
     }
 }

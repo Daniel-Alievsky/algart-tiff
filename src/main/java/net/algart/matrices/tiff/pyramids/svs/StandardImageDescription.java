@@ -86,7 +86,7 @@ class StandardImageDescription extends SVSImageDescription {
         return attributes.containsKey(MICRON_PER_PIXEL_ATTRIBUTE);
     }
 
-    public boolean isSVSMetadata() {
+    public boolean isSVSDescription() {
         return isPixelSizeSupported();
     }
 

@@ -100,9 +100,9 @@ public class TiffInfo {
                 System.out.printf("%nFile %s: not TIFF%s", tiffFile,
                         e instanceof TiffException ? "" : "%n  (%s)".formatted(e == null ? "??" : e.getMessage()));
             } else {
-                final List<TiffIFD> ifdList;
+                final List<TiffIFD> allIFDs;
                 try {
-                    ifdList = reader.allIFDs();
+                    allIFDs = reader.allIFDs();
                 } catch (IOException e) {
                     System.err.printf("File %s (%s, %s-endian) cannot be loaded correctly",
                             tiffFile,
@@ -110,7 +110,7 @@ public class TiffInfo {
                             reader.isLittleEndian() ? "little" : "big");
                     throw e;
                 }
-                final int ifdCount = ifdList.size();
+                final int ifdCount = allIFDs.size();
                 firstIFDIndex = Math.max(firstIFDIndex, 0);
                 lastIFDIndex = Math.min(lastIFDIndex, ifdCount - 1);
                 System.out.printf("File %s: %d images, %s, %s-endian%n",
@@ -121,7 +121,7 @@ public class TiffInfo {
                 long size = reader.sizeOfHeader();
                 final long tiffFileLength = reader.stream().length();
                 for (int k = firstIFDIndex; k <= lastIFDIndex; k++) {
-                    final TiffIFD ifd = ifdList.get(k);
+                    final TiffIFD ifd = allIFDs.get(k);
                     System.out.print(ifdInfo(ifd, k, ifdCount));
                     final OptionalLong sizeOfIFDOptional = ifd.sizeOfIFD(tiffFileLength);
                     AtomicBoolean imageDataAligned = new AtomicBoolean(false);

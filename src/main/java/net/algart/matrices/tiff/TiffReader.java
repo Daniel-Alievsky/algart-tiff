@@ -352,6 +352,8 @@ public non-sealed class TiffReader extends TiffIO {
         this.tiff = tiff.get();
         this.bigTiff = bigTiff.get();
         this.validTiff = openingException == null;
+        // - in the current version, a TIFF but invalid can be detected when
+        // its length < MINIMAL_ALLOWED_TIFF_FILE_LENGTH (see testHeader())
         assert !(this.validTiff && !this.tiff);
         if (exceptionHandler != null && openingException != null) {
             exceptionHandler.accept(openingException);
@@ -735,15 +737,15 @@ public non-sealed class TiffReader extends TiffIO {
      * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
      */
     public TiffIFD ifd(int ifdIndex) throws IOException {
-        List<TiffIFD> ifdList = allIFDs();
+        List<TiffIFD> allIFDs = allIFDs();
         if (ifdIndex < 0) {
             throw new IllegalArgumentException("Negative IFD index " + ifdIndex);
         }
-        if (ifdIndex >= ifdList.size()) {
+        if (ifdIndex >= allIFDs.size()) {
             throw new TiffException(
-                    "IFD index " + ifdIndex + " is out of bounds 0 <= index < " + ifdList.size());
+                    "IFD index " + ifdIndex + " is out of bounds 0 <= index < " + allIFDs.size());
         }
-        return ifdList.get(ifdIndex);
+        return allIFDs.get(ifdIndex);
     }
 
     /**
@@ -1804,9 +1806,6 @@ public non-sealed class TiffReader extends TiffIO {
             tiffReference.set(true);
             bigTiffReference.set(bigTiff);
             // - this is definitely TIFF, but, probably, non-valid; in the latter case we will throw exceptions
-            if (bigTiff) {
-                stream.seek(8);
-            }
             if (length < MINIMAL_ALLOWED_TIFF_FILE_LENGTH) {
                 // - sometimes we can meet 8-byte "TIFF files" (or 16-byte "BigTIFF") that contain only header
                 // and no actual data: possible results of debugging writing algorithm or bugs while writing

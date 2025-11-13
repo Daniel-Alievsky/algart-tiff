@@ -55,27 +55,18 @@ public final class SVSImageClassifier {
 
     private static final System.Logger LOG = System.getLogger(SVSImageClassifier.class.getName());
 
-    private final List<? extends TiffMap> maps;
+    private final List<TiffIFD> ifds;
     private final int ifdCount;
     private int thumbnailIndex = -1;
     private int labelIndex = -1;
     private int macroIndex = -1;
-    private final List<Integer> unknownSpecialIndexes = new ArrayList<>();
 
-    public SVSImageClassifier(List<? extends TiffMap> maps) throws TiffException {
-        this.maps = Objects.requireNonNull(maps);
-        this.ifdCount = maps.size();
+    public SVSImageClassifier(List<TiffIFD> allIFDs) throws TiffException {
+        this.ifds = Objects.requireNonNull(allIFDs, "Null allIFDs");
+        this.ifdCount = ifds.size();
         detectThumbnail();
         if (!detectTwoLastImages()) {
             detectSingleLastImage();
-        }
-        for (int k = THUMBNAIL_IFD_INDEX; k < ifdCount; k++) {
-            if (isSpecial(k)) {
-                continue;
-            }
-            if (isSmallImage(this.maps.get(k).ifd())) {
-                unknownSpecialIndexes.add(k);
-            }
         }
     }
 
@@ -113,15 +104,14 @@ public final class SVSImageClassifier {
         return "special image positions among " + ifdCount + " total images: "
                 + "thumbnail " + (thumbnailIndex == -1 ? "NOT FOUND" : "at " + thumbnailIndex)
                 + ", label " + (labelIndex == -1 ? "NOT FOUND" : "at " + labelIndex)
-                + ", macro " + (macroIndex == -1 ? "NOT FOUND" : "at " + macroIndex)
-                + ", unknown " + unknownSpecialIndexes;
+                + ", macro " + (macroIndex == -1 ? "NOT FOUND" : "at " + macroIndex);
     }
 
     private void detectThumbnail() throws TiffException {
         if (ifdCount <= THUMBNAIL_IFD_INDEX) {
             return;
         }
-        final TiffIFD ifd = maps.get(THUMBNAIL_IFD_INDEX).ifd();
+        final TiffIFD ifd = ifds.get(THUMBNAIL_IFD_INDEX);
         if (isSmallImage(ifd)) {
             this.thumbnailIndex = THUMBNAIL_IFD_INDEX;
         }
@@ -133,16 +123,16 @@ public final class SVSImageClassifier {
         }
         final int index1 = ifdCount - 2;
         final int index2 = ifdCount - 1;
-        final TiffMap map1 = maps.get(index1);
-        final TiffMap map2 = maps.get(index2);
-        final TiffIFD ifd1 = map1.ifd();
-        final TiffIFD ifd2 = map2.ifd();
+        final TiffIFD ifd1 = ifds.get(index1);
+        final TiffIFD ifd2 = ifds.get(index2);
         if (!(isSmallImage(ifd1) && isSmallImage(ifd2))) {
             return false;
         }
-        LOG.log(System.Logger.Level.DEBUG, () -> String.format(
-                "  Checking last 2 small IFDs #%d %s and #%d %s for Label and Macro...",
-                index1, sizesToString(map1), index2, sizesToString(map2)));
+        if (LOG.isLoggable(System.Logger.Level.DEBUG)) {
+            LOG.log(System.Logger.Level.DEBUG, String.format(
+                    "  Checking last 2 small IFDs #%d %s and #%d %s for Label and Macro...",
+                    index1, sizesToString(ifd1), index2, sizesToString(ifd2)));
+        }
         if (ALWAYS_USE_SVS_SPECIFICATION_FOR_LABEL_AND_MACRO) {
             final int compression1 = ifd1.getCompressionCode();
             final int compression2 = ifd2.getCompressionCode();
@@ -194,16 +184,17 @@ public final class SVSImageClassifier {
             return;
         }
         final int index = ifdCount - 1;
-        final TiffMap map = maps.get(index);
-        final TiffIFD ifd = map.ifd();
+        final TiffIFD ifd = ifds.get(index);
         if (!isSmallImage(ifd)) {
             return;
         }
         final double ratio = ratio(ifd);
-        LOG.log(System.Logger.Level.DEBUG, () -> String.format(
-                "  Checking last 1 small IFDs #%d %s for Label or Macro...", index, sizesToString(map)));
-        LOG.log(System.Logger.Level.DEBUG, () -> String.format(
-                "  Last IFD #%d, ratio: %.5f, standard Macro %.5f", index, ratio, STANDARD_MACRO_ASPECT_RATIO));
+        if (LOG.isLoggable(System.Logger.Level.DEBUG)) {
+            LOG.log(System.Logger.Level.DEBUG, String.format(
+                    "  Checking last 1 small IFDs #%d %s for Label or Macro...", index, sizesToString(ifd)));
+            LOG.log(System.Logger.Level.DEBUG, String.format(
+                    "  Last IFD #%d, ratio: %.5f, standard Macro %.5f", index, ratio, STANDARD_MACRO_ASPECT_RATIO));
+        }
         if (ratio <= STANDARD_MACRO_ASPECT_RATIO * (1.0 - ALLOWED_ASPECT_RATION_DEVIATION)) {
             if (ifd.getCompressionCode() == TagCompression.JPEG.code()) {
                 // strange image, but very improbable that it is Label encoded by JPEG
@@ -230,14 +221,14 @@ public final class SVSImageClassifier {
                 (long) ifd.getImageDimX() * (long) ifd.getImageDimY() < MAX_PIXEL_COUNT_IN_SPECIAL_IMAGES;
     }
 
-    static String sizesToString(TiffMap map) {
-        Objects.requireNonNull(map, "Null map");
-        return map.dimX() + "x" + map.dimY();
+    static String sizesToString(TiffIFD ifd) throws TiffException {
+        Objects.requireNonNull(ifd, "Null IFD");
+        return ifd.getImageDimX() + "x" + ifd.getImageDimY();
     }
 
-    static String compressionToString(TiffMap map) {
-        Objects.requireNonNull(map, "Null map");
-        return String.valueOf(map.ifd().optCompression());
+    static String compressionToString(TiffIFD ifd) {
+        Objects.requireNonNull(ifd, "Null IFD");
+        return String.valueOf(ifd.optCompression());
     }
 
     private static double area(TiffIFD ifd) throws TiffException {
@@ -262,7 +253,7 @@ public final class SVSImageClassifier {
         for (String arg : args) {
             final Path file = Paths.get(arg);
             try (TiffReader reader = new TiffReader(file)) {
-                final var detector = new SVSImageClassifier(reader.allMaps());
+                final var detector = new SVSImageClassifier(reader.allIFDs());
                 System.out.printf("%s:%n%s%n%n", file, detector);
             }
         }

@@ -44,17 +44,17 @@ public abstract class SVSImageDescription {
 
     public static SVSImageDescription of(String imageDescriptionTagValue) {
         SVSImageDescription result = new StandardImageDescription(imageDescriptionTagValue);
-        if (result.isSVSMetadata()) {
+        if (result.isSVSDescription()) {
             return result;
         }
         return new EmptyImageDescription(imageDescriptionTagValue);
     }
 
-    public final List<String> getText() {
+    public final List<String> text() {
         return Collections.unmodifiableList(text);
     }
 
-    public final Map<String, Attribute> getAttributes() {
+    public final Map<String, Attribute> attributes() {
         return Collections.unmodifiableMap(attributes);
     }
 
@@ -64,7 +64,7 @@ public abstract class SVSImageDescription {
 
     public abstract List<String> importantTextAttributes();
 
-    public abstract boolean isSVSMetadata();
+    public abstract boolean isSVSDescription();
 
     public boolean isPixelSizeSupported() {
         return false;
@@ -94,6 +94,8 @@ public abstract class SVSImageDescription {
         throw new UnsupportedOperationException();
     }
 
+
+
     /* TODO!! manually convert to JSON
     public final JsonObject toJson() {
         final JsonObjectBuilder builder = Json.createObjectBuilder();
@@ -119,4 +121,12 @@ public abstract class SVSImageDescription {
     }
 
     */
+
+    @Override
+    public String toString() {
+        return "SVSImageDescription{" +
+                "text=" + text +
+                ", attributes=" + attributes +
+                '}';
+    }
 }
