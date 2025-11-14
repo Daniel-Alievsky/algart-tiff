@@ -61,13 +61,17 @@ public final class SVSImageClassifier {
     private int labelIndex = -1;
     private int macroIndex = -1;
 
-    public SVSImageClassifier(List<TiffIFD> allIFDs) throws TiffException {
+    private SVSImageClassifier(List<TiffIFD> allIFDs) throws TiffException {
         this.ifds = Objects.requireNonNull(allIFDs, "Null allIFDs");
         this.ifdCount = ifds.size();
         detectThumbnail();
         if (!detectTwoLastImages()) {
             detectSingleLastImage();
         }
+    }
+
+    public static SVSImageClassifier of(List<TiffIFD> allIFD) throws TiffException {
+        return new SVSImageClassifier(allIFD);
     }
 
     public boolean isSpecial(int ifdIndex) {

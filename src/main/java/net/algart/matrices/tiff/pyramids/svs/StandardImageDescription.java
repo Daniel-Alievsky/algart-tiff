@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2017-2025 Daniel Alievsky, AlgART Laboratory (http://algart.net)
+ * Copyright (c) 2023-2025 Daniel Alievsky, AlgART Laboratory (http://algart.net)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,8 +29,8 @@ import net.algart.matrices.tiff.TiffException;
 import java.util.*;
 
 class StandardImageDescription extends SVSImageDescription {
-    private static final String MICRON_PER_PIXEL_ATTRIBUTE = "MPP";
     private static final String MAGNIFICATION_ATTRIBUTE = "AppMag";
+    private static final String MICRON_PER_PIXEL_ATTRIBUTE = "MPP";
     private static final String LEFT_ATTRIBUTE = "Left";
     private static final String TOP_ATTRIBUTE = "Top";
     private static final String ADDED_COMMON_IMAGE_INFO_ATTRIBUTE = "CommonInfo";
@@ -48,8 +48,7 @@ class StandardImageDescription extends SVSImageDescription {
                         final String[] records = line.split("[|]");
                         if (records.length >= 1) {
                             // check to be on the safe side
-                            attributes.put(ADDED_COMMON_IMAGE_INFO_ATTRIBUTE,
-                                    new Attribute(ADDED_COMMON_IMAGE_INFO_ATTRIBUTE, records[0]));
+                            attributes.put(ADDED_COMMON_IMAGE_INFO_ATTRIBUTE, records[0]);
                         }
                         for (int i = 1; i < records.length; i++) {
                             final String[] record = records[i].trim().split("[=]");
@@ -57,7 +56,7 @@ class StandardImageDescription extends SVSImageDescription {
                                 final String name = record[0].trim();
                                 final String value = record[1].trim();
                                 if (!attributes.containsKey(name)) {
-                                    attributes.put(name, new Attribute(name, value));
+                                    attributes.put(name, value);
                                 }
                             }
                         }
@@ -66,6 +65,7 @@ class StandardImageDescription extends SVSImageDescription {
             }
         }
     }
+
 
     @Override
     public String subFormatTitle() {
@@ -86,24 +86,14 @@ class StandardImageDescription extends SVSImageDescription {
         return attributes.containsKey(MICRON_PER_PIXEL_ATTRIBUTE);
     }
 
-    public boolean isSVSDescription() {
+    public boolean isProbableMainDescription() {
         return isPixelSizeSupported();
     }
 
     public double pixelSize() throws TiffException {
-        final Attribute attribute = attributes.get(MICRON_PER_PIXEL_ATTRIBUTE);
-        if (attribute == null) {
-            throw new TiffException("Image description does not contain \""
-                    + MICRON_PER_PIXEL_ATTRIBUTE + "\" attribute");
-        }
-        final double result;
-        try {
-            result = Double.parseDouble(attribute.value());
-        } catch (NumberFormatException e) {
-            throw new TiffException("Image description contains invalid pixel size attribute: " + attribute, e);
-        }
+        final double result = reqDouble(MICRON_PER_PIXEL_ATTRIBUTE);
         if (result <= 0.0) {
-            throw new TiffException("Image description contains negative pixel size attribute: " + attribute);
+            throw new TiffException("Image description contains negative MPP attribute: " + result);
         }
         return result;
     }
@@ -113,15 +103,7 @@ class StandardImageDescription extends SVSImageDescription {
     }
 
     public double magnification() throws TiffException {
-        final Attribute attribute = attributes.get(MAGNIFICATION_ATTRIBUTE);
-        if (attribute == null) {
-            throw new TiffException("Image description does not contain magnification attribute");
-        }
-        try {
-            return Double.parseDouble(attribute.value());
-        } catch (NumberFormatException e) {
-            throw new TiffException("Image description contains invalid magnification attribute: " + attribute, e);
-        }
+        return reqDouble(MAGNIFICATION_ATTRIBUTE);
     }
 
     public boolean isGeometrySupported() {
@@ -131,29 +113,32 @@ class StandardImageDescription extends SVSImageDescription {
                 && attributes.containsKey(TOP_ATTRIBUTE);
     }
 
-    public double imageOnSlideLeftInMicronsAxisRightward() throws TiffException {
-        final Attribute attribute = attributes.get(LEFT_ATTRIBUTE);
-        if (attribute == null) {
-            throw new TiffException("Image description does not contain Left attribute");
-        }
-        try {
-            return Double.parseDouble(attribute.value()) * 1000.0;
-            // mm to microns
-        } catch (NumberFormatException e) {
-            throw new TiffException("Image description contains invalid Left attribute: " + attribute, e);
-        }
+    /**
+     * Returns the horizontal offset of the image left boundary on the slide, in microns.
+     * The offset is measured along an axis directed rightward.
+     *
+     * <p>In SVS, the "Left" attribute stores x-coordinate of the image on the physical slide in millimeters.
+     * This method returns this value multiplied by 1000.</p>
+     *
+     * @return the horizontal offset of the image left boundary in microns.
+     * @throws TiffException if the SVS attribute cannot be read as a number.
+     */
+    public double imageLeftMicronsAxisRightward() throws TiffException {
+        return reqDouble(LEFT_ATTRIBUTE) * 1000.0;
     }
 
-    public double imageOnSlideTopInMicronsAxisUpward() throws TiffException {
-        final Attribute attribute = attributes.get(TOP_ATTRIBUTE);
-        if (attribute == null) {
-            throw new TiffException("Image description does not contain Top attribute");
-        }
-        try {
-            return Double.parseDouble(attribute.value()) * 1000.0;
-            // mm to microns
-        } catch (NumberFormatException e) {
-            throw new TiffException("Image description contains invalid Top attribute: " + attribute, e);
-        }
+    /**
+     * Returns the vertical offset of the image top boundary on the slide, in microns.
+     * Note: <i>the offset is measured along an axis directed upward</i>,
+     * rather than the usual image-coordinate system where the y-axis increases downward.
+     *
+     * <p>In SVS, the "Top" attribute stores y-coordinate of the image on the physical slide in millimeters.
+     * This method returns this value multiplied by 1000.</p>
+     *
+     * @return the vertical offset of the image upper boundary in microns, measured along the upward axis.
+     * @throws TiffException if the SVS attribute cannot be read as a number.
+     */
+    public double imageTopMicronsAxisUpward() throws TiffException {
+        return reqDouble(TOP_ATTRIBUTE) * 1000.0;
     }
 }

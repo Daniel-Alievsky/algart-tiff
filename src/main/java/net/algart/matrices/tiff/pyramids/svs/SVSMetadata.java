@@ -37,43 +37,59 @@ import java.util.Map;
 import java.util.Objects;
 
 public class SVSMetadata {
-    private final List<SVSImageDescription> imageDescriptions;
-    private final SVSImageDescription mainImageDescription;
+    private final List<SVSImageDescription> descriptions;
+    private final SVSImageDescription mainDescription;
     private final SVSImageClassifier imageClassifier;
 
-    public SVSMetadata(List<TiffIFD> allIFDs) throws TiffException {
+    private SVSMetadata(List<TiffIFD> allIFDs) throws TiffException {
         Objects.requireNonNull(allIFDs, "Null allIFDs");
         final int ifdCount = allIFDs.size();
-        this.imageClassifier = new SVSImageClassifier(allIFDs);
-        this.imageDescriptions = new ArrayList<>();
+        this.imageClassifier = SVSImageClassifier.of(allIFDs);
+        this.descriptions = new ArrayList<>();
         for (int k = 0; k < ifdCount; k++) {
             final String description = allIFDs.get(k).optDescription().orElse(null);
-            this.imageDescriptions.add(SVSImageDescription.of(description));
+            this.descriptions.add(SVSImageDescription.of(description));
         }
-        this.mainImageDescription = findMainImageDescription(imageDescriptions);
+        this.mainDescription = findMainDescription(descriptions);
     }
 
-    public List<SVSImageDescription> imageDescriptions() {
-        return imageDescriptions;
+    public static SVSMetadata of(List<TiffIFD> allIFDs) throws TiffException {
+        return new SVSMetadata(allIFDs);
     }
 
-    public SVSImageDescription mainImageDescription() {
-        return mainImageDescription;
+    public static SVSMetadata of(TiffReader reader) throws IOException {
+        Objects.requireNonNull(reader, "Null TIFF reader");
+        return new SVSMetadata(reader.allIFDs());
+    }
+
+    public boolean isSVS() {
+        return mainDescription != null;
+    }
+
+    public List<SVSImageDescription> allDescriptions() {
+        return descriptions;
+    }
+
+    public SVSImageDescription mainDescription() {
+        return mainDescription;
     }
 
     public SVSImageClassifier imageClassifier() {
         return imageClassifier;
     }
 
-    private static SVSImageDescription findMainImageDescription(List<SVSImageDescription> imageDescriptions) {
+    private static SVSImageDescription findMainDescription(List<SVSImageDescription> imageDescriptions) {
+        // Note: the detailed SVS specification is always included (as ImageDescription tag)
+        // in the first image (#0) with maximal resolution and partially repeated in the thumbnail image (#1).
+        // The label and macro images usually contain reduced ImageDescription.
         for (SVSImageDescription description : imageDescriptions) {
-            if (description.isSVSDescription()) {
+            if (description.isProbableMainDescription()) {
                 return description;
+                // - returning the first
             }
         }
         return null;
     }
-
 
     public static void main(String[] args) throws IOException {
         if (args.length == 0) {
@@ -84,14 +100,25 @@ public class SVSMetadata {
             final Path file = Paths.get(arg);
             try (TiffReader reader = new TiffReader(file)) {
                 final var metadata = new SVSMetadata(reader.allIFDs());
-                SVSImageDescription description = metadata.mainImageDescription();
+                SVSImageDescription main = metadata.mainDescription();
                 System.out.printf("%s:%nImportant text:%n%s%n", file,
-                        description.importantTextAttributes());
-                System.out.println("All attributes:");
-                for (Map.Entry<String, SVSImageDescription.Attribute> e : description.attributes().entrySet()) {
+                        main.importantTextAttributes());
+                System.out.println("Main description, all attributes:");
+                for (Map.Entry<String, String> e : main.attributes().entrySet()) {
                         System.out.printf("  %s = %s%n", e.getKey(), e.getValue());
                 }
                 System.out.printf("Image classifier:%n%s%n", metadata.imageClassifier());
+                System.out.printf("%nAll descriptions");
+                final List<SVSImageDescription> allDescriptions = metadata.allDescriptions();
+                for (int i = 0, n = allDescriptions.size(); i < n; i++) {
+                    SVSImageDescription d = allDescriptions.get(i);
+                    if (d.isProbableMainDescription()) {
+                        System.out.printf("Description #%d/%d, all attributes:%n", i, n);
+                        for (Map.Entry<String, String> e : d.attributes().entrySet()) {
+                            System.out.printf("  %s = %s%n", e.getKey(), e.getValue());
+                        }
+                    }
+                }
             }
         }
     }

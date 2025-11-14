@@ -238,7 +238,7 @@ public final class TiffIFD {
     }
 
     // This constructor is called while reading from the TIFF file.
-    // Note: detailedEntries is not cloned by this constructor.
+    // Note: this constructor does not clone the detailedEntries map.
     TiffIFD(Map<Integer, Object> ifdEntries, LinkedHashMap<Integer, TiffEntry> detailedEntries) {
         Objects.requireNonNull(ifdEntries);
         this.map = new LinkedHashMap<>(ifdEntries);

@@ -28,43 +28,71 @@ import net.algart.matrices.tiff.TiffException;
 
 import java.util.*;
 
-public abstract class SVSImageDescription {
-    public record Attribute(String name, String value) {
-        public Attribute {
-            Objects.requireNonNull(name, "Null SVS attribute name");
-            Objects.requireNonNull(value, "Null SVS attribute value");
-        }
-    }
-
+public class SVSImageDescription {
     final List<String> text = new ArrayList<>();
-    final Map<String, Attribute> attributes = new LinkedHashMap<>();
+    final Map<String, String> attributes = new LinkedHashMap<>();
+    //TODO!! make private
 
     SVSImageDescription() {
     }
 
     public static SVSImageDescription of(String imageDescriptionTagValue) {
         SVSImageDescription result = new StandardImageDescription(imageDescriptionTagValue);
-        if (result.isSVSDescription()) {
+        if (result.isProbableMainDescription()) {
             return result;
         }
-        return new EmptyImageDescription(imageDescriptionTagValue);
+        return new SVSImageDescription();
     }
 
     public final List<String> text() {
         return Collections.unmodifiableList(text);
     }
 
-    public final Map<String, Attribute> attributes() {
+    public final Map<String, String> attributes() {
         return Collections.unmodifiableMap(attributes);
     }
 
-    public abstract String subFormatTitle();
+    /**
+     * Returns the value of the specified SVS numeric attribute as a {@code double}.
+     * The attribute must exist and must contain a valid decimal number.
+     *
+     * <p>If the attribute is absent or cannot be parsed as a number,
+     * this method throws a {@link TiffException}.
+     *
+     * @param name name of the SVS attribute to read (must not be {@code null}).
+     * @return the parsed {@code double} value of the specified attribute.
+     * @throws NullPointerException if {@code name} is {@code null}.
+     * @throws TiffException if the attribute is missing or contains an invalid number.
+     */
+    public double reqDouble(String name) throws TiffException {
+        Objects.requireNonNull(name, "Null attribute name");
+        final String value = attributes.get(name);
+        if (value == null) {
+            throw new TiffException("SVS image description does not contain " + name + " attribute");
+        }
+        try {
+            return Double.parseDouble("asd"+value);
+        } catch (NumberFormatException e) {
+            throw new TiffException("SVS image description contains invalid " + name + " attribute: " +
+                    value + " is not a number",e);
+        }
+    }
 
-    public abstract Set<String> importantAttributeNames();
+    public String subFormatTitle() {
+        return "unknown";
+    }
 
-    public abstract List<String> importantTextAttributes();
+    public Set<String> importantAttributeNames() {
+        return Collections.emptySet();
+    }
 
-    public abstract boolean isSVSDescription();
+    public List<String> importantTextAttributes() {
+        return Collections.emptyList();
+    }
+
+    public boolean isProbableMainDescription() {
+        return false;
+    }
 
     public boolean isPixelSizeSupported() {
         return false;
@@ -86,11 +114,11 @@ public abstract class SVSImageDescription {
         return false;
     }
 
-    public double imageOnSlideLeftInMicronsAxisRightward() throws TiffException {
+    public double imageLeftMicronsAxisRightward() throws TiffException {
         throw new UnsupportedOperationException();
     }
 
-    public double imageOnSlideTopInMicronsAxisUpward() throws TiffException {
+    public double imageTopMicronsAxisUpward() throws TiffException {
         throw new UnsupportedOperationException();
     }
 
