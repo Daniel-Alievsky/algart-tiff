@@ -10,7 +10,10 @@ import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Objects;
 import java.util.prefs.Preferences;
 
 public class TiffInfoGUI {
@@ -59,6 +62,9 @@ public class TiffInfoGUI {
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
 //        topPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         frame.add(topPanel, BorderLayout.NORTH);
+        frame.setIconImages(java.util.List.of(
+                new ImageIcon(reqResource("icon16.png")).getImage(),
+                new ImageIcon(reqResource("icon32.png")).getImage()));
 
         openFileButton = new JButton("Open TIFF");
         openFileButton.addActionListener(e -> chooseAndOpenFile());
@@ -180,7 +186,7 @@ public class TiffInfoGUI {
             }
         } catch (IOException e) {
             LOG.log(System.Logger.Level.ERROR, "Error reading TIFF", e);
-            JOptionPane.showMessageDialog(frame, "Error reading TIFF: " + e.getMessage());
+            JOptionPane.showMessageDialog(frame, e.getMessage(), "Error reading TIFF", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -244,7 +250,15 @@ public class TiffInfoGUI {
             imgFrame.setLocationRelativeTo(frame);
             imgFrame.setVisible(true);
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(frame, "Cannot read image: " + e.getMessage());
+            JOptionPane.showMessageDialog(
+                    frame, e.getMessage(), "Error reading TIFF image", JOptionPane.ERROR_MESSAGE);
         }
     }
+
+    private static URL reqResource(String name) {
+        final URL result = TiffInfoGUI.class.getResource(name);
+        Objects.requireNonNull(result, "Resource " + name + " not found");
+        return result;
+    }
+
 }
