@@ -4,6 +4,7 @@ import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -17,6 +18,26 @@ import java.util.Objects;
 import java.util.prefs.Preferences;
 
 public class TiffInfoGUI {
+    public enum ViewMode {
+        BRIEF(TiffIFD.StringFormat.BRIEF, "Brief"),
+        NORMAL(TiffIFD.StringFormat.NORMAL, "Normal"),
+        NORMAL_SORTED(TiffIFD.StringFormat.NORMAL_SORTED, "Normal (sorted)"),
+        DETAILED(TiffIFD.StringFormat.DETAILED, "Detailed"),
+        JSON(TiffIFD.StringFormat.JSON, "JSON");
+
+        private final TiffIFD.StringFormat stringFormat;
+        private final String caption;
+
+        ViewMode(TiffIFD.StringFormat stringFormat, String caption) {
+            this.stringFormat = stringFormat;
+            this.caption = caption;
+        }
+
+        public String toString() {
+            return caption;
+        }
+    }
+
     private static final int MAX_IMAGE_DIM = 10000;
     private static final Color COMMON_BACKGROUND = new Color(240, 240, 240);
     private static final Color ERROR_BACKGROUND = new Color(255, 255, 155);
@@ -37,7 +58,7 @@ public class TiffInfoGUI {
     private JTextArea ifdTextArea;
     private JButton showImageButton;
     private JButton openFileButton;
-    private JComboBox<TiffIFD.StringFormat> formatComboBox;
+    private JComboBox<ViewMode> formatComboBox;
 
     private TiffInfo info = null;
     private Path tiffFile = null;
@@ -70,12 +91,15 @@ public class TiffInfoGUI {
         openFileButton.addActionListener(e -> chooseAndOpenFile());
         topPanel.add(openFileButton);
 
-        formatComboBox = new JComboBox<>(TiffIFD.StringFormat.values());
+        formatComboBox = new JComboBox<>(ViewMode.values());
         formatComboBox.setSelectedItem(stringFormat);
         formatComboBox.addActionListener(e -> {
-            stringFormat = (TiffIFD.StringFormat) formatComboBox.getSelectedItem();
-            reload();
-            updateTextArea();
+            ViewMode selectedItem = (ViewMode) formatComboBox.getSelectedItem();
+            if (selectedItem != null) {
+                stringFormat = selectedItem.stringFormat;
+                reload();
+                updateTextArea();
+            }
         });
         topPanel.add(Box.createRigidArea(new Dimension(10, 0)));
         topPanel.add(new JLabel("View mode:"));
@@ -92,7 +116,6 @@ public class TiffInfoGUI {
         showImageButton.addActionListener(e -> showImageWindow());
         topPanel.add(Box.createRigidArea(new Dimension(10, 0)));
         topPanel.add(showImageButton);
-
         frame.add(topPanel, BorderLayout.NORTH);
 
         commonTextArea = new JTextArea(2, 80);
@@ -147,6 +170,15 @@ public class TiffInfoGUI {
                 chooser.setCurrentDirectory(dir);
             }
         }
+        javax.swing.filechooser.FileFilter tiffFilter =
+                new FileNameExtensionFilter("TIFF files (*.tif, *.tiff)", "tif", "tiff");
+        javax.swing.filechooser.FileFilter svsFilter =
+                new FileNameExtensionFilter("SVS files (*.svs)", "svs");
+        chooser.addChoosableFileFilter(tiffFilter);
+        chooser.addChoosableFileFilter(svsFilter);
+        chooser.setAcceptAllFileFilterUsed(true);
+
+        chooser.setFileFilter(tiffFilter);
         chooser.setDialogTitle("Select a TIFF file");
         int result = chooser.showOpenDialog(frame);
         if (result == JFileChooser.APPROVE_OPTION) {
@@ -247,6 +279,14 @@ public class TiffInfoGUI {
             imgFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             imgFrame.add(new JScrollPane(new JLabel(new ImageIcon(bi))));
             imgFrame.pack();
+
+            Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+            Dimension frameSize = imgFrame.getSize();
+            frameSize.width = Math.min(frameSize.width, screenSize.width - 10);
+            frameSize.height = Math.min(frameSize.height, screenSize.height - 10);
+            // - ensure that scroll bar and other elements will be visible even for very large images
+            imgFrame.setSize(frameSize);
+
             imgFrame.setLocationRelativeTo(frame);
             imgFrame.setVisible(true);
         } catch (IOException e) {
@@ -260,5 +300,4 @@ public class TiffInfoGUI {
         Objects.requireNonNull(result, "Resource " + name + " not found");
         return result;
     }
-
 }
