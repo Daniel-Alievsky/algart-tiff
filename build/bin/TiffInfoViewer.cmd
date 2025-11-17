@@ -1,0 +1,1 @@
+java -cp %~dp0\lib\* net.algart.matrices.tiff.executable.TiffInfoViewer %1 %2 %3 %4 %5 %6 %7 %8 %9

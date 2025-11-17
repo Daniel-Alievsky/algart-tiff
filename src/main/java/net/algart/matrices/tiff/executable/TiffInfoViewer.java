@@ -13,11 +13,10 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.Objects;
 import java.util.prefs.Preferences;
 
-public class TiffInfoGUI {
+public class TiffInfoViewer {
     public enum ViewMode {
         BRIEF(TiffIFD.StringFormat.BRIEF, "Brief"),
         NORMAL(TiffIFD.StringFormat.NORMAL, "Normal"),
@@ -48,9 +47,9 @@ public class TiffInfoGUI {
     private static final String PREF_WINDOW_WIDTH = "windowWidth";
     private static final String PREF_WINDOW_HEIGHT = "windowHeight";
 
-    static final System.Logger LOG = System.getLogger(TiffInfoGUI.class.getName());
+    static final System.Logger LOG = System.getLogger(TiffInfoViewer.class.getName());
 
-    private final Preferences prefs = Preferences.userNodeForPackage(TiffInfoGUI.class);
+    private final Preferences prefs = Preferences.userNodeForPackage(TiffInfoViewer.class);
 
     private JFrame frame;
     private JComboBox<String> ifdComboBox;
@@ -65,6 +64,10 @@ public class TiffInfoGUI {
     private TiffIFD.StringFormat stringFormat = TiffIFD.StringFormat.NORMAL;
 
     public static void main(String[] args) {
+        if (args.length >= 1 && args[0].equals("-h")) {
+            System.out.println("Usage: java " + TiffInfoViewer.class.getName() + " [some_file.tiff]");
+            return;
+        }
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             // For cross-platform:
@@ -72,16 +75,15 @@ public class TiffInfoGUI {
         } catch (Exception e) {
             LOG.log(System.Logger.Level.WARNING, "Cannot set look and feel", e);
         }
-        SwingUtilities.invokeLater(() -> new TiffInfoGUI().createGUI());
+        SwingUtilities.invokeLater(() -> new TiffInfoViewer().createGUI(args));
     }
 
-    private void createGUI() {
+    private void createGUI(String[] args) {
         frame = new JFrame("TIFF Inspector");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
 
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
-//        topPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         frame.add(topPanel, BorderLayout.NORTH);
         frame.setIconImages(java.util.List.of(
                 new ImageIcon(reqResource("icon16.png")).getImage(),
@@ -159,6 +161,9 @@ public class TiffInfoGUI {
                 savePreferences();
             }
         });
+        if (args.length >= 1) {
+            loadTiff(Path.of(args[0]));
+        }
     }
 
     private void chooseAndOpenFile() {
@@ -296,7 +301,7 @@ public class TiffInfoGUI {
     }
 
     private static URL reqResource(String name) {
-        final URL result = TiffInfoGUI.class.getResource(name);
+        final URL result = TiffInfoViewer.class.getResource(name);
         Objects.requireNonNull(result, "Resource " + name + " not found");
         return result;
     }
