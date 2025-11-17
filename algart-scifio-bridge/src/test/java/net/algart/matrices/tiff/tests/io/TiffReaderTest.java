@@ -164,7 +164,8 @@ public class TiffReaderTest {
                 for (int test = 1; test <= Math.max(1, numberOfTests); test++) {
                     if (test == 1 && repeat == 1) {
                         System.out.printf("Reading data %dx%dx%d from %s%n",
-                                w, h, bandCount, new TiffInfo().ifdInfo(map.ifd(), ifdIndex, numberOfIFDS));
+                                w, h, bandCount,
+                                new TiffInfo().ifdInformation(reader, map.ifd(), ifdIndex));
                     }
                     t1 = System.nanoTime();
 //                    map.ifd().put(258, new double[] {3}); // - should lead to exception

@@ -6,12 +6,15 @@ import net.algart.matrices.tiff.TiffReader;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 
 public class TiffInfoGUI {
+    private static final int MAX_IMAGE_DIM = 10000;
+
     private JFrame frame;
     private JComboBox<String> ifdComboBox;
     private JTextArea textArea;
@@ -19,7 +22,7 @@ public class TiffInfoGUI {
     private JButton openFileButton;
     private JComboBox<TiffIFD.StringFormat> formatComboBox;
 
-    private List<TiffIFD> ifds;
+    private TiffInfo info = null;
     private Path tiffFile;
     private TiffIFD.StringFormat stringFormat = TiffIFD.StringFormat.NORMAL;
 
@@ -87,36 +90,58 @@ public class TiffInfoGUI {
 
     private void loadTiff(Path file) {
         this.tiffFile = file;
+        reload();
+    }
+
+    private void reload() {
         ifdComboBox.removeAllItems();
         textArea.setText("");
-        try (TiffReader reader = new TiffReader(tiffFile, TiffOpenMode.ALLOW_NON_TIFF)) {
-            if (!reader.isTiff()) {
-                JOptionPane.showMessageDialog(frame, "File is not a valid TIFF: " + tiffFile);
-                return;
-            }
-            ifds = reader.allIFDs();
-            for (int i = 0; i < ifds.size(); i++) {
+        TiffInfo info = new TiffInfo();
+        try {
+            info.collectTiffInfo(tiffFile);
+            for (int i = 0; i < info.ifdInfo.size(); i++) {
                 ifdComboBox.addItem("IFD #" + i);
             }
-            if (!ifds.isEmpty()) {
+            if (!info.ifdInfo.isEmpty()) {
                 ifdComboBox.setSelectedIndex(0);
                 updateTextArea();
             }
-        } catch (IOException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(frame, "Error reading TIFF: " + ex.getMessage());
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(frame, "Error reading TIFF: " + e.getMessage());
         }
     }
 
     private void updateTextArea() {
         int index = ifdComboBox.getSelectedIndex();
-        if (index >= 0 && ifds != null && index < ifds.size()) {
-            TiffIFD ifd = ifds.get(index);
-            textArea.setText(ifd.toString(stringFormat));
+        if (index >= 0 && info != null && index < info.ifdCount()) {
+            textArea.setText(info.ifdInformation(index));
         }
     }
 
     private void showImageWindow() {
-        // Пока закомментировано
+        int index = ifdComboBox.getSelectedIndex();
+        if (index < 0 || info == null || index >= info.ifdCount()) {
+            return;
+        }
+        try (TiffReader reader = new TiffReader(tiffFile)) {
+            final int dimX = reader.dimX(index);
+            final int dimY = reader.dimY(index);
+            if (dimX > MAX_IMAGE_DIM || dimY > MAX_IMAGE_DIM) {
+                JOptionPane.showMessageDialog(frame,
+                        ("Image too large to display: %dx%d%n" +
+                                "Maximal image sizes that can be displayed are %dx%d")
+                                .formatted(dimX, dimY, MAX_IMAGE_DIM, MAX_IMAGE_DIM));
+                return;
+            }
+            BufferedImage bi = reader.readBufferedImage(index);
+            JFrame imgFrame = new JFrame("IFD Image #" + index);
+            imgFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            imgFrame.add(new JScrollPane(new JLabel(new ImageIcon(bi))));
+            imgFrame.pack();
+            imgFrame.setLocationRelativeTo(frame);
+            imgFrame.setVisible(true);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(frame, "Cannot read image: " + e.getMessage());
+        }
     }
 }

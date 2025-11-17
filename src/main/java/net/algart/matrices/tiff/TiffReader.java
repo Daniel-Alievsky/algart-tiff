@@ -1409,6 +1409,10 @@ public non-sealed class TiffReader extends TiffIO {
         return lastMap;
     }
 
+    public Object readSampleBytes(int ifdIndex) throws IOException {
+        return readJavaArray(newMap(ifdIndex));
+    }
+
     public byte[] readSampleBytes(TiffIOMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readSampleBytes(map, 0, 0, map.dimX(), map.dimY());
@@ -1502,6 +1506,10 @@ public non-sealed class TiffReader extends TiffIO {
         return samples;
     }
 
+    public Object readJavaArray(int ifdIndex) throws IOException {
+        return readJavaArray(newMap(ifdIndex));
+    }
+
     public Object readJavaArray(TiffIOMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readJavaArray(map, 0, 0, map.dimX(), map.dimY());
@@ -1546,6 +1554,10 @@ public non-sealed class TiffReader extends TiffIO {
         return samplesArray;
     }
 
+    public Matrix<UpdatablePArray> readMatrix(int ifdIndex) throws IOException {
+        return readMatrix(newMap(ifdIndex));
+    }
+
     /**
      * Reads the full image with the specified TIFF map.
      * The result is a 3-dimensional matrix, where each 2-dimensional {@link Matrices#asLayers(Matrix) layer}
@@ -1586,6 +1598,10 @@ public non-sealed class TiffReader extends TiffIO {
         return TiffSampleType.asMatrix(samplesArray, sizeX, sizeY, map.numberOfChannels(), false);
     }
 
+    public Matrix<UpdatablePArray> readInterleavedMatrix(int ifdIndex) throws IOException {
+        return readInterleavedMatrix(newMap(ifdIndex));
+    }
+
     public Matrix<UpdatablePArray> readInterleavedMatrix(TiffIOMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readInterleavedMatrix(map, 0, 0, map.dimX(), map.dimY());
@@ -1608,6 +1624,10 @@ public non-sealed class TiffReader extends TiffIO {
         final Matrix<UpdatablePArray> mergedChannels =
                 readMatrix(map, fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
         return Matrices.interleave(mergedChannels.asLayers());
+    }
+
+    public List<Matrix<UpdatablePArray>> readChannels(int ifdIndex) throws IOException {
+        return readChannels(newMap(ifdIndex));
     }
 
     /**
@@ -1645,6 +1665,10 @@ public non-sealed class TiffReader extends TiffIO {
         final Matrix<UpdatablePArray> mergedChannels =
                 readMatrix(map, fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
         return Matrices.asLayers(mergedChannels, TiffIFD.MAX_NUMBER_OF_CHANNELS);
+    }
+
+    public BufferedImage readBufferedImage(int ifdIndex) throws IOException {
+        return readBufferedImage(newMap(ifdIndex));
     }
 
     /**
