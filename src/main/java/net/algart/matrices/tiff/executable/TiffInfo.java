@@ -42,13 +42,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class TiffInfo {
-    TiffIFD.StringFormat stringFormat = TiffIFD.StringFormat.NORMAL;
-    int firstIFDIndex = 0;
-    int lastIFDIndex = Integer.MAX_VALUE;
+    private TiffIFD.StringFormat stringFormat = TiffIFD.StringFormat.NORMAL;
+    private int firstIFDIndex = 0;
+    private int lastIFDIndex = Integer.MAX_VALUE;
 
-    final List<String> ifdInfo = new ArrayList<>();
-    String prefixInfo;
-    String totalInfo;
+    private final List<String> ifdInfo = new ArrayList<>();
+    private boolean tiff;
+    private String prefixInfo;
+    private String totalInfo;
 
     public static void main(String[] args) {
         TiffInfo info = new TiffInfo();
@@ -87,12 +88,51 @@ public class TiffInfo {
         }
     }
 
+    public TiffIFD.StringFormat getStringFormat() {
+        return stringFormat;
+    }
+
+    public TiffInfo setStringFormat(TiffIFD.StringFormat stringFormat) {
+        this.stringFormat = stringFormat;
+        return this;
+    }
+
+    public int getFirstIFDIndex() {
+        return firstIFDIndex;
+    }
+
+    public TiffInfo setFirstIFDIndex(int firstIFDIndex) {
+        this.firstIFDIndex = firstIFDIndex;
+        return this;
+    }
+
+    public int getLastIFDIndex() {
+        return lastIFDIndex;
+    }
+
+    public TiffInfo setLastIFDIndex(int lastIFDIndex) {
+        this.lastIFDIndex = lastIFDIndex;
+        return this;
+    }
+
     public int ifdCount() {
         return ifdInfo.size();
     }
 
     public String ifdInformation(int ifdIndex) {
         return ifdInfo.get(ifdIndex);
+    }
+
+    public String prefixInfo() {
+        return prefixInfo;
+    }
+
+    public String totalInfo() {
+        return totalInfo;
+    }
+
+    public boolean isTiff() {
+        return tiff;
     }
 
     public void collectTiffInfo(Path tiffFile) throws IOException {
@@ -104,7 +144,8 @@ public class TiffInfo {
                 // - impossible with this form of the constructor
                 throw new AssertionError();
             }
-            if (!reader.isTiff()) {
+            this.tiff = reader.isTiff();
+            if (!this.tiff) {
                 final Exception e = reader.openingException();
                 prefixInfo = "%nFile %s: not TIFF%s".formatted(tiffFile,
                         e instanceof TiffException ? "" : "%n  (%s)".formatted(e == null ? "??" : e.getMessage()));
@@ -160,23 +201,6 @@ public class TiffInfo {
         }
     }
 
-    private void showTiffInfoAndPrintException(Path tiffFile) {
-        try {
-            showTiffInfo(tiffFile);
-        } catch (IOException e) {
-            System.err.printf("%nFile %s is invalid:%n  %s%n", tiffFile, e.getMessage());
-        }
-    }
-
-    private void showTiffInfo(Path tiffFile) throws IOException {
-        collectTiffInfo(tiffFile);
-        System.out.println(prefixInfo);
-        for (String ifdInfoLine : ifdInfo) {
-            System.out.println(ifdInfoLine);
-        }
-        System.out.println(totalInfo);
-    }
-
     public String ifdInformation(TiffReader reader, TiffIFD ifd, int ifdIndex) throws IOException {
         return ifdInformation(reader, ifd, ifdIndex, null);
     }
@@ -221,6 +245,23 @@ public class TiffInfo {
             }
         }
         return sb.toString();
+    }
+
+    private void showTiffInfoAndPrintException(Path tiffFile) {
+        try {
+            showTiffInfo(tiffFile);
+        } catch (IOException e) {
+            System.err.printf("%nFile %s is invalid:%n  %s%n", tiffFile, e.getMessage());
+        }
+    }
+
+    private void showTiffInfo(Path tiffFile) throws IOException {
+        collectTiffInfo(tiffFile);
+        System.out.println(prefixInfo);
+        for (String ifdInfoLine : ifdInfo) {
+            System.out.println(ifdInfoLine);
+        }
+        System.out.println(totalInfo);
     }
 
     private static boolean isPossiblyTIFF(File file) {
