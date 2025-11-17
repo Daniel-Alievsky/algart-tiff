@@ -45,6 +45,7 @@ public class TiffInfo {
     private TiffIFD.StringFormat stringFormat = TiffIFD.StringFormat.NORMAL;
     private int firstIFDIndex = 0;
     private int lastIFDIndex = Integer.MAX_VALUE;
+    private boolean disableAppendingForStrictFormats = false;
 
     private final List<String> ifdInfo = new ArrayList<>();
     private boolean tiff;
@@ -112,6 +113,15 @@ public class TiffInfo {
 
     public TiffInfo setLastIFDIndex(int lastIFDIndex) {
         this.lastIFDIndex = lastIFDIndex;
+        return this;
+    }
+
+    public boolean isDisableAppendingForStrictFormats() {
+        return disableAppendingForStrictFormats;
+    }
+
+    public TiffInfo setDisableAppendingForStrictFormats(boolean disableAppendingForStrictFormats) {
+        this.disableAppendingForStrictFormats = disableAppendingForStrictFormats;
         return this;
     }
 
@@ -186,7 +196,7 @@ public class TiffInfo {
                     totalInfo = "Total file length %d bytes, it is fully used".formatted(tiffFileLength);
                 } else if (totalSize.get() > tiffFileLength) {
                     totalInfo = ("%d bytes in file used, but the file length is only %d bytes, " +
-                                    "%d \"extra\" bytes: probably TIFF is not valid? (%s)").formatted(
+                            "%d \"extra\" bytes: probably TIFF is not valid? (%s)").formatted(
                             totalSize.get(), tiffFileLength, totalSize.get() - tiffFileLength, tiffFile);
                     // - however, this is possible in some files: for example, in
                     // "signed-integral-8bit.tif" from the TwelveMonkey demo image set,
@@ -205,7 +215,14 @@ public class TiffInfo {
         return ifdInformation(reader, ifd, ifdIndex, null);
     }
 
-    public String ifdInformation(TiffReader reader, TiffIFD ifd, int ifdIndex, AtomicLong totalSize) throws IOException {
+    private String ifdInformation(
+            TiffReader reader,
+            TiffIFD ifd,
+            int ifdIndex,
+            AtomicLong totalSize) throws IOException {
+        if (disableAppendingForStrictFormats && stringFormat.isStrict()) {
+            return ifd.toString(stringFormat);
+        }
         int ifdCount = reader.numberOfImages();
         StringBuilder sb = new StringBuilder();
         sb.append("IFD #%d/%d:%s%s%n".formatted(
@@ -231,11 +248,11 @@ public class TiffInfo {
                     throw new AssertionError("Invalid sizeOfIFDTable");
                 }
                 sb.append("%d bytes in the file occupied: %d metadata (%d table + %d external) + %d image data%s"
-                                .formatted(
-                        sizeOfIFD + sizeOfData,
-                        sizeOfIFD, sizeOfIFDTable, sizeOfIFD - sizeOfIFDTable,
-                        sizeOfData,
-                        imageDataAligned.get() ? " (" + (sizeOfData - 1) + " unaligned)" : ""));
+                        .formatted(
+                                sizeOfIFD + sizeOfData,
+                                sizeOfIFD, sizeOfIFDTable, sizeOfIFD - sizeOfIFDTable,
+                                sizeOfData,
+                                imageDataAligned.get() ? " (" + (sizeOfData - 1) + " unaligned)" : ""));
                 if (totalSize != null) {
                     totalSize.addAndGet(sizeOfData);
                 }

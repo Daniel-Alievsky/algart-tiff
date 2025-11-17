@@ -207,6 +207,7 @@ public class TiffInfoViewer {
         ifdComboBox.removeAllItems();
         ifdTextArea.setText("");
         info = new TiffInfo();
+        info.setDisableAppendingForStrictFormats(true);
         info.setStringFormat(stringFormat);
         try {
             info.collectTiffInfo(tiffFile);

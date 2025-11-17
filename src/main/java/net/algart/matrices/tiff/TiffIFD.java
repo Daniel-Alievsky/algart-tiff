@@ -119,6 +119,10 @@ public final class TiffIFD {
         public boolean isJson() {
             return this == JSON;
         }
+
+        public boolean isStrict() {
+            return this == JSON;
+        }
     }
 
     public static final int LAST_IFD_OFFSET = 0;
