@@ -291,12 +291,27 @@ public class TiffInfoViewer {
             final int dimX = reader.dimX(index);
             final int dimY = reader.dimY(index);
             if (dimX > MAX_IMAGE_DIM || dimY > MAX_IMAGE_DIM) {
-                JOptionPane.showMessageDialog(frame,
-                        ("Image too large to display: %dx%d%n" +
-                                "Maximal image sizes that can be displayed are %dx%d")
-                                .formatted(dimX, dimY, MAX_IMAGE_DIM, MAX_IMAGE_DIM));
-                return;
+                int choice = JOptionPane.showConfirmDialog(
+                        frame,
+                        (
+                                "The image is very large (%d×%d pixels).%n" +
+                                        "Displaying it may take significant time and memory.%n%n" +
+                                        "Do you want to continue?"
+                        ).formatted(dimX, dimY),
+                        "Large Image Warning",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.WARNING_MESSAGE
+                );
+                if (choice != JOptionPane.YES_OPTION) {
+                    return;
+                }
+//                JOptionPane.showMessageDialog(frame,
+//                        ("Image too large to display: %dx%d%n" +
+//                                "Maximal image sizes that can be displayed are %dx%d")
+//                                .formatted(dimX, dimY, MAX_IMAGE_DIM, MAX_IMAGE_DIM));
+//                return;
             }
+
             BufferedImage bi = reader.readBufferedImage(index);
             JFrame imgFrame = new JFrame("TIFF Image #" + index + " from " + info.ifdCount() + " images");
             imgFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -306,7 +321,7 @@ public class TiffInfoViewer {
             Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
             Dimension frameSize = imgFrame.getSize();
             frameSize.width = Math.min(frameSize.width, screenSize.width - 10);
-            frameSize.height = Math.min(frameSize.height, screenSize.height - 10);
+            frameSize.height = Math.min(frameSize.height, screenSize.height - 50);
             // - ensure that scroll bar and other elements will be visible even for very large images
             imgFrame.setSize(frameSize);
 
