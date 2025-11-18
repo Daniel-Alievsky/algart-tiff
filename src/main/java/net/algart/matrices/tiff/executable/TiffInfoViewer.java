@@ -6,6 +6,7 @@ import net.algart.matrices.tiff.TiffReader;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
+import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
@@ -17,6 +18,8 @@ import java.util.Objects;
 import java.util.prefs.Preferences;
 
 public class TiffInfoViewer {
+    public static final String ALGART_TIFF_WEBSITE = "https://algart.net/java/AlgART-TIFF/";
+
     public enum ViewMode {
         BRIEF(TiffIFD.StringFormat.BRIEF, "Brief"),
         NORMAL(TiffIFD.StringFormat.NORMAL, "Normal"),
@@ -79,19 +82,21 @@ public class TiffInfoViewer {
     }
 
     private void createGUI(String[] args) {
-        frame = new JFrame("TIFF Inspector");
+        frame = new JFrame("TIFF Information Viewer");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
 
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
-        frame.add(topPanel, BorderLayout.NORTH);
+        JPanel topPanel = new JPanel(new BorderLayout());
+        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
+
+        frame.add(leftPanel, BorderLayout.NORTH);
         frame.setIconImages(java.util.List.of(
                 new ImageIcon(reqResource("icon16.png")).getImage(),
                 new ImageIcon(reqResource("icon32.png")).getImage()));
 
         openFileButton = new JButton("Open TIFF");
         openFileButton.addActionListener(e -> chooseAndOpenFile());
-        topPanel.add(openFileButton);
+        leftPanel.add(openFileButton);
 
         formatComboBox = new JComboBox<>(ViewMode.values());
         formatComboBox.setSelectedItem(stringFormat);
@@ -103,21 +108,29 @@ public class TiffInfoViewer {
                 updateTextArea();
             }
         });
-        topPanel.add(Box.createRigidArea(new Dimension(10, 0)));
-        topPanel.add(new JLabel("View mode:"));
-        topPanel.add(formatComboBox);
+        leftPanel.add(Box.createRigidArea(new Dimension(10, 0)));
+        leftPanel.add(new JLabel("View mode:"));
+        leftPanel.add(formatComboBox);
 
         ifdComboBox = new JComboBox<>();
         ifdComboBox.addActionListener(e -> updateTextArea());
         ifdComboBox.setPrototypeDisplayValue("999999");
-        topPanel.add(Box.createRigidArea(new Dimension(10, 0)));
-        topPanel.add(new JLabel("Select TIFF image (IFD):"));
-        topPanel.add(ifdComboBox);
+        leftPanel.add(Box.createHorizontalStrut(10));
+        leftPanel.add(new JLabel("Select TIFF image:"));
+        leftPanel.add(ifdComboBox);
 
-        showImageButton = new JButton("Show Image");
+        showImageButton = new JButton("Show image");
         showImageButton.addActionListener(e -> showImageWindow());
-        topPanel.add(Box.createRigidArea(new Dimension(10, 0)));
-        topPanel.add(showImageButton);
+        leftPanel.add(Box.createHorizontalStrut(10));
+        leftPanel.add(showImageButton);
+
+        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 5));
+        JButton aboutButton = new JButton("About");
+        aboutButton.addActionListener(e -> showAboutDialog());
+        rightPanel.add(aboutButton);
+
+        topPanel.add(leftPanel, BorderLayout.WEST);
+        topPanel.add(rightPanel, BorderLayout.EAST);
         frame.add(topPanel, BorderLayout.NORTH);
 
         commonTextArea = new JTextArea(2, 80);
@@ -152,6 +165,10 @@ public class TiffInfoViewer {
         frame.add(textPanel, BorderLayout.CENTER);
 
         frame.pack();
+        final Dimension frameSize = frame.getPreferredSize();
+        frame.setMinimumSize(new Dimension(
+                frameSize.width, frameSize.height - ifdTextArea.getPreferredSize().height + 32));
+        // - the user cannot reduce window size too much, so that elements become invisible
         frame.setLocationRelativeTo(null);
         loadPreferences();
         frame.setVisible(true);
@@ -216,7 +233,7 @@ public class TiffInfoViewer {
             commonTextArea.setCaretPosition(0);
             final int ifdCount = info.ifdCount();
             for (int i = 0; i < ifdCount; i++) {
-                ifdComboBox.addItem("#" + i);
+                ifdComboBox.addItem("IFD #" + i);
             }
             if (ifdCount > 0) {
                 ifdComboBox.setSelectedIndex(0);
@@ -281,7 +298,7 @@ public class TiffInfoViewer {
                 return;
             }
             BufferedImage bi = reader.readBufferedImage(index);
-            JFrame imgFrame = new JFrame("IFD Image #" + index);
+            JFrame imgFrame = new JFrame("TIFF Image #" + index + " from " + info.ifdCount() + " images");
             imgFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             imgFrame.add(new JScrollPane(new JLabel(new ImageIcon(bi))));
             imgFrame.pack();
@@ -299,6 +316,67 @@ public class TiffInfoViewer {
             JOptionPane.showMessageDialog(
                     frame, e.getMessage(), "Error reading TIFF image", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    private void showAboutDialog() {
+        JDialog dialog = new JDialog(frame, "About TIFF Info Viewer", true);
+        dialog.setLayout(new BorderLayout(10, 10));
+        dialog.setResizable(false);
+
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JLabel icon = new JLabel(new ImageIcon(reqResource("icon32.png")));
+        content.add(icon);
+        content.add(Box.createVerticalStrut(16));
+
+        JLabel title = new JLabel("AlgART TIFF Information Viewer");
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 16f));
+        content.add(title);
+        content.add(Box.createVerticalStrut(8));
+
+        content.add(new JLabel("By Daniel Alievsky"));
+        content.add(new JLabel("Version 1.5.1"));
+        content.add(Box.createVerticalStrut(8));
+
+        JLabel link = new JLabel("<html><a href=\"\">" + ALGART_TIFF_WEBSITE + "</a></html>");
+        link.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        link.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                try {
+                    Desktop.getDesktop().browse(new java.net.URI(ALGART_TIFF_WEBSITE));
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(dialog,
+                            "Cannot open browser:\n" + ex.getMessage(),
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        content.add(Box.createVerticalStrut(10));
+        content.add(link);
+
+        dialog.add(content, BorderLayout.CENTER);
+
+        JButton ok = new JButton("OK");
+        ok.addActionListener(e -> dialog.dispose());
+        JPanel btnPanel = new JPanel();
+        btnPanel.add(ok);
+
+        dialog.add(btnPanel, BorderLayout.SOUTH);
+
+        dialog.pack();
+        dialog.getRootPane().registerKeyboardAction(
+                e -> dialog.dispose(),
+                KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
+                JComponent.WHEN_IN_FOCUSED_WINDOW
+        );
+        dialog.setLocationRelativeTo(frame);
+        dialog.setVisible(true);
     }
 
     private static URL reqResource(String name) {
