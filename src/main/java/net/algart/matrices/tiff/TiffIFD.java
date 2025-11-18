@@ -1019,7 +1019,7 @@ public final class TiffIFD {
         if (detailedCompression != null && detailedCompression.code() == code) {
             return detailedCompression;
         }
-        return TagCompression.ofOrNull(code);
+        return TagCompression.fromCodeOrNull(code);
     }
 
     public int optPredictorCode() {

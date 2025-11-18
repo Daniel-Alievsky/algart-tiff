@@ -192,12 +192,12 @@ public enum TagCompression {
         this.jpeg2000Lossless = jpeg2000Lossless;
     }
 
-    public static TagCompression ofOrNull(int code) {
+    public static TagCompression fromCodeOrNull(int code) {
         return LOOKUP.get(code);
     }
 
     public static String toPrettyString(int code) {
-        final TagCompression compression = ofOrNull(code);
+        final TagCompression compression = fromCodeOrNull(code);
         return "type " + code + (compression == null ? "" : ": \"" + compression.prettyName() + "\"");
     }
 

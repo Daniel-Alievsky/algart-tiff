@@ -42,7 +42,7 @@ public class TiffCompressionsTest {
 
         System.out.printf("%n%n%s:%n%n", TiffCompression.class.getName());
         for (TiffCompression v : TiffCompression.values()) {
-            TagCompression compression = TagCompression.ofOrNull(v.getCode());
+            TagCompression compression = TagCompression.fromCodeOrNull(v.getCode());
             System.out.printf("%s (%d, \"%s\"); corresponding compression:%n  %s%n",
                     v, v.getCode(), v.getCodecName(), compression);
         }
