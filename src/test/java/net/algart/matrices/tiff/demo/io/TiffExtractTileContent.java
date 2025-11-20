@@ -27,6 +27,7 @@ package net.algart.matrices.tiff.demo.io;
 import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
+import net.algart.matrices.tiff.tiles.TiffReadMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIndex;
 
@@ -60,9 +61,9 @@ public class TiffExtractTileContent {
 
         // new TiffInfo().showTiffInfo(tiffFile);
 
-        try (var reader = new TiffReader(tiffFile)) {
+        try (TiffReader reader = new TiffReader(tiffFile)) {
             System.out.printf("Opening %s by %s...%n", tiffFile, reader);
-            final var map = reader.newMap(ifdIndex);
+            final TiffReadMap map = reader.newMap(ifdIndex);
             System.out.printf("TIFF map #%d: %s%n", ifdIndex, map);
             final TiffTileIndex tileIndex = map.index(col, row, separatedPlaneIndex);
             TiffTile tile;

@@ -31,6 +31,7 @@ import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.TiffTile;
+import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -66,22 +67,22 @@ public class TiffWriteRepeatedPictureDemo {
 
         System.out.printf("Reading %s...%n", patternFile);
         List<Matrix<UpdatablePArray>> pattern = MatrixIO.readImage(patternFile);
-        final long patternSizeX = pattern.get(0).dimX();
-        final long patternSizeY = pattern.get(0).dimY();
+        final long patternSizeX = pattern.getFirst().dimX();
+        final long patternSizeY = pattern.getFirst().dimY();
         if (xCount > Integer.MAX_VALUE / patternSizeX || yCount > Integer.MAX_VALUE / patternSizeY) {
             throw new IllegalArgumentException("Too large result image (>=2^31)");
         }
         System.out.printf("Pattern image: %dx%d, %d channels, %s elements%n",
-                patternSizeX, patternSizeY, pattern.size(), pattern.get(0).elementType());
+                patternSizeX, patternSizeY, pattern.size(), pattern.getFirst().elementType());
 
         System.out.printf("%s TIFF %s...%n", append ? "Appending" : "Writing", targetFile);
-        try (var writer = new TiffWriter(targetFile)) {
+        try (TiffWriter writer = new TiffWriter(targetFile)) {
             writer.setBigTiff(bigTiff);
             writer.create(append);
             final TiffIFD ifd = writer.newIFD(true)
-                    .putPixelInformation(pattern.size(), pattern.get(0).elementType())
+                    .putPixelInformation(pattern.size(), pattern.getFirst().elementType())
                     .putCompression(compression);
-            final var map = writer.newResizableMap(ifd);
+            final TiffWriteMap map = writer.newResizableMap(ifd);
             System.out.printf("Creating new resizable map: %s%n", map);
             for (int y = 0; y < yCount; y++) {
                 for (int x = 0; x < xCount; x++) {

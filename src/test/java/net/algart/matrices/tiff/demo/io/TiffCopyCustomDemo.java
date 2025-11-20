@@ -64,7 +64,7 @@ public class TiffCopyCustomDemo {
         final var copier = new TiffCopier().setDirectCopy(!repack);
         copier.setProgressUpdater(p ->
                 System.out.printf("\r%d/%d...", p.tileIndex() + 1, p.tileCount()));
-        try (var reader = new TiffReader(sourceFile); var writer = new TiffWriter(targetFile)) {
+        try (TiffReader reader = new TiffReader(sourceFile); var writer = new TiffWriter(targetFile)) {
             if (writer.getByteOrder() != ByteOrder.BIG_ENDIAN) throw new AssertionError();
             writer.setSmartFormatCorrection(true);
             // - allows non-repack copying even "strange" precisions

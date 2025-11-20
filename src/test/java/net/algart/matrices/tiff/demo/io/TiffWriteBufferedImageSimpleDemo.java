@@ -29,6 +29,7 @@ import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -55,11 +56,11 @@ public class TiffWriteBufferedImageSimpleDemo {
         }
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
-        try (var writer = new TiffWriter(targetFile, TiffCreateMode.CREATE)) {
+        try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.CREATE)) {
             final TiffIFD ifd = writer.newIFD()
                 .putImageInformation(image)
-                .putCompression(TagCompression.DEFLATE);
-            final var map = writer.newFixedMap(ifd);
+                .putCompression(TagCompression.JPEG);
+            final TiffWriteMap map = writer.newFixedMap(ifd);
             System.out.printf("Writing image: %s...%n", map);
             map.writeBufferedImage(image);
         }

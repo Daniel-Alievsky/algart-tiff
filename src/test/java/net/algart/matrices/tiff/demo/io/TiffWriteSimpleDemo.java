@@ -31,6 +31,7 @@ import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -63,7 +64,7 @@ public class TiffWriteSimpleDemo {
             final TiffIFD ifd = writer.newIFD()
                 .putChannelsInformation(image)
                 .putCompression(TagCompression.DEFLATE);
-            final var map = writer.newFixedMap(ifd);
+            final TiffWriteMap map = writer.newFixedMap(ifd);
             System.out.printf("Writing image: %s...%n", map);
             map.writeChannels(image);
         }

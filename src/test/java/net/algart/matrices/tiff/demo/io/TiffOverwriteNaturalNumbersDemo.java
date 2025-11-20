@@ -67,7 +67,7 @@ public class TiffOverwriteNaturalNumbersDemo {
         final int sizeX = 50;
         final int sizeY = 30;
         // - estimated sizes sufficient for integer number like "151"
-        try (var writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
+        try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
             // writer.setAlwaysWriteToFileEnd(true); // - should not affect the results
             final TiffWriteMap writeMap = writer.existingMap(ifdIndex);
             System.out.printf("Overwriting %s...%n", writeMap);

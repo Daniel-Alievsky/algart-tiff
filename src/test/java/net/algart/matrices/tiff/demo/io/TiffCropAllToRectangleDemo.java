@@ -72,7 +72,7 @@ public class TiffCropAllToRectangleDemo {
         }
         copier.setProgressUpdater(TiffCopyDemo::updateProgress);
         long t1 = System.nanoTime();
-        try (var reader = new TiffReader(sourceFile); var writer = new TiffWriter(targetFile)) {
+        try (TiffReader reader = new TiffReader(sourceFile); var writer = new TiffWriter(targetFile)) {
             writer.setFormatLike(reader);
             writer.create();
             for (int ifdIndex = 0; ifdIndex < reader.numberOfImages(); ifdIndex++) {

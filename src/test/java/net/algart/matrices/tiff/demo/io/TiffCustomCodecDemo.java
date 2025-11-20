@@ -29,6 +29,7 @@ import net.algart.arrays.UpdatablePArray;
 import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.codecs.TiffCodec;
+import net.algart.matrices.tiff.tiles.TiffReadMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 
 import java.io.ByteArrayInputStream;
@@ -64,7 +65,7 @@ public class TiffCustomCodecDemo {
         System.out.printf("%nReading %s...%n", sourceFile);
         List<Matrix<UpdatablePArray>> image = MatrixIO.readImage(sourceFile);
         System.out.printf("Writing TIFF %s...%n%n", tiffFile);
-        try (var writer = new TiffWriter(tiffFile, TiffCreateMode.CREATE) {
+        try (TiffWriter writer = new TiffWriter(tiffFile, TiffCreateMode.CREATE) {
             @Override
             protected Optional<byte[]> encodeByExternalCodec(
                     TiffTile tile, byte[] decodedData, TiffCodec.Options options) throws TiffException {
@@ -81,7 +82,7 @@ public class TiffCustomCodecDemo {
             map.writeChannels(image);
         }
         System.out.printf("%nReading TIFF %s...%n%n", tiffFile);
-        try (var reader = new TiffReader(tiffFile) {
+        try (TiffReader reader = new TiffReader(tiffFile) {
             @Override
             protected Optional<byte[]> decodeByExternalCodec(
                     TiffTile tile, byte[] encodedData, TiffCodec.Options options) throws TiffException {
@@ -92,7 +93,7 @@ public class TiffCustomCodecDemo {
         }) {
             // reader.setContext(TiffTools.newSCIFIOContext()); // - throws exception without dependence on SCIFIO
             // reader.setInterleaveResults(true); // - slows down reading (unnecessary interleaving+separating)
-            final var map = reader.newMap(0);
+            final TiffReadMap map = reader.newMap(0);
             image = reader.readChannels(map);
         }
         System.out.printf("%nWriting %s for comparison with original file...%n", testFile);

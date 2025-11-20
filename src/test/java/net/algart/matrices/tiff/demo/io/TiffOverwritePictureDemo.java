@@ -75,7 +75,7 @@ public class TiffOverwritePictureDemo {
         System.out.printf("Reading %s...%n", imageToDrawFile);
         List<? extends Matrix<? extends PArray>> imageToDraw = MatrixIO.readImage(imageToDrawFile);
         System.out.printf("Opening and rewriting TIFF %s...%n", targetFile);
-        try (var writer = new TiffWriter(targetFile)) {
+        try (TiffWriter writer = new TiffWriter(targetFile)) {
             writer.openExisting();
             // - possible solution instead of using TiffCreateMode.OPEN_EXISTING
             final TiffWriteMap writeMap = writer.existingMap(ifdIndex);

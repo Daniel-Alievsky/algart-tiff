@@ -29,6 +29,7 @@ import net.algart.arrays.UpdatablePArray;
 import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.awt.AWTImages;
+import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -57,8 +58,8 @@ public class TiffReadCentralRectangleDemo {
         final int height = Integer.parseInt(args[startArgIndex + 4]);
 
         System.out.printf("Reading TIFF %s and writing %s...%n", sourceFile, targetFile);
-        try (var reader = new TiffReader(sourceFile)) {
-            final var map = reader.newMap(ifdIndex);
+        try (TiffReader reader = new TiffReader(sourceFile)) {
+            final TiffReadMap map = reader.newMap(ifdIndex);
             int sizeX = Math.min(width, map.dimX());
             int sizeY = Math.min(height, map.dimY());
             int fromX = (map.dimX() - sizeX) / 2;

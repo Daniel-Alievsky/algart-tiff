@@ -28,6 +28,7 @@ import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
 import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffReader;
+import net.algart.matrices.tiff.tiles.TiffReadMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIndex;
 
@@ -61,10 +62,10 @@ public class TiffReadTilesTest {
         int h = args.length <= ++startArgIndex ? -1 : Integer.parseInt(args[startArgIndex]);
         final int numberOfTests = args.length <= ++startArgIndex ? 1 : Integer.parseInt(args[startArgIndex]);
 
-        try (var reader = new TiffReader(tiffFile)) {
+        try (TiffReader reader = new TiffReader(tiffFile)) {
             reader.setByteFiller((byte) 0x40);
             reader.setCropTilesToImageBoundaries(true);
-            final var map = reader.newMap(ifdIndex);
+            final TiffReadMap map = reader.newMap(ifdIndex);
             if (w < 0) {
                 w = Math.min(map.dimX(), MAX_IMAGE_DIM);
             }

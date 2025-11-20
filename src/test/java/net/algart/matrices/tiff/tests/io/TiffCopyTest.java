@@ -29,12 +29,14 @@ import net.algart.matrices.tiff.TiffOpenMode;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 import java.io.IOException;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 public class TiffCopyTest {
     boolean useContext = false;
@@ -100,7 +102,7 @@ public class TiffCopyTest {
             int firstIFDIndex,
             int lastIFDIndex)
             throws IOException {
-        try (var reader = new TiffReader(sourceFile, TiffOpenMode.ALLOW_NON_TIFF)) {
+        try (TiffReader reader = new TiffReader(sourceFile, TiffOpenMode.ALLOW_NON_TIFF)) {
             if (useContext) {
                 reader.setContext(TiffReader.newSCIFIOContext());
             }
@@ -111,7 +113,7 @@ public class TiffCopyTest {
             System.out.printf("Copying %s to %s...%n", sourceFile, targetFile);
             reader.setByteFiller((byte) 0xC0);
             boolean ok = false;
-            try (var writer = new TiffWriter(targetFile)) {
+            try (TiffWriter writer = new TiffWriter(targetFile)) {
                 if (useContext) {
                     writer.setContext(TiffReader.newSCIFIOContext());
                 }
@@ -124,7 +126,7 @@ public class TiffCopyTest {
                 // writer.setCompressionQuality(0.3);
                 writer.create();
 
-                final var maps = reader.allMaps();
+                final List<TiffReadMap> maps = reader.allMaps();
                 lastIFDIndex = Math.min(lastIFDIndex, maps.size() - 1);
                 for (int ifdIndex = firstIFDIndex; ifdIndex <= lastIFDIndex; ifdIndex++) {
                     final var readMap = maps.get(ifdIndex);
