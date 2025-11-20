@@ -294,7 +294,7 @@ public final class TiffCopier {
     public TiffWriteMap copyImage(TiffWriter writer, TiffReader reader, int sourceIfdIndex) throws IOException {
         Objects.requireNonNull(writer, "Null TIFF writer");
         Objects.requireNonNull(reader, "Null TIFF reader");
-        final TiffReadMap readMap = reader.newMap(sourceIfdIndex);
+        final TiffReadMap readMap = reader.map(sourceIfdIndex);
         return copyImage(writer, readMap);
     }
 

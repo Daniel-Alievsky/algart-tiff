@@ -89,7 +89,7 @@ public class TiffCopyRectangleDemo {
                 writer.setSmartFormatCorrection(true);
             }
 
-            final TiffReadMap readMap = reader.newMap(ifdIndex);
+            final TiffReadMap readMap = reader.map(ifdIndex);
             if (w < 0) {
                 w = readMap.dimX() - x;
             }

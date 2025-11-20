@@ -40,7 +40,6 @@ import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.FileHandle;
 import org.scijava.io.handle.ReadBufferDataHandle;
 import org.scijava.io.location.FileLocation;
-import org.scijava.io.location.Location;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -753,7 +752,7 @@ public non-sealed class TiffReader extends TiffIO {
      * Equivalent to <code>{@link #ifd(int) ifd}(ifdIndex).{@link TiffIFD#getImageDimX() getImageDimX()}</code>.
      *
      * <p>Note that you can get this information and more by creating a new TIFF map with help of the call
-     * {@link #newMap(int) newMap(ifdIndex)}: the returned {@link TiffMap} object has many methods
+     * {@link #map(int) map(ifdIndex)}: the returned {@link TiffMap} object has many methods
      * that allow you to quickly find various information about the TIFF image.</p>
      *
      * @param ifdIndex index of the TIFF image.
@@ -769,7 +768,7 @@ public non-sealed class TiffReader extends TiffIO {
      * Equivalent to <code>{@link #ifd(int) ifd}(ifdIndex).{@link TiffIFD#getImageDimY() getImageDimY()}</code>.
      *
      * <p>Note that you can get this information and more by creating a new TIFF map with help of the call
-     * {@link #newMap(int) newMap(ifdIndex)}: the returned {@link TiffMap} object has many methods
+     * {@link #map(int) map(ifdIndex)}: the returned {@link TiffMap} object has many methods
      * that allow you to quickly find various information about the TIFF image.</p>
      *
      * @param ifdIndex index of the TIFF image.
@@ -786,7 +785,7 @@ public non-sealed class TiffReader extends TiffIO {
      * <code>{@link #ifd(int) ifd}(ifdIndex).{@link TiffIFD#getSamplesPerPixel() getSamplesPerPixel()}</code>.
      *
      * <p>Note that you can get this information and more by creating a new TIFF map with help of the call
-     * {@link #newMap(int) newMap(ifdIndex)}: the returned {@link TiffMap} object has many methods
+     * {@link #map(int) map(ifdIndex)}: the returned {@link TiffMap} object has many methods
      * that allow you to quickly find various information about the TIFF image.</p>
      *
      * @param ifdIndex index of the TIFF image.
@@ -798,7 +797,7 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     /**
-     * Equivalent to <code>{@link #newMap(TiffIFD) newMap}({@link #ifd(int) ifd}(ifdIndex))</code>.
+     * Equivalent to <code>{@link #map(TiffIFD) map}({@link #ifd(int) ifd}(ifdIndex))</code>.
      *
      * @param ifdIndex index of IFD.
      * @return TIFF map, allowing to read this IFD
@@ -808,14 +807,14 @@ public non-sealed class TiffReader extends TiffIO {
      * @throws IOException              in the case of any problems with the input file.
      * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
      */
-    public TiffReadMap newMap(int ifdIndex) throws IOException {
-        return newMap(ifd(ifdIndex));
+    public TiffReadMap map(int ifdIndex) throws IOException {
+        return map(ifd(ifdIndex));
     }
 
     public List<TiffReadMap> allMaps() throws IOException {
         final List<TiffReadMap> result = new ArrayList<>();
         for (TiffIFD tiffIFD : allIFDs()) {
-            result.add(newMap(tiffIFD));
+            result.add(map(tiffIFD));
         }
         return result;
     }
@@ -1382,11 +1381,11 @@ public non-sealed class TiffReader extends TiffIO {
         */
     }
 
-    public TiffReadMap newMap(TiffIFD ifd) throws TiffException {
-        return newMap(ifd, true);
+    public TiffReadMap map(TiffIFD ifd) throws TiffException {
+        return map(ifd, true);
     }
 
-    public TiffReadMap newMap(TiffIFD ifd, boolean builtTileGrid) throws TiffException {
+    public TiffReadMap map(TiffIFD ifd, boolean builtTileGrid) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         final TiffReadMap map = new TiffReadMap(this, ifd);
         unusualPrecisions.throwIfDisabled(map);
@@ -1399,8 +1398,8 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     /**
-     * Returns a reference to the map, created by last call of {@link #newMap(TiffIFD)}
-     * or {@link #newMap(int)} methods.
+     * Returns a reference to the map, created by last call of {@link #map(TiffIFD)}
+     * or {@link #map(int)} methods.
      * Returns <code>null</code> if no maps were created yet or after {@link #close()} method.
      *
      * @return last map, created by this object.
@@ -1410,7 +1409,7 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     public Object readSampleBytes(int ifdIndex) throws IOException {
-        return readJavaArray(newMap(ifdIndex));
+        return readJavaArray(map(ifdIndex));
     }
 
     public byte[] readSampleBytes(TiffIOMap map) throws IOException {
@@ -1507,7 +1506,7 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     public Object readJavaArray(int ifdIndex) throws IOException {
-        return readJavaArray(newMap(ifdIndex));
+        return readJavaArray(map(ifdIndex));
     }
 
     public Object readJavaArray(TiffIOMap map) throws IOException {
@@ -1555,7 +1554,7 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     public Matrix<UpdatablePArray> readMatrix(int ifdIndex) throws IOException {
-        return readMatrix(newMap(ifdIndex));
+        return readMatrix(map(ifdIndex));
     }
 
     /**
@@ -1565,7 +1564,7 @@ public non-sealed class TiffReader extends TiffIO {
      * In other words, the samples are returned in a separated form: RRR...GGG...BBB...
      *
      * <p>The necessary TIFF map can be obtained, for example, by calling
-     * <code>{@link #newMap(int) reader.newMap}(ifdIndex)</code>.</p>
+     * <code>{@link #map(int) reader.map}(ifdIndex)</code>.</p>
      *
      * @param map TIFF map, constructed from one of the IFDs of this TIFF file.
      * @return content of the IFD image.
@@ -1599,7 +1598,7 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     public Matrix<UpdatablePArray> readInterleavedMatrix(int ifdIndex) throws IOException {
-        return readInterleavedMatrix(newMap(ifdIndex));
+        return readInterleavedMatrix(map(ifdIndex));
     }
 
     public Matrix<UpdatablePArray> readInterleavedMatrix(TiffIOMap map) throws IOException {
@@ -1627,7 +1626,7 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     public List<Matrix<UpdatablePArray>> readChannels(int ifdIndex) throws IOException {
-        return readChannels(newMap(ifdIndex));
+        return readChannels(map(ifdIndex));
     }
 
     /**
@@ -1635,7 +1634,7 @@ public non-sealed class TiffReader extends TiffIO {
      * For example, for the RGB image, the result will be a list of three matrices R, G, B.
      *
      * <p>The necessary TIFF map can be obtained, for example, by calling
-     * <code>{@link #newMap(int) reader.newMap}(ifdIndex)</code>.</p>
+     * <code>{@link #map(int) reader.map}(ifdIndex)</code>.</p>
      *
      * @param map TIFF map, constructed from one of the IFDs of this TIFF file.
      * @return content of the TIFF image.
@@ -1668,7 +1667,7 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     public BufferedImage readBufferedImage(int ifdIndex) throws IOException {
-        return readBufferedImage(newMap(ifdIndex));
+        return readBufferedImage(map(ifdIndex));
     }
 
     /**
@@ -1676,7 +1675,7 @@ public non-sealed class TiffReader extends TiffIO {
      * For example, for the RGB image, the result will be a list of three matrices R, G, B.
      *
      * <p>The necessary TIFF map can be obtained, for example, by calling
-     * <code>{@link #newMap(int) reader.newMap}(ifdIndex)</code>.</p>
+     * <code>{@link #map(int) reader.map}(ifdIndex)</code>.</p>
      *
      * @param map TIFF map, constructed from one of the IFDs of this TIFF file.
      * @return content of the TIFF image.

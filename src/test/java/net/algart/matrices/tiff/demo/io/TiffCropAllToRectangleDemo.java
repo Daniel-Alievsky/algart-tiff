@@ -76,7 +76,7 @@ public class TiffCropAllToRectangleDemo {
             writer.setFormatLike(reader);
             writer.create();
             for (int ifdIndex = 0; ifdIndex < reader.numberOfImages(); ifdIndex++) {
-                final TiffReadMap readMap = reader.newMap(ifdIndex);
+                final TiffReadMap readMap = reader.map(ifdIndex);
                 final int dimX = readMap.dimX();
                 final int dimY = readMap.dimY();
                 final double mX = relative ? dimX : ifdIndex == 0 ? 1.0 : (double) dimX / reader.dimX(0);

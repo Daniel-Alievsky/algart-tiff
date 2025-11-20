@@ -151,7 +151,7 @@ public class TiffReadWriteTest {
 
                     final int bandCount = readerIFD.getSamplesPerPixel();
                     long t1 = System.nanoTime();
-                    byte[] bytes = reader.readSampleBytes(reader.newMap(readerIFD), START_X, START_Y, w, h);
+                    byte[] bytes = reader.readSampleBytes(reader.map(readerIFD), START_X, START_Y, w, h);
                     long t2 = System.nanoTime();
                     TiffIFD writerIFD = new TiffIFD(readerIFD);
                     if (singleStrip) {

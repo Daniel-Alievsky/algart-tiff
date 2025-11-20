@@ -38,7 +38,6 @@ import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.matrices.tiff.tiles.TiffMap;
-import net.algart.matrices.tiff.tiles.TiffReadMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIndex;
 import org.scijava.Context;
@@ -795,7 +794,7 @@ public class TiffParser extends TiffReader {
                              final int y, final long width, final long height) throws FormatException,
             IOException {
         TiffMap.checkRequestedArea(x, y, width, height);
-        final var map = newMap(toTiffIFD(ifd));
+        final var map = map(toTiffIFD(ifd));
         final byte[] result = readSampleBytes(
                 map,
                 x, y, (int) width, (int) height,
