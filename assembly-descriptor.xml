@@ -12,13 +12,13 @@
             <includes>
                 <include>net.algart:algart-tiff</include>
             </includes>
-            <outputDirectory>./bin/lib</outputDirectory>
+            <outputDirectory>./tiff-info/lib</outputDirectory>
         </dependencySet>
     </dependencySets>
     <fileSets>
         <fileSet>
             <directory>${project.basedir}/build/bin</directory>
-            <outputDirectory>./bin</outputDirectory>
+            <outputDirectory>./tiff-info</outputDirectory>
         </fileSet>
     </fileSets>
 </assembly>
