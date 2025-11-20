@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2017-2025 Daniel Alievsky, AlgART Laboratory (http://algart.net)
+ * Copyright (c) 2023-2025 Daniel Alievsky, AlgART Laboratory (http://algart.net)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.pyramids.svs;
+package net.algart.matrices.tiff.svs;
 
 import net.algart.matrices.tiff.TiffException;
 

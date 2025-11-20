@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.pyramids.svs;
+package net.algart.matrices.tiff.svs;
 
 import net.algart.matrices.tiff.TiffException;
 
