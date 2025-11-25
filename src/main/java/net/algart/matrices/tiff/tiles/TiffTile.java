@@ -351,7 +351,7 @@ public final class TiffTile {
         final long minY = (long) index.fromY() + (long) fromYInTile;
         final long maxX = minX + (long) sizeXInTile - 1;
         final long maxY = minY + (long) sizeYInTile - 1;
-        return IRectangularArea.valueOf(minX, minY, maxX, maxY);
+        return IRectangularArea.of(minX, minY, maxX, maxY);
     }
 
     public boolean isFullyInsideMap() {
@@ -421,6 +421,7 @@ public final class TiffTile {
         return this;
     }
 
+    @SuppressWarnings("UnusedReturnValue")
     public TiffTile markNewAreaAsSet(IRectangularArea... newlyFilledArea) {
         Objects.requireNonNull(newlyFilledArea, "Null newlyFilledArea");
         initializeEmptyArea();
@@ -428,6 +429,7 @@ public final class TiffTile {
         return this;
     }
 
+    @SuppressWarnings("UnusedReturnValue")
     public TiffTile markNewRectangleAsSet(int fromXInTile, int fromYInTile, int sizeXInTile, int sizeYInTile) {
         if (sizeXInTile > 0 && sizeYInTile > 0) {
             markNewAreaAsSet(rectangleInTile(fromXInTile, fromYInTile, sizeXInTile, sizeYInTile));
@@ -435,13 +437,16 @@ public final class TiffTile {
         return this;
     }
 
+    @SuppressWarnings("UnusedReturnValue")
     public TiffTile cropUnsetAreaToMap() {
         checkOutsideMap();
         if (!isFullyInsideMap()) {
             // - little optimization
+            long minX = map.dimX();
+            long minY = map.dimY();
             markNewAreaAsSet(
-                    IRectangularArea.valueOf(0, map.dimY(), Integer.MAX_VALUE, Integer.MAX_VALUE),
-                    IRectangularArea.valueOf(map.dimX(), 0, Integer.MAX_VALUE, Integer.MAX_VALUE));
+                    IRectangularArea.of(0, minY, Integer.MAX_VALUE, Integer.MAX_VALUE),
+                    IRectangularArea.of(minX, 0, Integer.MAX_VALUE, Integer.MAX_VALUE));
             // Integer.MAX_VALUE is enough: we work with 32-bit coordinates
             // Note that Long.MAX_VALUE is not permitted here, maximal allowed value is Long.MAX_VALUE-1
         }

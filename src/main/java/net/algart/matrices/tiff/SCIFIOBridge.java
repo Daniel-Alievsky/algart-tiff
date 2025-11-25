@@ -74,6 +74,7 @@ class SCIFIOBridge {
         }
     }
 
+    @SuppressWarnings("unchecked")
     static Map<Integer, Object> createIFD(Class<?> ifdClass) {
         final Class<?> logServiceClass = scifioClass("org.scijava.log.LogService");
         final Object result;
@@ -88,7 +89,6 @@ class SCIFIOBridge {
             throw new IllegalStateException("SCIFIO IFD object is not Map and cannot be used, " +
                     "probably due to version mismatch: it is " + result);
         }
-        //noinspection unchecked
         return (Map<Integer, Object>) result;
     }
 

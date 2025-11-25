@@ -417,7 +417,7 @@ public class TiffWriterTest {
             int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
         final TiffReader reader = writer.newReader(TiffOpenMode.VALID_TIFF);
-        final IRectangularArea areaToWrite = IRectangularArea.valueOf(
+        final IRectangularArea areaToWrite = IRectangularArea.of(
                 fromX, fromY, fromX + sizeX - 1, fromY + sizeY - 1);
         for (TiffTile tile : writer.lastMap().tiles()) {
             if (tile.actualRectangle().intersects(areaToWrite) && !areaToWrite.contains(tile.actualRectangle())) {
