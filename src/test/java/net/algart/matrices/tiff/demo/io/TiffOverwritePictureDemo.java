@@ -46,7 +46,7 @@ public class TiffOverwritePictureDemo {
         if (map.numberOfChannels() == 1) {
             image = List.of(ColorMatrices.toRGBIntensity(image));
         }
-        if (image.get(0).elementType() != map.elementType()) {
+        if (image.getFirst().elementType() != map.elementType()) {
             image = Matrices.apply(
                     m -> Matrices.asPrecision(m, map.elementType()), image);
         }
@@ -104,8 +104,8 @@ public class TiffOverwritePictureDemo {
             int x,
             int y)
             throws IOException {
-        final int sizeX = imageToDraw.get(0).dimX32();
-        final int sizeY = imageToDraw.get(0).dimY32();
+        final int sizeX = imageToDraw.getFirst().dimX32();
+        final int sizeY = imageToDraw.getFirst().dimY32();
         System.out.printf("  Overwriting %d..%dx%d..%d in %s...%n", x, x + sizeX - 1, y, y + sizeY - 1, writeMap);
         writeMap.preloadAndStore(x, y, sizeX, sizeY, false);
         List<TiffTile> tiles = writeMap.updateChannels(imageToDraw, x, y);

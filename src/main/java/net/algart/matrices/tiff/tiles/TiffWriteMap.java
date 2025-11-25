@@ -178,7 +178,7 @@ public final class TiffWriteMap extends TiffIOMap {
         checkRequestedArea(fromX, fromY, sizeX, sizeY);
         if (sizeX > 0 && sizeY > 0) {
             // a zero-size rectangle does not "intersect" anything
-            final IRectangularArea areaToWrite = IRectangularArea.of(fromX, fromY, fromX + sizeX - 1, fromY + sizeY - 1);
+            final IRectangularArea areaToWrite = IRectangularArea.ofSize(fromX, fromY, sizeX, sizeY);
             for (TiffTile tile : tiles()) {
                 if (tile.actualRectangle().intersects(areaToWrite)) {
                     if (loadTilesFullyInsideRectangle || !areaToWrite.contains(tile.actualRectangle())) {

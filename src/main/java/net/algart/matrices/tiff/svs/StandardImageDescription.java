@@ -79,7 +79,7 @@ class StandardImageDescription extends SVSImageDescription {
 
     @Override
     public List<String> importantTextAttributes() {
-        return text.size() > 1 ? Collections.singletonList(text.get(0)) : Collections.<String>emptyList();
+        return text.size() > 1 ? Collections.singletonList(text.getFirst()) : Collections.emptyList();
     }
 
     public boolean isPixelSizeSupported() {
