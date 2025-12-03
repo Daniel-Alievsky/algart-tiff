@@ -83,7 +83,7 @@ public class SVSMetadata {
         // in the first image (#0) with maximal resolution and partially repeated in the thumbnail image (#1).
         // The label and macro images usually contain reduced ImageDescription.
         for (SVSImageDescription description : imageDescriptions) {
-            if (description.isProbableMainDescription()) {
+            if (description.isMain()) {
                 return description;
                 // - returning the first
             }
@@ -108,15 +108,25 @@ public class SVSMetadata {
                         System.out.printf("  %s = %s%n", e.getKey(), e.getValue());
                 }
                 System.out.printf("Image classifier:%n%s%n", metadata.imageClassifier());
-                System.out.printf("%nAll descriptions");
+                System.out.printf("%nAll descriptions%n");
                 final List<SVSImageDescription> allDescriptions = metadata.allDescriptions();
                 for (int i = 0, n = allDescriptions.size(); i < n; i++) {
                     SVSImageDescription d = allDescriptions.get(i);
-                    if (d.isProbableMainDescription()) {
-                        System.out.printf("Description #%d/%d, all attributes:%n", i, n);
-                        for (Map.Entry<String, String> e : d.attributes().entrySet()) {
-                            System.out.printf("  %s = %s%n", e.getKey(), e.getValue());
+                    if (d.isMain()) {
+                        System.out.printf("Description #%d/%d (%s)%n", i, n, d);
+                        System.out.printf("  Pixel size: %s%n", d.hasPixelSize() ? d.pixelSize() : "N/A");
+                        System.out.printf("  Magnification: %s%n", d.hasMagnification() ? d.magnification() : "N/A");
+                        if (d.hasGeometry()) {
+                            System.out.printf("  Image left (microns, axis rightward): %f%n",
+                                    d.imageLeftMicronsAxisRightward());
+                            System.out.printf("  Image top (microns, axis upward): %f%n",
+                                    d.imageTopMicronsAxisUpward());
                         }
+                        System.out.printf("  All attributes:%n");
+                        for (Map.Entry<String, String> e : d.attributes().entrySet()) {
+                            System.out.printf("    %s = %s%n", e.getKey(), e.getValue());
+                        }
+                        System.out.println();
                     }
                 }
             }

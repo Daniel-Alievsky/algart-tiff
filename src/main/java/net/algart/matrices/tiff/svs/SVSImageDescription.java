@@ -29,19 +29,50 @@ import net.algart.matrices.tiff.TiffException;
 import java.util.*;
 
 public class SVSImageDescription {
-    final List<String> text = new ArrayList<>();
-    final Map<String, String> attributes = new LinkedHashMap<>();
-    //TODO!! make private
+    public static final String SVS_IMAGE_DESCRIPTION_PREFIX = "Aperio Image";
 
-    SVSImageDescription() {
+    public static final String MAGNIFICATION_ATTRIBUTE = "AppMag";
+    public static final String MICRON_PER_PIXEL_ATTRIBUTE = "MPP";
+    public static final String LEFT_ATTRIBUTE = "Left";
+    public static final String TOP_ATTRIBUTE = "Top";
+    public static final String COMMON_IMAGE_INFORMATION_ATTRIBUTE = "CommonInformation";
+
+    private static final Set<String> IMPORTANT = Set.of("ScanScope ID", "Date", "Time");
+
+    private String description = null;
+    private final List<String> text = new ArrayList<>();
+    private final Map<String, String> attributes = new LinkedHashMap<>();
+
+    private boolean svs = false;
+    private boolean main = false;
+
+    private SVSImageDescription() {
     }
 
-    public static SVSImageDescription of(String imageDescriptionTagValue) {
-        SVSImageDescription result = new StandardImageDescription(imageDescriptionTagValue);
-        if (result.isProbableMainDescription()) {
-            return result;
-        }
+    public static SVSImageDescription newInstance() {
         return new SVSImageDescription();
+    }
+
+    public static SVSImageDescription of(String description) {
+        return new SVSImageDescription().setDescription(description);
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public SVSImageDescription setDescription(String description) {
+        this.description = description == null ? null : description.trim();
+        parseDescription();
+        return this;
+    }
+
+    public boolean isSVS() {
+        return svs;
+    }
+
+    public boolean isMain() {
+        return main;
     }
 
     public final List<String> text() {
@@ -62,67 +93,95 @@ public class SVSImageDescription {
      * @param name name of the SVS attribute to read (must not be {@code null}).
      * @return the parsed {@code double} value of the specified attribute.
      * @throws NullPointerException if {@code name} is {@code null}.
-     * @throws TiffException if the attribute is missing or contains an invalid number.
+     * @throws TiffException        if the attribute is missing or contains an invalid number.
      */
     public double reqDouble(String name) throws TiffException {
         Objects.requireNonNull(name, "Null attribute name");
         final String value = attributes.get(name);
         if (value == null) {
-            throw new TiffException("SVS image description does not contain " + name + " attribute");
+            throw new TiffException("SVS image description does not contain \"" + name + "\" attribute");
         }
         try {
-            return Double.parseDouble("asd"+value);
+            return Double.parseDouble(value);
         } catch (NumberFormatException e) {
-            throw new TiffException("SVS image description contains invalid " + name + " attribute: " +
-                    value + " is not a number",e);
+            throw new TiffException("SVS image description contains invalid \"" + name + "\" attribute: " +
+                    value + " is not a number", e);
         }
     }
 
+    /**
+     * In the current version, always returns "Aperio".
+     *
+     * @return the name of SVS sub-format, always "Aperio" in the current version.
+     */
     public String subFormatTitle() {
-        return "unknown";
+        return "Aperio";
     }
 
-    public Set<String> importantAttributeNames() {
-        return Collections.emptySet();
+    public static Set<String> importantAttributeNames() {
+        return IMPORTANT;
     }
 
     public List<String> importantTextAttributes() {
-        return Collections.emptyList();
+        return text.size() > 1 ? Collections.singletonList(text.getFirst()) : Collections.emptyList();
     }
 
-    public boolean isProbableMainDescription() {
-        return false;
-    }
-
-    public boolean isPixelSizeSupported() {
-        return false;
+    public boolean hasPixelSize() {
+        return attributes.containsKey(MICRON_PER_PIXEL_ATTRIBUTE);
     }
 
     public double pixelSize() throws TiffException {
-        throw new UnsupportedOperationException();
+        final double result = reqDouble(MICRON_PER_PIXEL_ATTRIBUTE);
+        if (result <= 0.0) {
+            throw new TiffException("SVS image description contains negative \"MPP\" attribute: " + result);
+        }
+        return result;
     }
 
-    public boolean isMagnificationSupported() {
-        return false;
+    public boolean hasMagnification() {
+        return attributes.containsKey(MAGNIFICATION_ATTRIBUTE);
     }
 
     public double magnification() throws TiffException {
-        throw new UnsupportedOperationException();
+        return reqDouble(MAGNIFICATION_ATTRIBUTE);
     }
 
-    public boolean isGeometrySupported() {
-        return false;
+    public boolean hasGeometry() {
+        return hasPixelSize()
+                // - without pixel size we have not enough information to detect image position at the whole slide
+                && attributes.containsKey(LEFT_ATTRIBUTE)
+                && attributes.containsKey(TOP_ATTRIBUTE);
     }
 
+
+    /**
+     * Returns the horizontal offset of the image left boundary on the slide, in microns.
+     * The offset is measured along an axis directed rightward.
+     *
+     * <p>In SVS, the "Left" attribute stores x-coordinate of the image on the physical slide in millimeters.
+     * This method returns this value multiplied by 1000.</p>
+     *
+     * @return the horizontal offset of the image left boundary in microns.
+     * @throws TiffException if the SVS attribute cannot be read as a number.
+     */
     public double imageLeftMicronsAxisRightward() throws TiffException {
-        throw new UnsupportedOperationException();
+        return reqDouble(LEFT_ATTRIBUTE) * 1000.0;
     }
 
+    /**
+     * Returns the vertical offset of the image top boundary on the slide, in microns.
+     * Note: <i>the offset is measured along an axis directed upward</i>,
+     * rather than the usual image-coordinate system where the y-axis increases downward.
+     *
+     * <p>In SVS, the "Top" attribute stores y-coordinate of the image on the physical slide in millimeters.
+     * This method returns this value multiplied by 1000.</p>
+     *
+     * @return the vertical offset of the image upper boundary in microns, measured along the upward axis.
+     * @throws TiffException if the SVS attribute cannot be read as a number.
+     */
     public double imageTopMicronsAxisUpward() throws TiffException {
-        throw new UnsupportedOperationException();
+        return reqDouble(TOP_ATTRIBUTE) * 1000.0;
     }
-
-
 
     /* TODO!! manually convert to JSON
     public final JsonObject toJson() {
@@ -152,9 +211,40 @@ public class SVSImageDescription {
 
     @Override
     public String toString() {
-        return "SVSImageDescription{" +
-                "text=" + text +
-                ", attributes=" + attributes +
-                '}';
+        return !svs ? "unknown TIFF image description" :
+                main ? "main SVS image description" : "additional SVS image description";
+    }
+
+    private void parseDescription() {
+        svs = false;
+        main = false;
+        text.clear();
+        attributes.clear();
+        if (description == null || description.isEmpty()) {
+            return;
+        }
+        for (String line : description.split("\\n")) {
+            line = line.trim();
+            this.text.add(line);
+            if (line.contains("|")) {
+                final String[] records = line.split("[|]");
+                if (records.length >= 1) {
+                    // - check to be on the safe side (though it contains "|")
+                    attributes.put(COMMON_IMAGE_INFORMATION_ATTRIBUTE, records[0]);
+                }
+                for (int i = 1; i < records.length; i++) {
+                    final String[] record = records[i].trim().split("[=]");
+                    if (record.length == 2) {
+                        final String name = record[0].trim();
+                        final String value = record[1].trim();
+                        if (!attributes.containsKey(name)) {
+                            attributes.put(name, value);
+                        }
+                    }
+                }
+            }
+        }
+        svs = description.startsWith(SVS_IMAGE_DESCRIPTION_PREFIX);
+        main = svs && hasPixelSize();
     }
 }
