@@ -25,6 +25,7 @@
 package net.algart.matrices.tiff.svs;
 
 import net.algart.matrices.tiff.TiffException;
+import net.algart.matrices.tiff.TiffIFD;
 
 import java.util.*;
 
@@ -35,13 +36,13 @@ public class SVSImageDescription {
     public static final String MICRON_PER_PIXEL_ATTRIBUTE = "MPP";
     public static final String LEFT_ATTRIBUTE = "Left";
     public static final String TOP_ATTRIBUTE = "Top";
-    public static final String COMMON_IMAGE_INFORMATION_ATTRIBUTE = "CommonInformation";
 
     private static final Set<String> IMPORTANT = Set.of("ScanScope ID", "Date", "Time");
 
     private String description = null;
     private final List<String> text = new ArrayList<>();
     private final Map<String, String> attributes = new LinkedHashMap<>();
+    private String mixedImageInformation = "";
 
     private boolean svs = false;
     private boolean main = false;
@@ -62,8 +63,12 @@ public class SVSImageDescription {
     }
 
     public SVSImageDescription setDescription(String description) {
-        this.description = description == null ? null : description.trim();
-        parseDescription();
+        final String s = description == null ? null : description.trim();
+        final boolean changed = !Objects.equals(this.description, s);
+        this.description = s;
+        if (changed) {
+            parseDescription();
+        }
         return this;
     }
 
@@ -77,6 +82,10 @@ public class SVSImageDescription {
 
     public final List<String> text() {
         return Collections.unmodifiableList(text);
+    }
+
+    public String mixedImageInformation() {
+        return mixedImageInformation;
     }
 
     public final Map<String, String> attributes() {
@@ -183,31 +192,44 @@ public class SVSImageDescription {
         return reqDouble(TOP_ATTRIBUTE) * 1000.0;
     }
 
-    /* TODO!! manually convert to JSON
-    public final JsonObject toJson() {
-        final JsonObjectBuilder builder = Json.createObjectBuilder();
-        builder.add("text", Json.createArrayBuilder(text).build());
-        final JsonObjectBuilder attributesBuilder = Json.createObjectBuilder();
-        for (SVSAttribute attribute : attributes.values()) {
-            attributesBuilder.add(attribute.name(), attribute.value());
-        }
-        builder.add("attributes", attributesBuilder.build());
-        if (isPixelSizeSupported()) {
-            try {
-                Jsons.addDouble(builder, "pixelSize", pixelSize());
-            } catch (TiffException e) {
-                builder.add("pixelSize", "format error: " + e);
+    public String jsonString() {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("{\n");
+
+        sb.append("  \"text\": [\n");
+        for (int i = 0, n = text.size(); i < n; i++) {
+            sb.append("    \"").append(TiffIFD.escapeJsonString(text.get(i))).append("\"");
+            if (i < n - 1) {
+                sb.append(",");
             }
+            sb.append("\n");
         }
-        return builder.build();
-    }
+        sb.append("  ],\n");
 
-    @Override
-    public String toString() {
-        return Jsons.toPrettyString(toJson());
-    }
+        sb.append("  \"attributes\": {\n");
+        for (Iterator<Map.Entry<String, String>> iterator = attributes.entrySet().iterator(); iterator.hasNext(); ) {
+            Map.Entry<String, String> entry = iterator.next();
+            sb.append("    \"").append(TiffIFD.escapeJsonString(entry.getKey())).append("\": ");
+            sb.append("\"").append(TiffIFD.escapeJsonString(entry.getValue())).append("\"");
+            if (iterator.hasNext()) {
+                sb.append(",");
+            }
+            sb.append("\n");
+        }
+        sb.append("  },\n");
 
-    */
+        if (hasPixelSize()) {
+            sb.append("  \"pixelSize\": ");
+            try {
+                sb.append(pixelSize());
+            } catch (TiffException e) {
+                sb.append("\"format error: ").append(TiffIFD.escapeJsonString(e.getMessage())).append("\"");
+            }
+            sb.append("\n");
+        }
+        sb.append("}");
+        return sb.toString();
+    }
 
     @Override
     public String toString() {
@@ -216,10 +238,7 @@ public class SVSImageDescription {
     }
 
     private void parseDescription() {
-        svs = false;
-        main = false;
-        text.clear();
-        attributes.clear();
+        clearInformation();
         if (description == null || description.isEmpty()) {
             return;
         }
@@ -227,24 +246,33 @@ public class SVSImageDescription {
             line = line.trim();
             this.text.add(line);
             if (line.contains("|")) {
-                final String[] records = line.split("[|]");
-                if (records.length >= 1) {
-                    // - check to be on the safe side (though it contains "|")
-                    attributes.put(COMMON_IMAGE_INFORMATION_ATTRIBUTE, records[0]);
+                final String[] records = line.split("\\|");
+                if (records.length < 1) {
+                    throw new AssertionError("split() cannot return empty array for line containing |");
+                }
+                if (mixedImageInformation.isEmpty()) {
+                    mixedImageInformation = records[0];
                 }
                 for (int i = 1; i < records.length; i++) {
-                    final String[] record = records[i].trim().split("[=]");
+                    final String[] record = records[i].trim().split("=", 2);
                     if (record.length == 2) {
                         final String name = record[0].trim();
                         final String value = record[1].trim();
-                        if (!attributes.containsKey(name)) {
-                            attributes.put(name, value);
-                        }
+                        attributes.put(name, value);
+                        // - for duplicates, we prefer the last one
                     }
                 }
             }
         }
         svs = description.startsWith(SVS_IMAGE_DESCRIPTION_PREFIX);
         main = svs && hasPixelSize();
+    }
+
+    private void clearInformation() {
+        svs = false;
+        main = false;
+        text.clear();
+        attributes.clear();
+        mixedImageInformation = "";
     }
 }

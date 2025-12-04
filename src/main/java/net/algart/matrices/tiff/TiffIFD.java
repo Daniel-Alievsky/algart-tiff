@@ -2199,6 +2199,12 @@ public final class TiffIFD {
         return (int) ((size + 7) >>> 3);
     }
 
+    public static String escapeJsonString(CharSequence string) {
+        final StringBuilder result = new StringBuilder();
+        escapeJsonString(result, string);
+        return result.toString();
+    }
+
     private void clearCache() {
         cachedTileOrStripByteCounts = null;
         cachedTileOrStripOffsets = null;
@@ -2360,12 +2366,6 @@ public final class TiffIFD {
             sb.append('0');
         }
         sb.append(Integer.toHexString(v));
-    }
-
-    private static String escapeJsonString(CharSequence string) {
-        final StringBuilder result = new StringBuilder();
-        escapeJsonString(result, string);
-        return result.toString();
     }
 
     // Clone of the method JsonGeneratorImpl.writeEscapedString

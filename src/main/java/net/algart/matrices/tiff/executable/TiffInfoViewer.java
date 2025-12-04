@@ -280,9 +280,10 @@ public class TiffInfoViewer {
             }
         }
         javax.swing.filechooser.FileFilter tiffFilter =
-                new FileNameExtensionFilter("TIFF files (*.tif, *.tiff)", "tif", "tiff");
+                new FileNameExtensionFilter(
+                        "TIFF / SVS files (*.tif, *.tiff, *.svs)", "tif", "tiff", "svs");
         javax.swing.filechooser.FileFilter svsFilter =
-                new FileNameExtensionFilter("SVS files (*.svs)", "svs");
+                new FileNameExtensionFilter("SVS files only (*.svs)", "svs");
         chooser.addChoosableFileFilter(tiffFilter);
         chooser.addChoosableFileFilter(svsFilter);
         chooser.setAcceptAllFileFilterUsed(true);

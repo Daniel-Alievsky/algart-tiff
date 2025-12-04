@@ -103,17 +103,21 @@ public class SVSMetadata {
                 SVSImageDescription main = metadata.mainDescription();
                 System.out.printf("%s:%nImportant text:%n%s%n", file,
                         main.importantTextAttributes());
-                System.out.println("Main description, all attributes:");
+                System.out.println("The found main description, all attributes:");
                 for (Map.Entry<String, String> e : main.attributes().entrySet()) {
-                        System.out.printf("  %s = %s%n", e.getKey(), e.getValue());
+                    System.out.printf("  %s = %s%n", e.getKey(), e.getValue());
                 }
+                System.out.println("The found main description, JSON:");
+                System.out.println(main.jsonString());
                 System.out.printf("Image classifier:%n%s%n", metadata.imageClassifier());
                 System.out.printf("%nAll descriptions%n");
                 final List<SVSImageDescription> allDescriptions = metadata.allDescriptions();
                 for (int i = 0, n = allDescriptions.size(); i < n; i++) {
                     SVSImageDescription d = allDescriptions.get(i);
-                    if (d.isMain()) {
-                        System.out.printf("Description #%d/%d (%s)%n", i, n, d);
+                    if (d.isSVS()) {
+                        System.out.printf("%s description #%d/%d (%s)%n",
+                                d.isMain() ? "Main" : "Additional",
+                                i, n, d);
                         System.out.printf("  Pixel size: %s%n", d.hasPixelSize() ? d.pixelSize() : "N/A");
                         System.out.printf("  Magnification: %s%n", d.hasMagnification() ? d.magnification() : "N/A");
                         if (d.hasGeometry()) {
