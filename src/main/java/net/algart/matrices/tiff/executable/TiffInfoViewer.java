@@ -76,7 +76,15 @@ public class TiffInfoViewer {
         } catch (Exception e) {
             LOG.log(System.Logger.Level.WARNING, "Cannot set look and feel", e);
         }
-        SwingUtilities.invokeLater(() -> new TiffInfoViewer().createGUI(args));
+        SwingUtilities.invokeLater(() -> {
+            try {
+                new TiffInfoViewer().createGUI(args);
+            } catch (Throwable e) {
+                JOptionPane.showMessageDialog(null,
+                        e.toString(), "Error", JOptionPane.ERROR_MESSAGE);
+                LOG.log(System.Logger.Level.ERROR, "Error while creating GUI", e);
+            }
+        });
     }
 
     private void createGUI(String[] args) {
@@ -242,10 +250,24 @@ public class TiffInfoViewer {
         fileMenu.setMnemonic('F');
         viewMenu.setMnemonic('V');
         helpMenu.setMnemonic('H');
+        fixMenuItemMargins(fileMenu);
+        fixMenuItemMargins(viewMenu);
+        fixMenuItemMargins(helpMenu);
         menuBar.add(fileMenu);
         menuBar.add(viewMenu);
         menuBar.add(helpMenu);
         return menuBar;
+    }
+
+    private void fixMenuItemMargins(JMenu menu) {
+        // No good ideas how to remove the left gap added on Windows...
+//        for (int i = 0; i < menu.getMenuComponentCount(); i++) {
+//            Component comp = menu.getMenuComponent(i);
+//            if (comp instanceof JMenuItem item && !(item instanceof JRadioButtonMenuItem)) {
+//                item.setMargin(new Insets(0, -10, 0, 0));
+//                System.out.println(item.getText() + " " + item.getMargin());
+//            }
+//        }
     }
 
     private void chooseAndOpenFile() {

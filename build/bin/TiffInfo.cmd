@@ -1,1 +1,1 @@
-java -cp %~dp0lib/* net.algart.matrices.tiff.executable.TiffInfo %1 %2 %3 %4 %5 %6 %7 %8 %9
+java -cp "%~dp0tiff-info.jar" net.algart.matrices.tiff.executable.TiffInfo %*

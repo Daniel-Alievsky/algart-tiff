@@ -1,0 +1,1 @@
+java -jar tiff-info.jar [args...]

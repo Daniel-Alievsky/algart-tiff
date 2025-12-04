@@ -112,18 +112,22 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>3.7.1</version>
                 <configuration>
-                    <finalName>build</finalName>
-                    <appendAssemblyId>false</appendAssemblyId>
-                    <descriptors>
-                        <descriptor>assembly-descriptor.xml</descriptor>
-                    </descriptors>
+                    <archive>
+                        <manifest>
+                            <mainClass>net.algart.matrices.tiff.executable.TiffInfoViewer</mainClass>
+                        </manifest>
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                    <finalName>tiff-info-${project.version}</finalName>
                 </configuration>
                 <executions>
                     <execution>
+                        <id>make-assembly</id>
                         <phase>package</phase>
                         <goals>
                             <goal>single</goal>
@@ -145,6 +149,12 @@
                         <configuration>
                             <target>
                                 <echo level="info">Creating distribution ZIP</echo>
+                                <mkdir dir="${project.build.directory}/build/tiff-info"/>
+                                <copy file="${project.build.directory}/tiff-info-${project.version}-jar-with-dependencies.jar"
+                                      tofile="${project.build.directory}/build/tiff-info/tiff-info.jar"/>
+                                <copy todir="${project.build.directory}/build/tiff-info">
+                                    <fileset dir="${project.basedir}/build/bin"/>
+                                </copy>
                                 <zip destfile="${project.build.directory}/build/tiff-info-${project.version}.zip">
                                     <zipfileset dir="${project.build.directory}/build/tiff-info" prefix="tiff-info"/>
                                 </zip>
