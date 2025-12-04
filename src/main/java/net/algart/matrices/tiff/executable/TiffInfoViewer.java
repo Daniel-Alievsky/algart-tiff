@@ -35,6 +35,7 @@ public class TiffInfoViewer {
             this.caption = caption;
         }
 
+        @Override
         public String toString() {
             return caption;
         }
@@ -56,11 +57,8 @@ public class TiffInfoViewer {
 
     private JFrame frame;
     private JComboBox<String> ifdComboBox;
-    private JTextArea commonTextArea;
+    private JTextArea specialInformationTextArea;
     private JTextArea ifdTextArea;
-    private JButton showImageButton;
-    private JButton openFileButton;
-    private JComboBox<ViewMode> formatComboBox;
 
     private TiffInfo info = null;
     private Path tiffFile = null;
@@ -85,84 +83,35 @@ public class TiffInfoViewer {
         frame = new JFrame("TIFF Information Viewer");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
+        frame.setJMenuBar(buildMenuBar());
 
         JPanel topPanel = new JPanel(new BorderLayout());
         JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
 
-        frame.add(leftPanel, BorderLayout.NORTH);
         frame.setIconImages(java.util.List.of(
                 new ImageIcon(reqResource("icon16.png")).getImage(),
                 new ImageIcon(reqResource("icon32.png")).getImage()));
 
-        openFileButton = new JButton("Open TIFF");
+        JButton openFileButton = new JButton("Open TIFF");
         openFileButton.addActionListener(e -> chooseAndOpenFile());
         leftPanel.add(openFileButton);
 
-        formatComboBox = new JComboBox<>(ViewMode.values());
-        formatComboBox.setSelectedItem(stringFormat);
-        formatComboBox.addActionListener(e -> {
-            ViewMode selectedItem = (ViewMode) formatComboBox.getSelectedItem();
-            if (selectedItem != null) {
-                stringFormat = selectedItem.stringFormat;
-                reload();
-                updateTextArea();
-            }
-        });
-        leftPanel.add(Box.createRigidArea(new Dimension(10, 0)));
-        leftPanel.add(new JLabel("View mode:"));
-        leftPanel.add(formatComboBox);
+//        addFormatComboBox(leftPanel);
+// - deprecated solution (replacing with the menu)
 
-        ifdComboBox = new JComboBox<>();
-        ifdComboBox.addActionListener(e -> updateTextArea());
-        ifdComboBox.setPrototypeDisplayValue("999999");
-        leftPanel.add(Box.createHorizontalStrut(10));
-        leftPanel.add(new JLabel("Select TIFF image:"));
-        leftPanel.add(ifdComboBox);
+        addIFDComboBox(leftPanel);
 
-        showImageButton = new JButton("Show image");
-        showImageButton.addActionListener(e -> showImageWindow());
-        leftPanel.add(Box.createHorizontalStrut(10));
-        leftPanel.add(showImageButton);
-
-        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 5));
-        JButton aboutButton = new JButton("About");
-        aboutButton.addActionListener(e -> showAboutDialog());
-        rightPanel.add(aboutButton);
-
+        addShowImageButton(leftPanel);
         topPanel.add(leftPanel, BorderLayout.WEST);
-        topPanel.add(rightPanel, BorderLayout.EAST);
         frame.add(topPanel, BorderLayout.NORTH);
 
-        commonTextArea = new JTextArea(2, 80);
-        commonTextArea.setEditable(false);
-        commonTextArea.setLineWrap(true);
-        commonTextArea.setWrapStyleWord(true);
-        commonTextArea.setBorder(BorderFactory.createEmptyBorder(3, 5, 3, 5));
-        commonTextArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        commonTextArea.setBackground(COMMON_BACKGROUND);
-        commonTextArea.setForeground(new Color(20, 20, 20));
+        addSpecialInformationTextArea();
 
         JPanel infoPanel = new JPanel(new BorderLayout());
-        infoPanel.add(commonTextArea, BorderLayout.CENTER);
+        infoPanel.add(specialInformationTextArea, BorderLayout.CENTER);
         frame.add(infoPanel, BorderLayout.SOUTH);
 
-        JPanel textPanel = new JPanel(new BorderLayout());
-        textPanel.setBackground(COMMON_BACKGROUND);
-        textPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        ifdTextArea = new JTextArea(30, 80);
-        ifdTextArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        ifdTextArea.setEditable(false);
-        ifdTextArea.setLineWrap(true);
-        ifdTextArea.setWrapStyleWord(true);
-        ifdTextArea.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        ifdTextArea.setBackground(Color.WHITE);
-        ifdTextArea.setForeground(new Color(20, 20, 20));
-        JScrollPane scrollPane = new JScrollPane(ifdTextArea,
-                JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        frame.add(scrollPane, BorderLayout.CENTER);
-        textPanel.add(scrollPane, BorderLayout.CENTER);
-        frame.add(textPanel, BorderLayout.CENTER);
+        addIFDTextArea();
 
         frame.pack();
         final Dimension frameSize = frame.getPreferredSize();
@@ -181,6 +130,122 @@ public class TiffInfoViewer {
         if (args.length >= 1) {
             loadTiff(Path.of(args[0]));
         }
+    }
+
+    private void addIFDTextArea() {
+        JPanel textPanel = new JPanel(new BorderLayout());
+        textPanel.setBackground(COMMON_BACKGROUND);
+        textPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        ifdTextArea = new JTextArea(10, 80);
+        ifdTextArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        ifdTextArea.setEditable(false);
+        ifdTextArea.setLineWrap(true);
+        ifdTextArea.setWrapStyleWord(true);
+        ifdTextArea.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        ifdTextArea.setBackground(Color.WHITE);
+        ifdTextArea.setForeground(new Color(20, 20, 20));
+        ifdTextArea.setOpaque(true);
+        JScrollPane scrollPane = new JScrollPane(ifdTextArea,
+                JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        textPanel.add(scrollPane, BorderLayout.CENTER);
+        frame.add(textPanel, BorderLayout.CENTER);
+    }
+
+    private void addSpecialInformationTextArea() {
+        specialInformationTextArea = new JTextArea(2, 80);
+        specialInformationTextArea.setEditable(false);
+        specialInformationTextArea.setLineWrap(true);
+        specialInformationTextArea.setWrapStyleWord(true);
+        specialInformationTextArea.setBorder(BorderFactory.createEmptyBorder(3, 5, 3, 5));
+        specialInformationTextArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        specialInformationTextArea.setBackground(COMMON_BACKGROUND);
+        specialInformationTextArea.setForeground(new Color(20, 20, 20));
+        specialInformationTextArea.setOpaque(true);
+    }
+
+    private void addShowImageButton(JPanel leftPanel) {
+        JButton showImageButton = new JButton("Show image");
+        showImageButton.addActionListener(e -> showImageWindow());
+        leftPanel.add(Box.createHorizontalStrut(10));
+        leftPanel.add(showImageButton);
+    }
+
+    private void addIFDComboBox(JPanel leftPanel) {
+        ifdComboBox = new JComboBox<>();
+        ifdComboBox.addActionListener(e -> updateTextArea());
+        ifdComboBox.setPrototypeDisplayValue("999999");
+        leftPanel.add(Box.createHorizontalStrut(10));
+        leftPanel.add(new JLabel("Select TIFF image:"));
+        leftPanel.add(ifdComboBox);
+    }
+
+    // Deprecated
+    private void addFormatComboBox(JPanel leftPanel) {
+        JComboBox<ViewMode> formatComboBox = new JComboBox<>(ViewMode.values());
+        formatComboBox.setSelectedItem(stringFormat);
+        formatComboBox.addActionListener(e -> {
+            ViewMode selectedItem = (ViewMode) formatComboBox.getSelectedItem();
+            if (selectedItem != null) {
+                stringFormat = selectedItem.stringFormat;
+                reload();
+                updateTextArea();
+            }
+        });
+        leftPanel.add(Box.createRigidArea(new Dimension(10, 0)));
+        leftPanel.add(new JLabel("View mode:"));
+        leftPanel.add(formatComboBox);
+    }
+
+    private JMenuBar buildMenuBar() {
+        JMenuBar menuBar = new JMenuBar();
+
+        JMenu fileMenu = new JMenu("File");
+        JMenuItem openItem = new JMenuItem("Open TIFF...");
+        openItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, KeyEvent.CTRL_DOWN_MASK));
+        openItem.addActionListener(e -> chooseAndOpenFile());
+        fileMenu.add(openItem);
+        fileMenu.addSeparator();
+
+        JMenuItem exitItem = new JMenuItem("Exit");
+        exitItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_X, KeyEvent.ALT_DOWN_MASK));
+        exitItem.addActionListener(e ->
+                frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING)));
+        fileMenu.add(exitItem);
+
+        JMenu viewMenu = new JMenu("View");
+        JMenu viewModeMenu = new JMenu("View mode");
+        ButtonGroup group = new ButtonGroup();
+
+        for (final ViewMode viewMode : ViewMode.values()) {
+            JRadioButtonMenuItem item = new JRadioButtonMenuItem(viewMode.toString());
+            if (viewMode.stringFormat == stringFormat) {
+                item.setSelected(true);
+            }
+            item.addActionListener(e -> {
+                stringFormat = viewMode.stringFormat;
+                reload();
+                updateTextArea();
+            });
+
+            group.add(item);
+            viewModeMenu.add(item);
+        }
+
+        viewMenu.add(viewModeMenu);
+
+        JMenu helpMenu = new JMenu("Help");
+        JMenuItem aboutItem = new JMenuItem("About");
+        aboutItem.addActionListener(e -> showAboutDialog());
+        helpMenu.add(aboutItem);
+
+        fileMenu.setMnemonic('F');
+        viewMenu.setMnemonic('V');
+        helpMenu.setMnemonic('H');
+        menuBar.add(fileMenu);
+        menuBar.add(viewMenu);
+        menuBar.add(helpMenu);
+        return menuBar;
     }
 
     private void chooseAndOpenFile() {
@@ -228,9 +293,9 @@ public class TiffInfoViewer {
         info.setStringFormat(stringFormat);
         try {
             info.collectTiffInfo(tiffFile);
-            commonTextArea.setText(info.prefixInfo() + "\n" + info.totalInfo());
-            commonTextArea.setBackground(info.isTiff() ? COMMON_BACKGROUND : ERROR_BACKGROUND);
-            commonTextArea.setCaretPosition(0);
+            specialInformationTextArea.setText(info.prefixInfo() + "\n" + info.totalInfo());
+            specialInformationTextArea.setBackground(info.isTiff() ? COMMON_BACKGROUND : ERROR_BACKGROUND);
+            specialInformationTextArea.setCaretPosition(0);
             final int ifdCount = info.ifdCount();
             for (int i = 0; i < ifdCount; i++) {
                 ifdComboBox.addItem("IFD #" + i);
