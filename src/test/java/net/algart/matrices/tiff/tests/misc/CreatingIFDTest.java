@@ -54,6 +54,8 @@ public class CreatingIFDTest {
         // - previous operator enforces exception while showing IFD
         showIFD(ifd, "Dimensions");
 
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[] {4, 8, 16});
+        // - unallowed bits (different bytes/sample)
         ifd.put(Tags.GPS_TAG, 111111);
         ifd.put(1577, true);
         ifd.put(1578, 56.0);

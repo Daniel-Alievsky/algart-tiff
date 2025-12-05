@@ -116,6 +116,10 @@ public final class TiffIFD {
             this.sorted = sorted;
         }
 
+        public boolean isBrief() {
+            return this == BRIEF;
+        }
+
         public boolean isJson() {
             return this == JSON;
         }
@@ -1846,6 +1850,10 @@ public final class TiffIFD {
         map.clear();
     }
 
+    public String jsonString() {
+        return toString(StringFormat.JSON);
+    }
+
     @Override
     public String toString() {
         return toString(StringFormat.BRIEF);
@@ -1904,7 +1912,7 @@ public final class TiffIFD {
                               "bigTiff" : %s,
                               "tiled" : %s,
                             """).formatted(
-                            sampleType.prettyName(),
+                            sampleType == null ? "???" : sampleType.prettyName(),
                             getByteOrder(),
                             isBigTiff(),
                             hasTileInformation()) :
@@ -1972,7 +1980,7 @@ public final class TiffIFD {
                 sb.append(isLastIFD() ? ", LAST" : ", next IFD at @%d=0x%X".formatted(nextIFDOffset, nextIFDOffset));
             }
         }
-        if (format == StringFormat.BRIEF) {
+        if (format.isBrief()) {
             assert !json;
             return sb.toString();
         }
