@@ -134,14 +134,16 @@ public class SVSMetadata {
                             System.out.printf("  Image top (microns, axis upward): %f%n",
                                     d.imageTopMicronsAxisUpward());
                         }
-                        System.out.printf("  Mixed information: <<<%s>>>%n", d.mixedImageInformation());
                         if (d.hasAttributes()) {
                             System.out.printf("  All attributes:%n");
                             for (Map.Entry<String, String> e : d.attributes().entrySet()) {
                                 System.out.printf("    %s = %s%n", e.getKey(), e.getValue());
                             }
                         }
-                        System.out.println();
+                        if (d.hasMixedInformation()) {
+                            System.out.printf("  Mixed information: <<<%s>>>%n", d.mixedInformation());
+                        }
+                        System.out.printf("  Raw description:%n<<<%s>>>%n%n", d.getDescription());
                     }
                 }
             }

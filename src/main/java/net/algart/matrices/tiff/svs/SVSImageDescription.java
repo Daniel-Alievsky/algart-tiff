@@ -84,7 +84,11 @@ public final class SVSImageDescription {
         return Collections.unmodifiableList(text);
     }
 
-    public String mixedImageInformation() {
+    public boolean hasMixedInformation() {
+        return !mixedInformation.isEmpty();
+    }
+
+    public String mixedInformation() {
         return mixedInformation;
     }
 
@@ -288,23 +292,26 @@ public final class SVSImageDescription {
             return;
         }
         svs = true;
+        boolean delimiterFound = false;
         for (String line : description.split("\\n")) {
             line = line.trim();
             this.text.add(line);
-            if (line.contains("|")) {
-                final String[] records = line.split("\\|");
-                if (records.length < 1) {
-                    throw new AssertionError("split() cannot return empty array for line containing |");
-                }
-                if (mixedInformation.isEmpty()) {
-                    mixedInformation = records[0];
-                }
-                for (int i = 1; i < records.length; i++) {
-                    final String[] record = records[i].trim().split("=", 2);
-                    if (record.length == 2) {
-                        final String name = record[0].trim();
-                        final String value = record[1].trim();
-                        attributes.put(name, value);
+            final int p = line.indexOf('|');
+            final String prefix = p == -1 ? line : line.substring(0, p);
+            if (!delimiterFound) {
+                mixedInformation = prefix.trim();
+                // - for mixed information, we prefer the first string with the delimiter "|" or,
+                // if there are NO such strings, the last among all strings
+            }
+            if (p > 0) {
+                delimiterFound = true;
+                final String[] records = line.substring(p + 1).split("\\|");
+                for (String s : records) {
+                    final String[] keyValue = s.trim().split("=", 2);
+                    if (keyValue.length == 2) {
+                        final String key = keyValue[0].trim();
+                        final String value = keyValue[1].trim();
+                        attributes.put(key, value);
                         // - for duplicates, we prefer the last one
                     }
                 }
