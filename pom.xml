@@ -151,9 +151,9 @@
                                 <echo level="info">Creating distribution ZIP</echo>
                                 <mkdir dir="${project.build.directory}/build/tiff-info"/>
                                 <copy file="${project.build.directory}/tiff-info-${project.version}-jar-with-dependencies.jar"
-                                      tofile="${project.build.directory}/build/tiff-info/tiff-info.jar"/>
+                                      tofile="${project.build.directory}/build/tiff-info/TiffInfoViewer.jar"/>
                                 <copy todir="${project.build.directory}/build/tiff-info">
-                                    <fileset dir="${project.basedir}/build/bin"/>
+                                    <fileset dir="${project.basedir}/build/tiff-info"/>
                                 </copy>
                                 <zip destfile="${project.build.directory}/build/tiff-info-${project.version}.zip">
                                     <zipfileset dir="${project.build.directory}/build/tiff-info" prefix="tiff-info"/>

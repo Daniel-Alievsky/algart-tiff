@@ -1,1 +1,0 @@
-java -cp "%~dp0tiff-info.jar" net.algart.matrices.tiff.executable.TiffCopy %*

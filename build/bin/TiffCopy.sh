@@ -1,1 +1,0 @@
-java -cp tiff-info.jar net.algart.matrices.tiff.executable.TiffCopy [args...]

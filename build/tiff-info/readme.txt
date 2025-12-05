@@ -19,5 +19,5 @@ This folder contains utilities for analyzing and working with TIFF files.
 Usage Notes:
 -------------
 - Make sure a Java Runtime Environment (JRE) of version 21 or higher is installed on your system.
-- On Windows, you can run TiffInfoViewer by double-clicking the "TiffInfoViewer.cmd" or "tiff-info.jar" file.
+- On Windows, you can run TiffInfoViewer by double-clicking the "TiffInfoViewer.cmd" or "TiffInfoViewer.jar" file.
 - For command-line utilities, use a terminal (Windows Command Prompt, PowerShell, or Unix shell).
