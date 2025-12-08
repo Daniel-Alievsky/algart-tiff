@@ -37,8 +37,8 @@ import java.util.Map;
 import java.util.Objects;
 
 public class SVSMetadata {
-    private final List<SVSImageDescription> descriptions;
-    private final SVSImageDescription mainDescription;
+    private final List<SVSDescription> descriptions;
+    private final SVSDescription mainDescription;
     private final SVSImageClassifier imageClassifier;
 
     private SVSMetadata(List<TiffIFD> allIFDs) throws TiffException {
@@ -48,7 +48,7 @@ public class SVSMetadata {
         this.descriptions = new ArrayList<>();
         for (int k = 0; k < ifdCount; k++) {
             final String description = allIFDs.get(k).optDescription().orElse(null);
-            this.descriptions.add(SVSImageDescription.of(description));
+            this.descriptions.add(SVSDescription.of(description));
         }
         this.mainDescription = findMainDescription(descriptions);
     }
@@ -66,11 +66,22 @@ public class SVSMetadata {
         return mainDescription != null;
     }
 
-    public List<SVSImageDescription> allDescriptions() {
+    public List<SVSDescription> allDescriptions() {
         return descriptions;
     }
 
-    public SVSImageDescription mainDescription() {
+    public SVSDescription description(int ifdIndex) {
+        if (ifdIndex < 0) {
+            throw new IllegalArgumentException("Negative IFD index " + ifdIndex);
+        }
+        if (ifdIndex >= descriptions.size()) {
+            throw new IllegalArgumentException(
+                    "IFD index " + ifdIndex + " is out of bounds 0 <= index < " + descriptions.size());
+        }
+        return descriptions.get(ifdIndex);
+    }
+
+    public SVSDescription mainDescription() {
         return mainDescription;
     }
 
@@ -78,11 +89,11 @@ public class SVSMetadata {
         return imageClassifier;
     }
 
-    private static SVSImageDescription findMainDescription(List<SVSImageDescription> imageDescriptions) {
+    private static SVSDescription findMainDescription(List<SVSDescription> descriptions) {
         // Note: the detailed SVS specification is always included (as ImageDescription tag)
         // in the first image (#0) with maximal resolution and partially repeated in the thumbnail image (#1).
         // The label and macro images usually contain reduced ImageDescription.
-        for (SVSImageDescription description : imageDescriptions) {
+        for (SVSDescription description : descriptions) {
             if (description.isMain()) {
                 return description;
                 // - returning the first
@@ -100,7 +111,7 @@ public class SVSMetadata {
             final Path file = Paths.get(arg);
             try (TiffReader reader = new TiffReader(file)) {
                 final var metadata = new SVSMetadata(reader.allIFDs());
-                SVSImageDescription main = metadata.mainDescription();
+                SVSDescription main = metadata.mainDescription();
                 System.out.printf("%s:%nImportant text:%n%s%n", file,
                         main.importantTextAttributes());
                 System.out.println("The found main description, all attributes:");
@@ -115,9 +126,9 @@ public class SVSMetadata {
                 System.out.println(main.toString(TiffIFD.StringFormat.JSON));
                 System.out.printf("Image classifier:%n%s%n", metadata.imageClassifier());
                 System.out.printf("%nAll descriptions%n");
-                final List<SVSImageDescription> allDescriptions = metadata.allDescriptions();
+                final List<SVSDescription> allDescriptions = metadata.allDescriptions();
                 for (int i = 0, n = allDescriptions.size(); i < n; i++) {
-                    SVSImageDescription d = allDescriptions.get(i);
+                    SVSDescription d = allDescriptions.get(i);
                     if (d.isSVS()) {
                         System.out.printf("%s description #%d/%d (%s)%n",
                                 d.isMain() ? "Main" : "Additional",

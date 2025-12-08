@@ -28,16 +28,15 @@ import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffOpenMode;
 import net.algart.matrices.tiff.TiffReader;
+import net.algart.matrices.tiff.svs.SVSDescription;
+import net.algart.matrices.tiff.svs.SVSMetadata;
 import net.algart.matrices.tiff.tags.Tags;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.OptionalLong;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -170,6 +169,7 @@ public class TiffInfo {
                             reader.isLittleEndian() ? "little" : "big");
                     throw e;
                 }
+                SVSMetadata svsMetadata = SVSMetadata.of(allIFDs);
                 final int ifdCount = allIFDs.size();
                 final int firstIndex = Math.max(this.firstIFDIndex, 0);
                 final int lastIndex = Math.min(this.lastIFDIndex, ifdCount - 1);
@@ -182,7 +182,8 @@ public class TiffInfo {
                 final long tiffFileLength = reader.stream().length();
                 for (int k = firstIndex; k <= lastIndex; k++) {
                     final TiffIFD ifd = allIFDs.get(k);
-                    ifdInfo.add(ifdInformation(reader, ifd, k, totalSize));
+                    final SVSDescription svsDescription = svsMetadata.description(k);
+                    ifdInfo.add(ifdInformation(reader, ifd, svsDescription, k, totalSize));
                     if (!(ifd.containsKey(Tags.STRIP_BYTE_COUNTS) || ifd.containsKey(Tags.TILE_BYTE_COUNTS))) {
                         System.err.printf("WARNING! Invalid IFD #%d in %s: no StripByteCounts/TileByteCounts tag%n",
                                 k, tiffFile);
@@ -212,12 +213,13 @@ public class TiffInfo {
     }
 
     public String ifdInformation(TiffReader reader, TiffIFD ifd, int ifdIndex) throws IOException {
-        return ifdInformation(reader, ifd, ifdIndex, null);
+        return ifdInformation(reader, ifd, null, ifdIndex, null);
     }
 
     private String ifdInformation(
             TiffReader reader,
             TiffIFD ifd,
+            SVSDescription svsDescription,
             int ifdIndex,
             AtomicLong totalSize) throws IOException {
         if (disableAppendingForStrictFormats && stringFormat.isStrict()) {
@@ -225,11 +227,15 @@ public class TiffInfo {
         }
         int ifdCount = reader.numberOfImages();
         StringBuilder sb = new StringBuilder();
+        final Map<String, String> additionalInformation = new LinkedHashMap<>();
+        if (svsDescription.isSVS()) {
+            additionalInformation.put("SVS", svsDescription.toString(stringFormat));
+        }
         sb.append("IFD #%d/%d:%s%s%n".formatted(
                 ifdIndex,
                 ifdCount,
                 stringFormat.isJson() ? "%n".formatted() : " ",
-                ifd.toString(stringFormat)));
+                ifd.toString(stringFormat, additionalInformation)));
         final long tiffFileLength = reader.stream().length();
         final OptionalLong sizeOfIFDOptional = ifd.sizeOfIFD(tiffFileLength);
         AtomicBoolean imageDataAligned = new AtomicBoolean(false);

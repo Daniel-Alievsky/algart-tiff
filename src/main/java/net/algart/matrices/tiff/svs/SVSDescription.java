@@ -29,7 +29,7 @@ import net.algart.matrices.tiff.TiffIFD;
 
 import java.util.*;
 
-public final class SVSImageDescription {
+public final class SVSDescription {
     public static final String SVS_IMAGE_DESCRIPTION_PREFIX = "Aperio Image";
 
     public static final String MAGNIFICATION_ATTRIBUTE = "AppMag";
@@ -47,22 +47,22 @@ public final class SVSImageDescription {
     private boolean svs = false;
     private boolean main = false;
 
-    private SVSImageDescription() {
+    private SVSDescription() {
     }
 
-    public static SVSImageDescription newInstance() {
-        return new SVSImageDescription();
+    public static SVSDescription newInstance() {
+        return new SVSDescription();
     }
 
-    public static SVSImageDescription of(String description) {
-        return new SVSImageDescription().setDescription(description);
+    public static SVSDescription of(String description) {
+        return new SVSDescription().setDescription(description);
     }
 
     public String getDescription() {
         return description;
     }
 
-    public SVSImageDescription setDescription(String description) {
+    public SVSDescription setDescription(String description) {
         final String s = description == null ? null : description.trim();
         final boolean changed = !Objects.equals(this.description, s);
         this.description = s;
@@ -232,18 +232,17 @@ public final class SVSImageDescription {
             }
             sb.append("\n");
         }
-        sb.append("  },\n");
+        sb.append("  }");
 
         if (hasPixelSize()) {
-            sb.append("  \"pixelSize\": ");
+            sb.append(",\n  \"pixelSize\": ");
             try {
                 sb.append(pixelSize());
             } catch (TiffException e) {
                 sb.append("\"format error: ").append(TiffIFD.escapeJsonString(e.getMessage())).append("\"");
             }
-            sb.append("\n");
         }
-        sb.append("}");
+        sb.append("\n}");
         return sb.toString();
     }
 

@@ -1860,7 +1860,12 @@ public final class TiffIFD {
     }
 
     public String toString(StringFormat format) {
+        return toString(format, Collections.emptyMap());
+    }
+
+    public String toString(StringFormat format, Map<String, String> additionalInformation) {
         Objects.requireNonNull(format, "Null format");
+        Objects.requireNonNull(additionalInformation, "Null additional information");
         final boolean json = format.isJson();
         final StringBuilder sb = new StringBuilder();
         sb.append(json ?
@@ -1868,7 +1873,7 @@ public final class TiffIFD {
                 "IFD");
         final String ifdTypeName = subIFDType == null ? "main" : Tags.tiffTagName(subIFDType, false);
         sb.append((json ?
-                "  \"ifdType\" : \"%s\",\n" :
+                "  \"ifdType\": \"%s\",\n" :
                 " (%s)").formatted(ifdTypeName));
         int dimX = 0;
         int dimY = 0;
@@ -1878,7 +1883,7 @@ public final class TiffIFD {
         try {
             final TiffSampleType sampleType = sampleType(false);
             sb.append((json ?
-                    "  \"elementType\" : \"%s\",\n" :
+                    "  \"elementType\": \"%s\",\n" :
                     " %s").formatted(
                     sampleType == null ? "???" : sampleType.isBinary() ? "bit" :
                             sampleType.elementType().getSimpleName()));
@@ -1889,16 +1894,16 @@ public final class TiffIFD {
                 tileSizeX = getTileSizeX();
                 tileSizeY = getTileSizeY();
                 sb.append((json ?
-                        "  \"dimX\" : %d,\n  \"dimY\" : %d,\n  \"channels\" : %d,\n" :
+                        "  \"dimX\": %d,\n  \"dimY\": %d,\n  \"channels\": %d,\n" :
                         "[%dx%dx%d], ").formatted(dimX, dimY, channels));
             } else {
                 sb.append((json ?
-                        "  \"channels\" : %d,\n" :
+                        "  \"channels\": %d,\n" :
                         "[?x?x%d], ").formatted(channels));
             }
         } catch (Exception e) {
             sb.append(json ?
-                    "  \"exceptionBasic\" : \"%s\",\n".formatted(escapeJsonString(e.getMessage())) :
+                    "  \"exceptionBasic\": \"%s\",\n".formatted(escapeJsonString(e.getMessage())) :
                     " [cannot detect basic information: " + e.getMessage() + "] ");
         }
         try {
@@ -1907,10 +1912,10 @@ public final class TiffIFD {
             final long tileCountY = (dimY + (long) tileSizeY - 1) / tileSizeY;
             sb.append(json ?
                     ("""
-                              "precision" : "%s",
-                              "byteOrder" : "%s",
-                              "bigTiff" : %s,
-                              "tiled" : %s,
+                              "precision": "%s",
+                              "byteOrder": "%s",
+                              "bigTiff": %s,
+                              "tiled": %s,
                             """).formatted(
                             sampleType == null ? "???" : sampleType.prettyName(),
                             getByteOrder(),
@@ -1925,12 +1930,12 @@ public final class TiffIFD {
                 sb.append(
                         json ?
                                 ("""
-                                          "tiles" : {
-                                            "sizeX" : %d,
-                                            "sizeY" : %d,
-                                            "countX" : %d,
-                                            "countY" : %d,
-                                            "count" : %d
+                                          "tiles": {
+                                            "sizeX": %d,
+                                            "sizeY": %d,
+                                            "countX": %d,
+                                            "countY": %d,
+                                            "count": %d
                                           },
                                         """).formatted(
                                         tileSizeX, tileSizeY, tileCountX, tileCountY,
@@ -1947,9 +1952,9 @@ public final class TiffIFD {
                 sb.append(
                         json ?
                                 ("""
-                                          "strips" : {
-                                            "sizeY" : %d,
-                                            "countY" : %d
+                                          "strips": {
+                                            "sizeY": %d,
+                                            "countY": %d
                                           },
                                         """).formatted(tileSizeY, tileCountY) :
                                 "%d strips per %d lines (last strip %s, virtual \"tiles\" %dx%d)".formatted(
@@ -1962,11 +1967,11 @@ public final class TiffIFD {
                                         tileSizeY));
             }
             sb.append(json ?
-                    "  \"chunked\" : %s,\n".formatted(isChunked()) :
+                    "  \"chunked\": %s,\n".formatted(isChunked()) :
                     isChunked() ? ", chunked (interleaved)" : ", planar (separated)");
         } catch (Exception e) {
             sb.append(json ?
-                    "  \"exceptionAdditional\" : \"%s\",\n".formatted(escapeJsonString(e.getMessage())) :
+                    "  \"exceptionAdditional\": \"%s\",\n".formatted(escapeJsonString(e.getMessage())) :
                     " [cannot detect additional information: " + e.getMessage() + "]");
         }
         if (!json) {
@@ -1985,7 +1990,7 @@ public final class TiffIFD {
             return sb.toString();
         }
         if (json) {
-            sb.append("  \"map\" : {\n");
+            sb.append("  \"map\": {\n");
         } else {
             sb.append("; ").append(numberOfEntries()).append(" entries:");
         }
@@ -1999,7 +2004,7 @@ public final class TiffIFD {
             if (json) {
                 sb.append(firstEntry ? "" : ",\n");
                 firstEntry = false;
-                sb.append("    \"%s\" : ".formatted(escapeJsonString(tagName)));
+                sb.append("    \"%s\": ".formatted(escapeJsonString(tagName)));
                 if (manyValues) {
                     sb.append("[");
                     appendIFDArray(sb, v, false, true);
@@ -2072,7 +2077,7 @@ public final class TiffIFD {
                     final TiffEntry tiffEntry = entries.get(tag);
                     if (tiffEntry != null) {
                         final int tagType = tiffEntry.type();
-                        sb.append(" : ").append(TagTypes.typeToString(tagType));
+                        sb.append(": ").append(TagTypes.typeToString(tagType));
                         int valueCount = tiffEntry.valueCount();
                         if (valueCount != 1) {
                             sb.append("[").append(valueCount).append("]");
@@ -2091,7 +2096,23 @@ public final class TiffIFD {
             }
         }
         if (json) {
-            sb.append("\n  }\n}");
+            sb.append("\n  }");
+        }
+        for (Map.Entry<String, String> entry : additionalInformation.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            Objects.requireNonNull(key, "Null key in the additional information map");
+            Objects.requireNonNull(value, "Null \"" + key + "\" value in the additional information map");
+            if (json) {
+                sb.append(",\n  \"%s\": %s".formatted(
+                        escapeJsonString(key),
+                        addLeftPadding(value, 2, false)));
+            } else {
+                sb.append("%n  %s:%n%s".formatted(key, addLeftPadding(value, 4, true)));
+            }
+        }
+        if (json) {
+            sb.append("\n}");
         }
         return sb.toString();
     }
@@ -2207,10 +2228,20 @@ public final class TiffIFD {
         return (int) ((size + 7) >>> 3);
     }
 
-    public static String escapeJsonString(CharSequence string) {
+    public static String escapeJsonString(String s) {
         final StringBuilder result = new StringBuilder();
-        escapeJsonString(result, string);
+        escapeJsonString(result, s);
         return result.toString();
+    }
+
+    public static String addLeftPadding(String s, int padding, boolean addPaddingBeforeFirstLine) {
+        Objects.requireNonNull(s, "Null string argument");
+        if (padding < 0) {
+            throw new IllegalArgumentException("Negative padding = " + padding);
+        }
+        final String spaces = " ".repeat(padding);
+        s = s.replaceAll("(\\r(?!\\n)|\\n|\\r\\n)", "$1" + spaces);
+        return addPaddingBeforeFirstLine ? spaces + s : s;
     }
 
     private void clearCache() {
