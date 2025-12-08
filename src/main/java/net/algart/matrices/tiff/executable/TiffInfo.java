@@ -222,15 +222,15 @@ public class TiffInfo {
             SVSDescription svsDescription,
             int ifdIndex,
             AtomicLong totalSize) throws IOException {
+        final Map<String, String> additionalInformation = new LinkedHashMap<>();
+        if (svsDescription != null && svsDescription.isSVS()) {
+            additionalInformation.put("SVS", svsDescription.toString(stringFormat));
+        }
         if (disableAppendingForStrictFormats && stringFormat.isStrict()) {
-            return ifd.toString(stringFormat);
+            return ifd.toString(stringFormat, additionalInformation);
         }
         int ifdCount = reader.numberOfImages();
         StringBuilder sb = new StringBuilder();
-        final Map<String, String> additionalInformation = new LinkedHashMap<>();
-        if (svsDescription.isSVS()) {
-            additionalInformation.put("SVS", svsDescription.toString(stringFormat));
-        }
         sb.append("IFD #%d/%d:%s%s%n".formatted(
                 ifdIndex,
                 ifdCount,

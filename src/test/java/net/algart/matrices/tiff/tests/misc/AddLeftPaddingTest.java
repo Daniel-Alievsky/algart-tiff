@@ -27,11 +27,17 @@ package net.algart.matrices.tiff.tests.misc;
 import net.algart.matrices.tiff.TiffIFD;
 
 public class AddLeftPaddingTest {
+    private static String escape(String s) {
+        return "\"" + s.replace("\r", "\\r").replace("\n", "\\n") + "\"";
+    }
+
     public static void main(String[] args) {
-        String s = "{\rMy line1\nMy line2\r\nMy line3\n}";
-        System.out.println(s.replace("\r", "CR"));
+        String s = "{\rMy line1\n\nMy line2\r\nMy line3\n}";
+        System.out.println(s);
+        System.out.println(escape(s));
         System.out.println("Padded:");
         String padded = TiffIFD.addLeftPadding(s, 4, true);
-        System.out.println(padded.replace("\r", "CR"));
+        System.out.println(padded);
+        System.out.println(escape(padded));
     }
 }
