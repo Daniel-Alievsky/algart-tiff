@@ -30,6 +30,7 @@ import net.algart.matrices.tiff.TiffReader;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -234,16 +235,22 @@ public class TiffInfoViewer {
 
         JMenu fileMenu = new JMenu("File");
         JMenuItem openItem = new JMenuItem("Open TIFF...");
-        openItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, KeyEvent.CTRL_DOWN_MASK));
+        openItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
         openItem.addActionListener(e -> chooseAndOpenFile());
         fileMenu.add(openItem);
         fileMenu.addSeparator();
 
         JMenuItem exitItem = new JMenuItem("Exit");
-        exitItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_X, KeyEvent.ALT_DOWN_MASK));
+        exitItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.ALT_DOWN_MASK));
         exitItem.addActionListener(e ->
                 frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING)));
         fileMenu.add(exitItem);
+
+        JMenu editMenu = new JMenu("Edit");
+        JMenuItem copyItem = new JMenuItem("Copy");
+        copyItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK));
+        copyItem.addActionListener(e -> ifdTextArea.copy());
+        editMenu.add(copyItem);
 
         JMenu viewMenu = new JMenu("View");
         JMenu viewModeMenu = new JMenu("View mode");
@@ -272,12 +279,15 @@ public class TiffInfoViewer {
         helpMenu.add(aboutItem);
 
         fileMenu.setMnemonic('F');
+        editMenu.setMnemonic('E');
         viewMenu.setMnemonic('V');
         helpMenu.setMnemonic('H');
         fixMenuItemMargins(fileMenu);
+        fixMenuItemMargins(editMenu);
         fixMenuItemMargins(viewMenu);
         fixMenuItemMargins(helpMenu);
         menuBar.add(fileMenu);
+        menuBar.add(editMenu);
         menuBar.add(viewMenu);
         menuBar.add(helpMenu);
         return menuBar;
