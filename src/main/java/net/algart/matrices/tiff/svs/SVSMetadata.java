@@ -102,6 +102,11 @@ public class SVSMetadata {
         return null;
     }
 
+    @Override
+    public String toString() {
+        return !isSVS() ? "Non-SVS" : mainDescription + ", " + imageClassifier;
+    }
+
     public static void main(String[] args) throws IOException {
         if (args.length == 0) {
             System.out.println("Usage: " + SVSMetadata.class.getName() + " file1.svs file2.svs ...");
@@ -110,10 +115,9 @@ public class SVSMetadata {
         for (String arg : args) {
             final Path file = Paths.get(arg);
             try (TiffReader reader = new TiffReader(file)) {
-                final var metadata = new SVSMetadata(reader.allIFDs());
+                final SVSMetadata metadata = SVSMetadata.of(reader);
                 SVSDescription main = metadata.mainDescription();
-                System.out.printf("%s:%nImportant text:%n%s%n", file,
-                        main.importantTextAttributes());
+                System.out.printf("%s:%s%n%nApplication:%n%s%n", file, metadata, main.application());
                 System.out.println("The found main description, all attributes:");
                 for (Map.Entry<String, String> e : main.attributes().entrySet()) {
                     System.out.printf("  %s = %s%n", e.getKey(), e.getValue());
@@ -151,8 +155,8 @@ public class SVSMetadata {
                                 System.out.printf("    %s = %s%n", e.getKey(), e.getValue());
                             }
                         }
-                        if (d.hasMixedInformation()) {
-                            System.out.printf("  Mixed information: <<<%s>>>%n", d.mixedInformation());
+                        if (d.hasSummary()) {
+                            System.out.printf("  Summary: <<<%s>>>%n", d.summary());
                         }
                         System.out.printf("  Raw description:%n<<<%s>>>%n%n", d.getDescription());
                     }

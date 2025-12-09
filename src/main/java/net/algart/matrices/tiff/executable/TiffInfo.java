@@ -49,7 +49,7 @@ public class TiffInfo {
     private final List<String> ifdInfo = new ArrayList<>();
     private boolean tiff;
     private String prefixInfo;
-    private String totalInfo;
+    private String summaryInfo;
 
     public static void main(String[] args) {
         TiffInfo info = new TiffInfo();
@@ -136,8 +136,8 @@ public class TiffInfo {
         return prefixInfo;
     }
 
-    public String totalInfo() {
-        return totalInfo;
+    public String summaryInfo() {
+        return summaryInfo;
     }
 
     public boolean isTiff() {
@@ -147,7 +147,7 @@ public class TiffInfo {
     public void collectTiffInfo(Path tiffFile) throws IOException {
         ifdInfo.clear();
         prefixInfo = "";
-        totalInfo = "";
+        summaryInfo = "";
         try (TiffReader reader = new TiffReader(tiffFile, TiffOpenMode.ALLOW_NON_TIFF)) {
             if (reader.isTiff() != reader.isValidTiff()) {
                 // - impossible with this form of the constructor
@@ -163,7 +163,7 @@ public class TiffInfo {
                 try {
                     allIFDs = reader.allIFDs();
                 } catch (IOException e) {
-                    totalInfo = "File %s (%s, %s-endian) cannot be loaded correctly".formatted(
+                    summaryInfo = "File %s (%s, %s-endian) cannot be loaded correctly".formatted(
                             tiffFile,
                             reader.isBigTiff() ? "BigTIFF" : "not BigTIFF",
                             reader.isLittleEndian() ? "little" : "big");
@@ -194,9 +194,9 @@ public class TiffInfo {
                     }
                 }
                 if (totalSize.get() == tiffFileLength) {
-                    totalInfo = "Total file length %d bytes, it is fully used".formatted(tiffFileLength);
+                    summaryInfo = "Total file length %d bytes, it is fully used".formatted(tiffFileLength);
                 } else if (totalSize.get() > tiffFileLength) {
-                    totalInfo = ("%d bytes in file used, but the file length is only %d bytes, " +
+                    summaryInfo = ("%d bytes in file used, but the file length is only %d bytes, " +
                             "%d \"extra\" bytes: probably TIFF is not valid? (%s)").formatted(
                             totalSize.get(), tiffFileLength, totalSize.get() - tiffFileLength, tiffFile);
                     // - however, this is possible in some files: for example, in
@@ -204,7 +204,7 @@ public class TiffInfo {
                     // we have ASCII IFD entry at the end of the file, and the image before it has odd length;
                     // this ASCII offset is not aligned, so we consider that here is 1 extra byte
                 } else {
-                    totalInfo = ("%d bytes in file used, %d bytes lost/unknown, the file length %d bytes (%s)")
+                    summaryInfo = ("%d bytes in file used, %d bytes lost/unknown, the file length %d bytes (%s)")
                             .formatted(totalSize.get(),
                                     tiffFileLength - totalSize.get(), tiffFileLength, tiffFile);
                 }
@@ -284,7 +284,7 @@ public class TiffInfo {
         for (String ifdInfoLine : ifdInfo) {
             System.out.println(ifdInfoLine);
         }
-        System.out.println(totalInfo);
+        System.out.println(summaryInfo);
     }
 
     private static boolean isPossiblyTIFF(File file) {

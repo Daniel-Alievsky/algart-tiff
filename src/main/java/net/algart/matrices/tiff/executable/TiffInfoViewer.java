@@ -44,6 +44,8 @@ import java.util.prefs.Preferences;
 
 public class TiffInfoViewer {
     public static final String ALGART_TIFF_WEBSITE = "https://algart.net/java/AlgART-TIFF/";
+    private static final int DEFAULT_FONT_SIZE = 14;
+    private static final int[] FONT_SIZES = {DEFAULT_FONT_SIZE, 18, 22};
 
     public enum ViewMode {
         BRIEF(TiffIFD.StringFormat.BRIEF, "Brief"),
@@ -133,17 +135,11 @@ public class TiffInfoViewer {
 // - deprecated solution (replacing with the menu)
 
         addIFDComboBox(leftPanel);
-
         addShowImageButton(leftPanel);
         topPanel.add(leftPanel, BorderLayout.WEST);
         frame.add(topPanel, BorderLayout.NORTH);
 
         addSpecialInformationTextArea();
-
-        JPanel infoPanel = new JPanel(new BorderLayout());
-        infoPanel.add(specialInformationTextArea, BorderLayout.CENTER);
-        frame.add(infoPanel, BorderLayout.SOUTH);
-
         addIFDTextArea();
 
         frame.pack();
@@ -170,7 +166,7 @@ public class TiffInfoViewer {
         textPanel.setBackground(COMMON_BACKGROUND);
         textPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         ifdTextArea = new JTextArea(10, 80);
-        ifdTextArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        ifdTextArea.setFont(getPreferredMonoFont(DEFAULT_FONT_SIZE));
         ifdTextArea.setEditable(false);
         ifdTextArea.setLineWrap(true);
         ifdTextArea.setWrapStyleWord(true);
@@ -191,10 +187,13 @@ public class TiffInfoViewer {
         specialInformationTextArea.setLineWrap(true);
         specialInformationTextArea.setWrapStyleWord(true);
         specialInformationTextArea.setBorder(BorderFactory.createEmptyBorder(3, 5, 3, 5));
-        specialInformationTextArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        specialInformationTextArea.setFont(getPreferredMonoFont(DEFAULT_FONT_SIZE));
         specialInformationTextArea.setBackground(COMMON_BACKGROUND);
         specialInformationTextArea.setForeground(new Color(20, 20, 20));
         specialInformationTextArea.setOpaque(true);
+        JPanel infoPanel = new JPanel(new BorderLayout());
+        infoPanel.add(specialInformationTextArea, BorderLayout.CENTER);
+        frame.add(infoPanel, BorderLayout.SOUTH);
     }
 
     private void addShowImageButton(JPanel leftPanel) {
@@ -254,7 +253,7 @@ public class TiffInfoViewer {
 
         JMenu viewMenu = new JMenu("View");
         JMenu viewModeMenu = new JMenu("View mode");
-        ButtonGroup group = new ButtonGroup();
+        ButtonGroup viewModeGroup = new ButtonGroup();
 
         for (final ViewMode viewMode : ViewMode.values()) {
             JRadioButtonMenuItem item = new JRadioButtonMenuItem(viewMode.toString());
@@ -267,11 +266,22 @@ public class TiffInfoViewer {
                 updateTextArea();
             });
 
-            group.add(item);
+            viewModeGroup.add(item);
             viewModeMenu.add(item);
         }
-
         viewMenu.add(viewModeMenu);
+        JMenu fontSizeMenu = new JMenu("Font size");
+        ButtonGroup fontSizeGroup = new ButtonGroup();
+        for (int size : FONT_SIZES) {
+            JRadioButtonMenuItem sizeItem = new JRadioButtonMenuItem(size + " pt");
+            if (size == DEFAULT_FONT_SIZE) {
+                sizeItem.setSelected(true);
+            }
+            sizeItem.addActionListener(e -> setTextAreasFontSize(size));
+            fontSizeGroup.add(sizeItem);
+            fontSizeMenu.add(sizeItem);
+        }
+        viewMenu.add(fontSizeMenu);
 
         JMenu helpMenu = new JMenu("Help");
         JMenuItem aboutItem = new JMenuItem("About");
@@ -302,6 +312,14 @@ public class TiffInfoViewer {
 //                System.out.println(item.getText() + " " + item.getMargin());
 //            }
 //        }
+    }
+
+    private void setTextAreasFontSize(int size) {
+        final Font mono = getPreferredMonoFont(size);
+        ifdTextArea.setFont(mono);
+        specialInformationTextArea.setFont(mono);
+        ifdTextArea.revalidate();
+        specialInformationTextArea.revalidate();
     }
 
     private void chooseAndOpenFile() {
@@ -350,7 +368,7 @@ public class TiffInfoViewer {
         info.setStringFormat(stringFormat);
         try {
             info.collectTiffInfo(tiffFile);
-            specialInformationTextArea.setText(info.prefixInfo() + "\n" + info.totalInfo());
+            specialInformationTextArea.setText(info.prefixInfo() + "\n" + info.summaryInfo());
             specialInformationTextArea.setBackground(info.isTiff() ? COMMON_BACKGROUND : ERROR_BACKGROUND);
             specialInformationTextArea.setCaretPosition(0);
             final int ifdCount = info.ifdCount();
@@ -514,6 +532,24 @@ public class TiffInfoViewer {
         );
         dialog.setLocationRelativeTo(frame);
         dialog.setVisible(true);
+    }
+
+    private static Font getPreferredMonoFont(int size) {
+        String preferred = "Consolas";
+        if (isFontAvailable(preferred)) {
+            return new Font(preferred, Font.PLAIN, size);
+        }
+        return new Font(Font.MONOSPACED, Font.PLAIN, size);
+    }
+
+    private static boolean isFontAvailable(String fontName) {
+        String[] fonts = GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames();
+        for (String f : fonts) {
+            if (f.equalsIgnoreCase(fontName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static URL reqResource(String name) {
