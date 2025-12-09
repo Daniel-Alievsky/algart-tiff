@@ -319,13 +319,14 @@ public final class SVSDescription {
         sb.append(main ? "Main " : "Additional ");
         sb.append("SVS image");
         if (format.isBrief()) {
-            sb.append(": ").append(summary);
+            if (hasApplication()) {
+                sb.append(" [").append(application).append("]");
+            }
+            sb.append(": ");
+            sb.append(summary);
             OptionalDouble optional = optPixelSize();
             if (optional.isPresent()) {
                 sb.append(", ").append(optional.getAsDouble()).append(" microns/pixel");
-            }
-            if (hasApplication()) {
-                sb.append(" [").append(application).append("]");
             }
             return sb.toString();
         }

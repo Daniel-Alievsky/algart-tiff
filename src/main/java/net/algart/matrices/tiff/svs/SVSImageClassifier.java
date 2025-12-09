@@ -37,10 +37,20 @@ import java.nio.file.Paths;
 import java.util.*;
 
 public final class SVSImageClassifier {
-    public enum SpecialImageKind {
-        THUMBNAIL,
-        LABEL,
-        MACRO
+    public enum SpecialKind {
+        THUMBNAIL("thumbnail"),
+        LABEL("label"),
+        MACRO("macro"),;
+
+        private final String kindName;
+
+        SpecialKind(String kindName) {
+            this.kindName = kindName;
+        }
+
+        public String kindName() {
+            return kindName;
+        }
     }
 
     private static final int THUMBNAIL_IFD_INDEX = 1;
@@ -80,8 +90,16 @@ public final class SVSImageClassifier {
         return ifdIndex == thumbnailIndex || ifdIndex == labelIndex || ifdIndex == macroIndex;
     }
 
-    public OptionalInt specialKindIndex(SpecialImageKind kind) {
-        Objects.requireNonNull(kind, "Null special image kind");
+    public boolean hasSpecialKinds() {
+        return thumbnailIndex != -1 || labelIndex != -1 || macroIndex != -1;
+    }
+
+    public boolean hasSpecialKind(SpecialKind kind) {
+        return specialKindIndex(kind).isPresent();
+    }
+
+    public OptionalInt specialKindIndex(SpecialKind kind) {
+        Objects.requireNonNull(kind, "Null special kind");
         switch (kind) {
             case LABEL -> {
                 if (labelIndex != -1) {
@@ -104,10 +122,17 @@ public final class SVSImageClassifier {
 
     @Override
     public String toString() {
-        return "special image positions among " + ifdCount + " total images: "
-                + "thumbnail " + (thumbnailIndex == -1 ? "NOT FOUND" : "at " + thumbnailIndex)
-                + ", label " + (labelIndex == -1 ? "NOT FOUND" : "at " + labelIndex)
-                + ", macro " + (macroIndex == -1 ? "NOT FOUND" : "at " + macroIndex);
+        final StringBuilder sb = new StringBuilder();
+        for (SpecialKind kind : SpecialKind.values()) {
+            OptionalInt index = specialKindIndex(kind);
+            if (index.isPresent()) {
+                if (!sb.isEmpty()) {
+                    sb.append(", ");
+                }
+                sb.append(kind.kindName()).append(" (#").append(index.getAsInt()).append(")");
+            }
+        }
+        return sb.isEmpty() ? "no special images" : "with " + sb;
     }
 
     private void detectThumbnail() throws TiffException {

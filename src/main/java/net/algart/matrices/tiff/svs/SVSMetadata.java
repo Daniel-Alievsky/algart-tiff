@@ -104,7 +104,7 @@ public class SVSMetadata {
 
     @Override
     public String toString() {
-        return !isSVS() ? "Non-SVS" : mainDescription + ", " + imageClassifier;
+        return !isSVS() ? "Non-SVS" : mainDescription + "; " + imageClassifier;
     }
 
     public static void main(String[] args) throws IOException {
@@ -117,7 +117,7 @@ public class SVSMetadata {
             try (TiffReader reader = new TiffReader(file)) {
                 final SVSMetadata metadata = SVSMetadata.of(reader);
                 SVSDescription main = metadata.mainDescription();
-                System.out.printf("%s:%s%n%nApplication:%n%s%n", file, metadata, main.application());
+                System.out.printf("%s:%n%s%n%nApplication:%n%s%n", file, metadata, main.application());
                 System.out.println("The found main description, all attributes:");
                 for (Map.Entry<String, String> e : main.attributes().entrySet()) {
                     System.out.printf("  %s = %s%n", e.getKey(), e.getValue());
