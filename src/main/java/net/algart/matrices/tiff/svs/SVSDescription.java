@@ -316,9 +316,8 @@ public final class SVSDescription {
             return "Non-SVS TIFF image description";
         }
         StringBuilder sb = new StringBuilder();
-        sb.append(main ? "Main " : "Additional ");
-        sb.append("SVS image");
         if (format.isBrief()) {
+            sb.append(main ? "SVS" : "Additional");
             if (hasApplication()) {
                 sb.append(" [").append(application).append("]");
             }
@@ -330,10 +329,7 @@ public final class SVSDescription {
             }
             return sb.toString();
         }
-        sb.append(":\n");
-        for (String line : text) {
-            sb.append("  ").append(line).append("\n");
-        }
+        sb.append(main ? "Main image\n" : "Additional image\n");
         sb.append("Summary:\n  ").append(summary).append("\n");
         sb.append("Attributes:\n");
         for (Map.Entry<String, String> entry : attributes.entrySet()) {
@@ -346,6 +342,10 @@ public final class SVSDescription {
             } catch (TiffException e) {
                 sb.append("format error: ").append(e.getMessage()).append("\n");
             }
+        }
+        sb.append("Raw text:\n");
+        for (String line : text) {
+            sb.append("  ").append(line).append("\n");
         }
         return sb.toString();
     }

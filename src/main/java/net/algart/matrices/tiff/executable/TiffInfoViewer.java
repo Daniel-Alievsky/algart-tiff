@@ -71,6 +71,7 @@ public class TiffInfoViewer {
     private static final int MAX_IMAGE_DIM = 10000;
     private static final Color COMMON_BACKGROUND = new Color(240, 240, 240);
     private static final Color ERROR_BACKGROUND = new Color(255, 255, 155);
+    private static final Color SVS_FOREGROUND = new Color(0, 128, 0);
 
     private static final String PREF_LAST_DIR = "lastDirectory";
     private static final String PREF_WINDOW_X = "windowX";
@@ -84,8 +85,9 @@ public class TiffInfoViewer {
 
     private JFrame frame;
     private JComboBox<String> ifdComboBox;
-    private JTextArea specialInformationTextArea;
     private JTextArea ifdTextArea;
+    private JTextArea summaryInfoTextArea;
+    private JTextArea svsInfoTextArea;
 
     private TiffInfo info = null;
     private Path tiffFile = null;
@@ -139,7 +141,7 @@ public class TiffInfoViewer {
         topPanel.add(leftPanel, BorderLayout.WEST);
         frame.add(topPanel, BorderLayout.NORTH);
 
-        addSpecialInformationTextArea();
+        addBottomInfoTextArea();
         addIFDTextArea();
 
         frame.pack();
@@ -181,18 +183,31 @@ public class TiffInfoViewer {
         frame.add(textPanel, BorderLayout.CENTER);
     }
 
-    private void addSpecialInformationTextArea() {
-        specialInformationTextArea = new JTextArea(2, 80);
-        specialInformationTextArea.setEditable(false);
-        specialInformationTextArea.setLineWrap(true);
-        specialInformationTextArea.setWrapStyleWord(true);
-        specialInformationTextArea.setBorder(BorderFactory.createEmptyBorder(3, 5, 3, 5));
-        specialInformationTextArea.setFont(getPreferredMonoFont(DEFAULT_FONT_SIZE));
-        specialInformationTextArea.setBackground(COMMON_BACKGROUND);
-        specialInformationTextArea.setForeground(new Color(20, 20, 20));
-        specialInformationTextArea.setOpaque(true);
-        JPanel infoPanel = new JPanel(new BorderLayout());
-        infoPanel.add(specialInformationTextArea, BorderLayout.CENTER);
+    private void addBottomInfoTextArea() {
+        summaryInfoTextArea = new JTextArea(2, 80);
+        summaryInfoTextArea.setEditable(false);
+        summaryInfoTextArea.setLineWrap(true);
+        summaryInfoTextArea.setWrapStyleWord(true);
+        summaryInfoTextArea.setBorder(BorderFactory.createEmptyBorder(3, 5, 3, 5));
+        summaryInfoTextArea.setFont(getPreferredMonoFont(DEFAULT_FONT_SIZE));
+        summaryInfoTextArea.setBackground(COMMON_BACKGROUND);
+        summaryInfoTextArea.setForeground(new Color(20, 20, 20));
+        summaryInfoTextArea.setOpaque(true);
+        svsInfoTextArea = new JTextArea(2, 80);
+        svsInfoTextArea.setEditable(false);
+        svsInfoTextArea.setLineWrap(true);
+        svsInfoTextArea.setWrapStyleWord(true);
+        svsInfoTextArea.setBorder(BorderFactory.createEmptyBorder(3, 5, 3, 5));
+        svsInfoTextArea.setFont(getPreferredMonoFont(DEFAULT_FONT_SIZE));
+        svsInfoTextArea.setBackground(COMMON_BACKGROUND);
+        svsInfoTextArea.setForeground(SVS_FOREGROUND);
+        svsInfoTextArea.setOpaque(true);
+        svsInfoTextArea.setVisible(false);
+        // - invisible by default
+        JPanel infoPanel = new JPanel();
+        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
+        infoPanel.add(summaryInfoTextArea);
+        infoPanel.add(svsInfoTextArea);
         frame.add(infoPanel, BorderLayout.SOUTH);
     }
 
@@ -317,9 +332,11 @@ public class TiffInfoViewer {
     private void setTextAreasFontSize(int size) {
         final Font mono = getPreferredMonoFont(size);
         ifdTextArea.setFont(mono);
-        specialInformationTextArea.setFont(mono);
+        summaryInfoTextArea.setFont(mono);
+        svsInfoTextArea.setFont(mono);
         ifdTextArea.revalidate();
-        specialInformationTextArea.revalidate();
+        summaryInfoTextArea.revalidate();
+        svsInfoTextArea.revalidate();
     }
 
     private void chooseAndOpenFile() {
@@ -368,9 +385,12 @@ public class TiffInfoViewer {
         info.setStringFormat(stringFormat);
         try {
             info.collectTiffInfo(tiffFile);
-            specialInformationTextArea.setText(info.prefixInfo() + "\n" + info.summaryInfo());
-            specialInformationTextArea.setBackground(info.isTiff() ? COMMON_BACKGROUND : ERROR_BACKGROUND);
-            specialInformationTextArea.setCaretPosition(0);
+            summaryInfoTextArea.setText(info.prefixInfo() + "\n" + info.summaryInfo());
+            summaryInfoTextArea.setBackground(info.isTiff() ? COMMON_BACKGROUND : ERROR_BACKGROUND);
+            summaryInfoTextArea.setCaretPosition(0);
+            svsInfoTextArea.setText(info.svsInfo());
+            svsInfoTextArea.setVisible(info.isSvs());
+            svsInfoTextArea.setCaretPosition(0);
             final int ifdCount = info.ifdCount();
             for (int i = 0; i < ifdCount; i++) {
                 ifdComboBox.addItem("IFD #" + i);

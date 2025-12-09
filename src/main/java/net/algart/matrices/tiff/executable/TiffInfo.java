@@ -48,8 +48,10 @@ public class TiffInfo {
 
     private final List<String> ifdInfo = new ArrayList<>();
     private boolean tiff;
+    private boolean svs;
     private String prefixInfo;
     private String summaryInfo;
+    private String svsInfo;
 
     public static void main(String[] args) {
         TiffInfo info = new TiffInfo();
@@ -124,6 +126,14 @@ public class TiffInfo {
         return this;
     }
 
+    public boolean isTiff() {
+        return tiff;
+    }
+
+    public boolean isSvs() {
+        return svs;
+    }
+
     public int ifdCount() {
         return ifdInfo.size();
     }
@@ -140,20 +150,22 @@ public class TiffInfo {
         return summaryInfo;
     }
 
-    public boolean isTiff() {
-        return tiff;
+    public String svsInfo() {
+        return svsInfo;
     }
 
     public void collectTiffInfo(Path tiffFile) throws IOException {
         ifdInfo.clear();
         prefixInfo = "";
         summaryInfo = "";
+        svsInfo = "";
         try (TiffReader reader = new TiffReader(tiffFile, TiffOpenMode.ALLOW_NON_TIFF)) {
             if (reader.isTiff() != reader.isValidTiff()) {
                 // - impossible with this form of the constructor
                 throw new AssertionError();
             }
             this.tiff = reader.isTiff();
+            this.svs = false;
             if (!this.tiff) {
                 final Exception e = reader.openingException();
                 prefixInfo = "%nFile %s: not TIFF%s".formatted(tiffFile,
@@ -170,6 +182,7 @@ public class TiffInfo {
                     throw e;
                 }
                 SVSMetadata svsMetadata = SVSMetadata.of(allIFDs);
+                this.svs = svsMetadata.isSVS();
                 final int ifdCount = allIFDs.size();
                 final int firstIndex = Math.max(this.firstIFDIndex, 0);
                 final int lastIndex = Math.min(this.lastIFDIndex, ifdCount - 1);
@@ -207,6 +220,10 @@ public class TiffInfo {
                     summaryInfo = ("%d bytes in file used, %d bytes lost/unknown, the file length %d bytes (%s)")
                             .formatted(totalSize.get(),
                                     tiffFileLength - totalSize.get(), tiffFileLength, tiffFile);
+                }
+                if (this.svs) {
+                    svsInfo = "%s%nSpecial SVS images:%s".formatted(
+                            svsMetadata.description(), svsMetadata.analyser());
                 }
             }
         }
@@ -285,6 +302,9 @@ public class TiffInfo {
             System.out.println(ifdInfoLine);
         }
         System.out.println(summaryInfo);
+        if (isSvs()) {
+            System.out.println(svsInfo);
+        }
     }
 
     private static boolean isPossiblyTIFF(File file) {

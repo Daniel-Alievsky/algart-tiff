@@ -38,19 +38,19 @@ import java.util.Objects;
 
 public class SVSMetadata {
     private final List<SVSDescription> descriptions;
-    private final SVSDescription mainDescription;
-    private final SVSImageClassifier imageClassifier;
+    private final SVSDescription description;
+    private final SVSImageAnalyser analyser;
 
     private SVSMetadata(List<TiffIFD> allIFDs) throws TiffException {
         Objects.requireNonNull(allIFDs, "Null allIFDs");
         final int ifdCount = allIFDs.size();
-        this.imageClassifier = SVSImageClassifier.of(allIFDs);
+        this.analyser = SVSImageAnalyser.of(allIFDs);
         this.descriptions = new ArrayList<>();
         for (int k = 0; k < ifdCount; k++) {
             final String description = allIFDs.get(k).optDescription().orElse(null);
             this.descriptions.add(SVSDescription.of(description));
         }
-        this.mainDescription = findMainDescription(descriptions);
+        this.description = findMainDescription(descriptions);
     }
 
     public static SVSMetadata of(List<TiffIFD> allIFDs) throws TiffException {
@@ -63,7 +63,7 @@ public class SVSMetadata {
     }
 
     public boolean isSVS() {
-        return mainDescription != null;
+        return description != null;
     }
 
     public List<SVSDescription> allDescriptions() {
@@ -81,12 +81,12 @@ public class SVSMetadata {
         return descriptions.get(ifdIndex);
     }
 
-    public SVSDescription mainDescription() {
-        return mainDescription;
+    public SVSDescription description() {
+        return description;
     }
 
-    public SVSImageClassifier imageClassifier() {
-        return imageClassifier;
+    public SVSImageAnalyser analyser() {
+        return analyser;
     }
 
     private static SVSDescription findMainDescription(List<SVSDescription> descriptions) {
@@ -104,7 +104,7 @@ public class SVSMetadata {
 
     @Override
     public String toString() {
-        return !isSVS() ? "Non-SVS" : mainDescription + "; " + imageClassifier;
+        return !isSVS() ? "Non-SVS" : description + "; " + analyser;
     }
 
     public static void main(String[] args) throws IOException {
@@ -116,7 +116,7 @@ public class SVSMetadata {
             final Path file = Paths.get(arg);
             try (TiffReader reader = new TiffReader(file)) {
                 final SVSMetadata metadata = SVSMetadata.of(reader);
-                SVSDescription main = metadata.mainDescription();
+                SVSDescription main = metadata.description();
                 System.out.printf("%s:%n%s%n%nApplication:%n%s%n", file, metadata, main.application());
                 System.out.println("The found main description, all attributes:");
                 for (Map.Entry<String, String> e : main.attributes().entrySet()) {
@@ -128,7 +128,7 @@ public class SVSMetadata {
                 System.out.println("----------");
                 System.out.println("The found main description, JSON:");
                 System.out.println(main.toString(TiffIFD.StringFormat.JSON));
-                System.out.printf("Image classifier:%n%s%n", metadata.imageClassifier());
+                System.out.printf("Image classifier:%n%s%n", metadata.analyser());
                 System.out.printf("%nAll descriptions%n");
                 final List<SVSDescription> allDescriptions = metadata.allDescriptions();
                 for (int i = 0, n = allDescriptions.size(); i < n; i++) {

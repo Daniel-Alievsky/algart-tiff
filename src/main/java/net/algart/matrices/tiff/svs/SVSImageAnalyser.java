@@ -36,7 +36,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
-public final class SVSImageClassifier {
+public final class SVSImageAnalyser {
     public enum SpecialKind {
         THUMBNAIL("thumbnail"),
         LABEL("label"),
@@ -62,7 +62,7 @@ public final class SVSImageClassifier {
             Arrays.SystemSettings.getBooleanEnv(
                     "ALWAYS_USE_SVS_SPECIFICATION_FOR_LABEL_AND_MACRO", false);
 
-    private static final System.Logger LOG = System.getLogger(SVSImageClassifier.class.getName());
+    private static final System.Logger LOG = System.getLogger(SVSImageAnalyser.class.getName());
 
     private final List<TiffIFD> ifds;
     private final int ifdCount;
@@ -70,7 +70,7 @@ public final class SVSImageClassifier {
     private int labelIndex = -1;
     private int macroIndex = -1;
 
-    private SVSImageClassifier(List<TiffIFD> allIFDs) throws TiffException {
+    private SVSImageAnalyser(List<TiffIFD> allIFDs) throws TiffException {
         this.ifds = Objects.requireNonNull(allIFDs, "Null allIFDs");
         this.ifdCount = ifds.size();
         detectThumbnail();
@@ -79,8 +79,8 @@ public final class SVSImageClassifier {
         }
     }
 
-    public static SVSImageClassifier of(List<TiffIFD> allIFD) throws TiffException {
-        return new SVSImageClassifier(allIFD);
+    public static SVSImageAnalyser of(List<TiffIFD> allIFD) throws TiffException {
+        return new SVSImageAnalyser(allIFD);
     }
 
     public boolean isSpecial(int ifdIndex) {
@@ -132,7 +132,7 @@ public final class SVSImageClassifier {
                 sb.append(kind.kindName()).append(" (#").append(index.getAsInt()).append(")");
             }
         }
-        return sb.isEmpty() ? "no special images" : "with " + sb;
+        return sb.isEmpty() ? "no special images" : sb.toString();
     }
 
     private void detectThumbnail() throws TiffException {
@@ -275,13 +275,13 @@ public final class SVSImageClassifier {
 
     public static void main(String[] args) throws IOException {
         if (args.length == 0) {
-            System.out.println("Usage: " + SVSImageClassifier.class.getName() + " file1.svs file2.svs ...");
+            System.out.println("Usage: " + SVSImageAnalyser.class.getName() + " file1.svs file2.svs ...");
             return;
         }
         for (String arg : args) {
             final Path file = Paths.get(arg);
             try (TiffReader reader = new TiffReader(file)) {
-                final var detector = new SVSImageClassifier(reader.allIFDs());
+                final var detector = new SVSImageAnalyser(reader.allIFDs());
                 System.out.printf("%s:%n%s%n%n", file, detector);
             }
         }
