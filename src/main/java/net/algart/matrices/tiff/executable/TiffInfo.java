@@ -54,7 +54,7 @@ public class TiffInfo {
     private String svsInfo;
 
     public static void main(String[] args) {
-        TiffInfo info = new TiffInfo();
+        final TiffInfo info = new TiffInfo();
         int startArgIndex = 0;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-detailed")) {
             info.stringFormat = TiffIFD.StringFormat.DETAILED;

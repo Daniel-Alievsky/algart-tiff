@@ -297,6 +297,16 @@ public class TiffInfoViewer {
             fontSizeMenu.add(sizeItem);
         }
         viewMenu.add(fontSizeMenu);
+        JCheckBoxMenuItem wrapItem = new JCheckBoxMenuItem("Word wrap");
+        wrapItem.setSelected(true); // enabled by default
+        wrapItem.addActionListener(e -> {
+            boolean wrap = wrapItem.isSelected();
+            ifdTextArea.setLineWrap(wrap);
+            ifdTextArea.setWrapStyleWord(wrap);
+            ifdTextArea.revalidate();
+            ifdTextArea.repaint();
+        });
+        viewMenu.add(wrapItem);
 
         JMenu helpMenu = new JMenu("Help");
         JMenuItem aboutItem = new JMenuItem("About");

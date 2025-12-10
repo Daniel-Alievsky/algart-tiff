@@ -1863,128 +1863,31 @@ public final class TiffIFD {
         return toString(format, Collections.emptyMap());
     }
 
-    public String toString(StringFormat format, Map<String, String> additionalInformation) {
+    /**
+     * Returns a string description of this IFD according to the specified {@link StringFormat format}.
+     *
+     * If the {@code extendedInformation} map is not empty, its elements are added
+     * to the end of the resulting string; in {@link StringFormat#JSON} &mdash; as the last elements
+     * of JSON structure with the keys from this map.
+     *
+     * <p>The resulting string is usually multiline, excepting the case of {@link StringFormat#BRIEF} format.
+     * In {@link StringFormat#JSON} format, the lines are separated by "\n",
+     * in other formats &mdash; by the system-dependent line separator ({@code "%n".formatted()}).
+     * Note that the returned string is trimmed: it does not contain leading or trailing space/line separator
+     * characters.
+     *
+     * @param format style of formating the returned string.
+     * @param extendedInformation additional information, for example, from
+     * {@link net.algart.matrices.tiff.svs.SVSDescription} class.
+     * @return a string description of this object.
+     * @throws NullPointerException if one of the arguments is {@code null}.
+     */
+    public String toString(StringFormat format, Map<String, String> extendedInformation) {
         Objects.requireNonNull(format, "Null format");
-        Objects.requireNonNull(additionalInformation, "Null additional information");
+        Objects.requireNonNull(extendedInformation, "Null additional information");
         final boolean json = format.isJson();
         final StringBuilder sb = new StringBuilder();
-        sb.append(json ?
-                "{\n" :
-                "IFD");
-        final String ifdTypeName = subIFDType == null ? "main" : Tags.tiffTagName(subIFDType, false);
-        sb.append((json ?
-                "  \"ifdType\": \"%s\",\n" :
-                " (%s)").formatted(ifdTypeName));
-        int dimX = 0;
-        int dimY = 0;
-        int channels;
-        int tileSizeX = 1;
-        int tileSizeY = 1;
-        try {
-            final TiffSampleType sampleType = sampleType(false);
-            sb.append((json ?
-                    "  \"elementType\": \"%s\",\n" :
-                    " %s").formatted(
-                    sampleType == null ? "???" : sampleType.isBinary() ? "bit" :
-                            sampleType.elementType().getSimpleName()));
-            channels = getSamplesPerPixel();
-            if (hasImageDimensions()) {
-                dimX = getImageDimX();
-                dimY = getImageDimY();
-                tileSizeX = getTileSizeX();
-                tileSizeY = getTileSizeY();
-                sb.append((json ?
-                        "  \"dimX\": %d,\n  \"dimY\": %d,\n  \"channels\": %d,\n" :
-                        "[%dx%dx%d], ").formatted(dimX, dimY, channels));
-            } else {
-                sb.append((json ?
-                        "  \"channels\": %d,\n" :
-                        "[?x?x%d], ").formatted(channels));
-            }
-        } catch (Exception e) {
-            sb.append(json ?
-                    "  \"exceptionBasic\": \"%s\",\n".formatted(escapeJsonString(e.getMessage())) :
-                    " [cannot detect basic information: " + e.getMessage() + "] ");
-        }
-        try {
-            final TiffSampleType sampleType = sampleType(false);
-            final long tileCountX = (dimX + (long) tileSizeX - 1) / tileSizeX;
-            final long tileCountY = (dimY + (long) tileSizeY - 1) / tileSizeY;
-            sb.append(json ?
-                    ("""
-                              "precision": "%s",
-                              "byteOrder": "%s",
-                              "bigTiff": %s,
-                              "tiled": %s,
-                            """).formatted(
-                            sampleType == null ? "???" : sampleType.prettyName(),
-                            getByteOrder(),
-                            isBigTiff(),
-                            hasTileInformation()) :
-                    "%s, precision %s%s, %s, ".formatted(
-                            isLittleEndian() ? "little-endian" : "big-endian",
-                            sampleType == null ? "???" : sampleType.prettyName(),
-                            isBigTiff() ? " [BigTIFF]" : "",
-                            compressionPrettyName()));
-            if (hasTileInformation()) {
-                sb.append(
-                        json ?
-                                ("""
-                                          "tiles": {
-                                            "sizeX": %d,
-                                            "sizeY": %d,
-                                            "countX": %d,
-                                            "countY": %d,
-                                            "count": %d
-                                          },
-                                        """).formatted(
-                                        tileSizeX, tileSizeY, tileCountX, tileCountY,
-                                        tileCountX * tileCountY) :
-                                "%dx%d=%d tiles %dx%d (last tile %sx%s)".formatted(
-                                        tileCountX,
-                                        tileCountY,
-                                        tileCountX * tileCountY,
-                                        tileSizeX,
-                                        tileSizeY,
-                                        remainderToString(dimX, tileSizeX),
-                                        remainderToString(dimY, tileSizeY)));
-            } else {
-                sb.append(
-                        json ?
-                                ("""
-                                          "strips": {
-                                            "sizeY": %d,
-                                            "countY": %d
-                                          },
-                                        """).formatted(tileSizeY, tileCountY) :
-                                "%d strips per %d lines (last strip %s, virtual \"tiles\" %dx%d)".formatted(
-                                        tileCountY,
-                                        tileSizeY,
-                                        dimY == tileCountY * tileSizeY ?
-                                                "full" :
-                                                remainderToString(dimY, tileSizeY) + " lines",
-                                        tileSizeX,
-                                        tileSizeY));
-            }
-            sb.append(json ?
-                    "  \"chunked\": %s,\n".formatted(isChunked()) :
-                    isChunked() ? ", chunked (interleaved)" : ", planar (separated)");
-        } catch (Exception e) {
-            sb.append(json ?
-                    "  \"exceptionAdditional\": \"%s\",\n".formatted(escapeJsonString(e.getMessage())) :
-                    " [cannot detect additional information: " + e.getMessage() + "]");
-        }
-        if (!json) {
-            if (hasFileOffsetForReading()) {
-                sb.append(", reading offset @%d=0x%X".formatted(fileOffsetForReading, fileOffsetForReading));
-            }
-            if (hasFileOffsetForWriting()) {
-                sb.append(", writing offset @%d=0x%X".formatted(fileOffsetForWriting, fileOffsetForWriting));
-            }
-            if (hasNextIFDOffset()) {
-                sb.append(isLastIFD() ? ", LAST" : ", next IFD at @%d=0x%X".formatted(nextIFDOffset, nextIFDOffset));
-            }
-        }
+        addBriefInfo(sb, json);
         if (format.isBrief()) {
             assert !json;
             return sb.toString();
@@ -1994,123 +1897,21 @@ public final class TiffIFD {
         } else {
             sb.append("; ").append(numberOfEntries()).append(" entries:");
         }
-        final Map<Integer, TiffEntry> entries = this.detailedEntries;
         final Collection<Integer> keySequence = format.sorted ? new TreeSet<>(map.keySet()) : map.keySet();
         boolean firstEntry = true;
         for (Integer tag : keySequence) {
-            final Object v = this.get(tag);
-            boolean manyValues = v != null && v.getClass().isArray();
-            String tagName = Tags.tiffTagName(tag, !json);
-            if (json) {
-                sb.append(firstEntry ? "" : ",\n");
+            if (tag != null) {
+                // - should not occur, but toString must work even in this case
+                addTagInfo(sb, format, tag, firstEntry);
+                // - note: this method adds line separator BEFORE the content
                 firstEntry = false;
-                sb.append("    \"%s\": ".formatted(escapeJsonString(tagName)));
-                if (manyValues) {
-                    sb.append("[");
-                    appendIFDArray(sb, v, false, true);
-                    sb.append("]");
-                } else if (v instanceof TagRational) {
-                    sb.append("\"").append(v).append("\"");
-                } else if (v instanceof Number || v instanceof Boolean) {
-                    sb.append(v);
-                } else {
-                    sb.append("\"");
-                    escapeJsonString(sb, String.valueOf(v));
-                    sb.append("\"");
-                }
-            } else {
-                sb.append("%n".formatted());
-                Object additional = null;
-                try {
-                    switch (tag) {
-                        case Tags.PHOTOMETRIC_INTERPRETATION ->
-                                additional = getPhotometricInterpretation().prettyName();
-                        case Tags.COMPRESSION -> additional = compressionPrettyName();
-                        case Tags.PLANAR_CONFIGURATION -> {
-                            if (v instanceof Number number) {
-                                switch (number.intValue()) {
-                                    case PLANAR_CONFIGURATION_CHUNKED -> additional = "chunky";
-                                    case PLANAR_CONFIGURATION_SEPARATE -> additional = "rarely-used planar";
-                                }
-                            }
-                        }
-                        case Tags.SAMPLE_FORMAT -> {
-                            if (v instanceof Number number) {
-                                switch (number.intValue()) {
-                                    case SAMPLE_FORMAT_UINT -> additional = "unsigned integer";
-                                    case SAMPLE_FORMAT_INT -> additional = "signed integer";
-                                    case SAMPLE_FORMAT_IEEEFP -> additional = "IEEE float";
-                                    case SAMPLE_FORMAT_VOID -> additional = "undefined";
-                                    case SAMPLE_FORMAT_COMPLEX_INT -> additional = "complex integer";
-                                    case SAMPLE_FORMAT_COMPLEX_IEEEFP -> additional = "complex float";
-                                }
-                            }
-                        }
-                        case Tags.FILL_ORDER -> additional = !isReversedFillOrder() ?
-                                "default bits order: highest first (big-endian, 7-6-5-4-3-2-1-0)" :
-                                "reversed bits order: lowest first (little-endian, 0-1-2-3-4-5-6-7)";
-                        case Tags.PREDICTOR -> {
-                            if (v instanceof Number number) {
-                                final TagPredictor predictor = TagPredictor.ofOrUnknown(number.intValue());
-                                if (predictor != TagPredictor.UNKNOWN) {
-                                    additional = predictor.prettyName();
-                                }
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                    additional = e;
-                }
-                sb.append("    ").append(tagName).append(" = ");
-                if (manyValues) {
-                    sb.append(v.getClass().getComponentType().getSimpleName());
-                    sb.append("[").append(Array.getLength(v)).append("]");
-                    sb.append(" {");
-                    appendIFDArray(sb, v, format.compactArrays, false);
-                    sb.append("}");
-                } else if (v instanceof String) {
-                    sb.append("\"").append(v).append("\"");
-                } else {
-                    sb.append(v);
-                }
-                if (entries != null) {
-                    final TiffEntry tiffEntry = entries.get(tag);
-                    if (tiffEntry != null) {
-                        final int tagType = tiffEntry.type();
-                        sb.append(": ").append(TagTypes.typeToString(tagType));
-                        int valueCount = tiffEntry.valueCount();
-                        if (valueCount != 1) {
-                            sb.append("[").append(valueCount).append("]");
-                        }
-                        if (!tiffEntry.builtInData()) {
-                            final long offset = tiffEntry.valueOffset();
-                            final long length = tiffEntry.valueLength();
-                            sb.append(" at @").append(offset).append("..").append(offset + length - 1)
-                                    .append(" (").append(length).append(" bytes)");
-                        }
-                    }
-                }
-                if (additional != null) {
-                    sb.append("   [it means: ").append(additional).append("]");
-                }
             }
         }
         if (json) {
             sb.append("\n  }");
         }
-        for (Map.Entry<String, String> entry : additionalInformation.entrySet()) {
-            String key = entry.getKey();
-            String value = entry.getValue();
-            Objects.requireNonNull(key, "Null key in the additional information map");
-            Objects.requireNonNull(value, "Null \"" + key + "\" value in the additional information map");
-            if (json) {
-                sb.append(",\n  \"%s\": %s".formatted(
-                        escapeJsonString(key),
-                        addLeftPadding(value, 2, false)));
-            } else {
-                sb.append("%n  %s:%n%s".formatted(key, addLeftPadding(value, 4, true)));
-            }
-        }
+        addExtendedInfo(sb, json, extendedInformation);
+        // - note: for non-JSON, this method also adds line separator BEFORE the content
         if (json) {
             sb.append("\n}");
         }
@@ -2234,7 +2035,7 @@ public final class TiffIFD {
         return result.toString();
     }
 
-    public static String addLeftPadding(String s, int padding, boolean addPaddingBeforeFirstLine) {
+    public static String addLeftIndent(String s, int padding, boolean addPaddingBeforeFirstLine) {
         Objects.requireNonNull(s, "Null string argument");
         if (padding < 0) {
             throw new IllegalArgumentException("Negative padding = " + padding);
@@ -2285,6 +2086,260 @@ public final class TiffIFD {
             }
         }
         return false;
+    }
+
+    private void addBriefInfo(StringBuilder sb, boolean json) {
+        sb.append(json ?
+                "{\n" :
+                "IFD");
+        final String ifdTypeName = subIFDType == null ? "main" : Tags.tiffTagName(subIFDType, false);
+        sb.append((json ?
+                "  \"ifdType\": \"%s\",\n" :
+                " (%s)").formatted(ifdTypeName));
+        int dimX = 0;
+        int dimY = 0;
+        int channels;
+        int tileSizeX = 1;
+        int tileSizeY = 1;
+        try {
+            final TiffSampleType sampleType = sampleType(false);
+            sb.append((json ?
+                    "  \"elementType\": \"%s\",\n" :
+                    " %s").formatted(
+                    sampleType == null ? "???" : sampleType.isBinary() ? "bit" :
+                            sampleType.elementType().getSimpleName()));
+            channels = getSamplesPerPixel();
+            if (hasImageDimensions()) {
+                dimX = getImageDimX();
+                dimY = getImageDimY();
+                tileSizeX = getTileSizeX();
+                tileSizeY = getTileSizeY();
+                sb.append((json ?
+                        "  \"dimX\": %d,\n  \"dimY\": %d,\n  \"channels\": %d,\n" :
+                        "[%dx%dx%d], ").formatted(dimX, dimY, channels));
+            } else {
+                sb.append((json ?
+                        "  \"channels\": %d,\n" :
+                        "[?x?x%d], ").formatted(channels));
+            }
+        } catch (Exception e) {
+            sb.append(json ?
+                    "  \"exceptionBasic\": \"%s\",\n".formatted(escapeJsonString(e.getMessage())) :
+                    " [cannot detect basic information: " + e.getMessage() + "] ");
+        }
+        try {
+            final TiffSampleType sampleType = sampleType(false);
+            final long tileCountX = (dimX + (long) tileSizeX - 1) / tileSizeX;
+            final long tileCountY = (dimY + (long) tileSizeY - 1) / tileSizeY;
+            sb.append(json ?
+                    ("""
+                              "precision": "%s",
+                              "byteOrder": "%s",
+                              "bigTiff": %s,
+                              "tiled": %s,
+                            """).formatted(
+                            sampleType == null ? "???" : sampleType.prettyName(),
+                            getByteOrder(),
+                            isBigTiff(),
+                            hasTileInformation()) :
+                    "%s, precision %s%s, %s, ".formatted(
+                            isLittleEndian() ? "little-endian" : "big-endian",
+                            sampleType == null ? "???" : sampleType.prettyName(),
+                            isBigTiff() ? " [BigTIFF]" : "",
+                            compressionPrettyName()));
+            if (hasTileInformation()) {
+                sb.append(
+                        json ?
+                                ("""
+                                          "tiles": {
+                                            "sizeX": %d,
+                                            "sizeY": %d,
+                                            "countX": %d,
+                                            "countY": %d,
+                                            "count": %d
+                                          },
+                                        """).formatted(
+                                        tileSizeX, tileSizeY, tileCountX, tileCountY,
+                                        tileCountX * tileCountY) :
+                                "%dx%d=%d tiles %dx%d (last tile %sx%s)".formatted(
+                                        tileCountX,
+                                        tileCountY,
+                                        tileCountX * tileCountY,
+                                        tileSizeX,
+                                        tileSizeY,
+                                        remainderToString(dimX, tileSizeX),
+                                        remainderToString(dimY, tileSizeY)));
+            } else {
+                sb.append(
+                        json ?
+                                ("""
+                                          "strips": {
+                                            "sizeY": %d,
+                                            "countY": %d
+                                          },
+                                        """).formatted(tileSizeY, tileCountY) :
+                                "%d strips per %d lines (last strip %s, virtual \"tiles\" %dx%d)".formatted(
+                                        tileCountY,
+                                        tileSizeY,
+                                        dimY == tileCountY * tileSizeY ?
+                                                "full" :
+                                                remainderToString(dimY, tileSizeY) + " lines",
+                                        tileSizeX,
+                                        tileSizeY));
+            }
+            sb.append(json ?
+                    "  \"chunked\": %s,\n".formatted(isChunked()) :
+                    isChunked() ? ", chunked (interleaved)" : ", planar (separated)");
+        } catch (Exception e) {
+            sb.append(json ?
+                    "  \"exceptionAdditional\": \"%s\",\n".formatted(escapeJsonString(e.getMessage())) :
+                    " [cannot detect additional information: " + e.getMessage() + "]");
+        }
+        if (!json) {
+            if (hasFileOffsetForReading()) {
+                sb.append(", reading offset @%d=0x%X".formatted(fileOffsetForReading, fileOffsetForReading));
+            }
+            if (hasFileOffsetForWriting()) {
+                sb.append(", writing offset @%d=0x%X".formatted(fileOffsetForWriting, fileOffsetForWriting));
+            }
+            if (hasNextIFDOffset()) {
+                sb.append(isLastIFD() ? ", LAST" : ", next IFD at @%d=0x%X".formatted(nextIFDOffset, nextIFDOffset));
+            }
+        }
+    }
+
+    private void addTagInfo(StringBuilder sb, StringFormat format, int tag, boolean firstEntry) {
+        final Object tagValue = this.get(tag);
+        boolean manyValues = tagValue != null && tagValue.getClass().isArray();
+        if (format.isJson()) {
+            addTagInfoJson(sb, tag, tagValue, manyValues, firstEntry);
+        } else {
+            addTagInfoText(sb, format, tag, tagValue, manyValues);
+        }
+    }
+
+    private void addTagInfoText(
+            StringBuilder sb,
+            StringFormat format,
+            int tag,
+            Object tagValue,
+            boolean manyValues) {
+        String tagName = Tags.tiffTagName(tag, true);
+        final Map<Integer, TiffEntry> entries = this.detailedEntries;
+        sb.append("%n".formatted());
+        Object additional = null;
+        try {
+            switch (tag) {
+                case Tags.PHOTOMETRIC_INTERPRETATION ->
+                        additional = getPhotometricInterpretation().prettyName();
+                case Tags.COMPRESSION -> additional = compressionPrettyName();
+                case Tags.PLANAR_CONFIGURATION -> {
+                    if (tagValue instanceof Number number) {
+                        switch (number.intValue()) {
+                            case PLANAR_CONFIGURATION_CHUNKED -> additional = "chunky";
+                            case PLANAR_CONFIGURATION_SEPARATE -> additional = "rarely-used planar";
+                        }
+                    }
+                }
+                case Tags.SAMPLE_FORMAT -> {
+                    if (tagValue instanceof Number number) {
+                        switch (number.intValue()) {
+                            case SAMPLE_FORMAT_UINT -> additional = "unsigned integer";
+                            case SAMPLE_FORMAT_INT -> additional = "signed integer";
+                            case SAMPLE_FORMAT_IEEEFP -> additional = "IEEE float";
+                            case SAMPLE_FORMAT_VOID -> additional = "undefined";
+                            case SAMPLE_FORMAT_COMPLEX_INT -> additional = "complex integer";
+                            case SAMPLE_FORMAT_COMPLEX_IEEEFP -> additional = "complex float";
+                        }
+                    }
+                }
+                case Tags.FILL_ORDER -> additional = !isReversedFillOrder() ?
+                        "default bits order: highest first (big-endian, 7-6-5-4-3-2-1-0)" :
+                        "reversed bits order: lowest first (little-endian, 0-1-2-3-4-5-6-7)";
+                case Tags.PREDICTOR -> {
+                    if (tagValue instanceof Number number) {
+                        final TagPredictor predictor = TagPredictor.ofOrUnknown(number.intValue());
+                        if (predictor != TagPredictor.UNKNOWN) {
+                            additional = predictor.prettyName();
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            additional = e;
+        }
+        sb.append("    ").append(tagName).append(" = ");
+        if (manyValues) {
+            sb.append(tagValue.getClass().getComponentType().getSimpleName());
+            sb.append("[").append(Array.getLength(tagValue)).append("]");
+            sb.append(" {");
+            appendIFDArray(sb, tagValue, format.compactArrays, false);
+            sb.append("}");
+        } else if (tagValue instanceof String) {
+            sb.append("\"").append(tagValue).append("\"");
+        } else {
+            sb.append(tagValue);
+        }
+        if (entries != null) {
+            final TiffEntry tiffEntry = entries.get(tag);
+            if (tiffEntry != null) {
+                final int tagType = tiffEntry.type();
+                sb.append(": ").append(TagTypes.typeToString(tagType));
+                int valueCount = tiffEntry.valueCount();
+                if (valueCount != 1) {
+                    sb.append("[").append(valueCount).append("]");
+                }
+                if (!tiffEntry.builtInData()) {
+                    final long offset = tiffEntry.valueOffset();
+                    final long length = tiffEntry.valueLength();
+                    sb.append(" at @").append(offset).append("..").append(offset + length - 1)
+                            .append(" (").append(length).append(" bytes)");
+                }
+            }
+        }
+        if (additional != null) {
+            sb.append("   [it means: ").append(additional).append("]");
+        }
+    }
+
+    private static void addTagInfoJson(
+            StringBuilder sb,
+            int tag,
+            Object tagValue,
+            boolean manyValues,
+            boolean firstEntry) {
+        String tagName = Tags.tiffTagName(tag, false);
+        sb.append(firstEntry ? "" : ",\n");
+        sb.append("    \"%s\": ".formatted(escapeJsonString(tagName)));
+        if (manyValues) {
+            sb.append("[");
+            appendIFDArray(sb, tagValue, false, true);
+            sb.append("]");
+        } else if (tagValue instanceof TagRational) {
+            sb.append("\"").append(tagValue).append("\"");
+        } else if (tagValue instanceof Number || tagValue instanceof Boolean) {
+            sb.append(tagValue);
+        } else {
+            sb.append("\"");
+            escapeJsonString(sb, String.valueOf(tagValue));
+            sb.append("\"");
+        }
+    }
+
+    private static void addExtendedInfo(StringBuilder sb, boolean json, Map<String, String> extendedInformation) {
+        for (Map.Entry<String, String> entry : extendedInformation.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            Objects.requireNonNull(key, "Null key in the additional information map");
+            Objects.requireNonNull(value, "Null \"" + key + "\" value in the additional information map");
+            if (json) {
+                sb.append(",\n  \"%s\": %s".formatted(
+                        escapeJsonString(key),
+                        addLeftIndent(value, 2, false)));
+            } else {
+                sb.append("%n  %s:%n%s".formatted(key, addLeftIndent(value, 4, true)));
+            }
+        }
     }
 
     private static boolean isSupportedPrecisionWithCheckingEquality(int[] bitsPerSample)

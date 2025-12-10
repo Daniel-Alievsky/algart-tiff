@@ -26,7 +26,7 @@ package net.algart.matrices.tiff.tests.misc;
 
 import net.algart.matrices.tiff.TiffIFD;
 
-public class AddLeftPaddingTest {
+public class AddLeftIndentTest {
     private static String escape(String s) {
         return "\"" + s.replace("\r", "\\r").replace("\n", "\\n") + "\"";
     }
@@ -36,7 +36,7 @@ public class AddLeftPaddingTest {
         System.out.println(s);
         System.out.println(escape(s));
         System.out.println("Padded:");
-        String padded = TiffIFD.addLeftPadding(s, 4, true);
+        String padded = TiffIFD.addLeftIndent(s, 4, true);
         System.out.println(padded);
         System.out.println(escape(padded));
     }

@@ -329,23 +329,23 @@ public final class SVSDescription {
             }
             return sb.toString();
         }
-        sb.append(main ? "Main image\n" : "Additional image\n");
-        sb.append("Summary:\n  ").append(summary).append("\n");
-        sb.append("Attributes:\n");
+        sb.append(main ? "Main image" : "Additional image");
+        sb.append("%nSummary:%n  %s%n".formatted(summary));
+        sb.append("Attributes:");
         for (Map.Entry<String, String> entry : attributes.entrySet()) {
-            sb.append("  ").append(entry.getKey()).append(" = ").append(entry.getValue()).append("\n");
+            sb.append("%n  %s = %s".formatted(entry.getKey(), entry.getValue()));
         }
         if (hasPixelSize()) {
-            sb.append("Pixel size: ");
+            sb.append("%nPixel size: ".formatted());
             try {
-                sb.append(pixelSize()).append("\n");
+                sb.append(pixelSize());
             } catch (TiffException e) {
-                sb.append("format error: ").append(e.getMessage()).append("\n");
+                sb.append("format error: ").append(e.getMessage());
             }
         }
-        sb.append("Raw text:\n");
+        sb.append("%nRaw text:".formatted());
         for (String line : text) {
-            sb.append("  ").append(line).append("\n");
+            sb.append("%n  %s".formatted(line));
         }
         return sb.toString();
     }
