@@ -44,7 +44,6 @@ public final class SVSDescription {
     private final Map<String, String> attributes = new LinkedHashMap<>();
     private final String application;
     private final String summary;
-
     private final boolean svs;
     private final boolean main;
 
@@ -89,8 +88,14 @@ public final class SVSDescription {
     }
 
     private SVSDescription(Builder builder) {
-        throw new UnsupportedOperationException();
-        //TODO!!
+        Objects.requireNonNull(builder);
+        this.text.addAll(builder.text);
+        this.attributes.putAll(builder.attributes);
+        this.application = builder.application;
+        this.summary = builder.summary;
+        this.svs = builder.svs;
+        this.main = builder.main;
+        this.description = builder.buildDescription();
     }
 
     public static SVSDescription of(String description) {
@@ -388,6 +393,26 @@ public final class SVSDescription {
 
     //TODO!!
     public static class Builder {
+        private final List<String> text = new ArrayList<>();
+        private final Map<String, String> attributes = new LinkedHashMap<>();
+        private String application = "";
+        private String summary = "";
 
+        private boolean svs = false;
+        private boolean main = false;
+
+        public Builder() {
+        }
+
+        public SVSDescription build() {
+            return new SVSDescription(this);
+        }
+
+        private String buildDescription() {
+            if (!svs) {
+                return null;
+            }
+            return "";
+        }
     }
 }
