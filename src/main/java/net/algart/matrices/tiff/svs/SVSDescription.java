@@ -42,52 +42,50 @@ public final class SVSDescription {
     private final String description;
     private final List<String> text = new ArrayList<>();
     private final Map<String, String> attributes = new LinkedHashMap<>();
-    private String application = "";
-    private String summary = "";
+    private final String application;
+    private final String summary;
 
-    private boolean svs = false;
-    private boolean main = false;
-    // TODO!! make fields final
+    private final boolean svs;
+    private final boolean main;
 
     private SVSDescription(String description) {
         this.description = description;
-        svs = false;
-        main = false;
-        application = "";
-        summary = "";
-        if (description == null || !this.description.startsWith(SVS_IMAGE_DESCRIPTION_PREFIX)) {
-            return;
-        }
-        svs = true;
-        boolean delimiterFound = false;
-        for (String line : this.description.split("\\n")) {
-            line = line.trim();
-            this.text.add(line);
-            final int p = line.indexOf('|');
-            final String prefix = p == -1 ? line : line.substring(0, p);
-            if (!delimiterFound) {
-                summary = prefix.trim();
-                // - for the summary, we use the first string with the delimiter "|" or,
-                // if there are NO such strings, the last among all strings
-            }
-            if (p > 0) {
-                delimiterFound = true;
-                final String[] records = line.substring(p + 1).split("\\|");
-                for (String s : records) {
-                    final String[] keyValue = s.trim().split("=", 2);
-                    if (keyValue.length == 2) {
-                        final String key = keyValue[0].trim();
-                        final String value = keyValue[1].trim();
-                        attributes.put(key, value);
-                        // - for duplicates, we use the last one
+        this.svs = description != null && this.description.startsWith(SVS_IMAGE_DESCRIPTION_PREFIX);
+        if (this.svs) {
+            boolean delimiterFound = false;
+            String summary = "";
+            for (String line : this.description.split("\\n")) {
+                line = line.trim();
+                this.text.add(line);
+                final int p = line.indexOf('|');
+                final String prefix = p == -1 ? line : line.substring(0, p);
+                if (!delimiterFound) {
+                    summary = prefix.trim();
+                    // - for the summary, we use the first string with the delimiter "|" or,
+                    // if there are NO such strings, the last among all strings
+                }
+                if (p > 0) {
+                    delimiterFound = true;
+                    final String[] records = line.substring(p + 1).split("\\|");
+                    for (String s : records) {
+                        final String[] keyValue = s.trim().split("=", 2);
+                        if (keyValue.length == 2) {
+                            final String key = keyValue[0].trim();
+                            final String value = keyValue[1].trim();
+                            attributes.put(key, value);
+                            // - for duplicates, we use the last one
+                        }
                     }
                 }
             }
+            this.application = !text.isEmpty() ? text.getFirst() : "";
+            this.summary = summary;
+            this.main = hasPixelSize();
+        } else {
+            this.application = "";
+            this.summary = "";
+            this.main = false;
         }
-        if (!text.isEmpty()) {
-            application = text.getFirst();
-        }
-        main = hasPixelSize();
     }
 
     private SVSDescription(Builder builder) {
