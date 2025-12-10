@@ -39,7 +39,7 @@ public final class SVSDescription {
 
     private static final Set<String> HUMAN_READABLE_ATTRIBUTES = Set.of("ScanScope ID", "Date", "Time");
 
-    private String description = null;
+    private final String description;
     private final List<String> text = new ArrayList<>();
     private final Map<String, String> attributes = new LinkedHashMap<>();
     private String application = "";
@@ -47,30 +47,61 @@ public final class SVSDescription {
 
     private boolean svs = false;
     private boolean main = false;
+    // TODO!! make fields final
 
-    private SVSDescription() {
+    private SVSDescription(String description) {
+        Objects.requireNonNull(description, "Null description");
+        this.description = description;
+        svs = false;
+        main = false;
+        application = "";
+        summary = "";
+        if (!this.description.startsWith(SVS_IMAGE_DESCRIPTION_PREFIX)) {
+            return;
+        }
+        svs = true;
+        boolean delimiterFound = false;
+        for (String line : this.description.split("\\n")) {
+            line = line.trim();
+            this.text.add(line);
+            final int p = line.indexOf('|');
+            final String prefix = p == -1 ? line : line.substring(0, p);
+            if (!delimiterFound) {
+                summary = prefix.trim();
+                // - for the summary, we use the first string with the delimiter "|" or,
+                // if there are NO such strings, the last among all strings
+            }
+            if (p > 0) {
+                delimiterFound = true;
+                final String[] records = line.substring(p + 1).split("\\|");
+                for (String s : records) {
+                    final String[] keyValue = s.trim().split("=", 2);
+                    if (keyValue.length == 2) {
+                        final String key = keyValue[0].trim();
+                        final String value = keyValue[1].trim();
+                        attributes.put(key, value);
+                        // - for duplicates, we use the last one
+                    }
+                }
+            }
+        }
+        if (!text.isEmpty()) {
+            application = text.getFirst();
+        }
+        main = hasPixelSize();
     }
 
-    public static SVSDescription newInstance() {
-        return new SVSDescription();
+    private SVSDescription(Builder builder) {
+        throw new UnsupportedOperationException();
+        //TODO!!
     }
 
     public static SVSDescription of(String description) {
-        return new SVSDescription().setDescription(description);
+        return new SVSDescription(description);
     }
 
-    public String getDescription() {
+    public String description() {
         return description;
-    }
-
-    public SVSDescription setDescription(String description) {
-        final String s = description == null ? null : description.trim();
-        final boolean changed = !Objects.equals(this.description, s);
-        this.description = s;
-        if (changed) {
-            parseDescription();
-        }
-        return this;
     }
 
     public boolean isSVS() {
@@ -350,57 +381,16 @@ public final class SVSDescription {
         return sb.toString();
     }
 
-    private void parseDescription() {
-        clearInformation();
-        if (description == null || !description.startsWith(SVS_IMAGE_DESCRIPTION_PREFIX)) {
-            return;
-        }
-        svs = true;
-        boolean delimiterFound = false;
-        for (String line : description.split("\\n")) {
-            line = line.trim();
-            this.text.add(line);
-            final int p = line.indexOf('|');
-            final String prefix = p == -1 ? line : line.substring(0, p);
-            if (!delimiterFound) {
-                summary = prefix.trim();
-                // - for the summary, we use the first string with the delimiter "|" or,
-                // if there are NO such strings, the last among all strings
-            }
-            if (p > 0) {
-                delimiterFound = true;
-                final String[] records = line.substring(p + 1).split("\\|");
-                for (String s : records) {
-                    final String[] keyValue = s.trim().split("=", 2);
-                    if (keyValue.length == 2) {
-                        final String key = keyValue[0].trim();
-                        final String value = keyValue[1].trim();
-                        attributes.put(key, value);
-                        // - for duplicates, we use the last one
-                    }
-                }
-            }
-        }
-        if (!text.isEmpty()) {
-            application = text.getFirst();
-        }
-        main = hasPixelSize();
-    }
-
-    private void clearInformation() {
-        svs = false;
-        main = false;
-        text.clear();
-        attributes.clear();
-        application = "";
-        summary = "";
-    }
-
     private static double parseJsonDouble(String s) throws NumberFormatException {
         double result = Double.parseDouble(s);
         if (!Double.isFinite(result)) {
             throw new NumberFormatException("unallowed value");
         }
         return result;
+    }
+
+    //TODO!!
+    public static class Builder {
+
     }
 }

@@ -91,7 +91,7 @@ public class SVSMetadataTest {
                         if (d.hasSummary()) {
                             System.out.printf("  Summary: <<<%s>>>%n", d.summary());
                         }
-                        System.out.printf("  Raw description:%n<<<%s>>>%n%n", d.getDescription());
+                        System.out.printf("  Raw description:%n<<<%s>>>%n%n", d.description());
                     }
                 }
             }
