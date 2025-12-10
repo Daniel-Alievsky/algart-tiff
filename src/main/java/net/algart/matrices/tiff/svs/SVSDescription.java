@@ -102,6 +102,10 @@ public final class SVSDescription {
         return new SVSDescription(description);
     }
 
+    public static SVSDescription noSVS() {
+        return new SVSDescription(new Builder());
+    }
+
     public String description() {
         return description;
     }
