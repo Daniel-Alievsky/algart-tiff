@@ -29,28 +29,25 @@ import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 public class SVSMetadata {
     private final List<SVSDescription> descriptions;
-    private final SVSDescription description;
-    private final SVSImageAnalyser analyser;
+    private final SVSDescription mainDescription;
+    private final SVSImageSet imageSet;
 
     private SVSMetadata(List<TiffIFD> allIFDs) throws TiffException {
         Objects.requireNonNull(allIFDs, "Null allIFDs");
         final int ifdCount = allIFDs.size();
-        this.analyser = SVSImageAnalyser.of(allIFDs);
+        this.imageSet = SVSImageSet.of(allIFDs);
         this.descriptions = new ArrayList<>();
         for (int k = 0; k < ifdCount; k++) {
             final String description = allIFDs.get(k).optDescription().orElse(null);
             this.descriptions.add(SVSDescription.of(description));
         }
-        this.description = findMainDescription(descriptions);
+        this.mainDescription = findMainDescription(descriptions);
     }
 
     public static SVSMetadata of(List<TiffIFD> allIFDs) throws TiffException {
@@ -63,7 +60,7 @@ public class SVSMetadata {
     }
 
     public boolean isSVS() {
-        return description != null;
+        return mainDescription != null;
     }
 
     public List<SVSDescription> allDescriptions() {
@@ -81,12 +78,12 @@ public class SVSMetadata {
         return descriptions.get(ifdIndex);
     }
 
-    public SVSDescription description() {
-        return description;
+    public SVSDescription mainDescription() {
+        return mainDescription;
     }
 
-    public SVSImageAnalyser analyser() {
-        return analyser;
+    public SVSImageSet imageSet() {
+        return imageSet;
     }
 
     private static SVSDescription findMainDescription(List<SVSDescription> descriptions) {
@@ -104,64 +101,6 @@ public class SVSMetadata {
 
     @Override
     public String toString() {
-        return !isSVS() ? "Non-SVS" : description + "; " + analyser;
-    }
-
-    public static void main(String[] args) throws IOException {
-        if (args.length == 0) {
-            System.out.println("Usage: " + SVSMetadata.class.getName() + " file1.svs file2.svs ...");
-            return;
-        }
-        for (String arg : args) {
-            final Path file = Paths.get(arg);
-            try (TiffReader reader = new TiffReader(file)) {
-                final SVSMetadata metadata = SVSMetadata.of(reader);
-                SVSDescription main = metadata.description();
-                System.out.printf("%s:%n%s%n%nApplication:%n%s%n", file, metadata, main.application());
-                System.out.println("The found main description, all attributes:");
-                for (Map.Entry<String, String> e : main.attributes().entrySet()) {
-                    System.out.printf("  %s = %s%n", e.getKey(), e.getValue());
-                }
-                System.out.println("The found main description, normal:");
-                System.out.println("----------");
-                System.out.println(main.toString(TiffIFD.StringFormat.NORMAL));
-                System.out.println("----------");
-                System.out.println("The found main description, JSON:");
-                System.out.println(main.toString(TiffIFD.StringFormat.JSON));
-                System.out.printf("Image classifier:%n%s%n", metadata.analyser());
-                System.out.printf("%nAll descriptions%n");
-                final List<SVSDescription> allDescriptions = metadata.allDescriptions();
-                for (int i = 0, n = allDescriptions.size(); i < n; i++) {
-                    SVSDescription d = allDescriptions.get(i);
-                    if (d.isSVS()) {
-                        System.out.printf("%s description #%d/%d (%s)%n",
-                                d.isMain() ? "Main" : "Additional",
-                                i, n, d);
-                        if (d.hasPixelSize()) {
-                            System.out.printf("  Pixel size: %s%n", d.pixelSize());
-                        }
-                        if (d.hasMagnification()) {
-                            System.out.printf("  Magnification: %s%n", d.magnification());
-                        }
-                        if (d.hasGeometry()) {
-                            System.out.printf("  Image left (microns, axis rightward): %f%n",
-                                    d.imageLeftMicronsAxisRightward());
-                            System.out.printf("  Image top (microns, axis upward): %f%n",
-                                    d.imageTopMicronsAxisUpward());
-                        }
-                        if (d.hasAttributes()) {
-                            System.out.printf("  All attributes:%n");
-                            for (Map.Entry<String, String> e : d.attributes().entrySet()) {
-                                System.out.printf("    %s = %s%n", e.getKey(), e.getValue());
-                            }
-                        }
-                        if (d.hasSummary()) {
-                            System.out.printf("  Summary: <<<%s>>>%n", d.summary());
-                        }
-                        System.out.printf("  Raw description:%n<<<%s>>>%n%n", d.getDescription());
-                    }
-                }
-            }
-        }
+        return !isSVS() ? "Non-SVS" : mainDescription + "; " + imageSet;
     }
 }

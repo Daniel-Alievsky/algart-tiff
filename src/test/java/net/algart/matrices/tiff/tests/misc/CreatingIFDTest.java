@@ -28,6 +28,9 @@ import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.Tags;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class CreatingIFDTest {
     private static void showIFD(TiffIFD ifd, String name) {
         System.out.printf("%s%nBrief:%n----%n%s%n----%n", name, ifd);
@@ -38,6 +41,15 @@ public class CreatingIFDTest {
     public static void main(String[] args) {
         TiffIFD ifd = new TiffIFD();
         showIFD(ifd, "Empty");
+
+        Map<Integer, Object> mapWithNull = new HashMap<>();
+        mapWithNull.put(null, 45);
+        try {
+            new TiffIFD(mapWithNull);
+            // - should lead to exception
+            throw new AssertionError("No NullPointerException!");
+        } catch (NullPointerException ignored) {
+        }
 
         ifd.putPixelInformation(1, byte.class);
         showIFD(ifd, "Pixel information");

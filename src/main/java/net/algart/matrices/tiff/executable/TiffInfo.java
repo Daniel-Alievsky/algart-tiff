@@ -223,7 +223,7 @@ public class TiffInfo {
                 }
                 if (this.svs) {
                     svsInfo = "%s%nSpecial SVS images:%s".formatted(
-                            svsMetadata.description(), svsMetadata.analyser());
+                            svsMetadata.mainDescription(), svsMetadata.imageSet());
                 }
             }
         }

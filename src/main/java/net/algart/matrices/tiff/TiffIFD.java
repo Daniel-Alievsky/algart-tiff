@@ -248,8 +248,12 @@ public final class TiffIFD {
     // This constructor is called while reading from the TIFF file.
     // Note: this constructor does not clone the detailedEntries map.
     TiffIFD(Map<Integer, Object> ifdEntries, LinkedHashMap<Integer, TiffEntry> detailedEntries) {
-        Objects.requireNonNull(ifdEntries);
+        Objects.requireNonNull(ifdEntries, "Null IFD entries map");
         this.map = new LinkedHashMap<>(ifdEntries);
+        for (Integer key : ifdEntries.keySet()) {
+            Objects.requireNonNull(key, "ifdEntries map contains null key");
+            // - without a guarantee that keys are not null, "new TreeSet" call in toString() can throw an exception
+        }
         this.detailedEntries = detailedEntries;
     }
 
@@ -1866,17 +1870,18 @@ public final class TiffIFD {
     /**
      * Returns a string description of this IFD according to the specified {@link StringFormat format}.
      *
-     * If the {@code extendedInformation} map is not empty, its elements are added
-     * to the end of the resulting string; in {@link StringFormat#JSON} &mdash; as the last elements
-     * of JSON structure with the keys from this map.
+     * <p>If the {@code extendedInformation} map is not empty, its elements are added
+     * to the end of the resulting string.
+     * In {@link StringFormat#JSON JSON} format, they are appended as the last elements of the JSON object,
+     * using the keys from this map.
      *
-     * <p>The resulting string is usually multiline, excepting the case of {@link StringFormat#BRIEF} format.
-     * In {@link StringFormat#JSON} format, the lines are separated by "\n",
+     * <p>The resulting string is usually multiline, excepting the case of {@link StringFormat#BRIEF BRIEF} format.
+     * In {@link StringFormat#JSON JSON} format, the lines are separated by "\n",
      * in other formats &mdash; by the system-dependent line separator ({@code "%n".formatted()}).
      * Note that the returned string is trimmed: it does not contain leading or trailing space/line separator
      * characters.
      *
-     * @param format style of formating the returned string.
+     * @param format style of formatting the returned string.
      * @param extendedInformation additional information, for example, from
      * {@link net.algart.matrices.tiff.svs.SVSDescription} class.
      * @return a string description of this object.
@@ -2224,8 +2229,7 @@ public final class TiffIFD {
             int tag,
             Object tagValue,
             boolean manyValues) {
-        String tagName = Tags.tiffTagName(tag, true);
-        final Map<Integer, TiffEntry> entries = this.detailedEntries;
+        final String tagName = Tags.tiffTagName(tag, true);
         sb.append("%n".formatted());
         Object additional = null;
         try {
@@ -2280,8 +2284,8 @@ public final class TiffIFD {
         } else {
             sb.append(tagValue);
         }
-        if (entries != null) {
-            final TiffEntry tiffEntry = entries.get(tag);
+        if (this.detailedEntries != null) {
+            final TiffEntry tiffEntry = this.detailedEntries.get(tag);
             if (tiffEntry != null) {
                 final int tagType = tiffEntry.type();
                 sb.append(": ").append(TagTypes.typeToString(tagType));

@@ -36,7 +36,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
-public final class SVSImageAnalyser {
+public final class SVSImageSet {
     public enum SpecialKind {
         THUMBNAIL("thumbnail"),
         LABEL("label"),
@@ -62,7 +62,7 @@ public final class SVSImageAnalyser {
             Arrays.SystemSettings.getBooleanEnv(
                     "ALWAYS_USE_SVS_SPECIFICATION_FOR_LABEL_AND_MACRO", false);
 
-    private static final System.Logger LOG = System.getLogger(SVSImageAnalyser.class.getName());
+    private static final System.Logger LOG = System.getLogger(SVSImageSet.class.getName());
 
     private final List<TiffIFD> ifds;
     private final int ifdCount;
@@ -70,7 +70,7 @@ public final class SVSImageAnalyser {
     private int labelIndex = -1;
     private int macroIndex = -1;
 
-    private SVSImageAnalyser(List<TiffIFD> allIFDs) throws TiffException {
+    private SVSImageSet(List<TiffIFD> allIFDs) throws TiffException {
         this.ifds = Objects.requireNonNull(allIFDs, "Null allIFDs");
         this.ifdCount = ifds.size();
         detectThumbnail();
@@ -79,8 +79,8 @@ public final class SVSImageAnalyser {
         }
     }
 
-    public static SVSImageAnalyser of(List<TiffIFD> allIFD) throws TiffException {
-        return new SVSImageAnalyser(allIFD);
+    public static SVSImageSet of(List<TiffIFD> allIFD) throws TiffException {
+        return new SVSImageSet(allIFD);
     }
 
     public boolean isSpecial(int ifdIndex) {
@@ -275,14 +275,14 @@ public final class SVSImageAnalyser {
 
     public static void main(String[] args) throws IOException {
         if (args.length == 0) {
-            System.out.println("Usage: " + SVSImageAnalyser.class.getName() + " file1.svs file2.svs ...");
+            System.out.println("Usage: " + SVSImageSet.class.getName() + " file1.svs file2.svs ...");
             return;
         }
         for (String arg : args) {
             final Path file = Paths.get(arg);
             try (TiffReader reader = new TiffReader(file)) {
-                final var detector = new SVSImageAnalyser(reader.allIFDs());
-                System.out.printf("%s:%n%s%n%n", file, detector);
+                final var imageSet = new SVSImageSet(reader.allIFDs());
+                System.out.printf("%s:%n%s%n%n", file, imageSet);
             }
         }
     }
