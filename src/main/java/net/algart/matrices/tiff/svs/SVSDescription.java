@@ -50,13 +50,12 @@ public final class SVSDescription {
     // TODO!! make fields final
 
     private SVSDescription(String description) {
-        Objects.requireNonNull(description, "Null description");
         this.description = description;
         svs = false;
         main = false;
         application = "";
         summary = "";
-        if (!this.description.startsWith(SVS_IMAGE_DESCRIPTION_PREFIX)) {
+        if (description == null || !this.description.startsWith(SVS_IMAGE_DESCRIPTION_PREFIX)) {
             return;
         }
         svs = true;
