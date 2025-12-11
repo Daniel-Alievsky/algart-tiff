@@ -266,23 +266,22 @@ public final class SVSImageSet {
 
     private int detectPyramidAndThumbnail() throws TiffException {
         thumbnailIndex = -1;
-        int count = detectPyramid(1);
-        if (numberOfImages <= 1 || count >= 3) {
+        int countNonSvs = detectPyramid(1);
+        if (numberOfImages <= 1 || countNonSvs >= 3) {
             // 3 or more images 0, 1, 2, ... have the same ratio: it's obvious that the image #1 is not a thumbnail
-            return count;
+            return countNonSvs;
         }
         if (isSmallImage(ifds.get(THUMBNAIL_IFD_INDEX))) {
             thumbnailIndex = THUMBNAIL_IFD_INDEX;
         }
-        if (count == 2) {
+        if (countNonSvs == 2 && numberOfImages == 2) {
             return thumbnailIndex == -1 ? 2 : 1;
         }
-        assert count == 1;
-        count = detectPyramid(THUMBNAIL_IFD_INDEX + 1);
-        // If count >= 2 and thumbnailIndex=THUMBNAIL_IFD_INDEX (small image), the image #1 is really a thumbnail.
-        // If count = 1, we have no pyramid 0-2-3-... or 0-1-2-..., so, we don't know what is #1,
+        // Now countNonSvs = 1 or 2
+        return detectPyramid(THUMBNAIL_IFD_INDEX + 1);
+        // If the result >= 2 and thumbnailIndex=THUMBNAIL_IFD_INDEX (small image), the image #1 is really a thumbnail.
+        // If the result = 1, we have no pyramid 0-2-3-... or 0-1-2-..., so, we don't know what is #1,
         // and we still decide this based on the sizes
-        return count;
     }
 
     private int detectPyramid(int startIndex) throws TiffException {
