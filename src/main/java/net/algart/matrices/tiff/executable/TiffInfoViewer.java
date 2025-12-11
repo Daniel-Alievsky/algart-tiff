@@ -26,6 +26,7 @@ package net.algart.matrices.tiff.executable;
 
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
+import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -44,8 +45,10 @@ import java.util.prefs.Preferences;
 
 public class TiffInfoViewer {
     public static final String ALGART_TIFF_WEBSITE = "https://algart.net/java/AlgART-TIFF/";
+
+    private static final boolean DEFAULT_WORD_WRAP = false;
     private static final int DEFAULT_FONT_SIZE = 14;
-    private static final int[] FONT_SIZES = {DEFAULT_FONT_SIZE, 18, 22};
+    private static final int[] FONT_SIZES = {11, DEFAULT_FONT_SIZE, 18, 22};
 
     public enum ViewMode {
         BRIEF(TiffIFD.StringFormat.BRIEF, "Brief"),
@@ -68,7 +71,8 @@ public class TiffInfoViewer {
         }
     }
 
-    private static final int MAX_IMAGE_DIM = 10000;
+    private static final int MAX_IMAGE_DIM = 16000;
+    // 16000 * 16000 * 4 channels RGBA * 16 bit/channel < Integer.MAX_VALUE
     private static final Color COMMON_BACKGROUND = new Color(240, 240, 240);
     private static final Color ERROR_BACKGROUND = new Color(255, 255, 155);
     private static final Color SVS_FOREGROUND = new Color(0, 128, 0);
@@ -170,7 +174,7 @@ public class TiffInfoViewer {
         ifdTextArea = new JTextArea(10, 80);
         ifdTextArea.setFont(getPreferredMonoFont(DEFAULT_FONT_SIZE));
         ifdTextArea.setEditable(false);
-        ifdTextArea.setLineWrap(true);
+        ifdTextArea.setLineWrap(DEFAULT_WORD_WRAP);
         ifdTextArea.setWrapStyleWord(true);
         ifdTextArea.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         ifdTextArea.setBackground(Color.WHITE);
@@ -186,7 +190,7 @@ public class TiffInfoViewer {
     private void addBottomInfoTextArea() {
         summaryInfoTextArea = new JTextArea(2, 80);
         summaryInfoTextArea.setEditable(false);
-        summaryInfoTextArea.setLineWrap(true);
+        summaryInfoTextArea.setLineWrap(DEFAULT_WORD_WRAP);
         summaryInfoTextArea.setWrapStyleWord(true);
         summaryInfoTextArea.setBorder(BorderFactory.createEmptyBorder(3, 5, 3, 5));
         summaryInfoTextArea.setFont(getPreferredMonoFont(DEFAULT_FONT_SIZE));
@@ -195,7 +199,7 @@ public class TiffInfoViewer {
         summaryInfoTextArea.setOpaque(true);
         svsInfoTextArea = new JTextArea(2, 80);
         svsInfoTextArea.setEditable(false);
-        svsInfoTextArea.setLineWrap(true);
+        svsInfoTextArea.setLineWrap(DEFAULT_WORD_WRAP);
         svsInfoTextArea.setWrapStyleWord(true);
         svsInfoTextArea.setBorder(BorderFactory.createEmptyBorder(3, 5, 3, 5));
         svsInfoTextArea.setFont(getPreferredMonoFont(DEFAULT_FONT_SIZE));
@@ -298,13 +302,12 @@ public class TiffInfoViewer {
         }
         viewMenu.add(fontSizeMenu);
         JCheckBoxMenuItem wrapItem = new JCheckBoxMenuItem("Word wrap");
-        wrapItem.setSelected(true); // enabled by default
+        wrapItem.setSelected(DEFAULT_WORD_WRAP);
         wrapItem.addActionListener(e -> {
             boolean wrap = wrapItem.isSelected();
             ifdTextArea.setLineWrap(wrap);
-            ifdTextArea.setWrapStyleWord(wrap);
-            ifdTextArea.revalidate();
-            ifdTextArea.repaint();
+            summaryInfoTextArea.setLineWrap(wrap);
+            svsInfoTextArea.setLineWrap(wrap);
         });
         viewMenu.add(wrapItem);
 
@@ -344,9 +347,6 @@ public class TiffInfoViewer {
         ifdTextArea.setFont(mono);
         summaryInfoTextArea.setFont(mono);
         svsInfoTextArea.setFont(mono);
-        ifdTextArea.revalidate();
-        summaryInfoTextArea.revalidate();
-        svsInfoTextArea.revalidate();
     }
 
     private void chooseAndOpenFile() {
@@ -458,16 +458,19 @@ public class TiffInfoViewer {
             return;
         }
         try (TiffReader reader = new TiffReader(tiffFile)) {
-            final int dimX = reader.dimX(index);
-            final int dimY = reader.dimY(index);
+            TiffReadMap map = reader.map(index);
+            int dimX = map.dimX();
+            int dimY = map.dimY();
             if (dimX > MAX_IMAGE_DIM || dimY > MAX_IMAGE_DIM) {
+                dimX = Math.min(dimX, MAX_IMAGE_DIM);
+                dimY = Math.min(dimY, MAX_IMAGE_DIM);
                 int choice = JOptionPane.showConfirmDialog(
                         frame,
                         (
-                                "The image is very large (%d×%d pixels).%n" +
-                                        "Displaying it may take significant time and memory.%n%n" +
+                                "The image is too large to display: %d×%d pixels.%n" +
+                                        "We will show only its part %d×%d.%n" +
                                         "Do you want to continue?"
-                        ).formatted(dimX, dimY),
+                        ).formatted(map.dimX(), map.dimY(), dimX, dimY),
                         "Large Image Warning",
                         JOptionPane.YES_NO_OPTION,
                         JOptionPane.WARNING_MESSAGE
@@ -475,15 +478,15 @@ public class TiffInfoViewer {
                 if (choice != JOptionPane.YES_OPTION) {
                     return;
                 }
-//                JOptionPane.showMessageDialog(frame,
-//                        ("Image too large to display: %dx%d%n" +
-//                                "Maximal image sizes that can be displayed are %dx%d")
-//                                .formatted(dimX, dimY, MAX_IMAGE_DIM, MAX_IMAGE_DIM));
-//                return;
             }
 
-            BufferedImage bi = reader.readBufferedImage(index);
-            JFrame imgFrame = new JFrame("TIFF Image #" + index + " from " + info.ifdCount() + " images");
+            BufferedImage bi = map.readBufferedImage(0, 0, dimX, dimY);
+            JFrame imgFrame = new JFrame("TIFF Image #" + index + " from " + info.ifdCount() +
+                    " images (" + dimX + "x" + dimY +
+                    (dimX == map.dimX() && dimY == map.dimY() ?
+                            "" :
+                            " from " + map.dimX() + "x" + map.dimY()) +
+                    ")");
             imgFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             imgFrame.add(new JScrollPane(new JLabel(new ImageIcon(bi))));
             imgFrame.pack();
