@@ -54,8 +54,9 @@ public final class SVSImageSet {
         }
     }
 
-    private static final int THUMBNAIL_IFD_INDEX = 1;
-    private static final int MAX_SPECIAL_IMAGES_SIZE = 4096;
+    public static final int THUMBNAIL_IFD_INDEX = 1;
+
+    private static final int MAX_SPECIAL_IMAGES_SIZE = 2048;
     private static final int MAX_PIXEL_COUNT_IN_SPECIAL_IMAGES = 2048 * 2048;
     private static final double STANDARD_MACRO_ASPECT_RATIO = 2.8846153846153846153846153846154;
     // - 75000/26000, typical value for medicine
@@ -87,9 +88,8 @@ public final class SVSImageSet {
         final TiffIFD first = ifds.getFirst();
         this.imageDimX = first.getImageDimX();
         this.imageDimY = first.getImageDimY();
-        this.numberOfLayers = detectPyramid();
+        this.numberOfLayers = detectPyramidAndThumbnail();
         // - may be corrected by further methods
-        detectThumbnail();
         if (!detectTwoLastImages()) {
             detectSingleLastImage();
         }
@@ -264,14 +264,52 @@ public final class SVSImageSet {
         return sb.isEmpty() ? "no special images" : sb.toString();
     }
 
-    private void detectThumbnail() throws TiffException {
-        if (numberOfImages <= THUMBNAIL_IFD_INDEX) {
-            return;
+    private int detectPyramidAndThumbnail() throws TiffException {
+        thumbnailIndex = -1;
+        int count = detectPyramid(1);
+        if (numberOfImages <= 1 || count >= 3) {
+            // 3 or more images 0, 1, 2, ... have the same ratio: it's obvious that the image #1 is not a thumbnail
+            return count;
         }
-        final TiffIFD ifd = ifds.get(THUMBNAIL_IFD_INDEX);
-        if (isSmallImage(ifd)) {
-            this.thumbnailIndex = THUMBNAIL_IFD_INDEX;
+        if (isSmallImage(ifds.get(THUMBNAIL_IFD_INDEX))) {
+            thumbnailIndex = THUMBNAIL_IFD_INDEX;
         }
+        if (count == 2) {
+            return thumbnailIndex == -1 ? 2 : 1;
+        }
+        assert count == 1;
+        count = detectPyramid(THUMBNAIL_IFD_INDEX + 1);
+        // If count >= 2 and thumbnailIndex=THUMBNAIL_IFD_INDEX (small image), the image #1 is really a thumbnail.
+        // If count = 1, we have no pyramid 0-2-3-... or 0-1-2-..., so, we don't know what is #1,
+        // and we still decide this based on the sizes
+        return count;
+    }
+
+    private int detectPyramid(int startIndex) throws TiffException {
+        int levelDimX = imageDimX;
+        int levelDimY = imageDimY;
+        int actualScaleRatio = -1;
+        int count = 1;
+        for (int k = startIndex; k < numberOfImages; k++, count++) {
+            final TiffIFD ifd = ifds.get(k);
+            final int nextDimX = ifd.getImageDimX();
+            final int nextDimY = ifd.getImageDimY();
+            if (actualScaleRatio == -1) {
+                actualScaleRatio = findRatio(levelDimX, levelDimY, nextDimX, nextDimY);
+                if (actualScaleRatio == -1) {
+                    break;
+                }
+                assert actualScaleRatio >= 2;
+            } else {
+                if (!matchesDimensionRatio(levelDimX, levelDimY, nextDimX, nextDimY, actualScaleRatio)) {
+                    break;
+                }
+            }
+            levelDimX = nextDimX;
+            levelDimY = nextDimY;
+        }
+        this.pyramidScaleRatio = actualScaleRatio;
+        return count;
     }
 
     private boolean detectTwoLastImages() throws TiffException {
@@ -371,36 +409,10 @@ public final class SVSImageSet {
         }
     }
 
-    private int detectPyramid() throws TiffException {
-        int levelDimX = imageDimX;
-        int levelDimY = imageDimY;
-        int actualScaleRatio = -1;
-        int count = 1;
-        for (int k = THUMBNAIL_IFD_INDEX + 1; k < numberOfImages; k++, count++) {
-            final TiffIFD ifd = ifds.get(k);
-            final int nextDimX = ifd.getImageDimX();
-            final int nextDimY = ifd.getImageDimY();
-            if (actualScaleRatio == -1) {
-                actualScaleRatio = findRatio(levelDimX, levelDimY, nextDimX, nextDimY);
-                if (actualScaleRatio == -1) {
-                    break;
-                }
-                assert actualScaleRatio >= 2;
-            } else {
-                if (!matchesDimensionRatio(levelDimX, levelDimY, nextDimX, nextDimY, actualScaleRatio)) {
-                    break;
-                }
-            }
-            levelDimX = nextDimX;
-            levelDimY = nextDimY;
-        }
-        this.pyramidScaleRatio = actualScaleRatio;
-        return count;
-    }
-
     static boolean isSmallImage(TiffIFD ifd) throws TiffException {
-        return !ifd.hasTileInformation() &&
-                ifd.getImageDimX() <= MAX_SPECIAL_IMAGES_SIZE &&
+        // - but we do not check tiling: for non-Aperio,
+        // it is possible that we will use tiling for all images without any special reason
+        return ifd.getImageDimX() <= MAX_SPECIAL_IMAGES_SIZE &&
                 ifd.getImageDimY() <= MAX_SPECIAL_IMAGES_SIZE;
     }
 
