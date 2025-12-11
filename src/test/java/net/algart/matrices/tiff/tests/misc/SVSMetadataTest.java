@@ -26,8 +26,8 @@ package net.algart.matrices.tiff.tests.misc;
 
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.svs.SVSDescription;
-import net.algart.matrices.tiff.svs.SVSMetadata;
+import net.algart.matrices.tiff.pyramids.SVSDescription;
+import net.algart.matrices.tiff.pyramids.SVSMetadata;
 
 import java.io.IOException;
 import java.nio.file.Path;

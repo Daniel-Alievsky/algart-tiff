@@ -26,6 +26,7 @@ package net.algart.matrices.tiff;
 
 import net.algart.arrays.*;
 import net.algart.io.awt.ImageToMatrix;
+import net.algart.matrices.tiff.pyramids.SVSDescription;
 import net.algart.matrices.tiff.tags.*;
 
 import java.awt.image.BufferedImage;
@@ -1883,7 +1884,7 @@ public final class TiffIFD {
      *
      * @param format style of formatting the returned string.
      * @param extendedInformation additional information, for example, from
-     * {@link net.algart.matrices.tiff.svs.SVSDescription} class.
+     * {@link SVSDescription} class.
      * @return a string description of this object.
      * @throws NullPointerException if one of the arguments is {@code null}.
      */

@@ -1,3 +1,4 @@
+
 /*
  * The MIT License (MIT)
  *
@@ -741,8 +742,7 @@ public non-sealed class TiffReader extends TiffIO {
             throw new IllegalArgumentException("Negative IFD index " + ifdIndex);
         }
         if (ifdIndex >= allIFDs.size()) {
-            throw new TiffException(
-                    "IFD index " + ifdIndex + " is out of bounds 0 <= index < " + allIFDs.size());
+            throw new TiffException("Too large IFD index " + ifdIndex + " >= " + allIFDs.size());
         }
         return allIFDs.get(ifdIndex);
     }

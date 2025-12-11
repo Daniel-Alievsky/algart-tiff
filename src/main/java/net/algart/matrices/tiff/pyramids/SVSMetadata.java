@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.svs;
+package net.algart.matrices.tiff.pyramids;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
@@ -40,10 +40,10 @@ public class SVSMetadata {
 
     private SVSMetadata(List<TiffIFD> allIFDs) throws TiffException {
         Objects.requireNonNull(allIFDs, "Null allIFDs");
-        final int ifdCount = allIFDs.size();
+        final int numberOfIFDs = allIFDs.size();
         this.imageSet = SVSImageSet.of(allIFDs);
         this.descriptions = new ArrayList<>();
-        for (int k = 0; k < ifdCount; k++) {
+        for (int k = 0; k < numberOfIFDs; k++) {
             final String description = allIFDs.get(k).optDescription().orElse(null);
             this.descriptions.add(SVSDescription.of(description));
         }

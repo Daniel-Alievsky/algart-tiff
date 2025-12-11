@@ -22,25 +22,26 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.svs;
+package net.algart.matrices.tiff.pyramids;
 
 import net.algart.arrays.Arrays;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tags.Tags;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
+import java.util.OptionalInt;
 
 public final class SVSImageSet {
     public enum SpecialKind {
         THUMBNAIL("thumbnail"),
         LABEL("label"),
-        MACRO("macro"),;
+        MACRO("macro");
 
         private final String kindName;
 
@@ -54,6 +55,7 @@ public final class SVSImageSet {
     }
 
     private static final int THUMBNAIL_IFD_INDEX = 1;
+    private static final int MAX_SPECIAL_IMAGES_SIZE = 4096;
     private static final int MAX_PIXEL_COUNT_IN_SPECIAL_IMAGES = 2048 * 2048;
     private static final double STANDARD_MACRO_ASPECT_RATIO = 2.8846153846153846153846153846154;
     // - 75000/26000, typical value for medicine
@@ -65,14 +67,28 @@ public final class SVSImageSet {
     private static final System.Logger LOG = System.getLogger(SVSImageSet.class.getName());
 
     private final List<TiffIFD> ifds;
-    private final int ifdCount;
+    private final int numberOfImages;
+    private final int imageDimX;
+    private final int imageDimY;
+    private int numberOfLayers = 0;
+    private int pyramidScaleRatio = -1;
     private int thumbnailIndex = -1;
     private int labelIndex = -1;
     private int macroIndex = -1;
 
     private SVSImageSet(List<TiffIFD> allIFDs) throws TiffException {
         this.ifds = Objects.requireNonNull(allIFDs, "Null allIFDs");
-        this.ifdCount = ifds.size();
+        this.numberOfImages = ifds.size();
+        if (numberOfImages == 0) {
+            this.imageDimX = this.imageDimY = 0;
+            this.numberOfLayers = 0;
+            return;
+        }
+        final TiffIFD first = ifds.getFirst();
+        this.imageDimX = first.getImageDimX();
+        this.imageDimY = first.getImageDimY();
+        this.numberOfLayers = detectPyramid();
+        // - may be corrected by further methods
         detectThumbnail();
         if (!detectTwoLastImages()) {
             detectSingleLastImage();
@@ -81,6 +97,119 @@ public final class SVSImageSet {
 
     public static SVSImageSet of(List<TiffIFD> allIFD) throws TiffException {
         return new SVSImageSet(allIFD);
+    }
+
+    /**
+     * Checks whether the dimensions of the next pyramid layer match
+     * the expected downsampled size of the previous layer.
+     *
+     * <p>The expected size is {@code layerDim/compression}, allowing
+     * a tolerance of +1 pixel in each dimension.
+     *
+     * @param layerDimX     width of the current layer.
+     * @param layerDimY     height of the current layer.
+     * @param nextLayerDimX width of the next (downsampled) layer.
+     * @param nextLayerDimY height of the next (downsampled) layer.
+     * @param compression   integer scale factor (must be 2 or greater).
+     * @return {@code true} if the next layer size matches the expected
+     * downsampled dimensions (with +1 allowed), false otherwise.
+     * @throws IllegalArgumentException if compression is not 2 or greater or if one of the arguments &le;0.
+     */
+    public static boolean matchesDimensionRatio(
+            long layerDimX,
+            long layerDimY,
+            long nextLayerDimX,
+            long nextLayerDimY,
+            int compression) {
+        if (compression <= 1) {
+            throw new IllegalArgumentException("Invalid compression " + compression + " (must be 2 or greater)");
+        }
+        if (layerDimX <= 0 || layerDimY <= 0) {
+            throw new IllegalArgumentException("Zero or negative layer dimensions: " + layerDimX + "x" + layerDimY);
+        }
+        if (nextLayerDimX <= 0 || nextLayerDimY <= 0) {
+            throw new IllegalArgumentException("Zero or negative next layer dimensions: " +
+                    nextLayerDimX + "x" + nextLayerDimY);
+        }
+        final long predictedNextWidth = layerDimX / compression;
+        final long predictedNextHeight = layerDimY / compression;
+        return (nextLayerDimX == predictedNextWidth || nextLayerDimX == predictedNextWidth + 1)
+                && (nextLayerDimY == predictedNextHeight || nextLayerDimY == predictedNextHeight + 1);
+    }
+
+    /**
+     * Attempts to determine the integer downsampling ratio between two image layers.
+     *
+     * <p>The method tests integer compression factors from 2 up to 32, and returns
+     * the first value for which {@link #matchesDimensionRatio(long, long, long, long, int)}
+     * returns {@code true} for these arguments. This is useful for detecting the downsampling step
+     * between consecutive pyramid layers in SVS-like or pyramidal TIFF images.
+     *
+     * <p>If no matching ratio is found within the tested range, &minus;1 is returned.
+     *
+     * @param layerDimX     width of the current layer.
+     * @param layerDimY     height of the current layer.
+     * @param nextLayerDimX width of the next (downsampled) layer.
+     * @param nextLayerDimY height of the next (downsampled) layer.
+     * @return the first matching integer downsampling ratio from 2..32 range, or &minus;1 if no ratio matches.
+     * @throws IllegalArgumentException if one of the arguments ≤ 0.
+     */
+    public static int findRatio(long layerDimX, long layerDimY, long nextLayerDimX, long nextLayerDimY) {
+        for (int probeCompression = 2; probeCompression <= 32; probeCompression++) {
+            if (matchesDimensionRatio(layerDimX, layerDimY, nextLayerDimX, nextLayerDimY, probeCompression)) {
+                return probeCompression;
+            }
+        }
+        return -1;
+    }
+
+    public int numberOfImages() {
+        return numberOfImages;
+    }
+
+    public int imageDimX() {
+        return imageDimX;
+    }
+
+    public int imageDimY() {
+        return imageDimY;
+    }
+
+    public int numberOfLayers() {
+        return numberOfLayers;
+    }
+
+    public int pyramidScaleRatio() {
+        return pyramidScaleRatio;
+    }
+
+    /**
+     * Translates a pyramid layer index to the corresponding TIFF IFD index.
+     *
+     * @param layerIndex index of the pyramid layer (0 = base layer, up to <code>{@link #numberOfLayers()}-1</code>).
+     * @return corresponding TIFF IFD index
+     * @throws IllegalArgumentException if layerIndex is negative or &ge;numberOfLayers
+     */
+    public int imageIndexOfLayer(int layerIndex) {
+        if (layerIndex < 0) {
+            throw new IllegalArgumentException("Negative layer index " + layerIndex);
+        }
+        if (layerIndex >= numberOfLayers) {
+            throw new IllegalArgumentException("Too large layer index " + layerIndex + " >= " + numberOfLayers);
+        }
+        return layerIndex < THUMBNAIL_IFD_INDEX ? 0 : layerIndex - 1;
+    }
+
+    public int thumbnailIndex() {
+        return thumbnailIndex;
+    }
+
+    public int labelIndex() {
+        return labelIndex;
+    }
+
+    public int macroIndex() {
+        return macroIndex;
     }
 
     public boolean isSpecial(int ifdIndex) {
@@ -136,7 +265,7 @@ public final class SVSImageSet {
     }
 
     private void detectThumbnail() throws TiffException {
-        if (ifdCount <= THUMBNAIL_IFD_INDEX) {
+        if (numberOfImages <= THUMBNAIL_IFD_INDEX) {
             return;
         }
         final TiffIFD ifd = ifds.get(THUMBNAIL_IFD_INDEX);
@@ -146,11 +275,11 @@ public final class SVSImageSet {
     }
 
     private boolean detectTwoLastImages() throws TiffException {
-        if (ifdCount <= THUMBNAIL_IFD_INDEX + 2) {
+        if (numberOfImages <= THUMBNAIL_IFD_INDEX + 2) {
             return false;
         }
-        final int index1 = ifdCount - 2;
-        final int index2 = ifdCount - 1;
+        final int index1 = numberOfImages - 2;
+        final int index2 = numberOfImages - 1;
         final TiffIFD ifd1 = ifds.get(index1);
         final TiffIFD ifd2 = ifds.get(index2);
         if (!(isSmallImage(ifd1) && isSmallImage(ifd2))) {
@@ -208,10 +337,10 @@ public final class SVSImageSet {
     }
 
     private void detectSingleLastImage() throws TiffException {
-        if (ifdCount <= THUMBNAIL_IFD_INDEX + 1) {
+        if (numberOfImages <= THUMBNAIL_IFD_INDEX + 1) {
             return;
         }
-        final int index = ifdCount - 1;
+        final int index = numberOfImages - 1;
         final TiffIFD ifd = ifds.get(index);
         if (!isSmallImage(ifd)) {
             return;
@@ -242,11 +371,37 @@ public final class SVSImageSet {
         }
     }
 
+    private int detectPyramid() throws TiffException {
+        int levelDimX = imageDimX;
+        int levelDimY = imageDimY;
+        int actualScaleRatio = -1;
+        int count = 1;
+        for (int k = THUMBNAIL_IFD_INDEX + 1; k < numberOfImages; k++, count++) {
+            final TiffIFD ifd = ifds.get(k);
+            final int nextDimX = ifd.getImageDimX();
+            final int nextDimY = ifd.getImageDimY();
+            if (actualScaleRatio == -1) {
+                actualScaleRatio = findRatio(levelDimX, levelDimY, nextDimX, nextDimY);
+                if (actualScaleRatio == -1) {
+                    break;
+                }
+                assert actualScaleRatio >= 2;
+            } else {
+                if (!matchesDimensionRatio(levelDimX, levelDimY, nextDimX, nextDimY, actualScaleRatio)) {
+                    break;
+                }
+            }
+            levelDimX = nextDimX;
+            levelDimY = nextDimY;
+        }
+        this.pyramidScaleRatio = actualScaleRatio;
+        return count;
+    }
+
     static boolean isSmallImage(TiffIFD ifd) throws TiffException {
-        final long[] tileOffsets = ifd.getLongArray(Tags.TILE_OFFSETS);
-//        System.out.println(tileOffsets == null ? "null" : tileOffsets.length);
-        return tileOffsets == null &&
-                (long) ifd.getImageDimX() * (long) ifd.getImageDimY() < MAX_PIXEL_COUNT_IN_SPECIAL_IMAGES;
+        return !ifd.hasTileInformation() &&
+                ifd.getImageDimX() <= MAX_SPECIAL_IMAGES_SIZE &&
+                ifd.getImageDimY() <= MAX_SPECIAL_IMAGES_SIZE;
     }
 
     static String sizesToString(TiffIFD ifd) throws TiffException {
@@ -269,7 +424,6 @@ public final class SVSImageSet {
         final long dimX = ifd.getImageDimX();
         final long dimY = ifd.getImageDimY();
         assert dimX > 0 && dimY > 0;
-        // - was checked in checkThatIfdSizesArePositiveIntegers in the SVSPlanePyramidSource constructor
         return (double) Math.max(dimX, dimY) / (double) Math.min(dimX, dimY);
     }
 

@@ -28,8 +28,8 @@ import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffOpenMode;
 import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.svs.SVSDescription;
-import net.algart.matrices.tiff.svs.SVSMetadata;
+import net.algart.matrices.tiff.pyramids.SVSDescription;
+import net.algart.matrices.tiff.pyramids.SVSMetadata;
 import net.algart.matrices.tiff.tags.Tags;
 
 import java.io.File;
@@ -134,7 +134,7 @@ public class TiffInfo {
         return svs;
     }
 
-    public int ifdCount() {
+    public int numberOfImages() {
         return ifdInfo.size();
     }
 
@@ -186,11 +186,12 @@ public class TiffInfo {
                 final int ifdCount = allIFDs.size();
                 final int firstIndex = Math.max(this.firstIFDIndex, 0);
                 final int lastIndex = Math.min(this.lastIFDIndex, ifdCount - 1);
-                prefixInfo = "File %s: %d images, %s, %s-endian".formatted(
+                prefixInfo = "File %s: %d images, %s, %s-endian, %s".formatted(
                         tiffFile,
                         ifdCount,
                         reader.isBigTiff() ? "BigTIFF" : "not BigTIFF",
-                        reader.isLittleEndian() ? "little" : "big");
+                        reader.isLittleEndian() ? "little" : "big",
+                        svsMetadata.isSVS() ? "SVS" : "not SVS");
                 AtomicLong totalSize = new AtomicLong(reader.sizeOfHeader());
                 final long tiffFileLength = reader.stream().length();
                 for (int k = firstIndex; k <= lastIndex; k++) {
@@ -305,6 +306,7 @@ public class TiffInfo {
         if (isSvs()) {
             System.out.println(svsInfo);
         }
+        System.out.println();
     }
 
     private static boolean isPossiblyTIFF(File file) {

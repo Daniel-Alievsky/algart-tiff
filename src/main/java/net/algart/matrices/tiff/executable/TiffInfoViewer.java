@@ -401,7 +401,7 @@ public class TiffInfoViewer {
             svsInfoTextArea.setText(info.svsInfo());
             svsInfoTextArea.setVisible(info.isSvs());
             svsInfoTextArea.setCaretPosition(0);
-            final int ifdCount = info.ifdCount();
+            final int ifdCount = info.numberOfImages();
             for (int i = 0; i < ifdCount; i++) {
                 ifdComboBox.addItem("IFD #" + i);
             }
@@ -417,7 +417,7 @@ public class TiffInfoViewer {
 
     private void updateTextArea() {
         int index = ifdComboBox.getSelectedIndex();
-        if (index >= 0 && info != null && index < info.ifdCount()) {
+        if (index >= 0 && info != null && index < info.numberOfImages()) {
             ifdTextArea.setText(info.ifdInformation(index));
             ifdTextArea.setCaretPosition(0);
         }
@@ -454,7 +454,7 @@ public class TiffInfoViewer {
 
     private void showImageWindow() {
         int index = ifdComboBox.getSelectedIndex();
-        if (index < 0 || info == null || index >= info.ifdCount()) {
+        if (index < 0 || info == null || index >= info.numberOfImages()) {
             return;
         }
         try (TiffReader reader = new TiffReader(tiffFile)) {
@@ -481,7 +481,7 @@ public class TiffInfoViewer {
             }
 
             BufferedImage bi = map.readBufferedImage(0, 0, dimX, dimY);
-            JFrame imgFrame = new JFrame("TIFF Image #" + index + " from " + info.ifdCount() +
+            JFrame imgFrame = new JFrame("TIFF Image #" + index + " from " + info.numberOfImages() +
                     " images (" + dimX + "x" + dimY +
                     (dimX == map.dimX() && dimY == map.dimY() ?
                             "" :
