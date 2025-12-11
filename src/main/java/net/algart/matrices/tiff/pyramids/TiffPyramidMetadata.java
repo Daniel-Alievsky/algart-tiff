@@ -33,64 +33,72 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class SVSMetadata {
-    private final List<SVSDescription> descriptions;
-    private final SVSDescription mainDescription;
-    private final SVSImageSet imageSet;
+public class TiffPyramidMetadata {
+    private final List<SvsDescription> svsDescriptions;
+    private final SvsDescription mainSvsDescription;
+    private final TiffPyramidImageSet pyramidImageSet;
 
-    private SVSMetadata(List<TiffIFD> allIFDs) throws TiffException {
+    private TiffPyramidMetadata(List<TiffIFD> allIFDs) throws TiffException {
         Objects.requireNonNull(allIFDs, "Null allIFDs");
         final int numberOfIFDs = allIFDs.size();
-        this.imageSet = SVSImageSet.of(allIFDs);
-        this.descriptions = new ArrayList<>();
+        this.pyramidImageSet = TiffPyramidImageSet.of(allIFDs);
+        this.svsDescriptions = new ArrayList<>();
         for (int k = 0; k < numberOfIFDs; k++) {
             final String description = allIFDs.get(k).optDescription().orElse(null);
-            this.descriptions.add(SVSDescription.of(description));
+            this.svsDescriptions.add(SvsDescription.of(description));
         }
-        this.mainDescription = findMainDescription(descriptions);
+        this.mainSvsDescription = findMainDescription(svsDescriptions);
     }
 
-    public static SVSMetadata of(List<TiffIFD> allIFDs) throws TiffException {
-        return new SVSMetadata(allIFDs);
+    public static TiffPyramidMetadata of(List<TiffIFD> allIFDs) throws TiffException {
+        return new TiffPyramidMetadata(allIFDs);
     }
 
-    public static SVSMetadata of(TiffReader reader) throws IOException {
+    public static TiffPyramidMetadata of(TiffReader reader) throws IOException {
         Objects.requireNonNull(reader, "Null TIFF reader");
-        return new SVSMetadata(reader.allIFDs());
+        return new TiffPyramidMetadata(reader.allIFDs());
     }
 
     public boolean isSVS() {
-        return mainDescription != null;
+        return mainSvsDescription != null;
     }
 
-    public List<SVSDescription> allDescriptions() {
-        return descriptions;
+    public boolean isPyramid() {
+        return pyramidImageSet.numberOfLayers() > 1;
     }
 
-    public SVSDescription description(int ifdIndex) {
+    public boolean isSVSCompatible() {
+        return isSVS() || (isPyramid() && pyramidImageSet.hasThumbnail());
+    }
+
+    public List<SvsDescription> allSvsDescriptions() {
+        return svsDescriptions;
+    }
+
+    public SvsDescription svsDescription(int ifdIndex) {
         if (ifdIndex < 0) {
             throw new IllegalArgumentException("Negative IFD index " + ifdIndex);
         }
-        if (ifdIndex >= descriptions.size()) {
+        if (ifdIndex >= svsDescriptions.size()) {
             throw new IllegalArgumentException(
-                    "IFD index " + ifdIndex + " is out of bounds 0 <= index < " + descriptions.size());
+                    "IFD index " + ifdIndex + " is out of bounds 0 <= index < " + svsDescriptions.size());
         }
-        return descriptions.get(ifdIndex);
+        return svsDescriptions.get(ifdIndex);
     }
 
-    public SVSDescription mainDescription() {
-        return mainDescription;
+    public SvsDescription mainSvsDescription() {
+        return mainSvsDescription;
     }
 
-    public SVSImageSet imageSet() {
-        return imageSet;
+    public TiffPyramidImageSet pyramidImageSet() {
+        return pyramidImageSet;
     }
 
-    private static SVSDescription findMainDescription(List<SVSDescription> descriptions) {
+    private static SvsDescription findMainDescription(List<SvsDescription> descriptions) {
         // Note: the detailed SVS specification is always included (as ImageDescription tag)
         // in the first image (#0) with maximal resolution and partially repeated in the thumbnail image (#1).
         // The label and macro images usually contain reduced ImageDescription.
-        for (SVSDescription description : descriptions) {
+        for (SvsDescription description : descriptions) {
             if (description.isMain()) {
                 return description;
                 // - returning the first
@@ -101,6 +109,6 @@ public class SVSMetadata {
 
     @Override
     public String toString() {
-        return !isSVS() ? "Non-SVS" : mainDescription + "; " + imageSet;
+        return !isSVS() ? "Non-SVS" : mainSvsDescription + "; " + pyramidImageSet;
     }
 }

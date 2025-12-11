@@ -28,8 +28,8 @@ import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffOpenMode;
 import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.pyramids.SVSDescription;
-import net.algart.matrices.tiff.pyramids.SVSMetadata;
+import net.algart.matrices.tiff.pyramids.SvsDescription;
+import net.algart.matrices.tiff.pyramids.TiffPyramidMetadata;
 import net.algart.matrices.tiff.tags.Tags;
 
 import java.io.File;
@@ -181,22 +181,25 @@ public class TiffInfo {
                             reader.isLittleEndian() ? "little" : "big");
                     throw e;
                 }
-                SVSMetadata svsMetadata = SVSMetadata.of(allIFDs);
-                this.svs = svsMetadata.isSVS();
+                TiffPyramidMetadata metadata = TiffPyramidMetadata.of(allIFDs);
+                this.svs = metadata.isSVS();
                 final int ifdCount = allIFDs.size();
                 final int firstIndex = Math.max(this.firstIFDIndex, 0);
                 final int lastIndex = Math.min(this.lastIFDIndex, ifdCount - 1);
-                prefixInfo = "File %s: %d images, %s, %s-endian, %s".formatted(
+                prefixInfo = "File %s: %d images, %s, %s-endian, %s%s".formatted(
                         tiffFile,
                         ifdCount,
                         reader.isBigTiff() ? "BigTIFF" : "not BigTIFF",
                         reader.isLittleEndian() ? "little" : "big",
-                        svsMetadata.isSVS() ? "SVS" : "not SVS");
+                        metadata.isSVS() ? "SVS" : metadata.isSVSCompatible() ? "SVS-compatible" : "non-SVS",
+                        metadata.isPyramid() ?
+                                " pyramid (" + metadata.pyramidImageSet().numberOfLayers() + " layers)" :
+                                "");
                 AtomicLong totalSize = new AtomicLong(reader.sizeOfHeader());
                 final long tiffFileLength = reader.stream().length();
                 for (int k = firstIndex; k <= lastIndex; k++) {
                     final TiffIFD ifd = allIFDs.get(k);
-                    final SVSDescription svsDescription = svsMetadata.description(k);
+                    final SvsDescription svsDescription = metadata.svsDescription(k);
                     ifdInfo.add(ifdInformation(reader, ifd, svsDescription, k, totalSize));
                     if (!(ifd.containsKey(Tags.STRIP_BYTE_COUNTS) || ifd.containsKey(Tags.TILE_BYTE_COUNTS))) {
                         System.err.printf("WARNING! Invalid IFD #%d in %s: no StripByteCounts/TileByteCounts tag%n",
@@ -224,7 +227,7 @@ public class TiffInfo {
                 }
                 if (this.svs) {
                     svsInfo = "%s%nSpecial SVS images:%s".formatted(
-                            svsMetadata.mainDescription(), svsMetadata.imageSet());
+                            metadata.mainSvsDescription(), metadata.pyramidImageSet());
                 }
             }
         }
@@ -237,7 +240,7 @@ public class TiffInfo {
     private String ifdInformation(
             TiffReader reader,
             TiffIFD ifd,
-            SVSDescription svsDescription,
+            SvsDescription svsDescription,
             int ifdIndex,
             AtomicLong totalSize) throws IOException {
         final Map<String, String> additionalInformation = new LinkedHashMap<>();

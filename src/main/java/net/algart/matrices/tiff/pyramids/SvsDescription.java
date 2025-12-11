@@ -29,7 +29,7 @@ import net.algart.matrices.tiff.TiffIFD;
 
 import java.util.*;
 
-public final class SVSDescription {
+public final class SvsDescription {
     public static final String SVS_IMAGE_DESCRIPTION_PREFIX = "Aperio Image";
 
     public static final String MAGNIFICATION_ATTRIBUTE = "AppMag";
@@ -47,7 +47,7 @@ public final class SVSDescription {
     private final boolean svs;
     private final boolean main;
 
-    private SVSDescription(String description) {
+    private SvsDescription(String description) {
         this.description = description;
         this.svs = description != null && this.description.startsWith(SVS_IMAGE_DESCRIPTION_PREFIX);
         if (this.svs) {
@@ -87,7 +87,7 @@ public final class SVSDescription {
         }
     }
 
-    private SVSDescription(Builder builder) {
+    private SvsDescription(Builder builder) {
         Objects.requireNonNull(builder);
         this.text.addAll(builder.text);
         this.attributes.putAll(builder.attributes);
@@ -98,12 +98,12 @@ public final class SVSDescription {
         this.description = builder.buildDescription();
     }
 
-    public static SVSDescription of(String description) {
-        return new SVSDescription(description);
+    public static SvsDescription of(String description) {
+        return new SvsDescription(description);
     }
 
-    public static SVSDescription noSVS() {
-        return new SVSDescription(new Builder());
+    public static SvsDescription noSVS() {
+        return new SvsDescription(new Builder());
     }
 
     public String description() {
@@ -408,8 +408,8 @@ public final class SVSDescription {
         public Builder() {
         }
 
-        public SVSDescription build() {
-            return new SVSDescription(this);
+        public SvsDescription build() {
+            return new SvsDescription(this);
         }
 
         private String buildDescription() {

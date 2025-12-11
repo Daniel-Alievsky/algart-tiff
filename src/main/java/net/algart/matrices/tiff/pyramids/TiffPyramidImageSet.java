@@ -37,7 +37,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.OptionalInt;
 
-public final class SVSImageSet {
+public final class TiffPyramidImageSet {
     public enum SpecialKind {
         THUMBNAIL("thumbnail"),
         LABEL("label"),
@@ -65,7 +65,7 @@ public final class SVSImageSet {
             Arrays.SystemSettings.getBooleanEnv(
                     "ALWAYS_USE_SVS_SPECIFICATION_FOR_LABEL_AND_MACRO", false);
 
-    private static final System.Logger LOG = System.getLogger(SVSImageSet.class.getName());
+    private static final System.Logger LOG = System.getLogger(TiffPyramidImageSet.class.getName());
 
     private final List<TiffIFD> ifds;
     private final int numberOfImages;
@@ -77,7 +77,7 @@ public final class SVSImageSet {
     private int labelIndex = -1;
     private int macroIndex = -1;
 
-    private SVSImageSet(List<TiffIFD> allIFDs) throws TiffException {
+    private TiffPyramidImageSet(List<TiffIFD> allIFDs) throws TiffException {
         this.ifds = Objects.requireNonNull(allIFDs, "Null allIFDs");
         this.numberOfImages = ifds.size();
         if (numberOfImages == 0) {
@@ -95,8 +95,8 @@ public final class SVSImageSet {
         }
     }
 
-    public static SVSImageSet of(List<TiffIFD> allIFD) throws TiffException {
-        return new SVSImageSet(allIFD);
+    public static TiffPyramidImageSet of(List<TiffIFD> allIFD) throws TiffException {
+        return new TiffPyramidImageSet(allIFD);
     }
 
     /**
@@ -200,12 +200,24 @@ public final class SVSImageSet {
         return layerIndex < THUMBNAIL_IFD_INDEX ? 0 : layerIndex - 1;
     }
 
+    public boolean hasThumbnail() {
+        return thumbnailIndex != -1;
+    }
+
     public int thumbnailIndex() {
         return thumbnailIndex;
     }
 
+    public boolean hasLabel() {
+        return labelIndex != -1;
+    }
+
     public int labelIndex() {
         return labelIndex;
+    }
+
+    public boolean hasMacro() {
+        return macroIndex != -1;
     }
 
     public int macroIndex() {
@@ -440,13 +452,13 @@ public final class SVSImageSet {
 
     public static void main(String[] args) throws IOException {
         if (args.length == 0) {
-            System.out.println("Usage: " + SVSImageSet.class.getName() + " file1.svs file2.svs ...");
+            System.out.println("Usage: " + TiffPyramidImageSet.class.getName() + " file1.svs file2.svs ...");
             return;
         }
         for (String arg : args) {
             final Path file = Paths.get(arg);
             try (TiffReader reader = new TiffReader(file)) {
-                final var imageSet = new SVSImageSet(reader.allIFDs());
+                final var imageSet = new TiffPyramidImageSet(reader.allIFDs());
                 System.out.printf("%s:%n%s%n%n", file, imageSet);
             }
         }
