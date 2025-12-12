@@ -68,8 +68,9 @@ public final class TiffPyramidImageSet {
     private static final System.Logger LOG = System.getLogger(TiffPyramidImageSet.class.getName());
 
     private final int numberOfImages;
-    private final int imageDimX;
-    private final int imageDimY;
+    private final int baseImageDimX;
+    private final int baseImageDimY;
+    private final boolean baseImageTiled;
     private int numberOfLayers = 0;
     private int pyramidScaleRatio = -1;
     private int thumbnailIndex = -1;
@@ -81,7 +82,8 @@ public final class TiffPyramidImageSet {
 
     private TiffPyramidImageSet() {
         this.numberOfImages = this.numberOfLayers = 0;
-        this.imageDimX = this.imageDimY = 0;
+        this.baseImageDimX = this.baseImageDimY = 0;
+        this.baseImageTiled = false;
         this.svsDescriptions = Collections.emptyList();
         this.mainSvsDescription = null;
     }
@@ -91,16 +93,18 @@ public final class TiffPyramidImageSet {
         this.numberOfImages = ifds.size();
         if (numberOfImages == 0) {
             this.numberOfLayers = 0;
-            this.imageDimX = this.imageDimY = 0;
+            this.baseImageDimX = this.baseImageDimY = 0;
+            this.baseImageTiled = false;
         } else {
-        final TiffIFD first = ifds.getFirst();
-        this.imageDimX = first.getImageDimX();
-        this.imageDimY = first.getImageDimY();
-        this.numberOfLayers = detectPyramidAndThumbnail(ifds);
-        // - may be corrected by further methods
-        if (!detectTwoLastImages(ifds)) {
-            detectSingleLastImage(ifds);
-        }
+            final TiffIFD first = ifds.getFirst();
+            this.baseImageDimX = first.getImageDimX();
+            this.baseImageDimY = first.getImageDimY();
+            this.baseImageTiled = first.hasTileInformation();
+            this.numberOfLayers = detectPyramidAndThumbnail(ifds);
+            // - may be corrected by further methods
+            if (!detectTwoLastImages(ifds)) {
+                detectSingleLastImage(ifds);
+            }
         }
         this.svsDescriptions = new ArrayList<>();
         for (int k = 0; k < numberOfImages; k++) {
@@ -122,7 +126,6 @@ public final class TiffPyramidImageSet {
         Objects.requireNonNull(reader, "Null TIFF reader");
         return new TiffPyramidImageSet(reader.allIFDs());
     }
-
 
     /**
      * Checks whether the dimensions of the next pyramid layer match
@@ -188,18 +191,27 @@ public final class TiffPyramidImageSet {
         return -1;
     }
 
+    public int baseImageDimX() {
+        return baseImageDimX;
+    }
+
+    public int baseImageDimY() {
+        return baseImageDimY;
+    }
+
     public int numberOfImages() {
         return numberOfImages;
     }
 
-    public int imageDimX() {
-        return imageDimX;
-    }
-
-    public int imageDimY() {
-        return imageDimY;
-    }
-
+    /**
+     * Returns the number of layers in the pyramid.
+     *
+     * <p>The result may be 0 if the first image (IFD #0) is not tiled or
+     * if there are no images ({@link #numberOfImages()}==0).
+     * In all other cases, the result is &ge;1.
+     *
+     * @return number of pyramid layers.
+     */
     public int numberOfLayers() {
         return numberOfLayers;
     }
@@ -326,7 +338,7 @@ public final class TiffPyramidImageSet {
     }
 
     public boolean isPyramid() {
-        return numberOfLayers() > 1;
+        return isSVS() || numberOfLayers() > 1;
     }
 
     public boolean isSVSCompatible() {
@@ -355,6 +367,20 @@ public final class TiffPyramidImageSet {
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder();
+        if (isPyramid()) {
+            sb.append("TIFF pyramid with ").append(numberOfLayers).append(" layers ");
+            if (numberOfLayers > 1) {
+                sb.append(pyramidScaleRatio).append(":1 ");
+            }
+            sb.append("(");
+            for (int i = 0; i < numberOfLayers; i++) {
+                if (i > 0) {
+                    sb.append(",");
+                }
+                sb.append(layerToImage(i));
+            }
+            sb.append(")");
+        }
         for (SpecialKind kind : SpecialKind.values()) {
             int index = specialKindIndex(kind);
             if (index != -1) {
@@ -369,7 +395,10 @@ public final class TiffPyramidImageSet {
 
     private int detectPyramidAndThumbnail(List<TiffIFD> ifds) throws TiffException {
         thumbnailIndex = -1;
-        int countNonSvs = detectPyramid(ifds,1);
+        if (!baseImageTiled) {
+            return 0;
+        }
+        int countNonSvs = detectPyramid(ifds, 1);
         if (numberOfImages <= 1 || countNonSvs >= 3) {
             // 3 or more images 0, 1, 2, ... have the same ratio: it's obvious that the image #1 is not a thumbnail
             return countNonSvs;
@@ -388,8 +417,8 @@ public final class TiffPyramidImageSet {
     }
 
     private int detectPyramid(List<TiffIFD> ifds, int startIndex) throws TiffException {
-        int levelDimX = imageDimX;
-        int levelDimY = imageDimY;
+        int levelDimX = baseImageDimX;
+        int levelDimY = baseImageDimY;
         int actualScaleRatio = -1;
         int count = 1;
         for (int k = startIndex; k < numberOfImages; k++, count++) {

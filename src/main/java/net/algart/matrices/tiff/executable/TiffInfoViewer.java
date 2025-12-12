@@ -198,7 +198,7 @@ public class TiffInfoViewer {
         summaryInfoTextArea.setBackground(COMMON_BACKGROUND);
         summaryInfoTextArea.setForeground(new Color(20, 20, 20));
         summaryInfoTextArea.setOpaque(true);
-        svsInfoTextArea = new JTextArea(2, 80);
+        svsInfoTextArea = new JTextArea(1, 80);
         svsInfoTextArea.setEditable(false);
         svsInfoTextArea.setLineWrap(DEFAULT_WORD_WRAP);
         svsInfoTextArea.setWrapStyleWord(true);
@@ -401,7 +401,7 @@ public class TiffInfoViewer {
             summaryInfoTextArea.setBackground(info.isTiff() ? COMMON_BACKGROUND : ERROR_BACKGROUND);
             summaryInfoTextArea.setCaretPosition(0);
             svsInfoTextArea.setText(info.svsInfo());
-            svsInfoTextArea.setVisible(info.imageSet().isSVS());
+            svsInfoTextArea.setVisible(info.imageSet().isPyramid());
             svsInfoTextArea.setCaretPosition(0);
             TiffPyramidImageSet imageSet = info.imageSet();
             assert imageSet != null;

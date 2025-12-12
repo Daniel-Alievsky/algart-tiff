@@ -224,9 +224,8 @@ public class TiffInfo {
                             .formatted(totalSize.get(),
                                     tiffFileLength - totalSize.get(), tiffFileLength);
                 }
-                if (this.imageSet.isSVS()) {
-                    svsInfo = "%s%nSpecial SVS images: %s".formatted(
-                            imageSet.mainSvsDescription(), imageSet);
+                if (imageSet.isPyramid()) {
+                    svsInfo = (imageSet.isSVS() ? "%s%n".formatted(imageSet.mainSvsDescription()) : "") + imageSet;
                 }
             }
         }
