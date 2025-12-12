@@ -47,8 +47,8 @@ public class TiffInfo {
     private boolean disableAppendingForStrictFormats = false;
 
     private final List<String> ifdInfo = new ArrayList<>();
+    private TiffPyramidMetadata pyramid;
     private boolean tiff;
-    private boolean svs;
     private String prefixInfo;
     private String summaryInfo;
     private String svsInfo;
@@ -130,8 +130,8 @@ public class TiffInfo {
         return tiff;
     }
 
-    public boolean isSvs() {
-        return svs;
+    public TiffPyramidMetadata pyramid() {
+        return pyramid;
     }
 
     public int numberOfImages() {
@@ -165,7 +165,7 @@ public class TiffInfo {
                 throw new AssertionError();
             }
             this.tiff = reader.isTiff();
-            this.svs = false;
+            this.pyramid = TiffPyramidMetadata.empty();
             if (!this.tiff) {
                 final Exception e = reader.openingException();
                 prefixInfo = "%nFile %s: not TIFF%s".formatted(tiffFile,
@@ -181,8 +181,7 @@ public class TiffInfo {
                             reader.isLittleEndian() ? "little" : "big");
                     throw e;
                 }
-                TiffPyramidMetadata metadata = TiffPyramidMetadata.of(allIFDs);
-                this.svs = metadata.isSVS();
+                this.pyramid = TiffPyramidMetadata.of(allIFDs);
                 final int ifdCount = allIFDs.size();
                 final int firstIndex = Math.max(this.firstIFDIndex, 0);
                 final int lastIndex = Math.min(this.lastIFDIndex, ifdCount - 1);
@@ -191,15 +190,15 @@ public class TiffInfo {
                         ifdCount,
                         reader.isBigTiff() ? "BigTIFF" : "not BigTIFF",
                         reader.isLittleEndian() ? "little" : "big",
-                        metadata.isSVS() ? "SVS" : metadata.isSVSCompatible() ? "SVS-compatible" : "non-SVS",
-                        metadata.isPyramid() ?
-                                " pyramid (" + metadata.pyramidImageSet().numberOfLayers() + " layers)" :
+                        pyramid.isSVS() ? "SVS" : pyramid.isSVSCompatible() ? "SVS-compatible" : "non-SVS",
+                        pyramid.isPyramid() ?
+                                " pyramid (" + pyramid.pyramidImageSet().numberOfLayers() + " layers)" :
                                 "");
                 AtomicLong totalSize = new AtomicLong(reader.sizeOfHeader());
                 final long tiffFileLength = reader.stream().length();
                 for (int k = firstIndex; k <= lastIndex; k++) {
                     final TiffIFD ifd = allIFDs.get(k);
-                    final SvsDescription svsDescription = metadata.svsDescription(k);
+                    final SvsDescription svsDescription = pyramid.svsDescription(k);
                     ifdInfo.add(ifdInformation(reader, ifd, svsDescription, k, totalSize));
                     if (!(ifd.containsKey(Tags.STRIP_BYTE_COUNTS) || ifd.containsKey(Tags.TILE_BYTE_COUNTS))) {
                         System.err.printf("WARNING! Invalid IFD #%d in %s: no StripByteCounts/TileByteCounts tag%n",
@@ -225,9 +224,9 @@ public class TiffInfo {
                             .formatted(totalSize.get(),
                                     tiffFileLength - totalSize.get(), tiffFileLength, tiffFile);
                 }
-                if (this.svs) {
+                if (this.pyramid.isSVS()) {
                     svsInfo = "%s%nSpecial SVS images:%s".formatted(
-                            metadata.mainSvsDescription(), metadata.pyramidImageSet());
+                            pyramid.mainSvsDescription(), pyramid.pyramidImageSet());
                 }
             }
         }
@@ -306,7 +305,7 @@ public class TiffInfo {
             System.out.println(ifdInfoLine);
         }
         System.out.println(summaryInfo);
-        if (isSvs()) {
+        if (pyramid.isSVS()) {
             System.out.println(svsInfo);
         }
         System.out.println();

@@ -30,6 +30,7 @@ import net.algart.matrices.tiff.TiffReader;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -37,6 +38,12 @@ public class TiffPyramidMetadata {
     private final List<SvsDescription> svsDescriptions;
     private final SvsDescription mainSvsDescription;
     private final TiffPyramidImageSet pyramidImageSet;
+
+    private TiffPyramidMetadata() {
+        this.pyramidImageSet = TiffPyramidImageSet.empty();
+        this.svsDescriptions = Collections.emptyList();
+        this.mainSvsDescription = null;
+    }
 
     private TiffPyramidMetadata(List<TiffIFD> allIFDs) throws TiffException {
         Objects.requireNonNull(allIFDs, "Null allIFDs");
@@ -47,7 +54,11 @@ public class TiffPyramidMetadata {
             final String description = allIFDs.get(k).optDescription().orElse(null);
             this.svsDescriptions.add(SvsDescription.of(description));
         }
-        this.mainSvsDescription = findMainDescription(svsDescriptions);
+        this.mainSvsDescription = SvsDescription.findMainDescription(svsDescriptions);
+    }
+
+    public static TiffPyramidMetadata empty() {
+        return new TiffPyramidMetadata();
     }
 
     public static TiffPyramidMetadata of(List<TiffIFD> allIFDs) throws TiffException {
@@ -68,7 +79,7 @@ public class TiffPyramidMetadata {
     }
 
     public boolean isSVSCompatible() {
-        return isSVS() || (isPyramid() && pyramidImageSet.hasThumbnail());
+        return isSVS() || (isPyramid() && pyramidImageSet.hasSVSThumbnail());
     }
 
     public List<SvsDescription> allSvsDescriptions() {
@@ -92,19 +103,6 @@ public class TiffPyramidMetadata {
 
     public TiffPyramidImageSet pyramidImageSet() {
         return pyramidImageSet;
-    }
-
-    private static SvsDescription findMainDescription(List<SvsDescription> descriptions) {
-        // Note: the detailed SVS specification is always included (as ImageDescription tag)
-        // in the first image (#0) with maximal resolution and partially repeated in the thumbnail image (#1).
-        // The label and macro images usually contain reduced ImageDescription.
-        for (SvsDescription description : descriptions) {
-            if (description.isMain()) {
-                return description;
-                // - returning the first
-            }
-        }
-        return null;
     }
 
     @Override

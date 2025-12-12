@@ -35,7 +35,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
-import java.util.OptionalInt;
 
 public final class TiffPyramidImageSet {
     public enum SpecialKind {
@@ -54,10 +53,9 @@ public final class TiffPyramidImageSet {
         }
     }
 
-    public static final int THUMBNAIL_IFD_INDEX = 1;
+    public static final int SVS_THUMBNAIL_INDEX = 1;
 
     private static final int MAX_SPECIAL_IMAGES_SIZE = 2048;
-    private static final int MAX_PIXEL_COUNT_IN_SPECIAL_IMAGES = 2048 * 2048;
     private static final double STANDARD_MACRO_ASPECT_RATIO = 2.8846153846153846153846153846154;
     // - 75000/26000, typical value for medicine
     private static final double ALLOWED_ASPECT_RATION_DEVIATION = 0.2;
@@ -67,7 +65,6 @@ public final class TiffPyramidImageSet {
 
     private static final System.Logger LOG = System.getLogger(TiffPyramidImageSet.class.getName());
 
-    private final List<TiffIFD> ifds;
     private final int numberOfImages;
     private final int imageDimX;
     private final int imageDimY;
@@ -77,26 +74,35 @@ public final class TiffPyramidImageSet {
     private int labelIndex = -1;
     private int macroIndex = -1;
 
-    private TiffPyramidImageSet(List<TiffIFD> allIFDs) throws TiffException {
-        this.ifds = Objects.requireNonNull(allIFDs, "Null allIFDs");
+    private TiffPyramidImageSet() {
+        this.numberOfImages = this.numberOfLayers = 0;
+        this.imageDimX = this.imageDimY = 0;
+    }
+
+    private TiffPyramidImageSet(List<TiffIFD> ifds) throws TiffException {
+        Objects.requireNonNull(ifds, "Null ifds");
         this.numberOfImages = ifds.size();
         if (numberOfImages == 0) {
-            this.imageDimX = this.imageDimY = 0;
             this.numberOfLayers = 0;
+            this.imageDimX = this.imageDimY = 0;
             return;
         }
         final TiffIFD first = ifds.getFirst();
         this.imageDimX = first.getImageDimX();
         this.imageDimY = first.getImageDimY();
-        this.numberOfLayers = detectPyramidAndThumbnail();
+        this.numberOfLayers = detectPyramidAndThumbnail(ifds);
         // - may be corrected by further methods
-        if (!detectTwoLastImages()) {
-            detectSingleLastImage();
+        if (!detectTwoLastImages(ifds)) {
+            detectSingleLastImage(ifds);
         }
     }
 
-    public static TiffPyramidImageSet of(List<TiffIFD> allIFD) throws TiffException {
-        return new TiffPyramidImageSet(allIFD);
+    public static TiffPyramidImageSet empty() {
+        return new TiffPyramidImageSet();
+    }
+
+    public static TiffPyramidImageSet of(List<TiffIFD> ifds) throws TiffException {
+        return new TiffPyramidImageSet(ifds);
     }
 
     /**
@@ -188,16 +194,51 @@ public final class TiffPyramidImageSet {
      *
      * @param layerIndex index of the pyramid layer (0 = base layer, up to <code>{@link #numberOfLayers()}-1</code>).
      * @return corresponding TIFF IFD index
-     * @throws IllegalArgumentException if layerIndex is negative or &ge;numberOfLayers
+     * @throws IllegalArgumentException if layerIndex is negative or &ge;{@link #numberOfLayers()}.
      */
-    public int imageIndexOfLayer(int layerIndex) {
+    public int layerToImage(int layerIndex) {
         if (layerIndex < 0) {
             throw new IllegalArgumentException("Negative layer index " + layerIndex);
         }
         if (layerIndex >= numberOfLayers) {
             throw new IllegalArgumentException("Too large layer index " + layerIndex + " >= " + numberOfLayers);
         }
-        return layerIndex < THUMBNAIL_IFD_INDEX ? 0 : layerIndex - 1;
+        return !hasThumbnail() || layerIndex < thumbnailIndex ? layerIndex : layerIndex + 1;
+    }
+
+    /**
+     * Translates a TIFF IFD index to the corresponding pyramid layer index.
+     * If this IFD index does not correspond to a pyramid layer, the method returns &minus;1.
+     *
+     * @param imageIndex index of the TIFF IFD (0..<code>{@link #numberOfImages()}-1</code>).
+     * @return corresponding pyramid layer index or &minus;1 if the IFD is not a pyramid layer.
+     * @throws IllegalArgumentException if imageIndex is negative or &ge;{@link #numberOfImages}.
+     */
+    public int imageToLayer(int imageIndex) {
+        if (imageIndex < 0) {
+            throw new IllegalArgumentException("Negative IFD index " + imageIndex);
+        }
+        if (imageIndex >= numberOfImages) {
+            throw new IllegalArgumentException("Too large IFD index " + imageIndex + " >= " + numberOfImages);
+        }
+        if (imageIndex == thumbnailIndex) {
+            return -1;
+        }
+        final int layerIndex = imageIndex < thumbnailIndex ? imageIndex : imageIndex - 1;
+        return layerIndex < numberOfLayers ? layerIndex : -1;
+    }
+
+    /**
+     * Returns {@code true} if and only if this TIFF contains an SVS or SVS-compatible thumbnail image
+     * at the IFD index #1 (the second image, the standard position for SVS thumbnails).
+     *
+     * <p>In the current version, this is the only situation when a thumbnail is recognized,
+     * so this method is fully equivalent to {@link #hasThumbnail()}.
+     *
+     * @return whether this TIFF contains an SVS-compatible thumbnail image at the position #1.
+     */
+    public boolean hasSVSThumbnail() {
+        return thumbnailIndex == SVS_THUMBNAIL_INDEX;
     }
 
     public boolean hasThumbnail() {
@@ -236,67 +277,67 @@ public final class TiffPyramidImageSet {
     }
 
     public boolean hasSpecialKind(SpecialKind kind) {
-        return specialKindIndex(kind).isPresent();
+        return specialKindIndex(kind) != -1;
     }
 
-    public OptionalInt specialKindIndex(SpecialKind kind) {
+    public int specialKindIndex(SpecialKind kind) {
         Objects.requireNonNull(kind, "Null special kind");
         switch (kind) {
             case LABEL -> {
                 if (labelIndex != -1) {
-                    return OptionalInt.of(labelIndex);
+                    return labelIndex;
                 }
             }
             case MACRO -> {
                 if (macroIndex != -1) {
-                    return OptionalInt.of(macroIndex);
+                    return macroIndex;
                 }
             }
             case THUMBNAIL -> {
                 if (thumbnailIndex != -1) {
-                    return OptionalInt.of(thumbnailIndex);
+                    return thumbnailIndex;
                 }
             }
         }
-        return OptionalInt.empty();
+        return -1;
     }
 
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder();
         for (SpecialKind kind : SpecialKind.values()) {
-            OptionalInt index = specialKindIndex(kind);
-            if (index.isPresent()) {
+            int index = specialKindIndex(kind);
+            if (index != -1) {
                 if (!sb.isEmpty()) {
                     sb.append(", ");
                 }
-                sb.append(kind.kindName()).append(" (#").append(index.getAsInt()).append(")");
+                sb.append(kind.kindName()).append(" (#").append(index).append(")");
             }
         }
         return sb.isEmpty() ? "no special images" : sb.toString();
     }
 
-    private int detectPyramidAndThumbnail() throws TiffException {
+    private int detectPyramidAndThumbnail(List<TiffIFD> ifds) throws TiffException {
         thumbnailIndex = -1;
-        int countNonSvs = detectPyramid(1);
+        int countNonSvs = detectPyramid(ifds,1);
         if (numberOfImages <= 1 || countNonSvs >= 3) {
             // 3 or more images 0, 1, 2, ... have the same ratio: it's obvious that the image #1 is not a thumbnail
             return countNonSvs;
         }
-        if (isSmallImage(ifds.get(THUMBNAIL_IFD_INDEX))) {
-            thumbnailIndex = THUMBNAIL_IFD_INDEX;
+        if (isSmallImage(ifds.get(SVS_THUMBNAIL_INDEX))) {
+            thumbnailIndex = SVS_THUMBNAIL_INDEX;
         }
         if (countNonSvs == 2 && numberOfImages == 2) {
             return thumbnailIndex == -1 ? 2 : 1;
         }
         // Now countNonSvs = 1 or 2
-        return detectPyramid(THUMBNAIL_IFD_INDEX + 1);
+        return detectPyramid(ifds, SVS_THUMBNAIL_INDEX + 1);
         // If the result >= 2 and thumbnailIndex=THUMBNAIL_IFD_INDEX (small image), the image #1 is really a thumbnail.
         // If the result = 1, we have no pyramid 0-2-3-... or 0-1-2-..., so, we don't know what is #1,
         // and we still decide this based on the sizes
     }
 
-    private int detectPyramid(int startIndex) throws TiffException {
+    private int detectPyramid(List<TiffIFD> ifds, int startIndex) throws TiffException {
         int levelDimX = imageDimX;
         int levelDimY = imageDimY;
         int actualScaleRatio = -1;
@@ -313,6 +354,10 @@ public final class TiffPyramidImageSet {
                 assert actualScaleRatio >= 2;
             } else {
                 if (!matchesDimensionRatio(levelDimX, levelDimY, nextDimX, nextDimY, actualScaleRatio)) {
+                    final int index = k;
+                    LOG.log(System.Logger.Level.DEBUG, () -> String.format(
+                            "%s found incorrect dimensions ratio at %d; skipping remaining %d IFDs",
+                            getClass().getSimpleName(), index, numberOfImages - index));
                     break;
                 }
             }
@@ -323,8 +368,8 @@ public final class TiffPyramidImageSet {
         return count;
     }
 
-    private boolean detectTwoLastImages() throws TiffException {
-        if (numberOfImages <= THUMBNAIL_IFD_INDEX + 2) {
+    private boolean detectTwoLastImages(List<TiffIFD> ifds) throws TiffException {
+        if (numberOfImages <= SVS_THUMBNAIL_INDEX + 2) {
             return false;
         }
         final int index1 = numberOfImages - 2;
@@ -385,8 +430,8 @@ public final class TiffPyramidImageSet {
         return true;
     }
 
-    private void detectSingleLastImage() throws TiffException {
-        if (numberOfImages <= THUMBNAIL_IFD_INDEX + 1) {
+    private void detectSingleLastImage(List<TiffIFD> ifds) throws TiffException {
+        if (numberOfImages <= SVS_THUMBNAIL_INDEX + 1) {
             return;
         }
         final int index = numberOfImages - 1;

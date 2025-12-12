@@ -26,6 +26,7 @@ package net.algart.matrices.tiff.executable;
 
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
+import net.algart.matrices.tiff.pyramids.TiffPyramidImageSet;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 import javax.swing.*;
@@ -224,10 +225,11 @@ public class TiffInfoViewer {
 
     private void addIFDComboBox(JPanel leftPanel) {
         ifdComboBox = new JComboBox<>();
+        ifdComboBox.setMaximumRowCount(16);
         ifdComboBox.addActionListener(e -> updateTextArea());
-        ifdComboBox.setPrototypeDisplayValue("999999");
+        ifdComboBox.setPrototypeDisplayValue("Image #999");
         leftPanel.add(Box.createHorizontalStrut(10));
-        leftPanel.add(new JLabel("Select TIFF image:"));
+        leftPanel.add(new JLabel("Select TIFF image (IFD):"));
         leftPanel.add(ifdComboBox);
     }
 
@@ -399,16 +401,33 @@ public class TiffInfoViewer {
             summaryInfoTextArea.setBackground(info.isTiff() ? COMMON_BACKGROUND : ERROR_BACKGROUND);
             summaryInfoTextArea.setCaretPosition(0);
             svsInfoTextArea.setText(info.svsInfo());
-            svsInfoTextArea.setVisible(info.isSvs());
+            svsInfoTextArea.setVisible(info.pyramid().isSVS());
             svsInfoTextArea.setCaretPosition(0);
-            final int ifdCount = info.numberOfImages();
-            for (int i = 0; i < ifdCount; i++) {
-                ifdComboBox.addItem("IFD #" + i);
+            TiffPyramidImageSet imageSet = info.pyramid().pyramidImageSet();
+            assert imageSet != null;
+            String longest = "";
+            for (int i = 0; i < info.numberOfImages(); i++) {
+                final StringBuilder sb = new StringBuilder("Image #" + i);
+                final int layer = imageSet.imageToLayer(i);
+                if (layer >= 0) {
+                    sb.append(" (layer ").append(layer).append(")");
+                }
+                for (var kind : TiffPyramidImageSet.SpecialKind.values()) {
+                    if (imageSet.specialKindIndex(kind) == i) {
+                        sb.append(" (").append(kind.kindName()).append(")");
+                    }
+                }
+                final String caption = sb.toString();
+                ifdComboBox.addItem(caption);
+                if (sb.length() > longest.length()) {
+                    longest = caption;
+                }
             }
-            if (ifdCount > 0) {
+            if (info.numberOfImages() > 0) {
                 ifdComboBox.setSelectedIndex(0);
                 updateTextArea();
             }
+            ifdComboBox.setPrototypeDisplayValue(longest);
         } catch (IOException e) {
             LOG.log(System.Logger.Level.ERROR, "Error reading TIFF", e);
             JOptionPane.showMessageDialog(frame, e.getMessage(), "Error reading TIFF", JOptionPane.ERROR_MESSAGE);

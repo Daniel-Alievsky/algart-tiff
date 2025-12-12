@@ -387,6 +387,19 @@ public final class SvsDescription {
         return sb.toString();
     }
 
+    static SvsDescription findMainDescription(List<SvsDescription> descriptions) {
+        // Note: the detailed SVS specification is always included (as ImageDescription tag)
+        // in the first image (#0) with maximal resolution and partially repeated in the thumbnail image (#1).
+        // The label and macro images usually contain reduced ImageDescription.
+        for (SvsDescription description : descriptions) {
+            if (description.isMain()) {
+                return description;
+                // - returning the first
+            }
+        }
+        return null;
+    }
+
     private static double parseJsonDouble(String s) throws NumberFormatException {
         double result = Double.parseDouble(s);
         if (!Double.isFinite(result)) {
