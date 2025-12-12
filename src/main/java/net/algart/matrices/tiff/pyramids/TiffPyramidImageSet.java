@@ -191,6 +191,27 @@ public final class TiffPyramidImageSet {
         return -1;
     }
 
+    public boolean isSVS() {
+        return mainSvsDescription != null;
+    }
+
+    public boolean isPyramid() {
+        if (numberOfLayers == 0) {
+            return false;
+        }
+        if (numberOfLayers == 1) {
+            return isSVS();
+            // - if this is not SVS, i.e., we have no Aperio-like ImageDescription,
+            // then we cannot determine a thumbnail and have no reasons to interpret this TIFF as a pyramid
+        }
+        assert numberOfLayers > 1;
+        return true;
+    }
+
+    public boolean isSVSCompatible() {
+        return isSVS() || (isPyramid() && hasSVSThumbnail());
+    }
+
     public int baseImageDimX() {
         return baseImageDimX;
     }
@@ -333,18 +354,6 @@ public final class TiffPyramidImageSet {
         return -1;
     }
 
-    public boolean isSVS() {
-        return mainSvsDescription != null;
-    }
-
-    public boolean isPyramid() {
-        return isSVS() || numberOfLayers() > 1;
-    }
-
-    public boolean isSVSCompatible() {
-        return isSVS() || (isPyramid() && hasSVSThumbnail());
-    }
-
     public List<SvsDescription> allSvsDescriptions() {
         return svsDescriptions;
     }
@@ -375,7 +384,7 @@ public final class TiffPyramidImageSet {
             sb.append("(");
             for (int i = 0; i < numberOfLayers; i++) {
                 if (i > 0) {
-                    sb.append(",");
+                    sb.append("|");
                 }
                 sb.append(layerToImage(i));
             }

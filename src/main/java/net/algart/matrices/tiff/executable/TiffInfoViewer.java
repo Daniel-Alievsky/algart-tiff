@@ -409,12 +409,14 @@ public class TiffInfoViewer {
             for (int i = 0; i < info.numberOfImages(); i++) {
                 final StringBuilder sb = new StringBuilder("Image #" + i);
                 final int layer = imageSet.imageToLayer(i);
-                if (layer >= 0) {
-                    sb.append(" (layer ").append(layer).append(")");
-                }
-                for (var kind : TiffPyramidImageSet.SpecialKind.values()) {
-                    if (imageSet.specialKindIndex(kind) == i) {
-                        sb.append(" (").append(kind.kindName()).append(")");
+                if (imageSet.isPyramid()) {
+                    if (layer >= 0) {
+                        sb.append(" (layer ").append(layer).append(")");
+                    }
+                    for (var kind : TiffPyramidImageSet.SpecialKind.values()) {
+                        if (imageSet.specialKindIndex(kind) == i) {
+                            sb.append(" (").append(kind.kindName()).append(")");
+                        }
                     }
                 }
                 final String caption = sb.toString();

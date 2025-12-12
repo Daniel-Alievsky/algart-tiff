@@ -192,7 +192,8 @@ public class TiffInfo {
                         reader.isLittleEndian() ? "little" : "big",
                         imageSet.isSVS() ? "SVS" : imageSet.isSVSCompatible() ? "SVS-compatible" : "non-SVS",
                         imageSet.isPyramid() ?
-                                " pyramid (" + imageSet.numberOfLayers() + " layers)" :
+                                " pyramid (" + imageSet.numberOfLayers() + " layers, " +
+                                        imageSet.numberOfImages() + " images)" :
                                 "");
                 AtomicLong totalSize = new AtomicLong(reader.sizeOfHeader());
                 final long tiffFileLength = reader.stream().length();
@@ -303,8 +304,10 @@ public class TiffInfo {
         for (String ifdInfoLine : ifdInfo) {
             System.out.println(ifdInfoLine);
         }
-        System.out.println(summaryInfo);
-        if (imageSet.isSVS()) {
+        if (!summaryInfo.isEmpty()) {
+            System.out.println(summaryInfo);
+        }
+        if (!svsInfo.isEmpty()) {
             System.out.println(svsInfo);
         }
         System.out.println();
