@@ -401,9 +401,9 @@ public class TiffInfoViewer {
             summaryInfoTextArea.setBackground(info.isTiff() ? COMMON_BACKGROUND : ERROR_BACKGROUND);
             summaryInfoTextArea.setCaretPosition(0);
             svsInfoTextArea.setText(info.svsInfo());
-            svsInfoTextArea.setVisible(info.pyramid().isSVS());
+            svsInfoTextArea.setVisible(info.imageSet().isSVS());
             svsInfoTextArea.setCaretPosition(0);
-            TiffPyramidImageSet imageSet = info.pyramid().pyramidImageSet();
+            TiffPyramidImageSet imageSet = info.imageSet();
             assert imageSet != null;
             String longest = "";
             for (int i = 0; i < info.numberOfImages(); i++) {

@@ -29,7 +29,7 @@ import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffOpenMode;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.pyramids.SvsDescription;
-import net.algart.matrices.tiff.pyramids.TiffPyramidMetadata;
+import net.algart.matrices.tiff.pyramids.TiffPyramidImageSet;
 import net.algart.matrices.tiff.tags.Tags;
 
 import java.io.File;
@@ -47,7 +47,7 @@ public class TiffInfo {
     private boolean disableAppendingForStrictFormats = false;
 
     private final List<String> ifdInfo = new ArrayList<>();
-    private TiffPyramidMetadata pyramid;
+    private TiffPyramidImageSet imageSet;
     private boolean tiff;
     private String prefixInfo;
     private String summaryInfo;
@@ -130,8 +130,8 @@ public class TiffInfo {
         return tiff;
     }
 
-    public TiffPyramidMetadata pyramid() {
-        return pyramid;
+    public TiffPyramidImageSet imageSet() {
+        return imageSet;
     }
 
     public int numberOfImages() {
@@ -165,7 +165,7 @@ public class TiffInfo {
                 throw new AssertionError();
             }
             this.tiff = reader.isTiff();
-            this.pyramid = TiffPyramidMetadata.empty();
+            this.imageSet = TiffPyramidImageSet.empty();
             if (!this.tiff) {
                 final Exception e = reader.openingException();
                 prefixInfo = "%nFile %s: not TIFF%s".formatted(tiffFile,
@@ -181,7 +181,7 @@ public class TiffInfo {
                             reader.isLittleEndian() ? "little" : "big");
                     throw e;
                 }
-                this.pyramid = TiffPyramidMetadata.of(allIFDs);
+                this.imageSet = TiffPyramidImageSet.of(allIFDs);
                 final int ifdCount = allIFDs.size();
                 final int firstIndex = Math.max(this.firstIFDIndex, 0);
                 final int lastIndex = Math.min(this.lastIFDIndex, ifdCount - 1);
@@ -190,15 +190,15 @@ public class TiffInfo {
                         ifdCount,
                         reader.isBigTiff() ? "BigTIFF" : "not BigTIFF",
                         reader.isLittleEndian() ? "little" : "big",
-                        pyramid.isSVS() ? "SVS" : pyramid.isSVSCompatible() ? "SVS-compatible" : "non-SVS",
-                        pyramid.isPyramid() ?
-                                " pyramid (" + pyramid.pyramidImageSet().numberOfLayers() + " layers)" :
+                        imageSet.isSVS() ? "SVS" : imageSet.isSVSCompatible() ? "SVS-compatible" : "non-SVS",
+                        imageSet.isPyramid() ?
+                                " pyramid (" + imageSet.numberOfLayers() + " layers)" :
                                 "");
                 AtomicLong totalSize = new AtomicLong(reader.sizeOfHeader());
                 final long tiffFileLength = reader.stream().length();
                 for (int k = firstIndex; k <= lastIndex; k++) {
                     final TiffIFD ifd = allIFDs.get(k);
-                    final SvsDescription svsDescription = pyramid.svsDescription(k);
+                    final SvsDescription svsDescription = imageSet.svsDescription(k);
                     ifdInfo.add(ifdInformation(reader, ifd, svsDescription, k, totalSize));
                     if (!(ifd.containsKey(Tags.STRIP_BYTE_COUNTS) || ifd.containsKey(Tags.TILE_BYTE_COUNTS))) {
                         System.err.printf("WARNING! Invalid IFD #%d in %s: no StripByteCounts/TileByteCounts tag%n",
@@ -213,20 +213,20 @@ public class TiffInfo {
                     summaryInfo = "Total file length %d bytes, it is fully used".formatted(tiffFileLength);
                 } else if (totalSize.get() > tiffFileLength) {
                     summaryInfo = ("%d bytes in file used, but the file length is only %d bytes, " +
-                            "%d \"extra\" bytes: probably TIFF is not valid? (%s)").formatted(
-                            totalSize.get(), tiffFileLength, totalSize.get() - tiffFileLength, tiffFile);
+                            "%d \"extra\" bytes: probably TIFF is not valid?").formatted(
+                            totalSize.get(), tiffFileLength, totalSize.get() - tiffFileLength);
                     // - however, this is possible in some files: for example, in
                     // "signed-integral-8bit.tif" from the TwelveMonkey demo image set,
                     // we have ASCII IFD entry at the end of the file, and the image before it has odd length;
                     // this ASCII offset is not aligned, so we consider that here is 1 extra byte
                 } else {
-                    summaryInfo = ("%d bytes in file used, %d bytes lost/unknown, the file length %d bytes (%s)")
+                    summaryInfo = ("%d bytes in file used, %d bytes lost/unknown, the file length %d bytes")
                             .formatted(totalSize.get(),
-                                    tiffFileLength - totalSize.get(), tiffFileLength, tiffFile);
+                                    tiffFileLength - totalSize.get(), tiffFileLength);
                 }
-                if (this.pyramid.isSVS()) {
-                    svsInfo = "%s%nSpecial SVS images:%s".formatted(
-                            pyramid.mainSvsDescription(), pyramid.pyramidImageSet());
+                if (this.imageSet.isSVS()) {
+                    svsInfo = "%s%nSpecial SVS images: %s".formatted(
+                            imageSet.mainSvsDescription(), imageSet);
                 }
             }
         }
@@ -305,7 +305,7 @@ public class TiffInfo {
             System.out.println(ifdInfoLine);
         }
         System.out.println(summaryInfo);
-        if (pyramid.isSVS()) {
+        if (imageSet.isSVS()) {
             System.out.println(svsInfo);
         }
         System.out.println();

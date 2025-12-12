@@ -33,6 +33,8 @@ import net.algart.matrices.tiff.tags.TagCompression;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -74,9 +76,14 @@ public final class TiffPyramidImageSet {
     private int labelIndex = -1;
     private int macroIndex = -1;
 
+    private final List<SvsDescription> svsDescriptions;
+    private final SvsDescription mainSvsDescription;
+
     private TiffPyramidImageSet() {
         this.numberOfImages = this.numberOfLayers = 0;
         this.imageDimX = this.imageDimY = 0;
+        this.svsDescriptions = Collections.emptyList();
+        this.mainSvsDescription = null;
     }
 
     private TiffPyramidImageSet(List<TiffIFD> ifds) throws TiffException {
@@ -85,8 +92,7 @@ public final class TiffPyramidImageSet {
         if (numberOfImages == 0) {
             this.numberOfLayers = 0;
             this.imageDimX = this.imageDimY = 0;
-            return;
-        }
+        } else {
         final TiffIFD first = ifds.getFirst();
         this.imageDimX = first.getImageDimX();
         this.imageDimY = first.getImageDimY();
@@ -95,6 +101,13 @@ public final class TiffPyramidImageSet {
         if (!detectTwoLastImages(ifds)) {
             detectSingleLastImage(ifds);
         }
+        }
+        this.svsDescriptions = new ArrayList<>();
+        for (int k = 0; k < numberOfImages; k++) {
+            final String description = ifds.get(k).optDescription().orElse(null);
+            this.svsDescriptions.add(SvsDescription.of(description));
+        }
+        this.mainSvsDescription = SvsDescription.findMainDescription(svsDescriptions);
     }
 
     public static TiffPyramidImageSet empty() {
@@ -104,6 +117,12 @@ public final class TiffPyramidImageSet {
     public static TiffPyramidImageSet of(List<TiffIFD> ifds) throws TiffException {
         return new TiffPyramidImageSet(ifds);
     }
+
+    public static TiffPyramidImageSet of(TiffReader reader) throws IOException {
+        Objects.requireNonNull(reader, "Null TIFF reader");
+        return new TiffPyramidImageSet(reader.allIFDs());
+    }
+
 
     /**
      * Checks whether the dimensions of the next pyramid layer match
@@ -300,6 +319,37 @@ public final class TiffPyramidImageSet {
             }
         }
         return -1;
+    }
+
+    public boolean isSVS() {
+        return mainSvsDescription != null;
+    }
+
+    public boolean isPyramid() {
+        return numberOfLayers() > 1;
+    }
+
+    public boolean isSVSCompatible() {
+        return isSVS() || (isPyramid() && hasSVSThumbnail());
+    }
+
+    public List<SvsDescription> allSvsDescriptions() {
+        return svsDescriptions;
+    }
+
+    public SvsDescription svsDescription(int ifdIndex) {
+        if (ifdIndex < 0) {
+            throw new IllegalArgumentException("Negative IFD index " + ifdIndex);
+        }
+        if (ifdIndex >= svsDescriptions.size()) {
+            throw new IllegalArgumentException(
+                    "IFD index " + ifdIndex + " is out of bounds 0 <= index < " + svsDescriptions.size());
+        }
+        return svsDescriptions.get(ifdIndex);
+    }
+
+    public SvsDescription mainSvsDescription() {
+        return mainSvsDescription;
     }
 
     @Override
