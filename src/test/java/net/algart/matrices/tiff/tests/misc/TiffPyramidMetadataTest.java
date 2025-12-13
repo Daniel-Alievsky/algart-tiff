@@ -27,7 +27,7 @@ package net.algart.matrices.tiff.tests.misc;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.pyramids.SvsDescription;
-import net.algart.matrices.tiff.pyramids.TiffPyramidImageSet;
+import net.algart.matrices.tiff.pyramids.TiffPyramidMetadata;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -35,22 +35,22 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
-public class TiffPyramidImageSetTest {
+public class TiffPyramidMetadataTest {
     public static void main(String[] args) throws IOException {
         if (args.length == 0) {
-            System.out.println("Usage: " + TiffPyramidImageSetTest.class.getName() + " file1.svs file2.svs ...");
+            System.out.println("Usage: " + TiffPyramidMetadataTest.class.getName() + " file1.svs file2.svs ...");
             return;
         }
         for (String arg : args) {
             final Path file = Paths.get(arg);
             try (TiffReader reader = new TiffReader(file)) {
-                final TiffPyramidImageSet imageSet = TiffPyramidImageSet.of(reader);
-                if (!imageSet.isSVS()) {
-                    System.out.printf("%s is not SVS%n%s%n", file, imageSet);
+                final TiffPyramidMetadata metadata = TiffPyramidMetadata.of(reader);
+                if (!metadata.isSVS()) {
+                    System.out.printf("%s is not SVS%n%s%n", file, metadata);
                     continue;
                 }
-                SvsDescription main = imageSet.mainSvsDescription();
-                System.out.printf("%s:%n%s%n%nApplication:%n%s%n", file, imageSet, main.application());
+                SvsDescription main = metadata.mainSvsDescription();
+                System.out.printf("%s:%n%s%n%nApplication:%n%s%n", file, metadata, main.application());
                 System.out.println("The found main description, all attributes:");
                 for (Map.Entry<String, String> e : main.attributes().entrySet()) {
                     System.out.printf("  %s = %s%n", e.getKey(), e.getValue());
@@ -61,9 +61,9 @@ public class TiffPyramidImageSetTest {
                 System.out.println("----------");
                 System.out.println("The found main description, JSON:");
                 System.out.println(main.toString(TiffIFD.StringFormat.JSON));
-                System.out.printf("Image set:%n%s%n", imageSet);
+                System.out.printf("Image set:%n%s%n", metadata);
                 System.out.printf("%nAll descriptions%n");
-                final List<SvsDescription> allDescriptions = imageSet.allSvsDescriptions();
+                final List<SvsDescription> allDescriptions = metadata.allSvsDescriptions();
                 for (int i = 0, n = allDescriptions.size(); i < n; i++) {
                     SvsDescription d = allDescriptions.get(i);
                     if (d.isSVS()) {

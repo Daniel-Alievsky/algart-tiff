@@ -26,7 +26,7 @@ package net.algart.matrices.tiff.executable;
 
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.pyramids.TiffPyramidImageSet;
+import net.algart.matrices.tiff.pyramids.TiffPyramidMetadata;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 import javax.swing.*;
@@ -401,20 +401,20 @@ public class TiffInfoViewer {
             summaryInfoTextArea.setBackground(info.isTiff() ? COMMON_BACKGROUND : ERROR_BACKGROUND);
             summaryInfoTextArea.setCaretPosition(0);
             svsInfoTextArea.setText(info.svsInfo());
-            svsInfoTextArea.setVisible(info.imageSet().isPyramid());
+            svsInfoTextArea.setVisible(info.metadata().isPyramid());
             svsInfoTextArea.setCaretPosition(0);
-            TiffPyramidImageSet imageSet = info.imageSet();
-            assert imageSet != null;
+            TiffPyramidMetadata metadata = info.metadata();
+            assert metadata != null;
             String longest = "";
             for (int i = 0; i < info.numberOfImages(); i++) {
                 final StringBuilder sb = new StringBuilder("Image #" + i);
-                final int layer = imageSet.imageToLayer(i);
-                if (imageSet.isPyramid()) {
+                final int layer = metadata.imageToLayer(i);
+                if (metadata.isPyramid()) {
                     if (layer >= 0) {
                         sb.append(" (layer ").append(layer).append(")");
                     }
-                    for (var kind : TiffPyramidImageSet.SpecialKind.values()) {
-                        if (imageSet.specialKindIndex(kind) == i) {
+                    for (var kind : TiffPyramidMetadata.SpecialKind.values()) {
+                        if (metadata.specialKindIndex(kind) == i) {
                             sb.append(" (").append(kind.kindName()).append(")");
                         }
                     }

@@ -29,7 +29,7 @@ import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffOpenMode;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.pyramids.SvsDescription;
-import net.algart.matrices.tiff.pyramids.TiffPyramidImageSet;
+import net.algart.matrices.tiff.pyramids.TiffPyramidMetadata;
 import net.algart.matrices.tiff.tags.Tags;
 
 import java.io.File;
@@ -47,7 +47,7 @@ public class TiffInfo {
     private boolean disableAppendingForStrictFormats = false;
 
     private final List<String> ifdInfo = new ArrayList<>();
-    private TiffPyramidImageSet imageSet;
+    private TiffPyramidMetadata metadata;
     private boolean tiff;
     private String prefixInfo;
     private String summaryInfo;
@@ -130,8 +130,8 @@ public class TiffInfo {
         return tiff;
     }
 
-    public TiffPyramidImageSet imageSet() {
-        return imageSet;
+    public TiffPyramidMetadata metadata() {
+        return metadata;
     }
 
     public int numberOfImages() {
@@ -165,7 +165,7 @@ public class TiffInfo {
                 throw new AssertionError();
             }
             this.tiff = reader.isTiff();
-            this.imageSet = TiffPyramidImageSet.empty();
+            this.metadata = TiffPyramidMetadata.empty();
             if (!this.tiff) {
                 final Exception e = reader.openingException();
                 prefixInfo = "%nFile %s: not TIFF%s".formatted(tiffFile,
@@ -181,7 +181,7 @@ public class TiffInfo {
                             reader.isLittleEndian() ? "little" : "big");
                     throw e;
                 }
-                this.imageSet = TiffPyramidImageSet.of(allIFDs);
+                this.metadata = TiffPyramidMetadata.of(allIFDs);
                 final int ifdCount = allIFDs.size();
                 final int firstIndex = Math.max(this.firstIFDIndex, 0);
                 final int lastIndex = Math.min(this.lastIFDIndex, ifdCount - 1);
@@ -190,16 +190,16 @@ public class TiffInfo {
                         ifdCount,
                         reader.isBigTiff() ? "BigTIFF" : "not BigTIFF",
                         reader.isLittleEndian() ? "little" : "big",
-                        imageSet.isSVS() ? "SVS" : imageSet.isSVSCompatible() ? "SVS-compatible" : "non-SVS",
-                        imageSet.isPyramid() ?
-                                " pyramid (" + imageSet.numberOfLayers() + " layers, " +
-                                        imageSet.numberOfImages() + " images)" :
+                        metadata.isSVS() ? "SVS" : metadata.isSVSCompatible() ? "SVS-compatible" : "non-SVS",
+                        metadata.isPyramid() ?
+                                " pyramid (" + metadata.numberOfLayers() + " layers, " +
+                                        metadata.numberOfImages() + " images)" :
                                 "");
                 AtomicLong totalSize = new AtomicLong(reader.sizeOfHeader());
                 final long tiffFileLength = reader.stream().length();
                 for (int k = firstIndex; k <= lastIndex; k++) {
                     final TiffIFD ifd = allIFDs.get(k);
-                    final SvsDescription svsDescription = imageSet.svsDescription(k);
+                    final SvsDescription svsDescription = metadata.svsDescription(k);
                     ifdInfo.add(ifdInformation(reader, ifd, svsDescription, k, totalSize));
                     if (!(ifd.containsKey(Tags.STRIP_BYTE_COUNTS) || ifd.containsKey(Tags.TILE_BYTE_COUNTS))) {
                         System.err.printf("WARNING! Invalid IFD #%d in %s: no StripByteCounts/TileByteCounts tag%n",
@@ -225,8 +225,8 @@ public class TiffInfo {
                             .formatted(totalSize.get(),
                                     tiffFileLength - totalSize.get(), tiffFileLength);
                 }
-                if (imageSet.isPyramid()) {
-                    svsInfo = (imageSet.isSVS() ? "%s%n".formatted(imageSet.mainSvsDescription()) : "") + imageSet;
+                if (metadata.isPyramid()) {
+                    svsInfo = (metadata.isSVS() ? "%s%n".formatted(metadata.mainSvsDescription()) : "") + metadata;
                 }
             }
         }

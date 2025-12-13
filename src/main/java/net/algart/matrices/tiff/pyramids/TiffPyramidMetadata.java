@@ -38,7 +38,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public final class TiffPyramidImageSet {
+public final class TiffPyramidMetadata {
     public enum SpecialKind {
         THUMBNAIL("thumbnail"),
         LABEL("label"),
@@ -65,7 +65,7 @@ public final class TiffPyramidImageSet {
             Arrays.SystemSettings.getBooleanEnv(
                     "ALWAYS_USE_SVS_SPECIFICATION_FOR_LABEL_AND_MACRO", false);
 
-    private static final System.Logger LOG = System.getLogger(TiffPyramidImageSet.class.getName());
+    private static final System.Logger LOG = System.getLogger(TiffPyramidMetadata.class.getName());
 
     private final int numberOfImages;
     private final int baseImageDimX;
@@ -80,7 +80,7 @@ public final class TiffPyramidImageSet {
     private final List<SvsDescription> svsDescriptions;
     private final SvsDescription mainSvsDescription;
 
-    private TiffPyramidImageSet() {
+    private TiffPyramidMetadata() {
         this.numberOfImages = this.numberOfLayers = 0;
         this.baseImageDimX = this.baseImageDimY = 0;
         this.baseImageTiled = false;
@@ -88,7 +88,7 @@ public final class TiffPyramidImageSet {
         this.mainSvsDescription = null;
     }
 
-    private TiffPyramidImageSet(List<TiffIFD> ifds) throws TiffException {
+    private TiffPyramidMetadata(List<TiffIFD> ifds) throws TiffException {
         Objects.requireNonNull(ifds, "Null ifds");
         this.numberOfImages = ifds.size();
         if (numberOfImages == 0) {
@@ -114,17 +114,17 @@ public final class TiffPyramidImageSet {
         this.mainSvsDescription = SvsDescription.findMainDescription(svsDescriptions);
     }
 
-    public static TiffPyramidImageSet empty() {
-        return new TiffPyramidImageSet();
+    public static TiffPyramidMetadata empty() {
+        return new TiffPyramidMetadata();
     }
 
-    public static TiffPyramidImageSet of(List<TiffIFD> ifds) throws TiffException {
-        return new TiffPyramidImageSet(ifds);
+    public static TiffPyramidMetadata of(List<TiffIFD> ifds) throws TiffException {
+        return new TiffPyramidMetadata(ifds);
     }
 
-    public static TiffPyramidImageSet of(TiffReader reader) throws IOException {
+    public static TiffPyramidMetadata of(TiffReader reader) throws IOException {
         Objects.requireNonNull(reader, "Null TIFF reader");
-        return new TiffPyramidImageSet(reader.allIFDs());
+        return new TiffPyramidMetadata(reader.allIFDs());
     }
 
     /**
@@ -585,14 +585,14 @@ public final class TiffPyramidImageSet {
 
     public static void main(String[] args) throws IOException {
         if (args.length == 0) {
-            System.out.println("Usage: " + TiffPyramidImageSet.class.getName() + " file1.svs file2.svs ...");
+            System.out.println("Usage: " + TiffPyramidMetadata.class.getName() + " file1.svs file2.svs ...");
             return;
         }
         for (String arg : args) {
             final Path file = Paths.get(arg);
             try (TiffReader reader = new TiffReader(file)) {
-                final var imageSet = new TiffPyramidImageSet(reader.allIFDs());
-                System.out.printf("%s:%n%s%n%n", file, imageSet);
+                final var metadata = new TiffPyramidMetadata(reader.allIFDs());
+                System.out.printf("%s:%n%s%n%n", file, metadata);
             }
         }
     }
