@@ -28,8 +28,8 @@ import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffOpenMode;
 import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.pyramids.SvsDescription;
 import net.algart.matrices.tiff.pyramids.TiffPyramidMetadata;
+import net.algart.matrices.tiff.tags.TagDescription;
 import net.algart.matrices.tiff.tags.Tags;
 
 import java.io.File;
@@ -190,7 +190,7 @@ public class TiffInfo {
                         ifdCount,
                         reader.isBigTiff() ? "BigTIFF" : "not BigTIFF",
                         reader.isLittleEndian() ? "little" : "big",
-                        metadata.isSVS() ? "SVS" : metadata.isSVSCompatible() ? "SVS-compatible" : "non-SVS",
+                        metadata.isSvs() ? "SVS" : metadata.isSvsCompatible() ? "SVS-compatible" : "non-SVS",
                         metadata.isPyramid() ?
                                 " pyramid (" + metadata.numberOfLayers() + " layers, " +
                                         metadata.numberOfImages() + " images)" :
@@ -199,8 +199,8 @@ public class TiffInfo {
                 final long tiffFileLength = reader.stream().length();
                 for (int k = firstIndex; k <= lastIndex; k++) {
                     final TiffIFD ifd = allIFDs.get(k);
-                    final SvsDescription svsDescription = metadata.svsDescription(k);
-                    ifdInfo.add(ifdInformation(reader, ifd, svsDescription, k, totalSize));
+                    final TagDescription tagDescription = metadata.tagDescription(k);
+                    ifdInfo.add(ifdInformation(reader, ifd, tagDescription, k, totalSize));
                     if (!(ifd.containsKey(Tags.STRIP_BYTE_COUNTS) || ifd.containsKey(Tags.TILE_BYTE_COUNTS))) {
                         System.err.printf("WARNING! Invalid IFD #%d in %s: no StripByteCounts/TileByteCounts tag%n",
                                 k, tiffFile);
@@ -226,7 +226,7 @@ public class TiffInfo {
                                     tiffFileLength - totalSize.get(), tiffFileLength);
                 }
                 if (metadata.isPyramid()) {
-                    svsInfo = (metadata.isSVS() ? "%s%n".formatted(metadata.mainSvsDescription()) : "") + metadata;
+                    svsInfo = (metadata.isSvs() ? "%s%n".formatted(metadata.mainSvsDescription()) : "") + metadata;
                 }
             }
         }
@@ -239,12 +239,13 @@ public class TiffInfo {
     private String ifdInformation(
             TiffReader reader,
             TiffIFD ifd,
-            SvsDescription svsDescription,
+            TagDescription tagDescription,
             int ifdIndex,
             AtomicLong totalSize) throws IOException {
         final Map<String, String> additionalInformation = new LinkedHashMap<>();
-        if (svsDescription != null && svsDescription.isSVS()) {
-            additionalInformation.put("SVS", svsDescription.toString(stringFormat));
+        if (tagDescription != null) {
+            //TODO!! impossible in future versions
+            additionalInformation.put(tagDescription.formatName(), tagDescription.toString(stringFormat));
         }
         if (disableAppendingForStrictFormats && stringFormat.isStrict()) {
             return ifd.toString(stringFormat, additionalInformation);

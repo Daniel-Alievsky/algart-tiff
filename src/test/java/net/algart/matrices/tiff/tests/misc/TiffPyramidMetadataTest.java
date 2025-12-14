@@ -26,8 +26,9 @@ package net.algart.matrices.tiff.tests.misc;
 
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.pyramids.SvsDescription;
+import net.algart.matrices.tiff.tags.SvsDescription;
 import net.algart.matrices.tiff.pyramids.TiffPyramidMetadata;
+import net.algart.matrices.tiff.tags.TagDescription;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -45,7 +46,7 @@ public class TiffPyramidMetadataTest {
             final Path file = Paths.get(arg);
             try (TiffReader reader = new TiffReader(file)) {
                 final TiffPyramidMetadata metadata = TiffPyramidMetadata.of(reader);
-                if (!metadata.isSVS()) {
+                if (!metadata.isSvs()) {
                     System.out.printf("%s is not SVS%n%s%n", file, metadata);
                     continue;
                 }
@@ -63,36 +64,36 @@ public class TiffPyramidMetadataTest {
                 System.out.println(main.toString(TiffIFD.StringFormat.JSON));
                 System.out.printf("Image set:%n%s%n", metadata);
                 System.out.printf("%nAll descriptions%n");
-                final List<SvsDescription> allDescriptions = metadata.allSvsDescriptions();
+                final List<TagDescription> allDescriptions = metadata.allDescriptions();
                 for (int i = 0, n = allDescriptions.size(); i < n; i++) {
-                    SvsDescription d = allDescriptions.get(i);
-                    if (d.isSVS()) {
+                    TagDescription tagDescription = allDescriptions.get(i);
+                    if (tagDescription instanceof SvsDescription svs) {
                         System.out.printf("%s description #%d/%d (%s)%n",
-                                d.isMain() ? "Main" : "Additional",
-                                i, n, d);
-                        if (d.hasPixelSize()) {
-                            System.out.printf("  Pixel size: %s%n", d.pixelSize());
+                                svs.isMain() ? "Main" : "Additional",
+                                i, n, svs);
+                        if (svs.hasPixelSize()) {
+                            System.out.printf("  Pixel size: %s%n", svs.pixelSize());
                         }
-                        if (d.hasMagnification()) {
-                            System.out.printf("  Magnification: %s%n", d.magnification());
+                        if (svs.hasMagnification()) {
+                            System.out.printf("  Magnification: %s%n", svs.magnification());
                         }
-                        if (d.hasGeometry()) {
+                        if (svs.hasGeometry()) {
                             System.out.printf("  Image left (microns, axis rightward): %f%n",
-                                    d.imageLeftMicronsAxisRightward());
+                                    svs.imageLeftMicronsAxisRightward());
                             System.out.printf("  Image top (microns, axis upward): %f%n",
-                                    d.imageTopMicronsAxisUpward());
+                                    svs.imageTopMicronsAxisUpward());
                         }
-                        if (d.hasAttributes()) {
+                        if (svs.hasAttributes()) {
                             System.out.printf("  All attributes:%n");
-                            for (Map.Entry<String, String> e : d.attributes().entrySet()) {
+                            for (Map.Entry<String, String> e : svs.attributes().entrySet()) {
                                 System.out.printf("    %s = %s%n", e.getKey(), e.getValue());
                             }
                         }
-                        if (d.hasSummary()) {
-                            System.out.printf("  Summary: <<<%s>>>%n", d.summary());
+                        if (svs.hasSummary()) {
+                            System.out.printf("  Summary: <<<%s>>>%n", svs.summary());
                         }
-                        System.out.printf("  Raw description:%n<<<%s>>>%n%n", d.description());
                     }
+                    System.out.printf("  Raw description:%n<<<%s>>>%n%n", tagDescription.get());
                 }
             }
         }

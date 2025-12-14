@@ -28,7 +28,9 @@ import net.algart.arrays.Arrays;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
+import net.algart.matrices.tiff.tags.SvsDescription;
 import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tags.TagDescription;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -77,14 +79,14 @@ public final class TiffPyramidMetadata {
     private int labelIndex = -1;
     private int macroIndex = -1;
 
-    private final List<SvsDescription> svsDescriptions;
+    private final List<TagDescription> tagDescriptions;
     private final SvsDescription mainSvsDescription;
 
     private TiffPyramidMetadata() {
         this.numberOfImages = this.numberOfLayers = 0;
         this.baseImageDimX = this.baseImageDimY = 0;
         this.baseImageTiled = false;
-        this.svsDescriptions = Collections.emptyList();
+        this.tagDescriptions = Collections.emptyList();
         this.mainSvsDescription = null;
     }
 
@@ -106,12 +108,12 @@ public final class TiffPyramidMetadata {
                 detectSingleLastImage(ifds);
             }
         }
-        this.svsDescriptions = new ArrayList<>();
+        this.tagDescriptions = new ArrayList<>();
         for (int k = 0; k < numberOfImages; k++) {
             final String description = ifds.get(k).optDescription().orElse(null);
-            this.svsDescriptions.add(SvsDescription.of(description));
+            this.tagDescriptions.add(TagDescription.of(description));
         }
-        this.mainSvsDescription = SvsDescription.findMainDescription(svsDescriptions);
+        this.mainSvsDescription = SvsDescription.findMainDescription(tagDescriptions);
     }
 
     public static TiffPyramidMetadata empty() {
@@ -191,7 +193,7 @@ public final class TiffPyramidMetadata {
         return -1;
     }
 
-    public boolean isSVS() {
+    public boolean isSvs() {
         return mainSvsDescription != null;
     }
 
@@ -200,7 +202,7 @@ public final class TiffPyramidMetadata {
             return false;
         }
         if (numberOfLayers == 1) {
-            return isSVS();
+            return isSvs();
             // - if this is not SVS, i.e., we have no Aperio-like ImageDescription,
             // then we cannot determine a thumbnail and have no reasons to interpret this TIFF as a pyramid
         }
@@ -208,8 +210,8 @@ public final class TiffPyramidMetadata {
         return true;
     }
 
-    public boolean isSVSCompatible() {
-        return isSVS() || (isPyramid() && hasSVSThumbnail());
+    public boolean isSvsCompatible() {
+        return isSvs() || (isPyramid() && hasSvsThumbnail());
     }
 
     public int baseImageDimX() {
@@ -289,7 +291,7 @@ public final class TiffPyramidMetadata {
      *
      * @return whether this TIFF contains an SVS-compatible thumbnail image at the position #1.
      */
-    public boolean hasSVSThumbnail() {
+    public boolean hasSvsThumbnail() {
         return thumbnailIndex == SVS_THUMBNAIL_INDEX;
     }
 
@@ -354,19 +356,19 @@ public final class TiffPyramidMetadata {
         return -1;
     }
 
-    public List<SvsDescription> allSvsDescriptions() {
-        return svsDescriptions;
+    public List<TagDescription> allDescriptions() {
+        return tagDescriptions;
     }
 
-    public SvsDescription svsDescription(int ifdIndex) {
+    public TagDescription tagDescription(int ifdIndex) {
         if (ifdIndex < 0) {
             throw new IllegalArgumentException("Negative IFD index " + ifdIndex);
         }
-        if (ifdIndex >= svsDescriptions.size()) {
+        if (ifdIndex >= tagDescriptions.size()) {
             throw new IllegalArgumentException(
-                    "IFD index " + ifdIndex + " is out of bounds 0 <= index < " + svsDescriptions.size());
+                    "IFD index " + ifdIndex + " is out of bounds 0 <= index < " + tagDescriptions.size());
         }
-        return svsDescriptions.get(ifdIndex);
+        return tagDescriptions.get(ifdIndex);
     }
 
     public SvsDescription mainSvsDescription() {

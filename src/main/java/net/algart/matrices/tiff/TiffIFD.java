@@ -26,7 +26,6 @@ package net.algart.matrices.tiff;
 
 import net.algart.arrays.*;
 import net.algart.io.awt.ImageToMatrix;
-import net.algart.matrices.tiff.pyramids.SvsDescription;
 import net.algart.matrices.tiff.tags.*;
 
 import java.awt.image.BufferedImage;
@@ -2331,7 +2330,7 @@ public final class TiffIFD {
         }
     }
 
-    private static void addExtendedInfo(StringBuilder sb, boolean json, Map<String, String> extendedInformation) {
+    private static void     addExtendedInfo(StringBuilder sb, boolean json, Map<String, String> extendedInformation) {
         for (Map.Entry<String, String> entry : extendedInformation.entrySet()) {
             String key = entry.getKey();
             String value = entry.getValue();

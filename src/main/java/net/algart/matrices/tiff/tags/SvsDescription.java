@@ -22,14 +22,14 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.pyramids;
+package net.algart.matrices.tiff.tags;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 
 import java.util.*;
 
-public final class SvsDescription {
+public final class SvsDescription extends TagDescription {
     public static final String SVS_IMAGE_DESCRIPTION_PREFIX = "Aperio Image";
 
     public static final String MAGNIFICATION_ATTRIBUTE = "AppMag";
@@ -39,79 +39,62 @@ public final class SvsDescription {
 
     private static final Set<String> HUMAN_READABLE_ATTRIBUTES = Set.of("ScanScope ID", "Date", "Time");
 
-    private final String description;
     private final List<String> text = new ArrayList<>();
     private final Map<String, String> attributes = new LinkedHashMap<>();
     private final String application;
     private final String summary;
-    private final boolean svs;
     private final boolean main;
 
-    private SvsDescription(String description) {
-        this.description = description;
-        this.svs = description != null && this.description.startsWith(SVS_IMAGE_DESCRIPTION_PREFIX);
-        if (this.svs) {
-            boolean delimiterFound = false;
-            String summary = "";
-            for (String line : this.description.split("\\n")) {
-                line = line.trim();
-                this.text.add(line);
-                final int p = line.indexOf('|');
-                final String prefix = p == -1 ? line : line.substring(0, p);
-                if (!delimiterFound) {
-                    summary = prefix.trim();
-                    // - for the summary, we use the first string with the delimiter "|" or,
-                    // if there are NO such strings, the last among all strings
-                }
-                if (p > 0) {
-                    delimiterFound = true;
-                    final String[] records = line.substring(p + 1).split("\\|");
-                    for (String s : records) {
-                        final String[] keyValue = s.trim().split("=", 2);
-                        if (keyValue.length == 2) {
-                            final String key = keyValue[0].trim();
-                            final String value = keyValue[1].trim();
-                            attributes.put(key, value);
-                            // - for duplicates, we use the last one
-                        }
+    SvsDescription(String description) {
+        super(description);
+        assert description != null && description.startsWith(SVS_IMAGE_DESCRIPTION_PREFIX) :
+                getClass().getSimpleName() + " should not be constructed for " + description;
+        boolean delimiterFound = false;
+        String summary = "";
+        for (String line : this.description.split("\\n")) {
+            line = line.trim();
+            this.text.add(line);
+            final int p = line.indexOf('|');
+            final String prefix = p == -1 ? line : line.substring(0, p);
+            if (!delimiterFound) {
+                summary = prefix.trim();
+                // - for the summary, we use the first string with the delimiter "|" or,
+                // if there are NO such strings, the last among all strings
+            }
+            if (p > 0) {
+                delimiterFound = true;
+                final String[] records = line.substring(p + 1).split("\\|");
+                for (String s : records) {
+                    final String[] keyValue = s.trim().split("=", 2);
+                    if (keyValue.length == 2) {
+                        final String key = keyValue[0].trim();
+                        final String value = keyValue[1].trim();
+                        attributes.put(key, value);
+                        // - for duplicates, we use the last one
                     }
                 }
             }
-            this.application = !text.isEmpty() ? text.getFirst() : "";
-            this.summary = summary;
-            this.main = hasPixelSize();
-        } else {
-            this.application = "";
-            this.summary = "";
-            this.main = false;
         }
+        this.application = !text.isEmpty() ? text.getFirst() : "";
+        this.summary = summary;
+        this.main = hasPixelSize();
     }
 
     private SvsDescription(Builder builder) {
-        Objects.requireNonNull(builder);
+        super(Objects.requireNonNull(builder).buildDescription());
         this.text.addAll(builder.text);
         this.attributes.putAll(builder.attributes);
         this.application = builder.application;
         this.summary = builder.summary;
-        this.svs = builder.svs;
         this.main = builder.main;
-        this.description = builder.buildDescription();
     }
 
-    public static SvsDescription of(String description) {
-        return new SvsDescription(description);
+    public static boolean isSvs(String imageDescription) {
+        return imageDescription != null && imageDescription.startsWith(SVS_IMAGE_DESCRIPTION_PREFIX);
     }
 
-    public static SvsDescription noSVS() {
-        return new SvsDescription(new Builder());
-    }
-
-    public String description() {
-        return description;
-    }
-
-    public boolean isSVS() {
-        return svs;
+    public boolean isSvs() {
+        return true;
     }
 
     public boolean isMain() {
@@ -123,12 +106,12 @@ public final class SvsDescription {
     }
 
     /**
-     * In the current version, always returns "Aperio".
+     * In the current version, always returns "SVS".
      *
-     * @return the name of SVS sub-format, always "Aperio" in the current version.
+     * @return the name of SVS sub-format, always "SVS" in the current version.
      */
-    public String subFormatName() {
-        return "Aperio";
+    public String formatName() {
+        return "SVS";
     }
 
     public boolean hasApplication() {
@@ -157,7 +140,7 @@ public final class SvsDescription {
     }
 
     /**
-     * Returns brief summary of the SVS image.
+     * Returns a brief summary of the SVS image.
      * An example (from <a href="https://openslide.org/demo/">OpenSlide website</a>):
      * <pre>"46920x33014 [0,100 46000x32914] (256x256) JPEG/RGB Q=30".</pre>
      *
@@ -172,65 +155,16 @@ public final class SvsDescription {
         return summary;
     }
 
-    public boolean hasAttributes() {
-        return !attributes.isEmpty();
-    }
-
+    @Override
     public Map<String, String> attributes() {
         return Collections.unmodifiableMap(attributes);
     }
 
-    public static Set<String> humanReadableAttributeNames() {
+    @Override
+    public Set<String> humanReadableAttributeNames() {
         // Historically, in the old API, oriented for PlanePyramidSource interface and SVS2Json utility,
-        // this method was called by importantTextAttributes().
+        // this method was called by importantAttributeNames().
         return HUMAN_READABLE_ATTRIBUTES;
-    }
-
-    /**
-     * Returns the value of the specified SVS numeric attribute as a {@code double}.
-     * The attribute must exist and must contain a valid decimal number.
-     *
-     * <p>If the attribute is absent or cannot be parsed as a number,
-     * this method throws a {@link TiffException}.
-     *
-     * @param name name of the SVS attribute to read (must not be {@code null}).
-     * @return the parsed {@code double} value of the specified attribute.
-     * @throws NullPointerException if {@code name} is {@code null}.
-     * @throws TiffException        if the attribute is missing or contains an invalid number.
-     */
-    public double reqDouble(String name) throws TiffException {
-        Objects.requireNonNull(name, "Null attribute name");
-        final String value = attributes.get(name);
-        if (value == null) {
-            throw new TiffException("SVS image description does not contain \"" + name + "\" attribute");
-        }
-        try {
-            return parseJsonDouble(value);
-        } catch (NumberFormatException e) {
-            throw new TiffException("SVS image description contains invalid \"" + name + "\" attribute: " +
-                    value + " is not a number", e);
-        }
-    }
-
-    /**
-     * An analog of {@link #reqDouble(String)}, which returns {@code OptionalDouble.empty()}
-     * instead of throwing {@link TiffException}.
-     *
-     * @param name name of the SVS attribute to read (must not be {@code null}).
-     * @return the parsed {@code double} value of the specified attribute or {@code OptionalDouble.empty()}.
-     * @throws NullPointerException if {@code name} is {@code null}.
-     */
-    public OptionalDouble optDouble(String name) {
-        Objects.requireNonNull(name, "Null attribute name");
-        final String value = attributes.get(name);
-        if (value == null) {
-            return OptionalDouble.empty();
-        }
-        try {
-            return OptionalDouble.of(parseJsonDouble(value));
-        } catch (NumberFormatException e) {
-            return OptionalDouble.empty();
-        }
     }
 
     public boolean hasPixelSize() {
@@ -294,18 +228,14 @@ public final class SvsDescription {
         return reqDouble(TOP_ATTRIBUTE) * 1000.0;
     }
 
+    @Override
     public String jsonString() {
         final StringBuilder sb = new StringBuilder();
         sb.append("{\n");
-        sb.append("  \"svs\": ").append(svs);
-        if (!svs) {
-            sb.append("\n}");
-            return sb.toString();
-        }
-        sb.append(",\n");
+        sb.append("  \"svs\": ").append(true).append(",\n");
         sb.append("  \"main\": ").append(main).append(",\n");
-        sb.append("  \"application\": \"").append(TiffIFD.escapeJsonString(application)).append("\",\n");
-        sb.append("  \"summary\": \"").append(TiffIFD.escapeJsonString(summary)).append("\",\n");
+        sb.append("  \"application\": \"").append(TiffIFD.escapeJsonString(application())).append("\",\n");
+        sb.append("  \"summary\": \"").append(TiffIFD.escapeJsonString(summary())).append("\",\n");
         sb.append("  \"attributes\": {\n");
         for (Iterator<Map.Entry<String, String>> iterator = attributes.entrySet().iterator(); iterator.hasNext(); ) {
             Map.Entry<String, String> entry = iterator.next();
@@ -349,17 +279,14 @@ public final class SvsDescription {
         if (format.isJson()) {
             return jsonString();
         }
-        if (!svs) {
-            return "Non-SVS TIFF image description";
-        }
         StringBuilder sb = new StringBuilder();
         if (format.isBrief()) {
             sb.append(main ? "SVS" : "Additional");
             if (hasApplication()) {
-                sb.append(" [").append(application).append("]");
+                sb.append(" [").append(application()).append("]");
             }
             sb.append(": ");
-            sb.append(summary);
+            sb.append(summary());
             OptionalDouble optional = optPixelSize();
             if (optional.isPresent()) {
                 sb.append(", ").append(optional.getAsDouble()).append(" microns/pixel");
@@ -367,7 +294,7 @@ public final class SvsDescription {
             return sb.toString();
         }
         sb.append(main ? "Main image" : "Additional image");
-        sb.append("%nSummary:%n  %s%n".formatted(summary));
+        sb.append("%nSummary:%n  %s%n".formatted(summary()));
         sb.append("Attributes:");
         for (Map.Entry<String, String> entry : attributes.entrySet()) {
             sb.append("%n  %s = %s".formatted(entry.getKey(), entry.getValue()));
@@ -382,30 +309,23 @@ public final class SvsDescription {
         }
         sb.append("%nRaw text:".formatted());
         for (String line : text) {
+            // - includes information about the application
             sb.append("%n  %s".formatted(line));
         }
         return sb.toString();
     }
 
-    static SvsDescription findMainDescription(List<SvsDescription> descriptions) {
+    public static SvsDescription findMainDescription(List<? extends TagDescription> descriptions) {
         // Note: the detailed SVS specification is always included (as ImageDescription tag)
         // in the first image (#0) with maximal resolution and partially repeated in the thumbnail image (#1).
         // The label and macro images usually contain reduced ImageDescription.
-        for (SvsDescription description : descriptions) {
-            if (description.isMain()) {
-                return description;
+        for (TagDescription description : descriptions) {
+            if (description instanceof SvsDescription svs && svs.isMain()) {
+                return svs;
                 // - returning the first
             }
         }
         return null;
-    }
-
-    private static double parseJsonDouble(String s) throws NumberFormatException {
-        double result = Double.parseDouble(s);
-        if (!Double.isFinite(result)) {
-            throw new NumberFormatException("unallowed value");
-        }
-        return result;
     }
 
     //TODO!!
@@ -415,7 +335,6 @@ public final class SvsDescription {
         private String application = "";
         private String summary = "";
 
-        private boolean svs = false;
         private boolean main = false;
 
         public Builder() {
@@ -426,9 +345,6 @@ public final class SvsDescription {
         }
 
         private String buildDescription() {
-            if (!svs) {
-                return null;
-            }
             return "";
         }
     }
