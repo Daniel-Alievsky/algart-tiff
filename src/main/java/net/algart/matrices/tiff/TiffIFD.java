@@ -439,7 +439,7 @@ public final class TiffIFD {
      * The total number of bytes occupied by all IFD entries is returned by {@link #sizeOfIFD(long)};
      * usually it is greater than the result of this method.</p>
      *
-     * @return the length of IFD table in bytes, including the following offset of the next IFD.
+     * @return the length of the IFD table in bytes, including the following offset of the next IFD.
      * @throws TiffException in the case of incorrect TIFF.
      */
     public long sizeOfIFDTable() throws TiffException {
@@ -999,6 +999,19 @@ public final class TiffIFD {
         return optValue(Tags.IMAGE_DESCRIPTION, String.class);
     }
 
+    /**
+     * Returns the content of the {@code ImageDescription} tag,
+     * parsed by the {@link TagDescription#of(String)} method.
+     *
+     * <p>Note: if you called {@link #putDescription(TagDescription)} method
+     * and did not change the stored description in other ways,
+     * then the result will always be equal to its argument.
+     *
+     * <p>This method never returns {@code null}. If there is no {@code ImageDescription} tag,
+     * this method returns {@link TagDescription#EMPTY}.</p>
+     *
+     * @return the image description; cannot be {@code null}.
+     */
     public TagDescription getDescription() {
         TagDescription result = this.description;
         if (result == null) {
@@ -1205,7 +1218,7 @@ public final class TiffIFD {
     }
 
     /**
-     * Returns the tile width in tiled image. If there are no tiles,
+     * Returns the tile width in the tiled image. If there are no tiles,
      * returns max(w,1), where w is the image width.
      *
      * <p>Note: the result is always positive!
@@ -1230,7 +1243,7 @@ public final class TiffIFD {
     }
 
     /**
-     * Returns the tile height in tiled image, strip height in other images. If there are no tiles or strips,
+     * Returns the tile height in the tiled image, strip height in other images. If there are no tiles or strips,
      * returns max(h,1), where h is the image height.
      *
      * <p>Note: the result is always positive!
@@ -1729,6 +1742,14 @@ public final class TiffIFD {
         return this;
     }
 
+    public TiffIFD putDescription(TagDescription description) {
+        Objects.requireNonNull(description, "Null description");
+        put(Tags.IMAGE_DESCRIPTION, description);
+        this.description = description;
+        // - assign this.description AFTER clearing cache in the put() method
+        return this;
+    }
+
     public TiffIFD removeDescription() {
         remove(Tags.IMAGE_DESCRIPTION);
         return this;
@@ -1849,7 +1870,10 @@ public final class TiffIFD {
         // - necessary to avoid possible bugs with detection of the type
         if (key == Tags.COMPRESSION) {
             detailedCompression = null;
-            // - forget the previous saved compression: let detect it on the base of compression code
+            // - forget the previous saved compression: let detect it on the base of the compression code
+        } else if (key == Tags.IMAGE_DESCRIPTION) {
+            description = null;
+            // - forget the previous saved description: let detect it on the base of the image description string
         }
         clearCache();
         return map.put(key, value);
@@ -1880,17 +1904,8 @@ public final class TiffIFD {
         return toString(StringFormat.BRIEF);
     }
 
-    public String toString(StringFormat format) {
-        return toString(format, Collections.emptyMap());
-    }
-
     /**
      * Returns a string description of this IFD according to the specified {@link StringFormat format}.
-     *
-     * <p>If the {@code extendedInformation} map is not empty, its elements are added
-     * to the end of the resulting string.
-     * In {@link StringFormat#JSON JSON} format, they are appended as the last elements of the JSON object,
-     * using the keys from this map.
      *
      * <p>The resulting string is usually multiline, excepting the case of {@link StringFormat#BRIEF BRIEF} format.
      * In {@link StringFormat#JSON JSON} format, the lines are separated by "\n",
@@ -1899,14 +1914,12 @@ public final class TiffIFD {
      * characters.
      *
      * @param format style of formatting the returned string.
-     * @param extendedInformation additional information, for example, from
      * {@link SvsDescription} class.
      * @return a string description of this object.
      * @throws NullPointerException if one of the arguments is {@code null}.
      */
-    public String toString(StringFormat format, Map<String, String> extendedInformation) {
+    public String toString(StringFormat format) {
         Objects.requireNonNull(format, "Null format");
-        Objects.requireNonNull(extendedInformation, "Null additional information");
         final boolean json = format.isJson();
         final StringBuilder sb = new StringBuilder();
         addBriefInfo(sb, json);
@@ -1930,10 +1943,21 @@ public final class TiffIFD {
             }
         }
         if (json) {
-            sb.append("\n  }");
+            sb.append(firstEntry ? "" : "\n").append("  }");
         }
-        addExtendedInfo(sb, json, extendedInformation);
-        // - note: for non-JSON, this method also adds line separator BEFORE the content
+        TagDescription description = getDescription();
+        assert description != null;
+        if (description.isPresent()) {
+            if (json) {
+                sb.append(",\n  \"%s\": %s".formatted(
+                        escapeJsonString(description.formatName(false)),
+                        addLeftIndent(description.toString(format), 2, false)));
+            } else {
+                sb.append("%n  %s:%n%s".formatted(
+                        description.formatName(true),
+                        addLeftIndent(description.toString(format), 4, true)));
+            }
+        }
         if (json) {
             sb.append("\n}");
         }
@@ -2070,7 +2094,6 @@ public final class TiffIFD {
     private void clearCache() {
         cachedTileOrStripByteCounts = null;
         cachedTileOrStripOffsets = null;
-        description = null;
     }
 
     private void checkImmutable() {
@@ -2348,7 +2371,8 @@ public final class TiffIFD {
         }
     }
 
-    private static void     addExtendedInfo(StringBuilder sb, boolean json, Map<String, String> extendedInformation) {
+    // Deprecated idea
+    private static void addExtendedInfo(StringBuilder sb, boolean json, Map<String, String> extendedInformation) {
         for (Map.Entry<String, String> entry : extendedInformation.entrySet()) {
             String key = entry.getKey();
             String value = entry.getValue();

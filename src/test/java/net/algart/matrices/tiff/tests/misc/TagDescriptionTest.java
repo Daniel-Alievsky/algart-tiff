@@ -26,19 +26,59 @@ package net.algart.matrices.tiff.tests.misc;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.tags.TagDescription;
 
 public class TagDescriptionTest {
-    private static void testDescription(TiffIFD ifd, String s) {
-        ifd.putDescription(s);
-        System.out.printf("Description: %s%n", ifd.optDescription());
+    static class CustomDescription extends TagDescription {
+        public CustomDescription(String description) {
+            super(description);
+        }
+
+        @Override
+        public String application() {
+            return "Test-app";
+        }
+
+        @Override
+        public String formatName(boolean pretty) {
+            return "test";
+        }
+
+        @Override
+        public String toString() {
+            return "Custom test description";
+        }
+    }
+
+    private static void printDescription(TiffIFD ifd) {
+        System.out.printf("optDescription: %s%n", ifd.optDescription());
+        System.out.printf("getDescription: %s%n", ifd.getDescription());
         System.out.println(ifd.toString(TiffIFD.StringFormat.NORMAL));
+        System.out.println(ifd.jsonString());
         System.out.println();
     }
 
     public static void main(String[] args) throws TiffException {
         TiffIFD ifd = new TiffIFD();
-        testDescription(ifd, "Hello");
-        testDescription(ifd, "\u041F\u0440\u0438\u0432\u0435\u0442!");
+        printDescription(ifd);
+        ifd.putDescription("Hello");
+        printDescription(ifd);
+        printDescription(ifd);
+        ifd.putDescription("\u041F\u0440\u0438\u0432\u0435\u0442!");
         // - russian translation of "Hello"
+        printDescription(ifd);
+        printDescription(ifd);
+        ifd.putDescription(TagDescription.EMPTY);
+        printDescription(ifd);
+        CustomDescription custom = new CustomDescription("Something");
+        ifd.putDescription(custom);
+        printDescription(ifd);
+        ifd.putImageDimensions(100, 100);
+        printDescription(ifd);
+        if (ifd.getDescription() != custom) {
+            throw new AssertionError();
+        }
+        ifd.putDescription("Hello again");
+        printDescription(ifd);
     }
 }

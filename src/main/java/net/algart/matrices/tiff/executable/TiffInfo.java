@@ -242,13 +242,8 @@ public class TiffInfo {
             TagDescription tagDescription,
             int ifdIndex,
             AtomicLong totalSize) throws IOException {
-        final Map<String, String> additionalInformation = new LinkedHashMap<>();
-        if (tagDescription != null) {
-            //TODO!! impossible in future versions
-            additionalInformation.put(tagDescription.formatName(), tagDescription.toString(stringFormat));
-        }
         if (disableAppendingForStrictFormats && stringFormat.isStrict()) {
-            return ifd.toString(stringFormat, additionalInformation);
+            return ifd.toString(stringFormat);
         }
         int ifdCount = reader.numberOfImages();
         StringBuilder sb = new StringBuilder();
@@ -256,7 +251,7 @@ public class TiffInfo {
                 ifdIndex,
                 ifdCount,
                 stringFormat.isJson() ? "%n".formatted() : " ",
-                ifd.toString(stringFormat, additionalInformation)));
+                ifd.toString(stringFormat)));
         final long tiffFileLength = reader.stream().length();
         final OptionalLong sizeOfIFDOptional = ifd.sizeOfIFD(tiffFileLength);
         AtomicBoolean imageDataAligned = new AtomicBoolean(false);

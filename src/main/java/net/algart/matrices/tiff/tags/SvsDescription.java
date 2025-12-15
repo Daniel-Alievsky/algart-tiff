@@ -49,9 +49,10 @@ public final class SvsDescription extends TagDescription {
         super(description);
         assert description != null && description.startsWith(SVS_IMAGE_DESCRIPTION_PREFIX) :
                 getClass().getSimpleName() + " should not be constructed for " + description;
+        description = description.trim();
         boolean delimiterFound = false;
         String summary = "";
-        for (String line : this.description.split("\\n")) {
+        for (String line : description.split("\\n")) {
             line = line.trim();
             this.text.add(line);
             final int p = line.indexOf('|');
@@ -105,13 +106,8 @@ public final class SvsDescription extends TagDescription {
         return Collections.unmodifiableList(text);
     }
 
-    /**
-     * In the current version, always returns "SVS".
-     *
-     * @return the name of SVS sub-format, always "SVS" in the current version.
-     */
-    public String formatName() {
-        return "SVS";
+    public String formatName(boolean pretty) {
+        return pretty ? "SVS details" : "svs";
     }
 
     public boolean hasApplication() {

@@ -30,6 +30,7 @@ import net.algart.arrays.TooLargeArrayException;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tags.TagDescription;
 
 import java.nio.ByteOrder;
 import java.util.*;
@@ -362,8 +363,8 @@ public sealed class TiffMap permits TiffIOMap {
         return maxNumberOfSamplesInArray;
     }
 
-    public Optional<String> description() {
-        return ifd.optDescription();
+    public TagDescription description() {
+        return ifd.getDescription();
     }
 
     public TilingMode getTilingMode() {

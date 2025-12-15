@@ -39,6 +39,9 @@ public class TagDescription {
     }
 
     public static TagDescription of(String imageDescription) {
+        if (imageDescription == null) {
+            return EMPTY;
+        }
         if (SvsDescription.isSvs(imageDescription)) {
             return new SvsDescription(imageDescription);
         }
@@ -64,7 +67,11 @@ public class TagDescription {
     }
 
     public String formatName() {
-        return "description";
+        return formatName(true);
+    }
+
+    public String formatName(boolean pretty) {
+        return pretty ? "Additional description" : "additional";
     }
 
     /**
@@ -151,7 +158,7 @@ public class TagDescription {
     public String toString() {
         return description == null ?
                 "No ImageDescription tag" :
-                "Common TIFF image description";
+                (description.isBlank() ? "Empty" : "Common") + " unparsed TIFF image description";
     }
 
     public String toString(TiffIFD.StringFormat format) {
