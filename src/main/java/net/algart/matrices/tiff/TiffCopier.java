@@ -515,7 +515,7 @@ public final class TiffCopier {
             return false;
         }
         final int compressionCode = readMap.compressionCode();
-        final TagCompression compression = readMap.compression();
+        final TagCompression compression = readMap.compression().orElse(null);
         final boolean byteOrderIsNotUsedForImageData =
                 isByteOrBinary(readMap) && (compression != null && !compression.canUseByteOrderForByteData());
         // - for unknown compressions, we cannot be sure of this fact even for 1-bit or 8-bit samples

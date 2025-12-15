@@ -35,7 +35,7 @@ public class TagCompressionTest {
             TagCompression requiredCompression,
             int requiredCode,
             boolean requiredContains) throws TiffException {
-        if (ifd.optCompression() != requiredCompression) {
+        if (ifd.optCompression().orElse(null) != requiredCompression) {
             throw new AssertionError("Invalid compression " + ifd.optCompression());
         }
         if (ifd.getCompressionCode() != requiredCode) {
@@ -53,12 +53,14 @@ public class TagCompressionTest {
         check(ifd, null, TiffIFD.COMPRESSION_NONE, false);
         System.out.println();
 
+        System.out.println("Checking all compression types:");
         for (TagCompression compression : TagCompression.values()) {
             ifd.putCompression(compression);
             check(ifd, compression, compression.code(), true);
         }
         System.out.println();
 
+        System.out.println("Custom checks:");
         ifd.putCompression(null);
         check(ifd, null, TiffIFD.COMPRESSION_NONE, false);
 

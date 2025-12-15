@@ -917,7 +917,7 @@ public non-sealed class TiffWriter extends TiffIO {
         prepareEncoding(tile);
         long t2 = debugTime();
 
-        final TagCompression compression = tile.compression();
+        final TagCompression compression = tile.compression().orElse(null);
         TiffCodec codec = null;
         if (!enforceUseExternalCodec && compression != null) {
             codec = compression.codec();
@@ -1047,7 +1047,8 @@ public non-sealed class TiffWriter extends TiffIO {
             ifd.put(Tags.COMPRESSION, TiffIFD.COMPRESSION_NONE);
             // - We prefer to explicitly specify this case
         }
-        final TagCompression compression = ifd.optCompression();
+        final TagCompression compression = ifd.optCompression().orElse(TagCompression.NONE);
+        // - NONE: we have set it above
 
         final TagPhotometricInterpretation suggestedPhotometric =
                 ifd.containsKey(Tags.PHOTOMETRIC_INTERPRETATION) ? ifd.getPhotometricInterpretation() : null;

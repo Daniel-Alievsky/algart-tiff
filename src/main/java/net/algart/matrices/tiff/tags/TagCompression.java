@@ -195,8 +195,7 @@ public enum TagCompression {
 
     /**
      * Returns an {@link Optional} containing the {@link TagCompression} with the given {@link #code()}.
-     * <p>If no data kind with the specified name exists,
-     * an empty optional is returned.
+     * <p>If no data kind with the specified name exists, an empty optional is returned.
      *
      * @param code the enum code.
      * @return optional compression.

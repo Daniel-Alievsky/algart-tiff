@@ -127,7 +127,9 @@ public sealed class TiffMap permits TiffIOMap {
     // SHOULD NOT store information about image sizes (like number of tiles):
     // it is probable that we do not know final sizes while creating tiles of the image!
     private final int compressionCode;
-    private final TagCompression compression;
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private final Optional<TagCompression> compression;
+    // - storing Optional value is not a usual way; we do this only for quick access to TiffIFD optCompression()
     private final int photometricInterpretationCode;
     private volatile int dimX = 0;
     private volatile int dimY = 0;
@@ -388,7 +390,7 @@ public sealed class TiffMap permits TiffIOMap {
         return compressionCode;
     }
 
-    public TagCompression compression() {
+    public Optional<TagCompression> compression() {
         return compression;
     }
 

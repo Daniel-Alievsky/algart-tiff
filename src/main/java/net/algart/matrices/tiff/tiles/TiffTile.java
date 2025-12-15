@@ -177,7 +177,7 @@ public final class TiffTile {
         return map.compressionCode();
     }
 
-    public TagCompression compression() {
+    public Optional<TagCompression> compression() {
         return map.compression();
     }
 

@@ -1023,7 +1023,7 @@ public final class TiffIFD {
     // we cannot be sure that we know all possible compressions!
 
     /**
-     * Returns the compression, stored in the {@link Tags#COMPRESSION} tag, or <code>null</code>
+     * Returns the compression, stored in the {@link Tags#COMPRESSION} tag, or an empty optional
      * if this tag is missing or contains an unknown value.
      *
      * <p>Note: if you called {@link #putCompression(TagCompression)} method
@@ -1036,15 +1036,15 @@ public final class TiffIFD {
      *
      * @return TIFF compression.
      */
-    public TagCompression optCompression() {
+    public Optional<TagCompression> optCompression() {
         final int code = optInt(Tags.COMPRESSION, -1);
         if (code == -1) {
-            return null;
+            return Optional.empty();
         }
         if (detailedCompression != null && detailedCompression.code() == code) {
-            return detailedCompression;
+            return Optional.of(detailedCompression);
         }
-        return TagCompression.fromCode(code).orElse(null);
+        return TagCompression.fromCode(code);
     }
 
     public int optPredictorCode() {
@@ -1060,8 +1060,8 @@ public final class TiffIFD {
         if (code == -1) {
             return "unspecified compression";
         }
-        final TagCompression compression = optCompression();
-        return compression == null ? "unsupported compression " + code : compression.prettyName();
+        final Optional<TagCompression> compression = optCompression();
+        return compression.isEmpty() ? "unsupported compression " + code : compression.get().prettyName();
     }
 
     public int getPhotometricInterpretationCode() throws TiffException {
@@ -1374,23 +1374,23 @@ public final class TiffIFD {
     }
 
     public boolean isStandardYCbCrNonJpeg() throws TiffException {
-        final TagCompression compression = optCompression();
+        final TagCompression compression = optCompression().orElse(null);
         return compression != null && compression.isStandard() && !compression.isJpegOrOldJpeg() &&
                 getPhotometricInterpretation() == TagPhotometricInterpretation.Y_CB_CR;
     }
 
     public boolean isStandardCompression() {
-        final TagCompression compression = optCompression();
-        return compression != null && compression.isStandard();
+        final Optional<TagCompression> compression = optCompression();
+        return compression.isPresent() && compression.get().isStandard();
     }
 
     public boolean isJpegOrOldJpeg() {
-        final TagCompression compression = optCompression();
-        return compression != null && compression.isJpegOrOldJpeg();
+        final Optional<TagCompression> compression = optCompression();
+        return compression.isPresent() && compression.get().isJpegOrOldJpeg();
     }
 
     public boolean isStandardInvertedCompression() throws TiffException {
-        final TagCompression compression = optCompression();
+        final TagCompression compression = optCompression().orElse(null);
         return compression != null && compression.isStandard() &&
                 !compression.isJpegOrOldJpeg() &&
                 getPhotometricInterpretation().isInvertedBrightness();

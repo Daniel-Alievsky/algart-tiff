@@ -1186,7 +1186,7 @@ public non-sealed class TiffReader extends TiffIO {
         prepareDecoding(tile);
 
         final byte[] encodedData = tile.getEncodedData();
-        final TagCompression compression = tile.compression();
+        final TagCompression compression = tile.compression().orElse(null);
         TiffCodec codec = null;
         if (!enforceUseExternalCodec && compression != null) {
             codec = compression.codec();

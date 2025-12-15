@@ -39,7 +39,7 @@ public class TiffJPEGDecodingHelper {
     public static void embedJPEGTableInDataIfRequested(TiffTile tile, boolean throwExceptionForStrangeDataStream)
             throws TiffException {
         final TiffIFD ifd = tile.ifd();
-        final TagCompression compression = ifd.optCompression();
+        final TagCompression compression = ifd.optCompression().orElse(null);
         if (compression == null || !compression.isJpegOrOldJpeg()) {
             return;
         }
