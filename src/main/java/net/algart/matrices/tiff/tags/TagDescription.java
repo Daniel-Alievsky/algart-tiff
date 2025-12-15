@@ -63,7 +63,7 @@ public class TagDescription {
      * @return whether this description is an SVS image description.
      */
     public boolean isSvs() {
-        return false;
+        return this instanceof SvsDescription;
     }
 
     public String formatName() {
