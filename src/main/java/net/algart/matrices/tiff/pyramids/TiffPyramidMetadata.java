@@ -30,13 +30,10 @@ import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.tags.SvsDescription;
 import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tags.TagDescription;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -79,19 +76,17 @@ public final class TiffPyramidMetadata {
     private int labelIndex = -1;
     private int macroIndex = -1;
 
-    private final List<TagDescription> tagDescriptions;
-    private final SvsDescription mainSvsDescription;
+    private final SvsDescription svsDescription;
 
     private TiffPyramidMetadata() {
         this.numberOfImages = this.numberOfLayers = 0;
         this.baseImageDimX = this.baseImageDimY = 0;
         this.baseImageTiled = false;
-        this.tagDescriptions = Collections.emptyList();
-        this.mainSvsDescription = null;
+        this.svsDescription = null;
     }
 
     private TiffPyramidMetadata(List<TiffIFD> ifds) throws TiffException {
-        Objects.requireNonNull(ifds, "Null ifds");
+        Objects.requireNonNull(ifds, "Null IFDs");
         this.numberOfImages = ifds.size();
         if (numberOfImages == 0) {
             this.numberOfLayers = 0;
@@ -108,12 +103,7 @@ public final class TiffPyramidMetadata {
                 detectSingleLastImage(ifds);
             }
         }
-        this.tagDescriptions = new ArrayList<>();
-        for (int k = 0; k < numberOfImages; k++) {
-            final String description = ifds.get(k).optDescription().orElse(null);
-            this.tagDescriptions.add(TagDescription.of(description));
-        }
-        this.mainSvsDescription = SvsDescription.findMainDescription(tagDescriptions);
+        this.svsDescription = SvsDescription.findMainDescription(ifds);
     }
 
     public static TiffPyramidMetadata empty() {
@@ -194,7 +184,7 @@ public final class TiffPyramidMetadata {
     }
 
     public boolean isSvs() {
-        return mainSvsDescription != null;
+        return svsDescription != null;
     }
 
     public boolean isPyramid() {
@@ -356,23 +346,8 @@ public final class TiffPyramidMetadata {
         return -1;
     }
 
-    public List<TagDescription> allDescriptions() {
-        return tagDescriptions;
-    }
-
-    public TagDescription tagDescription(int ifdIndex) {
-        if (ifdIndex < 0) {
-            throw new IllegalArgumentException("Negative IFD index " + ifdIndex);
-        }
-        if (ifdIndex >= tagDescriptions.size()) {
-            throw new IllegalArgumentException(
-                    "IFD index " + ifdIndex + " is out of bounds 0 <= index < " + tagDescriptions.size());
-        }
-        return tagDescriptions.get(ifdIndex);
-    }
-
-    public SvsDescription mainSvsDescription() {
-        return mainSvsDescription;
+    public SvsDescription svsDescription() {
+        return svsDescription;
     }
 
     @Override

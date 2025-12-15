@@ -29,7 +29,6 @@ import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffOpenMode;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.pyramids.TiffPyramidMetadata;
-import net.algart.matrices.tiff.tags.TagDescription;
 import net.algart.matrices.tiff.tags.Tags;
 
 import java.io.File;
@@ -199,8 +198,7 @@ public class TiffInfo {
                 final long tiffFileLength = reader.stream().length();
                 for (int k = firstIndex; k <= lastIndex; k++) {
                     final TiffIFD ifd = allIFDs.get(k);
-                    final TagDescription tagDescription = metadata.tagDescription(k);
-                    ifdInfo.add(ifdInformation(reader, ifd, tagDescription, k, totalSize));
+                    ifdInfo.add(ifdInformation(reader, ifd, k, totalSize));
                     if (!(ifd.containsKey(Tags.STRIP_BYTE_COUNTS) || ifd.containsKey(Tags.TILE_BYTE_COUNTS))) {
                         System.err.printf("WARNING! Invalid IFD #%d in %s: no StripByteCounts/TileByteCounts tag%n",
                                 k, tiffFile);
@@ -226,22 +224,18 @@ public class TiffInfo {
                                     tiffFileLength - totalSize.get(), tiffFileLength);
                 }
                 if (metadata.isPyramid()) {
-                    svsInfo = (metadata.isSvs() ? "%s%n".formatted(metadata.mainSvsDescription()) : "") + metadata;
+                    svsInfo = (metadata.isSvs() ? "%s%n".formatted(metadata.svsDescription()) : "") + metadata;
                 }
             }
         }
     }
 
     public String ifdInformation(TiffReader reader, TiffIFD ifd, int ifdIndex) throws IOException {
-        return ifdInformation(reader, ifd, null, ifdIndex, null);
+        return ifdInformation(reader, ifd, ifdIndex, null);
     }
 
-    private String ifdInformation(
-            TiffReader reader,
-            TiffIFD ifd,
-            TagDescription tagDescription,
-            int ifdIndex,
-            AtomicLong totalSize) throws IOException {
+    private String ifdInformation(TiffReader reader, TiffIFD ifd, int ifdIndex, AtomicLong totalSize)
+            throws IOException {
         if (disableAppendingForStrictFormats && stringFormat.isStrict()) {
             return ifd.toString(stringFormat);
         }

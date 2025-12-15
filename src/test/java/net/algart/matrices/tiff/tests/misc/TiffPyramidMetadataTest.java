@@ -50,7 +50,7 @@ public class TiffPyramidMetadataTest {
                     System.out.printf("%s is not SVS%n%s%n", file, metadata);
                     continue;
                 }
-                SvsDescription main = metadata.mainSvsDescription();
+                SvsDescription main = metadata.svsDescription();
                 System.out.printf("%s:%n%s%n%nApplication:%n%s%n", file, metadata, main.application());
                 System.out.println("The found main description, all attributes:");
                 for (Map.Entry<String, String> e : main.attributes().entrySet()) {
@@ -64,9 +64,9 @@ public class TiffPyramidMetadataTest {
                 System.out.println(main.toString(TiffIFD.StringFormat.JSON));
                 System.out.printf("Image set:%n%s%n", metadata);
                 System.out.printf("%nAll descriptions%n");
-                final List<TagDescription> allDescriptions = metadata.allDescriptions();
-                for (int i = 0, n = allDescriptions.size(); i < n; i++) {
-                    TagDescription tagDescription = allDescriptions.get(i);
+                final List<TiffIFD> allIFDs = reader.allIFDs();
+                for (int i = 0, n = allIFDs.size(); i < n; i++) {
+                    TagDescription tagDescription = allIFDs.get(i).getDescription();
                     if (tagDescription instanceof SvsDescription svs) {
                         System.out.printf("%s description #%d/%d (%s)%n",
                                 svs.isMain() ? "Main" : "Additional",

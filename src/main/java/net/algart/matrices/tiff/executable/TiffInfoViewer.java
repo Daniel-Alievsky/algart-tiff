@@ -415,7 +415,7 @@ public class TiffInfoViewer {
                     }
                     for (var kind : TiffPyramidMetadata.SpecialKind.values()) {
                         if (metadata.specialKindIndex(kind) == i) {
-                            sb.append(" (").append(kind.kindName()).append(")");
+                            sb.append(" (").append(kind.kindName().toUpperCase()).append(")");
                         }
                     }
                 }

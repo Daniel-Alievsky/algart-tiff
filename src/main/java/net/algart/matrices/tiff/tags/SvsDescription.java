@@ -311,14 +311,19 @@ public final class SvsDescription extends TagDescription {
         return sb.toString();
     }
 
-    public static SvsDescription findMainDescription(List<? extends TagDescription> descriptions) {
+    public static SvsDescription findMainDescription(List<? extends TiffIFD> ifds) {
+        Objects.requireNonNull(ifds, "Null IFDs");
         // Note: the detailed SVS specification is always included (as ImageDescription tag)
         // in the first image (#0) with maximal resolution and partially repeated in the thumbnail image (#1).
         // The label and macro images usually contain reduced ImageDescription.
-        for (TagDescription description : descriptions) {
-            if (description instanceof SvsDescription svs && svs.isMain()) {
-                return svs;
-                // - returning the first
+        for (TiffIFD ifd : ifds) {
+            if (ifd != null) {
+                // - just in case (should not happen)
+                TagDescription description = ifd.getDescription();
+                if (description instanceof SvsDescription svs && svs.isMain()) {
+                    return svs;
+                    // - returning the first detailed SVS description (with MPP attribute)
+                }
             }
         }
         return null;
