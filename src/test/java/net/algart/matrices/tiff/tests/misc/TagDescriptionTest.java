@@ -27,6 +27,7 @@ package net.algart.matrices.tiff.tests.misc;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.tags.TagDescription;
+import net.algart.matrices.tiff.tags.Tags;
 
 public class TagDescriptionTest {
     static class CustomDescription extends TagDescription {
@@ -51,7 +52,7 @@ public class TagDescriptionTest {
     }
 
     private static void printDescription(TiffIFD ifd) {
-        System.out.printf("optDescription: %s%n", ifd.optDescription());
+        System.out.printf("ImagetDescription: %s%n", ifd.optValue(Tags.IMAGE_DESCRIPTION, String.class));
         System.out.printf("getDescription: %s%n", ifd.getDescription());
         System.out.println(ifd.toString(TiffIFD.StringFormat.NORMAL));
         System.out.println(ifd.jsonString());

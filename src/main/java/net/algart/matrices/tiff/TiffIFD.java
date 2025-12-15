@@ -995,10 +995,6 @@ public final class TiffIFD {
         return result;
     }
 
-    public Optional<String> optDescription() {
-        return optValue(Tags.IMAGE_DESCRIPTION, String.class);
-    }
-
     /**
      * Returns the content of the {@code ImageDescription} tag,
      * parsed by the {@link TagDescription#of(String)} method.
