@@ -34,7 +34,7 @@ public class TagDescription {
 
     final String description;
 
-    TagDescription(String description) {
+    protected TagDescription(String description) {
         this.description = description;
     }
 
@@ -46,12 +46,12 @@ public class TagDescription {
     }
 
 
-    public boolean isPresent() {
-        return description != null;
+    public String description() {
+        return description;
     }
 
-    public String get() {
-        return description;
+    public boolean isPresent() {
+        return description != null;
     }
 
     /**

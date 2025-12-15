@@ -29,7 +29,7 @@ import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.Tags;
 
-public class TiffIFDTagCompressionTest {
+public class TagCompressionTest {
     private static void check(
             TiffIFD ifd,
             TagCompression requiredCompression,

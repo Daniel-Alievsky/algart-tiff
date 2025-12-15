@@ -32,6 +32,7 @@ import net.algart.matrices.tiff.tiles.TiffTile;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
@@ -192,13 +193,22 @@ public enum TagCompression {
         this.jpeg2000Lossless = jpeg2000Lossless;
     }
 
-    public static TagCompression fromCodeOrNull(int code) {
-        return LOOKUP.get(code);
+    /**
+     * Returns an {@link Optional} containing the {@link TagCompression} with the given {@link #code()}.
+     * <p>If no data kind with the specified name exists,
+     * an empty optional is returned.
+     *
+     * @param code the enum code.
+     * @return optional compression.
+     */
+    public static Optional<TagCompression> fromCode(int code) {
+        return Optional.ofNullable(LOOKUP.get(code));
     }
 
     public static String toPrettyString(int code) {
-        final TagCompression compression = fromCodeOrNull(code);
-        return "type " + code + (compression == null ? "" : ": \"" + compression.prettyName() + "\"");
+        final Optional<TagCompression> compression = fromCode(code);
+        //noinspection OptionalIsPresent
+        return "type " + code + (compression.isEmpty() ? "" : ": \"" + compression.get().prettyName() + "\"");
     }
 
     public int code() {

@@ -31,7 +31,7 @@ import net.algart.matrices.tiff.tags.TagPredictor;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffMap;
 
-public class TiffIFDTagPredictorTest {
+public class TagPredictorTest {
     private static void check(TiffIFD ifd, TagPredictor requiredPredictor, int requiredCode, boolean requiredContains) {
         if (ifd.getPredictor() != requiredPredictor) {
             throw new AssertionError("Invalid predictor");

@@ -27,7 +27,7 @@ package net.algart.matrices.tiff.tests.misc;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 
-public class TiffIFDTagDescriptionTest {
+public class TagDescriptionTest {
     private static void testDescription(TiffIFD ifd, String s) {
         ifd.putDescription(s);
         System.out.printf("Description: %s%n", ifd.optDescription());

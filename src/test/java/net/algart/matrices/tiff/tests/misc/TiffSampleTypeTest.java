@@ -31,7 +31,7 @@ import net.algart.matrices.tiff.tags.Tags;
 
 import java.util.Arrays;
 
-public class TiffIFDSampleTypeTest {
+public class TiffSampleTypeTest {
     static void showTag(TiffIFD ifd, int requiredAlignedBitDepth, TiffSampleType requiredSampleType) throws TiffException {
         System.out.printf("BitsPerSample: %s%n", Arrays.toString(ifd.getBitsPerSample()));
         TiffSampleType sampleType = null;

@@ -53,7 +53,7 @@ public enum TagPhotometricInterpretation {
         this.name = name;
     }
 
-    public static TagPhotometricInterpretation ofOrUnknown(int code) {
+    public static TagPhotometricInterpretation fromCodeOrUnknown(int code) {
         return LOOKUP.getOrDefault(code, UNKNOWN);
     }
 

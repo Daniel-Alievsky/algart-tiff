@@ -221,6 +221,7 @@ public final class TiffIFD {
 
     private volatile long[] cachedTileOrStripByteCounts = null;
     private volatile long[] cachedTileOrStripOffsets = null;
+    private volatile TagDescription description  = null;
 
     public TiffIFD() {
         this(new LinkedHashMap<>());
@@ -998,6 +999,22 @@ public final class TiffIFD {
         return optValue(Tags.IMAGE_DESCRIPTION, String.class);
     }
 
+    public TagDescription getDescription() {
+        TagDescription result = this.description;
+        if (result == null) {
+            Object d = get(Tags.IMAGE_DESCRIPTION);
+            if (d instanceof TagDescription) {
+                result = (TagDescription) d;
+            } else if (d instanceof String s) {
+                result = TagDescription.of(s);
+            } else {
+                result = TagDescription.EMPTY;
+            }
+            this.description = result;
+        }
+        return result;
+    }
+
     public int getCompressionCode() throws TiffException {
         return getInt(Tags.COMPRESSION, COMPRESSION_NONE);
     }
@@ -1027,7 +1044,7 @@ public final class TiffIFD {
         if (detailedCompression != null && detailedCompression.code() == code) {
             return detailedCompression;
         }
-        return TagCompression.fromCodeOrNull(code);
+        return TagCompression.fromCode(code).orElse(null);
     }
 
     public int optPredictorCode() {
@@ -1035,7 +1052,7 @@ public final class TiffIFD {
     }
 
     public TagPredictor getPredictor() {
-        return TagPredictor.ofOrUnknown(optPredictorCode());
+        return TagPredictor.fromCodeOrUnknown(optPredictorCode());
     }
 
     public String compressionPrettyName() {
@@ -1057,7 +1074,7 @@ public final class TiffIFD {
             return TagPhotometricInterpretation.RGB;
         }
         final int code = getPhotometricInterpretationCode();
-        return TagPhotometricInterpretation.ofOrUnknown(code);
+        return TagPhotometricInterpretation.fromCodeOrUnknown(code);
     }
 
     public int[] getYCbCrSubsampling() throws TiffException {
@@ -2053,6 +2070,7 @@ public final class TiffIFD {
     private void clearCache() {
         cachedTileOrStripByteCounts = null;
         cachedTileOrStripOffsets = null;
+        description = null;
     }
 
     private void checkImmutable() {
@@ -2262,7 +2280,7 @@ public final class TiffIFD {
                         "reversed bits order: lowest first (little-endian, 0-1-2-3-4-5-6-7)";
                 case Tags.PREDICTOR -> {
                     if (tagValue instanceof Number number) {
-                        final TagPredictor predictor = TagPredictor.ofOrUnknown(number.intValue());
+                        final TagPredictor predictor = TagPredictor.fromCodeOrUnknown(number.intValue());
                         if (predictor != TagPredictor.UNKNOWN) {
                             additional = predictor.prettyName();
                         }
