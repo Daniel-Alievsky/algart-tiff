@@ -595,29 +595,29 @@ public final class TiffPyramidMetadata {
         }
     }
 
-    static boolean isSmallImage(TiffIFD ifd) throws TiffException {
+    private static boolean isSmallImage(TiffIFD ifd) throws TiffException {
         // - but we do not check tiling: for non-Aperio,
         // it is possible that we will use tiling for all images without any special reason
         return ifd.getImageDimX() <= MAX_SPECIAL_IMAGES_SIZE &&
                 ifd.getImageDimY() <= MAX_SPECIAL_IMAGES_SIZE;
     }
 
-    static boolean isPossibleLabelOrMacro(TiffIFD ifd) throws TiffException {
+    private static boolean isPossibleLabelOrMacro(TiffIFD ifd) throws TiffException {
         return isSmallImage(ifd) && !ifd.hasTileInformation();
         // - note: tiled images cannot be labels or macros (no reasons to do so)
     }
 
-    static boolean containsLabelMarker(TiffIFD ifd) throws TiffException {
+    private static boolean containsLabelMarker(TiffIFD ifd) throws TiffException {
         Optional<String> description = ifd.optDescription();
         return description.isPresent() && LABEL_WORD_PATTERN.matcher(description.get()).find();
     }
 
-    static boolean containsMacroMarker(TiffIFD ifd) throws TiffException {
+    private static boolean containsMacroMarker(TiffIFD ifd) throws TiffException {
         Optional<String> description = ifd.optDescription();
         return description.isPresent() && MACRO_WORD_PATTERN.matcher(description.get()).find();
     }
 
-    static String sizesToString(TiffIFD ifd) throws TiffException {
+    private static String sizesToString(TiffIFD ifd) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         return ifd.getImageDimX() + "x" + ifd.getImageDimY();
     }
