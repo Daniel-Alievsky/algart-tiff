@@ -278,14 +278,14 @@ public class TiffParser extends TiffReader {
      * Returns thumbnail IFDs.
      */
     public List<TiffIFD> allThumbnailIFDs() throws IOException, FormatException {
-        return allIFDs().stream().filter(TiffIFD::isThumbnail).toList();
+        return allIFDs().stream().filter(TiffIFD::isReducedImage).toList();
     }
 
     /**
      * Returns non-thumbnail IFDs.
      */
     public List<TiffIFD> allNonThumbnailIFDs() throws IOException, FormatException {
-        return allIFDs().stream().filter(ifd -> !ifd.isThumbnail()).toList();
+        return allIFDs().stream().filter(ifd -> !ifd.isReducedImage()).toList();
     }
 
     /**

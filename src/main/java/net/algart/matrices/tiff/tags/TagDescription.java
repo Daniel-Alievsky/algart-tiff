@@ -32,7 +32,7 @@ import java.util.*;
 public class TagDescription {
     public static final TagDescription EMPTY = new TagDescription(null);
 
-    final String description;
+    private final String description;
 
     protected TagDescription(String description) {
         this.description = description;
@@ -49,11 +49,11 @@ public class TagDescription {
     }
 
 
-    public String description() {
+    public final String description() {
         return description;
     }
 
-    public boolean isPresent() {
+    public final boolean isPresent() {
         return description != null;
     }
 
@@ -66,7 +66,7 @@ public class TagDescription {
         return this instanceof SvsDescription;
     }
 
-    public String formatName() {
+    public final String formatName() {
         return formatName(true);
     }
 
@@ -89,7 +89,7 @@ public class TagDescription {
         return "Common TIFF";
     }
 
-    public boolean hasAttributes() {
+    public final boolean hasAttributes() {
         return !attributes().isEmpty();
     }
 
@@ -113,7 +113,7 @@ public class TagDescription {
      * @throws NullPointerException if {@code name} is {@code null}.
      * @throws TiffException        if the attribute is missing or contains an invalid number.
      */
-    public double reqDouble(String name) throws TiffException {
+    public final double reqDouble(String name) throws TiffException {
         Objects.requireNonNull(name, "Null attribute name");
         final String value = attributes().get(name);
         if (value == null) {
@@ -135,7 +135,7 @@ public class TagDescription {
      * @return the parsed {@code double} value of the specified attribute or {@code OptionalDouble.empty()}.
      * @throws NullPointerException if {@code name} is {@code null}.
      */
-    public OptionalDouble optDouble(String name) {
+    public final OptionalDouble optDouble(String name) {
         Objects.requireNonNull(name, "Null attribute name");
         final String value = attributes().get(name);
         if (value == null) {

@@ -91,7 +91,7 @@ public final class SvsDescription extends TagDescription {
     }
 
     public static boolean isSvs(String imageDescription) {
-        return imageDescription != null && imageDescription.startsWith(SVS_IMAGE_DESCRIPTION_PREFIX);
+        return imageDescription != null && imageDescription.trim().startsWith(SVS_IMAGE_DESCRIPTION_PREFIX);
     }
 
     public boolean isSvs() {

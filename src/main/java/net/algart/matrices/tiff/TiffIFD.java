@@ -221,7 +221,7 @@ public final class TiffIFD {
 
     private volatile long[] cachedTileOrStripByteCounts = null;
     private volatile long[] cachedTileOrStripOffsets = null;
-    private volatile TagDescription description  = null;
+    private volatile TagDescription description = null;
 
     public TiffIFD() {
         this(new LinkedHashMap<>());
@@ -995,6 +995,10 @@ public final class TiffIFD {
         return result;
     }
 
+    public Optional<String> optDescription() {
+        return optValue(Tags.IMAGE_DESCRIPTION, String.class);
+    }
+
     /**
      * Returns the content of the {@code ImageDescription} tag,
      * parsed by the {@link TagDescription#of(String)} method.
@@ -1017,6 +1021,7 @@ public final class TiffIFD {
             } else if (d instanceof String s) {
                 result = TagDescription.of(s);
             } else {
+                // including the case d==null
                 result = TagDescription.EMPTY;
             }
             this.description = result;
@@ -1405,7 +1410,7 @@ public final class TiffIFD {
                 getPhotometricInterpretation().isInvertedBrightness();
     }
 
-    public boolean isThumbnail() {
+    public boolean isReducedImage() {
         return (optInt(Tags.NEW_SUBFILE_TYPE, 0) & FILETYPE_REDUCED_IMAGE) != 0;
     }
 
@@ -1910,7 +1915,6 @@ public final class TiffIFD {
      * characters.
      *
      * @param format style of formatting the returned string.
-     * {@link SvsDescription} class.
      * @return a string description of this object.
      * @throws NullPointerException if one of the arguments is {@code null}.
      */
@@ -2135,9 +2139,13 @@ public final class TiffIFD {
                 "{\n" :
                 "IFD");
         final String ifdTypeName = subIFDType == null ? "main" : Tags.tiffTagName(subIFDType, false);
-        sb.append((json ?
-                "  \"ifdType\": \"%s\",\n" :
-                " (%s)").formatted(ifdTypeName));
+        boolean reducedImage = isReducedImage();
+        if (json || subIFDType != null) {
+            sb.append((json ? "  \"ifdType\": \"%s\",\n" : " (%s)").formatted(ifdTypeName));
+        }
+        if (reducedImage) {
+            sb.append(json ? "  \"reduced\": true,\n" : " (reduced)");
+        }
         int dimX = 0;
         int dimY = 0;
         int channels;
@@ -2271,8 +2279,7 @@ public final class TiffIFD {
         Object additional = null;
         try {
             switch (tag) {
-                case Tags.PHOTOMETRIC_INTERPRETATION ->
-                        additional = getPhotometricInterpretation().prettyName();
+                case Tags.PHOTOMETRIC_INTERPRETATION -> additional = getPhotometricInterpretation().prettyName();
                 case Tags.COMPRESSION -> additional = compressionPrettyName();
                 case Tags.PLANAR_CONFIGURATION -> {
                     if (tagValue instanceof Number number) {

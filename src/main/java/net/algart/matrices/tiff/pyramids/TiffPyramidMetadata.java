@@ -24,18 +24,16 @@
 
 package net.algart.matrices.tiff.pyramids;
 
-import net.algart.arrays.Arrays;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.tags.SvsDescription;
-import net.algart.matrices.tiff.tags.TagCompression;
 
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.regex.Pattern;
 
 public final class TiffPyramidMetadata {
     public enum SpecialKind {
@@ -56,13 +54,22 @@ public final class TiffPyramidMetadata {
 
     public static final int SVS_THUMBNAIL_INDEX = 1;
 
+    private static final boolean DETECT_LABEL_AND_MACRO_PAIR =
+            net.algart.arrays.Arrays.SystemSettings.getBooleanProperty(
+                    "net.algart.matrices.tiff.pyramids.detectLabelAndMacroPair", true);
+    private static final boolean CHECK_COMPRESSION_FOR_LABEL_AND_MACRO =
+            net.algart.arrays.Arrays.SystemSettings.getBooleanProperty(
+                    "net.algart.matrices.tiff.pyramids.checkCompressionForLabelAndMacro", true);
+    private static final boolean CHECK_KEYWORDS_FOR_LABEL_AND_MACRO =
+            net.algart.arrays.Arrays.SystemSettings.getBooleanProperty(
+                    "net.algart.matrices.tiff.pyramids.checkKeywordsForLabelAndMacro", true);
     private static final int MAX_SPECIAL_IMAGES_SIZE = 2048;
-    private static final double STANDARD_MACRO_ASPECT_RATIO = 2.8846153846153846153846153846154;
-    // - 75000/26000, typical value for medicine
+    private static final double STANDARD_MACRO_ASPECT_RATIO = 75000.0 / 25000.0;
+    // - typical value for medicine glasses
     private static final double ALLOWED_ASPECT_RATION_DEVIATION = 0.2;
-    private static final boolean ALWAYS_USE_SVS_SPECIFICATION_FOR_LABEL_AND_MACRO =
-            Arrays.SystemSettings.getBooleanEnv(
-                    "ALWAYS_USE_SVS_SPECIFICATION_FOR_LABEL_AND_MACRO", false);
+
+    private static final Pattern LABEL_WORD_PATTERN = Pattern.compile("\\bLabel\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern MACRO_WORD_PATTERN = Pattern.compile("\\bmacro\\b", Pattern.CASE_INSENSITIVE);
 
     private static final System.Logger LOG = System.getLogger(TiffPyramidMetadata.class.getName());
 
@@ -88,6 +95,8 @@ public final class TiffPyramidMetadata {
     private TiffPyramidMetadata(List<TiffIFD> ifds) throws TiffException {
         Objects.requireNonNull(ifds, "Null IFDs");
         this.numberOfImages = ifds.size();
+        this.svsDescription = SvsDescription.findMainDescription(ifds);
+        // - used in detectLabelAndMacro()
         if (numberOfImages == 0) {
             this.numberOfLayers = 0;
             this.baseImageDimX = this.baseImageDimY = 0;
@@ -98,12 +107,8 @@ public final class TiffPyramidMetadata {
             this.baseImageDimY = first.getImageDimY();
             this.baseImageTiled = first.hasTileInformation();
             this.numberOfLayers = detectPyramidAndThumbnail(ifds);
-            // - may be corrected by further methods
-            if (!detectTwoLastImages(ifds)) {
-                detectSingleLastImage(ifds);
-            }
+            detectLabelAndMacro(ifds);
         }
-        this.svsDescription = SvsDescription.findMainDescription(ifds);
     }
 
     public static TiffPyramidMetadata empty() {
@@ -235,19 +240,24 @@ public final class TiffPyramidMetadata {
 
     /**
      * Translates a pyramid layer index to the corresponding TIFF IFD index.
+     * Returns the unchanged {@code layerIndex} argument or {@code layerIndex+1},
+     * if this layer is placed after the thumbnail (if any).
      *
-     * @param layerIndex index of the pyramid layer (0 = base layer, up to <code>{@link #numberOfLayers()}-1</code>).
+     * <p>Note: if <code>layerInde &ge {@link #numberOfLayers()}-1</code>, this method still returns
+     * the corresponding image index as if the pyramid were continued after the last layer.
+     * For example, you may specify <code>layerIndex={@link #numberOfLayers()}</code> to retrieve
+     * the index of the first image <i>after</i> the actual pyramid.
+     *
+     * @param layerIndex index of the pyramid layer (0 = base layer, up to <code>{@link #numberOfLayers()}-1</code>,
+     *                   but greater indexes are also allowed).
      * @return corresponding TIFF IFD index
-     * @throws IllegalArgumentException if layerIndex is negative or &ge;{@link #numberOfLayers()}.
+     * @throws IllegalArgumentException if layerIndex is negative.
      */
     public int layerToImage(int layerIndex) {
         if (layerIndex < 0) {
             throw new IllegalArgumentException("Negative layer index " + layerIndex);
         }
-        if (layerIndex >= numberOfLayers) {
-            throw new IllegalArgumentException("Too large layer index " + layerIndex + " >= " + numberOfLayers);
-        }
-        return !hasThumbnail() || layerIndex < thumbnailIndex ? layerIndex : layerIndex + 1;
+        return !hasThumbnail() || layerIndex < thumbnailIndex ? layerIndex : Math.addExact(layerIndex, 1);
     }
 
     /**
@@ -403,6 +413,7 @@ public final class TiffPyramidMetadata {
     }
 
     private int detectPyramid(List<TiffIFD> ifds, int startIndex) throws TiffException {
+        assert startIndex >= 1;
         int levelDimX = baseImageDimX;
         int levelDimY = baseImageDimY;
         int actualScaleRatio = -1;
@@ -420,9 +431,9 @@ public final class TiffPyramidMetadata {
             } else {
                 if (!matchesDimensionRatio(levelDimX, levelDimY, nextDimX, nextDimY, actualScaleRatio)) {
                     final int index = k;
-                    LOG.log(System.Logger.Level.DEBUG, () -> String.format(
-                            "%s found incorrect dimensions ratio at %d; skipping remaining %d IFDs",
-                            getClass().getSimpleName(), index, numberOfImages - index));
+                    LOG.log(System.Logger.Level.DEBUG, () ->
+                            "%s found incorrect dimensions ratio at %d; skipping remaining %d IFDs".formatted(
+                                    getClass().getSimpleName(), index, numberOfImages - index));
                     break;
                 }
             }
@@ -430,103 +441,151 @@ public final class TiffPyramidMetadata {
             levelDimY = nextDimY;
         }
         this.pyramidScaleRatio = actualScaleRatio;
-        return count;
+        final int result = count;
+        LOG.log(System.Logger.Level.DEBUG, () ->
+                "%s checked dimension ratio for images 0, %d..%d%s (%d images in the series)".formatted(
+                        getClass().getSimpleName(), startIndex, numberOfImages - 1,
+                        pyramidScaleRatio < 0 ? " - not a pyramid" : " - found " + pyramidScaleRatio + ":1",
+                        result));
+        return result;
     }
 
-    private boolean detectTwoLastImages(List<TiffIFD> ifds) throws TiffException {
-        if (numberOfImages <= SVS_THUMBNAIL_INDEX + 2) {
+    private void detectLabelAndMacro(List<TiffIFD> ifds) throws TiffException {
+        final int firstAfterPyramid = layerToImage(numberOfLayers);
+        // - note: no exception here
+        assert firstAfterPyramid >= numberOfLayers;
+        if (!isPyramid()) {
+            return;
+            // - if there is no pyramid, this is a not good idea to find label/macro
+        }
+        assert numberOfLayers > 0 : "isPyramid()=true without layers";
+        if (numberOfImages <= 2) {
+            // numberOfImages=1: the only image cannot be a label/macro
+            // numberOfImages=2, numberOfLayers=1: isPyramid()=true only for SVS - the image #1 is a thumbnail always
+            // numberOfImages=2, numberOfLayers=2: we prefer to think that this is a 2-layer pyramid
+            return;
+        }
+        if (!detectTwoLastImages(ifds, firstAfterPyramid)) {
+            detectSingleLastImage(ifds, firstAfterPyramid);
+        }
+    }
+
+    private boolean detectTwoLastImages(List<TiffIFD> ifds, int firstAfterPyramid) throws TiffException {
+        assert firstAfterPyramid >= 1;
+        if (!DETECT_LABEL_AND_MACRO_PAIR) {
             return false;
         }
+        if (numberOfImages - firstAfterPyramid < 2) {
+            return false;
+        }
+        assert numberOfImages >= 3;
+
         final int index1 = numberOfImages - 2;
         final int index2 = numberOfImages - 1;
         final TiffIFD ifd1 = ifds.get(index1);
         final TiffIFD ifd2 = ifds.get(index2);
-        if (!(isSmallImage(ifd1) && isSmallImage(ifd2))) {
+        if (!(isPossibleLabelOrMacro(ifd1) && isPossibleLabelOrMacro(ifd2))) {
             return false;
         }
         if (LOG.isLoggable(System.Logger.Level.DEBUG)) {
-            LOG.log(System.Logger.Level.DEBUG, String.format(
-                    "  Checking last 2 small IFDs #%d %s and #%d %s for Label and Macro...",
-                    index1, sizesToString(ifd1), index2, sizesToString(ifd2)));
+            LOG.log(System.Logger.Level.DEBUG, "Checking last 2 small IFDs #%d %s and #%d %s for LABEL and MACRO..."
+                    .formatted(index1, sizesToString(ifd1), index2, sizesToString(ifd2)));
         }
-        if (ALWAYS_USE_SVS_SPECIFICATION_FOR_LABEL_AND_MACRO) {
+        if (isSvs() && CHECK_COMPRESSION_FOR_LABEL_AND_MACRO) {
+            boolean found = false;
             final int compression1 = ifd1.getCompressionCode();
             final int compression2 = ifd2.getCompressionCode();
-            boolean found = false;
-            if (compression1 == TagCompression.LZW.code() && compression2 == TagCompression.JPEG.code()) {
+            if (compression1 == TiffIFD.COMPRESSION_LZW && compression2 == TiffIFD.COMPRESSION_JPEG) {
                 this.labelIndex = index1;
                 this.macroIndex = index2;
                 found = true;
             }
-            if (compression1 == TagCompression.JPEG.code() && compression2 == TagCompression.LZW.code()) {
+            if (compression1 == TiffIFD.COMPRESSION_JPEG && compression2 == TiffIFD.COMPRESSION_LZW) {
                 this.labelIndex = index2;
                 this.macroIndex = index1;
                 found = true;
             }
             if (found) {
-                LOG.log(System.Logger.Level.DEBUG, () -> String.format(
-                        "  Label %d / Macro %d detected by SVS specification", labelIndex, macroIndex));
+                LOG.log(System.Logger.Level.DEBUG, () -> ("LABEL %d / MACRO %d detected by compression " +
+                        "according to the Aperio specification").formatted(labelIndex, macroIndex));
+                return true;
+            }
+        }
+        if (CHECK_KEYWORDS_FOR_LABEL_AND_MACRO) {
+            boolean found = false;
+            boolean probablyLabel1 = containsLabelMarker(ifd1);
+            boolean probablyMacro1 = containsMacroMarker(ifd1);
+            boolean probablyLabel2 = containsLabelMarker(ifd2);
+            boolean probablyMacro2 = containsMacroMarker(ifd2);
+            if (probablyLabel1 && !probablyMacro1 && probablyMacro2 && !probablyLabel2) {
+                this.labelIndex = index1;
+                this.macroIndex = index2;
+                found = true;
+            }
+            if (probablyMacro1 && !probablyLabel1 && probablyLabel2 && !probablyMacro2) {
+                this.labelIndex = index2;
+                this.macroIndex = index1;
+                found = true;
+            }
+            if (found) {
+                LOG.log(System.Logger.Level.DEBUG, () ->
+                        "LABEL %d / MACRO %d detected by keywords 'label'/'macro'".formatted(labelIndex, macroIndex));
                 return true;
             }
         }
         final double ratio1 = ratio(ifd1);
         final double ratio2 = ratio(ifd2);
-        LOG.log(System.Logger.Level.DEBUG, () -> String.format(
-                "  Last 2 IFD ratios: %.5f for %d, %.5f for %d, standard Macro %.5f",
-                ratio1, index1, ratio2, index2, STANDARD_MACRO_ASPECT_RATIO));
         final double maxRatio = Math.max(ratio1, ratio2);
+        LOG.log(System.Logger.Level.DEBUG, () -> "Last 2 IFD ratios: %.5f for %d, %.5f for %d, standard MACRO %.5f"
+                .formatted(ratio1, index1, ratio2, index2, STANDARD_MACRO_ASPECT_RATIO));
         if (maxRatio > STANDARD_MACRO_ASPECT_RATIO * (1.0 - ALLOWED_ASPECT_RATION_DEVIATION)
                 && maxRatio < STANDARD_MACRO_ASPECT_RATIO / (1.0 - ALLOWED_ASPECT_RATION_DEVIATION)) {
-            // Usually, the more extended from 2 images is Macro and the more square is Label,
-            // but we use this criterion only if the more extended really looks almost as a standard Macro
+            // Usually, the more extended from 2 images is MACRO and the more square is LABEL,
+            // but we use this criterion only if the more extended really looks almost as a standard MACRO
             this.macroIndex = ratio1 > ratio2 ? index1 : index2;
             this.labelIndex = ratio1 > ratio2 ? index2 : index1;
-            LOG.log(System.Logger.Level.DEBUG, () -> String.format(
-                    "  Label %d / Macro %d detected by form", labelIndex, macroIndex));
+            LOG.log(System.Logger.Level.DEBUG, () ->
+                    "LABEL %d / MACRO %d detected by aspect ratio".formatted(labelIndex, macroIndex));
             return true;
         }
-        // Both images have unexpected form, so, let's consider that Macro is the greatest from them
-        final double area1 = area(ifd1);
-        final double area2 = area(ifd2);
-        this.macroIndex = area1 > area2 ? index1 : index2;
-        this.labelIndex = area1 > area2 ? index2 : index1;
-        LOG.log(System.Logger.Level.DEBUG, () -> String.format(
-                "  Label %d / Macro %d detected by area", labelIndex, macroIndex));
-        return true;
+        return false;
     }
 
-    private void detectSingleLastImage(List<TiffIFD> ifds) throws TiffException {
-        if (numberOfImages <= SVS_THUMBNAIL_INDEX + 1) {
+    private void detectSingleLastImage(List<TiffIFD> ifds, int firstAfterPyramid) throws TiffException {
+        if (numberOfImages - firstAfterPyramid < 1) {
             return;
         }
+        assert numberOfImages >= 3 : "numberOfImages<=2 was checked before calling this method";
         final int index = numberOfImages - 1;
         final TiffIFD ifd = ifds.get(index);
-        if (!isSmallImage(ifd)) {
+        if (!isPossibleLabelOrMacro(ifd)) {
             return;
         }
         final double ratio = ratio(ifd);
         if (LOG.isLoggable(System.Logger.Level.DEBUG)) {
-            LOG.log(System.Logger.Level.DEBUG, String.format(
-                    "  Checking last 1 small IFDs #%d %s for Label or Macro...", index, sizesToString(ifd)));
-            LOG.log(System.Logger.Level.DEBUG, String.format(
-                    "  Last IFD #%d, ratio: %.5f, standard Macro %.5f", index, ratio, STANDARD_MACRO_ASPECT_RATIO));
+            LOG.log(System.Logger.Level.DEBUG, "Checking last 1 small IFDs #%d %s for LABEL or MACRO..."
+                    .formatted(index, sizesToString(ifd)));
         }
-        if (ratio <= STANDARD_MACRO_ASPECT_RATIO * (1.0 - ALLOWED_ASPECT_RATION_DEVIATION)) {
-            if (ifd.getCompressionCode() == TagCompression.JPEG.code()) {
-                // strange image, but very improbable that it is Label encoded by JPEG
-                // (usually Label is compressed lossless)
-                this.macroIndex = index;
-                LOG.log(System.Logger.Level.DEBUG, () -> String.format(
-                        "  Macro %d with strange form detected by JPEG compression", index));
-            } else {
+        if (CHECK_KEYWORDS_FOR_LABEL_AND_MACRO) {
+            boolean probablyLabel = containsLabelMarker(ifd);
+            boolean probablyMacro = containsMacroMarker(ifd);
+            if (probablyLabel && !probablyMacro) {
                 this.labelIndex = index;
-                LOG.log(System.Logger.Level.DEBUG, () -> String.format("  Label %d detected by form", index));
+                LOG.log(System.Logger.Level.DEBUG, () ->"LABEL %d detected by keyword 'label'".formatted(labelIndex));
+                return;
             }
-        } else if (ratio < STANDARD_MACRO_ASPECT_RATIO / (1.0 - ALLOWED_ASPECT_RATION_DEVIATION)) {
+            if (probablyMacro && !probablyLabel) {
+                this.macroIndex = index;
+                LOG.log(System.Logger.Level.DEBUG, () ->"MACRO %d detected by keyword 'macro'".formatted(macroIndex));
+                return;
+            }
+        }
+        LOG.log(System.Logger.Level.DEBUG, () -> String.format(
+                "Last IFD #%d, ratio: %.5f, standard Macro %.5f", index, ratio, STANDARD_MACRO_ASPECT_RATIO));
+        if (ratio > STANDARD_MACRO_ASPECT_RATIO * (1.0 - ALLOWED_ASPECT_RATION_DEVIATION)
+                && ratio < STANDARD_MACRO_ASPECT_RATIO / (1.0 - ALLOWED_ASPECT_RATION_DEVIATION)) {
             this.macroIndex = index;
-            LOG.log(System.Logger.Level.DEBUG, () -> String.format("  Macro %d detected by form", index));
-        } else {
-            LOG.log(System.Logger.Level.DEBUG, () -> String.format("  Last IFD %d is UNKNOWN", index));
+            LOG.log(System.Logger.Level.DEBUG, () -> "MACRO %d detected by aspect ratio".formatted(macroIndex));
         }
     }
 
@@ -537,20 +596,24 @@ public final class TiffPyramidMetadata {
                 ifd.getImageDimY() <= MAX_SPECIAL_IMAGES_SIZE;
     }
 
+    static boolean isPossibleLabelOrMacro(TiffIFD ifd) throws TiffException {
+        return isSmallImage(ifd) && !ifd.hasTileInformation();
+        // - note: tiled images cannot be labels or macros (no reasons to do so)
+    }
+
+    static boolean containsLabelMarker(TiffIFD ifd) throws TiffException {
+        Optional<String> description = ifd.optDescription();
+        return description.isPresent() && LABEL_WORD_PATTERN.matcher(description.get()).find();
+    }
+
+    static boolean containsMacroMarker(TiffIFD ifd) throws TiffException {
+        Optional<String> description = ifd.optDescription();
+        return description.isPresent() && MACRO_WORD_PATTERN.matcher(description.get()).find();
+    }
+
     static String sizesToString(TiffIFD ifd) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         return ifd.getImageDimX() + "x" + ifd.getImageDimY();
-    }
-
-    static String compressionToString(TiffIFD ifd) {
-        Objects.requireNonNull(ifd, "Null IFD");
-        return String.valueOf(ifd.optCompression());
-    }
-
-    private static double area(TiffIFD ifd) throws TiffException {
-        final long dimX = ifd.getImageDimX();
-        final long dimY = ifd.getImageDimY();
-        return (double) dimX * (double) dimY;
     }
 
     private static double ratio(TiffIFD ifd) throws TiffException {
@@ -561,16 +624,10 @@ public final class TiffPyramidMetadata {
     }
 
     public static void main(String[] args) throws IOException {
-        if (args.length == 0) {
-            System.out.println("Usage: " + TiffPyramidMetadata.class.getName() + " file1.svs file2.svs ...");
-            return;
-        }
-        for (String arg : args) {
-            final Path file = Paths.get(arg);
-            try (TiffReader reader = new TiffReader(file)) {
-                final var metadata = new TiffPyramidMetadata(reader.allIFDs());
-                System.out.printf("%s:%n%s%n%n", file, metadata);
-            }
-        }
+        System.out.println(containsLabelMarker(new TiffIFD().putDescription("My Label is")));
+        System.out.println(containsLabelMarker(new TiffIFD().putDescription("Label")));
+        System.out.println(containsLabelMarker(new TiffIFD().putDescription("Labelling")));
+        System.out.println(containsLabelMarker(new TiffIFD().putDescription("Label\n1")));
+        System.out.println(containsLabelMarker(new TiffIFD().putDescription("Labe\n1")));
     }
 }

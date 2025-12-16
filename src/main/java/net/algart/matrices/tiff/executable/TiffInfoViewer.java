@@ -47,6 +47,7 @@ import java.util.prefs.Preferences;
 public class TiffInfoViewer {
     public static final String ALGART_TIFF_WEBSITE = "https://algart.net/java/AlgART-TIFF/";
 
+    private static final String APPLICATION_TITLE = "TIFF Information Viewer";
     private static final boolean DEFAULT_WORD_WRAP = false;
     private static final int DEFAULT_FONT_SIZE = 14;
     private static final int[] FONT_SIZES = {11, DEFAULT_FONT_SIZE, 18, 22};
@@ -122,7 +123,7 @@ public class TiffInfoViewer {
     }
 
     private void createGUI(String[] args) {
-        frame = new JFrame("TIFF Information Viewer");
+        frame = new JFrame(APPLICATION_TITLE);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
         frame.setJMenuBar(buildMenuBar());
@@ -430,6 +431,7 @@ public class TiffInfoViewer {
                 updateTextArea();
             }
             ifdComboBox.setPrototypeDisplayValue(longest);
+            frame.setTitle(APPLICATION_TITLE + ": " + tiffFile.getFileName());
         } catch (IOException e) {
             LOG.log(System.Logger.Level.ERROR, "Error reading TIFF", e);
             JOptionPane.showMessageDialog(frame, e.getMessage(), "Error reading TIFF", JOptionPane.ERROR_MESSAGE);

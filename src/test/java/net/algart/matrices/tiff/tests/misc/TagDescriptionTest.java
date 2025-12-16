@@ -52,7 +52,7 @@ public class TagDescriptionTest {
     }
 
     private static void printDescription(TiffIFD ifd) {
-        System.out.printf("ImagetDescription: %s%n", ifd.optValue(Tags.IMAGE_DESCRIPTION, String.class));
+        System.out.printf("optDescription: %s%n", ifd.optDescription());
         System.out.printf("getDescription: %s%n", ifd.getDescription());
         System.out.println(ifd.toString(TiffIFD.StringFormat.NORMAL));
         System.out.println(ifd.jsonString());

@@ -174,7 +174,7 @@ public class Tags {
     public static final int STO_NITS = 37439;
 
     /**
-     * Returns user-friendly name of the given TIFF tag.
+     * Returns a user-friendly name of the given TIFF tag.
      * It is used, in particular, in {@link #toString()} function.
      *
      * @param tag            entry Tag value.
