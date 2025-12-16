@@ -533,20 +533,23 @@ public final class TiffPyramidMetadata {
                 return true;
             }
         }
-        final double ratio1 = ratio(ifd1);
-        final double ratio2 = ratio(ifd2);
-        final double maxRatio = Math.max(ratio1, ratio2);
-        LOG.log(System.Logger.Level.DEBUG, () -> "Last 2 IFD ratios: %.5f for %d, %.5f for %d, standard MACRO %.5f"
-                .formatted(ratio1, index1, ratio2, index2, STANDARD_MACRO_ASPECT_RATIO));
-        if (maxRatio > STANDARD_MACRO_ASPECT_RATIO * (1.0 - ALLOWED_ASPECT_RATION_DEVIATION)
-                && maxRatio < STANDARD_MACRO_ASPECT_RATIO / (1.0 - ALLOWED_ASPECT_RATION_DEVIATION)) {
-            // Usually, the more extended from 2 images is MACRO and the more square is LABEL,
-            // but we use this criterion only if the more extended really looks almost as a standard MACRO
-            this.macroIndex = ratio1 > ratio2 ? index1 : index2;
-            this.labelIndex = ratio1 > ratio2 ? index2 : index1;
-            LOG.log(System.Logger.Level.DEBUG, () ->
-                    "LABEL %d / MACRO %d detected by aspect ratio".formatted(labelIndex, macroIndex));
-            return true;
+        if (ifd1.isReducedImage() && ifd2.isReducedImage()) {
+            // - probably they are still macro/label
+            final double ratio1 = ratio(ifd1);
+            final double ratio2 = ratio(ifd2);
+            final double maxRatio = Math.max(ratio1, ratio2);
+            LOG.log(System.Logger.Level.DEBUG, () -> "Last 2 IFD ratios: %.5f for %d, %.5f for %d, standard MACRO %.5f"
+                    .formatted(ratio1, index1, ratio2, index2, STANDARD_MACRO_ASPECT_RATIO));
+            if (maxRatio > STANDARD_MACRO_ASPECT_RATIO * (1.0 - ALLOWED_ASPECT_RATION_DEVIATION)
+                    && maxRatio < STANDARD_MACRO_ASPECT_RATIO / (1.0 - ALLOWED_ASPECT_RATION_DEVIATION)) {
+                // Usually, the more extended from 2 images is MACRO and the more square is LABEL,
+                // but we use this criterion only if the more extended really looks almost as a standard MACRO
+                this.macroIndex = ratio1 > ratio2 ? index1 : index2;
+                this.labelIndex = ratio1 > ratio2 ? index2 : index1;
+                LOG.log(System.Logger.Level.DEBUG, () ->
+                        "LABEL %d / MACRO %d detected by aspect ratio".formatted(labelIndex, macroIndex));
+                return true;
+            }
         }
         return false;
     }
@@ -580,12 +583,15 @@ public final class TiffPyramidMetadata {
                 return;
             }
         }
-        LOG.log(System.Logger.Level.DEBUG, () -> String.format(
-                "Last IFD #%d, ratio: %.5f, standard Macro %.5f", index, ratio, STANDARD_MACRO_ASPECT_RATIO));
-        if (ratio > STANDARD_MACRO_ASPECT_RATIO * (1.0 - ALLOWED_ASPECT_RATION_DEVIATION)
-                && ratio < STANDARD_MACRO_ASPECT_RATIO / (1.0 - ALLOWED_ASPECT_RATION_DEVIATION)) {
-            this.macroIndex = index;
-            LOG.log(System.Logger.Level.DEBUG, () -> "MACRO %d detected by aspect ratio".formatted(macroIndex));
+        if (ifd.isReducedImage()) {
+            // - probably this is still macro/label
+            LOG.log(System.Logger.Level.DEBUG, () -> String.format(
+                    "Last IFD #%d, ratio: %.5f, standard Macro %.5f", index, ratio, STANDARD_MACRO_ASPECT_RATIO));
+            if (ratio > STANDARD_MACRO_ASPECT_RATIO * (1.0 - ALLOWED_ASPECT_RATION_DEVIATION)
+                    && ratio < STANDARD_MACRO_ASPECT_RATIO / (1.0 - ALLOWED_ASPECT_RATION_DEVIATION)) {
+                this.macroIndex = index;
+                LOG.log(System.Logger.Level.DEBUG, () -> "MACRO %d detected by aspect ratio".formatted(macroIndex));
+            }
         }
     }
 
