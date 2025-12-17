@@ -30,9 +30,7 @@ import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.tags.SvsDescription;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.regex.Pattern;
 
 public final class TiffPyramidMetadata {
@@ -73,6 +71,7 @@ public final class TiffPyramidMetadata {
 
     private static final System.Logger LOG = System.getLogger(TiffPyramidMetadata.class.getName());
 
+    private final List<TiffIFD> ifds;
     private final int numberOfImages;
     private final int baseImageDimX;
     private final int baseImageDimY;
@@ -86,6 +85,7 @@ public final class TiffPyramidMetadata {
     private final SvsDescription svsDescription;
 
     private TiffPyramidMetadata() {
+        this.ifds = Collections.emptyList();
         this.numberOfImages = this.numberOfLayers = 0;
         this.baseImageDimX = this.baseImageDimY = 0;
         this.baseImageTiled = false;
@@ -94,20 +94,21 @@ public final class TiffPyramidMetadata {
 
     private TiffPyramidMetadata(List<TiffIFD> ifds) throws TiffException {
         Objects.requireNonNull(ifds, "Null IFDs");
-        this.numberOfImages = ifds.size();
-        this.svsDescription = SvsDescription.findMainDescription(ifds);
+        this.ifds = Collections.unmodifiableList(new ArrayList<>(ifds));
+        this.numberOfImages = this.ifds.size();
+        this.svsDescription = SvsDescription.findMainDescription(this.ifds);
         // - used in detectLabelAndMacro()
         if (numberOfImages == 0) {
             this.numberOfLayers = 0;
             this.baseImageDimX = this.baseImageDimY = 0;
             this.baseImageTiled = false;
         } else {
-            final TiffIFD first = ifds.getFirst();
+            final TiffIFD first = this.ifds.getFirst();
             this.baseImageDimX = first.getImageDimX();
             this.baseImageDimY = first.getImageDimY();
             this.baseImageTiled = first.hasTileInformation();
-            this.numberOfLayers = detectPyramidAndThumbnail(ifds);
-            detectLabelAndMacro(ifds);
+            this.numberOfLayers = detectPyramidAndThumbnail();
+            detectLabelAndMacro();
         }
     }
 
@@ -186,6 +187,14 @@ public final class TiffPyramidMetadata {
             }
         }
         return -1;
+    }
+
+    public List<TiffIFD> ifds() {
+        return ifds;
+    }
+
+    public TiffIFD ifd(int ifdIndex) {
+        return ifds.get(ifdIndex);
     }
 
     public boolean isSvs() {
@@ -389,12 +398,12 @@ public final class TiffPyramidMetadata {
         return sb.isEmpty() ? "no special images" : sb.toString();
     }
 
-    private int detectPyramidAndThumbnail(List<TiffIFD> ifds) throws TiffException {
+    private int detectPyramidAndThumbnail() throws TiffException {
         thumbnailIndex = -1;
         if (!baseImageTiled) {
             return 0;
         }
-        int countNonSvs = detectPyramid(ifds, 1);
+        int countNonSvs = detectPyramid(1);
         if (numberOfImages <= 1 || countNonSvs >= 3) {
             // 3 or more images 0, 1, 2, ... have the same ratio: it's obvious that the image #1 is not a thumbnail
             return countNonSvs;
@@ -406,13 +415,13 @@ public final class TiffPyramidMetadata {
             return thumbnailIndex == -1 ? 2 : 1;
         }
         // Now countNonSvs = 1 or 2
-        return detectPyramid(ifds, SVS_THUMBNAIL_INDEX + 1);
+        return detectPyramid(SVS_THUMBNAIL_INDEX + 1);
         // If the result >= 2 and thumbnailIndex=THUMBNAIL_IFD_INDEX (small image), the image #1 is really a thumbnail.
         // If the result = 1, we have no pyramid 0-2-3-... or 0-1-2-..., so, we don't know what is #1,
         // and we still decide this based on the sizes
     }
 
-    private int detectPyramid(List<TiffIFD> ifds, int startIndex) throws TiffException {
+    private int detectPyramid(int startIndex) throws TiffException {
         assert startIndex >= 1;
         int levelDimX = baseImageDimX;
         int levelDimY = baseImageDimY;
@@ -450,7 +459,7 @@ public final class TiffPyramidMetadata {
         return result;
     }
 
-    private void detectLabelAndMacro(List<TiffIFD> ifds) throws TiffException {
+    private void detectLabelAndMacro() throws TiffException {
         final int firstAfterPyramid = layerToImage(numberOfLayers);
         // - note: no exception here
         assert firstAfterPyramid >= numberOfLayers;
@@ -465,12 +474,12 @@ public final class TiffPyramidMetadata {
             // numberOfImages=2, numberOfLayers=2: we prefer to think that this is a 2-layer pyramid
             return;
         }
-        if (!detectTwoLastImages(ifds, firstAfterPyramid)) {
-            detectSingleLastImage(ifds, firstAfterPyramid);
+        if (!detectTwoLastImages(firstAfterPyramid)) {
+            detectSingleLastImage(firstAfterPyramid);
         }
     }
 
-    private boolean detectTwoLastImages(List<TiffIFD> ifds, int firstAfterPyramid) throws TiffException {
+    private boolean detectTwoLastImages(int firstAfterPyramid) throws TiffException {
         assert firstAfterPyramid >= 1;
         if (!DETECT_LABEL_AND_MACRO_PAIR) {
             return false;
@@ -554,7 +563,7 @@ public final class TiffPyramidMetadata {
         return false;
     }
 
-    private void detectSingleLastImage(List<TiffIFD> ifds, int firstAfterPyramid) throws TiffException {
+    private void detectSingleLastImage(int firstAfterPyramid) throws TiffException {
         if (numberOfImages - firstAfterPyramid < 1) {
             return;
         }

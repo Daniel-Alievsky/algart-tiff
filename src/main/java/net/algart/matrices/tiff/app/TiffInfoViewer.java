@@ -30,6 +30,7 @@ import net.algart.matrices.tiff.pyramids.TiffPyramidMetadata;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.InputEvent;
@@ -87,6 +88,11 @@ public class TiffInfoViewer {
 
     static final System.Logger LOG = System.getLogger(TiffInfoViewer.class.getName());
 
+    private static final FileFilter TIFF_FILTER = new FileNameExtensionFilter(
+            "TIFF / SVS files (*.tif, *.tiff, *.svs)", "tif", "tiff", "svs");
+    private static final FileFilter SVS_FILTER = new FileNameExtensionFilter(
+            "SVS files only (*.svs)", "svs");
+
     private final Preferences prefs = Preferences.userNodeForPackage(TiffInfoViewer.class);
 
     private JFrame frame;
@@ -94,6 +100,7 @@ public class TiffInfoViewer {
     private JTextArea ifdTextArea;
     private JTextArea summaryInfoTextArea;
     private JTextArea svsInfoTextArea;
+    private FileFilter lastFileFilter = TIFF_FILTER;
 
     private TiffInfo info = null;
     private Path tiffFile = null;
@@ -226,7 +233,8 @@ public class TiffInfoViewer {
 
     private void addIFDComboBox(JPanel leftPanel) {
         ifdComboBox = new JComboBox<>();
-        ifdComboBox.setMaximumRowCount(16);
+        ifdComboBox.setFont(new Font(Font.MONOSPACED, Font.PLAIN, DEFAULT_FONT_SIZE));
+        ifdComboBox.setMaximumRowCount(32);
         ifdComboBox.addActionListener(e -> updateTextArea());
         ifdComboBox.setPrototypeDisplayValue("Image #999");
         leftPanel.add(Box.createHorizontalStrut(10));
@@ -313,7 +321,17 @@ public class TiffInfoViewer {
             svsInfoTextArea.setLineWrap(wrap);
         });
         viewMenu.add(wrapItem);
+        viewMenu.addSeparator();
+        JMenuItem prevImageItem = new JMenuItem("Previous image");
+        prevImageItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, InputEvent.ALT_DOWN_MASK));
+        prevImageItem.addActionListener(e -> selectPreviousImage());
 
+        JMenuItem nextImageItem = new JMenuItem("Next image");
+        nextImageItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, InputEvent.ALT_DOWN_MASK));
+        nextImageItem.addActionListener(e -> selectNextImage());
+
+        viewMenu.add(prevImageItem);
+        viewMenu.add(nextImageItem);
         JMenu helpMenu = new JMenu("Help");
         JMenuItem aboutItem = new JMenuItem("About");
         aboutItem.addActionListener(e -> showAboutDialog());
@@ -352,6 +370,20 @@ public class TiffInfoViewer {
         svsInfoTextArea.setFont(mono);
     }
 
+    private void selectNextImage() {
+        int i = ifdComboBox.getSelectedIndex();
+        if (i >= 0 && i + 1 < ifdComboBox.getItemCount()) {
+            ifdComboBox.setSelectedIndex(i + 1);
+        }
+    }
+
+    private void selectPreviousImage() {
+        int i = ifdComboBox.getSelectedIndex();
+        if (i > 0) {
+            ifdComboBox.setSelectedIndex(i - 1);
+        }
+    }
+
     private void chooseAndOpenFile() {
         JFileChooser chooser = new JFileChooser();
         String last = prefs.get(PREF_LAST_DIR, null);
@@ -361,22 +393,20 @@ public class TiffInfoViewer {
                 chooser.setCurrentDirectory(dir);
             }
         }
-        javax.swing.filechooser.FileFilter tiffFilter =
-                new FileNameExtensionFilter(
-                        "TIFF / SVS files (*.tif, *.tiff, *.svs)", "tif", "tiff", "svs");
-        javax.swing.filechooser.FileFilter svsFilter =
-                new FileNameExtensionFilter("SVS files only (*.svs)", "svs");
-        chooser.addChoosableFileFilter(tiffFilter);
-        chooser.addChoosableFileFilter(svsFilter);
+        chooser.addChoosableFileFilter(TIFF_FILTER);
+        chooser.addChoosableFileFilter(SVS_FILTER);
         chooser.setAcceptAllFileFilterUsed(true);
-
-        chooser.setFileFilter(tiffFilter);
+        chooser.setFileFilter(lastFileFilter != null ? lastFileFilter : chooser.getAcceptAllFileFilter());
         chooser.setDialogTitle("Select a TIFF file");
         int result = chooser.showOpenDialog(frame);
         if (result == JFileChooser.APPROVE_OPTION) {
             File file = chooser.getSelectedFile();
             if (file != null) {
                 prefs.put(PREF_LAST_DIR, file.getParent());
+                lastFileFilter = chooser.getFileFilter();
+                if (lastFileFilter == chooser.getAcceptAllFileFilter()) {
+                    lastFileFilter = null;
+                }
                 loadTiff(file.toPath());
             }
         }
@@ -407,8 +437,21 @@ public class TiffInfoViewer {
             TiffPyramidMetadata metadata = info.metadata();
             assert metadata != null;
             String longest = "";
+            assert info.getFirstIFDIndex() == 0;
+            // - so, the index below is equal to the index in the ifds list
+            String[] captions = new String[info.numberOfImages()];
             for (int i = 0; i < info.numberOfImages(); i++) {
-                final StringBuilder sb = new StringBuilder("Image #" + i);
+                final TiffIFD ifd = metadata.ifd(i);
+                final String caption = "Image #" + i + " [" + ifd.getImageDimX() + "x" + ifd.getImageDimY() + "]";
+                if (caption.length() > longest.length()) {
+                    longest = caption;
+                }
+                captions[i] = caption;
+            }
+            final int maxLength = longest.length();
+            for (int i = 0; i < captions.length; i++) {
+                String caption = captions[i];
+                final StringBuilder sb = new StringBuilder(caption + " ".repeat(maxLength - caption.length()));
                 final int layer = metadata.imageToLayer(i);
                 if (metadata.isPyramid()) {
                     if (layer >= 0) {
@@ -420,9 +463,9 @@ public class TiffInfoViewer {
                         }
                     }
                 }
-                final String caption = sb.toString();
+                caption = sb.toString();
                 ifdComboBox.addItem(caption);
-                if (sb.length() > longest.length()) {
+                if (caption.length() > longest.length()) {
                     longest = caption;
                 }
             }
