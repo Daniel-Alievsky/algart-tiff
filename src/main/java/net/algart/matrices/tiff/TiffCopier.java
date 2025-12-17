@@ -277,16 +277,30 @@ public final class TiffCopier {
         Objects.requireNonNull(reader, "Null TIFF reader");
         writer.setFormatLike(reader);
         writer.create();
-        copyAllImages(writer, reader);
+        copyImages(writer, reader);
     }
 
-    public void copyAllImages(TiffWriter writer, TiffReader reader) throws IOException {
+    public void copyImages(TiffWriter writer, TiffReader reader) throws IOException {
+        copyImages(writer, reader, 0, reader.numberOfImages());
+    }
+
+    public void copyImages(TiffWriter writer, TiffReader reader, int fromIndex, int toIndex) throws IOException {
         Objects.requireNonNull(writer, "Null TIFF writer");
         Objects.requireNonNull(reader, "Null TIFF reader");
+        if (fromIndex < 0) {
+            throw new IllegalArgumentException("Negative fromIndex: " + fromIndex);
+        }
+        if (toIndex < fromIndex) {
+            throw new IllegalArgumentException("toIndex < fromIndex: " + toIndex + " < " + fromIndex);
+        }
+        final int n = reader.numberOfImages();
+        if (toIndex > n) {
+            throw new IndexOutOfBoundsException("toIndex > numberOfImages: " + toIndex + " > " + n);
+        }
         resetAllCounters();
-        for (int i = 0, n = reader.numberOfImages(); i < n; i++) {
-            progressInformation.imageIndex = i;
-            progressInformation.imageCount = n;
+        for (int i = fromIndex; i < toIndex; i++) {
+            progressInformation.imageIndex = i - fromIndex;
+            progressInformation.imageCount = toIndex - fromIndex;
             copyImage(writer, reader, i);
         }
     }

@@ -415,6 +415,35 @@ public final class TiffPyramidMetadata {
             return thumbnailIndex == -1 ? 2 : 1;
         }
         // Now countNonSvs = 1 or 2
+        // If countNonSvs = 1, we are sure that there is no pyramid 0-1-2-...,
+        // and we need to check the possible SVS-like pyramid.
+        final int countSvs = detectPyramid(SVS_THUMBNAIL_INDEX + 1);
+        if (countSvs < countNonSvs) {
+            assert countSvs == 1;
+            // so, countNonSvs == 2
+            return thumbnailIndex == -1 ? 2 : 1;
+        }
+        return countSvs;
+        // If countSvs >= countNonSvs, we prefer SVS hypotheses
+    }
+
+    private int detectPyramidAndThumbnailOld() throws TiffException {
+        thumbnailIndex = -1;
+        if (!baseImageTiled) {
+            return 0;
+        }
+        int countNonSvs = detectPyramid(1);
+        if (numberOfImages <= 1 || countNonSvs >= 3) {
+            // 3 or more images 0, 1, 2, ... have the same ratio: it's obvious that the image #1 is not a thumbnail
+            return countNonSvs;
+        }
+        if (isSmallImage(ifds.get(SVS_THUMBNAIL_INDEX))) {
+            thumbnailIndex = SVS_THUMBNAIL_INDEX;
+        }
+        if (countNonSvs == 2 && numberOfImages == 2) {
+            return thumbnailIndex == -1 ? 2 : 1;
+        }
+        // Now countNonSvs = 1 or 2
         return detectPyramid(SVS_THUMBNAIL_INDEX + 1);
         // If the result >= 2 and thumbnailIndex=THUMBNAIL_IFD_INDEX (small image), the image #1 is really a thumbnail.
         // If the result = 1, we have no pyramid 0-2-3-... or 0-1-2-..., so, we don't know what is #1,
