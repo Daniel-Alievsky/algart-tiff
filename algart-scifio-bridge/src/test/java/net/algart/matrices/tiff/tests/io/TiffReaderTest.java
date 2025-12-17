@@ -32,7 +32,7 @@ import net.algart.io.MatrixIO;
 import net.algart.io.awt.MatrixToImage;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.compatibility.TiffParser;
-import net.algart.matrices.tiff.executable.TiffInfo;
+import net.algart.matrices.tiff.app.TiffInfo;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 import org.scijava.Context;
 

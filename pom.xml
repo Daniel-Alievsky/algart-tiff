@@ -117,7 +117,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>net.algart.matrices.tiff.executable.TiffInfoViewer</mainClass>
+                            <mainClass>net.algart.matrices.tiff.app.TiffInfoViewer</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

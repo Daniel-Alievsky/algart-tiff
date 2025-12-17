@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.executable;
+package net.algart.matrices.tiff.app;
 
 import net.algart.matrices.tiff.TiffCopier;
 import net.algart.matrices.tiff.TiffReader;
