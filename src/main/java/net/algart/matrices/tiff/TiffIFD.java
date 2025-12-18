@@ -1979,16 +1979,14 @@ public final class TiffIFD {
         }
         TagDescription description = getDescription();
         assert description != null;
-        if (description.isPresent()) {
-            if (json) {
-                sb.append(",\n  \"%s\": %s".formatted(
-                        escapeJsonString(description.formatName(false)),
-                        addLeftIndent(description.toString(format), 2, false)));
-            } else {
-                sb.append("%n  %s:%n%s".formatted(
-                        description.formatName(true),
-                        addLeftIndent(description.toString(format), 4, true)));
-            }
+        if (json) {
+            sb.append(",\n  \"%s\": %s".formatted(
+                    escapeJsonString(description.formatName(false)),
+                    addLeftIndent(description.toString(format), 2, false)));
+        } else if (description.isPresent()) {
+            sb.append("%n  %s:%n%s".formatted(
+                    description.formatName(true),
+                    addLeftIndent(description.toString(format), 4, true)));
         }
         if (json) {
             sb.append("\n}");

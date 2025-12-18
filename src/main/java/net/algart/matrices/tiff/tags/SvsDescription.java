@@ -228,7 +228,7 @@ public final class SvsDescription extends TagDescription {
     public String jsonString() {
         final StringBuilder sb = new StringBuilder();
         sb.append("{\n");
-        sb.append("  \"svs\": ").append(true).append(",\n");
+        sb.append("  \"exists\": ").append(true).append(",\n");
         sb.append("  \"main\": ").append(main).append(",\n");
         sb.append("  \"application\": \"").append(TiffIFD.escapeJsonString(application())).append("\",\n");
         sb.append("  \"summary\": \"").append(TiffIFD.escapeJsonString(summary())).append("\",\n");

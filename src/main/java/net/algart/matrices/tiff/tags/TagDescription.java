@@ -49,6 +49,10 @@ public class TagDescription {
     }
 
 
+    public final String description() {
+        return description(null);
+    }
+
     public final String description(String defaultValue) {
         return description == null ? defaultValue : description;
     }
@@ -151,6 +155,10 @@ public class TagDescription {
     public String jsonString() {
         return "{\n" +
                 "  \"application\": \"" + TiffIFD.escapeJsonString(application()) + "\"\n" +
+                "  \"exists\": " + isPresent() + "\n" +
+                (isPresent() ?
+                        "  \"description\": \"" + TiffIFD.escapeJsonString(description()) + "\"\n" :
+                        "") +
                 "}";
     }
 
