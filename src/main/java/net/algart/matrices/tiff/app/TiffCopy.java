@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Locale;
 
 public class TiffCopy {
@@ -44,6 +45,11 @@ public class TiffCopy {
     private long lastProgressTime = Integer.MIN_VALUE;
 
     public static void main(String[] args) throws IOException {
+        if (args.length > 0 && args[0].equalsIgnoreCase("-convert")) {
+            if (ConvertToTiff.doMain(Arrays.copyOfRange(args, 1, args.length), false)) {
+                return;
+            }
+        }
         TiffCopy copy = new TiffCopy();
         int startArgIndex = 0;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-repack")) {
@@ -68,30 +74,31 @@ public class TiffCopy {
             copy.bigTiff = false;
             startArgIndex++;
         }
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-quality")) {
-            startArgIndex++;
-            final String s = args[startArgIndex].toLowerCase();
+        if (args.length > startArgIndex && args[startArgIndex].toLowerCase().startsWith("-quality=")) {
+            final String s = args[startArgIndex].toLowerCase().substring("-quality=".length());
             if (!s.equals("null")) {
                 copy.quality = Double.parseDouble(s);
             }
             startArgIndex++;
         }
-
         if (args.length < startArgIndex + 2) {
-            System.out.println("Usage:");
-            System.out.printf("   [-repack] [-smart] [-le|-be] [-bigTiff|-noBigTIFF] [-quality xxx] " +
-                            "%s source.tiff target.tiff%n",
-                    TiffCopy.class.getName());
+            System.out.printf("Usage:%n    %s [-repack] [-smart] [-le|-be] [-bigTiff|-noBigTIFF] [-quality=xxx] " +
+                            "source.tiff target.tiff%n",
+                    TiffCopy.class.getSimpleName());
+            System.out.printf("or%n    %s -convert [-bigTiff] [-littleEndian] [-quality=xxx] " +
+                                    "[-compressionLevel=1.0] source.jpg/png/bmp target.tiff [compression]%n",
+                    TiffCopy.class.getSimpleName());
             System.out.println("""
-                    The source TIFF file is completely parsed, and its content is copied to the target file\
-                    in the optimal way: IFD table first, then image data.
+                    In the first case, the source TIFF file is completely parsed, and its content is copied
+                    to the target file in the optimal way: IFD table first, then image data.
                     -repack option forces decompression and compression of TIFF image data even in the case
                     when direct tile-per-tile (or strip-per-strip) copying is possible.
-                    -le and -be options allows specifying the target file byte order; by default,\
+                    -le and -be options allows specifying the target file byte order; by default, \
                     the source byte order is preserved.
-                    -smart option allows copying some file formats that are not supported for writing\
+                    -smart option allows copying some file formats that are not supported for writing \
                     (like 16-bit float values);
                     they will be repacked into the "closest" supported format.
+                    In the second case, possible "compression" is: NONE, LZW, DEFLATE, JPEG, JPEG_2000, ..."
                     """);
             return;
         }

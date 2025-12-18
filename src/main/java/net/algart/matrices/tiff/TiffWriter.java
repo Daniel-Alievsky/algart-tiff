@@ -1579,7 +1579,7 @@ public non-sealed class TiffWriter extends TiffIO {
 
         if (ifd.hasFileOffsetForWriting()) {
             // - usually it means that we did call writeForward
-            rewriteIFD(ifd);
+            rewriteIFD(ifd, true);
         } else {
             writeIFDAt(ifd, null, true);
         }

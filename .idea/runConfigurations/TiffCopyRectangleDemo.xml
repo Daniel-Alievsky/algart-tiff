@@ -6,7 +6,7 @@
     <option name="VM_PARAMETERS" value="-ea -esa -Dnet.algart.matrices.tiff.timing=true -Djava.util.logging.config.file=additional/logging.properties" />
     <extension name="coverage">
       <pattern>
-        <option name="PATTERN" value="net.algart.matrices.tiff.demo.io.*" />
+        <option name="PATTERN" value="net.algart.matrices.tiff.app.*" />
         <option name="ENABLED" value="true" />
       </pattern>
     </extension>

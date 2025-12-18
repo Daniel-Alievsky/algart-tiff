@@ -1,11 +1,11 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="TiffWriteCustomDemo" type="Application" factoryName="Application" nameIsGenerated="true">
-    <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.demo.io.TiffWriteCustomDemo" />
+  <configuration default="false" name="ConvertToTiff" type="Application" factoryName="Application" nameIsGenerated="true">
+    <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.app.ConvertToTiff" />
     <module name="algart-tiff" />
     <option name="PROGRAM_PARAMETERS" value="-littleEndian -quality=0.8 src/test/resources/demo/images/lenna.png /tmp/lenna.tiff JPEG" />
     <extension name="coverage">
       <pattern>
-        <option name="PATTERN" value="net.algart.matrices.tiff.demo.io.*" />
+        <option name="PATTERN" value="net.algart.matrices.tiff.app.*" />
         <option name="ENABLED" value="true" />
       </pattern>
     </extension>

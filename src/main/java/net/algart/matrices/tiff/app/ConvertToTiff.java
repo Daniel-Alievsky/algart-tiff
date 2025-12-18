@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.demo.io;
+package net.algart.matrices.tiff.app;
 
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
@@ -36,8 +36,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
-public class TiffWriteCustomDemo {
+public class ConvertToTiff {
     public static void main(String[] args) throws IOException {
+        doMain(args, true);
+    }
+
+    static boolean doMain(String[] args, boolean printUsage) throws IOException {
         int startArgIndex = 0;
         boolean bigTiff = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-bigTiff")) {
@@ -62,12 +66,14 @@ public class TiffWriteCustomDemo {
             startArgIndex++;
         }
         if (args.length < startArgIndex + 2) {
-            System.out.println("Usage:");
-            System.out.printf("    %s [-bigTiff] [-littleEndian] [-quality=0.3] [-compressionLevel=1.0] " +
-                            "source.jpg/png/bmp target.tiff [compression]%n" +
-                            "Possible \"compression\": NONE, LZW, DEFLATE, JPEG, JPEG_2000, ...",
-                    TiffWriteCustomDemo.class.getName());
-            return;
+            if (printUsage) {
+                System.out.println("Usage:");
+                System.out.printf("    %s [-bigTiff] [-littleEndian] [-quality=0.3] [-compressionLevel=1.0] " +
+                                "source.jpg/png/bmp target.tiff [compression]%n" +
+                                "Possible \"compression\": NONE, LZW, DEFLATE, JPEG, JPEG_2000, ...",
+                        ConvertToTiff.class.getName());
+            }
+            return false;
         }
         final Path sourceFile = Paths.get(args[startArgIndex]);
         final Path targetFile = Paths.get(args[startArgIndex + 1]);
@@ -93,5 +99,6 @@ public class TiffWriteCustomDemo {
             map.writeChannels(image);
         }
         System.out.println("Done");
+        return true;
     }
 }

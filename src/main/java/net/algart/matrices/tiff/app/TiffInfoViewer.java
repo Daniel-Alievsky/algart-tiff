@@ -108,7 +108,8 @@ public class TiffInfoViewer {
 
     public static void main(String[] args) {
         if (args.length >= 1 && args[0].equals("-h")) {
-            System.out.println("Usage: java " + TiffInfoViewer.class.getName() + " [some_file.tiff]");
+            System.out.println("Usage:");
+            System.out.println("    " + TiffInfoViewer.class.getSimpleName() + " [some_file.tiff]");
             return;
         }
         try {
