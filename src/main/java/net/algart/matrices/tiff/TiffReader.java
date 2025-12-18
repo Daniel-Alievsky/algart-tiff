@@ -692,6 +692,15 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     /**
+     * Returns position in the file of the first IFD offset: 8 for {@link #isBigTiff() BigTIFF}, 4 for a usual TIFF.
+     *
+     * @return position in the file of the first IFD offset.
+     */
+    public long positionOfFirstIFDOffset() {
+        return bigTiff ? 8L : 4L;
+    }
+
+    /**
      * Returns position in the file of the last IFD offset, loaded by {@link #readIFDOffsets()},
      * {@link #readSingleIFDOffset(int)} or {@link #readFirstIFDOffset()} methods.
      * Usually it is just a position of the last IFD offset, because
@@ -928,7 +937,7 @@ public non-sealed class TiffReader extends TiffIO {
      */
     public long readFirstIFDOffset() throws IOException {
         synchronized (fileLock) {
-            stream.seek(bigTiff ? 8 : 4);
+            stream.seek(positionOfFirstIFDOffset());
             return readFirstOffsetFromCurrentPosition(true, this.bigTiff);
         }
     }
@@ -1949,7 +1958,7 @@ public non-sealed class TiffReader extends TiffIO {
         synchronized (fileLock) {
             final long savedOffset = stream.offset();
             try {
-                stream.seek(bigTiff ? 8 : 4);
+                stream.seek(positionOfFirstIFDOffset());
                 readFirstOffsetFromCurrentPosition(false, this.bigTiff);
             } finally {
                 stream.seek(savedOffset);

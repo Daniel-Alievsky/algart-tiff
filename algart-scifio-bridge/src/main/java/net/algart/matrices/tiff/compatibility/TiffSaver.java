@@ -203,7 +203,7 @@ public class TiffSaver extends TiffWriter {
      * {@link TiffIFD#setNextIFDOffset(long)} and {@link TiffIFD#setFileOffsetForWriting(long)}.
      */
     @Deprecated
-    public void writeIFD(final IFD ifd, final long nextOffset) throws IOException, FormatException {
+    public void writeIFD(IFD ifd, final long nextOffset) throws IOException, FormatException {
         TiffIFD tiffIFD = net.algart.matrices.tiff.compatibility.TiffParser.toTiffIFD(ifd);
         tiffIFD.setFileOffsetForWriting(getStream().offset());
         tiffIFD.setNextIFDOffset(nextOffset);

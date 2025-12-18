@@ -267,6 +267,10 @@ public class TiffInfoViewer {
         openItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
         openItem.addActionListener(e -> chooseAndOpenFile());
         fileMenu.add(openItem);
+        JMenuItem reloadItem = new JMenuItem("Reload TIFF");
+        reloadItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
+        reloadItem.addActionListener(e -> reload());
+        fileMenu.add(reloadItem);
         fileMenu.addSeparator();
 
         JMenuItem exitItem = new JMenuItem("Exit");
@@ -322,16 +326,19 @@ public class TiffInfoViewer {
         });
         viewMenu.add(wrapItem);
         viewMenu.addSeparator();
+        JMenuItem showImageItem = new JMenuItem("Show image");
+        showImageItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F3, 0));
+        showImageItem.addActionListener(e -> showImageWindow());
+        viewMenu.add(showImageItem);
         JMenuItem prevImageItem = new JMenuItem("Previous image");
         prevImageItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, InputEvent.ALT_DOWN_MASK));
         prevImageItem.addActionListener(e -> selectPreviousImage());
-
+        viewMenu.add(prevImageItem);
         JMenuItem nextImageItem = new JMenuItem("Next image");
         nextImageItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, InputEvent.ALT_DOWN_MASK));
         nextImageItem.addActionListener(e -> selectNextImage());
-
-        viewMenu.add(prevImageItem);
         viewMenu.add(nextImageItem);
+
         JMenu helpMenu = new JMenu("Help");
         JMenuItem aboutItem = new JMenuItem("About");
         aboutItem.addActionListener(e -> showAboutDialog());

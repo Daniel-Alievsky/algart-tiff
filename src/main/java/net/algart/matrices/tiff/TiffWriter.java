@@ -133,7 +133,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * <p>If the argument <code>createMode</code> is {@link TiffCreateMode#NO_ACTIONS},
      * the constructor does not try to open or create a file and, so, never
      * throw {@link IOException}.
-     * This behavior <b>differ</b> from the constructor of {@link java.io.FileWriter#FileWriter(File) FileWriter}
+     * This behavior <b>differs</b> from the constructor of {@link java.io.FileWriter#FileWriter(File) FileWriter}
      * and similar classes, which create and open a file.
      * In this case, you may create the file&nbsp;&mdash; or open an existing TIFF file&nbsp;&mdash; later via
      * one of methods {@link #create()} or {@link #open(boolean)}.
@@ -540,10 +540,24 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
+     * Returns position in the file of the first IFD offset: 8 for {@link #isBigTiff() BigTIFF}, 4 for a usual TIFF.
+     *
+     * @return position in the file of the first IFD offset.
+     */
+    public long positionOfFirstIFDOffset() {
+        return bigTiff ? 8L : 4L;
+    }
+
+    /**
      * Returns position in the file of the last IFD offset, written by methods of this object.
      * It is updated by {@link #rewriteIFD(TiffIFD, boolean)}.
      *
-     * <p>Immediately after creating a new object this position is <code>-1</code>.
+     * <p>Immediately after creating this object without opening a file
+     * ({@link TiffCreateMode#NO_ACTIONS} mode)
+     * this position is <code>-1</code>.
+     * Immediately after opening an existing TIFF file, for example, by {@link #openExisting()}
+     * or {@link #openForAppend()} method, this position will be equal to
+     * {@link TiffReader#positionOfLastIFDOffset()} for a reader created for that file.
      *
      * @return file position of the last IFD offset.
      */
@@ -703,7 +717,8 @@ public non-sealed class TiffWriter extends TiffIO {
      *     and equivalent methods;</li>
      *     <li>writing IFD into the file;</li>
      *     <li>writing a tile into the file ({@link #writeEncodedTile(TiffTile, boolean)} method);</li>
-     *     <li>correction of the IFD offset by {@link #rewritePreviousLastIFDOffset(long)} method.</li>
+     *     <li>correction of the IFD offset by {@link #rewriteFirstIFDOffset(long)} or
+     *     {@link #rewriteLastIFDOffset(long)} method.</li>
      * </ul>
      *
      * <p>This reader is created in {@link TiffOpenMode#NO_CHECKS} mode.
@@ -747,7 +762,12 @@ public non-sealed class TiffWriter extends TiffIO {
         return new TiffReader(stream, openMode, false);
     }
 
-    public void rewriteIFD(final TiffIFD ifd, boolean updateIFDLinkages) throws IOException {
+    @SuppressWarnings("UnusedReturnValue")
+    public long rewriteIFD(TiffIFD ifd) throws IOException {
+        return rewriteIFD(ifd, false);
+    }
+
+    public long rewriteIFD(TiffIFD ifd, boolean updateIFDLinkages) throws IOException {
         Objects.requireNonNull(ifd, "Null IFD");
         if (!ifd.hasFileOffsetForWriting()) {
             throw new IllegalArgumentException("Offset for writing IFD is not specified");
@@ -755,11 +775,19 @@ public non-sealed class TiffWriter extends TiffIO {
         final long offset = ifd.getFileOffsetForWriting();
         assert (offset & 0x1) == 0 : "TiffIFD.setFileOffsetForWriting() has not check offset parity: " + offset;
 
-        writeIFDAt(ifd, offset, updateIFDLinkages);
+        return writeIFDAt(ifd, offset, updateIFDLinkages);
     }
 
-    public void writeIFDAtFileEnd(TiffIFD ifd, boolean updateIFDLinkages) throws IOException {
-        writeIFDAt(ifd, null, updateIFDLinkages);
+    /**
+     * Equivalent to <code>{@link #writeIFDAt(TiffIFD, Long, boolean)
+     * writeIFDAt}(ifd, null, false)}</code>.
+     *
+     * @param ifd IFD to write in the output stream.
+     * @return the offest where this IFD was actually written.
+     * @throws IOException in the case of any I/O errors.
+     */
+    public long writeIFDAtFileEnd(TiffIFD ifd) throws IOException {
+        return writeIFDAt(ifd, null, false);
     }
 
     /**
@@ -768,7 +796,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * <p>Note: this IFD is automatically marked as last IFD in the file (next IFD offset is 0),
      * unless you explicitly specified other next offset via {@link TiffIFD#setNextIFDOffset(long)}.
-     * You also may call {@link #rewritePreviousLastIFDOffset(long)} to correct
+     * You also may call {@link #rewriteLastIFDOffset(long)} to correct
      * this mark inside the file in the previously written IFD, but usually there is no necessity to do this.</p>
      *
      * <p>If <code>updateIFDLinkages</code> is <code>true</code>, this method also performs
@@ -779,7 +807,10 @@ public non-sealed class TiffWriter extends TiffIO {
      *     this IFD (i.e. <code>startOffset</code> or position of the file end). This action is performed <b>only</b>
      *     if this start offset is really new for this file, i.e., if it did not present in an existing file
      *     while opening it by {@link #openExisting()} method and if some IFD was not already written
-     *     at this position by methods of this object.</li>
+     *     at this position by methods of this object.
+     *     Note: this operation is <b>senseless</b> if the previously written IFD is actually not the previous IFD
+     *     before this one!
+     *     </li>
      *     <li>It replaces the internal field, returned by {@link #positionOfLastIFDOffset()}, with
      *     the position of the next IFD offset, written as a part of this IFD.
      *     This action is performed <b>only</b> when this IFD is marked as the last one (see the previos note).</li>
@@ -793,10 +824,13 @@ public non-sealed class TiffWriter extends TiffIO {
      * storing the next offset.</p>
      *
      * @param ifd               IFD to write in the output stream.
+     * @param startOffset       position in the output stream, where the IFD should be written.
      * @param updateIFDLinkages see comments above.
+     * @return the offest where this IFD was actually written
+     * (equal to <code>startOffset</code> argument if it is non-{@code null}).
      * @throws IOException in the case of any I/O errors.
      */
-    public void writeIFDAt(TiffIFD ifd, Long startOffset, boolean updateIFDLinkages) throws IOException {
+    public long writeIFDAt(TiffIFD ifd, Long startOffset, boolean updateIFDLinkages) throws IOException {
         synchronized (fileLock) {
             checkVirginFile();
             resetReader();
@@ -829,6 +863,31 @@ public non-sealed class TiffWriter extends TiffIO {
                 writeIFDOffsetAt(startOffset, previousPositionOfLastIFDOffset, false);
                 ifdOffsets.add(startOffset);
             }
+            return startOffset;
+        }
+    }
+
+    /**
+     * Rewrites the offset, stored in the file at the {@link #positionOfFirstIFDOffset()},
+     * with the specified value.
+     * This method is useful if you want to organize the sequence of IFD inside the file manually,
+     * without automatically updating IFD linkage.
+     *
+     * @param firstIFDOffset new first IFD offset.
+     * @throws IOException in the case of any I/O errors.
+     * @throws IllegalStateException if this file is not yet opened
+     * (<code>{@link #positionOfLastIFDOffset()}==-1</code>).
+     */
+    public void rewriteFirstIFDOffset(long firstIFDOffset) throws IOException {
+        synchronized (fileLock) {
+            if (firstIFDOffset < 0) {
+                throw new IllegalArgumentException("Negative first IFD offset " + firstIFDOffset);
+            }
+            if (positionOfLastIFDOffset < 0) {
+                throw new IllegalStateException("The TIFF file is not yet open");
+            }
+            writeIFDOffsetAt(firstIFDOffset, positionOfFirstIFDOffset(), false);
+            // - last argument is not important: the positionOfLastIFDOffset will not change in any case
         }
     }
 
@@ -838,18 +897,20 @@ public non-sealed class TiffWriter extends TiffIO {
      * This method is useful if you want to organize the sequence of IFD inside the file manually,
      * without automatically updating IFD linkage.
      *
-     * @param nextLastIFDOffset new last IFD offset.
+     * @param newLastIFDOffset new last IFD offset.
      * @throws IOException in the case of any I/O errors.
+     * @throws IllegalStateException if this file is not yet opened
+     * (<code>{@link #positionOfLastIFDOffset()}==-1</code>).
      */
-    public void rewritePreviousLastIFDOffset(long nextLastIFDOffset) throws IOException {
+    public void rewriteLastIFDOffset(long newLastIFDOffset) throws IOException {
         synchronized (fileLock) {
-            if (nextLastIFDOffset < 0) {
-                throw new IllegalArgumentException("Negative next last IFD offset " + nextLastIFDOffset);
+            if (newLastIFDOffset < 0) {
+                throw new IllegalArgumentException("Negative new last IFD offset " + newLastIFDOffset);
             }
             if (positionOfLastIFDOffset < 0) {
-                throw new IllegalStateException("Writing to this TIFF file is not started yet");
+                throw new IllegalStateException("The TIFF file is not yet open");
             }
-            writeIFDOffsetAt(nextLastIFDOffset, positionOfLastIFDOffset, false);
+            writeIFDOffsetAt(newLastIFDOffset, positionOfLastIFDOffset, false);
             // - last argument is not important: the positionOfLastIFDOffset will not change in any case
         }
     }
@@ -1342,7 +1403,7 @@ public non-sealed class TiffWriter extends TiffIO {
         final TiffIFD ifd = map.ifd();
         ifd.updateDataPositioning(offsets, byteCounts);
         if (!ifd.hasFileOffsetForWriting()) {
-            writeIFDAtFileEnd(ifd, false);
+            writeIFDAtFileEnd(ifd);
         }
     }
 
@@ -1518,9 +1579,9 @@ public non-sealed class TiffWriter extends TiffIO {
 
         if (ifd.hasFileOffsetForWriting()) {
             // - usually it means that we did call writeForward
-            rewriteIFD(ifd, true);
+            rewriteIFD(ifd);
         } else {
-            writeIFDAtFileEnd(ifd, true);
+            writeIFDAt(ifd, null, true);
         }
 
         seekToEnd();

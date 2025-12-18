@@ -51,16 +51,29 @@ public class TiffEditDescriptionDemo {
             TiffIFD changedIFD = new TiffIFD(writeMap.ifd());
             final String oldDescription = writeMap.description().description(null);
             final boolean lengthIncreased = oldDescription == null || description.length() > oldDescription.length();
-            System.out.printf("IFD #%d: %s image description%n\"%s\"%n%sString length %s from %d to %d%n",
+            System.out.printf("IFD #%d: %s image description%n\"%s\"%n%sString length %s: from %d to %d%n",
                     ifdIndex,
                     oldDescription == null ? "writing new" : "overwriting",
                     description,
                     oldDescription == null ? "" : "(instead of: \"%s\")%n".formatted(oldDescription),
-                    lengthIncreased ? "increased" : "decreased",
+                    lengthIncreased ? "increased" : "not increased (overwriting possible)",
                     oldDescription == null ? 0 : oldDescription.length(),
                     description.length());
             changedIFD.putDescription(description);
-            writer.rewriteIFD(changedIFD, true);
+            if (lengthIncreased) {
+                // - we must relocate IFD: overwriting in the same place will damage the subsequent image
+                long p = writer.writeIFDAtFileEnd(changedIFD);
+                if (ifdIndex == 0) {
+                    writer.rewriteFirstIFDOffset(p);
+                } else {
+                    final TiffIFD previousIFD = writer.existingIFD(ifdIndex - 1);
+                    previousIFD.setNextIFDOffset(p);
+                    writer.rewriteIFD(previousIFD);
+                    // - restoring IFD sequence
+                }
+            } else {
+                writer.rewriteIFD(changedIFD);
+            }
         }
     }
 }

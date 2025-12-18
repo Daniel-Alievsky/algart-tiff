@@ -43,6 +43,7 @@ import net.algart.matrices.tiff.tiles.TiffTile;
 import org.scijava.Context;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -316,14 +317,20 @@ public class TiffWriterTest {
                         // - unusual mode: no special putXxx method
                     }
                     ifd.putPixelInformation(numberOfChannels, sampleType);
-                    if (k == 0) {
-                        ifd.putDescription("TiffWriter test image\0" +
+                    switch (k) {
+                        case 0 -> ifd.putDescription("TiffWriter test image\0" +
                                 "\u041F\u0440\u0438\u0432\u0435\u0442\0" +
                                 "\u05E9\u05DC\u05D5\u05DD");
                         // - above are non-ASCII string (Russian and Hebrew): should be written as UTF-8
                         // ifd.putDescription("Д");
                         // - testing little another writing algorithm (inside a TIFF entry)
+                        case 1 -> ifd.put(Tags.IMAGE_DESCRIPTION, new String[]{
+                                "String 1", "String 2"
+                        });
+                        case 2 -> ifd.put(Tags.IMAGE_DESCRIPTION,
+                                "String1AsBytes\0String2AsBytes".getBytes(StandardCharsets.UTF_8));
                     }
+
                     final boolean overwriteExisting = randomAccess && k == 0;
                     if (k == 0) {
                         if (existingFile) {
