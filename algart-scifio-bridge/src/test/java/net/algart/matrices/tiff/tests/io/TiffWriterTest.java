@@ -320,16 +320,16 @@ public class TiffWriterTest {
                     switch (k) {
                         case 0 -> ifd.putDescription("TiffWriter test image");
                         case 1 -> ifd.putDescription("Test image\0" +
-                                "\u041F\u0440\u0438\u0432\u0435\u0442\0" +
+                                "\u041F\u0440\u0438\u0432\u0435\u0442\0\0" +
                                 "\u05E9\u05DC\u05D5\u05DD");
-                        // - above are non-ASCII string (Russian and Hebrew): should be written as UTF-8
+                        // - above we have non-ASCII string (Russian and Hebrew): should be written as UTF-8
                         // ifd.putDescription("Д");
                         // - testing little another writing algorithm (inside a TIFF entry)
                         case 2 -> ifd.put(Tags.IMAGE_DESCRIPTION, new String[]{
-                                "String 1", "String 2"
+                                "String 1", "", "String 2"
                         });
                         case 3 -> ifd.put(Tags.IMAGE_DESCRIPTION,
-                                "String1AsBytes\0String2AsBytes".getBytes(StandardCharsets.UTF_8));
+                                "String1AsBytes\0\0String2AsBytes".getBytes(StandardCharsets.UTF_8));
                         case 4 -> {
                             byte[] bytes = "String1AsShorts\0String2AsShorts".getBytes(StandardCharsets.UTF_8);
                             short[] shorts = new short[bytes.length];
