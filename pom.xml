@@ -115,15 +115,15 @@
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>3.7.1</version>
                 <configuration>
+                    <descriptors>
+                        <descriptor>assembly-with-dependencies.xml</descriptor>
+                    </descriptors>
+                    <finalName>algart-tiff</finalName>
                     <archive>
                         <manifest>
                             <mainClass>net.algart.matrices.tiff.app.TiffInfoViewer</mainClass>
                         </manifest>
                     </archive>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                    <finalName>tiff-info-${project.version}</finalName>
                 </configuration>
                 <executions>
                     <execution>
@@ -150,7 +150,7 @@
                             <target>
                                 <echo level="info">Creating distribution ZIP</echo>
                                 <mkdir dir="${project.build.directory}/build/tiff-info"/>
-                                <copy file="${project.build.directory}/tiff-info-${project.version}-jar-with-dependencies.jar"
+                                <copy file="${project.build.directory}/algart-tiff-with-dependencies.jar"
                                       tofile="${project.build.directory}/build/tiff-info/TiffInfoViewer.jar"/>
                                 <copy todir="${project.build.directory}/build/tiff-info">
                                     <fileset dir="${project.basedir}/build/tiff-info"/>

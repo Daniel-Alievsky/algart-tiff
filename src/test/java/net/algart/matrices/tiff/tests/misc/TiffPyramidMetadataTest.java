@@ -93,7 +93,8 @@ public class TiffPyramidMetadataTest {
                             System.out.printf("  Summary: <<<%s>>>%n", svs.summary());
                         }
                     }
-                    System.out.printf("  Raw description:%n<<<%s>>>%n%n", tagDescription.description());
+                    System.out.printf("  Raw description:%n<<<%s>>>%n%n",
+                            tagDescription.description("NONE"));
                 }
             }
         }

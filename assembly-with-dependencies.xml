@@ -1,0 +1,42 @@
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.0.0 http://maven.apache.org/xsd/assembly-2.0.0.xsd">
+    <id>with-dependencies</id>
+    <formats>
+        <format>jar</format>
+    </formats>
+    <includeBaseDirectory>false</includeBaseDirectory>
+
+    <dependencySets>
+        <!-- include compile and test scope dependencies -->
+        <dependencySet>
+            <scope>compile</scope>
+            <useProjectArtifact>true</useProjectArtifact>
+            <unpack>true</unpack>
+        </dependencySet>
+        <dependencySet>
+            <scope>test</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <unpack>true</unpack>
+        </dependencySet>
+    </dependencySets>
+
+    <fileSets>
+        <!-- include compiled test classes -->
+        <fileSet>
+            <directory>${project.build.directory}/test-classes</directory>
+            <outputDirectory>/</outputDirectory>
+            <includes>
+                <include>**/*.class</include>
+            </includes>
+        </fileSet>
+    </fileSets>
+
+    <files>
+        <!-- include compiled main classes if descriptor didn't already -->
+        <file>
+            <source>${project.build.outputDirectory}</source>
+            <outputDirectory>/</outputDirectory>
+        </file>
+    </files>
+</assembly>

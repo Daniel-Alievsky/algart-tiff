@@ -49,8 +49,8 @@ public class TagDescription {
     }
 
 
-    public final String description() {
-        return description;
+    public final String description(String defaultValue) {
+        return description == null ? defaultValue : description;
     }
 
     public final boolean isPresent() {
