@@ -32,6 +32,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -711,6 +712,37 @@ public final class TiffIFD {
                     " instead of expected Number, Number[], long[] or int[]");
         }
         return results;
+    }
+
+    public String getString(int tag) throws TiffException {
+        String result = null;
+        Object value = get(tag);
+        TiffEntry entry = null;
+        if (detailedEntries != null) {
+            entry = detailedEntries.get(tag);
+        }
+        if (value instanceof String s) {
+            result = s;
+        } else if (value instanceof String[] stringArray) {
+            result = String.join("\n", stringArray);
+        } else if (value instanceof byte[] bytes) {
+            if (entry != null && entry.type == TagTypes.UNDEFINED) {
+                result = String.join("\n", asciiToText(bytes));
+            }
+        } else if (value instanceof short[] shorts) {
+            if (entry != null && entry.type == TagTypes.BYTE) {
+                byte[] bytes = new byte[shorts.length];
+                for (int i = 0; i < bytes.length; i++) {
+                    bytes[i] = (byte) shorts[i];
+                }
+                result = String.join("\n", asciiToText(bytes));
+            }
+        }
+        if (result != null) {
+            result = result.replace("\r\n", "\n"); // CR-LF to LF
+            result = result.replace('\r', '\n'); // CR to LF
+        }
+        return result;
     }
 
     public int getSamplesPerPixel() throws TiffException {
@@ -2073,6 +2105,27 @@ public final class TiffIFD {
         }
         assert size >= 0;
         return (int) ((size + 7) >>> 3);
+    }
+
+    public static String[] asciiToText(byte[] ascii) {
+        Objects.requireNonNull(ascii, "Null ascii");
+        int zeroCount = 0;
+        for (int j = 0; j < ascii.length; j++) {
+            if (ascii[j] == 0 || j == ascii.length - 1) {
+                zeroCount++;
+            }
+        }
+        // convert character array to array of strings
+        final String[] strings = new String[zeroCount];
+        int c = 0, index = -1;
+        for (int j = 0; j < ascii.length; j++) {
+            if (ascii[j] == 0 || j == ascii.length - 1) {
+                int len = (ascii[j] == 0) ? j - index - 1 : j - index;
+                strings[c++] = new String(ascii, index + 1, len, StandardCharsets.UTF_8);
+                index = j;
+            }
+        }
+        return strings;
     }
 
     public static String escapeJsonString(String s) {

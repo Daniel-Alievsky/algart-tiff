@@ -2081,6 +2081,10 @@ public non-sealed class TiffReader extends TiffIO {
                 final byte[] ascii = new byte[count];
                 in.read(ascii);
 
+                String[] lines = TiffIFD.asciiToText(ascii);
+                return lines.length != 1 ? lines : lines[0] == null ? "" : lines[0];
+
+                /* // Deprecated solution:
                 // count the number of null terminators
                 int zeroCount = 0;
                 for (int j = 0; j < count; j++) {
@@ -2107,6 +2111,7 @@ public non-sealed class TiffReader extends TiffIO {
                     }
                 }
                 return strings != null ? strings : s != null ? s : "";
+                */
             }
             case TagTypes.SHORT -> {
                 // 16-bit (2-byte) unsigned integer
@@ -2122,11 +2127,11 @@ public non-sealed class TiffReader extends TiffIO {
                     }
                     return result;
                 } else {
-                    final int[] shorts = new int[count];
+                    final int[] ints = new int[count];
                     for (int j = 0; j < count; j++) {
-                        shorts[j] = in.readUnsignedShort();
+                        ints[j] = in.readUnsignedShort();
                     }
-                    return shorts;
+                    return ints;
                 }
             }
             case TagTypes.LONG, TagTypes.IFD -> {
