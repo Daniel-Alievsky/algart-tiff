@@ -331,7 +331,8 @@ public class TiffWriterTest {
                         case 3 -> ifd.put(Tags.IMAGE_DESCRIPTION,
                                 "String1AsBytes\0\0String2AsBytes".getBytes(StandardCharsets.UTF_8));
                         case 4 -> {
-                            byte[] bytes = "String1AsShorts\0String2AsShorts".getBytes(StandardCharsets.UTF_8);
+                            byte[] bytes = ("String1AsShorts\0\u05E9\u05DC\u05D5\u05DDAsShorts")
+                                    .getBytes(StandardCharsets.UTF_8);
                             short[] shorts = new short[bytes.length];
                             for (int i = 0; i < bytes.length; i++) {
                                 shorts[i] = (short) (bytes[i] & 0xFF);
