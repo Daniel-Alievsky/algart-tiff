@@ -45,7 +45,7 @@ public class TiffCopy {
     private long lastProgressTime = Integer.MIN_VALUE;
 
     public static void main(String[] args) throws IOException {
-        if (args.length > 0 && args[0].equalsIgnoreCase("-convert")) {
+        if (args.length > 0 && args[0].equalsIgnoreCase("-toTiff")) {
             if (ConvertToTiff.doMain(Arrays.copyOfRange(args, 1, args.length), false)) {
                 return;
             }
@@ -85,7 +85,7 @@ public class TiffCopy {
             System.out.printf("Usage:%n    %s [-repack] [-smart] [-le|-be] [-bigTiff|-noBigTIFF] [-quality=xxx] " +
                             "source.tiff target.tiff%n",
                     TiffCopy.class.getSimpleName());
-            System.out.printf("or%n    %s -convert [-bigTiff] [-littleEndian] [-quality=xxx] " +
+            System.out.printf("or%n    %s -toTiff [-bigTiff] [-littleEndian] [-quality=xxx] " +
                                     "[-compressionLevel=1.0] source.jpg/png/bmp target.tiff [compression]%n",
                     TiffCopy.class.getSimpleName());
             System.out.println("""

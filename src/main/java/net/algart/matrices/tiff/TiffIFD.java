@@ -714,7 +714,7 @@ public final class TiffIFD {
         return results;
     }
 
-    public String getString(int tag) throws TiffException {
+    public Optional<String> optString(int tag) {
         String result = null;
         Object value = get(tag);
         TiffEntry entry = null;
@@ -742,7 +742,7 @@ public final class TiffIFD {
             result = result.replace("\r\n", "\n"); // CR-LF to LF
             result = result.replace('\r', '\n'); // CR to LF
         }
-        return result;
+        return Optional.ofNullable(result);
     }
 
     public int getSamplesPerPixel() throws TiffException {
