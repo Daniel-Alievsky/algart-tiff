@@ -389,7 +389,7 @@ public final class TiffTile {
      */
     public TiffTile cropToMap(boolean strippedOnly) {
         checkOutsideMap();
-        if (DISABLE_CROPPING || (strippedOnly && map.getTilingMode().isTileGrid())) {
+        if (DISABLE_CROPPING || (strippedOnly && map.tilingMode().isTileGrid())) {
             return this;
         } else {
             return setSizes(Math.min(sizeX, map.dimX() - index.fromX()), Math.min(sizeY, map.dimY() - index.fromY()));

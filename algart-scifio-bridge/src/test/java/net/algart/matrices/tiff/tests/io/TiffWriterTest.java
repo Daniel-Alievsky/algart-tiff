@@ -286,7 +286,7 @@ public class TiffWriterTest {
                     // ifd.put(TiffIFD.JPEG_TABLES, new byte[]{1, 2, 3, 4, 5});
                     // - some invalid field: must not affect non-JPEG formats
                     if (tiled) {
-                        ifd.putTileSizes(112, 64);
+                        ifd.putTileSizes(112, 80);
                         if (longTags) {
                             ifd.put(Tags.TILE_WIDTH, (long) ifd.getTileSizeX());
                             ifd.put(Tags.TILE_LENGTH, (long) ifd.getTileSizeY());

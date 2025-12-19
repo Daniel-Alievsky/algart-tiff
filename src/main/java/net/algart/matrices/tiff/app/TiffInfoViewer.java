@@ -24,10 +24,13 @@
 
 package net.algart.matrices.tiff.app;
 
+import net.algart.arrays.PackedBitArraysPer8;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.pyramids.TiffPyramidMetadata;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
+import net.algart.matrices.tiff.tiles.TiffTile;
+import net.algart.matrices.tiff.tiles.TiffTileIndex;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
@@ -105,6 +108,7 @@ public class TiffInfoViewer {
     private TiffInfo info = null;
     private Path tiffFile = null;
     private TiffIFD.StringFormat stringFormat = TiffIFD.StringFormat.NORMAL;
+    private boolean viewTileGrid = false;
 
     public static void main(String[] args) {
         if (args.length >= 1 && args[0].equals("-h")) {
@@ -327,10 +331,6 @@ public class TiffInfoViewer {
         });
         viewMenu.add(wrapItem);
         viewMenu.addSeparator();
-        JMenuItem showImageItem = new JMenuItem("Show image");
-        showImageItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F3, 0));
-        showImageItem.addActionListener(e -> showImageWindow());
-        viewMenu.add(showImageItem);
         JMenuItem prevImageItem = new JMenuItem("Previous image");
         prevImageItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, InputEvent.ALT_DOWN_MASK));
         prevImageItem.addActionListener(e -> selectPreviousImage());
@@ -339,6 +339,16 @@ public class TiffInfoViewer {
         nextImageItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, InputEvent.ALT_DOWN_MASK));
         nextImageItem.addActionListener(e -> selectNextImage());
         viewMenu.add(nextImageItem);
+
+        viewMenu.addSeparator();
+        JMenuItem showImageItem = new JMenuItem("Show image");
+        showImageItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F3, 0));
+        showImageItem.addActionListener(e -> showImageWindow());
+        viewMenu.add(showImageItem);
+        JCheckBoxMenuItem tileGridItem = new JCheckBoxMenuItem("Tile grid on image");
+        tileGridItem.setSelected(viewTileGrid);
+        tileGridItem.addActionListener(e -> viewTileGrid = tileGridItem.isSelected());
+        viewMenu.add(tileGridItem);
 
         JMenu helpMenu = new JMenu("Help");
         JMenuItem aboutItem = new JMenuItem("About");
@@ -531,7 +541,7 @@ public class TiffInfoViewer {
         if (index < 0 || info == null || index >= info.numberOfImages()) {
             return;
         }
-        try (TiffReader reader = new TiffReader(tiffFile)) {
+        try (TiffReader reader = new TiffReaderWithGrid(tiffFile, viewTileGrid)) {
             TiffReadMap map = reader.map(index);
             int dimX = map.dimX();
             int dimY = map.dimY();
@@ -663,5 +673,45 @@ public class TiffInfoViewer {
         final URL result = TiffInfoViewer.class.getResource(name);
         Objects.requireNonNull(result, "Resource " + name + " not found");
         return result;
+    }
+
+    static class TiffReaderWithGrid extends TiffReader {
+        private final boolean viewTileGrid;
+
+        TiffReaderWithGrid(Path tiffFile, boolean viewTileGrid) throws IOException {
+            super(tiffFile);
+            this.viewTileGrid = viewTileGrid;
+        }
+
+        @Override
+        public TiffTile readTile(TiffTileIndex tileIndex) throws IOException {
+            final TiffTile tile = super.readTile(tileIndex);
+            if (viewTileGrid && tile.map().tilingMode().isTileGrid()) {
+                addTileBorder(tile);
+            }
+            return tile;
+        }
+
+        private static void addTileBorder(TiffTile tile) {
+            if (!tile.isSeparated()) {
+                throw new AssertionError("Tile is not separated");
+            }
+            byte[] decoded = tile.getDecodedData();
+            final int sample = tile.bitsPerSample();
+            final int sizeX = tile.getSizeX() * sample;
+            final int sizeY = tile.getSizeY();
+            final int sizeInBits = sizeX * sizeY;
+            for (int c = 0; c < tile.samplesPerPixel(); c++) {
+                int disp = c * sizeInBits;
+                PackedBitArraysPer8.fillBits(decoded, disp, sizeX, false);
+                PackedBitArraysPer8.fillBits(decoded, disp + sizeInBits - sizeX, sizeX, false);
+                for (int k = 0; k < sizeY; k++, disp += sizeX) {
+                    PackedBitArraysPer8.fillBits(decoded, disp, sample, false);
+                    PackedBitArraysPer8.fillBits(decoded, disp + sizeX - sample, sample, false);
+                }
+            }
+        }
+
+
     }
 }

@@ -834,6 +834,8 @@ public non-sealed class TiffReader extends TiffIO {
      * then the result is cached and quickly returned by all further calls.
      * (But caching can be disabled using {@link #setCachingIFDs(boolean)} method).
      *
+     * <p>Note: this method returns also the child sub-IFDs of a regular IFD (they are added directly after it).</p>
+     *
      * <p>Note: if this TIFF file is not valid ({@link #isValidTiff()} returns <code>false</code>), this method
      * returns an empty list and does not throw an exception.
      * For a valid TIFF, the result cannot be empty.
@@ -946,6 +948,8 @@ public non-sealed class TiffReader extends TiffIO {
      * Returns the file offset of IFD with given index or <code>-1</code> if the index is too high.
      * Updates {@link #positionOfLastIFDOffset()} to position of this offset.
      *
+     * <p>This method works only with regular IFDs (not sub-IFDs).</p>
+     *
      * @param ifdIndex index of IFD (0, 1, ...).
      * @return offset of this IFD in the file or <code>-1</code> if the index is too high.
      */
@@ -975,7 +979,7 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     /**
-     * Gets the offsets to every IFD in the file.
+     * Gets the offsets to every IFD in the file (without child sub-IFDs).
      *
      * <p>Note: if this TIFF file is not valid ({@link #isValidTiff()} returns <code>false</code>), this method
      * returns an empty array and does not throw an exception.

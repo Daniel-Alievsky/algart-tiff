@@ -61,8 +61,9 @@ public class TiffEditDescriptionDemo {
                     description.length());
             changedIFD.putDescription(description);
             if (lengthIncreased) {
-                // - we must relocate IFD: overwriting in the same place will damage the subsequent image
+                // We must relocate IFD: overwriting in the same place will damage the further image
                 long p = writer.writeIFDAtFileEnd(changedIFD);
+                // Note: we ignore sub-IFDs here. So, this method is not absolutely universal.
                 if (ifdIndex == 0) {
                     writer.rewriteFirstIFDOffset(p);
                 } else {

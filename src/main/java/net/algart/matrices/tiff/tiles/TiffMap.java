@@ -44,7 +44,7 @@ import java.util.stream.Collectors;
 public sealed class TiffMap permits TiffIOMap {
     /**
      * Possible type of tiles in the TIFF map: 2D tile grid or horizontal strips.
-     * You can know the tiling type of the map by {@link TiffMap#getTilingMode()} method.
+     * You can know the tiling type of the map by {@link TiffMap#tilingMode()} method.
      */
     public enum TilingMode {
         /**
@@ -367,7 +367,7 @@ public sealed class TiffMap permits TiffIOMap {
         return ifd.getDescription();
     }
 
-    public TilingMode getTilingMode() {
+    public TilingMode tilingMode() {
         return tilingMode;
     }
 

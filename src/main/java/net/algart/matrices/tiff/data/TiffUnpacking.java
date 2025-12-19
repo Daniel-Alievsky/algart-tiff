@@ -80,7 +80,7 @@ public class TiffUnpacking {
             // in the same situation, when its argument is false.
             throw new TiffException("Too large decoded TIFF data: " + decodedDataLength +
                     " bytes, its is greater than one " +
-                    (tile.map().getTilingMode().isTileGrid() ? "tile" : "strip") +
+                    (tile.map().tilingMode().isTileGrid() ? "tile" : "strip") +
                     " (" + tile.map().tileSizeInBytes() + " bytes); "
                     + "probably TIFF file is corrupted or format is not properly supported");
         }
@@ -601,7 +601,7 @@ public class TiffUnpacking {
         final long length = PackedBitArraysPer8.unpackedLength(source);
         final long alignedLine = ((long) sizeX + 7) & ~7;
         // - skipping bits until the first bit of the next whole byte;
-        // note that it may be !=sizeX only in non-tiled TIFF (when "tile width" is the width of whole image)
+        // note that it may be !=sizeX only in non-tiled TIFF (when "tile width" is the width of the whole image)
         long sOffset = 0;
         long tOffset = 0;
         for (int yIndex = 0; yIndex < sizeY; yIndex++, sOffset += alignedLine, tOffset += sizeX) {
