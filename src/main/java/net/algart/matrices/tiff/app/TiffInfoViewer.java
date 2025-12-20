@@ -460,7 +460,8 @@ public class TiffInfoViewer {
             String[] captions = new String[info.numberOfImages()];
             for (int i = 0; i < info.numberOfImages(); i++) {
                 final TiffIFD ifd = metadata.ifd(i);
-                final String caption = "Image #" + i + " [" + ifd.getImageDimX() + "x" + ifd.getImageDimY() + "]";
+                final String caption = "#" + i + " [" + ifd.getImageDimX() + "x" + ifd.getImageDimY() +
+                        (ifd.hasTileInformation() ? " tiled": "") + "]";
                 if (caption.length() > longest.length()) {
                     longest = caption;
                 }

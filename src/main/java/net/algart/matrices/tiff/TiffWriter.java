@@ -565,7 +565,7 @@ public non-sealed class TiffWriter extends TiffIO {
         return positionOfLastIFDOffset;
     }
 
-    public int numberOfIFDs() {
+    public int numberOfMainImages() {
         return ifdOffsets.size();
     }
 
