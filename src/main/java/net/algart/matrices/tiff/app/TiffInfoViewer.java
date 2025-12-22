@@ -53,8 +53,8 @@ public class TiffInfoViewer {
 
     private static final String APPLICATION_TITLE = "TIFF Information Viewer";
     private static final boolean DEFAULT_WORD_WRAP = false;
-    private static final int DEFAULT_FONT_SIZE = 14;
-    private static final int[] FONT_SIZES = {11, DEFAULT_FONT_SIZE, 18, 22};
+    private static final int DEFAULT_FONT_SIZE = 15;
+    private static final int[] FONT_SIZES = {12, DEFAULT_FONT_SIZE, 18, 22};
 
     public enum ViewMode {
         BRIEF(TiffIFD.StringFormat.BRIEF, "Brief"),
@@ -658,6 +658,7 @@ public class TiffInfoViewer {
         String preferred = "Consolas";
         if (isFontAvailable(preferred)) {
             return new Font(preferred, Font.PLAIN, size);
+            // - but it has a reduced set of characters, for example, no Hebrew
         }
         return new Font(Font.MONOSPACED, Font.PLAIN, size);
     }

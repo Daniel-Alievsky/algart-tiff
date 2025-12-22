@@ -95,6 +95,7 @@ public class TiffWriteMixedTest {
 //            ifd.putPhotometricInterpretation(TagPhotometricInterpretation.WHITE_IS_ZERO);
             ifd.put(Tags.BITS_PER_SAMPLE, bitsPerSample);
             ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_UINT);
+            ifd.putDescription("  ");
             // - you can comment or change the options above for thorough testing
 //            ifd.put(Tags.PHOTOMETRIC_INTERPRETATION, 8);
             ifd.put(15700, new String[] {});

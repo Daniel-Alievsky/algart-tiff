@@ -715,12 +715,12 @@ public final class TiffIFD {
     }
 
     public Optional<String> optString(int tag) {
-        String result = null;
         Object value = get(tag);
         TiffEntry entry = null;
         if (detailedEntries != null) {
             entry = detailedEntries.get(tag);
         }
+        String result = null;
         if (value instanceof String s) {
             result = s;
         } else if (value instanceof String[] stringArray) {
@@ -738,11 +738,12 @@ public final class TiffIFD {
                 result = String.join("\n", asciiToText(bytes));
             }
         }
-        if (result != null) {
-            result = result.replace("\r\n", "\n"); // CR-LF to LF
-            result = result.replace('\r', '\n'); // CR to LF
+        if (result == null) {
+            return Optional.empty();
         }
-        return Optional.ofNullable(result);
+        result = result.replace("\r\n", "\n"); // CR-LF to LF
+        result = result.replace('\r', '\n'); // CR to LF
+        return Optional.of(result);
     }
 
     public int getSamplesPerPixel() throws TiffException {
@@ -1028,11 +1029,12 @@ public final class TiffIFD {
     }
 
     public Optional<String> optDescription() {
-        return optValue(Tags.IMAGE_DESCRIPTION, String.class);
+        return optString(Tags.IMAGE_DESCRIPTION);
     }
 
     /**
      * Returns the content of the {@code ImageDescription} tag,
+     * converted to string by {@link #optString(int)} method and
      * parsed by the {@link TagDescription#of(String)} method.
      *
      * <p>Note: if you called {@link #putDescription(TagDescription)} method
@@ -1047,14 +1049,15 @@ public final class TiffIFD {
     public TagDescription getDescription() {
         TagDescription result = this.description;
         if (result == null) {
-            Object d = get(Tags.IMAGE_DESCRIPTION);
-            if (d instanceof TagDescription) {
-                result = (TagDescription) d;
-            } else if (d instanceof String s) {
-                result = TagDescription.of(s);
+            result = TagDescription.EMPTY;
+            Optional<String> optional = optString(Tags.IMAGE_DESCRIPTION);
+            if (optional.isPresent()) {
+                result = TagDescription.of(optional.get());
             } else {
-                // including the case d==null
-                result = TagDescription.EMPTY;
+                Object d = get(Tags.IMAGE_DESCRIPTION);
+                if (d instanceof TagDescription) {
+                    result = (TagDescription) d;
+                }
             }
             this.description = result;
         }
@@ -1777,9 +1780,13 @@ public final class TiffIFD {
 
     public TiffIFD putDescription(TagDescription description) {
         Objects.requireNonNull(description, "Null description");
-        put(Tags.IMAGE_DESCRIPTION, description);
+        if (description.isEmpty()) {
+            remove(Tags.IMAGE_DESCRIPTION);
+        } else {
+            put(Tags.IMAGE_DESCRIPTION, description.description());
+        }
         this.description = description;
-        // - assign this.description AFTER clearing cache in the put() method
+        // - assign this.description AFTER clearing cache in the put()/remove() methods
         return this;
     }
 
@@ -1901,13 +1908,7 @@ public final class TiffIFD {
         checkImmutable();
         removeEntries(key);
         // - necessary to avoid possible bugs with detection of the type
-        if (key == Tags.COMPRESSION) {
-            detailedCompression = null;
-            // - forget the previous saved compression: let detect it on the base of the compression code
-        } else if (key == Tags.IMAGE_DESCRIPTION) {
-            description = null;
-            // - forget the previous saved description: let detect it on the base of the image description string
-        }
+        clearSpecificCache(key);
         clearCache();
         return map.put(key, value);
     }
@@ -1915,6 +1916,7 @@ public final class TiffIFD {
     public Object remove(int key) {
         checkImmutable();
         removeEntries(key);
+        clearSpecificCache(key);
         clearCache();
         return map.remove(key);
     }
@@ -1922,6 +1924,7 @@ public final class TiffIFD {
     public void clear() {
         checkImmutable();
         clearCache();
+        clearAllSpecificCaches();
         if (detailedEntries != null) {
             detailedEntries.clear();
         }
@@ -2145,6 +2148,21 @@ public final class TiffIFD {
     private void clearCache() {
         cachedTileOrStripByteCounts = null;
         cachedTileOrStripOffsets = null;
+    }
+
+    private void clearSpecificCache(int key) {
+        if (key == Tags.COMPRESSION) {
+            detailedCompression = null;
+            // - forget the previous saved compression: let detect it on the base of the compression code
+        } else if (key == Tags.IMAGE_DESCRIPTION) {
+            description = null;
+            // - forget the previous saved description: let detect it on the base of the image description string
+        }
+    }
+
+    private void clearAllSpecificCaches() {
+        detailedCompression = null;
+        description = null;
     }
 
     private void checkImmutable() {

@@ -81,5 +81,7 @@ public class TagDescriptionTest {
         }
         ifd.putDescription("Hello again");
         printDescription(ifd);
+        ifd.put(Tags.IMAGE_DESCRIPTION, new String[] {"Hello1", "Hello2"});
+        printDescription(ifd);
     }
 }

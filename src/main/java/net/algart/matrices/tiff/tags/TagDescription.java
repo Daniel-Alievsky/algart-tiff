@@ -61,6 +61,10 @@ public class TagDescription {
         return description != null;
     }
 
+    public final boolean isEmpty() {
+        return description == null;
+    }
+
     /**
      * Returns {@code true} if and only if this description is an instance of {@link SvsDescription}.
      *
@@ -166,7 +170,7 @@ public class TagDescription {
     public String toString() {
         return description == null ?
                 "No ImageDescription tag" :
-                (description.isBlank() ? "Empty" : "Common") + " unparsed TIFF image description";
+                (description.isBlank() ? "Empty ImageDescription (\"%s\")" : "\"%s\"").formatted(description);
     }
 
     public String toString(TiffIFD.StringFormat format) {
