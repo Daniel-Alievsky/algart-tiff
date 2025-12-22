@@ -27,7 +27,6 @@ package net.algart.matrices.tiff.demo.io;
 import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
-import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -47,9 +46,9 @@ public class TiffEditDescriptionDemo {
         final int ifdIndex = Integer.parseInt(args[startArgIndex + 1]);
         final String description = args[startArgIndex + 2];
         try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
-            final TiffWriteMap writeMap = writer.existingMap(ifdIndex);
-            TiffIFD changedIFD = new TiffIFD(writeMap.ifd());
-            final String oldDescription = writeMap.description().description(null);
+            final TiffIFD ifd = writer.existingIFD(ifdIndex);
+            TiffIFD changedIFD = new TiffIFD(ifd);
+            final String oldDescription = ifd.getDescription().description(null);
             final boolean lengthIncreased = oldDescription == null || description.length() > oldDescription.length();
             System.out.printf("IFD #%d/%d: %s image description%n\"%s\"%n%sString length %s: from %d to %d%n",
                     ifdIndex,
@@ -63,7 +62,7 @@ public class TiffEditDescriptionDemo {
             changedIFD.putDescription(description);
             if (lengthIncreased) {
                 // We must relocate IFD: overwriting in the same place will damage the further image
-                long p = writer.writeIFDAtFileEnd(changedIFD);
+                long p = writer.writeIFDAt(changedIFD, null, false);
                 // Note: we ignore sub-IFDs here. So, this method is not absolutely universal.
                 if (ifdIndex == 0) {
                     writer.rewriteFirstIFDOffset(p);
