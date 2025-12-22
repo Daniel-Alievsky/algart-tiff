@@ -96,7 +96,7 @@ public non-sealed class TiffWriter extends TiffIO {
 
     private volatile TiffReader reader = null;
 
-    private final LinkedHashSet<Long> usedIFDOffsets = new LinkedHashSet<>();
+    private final LinkedHashSet<Long> allUsedIFDOffsets = new LinkedHashSet<>();
     private volatile long positionOfLastIFDOffset = -1;
 
     private volatile TiffWriteMap lastMap = null;
@@ -565,8 +565,8 @@ public non-sealed class TiffWriter extends TiffIO {
         return positionOfLastIFDOffset;
     }
 
-    public Set<Long> alreadyUsedIFDOffsets() {
-        return Collections.unmodifiableSet(usedIFDOffsets);
+    public Set<Long> allUsedIFDOffsets() {
+        return Collections.unmodifiableSet(allUsedIFDOffsets);
     }
 
     /**
@@ -618,7 +618,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 }
                 // In this branch, we MUST NOT try to analyze the file: it is not a correct TIFF!
             } else {
-                usedIFDOffsets.clear();
+                allUsedIFDOffsets.clear();
                 this.reader = newReader(TiffOpenMode.VALID_TIFF);
                 // - The first opening TIFF is the only place when we MUST use VALID_TIFF mode
                 // instead of the usual NO_CHECKS used inside reader() method
@@ -629,7 +629,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 final long[] offsets = reader.readIFDOffsets();
                 final long readerPositionOfLastOffset = reader.positionOfLastIFDOffset();
                 this.setFormatLike(reader);
-                usedIFDOffsets.addAll(Arrays.stream(offsets).boxed().toList());
+                allUsedIFDOffsets.addAll(Arrays.stream(offsets).boxed().toList());
                 positionOfLastIFDOffset = readerPositionOfLastOffset;
                 seekToEnd();
                 // - ready to write after the end of the file
@@ -667,7 +667,7 @@ public non-sealed class TiffWriter extends TiffIO {
     public final void create() throws IOException {
         synchronized (fileLock) {
             resetReader();
-            usedIFDOffsets.clear();
+            allUsedIFDOffsets.clear();
             stream.seek(0);
             // - this call actually creates and opens the file if it was not opened before
             if (isLittleEndian()) {
@@ -763,7 +763,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * Ensures that the next call of {@link #reader()} will create a new reader.
      * Usually you don't need to call this method because it is called automatically.
      *
-     * <p>Note: this method <i>does not</i> clear the offsets, stored in {@link #alreadyUsedIFDOffsets()}.
+     * <p>Note: this method <i>does not</i> clear the offsets, stored in {@link #allUsedIFDOffsets()}.
      * These offsets are used only for automatic IFD linkage by {@link #writeIFDAt(TiffIFD, Long, boolean)}
      * method and are not important if you perform the linkage manually.</p>
      */
@@ -826,7 +826,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *     while opening it by {@link #openExisting()} method and if some IFD was not already written
      *     at this position by some methods.
      *     (All offsets of IFDs written by the methods of this object
-     *     are stored in the set {@link #alreadyUsedIFDOffsets()}.)
+     *     are stored in the set {@link #allUsedIFDOffsets()}.)
      *     Note: this operation is <b>senseless</b> if the previously written IFD is actually not the previous IFD
      *     before this one!
      *     </li>
@@ -875,7 +875,7 @@ public non-sealed class TiffWriter extends TiffIO {
             final long previousPositionOfLastIFDOffset = positionOfLastIFDOffset;
             // - save it, because it will be updated in writeIFDNextOffsetAt
             writeIFDNextOffsetAt(ifd, positionOfNextOffset, updateIFDLinkages);
-            if (updateIFDLinkages && !usedIFDOffsets.contains(startOffset)) {
+            if (updateIFDLinkages && !allUsedIFDOffsets.contains(startOffset)) {
                 // - Only if it is really newly added IFD!
                 // If this offset is already contained in the list, an attempt to link to it
                 // will probably lead to an infinite loop of IFDs.
@@ -2160,7 +2160,7 @@ public non-sealed class TiffWriter extends TiffIO {
             try {
                 stream.seek(positionToWrite);
                 writeOffset(offset);
-                usedIFDOffsets.add(offset);
+                allUsedIFDOffsets.add(offset);
                 if (updatePositionOfLastIFDOffset && offset == TiffIFD.LAST_IFD_OFFSET) {
                     positionOfLastIFDOffset = positionToWrite;
                 }
