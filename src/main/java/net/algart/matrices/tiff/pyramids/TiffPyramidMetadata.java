@@ -76,7 +76,7 @@ public final class TiffPyramidMetadata {
     private final int baseImageDimX;
     private final int baseImageDimY;
     private final boolean baseImageTiled;
-    private int numberOfLayers = 0;
+    private final int numberOfLayers;
     private int pyramidScaleRatio = -1;
     private int thumbnailIndex = -1;
     private int labelIndex = -1;
@@ -94,7 +94,7 @@ public final class TiffPyramidMetadata {
 
     private TiffPyramidMetadata(List<TiffIFD> ifds) throws TiffException {
         Objects.requireNonNull(ifds, "Null IFDs");
-        this.ifds = Collections.unmodifiableList(new ArrayList<>(ifds));
+        this.ifds = List.copyOf(ifds);
         this.numberOfImages = this.ifds.size();
         this.svsDescription = SvsDescription.findMainDescription(this.ifds);
         // - used in detectLabelAndMacro()
@@ -287,7 +287,7 @@ public final class TiffPyramidMetadata {
         if (imageIndex == thumbnailIndex) {
             return -1;
         }
-        final int layerIndex = imageIndex < thumbnailIndex ? imageIndex : imageIndex - 1;
+        final int layerIndex = !hasThumbnail() || imageIndex < thumbnailIndex ? imageIndex : imageIndex - 1;
         return layerIndex < numberOfLayers ? layerIndex : -1;
     }
 
@@ -427,29 +427,6 @@ public final class TiffPyramidMetadata {
         // If countSvs >= countNonSvs, we prefer SVS hypotheses
     }
 
-    private int detectPyramidAndThumbnailOld() throws TiffException {
-        thumbnailIndex = -1;
-        if (!baseImageTiled) {
-            return 0;
-        }
-        int countNonSvs = detectPyramid(1);
-        if (numberOfImages <= 1 || countNonSvs >= 3) {
-            // 3 or more images 0, 1, 2, ... have the same ratio: it's obvious that the image #1 is not a thumbnail
-            return countNonSvs;
-        }
-        if (isSmallImage(ifds.get(SVS_THUMBNAIL_INDEX))) {
-            thumbnailIndex = SVS_THUMBNAIL_INDEX;
-        }
-        if (countNonSvs == 2 && numberOfImages == 2) {
-            return thumbnailIndex == -1 ? 2 : 1;
-        }
-        // Now countNonSvs = 1 or 2
-        return detectPyramid(SVS_THUMBNAIL_INDEX + 1);
-        // If the result >= 2 and thumbnailIndex=THUMBNAIL_IFD_INDEX (small image), the image #1 is really a thumbnail.
-        // If the result = 1, we have no pyramid 0-2-3-... or 0-1-2-..., so, we don't know what is #1,
-        // and we still decide this based on the sizes
-    }
-
     private int detectPyramid(int startIndex) throws TiffException {
         assert startIndex >= 1;
         int levelDimX = baseImageDimX;
@@ -459,9 +436,9 @@ public final class TiffPyramidMetadata {
         int count = 1;
         for (int k = startIndex; k < numberOfImages; k++, count++) {
             final TiffIFD ifd = ifds.get(k);
-            if (!ifd.isMainIFD()) {
+            if (!ifd.isMainIFD() || !ifd.hasTileInformation()) {
                 break;
-                // - do not try to continue searching for a pyramid if we found a sub-IFD
+                // - do not try to continue searching for a pyramid if we found a sub-IFD or a non-tiled image
             }
             final int nextDimX = ifd.getImageDimX();
             final int nextDimY = ifd.getImageDimY();

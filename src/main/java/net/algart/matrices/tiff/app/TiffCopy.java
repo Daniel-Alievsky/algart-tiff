@@ -48,13 +48,18 @@ public class TiffCopy {
     private long lastProgressTime = Integer.MIN_VALUE;
 
     public static void main(String[] args) throws IOException {
+        int startArgIndex = 0;
+        boolean callConvertToTiff = false;
         if (args.length > 0 && args[0].equalsIgnoreCase("-toTiff")) {
+            callConvertToTiff = true;
+            startArgIndex++;
+        }
+        if (callConvertToTiff) {
             if (ConvertToTiff.doMain(Arrays.copyOfRange(args, 1, args.length), false)) {
                 return;
             }
         }
-        TiffCopy copy = new TiffCopy();
-        int startArgIndex = 0;
+        final TiffCopy copy = new TiffCopy();
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-append")) {
             copy.append = true;
             startArgIndex++;
