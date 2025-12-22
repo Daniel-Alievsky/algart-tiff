@@ -46,9 +46,9 @@ public class TiffEditDescriptionTest {
         final int numberOfTests = Integer.parseInt(args[1]);
         final Random rnd = new Random(157);
         try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
-            final int numberOfExisting = writer.numberOfExistingIFDs();
+            final int numberOfExisting = writer.numberOfExistingImages();
             for (int test = 1; test <= numberOfTests; test++) {
-                final int n = writer.numberOfExistingIFDs();
+                final int n = writer.numberOfExistingImages();
                 if (n != numberOfExisting) {
                     throw new AssertionError("Number of IFDs changed: " + n + " != " + numberOfExisting);
                 }

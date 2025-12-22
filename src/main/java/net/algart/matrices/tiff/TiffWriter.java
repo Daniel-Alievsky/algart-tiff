@@ -704,7 +704,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @return the number of existing main IFDs (not sub-IFDs).
      */
-    public int numberOfExistingIFDs() {
+    public int numberOfExistingImages() {
         //noinspection resource
         return reader().numberOfMainIFDs();
     }
@@ -1272,7 +1272,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param ifdIndex index of the TIFF image.
      * @return the IFD with the specified index.
      * @throws TiffException if <code>ifdIndex</code> is too large
-     *                       (&ge;{@link #numberOfExistingIFDs()}),
+     *                       (&ge;{@link #numberOfExistingImages()}),
      *                       or if the file is not a correct TIFF file,
      *                       and this was not detected while opening it.
      */

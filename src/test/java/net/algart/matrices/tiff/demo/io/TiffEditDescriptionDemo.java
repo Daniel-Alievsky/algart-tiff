@@ -64,7 +64,7 @@ public class TiffEditDescriptionDemo {
         LOG.log(System.Logger.Level.DEBUG,
                 () -> "IFD #%d/%d: %s image description%n\"%s\"%n%sString length %s: from %d to %d%n".formatted(
                 ifdIndex,
-                writer.numberOfExistingIFDs(),
+                writer.numberOfExistingImages(),
                 oldDescription == null ? "writing new" : "overwriting",
                 description,
                 oldDescription == null ? "" : "(instead of: \"%s\")%n".formatted(oldDescription),
