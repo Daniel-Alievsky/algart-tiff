@@ -329,7 +329,7 @@ public class TiffWriterTest {
                                 "String 1", "", "String 2"
                         });
                         case 3 -> ifd.put(Tags.IMAGE_DESCRIPTION,
-                                "String1AsBytes\0\0String2AsBytes".getBytes(StandardCharsets.UTF_8));
+                                "String1AsBytes\0\0String2AsBytes\rString3AsBytes".getBytes(StandardCharsets.UTF_8));
                         case 4 -> {
                             byte[] bytes = ("String1AsShorts\0\u05E9\u05DC\u05D5\u05DDAsShorts")
                                     .getBytes(StandardCharsets.UTF_8);

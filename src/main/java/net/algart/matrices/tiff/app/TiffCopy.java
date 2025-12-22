@@ -36,11 +36,14 @@ import java.util.Arrays;
 import java.util.Locale;
 
 public class TiffCopy {
+    boolean append = false;
     boolean repack = false;
     boolean smart = false;
     ByteOrder byteOrder = null;
     Boolean bigTiff = null;
     Double quality = null;
+    private int firstIFDIndex = 0;
+    private int lastIFDIndex = Integer.MAX_VALUE;
 
     private long lastProgressTime = Integer.MIN_VALUE;
 
@@ -52,6 +55,10 @@ public class TiffCopy {
         }
         TiffCopy copy = new TiffCopy();
         int startArgIndex = 0;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-append")) {
+            copy.append = true;
+            startArgIndex++;
+        }
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-repack")) {
             copy.repack = true;
             startArgIndex++;
@@ -82,8 +89,9 @@ public class TiffCopy {
             startArgIndex++;
         }
         if (args.length < startArgIndex + 2) {
-            System.out.printf("Usage:%n    %s [-repack] [-smart] [-le|-be] [-bigTiff|-noBigTIFF] [-quality=xxx] " +
-                            "source.tiff target.tiff%n",
+            System.out.printf("Usage:%n    %s [-append] [-repack] [-smart] [-le|-be] " +
+                            "[-bigTiff|-noBigTIFF] [-quality=xxx] " +
+                            "source.tiff target.tiff [firstIFDIndex [lastIFDIndex]]%n",
                     TiffCopy.class.getSimpleName());
             System.out.printf("or%n    %s -toTiff [-bigTiff] [-littleEndian] [-quality=xxx] " +
                                     "[-compressionLevel=1.0] source.jpg/png/bmp target.tiff [compression]%n",
@@ -104,6 +112,12 @@ public class TiffCopy {
         }
         final Path sourceFile = Paths.get(args[startArgIndex++]);
         final Path targetFile = Paths.get(args[startArgIndex]);
+        if (args.length > startArgIndex + 1) {
+            copy.firstIFDIndex = Integer.parseInt(args[startArgIndex + 1]);
+        }
+        if (args.length > startArgIndex + 2) {
+            copy.lastIFDIndex = Integer.parseInt(args[startArgIndex + 2]);
+        }
         copy.copy(sourceFile, targetFile);
     }
 
@@ -133,8 +147,11 @@ public class TiffCopy {
             if (quality != null) {
                 writer.setCompressionQuality(quality);
             }
-            writer.create();
-            copier.copyImages(writer, reader);
+            writer.create(append);
+            final int firstIndex = Math.max(this.firstIFDIndex, 0);
+            final int lastIndex = Math.min(this.lastIFDIndex, reader.numberOfImages() - 1);
+            // - Integer.MAX_VALUE will be truncated to numberOfImages() - 1
+            copier.copyImages(writer, reader, firstIndex, lastIndex + 1);
         }
         final long t2 = System.nanoTime();
         System.out.printf(Locale.US, "Copying finished in %.3f seconds%n",  (t2 - t1) * 1e-9);
