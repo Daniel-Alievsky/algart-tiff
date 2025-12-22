@@ -181,12 +181,16 @@ public class TiffInfo {
                     throw e;
                 }
                 this.metadata = TiffPyramidMetadata.of(allIFDs);
-                final int ifdCount = allIFDs.size();
+                final int ifdCount = reader.numberOfImages();
+                final int mainCount = reader.numberOfMainIFDs();
                 final int firstIndex = Math.max(this.firstIFDIndex, 0);
                 final int lastIndex = Math.min(this.lastIFDIndex, ifdCount - 1);
-                prefixInfo = "File %s: %d images, %s, %s-endian, %s%s".formatted(
+                prefixInfo = "File %s: %d images%s, %s, %s-endian, %s%s".formatted(
                         tiffFile,
                         ifdCount,
+                        ifdCount == mainCount ?
+                                "" :
+                                " (%d main + %d sub-IFDs)".formatted(mainCount, ifdCount - mainCount),
                         reader.isBigTiff() ? "BigTIFF" : "not BigTIFF",
                         reader.isLittleEndian() ? "little" : "big",
                         metadata.isSvs() ? "SVS" : metadata.isSvsCompatible() ? "SVS-compatible" : "non-SVS",

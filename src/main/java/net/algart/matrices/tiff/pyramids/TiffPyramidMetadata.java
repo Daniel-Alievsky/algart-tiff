@@ -454,10 +454,15 @@ public final class TiffPyramidMetadata {
         assert startIndex >= 1;
         int levelDimX = baseImageDimX;
         int levelDimY = baseImageDimY;
+        // - note: the base image #0 cannot be sub-IFD (it is always main)
         int actualScaleRatio = -1;
         int count = 1;
         for (int k = startIndex; k < numberOfImages; k++, count++) {
             final TiffIFD ifd = ifds.get(k);
+            if (!ifd.isMainIFD()) {
+                break;
+                // - do not try to continue searching for a pyramid if we found a sub-IFD
+            }
             final int nextDimX = ifd.getImageDimX();
             final int nextDimY = ifd.getImageDimY();
             if (actualScaleRatio == -1) {

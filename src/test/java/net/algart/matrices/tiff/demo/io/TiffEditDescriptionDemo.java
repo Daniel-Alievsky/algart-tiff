@@ -51,8 +51,9 @@ public class TiffEditDescriptionDemo {
             TiffIFD changedIFD = new TiffIFD(writeMap.ifd());
             final String oldDescription = writeMap.description().description(null);
             final boolean lengthIncreased = oldDescription == null || description.length() > oldDescription.length();
-            System.out.printf("IFD #%d: %s image description%n\"%s\"%n%sString length %s: from %d to %d%n",
+            System.out.printf("IFD #%d/%d: %s image description%n\"%s\"%n%sString length %s: from %d to %d%n",
                     ifdIndex,
+                    writer.numberOfExistingIFDs(),
                     oldDescription == null ? "writing new" : "overwriting",
                     description,
                     oldDescription == null ? "" : "(instead of: \"%s\")%n".formatted(oldDescription),

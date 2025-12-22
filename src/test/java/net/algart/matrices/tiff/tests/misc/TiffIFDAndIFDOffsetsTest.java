@@ -34,31 +34,39 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 public class TiffIFDAndIFDOffsetsTest {
     public static void main(String[] args) throws IOException {
-        if (args.length < 2) {
+        int startArgIndex = 0;
+        boolean cache = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-cache")) {
+            cache = true;
+            startArgIndex++;
+        }
+        if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
             System.out.println("    " + TiffIFDAndIFDOffsetsTest.class.getName() + " tiff_file.tiff ifdIndex");
             return;
         }
 
-        final Path file = Paths.get(args[0]);
-        final int ifdIndex = Integer.parseInt(args[1]);
+        final Path file = Paths.get(args[startArgIndex]);
+        final int ifdIndex = Integer.parseInt(args[startArgIndex + 1]);
         System.out.printf("Reading IFD #%d from %s...%n", ifdIndex, file);
 
-        TiffReader reader = new TiffReader(file, TiffOpenMode.ALLOW_NON_TIFF);
-        final int n1 = reader.allMaps().size();
+        TiffReader reader = new TiffReader(file, TiffOpenMode.ALLOW_NON_TIFF).setCachingIFDs(cache);
+        final int m = reader.allMaps().size();
+        final int n1 = reader.mainIFDs().size();
         final int n2 = reader.readIFDOffsets().length;
         // - should not throw exception for invalid file
-        if (n1 != n2) {
-            throw new AssertionError();
+        if (n1 != n2 || n1 > m) {
+            throw new AssertionError(n1 + ", " + n2 + ", " + m);
         }
         System.out.printf("Number of IFDs: %d%n", n1);
         // reader.allMaps().set(0, null); // - should not be possible (result must be immutable)
         // reader.allIFDs().clear(); // - should not be possible (result must be immutable)
         reader.close();
-        reader = new TiffReader(file, TiffOpenMode.ALLOW_NON_TIFF);
+        reader = new TiffReader(file, TiffOpenMode.ALLOW_NON_TIFF).setCachingIFDs(cache);
 
         System.out.println("Analysing...");
         try {
@@ -75,43 +83,55 @@ public class TiffIFDAndIFDOffsetsTest {
             long t1 = System.nanoTime();
             long[] offsets = reader.readIFDOffsets();
             long t2 = System.nanoTime();
-            System.out.printf("readIFDOffsets(): %s (%.6f mcs)%n", Arrays.toString(offsets), (t2 - t1) * 1e-3);
+            System.out.printf(Locale.US,
+                    "readIFDOffsets(): %s (%.6f mcs)%n", Arrays.toString(offsets), (t2 - t1) * 1e-3);
             System.out.printf("  Position of last IFD offset: %d%n", reader.positionOfLastIFDOffset());
 
             t1 = System.nanoTime();
             long offset = reader.readSingleIFDOffset(ifdIndex);
             t2 = System.nanoTime();
-            System.out.printf("readSingleIFDOffset(%d): %d (%.6f mcs)%n", ifdIndex, offset, (t2 - t1) * 1e-3);
+            System.out.printf(Locale.US,
+                    "readSingleIFDOffset(%d): %d (%.6f mcs)%n", ifdIndex, offset, (t2 - t1) * 1e-3);
             System.out.printf("  Position of last IFD offset: %d%n", reader.positionOfLastIFDOffset());
 
             t1 = System.nanoTime();
             int n = reader.numberOfImages();
             t2 = System.nanoTime();
-            if (n != n1) {
+            if (n != m) {
                 throw new AssertionError();
             }
-            System.out.printf("numberOfIFDs(): %d (%.6f mcs)%n", n, (t2 - t1) * 1e-3);
+            System.out.printf(Locale.US, "numberOfIFDs(): %d (%.6f mcs)%n", n, (t2 - t1) * 1e-3);
 
             t1 = System.nanoTime();
             List<TiffIFD> ifds = reader.allIFDs();
             t2 = System.nanoTime();
+            if (ifds.size() != m) {
+                throw new AssertionError();
+            }
+            System.out.printf(Locale.US, "allIFDs(): %d (%.6f mcs)%n", ifds.size(), (t2 - t1) * 1e-3);
+            System.out.printf("  Position of last IFD offset: %d%n", reader.positionOfLastIFDOffset());
+
+            t1 = System.nanoTime();
+            ifds = reader.mainIFDs();
+            t2 = System.nanoTime();
             if (ifds.size() != n1) {
                 throw new AssertionError();
             }
-            System.out.printf("allIFDs(): %d (%.6f mcs)%n", ifds.size(), (t2 - t1) * 1e-3);
+            System.out.printf(Locale.US, "mainIFDs(): %d (%.6f mcs)%n", ifds.size(), (t2 - t1) * 1e-3);
             System.out.printf("  Position of last IFD offset: %d%n", reader.positionOfLastIFDOffset());
 
             t1 = System.nanoTime();
             TiffIFD firstIFD = reader.firstIFD();
             t2 = System.nanoTime();
 //        IFD firstIFD = new TiffParser(new SCIFIO().getContext(), new FileLocation(file.toFile())).getFirstIFD();
-            System.out.printf("firstIFD(): %s (%.6f mcs)%n", firstIFD, (t2 - t1) * 1e-3);
+            System.out.printf(Locale.US, "firstIFD(): %s (%.6f mcs)%n", firstIFD, (t2 - t1) * 1e-3);
             System.out.printf("  Position of last IFD offset: %d%n", reader.positionOfLastIFDOffset());
 
             t1 = System.nanoTime();
             TiffIFD ifd = reader.readSingleIFD(ifdIndex);
             t2 = System.nanoTime();
-            System.out.printf("readSingleIFD(%d): %s (%.6f mcs)%n", ifdIndex, ifd, (t2 - t1) * 1e-3);
+            System.out.printf(Locale.US,
+                    "readSingleIFD(%d): %s (%.6f mcs)%n", ifdIndex, ifd, (t2 - t1) * 1e-3);
             System.out.printf("  Position of last IFD offset: %d%n", reader.positionOfLastIFDOffset());
         }
 

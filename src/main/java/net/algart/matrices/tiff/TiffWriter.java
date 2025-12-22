@@ -565,7 +565,7 @@ public non-sealed class TiffWriter extends TiffIO {
         return positionOfLastIFDOffset;
     }
 
-    public int numberOfMainImages() {
+    public int numberOfUsedIFDOffsets() {
         return ifdOffsets.size();
     }
 
@@ -696,6 +696,17 @@ public non-sealed class TiffWriter extends TiffIO {
             // to the file end (to avoid damaging existing content)
             stream.setLength(stream.offset());
         }
+    }
+
+    /**
+     * Returns <code>{@link #reader()}.{@link TiffReader#numberOfMainIFDs() numberOfMainIFDs()}</code>.
+     * This is the number of existing IFDs that can be read by {@link #existingIFD(int)} method.
+     *
+     * @return the number of existing main IFDs (not sub-IFDs).
+     */
+    public int numberOfExistingIFDs() {
+        //noinspection resource
+        return reader().numberOfMainIFDs();
     }
 
     public TiffReader reader() {
@@ -874,9 +885,9 @@ public non-sealed class TiffWriter extends TiffIO {
      * without automatically updating IFD linkage.
      *
      * @param firstIFDOffset new first IFD offset.
-     * @throws IOException in the case of any I/O errors.
+     * @throws IOException           in the case of any I/O errors.
      * @throws IllegalStateException if this file is not yet opened
-     * (<code>{@link #positionOfLastIFDOffset()}==-1</code>).
+     *                               (<code>{@link #positionOfLastIFDOffset()}==-1</code>).
      */
     public void rewriteFirstIFDOffset(long firstIFDOffset) throws IOException {
         synchronized (fileLock) {
@@ -898,9 +909,9 @@ public non-sealed class TiffWriter extends TiffIO {
      * without automatically updating IFD linkage.
      *
      * @param newLastIFDOffset new last IFD offset.
-     * @throws IOException in the case of any I/O errors.
+     * @throws IOException           in the case of any I/O errors.
      * @throws IllegalStateException if this file is not yet opened
-     * (<code>{@link #positionOfLastIFDOffset()}==-1</code>).
+     *                               (<code>{@link #positionOfLastIFDOffset()}==-1</code>).
      */
     public void rewriteLastIFDOffset(long newLastIFDOffset) throws IOException {
         synchronized (fileLock) {
@@ -1229,6 +1240,18 @@ public non-sealed class TiffWriter extends TiffIO {
         return ifd;
     }
 
+    /**
+     * Reads IFD by  <code>{@link #reader()}.{@link TiffReader#readSingleIFD(int) readSingleIFD(ifdIndex)}</code>
+     * and sets its {@link TiffIFD#setFileOffsetForWriting(long) offset-for-writing}
+     * to be equal to the {@link TiffIFD#getFileOffsetForReading() offset-for-reading}.
+     *
+     * @param ifdIndex index of the TIFF image.
+     * @return the IFD with the specified index.
+     * @throws TiffException if <code>ifdIndex</code> is too large
+     *                       (&ge;{@link #numberOfExistingIFDs()}),
+     *                       or if the file is not a correct TIFF file,
+     *                       and this was not detected while opening it.
+     */
     public TiffIFD existingIFD(int ifdIndex) throws IOException {
         @SuppressWarnings("resource") final TiffReader reader = reader();
         final TiffIFD ifd = reader.readSingleIFD(ifdIndex);

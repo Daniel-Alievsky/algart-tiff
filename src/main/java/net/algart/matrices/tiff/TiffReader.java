@@ -50,7 +50,6 @@ import java.lang.ref.Reference;
 import java.lang.ref.SoftReference;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteOrder;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.Arrays;
@@ -171,7 +170,8 @@ public non-sealed class TiffReader extends TiffIO {
     /**
      * Cached list of IFDs in the current file.
      */
-    private volatile List<TiffIFD> ifds;
+    private volatile List<TiffIFD> allIFDs;
+    private volatile List<TiffIFD> mainIFDs;
 
     /**
      * Cached first IFD in the current file.
@@ -580,7 +580,7 @@ public non-sealed class TiffReader extends TiffIO {
      * @param cachingIFDs whether caching IFD is enabled.
      * @return a reference to this object.
      */
-    public TiffReader setCachingIFDs(final boolean cachingIFDs) {
+    public TiffReader setCachingIFDs(boolean cachingIFDs) {
         this.cachingIFDs = cachingIFDs;
         return this;
     }
@@ -733,6 +733,25 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     /**
+     * Returns <code>{@link #mainIFDs()}.size()</code>.
+     * Note that this is the length of the array returned by {@link #readIFDOffsets()} method.
+     *
+     * <p>Note: for maximum usability, this method returns 0 instead of throwing an exception
+     * if there are any problems with the input file.
+     * But you will get the same exception when any
+     * attempt to read IFDs, for example, when calling {@link #mainIFDs()}.
+     *
+     * @return number of existing IFDs, excluding child IFDs.
+     */
+    public int numberOfMainIFDs() {
+        try {
+            return mainIFDs().size();
+        } catch (IOException e) {
+            return 0;
+        }
+    }
+
+    /**
      * Calls {@link #allIFDs()} and returns IFD with the specified index.
      * If <code>ifdIndex</code> is too big (&ge;{@link #numberOfImages()}), this method throws
      * {@link TiffException}.</p>
@@ -834,7 +853,8 @@ public non-sealed class TiffReader extends TiffIO {
      * then the result is cached and quickly returned by all further calls.
      * (But caching can be disabled using {@link #setCachingIFDs(boolean)} method).
      *
-     * <p>Note: this method returns also the child sub-IFDs of a regular IFD (they are added directly after it).</p>
+     * <p>Note: this method returns also the child sub-IFDs of a regular IFD (they are added directly after it).
+     * To retrive only main IFDs without the child ones, please use {@link #mainIFDs()}</p>.
      *
      * <p>Note: if this TIFF file is not valid ({@link #isValidTiff()} returns <code>false</code>), this method
      * returns an empty list and does not throw an exception.
@@ -845,23 +865,25 @@ public non-sealed class TiffReader extends TiffIO {
      */
     public List<TiffIFD> allIFDs() throws IOException {
         long t1 = debugTime();
-        List<TiffIFD> ifds;
+        List<TiffIFD> allIFDs;
         synchronized (fileLock) {
             // - this synchronization is not necessary, but helps
             // to be sure that the client will not try to read TIFF images
             // when all IFD are not fully loaded and checked
-            ifds = this.ifds;
-            if (cachingIFDs && ifds != null) {
-                return ifds;
+            allIFDs = this.allIFDs;
+            if (cachingIFDs && allIFDs != null) {
+                return allIFDs;
             }
 
             final long[] offsets = readIFDOffsets();
-            ifds = new ArrayList<>();
+            allIFDs = new ArrayList<>();
+            final ArrayList<TiffIFD> mainIFDs = new ArrayList<>();
 
-            for (final long offset : offsets) {
+            for (long offset : offsets) {
                 final TiffIFD ifd = readIFDAt(offset);
                 assert ifd != null;
-                ifds.add(ifd);
+                allIFDs.add(ifd);
+                mainIFDs.add(ifd);
                 long[] subOffsets = null;
                 try {
                     // Deprecated solution: "fillInIFD" technique is no longer used
@@ -875,23 +897,30 @@ public non-sealed class TiffReader extends TiffIO {
                     for (final long subOffset : subOffsets) {
                         final TiffIFD sub = readIFDAt(subOffset, Tags.SUB_IFD, false);
                         if (sub != null) {
-                            ifds.add(sub);
+                            allIFDs.add(sub);
                         }
                     }
                 }
             }
-            if (cachingIFDs) {
-                this.ifds = Collections.unmodifiableList(ifds);
-            }
+            this.allIFDs = Collections.unmodifiableList(allIFDs);
+            this.mainIFDs = Collections.unmodifiableList(mainIFDs);
+            // note: storing it in any case, regardless caching is enabled or not
         }
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t2 = debugTime();
             LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
                     "%s read %d IFDs: %.3f ms",
-                    getClass().getSimpleName(), ifds.size(),
+                    getClass().getSimpleName(), allIFDs.size(),
                     (t2 - t1) * 1e-6));
         }
-        return ifds;
+        return allIFDs;
+    }
+
+    public List<TiffIFD> mainIFDs() throws IOException {
+        synchronized (fileLock) {
+            allIFDs();
+            return Collections.unmodifiableList(mainIFDs);
+        }
     }
 
     /**
@@ -980,6 +1009,7 @@ public non-sealed class TiffReader extends TiffIO {
 
     /**
      * Gets the offsets to every IFD in the file (without child sub-IFDs).
+     * The length of the returned array is equal to {@link #numberOfMainIFDs()}.
      *
      * <p>Note: if this TIFF file is not valid ({@link #isValidTiff()} returns <code>false</code>), this method
      * returns an empty array and does not throw an exception.
@@ -1010,10 +1040,10 @@ public non-sealed class TiffReader extends TiffIO {
         }
     }
 
-    public TiffIFD readSingleIFD(int ifdIndex) throws IOException, NoSuchElementException {
+    public TiffIFD readSingleIFD(int ifdIndex) throws IOException {
         long startOffset = readSingleIFDOffset(ifdIndex);
         if (startOffset < 0) {
-            throw new NoSuchElementException("No IFD #" + ifdIndex + " in TIFF" + prettyInName()
+            throw new TiffException("No IFD #" + ifdIndex + " in TIFF" + prettyInName()
                     + ": too large index");
         }
         return readIFDAt(startOffset);
