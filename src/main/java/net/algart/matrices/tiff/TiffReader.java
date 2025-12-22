@@ -984,7 +984,7 @@ public non-sealed class TiffReader extends TiffIO {
      */
     public long readSingleIFDOffset(int ifdIndex) throws IOException {
         if (ifdIndex < 0) {
-            throw new IllegalArgumentException("Negative ifdIndex = " + ifdIndex);
+            throw new IllegalArgumentException("Negative IFD index = " + ifdIndex);
         }
         synchronized (fileLock) {
             final long fileLength = stream.length();

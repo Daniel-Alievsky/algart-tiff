@@ -64,14 +64,8 @@ public class TiffEditDescriptionDemo {
                 // We must relocate IFD: overwriting in the same place will damage the further image
                 long p = writer.writeIFDAt(changedIFD, null, false);
                 // Note: we ignore sub-IFDs here. So, this method is not absolutely universal.
-                if (ifdIndex == 0) {
-                    writer.rewriteFirstIFDOffset(p);
-                } else {
-                    final TiffIFD previousIFD = writer.existingIFD(ifdIndex - 1);
-                    previousIFD.setNextIFDOffset(p);
-                    writer.rewriteIFD(previousIFD);
-                    // - restoring IFD sequence
-                }
+                writer.rewriteIFDOffset(ifdIndex, p);
+                // - restoring IFD sequence
             } else {
                 writer.rewriteIFD(changedIFD);
             }

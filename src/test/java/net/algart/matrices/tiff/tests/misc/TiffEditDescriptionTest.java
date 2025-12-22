@@ -48,22 +48,32 @@ public class TiffEditDescriptionTest {
         try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
             final int numberOfExisting = writer.numberOfExistingIFDs();
             for (int test = 1; test <= numberOfTests; test++) {
-                int n = writer.numberOfExistingIFDs();
+                final int n = writer.numberOfExistingIFDs();
                 if (n != numberOfExisting) {
                     throw new AssertionError("Number of IFDs changed: " + n + " != " + numberOfExisting);
                 }
-                int ifdIndex = rnd.nextInt(numberOfExisting);
+                final int ifdIndex = rnd.nextInt(n);
+                final boolean usePrevious = rnd.nextBoolean();
                 Collection<Long> alreadyUsed = writer.alreadyUsedIFDOffsets();
                 System.out.printf("Test #%d/%d: modifying IFD #%d, %d used offsets: %s...%n",
                         test, numberOfTests, ifdIndex, alreadyUsed.size(), alreadyUsed);
                 final TiffIFD ifd = writer.existingIFD(ifdIndex);
                 TiffIFD changedIFD = new TiffIFD(ifd);
                 changedIFD.putDescription("Description #" + test + " in IFD #" + ifdIndex);
-                rewriteIFDUsingPrevious(writer, ifdIndex, changedIFD);
+                if (usePrevious) {
+                    rewriteIFDUsingPrevious(writer, ifdIndex, changedIFD);
+                } else {
+                    rewriteIFD(writer, ifdIndex, changedIFD);
+                }
             }
         }
     }
 
+    private static void rewriteIFD(TiffWriter writer, int ifdIndex, TiffIFD changedIFD)
+            throws IOException {
+        long p = writer.writeIFDAtFileEnd(changedIFD);
+        writer.rewriteIFDOffset(ifdIndex, p);
+    }
 
     private static void rewriteIFDUsingPrevious(TiffWriter writer, int ifdIndex, TiffIFD changedIFD)
             throws IOException {
@@ -72,7 +82,7 @@ public class TiffEditDescriptionTest {
         // We will link the existing last IFD (for example, #5) to this (for example, #2),
         // but this IFD links to the next IFD #3, then #4, #5 and again #2.
         if (ifdIndex == 0) {
-            writer.rewriteFirstIFDOffset(p);
+            writer.rewriteIFDOffset(0, p);
         } else {
             final TiffIFD previousIFD = writer.existingIFD(ifdIndex - 1);
             previousIFD.setNextIFDOffset(p);

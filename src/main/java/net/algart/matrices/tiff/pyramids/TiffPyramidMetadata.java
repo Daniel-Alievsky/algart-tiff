@@ -330,7 +330,7 @@ public final class TiffPyramidMetadata {
 
     public boolean isSpecial(int ifdIndex) {
         if (ifdIndex < 0) {
-            throw new IllegalArgumentException("Negative ifdIndex");
+            throw new IllegalArgumentException("Negative IFD index = " + ifdIndex);
         }
         return ifdIndex == thumbnailIndex || ifdIndex == labelIndex || ifdIndex == macroIndex;
     }

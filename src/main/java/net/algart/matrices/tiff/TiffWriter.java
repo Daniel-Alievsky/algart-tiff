@@ -565,7 +565,7 @@ public non-sealed class TiffWriter extends TiffIO {
         return positionOfLastIFDOffset;
     }
 
-    public Collection<Long> alreadyUsedIFDOffsets() {
+    public Set<Long> alreadyUsedIFDOffsets() {
         return Collections.unmodifiableSet(usedIFDOffsets);
     }
 
@@ -728,7 +728,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *     and equivalent methods;</li>
      *     <li>writing IFD into the file;</li>
      *     <li>writing a tile into the file ({@link #writeEncodedTile(TiffTile, boolean)} method);</li>
-     *     <li>correction of the IFD offset by {@link #rewriteFirstIFDOffset(long)} or
+     *     <li>correction of the IFD offset by {@link #rewriteIFDOffset(int, long)} or
      *     {@link #rewriteLastIFDOffset(long)} method.</li>
      * </ul>
      *
@@ -762,6 +762,10 @@ public non-sealed class TiffWriter extends TiffIO {
      * Clears the reference to the TIFF reader stored inside this object and returned by {@link #reader()} method.
      * Ensures that the next call of {@link #reader()} will create a new reader.
      * Usually you don't need to call this method because it is called automatically.
+     *
+     * <p>Note: this method <i>does not</i> clear the offsets, stored in {@link #alreadyUsedIFDOffsets()}.
+     * These offsets are used only for automatic IFD linkage by {@link #writeIFDAt(TiffIFD, Long, boolean)}
+     * method and are not important if you perform the linkage manually.</p>
      */
     public void resetReader() {
         synchronized (fileLock) {
@@ -818,7 +822,8 @@ public non-sealed class TiffWriter extends TiffIO {
      *     this IFD (i.e. <code>startOffset</code> or position of the file end). This action is performed <b>only</b>
      *     if this start offset is really new for this file, i.e., if it did not present in an existing file
      *     while opening it by {@link #openExisting()} method and if some IFD was not already written
-     *     at this position by methods of this object.
+     *     at this position by the methods of this object.
+     *     (All offsets of IFDs written by this method are stored in the set {@link #alreadyUsedIFDOffsets()}.)
      *     Note: this operation is <b>senseless</b> if the previously written IFD is actually not the previous IFD
      *     before this one!
      *     </li>
@@ -879,26 +884,40 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Rewrites the offset, stored in the file at the {@link #positionOfFirstIFDOffset()},
+     * Rewrites the offset, stored in the file for the given main IFD,
      * with the specified value.
      * This method is useful if you want to organize the sequence of IFD inside the file manually,
      * without automatically updating IFD linkage.
      *
-     * @param firstIFDOffset new first IFD offset.
+     * @param ifdIndex the index of the main IFD (sub-IFDs are ignored here).
+     * @param ifdOffset new IFD offset; must be positive.
+     *
      * @throws IOException           in the case of any I/O errors.
      * @throws IllegalStateException if this file is not yet opened
      *                               (<code>{@link #positionOfLastIFDOffset()}==-1</code>).
      */
-    public void rewriteFirstIFDOffset(long firstIFDOffset) throws IOException {
+    public void rewriteIFDOffset(int ifdIndex, long ifdOffset) throws IOException {
         synchronized (fileLock) {
-            if (firstIFDOffset < 0) {
-                throw new IllegalArgumentException("Negative first IFD offset " + firstIFDOffset);
+            if (ifdIndex < 0) {
+                throw new IllegalArgumentException("Negative IFD index: " + ifdIndex);
+            }
+            if (ifdOffset <= 0) {
+                throw new IllegalArgumentException("Zero or negative IFD offset " + ifdOffset);
             }
             if (positionOfLastIFDOffset < 0) {
                 throw new IllegalStateException("The TIFF file is not yet open");
             }
-            writeIFDOffsetAt(firstIFDOffset, positionOfFirstIFDOffset(), false);
-            // - last argument is not important: the positionOfLastIFDOffset will not change in any case
+            long position;
+            if (ifdIndex == 0) {
+                position = positionOfFirstIFDOffset();
+            } else {
+                @SuppressWarnings("resource")
+                final TiffReader reader = reader();
+                reader.readSingleIFDOffset(ifdIndex);
+                position = reader.positionOfLastIFDOffset();
+            }
+            writeIFDOffsetAt(ifdOffset, position, false);
+            // - last argument is not so important: the positionOfLastIFDOffset will not change in any case
         }
     }
 
