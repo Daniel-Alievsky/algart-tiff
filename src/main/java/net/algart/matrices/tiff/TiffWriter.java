@@ -770,6 +770,8 @@ public non-sealed class TiffWriter extends TiffIO {
     public void resetReader() {
         synchronized (fileLock) {
             this.reader = null;
+            // - No sense to clear usedIFDOffsets:
+            // there are no reasons to remove previously saved elements from the set
         }
     }
 
@@ -822,8 +824,9 @@ public non-sealed class TiffWriter extends TiffIO {
      *     this IFD (i.e. <code>startOffset</code> or position of the file end). This action is performed <b>only</b>
      *     if this start offset is really new for this file, i.e., if it did not present in an existing file
      *     while opening it by {@link #openExisting()} method and if some IFD was not already written
-     *     at this position by the methods of this object.
-     *     (All offsets of IFDs written by this method are stored in the set {@link #alreadyUsedIFDOffsets()}.)
+     *     at this position by some methods.
+     *     (All offsets of IFDs written by the methods of this object
+     *     are stored in the set {@link #alreadyUsedIFDOffsets()}.)
      *     Note: this operation is <b>senseless</b> if the previously written IFD is actually not the previous IFD
      *     before this one!
      *     </li>
@@ -876,8 +879,10 @@ public non-sealed class TiffWriter extends TiffIO {
                 // - Only if it is really newly added IFD!
                 // If this offset is already contained in the list, an attempt to link to it
                 // will probably lead to an infinite loop of IFDs.
+                // This check is necessary, for example, for overwriting an exiting image:
+                // without it, completeWriting method will create an infinite loop.
                 writeIFDOffsetAt(startOffset, previousPositionOfLastIFDOffset, false);
-                usedIFDOffsets.add(startOffset);
+                // - This method adds startOffset to usedIFDOffsets
             }
             return startOffset;
         }
@@ -2155,6 +2160,7 @@ public non-sealed class TiffWriter extends TiffIO {
             try {
                 stream.seek(positionToWrite);
                 writeOffset(offset);
+                usedIFDOffsets.add(offset);
                 if (updatePositionOfLastIFDOffset && offset == TiffIFD.LAST_IFD_OFFSET) {
                     positionOfLastIFDOffset = positionToWrite;
                 }

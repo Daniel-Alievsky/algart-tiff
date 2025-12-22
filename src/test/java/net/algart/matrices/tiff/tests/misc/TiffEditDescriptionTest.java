@@ -55,8 +55,8 @@ public class TiffEditDescriptionTest {
                 final int ifdIndex = rnd.nextInt(n);
                 final boolean usePrevious = rnd.nextBoolean();
                 Collection<Long> alreadyUsed = writer.alreadyUsedIFDOffsets();
-                System.out.printf("Test #%d/%d: modifying IFD #%d, %d used offsets: %s...%n",
-                        test, numberOfTests, ifdIndex, alreadyUsed.size(), alreadyUsed);
+                System.out.printf("Test #%d/%d: modifying IFD #%d, %d used offsets...%n",
+                        test, numberOfTests, ifdIndex, alreadyUsed.size());
                 final TiffIFD ifd = writer.existingIFD(ifdIndex);
                 TiffIFD changedIFD = new TiffIFD(ifd);
                 changedIFD.putDescription("Description #" + test + " in IFD #" + ifdIndex);
