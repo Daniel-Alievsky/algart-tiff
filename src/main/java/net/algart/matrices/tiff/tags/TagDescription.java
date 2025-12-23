@@ -58,6 +58,10 @@ public class TagDescription {
         return this;
     }
 
+    public final Integer globalIndex() {
+        return ifd == null ? null : ifd.getGlobalIndex();
+    }
+
     public final String description() {
         return description(null);
     }

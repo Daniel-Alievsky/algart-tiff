@@ -197,8 +197,17 @@ public final class TiffPyramidMetadata {
         return ifds.get(ifdIndex);
     }
 
+    public boolean isNonTrivial() {
+        return isSvs() || isPyramid();
+    }
+
     public boolean isSvs() {
         return svsDescription != null;
+    }
+
+    public boolean isSvsLayer0() {
+        final Integer globalIndex = svsDescription != null ? svsDescription.globalIndex() : null;
+        return globalIndex != null && globalIndex == 0;
     }
 
     public boolean isPyramid() {
@@ -206,7 +215,7 @@ public final class TiffPyramidMetadata {
             return false;
         }
         if (numberOfLayers == 1) {
-            return isSvs();
+            return isSvsLayer0();
             // - if this is not SVS, i.e., we have no Aperio-like ImageDescription,
             // then we cannot determine a thumbnail and have no reasons to interpret this TIFF as a pyramid
         }

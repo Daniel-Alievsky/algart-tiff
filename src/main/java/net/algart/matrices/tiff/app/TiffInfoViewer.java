@@ -490,7 +490,7 @@ public class TiffInfoViewer {
         summaryInfoTextArea.setBackground(info.isTiff() ? COMMON_BACKGROUND : ERROR_BACKGROUND);
         summaryInfoTextArea.setCaretPosition(0);
         svsInfoTextArea.setText(info.svsInfo());
-        svsInfoTextArea.setVisible(info.metadata().isPyramid());
+        svsInfoTextArea.setVisible(info.metadata().isNonTrivial());
         svsInfoTextArea.setCaretPosition(0);
         TiffPyramidMetadata metadata = info.metadata();
         assert metadata != null;

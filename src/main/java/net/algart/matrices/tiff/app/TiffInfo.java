@@ -227,7 +227,7 @@ public class TiffInfo {
                             .formatted(totalSize.get(),
                                     tiffFileLength - totalSize.get(), tiffFileLength);
                 }
-                if (metadata.isPyramid()) {
+                if (metadata.isNonTrivial()) {
                     svsInfo = (metadata.isSvs() ? "%s%n".formatted(metadata.svsDescription()) : "") + metadata;
                 }
             }
