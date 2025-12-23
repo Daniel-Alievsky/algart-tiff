@@ -101,7 +101,9 @@ public class TiffInfoViewer {
 
     private JFrame frame;
     private JButton openFileButton;
+    private JButton showImageButton;
     private JMenuItem openItem;
+    private JMenuItem reloadItem;
     private JComboBox<String> ifdComboBox;
     private JTextArea ifdTextArea;
     private JTextArea summaryInfoTextArea;
@@ -112,6 +114,9 @@ public class TiffInfoViewer {
     private Path tiffFile = null;
     private TiffIFD.StringFormat stringFormat = TiffIFD.StringFormat.NORMAL;
     private boolean viewTileGrid = false;
+
+    private volatile boolean loadingInProgress = false;
+    private volatile boolean loadingOk = false;
 
     public static void main(String[] args) {
         if (args.length >= 1 && args[0].equals("-h")) {
@@ -233,7 +238,8 @@ public class TiffInfoViewer {
     }
 
     private void addShowImageButton(JPanel leftPanel) {
-        JButton showImageButton = new JButton("Show image");
+        showImageButton = new JButton("Show image");
+        showImageButton.setEnabled(false);
         showImageButton.addActionListener(e -> showImageWindow());
         leftPanel.add(Box.createHorizontalStrut(10));
         leftPanel.add(showImageButton);
@@ -275,7 +281,7 @@ public class TiffInfoViewer {
         openItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
         openItem.addActionListener(e -> chooseAndOpenFile());
         fileMenu.add(openItem);
-        JMenuItem reloadItem = new JMenuItem("Reload TIFF");
+        reloadItem = new JMenuItem("Reload TIFF");
         reloadItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
         reloadItem.addActionListener(e -> reload());
         fileMenu.add(reloadItem);
@@ -439,24 +445,44 @@ public class TiffInfoViewer {
     }
 
     private void reload() {
-        if (tiffFile == null) {
+        if (tiffFile == null || loadingInProgress) {
+            LOG.log(System.Logger.Level.DEBUG, "Skipping loading...");
             return;
         }
         ifdComboBox.removeAllItems();
         ifdTextArea.setText("Analysing TIFF file...");
         summaryInfoTextArea.setText("");
         svsInfoTextArea.setText("");
-        try {
-            info = new TiffInfo();
-            info.setDisableAppendingForStrictFormats(true);
-            info.setStringFormat(stringFormat);
-            info.collectTiffInfo(tiffFile);
-        } catch (IOException e) {
-            LOG.log(System.Logger.Level.ERROR, "Error reading TIFF", e);
-            JOptionPane.showMessageDialog(frame, e.getMessage(), "Error reading TIFF", JOptionPane.ERROR_MESSAGE);
-            ifdTextArea.setText("");
-        }
-        applyInfo();
+        loadingOk = false;
+        setOpenEnabled(false);
+
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                info = new TiffInfo();
+                info.setDisableAppendingForStrictFormats(true);
+                info.setStringFormat(stringFormat);
+                // Thread.sleep(5000);
+                info.collectTiffInfo(tiffFile);
+                loadingOk = true;
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                } catch (Exception e) {
+                    LOG.log(System.Logger.Level.ERROR, "Error reading TIFF", e);
+                    JOptionPane.showMessageDialog(frame,
+                            e.getMessage(), "Error reading TIFF", JOptionPane.ERROR_MESSAGE);
+                    ifdTextArea.setText("");
+                } finally {
+                    setOpenEnabled(true);
+                }
+                applyInfo();
+            }
+        }.execute();
     }
 
     private void applyInfo()  {
@@ -520,6 +546,9 @@ public class TiffInfoViewer {
     private void setOpenEnabled(boolean enabled) {
         openFileButton.setEnabled(enabled);
         openItem.setEnabled(enabled);
+        reloadItem.setEnabled(enabled);
+        showImageButton.setEnabled(loadingOk);
+        loadingInProgress = !enabled;
     }
 
     private void updateTextArea() {
