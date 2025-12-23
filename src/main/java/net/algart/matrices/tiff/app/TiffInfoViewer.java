@@ -462,7 +462,7 @@ public class TiffInfoViewer {
                 info = new TiffInfo();
                 info.setDisableAppendingForStrictFormats(true);
                 info.setStringFormat(stringFormat);
-                // Thread.sleep(5000);
+//                 Thread.sleep(5000);
                 info.collectTiffInfo(tiffFile);
                 loadingOk = true;
                 return null;
