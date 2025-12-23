@@ -214,6 +214,7 @@ public final class TiffIFD {
     private boolean loadedFromFile = false;
     private boolean littleEndian = false;
     private boolean bigTiff = false;
+    private Integer globalIndex = null;
     private long fileOffsetForReading = -1;
     private long fileOffsetForWriting = -1;
     private long nextIFDOffset = -1;
@@ -230,14 +231,17 @@ public final class TiffIFD {
 
     @SuppressWarnings("CopyConstructorMissesField")
     public TiffIFD(TiffIFD ifd) {
-        loadedFromFile = ifd.loadedFromFile;
-        fileOffsetForReading = ifd.fileOffsetForReading;
-        fileOffsetForWriting = ifd.fileOffsetForWriting;
-        nextIFDOffset = ifd.nextIFDOffset;
         map = new LinkedHashMap<>(ifd.map);
         detailedCompression = ifd.detailedCompression;
         detailedEntries = ifd.detailedEntries == null ? null : new LinkedHashMap<>(ifd.detailedEntries);
+        loadedFromFile = ifd.loadedFromFile;
+        // skipping copying littleEndian, bigTiff: they are attributes of the file, not of the IFD
+        // skipping copying indexInIFDList: the copy will be probably placed into another list at another position
+        fileOffsetForReading = ifd.fileOffsetForReading;
+        fileOffsetForWriting = ifd.fileOffsetForWriting;
+        nextIFDOffset = ifd.nextIFDOffset;
         subIFDType = ifd.subIFDType;
+        description = ifd.description;
         frozen = false;
         // - Important: a copy is not frozen!
         // And it is the only way to clear this flag.
@@ -299,6 +303,26 @@ public final class TiffIFD {
 
     public TiffIFD setBigTiff(boolean bigTiff) {
         this.bigTiff = bigTiff;
+        return this;
+    }
+
+    public boolean hasGlobalIndex() {
+        return globalIndex != null;
+    }
+
+    /**
+     * Returns the index of this IFD in the list of all IFDs in the TIFF file.
+     * This index is set automatically by {@link TiffReader} class, but this is {@code null}
+     * after creating this object.
+     *
+     * @return the index of this IFD in the list of all IFDs in the TIFF file, or {@code null} if not set.
+     */
+    public Integer getGlobalIndex() {
+        return globalIndex;
+    }
+
+    public TiffIFD setGlobalIndex(Integer globalIndex) {
+        this.globalIndex = globalIndex;
         return this;
     }
 
@@ -1050,9 +1074,9 @@ public final class TiffIFD {
         TagDescription result = this.description;
         if (result == null) {
             result = TagDescription.EMPTY;
-            Optional<String> optional = optString(Tags.IMAGE_DESCRIPTION);
+            Optional<String> optional = optDescription();
             if (optional.isPresent()) {
-                result = TagDescription.of(optional.get());
+                result = TagDescription.of(optional.get()).setIFD(this);
             } else {
                 Object d = get(Tags.IMAGE_DESCRIPTION);
                 if (d instanceof TagDescription) {

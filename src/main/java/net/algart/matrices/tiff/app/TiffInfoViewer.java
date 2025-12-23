@@ -25,6 +25,7 @@
 package net.algart.matrices.tiff.app;
 
 import net.algart.arrays.PackedBitArraysPer8;
+import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.pyramids.TiffPyramidMetadata;
@@ -99,6 +100,8 @@ public class TiffInfoViewer {
     private final Preferences prefs = Preferences.userNodeForPackage(TiffInfoViewer.class);
 
     private JFrame frame;
+    private JButton openFileButton;
+    private JMenuItem openItem;
     private JComboBox<String> ifdComboBox;
     private JTextArea ifdTextArea;
     private JTextArea summaryInfoTextArea;
@@ -147,7 +150,7 @@ public class TiffInfoViewer {
                 new ImageIcon(reqResource("icon16.png")).getImage(),
                 new ImageIcon(reqResource("icon32.png")).getImage()));
 
-        JButton openFileButton = new JButton("Open TIFF");
+        openFileButton = new JButton("Open TIFF");
         openFileButton.addActionListener(e -> chooseAndOpenFile());
         leftPanel.add(openFileButton);
 
@@ -268,7 +271,7 @@ public class TiffInfoViewer {
         JMenuBar menuBar = new JMenuBar();
 
         JMenu fileMenu = new JMenu("File");
-        JMenuItem openItem = new JMenuItem("Open TIFF...");
+        openItem = new JMenuItem("Open TIFF...");
         openItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
         openItem.addActionListener(e -> chooseAndOpenFile());
         fileMenu.add(openItem);
@@ -440,66 +443,83 @@ public class TiffInfoViewer {
             return;
         }
         ifdComboBox.removeAllItems();
-        ifdTextArea.setText("");
-        info = new TiffInfo();
-        info.setDisableAppendingForStrictFormats(true);
-        info.setStringFormat(stringFormat);
+        ifdTextArea.setText("Analysing TIFF file...");
+        summaryInfoTextArea.setText("");
+        svsInfoTextArea.setText("");
         try {
+            info = new TiffInfo();
+            info.setDisableAppendingForStrictFormats(true);
+            info.setStringFormat(stringFormat);
             info.collectTiffInfo(tiffFile);
-            summaryInfoTextArea.setText(info.prefixInfo() + "\n" + info.summaryInfo());
-            summaryInfoTextArea.setBackground(info.isTiff() ? COMMON_BACKGROUND : ERROR_BACKGROUND);
-            summaryInfoTextArea.setCaretPosition(0);
-            svsInfoTextArea.setText(info.svsInfo());
-            svsInfoTextArea.setVisible(info.metadata().isPyramid());
-            svsInfoTextArea.setCaretPosition(0);
-            TiffPyramidMetadata metadata = info.metadata();
-            assert metadata != null;
-            String longest = "";
-            assert info.getFirstIFDIndex() == 0;
-            // - so, the index below is equal to the index in the ifds list
-            String[] captions = new String[info.numberOfImages()];
-            for (int i = 0; i < info.numberOfImages(); i++) {
-                final TiffIFD ifd = metadata.ifd(i);
-                final String caption =
-                        (ifd.isMainIFD() ? "" : "  ") +
-                                "#" + i + " [" + ifd.getImageDimX() + "x" + ifd.getImageDimY() +
-                                (ifd.hasTileInformation() ? " tiled" : "") + "]";
-                if (caption.length() > longest.length()) {
-                    longest = caption;
-                }
-                captions[i] = caption;
-            }
-            final int maxLength = longest.length();
-            for (int i = 0; i < captions.length; i++) {
-                String caption = captions[i];
-                final StringBuilder sb = new StringBuilder(caption + " ".repeat(maxLength - caption.length()));
-                final int layer = metadata.imageToLayer(i);
-                if (metadata.isPyramid()) {
-                    if (layer >= 0) {
-                        sb.append(" (layer ").append(layer).append(")");
-                    }
-                    for (var kind : TiffPyramidMetadata.SpecialKind.values()) {
-                        if (metadata.specialKindIndex(kind) == i) {
-                            sb.append(" (").append(kind.kindName().toUpperCase()).append(")");
-                        }
-                    }
-                }
-                caption = sb.toString();
-                ifdComboBox.addItem(caption);
-                if (caption.length() > longest.length()) {
-                    longest = caption;
-                }
-            }
-            if (info.numberOfImages() > 0) {
-                ifdComboBox.setSelectedIndex(0);
-                updateTextArea();
-            }
-            ifdComboBox.setPrototypeDisplayValue(longest);
-            frame.setTitle(APPLICATION_TITLE + ": " + tiffFile.getFileName());
         } catch (IOException e) {
             LOG.log(System.Logger.Level.ERROR, "Error reading TIFF", e);
             JOptionPane.showMessageDialog(frame, e.getMessage(), "Error reading TIFF", JOptionPane.ERROR_MESSAGE);
+            ifdTextArea.setText("");
         }
+        applyInfo();
+    }
+
+    private void applyInfo()  {
+        summaryInfoTextArea.setText(info.prefixInfo() + "\n" + info.summaryInfo());
+        summaryInfoTextArea.setBackground(info.isTiff() ? COMMON_BACKGROUND : ERROR_BACKGROUND);
+        summaryInfoTextArea.setCaretPosition(0);
+        svsInfoTextArea.setText(info.svsInfo());
+        svsInfoTextArea.setVisible(info.metadata().isPyramid());
+        svsInfoTextArea.setCaretPosition(0);
+        TiffPyramidMetadata metadata = info.metadata();
+        assert metadata != null;
+        String longest = "";
+        assert info.getFirstIFDIndex() == 0;
+        // - so, the index below is equal to the index in the ifds list
+        String[] captions = new String[info.numberOfImages()];
+        for (int i = 0; i < info.numberOfImages(); i++) {
+            final TiffIFD ifd = metadata.ifd(i);
+            String caption;
+            try {
+                caption = (ifd.isMainIFD() ? "" : "  ") +
+                                "#" + i + " [" + ifd.getImageDimX() + "x" + ifd.getImageDimY() +
+                                (ifd.hasTileInformation() ? " tiled" : "") + "]";
+            } catch (TiffException e) {
+                caption = "#" + i + " [error]";
+                LOG.log(System.Logger.Level.ERROR, "Error parsing IFD", e);
+            }
+            if (caption.length() > longest.length()) {
+                longest = caption;
+            }
+            captions[i] = caption;
+        }
+        final int maxLength = longest.length();
+        for (int i = 0; i < captions.length; i++) {
+            String caption = captions[i];
+            final StringBuilder sb = new StringBuilder(caption + " ".repeat(maxLength - caption.length()));
+            final int layer = metadata.imageToLayer(i);
+            if (metadata.isPyramid()) {
+                if (layer >= 0) {
+                    sb.append(" (layer ").append(layer).append(")");
+                }
+                for (var kind : TiffPyramidMetadata.SpecialKind.values()) {
+                    if (metadata.specialKindIndex(kind) == i) {
+                        sb.append(" (").append(kind.kindName().toUpperCase()).append(")");
+                    }
+                }
+            }
+            caption = sb.toString();
+            ifdComboBox.addItem(caption);
+            if (caption.length() > longest.length()) {
+                longest = caption;
+            }
+        }
+        if (info.numberOfImages() > 0) {
+            ifdComboBox.setSelectedIndex(0);
+            updateTextArea();
+        }
+        ifdComboBox.setPrototypeDisplayValue(longest);
+        frame.setTitle(APPLICATION_TITLE + ": " + tiffFile.getFileName());
+    }
+
+    private void setOpenEnabled(boolean enabled) {
+        openFileButton.setEnabled(enabled);
+        openItem.setEnabled(enabled);
     }
 
     private void updateTextArea() {

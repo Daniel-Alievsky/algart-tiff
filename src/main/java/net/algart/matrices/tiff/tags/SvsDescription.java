@@ -261,6 +261,10 @@ public final class SvsDescription extends TagDescription {
                 sb.append("\"format error: ").append(TiffIFD.escapeJsonString(e.getMessage())).append("\"");
             }
         }
+        final TiffIFD ifd = getIFD();
+        if (ifd != null && ifd.hasGlobalIndex()) {
+            sb.append(",\n  \"globalIndex\": ").append(ifd.getGlobalIndex());
+        }
         sb.append("\n}");
         return sb.toString();
     }

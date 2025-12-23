@@ -882,6 +882,7 @@ public non-sealed class TiffReader extends TiffIO {
             for (long offset : offsets) {
                 final TiffIFD ifd = readIFDAt(offset);
                 assert ifd != null;
+                ifd.setGlobalIndex(allIFDs.size());
                 allIFDs.add(ifd);
                 mainIFDs.add(ifd);
                 long[] subOffsets = null;
@@ -891,14 +892,14 @@ public non-sealed class TiffReader extends TiffIO {
                     //     fillInIFD(ifd);
                     // }
                     subOffsets = ifd.getLongArray(Tags.SUB_IFD);
-                } catch (final TiffException ignored) {
+                } catch (TiffException ignored) {
                 }
                 if (subOffsets != null) {
-                    for (final long subOffset : subOffsets) {
-                        final TiffIFD sub = readIFDAt(subOffset, Tags.SUB_IFD, false);
-                        if (sub != null) {
-                            allIFDs.add(sub);
-                        }
+                    for (long subOffset : subOffsets) {
+                        final TiffIFD subIFD = readIFDAt(subOffset, Tags.SUB_IFD, false);
+                        assert subIFD != null;
+                        subIFD.setGlobalIndex(allIFDs.size());
+                        allIFDs.add(subIFD);
                     }
                 }
             }
@@ -937,6 +938,7 @@ public non-sealed class TiffReader extends TiffIO {
         }
         final long offset = readFirstIFDOffset();
         firstIFD = readIFDAt(offset);
+        firstIFD.setGlobalIndex(0);
         if (cachingIFDs) {
             this.firstIFD = firstIFD;
         }
@@ -950,7 +952,7 @@ public non-sealed class TiffReader extends TiffIO {
     public List<TiffIFD> exifIFDs() throws IOException {
         final List<TiffIFD> ifds = allIFDs();
         final List<TiffIFD> result = new ArrayList<>();
-        for (final TiffIFD ifd : ifds) {
+        for (TiffIFD ifd : ifds) {
             final long offset = ifd.getLong(Tags.EXIF, 0);
             if (offset != 0) {
                 final TiffIFD exifIFD = readIFDAt(offset, Tags.EXIF, false);
@@ -977,7 +979,8 @@ public non-sealed class TiffReader extends TiffIO {
      * Returns the file offset of IFD with given index or <code>-1</code> if the index is too high.
      * Updates {@link #positionOfLastIFDOffset()} to position of this offset.
      *
-     * <p>This method works only with regular IFDs (not sub-IFDs).</p>
+     * <p>This method works only with regular IFDs (not sub-IFDs).
+     * So, this index must be in the range <code>0..{@link #numberOfMainIFDs()}-1</code>.</p>
      *
      * @param ifdIndex index of IFD (0, 1, ...).
      * @return offset of this IFD in the file or <code>-1</code> if the index is too high.
@@ -1046,6 +1049,8 @@ public non-sealed class TiffReader extends TiffIO {
             throw new TiffException("No IFD #" + ifdIndex + " in TIFF" + prettyInName()
                     + ": too large index");
         }
+        // - note: we do not call setIndexInList(ifdIndex),
+        // becase this index will DIFFER from the index inside the allIFDs() list
         return readIFDAt(startOffset);
     }
 
@@ -1057,7 +1062,7 @@ public non-sealed class TiffReader extends TiffIO {
         return readIFDAt(startOffset, null, true);
     }
 
-    public TiffIFD readIFDAt(final long startOffset, Integer subIFDType, boolean readNextOffset) throws IOException {
+    public TiffIFD readIFDAt(long startOffset, Integer subIFDType, boolean readNextOffset) throws IOException {
         if (startOffset < 0) {
             throw new IllegalArgumentException("Negative file offset = " + startOffset);
         }

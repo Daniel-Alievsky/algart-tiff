@@ -33,6 +33,7 @@ public class TagDescription {
     public static final TagDescription EMPTY = new TagDescription(null);
 
     private final String description;
+    private volatile TiffIFD ifd = null;
 
     protected TagDescription(String description) {
         this.description = description;
@@ -48,6 +49,14 @@ public class TagDescription {
         return new TagDescription(imageDescription);
     }
 
+    public TiffIFD getIFD() {
+        return ifd;
+    }
+
+    public TagDescription setIFD(TiffIFD ifd) {
+        this.ifd = ifd;
+        return this;
+    }
 
     public final String description() {
         return description(null);
@@ -158,12 +167,15 @@ public class TagDescription {
 
     public String jsonString() {
         return "{\n" +
-                "  \"application\": \"" + TiffIFD.escapeJsonString(application()) + "\"\n" +
-                "  \"exists\": " + isPresent() + "\n" +
+                "  \"application\": \"" + TiffIFD.escapeJsonString(application()) + "\",\n" +
+                "  \"exists\": " + isPresent() +
                 (isPresent() ?
-                        "  \"description\": \"" + TiffIFD.escapeJsonString(description()) + "\"\n" :
+                        ",\n  \"description\": \"" + TiffIFD.escapeJsonString(description()) + "\"" :
                         "") +
-                "}";
+                (ifd != null && ifd.hasGlobalIndex() ?
+                        ",\n  \"globalIndex\": " + ifd.getGlobalIndex() :
+                        "") +
+                "\n}";
     }
 
     @Override
