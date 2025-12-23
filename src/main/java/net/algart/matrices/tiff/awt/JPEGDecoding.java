@@ -43,6 +43,8 @@ import java.util.Iterator;
 import java.util.Objects;
 
 public class JPEGDecoding {
+    private static final System.Logger LOG = System.getLogger(JPEGDecoding.class.getName());
+
     static final boolean USE_MEMORY_CACHE = true;
     // - Must be true for normal performance.
     // Important: our codec is implemented for reading separate tiles, which SHOULD be not too large
@@ -69,7 +71,13 @@ public class JPEGDecoding {
         final ImageReadParam param = reader.getDefaultReadParam();
         reader.setInput(stream, true, true);
         try {
-            final IIOMetadata imageMetadata = reader.getImageMetadata(0);
+            IIOMetadata imageMetadata = null;
+            try {
+                imageMetadata = reader.getImageMetadata(0);
+            } catch (IOException e) {
+                // it is better to ignore this exception than block reading all the image
+//                LOG.log(System.Logger.Level.DEBUG, "Cannot read metadata: " + e);
+            }
             final BufferedImage image = reader.read(0, param);
             return new ImageInformation(image, imageMetadata);
         } finally {
@@ -78,6 +86,9 @@ public class JPEGDecoding {
     }
 
     public static String tryToFindColorSpace(IIOMetadata metadata) {
+        if (metadata == null) {
+            return null;
+        }
         Node tree = metadata.getAsTree("javax_imageio_1.0");
         NodeList rootNodes = tree.getChildNodes();
         for (int k = 0, n = rootNodes.getLength(); k < n; k++) {

@@ -485,7 +485,7 @@ public class TiffInfoViewer {
         }.execute();
     }
 
-    private void applyInfo()  {
+    private void applyInfo() {
         summaryInfoTextArea.setText(info.prefixInfo() + "\n" + info.summaryInfo());
         summaryInfoTextArea.setBackground(info.isTiff() ? COMMON_BACKGROUND : ERROR_BACKGROUND);
         summaryInfoTextArea.setCaretPosition(0);
@@ -503,8 +503,8 @@ public class TiffInfoViewer {
             String caption;
             try {
                 caption = (ifd.isMainIFD() ? "" : "  ") +
-                                "#" + i + " [" + ifd.getImageDimX() + "x" + ifd.getImageDimY() +
-                                (ifd.hasTileInformation() ? " tiled" : "") + "]";
+                        "#" + i + " [" + ifd.getImageDimX() + "x" + ifd.getImageDimY() +
+                        (ifd.hasTileInformation() ? " tiled" : "") + "]";
             } catch (TiffException e) {
                 caption = "#" + i + " [error]";
                 LOG.log(System.Logger.Level.ERROR, "Error parsing IFD", e);
@@ -535,7 +535,9 @@ public class TiffInfoViewer {
                 longest = caption;
             }
         }
-        if (info.numberOfImages() > 0) {
+        if (info.numberOfImages() == 0) {
+            ifdTextArea.setText("");
+        } else {
             ifdComboBox.setSelectedIndex(0);
             updateTextArea();
         }
