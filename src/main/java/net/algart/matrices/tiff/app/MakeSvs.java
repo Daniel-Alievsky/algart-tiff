@@ -132,7 +132,7 @@ public class MakeSvs {
             svsBuilder.pixelSize(pixelSize)
                     .dateTime(LocalDateTime.now());
         }
-        svsBuilder.importFromIFD(ifd, true);
+        svsBuilder.updateFrom(ifd);
         ifd.putDescription(svsBuilder.build());
         final var map = writer.newFixedMap(ifd);
         map.writeChannels(image);

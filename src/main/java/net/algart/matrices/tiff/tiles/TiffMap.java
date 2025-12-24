@@ -371,6 +371,10 @@ public sealed class TiffMap permits TiffIOMap {
         return tilingMode;
     }
 
+    public boolean isTiled() {
+        return tilingMode.isTileGrid();
+    }
+
     public int tileSizeX() {
         return tileSizeX;
     }

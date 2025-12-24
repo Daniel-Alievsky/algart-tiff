@@ -138,7 +138,7 @@ class TiffInfoImageViewer implements Closeable {
         @Override
         public TiffTile readTile(TiffTileIndex tileIndex) throws IOException {
             final TiffTile tile = super.readTile(tileIndex);
-            if (viewTileGrid && tile.map().tilingMode().isTileGrid()) {
+            if (viewTileGrid && tile.map().isTiled()) {
                 addTileBorder(tile);
             }
             return tile;

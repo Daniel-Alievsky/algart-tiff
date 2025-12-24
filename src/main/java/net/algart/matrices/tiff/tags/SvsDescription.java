@@ -467,14 +467,15 @@ public final class SvsDescription extends TagDescription {
             return this;
         }
 
-        public Builder importFromIFD(TiffIFD ifd, boolean adjustScanSizes) throws TiffException {
+        public Builder updateFrom(TiffIFD ifd) throws TiffException {
+            return updateFrom(ifd, true);
+        }
+
+        public Builder updateFrom(TiffIFD ifd, boolean adjustScanSizes) throws TiffException {
             Objects.requireNonNull(ifd, "Null IFD");
             imageDimX(ifd.getImageDimX());
             imageDimY(ifd.getImageDimY());
-            if (adjustScanSizes) {
-                scanDimX = Math.max(scanDimX, Math.addExact(scanOffsetX, imageDimX));
-                scanDimY = Math.max(scanDimY, Math.addExact(scanOffsetY, imageDimY));
-            }
+            adjustMinimalScanSizes(adjustScanSizes);
             if (ifd.hasTileInformation()) {
                 tileSizeX(ifd.getTileSizeX());
                 tileSizeY(ifd.getTileSizeY());
@@ -558,6 +559,13 @@ public final class SvsDescription extends TagDescription {
                 actualSummary = summary;
             }
             return actualSummary;
+        }
+
+        private void adjustMinimalScanSizes(boolean adjustScanSizes) {
+            if (adjustScanSizes) {
+                scanDimX = Math.max(scanDimX, Math.addExact(scanOffsetX, imageDimX));
+                scanDimY = Math.max(scanDimY, Math.addExact(scanOffsetY, imageDimY));
+            }
         }
     }
 }
