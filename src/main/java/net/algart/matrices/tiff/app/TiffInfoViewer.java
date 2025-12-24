@@ -47,6 +47,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 import java.util.prefs.Preferences;
 
 public class TiffInfoViewer {
@@ -131,13 +132,12 @@ public class TiffInfoViewer {
         } catch (Exception e) {
             LOG.log(System.Logger.Level.WARNING, "Cannot set look and feel", e);
         }
+        TiffInfoViewer tiffInfoViewer = new TiffInfoViewer();
         SwingUtilities.invokeLater(() -> {
             try {
-                new TiffInfoViewer().createGUI(args);
+                tiffInfoViewer.createGUI(args);
             } catch (Throwable e) {
-                JOptionPane.showMessageDialog(null,
-                        e.toString(), "Error", JOptionPane.ERROR_MESSAGE);
-                LOG.log(System.Logger.Level.ERROR, "Error while creating GUI", e);
+                tiffInfoViewer.showErrorMessage(e, "Error while creating GUI");
             }
         });
     }
@@ -472,10 +472,8 @@ public class TiffInfoViewer {
             protected void done() {
                 try {
                     get();
-                } catch (Exception e) {
-                    LOG.log(System.Logger.Level.ERROR, "Error reading TIFF", e);
-                    JOptionPane.showMessageDialog(frame,
-                            e.getMessage(), "Error reading TIFF", JOptionPane.ERROR_MESSAGE);
+                } catch (InterruptedException | ExecutionException e) {
+                    showErrorMessage(e, "Error reading TIFF");
                     ifdTextArea.setText("");
                 } finally {
                     setOpenEnabled(true);
@@ -639,8 +637,7 @@ public class TiffInfoViewer {
             imgFrame.setLocationRelativeTo(frame);
             imgFrame.setVisible(true);
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(
-                    frame, e.getMessage(), "Error reading TIFF image", JOptionPane.ERROR_MESSAGE);
+            showErrorMessage(e, "Error reading TIFF image");
         }
     }
 
@@ -712,6 +709,19 @@ public class TiffInfoViewer {
             // - but it has a reduced set of characters, for example, no Hebrew
         }
         return new Font(Font.MONOSPACED, Font.PLAIN, size);
+    }
+
+    private void showErrorMessage(Throwable e, String title) {
+        if (e instanceof ExecutionException && e.getCause() != null) {
+            // ExecutionExcepion is a wrapper added by this utility: no sense to show it
+            e = e.getCause();
+        }
+        LOG.log(System.Logger.Level.ERROR, title + ": " + e.getMessage(), e);
+        if (e instanceof TiffException && e.getCause() instanceof IOException) {
+            // It is a wrapper added by TiffReader: no sense to show it to the end user
+            e = e.getCause();
+        }
+        JOptionPane.showMessageDialog(frame, e.getMessage(), title, JOptionPane.ERROR_MESSAGE);
     }
 
     private static boolean isFontAvailable(String fontName) {

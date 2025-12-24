@@ -162,24 +162,23 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
     }
 
     @Override
-    public byte[] decompress(final DataHandle<?> in, Options options) throws IOException {
+    public byte[] decompress(DataHandle<?> in, Options options) throws IOException {
         Objects.requireNonNull(in, "Null input handle");
         final long offset = in.offset();
         long t1 = timing ? System.nanoTime() : 0;
         JPEGDecoding.ImageInformation info;
         try (InputStream input = new BufferedInputStream(new DataHandleInputStream<>(in), 8192)) {
             info = JPEGDecoding.readJPEG(input);
-        } catch (final IOException exc) {
+        } catch (IOException jpegException) {
             // probably a lossless JPEG; delegate to LosslessJPEGCodec
             in.seek(offset);
-            return (new LosslessJPEGCodec()).decompress(in, options);
-            // Legacy solution, requiring Context
-//            if (codecService == null) {
-//                throw new IllegalStateException(
-//                        "Decompressing unusual JPEG (probably lossless) requires specifying non-null SCIFIO context");
-//            }
-//            final Codec codec = codecService.getCodec(io.scif.codec.LosslessJPEGCodec.class);
-//            return codec.decompress(in, options);
+            byte[] tryLossless = (new LosslessJPEGCodec()).decompress(in, options);
+            assert tryLossless != null;
+            if (tryLossless.length > 0) {
+                return tryLossless;
+            }
+            // zero length usually means that SOF3 (lossless JPEG) was not found
+            throw jpegException;
         }
         if (info == null) {
             throw new TiffException("Cannot read JPEG image: unknown format");

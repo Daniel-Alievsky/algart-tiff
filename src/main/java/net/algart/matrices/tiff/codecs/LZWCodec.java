@@ -241,7 +241,7 @@ public class LZWCodec extends StreamTiffCodec {
      * {@link Options#getMaxSizeInBytes()}.
      */
     @Override
-    public byte[] decompress(final DataHandle<?> in, Options options) throws IOException {
+    public byte[] decompress(DataHandle<?> in, Options options) throws IOException {
         if (in == null || in.length() == 0) return null;
         if (options == null) options = new Options();
 

@@ -47,8 +47,8 @@ public class TiffExtractTileContent {
         if (args.length < startArgIndex + 5) {
             System.out.println("Usage:");
             System.out.println("    " + TiffExtractTileContent.class.getName() +
-                    " [-unpack] some_tiff_file.tiff result.jpg/png/dat ifdIndex tileCol tileRow [separatedPlaneIndex]");
-            System.out.println("Note: if you do not used -unpack key, you should choose file extension " +
+                    " [-unpack] some_tiff_file.tiff tile.jpg/png/dat ifdIndex tileCol tileRow [separatedPlaneIndex]");
+            System.out.println("Note: if you do not use -unpack key, you should choose file extension " +
                     "corresponding to IFD compression format.");
             return;
         }

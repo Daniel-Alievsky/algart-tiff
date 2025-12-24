@@ -355,8 +355,7 @@ class HuffmanCodecAdaptedAndReduced {
 
     // -- Codec API methods --
 
-    public byte[] decompress(final DataHandle<Location> in,
-                             final HuffmanCodecOptions options) throws IOException {
+    public byte[] decompress(DataHandle<Location> in, HuffmanCodecOptions options) throws IOException {
         if (in == null) throw new IllegalArgumentException(
                 "No data to decompress.");
         if (options == null) {
@@ -385,7 +384,7 @@ class HuffmanCodecAdaptedAndReduced {
 
     // -- HuffmanCodec API methods --
 
-    public int getSample(final BitBuffer bb, final HuffmanCodecOptions options)
+    public int getSample(BitBuffer bb, HuffmanCodecOptions options)
             throws TiffException {
         if (bb == null) {
             throw new IllegalArgumentException("No data to handle.");

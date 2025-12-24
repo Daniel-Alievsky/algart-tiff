@@ -49,6 +49,8 @@ public class JPEGDecoding {
     // - Must be true for normal performance.
     // Important: our codec is implemented for reading separate tiles, which SHOULD be not too large
     // to be located in memory. For comparison, other codecs like DeflateCodec always work in memory.
+    private static final boolean IGNORE_EXCEPTION_WHILE_ATTEMPT_TO_READ_METADATA = true;
+    // - Must be true for correct processing some TIFF.
 
     public record ImageInformation(BufferedImage bufferedImage, IIOMetadata metadata) {
     }
@@ -74,9 +76,20 @@ public class JPEGDecoding {
             IIOMetadata imageMetadata = null;
             try {
                 imageMetadata = reader.getImageMetadata(0);
+                // - these metadata are necessary to correctly decompress images like
+                // jpeg_ycbcr_encoded_as_rgb.tiff from the demo resources
             } catch (IOException e) {
-                // it is better to ignore this exception than block reading all the image
-//                LOG.log(System.Logger.Level.DEBUG, "Cannot read metadata: " + e);
+                if (!IGNORE_EXCEPTION_WHILE_ATTEMPT_TO_READ_METADATA) {
+                    throw e;
+                }
+                // Sometimes TIFF files contain JPEG data with an invalid marker sequence.
+                // In such cases ImageReader.getImageMetadata() may throw an exception like
+                // "JFIF APP0 must be first marker after SOI".
+                // In this case, we ignore this exception and still try to read image:
+                // probably the read() method (based on the native JPEG decoder) will work normally.
+
+                // LOG.log(System.Logger.Level.DEBUG, "Cannot read metadata: " + e);
+                // - usually logging is also unnecessary, but you may uncomment it for debugging.
             }
             final BufferedImage image = reader.read(0, param);
             return new ImageInformation(image, imageMetadata);
@@ -127,7 +140,7 @@ public class JPEGDecoding {
         // and the JPEG is incorrectly detected as RGB; so, there is no sense to optimize this.
     }
 
-    // Note: this method may be tested with the image jpeg_ycbcr_encoded_as_rgb.tiff
+    // Note: this method may be tested with the image jpeg_ycbcr_encoded_as_rgb.tiff from the demo resources
     public static void completeDecodingYCbCr(
             byte[][] data,
             ImageInformation imageInformation,
