@@ -1259,7 +1259,9 @@ public non-sealed class TiffReader extends TiffIO {
             final Optional<byte[]> decodedData = decodeByExternalCodec(tile, encodedData, options);
             if (decodedData.isEmpty()) {
                 throw new UnsupportedTiffFormatException("TIFF compression with code " +
-                        tile.compressionCode() + " cannot be decoded: " + tile.ifd());
+                        tile.compressionCode() +
+                        (tile.compression().isPresent() ? " (" + tile.compression().get().prettyName() + ")": "") +
+                        " cannot be decoded");
             }
             tile.setPartiallyDecodedData(decodedData.get());
         }

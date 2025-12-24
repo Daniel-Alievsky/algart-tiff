@@ -24,14 +24,9 @@
 
 package net.algart.matrices.tiff.app;
 
-import net.algart.arrays.PackedBitArraysPer8;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.pyramids.TiffPyramidMetadata;
-import net.algart.matrices.tiff.tiles.TiffReadMap;
-import net.algart.matrices.tiff.tiles.TiffTile;
-import net.algart.matrices.tiff.tiles.TiffTileIndex;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
@@ -41,7 +36,6 @@ import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -79,8 +73,6 @@ public class TiffInfoViewer {
         }
     }
 
-    private static final int MAX_IMAGE_DIM = 16000;
-    // 16000 * 16000 * 4 channels RGBA * 16 bit/channel < Integer.MAX_VALUE
     private static final Color COMMON_BACKGROUND = new Color(240, 240, 240);
     private static final Color ERROR_BACKGROUND = new Color(255, 255, 155);
     private static final Color SVS_FOREGROUND = new Color(0, 128, 0);
@@ -100,7 +92,7 @@ public class TiffInfoViewer {
 
     private final Preferences prefs = Preferences.userNodeForPackage(TiffInfoViewer.class);
 
-    private JFrame frame;
+    JFrame frame;
     private JButton openFileButton;
     private JButton showImageButton;
     private JMenuItem openItem;
@@ -114,7 +106,7 @@ public class TiffInfoViewer {
     private TiffInfo info = null;
     private Path tiffFile = null;
     private TiffIFD.StringFormat stringFormat = TiffIFD.StringFormat.NORMAL;
-    private boolean viewTileGrid = false;
+    boolean viewTileGrid = false;
 
     private volatile boolean loadingInProgress = false;
     private volatile boolean loadingOk = false;
@@ -454,7 +446,7 @@ public class TiffInfoViewer {
         summaryInfoTextArea.setText("");
         svsInfoTextArea.setText("");
         loadingOk = false;
-        setOpenEnabled(false);
+        setOpenInProgress(true);
 
         new SwingWorker<Void, Void>() {
             @Override
@@ -476,7 +468,7 @@ public class TiffInfoViewer {
                     showErrorMessage(e, "Error reading TIFF");
                     ifdTextArea.setText("");
                 } finally {
-                    setOpenEnabled(true);
+                    setOpenInProgress(false);
                 }
                 applyInfo();
             }
@@ -540,15 +532,20 @@ public class TiffInfoViewer {
             updateTextArea();
         }
         ifdComboBox.setPrototypeDisplayValue(longest);
-        frame.setTitle(APPLICATION_TITLE + ": " + tiffFile.getFileName());
+        frame.setTitle(APPLICATION_TITLE + ": " + tiffFile.toString());
     }
 
-    private void setOpenEnabled(boolean enabled) {
-        openFileButton.setEnabled(enabled);
-        openItem.setEnabled(enabled);
-        reloadItem.setEnabled(enabled);
+    private void setOpenInProgress(boolean inProgress) {
+        openFileButton.setEnabled(!inProgress);
+        openItem.setEnabled(!inProgress);
+        reloadItem.setEnabled(!inProgress);
         showImageButton.setEnabled(loadingOk);
-        loadingInProgress = !enabled;
+        loadingInProgress = inProgress;
+    }
+
+    private void setShowImageInProgress(boolean inProgress) {
+        showImageButton.setEnabled(!inProgress);
+        showImageButton.setText(inProgress ? "Opening..." : "Show image");
     }
 
     private void updateTextArea() {
@@ -593,51 +590,13 @@ public class TiffInfoViewer {
         if (index < 0 || info == null || index >= info.numberOfImages()) {
             return;
         }
-        try (TiffReader reader = new TiffReaderWithGrid(tiffFile, viewTileGrid)) {
-            TiffReadMap map = reader.map(index);
-            int dimX = map.dimX();
-            int dimY = map.dimY();
-            if (dimX > MAX_IMAGE_DIM || dimY > MAX_IMAGE_DIM) {
-                dimX = Math.min(dimX, MAX_IMAGE_DIM);
-                dimY = Math.min(dimY, MAX_IMAGE_DIM);
-                int choice = JOptionPane.showConfirmDialog(
-                        frame,
-                        (
-                                "The image is too large to display: %d×%d pixels.%n" +
-                                        "We will show only its part %d×%d.%n" +
-                                        "Do you want to continue?"
-                        ).formatted(map.dimX(), map.dimY(), dimX, dimY),
-                        "Large Image Warning",
-                        JOptionPane.YES_NO_OPTION,
-                        JOptionPane.WARNING_MESSAGE
-                );
-                if (choice != JOptionPane.YES_OPTION) {
-                    return;
-                }
-            }
-
-            BufferedImage bi = map.readBufferedImage(0, 0, dimX, dimY);
-            JFrame imgFrame = new JFrame("TIFF Image #" + index + " from " + info.numberOfImages() +
-                    " images (" + dimX + "x" + dimY +
-                    (dimX == map.dimX() && dimY == map.dimY() ?
-                            "" :
-                            " from " + map.dimX() + "x" + map.dimY()) +
-                    ")");
-            imgFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-            imgFrame.add(new JScrollPane(new JLabel(new ImageIcon(bi))));
-            imgFrame.pack();
-
-            Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-            Dimension frameSize = imgFrame.getSize();
-            frameSize.width = Math.min(frameSize.width, screenSize.width - 10);
-            frameSize.height = Math.min(frameSize.height, screenSize.height - 50);
-            // - ensure that scroll bar and other elements will be visible even for very large images
-            imgFrame.setSize(frameSize);
-
-            imgFrame.setLocationRelativeTo(frame);
-            imgFrame.setVisible(true);
+        try (TiffInfoImageViewer imageViewer = new TiffInfoImageViewer(this, tiffFile, index)) {
+            setShowImageInProgress(true);
+            imageViewer.show();
         } catch (IOException e) {
             showErrorMessage(e, "Error reading TIFF image");
+        } finally {
+            setShowImageInProgress(false);
         }
     }
 
@@ -702,16 +661,7 @@ public class TiffInfoViewer {
         dialog.setVisible(true);
     }
 
-    private static Font getPreferredMonoFont(int size) {
-        String preferred = "Consolas";
-        if (isFontAvailable(preferred)) {
-            return new Font(preferred, Font.PLAIN, size);
-            // - but it has a reduced set of characters, for example, no Hebrew
-        }
-        return new Font(Font.MONOSPACED, Font.PLAIN, size);
-    }
-
-    private void showErrorMessage(Throwable e, String title) {
+    void showErrorMessage(Throwable e, String title) {
         if (e instanceof ExecutionException && e.getCause() != null) {
             // ExecutionExcepion is a wrapper added by this utility: no sense to show it
             e = e.getCause();
@@ -722,6 +672,15 @@ public class TiffInfoViewer {
             e = e.getCause();
         }
         JOptionPane.showMessageDialog(frame, e.getMessage(), title, JOptionPane.ERROR_MESSAGE);
+    }
+
+    private static Font getPreferredMonoFont(int size) {
+        String preferred = "Consolas";
+        if (isFontAvailable(preferred)) {
+            return new Font(preferred, Font.PLAIN, size);
+            // - but it has a reduced set of characters, for example, no Hebrew
+        }
+        return new Font(Font.MONOSPACED, Font.PLAIN, size);
     }
 
     private static boolean isFontAvailable(String fontName) {
@@ -738,45 +697,5 @@ public class TiffInfoViewer {
         final URL result = TiffInfoViewer.class.getResource(name);
         Objects.requireNonNull(result, "Resource " + name + " not found");
         return result;
-    }
-
-    static class TiffReaderWithGrid extends TiffReader {
-        private final boolean viewTileGrid;
-
-        TiffReaderWithGrid(Path tiffFile, boolean viewTileGrid) throws IOException {
-            super(tiffFile);
-            this.viewTileGrid = viewTileGrid;
-        }
-
-        @Override
-        public TiffTile readTile(TiffTileIndex tileIndex) throws IOException {
-            final TiffTile tile = super.readTile(tileIndex);
-            if (viewTileGrid && tile.map().tilingMode().isTileGrid()) {
-                addTileBorder(tile);
-            }
-            return tile;
-        }
-
-        private static void addTileBorder(TiffTile tile) {
-            if (!tile.isSeparated()) {
-                throw new AssertionError("Tile is not separated");
-            }
-            byte[] decoded = tile.getDecodedData();
-            final int sample = tile.bitsPerSample();
-            final int sizeX = tile.getSizeX() * sample;
-            final int sizeY = tile.getSizeY();
-            final int sizeInBits = sizeX * sizeY;
-            for (int c = 0; c < tile.samplesPerPixel(); c++) {
-                int disp = c * sizeInBits;
-                PackedBitArraysPer8.fillBits(decoded, disp, sizeX, false);
-                PackedBitArraysPer8.fillBits(decoded, disp + sizeInBits - sizeX, sizeX, false);
-                for (int k = 0; k < sizeY; k++, disp += sizeX) {
-                    PackedBitArraysPer8.fillBits(decoded, disp, sample, false);
-                    PackedBitArraysPer8.fillBits(decoded, disp + sizeX - sample, sample, false);
-                }
-            }
-        }
-
-
     }
 }
