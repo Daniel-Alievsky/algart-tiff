@@ -97,6 +97,7 @@ public class TiffInfoViewer {
     private JButton showImageButton;
     private JMenuItem openItem;
     private JMenuItem reloadItem;
+    private JMenuItem showImageItem;
     private JComboBox<String> ifdComboBox;
     private JTextArea ifdTextArea;
     private JTextArea summaryInfoTextArea;
@@ -342,7 +343,7 @@ public class TiffInfoViewer {
         viewMenu.add(nextImageItem);
 
         viewMenu.addSeparator();
-        JMenuItem showImageItem = new JMenuItem("Show image");
+        showImageItem = new JMenuItem("Show image");
         showImageItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F3, 0));
         showImageItem.addActionListener(e -> showImageWindow());
         viewMenu.add(showImageItem);
@@ -540,11 +541,13 @@ public class TiffInfoViewer {
         openItem.setEnabled(!inProgress);
         reloadItem.setEnabled(!inProgress);
         showImageButton.setEnabled(loadingOk);
+        showImageItem.setEnabled(loadingOk);
         loadingInProgress = inProgress;
     }
 
     private void setShowImageInProgress(boolean inProgress) {
-        showImageButton.setEnabled(!inProgress);
+        showImageButton.setEnabled(loadingOk && !inProgress);
+        showImageItem.setEnabled(loadingOk && !inProgress);
         showImageButton.setText(inProgress ? "Opening..." : "Show image");
     }
 
