@@ -42,11 +42,16 @@ import java.util.regex.Pattern;
  */
 public enum TiffImageKind {
     /**
+     * The first image in the TIFF (IFD #0).
+     */
+    BASE("base", null),
+
+    /**
      * TIFF image without any special semantic role.
      *
      * <p>This includes ordinary content images such as pyramid levels,
      * single-image TIFF content, or any other images that are not classified
-     * as other kinds.</p>
+     * as other kinds. But the first image is recognized as {@link #BASE}.</p>
      */
     ORDINARY("ordinary", null),
 
@@ -95,8 +100,12 @@ public enum TiffImageKind {
         return kindName;
     }
 
-    public boolean isSpecial() {
-        return this != ORDINARY;
+    public boolean isBase() {
+        return this == BASE;
+    }
+
+    public boolean isOrdinary() {
+        return this == ORDINARY || this == BASE;
     }
 
     /**
@@ -111,23 +120,23 @@ public enum TiffImageKind {
     /**
      * Returns a keyword that may be added to {@code ImageDescription}:
      * "label" for {@link #LABEL}, "macro" for {@link #MACRO}.
-     * If the image is not {@link #isAdditional() additional}, returns an empty optional.
+     * If the image is not {@link #isAdditional() additional}, returns {@code null}.
      *
      * @return a keyword for heuristic detection of this image kind.
      */
-    public Optional<String> keyword() {
-        return Optional.ofNullable(keyword);
+    public String keyword() {
+        return keyword;
     }
 
     /**
      * Returns a regular expression pattern that allows to determine whether some textual metadata
      * contains the {@link #keyword() keyword}.
-     * If the image is not {@link #isAdditional() additional}, returns an empty optional.
+     * If the image is not {@link #isAdditional() additional}, returns {@code null}.
      *
      * @return an optional detection pattern.
      */
-    public Optional<Pattern> detectionPattern() {
-        return Optional.ofNullable(detectionPattern);
+    public Pattern detectionPattern() {
+        return detectionPattern;
     }
 
     public static TiffImageKind ofKindName(String kindName) {

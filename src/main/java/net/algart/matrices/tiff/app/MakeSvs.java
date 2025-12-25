@@ -29,6 +29,7 @@ import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
 import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.TiffImageKind;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.SvsDescription;
 import net.algart.matrices.tiff.tags.TagCompression;
@@ -42,6 +43,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MakeSvs {
+    Path targetFile = null;
+    Path baseFile = null;
+    Path labelFile = null;
+    Path macroFile = null;
     int pyramidScaleRatio = 4;
     int maxThumbnailSize = 1024;
     double pixelSize = 0.503;
@@ -74,19 +79,36 @@ public class MakeSvs {
         if (args.length < startArgIndex + 3) {
             System.out.printf("Usage:%n    %s [-le|-be] " +
                             "[-bigTiff] [-quality=xxx] " +
-                            "jpg/png/bmp target.svs number-of-layers%n",
+                            "target.svs number-of-layers source.jpg/png/bmp/tif [label.png macro.png] %n",
                     MakeSvs.class.getSimpleName());
             return;
         }
-        final Path sourceFile = Paths.get(args[startArgIndex++]);
-        final Path targetFile = Paths.get(args[startArgIndex++]);
-        make.numberOfLayers = Integer.parseInt(args[startArgIndex]);
-        make.makeSvs(sourceFile, targetFile);
+        make.targetFile = Paths.get(args[startArgIndex++]);
+        make.numberOfLayers = Integer.parseInt(args[startArgIndex++]);
+        make.baseFile = Paths.get(args[startArgIndex]);
+        if (args.length > startArgIndex + 1) {
+            make.labelFile = Paths.get(args[startArgIndex + 1]);
+        }
+        if (args.length > startArgIndex + 2) {
+            make.macroFile = Paths.get(args[startArgIndex + 2]);
+        }
+        make.makeSvs();
     }
 
-    public void makeSvs(Path sourceFile, Path targetFile) throws IOException {
-        System.out.printf("Reading %s...%n", sourceFile);
-        final List<? extends Matrix<? extends PArray>> image = MatrixIO.readImage(sourceFile);
+    public void makeSvs() throws IOException {
+        System.out.printf("Reading %s...%n", baseFile);
+        final List<? extends Matrix<? extends PArray>> image = MatrixIO.readImage(baseFile);
+
+        List<? extends Matrix<? extends PArray>> label = null;
+        List<? extends Matrix<? extends PArray>> macro = null;
+        if (labelFile != null) {
+            System.out.printf("Reading %s...%n", labelFile);
+            label = MatrixIO.readImage(labelFile);
+        }
+        if (macroFile != null) {
+            System.out.printf("Reading %s...%n", macroFile);
+            macro = MatrixIO.readImage(macroFile);
+        }
 
         System.out.printf("Writing %s...%n", targetFile);
         try (TiffWriter writer = new TiffWriter(targetFile)) {
@@ -99,43 +121,70 @@ public class MakeSvs {
             if (quality != null) {
                 writer.setCompressionQuality(quality);
             }
+            if (quality != null) {
+                writer.setCompressionQuality(quality);
+            }
             writer.create();
+            long baseImageDimX = image.getFirst().dimX();
             System.out.printf("Writing image #0 %dx%d...%n",
-                    image.getFirst().dimX(), image.getFirst().dimY());
-            addSvsImage(writer, image, false);
+                    baseImageDimX, image.getFirst().dimY());
+            TiffIFD firstIFD = addSvsImage(writer, image, null, 0, TiffImageKind.BASE);
             var thumbnail = scaleThumbnail(image, maxThumbnailSize);
             System.out.printf("Writing thumbnail %dx%d...%n",
                     thumbnail.getFirst().dimX(), thumbnail.getFirst().dimY());
-            addSvsImage(writer, thumbnail, true);
+            addSvsImage(writer, thumbnail, firstIFD, 1, TiffImageKind.THUMBNAIL);
             var layer = image;
             for (int i = 1; i < numberOfLayers; i++) {
                 layer = downscale(layer, pyramidScaleRatio);
                 System.out.printf("Writing image #%d %dx%d...%n",
                         i, layer.getFirst().dimX(), layer.getFirst().dimY());
-                addSvsImage(writer, layer, false);
+                addSvsImage(writer, layer, firstIFD, i + 1, TiffImageKind.ORDINARY);
+            }
+            if (label != null) {
+                System.out.printf("Writing label %dx%d...%n", label.getFirst().dimX(), label.getFirst().dimY());
+                addSvsImage(writer, label, firstIFD, numberOfLayers + 1, TiffImageKind.LABEL);
+            }
+            if (macro != null) {
+                System.out.printf("Writing macro %dx%d...%n", macro.getFirst().dimX(), macro.getFirst().dimY());
+                addSvsImage(writer, macro, firstIFD, numberOfLayers + 2, TiffImageKind.MACRO);
             }
         }
         System.out.println("Done");
     }
 
-    private void addSvsImage(
+    private TiffIFD addSvsImage(
             TiffWriter writer,
             List<? extends Matrix<? extends PArray>> image,
-            boolean thumbnail) throws IOException {
+            TiffIFD firstIFD,
+            int index,
+            TiffImageKind kind) throws IOException {
         final TiffIFD ifd = writer.newIFD()
                 .putChannelsInformation(image)
-                .putCompression(TagCompression.JPEG);
-        SvsDescription.Builder svsBuilder = new SvsDescription.Builder();
-        // svsBuilder.autoGeneratedSummary(false);
-        if (!thumbnail) {
+                .putCompression(TagCompression.JPEG)
+                .setGlobalIndex(index);
+        SvsDescription.Builder builder = new SvsDescription.Builder();
+        builder.applicationSuffix("(test)");
+        // builder.autoGeneratedSummary(false);
+        if (kind.isOrdinary()) {
             ifd.defaultTileSizes();
-            svsBuilder.pixelSize(pixelSize)
+        }
+        if (kind == TiffImageKind.BASE || kind == TiffImageKind.THUMBNAIL) {
+            builder
+                    .pixelSize(pixelSize)
                     .dateTime(LocalDateTime.now());
         }
-        svsBuilder.updateFrom(ifd);
-        ifd.putDescription(svsBuilder.build());
+        if (firstIFD != null) {
+            builder.updateFrom(firstIFD);
+            // - update information about the base layer
+        }
+        builder.updateFrom(ifd);
+        if (this.quality != null) {
+            builder.quality((int) Math.round(this.quality * 100));
+        }
+        ifd.putDescription(builder.build(kind));
         final var map = writer.newFixedMap(ifd);
         map.writeChannels(image);
+        return ifd;
     }
 
     private static List<? extends Matrix<? extends PArray>> scaleThumbnail(

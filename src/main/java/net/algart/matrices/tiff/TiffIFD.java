@@ -766,7 +766,10 @@ public final class TiffIFD {
             return Optional.empty();
         }
         result = result.replace("\r\n", "\n"); // CR-LF to LF
-        result = result.replace('\r', '\n'); // CR to LF
+        result = result.replaceAll("\\r(?!\\n)", "\n"); // CR-LF to LF
+        // - In some TIFF (from Motic) we have lines like
+        // "Aperio Image Library v10.2.24\r\r\n41353x43528..."
+        // We prefer changing it to \r\n, not to \n\n
         return Optional.of(result);
     }
 

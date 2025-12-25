@@ -32,7 +32,6 @@ import net.algart.matrices.tiff.tags.SvsDescription;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.regex.Pattern;
 
 public final class TiffPyramidMetadata {
 
@@ -379,7 +378,7 @@ public final class TiffPyramidMetadata {
             sb.append(")");
         }
         for (TiffImageKind kind : TiffImageKind.values()) {
-            if (kind.isSpecial()) {
+            if (!kind.isOrdinary()) {
                 int index = specialKindIndex(kind);
                 if (index != -1) {
                     if (!sb.isEmpty()) {
