@@ -26,6 +26,7 @@ package net.algart.matrices.tiff.pyramids;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.TiffImageKind;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.tags.SvsDescription;
 
@@ -34,21 +35,6 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 public final class TiffPyramidMetadata {
-    public enum SpecialKind {
-        THUMBNAIL("thumbnail"),
-        LABEL("label"),
-        MACRO("macro");
-
-        private final String kindName;
-
-        SpecialKind(String kindName) {
-            this.kindName = kindName;
-        }
-
-        public String kindName() {
-            return kindName;
-        }
-    }
 
     public static final int SVS_THUMBNAIL_INDEX = 1;
 
@@ -65,9 +51,6 @@ public final class TiffPyramidMetadata {
     private static final double STANDARD_MACRO_ASPECT_RATIO = 75000.0 / 25000.0;
     // - typical value for medicine glasses
     private static final double ALLOWED_ASPECT_RATION_DEVIATION = 0.2;
-
-    private static final Pattern LABEL_WORD_PATTERN = Pattern.compile("\\bLabel\\b", Pattern.CASE_INSENSITIVE);
-    private static final Pattern MACRO_WORD_PATTERN = Pattern.compile("\\bmacro\\b", Pattern.CASE_INSENSITIVE);
 
     private static final System.Logger LOG = System.getLogger(TiffPyramidMetadata.class.getName());
 
@@ -348,11 +331,11 @@ public final class TiffPyramidMetadata {
         return thumbnailIndex != -1 || labelIndex != -1 || macroIndex != -1;
     }
 
-    public boolean hasSpecialKind(SpecialKind kind) {
+    public boolean hasSpecialKind(TiffImageKind kind) {
         return specialKindIndex(kind) != -1;
     }
 
-    public int specialKindIndex(SpecialKind kind) {
+    public int specialKindIndex(TiffImageKind kind) {
         Objects.requireNonNull(kind, "Null special kind");
         switch (kind) {
             case LABEL -> {
@@ -395,13 +378,15 @@ public final class TiffPyramidMetadata {
             }
             sb.append(")");
         }
-        for (SpecialKind kind : SpecialKind.values()) {
-            int index = specialKindIndex(kind);
-            if (index != -1) {
-                if (!sb.isEmpty()) {
-                    sb.append(", ");
+        for (TiffImageKind kind : TiffImageKind.values()) {
+            if (kind.isSpecial()) {
+                int index = specialKindIndex(kind);
+                if (index != -1) {
+                    if (!sb.isEmpty()) {
+                        sb.append(", ");
+                    }
+                    sb.append(kind.kindName()).append(" (#").append(index).append(")");
                 }
-                sb.append(kind.kindName()).append(" (#").append(index).append(")");
             }
         }
         return sb.isEmpty() ? "no special images" : sb.toString();
@@ -638,12 +623,12 @@ public final class TiffPyramidMetadata {
 
     private static boolean containsLabelMarker(TiffIFD ifd) throws TiffException {
         Optional<String> description = ifd.optDescription();
-        return description.isPresent() && LABEL_WORD_PATTERN.matcher(description.get()).find();
+        return description.isPresent() && TiffImageKind.LABEL_DETECTION_PATTERN.matcher(description.get()).find();
     }
 
     private static boolean containsMacroMarker(TiffIFD ifd) throws TiffException {
         Optional<String> description = ifd.optDescription();
-        return description.isPresent() && MACRO_WORD_PATTERN.matcher(description.get()).find();
+        return description.isPresent() && TiffImageKind.MACRO_DETECTION_PATTERN.matcher(description.get()).find();
     }
 
     private static String sizesToString(TiffIFD ifd) throws TiffException {

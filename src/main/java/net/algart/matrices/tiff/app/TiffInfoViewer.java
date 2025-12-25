@@ -26,6 +26,7 @@ package net.algart.matrices.tiff.app;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.TiffImageKind;
 import net.algart.matrices.tiff.pyramids.TiffPyramidMetadata;
 
 import javax.swing.*;
@@ -514,7 +515,7 @@ public class TiffInfoViewer {
                 if (layer >= 0) {
                     sb.append(" (layer ").append(layer).append(")");
                 }
-                for (var kind : TiffPyramidMetadata.SpecialKind.values()) {
+                for (var kind : TiffImageKind.values()) {
                     if (metadata.specialKindIndex(kind) == i) {
                         sb.append(" (").append(kind.kindName().toUpperCase()).append(")");
                     }
