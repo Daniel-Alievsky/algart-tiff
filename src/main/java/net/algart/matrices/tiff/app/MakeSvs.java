@@ -31,6 +31,7 @@ import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffImageKind;
 import net.algart.matrices.tiff.TiffWriter;
+import net.algart.matrices.tiff.pyramids.TiffPyramidMetadata;
 import net.algart.matrices.tiff.tags.SvsDescription;
 import net.algart.matrices.tiff.tags.TagCompression;
 
@@ -53,6 +54,7 @@ public class MakeSvs {
     double pixelSize = 0.503;
     ByteOrder byteOrder = null;
     Boolean bigTiff = null;
+    TagCompression compression = TagCompression.JPEG;
     Double quality = null;
     int numberOfLayers = 3;
 
@@ -70,6 +72,11 @@ public class MakeSvs {
             make.bigTiff = true;
             startArgIndex++;
         }
+        if (args.length > startArgIndex && args[startArgIndex].toLowerCase().startsWith("-compression=")) {
+            final String s = args[startArgIndex].toLowerCase().substring("-compression=".length());
+            make.compression = TagCompression.valueOf(s);
+            startArgIndex++;
+        }
         if (args.length > startArgIndex && args[startArgIndex].toLowerCase().startsWith("-quality=")) {
             final String s = args[startArgIndex].toLowerCase().substring("-quality=".length());
             if (!s.equals("null")) {
@@ -79,7 +86,7 @@ public class MakeSvs {
         }
         if (args.length < startArgIndex + 3) {
             System.out.printf("Usage:%n    %s [-le|-be] " +
-                            "[-bigTiff] [-quality=xxx] " +
+                            "[-bigTiff] [-compression=JPEG|JPEG_RGB|JPEG_2000] [-quality=xxx] " +
                             "target.svs number-of-layers source.jpg/png/bmp/tif [label.png macro.png] %n",
                     MakeSvs.class.getSimpleName());
             return;
@@ -164,9 +171,12 @@ public class MakeSvs {
             TiffIFD firstIFD,
             int index,
             TiffImageKind kind) throws IOException {
+        final TagCompression compression = kind.isSpecial() ?
+                TiffPyramidMetadata.recommendedCompression(kind) :
+                this.compression;
         final TiffIFD ifd = writer.newIFD()
                 .putChannelsInformation(image)
-                .putCompression(TagCompression.JPEG)
+                .putCompression(compression)
                 .setGlobalIndex(index);
         SvsDescription.Builder builder = new SvsDescription.Builder();
         builder.applicationSuffix("(test)");

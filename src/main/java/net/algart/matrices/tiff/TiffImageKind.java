@@ -108,6 +108,9 @@ public enum TiffImageKind {
         return this == ORDINARY || this == BASE;
     }
 
+    public boolean isSpecial() {
+        return !isOrdinary();
+    }
     /**
      * Returns {@code true} if this kind is an additional image: {@link #LABEL} or {@link #MACRO}.
      *

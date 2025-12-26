@@ -29,6 +29,7 @@ import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffImageKind;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.tags.SvsDescription;
+import net.algart.matrices.tiff.tags.TagCompression;
 
 import java.io.IOException;
 import java.util.*;
@@ -169,6 +170,20 @@ public final class TiffPyramidMetadata {
             }
         }
         return -1;
+    }
+
+    public static TagCompression recommendedCompression(TiffImageKind imageKind) {
+        Objects.requireNonNull(imageKind, "Null image kind");
+        // From Aperio_Digital_Slides_and_Third-party_data_interchange.pdf:
+        // Optionally at the end of an SVS file there may be a slide label image,
+        // which is a low resolution picture taken of the slide’s label, and/or a macro camera image,
+        // which is a low resolution picture taken of the entire slide.
+        // The label and macro images are always stripped.
+        // If present the label image is compressed with LZW compression,
+        // and the macro image with JPEG compression.
+        // By storing the label and macro images in the same file as the high resolution slide data
+        // there is no chance of an accidental mix-up between the slide contents and the slide label information.
+        return imageKind == TiffImageKind.LABEL ? TagCompression.LZW : TagCompression.JPEG_RGB;
     }
 
     public List<TiffIFD> ifds() {
@@ -508,6 +523,7 @@ public final class TiffPyramidMetadata {
             boolean found = false;
             final int compression1 = ifd1.getCompressionCode();
             final int compression2 = ifd2.getCompressionCode();
+            // LABEL should be LZW, MACRI should be JPEG
             if (compression1 == TiffIFD.COMPRESSION_LZW && compression2 == TiffIFD.COMPRESSION_JPEG) {
                 this.labelIndex = index1;
                 this.macroIndex = index2;
