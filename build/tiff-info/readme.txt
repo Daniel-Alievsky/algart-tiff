@@ -13,7 +13,12 @@ This folder contains utilities for analyzing and working with TIFF files.
 
 3. TiffCopy.cmd (Windows) or TiffCopy.sh (Unix)
    --------------------------------------------
-   Command-line utility that copies a TIFF file, with an ability to repack its structure.
+   Command-line utility that copies a TIFF file with an ability to repack its structure
+   or convert TIFF to/from another format.
+
+4. MakeSvs.cmd (Windows) or MakeSvs.sh (Unix)
+   ------------------------------------------
+   Command-line utility that creates an SVS file on the base on some image.
 
 
 Usage Notes:

@@ -41,6 +41,7 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class MakeSvs {
     Path targetFile = null;
@@ -97,6 +98,7 @@ public class MakeSvs {
 
     public void makeSvs() throws IOException {
         System.out.printf("Reading %s...%n", baseFile);
+        long t1 = System.nanoTime();
         final List<? extends Matrix<? extends PArray>> image = MatrixIO.readImage(baseFile);
 
         List<? extends Matrix<? extends PArray>> label = null;
@@ -110,7 +112,8 @@ public class MakeSvs {
             macro = MatrixIO.readImage(macroFile);
         }
 
-        System.out.printf("Writing %s...%n", targetFile);
+        System.out.printf("Building %s...%n", targetFile);
+        long t2 = System.nanoTime();
         try (TiffWriter writer = new TiffWriter(targetFile)) {
             if (byteOrder != null) {
                 writer.setByteOrder(byteOrder);
@@ -149,7 +152,10 @@ public class MakeSvs {
                 addSvsImage(writer, macro, firstIFD, numberOfLayers + 2, TiffImageKind.MACRO);
             }
         }
-        System.out.println("Done");
+        long t3 = System.nanoTime();
+        System.out.printf(Locale.US,
+                "Building SVS finished: %.3f seconds reading, %.3f seconds writing TIFF.%n",
+                (t2 - t1) * 1e-9, (t3 - t2) * 1e-9);
     }
 
     private TiffIFD addSvsImage(

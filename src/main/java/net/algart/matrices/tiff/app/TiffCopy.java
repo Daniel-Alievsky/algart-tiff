@@ -50,12 +50,21 @@ public class TiffCopy {
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         boolean callConvertToTiff = false;
+        boolean callConvertFromTiff = false;
         if (args.length > 0 && args[0].equalsIgnoreCase("-toTiff")) {
             callConvertToTiff = true;
+            startArgIndex++;
+        } else if (args.length > 0 && args[0].equalsIgnoreCase("-fromTiff")) {
+            callConvertFromTiff = true;
             startArgIndex++;
         }
         if (callConvertToTiff) {
             if (ConvertToTiff.doMain(Arrays.copyOfRange(args, 1, args.length), false)) {
+                return;
+            }
+        }
+        if (callConvertFromTiff) {
+            if (ConvertFromTiff.doMain(Arrays.copyOfRange(args, 1, args.length), false)) {
                 return;
             }
         }
@@ -100,6 +109,8 @@ public class TiffCopy {
                     TiffCopy.class.getSimpleName());
             System.out.printf("or%n    %s -toTiff [-bigTiff] [-littleEndian] [-quality=xxx] " +
                                     "[-compressionLevel=1.0] source.jpg/png/bmp target.tiff [compression]%n",
+                    TiffCopy.class.getSimpleName());
+            System.out.printf("or%n    %s -fromTiff source.tiff target.jpg/png/bmp IFDIndex%n",
                     TiffCopy.class.getSimpleName());
             System.out.println("""
                     In the first case, the source TIFF file is completely parsed, and its content is copied
@@ -159,7 +170,7 @@ public class TiffCopy {
             copier.copyImages(writer, reader, firstIndex, lastIndex + 1);
         }
         final long t2 = System.nanoTime();
-        System.out.printf(Locale.US, "Copying finished in %.3f seconds%n",  (t2 - t1) * 1e-9);
+        System.out.printf(Locale.US, "Copying finished in %.3f seconds.%n",  (t2 - t1) * 1e-9);
     }
 
     private void updateProgress(TiffCopier.ProgressInformation p) {

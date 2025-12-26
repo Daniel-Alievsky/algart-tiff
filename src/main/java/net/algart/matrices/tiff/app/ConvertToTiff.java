@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Locale;
 
 public class ConvertToTiff {
     public static void main(String[] args) throws IOException {
@@ -81,9 +82,11 @@ public class ConvertToTiff {
                 TagCompression.valueOf(args[startArgIndex + 2]) : null;
 
         System.out.printf("Reading %s...%n", sourceFile);
+        long t1 = System.nanoTime();
         final List<? extends Matrix<? extends PArray>> image = MatrixIO.readImage(sourceFile);
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
+        long t2 = System.nanoTime();
         try (TiffWriter writer = new TiffWriter(targetFile)) {
             writer.setBigTiff(bigTiff);
             writer.setLittleEndian(littleEndian);
@@ -92,13 +95,15 @@ public class ConvertToTiff {
             writer.setCompressionQuality(quality);
             writer.setLosslessCompressionLevel(compressionLevel);
             final TiffIFD ifd = writer.newIFD()
-                .putChannelsInformation(image)
-                .putCompression(compression);
+                    .putChannelsInformation(image)
+                    .putCompression(compression);
             final var map = writer.newFixedMap(ifd);
-            System.out.printf("Writing image: %s...%n", map);
             map.writeChannels(image);
         }
-        System.out.println("Done");
+        long t3 = System.nanoTime();
+        System.out.printf(Locale.US,
+                "Conversion to TIFF finished: %.3f seconds reading, %.3f seconds writing TIFF.%n",
+                (t2 - t1) * 1e-9, (t3 - t2) * 1e-9);
         return true;
     }
 }
