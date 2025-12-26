@@ -1763,6 +1763,15 @@ public final class TiffIFD {
         return putTileSizes(DEFAULT_TILE_SIZE_X, DEFAULT_TILE_SIZE_Y);
     }
 
+    /**
+     * Removes {@code TileWidth} and {@code TileLength} tags from IFD.
+     *
+     * <p>Note: after calling this method, you <b>should</b> add the strip information,
+     * for example, by {@link #defaultStripSize()}.
+     * Some viewers require that an IFD contains either tile or strip information.
+     *
+     * @return a reference to this object.
+     */
     public TiffIFD removeTileInformation() {
         remove(Tags.TILE_WIDTH);
         remove(Tags.TILE_LENGTH);

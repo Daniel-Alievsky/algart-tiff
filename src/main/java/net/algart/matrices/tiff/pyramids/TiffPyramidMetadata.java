@@ -30,6 +30,7 @@ import net.algart.matrices.tiff.TiffImageKind;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.tags.SvsDescription;
 import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tags.Tags;
 
 import java.io.IOException;
 import java.util.*;
@@ -170,6 +171,23 @@ public final class TiffPyramidMetadata {
             }
         }
         return -1;
+    }
+
+    public static void correctFormatForSpecialKinds(TiffIFD ifd, TiffImageKind kind) {
+        Objects.requireNonNull(ifd, "Null IFD");
+        Objects.requireNonNull(kind, "Null image kind");
+        if (kind.isOrdinary()) {
+            return;
+        }
+        ifd.removeTileInformation();
+        ifd.defaultStripSize();
+        // - note: Aperio Image Scope will not work properly if we have no both tiles and strips!
+        ifd.putCompression(recommendedCompression(kind));
+        switch (kind) {
+            case LABEL -> ifd.put(Tags.NEW_SUBFILE_TYPE, 1);
+            case MACRO -> ifd.put(Tags.NEW_SUBFILE_TYPE, 9);
+            // - note: these tags are necessary for correct recognition by Aperio Image Scope
+        }
     }
 
     public static TagCompression recommendedCompression(TiffImageKind imageKind) {
