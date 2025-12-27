@@ -173,7 +173,7 @@ public final class TiffPyramidMetadata {
         return -1;
     }
 
-    public static void correctFormatForSpecialKinds(TiffIFD ifd, TiffImageKind kind) {
+    public static void correctForSpecialKinds(TiffIFD ifd, TiffImageKind kind) {
         Objects.requireNonNull(ifd, "Null IFD");
         Objects.requireNonNull(kind, "Null image kind");
         if (kind.isOrdinary()) {

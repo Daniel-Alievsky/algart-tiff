@@ -255,7 +255,7 @@ public class TiffWriterTest {
                 if (jp2Metadata) {
                     writer.setCodecOptions(new JPEG2000Codec.JPEG2000Options().setWriteMetadata(true));
                 }
-//                writer.setSmartFormatCorrection(true);
+//                writer.setSmartCorrection(true);
 //                writer.setByteFiller((byte) 0xE0);
                 writer.setTileInitializer(TiffWriterTest::customFillEmptyTile);
                 writer.setAlwaysWriteToFileEnd(alwaysToEnd);

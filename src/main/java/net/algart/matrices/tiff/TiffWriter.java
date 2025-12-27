@@ -84,7 +84,7 @@ public non-sealed class TiffWriter extends TiffIO {
 
     private boolean bigTiff = false;
     private boolean writingForwardAllowed = true;
-    private boolean smartFormatCorrection = false;
+    private boolean smartCorrection = false;
     private TiffCodec.Options codecOptions = new TiffCodec.Options();
     private boolean enforceUseExternalCodec = false;
     private Double compressionQuality = null;
@@ -285,8 +285,8 @@ public non-sealed class TiffWriter extends TiffIO {
         return this;
     }
 
-    public boolean isSmartFormatCorrection() {
-        return smartFormatCorrection;
+    public boolean isSmartCorrection() {
+        return smartCorrection;
     }
 
     /**
@@ -318,15 +318,15 @@ public non-sealed class TiffWriter extends TiffIO {
      * <p>Default value is <code>false</code>. You may set it to <code>true</code>, for example, when you need
      * to encode a new copy of some existing TIFF file.</p>
      *
-     * <p>Note that this flag is passed to {@link #correctFormatForEncoding(TiffIFD, boolean)} method,
+     * <p>Note that this flag is passed to {@link #correctForEncoding(TiffIFD, boolean)} method,
      * called inside <code>writeSamples</code>/<code>writeJavaArray</code> methods.
      *
-     * @param smartFormatCorrection <code>true</code> means that we enable smart correction of the specified IFD
-     *                              and do not require strictly accurate, fully supported IFD settings.
+     * @param smartCorrection <code>true</code> means that we enable smart correction of the specified IFD
+     *                        and do not require strictly accurate, fully supported IFD settings.
      * @return a reference to this object.
      */
-    public TiffWriter setSmartFormatCorrection(boolean smartFormatCorrection) {
-        this.smartFormatCorrection = smartFormatCorrection;
+    public TiffWriter setSmartCorrection(boolean smartCorrection) {
+        this.smartCorrection = smartCorrection;
         return this;
     }
 
@@ -894,9 +894,8 @@ public non-sealed class TiffWriter extends TiffIO {
      * This method is useful if you want to organize the sequence of IFD inside the file manually,
      * without automatically updating IFD linkage.
      *
-     * @param ifdIndex the index of the main IFD (sub-IFDs are ignored here).
+     * @param ifdIndex  the index of the main IFD (sub-IFDs are ignored here).
      * @param ifdOffset new IFD offset; must be positive.
-     *
      * @throws IOException           in the case of any I/O errors.
      * @throws IllegalStateException if this file is not yet opened
      *                               (<code>{@link #positionOfLastIFDOffset()}==-1</code>).
@@ -916,8 +915,7 @@ public non-sealed class TiffWriter extends TiffIO {
             if (ifdIndex == 0) {
                 position = positionOfFirstIFDOffset();
             } else {
-                @SuppressWarnings("resource")
-                final TiffReader reader = reader();
+                @SuppressWarnings("resource") final TiffReader reader = reader();
                 reader.readSingleIFDOffset(ifdIndex);
                 position = reader.positionOfLastIFDOffset();
             }
@@ -1081,14 +1079,14 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Equivalent to <code>{@link #correctFormatForEncoding(TiffIFD, boolean)
-     * correctFormatForEncoding}(ifd, thisObject.{@link #isSmartFormatCorrection() isSmartFormatCorrection()})</code>.
+     * Equivalent to <code>{@link #correctForEncoding(TiffIFD, boolean)
+     * correctForEncoding}(ifd, thisObject.{@link #isSmartCorrection() isSmartCorrection()})</code>.
      *
      * @param ifd IFD to be corrected.
      * @throws TiffException in the case of some problems, in particular, if IFD settings are not supported.
      */
-    public void correctFormatForEncoding(TiffIFD ifd) throws TiffException {
-        correctFormatForEncoding(ifd, isSmartFormatCorrection());
+    public void correctForEncoding(TiffIFD ifd) throws TiffException {
+        correctForEncoding(ifd, isSmartCorrection());
     }
 
     /**
@@ -1101,7 +1099,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *     it is set to {@link TiffIFD#COMPRESSION_NONE});</li>
      *     <li><code>PhotometricInterpretation</code> (262) &mdash; if it is not specified or in the smart mode;</li>
      *     <li><code>SubIFD</code> (330), <code>Exif IFD</code> (34665), <code>GPSInfo</code> (34853) &mdash;
-     *     these tags are always removed (both by this method and by {@link #correctFormatForEntireTiff(TiffIFD)}),
+     *     these tags are always removed (both by this method and by {@link #correctForEntireTiff(TiffIFD)}),
      *     because this writer does not support writing the corresponding IFD inside the TIFF.
      *     </li>
      * </ul>
@@ -1110,7 +1108,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param smartCorrection more smart correction.
      * @throws TiffException in the case of some problems, in particular, if IFD settings are not supported.
      */
-    public void correctFormatForEncoding(TiffIFD ifd, boolean smartCorrection) throws TiffException {
+    public void correctForEncoding(TiffIFD ifd, boolean smartCorrection) throws TiffException {
         final int samplesPerPixel = ifd.getSamplesPerPixel();
         if (!ifd.containsKey(Tags.BITS_PER_SAMPLE)) {
             ifd.put(Tags.BITS_PER_SAMPLE, new int[]{1});
@@ -1206,7 +1204,7 @@ public non-sealed class TiffWriter extends TiffIO {
                     if (!smartCorrection) {
                         throw new UnsupportedTiffFormatException("Cannot write TIFF: encoding YCbCr " +
                                 "photometric interpretation is not supported for compression \"" +
-                                (compression == null ? "??? : " : compression.prettyName()) + "\"");
+                                compression.prettyName() + "\"");
                     } else {
                         // - TiffReader automatically decodes YCbCr into RGB while reading;
                         // we cannot encode pixels back to YCbCr,
@@ -1233,10 +1231,10 @@ public non-sealed class TiffWriter extends TiffIO {
         if (newPhotometric != suggestedPhotometric) {
             ifd.putPhotometricInterpretation(newPhotometric);
         }
-        correctFormatForEntireTiff(ifd);
+        correctForEntireTiff(ifd);
     }
 
-    public void correctFormatForEntireTiff(TiffIFD ifd) throws TiffException {
+    public void correctForEntireTiff(TiffIFD ifd) throws TiffException {
         ifd.remove(Tags.SUB_IFD);
         ifd.remove(Tags.EXIF);
         ifd.remove(Tags.GPS_TAG);
@@ -1292,13 +1290,13 @@ public non-sealed class TiffWriter extends TiffIO {
      * automatically while {@link #completeWriting(TiffWriteMap) completion} of the image.
      * See also the constructor {@link TiffMap#TiffMap(TiffIFD, boolean)}.</p>
      *
-     * <p>If <code>correctFormatForEncoding</code> is <code>true</code>,
-     * this method automatically calls {@link #correctFormatForEncoding(TiffIFD)} method for
+     * <p>If <code>correctForEncoding</code> is <code>true</code>,
+     * this method automatically calls {@link #correctForEncoding(TiffIFD)} method for
      * the specified <code>ifd</code> argument.
      * While typical usage, this argument should be <code>true</code>.
      * But you may set it to <code>false</code> if you want to control all IFD settings yourself,
-     * in particular if you prefer to call the method {@link #correctFormatForEncoding(TiffIFD, boolean)}
-     * with non-standard {@link #setSmartFormatCorrection smartFormatCorrection}</code> flag.
+     * in particular if you prefer to call the method {@link #correctForEncoding(TiffIFD, boolean)}
+     * with non-standard {@link #setSmartCorrection smartCorrection}</code> flag.
      *
      * <p>Note: this method calls {@link TiffMap#buildTileGrid()} and {@link TiffIFD#freeze() freeze}
      * the passed <code>ifd</code>. So you should use this method after completely building IFD.</p>
@@ -1308,27 +1306,27 @@ public non-sealed class TiffWriter extends TiffIO {
      * If you still need to construct TIFF with such tags, you should use more low-level call of
      * {@link TiffWriteMap} constructor.
      *
-     * @param ifd                      newly created and probably customized IFD.
-     * @param resizable                if <code>true</code>, IFD dimensions may not be specified yet: this argument is
-     *                                 passed to {@link
-     *                                 TiffWriteMap#TiffWriteMap(TiffWriter, TiffIFD, boolean, boolean)}
-     *                                 constructor for creating the new map.
-     * @param correctFormatForEncoding whether {@link #correctFormatForEncoding(TiffIFD)} should be called;
-     *                                 usually <code>true</code>.
+     * @param ifd                newly created and probably customized IFD.
+     * @param resizable          if <code>true</code>, IFD dimensions may not be specified yet: this argument is
+     *                           passed to {@link
+     *                           TiffWriteMap#TiffWriteMap(TiffWriter, TiffIFD, boolean, boolean)}
+     *                           constructor for creating the new map.
+     * @param correctForEncoding whether {@link #correctForEncoding(TiffIFD)} should be called;
+     *                           usually <code>true</code>.
      * @return map for writing further data.
      * @throws TiffException in the case of some problems.
      */
-    public TiffWriteMap newMap(TiffIFD ifd, boolean resizable, boolean correctFormatForEncoding)
+    public TiffWriteMap newMap(TiffIFD ifd, boolean resizable, boolean correctForEncoding)
             throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         if (ifd.isFrozen()) {
             throw new IllegalStateException("IFD is already frozen for usage while writing TIFF; " +
                     "probably you called this method twice");
         }
-        if (correctFormatForEncoding) {
-            correctFormatForEncoding(ifd);
+        if (correctForEncoding) {
+            correctForEncoding(ifd);
         } else {
-            correctFormatForEntireTiff(ifd);
+            correctForEntireTiff(ifd);
             // - this is still necessary: ifd and TiffWriteMap must "know" about the actual file format
         }
         final TiffWriteMap map = new TiffWriteMap(this, ifd, resizable, false);
@@ -1375,7 +1373,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * and calls {@link TiffTile#markWholeTileAsSet()} to indicate
      * that the tile is probably filled with actual data.</p>
      *
-     * <p>Note: this method never performs {@link #setSmartFormatCorrection(boolean) "smart correction"}
+     * <p>Note: this method never performs {@link #setSmartCorrection(boolean) "smart correction"}
      * of the specified IFD.</p>
      *
      * @param ifd IFD of some existing image, probably loaded from the current TIFF file.
@@ -1386,7 +1384,7 @@ public non-sealed class TiffWriter extends TiffIO {
         if (!ifd.isLoadedFromFile()) {
             throw new IllegalArgumentException("IFD must be read from TIFF file");
         }
-        correctFormatForEncoding(ifd, false);
+        correctForEncoding(ifd, false);
         final TiffWriteMap map = new TiffWriteMap(this, ifd, false, true);
         final long[] offsets = ifd.cachedTileOrStripOffsets();
         final long[] byteCounts = ifd.cachedTileOrStripByteCounts();

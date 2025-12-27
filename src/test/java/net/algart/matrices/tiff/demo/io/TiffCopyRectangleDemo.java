@@ -86,7 +86,7 @@ public class TiffCopyRectangleDemo {
             // - should block the ability to load non-standard precisions like 16-bit float
 
             if (smart) {
-                writer.setSmartFormatCorrection(true);
+                writer.setSmartCorrection(true);
             }
 
             final TiffReadMap readMap = reader.map(ifdIndex);

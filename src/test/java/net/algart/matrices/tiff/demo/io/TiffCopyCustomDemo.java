@@ -66,7 +66,7 @@ public class TiffCopyCustomDemo {
                 System.out.printf("\r%d/%d...", p.tileIndex() + 1, p.tileCount()));
         try (TiffReader reader = new TiffReader(sourceFile); var writer = new TiffWriter(targetFile)) {
             if (writer.getByteOrder() != ByteOrder.BIG_ENDIAN) throw new AssertionError();
-            writer.setSmartFormatCorrection(true);
+            writer.setSmartCorrection(true);
             // - allows non-repack copying even "strange" precisions
             lastIFDIndex = Math.min(lastIFDIndex, reader.numberOfImages() - 1);
             if (lastIFDIndex >= firstIFDIndex) {

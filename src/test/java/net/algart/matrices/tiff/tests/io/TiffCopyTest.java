@@ -117,7 +117,7 @@ public class TiffCopyTest {
                 if (useContext) {
                     writer.setContext(TiffReader.newSCIFIOContext());
                 }
-                writer.setSmartFormatCorrection(smart);
+                writer.setSmartCorrection(smart);
                 writer.setBigTiff(bigTiff || reader.isBigTiff());
                 writer.setByteOrder(byteOrder != null ? byteOrder : reader.getByteOrder());
 

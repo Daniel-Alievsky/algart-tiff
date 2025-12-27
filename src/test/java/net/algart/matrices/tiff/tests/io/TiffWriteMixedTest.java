@@ -80,7 +80,7 @@ public class TiffWriteMixedTest {
 //            writer.setBigTiff(true);
             writer.setByteFiller((byte) 0);
             writer.setByteOrder(ByteOrder.LITTLE_ENDIAN);
-//            writer.setSmartFormatCorrection(true);
+//            writer.setSmartCorrection(true);
 
             writer.create();
             writer.create(); // - not a problem to call twice

@@ -325,15 +325,15 @@ public final class TiffCopier {
         }
         final boolean actuallyDirectCopy = canBeImageCopiedDirectly(writeIFD, writer.getByteOrder(), readMap);
         // - Note: unlike copying a rectangle in the other method, here we check compatibility
-        // BEFORE calling newMap and, so, without correction of writeIFD by correctFormatForEncoding.
+        // BEFORE calling newMap and, so, without correction of writeIFD by correctForEncoding.
         // Thus, most of the checks besides the byte order will usually be unnecessary
         // (unless they have been changed by ifdCorrector).
-        final boolean correctFormatForEncoding = !actuallyDirectCopy;
-        // - There is no sense to call correctFormatForEncoding() method if we use tile-per-tile direct copying.
-        // We could use smartFormatCorrection mode always by explicitly calling correctFormatForEncoding(ifd, true),
+        final boolean correctForEncoding = !actuallyDirectCopy;
+        // - There is no sense to call correctForEncoding() method if we use tile-per-tile direct copying.
+        // We could use smartCorrection mode always by explicitly calling correctForEncoding(ifd, true),
         // but we prefer not to do this.
-        // Let this class depend on the smartFormatCorrection flag in the writer.
-        final TiffWriteMap writeMap = writer.newMap(writeIFD, false, correctFormatForEncoding);
+        // Let this class depend on the smartCorrection flag in the writer.
+        final TiffWriteMap writeMap = writer.newMap(writeIFD, false, correctForEncoding);
         checkImageCompatibility(writeMap, readMap);
         this.actuallyDirectCopy = actuallyDirectCopy;
         writer.writeForward(writeMap);
@@ -413,9 +413,9 @@ public final class TiffCopier {
             ifdCorrector.correct(writeIFD);
         }
         final TiffWriteMap writeMap = writer.newMap(writeIFD, false, true);
-        // - Unlike copying the entire image, here we MUST call correctFormatForEncoding() even for direct copying:
+        // - Unlike copying the entire image, here we MUST call correctForEncoding() even for direct copying:
         // the direct mode will be disabled for some fromX/fromY, and this behavior should not depend on it.
-        // correctFormatForEncoding(), in particular, corrects PhotometricInterpretation, and this may be necessary
+        // correctForEncoding(), in particular, corrects PhotometricInterpretation, and this may be necessary
         // if we need to encode tiles.
         checkImageCompatibility(writeMap, readMap);
         writer.writeForward(writeMap);
@@ -534,7 +534,7 @@ public final class TiffCopier {
                 isByteOrBinary(readMap) && (compression != null && !compression.canUseByteOrderForByteData());
         // - for unknown compressions, we cannot be sure of this fact even for 1-bit or 8-bit samples
         final boolean bitDepthEqual = Arrays.equals(readMap.bitsPerSample(), writeIFD.getBitsPerSample());
-        // - Number of bits per sample MAY become different after smart correction by correctFormatForEncoding:
+        // - Number of bits per sample MAY become different after smart correction by correctForEncoding:
         // 1) in the case of unusual precisions like 16-bit float:
         // for writing, it will be transformed into 32-bit float values;
         // 2) in the case of non-whole bytes: N bits per samples, N > 1 and N%8 != 1;
@@ -542,7 +542,7 @@ public final class TiffCopier {
         // However, if they are actually equal, even non-standard, we should enable direct copying.
         final boolean photometricInterpretationEqual =
                 readMap.photometricInterpretationCode() == writeIFD.getPhotometricInterpretationCode();
-        // - Photometric interpretation MAY become different after smart correction by correctFormatForEncoding
+        // - Photometric interpretation MAY become different after smart correction by correctForEncoding
         return this.directCopy &&
                 (readMap.byteOrder() == writeByteOrder || byteOrderIsNotUsedForImageData) &&
                 compressionCode == writeIFD.getCompressionCode() &&

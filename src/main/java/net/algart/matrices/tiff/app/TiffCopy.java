@@ -159,7 +159,7 @@ public class TiffCopy {
             if (bigTiff != null) {
                 writer.setBigTiff(bigTiff);
             }
-            writer.setSmartFormatCorrection(smart);
+            writer.setSmartCorrection(smart);
             if (quality != null) {
                 writer.setCompressionQuality(quality);
             }
