@@ -29,6 +29,7 @@ import com.github.jaiimageio.jpeg2000.J2KImageWriteParam;
 import com.github.jaiimageio.jpeg2000.impl.J2KImageReader;
 import com.github.jaiimageio.jpeg2000.impl.J2KImageWriter;
 import net.algart.matrices.tiff.TiffException;
+import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import net.algart.matrices.tiff.awt.AWTImages;
 import net.algart.matrices.tiff.awt.UnsignedIntBuffer;
 
@@ -120,6 +121,8 @@ public class JPEG2000Codec implements TiffCodec {
 
         boolean writeMetadata = DEFAULT_WRITE_METADATA;
 
+        private boolean writingSupported = true;
+
         public JPEG2000Options() {
             setCompressionQuality(Double.MAX_VALUE);
         }
@@ -184,6 +187,15 @@ public class JPEG2000Codec implements TiffCodec {
             return this;
         }
 
+        public boolean isWritingSupported() {
+            return writingSupported;
+        }
+
+        public JPEG2000Options setWritingSupported(boolean writingSupported) {
+            this.writingSupported = writingSupported;
+            return this;
+        }
+
         // Note: this method SHOULD be overridden to provide correct clone() behavior.
         @Override
         public JPEG2000Options setTo(Options options) {
@@ -199,6 +211,7 @@ public class JPEG2000Codec implements TiffCodec {
                 setNumberOfDecompositionLevels(o.numberOfDecompositionLevels);
                 setResolution(o.resolution);
                 setWriteMetadata(o.writeMetadata);
+                setWritingSupported(o.writingSupported);
             } else {
                 setLossless(lossless);
                 if (!hasQuality()) {
@@ -252,6 +265,9 @@ public class JPEG2000Codec implements TiffCodec {
         }
 
         JPEG2000Options jpeg2000Options = new JPEG2000Options().setTo(options);
+        if (!jpeg2000Options.isWritingSupported()) {
+            throw new UnsupportedTiffFormatException("JPEG-2000 compression for this format is not supported");
+        }
 
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         BufferedImage img;

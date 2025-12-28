@@ -1143,6 +1143,10 @@ public non-sealed class TiffWriter extends TiffIO {
         }
         final TagCompression compression = ifd.optCompression().orElse(TagCompression.NONE);
         // - NONE: we have set it above
+        if (!compression.isWritingSupported()) {
+            throw new UnsupportedTiffFormatException("TIFF compression with code " + compression.code() +
+                    " (\"" + compression.prettyName() + "\") is not supported for writing");
+        }
 
         final TagPhotometricInterpretation suggestedPhotometric =
                 ifd.containsKey(Tags.PHOTOMETRIC_INTERPRETATION) ? ifd.getPhotometricInterpretation() : null;

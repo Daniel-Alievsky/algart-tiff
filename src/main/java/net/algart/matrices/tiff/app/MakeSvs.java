@@ -74,7 +74,9 @@ public class MakeSvs {
         }
         if (args.length > startArgIndex && args[startArgIndex].toLowerCase().startsWith("-compression=")) {
             final String s = args[startArgIndex].substring("-compression=".length());
-            make.compression = TagCompression.valueOf(s);
+            make.compression = TagCompression.fromName(s)
+                    .or(() -> TagCompression.fromCode(s))
+                    .orElseThrow(() -> new IllegalArgumentException("Unknown compression name/code: " + s));
             startArgIndex++;
         }
         if (args.length > startArgIndex && args[startArgIndex].toLowerCase().startsWith("-quality=")) {
@@ -130,7 +132,8 @@ public class MakeSvs {
             macro = MatrixIO.readImage(macroFile);
         }
 
-        System.out.printf("Building %s...%n", targetFile);
+        System.out.printf("Building %s, base compression %s (\"%s\")...%n",
+                targetFile, compression, compression.prettyName());
         long t2 = System.nanoTime();
         try (TiffWriter writer = new TiffWriter(targetFile)) {
             if (byteOrder != null) {

@@ -149,17 +149,19 @@ public enum TagCompression {
     /**
      * JPEG-2000 Aperio proprietary compression (type 33003).
      *
-     * <p>Note that while writing TIFF in this format, {@link net.algart.matrices.tiff.TiffWriter}
-     * does not try to use YCbCr encoding, as Aperio recommends for type 33003.
+     * <p>Note {@link net.algart.matrices.tiff.TiffWriter} does not support this compression:
+     * the current version cannot write JPEG-2000 in YCbCr color space, as Aperio recommends for type 33003.
      */
     JPEG_2000_APERIO_33003(33003, "JPEG-2000 Aperio proprietary 33003",
-            JPEG2000Codec::new, false),
+            JPEG2000Codec::new, false, false),
 
     /**
      * JPEG-2000 Aperio compression (type 33004, probably lossless).
+     *
+     * <p>Note {@link net.algart.matrices.tiff.TiffWriter} does not support this compression.</p>
      */
     JPEG_2000_APERIO_33004(33004, "JPEG-2000 Aperio 33004 lossless",
-            JPEG2000Codec::new, true),
+            JPEG2000Codec::new, true, false),
 
     /**
      * JPEG-2000 Aperio compression for RGB (type 33005).
@@ -177,22 +179,53 @@ public enum TagCompression {
         LOOKUP = map;
     }
 
+    private static final boolean ALWAYS_ALLOW_WRITING = false;
+    // - should be false; true value allows testing writing even for compressions that are not really supported
+
     private final int code;
     private final String name;
     private final Supplier<TiffCodec> codec;
     private final Boolean jpeg2000Lossless;
+    private final boolean writingSupported;
 
     TagCompression(int code, String name, Supplier<TiffCodec> codec) {
         this(code, name, codec, null);
     }
 
     TagCompression(int code, String name, Supplier<TiffCodec> codec, Boolean jpeg2000Lossless) {
+        this(code, name, codec, jpeg2000Lossless, true);
+    }
+
+    TagCompression(
+            int code,
+            String name,
+            Supplier<TiffCodec> codec,
+            Boolean jpeg2000Lossless,
+            boolean writingSupported) {
         this.code = code;
         this.name = Objects.requireNonNull(name);
         this.codec = codec;
         this.jpeg2000Lossless = jpeg2000Lossless;
+        this.writingSupported = ALWAYS_ALLOW_WRITING || writingSupported;
     }
 
+    /**
+     * Returns an {@link Optional} containing the {@link TagCompression} with the given {@link #name()}
+     * (case-insensitive).
+     * <p>If no compression with the specified name exists or if the argument is {@code null},
+     * an empty optional is returned.
+     *
+     * @param name the enum name; may be {@code null}.
+     * @return optional compression.
+     */
+    public static Optional<TagCompression> fromName(String name) {
+        for (TagCompression value : values()) {
+            if (value.name().equalsIgnoreCase(name)) {
+                return Optional.of(value);
+            }
+        }
+        return Optional.empty();
+    }
     /**
      * Returns an {@link Optional} containing the {@link TagCompression} with the given {@link #code()}.
      * <p>If no data kind with the specified name exists, an empty optional is returned.
@@ -202,6 +235,16 @@ public enum TagCompression {
      */
     public static Optional<TagCompression> fromCode(int code) {
         return Optional.ofNullable(LOOKUP.get(code));
+    }
+
+    public static Optional<TagCompression> fromCode(String codeString) {
+        final int code;
+        try {
+            code = Integer.parseInt(codeString);
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
+        return fromCode(code);
     }
 
     public static String toPrettyString(int code) {
@@ -250,6 +293,10 @@ public enum TagCompression {
         return jpeg2000Lossless != null && !jpeg2000Lossless;
     }
 
+    public boolean isWritingSupported() {
+        return writingSupported;
+    }
+
     public boolean isStandard() {
         return code <= 10 || this == PACK_BITS;
         // - actually, the maximal supported standard compression is DEFLATE=8
@@ -282,14 +329,14 @@ public enum TagCompression {
             return customizeWritingJpeg(tile, options);
         }
         if (isJpeg2000()) {
-            return customizeWritingJpeg2000(tile, options, !isJpeg2000Lossy());
+            return customizeWritingJpeg2000(tile, options, !isJpeg2000Lossy(), isWritingSupported());
         }
         return options;
     }
 
 
     // Note: corrections, performed by this method, may be tested with the image jpeg_ycbcr_encoded_as_rgb.tiff
-    static TiffCodec.Options customizeReadingJpeg(TiffTile tile, TiffCodec.Options options)
+    private static TiffCodec.Options customizeReadingJpeg(TiffTile tile, TiffCodec.Options options)
             throws TiffException {
         TiffIFD ifd = tile.ifd();
         return new JPEGCodec.JPEGOptions()
@@ -301,7 +348,7 @@ public enum TagCompression {
     }
 
     @SuppressWarnings("RedundantThrows")
-    static TiffCodec.Options customizeWritingJpeg(TiffTile tile, TiffCodec.Options options)
+    private static TiffCodec.Options customizeWritingJpeg(TiffTile tile, TiffCodec.Options options)
             throws TiffException {
         final JPEGCodec.JPEGOptions result = new JPEGCodec.JPEGOptions().setTo(options);
         if (tile.ifd().optInt(Tags.PHOTOMETRIC_INTERPRETATION, -1) ==
@@ -311,10 +358,12 @@ public enum TagCompression {
         return result;
     }
 
-    static JPEG2000Codec.JPEG2000Options customizeWritingJpeg2000(
+    private static JPEG2000Codec.JPEG2000Options customizeWritingJpeg2000(
             TiffTile tile,
             TiffCodec.Options defaultOptions,
-            boolean lossless) {
-        return new JPEG2000Codec.JPEG2000Options().setTo(defaultOptions, lossless);
+            boolean lossless,
+            boolean writingSupported) {
+        return new JPEG2000Codec.JPEG2000Options().setTo(defaultOptions, lossless)
+                .setWritingSupported(writingSupported);
     }
 }
