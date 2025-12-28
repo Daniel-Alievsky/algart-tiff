@@ -282,7 +282,7 @@ public final class TiffPyramidMetadata {
      * Returns the unchanged {@code layerIndex} argument or {@code layerIndex+1},
      * if this layer is placed after the thumbnail (if any).
      *
-     * <p>Note: if <code>layerInde &ge {@link #numberOfLayers()}-1</code>, this method still returns
+     * <p>Note: if <code>layerIndex &ge; {@link #numberOfLayers()}-1</code>, this method still returns
      * the corresponding image index as if the pyramid were continued after the last layer.
      * For example, you may specify <code>layerIndex={@link #numberOfLayers()}</code> to retrieve
      * the index of the first image <i>after</i> the actual pyramid.
