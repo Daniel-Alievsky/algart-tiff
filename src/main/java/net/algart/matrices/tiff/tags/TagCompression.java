@@ -150,7 +150,8 @@ public enum TagCompression {
      * JPEG-2000 Aperio proprietary compression (type 33003).
      *
      * <p>Note {@link net.algart.matrices.tiff.TiffWriter} does not support this compression:
-     * the current version cannot write JPEG-2000 in YCbCr color space, as Aperio recommends for type 33003.
+     * the current version of JAI ImageIO (jai-imageio-jpeg2000) cannot write JPEG-2000 in YCbCr color space,
+     * as Aperio requires for type 33003.
      */
     JPEG_2000_APERIO_33003(33003, "JPEG-2000 Aperio proprietary 33003",
             JPEG2000Codec::new, false, false),
