@@ -68,7 +68,6 @@ public final class TiffPyramidMetadata {
     private int labelIndex = -1;
     private int macroIndex = -1;
 
-    private final List<TagDescription> descriptions;
     private final SvsDescription svsDescription;
 
     private TiffPyramidMetadata() {
@@ -76,7 +75,6 @@ public final class TiffPyramidMetadata {
         this.numberOfImages = this.numberOfLayers = 0;
         this.baseImageDimX = this.baseImageDimY = 0;
         this.baseImageTiled = false;
-        this.descriptions = Collections.emptyList();
         this.svsDescription = null;
     }
 
@@ -84,9 +82,7 @@ public final class TiffPyramidMetadata {
         Objects.requireNonNull(ifds, "Null IFDs");
         this.ifds = List.copyOf(ifds);
         this.numberOfImages = this.ifds.size();
-        List<TagDescription> descriptions = TiffIFD.getDescriptions(this.ifds);
-        this.descriptions = Collections.unmodifiableList(descriptions);
-        this.svsDescription = SvsDescription.fromDescriptions(descriptions.stream()).orElse(null);
+        this.svsDescription = SvsDescription.fromIFDs(this.ifds).orElse(null);
         // - used in detectLabelAndMacro()
         if (numberOfImages == 0) {
             this.numberOfLayers = 0;
@@ -399,12 +395,8 @@ public final class TiffPyramidMetadata {
         return -1;
     }
 
-    public List<TagDescription> descriptions() {
-        return descriptions;
-    }
-
     public TagDescription description(int ifdIndex) {
-        return descriptions.get(ifdIndex);
+        return ifd(ifdIndex).getDescription();
     }
 
     public SvsDescription svsDescription() {
@@ -422,7 +414,8 @@ public final class TiffPyramidMetadata {
     public String toString() {
         final StringBuilder sb = new StringBuilder();
         if (isPyramid()) {
-            sb.append("TIFF pyramid with ").append(numberOfLayers).append(" layers ");
+            sb.append("TIFF pyramid with ").append(numberOfLayers)
+                    .append(" layers (from ").append(numberOfImages).append(" images) ");
             if (numberOfLayers > 1) {
                 sb.append(pyramidScaleRatio).append(":1 ");
             }
