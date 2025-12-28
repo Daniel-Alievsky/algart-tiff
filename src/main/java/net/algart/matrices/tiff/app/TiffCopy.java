@@ -102,7 +102,7 @@ public class TiffCopy {
             }
             startArgIndex++;
         }
-        if (args.length < startArgIndex + 2) {
+        if (callConvertFromTiff || callConvertToTiff || args.length < startArgIndex + 2) {
             System.out.printf("Usage:%n    %s [-append] [-repack] [-smart] [-le|-be] " +
                             "[-bigTiff|-noBigTIFF] [-quality=xxx] " +
                             "source.tiff target.tiff [firstIFDIndex [lastIFDIndex]]%n",

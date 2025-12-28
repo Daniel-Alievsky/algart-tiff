@@ -49,14 +49,14 @@ public class MakeSvs {
     Path baseFile = null;
     Path labelFile = null;
     Path macroFile = null;
-    int pyramidScaleRatio = 4;
-    int maxThumbnailSize = 1024;
-    double pixelSize = 0.503;
     ByteOrder byteOrder = null;
     Boolean bigTiff = null;
     TagCompression compression = TagCompression.JPEG;
     Double quality = null;
     int numberOfLayers = 3;
+    int scaleRatio = 4;
+    int maxThumbnailSize = 1024;
+    double pixelSize = 0.5;
 
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
@@ -84,9 +84,20 @@ public class MakeSvs {
             }
             startArgIndex++;
         }
+        if (args.length > startArgIndex && args[startArgIndex].toLowerCase().startsWith("-ratio=")) {
+            final String s = args[startArgIndex].toLowerCase().substring("-ratio=".length());
+            make.scaleRatio = Integer.parseInt(s);
+            startArgIndex++;
+        }
+        if (args.length > startArgIndex && args[startArgIndex].toLowerCase().startsWith("-pixel=")) {
+            final String s = args[startArgIndex].toLowerCase().substring("-pixel=".length());
+            make.pixelSize = Double.parseDouble(s);
+            startArgIndex++;
+        }
         if (args.length < startArgIndex + 3) {
             System.out.printf("Usage:%n    %s [-le|-be] " +
-                            "[-bigTiff] [-compression=JPEG|JPEG_RGB|JPEG_2000] [-quality=xxx] " +
+                            "[-bigTiff] [-compression=JPEG|JPEG_RGB] [-quality=xxx] [=ratio=2|4] " +
+                            "[pixel=xxx] " +
                             "target.svs number-of-layers source.jpg/png/bmp/tif [label.png macro.png] %n",
                     MakeSvs.class.getSimpleName());
             return;
@@ -145,7 +156,7 @@ public class MakeSvs {
             addSvsImage(writer, thumbnail, firstIFD, 1, TiffImageKind.THUMBNAIL);
             var layer = image;
             for (int i = 1; i < numberOfLayers; i++) {
-                layer = downscale(layer, pyramidScaleRatio);
+                layer = downscale(layer, scaleRatio);
                 System.out.printf("Writing image #%d %dx%d...%n",
                         i, layer.getFirst().dimX(), layer.getFirst().dimY());
                 addSvsImage(writer, layer, firstIFD, i + 1, TiffImageKind.ORDINARY);
