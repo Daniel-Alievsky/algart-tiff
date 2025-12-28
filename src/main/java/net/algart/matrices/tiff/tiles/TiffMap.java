@@ -241,7 +241,7 @@ public sealed class TiffMap permits TiffIOMap {
         Objects.requireNonNull(maps, "Null maps");
         final List<TiffIFD> result = new ArrayList<>(maps.size());
         for (TiffMap map : maps) {
-            result.add(map.ifd());
+            result.add(map == null ? null : map.ifd());
         }
         return result;
     }

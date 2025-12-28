@@ -30,6 +30,7 @@ import net.algart.matrices.tiff.TiffImageKind;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.tags.SvsDescription;
 import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tags.TagDescription;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffMap;
 
@@ -67,6 +68,7 @@ public final class TiffPyramidMetadata {
     private int labelIndex = -1;
     private int macroIndex = -1;
 
+    private final List<TagDescription> descriptions;
     private final SvsDescription svsDescription;
 
     private TiffPyramidMetadata() {
@@ -74,6 +76,7 @@ public final class TiffPyramidMetadata {
         this.numberOfImages = this.numberOfLayers = 0;
         this.baseImageDimX = this.baseImageDimY = 0;
         this.baseImageTiled = false;
+        this.descriptions = Collections.emptyList();
         this.svsDescription = null;
     }
 
@@ -81,7 +84,9 @@ public final class TiffPyramidMetadata {
         Objects.requireNonNull(ifds, "Null IFDs");
         this.ifds = List.copyOf(ifds);
         this.numberOfImages = this.ifds.size();
-        this.svsDescription = SvsDescription.findMainDescription(this.ifds);
+        List<TagDescription> descriptions = TiffIFD.getDescriptions(this.ifds);
+        this.descriptions = Collections.unmodifiableList(descriptions);
+        this.svsDescription = SvsDescription.fromDescriptions(descriptions.stream()).orElse(null);
         // - used in detectLabelAndMacro()
         if (numberOfImages == 0) {
             this.numberOfLayers = 0;
@@ -394,8 +399,23 @@ public final class TiffPyramidMetadata {
         return -1;
     }
 
+    public List<TagDescription> descriptions() {
+        return descriptions;
+    }
+
+    public TagDescription description(int ifdIndex) {
+        return descriptions.get(ifdIndex);
+    }
+
     public SvsDescription svsDescription() {
         return svsDescription;
+    }
+
+    public static boolean isSmallImage(TiffIFD ifd) throws TiffException {
+        // - but we do not check tiling: for non-Aperio,
+        // it is possible that we will use tiling for all images without any special reason
+        return ifd.getImageDimX() <= MAX_SPECIAL_IMAGES_SIZE &&
+                ifd.getImageDimY() <= MAX_SPECIAL_IMAGES_SIZE;
     }
 
     @Override
@@ -645,13 +665,6 @@ public final class TiffPyramidMetadata {
                 LOG.log(System.Logger.Level.DEBUG, () -> "MACRO %d detected by aspect ratio".formatted(macroIndex));
             }
         }
-    }
-
-    private static boolean isSmallImage(TiffIFD ifd) throws TiffException {
-        // - but we do not check tiling: for non-Aperio,
-        // it is possible that we will use tiling for all images without any special reason
-        return ifd.getImageDimX() <= MAX_SPECIAL_IMAGES_SIZE &&
-                ifd.getImageDimY() <= MAX_SPECIAL_IMAGES_SIZE;
     }
 
     private static boolean isPossibleLabelOrMacro(TiffIFD ifd) throws TiffException {

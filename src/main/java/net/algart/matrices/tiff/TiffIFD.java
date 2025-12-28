@@ -1091,6 +1091,15 @@ public final class TiffIFD {
         return result;
     }
 
+    public static List<TagDescription> getDescriptions(Collection<? extends TiffIFD> ifds) {
+        Objects.requireNonNull(ifds, "Null ifds");
+        final List<TagDescription> result = new ArrayList<>(ifds.size());
+        for (TiffIFD ifd : ifds) {
+            result.add(ifd == null ? null : ifd.getDescription());
+        }
+        return result;
+    }
+
     public int getCompressionCode() throws TiffException {
         return getInt(Tags.COMPRESSION, COMPRESSION_NONE);
     }

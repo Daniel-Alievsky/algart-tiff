@@ -27,10 +27,12 @@ package net.algart.matrices.tiff.tags;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffImageKind;
+import net.algart.matrices.tiff.tiles.TiffMap;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Stream;
 
 public final class SvsDescription extends TagDescription {
     public static final String SVS_IMAGE_DESCRIPTION_PREFIX = "Aperio Image";
@@ -53,7 +55,7 @@ public final class SvsDescription extends TagDescription {
     private static final Set<String> HUMAN_READABLE_ATTRIBUTES = Set.of(
             SCAN_SCOPE_ID_ATTRIBUTE, DATE_ATTRIBUTE, TIME_ATTRIBUTE);
 
-    private final List<String> text = new ArrayList<>();
+    private final List<String> raw = new ArrayList<>();
     private final Map<String, String> attributes = new LinkedHashMap<>();
     private final String application;
     private final String summary;
@@ -69,7 +71,7 @@ public final class SvsDescription extends TagDescription {
         final String[] lines = description.split("\\n");
         for (String line : lines) {
             line = line.trim();
-            this.text.add(line);
+            this.raw.add(line);
             final int p = line.indexOf('|');
             final String prefix = p == -1 ? line : line.substring(0, p);
             if (!delimiterFound) {
@@ -91,15 +93,15 @@ public final class SvsDescription extends TagDescription {
                 }
             }
         }
-        this.application = !text.isEmpty() ? text.getFirst() : "";
+        this.application = !raw.isEmpty() ? raw.getFirst() : "";
         this.summary = summary;
         this.main = hasPixelSize();
     }
 
     private SvsDescription(Builder builder, TiffImageKind imageKind) {
         super(Objects.requireNonNull(builder).buildDescription(imageKind));
-        this.text.add(builder.firstLine);
-        this.text.add(builder.secondLine);
+        this.raw.add(builder.firstLine);
+        this.raw.add(builder.secondLine);
         this.attributes.putAll(builder.attributes);
         this.application = builder.application;
         this.summary = builder.actualSummary;
@@ -118,8 +120,16 @@ public final class SvsDescription extends TagDescription {
         return main;
     }
 
-    public List<String> text() {
-        return Collections.unmodifiableList(text);
+    /**
+     * Returns the raw SVS ImageDescription lines as they were parsed.
+     *
+     * <p>This is a normalized, line-by-line representation of the original
+     * {@code ImageDescription} value: lines are trimmed and split by newline characters.
+     * The returned data is intended for diagnostics and low-level inspection,
+     * not for semantic processing.</p>
+     */
+    public List<String> raw() {
+        return Collections.unmodifiableList(raw);
     }
 
     public String formatName(boolean pretty) {
@@ -260,9 +270,9 @@ public final class SvsDescription extends TagDescription {
         }
         sb.append("  },\n");
 
-        sb.append("  \"rawText\": [\n");
-        for (int i = 0, n = text.size(); i < n; i++) {
-            sb.append("    \"").append(TiffIFD.escapeJsonString(text.get(i))).append("\"");
+        sb.append("  \"raw\": [\n");
+        for (int i = 0, n = raw.size(); i < n; i++) {
+            sb.append("    \"").append(TiffIFD.escapeJsonString(raw.get(i))).append("\"");
             if (i < n - 1) {
                 sb.append(",");
             }
@@ -324,29 +334,34 @@ public final class SvsDescription extends TagDescription {
             }
         }
         sb.append("%nRaw text:".formatted());
-        for (String line : text) {
+        for (String line : raw) {
             // - includes information about the application
             sb.append("%n  %s".formatted(line));
         }
         return sb.toString();
     }
 
-    public static SvsDescription findMainDescription(List<? extends TiffIFD> ifds) {
-        Objects.requireNonNull(ifds, "Null IFDs");
-        // Note: the detailed SVS specification is always included (as ImageDescription tag)
-        // in the first image (#0) with maximal resolution and partially repeated in the thumbnail image (#1).
+    public static Optional<SvsDescription> fromDescriptions(Stream<? extends TagDescription> descriptions) {
+        Objects.requireNonNull(descriptions, "Null descriptions");
+        // Note: the detailed SVS specification is always included (as ImageDescription tag) into
+        // the first image (#0) with maximal resolution and partially repeated in the thumbnail image (#1).
         // The label and macro images usually contain reduced ImageDescription.
-        for (TiffIFD ifd : ifds) {
-            if (ifd != null) {
-                // - just in case (should not happen)
-                TagDescription description = ifd.getDescription();
-                if (description instanceof SvsDescription svs && svs.isMain()) {
-                    return svs;
-                    // - returning the first detailed SVS description (with MPP attribute)
-                }
-            }
-        }
-        return null;
+        return descriptions
+                .filter(d -> d instanceof SvsDescription svs && svs.isMain())
+                .map(d -> (SvsDescription) d)
+                .findFirst();
+    }
+
+    public static Optional<SvsDescription> fromIFDs(Stream<? extends TiffIFD> ifds) {
+        Objects.requireNonNull(ifds, "Null ifds");
+        return fromDescriptions(ifds.filter(Objects::nonNull).map(TiffIFD::getDescription));
+        // - check for null just in case
+    }
+
+    public static Optional<SvsDescription> fromMaps(Stream<? extends TiffMap> maps) {
+        Objects.requireNonNull(maps, "Null maps");
+        return fromDescriptions(maps.filter(Objects::nonNull).map(TiffMap::description));
+        // - check for null just in case
     }
 
     public static Optional<String> svsCompressionName(TagCompression compression) {

@@ -88,7 +88,7 @@ public class TagDescription {
     }
 
     public final String formatName() {
-        return formatName(true);
+        return formatName(false);
     }
 
     public String formatName(boolean pretty) {
