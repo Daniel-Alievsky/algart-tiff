@@ -237,6 +237,15 @@ public sealed class TiffMap permits TiffIOMap {
         return ifd;
     }
 
+    public static List<TiffIFD> ifds(Collection<? extends TiffMap> maps) {
+        Objects.requireNonNull(maps, "Null maps");
+        final List<TiffIFD> result = new ArrayList<>(maps.size());
+        for (TiffMap map : maps) {
+            result.add(map.ifd());
+        }
+        return result;
+    }
+
     public Map<TiffTileIndex, TiffTile> tileMap() {
         return Collections.unmodifiableMap(tileMap);
     }

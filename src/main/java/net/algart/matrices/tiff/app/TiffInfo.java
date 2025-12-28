@@ -180,7 +180,7 @@ public class TiffInfo {
                             reader.isLittleEndian() ? "little" : "big");
                     throw e;
                 }
-                this.metadata = TiffPyramidMetadata.of(allIFDs);
+                this.metadata = TiffPyramidMetadata.ofIFDs(allIFDs);
                 final int ifdCount = reader.numberOfImages();
                 final int mainCount = reader.numberOfMainIFDs();
                 final int firstIndex = Math.max(this.firstIFDIndex, 0);

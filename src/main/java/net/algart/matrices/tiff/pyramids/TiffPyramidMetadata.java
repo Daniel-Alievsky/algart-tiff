@@ -31,6 +31,7 @@ import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.tags.SvsDescription;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.Tags;
+import net.algart.matrices.tiff.tiles.TiffMap;
 
 import java.io.IOException;
 import java.util.*;
@@ -76,7 +77,7 @@ public final class TiffPyramidMetadata {
         this.svsDescription = null;
     }
 
-    private TiffPyramidMetadata(List<TiffIFD> ifds) throws TiffException {
+    private TiffPyramidMetadata(Collection<? extends TiffIFD> ifds) throws TiffException {
         Objects.requireNonNull(ifds, "Null IFDs");
         this.ifds = List.copyOf(ifds);
         this.numberOfImages = this.ifds.size();
@@ -100,7 +101,11 @@ public final class TiffPyramidMetadata {
         return new TiffPyramidMetadata();
     }
 
-    public static TiffPyramidMetadata of(List<TiffIFD> ifds) throws TiffException {
+    public static TiffPyramidMetadata ofMaps(Collection<? extends TiffMap> maps) throws TiffException {
+        return new TiffPyramidMetadata(TiffMap.ifds(maps));
+    }
+
+    public static TiffPyramidMetadata ofIFDs(Collection<? extends TiffIFD> ifds) throws TiffException {
         return new TiffPyramidMetadata(ifds);
     }
 
