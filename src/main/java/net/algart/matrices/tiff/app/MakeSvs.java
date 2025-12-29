@@ -99,7 +99,7 @@ public class MakeSvs {
         if (args.length < startArgIndex + 3) {
             System.out.printf("Usage:%n    %s [-le|-be] " +
                             "[-bigTiff] [-compression=JPEG|JPEG_RGB] [-quality=xxx] [=ratio=2|4] " +
-                            "[pixel=xxx] " +
+                            "[-pixel=xxx] " +
                             "target.svs number-of-layers source.jpg/png/bmp/tif [label.png macro.png] %n",
                     MakeSvs.class.getSimpleName());
             return;
