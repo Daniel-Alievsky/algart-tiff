@@ -408,11 +408,9 @@ public class TiffInfoViewer {
     private void chooseAndOpenFile() {
         JFileChooser chooser = new JFileChooser();
         String last = prefs.get(PREF_LAST_DIR, null);
-        if (last != null) {
-            File dir = new File(last);
-            if (dir.exists() && dir.isDirectory()) {
-                chooser.setCurrentDirectory(dir);
-            }
+        File dir = new File(last == null ? "." : last);
+        if (dir.isDirectory()) {
+            chooser.setCurrentDirectory(dir);
         }
         chooser.addChoosableFileFilter(TIFF_FILTER);
         chooser.addChoosableFileFilter(SVS_FILTER);

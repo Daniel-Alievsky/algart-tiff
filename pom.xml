@@ -72,19 +72,19 @@
 
     <build>
         <plugins>
-<!--            Uncomment the following to use -Xlint -->
-<!--            <plugin>-->
-<!--                <groupId>org.apache.maven.plugins</groupId>-->
-<!--                <artifactId>maven-compiler-plugin</artifactId>-->
-<!--                <version>3.11.0</version>-->
-<!--                <configuration>-->
-<!--                    <source>21</source>-->
-<!--                    <target>21</target>-->
-<!--                    <compilerArgs>-->
-<!--                        <arg>-Xlint:unchecked</arg>-->
-<!--                    </compilerArgs>-->
-<!--                </configuration>-->
-<!--            </plugin>-->
+            <!--            Uncomment the following to use -Xlint -->
+            <!--            <plugin>-->
+            <!--                <groupId>org.apache.maven.plugins</groupId>-->
+            <!--                <artifactId>maven-compiler-plugin</artifactId>-->
+            <!--                <version>3.11.0</version>-->
+            <!--                <configuration>-->
+            <!--                    <source>21</source>-->
+            <!--                    <target>21</target>-->
+            <!--                    <compilerArgs>-->
+            <!--                        <arg>-Xlint:unchecked</arg>-->
+            <!--                    </compilerArgs>-->
+            <!--                </configuration>-->
+            <!--            </plugin>-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -154,6 +154,21 @@
                                       tofile="${project.build.directory}/build/tiff-info/TiffInfoViewer.jar"/>
                                 <copy todir="${project.build.directory}/build/tiff-info">
                                     <fileset dir="${project.basedir}/build/tiff-info"/>
+                                </copy>
+                                <mkdir dir="${project.build.directory}/build/tiff-info/demo-images"/>
+                                <copy todir="${project.build.directory}/build/tiff-info/demo-images">
+                                    <fileset dir="${project.basedir}/src/test/resources/demo/images">
+                                        <include name="*.tiff"/>
+                                    </fileset>
+                                </copy>
+                                <copy todir="${project.build.directory}/build/tiff-info/demo-images">
+                                    <fileset dir="${project.basedir}/src/test/resources/demo/images/tiff">
+                                        <include name="libtiffpic/**"/>
+                                        <include name="openslide/**/CMU-1-JP2K-Region.svs"/>
+                                        <include name="rare_precisions/**/rgba16f.tif"/>
+                                        <include name="rare_precisions/**/test-24bit.tif"/>
+                                        <include name="rare_precisions/**/ref.txt"/>
+                                    </fileset>
                                 </copy>
                                 <zip destfile="${project.build.directory}/build/tiff-info-${project.version}.zip">
                                     <zipfileset dir="${project.build.directory}/build/tiff-info" prefix="tiff-info"/>
@@ -230,11 +245,11 @@
         </profile>
     </profiles>
 
-<!-- Repository of SCIFIO was necessary in old versions of scijava-common -->
-<!--    <repositories>-->
-<!--        <repository>-->
-<!--            <id>scijava.public</id>-->
-<!--            <url>https://maven.scijava.org/content/groups/public</url>-->
-<!--        </repository>-->
-<!--    </repositories>-->
+    <!-- Repository of SCIFIO was necessary in old versions of scijava-common -->
+    <!--    <repositories>-->
+    <!--        <repository>-->
+    <!--            <id>scijava.public</id>-->
+    <!--            <url>https://maven.scijava.org/content/groups/public</url>-->
+    <!--        </repository>-->
+    <!--    </repositories>-->
 </project>
