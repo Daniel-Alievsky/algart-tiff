@@ -146,8 +146,8 @@ public class TiffInfoViewer {
         JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
 
         frame.setIconImages(java.util.List.of(
-                new ImageIcon(reqResource("icon16.png")).getImage(),
-                new ImageIcon(reqResource("icon32.png")).getImage()));
+                new ImageIcon(reqResource("TiffInfoViewer_icon_16.png")).getImage(),
+                new ImageIcon(reqResource("TiffInfoViewer_icon_32.png")).getImage()));
 
         openFileButton = new JButton("Open TIFF");
         openFileButton.addActionListener(e -> chooseAndOpenFile());
@@ -611,7 +611,7 @@ public class TiffInfoViewer {
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        JLabel icon = new JLabel(new ImageIcon(reqResource("icon32.png")));
+        JLabel icon = new JLabel(new ImageIcon(reqResource("TiffInfoViewer_icon_32.png")));
         content.add(icon);
         content.add(Box.createVerticalStrut(16));
 

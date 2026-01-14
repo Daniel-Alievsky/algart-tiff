@@ -164,7 +164,7 @@
                                 <copy todir="${project.build.directory}/build/tiff-info/demo-images">
                                     <fileset dir="${project.basedir}/src/test/resources/demo/images/tiff">
                                         <include name="libtiffpic/**"/>
-                                        <include name="openslide/**/CMU-1-JP2K-Region.svs"/>
+                                        <include name="openslide/**/"/>
                                         <include name="rare_precisions/**/rgba16f.tif"/>
                                         <include name="rare_precisions/**/test-24bit.tif"/>
                                         <include name="rare_precisions/**/ref.txt"/>
@@ -173,6 +173,16 @@
                                 <zip destfile="${project.build.directory}/build/tiff-info-${project.version}.zip">
                                     <zipfileset dir="${project.build.directory}/build/tiff-info" prefix="tiff-info"/>
                                 </zip>
+                                <mkdir dir="${project.build.directory}/build/website/"/>
+                                <copy todir="${project.build.directory}/build/website">
+                                    <fileset dir="${project.basedir}/build/website"/>
+                                </copy>
+                                <copy todir="${project.build.directory}/build/website/tiff-info">
+                                    <fileset dir="${project.basedir}/build/gui">
+                                        <include name="TiffInfoViewer_icon_16.png"/>
+                                        <include name="TiffInfoViewer_icon_32.png"/>
+                                    </fileset>
+                                </copy>
                             </target>
                         </configuration>
                     </execution>

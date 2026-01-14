@@ -1,0 +1,2 @@
+These images are downloaded from:
+https://openslide.org/demo/

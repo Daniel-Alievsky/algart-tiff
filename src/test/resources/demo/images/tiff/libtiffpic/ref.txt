@@ -1,1 +1,2 @@
-Downloaded from https://download.osgeo.org/libtiff/, pics-3.8.0.tar.gz
+These images are downloaded from:
+https://download.osgeo.org/libtiff/, pics-3.8.0.tar.gz

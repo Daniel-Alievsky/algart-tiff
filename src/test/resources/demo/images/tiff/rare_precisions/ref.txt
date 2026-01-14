@@ -1,1 +1,3 @@
-Downloaded from https://gitlab.gnome.org/GNOME/eog/-/issues/55
+These images are downloaded from:
+https://gitlab.gnome.org/GNOME/eog/-/issues/55
+https://github.com/ImageMagick/ImageMagick/issues/1842
