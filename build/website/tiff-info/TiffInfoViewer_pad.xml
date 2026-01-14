@@ -46,7 +46,7 @@
 		<Program_Install_Support>No Install Support</Program_Install_Support>
 		<Program_OS_Support>Java,Win2000,WinXP,Win7 x32,Win7 x64,Windows 8,Windows 10,Windows 11,WinServer,WinOther,WinVista,WinVista x64,Linux,Mac OS X,MacOS Monterey,MacOS Ventura,MacOS Sonoma</Program_OS_Support>
 		<Program_Language>English</Program_Language>
-		<Program_Change_Info />
+		<Program_Change_Info>Initial public release of the TIFF Information Viewer, built in with AlgART-TIFF library 1.5.1</Program_Change_Info>
 		<Program_Specific_Category>Graphics</Program_Specific_Category>
 		<Program_Category_Class>Graphic Apps::Viewers</Program_Category_Class>
 		<Program_System_Requirements>Java Runtime Environment 21 or higher</Program_System_Requirements>
@@ -67,12 +67,12 @@
 	</Program_Info>
 	<Program_Descriptions>
 		<English>
-			<Keywords>TIFF, viewer, inspector, tag viewer, IFD, compression, tiles, metadata, multi-scale pyramid, SVS, decoder, BigTIFF, byte order, JPEG-2000, converter, repack</Keywords>
+			<Keywords>TIFF, viewer, inspector, tag viewer, IFD, compression, tiles, metadata, multi-scale pyramid, large-scale imaging, SVS, decoder, BigTIFF, byte order, JPEG-2000, converter, repack</Keywords>
 			<Char_Desc_45>AlgART TIFF Information Viewer</Char_Desc_45>
 			<Char_Desc_80>Utility for viewing TIFF and decoding its structure (tags, features, etc.)</Char_Desc_80>
 			<Char_Desc_250>Utility for viewing TIFF files and understanding their structure. It decodes most TIFF files, allows viewing images, inspecting tags (IFD) and other features, and decoding multiscale pyramids (SVS) to see what is really stored inside a TIFF file.</Char_Desc_250>
-			<Char_Desc_450>Free cross-platform utility (Windows, Linux, Mac etc.) for inspecting and decoding the structure of TIFF files. It supports most TIFF features including Big-TIFF, any bit depths, and most compressions including JPEG-2000. It displays both the image and detailed TIFF tag structure, allowing you to explore and understand TIFF files in depth. Additionally, it recognizes and shows metadata for popular multi-scale pyramid formats such as Aperio SVS.</Char_Desc_450>
-			<Char_Desc_2000>AlgART TIFF Information Viewer is a free cross-platform utility (Windows, Linux, Mac etc.) for inspecting and decoding the structure of TIFF files. It supports most TIFF features including Big-TIFF, any bit depths, and most compressions including JPEG-2000. It displays both the image and detailed TIFF tag structure, allowing you to explore and understand TIFF files in depth. Additionally, it recognizes and shows metadata for popular multi-scale pyramid formats such as Aperio SVS.
+			<Char_Desc_450>Free cross-platform utility (Windows, Linux, macOS, etc.) for inspecting and decoding the structure of TIFF files. It supports most TIFF features including Big-TIFF, any bit depths, and most compressions including JPEG-2000. It displays both the image and detailed TIFF tag structure, allowing you to explore and understand TIFF files in depth. Additionally, it recognizes and shows metadata for popular multi-scale pyramid formats such as Aperio SVS.</Char_Desc_450>
+			<Char_Desc_2000>AlgART TIFF Information Viewer is a free portable Java-based utility (cross-platform: Windows, Linux, macOS, etc.) for inspecting and decoding the structure of TIFF files. It supports most TIFF features including Big-TIFF, any bit depths, and most compressions including JPEG-2000. It displays both the image and detailed TIFF tag structure, allowing you to explore and understand TIFF files in depth. Additionally, it recognizes and shows metadata for popular multi-scale pyramid formats such as Aperio SVS.
 The viewer decodes TIFF tags, such as image sizes, bit depth, compression algorithm, color space, and others, into human-readable descriptions. It also decodes SVS metadata and shows it clearly. The package includes additional utilities such as TiffCopy for rearranging, repackaging, and converting TIFF files, and MakeSvs for building SVS files compatible with Aperio Image Viewer. 
 This software is based on Java and requires Java Runtime Environment, version 21 or higher, which should be installed by the user. It is distributed as a ZIP file: just unpack and run it.
 </Char_Desc_2000>
