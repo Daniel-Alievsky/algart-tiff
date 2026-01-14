@@ -44,16 +44,16 @@
 		<Program_Type>Freeware</Program_Type>
 		<Program_Release_Status>New Release</Program_Release_Status>
 		<Program_Install_Support>No Install Support</Program_Install_Support>
-		<Program_OS_Support>Java,Linux,Linux Console,Linux Gnome,Linux GPL,Linux Open Source,Mac OS X,Mac Other,Unix,Win2000,Win7 x32,Win7 x64,Win98,WinMobile,WinOther,WinServer,WinVista,WinVista x64,WinXP,Other</Program_OS_Support>
+		<Program_OS_Support>Windows,Linux,macOS,Cross-platform (Java)</Program_OS_Support>
 		<Program_Language>English</Program_Language>
 		<Program_Change_Info />
-		<Program_Specific_Category>Development Tools</Program_Specific_Category>
-		<Program_Category_Class>Development::Components &amp; Libraries</Program_Category_Class>
-		<Program_System_Requirements>JDK</Program_System_Requirements>
+		<Program_Specific_Category>Graphics</Program_Specific_Category>
+		<Program_Category_Class>Graphic Apps::Viewers</Program_Category_Class>
+		<Program_System_Requirements>Java 21+</Program_System_Requirements>
 		<File_Info>
-			<File_Size_Bytes>7026826</File_Size_Bytes>
-			<File_Size_K>6862</File_Size_K>
-			<File_Size_MB>6.70</File_Size_MB>
+			<File_Size_Bytes>16837824</File_Size_Bytes>
+			<File_Size_K>16443</File_Size_K>
+			<File_Size_MB>16.06</File_Size_MB>
 		</File_Info>
 		<Expire_Info>
 			<Has_Expire_Info>N</Has_Expire_Info>
