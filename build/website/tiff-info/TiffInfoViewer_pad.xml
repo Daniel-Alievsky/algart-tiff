@@ -44,12 +44,12 @@
 		<Program_Type>Freeware</Program_Type>
 		<Program_Release_Status>New Release</Program_Release_Status>
 		<Program_Install_Support>No Install Support</Program_Install_Support>
-		<Program_OS_Support>Windows,Linux,macOS,Cross-platform (Java)</Program_OS_Support>
+		<Program_OS_Support>Java,Win2000,WinXP,Win7 x32,Win7 x64,Windows 8,Windows 10,Windows 11,WinServer,WinOther,WinVista,WinVista x64,Linux,Mac OS X,MacOS Monterey,MacOS Ventura,MacOS Sonoma</Program_OS_Support>
 		<Program_Language>English</Program_Language>
 		<Program_Change_Info />
 		<Program_Specific_Category>Graphics</Program_Specific_Category>
 		<Program_Category_Class>Graphic Apps::Viewers</Program_Category_Class>
-		<Program_System_Requirements>Java 21+</Program_System_Requirements>
+		<Program_System_Requirements>Java Runtime Environment 21 or higher</Program_System_Requirements>
 		<File_Info>
 			<File_Size_Bytes>16837824</File_Size_Bytes>
 			<File_Size_K>16443</File_Size_K>
