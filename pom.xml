@@ -165,7 +165,7 @@
                                     <fileset dir="${project.basedir}/src/test/resources/demo/images/tiff">
                                         <include name="libtiffpic/**"/>
                                         <include name="openslide/**/"/>
-                                        <include name="rare_precisions/**/rgba16f.tif"/>
+                                        <include name="rare_precpisions/**/rgba16f.tif"/>
                                         <include name="rare_precisions/**/test-24bit.tif"/>
                                         <include name="rare_precisions/**/ref.txt"/>
                                     </fileset>
@@ -175,7 +175,11 @@
                                 </zip>
                                 <mkdir dir="${project.build.directory}/build/website/"/>
                                 <copy todir="${project.build.directory}/build/website">
-                                    <fileset dir="${project.basedir}/build/website"/>
+                                    <fileset dir="${project.basedir}/build/website">
+                                        <include name="**/*.xml"/>
+                                        <include name="**/*.png"/>
+                                        <include name="**/*.jpeg"/>
+                                    </fileset>
                                 </copy>
                                 <copy todir="${project.build.directory}/build/website/tiff-info">
                                     <fileset dir="${project.basedir}/build/gui">

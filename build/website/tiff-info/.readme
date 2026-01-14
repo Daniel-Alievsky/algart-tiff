@@ -1,0 +1,3 @@
+Note: TiffInfoViewer_pad.xml can be edited by PADGen utility, but PADGen damages the line
+		<Program_OS_Support>Windows,Linux,macOS,Cross-platform (Java)</Program_OS_Support>
+You should be careful and restore the correct value manually.

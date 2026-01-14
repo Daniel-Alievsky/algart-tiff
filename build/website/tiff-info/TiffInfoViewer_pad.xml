@@ -83,8 +83,8 @@ This software is based on Java and requires Java Runtime Environment, version 21
 			<Application_Info_URL>https://algart.net/java/AlgART-TIFF/tiff-info.html</Application_Info_URL>
 			<Application_Order_URL />
 			<Application_Screenshot_URL>https://algart.net/java/AlgART-TIFF/tiff-info/TiffInfoViewer_screenshot_CMU-1-Small-Region.png</Application_Screenshot_URL>
-			<Application_Icon_URL>https://algart.net/java/AlgART-TIFF/tiff-info/AlgART_TIFF_Information_Viewer_icon.png</Application_Icon_URL>
-			<Application_XML_File_URL>https://algart.net/java/AlgART-TIFF/tiff-info/AlgART_TIFF_Information_Viewer_pad.xml</Application_XML_File_URL>
+			<Application_Icon_URL>https://algart.net/java/AlgART-TIFF/tiff-info/TiffInfoViewer_icon_32.png</Application_Icon_URL>
+			<Application_XML_File_URL>https://algart.net/java/AlgART-TIFF/tiff-info/TiffInfoViewer_pad.xml</Application_XML_File_URL>
 		</Application_URLs>
 		<Download_URLs>
 			<Primary_Download_URL>https://algart.net/java/AlgART-TIFF/download/tiff-info-1.5.1.zip</Primary_Download_URL>
