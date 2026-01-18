@@ -603,7 +603,7 @@ public class TiffInfoViewer {
     }
 
     private void showAboutDialog() {
-        JDialog dialog = new JDialog(frame, "About TIFF Info Viewer", true);
+        JDialog dialog = new JDialog(frame, "About TIFF Information Viewer", true);
         dialog.setLayout(new BorderLayout(10, 10));
         dialog.setResizable(false);
 
