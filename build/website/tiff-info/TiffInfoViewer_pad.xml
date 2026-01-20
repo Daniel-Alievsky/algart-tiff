@@ -51,7 +51,7 @@
 		<Program_Category_Class>Graphic Apps::Viewers</Program_Category_Class>
 		<Program_System_Requirements>Java Runtime Environment 21 or higher</Program_System_Requirements>
 		<File_Info>
-			<File_Size_Bytes>16837824</File_Size_Bytes>
+			<File_Size_Bytes>16837823</File_Size_Bytes>
 			<File_Size_K>16443</File_Size_K>
 			<File_Size_MB>16.06</File_Size_MB>
 		</File_Info>
@@ -71,7 +71,7 @@
 			<Char_Desc_45>AlgART TIFF Information Viewer</Char_Desc_45>
 			<Char_Desc_80>Utility for viewing TIFF and decoding its structure (tags, features, etc.)</Char_Desc_80>
 			<Char_Desc_250>Utility for viewing TIFF files and understanding their structure. It decodes most TIFF files, allows viewing images, inspecting tags (IFD) and other features, and decoding multiscale pyramids (SVS) to see what is really stored inside a TIFF file.</Char_Desc_250>
-			<Char_Desc_450>Free cross-platform utility (Windows, Linux, macOS, etc.) for inspecting and decoding the structure of TIFF files. It supports most TIFF features including Big-TIFF, any bit depths, and most compressions including JPEG-2000. It displays both the image and detailed TIFF tag structure, allowing you to explore and understand TIFF files in depth. Additionally, it recognizes and shows metadata for popular multi-scale pyramid formats such as Aperio SVS.</Char_Desc_450>
+			<Char_Desc_450>Free cross-platform utility (Windows, Linux, macOS, etc.) for inspecting and decoding the structure of TIFF files. It supports most TIFF features including Big-TIFF, any bit depths, and most compressions including JPEG-2000. It displays both the image and detailed TIFF tag structure, allowing you to explore and understand TIFF files in depth. Additionally, it recognizes and shows metadata for popular multi-scale pyramid formats as Aperio SVS.</Char_Desc_450>
 			<Char_Desc_2000>AlgART TIFF Information Viewer is a free portable Java-based utility (cross-platform: Windows, Linux, macOS, etc.) for inspecting and decoding the structure of TIFF files. It supports most TIFF features including Big-TIFF, any bit depths, and most compressions including JPEG-2000. It displays both the image and detailed TIFF tag structure, allowing you to explore and understand TIFF files in depth. Additionally, it recognizes and shows metadata for popular multi-scale pyramid formats such as Aperio SVS.
 The viewer decodes TIFF tags, such as image sizes, bit depth, compression algorithm, color space, and others, into human-readable descriptions. It also decodes SVS metadata and shows it clearly. The package includes additional utilities such as TiffCopy for rearranging, repackaging, and converting TIFF files, and MakeSvs for building SVS files compatible with Aperio Image Viewer. 
 This software is based on Java and requires Java Runtime Environment, version 21 or higher, which should be installed by the user. It is distributed as a ZIP file: just unpack and run it.

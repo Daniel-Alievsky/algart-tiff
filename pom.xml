@@ -165,7 +165,7 @@
                                     <fileset dir="${project.basedir}/src/test/resources/demo/images/tiff">
                                         <include name="libtiffpic/**"/>
                                         <include name="openslide/**/"/>
-                                        <include name="rare_precpisions/**/rgba16f.tif"/>
+                                        <include name="rare_precisions/**/rgba16f.tif"/>
                                         <include name="rare_precisions/**/test-24bit.tif"/>
                                         <include name="rare_precisions/**/ref.txt"/>
                                     </fileset>
