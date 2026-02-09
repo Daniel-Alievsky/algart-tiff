@@ -6,7 +6,7 @@
 
     <groupId>net.algart</groupId>
     <artifactId>algart-tiff</artifactId>
-    <version>1.5.1</version>
+    <version>1.5.2</version>
 
     <name>AlgART TIFF support</name>
     <description>Support of TIFF files: reading, writing, editing, etc.</description>
@@ -121,7 +121,7 @@
                     <finalName>algart-tiff</finalName>
                     <archive>
                         <manifest>
-                            <mainClass>net.algart.matrices.tiff.app.TiffInfoViewer</mainClass>
+                            <mainClass>net.algart.matrices.tiff.app.TiffExplorer</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
@@ -149,19 +149,19 @@
                         <configuration>
                             <target>
                                 <echo level="info">Creating distribution ZIP</echo>
-                                <mkdir dir="${project.build.directory}/build/tiff-info"/>
+                                <mkdir dir="${project.build.directory}/build/tiff-explorer"/>
                                 <copy file="${project.build.directory}/algart-tiff-with-dependencies.jar"
-                                      tofile="${project.build.directory}/build/tiff-info/TiffInfoViewer.jar"/>
-                                <copy todir="${project.build.directory}/build/tiff-info">
-                                    <fileset dir="${project.basedir}/build/tiff-info"/>
+                                      tofile="${project.build.directory}/build/tiff-explorer/TiffExplorer.jar"/>
+                                <copy todir="${project.build.directory}/build/tiff-explorer">
+                                    <fileset dir="${project.basedir}/build/tiff-explorer"/>
                                 </copy>
-                                <mkdir dir="${project.build.directory}/build/tiff-info/demo-images"/>
-                                <copy todir="${project.build.directory}/build/tiff-info/demo-images">
+                                <mkdir dir="${project.build.directory}/build/tiff-explorer/demo-images"/>
+                                <copy todir="${project.build.directory}/build/tiff-explorer/demo-images">
                                     <fileset dir="${project.basedir}/src/test/resources/demo/images">
                                         <include name="*.tiff"/>
                                     </fileset>
                                 </copy>
-                                <copy todir="${project.build.directory}/build/tiff-info/demo-images">
+                                <copy todir="${project.build.directory}/build/tiff-explorer/demo-images">
                                     <fileset dir="${project.basedir}/src/test/resources/demo/images/tiff">
                                         <include name="libtiffpic/**"/>
                                         <include name="openslide/**/"/>
@@ -170,8 +170,8 @@
                                         <include name="rare_precisions/**/ref.txt"/>
                                     </fileset>
                                 </copy>
-                                <zip destfile="${project.build.directory}/build/tiff-info-${project.version}.zip">
-                                    <zipfileset dir="${project.build.directory}/build/tiff-info" prefix="tiff-info"/>
+                                <zip destfile="${project.build.directory}/build/tiff-explorer-${project.version}.zip">
+                                    <zipfileset dir="${project.build.directory}/build/tiff-explorer" prefix="tiff-explorer"/>
                                 </zip>
                                 <mkdir dir="${project.build.directory}/build/website/"/>
                                 <copy todir="${project.build.directory}/build/website">
@@ -181,10 +181,10 @@
                                         <include name="**/*.jpeg"/>
                                     </fileset>
                                 </copy>
-                                <copy todir="${project.build.directory}/build/website/tiff-info">
+                                <copy todir="${project.build.directory}/build/website/tiff-explorer">
                                     <fileset dir="${project.basedir}/build/gui">
-                                        <include name="TiffInfoViewer_icon_16.png"/>
-                                        <include name="TiffInfoViewer_icon_32.png"/>
+                                        <include name="TiffExplorer_icon_16.png"/>
+                                        <include name="TiffExplorer_icon_32.png"/>
                                     </fileset>
                                 </copy>
                             </target>

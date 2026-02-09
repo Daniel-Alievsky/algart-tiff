@@ -45,7 +45,7 @@ import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.prefs.Preferences;
 
-public class TiffInfoViewer {
+public class TiffExplorer {
     public static final String ALGART_TIFF_WEBSITE = "https://algart.net/java/AlgART-TIFF/";
 
     private static final String APPLICATION_TITLE = "TIFF Information Viewer";
@@ -84,14 +84,14 @@ public class TiffInfoViewer {
     private static final String PREF_WINDOW_WIDTH = "windowWidth";
     private static final String PREF_WINDOW_HEIGHT = "windowHeight";
 
-    static final System.Logger LOG = System.getLogger(TiffInfoViewer.class.getName());
+    static final System.Logger LOG = System.getLogger(TiffExplorer.class.getName());
 
     private static final FileFilter TIFF_FILTER = new FileNameExtensionFilter(
             "TIFF / SVS files (*.tif, *.tiff, *.svs)", "tif", "tiff", "svs");
     private static final FileFilter SVS_FILTER = new FileNameExtensionFilter(
             "SVS files only (*.svs)", "svs");
 
-    private final Preferences prefs = Preferences.userNodeForPackage(TiffInfoViewer.class);
+    private final Preferences prefs = Preferences.userNodeForPackage(TiffExplorer.class);
 
     JFrame frame;
     private JButton openFileButton;
@@ -116,7 +116,7 @@ public class TiffInfoViewer {
     public static void main(String[] args) {
         if (args.length >= 1 && args[0].equals("-h")) {
             System.out.println("Usage:");
-            System.out.println("    " + TiffInfoViewer.class.getSimpleName() + " [some_file.tiff]");
+            System.out.println("    " + TiffExplorer.class.getSimpleName() + " [some_file.tiff]");
             return;
         }
         try {
@@ -126,12 +126,12 @@ public class TiffInfoViewer {
         } catch (Exception e) {
             LOG.log(System.Logger.Level.WARNING, "Cannot set look and feel", e);
         }
-        TiffInfoViewer tiffInfoViewer = new TiffInfoViewer();
+        TiffExplorer tiffExplorer = new TiffExplorer();
         SwingUtilities.invokeLater(() -> {
             try {
-                tiffInfoViewer.createGUI(args);
+                tiffExplorer.createGUI(args);
             } catch (Throwable e) {
-                tiffInfoViewer.showErrorMessage(e, "Error while creating GUI");
+                tiffExplorer.showErrorMessage(e, "Error while creating GUI");
             }
         });
     }
@@ -146,8 +146,8 @@ public class TiffInfoViewer {
         JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
 
         frame.setIconImages(java.util.List.of(
-                new ImageIcon(reqResource("TiffInfoViewer_icon_16.png")).getImage(),
-                new ImageIcon(reqResource("TiffInfoViewer_icon_32.png")).getImage()));
+                new ImageIcon(reqResource("TiffExplorer_icon_16.png")).getImage(),
+                new ImageIcon(reqResource("TiffExplorer_icon_32.png")).getImage()));
 
         openFileButton = new JButton("Open TIFF");
         openFileButton.addActionListener(e -> chooseAndOpenFile());
@@ -592,7 +592,7 @@ public class TiffInfoViewer {
         if (index < 0 || info == null || index >= info.numberOfImages()) {
             return;
         }
-        try (TiffInfoImageViewer imageViewer = new TiffInfoImageViewer(this, tiffFile, index)) {
+        try (TiffImageViewer imageViewer = new TiffImageViewer(this, tiffFile, index)) {
             setShowImageInProgress(true);
             imageViewer.show();
         } catch (IOException e) {
@@ -605,26 +605,26 @@ public class TiffInfoViewer {
     private void showAboutDialog() {
         JDialog dialog = new JDialog(frame, "About TIFF Information Viewer", true);
         dialog.setLayout(new BorderLayout(10, 10));
-        dialog.setResizable(false);
-
+        dialog.setMinimumSize(new Dimension(100, 200));
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        content.setBorder(BorderFactory.createEmptyBorder(10, 50, 10, 50));
 
-        JLabel icon = new JLabel(new ImageIcon(reqResource("TiffInfoViewer_icon_32.png")));
+        JLabel icon = new JLabel(new ImageIcon(reqResource("TiffExplorer_icon_32.png")));
+        icon.setAlignmentX(Component.CENTER_ALIGNMENT);
         content.add(icon);
         content.add(Box.createVerticalStrut(16));
 
-        JLabel title = new JLabel("AlgART TIFF Information Viewer");
+        JLabel title = centeredLabel("AlgART TIFF Explorer");
         title.setFont(title.getFont().deriveFont(Font.BOLD, 16f));
         content.add(title);
         content.add(Box.createVerticalStrut(8));
 
-        content.add(new JLabel("By Daniel Alievsky"));
-        content.add(new JLabel("Version 1.5.1"));
+        content.add(centeredLabel("By Daniel Alievsky (AlgART Laboratory)"));
+        content.add(centeredLabel("Version 1.5.1"));
         content.add(Box.createVerticalStrut(8));
 
-        JLabel link = new JLabel("<html><a href=\"\">" + ALGART_TIFF_WEBSITE + "</a></html>");
+        JLabel link = centeredLabel("<html><a href=\"\">" + ALGART_TIFF_WEBSITE + "</a></html>");
         link.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         link.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -676,6 +676,13 @@ public class TiffInfoViewer {
         JOptionPane.showMessageDialog(frame, e.getMessage(), title, JOptionPane.ERROR_MESSAGE);
     }
 
+    private static JLabel centeredLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setAlignmentX(Component.CENTER_ALIGNMENT);
+        label.setHorizontalAlignment(SwingConstants.CENTER);
+        return label;
+    }
+
     private static Font getPreferredMonoFont(int size) {
         String preferred = "Consolas";
         if (isFontAvailable(preferred)) {
@@ -696,7 +703,7 @@ public class TiffInfoViewer {
     }
 
     private static URL reqResource(String name) {
-        final URL result = TiffInfoViewer.class.getResource(name);
+        final URL result = TiffExplorer.class.getResource(name);
         Objects.requireNonNull(result, "Resource " + name + " not found");
         return result;
     }

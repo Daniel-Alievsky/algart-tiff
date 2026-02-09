@@ -38,11 +38,11 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Objects;
 
-class TiffInfoImageViewer implements Closeable {
+class TiffImageViewer implements Closeable {
     private static final int MAX_IMAGE_DIM = 16000;
     // 16000 * 16000 * 4 channels RGBA * 16 bit/channel < Integer.MAX_VALUE
 
-    private final TiffInfoViewer app;
+    private final TiffExplorer app;
     private final TiffReader reader;
     private final int index;
 
@@ -52,7 +52,7 @@ class TiffInfoImageViewer implements Closeable {
     private int dimY;
     private BufferedImage bi = null;
 
-    public TiffInfoImageViewer(TiffInfoViewer app, Path tiffFile, int index) throws IOException {
+    public TiffImageViewer(TiffExplorer app, Path tiffFile, int index) throws IOException {
         this.app = Objects.requireNonNull(app);
         Objects.requireNonNull(tiffFile);
         this.reader = new TiffReaderWithGrid(tiffFile, app.viewTileGrid);

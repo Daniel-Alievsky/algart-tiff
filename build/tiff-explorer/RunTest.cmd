@@ -1,6 +1,6 @@
 @echo off
 if "%~1"=="" goto usage
-java -cp "%~dp0TiffInfoViewer.jar" %*
+java -cp "%~dp0TiffExplorer.jar" %*
 goto end
 
 :usage

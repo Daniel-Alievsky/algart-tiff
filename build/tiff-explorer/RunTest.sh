@@ -7,4 +7,4 @@ if [ $# -eq 0 ]; then
   exit 1
 fi
 
-java -cp "$(dirname "$0")/TiffInfoViewer.jar" "$@"
+java -cp "$(dirname "$0")/TiffExplorer.jar" "$@"
