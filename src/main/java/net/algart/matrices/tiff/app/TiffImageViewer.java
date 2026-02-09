@@ -121,7 +121,7 @@ class TiffImageViewer {
             }
         };
         imgFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        TiffImageViewPanel panel = new TiffImageViewPanel(map);
+        JTiffPanel panel = new JTiffPanel(map);
         imgFrame.add(new JScrollPane(panel));
         imgFrame.pack();
 

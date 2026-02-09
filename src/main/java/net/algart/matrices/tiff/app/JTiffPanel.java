@@ -31,11 +31,11 @@ import java.io.IOException;
 
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 
-class TiffImageViewPanel extends JComponent {
-    static final System.Logger LOG = System.getLogger(TiffImageViewPanel.class.getName());
+class JTiffPanel extends JComponent {
+    static final System.Logger LOG = System.getLogger(JTiffPanel.class.getName());
     private final TiffReadMap map;
 
-    public TiffImageViewPanel(TiffReadMap map) {
+    public JTiffPanel(TiffReadMap map) {
         this.map = map;
         setPreferredSize(new Dimension(map.dimX(), map.dimY()));
     }
