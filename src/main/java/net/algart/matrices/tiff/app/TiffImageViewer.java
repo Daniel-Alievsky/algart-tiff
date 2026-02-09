@@ -113,6 +113,7 @@ class TiffImageViewer {
             public void dispose() {
                 super.dispose();
                 try {
+                    TiffExplorer.LOG.log(System.Logger.Level.INFO, "Closing " + reader);
                     TiffImageViewer.this.dispose();
                 } catch (IOException e) {
                     app.showErrorMessage(e, "Error closing TIFF");
