@@ -33,11 +33,12 @@ import net.algart.matrices.tiff.tiles.TiffTileIndex;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Objects;
 
-class TiffImageViewer {
+class TiffImageViewerOld implements Closeable {
     private static final int MAX_IMAGE_DIM = 16000;
     // 16000 * 16000 * 4 channels RGBA * 16 bit/channel < Integer.MAX_VALUE
 
@@ -51,23 +52,24 @@ class TiffImageViewer {
     private int dimY;
     private BufferedImage bi = null;
 
-    public TiffImageViewer(TiffExplorer app, Path tiffFile, int index) throws IOException {
+    public TiffImageViewerOld(TiffExplorer app, Path tiffFile, int index) throws IOException {
         this.app = Objects.requireNonNull(app);
         Objects.requireNonNull(tiffFile);
         this.reader = new TiffReaderWithGrid(tiffFile, app.viewTileGrid);
         this.index = index;
     }
 
-    public void dispose() throws IOException {
+    @Override
+    public void close() throws IOException {
         this.reader.close();
     }
 
     public void show() throws IOException {
         openMap();
-//        if (!confirm()) {
-//            return;
-//        }
-//        loadImage();
+        if (!confirm()) {
+            return;
+        }
+        loadImage();
         showWindow();
     }
 
@@ -99,7 +101,7 @@ class TiffImageViewer {
     }
 
     private void loadImage() throws IOException {
-//        bi = map.readBufferedImage(0, 0, dimX, dimY);
+        bi = map.readBufferedImage(0, 0, dimX, dimY);
     }
 
     private void showWindow() {
@@ -108,20 +110,9 @@ class TiffImageViewer {
                 (dimX == map.dimX() && dimY == map.dimY() ?
                         "" :
                         " from " + map.dimX() + "x" + map.dimY()) +
-                ")") {
-            @Override
-            public void dispose() {
-                super.dispose();
-                try {
-                    TiffImageViewer.this.dispose();
-                } catch (IOException e) {
-                    app.showErrorMessage(e, "Error closing TIFF");
-                }
-            }
-        };
+                ")");
         imgFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        TiffImageViewPanel panel = new TiffImageViewPanel(map);
-        imgFrame.add(new JScrollPane(panel));
+        imgFrame.add(new JScrollPane(new JLabel(new ImageIcon(bi))));
         imgFrame.pack();
 
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();

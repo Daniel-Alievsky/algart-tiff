@@ -48,6 +48,7 @@ import java.util.prefs.Preferences;
 public class TiffExplorer {
     public static final String ALGART_TIFF_WEBSITE = "https://algart.net/java/AlgART-TIFF/";
 
+    private static final boolean USE_NEW_IMAGE_VIEWER = true;
     private static final String APPLICATION_TITLE = "TIFF Information Viewer";
     private static final boolean DEFAULT_WORD_WRAP = false;
     private static final int DEFAULT_FONT_SIZE = 15;
@@ -592,13 +593,22 @@ public class TiffExplorer {
         if (index < 0 || info == null || index >= info.numberOfImages()) {
             return;
         }
-        try (TiffImageViewer imageViewer = new TiffImageViewer(this, tiffFile, index)) {
-            setShowImageInProgress(true);
-            imageViewer.show();
-        } catch (IOException e) {
-            showErrorMessage(e, "Error reading TIFF image");
-        } finally {
-            setShowImageInProgress(false);
+        if (USE_NEW_IMAGE_VIEWER) {
+            try {
+                TiffImageViewer imageViewer = new TiffImageViewer(this, tiffFile, index);
+                imageViewer.show();
+            } catch (IOException e) {
+                showErrorMessage(e, "Error reading TIFF image");
+            }
+        } else {
+            try (TiffImageViewerOld imageViewer = new TiffImageViewerOld(this, tiffFile, index)) {
+                setShowImageInProgress(true);
+                imageViewer.show();
+            } catch (IOException e) {
+                showErrorMessage(e, "Error reading TIFF image");
+            } finally {
+                setShowImageInProgress(false);
+            }
         }
     }
 
