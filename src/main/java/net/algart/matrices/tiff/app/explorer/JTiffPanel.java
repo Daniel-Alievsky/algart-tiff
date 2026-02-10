@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.app;
+package net.algart.matrices.tiff.app.explorer;
 
 import javax.swing.*;
 import java.awt.*;

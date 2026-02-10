@@ -22,11 +22,12 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.app;
+package net.algart.matrices.tiff.app.explorer;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffImageKind;
+import net.algart.matrices.tiff.app.TiffInfo;
 import net.algart.matrices.tiff.pyramids.TiffPyramidMetadata;
 
 import javax.swing.*;
@@ -631,7 +632,7 @@ public class TiffExplorer {
         content.add(Box.createVerticalStrut(8));
 
         content.add(centeredLabel("By Daniel Alievsky (AlgART Laboratory)"));
-        content.add(centeredLabel("Version 1.5.1"));
+        content.add(centeredLabel("Version 1.5.2"));
         content.add(Box.createVerticalStrut(8));
 
         JLabel link = centeredLabel("<html><a href=\"\">" + ALGART_TIFF_WEBSITE + "</a></html>");

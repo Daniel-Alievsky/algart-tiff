@@ -5,7 +5,7 @@
     <option name="PROGRAM_PARAMETERS" value=" -smart -be src/test/resources/demo/images/tiff/rare_precisions/rgba16f.tif /tmp/copy.tiff" />
     <extension name="coverage">
       <pattern>
-        <option name="PATTERN" value="net.algart.matrices.tiff.app.*" />
+        <option name="PATTERN" value="net.algart.matrices.tiff.app.explorer.*" />
         <option name="ENABLED" value="true" />
       </pattern>
     </extension>

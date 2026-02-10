@@ -5,7 +5,7 @@
     <option name="PROGRAM_PARAMETERS" value="-repack /tmp/test.tiff /tmp/copy.tiff" />
     <extension name="coverage">
       <pattern>
-        <option name="PATTERN" value="net.algart.matrices.tiff.app.*" />
+        <option name="PATTERN" value="net.algart.matrices.tiff.app.explorer.*" />
         <option name="ENABLED" value="true" />
       </pattern>
     </extension>

@@ -1,11 +1,11 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="TiffExplorer" type="Application" factoryName="Application" nameIsGenerated="true">
-    <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.app.TiffExplorer" />
+    <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.app.explorer.TiffExplorer" />
     <module name="algart-tiff" />
     <option name="VM_PARAMETERS" value="-ea -esa -D_net.algart.matrices.tiff.pyramids.detectLabelAndMacroPair=false -Djava.util.logging.config.file=additional/logging.properties" />
     <extension name="coverage">
       <pattern>
-        <option name="PATTERN" value="net.algart.matrices.tiff.app.*" />
+        <option name="PATTERN" value="net.algart.matrices.tiff.app.explorer.*" />
         <option name="ENABLED" value="true" />
       </pattern>
     </extension>

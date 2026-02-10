@@ -5,7 +5,7 @@
     <option name="PROGRAM_PARAMETERS" value="-relative /tmp/test.tiff /tmp/crop.tiff 0.3 0.3 0.7 0.7" />
     <extension name="coverage">
       <pattern>
-        <option name="PATTERN" value="net.algart.matrices.tiff.app.*" />
+        <option name="PATTERN" value="net.algart.matrices.tiff.app.explorer.*" />
         <option name="ENABLED" value="true" />
       </pattern>
     </extension>

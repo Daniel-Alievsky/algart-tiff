@@ -34,7 +34,7 @@
 	</Company_Info>
 	<Program_Info>
 		<Program_Name>AlgART TIFF Information Viewer</Program_Name>
-		<Program_Version>1.5.1</Program_Version>
+		<Program_Version>1.5.2</Program_Version>
 		<Program_Release_Month>01</Program_Release_Month>
 		<Program_Release_Day>01</Program_Release_Day>
 		<Program_Release_Year>2026</Program_Release_Year>
@@ -46,7 +46,7 @@
 		<Program_Install_Support>No Install Support</Program_Install_Support>
 		<Program_OS_Support>Java,Win2000,WinXP,Win7 x32,Win7 x64,Windows 8,Windows 10,Windows 11,WinServer,WinOther,WinVista,WinVista x64,Linux,Mac OS X,MacOS Monterey,MacOS Ventura,MacOS Sonoma</Program_OS_Support>
 		<Program_Language>English</Program_Language>
-		<Program_Change_Info>Initial public release of the TIFF Information Viewer, built in with AlgART-TIFF library 1.5.1</Program_Change_Info>
+		<Program_Change_Info>Initial public release of the TIFF Information Viewer, built in with AlgART-TIFF library 1.5.2</Program_Change_Info>
 		<Program_Specific_Category>Graphics</Program_Specific_Category>
 		<Program_Category_Class>Graphic Apps::Viewers</Program_Category_Class>
 		<Program_System_Requirements>Java Runtime Environment 21 or higher</Program_System_Requirements>
@@ -87,7 +87,7 @@ This software is based on Java and requires Java Runtime Environment, version 21
 			<Application_XML_File_URL>https://algart.net/java/AlgART-TIFF/tiff-explorer/TiffExplorer_pad.xml</Application_XML_File_URL>
 		</Application_URLs>
 		<Download_URLs>
-			<Primary_Download_URL>https://algart.net/java/AlgART-TIFF/download/tiff-explorer-1.5.1.zip</Primary_Download_URL>
+			<Primary_Download_URL>https://algart.net/java/AlgART-TIFF/download/tiff-explorer-1.5.2.zip</Primary_Download_URL>
 			<Secondary_Download_URL />
 			<Additional_Download_URL_1 />
 			<Additional_Download_URL_2 />

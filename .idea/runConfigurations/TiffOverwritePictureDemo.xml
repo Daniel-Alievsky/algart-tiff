@@ -5,7 +5,7 @@
     <option name="PROGRAM_PARAMETERS" value="/tmp/test.tiff src/test/resources/demo/images/lenna.png 0 100 100 150 250 10" />
     <extension name="coverage">
       <pattern>
-        <option name="PATTERN" value="net.algart.matrices.tiff.app.*" />
+        <option name="PATTERN" value="net.algart.matrices.tiff.app.explorer.*" />
         <option name="ENABLED" value="true" />
       </pattern>
     </extension>

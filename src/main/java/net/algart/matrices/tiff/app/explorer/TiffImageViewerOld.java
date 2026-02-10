@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.app;
+package net.algart.matrices.tiff.app.explorer;
 
 import net.algart.arrays.PackedBitArraysPer8;
 import net.algart.matrices.tiff.TiffReader;

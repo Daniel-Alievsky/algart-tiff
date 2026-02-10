@@ -121,7 +121,7 @@
                     <finalName>algart-tiff</finalName>
                     <archive>
                         <manifest>
-                            <mainClass>net.algart.matrices.tiff.app.TiffExplorer</mainClass>
+                            <mainClass>net.algart.matrices.tiff.app.explorer.TiffExplorer</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
