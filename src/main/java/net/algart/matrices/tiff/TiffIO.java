@@ -55,6 +55,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     static final boolean BUILT_IN_TIMING = getBooleanProperty("net.algart.matrices.tiff.timing");
 
     final DataHandle<?> stream;
+    Path filePath = null;
+    // - using in streamName() for more pretty name
     final Object fileLock = new Object();
 
     volatile Context context = null;
@@ -72,6 +74,26 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             // - we prefer not to return this stream in the middle of I/O operations
             return stream;
         }
+    }
+
+    public String streamName() {
+        return streamName("");
+    }
+
+    public String streamName(String prefix) {
+        Objects.requireNonNull(prefix, "Null prefix");
+        if (filePath != null) {
+            return filePath.toString();
+        }
+        Location location = stream.get();
+        if (location == null) {
+            return "";
+        }
+        URI uri = location.getURI();
+        if (uri == null) {
+            return "";
+        }
+        return (prefix + "%s").formatted(uri);
     }
 
     public Context getContext() {
@@ -139,6 +161,10 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return result;
     }
 
+    String spacedStreamName() {
+        return streamName(" ");
+    }
+
     Object scifio() {
         Object scifio = this.scifio;
         if (scifio == null) {
@@ -198,21 +224,6 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
     static long debugTime() {
         return BUILT_IN_TIMING && LOGGABLE_DEBUG ? System.nanoTime() : 0;
-    }
-
-    static String prettyFileName(String format, DataHandle<?> handle) {
-        if (handle == null) {
-            return "";
-        }
-        Location location = handle.get();
-        if (location == null) {
-            return "";
-        }
-        URI uri = location.getURI();
-        if (uri == null) {
-            return "";
-        }
-        return format.formatted(uri);
     }
 
     @SuppressWarnings("SameParameterValue")

@@ -222,6 +222,7 @@ public non-sealed class TiffReader extends TiffIO {
         // We should not use getExistingFileHandle() here: if the file does not exist,
         // the exception should be suppressed when openMode=TiffOpenMode.NO_CHECKS
         this(getFileHandle(file), openMode, true);
+        this.filePath = file;
     }
 
     /**
@@ -1045,7 +1046,7 @@ public non-sealed class TiffReader extends TiffIO {
     public TiffIFD readSingleIFD(int ifdIndex) throws IOException {
         long startOffset = readSingleIFDOffset(ifdIndex);
         if (startOffset < 0) {
-            throw new TiffException("No IFD #" + ifdIndex + " in TIFF" + prettyInName()
+            throw new TiffException("No IFD #" + ifdIndex + " in TIFF" + spacedStreamName()
                     + ": too large index");
         }
         // - note: we do not call setIndexInList(ifdIndex),
@@ -1824,7 +1825,7 @@ public non-sealed class TiffReader extends TiffIO {
                 // - this synchronization is extra, but may become useful
                 // if we decide to make this method public and called not only from the constructor
                 if (!stream.exists()) {
-                    return new FileNotFoundException("File not found:" + prettyInName());
+                    return new FileNotFoundException("File not found:" + spacedStreamName());
                 }
                 testHeader(tiffReference, bigTiffReference);
                 assert tiffReference.get();
@@ -1856,7 +1857,7 @@ public non-sealed class TiffReader extends TiffIO {
             stream.seek(0);
             final long length = stream.length();
             if (length < 8) {
-                throw new TiffException("The file" + prettyInName() + " is not TIFF (only " + length +
+                throw new TiffException("The file" + spacedStreamName() + " is not TIFF (only " + length +
                         " bytes, but a valid TIFF cannot be shorter than 8 bytes)");
             }
             final int endianOne = stream.readByte() & 0xff;
@@ -1866,14 +1867,14 @@ public non-sealed class TiffReader extends TiffIO {
             final boolean bigEndian = endianOne == FILE_PREFIX_BIG_ENDIAN &&
                     endianTwo == FILE_PREFIX_BIG_ENDIAN;
             if (!littleEndian && !bigEndian) {
-                throw new TiffException("The file" + prettyInName() + " is not TIFF");
+                throw new TiffException("The file" + spacedStreamName() + " is not TIFF");
             }
             stream.setLittleEndian(littleEndian);
             final short magic = stream.readShort();
             // - not readByte()! the result depends on the previous in.setLittleEndian()
             final boolean bigTiff = magic == FILE_BIG_TIFF_MAGIC_NUMBER;
             if (magic != FILE_USUAL_MAGIC_NUMBER && magic != FILE_BIG_TIFF_MAGIC_NUMBER) {
-                throw new TiffException("The file" + prettyInName() + " is not TIFF");
+                throw new TiffException("The file" + spacedStreamName() + " is not TIFF");
             }
             tiffReference.set(true);
             bigTiffReference.set(bigTiff);
@@ -1882,7 +1883,7 @@ public non-sealed class TiffReader extends TiffIO {
                 // - sometimes we can meet 8-byte "TIFF files" (or 16-byte "BigTIFF") that contain only header
                 // and no actual data: possible results of debugging writing algorithm or bugs while writing
                 // (forgotten completeWriting() call).
-                throw new TiffException("Too short TIFF file" + prettyInName() + ": only " + length +
+                throw new TiffException("Too short TIFF file" + spacedStreamName() + ": only " + length +
                         " bytes (a valid TIFF must contain at least " + MINIMAL_ALLOWED_TIFF_FILE_LENGTH +
                         " bytes); probably the TIFF writing process was not completed normally");
             }
@@ -1990,10 +1991,6 @@ public non-sealed class TiffReader extends TiffIO {
         return byteCount;
     }
 
-    private String prettyInName() {
-        return prettyFileName(" %s", stream);
-    }
-
     public void checkFirstOffset() throws IOException {
         synchronized (fileLock) {
             final long savedOffset = stream.offset();
@@ -2010,7 +2007,7 @@ public non-sealed class TiffReader extends TiffIO {
             throws IOException {
         final long offset = readNextOffset(updatePositionOfLastOffset, bigTiff);
         if (offset == 0) {
-            throw new TiffException("Uncompleted TIFF" + prettyInName() +
+            throw new TiffException("Uncompleted TIFF" + spacedStreamName() +
                     ": the file does not contain any images; " +
                     "probably the TIFF writing process was not completed normally");
         }
@@ -2030,7 +2027,7 @@ public non-sealed class TiffReader extends TiffIO {
         final long skippedIFDBytes = numberOfEntries * bytesPerEntry;
         if (offset + skippedIFDBytes >= fileLength) {
             throw new TiffException(
-                    "Invalid TIFF" + prettyInName() + ": position of next IFD offset " +
+                    "Invalid TIFF" + spacedStreamName() + ": position of next IFD offset " +
                             (offset + skippedIFDBytes) + " after " + numberOfEntries +
                             " entries is outside the file (probably file is broken)");
         }
@@ -2076,12 +2073,12 @@ public non-sealed class TiffReader extends TiffIO {
         }
         if (offset < 0) {
             // - possibly in BigTIFF only
-            throw new TiffException("Invalid TIFF" + prettyInName() +
+            throw new TiffException("Invalid TIFF" + spacedStreamName() +
                     ": negative 64-bit offset " + offset + " at file position " + fileOffset +
                     ", probably the file is corrupted");
         }
         if (offset >= fileLength) {
-            throw new TiffException("Invalid TIFF" + prettyInName() + ": offset " + offset +
+            throw new TiffException("Invalid TIFF" + spacedStreamName() + ": offset " + offset +
                     " at file position " + fileOffset + " is outside the file, probably the is corrupted");
         }
         if (updatePositionOfLastOffset) {

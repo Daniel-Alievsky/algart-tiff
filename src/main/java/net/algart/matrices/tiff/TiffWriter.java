@@ -125,6 +125,7 @@ public non-sealed class TiffWriter extends TiffIO {
      */
     public TiffWriter(Path file) {
         this(getFileHandle(file));
+        this.filePath = file;
     }
 
     /**
@@ -183,6 +184,7 @@ public non-sealed class TiffWriter extends TiffIO {
         this(openWithDeletingPreviousFileIfRequested(file, createMode));
         try {
             createMode.configureWriter(this);
+            this.filePath = file;
         } catch (IOException exception) {
             try {
                 stream.close();
@@ -613,8 +615,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 if (createIfNotExists) {
                     create();
                 } else {
-                    throw new FileNotFoundException("Output TIFF file " +
-                            prettyFileName("%s", stream) + " does not exist");
+                    throw new FileNotFoundException("Output TIFF file" + spacedStreamName() + " does not exist");
                 }
                 // In this branch, we MUST NOT try to analyze the file: it is not a correct TIFF!
             } else {

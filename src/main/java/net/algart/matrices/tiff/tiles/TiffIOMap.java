@@ -51,6 +51,11 @@ public abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, Tiff
 
     public abstract TiffIO owner();
 
+    @SuppressWarnings("resource")
+    public String streamName() {
+        return owner().streamName();
+    }
+
     public abstract boolean isExisting();
 
     @SuppressWarnings("resource")

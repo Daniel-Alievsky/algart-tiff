@@ -41,6 +41,8 @@ class TiffImageViewer {
     private static final int MAX_IMAGE_DIM = 16000;
     // 16000 * 16000 * 4 channels RGBA * 16 bit/channel < Integer.MAX_VALUE
 
+    private static final System.Logger LOG = System.getLogger(TiffExplorer.class.getName());
+
     private final TiffExplorer app;
     private final TiffReader reader;
     private final int index;
@@ -49,17 +51,24 @@ class TiffImageViewer {
     private int numberOfImages;
     private int dimX;
     private int dimY;
-    private BufferedImage bi = null;
 
     public TiffImageViewer(TiffExplorer app, Path tiffFile, int index) throws IOException {
         this.app = Objects.requireNonNull(app);
         Objects.requireNonNull(tiffFile);
         this.reader = new TiffReaderWithGrid(tiffFile, app.viewTileGrid);
+        LOG.log(System.Logger.Level.INFO, "Viewer opened " + reader.streamName());
         this.index = index;
     }
 
-    public void dispose() throws IOException {
-        this.reader.close();
+    public void dispose() {
+        try {
+            this.reader.close();
+            LOG.log(System.Logger.Level.DEBUG, "Viewer closed " + reader.streamName());
+        } catch (IOException e) {
+            LOG.log(System.Logger.Level.INFO, "Error while closing " + reader.streamName() +
+                    ": " + e.getMessage(), e);
+            // - no sense to show this error to the end user
+        }
     }
 
     public void show() throws IOException {
@@ -103,23 +112,13 @@ class TiffImageViewer {
     }
 
     private void showWindow() {
-        JFrame imgFrame = new JFrame("TIFF Image #" + index + " from " + numberOfImages +
+        JFrame imgFrame = new JTiffFrame(this);
+        imgFrame.setTitle("TIFF Image #" + index + " from " + numberOfImages +
                 " images (" + dimX + "x" + dimY +
                 (dimX == map.dimX() && dimY == map.dimY() ?
                         "" :
                         " from " + map.dimX() + "x" + map.dimY()) +
-                ")") {
-            @Override
-            public void dispose() {
-                super.dispose();
-                try {
-                    TiffExplorer.LOG.log(System.Logger.Level.INFO, "Closing " + reader);
-                    TiffImageViewer.this.dispose();
-                } catch (IOException e) {
-                    app.showErrorMessage(e, "Error closing TIFF");
-                }
-            }
-        };
+                ")");
         imgFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         JTiffPanel panel = new JTiffPanel(map);
         imgFrame.add(new JScrollPane(panel));

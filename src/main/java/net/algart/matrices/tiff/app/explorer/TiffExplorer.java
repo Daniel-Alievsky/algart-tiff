@@ -86,7 +86,7 @@ public class TiffExplorer {
     private static final String PREF_WINDOW_WIDTH = "windowWidth";
     private static final String PREF_WINDOW_HEIGHT = "windowHeight";
 
-    static final System.Logger LOG = System.getLogger(TiffExplorer.class.getName());
+    private static final System.Logger LOG = System.getLogger(TiffExplorer.class.getName());
 
     private static final FileFilter TIFF_FILTER = new FileNameExtensionFilter(
             "TIFF / SVS files (*.tif, *.tiff, *.svs)", "tif", "tiff", "svs");
@@ -147,9 +147,7 @@ public class TiffExplorer {
         JPanel topPanel = new JPanel(new BorderLayout());
         JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
 
-        frame.setIconImages(java.util.List.of(
-                new ImageIcon(reqResource("TiffExplorer_icon_16.png")).getImage(),
-                new ImageIcon(reqResource("TiffExplorer_icon_32.png")).getImage()));
+        setTiffExplorerIcon(frame);
 
         openFileButton = new JButton("Open TIFF");
         openFileButton.addActionListener(e -> chooseAndOpenFile());
@@ -713,7 +711,13 @@ public class TiffExplorer {
         return false;
     }
 
-    private static URL reqResource(String name) {
+    static void setTiffExplorerIcon(JFrame frame) {
+        frame.setIconImages(java.util.List.of(
+                new ImageIcon(reqResource("TiffExplorer_icon_16.png")).getImage(),
+                new ImageIcon(reqResource("TiffExplorer_icon_32.png")).getImage()));
+    }
+
+    static URL reqResource(String name) {
         final URL result = TiffExplorer.class.getResource(name);
         Objects.requireNonNull(result, "Resource " + name + " not found");
         return result;
