@@ -27,7 +27,6 @@ package net.algart.matrices.tiff;
 import org.scijava.Context;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.location.BytesLocation;
-import org.scijava.io.location.Location;
 
 import java.io.IOException;
 
@@ -60,6 +59,7 @@ public class TiffReaderWriterScifioTest {
 
             DataHandle<?> bytesHandle = TiffIO.getBytesHandle(new BytesLocation(10));
             TiffReader reader = new TiffReader(bytesHandle, TiffOpenMode.NO_CHECKS);
+            System.out.printf("Stream name: \"%s\"%n", reader.streamName());
             checkContext(reader);
             Context context = TiffReader.newSCIFIOContext();
             reader.setContext(context);

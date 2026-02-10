@@ -110,7 +110,6 @@ public class TiffExplorer {
     private TiffInfo info = null;
     private Path tiffFile = null;
     private TiffIFD.StringFormat stringFormat = TiffIFD.StringFormat.NORMAL;
-    boolean viewTileGrid = false;
 
     private volatile boolean loadingInProgress = false;
     private volatile boolean loadingOk = false;
@@ -348,10 +347,6 @@ public class TiffExplorer {
         showImageItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F3, 0));
         showImageItem.addActionListener(e -> showImageWindow());
         viewMenu.add(showImageItem);
-        JCheckBoxMenuItem tileGridItem = new JCheckBoxMenuItem("Tile grid on image");
-        tileGridItem.setSelected(viewTileGrid);
-        tileGridItem.addActionListener(e -> viewTileGrid = tileGridItem.isSelected());
-        viewMenu.add(tileGridItem);
 
         JMenu helpMenu = new JMenu("Help");
         JMenuItem aboutItem = new JMenuItem("About");
@@ -595,16 +590,19 @@ public class TiffExplorer {
         if (USE_NEW_IMAGE_VIEWER) {
             try {
                 TiffImageViewer imageViewer = new TiffImageViewer(this, tiffFile, index);
+                setShowImageInProgress(true);
                 imageViewer.show();
             } catch (IOException e) {
-                showErrorMessage(e, "Error reading TIFF image");
+                showErrorMessage(e, "Error opening the TIFF image");
+            } finally {
+                setShowImageInProgress(false);
             }
         } else {
             try (TiffImageViewerOld imageViewer = new TiffImageViewerOld(this, tiffFile, index)) {
                 setShowImageInProgress(true);
                 imageViewer.show();
             } catch (IOException e) {
-                showErrorMessage(e, "Error reading TIFF image");
+                showErrorMessage(e, "Error reading the TIFF image");
             } finally {
                 setShowImageInProgress(false);
             }

@@ -55,7 +55,7 @@ class TiffImageViewerOld implements Closeable {
     public TiffImageViewerOld(TiffExplorer app, Path tiffFile, int index) throws IOException {
         this.app = Objects.requireNonNull(app);
         Objects.requireNonNull(tiffFile);
-        this.reader = new TiffReaderWithGrid(tiffFile, app.viewTileGrid);
+        this.reader = new TiffReaderWithGrid(tiffFile, false);
         this.index = index;
     }
 

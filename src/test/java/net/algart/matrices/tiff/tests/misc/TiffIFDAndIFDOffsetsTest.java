@@ -45,8 +45,7 @@ public class TiffIFDAndIFDOffsetsTest {
             startArgIndex++;
         }
         if (args.length < startArgIndex + 2) {
-            System.out.println("Usage:");
-            System.out.println("    " + TiffIFDAndIFDOffsetsTest.class.getName() + " tiff_file.tiff ifdIndex");
+            System.out.printf("Usage: %s tiff_file.tiff ifdIndex%n", TiffIFDAndIFDOffsetsTest.class.getName());
             return;
         }
 
@@ -58,7 +57,7 @@ public class TiffIFDAndIFDOffsetsTest {
         final int m = reader.allMaps().size();
         final int n1 = reader.mainIFDs().size();
         final int n2 = reader.readIFDOffsets().length;
-        // - should not throw exception for invalid file
+        // - should not throw exception for an invalid file
         if (n1 != n2 || n1 > m) {
             throw new AssertionError(n1 + ", " + n2 + ", " + m);
         }

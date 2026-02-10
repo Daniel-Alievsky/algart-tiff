@@ -149,8 +149,8 @@ public non-sealed class TiffReader extends TiffIO {
     // see TiffIFD.lengthInFileExcludingEntries;
     // note that this constant should be > 16 to detect a "fake" BigTIFF file, containing header only
 
-    private boolean caching = true;
-    private long maxCachingMemory = DEFAULT_MAX_CACHING_MEMORY;
+    private volatile boolean caching = true;
+    private volatile long maxCacheMemory = DEFAULT_MAX_CACHING_MEMORY;
     private UnpackBits autoUnpackBits = UnpackBits.NONE;
     private UnusualPrecisions unusualPrecisions = UnusualPrecisions.UNPACK;
     private boolean autoScaleWhenIncreasingBitDepth = true;
@@ -365,13 +365,13 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     /**
-     * Enables or disables caching tile. If caching is enabled, {@link #readCachedTile(TiffTileIndex)} method
+     * Enables or disables tile caching. If caching is enabled, {@link #readCachedTile(TiffTileIndex)} method
      * works very quickly when the tile is found in the cache.
      *
-     * <p>By default, the caching is enabled (<code>true</code>). We recommend disabling it to save memory
+     * <p>By default, caching is enabled (<code>true</code>). We recommend disabling it to save memory
      * if you are not going to read fragments of this file many times.</p>
      *
-     * @param caching whether reading data from the fill should be cached.
+     * @param caching whether the tiles should be cached.
      * @return a reference to this object.
      */
     public TiffReader setCaching(boolean caching) {
@@ -379,18 +379,24 @@ public non-sealed class TiffReader extends TiffIO {
         return this;
     }
 
-    public long getMaxCachingMemory() {
-        return maxCachingMemory;
+    public long getMaxCacheMemory() {
+        return maxCacheMemory;
     }
 
-    public TiffReader setMaxCachingMemory(long maxCachingMemory) {
-        if (maxCachingMemory < 0) {
-            throw new IllegalArgumentException("Negative maxCachingMemory = " + maxCachingMemory);
+    public TiffReader setMaxCacheMemory(long maxCacheMemory) {
+        if (maxCacheMemory < 0) {
+            throw new IllegalArgumentException("Negative maxCacheMemory = " + maxCacheMemory);
         }
-        this.maxCachingMemory = maxCachingMemory;
+        this.maxCacheMemory = maxCacheMemory;
         return this;
     }
 
+    public TiffReader resetCache() {
+        synchronized (tileCacheLock) {
+            tileCacheMap.clear();
+        }
+        return this;
+    }
 
     public UnpackBits getAutoUnpackBits() {
         return autoUnpackBits;
@@ -1145,7 +1151,7 @@ public non-sealed class TiffReader extends TiffIO {
      * @throws IOException in the case of any problems with the input file.
      */
     public TiffTile readCachedTile(TiffTileIndex tileIndex) throws IOException {
-        if (!caching || maxCachingMemory == 0) {
+        if (!caching || maxCacheMemory == 0) {
             return readTile(tileIndex);
         }
         return getCachedTile(tileIndex).readIfNecessary();
@@ -2369,13 +2375,13 @@ public non-sealed class TiffReader extends TiffIO {
         private void saveCache(TiffTile tile) {
             Objects.requireNonNull(tile);
             synchronized (tileCacheLock) {
-                if (caching && maxCachingMemory > 0) {
+                if (caching && maxCacheMemory > 0) {
                     this.cachedTile = new SoftReference<>(tile);
                     this.cachedDataLength = tile.getDecodedDataLength();
                     currentCacheMemory += this.cachedDataLength;
                     tileCache.add(this);
                     LOG.log(System.Logger.Level.TRACE, () -> "STORING tile in cache: " + tileIndex);
-                    while (currentCacheMemory > maxCachingMemory) {
+                    while (currentCacheMemory > maxCacheMemory) {
                         CachedTile cached = tileCache.remove();
                         assert cached != null;
                         currentCacheMemory -= cached.cachedDataLength;
@@ -2383,7 +2389,7 @@ public non-sealed class TiffReader extends TiffIO {
                         Runtime runtime = Runtime.getRuntime();
                         LOG.log(System.Logger.Level.TRACE, () -> String.format(Locale.US,
                                 "REMOVING tile from cache (limit %.1f MB exceeded, used memory %.1f MB): %s",
-                                maxCachingMemory / 1048576.0,
+                                maxCacheMemory / 1048576.0,
                                 (runtime.totalMemory() - runtime.freeMemory()) / 1048576.0,
                                 cached.tileIndex));
                     }

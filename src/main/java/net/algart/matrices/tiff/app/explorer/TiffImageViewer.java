@@ -24,27 +24,19 @@
 
 package net.algart.matrices.tiff.app.explorer;
 
-import net.algart.arrays.PackedBitArraysPer8;
-import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
-import net.algart.matrices.tiff.tiles.TiffTile;
-import net.algart.matrices.tiff.tiles.TiffTileIndex;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Objects;
 
 class TiffImageViewer {
-    private static final int MAX_IMAGE_DIM = 16000;
-    // 16000 * 16000 * 4 channels RGBA * 16 bit/channel < Integer.MAX_VALUE
-
     private static final System.Logger LOG = System.getLogger(TiffExplorer.class.getName());
 
     private final TiffExplorer app;
-    private final TiffReader reader;
+    private final TiffReaderWithGrid reader;
     private final int index;
 
     private TiffReadMap map = null;
@@ -52,10 +44,12 @@ class TiffImageViewer {
     private int dimX;
     private int dimY;
 
+    private JTiffPanel tiffPanel;
+
     public TiffImageViewer(TiffExplorer app, Path tiffFile, int index) throws IOException {
         this.app = Objects.requireNonNull(app);
         Objects.requireNonNull(tiffFile);
-        this.reader = new TiffReaderWithGrid(tiffFile, app.viewTileGrid);
+        this.reader = new TiffReaderWithGrid(tiffFile);
         LOG.log(System.Logger.Level.INFO, "Viewer opened " + reader.streamName());
         this.index = index;
     }
@@ -63,21 +57,18 @@ class TiffImageViewer {
     public void dispose() {
         try {
             this.reader.close();
-            LOG.log(System.Logger.Level.DEBUG, "Viewer closed " + reader.streamName());
         } catch (IOException e) {
             LOG.log(System.Logger.Level.INFO, "Error while closing " + reader.streamName() +
                     ": " + e.getMessage(), e);
             // - no sense to show this error to the end user
+            return;
         }
+        LOG.log(System.Logger.Level.DEBUG, "Viewer closed " + reader.streamName());
     }
 
     public void show() throws IOException {
         openMap();
-//        if (!confirm()) {
-//            return;
-//        }
-//        loadImage();
-        showWindow();
+        createGUI();
     }
 
     private void openMap() throws IOException {
@@ -87,89 +78,51 @@ class TiffImageViewer {
         dimY = map.dimY();
     }
 
-    private boolean confirm() {
-        if (dimX > MAX_IMAGE_DIM || dimY > MAX_IMAGE_DIM) {
-            dimX = Math.min(dimX, MAX_IMAGE_DIM);
-            dimY = Math.min(dimY, MAX_IMAGE_DIM);
-            int choice = JOptionPane.showConfirmDialog(
-                    app.frame,
-                    (
-                            "The image is too large to display: %d×%d pixels.%n" +
-                                    "We will show only its part %d×%d.%n" +
-                                    "Do you want to continue?"
-                    ).formatted(map.dimX(), map.dimY(), dimX, dimY),
-                    "Large Image Warning",
-                    JOptionPane.YES_NO_OPTION,
-                    JOptionPane.WARNING_MESSAGE
-            );
-            return choice == JOptionPane.YES_OPTION;
-        }
-        return true;
-    }
 
-    private void loadImage() throws IOException {
-//        bi = map.readBufferedImage(0, 0, dimX, dimY);
-    }
-
-    private void showWindow() {
-        JFrame imgFrame = new JTiffFrame(this);
-        imgFrame.setTitle("TIFF Image #" + index + " from " + numberOfImages +
-                " images (" + dimX + "x" + dimY +
-                (dimX == map.dimX() && dimY == map.dimY() ?
+    private void createGUI() {
+        JFrame frame = new JTiffFrame(this);
+        frame.setTitle("TIFF Image #%d from %d images (%dx%d%s)".formatted(
+                index, numberOfImages, dimX, dimY, dimX == map.dimX() && dimY == map.dimY() ?
                         "" :
-                        " from " + map.dimX() + "x" + map.dimY()) +
-                ")");
-        imgFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        JTiffPanel panel = new JTiffPanel(map);
-        imgFrame.add(new JScrollPane(panel));
-        imgFrame.pack();
+                        " from %dx%d".formatted(map.dimX(), map.dimY())));
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        frame.setJMenuBar(buildMenuBar());
+
+        tiffPanel = new JTiffPanel(map);
+        JScrollPane scrollPane = new JTiffScrollPane(tiffPanel);
+        frame.add(scrollPane);
+        frame.pack();
 
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        Dimension frameSize = imgFrame.getSize();
+        Dimension frameSize = frame.getSize();
         frameSize.width = Math.min(frameSize.width, screenSize.width - 10);
         frameSize.height = Math.min(frameSize.height, screenSize.height - 50);
         // - ensure that scroll bar and other elements will be visible even for very large images
-        imgFrame.setSize(frameSize);
+        frame.setSize(frameSize);
 
-        imgFrame.setLocationRelativeTo(app.frame);
-        imgFrame.setVisible(true);
+        frame.setLocationRelativeTo(app.frame);
+        frame.setVisible(true);
     }
 
-    private static class TiffReaderWithGrid extends TiffReader {
-        private final boolean viewTileGrid;
+    private JMenuBar buildMenuBar() {
+        JMenuBar menuBar = new JMenuBar();
 
-        TiffReaderWithGrid(Path tiffFile, boolean viewTileGrid) throws IOException {
-            super(tiffFile);
-            this.viewTileGrid = viewTileGrid;
-        }
+        JMenu viewMenu = new JMenu("View");
+        JCheckBoxMenuItem tileItem = new JCheckBoxMenuItem(
+                "Draw %s".formatted(map.isTiled() ? "tile grid" : "strip boundaries"));
+        tileItem.setSelected(false);
+        tileItem.addActionListener(e -> {
+            reader.setViewTileGrid(tileItem.isSelected());
+            updateTiff();
+        });
+        viewMenu.add(tileItem);
+        menuBar.add(viewMenu);
+        return menuBar;
+    }
 
-        @Override
-        public TiffTile readTile(TiffTileIndex tileIndex) throws IOException {
-            final TiffTile tile = super.readTile(tileIndex);
-            if (viewTileGrid && tile.map().isTiled()) {
-                addTileBorder(tile);
-            }
-            return tile;
-        }
 
-        private static void addTileBorder(TiffTile tile) {
-            if (!tile.isSeparated()) {
-                throw new AssertionError("Tile is not separated");
-            }
-            byte[] decoded = tile.getDecodedData();
-            final int sample = tile.bitsPerSample();
-            final int sizeX = tile.getSizeX() * sample;
-            final int sizeY = tile.getSizeY();
-            final int sizeInBits = sizeX * sizeY;
-            for (int c = 0; c < tile.samplesPerPixel(); c++) {
-                int disp = c * sizeInBits;
-                PackedBitArraysPer8.fillBits(decoded, disp, sizeX, false);
-                PackedBitArraysPer8.fillBits(decoded, disp + sizeInBits - sizeX, sizeX, false);
-                for (int k = 0; k < sizeY; k++, disp += sizeX) {
-                    PackedBitArraysPer8.fillBits(decoded, disp, sample, false);
-                    PackedBitArraysPer8.fillBits(decoded, disp + sizeX - sample, sample, false);
-                }
-            }
-        }
+    private void updateTiff() {
+        reader.resetCache();
+        tiffPanel.repaint();
     }
 }
