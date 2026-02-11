@@ -333,6 +333,7 @@ public class TiffExplorer {
             viewModeMenu.add(item);
         }
         viewMenu.add(viewModeMenu);
+        viewMenu.addSeparator();
 
         JMenu fontFamilyMenu = new JMenu("Font");
         ButtonGroup fontFamilyGroup = new ButtonGroup();
@@ -683,6 +684,7 @@ public class TiffExplorer {
         wordWrapCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
         toolsPanel.add(wordWrapCheckbox, BorderLayout.EAST);
         content.add(toolsPanel);
+        toolsPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, toolsPanel.getPreferredSize().height));
         content.add(Box.createVerticalStrut(10));
 
         JLabel warningLabel = new JLabel("""
@@ -726,6 +728,7 @@ public class TiffExplorer {
         JDialog dialog = new JDialog(frame, "About TIFF Information Viewer", true);
         dialog.setLayout(new BorderLayout(10, 10));
         dialog.setMinimumSize(new Dimension(100, 200));
+        dialog.setResizable(false);
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBorder(BorderFactory.createEmptyBorder(10, 50, 10, 50));
