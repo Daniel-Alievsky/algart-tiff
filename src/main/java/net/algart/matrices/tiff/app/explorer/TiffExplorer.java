@@ -47,12 +47,6 @@ import java.util.prefs.Preferences;
 public class TiffExplorer {
     public static final String ALGART_TIFF_WEBSITE = "https://algart.net/java/AlgART-TIFF/";
 
-    private static final boolean USE_NEW_IMAGE_VIEWER = true;
-    private static final String APPLICATION_TITLE = "TIFF Information Viewer";
-    private static final boolean DEFAULT_WORD_WRAP = false;
-    private static final int DEFAULT_FONT_SIZE = 15;
-    private static final int[] FONT_SIZES = {12, DEFAULT_FONT_SIZE, 18, 22};
-
     public enum ViewMode {
         BRIEF(TiffIFD.StringFormat.BRIEF, "Brief"),
         NORMAL(TiffIFD.StringFormat.NORMAL, "Normal"),
@@ -74,6 +68,23 @@ public class TiffExplorer {
         }
     }
 
+    private enum FontFamily {
+        STANDARD("System (default)"),
+        CONSOLAS("Consolas");
+        // - CONSOLAS has a reduced set of characters, for example, no Hebrew
+        private final String fontName;
+
+        FontFamily(String fontName) {
+            this.fontName = fontName;
+        }
+    }
+
+    private static final boolean USE_NEW_IMAGE_VIEWER = true;
+    private static final String APPLICATION_TITLE = "TIFF Information Viewer";
+    private static final boolean DEFAULT_WORD_WRAP = false;
+    private static final int DEFAULT_FONT_SIZE = 15;
+    private static final int[] FONT_SIZES = {12, DEFAULT_FONT_SIZE, 18, 22};
+    private static final FontFamily DEFAULT_FONT_FAMILY = FontFamily.CONSOLAS;
     private static final Color COMMON_BACKGROUND = new Color(240, 240, 240);
     private static final Color ERROR_BACKGROUND = new Color(255, 255, 155);
     private static final Color SVS_FOREGROUND = new Color(0, 128, 0);
@@ -83,6 +94,9 @@ public class TiffExplorer {
     private static final String PREF_WINDOW_Y = "windowY";
     private static final String PREF_WINDOW_WIDTH = "windowWidth";
     private static final String PREF_WINDOW_HEIGHT = "windowHeight";
+    private static final String PREF_FONT_FAMILY = "fontFamily";
+    private static final String PREF_FONT_SIZE = "fontSize";
+    private static final String PREF_WORD_WRAP = "wordWrap";
 
     private static final System.Logger LOG = System.getLogger(TiffExplorer.class.getName());
 
@@ -104,6 +118,10 @@ public class TiffExplorer {
     private JTextArea summaryInfoTextArea;
     private JTextArea svsInfoTextArea;
     private FileFilter lastFileFilter = TIFF_FILTER;
+
+    private int fontSize = DEFAULT_FONT_SIZE;
+    private FontFamily fontFamily = DEFAULT_FONT_FAMILY;
+    private boolean wordWrap = DEFAULT_WORD_WRAP;
 
     private TiffInfo info = null;
     private Path tiffFile = null;
@@ -136,6 +154,7 @@ public class TiffExplorer {
     }
 
     private void createGUI(String[] args) {
+        loadPreferences();
         frame = new JFrame(APPLICATION_TITLE);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
@@ -167,7 +186,7 @@ public class TiffExplorer {
                 frameSize.width, frameSize.height - ifdTextArea.getPreferredSize().height + 32));
         // - the user cannot reduce window size too much, so that elements become invisible
         frame.setLocationRelativeTo(null);
-        loadPreferences();
+        loadFramePreferences();
         frame.setVisible(true);
         frame.addWindowListener(new WindowAdapter() {
             @Override
@@ -185,9 +204,9 @@ public class TiffExplorer {
         textPanel.setBackground(COMMON_BACKGROUND);
         textPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         ifdTextArea = new JTextArea(10, 80);
-        ifdTextArea.setFont(getPreferredMonoFont(DEFAULT_FONT_SIZE));
+        ifdTextArea.setFont(getPreferredMonoFont(fontFamily, fontSize));
         ifdTextArea.setEditable(false);
-        ifdTextArea.setLineWrap(DEFAULT_WORD_WRAP);
+        ifdTextArea.setLineWrap(wordWrap);
         ifdTextArea.setWrapStyleWord(true);
         ifdTextArea.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         ifdTextArea.setBackground(Color.WHITE);
@@ -203,19 +222,19 @@ public class TiffExplorer {
     private void addBottomInfoTextArea() {
         summaryInfoTextArea = new JTextArea(2, 80);
         summaryInfoTextArea.setEditable(false);
-        summaryInfoTextArea.setLineWrap(DEFAULT_WORD_WRAP);
+        summaryInfoTextArea.setLineWrap(wordWrap);
         summaryInfoTextArea.setWrapStyleWord(true);
         summaryInfoTextArea.setBorder(BorderFactory.createEmptyBorder(3, 5, 3, 5));
-        summaryInfoTextArea.setFont(getPreferredMonoFont(DEFAULT_FONT_SIZE));
+        summaryInfoTextArea.setFont(getPreferredMonoFont(fontFamily, fontSize));
         summaryInfoTextArea.setBackground(COMMON_BACKGROUND);
         summaryInfoTextArea.setForeground(new Color(20, 20, 20));
         summaryInfoTextArea.setOpaque(true);
         svsInfoTextArea = new JTextArea(1, 80);
         svsInfoTextArea.setEditable(false);
-        svsInfoTextArea.setLineWrap(DEFAULT_WORD_WRAP);
+        svsInfoTextArea.setLineWrap(wordWrap);
         svsInfoTextArea.setWrapStyleWord(true);
         svsInfoTextArea.setBorder(BorderFactory.createEmptyBorder(3, 5, 3, 5));
-        svsInfoTextArea.setFont(getPreferredMonoFont(DEFAULT_FONT_SIZE));
+        svsInfoTextArea.setFont(getPreferredMonoFont(fontFamily, fontSize));
         svsInfoTextArea.setBackground(COMMON_BACKGROUND);
         svsInfoTextArea.setForeground(SVS_FOREGROUND);
         svsInfoTextArea.setOpaque(true);
@@ -314,25 +333,44 @@ public class TiffExplorer {
             viewModeMenu.add(item);
         }
         viewMenu.add(viewModeMenu);
+
+        JMenu fontFamilyMenu = new JMenu("Font");
+        ButtonGroup fontFamilyGroup = new ButtonGroup();
+        for (FontFamily family : FontFamily.values()) {
+            JRadioButtonMenuItem familyItem = new JRadioButtonMenuItem(family.fontName);
+            if (family == fontFamily) {
+                familyItem.setSelected(true);
+            }
+            familyItem.addActionListener(e -> {
+                fontFamily = family;
+                updateTextAreasFontSize();
+            });
+            fontFamilyGroup.add(familyItem);
+            fontFamilyMenu.add(familyItem);
+        }
+        viewMenu.add(fontFamilyMenu);
+
         JMenu fontSizeMenu = new JMenu("Font size");
         ButtonGroup fontSizeGroup = new ButtonGroup();
         for (int size : FONT_SIZES) {
             JRadioButtonMenuItem sizeItem = new JRadioButtonMenuItem(size + " pt");
-            if (size == DEFAULT_FONT_SIZE) {
+            if (size == fontSize) {
                 sizeItem.setSelected(true);
             }
-            sizeItem.addActionListener(e -> setTextAreasFontSize(size));
+            sizeItem.addActionListener(e -> {
+                fontSize = size;
+                updateTextAreasFontSize();
+            });
             fontSizeGroup.add(sizeItem);
             fontSizeMenu.add(sizeItem);
         }
         viewMenu.add(fontSizeMenu);
+
         JCheckBoxMenuItem wrapItem = new JCheckBoxMenuItem("Word wrap");
-        wrapItem.setSelected(DEFAULT_WORD_WRAP);
+        wrapItem.setSelected(wordWrap);
         wrapItem.addActionListener(e -> {
-            boolean wrap = wrapItem.isSelected();
-            ifdTextArea.setLineWrap(wrap);
-            summaryInfoTextArea.setLineWrap(wrap);
-            svsInfoTextArea.setLineWrap(wrap);
+            wordWrap = wrapItem.isSelected();
+            updateWordWrap();
         });
         viewMenu.add(wrapItem);
         viewMenu.addSeparator();
@@ -382,11 +420,17 @@ public class TiffExplorer {
 //        }
     }
 
-    private void setTextAreasFontSize(int size) {
-        final Font mono = getPreferredMonoFont(size);
+    private void updateTextAreasFontSize() {
+        final Font mono = getPreferredMonoFont(fontFamily, fontSize);
         ifdTextArea.setFont(mono);
         summaryInfoTextArea.setFont(mono);
         svsInfoTextArea.setFont(mono);
+    }
+
+    private void updateWordWrap() {
+        ifdTextArea.setLineWrap(wordWrap);
+        summaryInfoTextArea.setLineWrap(wordWrap);
+        svsInfoTextArea.setLineWrap(wordWrap);
     }
 
     private void selectNextImage() {
@@ -565,36 +609,6 @@ public class TiffExplorer {
             ifdTextArea.setCaretPosition(0);
         }
     }
-
-    private void savePreferences() {
-        Rectangle bounds = frame.getBounds();
-        prefs.putInt(PREF_WINDOW_X, bounds.x);
-        prefs.putInt(PREF_WINDOW_Y, bounds.y);
-        prefs.putInt(PREF_WINDOW_WIDTH, bounds.width);
-        prefs.putInt(PREF_WINDOW_HEIGHT, bounds.height);
-    }
-
-    private void loadPreferences() {
-        final int x = prefs.getInt(PREF_WINDOW_X, Integer.MIN_VALUE);
-        final int y = prefs.getInt(PREF_WINDOW_Y, Integer.MIN_VALUE);
-        final int w = prefs.getInt(PREF_WINDOW_WIDTH, frame.getWidth());
-        final int h = prefs.getInt(PREF_WINDOW_HEIGHT, frame.getHeight());
-
-        frame.setSize(w, h);
-
-        if (x != Integer.MIN_VALUE && y != Integer.MIN_VALUE) {
-            Rectangle screen = frame.getGraphicsConfiguration().getBounds();
-            if (x + w <= screen.x + screen.width &&
-                    y + h <= screen.y + screen.height) {
-                frame.setLocation(x, y);
-            } else {
-                frame.setLocationRelativeTo(null);
-            }
-        } else {
-            frame.setLocationRelativeTo(null);
-        }
-    }
-
     private void showImageWindow() {
         int index = ifdComboBox.getSelectedIndex();
         if (notInitialized(index)) {
@@ -638,7 +652,8 @@ public class TiffExplorer {
 
         JTextArea descriptionArea = new JTextArea(6, 60);
         descriptionArea.setLineWrap(false);
-        descriptionArea.setFont(getPreferredMonoFont(DEFAULT_FONT_SIZE));
+        descriptionArea.setWrapStyleWord(true);
+        descriptionArea.setFont(getPreferredMonoFont(fontFamily, fontSize));
         String description = info.metadata().description(index).description("");
         descriptionArea.setText(description);
         descriptionArea.setCaretPosition(0);
@@ -656,6 +671,18 @@ public class TiffExplorer {
         content.add(imageDescriptionLabel);
         content.add(Box.createVerticalStrut(5));
         content.add(scrollPane);
+
+        JPanel toolsPanel = new JPanel(new BorderLayout());
+        toolsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JCheckBox wordWrapCheckbox = new JCheckBox("Word wrap");
+        wordWrapCheckbox.setSelected(false);
+        wordWrapCheckbox.addActionListener(event -> {
+            boolean wordWrap = wordWrapCheckbox.isSelected();
+            descriptionArea.setLineWrap(wordWrap);
+        });
+        wordWrapCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
+        toolsPanel.add(wordWrapCheckbox, BorderLayout.EAST);
+        content.add(toolsPanel);
         content.add(Box.createVerticalStrut(10));
 
         JLabel warningLabel = new JLabel("""
@@ -690,6 +717,7 @@ public class TiffExplorer {
         dialog.add(buttons, BorderLayout.SOUTH);
 
         dialog.pack();
+        addCloseOnEscape(dialog);
         dialog.setLocationRelativeTo(frame);
         dialog.setVisible(true);
     }
@@ -746,13 +774,17 @@ public class TiffExplorer {
         dialog.add(btnPanel, BorderLayout.SOUTH);
 
         dialog.pack();
+        addCloseOnEscape(dialog);
+        dialog.setLocationRelativeTo(frame);
+        dialog.setVisible(true);
+    }
+
+    private static void addCloseOnEscape(JDialog dialog) {
         dialog.getRootPane().registerKeyboardAction(
                 e -> dialog.dispose(),
                 KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
                 JComponent.WHEN_IN_FOCUSED_WINDOW
         );
-        dialog.setLocationRelativeTo(frame);
-        dialog.setVisible(true);
     }
 
     private boolean notInitialized(int index) {
@@ -779,11 +811,12 @@ public class TiffExplorer {
         return label;
     }
 
-    private static Font getPreferredMonoFont(int size) {
-        String preferred = "Consolas";
-        if (isFontAvailable(preferred)) {
-            return new Font(preferred, Font.PLAIN, size);
-            // - but it has a reduced set of characters, for example, no Hebrew
+    private static Font getPreferredMonoFont(FontFamily family, int size) {
+        if (family != FontFamily.STANDARD) {
+            String preferred = family.fontName;
+            if (isFontAvailable(preferred)) {
+                return new Font(preferred, Font.PLAIN, size);
+            }
         }
         return new Font(Font.MONOSPACED, Font.PLAIN, size);
     }
@@ -796,6 +829,48 @@ public class TiffExplorer {
             }
         }
         return false;
+    }
+
+
+    private void savePreferences() {
+        Rectangle bounds = frame.getBounds();
+        prefs.putInt(PREF_WINDOW_X, bounds.x);
+        prefs.putInt(PREF_WINDOW_Y, bounds.y);
+        prefs.putInt(PREF_WINDOW_WIDTH, bounds.width);
+        prefs.putInt(PREF_WINDOW_HEIGHT, bounds.height);
+        prefs.putInt(PREF_FONT_SIZE, fontSize);
+        prefs.put(PREF_FONT_FAMILY, fontFamily.name());
+        prefs.putBoolean(PREF_WORD_WRAP, wordWrap);
+    }
+
+    private void loadPreferences() {
+        fontSize = prefs.getInt(PREF_FONT_SIZE, DEFAULT_FONT_SIZE);
+        String fontFamilyName = prefs.get(PREF_FONT_FAMILY, DEFAULT_FONT_FAMILY.name());
+        try {
+            fontFamily = FontFamily.valueOf(fontFamilyName);
+        } catch (IllegalArgumentException ignored) {
+        }
+        wordWrap = prefs.getBoolean(PREF_WORD_WRAP, DEFAULT_WORD_WRAP);
+    }
+
+    private void loadFramePreferences() {
+        final int x = prefs.getInt(PREF_WINDOW_X, Integer.MIN_VALUE);
+        final int y = prefs.getInt(PREF_WINDOW_Y, Integer.MIN_VALUE);
+        final int w = prefs.getInt(PREF_WINDOW_WIDTH, frame.getWidth());
+        final int h = prefs.getInt(PREF_WINDOW_HEIGHT, frame.getHeight());
+        frame.setSize(w, h);
+
+        if (x != Integer.MIN_VALUE && y != Integer.MIN_VALUE) {
+            Rectangle screen = frame.getGraphicsConfiguration().getBounds();
+            if (x + w <= screen.x + screen.width &&
+                    y + h <= screen.y + screen.height) {
+                frame.setLocation(x, y);
+            } else {
+                frame.setLocationRelativeTo(null);
+            }
+        } else {
+            frame.setLocationRelativeTo(null);
+        }
     }
 
     static void setTiffExplorerIcon(JFrame frame) {

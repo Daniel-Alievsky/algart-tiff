@@ -393,7 +393,10 @@ public non-sealed class TiffReader extends TiffIO {
 
     public TiffReader resetCache() {
         synchronized (tileCacheLock) {
-            tileCacheMap.clear();
+            synchronized (fileLock) {
+                tileCacheMap.clear();
+                this.allIFDs = null;            }
+                this.mainIFDs = null;
         }
         return this;
     }
@@ -873,8 +876,8 @@ public non-sealed class TiffReader extends TiffIO {
         long t1 = debugTime();
         List<TiffIFD> allIFDs;
         synchronized (fileLock) {
-            // - this synchronization is not necessary, but helps
-            // to be sure that the client will not try to read TIFF images
+            // - this synchronization is necessary for correct work of resetCache(),
+            // and also it helps to be sure that the client will not try to read TIFF images
             // when all IFD are not fully loaded and checked
             allIFDs = this.allIFDs;
             if (cachingIFDs && allIFDs != null) {
