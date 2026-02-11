@@ -24,9 +24,7 @@
 
 package net.algart.matrices.tiff.app.explorer;
 
-import net.algart.matrices.tiff.TiffException;
-import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.TiffImageKind;
+import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.app.TiffInfo;
 import net.algart.matrices.tiff.pyramids.TiffPyramidMetadata;
 
@@ -291,6 +289,11 @@ public class TiffExplorer {
         copyItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK));
         copyItem.addActionListener(e -> ifdTextArea.copy());
         editMenu.add(copyItem);
+        editMenu.addSeparator();
+
+        JMenuItem editDescriptionItem = new JMenuItem("Edit description...");
+        editDescriptionItem.addActionListener(e -> showEditDescriptionDialog());
+        editMenu.add(editDescriptionItem);
 
         JMenu viewMenu = new JMenu("View");
         JMenu viewModeMenu = new JMenu("View mode");
@@ -387,18 +390,19 @@ public class TiffExplorer {
     }
 
     private void selectNextImage() {
-        int i = ifdComboBox.getSelectedIndex();
-        if (i >= 0 && i + 1 < ifdComboBox.getItemCount()) {
-            ifdComboBox.setSelectedIndex(i + 1);
-        }
+        selectImage(ifdComboBox.getSelectedIndex() + 1);
     }
 
     private void selectPreviousImage() {
-        int i = ifdComboBox.getSelectedIndex();
-        if (i > 0) {
-            ifdComboBox.setSelectedIndex(i - 1);
+        selectImage(ifdComboBox.getSelectedIndex() - 1);
+    }
+
+    private void selectImage(int index) {
+        if (index >= 0 && index < ifdComboBox.getItemCount()) {
+            ifdComboBox.setSelectedIndex(index);
         }
     }
+
 
     private void chooseAndOpenFile() {
         JFileChooser chooser = new JFileChooser();
@@ -436,6 +440,7 @@ public class TiffExplorer {
             LOG.log(System.Logger.Level.DEBUG, "Skipping loading...");
             return;
         }
+        final int currentIndex = ifdComboBox.getSelectedIndex();
         ifdComboBox.removeAllItems();
         ifdTextArea.setText("Analysing TIFF file...");
         summaryInfoTextArea.setText("");
@@ -466,6 +471,7 @@ public class TiffExplorer {
                     setOpenInProgress(false);
                 }
                 applyInfo();
+                selectImage(currentIndex);
             }
         }.execute();
     }
@@ -530,7 +536,14 @@ public class TiffExplorer {
         frame.setTitle(APPLICATION_TITLE + ": " + tiffFile.toString());
     }
 
-    private void setOpenInProgress(boolean inProgress) {
+    private void changeDescription(int index, String newDescription) throws IOException {
+        try (TiffWriter writer = new TiffWriter(tiffFile, TiffCreateMode.OPEN_EXISTING)) {
+            writer.writeDescription(index, newDescription);
+        }
+        reload();
+    }
+
+    void setOpenInProgress(boolean inProgress) {
         openFileButton.setEnabled(!inProgress);
         openItem.setEnabled(!inProgress);
         reloadItem.setEnabled(!inProgress);
@@ -539,7 +552,7 @@ public class TiffExplorer {
         loadingInProgress = inProgress;
     }
 
-    private void setShowImageInProgress(boolean inProgress) {
+    void setShowImageInProgress(boolean inProgress) {
         showImageButton.setEnabled(loadingOk && !inProgress);
         showImageItem.setEnabled(loadingOk && !inProgress);
         showImageButton.setText(inProgress ? "Opening..." : "Show image");
@@ -584,10 +597,11 @@ public class TiffExplorer {
 
     private void showImageWindow() {
         int index = ifdComboBox.getSelectedIndex();
-        if (index < 0 || info == null || index >= info.numberOfImages()) {
+        if (notInitialized(index)) {
             return;
         }
         if (USE_NEW_IMAGE_VIEWER) {
+            setShowImageInProgress(true);
             try {
                 TiffImageViewer imageViewer = new TiffImageViewer(this, tiffFile, index);
                 setShowImageInProgress(true);
@@ -607,6 +621,77 @@ public class TiffExplorer {
                 setShowImageInProgress(false);
             }
         }
+    }
+
+    private void showEditDescriptionDialog() {
+        int index = ifdComboBox.getSelectedIndex();
+        if (notInitialized(index)) {
+            return;
+        }
+
+        JDialog dialog = new JDialog(frame, "Edit image description", true);
+        dialog.setLayout(new BorderLayout(10, 10));
+
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JTextArea descriptionArea = new JTextArea(6, 60);
+        descriptionArea.setLineWrap(false);
+        descriptionArea.setFont(getPreferredMonoFont(DEFAULT_FONT_SIZE));
+        String description = info.metadata().description(index).description("");
+        descriptionArea.setText(description);
+        descriptionArea.setCaretPosition(0);
+
+        JScrollPane scrollPane = new JScrollPane(
+                descriptionArea,
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
+        );
+        scrollPane.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel imageDescriptionLabel = new JLabel(
+                "Description of TIFF image #%d (\"ImageDescription\" tag)".formatted(index));
+        imageDescriptionLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        content.add(imageDescriptionLabel);
+        content.add(Box.createVerticalStrut(5));
+        content.add(scrollPane);
+        content.add(Box.createVerticalStrut(10));
+
+        JLabel warningLabel = new JLabel("""
+                <html><b>Warning:</b> This action will modify the TIFF file on disk.<br>
+                The existing image description will be permanently replaced.</html>
+                """);
+        warningLabel.setFont(warningLabel.getFont().deriveFont((float) DEFAULT_FONT_SIZE));
+        warningLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+//        warningLabel.setForeground(new Color(140, 0, 0));
+        content.add(warningLabel);
+
+        dialog.add(content, BorderLayout.CENTER);
+
+        JButton okButton = new JButton("OK");
+        JButton cancelButton = new JButton("Cancel");
+
+        okButton.addActionListener(event -> {
+            String newDescription = descriptionArea.getText();
+            dialog.dispose();
+            try {
+                changeDescription(index, newDescription.isEmpty() ? null : newDescription);
+            } catch (Exception e) {
+                showErrorMessage(e, "Error updating ImageDescription");
+            }
+        });
+        cancelButton.addActionListener(e -> dialog.dispose());
+
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        buttons.add(okButton);
+        buttons.add(cancelButton);
+
+        dialog.add(buttons, BorderLayout.SOUTH);
+
+        dialog.pack();
+        dialog.setLocationRelativeTo(frame);
+        dialog.setVisible(true);
     }
 
     private void showAboutDialog() {
@@ -668,6 +753,10 @@ public class TiffExplorer {
         );
         dialog.setLocationRelativeTo(frame);
         dialog.setVisible(true);
+    }
+
+    private boolean notInitialized(int index) {
+        return index < 0 || info == null || index >= info.numberOfImages();
     }
 
     void showErrorMessage(Throwable e, String title) {

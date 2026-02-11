@@ -1641,6 +1641,43 @@ public non-sealed class TiffWriter extends TiffIO {
         return count;
     }
 
+    public void writeDescription(int ifdIndex, String description) throws IOException {
+        writeDescription(ifdIndex, description, false);
+    }
+
+    public TiffIFD writeDescription(int ifdIndex, String newDescription, boolean enforceRelocateIFD)
+            throws IOException {
+        final TiffIFD ifd = this.existingIFD(ifdIndex);
+        final TiffIFD changedIFD = new TiffIFD(ifd);
+        final String oldDescription = ifd.getDescription().description(null);
+        if (Objects.equals(oldDescription, newDescription)) {
+            return changedIFD;
+        }
+        final boolean lengthIncreased = oldDescription == null ||
+                (newDescription != null && newDescription.length() > oldDescription.length());
+        LOG.log(System.Logger.Level.DEBUG,
+                () -> "IFD #%d/%d: %s image description%s%n%sString length %s: from %d to %d%n".formatted(
+                        ifdIndex,
+                        this.numberOfExistingImages(),
+                        oldDescription == null ? "writing new" : newDescription == null ? "removing" : "overwriting",
+                        newDescription == null ? "" : "%n\"%s\"".formatted(newDescription),
+                        oldDescription == null ? "" : "(instead of: \"%s\")%n".formatted(oldDescription),
+                        lengthIncreased ? "increased" : "not increased (overwriting possible)",
+                        oldDescription == null ? 0 : oldDescription.length(),
+                        newDescription == null ? 0 : newDescription.length()));
+        changedIFD.putDescription(newDescription);
+        if (lengthIncreased || enforceRelocateIFD) {
+            // We must relocate IFD: overwriting in the same place will damage the further image
+            final long p = this.writeIFDAtFileEnd(changedIFD);
+            // Note: we ignore sub-IFDs here. So, this method is not absolutely universal.
+            this.rewriteIFDOffset(ifdIndex, p);
+            // - restoring IFD sequence
+        } else {
+            this.rewriteIFD(changedIFD);
+        }
+        return changedIFD;
+    }
+
     @Override
     public void close() throws IOException {
         lastMap = null;

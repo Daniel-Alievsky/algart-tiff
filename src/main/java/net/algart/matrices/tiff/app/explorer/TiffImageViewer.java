@@ -28,6 +28,8 @@ import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Objects;
@@ -66,9 +68,20 @@ class TiffImageViewer {
         LOG.log(System.Logger.Level.DEBUG, "Viewer closed " + reader.streamName());
     }
 
+    public TiffReadMap map() {
+        return map;
+    }
+
     public void show() throws IOException {
         openMap();
         createGUI();
+    }
+
+    public void reload() throws IOException {
+        reader.resetCache();
+        openMap();
+        tiffPanel.reset();
+        updateView();
     }
 
     private void openMap() throws IOException {
@@ -88,7 +101,7 @@ class TiffImageViewer {
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setJMenuBar(buildMenuBar());
 
-        tiffPanel = new JTiffPanel(map);
+        tiffPanel = new JTiffPanel(this);
         JScrollPane scrollPane = new JTiffScrollPane(tiffPanel);
         frame.add(scrollPane);
         frame.pack();
@@ -113,15 +126,29 @@ class TiffImageViewer {
         tileItem.setSelected(false);
         tileItem.addActionListener(e -> {
             reader.setViewTileGrid(tileItem.isSelected());
-            updateTiff();
+            updateView();
         });
         viewMenu.add(tileItem);
+        menuBar.add(viewMenu);
+
+        // RandomAccessFile does not strictly lock the file: other processes, for example,
+        // other instances of TiffExplorer may edit the same file
+        JMenuItem reloadItem = new JMenuItem("Reload TIFF image");
+        reloadItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
+        reloadItem.addActionListener(event -> {
+            try {
+                reload();
+            } catch (Exception e) {
+                app.showErrorMessage(e, "Error reloading TIFF");
+            }
+        });
+        viewMenu.add(reloadItem);
         menuBar.add(viewMenu);
         return menuBar;
     }
 
 
-    private void updateTiff() {
+    private void updateView() {
         reader.resetCache();
         tiffPanel.repaint();
     }

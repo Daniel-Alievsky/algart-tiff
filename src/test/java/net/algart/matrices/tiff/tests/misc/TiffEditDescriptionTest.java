@@ -53,18 +53,13 @@ public class TiffEditDescriptionTest {
                     throw new AssertionError("Number of IFDs changed: " + n + " != " + numberOfExisting);
                 }
                 final int ifdIndex = rnd.nextInt(n);
-                final boolean usePrevious = rnd.nextBoolean();
+                final boolean enforceRelocateIFD = rnd.nextBoolean();
                 Collection<Long> alreadyUsed = writer.allUsedIFDOffsets();
                 System.out.printf("Test #%d/%d: modifying IFD #%d, %d used offsets...%n",
                         test, numberOfTests, ifdIndex, alreadyUsed.size());
-                final TiffIFD ifd = writer.existingIFD(ifdIndex);
-                TiffIFD changedIFD = new TiffIFD(ifd);
-                changedIFD.putDescription("Description #" + test + " in IFD #" + ifdIndex);
-                if (usePrevious) {
-                    rewriteIFDUsingPrevious(writer, ifdIndex, changedIFD);
-                } else {
-                    rewriteIFD(writer, ifdIndex, changedIFD);
-                }
+                writer.writeDescription(ifdIndex,
+                        "Description #" + test + " in IFD #" + ifdIndex,
+                        enforceRelocateIFD);
             }
         }
     }

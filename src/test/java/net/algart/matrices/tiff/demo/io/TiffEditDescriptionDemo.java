@@ -48,38 +48,8 @@ public class TiffEditDescriptionDemo {
         final int ifdIndex = Integer.parseInt(args[startArgIndex + 1]);
         final String description = args[startArgIndex + 2];
         try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
-            changeDescription(writer, ifdIndex, description, false);
-        }
-    }
-
-    static void changeDescription(
-            TiffWriter writer,
-            int ifdIndex,
-            String description,
-            boolean enforceRelocate) throws IOException {
-        final TiffIFD ifd = writer.existingIFD(ifdIndex);
-        TiffIFD changedIFD = new TiffIFD(ifd);
-        final String oldDescription = ifd.getDescription().description(null);
-        final boolean lengthIncreased = oldDescription == null || description.length() > oldDescription.length();
-        LOG.log(System.Logger.Level.DEBUG,
-                () -> "IFD #%d/%d: %s image description%n\"%s\"%n%sString length %s: from %d to %d%n".formatted(
-                ifdIndex,
-                writer.numberOfExistingImages(),
-                oldDescription == null ? "writing new" : "overwriting",
-                description,
-                oldDescription == null ? "" : "(instead of: \"%s\")%n".formatted(oldDescription),
-                lengthIncreased ? "increased" : "not increased (overwriting possible)",
-                oldDescription == null ? 0 : oldDescription.length(),
-                description.length()));
-        changedIFD.putDescription(description);
-        if (lengthIncreased || enforceRelocate) {
-            // We must relocate IFD: overwriting in the same place will damage the further image
-            long p = writer.writeIFDAtFileEnd(changedIFD);
-            // Note: we ignore sub-IFDs here. So, this method is not absolutely universal.
-            writer.rewriteIFDOffset(ifdIndex, p);
-            // - restoring IFD sequence
-        } else {
-            writer.rewriteIFD(changedIFD);
+            final TiffIFD ifd = writer.writeDescription(ifdIndex, description, false);
+            System.out.printf("Corrected IFD:%n%s%n", ifd.toString(TiffIFD.StringFormat.NORMAL));
         }
     }
 }

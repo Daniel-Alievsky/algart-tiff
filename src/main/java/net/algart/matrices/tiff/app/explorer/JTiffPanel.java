@@ -28,37 +28,42 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.util.Objects;
 
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 class JTiffPanel extends JComponent {
     static final System.Logger LOG = System.getLogger(JTiffPanel.class.getName());
-    private final TiffReadMap map;
+    private final TiffImageViewer viewer;
 
-    public JTiffPanel(TiffReadMap map) {
-        this.map = map;
+    public JTiffPanel(TiffImageViewer viewer) {
+        this.viewer = Objects.requireNonNull(viewer, "Null viewer");
+        reset();
+    }
+
+    public void reset() {
+        final TiffReadMap map = viewer.map();
         setPreferredSize(new Dimension(map.dimX(), map.dimY()));
     }
 
     @Override
     protected void paintComponent(Graphics graphics) {
         super.paintComponent(graphics);
-        Graphics2D g = (Graphics2D) graphics;
-
-        Rectangle clip = g.getClipBounds();
-        int fromX = clip.x;
-        int fromY = clip.y;
-        int toX = clip.x + clip.width;
-        int toY = clip.y + clip.height;
-
-        toX = Math.min(toX, map.dimX());
-        toY = Math.min(toY, map.dimY());
-
+        final Graphics2D g = (Graphics2D) graphics;
+        final TiffReadMap map = viewer.map();
+        final Rectangle clip = g.getClipBounds();
+        final int fromX = clip.x;
+        final int fromY = clip.y;
+        final int toX = Math.min(clip.x + clip.width, map.dimX());
+        final int toY = Math.min(clip.y + clip.height, map.dimY());
+        if (fromX >= toX || fromY >= toY) {
+            return;
+        }
         try {
-            BufferedImage fragment = map.readBufferedImage(fromX, fromY, toX - fromX, toY - fromY);
+            final BufferedImage bi = map.readBufferedImage(fromX, fromY, toX - fromX, toY - fromY);
             LOG.log(System.Logger.Level.DEBUG, "Viewer loaded the fragment %dx%d starting at (%d,%d)"
                     .formatted(toX - fromX, toY - fromY, fromX, fromY));
-            g.drawImage(fragment, fromX, fromY, null);
+            g.drawImage(bi, fromX, fromY, null);
         } catch (IOException e) {
             LOG.log(System.Logger.Level.ERROR, "Error while reading " + map.streamName() +
                     ": " + e.getMessage(), e);

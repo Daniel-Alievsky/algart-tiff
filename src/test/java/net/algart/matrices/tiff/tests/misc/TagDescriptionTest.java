@@ -62,15 +62,21 @@ public class TagDescriptionTest {
     public static void main(String[] args) throws TiffException {
         TiffIFD ifd = new TiffIFD();
         printDescription(ifd);
+        System.out.printf("--- \"Hello\" ---%n");
         ifd.putDescription("Hello");
         printDescription(ifd);
         printDescription(ifd);
+
+        System.out.printf("--- \"\u041F\u0440\u0438\u0432\u0435\u0442!\" ---%n");
         ifd.putDescription("\u041F\u0440\u0438\u0432\u0435\u0442!");
         // - russian translation of "Hello"
         printDescription(ifd);
         printDescription(ifd);
+        System.out.printf("%n--- Removing description: EMPTY ---%n");
         ifd.putDescription(TagDescription.EMPTY);
         printDescription(ifd);
+
+        System.out.printf("--- Adding custom description ---%n");
         CustomDescription custom = new CustomDescription("Something");
         ifd.putDescription(custom);
         printDescription(ifd);
@@ -79,9 +85,17 @@ public class TagDescriptionTest {
         if (ifd.getDescription() != custom) {
             throw new AssertionError();
         }
+
+        System.out.printf("--- \"Hello again\" ---%n");
         ifd.putDescription("Hello again");
         printDescription(ifd);
+
+        System.out.printf("--- \"Hello1\", \"Hello2\" ---%n");
         ifd.put(Tags.IMAGE_DESCRIPTION, new String[] {"Hello1", "Hello2"});
+        printDescription(ifd);
+
+        System.out.printf("--- Removing description: null ---%n");
+        ifd.putDescription((String) null);
         printDescription(ifd);
     }
 }

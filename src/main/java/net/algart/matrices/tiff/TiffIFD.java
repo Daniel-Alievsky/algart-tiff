@@ -1818,18 +1818,17 @@ public final class TiffIFD {
     }
 
     public TiffIFD putDescription(String imageDescription) {
-        Objects.requireNonNull(imageDescription, "Null image description");
-        put(Tags.IMAGE_DESCRIPTION, imageDescription);
+        if (imageDescription == null) {
+            remove(Tags.IMAGE_DESCRIPTION);
+        } else {
+            put(Tags.IMAGE_DESCRIPTION, imageDescription);
+        }
         return this;
     }
 
     public TiffIFD putDescription(TagDescription description) {
         Objects.requireNonNull(description, "Null description");
-        if (description.isEmpty()) {
-            remove(Tags.IMAGE_DESCRIPTION);
-        } else {
-            put(Tags.IMAGE_DESCRIPTION, description.description());
-        }
+        putDescription(description.description(null));
         this.description = description;
         // - assign this.description AFTER clearing cache in the put()/remove() methods
         return this;
