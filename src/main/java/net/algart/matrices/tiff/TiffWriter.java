@@ -1641,11 +1641,11 @@ public non-sealed class TiffWriter extends TiffIO {
         return count;
     }
 
-    public void writeDescription(int ifdIndex, String description) throws IOException {
-        writeDescription(ifdIndex, description, false);
+    public void rewriteDescription(int ifdIndex, String description) throws IOException {
+        rewriteDescription(ifdIndex, description, false);
     }
 
-    public TiffIFD writeDescription(int ifdIndex, String newDescription, boolean enforceRelocateIFD)
+    public TiffIFD rewriteDescription(int ifdIndex, String newDescription, boolean enforceRelocateIFD)
             throws IOException {
         final TiffIFD ifd = this.existingIFD(ifdIndex);
         final TiffIFD changedIFD = new TiffIFD(ifd);

@@ -583,7 +583,7 @@ public class TiffExplorer {
 
     private void changeDescription(int index, String newDescription) throws IOException {
         try (TiffWriter writer = new TiffWriter(tiffFile, TiffCreateMode.OPEN_EXISTING)) {
-            writer.writeDescription(index, newDescription);
+            writer.rewriteDescription(index, newDescription);
         }
         reload();
     }

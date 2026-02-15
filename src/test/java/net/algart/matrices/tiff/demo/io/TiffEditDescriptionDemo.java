@@ -48,7 +48,7 @@ public class TiffEditDescriptionDemo {
         final int ifdIndex = Integer.parseInt(args[startArgIndex + 1]);
         final String description = args[startArgIndex + 2];
         try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
-            final TiffIFD ifd = writer.writeDescription(ifdIndex, description, false);
+            final TiffIFD ifd = writer.rewriteDescription(ifdIndex, description, false);
             System.out.printf("Corrected IFD:%n%s%n", ifd.toString(TiffIFD.StringFormat.NORMAL));
         }
     }

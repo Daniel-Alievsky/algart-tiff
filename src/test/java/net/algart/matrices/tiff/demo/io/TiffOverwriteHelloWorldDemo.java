@@ -57,7 +57,7 @@ public class TiffOverwriteHelloWorldDemo {
         // - estimated sizes sufficient for "Hello, world!"
         try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
             // writer.setAlwaysWriteToFileEnd(true); // - should not affect the results
-            writer.writeDescription(ifdIndex, "Overwritten", true);
+            writer.rewriteDescription(ifdIndex, "Overwritten", true);
             // - should not destroy the results despite the "true" flag
             final TiffWriteMap writeMap = writer.existingMap(ifdIndex);
             overwrite(writeMap, x, y, sizeX, sizeY);

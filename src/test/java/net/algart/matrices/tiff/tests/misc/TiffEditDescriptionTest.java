@@ -25,7 +25,6 @@
 package net.algart.matrices.tiff.tests.misc;
 
 import net.algart.matrices.tiff.TiffCreateMode;
-import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 
 import java.io.IOException;
@@ -57,32 +56,10 @@ public class TiffEditDescriptionTest {
                 Collection<Long> alreadyUsed = writer.allUsedIFDOffsets();
                 System.out.printf("Test #%d/%d: modifying IFD #%d, %d used offsets...%n",
                         test, numberOfTests, ifdIndex, alreadyUsed.size());
-                writer.writeDescription(ifdIndex,
+                writer.rewriteDescription(ifdIndex,
                         "Description #" + test + " in IFD #" + ifdIndex,
                         enforceRelocateIFD);
             }
-        }
-    }
-
-    private static void rewriteIFD(TiffWriter writer, int ifdIndex, TiffIFD changedIFD)
-            throws IOException {
-        long p = writer.writeIFDAtFileEnd(changedIFD);
-        writer.rewriteIFDOffset(ifdIndex, p);
-    }
-
-    private static void rewriteIFDUsingPrevious(TiffWriter writer, int ifdIndex, TiffIFD changedIFD)
-            throws IOException {
-        long p = writer.writeIFDAt(changedIFD, null, false);
-        // - Note: if we try to set updateIFDLinkages=true, it will create an infinite loop!
-        // We will link the existing last IFD (for example, #5) to this (for example, #2),
-        // but this IFD links to the next IFD #3, then #4, #5 and again #2.
-        if (ifdIndex == 0) {
-            writer.rewriteIFDOffset(0, p);
-        } else {
-            final TiffIFD previousIFD = writer.existingIFD(ifdIndex - 1);
-            previousIFD.setNextIFDOffset(p);
-            writer.rewriteIFD(previousIFD, false);
-            // - restoring IFD sequence
         }
     }
 }
