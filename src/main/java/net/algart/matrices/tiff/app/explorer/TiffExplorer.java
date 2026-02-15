@@ -688,9 +688,11 @@ public class TiffExplorer {
         content.add(Box.createVerticalStrut(10));
 
         JLabel warningLabel = new JLabel("""
-                <html><b>Warning:</b> This action will modify the TIFF file on disk.<br>
-                The existing image description will be permanently replaced.</html>
-                """);
+                <html><b>Warning:</b> This action will rewrite the IFD in the TIFF file:<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;%s<br>
+                The current image description will be permanently replaced.<br>
+                You may create a backup copy if the file is important.</html>
+                """.formatted(tiffFile));
         warningLabel.setFont(warningLabel.getFont().deriveFont((float) DEFAULT_FONT_SIZE));
         warningLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 //        warningLabel.setForeground(new Color(140, 0, 0));
@@ -698,7 +700,7 @@ public class TiffExplorer {
 
         dialog.add(content, BorderLayout.CENTER);
 
-        JButton okButton = new JButton("OK");
+        JButton okButton = new JButton("Rewrite IFD in the file");
         JButton cancelButton = new JButton("Cancel");
 
         okButton.addActionListener(event -> {
