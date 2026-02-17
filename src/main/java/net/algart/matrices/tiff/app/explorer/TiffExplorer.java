@@ -159,23 +159,21 @@ public class TiffExplorer {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
         frame.setJMenuBar(buildMenuBar());
-
-        JPanel topPanel = new JPanel(new BorderLayout());
-        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
-
         setTiffExplorerIcon(frame);
+
+        JPanel topToolboxPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
 
         openFileButton = new JButton("Open TIFF");
         openFileButton.addActionListener(e -> chooseAndOpenFile());
-        leftPanel.add(openFileButton);
+        topToolboxPanel.add(openFileButton);
 
-//        addFormatComboBox(leftPanel);
+//        addFormatComboBox(topToolboxPanel);
 // - deprecated solution (replacing with the menu)
 
-        addIFDComboBox(leftPanel);
-        addShowImageButton(leftPanel);
-        topPanel.add(leftPanel, BorderLayout.WEST);
-        frame.add(topPanel, BorderLayout.NORTH);
+        addIFDComboBox(topToolboxPanel);
+        addShowImageButton(topToolboxPanel);
+//        topPanel.add(topToolboxPanel, BorderLayout.WEST);
+        frame.add(topToolboxPanel, BorderLayout.NORTH);
 
         addBottomInfoTextArea();
         addIFDTextArea();
@@ -247,27 +245,27 @@ public class TiffExplorer {
         frame.add(infoPanel, BorderLayout.SOUTH);
     }
 
-    private void addShowImageButton(JPanel leftPanel) {
+    private void addShowImageButton(JPanel toolboxPanel) {
         showImageButton = new JButton("Show image");
         showImageButton.setEnabled(false);
         showImageButton.addActionListener(e -> showImageWindow());
-        leftPanel.add(Box.createHorizontalStrut(10));
-        leftPanel.add(showImageButton);
+        toolboxPanel.add(Box.createHorizontalStrut(10));
+        toolboxPanel.add(showImageButton);
     }
 
-    private void addIFDComboBox(JPanel leftPanel) {
+    private void addIFDComboBox(JPanel toolboxPanel) {
         ifdComboBox = new JComboBox<>();
         ifdComboBox.setFont(new Font(Font.MONOSPACED, Font.PLAIN, DEFAULT_FONT_SIZE));
         ifdComboBox.setMaximumRowCount(32);
         ifdComboBox.addActionListener(e -> updateTextArea());
         ifdComboBox.setPrototypeDisplayValue("Image #999");
-        leftPanel.add(Box.createHorizontalStrut(10));
-        leftPanel.add(new JLabel("Select TIFF image (IFD):"));
-        leftPanel.add(ifdComboBox);
+        toolboxPanel.add(Box.createHorizontalStrut(10));
+        toolboxPanel.add(new JLabel("Select TIFF image (IFD):"));
+        toolboxPanel.add(ifdComboBox);
     }
 
     // Deprecated
-    private void addFormatComboBox(JPanel leftPanel) {
+    private void addFormatComboBox(JPanel toolboxPanel) {
         JComboBox<ViewMode> formatComboBox = new JComboBox<>(ViewMode.values());
         formatComboBox.setSelectedItem(stringFormat);
         formatComboBox.addActionListener(e -> {
@@ -278,9 +276,9 @@ public class TiffExplorer {
                 updateTextArea();
             }
         });
-        leftPanel.add(Box.createRigidArea(new Dimension(10, 0)));
-        leftPanel.add(new JLabel("View mode:"));
-        leftPanel.add(formatComboBox);
+        toolboxPanel.add(Box.createRigidArea(new Dimension(10, 0)));
+        toolboxPanel.add(new JLabel("View mode:"));
+        toolboxPanel.add(formatComboBox);
     }
 
     private JMenuBar buildMenuBar() {

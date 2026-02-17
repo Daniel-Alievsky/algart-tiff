@@ -36,15 +36,25 @@ import java.util.Objects;
 
 class TiffImageViewer {
     private static final System.Logger LOG = System.getLogger(TiffExplorer.class.getName());
+    private static final String DEFAULT_STATUS = "Please use SHIFT + mouse drag to move image";
+
+    private static final Color COMMON_COLOR = Color.BLACK;
+    private static final Color ERROR_COLOR = Color.RED;
 
     private final TiffExplorer app;
     private final TiffReaderWithGrid reader;
     private final int index;
 
+    private JScrollPane scrollPane;
+    private JLabel statusLabel;
+
     private TiffReadMap map = null;
     private int numberOfImages;
     private int dimX;
     private int dimY;
+
+    private String lastStatus = DEFAULT_STATUS;
+    private boolean lastErrorFlag = false;
 
     private JTiffPanel tiffPanel;
 
@@ -77,6 +87,18 @@ class TiffImageViewer {
         createGUI();
     }
 
+    public void showDefaultStatus() {
+        showStatus(DEFAULT_STATUS);
+    }
+
+    public void showStatus(String status) {
+        setStatus(status, false);
+    }
+
+    public void showError(String status) {
+        setStatus(status, true);
+    }
+
     public void reload() throws IOException {
         reader.resetCache();
         openMap();
@@ -91,19 +113,26 @@ class TiffImageViewer {
         dimY = map.dimY();
     }
 
-
     private void createGUI() {
         JFrame frame = new JTiffFrame(this);
         frame.setTitle("TIFF Image #%d from %d images (%dx%d%s)".formatted(
                 index, numberOfImages, dimX, dimY, dimX == map.dimX() && dimY == map.dimY() ?
                         "" :
                         " from %dx%d".formatted(map.dimX(), map.dimY())));
+        frame.setLayout(new BorderLayout());
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setJMenuBar(buildMenuBar());
 
         tiffPanel = new JTiffPanel(this);
-        JScrollPane scrollPane = new JTiffScrollPane(tiffPanel);
-        frame.add(scrollPane);
+        scrollPane = new JTiffScrollPane(tiffPanel);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        frame.add(scrollPane, BorderLayout.CENTER);
+
+        JPanel statusPanel = new JPanel();
+        statusPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 5, 5));
+        statusLabel = new JLabel(DEFAULT_STATUS);
+        statusPanel.add(statusLabel);
+        frame.add(statusPanel, BorderLayout.SOUTH);
         frame.pack();
 
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
@@ -147,6 +176,17 @@ class TiffImageViewer {
         return menuBar;
     }
 
+    private void setStatus(String status, boolean error) {
+        Objects.requireNonNull(status);
+        if (error != lastErrorFlag || !status.equals(lastStatus)) {
+            SwingUtilities.invokeLater(() -> {
+                statusLabel.setForeground(error ? ERROR_COLOR : COMMON_COLOR);
+                statusLabel.setText(status);
+            });
+            lastStatus = status;
+            lastErrorFlag = error;
+        }
+    }
 
     private void updateView() {
         reader.resetCache();

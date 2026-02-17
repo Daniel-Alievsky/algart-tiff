@@ -64,9 +64,11 @@ class JTiffPanel extends JComponent {
             LOG.log(System.Logger.Level.DEBUG, "Viewer loaded the fragment %dx%d starting at (%d,%d)"
                     .formatted(toX - fromX, toY - fromY, fromX, fromY));
             g.drawImage(bi, fromX, fromY, null);
+            viewer.showDefaultStatus();
         } catch (IOException e) {
             LOG.log(System.Logger.Level.ERROR, "Error while reading " + map.streamName() +
                     ": " + e.getMessage(), e);
+            viewer.showError(e.getMessage());
             g.setColor(Color.RED);
             g.fillRect(fromX, fromY, toX - fromX, toY - fromY);
         }
