@@ -38,8 +38,10 @@ import java.util.Objects;
 class TiffImageViewer {
     private static final System.Logger LOG = System.getLogger(TiffExplorer.class.getName());
     private static final String DEFAULT_STATUS = "Please use SHIFT + mouse drag to move image";
-    private static final long CACHING_MEMORY = 16 * 1048576L;
-    // - 16MB is enough to store several user screens
+    private static final long CACHING_MEMORY = 32 * 1048576L;
+    // - 32MB is enough to store several user screens
+    private static final boolean PRELOAD_LITTLE_AREA_WHILE_OPENING = true;
+    // - clear this flag to debug possible I/O errors during the drawing process
 
     private static final Color COMMON_COLOR = Color.BLACK;
     private static final Color ERROR_COLOR = Color.RED;
@@ -238,7 +240,9 @@ class TiffImageViewer {
         numberOfImages = reader.numberOfImages();
         dimX = map.dimX();
         dimY = map.dimY();
-        map.readSampleBytes(0, 0, 64, 64);
+        if (PRELOAD_LITTLE_AREA_WHILE_OPENING) {
+            map.readSampleBytes(0, 0, 64, 64);
+        }
     }
 
     private void updateView() {
