@@ -33,7 +33,10 @@ import java.util.Objects;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 class JTiffPanel extends JComponent {
-    static final System.Logger LOG = System.getLogger(JTiffPanel.class.getName());
+    private static final Paint ERROR_PAINT = createChessPaint(
+            8,
+            new Color(255, 0, 0),
+            new Color(255, 128, 128));
     private final TiffImageViewer viewer;
 
     public JTiffPanel(TiffImageViewer viewer) {
@@ -49,6 +52,7 @@ class JTiffPanel extends JComponent {
     @Override
     protected void paintComponent(Graphics graphics) {
         super.paintComponent(graphics);
+        Graphics2D g = (Graphics2D) graphics;
         Rectangle clip = graphics.getClipBounds();
         if (clip == null) {
             return;
@@ -57,10 +61,22 @@ class JTiffPanel extends JComponent {
         // - loadFragment changes the rectangle
         final BufferedImage bi = viewer.loadFragment(clip);
         if (bi != null) {
-            graphics.drawImage(bi, clip.x, clip.y, null);
+            g.drawImage(bi, clip.x, clip.y, null);
         } else if (clip.width > 0 && clip.height > 0) {
-            graphics.setColor(Color.RED);
-            graphics.fillRect(clip.x, clip.y, clip.width, clip.height);
+            g.setPaint(ERROR_PAINT);
+            g.fillRect(clip.x, clip.y, clip.width, clip.height);
         }
+    }
+
+    private static TexturePaint createChessPaint(int size, Color c1, Color c2) {
+        BufferedImage bi = new BufferedImage(size * 2, size * 2, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = bi.createGraphics();
+        g.setColor(c1);
+        g.fillRect(0, 0, size * 2, size * 2);
+        g.setColor(c2);
+        g.fillRect(size, 0, size, size);
+        g.fillRect(0, size, size, size);
+        g.dispose();
+        return new TexturePaint(bi, new Rectangle(0, 0, size * 2, size * 2));
     }
 }

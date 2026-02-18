@@ -38,6 +38,6 @@ class JTiffFrame extends JFrame {
     @Override
     public void dispose() {
         super.dispose();
-        viewer.dispose();
+        viewer.disposeResources();
     }
 }

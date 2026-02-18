@@ -38,6 +38,8 @@ import java.util.Objects;
 class TiffImageViewer {
     private static final System.Logger LOG = System.getLogger(TiffExplorer.class.getName());
     private static final String DEFAULT_STATUS = "Please use SHIFT + mouse drag to move image";
+    private static final long CACHING_MEMORY = 16 * 1048576L;
+    // - 16MB is enough to store several user screens
 
     private static final Color COMMON_COLOR = Color.BLACK;
     private static final Color ERROR_COLOR = Color.RED;
@@ -67,11 +69,12 @@ class TiffImageViewer {
         this.app = Objects.requireNonNull(app);
         Objects.requireNonNull(tiffFile);
         this.reader = new TiffReaderWithGrid(tiffFile);
+        this.reader.setMaxCacheMemory(CACHING_MEMORY);
         LOG.log(System.Logger.Level.INFO, "Viewer opened " + reader.streamName());
         this.index = index;
     }
 
-    public void dispose() {
+    public void disposeResources() {
         image = null;
         try {
             this.reader.close();
@@ -235,6 +238,7 @@ class TiffImageViewer {
         numberOfImages = reader.numberOfImages();
         dimX = map.dimX();
         dimY = map.dimY();
+        map.readSampleBytes(0, 0, 64, 64);
     }
 
     private void updateView() {
