@@ -101,7 +101,11 @@ class TiffImageViewer {
     }
 
     public void showNormalStatus() {
-        showStatus(DEFAULT_STATUS);
+        Rectangle frame = tiffPanel.currentFrame();
+        String status = frame == null ?
+                DEFAULT_STATUS :
+                frame.width + "x" + frame.height + " starting at (" + frame.x + "," + frame.y + ")";
+        showStatus(status);
     }
 
     public void showStatus(String status) {

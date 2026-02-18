@@ -54,6 +54,23 @@ class JTiffPanel extends JComponent {
         FrameHandle(Cursor cursor) {
             this.cursor = cursor;
         }
+
+        public Rectangle handleBounds(Rectangle frame, int s) {
+            final int fromX = frame.x;
+            final int fromY = frame.y;
+            final int toX = frame.x + frame.width;
+            final int toY = frame.y + frame.height;
+            return switch (this) {
+                case TOP_LEFT -> new Rectangle(fromX - s / 2, fromY - s / 2, s, s);
+                case TOP_RIGHT -> new Rectangle(toX - s / 2, fromY - s / 2, s, s);
+                case BOTTOM_LEFT -> new Rectangle(fromX - s / 2, toY - s / 2, s, s);
+                case BOTTOM_RIGHT -> new Rectangle(toX - s / 2, toY - s / 2, s, s);
+                case TOP -> new Rectangle(fromX + frame.width / 2 - s / 2, fromY - s / 2, s, s);
+                case BOTTOM -> new Rectangle(fromX + frame.width / 2 - s / 2, toY - s / 2, s, s);
+                case LEFT -> new Rectangle(fromX - s / 2, fromY + frame.height / 2 - s / 2, s, s);
+                case RIGHT -> new Rectangle(toX - s / 2, fromY + frame.height / 2 - s / 2, s, s);
+            };
+        }
     }
 
     private static final int FRAME_HANDLE_SIZE = 8;
@@ -84,7 +101,7 @@ class JTiffPanel extends JComponent {
         this.viewer = Objects.requireNonNull(viewer, "Null viewer");
         reset();
 
-        dashTimer = new Timer(500, e -> {
+        dashTimer = new Timer(300, e -> {
             dashPhase = (dashPhase + 1) % 16;
             if (frameExists) {
                 repaint(); // перерисуем компонент полностью, или можно ограниченно
@@ -107,6 +124,7 @@ class JTiffPanel extends JComponent {
     public void removeFrame() {
         frameExists = false;
         repaint();
+        viewer.showNormalStatus();
     }
 
     public void setFrame(int fromX, int fromY, int toX, int toY) {
@@ -116,10 +134,36 @@ class JTiffPanel extends JComponent {
         frameToX = toX;
         frameToY = toY;
         repaint();
+        viewer.showNormalStatus();
     }
 
     public void setMouseHandleEnabled(boolean mouseHandleEnabled) {
         this.mouseHandleEnabled = mouseHandleEnabled;
+    }
+
+    public Rectangle currentFrame() {
+        if (frameExists) {
+            final int fromX = Math.min(frameFromX, frameToX);
+            final int fromY = Math.min(frameFromY, frameToY);
+            final int toX = Math.max(frameFromX, frameToX);
+            final int toY = Math.max(frameFromY, frameToY);
+            return new Rectangle(fromX, fromY, toX - fromX, toY - fromY);
+        } else {
+            return null;
+        }
+    }
+
+    private void normalizeNegativeFrame() {
+        if (frameFromX > frameToX) {
+            int temp = frameFromX;
+            frameFromX = frameToX;
+            frameToX = temp;
+        }
+        if (frameFromY > frameToY) {
+            int temp = frameFromY;
+            frameFromY = frameToY;
+            frameToY = temp;
+        }
     }
 
     @Override
@@ -149,11 +193,13 @@ class JTiffPanel extends JComponent {
             int h = Math.max(Math.abs(frameToY - frameFromY), 1);
 
             Stroke oldStroke = g.getStroke();
-            g.setColor(Color.BLACK);
             g.setStroke(new BasicStroke(
                     1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
                     10f, new float[]{4f, 4f}, (float) dashPhase));
+            g.setColor(Color.BLACK);
             g.drawRect(x, y, w, h);
+            g.setColor(Color.WHITE);
+            g.drawRect(x + 1, y + 1, w, h);
             g.setStroke(oldStroke);
 
             final int[] xs = {x, x + w / 2, x + w};
@@ -176,6 +222,7 @@ class JTiffPanel extends JComponent {
                 final int mx = e.getX();
                 final int my = e.getY();
 
+                normalizeNegativeFrame();
                 FrameHandle handle = getHandleUnder(mx, my);
                 if (handle != null) {
                     selectedHandle = handle;
@@ -213,6 +260,7 @@ class JTiffPanel extends JComponent {
                     LOG.log(System.Logger.Level.DEBUG, "Removing frame");
                     removeFrame();
                 }
+                normalizeNegativeFrame();
                 creatingNewFrame = false;
                 resizingFrame = false;
                 movingFrame = false;
@@ -239,6 +287,7 @@ class JTiffPanel extends JComponent {
                     frameToX = frameFromX + w;
                     frameToY = frameFromY + h;
                 }
+                viewer.showNormalStatus();
                 repaint();
             }
 
@@ -288,27 +337,13 @@ class JTiffPanel extends JComponent {
     }
 
     private FrameHandle getHandleUnder(int x, int y) {
-        if (!frameExists) {
+        final Rectangle frame = currentFrame();
+        if (frame == null) {
             return null;
         }
-        int fx = Math.min(frameFromX, frameToX), fy = Math.min(frameFromY, frameToY);
-        int tx = Math.max(frameFromX, frameToX), ty = Math.max(frameFromY, frameToY);
-        int s = FRAME_HANDLE_SIZE;
-
-        Rectangle[] rects = new Rectangle[8];
-        rects[0] = new Rectangle(fx - s / 2, fy - s / 2, s, s);               // TOP_LEFT
-        rects[1] = new Rectangle(tx - s / 2, fy - s / 2, s, s);               // TOP_RIGHT
-        rects[2] = new Rectangle(fx - s / 2, ty - s / 2, s, s);               // BOTTOM_LEFT
-        rects[3] = new Rectangle(tx - s / 2, ty - s / 2, s, s);               // BOTTOM_RIGHT
-        rects[4] = new Rectangle(fx + (tx - fx) / 2 - s / 2, fy - s / 2, s, s); // TOP
-        rects[5] = new Rectangle(fx + (tx - fx) / 2 - s / 2, ty - s / 2, s, s); // BOTTOM
-        rects[6] = new Rectangle(fx - s / 2, fy + (ty - fy) / 2 - s / 2, s, s); // LEFT
-        rects[7] = new Rectangle(tx - s / 2, fy + (ty - fy) / 2 - s / 2, s, s); // RIGHT
-
-        FrameHandle[] handles = FrameHandle.values();
-        for (int i = 0; i < rects.length; i++) {
-            if (rects[i].contains(x, y)) {
-                return handles[i];
+        for (FrameHandle handle : FrameHandle.values()) {
+            if (handle.handleBounds(frame, FRAME_HANDLE_SIZE).contains(x, y)) {
+                return handle;
             }
         }
         return null;
