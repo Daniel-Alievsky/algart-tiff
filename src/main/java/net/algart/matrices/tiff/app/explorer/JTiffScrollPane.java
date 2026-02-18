@@ -26,10 +26,7 @@ package net.algart.matrices.tiff.app.explorer;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 
 class JTiffScrollPane extends JScrollPane {
     private final JTiffPanel tiffPanel;
@@ -45,10 +42,24 @@ class JTiffScrollPane extends JScrollPane {
         initPanListener();
     }
 
+    private void enterDraggingMode() {
+        if (!shiftDown) {
+            shiftDown = true;
+            tiffPanel.setMouseHandleEnabled(false);
+            tiffPanel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        }
+    }
+
+    private void leaveDraggingMode() {
+        shiftDown = false;
+        tiffPanel.setMouseHandleEnabled(true);
+        if (panStart == null) {
+            tiffPanel.setCursor(Cursor.getDefaultCursor());
+        }
+    }
+
     private void initPanListener() {
         JViewport viewport = getViewport();
-        Component view = viewport.getView();
-
 
         MouseAdapter adapter = new MouseAdapter() {
             @Override
@@ -63,7 +74,7 @@ class JTiffScrollPane extends JScrollPane {
                 if (SwingUtilities.isLeftMouseButton(e)) {
                     panStart = null;
                     if (!shiftDown) {
-                        view.setCursor(Cursor.getDefaultCursor());
+                        tiffPanel.setCursor(Cursor.getDefaultCursor());
                     }
                 }
             }
@@ -77,7 +88,7 @@ class JTiffScrollPane extends JScrollPane {
 
                     viewPos.translate(dx, dy);
 
-                    Dimension viewSize = view.getSize();
+                    Dimension viewSize = tiffPanel.getSize();
                     Dimension extentSize = viewport.getExtentSize();
                     viewPos.x = Math.max(0, Math.min(viewPos.x, viewSize.width - extentSize.width));
                     viewPos.y = Math.max(0, Math.min(viewPos.y, viewSize.height - extentSize.height));
@@ -87,32 +98,34 @@ class JTiffScrollPane extends JScrollPane {
             }
         };
 
-        view.addMouseListener(adapter);
-        view.addMouseMotionListener(adapter);
+        tiffPanel.addMouseListener(adapter);
+        tiffPanel.addMouseMotionListener(adapter);
 
-        view.addKeyListener(new KeyAdapter() {
+        tiffPanel.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
-                    if (!shiftDown) {
-                        shiftDown = true;
-                        tiffPanel.setMouseHandleEnabled(false);
-                        view.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                    }
+                    enterDraggingMode();
                 }
             }
 
             @Override
             public void keyReleased(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
-                    shiftDown = false;
-                    tiffPanel.setMouseHandleEnabled(true);
-                    if (panStart == null) {
-                        view.setCursor(Cursor.getDefaultCursor());
-                    }
+                    leaveDraggingMode();
                 }
             }
         });
-        view.setFocusable(true);
+        tiffPanel.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent e) {
+                leaveDraggingMode();
+            }
+        });
+        tiffPanel.setFocusable(true);
+        // - necessary to allow tiffPanel.addKeyListener;
+        // the possible call:
+        //      SwingUtilities.invokeLater(() -> tiffPanel.requestFocusInWindow());
+        // but it is unnecessary, because tiffPanel is the only focusable element in the frame
     }
 }

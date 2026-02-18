@@ -35,6 +35,10 @@ class JTiffFrame extends JFrame {
         TiffExplorer.setTiffExplorerIcon(this);
     }
 
+    public TiffImageViewer viewer() {
+        return viewer;
+    }
+
     @Override
     public void dispose() {
         super.dispose();

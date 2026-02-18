@@ -163,7 +163,7 @@ class TiffImageViewer {
     }
 
     private void createGUI() {
-        final JFrame frame = new JTiffFrame(this);
+        final JTiffFrame frame = new JTiffFrame(this);
         frame.setTitle("TIFF Image #%d from %d images (%dx%d%s)".formatted(
                 index, numberOfImages, dimX, dimY, dimX == map.dimX() && dimY == map.dimY() ?
                         "" :
