@@ -31,12 +31,15 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
-public class JTiffScrollPane extends JScrollPane {
+class JTiffScrollPane extends JScrollPane {
+    private final JTiffPanel tiffPanel;
+
     private Point panStart = null;
     private boolean shiftDown = false;
 
-    public JTiffScrollPane(Component view) {
-        super(view);
+    public JTiffScrollPane(JTiffPanel tiffPanel) {
+        super(tiffPanel);
+        this.tiffPanel = tiffPanel;
         setWheelScrollingEnabled(false);
         // - default implementation supports vertical scroll only, this is not a good idea
         initPanListener();
@@ -93,6 +96,7 @@ public class JTiffScrollPane extends JScrollPane {
                 if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
                     if (!shiftDown) {
                         shiftDown = true;
+                        tiffPanel.setMouseHandleEnabled(false);
                         view.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
                     }
                 }
@@ -102,6 +106,7 @@ public class JTiffScrollPane extends JScrollPane {
             public void keyReleased(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
                     shiftDown = false;
+                    tiffPanel.setMouseHandleEnabled(true);
                     if (panStart == null) {
                         view.setCursor(Cursor.getDefaultCursor());
                     }

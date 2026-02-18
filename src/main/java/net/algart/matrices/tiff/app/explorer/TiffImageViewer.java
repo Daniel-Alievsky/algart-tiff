@@ -36,12 +36,13 @@ import java.nio.file.Path;
 import java.util.Objects;
 
 class TiffImageViewer {
-    private static final System.Logger LOG = System.getLogger(TiffExplorer.class.getName());
     private static final String DEFAULT_STATUS = "Please use SHIFT + mouse drag to move image";
     private static final long CACHING_MEMORY = 32 * 1048576L;
     // - 32MB is enough to store several user screens
     private static final boolean PRELOAD_LITTLE_AREA_WHILE_OPENING = true;
     // - clear this flag to debug possible I/O errors during the drawing process
+
+    private static final System.Logger LOG = System.getLogger(TiffImageViewer.class.getName());
 
     private static final Color COMMON_COLOR = Color.BLACK;
     private static final Color ERROR_COLOR = Color.RED;
@@ -78,6 +79,7 @@ class TiffImageViewer {
 
     public void disposeResources() {
         image = null;
+        tiffPanel.disposeResources();
         try {
             this.reader.close();
         } catch (IOException e) {
@@ -180,6 +182,11 @@ class TiffImageViewer {
         statusLabel = new JLabel(DEFAULT_STATUS);
         statusPanel.add(statusLabel);
         frame.add(statusPanel, BorderLayout.SOUTH);
+
+        frame.getRootPane().registerKeyboardAction(
+                e -> tiffPanel.removeFrame(),
+                KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0),
+                JComponent.WHEN_IN_FOCUSED_WINDOW);
         frame.pack();
 
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
@@ -197,15 +204,14 @@ class TiffImageViewer {
         JMenuBar menuBar = new JMenuBar();
 
         JMenu viewMenu = new JMenu("View");
-        JCheckBoxMenuItem tileItem = new JCheckBoxMenuItem(
+        JCheckBoxMenuItem tileGridItem = new JCheckBoxMenuItem(
                 "Draw %s".formatted(map.isTiled() ? "tile grid" : "strip boundaries"));
-        tileItem.setSelected(false);
-        tileItem.addActionListener(e -> {
-            reader.setViewTileGrid(tileItem.isSelected());
+        tileGridItem.setSelected(false);
+        tileGridItem.addActionListener(e -> {
+            reader.setViewTileGrid(tileGridItem.isSelected());
             updateView();
         });
-        viewMenu.add(tileItem);
-        menuBar.add(viewMenu);
+        viewMenu.add(tileGridItem);
 
         // RandomAccessFile does not strictly lock the file: other processes, for example,
         // other instances of TiffExplorer may edit the same file
@@ -219,7 +225,18 @@ class TiffImageViewer {
             }
         });
         viewMenu.add(reloadItem);
+
+        JMenu editMenu = new JMenu("Edit");
+        JMenuItem removeSelectionItem = new JMenuItem("Remove selection");
+        removeSelectionItem.addActionListener(e -> {
+            tiffPanel.removeFrame();
+        });
+        editMenu.add(removeSelectionItem);
+
         menuBar.add(viewMenu);
+        menuBar.add(editMenu);
+        editMenu.setMnemonic('E');
+        viewMenu.setMnemonic('V');
         return menuBar;
     }
 
