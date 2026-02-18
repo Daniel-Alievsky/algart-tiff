@@ -30,6 +30,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Objects;
@@ -53,6 +54,10 @@ class TiffImageViewer {
     private int dimX;
     private int dimY;
 
+    private Rectangle viewport = null;
+    private BufferedImage image = null;
+    private IOException exception = null;
+
     private String lastStatus = DEFAULT_STATUS;
     private boolean lastErrorFlag = false;
 
@@ -67,6 +72,7 @@ class TiffImageViewer {
     }
 
     public void dispose() {
+        image = null;
         try {
             this.reader.close();
         } catch (IOException e) {
@@ -87,7 +93,7 @@ class TiffImageViewer {
         createGUI();
     }
 
-    public void showDefaultStatus() {
+    public void showNormalStatus() {
         showStatus(DEFAULT_STATUS);
     }
 
@@ -100,21 +106,57 @@ class TiffImageViewer {
     }
 
     public void reload() throws IOException {
-        reader.resetCache();
+        resetCache();
         openMap();
         tiffPanel.reset();
         updateView();
     }
 
-    private void openMap() throws IOException {
-        map = reader.map(index);
-        numberOfImages = reader.numberOfImages();
-        dimX = map.dimX();
-        dimY = map.dimY();
+    /**
+     * Loads the image fragment specified by the rectangle.
+     * If the rectangle is too large, the argument is modified: the rectangle is cropped to fit the image dimensions.
+     *
+     * @param viewport fragment to load.
+     * @return loaded image fragment or {@code null} if the fragment is empty.
+     */
+    public BufferedImage loadFragment(Rectangle viewport) {
+        final int toX = Math.min(viewport.x + viewport.width, map.dimX());
+        final int toY = Math.min(viewport.y + viewport.height, map.dimY());
+        viewport.width = Math.max(toX - viewport.x, 0);
+        viewport.height = Math.max(toY - viewport.y, 0);
+        if (!Objects.equals(viewport, this.viewport)) {
+            this.viewport = new Rectangle(viewport);
+            try {
+                image = viewport.width > 0 && viewport.height > 0 ?
+                        map.readBufferedImage(viewport.x, viewport.y, viewport.width, viewport.height) :
+                        null;
+                exception = null;
+            } catch (IOException e) {
+                image = null;
+                exception = e;
+            }
+            if (exception == null) {
+                LOG.log(System.Logger.Level.DEBUG, "Viewer loaded the fragment %dx%d starting at (%d,%d)"
+                        .formatted(viewport.width, viewport.height, viewport.x, viewport.y));
+                showNormalStatus();
+            } else {
+                LOG.log(System.Logger.Level.ERROR, "Error while reading " + map.streamName() +
+                        ": " + exception.getMessage(), exception);
+                showError(exception.getMessage());
+            }
+        }
+        return image;
+    }
+
+    public void resetCache() {
+        reader.resetCache();
+        viewport = null;
+        image = null;
+        exception = null;
     }
 
     private void createGUI() {
-        JFrame frame = new JTiffFrame(this);
+        final JFrame frame = new JTiffFrame(this);
         frame.setTitle("TIFF Image #%d from %d images (%dx%d%s)".formatted(
                 index, numberOfImages, dimX, dimY, dimX == map.dimX() && dimY == map.dimY() ?
                         "" :
@@ -188,8 +230,15 @@ class TiffImageViewer {
         }
     }
 
+    private void openMap() throws IOException {
+        map = reader.map(index);
+        numberOfImages = reader.numberOfImages();
+        dimX = map.dimX();
+        dimY = map.dimY();
+    }
+
     private void updateView() {
-        reader.resetCache();
+        resetCache();
         tiffPanel.repaint();
     }
 }

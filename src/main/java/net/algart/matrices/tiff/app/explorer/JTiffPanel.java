@@ -49,28 +49,18 @@ class JTiffPanel extends JComponent {
     @Override
     protected void paintComponent(Graphics graphics) {
         super.paintComponent(graphics);
-        final Graphics2D g = (Graphics2D) graphics;
-        final TiffReadMap map = viewer.map();
-        final Rectangle clip = g.getClipBounds();
-        final int fromX = clip.x;
-        final int fromY = clip.y;
-        final int toX = Math.min(clip.x + clip.width, map.dimX());
-        final int toY = Math.min(clip.y + clip.height, map.dimY());
-        if (fromX >= toX || fromY >= toY) {
+        Rectangle clip = graphics.getClipBounds();
+        if (clip == null) {
             return;
         }
-        try {
-            final BufferedImage bi = map.readBufferedImage(fromX, fromY, toX - fromX, toY - fromY);
-            LOG.log(System.Logger.Level.DEBUG, "Viewer loaded the fragment %dx%d starting at (%d,%d)"
-                    .formatted(toX - fromX, toY - fromY, fromX, fromY));
-            g.drawImage(bi, fromX, fromY, null);
-            viewer.showDefaultStatus();
-        } catch (IOException e) {
-            LOG.log(System.Logger.Level.ERROR, "Error while reading " + map.streamName() +
-                    ": " + e.getMessage(), e);
-            viewer.showError(e.getMessage());
-            g.setColor(Color.RED);
-            g.fillRect(fromX, fromY, toX - fromX, toY - fromY);
+        clip = new Rectangle(clip);
+        // - loadFragment changes the rectangle
+        final BufferedImage bi = viewer.loadFragment(clip);
+        if (bi != null) {
+            graphics.drawImage(bi, clip.x, clip.y, null);
+        } else if (clip.width > 0 && clip.height > 0) {
+            graphics.setColor(Color.RED);
+            graphics.fillRect(clip.x, clip.y, clip.width, clip.height);
         }
     }
 }
