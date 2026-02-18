@@ -36,7 +36,8 @@ import java.nio.file.Path;
 import java.util.Objects;
 
 class TiffImageViewer {
-    private static final String DEFAULT_STATUS = "Please use SHIFT + mouse drag to move image";
+    private static final String DEFAULT_STATUS =
+            "Use mouse drag to select a rectangle, or SHIFT-drag to move the image";
     private static final long CACHING_MEMORY = 32 * 1048576L;
     // - 32MB is enough to store several user screens
     private static final boolean PRELOAD_LITTLE_AREA_WHILE_OPENING = true;
