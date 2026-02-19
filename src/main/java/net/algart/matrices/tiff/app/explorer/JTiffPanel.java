@@ -79,6 +79,8 @@ class JTiffPanel extends JComponent {
     private static final System.Logger LOG = System.getLogger(JTiffPanel.class.getName());
 
     private final TiffImageViewer viewer;
+    private final int dimX;
+    private final int dimY;
 
     private int frameFromX = -1;
     private int frameFromY = -1;
@@ -99,6 +101,9 @@ class JTiffPanel extends JComponent {
 
     public JTiffPanel(TiffImageViewer viewer) {
         this.viewer = Objects.requireNonNull(viewer, "Null viewer");
+        final TiffReadMap map = viewer.map();
+        this.dimX = map.dimX();
+        this.dimY = map.dimY();
         reset();
 
         dashTimer = new Timer(300, e -> {
@@ -117,8 +122,7 @@ class JTiffPanel extends JComponent {
     }
 
     public void reset() {
-        final TiffReadMap map = viewer.map();
-        setPreferredSize(new Dimension(map.dimX(), map.dimY()));
+        setPreferredSize(new Dimension(dimX, dimY));
     }
 
     public void removeFrame() {
@@ -187,25 +191,25 @@ class JTiffPanel extends JComponent {
 
     private void drawFrame(Graphics2D g) {
         if (frameExists) {
-            int x = Math.min(frameFromX, frameToX);
-            int y = Math.min(frameFromY, frameToY);
-            int w = Math.max(Math.abs(frameToX - frameFromX), 1);
-            int h = Math.max(Math.abs(frameToY - frameFromY), 1);
+            final int fromX = Math.min(frameFromX, frameToX);
+            final int fromY = Math.min(frameFromY, frameToY);
+            final int sizeX = Math.max(Math.abs(frameToX - frameFromX), 1);
+            final int sizeY = Math.max(Math.abs(frameToY - frameFromY), 1);
 
             Stroke oldStroke = g.getStroke();
             g.setStroke(new BasicStroke(
                     1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
                     10f, new float[]{4f, 4f}, (float) dashPhase));
             g.setColor(Color.BLACK);
-            g.drawRect(x, y, w, h);
+            g.drawRect(fromX, fromY, sizeX, sizeY);
             g.setColor(Color.WHITE);
-            g.drawRect(x + 1, y + 1, w, h);
+            g.drawRect(fromX + 1, fromY + 1, sizeX, sizeY);
             g.setStroke(oldStroke);
 
-            final int[] xs = {x, x + w / 2, x + w};
-            final int[] ys = {y, y + h / 2, y + h};
-            for (int cx : xs) {
-                for (int cy : ys) {
+            final int[] xPositions = {fromX, fromX + sizeX / 2, fromX + sizeX};
+            final int[] yPositions = {fromY, fromY + sizeY / 2, fromY + sizeY};
+            for (int cx : xPositions) {
+                for (int cy : yPositions) {
                     drawFrameHandle(g, cx, cy);
                 }
             }
@@ -242,7 +246,8 @@ class JTiffPanel extends JComponent {
                     selectedHandle = null;
                     creatingNewFrame = true;
                     frameExists = true;
-                    resizingFrame = movingFrame = false;
+                    resizingFrame = false;
+                    movingFrame = false;
                     frameFromX = frameToX = mx;
                     frameFromY = frameToY = my;
                     LOG.log(System.Logger.Level.DEBUG, "Creating new frame");
@@ -272,20 +277,20 @@ class JTiffPanel extends JComponent {
                 if (!SwingUtilities.isLeftMouseButton(e)) {
                     return;
                 }
-                int mx = e.getX(), my = e.getY();
-
+                final int mx = e.getX();
+                final int my = e.getY();
                 if (creatingNewFrame) {
-                    frameToX = mx;
-                    frameToY = my;
+                    frameToX = Math.clamp(mx, 0, dimX);;
+                    frameToY = Math.clamp(my, 0, dimY);
                 } else if (resizingFrame && selectedHandle != null) {
                     resizeFrame(selectedHandle, mx, my);
                 } else if (movingFrame) {
-                    int w = frameToX - frameFromX;
-                    int h = frameToY - frameFromY;
-                    frameFromX = mx - dragOffsetX;
-                    frameFromY = my - dragOffsetY;
-                    frameToX = frameFromX + w;
-                    frameToY = frameFromY + h;
+                    final int sizeX = frameToX - frameFromX;
+                    final int sizeY = frameToY - frameFromY;
+                    frameFromX = Math.clamp(mx - dragOffsetX, 0, Math.max(0, dimX - sizeX));
+                    frameFromY = Math.clamp(my - dragOffsetY, 0, Math.max(0, dimY - sizeY));
+                    frameToX = frameFromX + sizeX;
+                    frameToY = frameFromY + sizeY;
                 }
                 viewer.showNormalStatus();
                 repaint();
@@ -296,7 +301,8 @@ class JTiffPanel extends JComponent {
                 if (!mouseHandleEnabled) {
                     return;
                 }
-                final int mx = e.getX(), my = e.getY();
+                final int mx = e.getX();
+                final int my = e.getY();
                 FrameHandle handle = getHandleUnder(mx, my);
                 if (handle != null) {
                     setCursor(handle.cursor);
@@ -312,6 +318,8 @@ class JTiffPanel extends JComponent {
     }
 
     private void resizeFrame(FrameHandle handle, int mx, int my) {
+        mx = Math.clamp(mx, 0, dimX);
+        my = Math.clamp(my, 0, dimY);
         switch (handle) {
             case TOP_LEFT -> {
                 frameFromX = mx;
@@ -353,11 +361,11 @@ class JTiffPanel extends JComponent {
         if (!frameExists) {
             return false;
         }
-        int fx = Math.min(frameFromX, frameToX);
-        int fy = Math.min(frameFromY, frameToY);
-        int tx = Math.max(frameFromX, frameToX);
-        int ty = Math.max(frameFromY, frameToY);
-        return x >= fx && x <= tx && y >= fy && y <= ty;
+        final int fromX = Math.min(frameFromX, frameToX);
+        final int fromY = Math.min(frameFromY, frameToY);
+        final int toX = Math.max(frameFromX, frameToX);
+        final int toY = Math.max(frameFromY, frameToY);
+        return x >= fromX && x < toX && y >= fromY && y < toY;
     }
 
     private static void drawFrameHandle(Graphics2D g, int cx, int cy) {

@@ -52,13 +52,10 @@ class TiffImageViewer {
     private final TiffReaderWithGrid reader;
     private final int index;
 
-    private JScrollPane scrollPane;
     private JLabel statusLabel;
 
     private TiffReadMap map = null;
-    private int numberOfImages;
-    private int dimX;
-    private int dimY;
+    private int numberOfImages = -1;
 
     private Rectangle viewport = null;
     private BufferedImage image = null;
@@ -102,10 +99,14 @@ class TiffImageViewer {
     }
 
     public void showNormalStatus() {
-        Rectangle frame = tiffPanel.currentFrame();
-        String status = frame == null ?
+        final Rectangle r = tiffPanel.currentFrame();
+        final String status = r == null ?
                 DEFAULT_STATUS :
-                frame.width + "x" + frame.height + " starting at (" + frame.x + "," + frame.y + ")";
+                r.width == 0 || r.height == 0 ?
+                        "%dx%d: top-left (%d,%d)".formatted(
+                                r.width, r.height, r.x, r.y) :
+                        "%dx%d: top-left (%d,%d), bottom-right (%d,%d)".formatted(
+                                r.width, r.height, r.x, r.y, r.x + r.width - 1, r.y + r.height - 1);
         showStatus(status);
     }
 
@@ -169,20 +170,18 @@ class TiffImageViewer {
 
     private void createGUI() {
         final JTiffFrame frame = new JTiffFrame(this);
-        frame.setTitle("TIFF Image #%d from %d images (%dx%d%s)".formatted(
-                index, numberOfImages, dimX, dimY, dimX == map.dimX() && dimY == map.dimY() ?
-                        "" :
-                        " from %dx%d".formatted(map.dimX(), map.dimY())));
+        frame.setTitle("TIFF Image #%d from %d images (%dx%d)".formatted(
+                index, numberOfImages, map.dimX(), map.dimY()));
         frame.setLayout(new BorderLayout());
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setJMenuBar(buildMenuBar());
 
         tiffPanel = new JTiffPanel(this);
-        scrollPane = new JTiffScrollPane(tiffPanel);
+        final JScrollPane scrollPane = new JTiffScrollPane(tiffPanel);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         frame.add(scrollPane, BorderLayout.CENTER);
 
-        JPanel statusPanel = new JPanel();
+        final JPanel statusPanel = new JPanel();
         statusPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 5, 5));
         statusLabel = new JLabel(DEFAULT_STATUS);
         statusPanel.add(statusLabel);
@@ -260,8 +259,6 @@ class TiffImageViewer {
     private void openMap() throws IOException {
         map = reader.map(index);
         numberOfImages = reader.numberOfImages();
-        dimX = map.dimX();
-        dimY = map.dimY();
         if (PRELOAD_LITTLE_AREA_WHILE_OPENING) {
             map.readSampleBytes(0, 0, 64, 64);
         }

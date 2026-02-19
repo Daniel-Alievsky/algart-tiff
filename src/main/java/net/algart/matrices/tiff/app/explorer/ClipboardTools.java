@@ -29,7 +29,7 @@ import java.awt.datatransfer.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 
-public class ClipboardWorker {
+public class ClipboardTools {
     public static void copyImageToClipboard(BufferedImage image) {
         Toolkit.getDefaultToolkit()
                 .getSystemClipboard()
@@ -61,6 +61,8 @@ public class ClipboardWorker {
             } else if (data instanceof Image image) {
                 BufferedImage bi = new BufferedImage(image.getWidth(null), image.getHeight(null),
                         BufferedImage.TYPE_INT_ARGB);
+                //TODO!! Log
+                //TODO!! detect monochrome?
                 Graphics2D g = bi.createGraphics();
                 g.drawImage(image, 0, 0, null);
                 g.dispose();
