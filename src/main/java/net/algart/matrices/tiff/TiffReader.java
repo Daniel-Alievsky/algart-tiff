@@ -1557,7 +1557,7 @@ public non-sealed class TiffReader extends TiffIO {
                     unpackingBits ?
                             String.format(Locale.US, " + %.3f unpacking %d-bit",
                                     (t3 - t2) * 1e-6,
-                                    map.alignedBitsPerSample()) :
+                                    map.alignedBitDepth()) :
                             "",
                     sizeInBytes / 1048576.0 / ((t3 - t1) * 1e-9)));
         }

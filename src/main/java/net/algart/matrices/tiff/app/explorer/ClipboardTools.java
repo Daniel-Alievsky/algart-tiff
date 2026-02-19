@@ -30,6 +30,9 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 
 public class ClipboardTools {
+    private ClipboardTools() {
+    }
+
     public static void copyImageToClipboard(BufferedImage image) {
         Toolkit.getDefaultToolkit()
                 .getSystemClipboard()

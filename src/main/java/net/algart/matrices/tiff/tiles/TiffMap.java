@@ -110,7 +110,7 @@ public sealed class TiffMap permits TiffIOMap {
     private final int numberOfSeparatedPlanes;
     private final int tileSamplesPerPixel;
     private final int[] bitsPerSample;
-    private final int alignedBitsPerSample;
+    private final int alignedBitDepth;
     private final int bitsPerUnpackedSample;
     private final int tileAlignedBitsPerPixel;
     private final int totalAlignedBitsPerPixel;
@@ -173,20 +173,20 @@ public sealed class TiffMap permits TiffIOMap {
             this.numberOfSeparatedPlanes = planarSeparated ? numberOfChannels : 1;
             this.tileSamplesPerPixel = planarSeparated ? 1 : numberOfChannels;
             this.bitsPerSample = ifd.getBitsPerSample().clone();
-            this.alignedBitsPerSample = TiffIFD.alignedBitDepth(bitsPerSample);
+            this.alignedBitDepth = TiffIFD.alignedBitDepth(bitsPerSample);
             // - we allow only EQUAL number of bytes/sample (but the number if bits/sample can be different)
-            assert (long) numberOfChannels * (long) alignedBitsPerSample <
+            assert (long) numberOfChannels * (long) alignedBitDepth <
                     TiffIFD.MAX_NUMBER_OF_CHANNELS * TiffIFD.MAX_BITS_PER_SAMPLE;
             // - actually must be in 8 times less
-            this.tileAlignedBitsPerPixel = tileSamplesPerPixel * alignedBitsPerSample;
-            this.totalAlignedBitsPerPixel = numberOfChannels * alignedBitsPerSample;
+            this.tileAlignedBitsPerPixel = tileSamplesPerPixel * alignedBitDepth;
+            this.totalAlignedBitsPerPixel = numberOfChannels * alignedBitDepth;
             this.sampleType = ifd.sampleType();
             this.wholeBytes = sampleType.isWholeBytes();
-            if (this.wholeBytes != ((alignedBitsPerSample & 7) == 0)) {
+            if (this.wholeBytes != ((alignedBitDepth & 7) == 0)) {
                 throw new ConcurrentModificationException("Corrupted IFD, probably from a parallel thread" +
                         " (sample type " + sampleType + " is" +
                         (wholeBytes ? "" : " NOT") +
-                        " whole-bytes, but we have " + alignedBitsPerSample + " bits/sample)");
+                        " whole-bytes, but we have " + alignedBitDepth + " bits/sample)");
             }
             if ((totalAlignedBitsPerPixel == 1) != sampleType.isBinary()) {
                 throw new ConcurrentModificationException("Corrupted IFD, probably from a parallel thread" +
@@ -198,9 +198,9 @@ public sealed class TiffMap permits TiffIOMap {
                         " > 1 channels is not supported: invalid TiffIFD class");
             }
             this.bitsPerUnpackedSample = sampleType.bitsPerSample();
-            if (bitsPerUnpackedSample < alignedBitsPerSample) {
+            if (bitsPerUnpackedSample < alignedBitDepth) {
                 throw new AssertionError(sampleType + ".bitsPerSample() = " + bitsPerUnpackedSample +
-                        " is too little: less than ifd.alignedBitDepth() = " + alignedBitsPerSample);
+                        " is too little: less than ifd.alignedBitDepth() = " + alignedBitDepth);
             }
             this.elementType = sampleType.elementType();
             this.byteOrder = ifd.getByteOrder();
@@ -224,7 +224,7 @@ public sealed class TiffMap permits TiffIOMap {
             this.tileSizeInPixels = tileSizeX * tileSizeY;
             if ((long) tileSizeInPixels * (long) tileAlignedBitsPerPixel > Integer.MAX_VALUE) {
                 throw new IllegalArgumentException("Very large TIFF tiles " + tileSizeX + "x" + tileSizeY +
-                        ", " + tileSamplesPerPixel + " channels per " + alignedBitsPerSample +
+                        ", " + tileSamplesPerPixel + " channels per " + alignedBitDepth +
                         " bits >= 2^31 bits (256 MB) are not supported");
             }
             this.tileSizeInBytes = (tileSizeInPixels * tileAlignedBitsPerPixel + 7) >>> 3;
@@ -294,6 +294,10 @@ public sealed class TiffMap permits TiffIOMap {
         return bitsPerSample.clone();
     }
 
+    public OptionalInt tryEqualBitDepth() {
+        return TiffIFD.tryEqualBitDepth(bitsPerSample);
+    }
+
     /**
      * Minimal number of bits, necessary to store one channel of the pixel:
      * the value of BitsPerSample TIFF tag, aligned to the nearest non-lesser multiple of 8,
@@ -306,13 +310,13 @@ public sealed class TiffMap permits TiffIOMap {
      *
      * @return number of bytes, necessary to store one channel of the pixel inside TIFF.
      */
-    public int alignedBitsPerSample() {
-        return alignedBitsPerSample;
+    public int alignedBitDepth() {
+        return alignedBitDepth;
     }
 
     public OptionalInt bytesPerSample() {
-        assert wholeBytes == ((alignedBitsPerSample & 7) == 0) : "must be checked ins the constructor";
-        return wholeBytes ? OptionalInt.of(alignedBitsPerSample >>> 3) : OptionalInt.empty();
+        assert wholeBytes == ((alignedBitDepth & 7) == 0) : "must be checked ins the constructor";
+        return wholeBytes ? OptionalInt.of(alignedBitDepth >>> 3) : OptionalInt.empty();
     }
 
     /**
@@ -321,18 +325,18 @@ public sealed class TiffMap permits TiffIOMap {
      * {@link TiffReader}, and for source data,
      * that should be written by {@link TiffWriter}.
      *
-     * <p>Usually this value is equal to results of {@link #alignedBitsPerSample()},
+     * <p>Usually this value is equal to results of {@link #alignedBitDepth()},
      * excepting the following rare cases, called <b>unusual precisions</b>:</p>
      *
      * <ul>
      *     <li>every channel is encoded as N-bit integer value, where 17&le;N&le;24, and, so, requires 3 bytes:
-     *     this method returns 32, {@link #alignedBitsPerSample()} returns 24
+     *     this method returns 32, {@link #alignedBitDepth()} returns 24
      *     (image, stored in memory, must have 2<sup>k</sup> bytes (k=1..3) per every sample, to allow representing
      *     it by one of Java types <code>byte</code>, <code>short</code>, <code>int</code>,
      *     <code>float</code>, <code>double</code>);
      *     </li>
      *     <li>pixels are encoded as 16-bit or 24-bit floating point values:
-     *     this method returns 32, {@link #alignedBitsPerSample()} returns 16/24
+     *     this method returns 32, {@link #alignedBitDepth()} returns 16/24
      *     (in memory, such an image will be unpacked into a usual array of 32-bit <code>float</code> values).
      *     </li>
      * </ul>
@@ -365,7 +369,7 @@ public sealed class TiffMap permits TiffIOMap {
     }
 
     public int sizeOfRegionWithPossibleNonStandardPrecisions(long sizeX, long sizeY) throws TiffException {
-        return TiffIFD.sizeOfRegionInBytes(sizeX, sizeY, numberOfChannels, alignedBitsPerSample);
+        return TiffIFD.sizeOfRegionInBytes(sizeX, sizeY, numberOfChannels, alignedBitDepth);
     }
 
     public long maxNumberOfSamplesInArray() {
@@ -722,7 +726,7 @@ public sealed class TiffMap permits TiffIOMap {
     @Override
     public String toString() {
         return (resizable ? "resizable " : "") + mapKindName() + " " +
-                dimX + "x" + dimY + "x" + numberOfChannels + " (" + alignedBitsPerSample + " bits) " +
+                dimX + "x" + dimY + "x" + numberOfChannels + " (" + alignedBitDepth + " bits) " +
                 "of " + tileMap.size() + " TIFF tiles (grid " + gridCountX + "x" + gridCountY +
                 (numberOfSeparatedPlanes == 1 ? "" : "x" + numberOfSeparatedPlanes) +
                 ") at the image " + ifd;
@@ -743,7 +747,7 @@ public sealed class TiffMap permits TiffIOMap {
                 Objects.equals(tileMap, that.tileMap) &&
                 planarSeparated == that.planarSeparated &&
                 numberOfChannels == that.numberOfChannels &&
-                alignedBitsPerSample == that.alignedBitsPerSample &&
+                alignedBitDepth == that.alignedBitDepth &&
                 tileSizeX == that.tileSizeX && tileSizeY == that.tileSizeY &&
                 tileSizeInBytes == that.tileSizeInBytes;
         // - Important! Comparing references to IFD, not content!
@@ -863,8 +867,8 @@ public sealed class TiffMap permits TiffIOMap {
         if (!isWholeBytes()) {
             throw new AssertionError("Non-whole bytes are impossible in valid TiffMap with 1 channel");
         }
-        final int bytesPerSample = alignedBitsPerSample >>> 3;
-        assert alignedBitsPerSample == bytesPerSample * 8 : "unaligned bitsPerSample impossible for whole bytes";
+        final int bytesPerSample = alignedBitDepth >>> 3;
+        assert alignedBitDepth == bytesPerSample * 8 : "unaligned bitsPerSample impossible for whole bytes";
         return interleave ?
                 toInterleavedBytes(samples, numberOfChannels, bytesPerSample, numberOfPixels) :
                 toSeparatedBytes(samples, numberOfChannels, bytesPerSample, numberOfPixels);

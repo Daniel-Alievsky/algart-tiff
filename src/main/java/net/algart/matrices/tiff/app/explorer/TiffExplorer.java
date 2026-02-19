@@ -106,7 +106,7 @@ public class TiffExplorer {
 
     private final Preferences prefs = Preferences.userNodeForPackage(TiffExplorer.class);
 
-    JFrame frame;
+    private JFrame frame;
     private JButton openFileButton;
     private JButton showImageButton;
     private JMenuItem openItem;
@@ -782,7 +782,11 @@ public class TiffExplorer {
         return index < 0 || info == null || index >= info.numberOfImages();
     }
 
-    void showErrorMessage(Throwable e, String title) {
+    private void showErrorMessage(Throwable e, String title) {
+        showErrorMessage(frame, e, title);
+    }
+
+    static void showErrorMessage(JFrame frame, Throwable e, String title) {
         if (e instanceof ExecutionException && e.getCause() != null) {
             // ExecutionExcepion is a wrapper added by this utility: no sense to show it
             e = e.getCause();

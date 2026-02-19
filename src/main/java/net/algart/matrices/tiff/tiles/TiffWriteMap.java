@@ -240,7 +240,7 @@ public final class TiffWriteMap extends TiffIOMap {
         final int mapTileSizeY = tileSizeY();
         final int numberOfSeparatedPlanes = numberOfSeparatedPlanes();
         final int samplesPerPixel = tileSamplesPerPixel();
-        final long bitsPerSample = alignedBitsPerSample();
+        final long bitsPerSample = alignedBitDepth();
         final long bitsPerPixel = tileAlignedBitsPerPixel();
         // - "long" here leads to stricter requirements later on
 

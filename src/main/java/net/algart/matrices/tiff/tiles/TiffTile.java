@@ -81,7 +81,7 @@ public final class TiffTile {
         this.map = index.map();
         assert this.map != null : "Null map for tile index " + index;
         this.samplesPerPixel = map.tileSamplesPerPixel();
-        this.bitsPerSample = map.alignedBitsPerSample();
+        this.bitsPerSample = map.alignedBitDepth();
         this.bitsPerPixel = map.tileAlignedBitsPerPixel();
         assert this.bitsPerPixel == samplesPerPixel * bitsPerSample;
         assert index.ifd() == map.ifd() : "index retrieved ifd from its tile map!";
@@ -118,7 +118,7 @@ public final class TiffTile {
 
     /**
      * Returns the number of bits per each sample of this tile.
-     * Always equal to {@link #map()}.{@link TiffMap#alignedBitsPerSample() bitsPerSample()}.
+     * Always equal to {@link #map()}.{@link TiffMap#alignedBitDepth() bitsPerSample()}.
      * Note that this number is always the same for all channels and is always divided by 8,
      * excepting the only case 1-channel 1-bit pixels.
      *

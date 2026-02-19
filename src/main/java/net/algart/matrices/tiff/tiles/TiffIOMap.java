@@ -122,7 +122,7 @@ public abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, Tiff
 
         final int mapTileSizeX = tileSizeX();
         final int mapTileSizeY = tileSizeY();
-        final long bitsPerSample = alignedBitsPerSample();
+        final long bitsPerSample = alignedBitDepth();
         // - "long" here leads to stricter requirements later on
         final int numberOfSeparatedPlanes = numberOfSeparatedPlanes();
         final int samplesPerPixel = tileSamplesPerPixel();

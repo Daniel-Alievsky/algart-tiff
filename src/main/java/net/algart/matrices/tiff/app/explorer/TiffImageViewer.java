@@ -27,13 +27,17 @@ package net.algart.matrices.tiff.app.explorer;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 import javax.swing.*;
+import javax.swing.event.MenuEvent;
+import javax.swing.event.MenuListener;
 import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Objects;
+import java.util.OptionalInt;
 
 class TiffImageViewer {
     private static final String DEFAULT_STATUS =
@@ -64,6 +68,7 @@ class TiffImageViewer {
     private String lastStatus = DEFAULT_STATUS;
     private boolean lastErrorFlag = false;
 
+    private JFrame frame;
     private JTiffPanel tiffPanel;
 
     public TiffImageViewer(TiffExplorer app, Path tiffFile, int index) throws IOException {
@@ -99,7 +104,7 @@ class TiffImageViewer {
     }
 
     public void showNormalStatus() {
-        final Rectangle r = tiffPanel.currentFrame();
+        final Rectangle r = tiffPanel.getSelection();
         final String status = r == null ?
                 DEFAULT_STATUS :
                 r.width == 0 || r.height == 0 ?
@@ -125,6 +130,19 @@ class TiffImageViewer {
         updateView();
     }
 
+    public void copyImageToClipboard() throws IOException {
+        Rectangle rectangle = tiffPanel.getSelection();
+        if (rectangle == null) {
+            return;
+        }
+        BufferedImage bi = readImage(rectangle);
+        if (bi == null) {
+            return;
+        }
+        LOG.log(System.Logger.Level.DEBUG, "Copied image to clipboard: " + bi);
+        ClipboardTools.copyImageToClipboard(bi);
+    }
+
     /**
      * Loads the image fragment specified by the rectangle.
      * If the rectangle is too large, the argument is modified: the rectangle is cropped to fit the image dimensions.
@@ -132,7 +150,7 @@ class TiffImageViewer {
      * @param viewport fragment to load.
      * @return loaded image fragment or {@code null} if the fragment is empty.
      */
-    public BufferedImage loadFragment(Rectangle viewport) {
+    public BufferedImage reloadFragment(Rectangle viewport) {
         final int toX = Math.min(viewport.x + viewport.width, map.dimX());
         final int toY = Math.min(viewport.y + viewport.height, map.dimY());
         viewport.width = Math.max(toX - viewport.x, 0);
@@ -140,9 +158,7 @@ class TiffImageViewer {
         if (!Objects.equals(viewport, this.viewport)) {
             this.viewport = new Rectangle(viewport);
             try {
-                image = viewport.width > 0 && viewport.height > 0 ?
-                        map.readBufferedImage(viewport.x, viewport.y, viewport.width, viewport.height) :
-                        null;
+                image = readImage(viewport);
                 exception = null;
             } catch (IOException e) {
                 image = null;
@@ -161,6 +177,12 @@ class TiffImageViewer {
         return image;
     }
 
+    public BufferedImage readImage(Rectangle viewport) throws IOException {
+        return viewport.width > 0 && viewport.height > 0 ?
+                map.readBufferedImage(viewport.x, viewport.y, viewport.width, viewport.height) :
+                null;
+    }
+
     public void resetCache() {
         reader.resetCache();
         viewport = null;
@@ -169,9 +191,12 @@ class TiffImageViewer {
     }
 
     private void createGUI() {
-        final JTiffFrame frame = new JTiffFrame(this);
-        frame.setTitle("TIFF Image #%d from %d images (%dx%d)".formatted(
-                index, numberOfImages, map.dimX(), map.dimY()));
+        frame = new JTiffFrame(this);
+        final OptionalInt bitDepth = map.tryEqualBitDepth();
+        frame.setTitle("TIFF Image #%d from %d images (%dx%d, %d channel%s, %s bits/channel)".formatted(
+                index, numberOfImages, map.dimX(), map.dimY(),
+                map.numberOfChannels(), map.numberOfChannels() == 1 ? "" : "s",
+                bitDepth.isPresent() ? bitDepth.getAsInt() : Arrays.toString(map.bitsPerSample())));
         frame.setLayout(new BorderLayout());
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setJMenuBar(buildMenuBar());
@@ -200,7 +225,7 @@ class TiffImageViewer {
         // - ensure that scroll bar and other elements will be visible even for very large images
         frame.setSize(frameSize);
 
-        frame.setLocationRelativeTo(app.frame);
+        frame.setLocationRelativeTo(null);
         frame.setVisible(true);
     }
 
@@ -225,7 +250,7 @@ class TiffImageViewer {
             try {
                 reload();
             } catch (Exception e) {
-                app.showErrorMessage(e, "Error reloading TIFF");
+                showErrorMessage(e, "Error reloading TIFF");
             }
         });
         viewMenu.add(reloadItem);
@@ -242,6 +267,24 @@ class TiffImageViewer {
             tiffPanel.removeSelection();
         });
         editMenu.add(removeSelectionItem);
+        editMenu.addSeparator();
+        JMenuItem copyItem = new JMenuItem("Copy");
+        copyItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK));
+        copyItem.addActionListener(e -> {
+            try {
+                copyImageToClipboard();
+            } catch (IOException ex) {
+                showErrorMessage(ex, "Error copying image to clipboard");
+            }
+        });
+        editMenu.add(copyItem);
+
+        final MenuUpdater menuUpdater  = new MenuUpdater(() -> {
+            removeSelectionItem.setEnabled(tiffPanel.isSelected());
+            copyItem.setEnabled(tiffPanel.hasNonEmptySelection());
+        });
+        viewMenu.addMenuListener(menuUpdater);
+        editMenu.addMenuListener(menuUpdater);
 
         menuBar.add(viewMenu);
         menuBar.add(editMenu);
@@ -249,6 +292,7 @@ class TiffImageViewer {
         viewMenu.setMnemonic('V');
         return menuBar;
     }
+
 
     private void setStatus(String status, boolean error) {
         Objects.requireNonNull(status);
@@ -273,5 +317,31 @@ class TiffImageViewer {
     private void updateView() {
         resetCache();
         tiffPanel.repaint();
+    }
+
+    private void showErrorMessage(Throwable e, String title) {
+        TiffExplorer.showErrorMessage(frame, e, title);
+    }
+
+    private static final class MenuUpdater implements MenuListener {
+        private final Runnable updater;
+
+        private MenuUpdater(Runnable updater) {
+            this.updater = updater;
+        }
+
+        @Override
+        public void menuSelected(MenuEvent e) {
+            updater.run();
+        }
+
+        @Override
+        public void menuDeselected(MenuEvent e) {
+
+        }
+
+        @Override
+        public void menuCanceled(MenuEvent e) {
+        }
     }
 }

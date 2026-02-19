@@ -82,11 +82,11 @@ class JTiffPanel extends JComponent {
     private final int dimX;
     private final int dimY;
 
-    private int frameFromX = -1;
-    private int frameFromY = -1;
-    private int frameToX = -1;
-    private int frameToY = -1;
-    private boolean frameExists = false;
+    private int fromX = -1;
+    private int fromY = -1;
+    private int toX = -1;
+    private int toY = -1;
+    private boolean selected = false;
 
     private boolean mouseHandleEnabled = true;
     private boolean creatingNewFrame = false;
@@ -108,7 +108,7 @@ class JTiffPanel extends JComponent {
 
         dashTimer = new Timer(300, e -> {
             dashPhase = (dashPhase + 1) % 16;
-            if (frameExists) {
+            if (selected) {
                 repaint(); // перерисуем компонент полностью, или можно ограниченно
             }
         });
@@ -126,7 +126,7 @@ class JTiffPanel extends JComponent {
     }
 
     public void removeSelection() {
-        frameExists = false;
+        this.selected = false;
         repaint();
         viewer.showNormalStatus();
     }
@@ -136,11 +136,11 @@ class JTiffPanel extends JComponent {
     }
 
     public void setSelection(int fromX, int fromY, int toX, int toY) {
-        frameExists = true;
-        frameFromX = fromX;
-        frameFromY = fromY;
-        frameToX = toX;
-        frameToY = toY;
+        this.selected = true;
+        this.fromX = fromX;
+        this.fromY = fromY;
+        this.toX = toX;
+        this.toY = toY;
         repaint();
         viewer.showNormalStatus();
     }
@@ -149,28 +149,36 @@ class JTiffPanel extends JComponent {
         this.mouseHandleEnabled = mouseHandleEnabled;
     }
 
-    public Rectangle currentFrame() {
-        if (frameExists) {
-            final int fromX = Math.min(frameFromX, frameToX);
-            final int fromY = Math.min(frameFromY, frameToY);
-            final int toX = Math.max(frameFromX, frameToX);
-            final int toY = Math.max(frameFromY, frameToY);
+    public boolean isSelected() {
+        return selected;
+    }
+
+    public boolean hasNonEmptySelection() {
+        return selected && fromX != toX && fromY != toY;
+    }
+
+    public Rectangle getSelection() {
+        if (selected) {
+            final int fromX = Math.min(this.fromX, toX);
+            final int fromY = Math.min(this.fromY, toY);
+            final int toX = Math.max(this.fromX, this.toX);
+            final int toY = Math.max(this.fromY, this.toY);
             return new Rectangle(fromX, fromY, toX - fromX, toY - fromY);
         } else {
             return null;
         }
     }
 
-    private void normalizeNegativeFrame() {
-        if (frameFromX > frameToX) {
-            int temp = frameFromX;
-            frameFromX = frameToX;
-            frameToX = temp;
+    private void normalizeNegativeSelection() {
+        if (fromX > toX) {
+            int temp = fromX;
+            fromX = toX;
+            toX = temp;
         }
-        if (frameFromY > frameToY) {
-            int temp = frameFromY;
-            frameFromY = frameToY;
-            frameToY = temp;
+        if (fromY > toY) {
+            int temp = fromY;
+            fromY = toY;
+            toY = temp;
         }
     }
 
@@ -182,7 +190,7 @@ class JTiffPanel extends JComponent {
         Rectangle clip = graphics.getClipBounds();
         if (clip != null) {
             clip = new Rectangle(clip);
-            BufferedImage bi = viewer.loadFragment(clip);
+            BufferedImage bi = viewer.reloadFragment(clip);
             if (bi != null) {
                 g.drawImage(bi, clip.x, clip.y, null);
             } else if (clip.width > 0 && clip.height > 0) {
@@ -194,11 +202,11 @@ class JTiffPanel extends JComponent {
     }
 
     private void drawFrame(Graphics2D g) {
-        if (frameExists) {
-            final int fromX = Math.min(frameFromX, frameToX);
-            final int fromY = Math.min(frameFromY, frameToY);
-            final int sizeX = Math.max(Math.abs(frameToX - frameFromX), 2);
-            final int sizeY = Math.max(Math.abs(frameToY - frameFromY), 2);
+        if (selected) {
+            final int fromX = Math.min(this.fromX, toX);
+            final int fromY = Math.min(this.fromY, toY);
+            final int sizeX = Math.max(Math.abs(toX - this.fromX), 2);
+            final int sizeY = Math.max(Math.abs(toY - this.fromY), 2);
 
             Stroke oldStroke = g.getStroke();
             g.setStroke(new BasicStroke(
@@ -233,7 +241,7 @@ class JTiffPanel extends JComponent {
                 final int mx = e.getX();
                 final int my = e.getY();
 
-                normalizeNegativeFrame();
+                normalizeNegativeSelection();
                 FrameHandle handle = getHandleUnder(mx, my);
                 if (handle != null) {
                     selectedHandle = handle;
@@ -244,19 +252,19 @@ class JTiffPanel extends JComponent {
                 } else if (isInsideFrame(mx, my)) {
                     selectedHandle = null;
                     movingFrame = true;
-                    dragOffsetX = mx - frameFromX;
-                    dragOffsetY = my - frameFromY;
+                    dragOffsetX = mx - fromX;
+                    dragOffsetY = my - fromY;
                     creatingNewFrame = false;
                     resizingFrame = false;
                     LOG.log(System.Logger.Level.DEBUG, "Dragging frame");
                 } else {
                     selectedHandle = null;
                     creatingNewFrame = true;
-                    frameExists = true;
+                    selected = true;
                     resizingFrame = false;
                     movingFrame = false;
-                    frameFromX = frameToX = mx;
-                    frameFromY = frameToY = my;
+                    fromX = toX = mx;
+                    fromY = toY = my;
                     LOG.log(System.Logger.Level.DEBUG, "Creating new frame");
                 }
             }
@@ -267,12 +275,12 @@ class JTiffPanel extends JComponent {
                     return;
                 }
                 if (creatingNewFrame &&
-                        Math.abs(frameToX - frameFromX) < CREATING_NEW_FRAME_MINIMAL_SHIFT &&
-                        Math.abs(frameToY - frameFromY) < CREATING_NEW_FRAME_MINIMAL_SHIFT) {
+                        Math.abs(toX - fromX) < CREATING_NEW_FRAME_MINIMAL_SHIFT &&
+                        Math.abs(toY - fromY) < CREATING_NEW_FRAME_MINIMAL_SHIFT) {
                     LOG.log(System.Logger.Level.DEBUG, "Removing frame");
                     removeSelection();
                 }
-                normalizeNegativeFrame();
+                normalizeNegativeSelection();
                 creatingNewFrame = false;
                 resizingFrame = false;
                 movingFrame = false;
@@ -287,17 +295,17 @@ class JTiffPanel extends JComponent {
                 final int mx = e.getX();
                 final int my = e.getY();
                 if (creatingNewFrame) {
-                    frameToX = Math.clamp(mx, 0, dimX);;
-                    frameToY = Math.clamp(my, 0, dimY);
+                    toX = Math.clamp(mx, 0, dimX);;
+                    toY = Math.clamp(my, 0, dimY);
                 } else if (resizingFrame && selectedHandle != null) {
                     resizeFrame(selectedHandle, mx, my);
                 } else if (movingFrame) {
-                    final int sizeX = frameToX - frameFromX;
-                    final int sizeY = frameToY - frameFromY;
-                    frameFromX = Math.clamp(mx - dragOffsetX, 0, Math.max(0, dimX - sizeX));
-                    frameFromY = Math.clamp(my - dragOffsetY, 0, Math.max(0, dimY - sizeY));
-                    frameToX = frameFromX + sizeX;
-                    frameToY = frameFromY + sizeY;
+                    final int sizeX = toX - fromX;
+                    final int sizeY = toY - fromY;
+                    fromX = Math.clamp(mx - dragOffsetX, 0, Math.max(0, dimX - sizeX));
+                    fromY = Math.clamp(my - dragOffsetY, 0, Math.max(0, dimY - sizeY));
+                    toX = fromX + sizeX;
+                    toY = fromY + sizeY;
                 }
                 viewer.showNormalStatus();
                 repaint();
@@ -329,30 +337,30 @@ class JTiffPanel extends JComponent {
         my = Math.clamp(my, 0, dimY);
         switch (handle) {
             case TOP_LEFT -> {
-                frameFromX = mx;
-                frameFromY = my;
+                fromX = mx;
+                fromY = my;
             }
             case TOP_RIGHT -> {
-                frameToX = mx;
-                frameFromY = my;
+                toX = mx;
+                fromY = my;
             }
             case BOTTOM_LEFT -> {
-                frameFromX = mx;
-                frameToY = my;
+                fromX = mx;
+                toY = my;
             }
             case BOTTOM_RIGHT -> {
-                frameToX = mx;
-                frameToY = my;
+                toX = mx;
+                toY = my;
             }
-            case TOP -> frameFromY = my;
-            case BOTTOM -> frameToY = my;
-            case LEFT -> frameFromX = mx;
-            case RIGHT -> frameToX = mx;
+            case TOP -> fromY = my;
+            case BOTTOM -> toY = my;
+            case LEFT -> fromX = mx;
+            case RIGHT -> toX = mx;
         }
     }
 
     private FrameHandle getHandleUnder(int x, int y) {
-        final Rectangle frame = currentFrame();
+        final Rectangle frame = getSelection();
         if (frame == null) {
             return null;
         }
@@ -365,13 +373,13 @@ class JTiffPanel extends JComponent {
     }
 
     private boolean isInsideFrame(int x, int y) {
-        if (!frameExists) {
+        if (!this.selected) {
             return false;
         }
-        final int fromX = Math.min(frameFromX, frameToX);
-        final int fromY = Math.min(frameFromY, frameToY);
-        final int toX = Math.max(frameFromX, frameToX);
-        final int toY = Math.max(frameFromY, frameToY);
+        final int fromX = Math.min(this.fromX, this.toX);
+        final int fromY = Math.min(this.fromY, this.toY);
+        final int toX = Math.max(this.fromX, this.toX);
+        final int toY = Math.max(this.fromY, this.toY);
         return x >= fromX && x < toX && y >= fromY && y < toY;
     }
 
