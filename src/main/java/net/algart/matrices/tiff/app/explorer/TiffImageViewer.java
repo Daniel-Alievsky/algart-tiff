@@ -188,7 +188,7 @@ class TiffImageViewer {
         frame.add(statusPanel, BorderLayout.SOUTH);
 
         frame.getRootPane().registerKeyboardAction(
-                e -> tiffPanel.removeFrame(),
+                e -> tiffPanel.removeSelection(),
                 KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0),
                 JComponent.WHEN_IN_FOCUSED_WINDOW);
         frame.pack();
@@ -231,9 +231,15 @@ class TiffImageViewer {
         viewMenu.add(reloadItem);
 
         JMenu editMenu = new JMenu("Edit");
+        JMenuItem selectAllItem = new JMenuItem("Select all");
+        selectAllItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK));
+        selectAllItem.addActionListener(e -> {
+            tiffPanel.setSelectionAll();
+        });
+        editMenu.add(selectAllItem);
         JMenuItem removeSelectionItem = new JMenuItem("Remove selection");
         removeSelectionItem.addActionListener(e -> {
-            tiffPanel.removeFrame();
+            tiffPanel.removeSelection();
         });
         editMenu.add(removeSelectionItem);
 

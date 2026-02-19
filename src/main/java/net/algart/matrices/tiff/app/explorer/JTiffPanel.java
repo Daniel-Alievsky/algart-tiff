@@ -125,13 +125,17 @@ class JTiffPanel extends JComponent {
         setPreferredSize(new Dimension(dimX, dimY));
     }
 
-    public void removeFrame() {
+    public void removeSelection() {
         frameExists = false;
         repaint();
         viewer.showNormalStatus();
     }
 
-    public void setFrame(int fromX, int fromY, int toX, int toY) {
+    public void setSelectionAll() {
+        setSelection(0, 0, dimX, dimY);
+    }
+
+    public void setSelection(int fromX, int fromY, int toX, int toY) {
         frameExists = true;
         frameFromX = fromX;
         frameFromY = fromY;
@@ -201,9 +205,12 @@ class JTiffPanel extends JComponent {
                     1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
                     10f, new float[]{4f, 4f}, (float) dashPhase));
             g.setColor(Color.BLACK);
-            g.drawRect(fromX, fromY, sizeX, sizeY);
-            g.setColor(Color.WHITE);
-            g.drawRect(fromX + 1, fromY + 1, sizeX - 2, sizeY - 2);
+            g.drawRect(fromX, fromY, sizeX - 1, sizeY - 1);
+            // - actually this method draws an internal boundary of the rectangle sizeX * sizeY pixels
+            if (sizeX > 2 && sizeY > 2) {
+                g.setColor(Color.WHITE);
+                g.drawRect(fromX + 1, fromY + 1, sizeX - 3, sizeY - 3);
+            }
             g.setStroke(oldStroke);
 
             final int[] xPositions = {fromX, fromX + sizeX / 2, fromX + sizeX};
@@ -263,7 +270,7 @@ class JTiffPanel extends JComponent {
                         Math.abs(frameToX - frameFromX) < CREATING_NEW_FRAME_MINIMAL_SHIFT &&
                         Math.abs(frameToY - frameFromY) < CREATING_NEW_FRAME_MINIMAL_SHIFT) {
                     LOG.log(System.Logger.Level.DEBUG, "Removing frame");
-                    removeFrame();
+                    removeSelection();
                 }
                 normalizeNegativeFrame();
                 creatingNewFrame = false;
