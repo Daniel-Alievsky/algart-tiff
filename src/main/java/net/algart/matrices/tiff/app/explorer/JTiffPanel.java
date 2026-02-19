@@ -193,8 +193,8 @@ class JTiffPanel extends JComponent {
         if (frameExists) {
             final int fromX = Math.min(frameFromX, frameToX);
             final int fromY = Math.min(frameFromY, frameToY);
-            final int sizeX = Math.max(Math.abs(frameToX - frameFromX), 1);
-            final int sizeY = Math.max(Math.abs(frameToY - frameFromY), 1);
+            final int sizeX = Math.max(Math.abs(frameToX - frameFromX), 2);
+            final int sizeY = Math.max(Math.abs(frameToY - frameFromY), 2);
 
             Stroke oldStroke = g.getStroke();
             g.setStroke(new BasicStroke(
@@ -203,7 +203,7 @@ class JTiffPanel extends JComponent {
             g.setColor(Color.BLACK);
             g.drawRect(fromX, fromY, sizeX, sizeY);
             g.setColor(Color.WHITE);
-            g.drawRect(fromX + 1, fromY + 1, sizeX, sizeY);
+            g.drawRect(fromX + 1, fromY + 1, sizeX - 2, sizeY - 2);
             g.setStroke(oldStroke);
 
             final int[] xPositions = {fromX, fromX + sizeX / 2, fromX + sizeX};

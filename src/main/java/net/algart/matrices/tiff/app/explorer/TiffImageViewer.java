@@ -41,7 +41,7 @@ class TiffImageViewer {
     private static final long CACHING_MEMORY = 32 * 1048576L;
     // - 32MB is enough to store several user screens
     private static final boolean PRELOAD_LITTLE_AREA_WHILE_OPENING = true;
-    // - clear this flag to debug possible I/O errors during the drawing process
+    // - should be true; you may clear this flag to debug possible I/O errors during the drawing process
 
     private static final System.Logger LOG = System.getLogger(TiffImageViewer.class.getName());
 

@@ -79,7 +79,6 @@ public class TiffExplorer {
         }
     }
 
-    private static final boolean USE_NEW_IMAGE_VIEWER = true;
     private static final String APPLICATION_TITLE = "TIFF Information Viewer";
     private static final boolean DEFAULT_WORD_WRAP = false;
     private static final int DEFAULT_FONT_SIZE = 15;
@@ -613,26 +612,15 @@ public class TiffExplorer {
         if (notInitialized(index)) {
             return;
         }
-        if (USE_NEW_IMAGE_VIEWER) {
+        setShowImageInProgress(true);
+        try {
+            TiffImageViewer imageViewer = new TiffImageViewer(this, tiffFile, index);
             setShowImageInProgress(true);
-            try {
-                TiffImageViewer imageViewer = new TiffImageViewer(this, tiffFile, index);
-                setShowImageInProgress(true);
-                imageViewer.show();
-            } catch (IOException e) {
-                showErrorMessage(e, "Error opening the TIFF image");
-            } finally {
-                setShowImageInProgress(false);
-            }
-        } else {
-            try (TiffImageViewerOld imageViewer = new TiffImageViewerOld(this, tiffFile, index)) {
-                setShowImageInProgress(true);
-                imageViewer.show();
-            } catch (IOException e) {
-                showErrorMessage(e, "Error reading the TIFF image");
-            } finally {
-                setShowImageInProgress(false);
-            }
+            imageViewer.show();
+        } catch (IOException e) {
+            showErrorMessage(e, "Error opening the TIFF image");
+        } finally {
+            setShowImageInProgress(false);
         }
     }
 
