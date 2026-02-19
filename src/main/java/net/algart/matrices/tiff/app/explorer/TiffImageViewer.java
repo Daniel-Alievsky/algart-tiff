@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff.app.explorer;
 
+import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 import javax.swing.*;
@@ -193,10 +194,11 @@ class TiffImageViewer {
     private void createGUI() {
         frame = new JTiffFrame(this);
         final OptionalInt bitDepth = map.tryEqualBitDepth();
-        frame.setTitle("TIFF Image #%d from %d images (%dx%d, %d channel%s, %s bits/channel)".formatted(
+        frame.setTitle("TIFF Image #%d from %d images (%dx%d, %d channel%s, %s bits/channel)  %s".formatted(
                 index, numberOfImages, map.dimX(), map.dimY(),
                 map.numberOfChannels(), map.numberOfChannels() == 1 ? "" : "s",
-                bitDepth.isPresent() ? bitDepth.getAsInt() : Arrays.toString(map.bitsPerSample())));
+                bitDepth.isPresent() ? bitDepth.getAsInt() : Arrays.toString(map.bitsPerSample()),
+                map.compression().orElse(TagCompression.NONE).prettyName()));
         frame.setLayout(new BorderLayout());
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setJMenuBar(buildMenuBar());

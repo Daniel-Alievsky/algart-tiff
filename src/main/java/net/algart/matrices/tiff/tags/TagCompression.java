@@ -42,7 +42,7 @@ public enum TagCompression {
     /**
      * Uncompressed TIFF image (type 1).
      */
-    NONE(TiffIFD.COMPRESSION_NONE, "Uncompressed", UncompressedCodec::new),
+    NONE(TiffIFD.COMPRESSION_NONE, "uncompressed", UncompressedCodec::new),
 
     /**
      * CCITT RLE: Modified Huffman compression (type 2).
