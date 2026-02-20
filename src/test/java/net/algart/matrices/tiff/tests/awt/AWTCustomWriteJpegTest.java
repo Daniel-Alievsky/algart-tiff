@@ -36,6 +36,7 @@ import javax.imageio.stream.ImageOutputStream;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Iterator;
 
 public class AWTCustomWriteJpegTest {
@@ -132,6 +133,7 @@ public class AWTCustomWriteJpegTest {
     }
 
     public static void main(String[] args) throws IOException {
+        System.out.printf("All installed image writers: %s%n", Arrays.toString(ImageIO.getWriterFormatNames()));
         int startArgIndex = 0;
         boolean rgb = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-rgb")) {

@@ -97,14 +97,14 @@ public class TiffExplorer {
     private static final String PREF_FONT_SIZE = "fontSize";
     private static final String PREF_WORD_WRAP = "wordWrap";
 
-    private static final System.Logger LOG = System.getLogger(TiffExplorer.class.getName());
-
     private static final FileFilter TIFF_FILTER = new FileNameExtensionFilter(
             "TIFF / SVS files (*.tif, *.tiff, *.svs)", "tif", "tiff", "svs");
     private static final FileFilter SVS_FILTER = new FileNameExtensionFilter(
             "SVS files only (*.svs)", "svs");
 
-    private final Preferences prefs = Preferences.userNodeForPackage(TiffExplorer.class);
+    private static final System.Logger LOG = System.getLogger(TiffExplorer.class.getName());
+
+    static final Preferences PREFERENCES = Preferences.userNodeForPackage(TiffExplorer.class);
 
     private JFrame frame;
     private JButton openFileButton;
@@ -448,7 +448,7 @@ public class TiffExplorer {
 
     private void chooseAndOpenFile() {
         JFileChooser chooser = new JFileChooser();
-        String last = prefs.get(PREF_LAST_DIR, null);
+        String last = PREFERENCES.get(PREF_LAST_DIR, null);
         File dir = new File(last == null ? "." : last);
         if (dir.isDirectory()) {
             chooser.setCurrentDirectory(dir);
@@ -462,7 +462,7 @@ public class TiffExplorer {
         if (result == JFileChooser.APPROVE_OPTION) {
             File file = chooser.getSelectedFile();
             if (file != null) {
-                prefs.put(PREF_LAST_DIR, file.getParent());
+                PREFERENCES.put(PREF_LAST_DIR, file.getParent());
                 lastFileFilter = chooser.getFileFilter();
                 if (lastFileFilter == chooser.getAcceptAllFileFilter()) {
                     lastFileFilter = null;
@@ -614,7 +614,7 @@ public class TiffExplorer {
         }
         setShowImageInProgress(true);
         try {
-            TiffImageViewer imageViewer = new TiffImageViewer(this, tiffFile, index);
+            TiffImageViewer imageViewer = new TiffImageViewer(tiffFile, index);
             setShowImageInProgress(true);
             imageViewer.show();
         } catch (IOException e) {
@@ -829,30 +829,30 @@ public class TiffExplorer {
 
     private void savePreferences() {
         Rectangle bounds = frame.getBounds();
-        prefs.putInt(PREF_WINDOW_X, bounds.x);
-        prefs.putInt(PREF_WINDOW_Y, bounds.y);
-        prefs.putInt(PREF_WINDOW_WIDTH, bounds.width);
-        prefs.putInt(PREF_WINDOW_HEIGHT, bounds.height);
-        prefs.putInt(PREF_FONT_SIZE, fontSize);
-        prefs.put(PREF_FONT_FAMILY, fontFamily.name());
-        prefs.putBoolean(PREF_WORD_WRAP, wordWrap);
+        PREFERENCES.putInt(PREF_WINDOW_X, bounds.x);
+        PREFERENCES.putInt(PREF_WINDOW_Y, bounds.y);
+        PREFERENCES.putInt(PREF_WINDOW_WIDTH, bounds.width);
+        PREFERENCES.putInt(PREF_WINDOW_HEIGHT, bounds.height);
+        PREFERENCES.putInt(PREF_FONT_SIZE, fontSize);
+        PREFERENCES.put(PREF_FONT_FAMILY, fontFamily.name());
+        PREFERENCES.putBoolean(PREF_WORD_WRAP, wordWrap);
     }
 
     private void loadPreferences() {
-        fontSize = prefs.getInt(PREF_FONT_SIZE, DEFAULT_FONT_SIZE);
-        String fontFamilyName = prefs.get(PREF_FONT_FAMILY, DEFAULT_FONT_FAMILY.name());
+        fontSize = PREFERENCES.getInt(PREF_FONT_SIZE, DEFAULT_FONT_SIZE);
+        String fontFamilyName = PREFERENCES.get(PREF_FONT_FAMILY, DEFAULT_FONT_FAMILY.name());
         try {
             fontFamily = FontFamily.valueOf(fontFamilyName);
         } catch (IllegalArgumentException ignored) {
         }
-        wordWrap = prefs.getBoolean(PREF_WORD_WRAP, DEFAULT_WORD_WRAP);
+        wordWrap = PREFERENCES.getBoolean(PREF_WORD_WRAP, DEFAULT_WORD_WRAP);
     }
 
     private void loadFramePreferences() {
-        final int x = prefs.getInt(PREF_WINDOW_X, Integer.MIN_VALUE);
-        final int y = prefs.getInt(PREF_WINDOW_Y, Integer.MIN_VALUE);
-        final int w = prefs.getInt(PREF_WINDOW_WIDTH, frame.getWidth());
-        final int h = prefs.getInt(PREF_WINDOW_HEIGHT, frame.getHeight());
+        final int x = PREFERENCES.getInt(PREF_WINDOW_X, Integer.MIN_VALUE);
+        final int y = PREFERENCES.getInt(PREF_WINDOW_Y, Integer.MIN_VALUE);
+        final int w = PREFERENCES.getInt(PREF_WINDOW_WIDTH, frame.getWidth());
+        final int h = PREFERENCES.getInt(PREF_WINDOW_HEIGHT, frame.getHeight());
         frame.setSize(w, h);
 
         if (x != Integer.MIN_VALUE && y != Integer.MIN_VALUE) {
