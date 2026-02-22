@@ -135,12 +135,19 @@ class JTiffPanel extends JComponent {
         setSelection(0, 0, dimX, dimY);
     }
 
-    public void setSelection(int fromX, int fromY, int toX, int toY) {
-        this.selected = true;
-        this.fromX = fromX;
-        this.fromY = fromY;
-        this.toX = toX;
-        this.toY = toY;
+    public void setSelection(long fromX, long fromY, long toX, long toY) {
+        if (this.selected && fromX == this.fromX && fromY == this.fromY && toX == this.toX && toY == this.toY) {
+            return;
+        }
+        if (toX < fromX || toY < fromY) {
+            this.selected = false;
+        } else {
+            this.selected = true;
+            this.fromX = Math.clamp(fromX, 0, dimX);
+            this.fromY = Math.clamp(fromY, 0, dimY);
+            this.toX = Math.clamp(toX, 0, dimX);
+            this.toY = Math.clamp(toY, 0, dimY);
+        }
         repaint();
         viewer.showNormalStatus();
     }

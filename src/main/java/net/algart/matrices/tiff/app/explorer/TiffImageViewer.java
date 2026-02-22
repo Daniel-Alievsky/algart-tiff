@@ -189,6 +189,10 @@ class TiffImageViewer {
         return image;
     }
 
+    private void setSelection(int left, int top, int width, int height) {
+        tiffPanel.setSelection(left, top, (long) left + (long) width, (long) top + (long) height);
+    }
+
     private BufferedImage readSelectedImage() throws IOException {
         Rectangle rectangle = tiffPanel.getSelection();
         return rectangle == null ? null : readImage(rectangle);
@@ -280,12 +284,16 @@ class TiffImageViewer {
             tiffPanel.setSelectionAll();
         });
         editMenu.add(selectAllItem);
+        JMenuItem setSelectionItem = new JMenuItem("Set selection...");
+        setSelectionItem.addActionListener(e -> showSetSelectionDialog());
+        editMenu.add(setSelectionItem);
         JMenuItem removeSelectionItem = new JMenuItem("Remove selection");
         removeSelectionItem.addActionListener(e -> {
             tiffPanel.removeSelection();
         });
         editMenu.add(removeSelectionItem);
         editMenu.addSeparator();
+
         JMenuItem copyItem = new JMenuItem("Copy");
         copyItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK));
         copyItem.addActionListener(e -> {
@@ -390,6 +398,60 @@ class TiffImageViewer {
         }
         TiffExplorer.PREFERENCES.put(PREF_LAST_EXPORT_SELECTION_DIR, file.getParent());
         return file.toPath();
+    }
+
+    private void showSetSelectionDialog() {
+        final JPanel panel = new JPanel(new GridLayout(4, 2, 5, 5));
+        final JTextField leftField = new JTextField(8);
+        final JTextField topField = new JTextField(8);
+        final JTextField widthField = new JTextField(8);
+        final JTextField heightField = new JTextField(8);
+
+        final Rectangle current = tiffPanel.getSelection();
+        if (current != null) {
+            leftField.setText(Integer.toString(current.x));
+            topField.setText(Integer.toString(current.y));
+            widthField.setText(Integer.toString(current.width));
+            heightField.setText(Integer.toString(current.height));
+        } else {
+            leftField.setText("0");
+            topField.setText("0");
+            widthField.setText(Integer.toString(map.dimX()));
+            heightField.setText(Integer.toString(map.dimY()));
+        }
+
+        panel.add(new JLabel("Left:"));
+        panel.add(leftField);
+        panel.add(new JLabel("Top:"));
+        panel.add(topField);
+        panel.add(new JLabel("Width:"));
+        panel.add(widthField);
+        panel.add(new JLabel("Height:"));
+        panel.add(heightField);
+
+        final int result = JOptionPane.showConfirmDialog(
+                frame,
+                panel,
+                "Set selection rectangle",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE);
+
+        if (result != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        try {
+            final int left = Integer.parseInt(leftField.getText().trim());
+            final int top = Integer.parseInt(topField.getText().trim());
+            final int width = Integer.parseInt(widthField.getText().trim());
+            final int height = Integer.parseInt(heightField.getText().trim());
+            if (width < 0 || height < 0) {
+                throw new IllegalArgumentException("Width and height must be non-negative");
+            }
+            setSelection(left, top, width, height);
+        } catch (Exception ex) {
+            showErrorMessage(ex, "Invalid selection values");
+        }
     }
 
     private void showErrorMessage(Throwable e, String title) {
