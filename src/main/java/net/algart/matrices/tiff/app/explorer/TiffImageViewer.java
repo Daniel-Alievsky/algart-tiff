@@ -24,20 +24,17 @@
 
 package net.algart.matrices.tiff.app.explorer;
 
-import net.algart.io.MatrixIO;
+import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 import javax.swing.*;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
-import javax.swing.filechooser.FileFilter;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -51,11 +48,6 @@ class TiffImageViewer {
     // - 32MB is enough to store several user screens
     private static final boolean PRELOAD_LITTLE_AREA_WHILE_OPENING = true;
     // - should be true; you may clear this flag to debug possible I/O errors during the drawing process
-
-    private static final String PREF_LAST_EXPORT_SELECTION_DIR = "lastExportSelectionDirectory";
-    private static final FileFilter ANY_IMAGE_FILTER = new FileNameExtensionFilter(
-            "Image files (*.png, *.jpg, *.jpeg, *.bmp, *.gif, *.tif, *.tiff)",
-            "png", "jpg", "jpeg", "bmp", "gif", "tif", "tiff");
 
     private static final System.Logger LOG = System.getLogger(TiffImageViewer.class.getName());
 
@@ -102,6 +94,10 @@ class TiffImageViewer {
         LOG.log(System.Logger.Level.DEBUG, "Viewer closed " + reader.streamName());
     }
 
+    public TiffReader reader() {
+        return reader;
+    }
+
     public TiffReadMap map() {
         return map;
     }
@@ -112,7 +108,7 @@ class TiffImageViewer {
     }
 
     public void showNormalStatus() {
-        final Rectangle r = tiffPanel.getSelection();
+        final Rectangle r = getSelection();
         final String status = r == null ?
                 DEFAULT_STATUS :
                 r.width == 0 || r.height == 0 ?
@@ -138,20 +134,19 @@ class TiffImageViewer {
         updateView();
     }
 
+    public Rectangle getSelection() {
+        return tiffPanel.getSelection();
+    }
+
+    public void setSelection(int left, int top, int width, int height) {
+        tiffPanel.setSelection(left, top, (long) left + (long) width, (long) top + (long) height);
+    }
+
     public void copyImageToClipboard() throws IOException {
         BufferedImage image = readSelectedImage();
         if (image != null) {
             LOG.log(System.Logger.Level.DEBUG, "Copied image to clipboard: " + image);
             ClipboardTools.copyImageToClipboard(image);
-        }
-    }
-
-    public void exportImageToFile(Path file) throws IOException {
-        Objects.requireNonNull(file, "Null file");
-        BufferedImage image = readSelectedImage();
-        if (image != null) {
-            LOG.log(System.Logger.Level.DEBUG, "Export image to " + file + ": " + image);
-            MatrixIO.writeBufferedImage(file, image);
         }
     }
 
@@ -189,12 +184,8 @@ class TiffImageViewer {
         return image;
     }
 
-    private void setSelection(int left, int top, int width, int height) {
-        tiffPanel.setSelection(left, top, (long) left + (long) width, (long) top + (long) height);
-    }
-
     private void alignSelection() {
-        final Rectangle selection = tiffPanel.getSelection();
+        final Rectangle selection = getSelection();
         if (map.isTiled() && selection != null) {
             final long tileX = map.tileSizeX();
             final long tileY = map.tileSizeY();
@@ -207,8 +198,8 @@ class TiffImageViewer {
         }
     }
 
-    private BufferedImage readSelectedImage() throws IOException {
-        Rectangle rectangle = tiffPanel.getSelection();
+    public BufferedImage readSelectedImage() throws IOException {
+        Rectangle rectangle = getSelection();
         return rectangle == null ? null : readImage(rectangle);
     }
 
@@ -330,17 +321,29 @@ class TiffImageViewer {
         exportItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E,
                 InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
         exportItem.addActionListener(e -> {
-            Path file = chooseExportFile();
+            final var copier = new TiffImageSelectionCopier(this, frame);
+            Path file = copier.chooseFileToExport();
             if (file != null) {
                 try {
-                    exportImageToFile(file);
+                    copier.exportSelectedImageToFile(file);
                 } catch (Exception ex) {
                     // - including possible non-I/O exceptions like an empty file extension
-                    showErrorMessage(ex, "Error saving image");
+                    showErrorMessage(ex, "Error exporting image");
                 }
             }
         });
         editMenu.add(exportItem);
+        JMenuItem saveToTiffItem = new JMenuItem("Save selection to a new TIFF...");
+        saveToTiffItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
+                InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
+        saveToTiffItem.addActionListener(e -> {
+            final var copier = new TiffImageSelectionCopier(this, frame);
+            Path file = copier.chooseTiffFileToCopy();
+            if (file != null) {
+               copier.showCopyToTiffDialog(file);
+            }
+        });
+        editMenu.add(saveToTiffItem);
 
         final MenuUpdater menuUpdater = new MenuUpdater(() -> {
             if (alignSelectionItem != null) {
@@ -349,6 +352,7 @@ class TiffImageViewer {
             removeSelectionItem.setEnabled(tiffPanel.isSelected());
             copyItem.setEnabled(tiffPanel.hasNonEmptySelection());
             exportItem.setEnabled(tiffPanel.hasNonEmptySelection());
+            saveToTiffItem.setEnabled(tiffPanel.hasNonEmptySelection());
         });
         viewMenu.addMenuListener(menuUpdater);
         editMenu.addMenuListener(menuUpdater);
@@ -384,44 +388,6 @@ class TiffImageViewer {
     private void updateView() {
         resetCache();
         tiffPanel.repaint();
-    }
-
-    private Path chooseExportFile() {
-        JFileChooser chooser = new JFileChooser();
-
-        String last = TiffExplorer.PREFERENCES.get(PREF_LAST_EXPORT_SELECTION_DIR, null);
-        File dir = new File(last == null ? "." : last);
-        if (dir.isDirectory()) {
-            chooser.setCurrentDirectory(dir);
-        }
-        chooser.setDialogTitle("Export selected image as...");
-        chooser.setSelectedFile(new File("untitled.png"));
-        chooser.setDialogType(JFileChooser.SAVE_DIALOG);
-        chooser.addChoosableFileFilter(ANY_IMAGE_FILTER);
-        chooser.setFileFilter(ANY_IMAGE_FILTER);
-        chooser.setAcceptAllFileFilterUsed(true);
-        int result = chooser.showSaveDialog(frame);
-        if (result != JFileChooser.APPROVE_OPTION) {
-            return null;
-        }
-        File file = chooser.getSelectedFile();
-        if (file == null) {
-            return null;
-        }
-        if (file.exists()) {
-            int answer = JOptionPane.showConfirmDialog(
-                    frame,
-                    "File already exists:\n" + file.getAbsolutePath() + "\nDo you want to replace it?",
-                    "Confirm overwrite",
-                    JOptionPane.YES_NO_OPTION,
-                    JOptionPane.WARNING_MESSAGE
-            );
-            if (answer != JOptionPane.YES_OPTION) {
-                return null;
-            }
-        }
-        TiffExplorer.PREFERENCES.put(PREF_LAST_EXPORT_SELECTION_DIR, file.getParent());
-        return file.toPath();
     }
 
     private void showSetSelectionDialog() {

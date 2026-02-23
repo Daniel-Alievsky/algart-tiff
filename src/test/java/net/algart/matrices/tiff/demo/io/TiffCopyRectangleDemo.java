@@ -72,13 +72,13 @@ public class TiffCopyRectangleDemo {
         System.out.printf("Copying rectangle from %s to %s%s...%n",
                 sourceFile, targetFile, direct ? "" : " with recompression");
 
-        final var copier = new TiffCopier().setDirectCopy(direct);
+        final TiffCopier copier = new TiffCopier().setDirectCopy(direct);
 //         copier.setIfdCorrector(ifd -> ifd.putCompression(net.algart.matrices.tiff.tags.TagCompression.NONE));
 //         copier.setIfdCorrector(ifd -> ifd.putTileSizes(64, 64));
         // - possible corrections
         copier.setProgressUpdater(p ->
                 System.out.printf("\r%d/%d...", p.tileIndex() + 1, p.tileCount()));
-        try (TiffReader reader = new TiffReader(sourceFile); var writer = new TiffWriter(targetFile)) {
+        try (TiffReader reader = new TiffReader(sourceFile); TiffWriter writer = new TiffWriter(targetFile)) {
             // reader.setCaching(false); // - slows down copying when the rectangle does not consist of whole tiles
             // reader.setAutoUnpackBits(TiffReader.UnpackBits.UNPACK_TO_0_255);
             // - should not affect the result

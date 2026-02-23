@@ -700,11 +700,10 @@ public class TiffExplorer {
         });
         cancelButton.addActionListener(e -> dialog.dispose());
 
-        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        buttons.add(okButton);
-        buttons.add(cancelButton);
-
-        dialog.add(buttons, BorderLayout.SOUTH);
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        buttonPanel.add(okButton);
+        buttonPanel.add(cancelButton);
+        dialog.add(buttonPanel, BorderLayout.SOUTH);
 
         dialog.pack();
         addCloseOnEscape(dialog);
