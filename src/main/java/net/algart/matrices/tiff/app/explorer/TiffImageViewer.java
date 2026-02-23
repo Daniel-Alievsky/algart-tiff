@@ -193,6 +193,20 @@ class TiffImageViewer {
         tiffPanel.setSelection(left, top, (long) left + (long) width, (long) top + (long) height);
     }
 
+    private void alignSelection() {
+        final Rectangle selection = tiffPanel.getSelection();
+        if (map.isTiled() && selection != null) {
+            final long tileX = map.tileSizeX();
+            final long tileY = map.tileSizeY();
+            assert tileX > 0 && tileY > 0;
+            final long fromX = (long) selection.x / tileX * tileX;
+            final long fromY = (long) selection.y / tileY * tileY;
+            final long toX = ((long) selection.x + (long) selection.width + tileX - 1) / tileX * tileX;
+            final long toY = ((long) selection.y + (long) selection.height + tileY - 1) / tileY * tileY;
+            tiffPanel.setSelection(fromX, fromY, toX, toY);
+        }
+    }
+
     private BufferedImage readSelectedImage() throws IOException {
         Rectangle rectangle = tiffPanel.getSelection();
         return rectangle == null ? null : readImage(rectangle);
@@ -287,6 +301,13 @@ class TiffImageViewer {
         JMenuItem setSelectionItem = new JMenuItem("Set selection...");
         setSelectionItem.addActionListener(e -> showSetSelectionDialog());
         editMenu.add(setSelectionItem);
+        JMenuItem alignSelectionItem = map.isTiled() ? new JMenuItem("Align selection to tile grid") : null;
+        if (alignSelectionItem != null) {
+            alignSelectionItem.addActionListener(e -> alignSelection());
+            alignSelectionItem.setAccelerator(KeyStroke.getKeyStroke(
+                    KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
+            editMenu.add(alignSelectionItem);
+        }
         JMenuItem removeSelectionItem = new JMenuItem("Remove selection");
         removeSelectionItem.addActionListener(e -> {
             tiffPanel.removeSelection();
@@ -321,7 +342,10 @@ class TiffImageViewer {
         });
         editMenu.add(exportItem);
 
-        final MenuUpdater menuUpdater  = new MenuUpdater(() -> {
+        final MenuUpdater menuUpdater = new MenuUpdater(() -> {
+            if (alignSelectionItem != null) {
+                alignSelectionItem.setEnabled(tiffPanel.isSelected());
+            }
             removeSelectionItem.setEnabled(tiffPanel.isSelected());
             copyItem.setEnabled(tiffPanel.hasNonEmptySelection());
             exportItem.setEnabled(tiffPanel.hasNonEmptySelection());
