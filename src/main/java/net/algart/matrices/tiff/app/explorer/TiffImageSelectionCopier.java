@@ -213,6 +213,7 @@ class TiffImageSelectionCopier {
                     TiffWriter writer = new TiffWriter(targetFile);
                     writer.setSmartCorrection(true);
                     writer.setFormatLike(viewer.reader());
+                    customizeCopying(writer);
                     // - without this operator, direct copy will be impossible for LE format
                     // if (true) throw new IOException("Test exception");
                     writer.create();

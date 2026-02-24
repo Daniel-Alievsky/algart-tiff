@@ -65,13 +65,14 @@ class TiffImageViewer {
     private double lastImageZoom = 0.0;
     private Rectangle lastImageRectangle = null;
     private BufferedImage lastImage = null;
-    private IOException exception = null;
+    private Throwable exception = null;
 
     private String lastStatus = DEFAULT_STATUS;
     private boolean lastErrorFlag = false;
 
     private JFrame frame;
     private JTiffPanel tiffPanel;
+    private JTiffScrollPane tiffScrollPane;
 
     public TiffImageViewer(Path tiffFile, int index) throws IOException {
         Objects.requireNonNull(tiffFile);
@@ -152,20 +153,33 @@ class TiffImageViewer {
     }
 
     public BufferedImage reloadFragment(int zoomedFromX, int zoomedFromY, int zoomedToX, int zoomedToY, double zoom) {
+        final int zoomedSizeX = zoomedToX - zoomedFromX;
+        final int zoomedSizeY = zoomedToY - zoomedFromY;
+        if (zoomedSizeX <= 0 || zoomedSizeY <= 0) {
+            return null;
+        }
         int fromX = (int) Math.floor(zoomedFromX / zoom);
         int fromY = (int) Math.floor(zoomedFromY / zoom);
         int toX = (int) Math.ceil(zoomedToX / zoom);
         int toY = (int) Math.ceil(zoomedToY / zoom);
         final Rectangle r = new Rectangle(fromX, fromY, toX - fromX, toY - fromY);
         if (zoom != lastImageZoom || !Objects.equals(r, this.lastImageRectangle)) {
-            BufferedImage bi;
+            BufferedImage original;
+            BufferedImage scaled;
             this.lastImageRectangle = new Rectangle(r);
             this.lastImageZoom = zoom;
             try {
-                bi = readImage(r);
+                original = readImage(r);
+                scaled = zoom == 1.0 || original == null ?
+                        original :
+                        new BufferedImage(zoomedSizeX, zoomedSizeY, original.getColorModel().hasAlpha() ?
+                                BufferedImage.TYPE_INT_ARGB :
+                                BufferedImage.TYPE_INT_RGB);
                 exception = null;
-            } catch (IOException e) {
-                bi = null;
+            } catch (Throwable e) {
+                // - including possible too large rectangles (IllegalArgumentException)
+                original = null;
+                scaled = null;
                 exception = e;
             }
             if (exception != null) {
@@ -174,27 +188,20 @@ class TiffImageViewer {
                 showError(exception.getMessage());
                 return null;
             }
-            if (zoom == 1.0) {
-                lastImage = bi;
-            } else {
-                int w = zoomedToX - zoomedFromX;
-                int h = zoomedToY - zoomedFromY;
-                BufferedImage scaled = new BufferedImage(w, h, bi.getColorModel().hasAlpha() ?
-                        BufferedImage.TYPE_INT_ARGB :
-                        BufferedImage.TYPE_INT_RGB);
+            if (zoom != 1.0 && scaled != null) {
                 Graphics2D g = scaled.createGraphics();
                 g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
                         zoom < 1.0 ?
                                 RenderingHints.VALUE_INTERPOLATION_BILINEAR :
                                 RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
-                g.drawImage(bi, 0, 0, w, h, null);
+                g.drawImage(original, 0, 0, zoomedSizeX, zoomedSizeY, null);
                 g.dispose();
-                lastImage = scaled;
             }
-            LOG.log(System.Logger.Level.DEBUG,  "Viewer loaded the image region %dx%d starting at (%d,%d)%s"
+            lastImage = scaled;
+            LOG.log(System.Logger.Level.DEBUG, "Viewer loaded the image region %dx%d starting at (%d,%d)%s"
                     .formatted(r.width, r.height, r.x, r.y,
                             zoom == 1.0 ? "" : " and scaled it to %dx%d (zoom %s)"
-                                    .formatted(lastImage.getWidth(), lastImage.getHeight(), zoom)));
+                                    .formatted(zoomedSizeX, zoomedSizeY, zoom)));
             showNormalStatus();
         }
         return lastImage;
@@ -245,9 +252,9 @@ class TiffImageViewer {
         frame.setJMenuBar(buildMenuBar());
 
         tiffPanel = new JTiffPanel(this);
-        final JScrollPane scrollPane = new JTiffScrollPane(tiffPanel);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        frame.add(scrollPane, BorderLayout.CENTER);
+        tiffScrollPane = new JTiffScrollPane(tiffPanel);
+        tiffScrollPane.setBorder(BorderFactory.createEmptyBorder());
+        frame.add(tiffScrollPane, BorderLayout.CENTER);
 
         final JPanel statusPanel = new JPanel();
         statusPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 5, 5));
@@ -398,8 +405,8 @@ class TiffImageViewer {
         }
         item.addActionListener(e -> {
             try {
-                tiffPanel.setZoom(zoomValue);
-            } catch (Exception ex) {
+                tiffScrollPane.setZoomWithCentering(zoomValue);
+            } catch (IllegalArgumentException ex) {
                 showErrorMessage(ex, "Cannot set zoom");
             }
             item.setSelected(true);

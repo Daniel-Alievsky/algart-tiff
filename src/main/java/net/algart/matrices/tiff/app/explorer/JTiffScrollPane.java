@@ -42,6 +42,38 @@ class JTiffScrollPane extends JScrollPane {
         initPanListener();
     }
 
+    public void setZoomWithCentering(double newZoom) {
+        final JViewport viewport = this.getViewport();
+
+        final double oldZoom = tiffPanel.getZoom();
+        if (oldZoom == newZoom) {
+            return;
+        }
+        final Point viewPosition = viewport.getViewPosition();
+        final Dimension extentSize = viewport.getExtentSize();
+
+        final double centerX = viewPosition.x + extentSize.width / 2.0;
+        final double centerY = viewPosition.y + extentSize.height / 2.0;
+
+        final double worldCenterX = centerX / oldZoom;
+        final double worldCenterY = centerY / oldZoom;
+
+        tiffPanel.setZoom(newZoom);
+        this.doLayout();
+        viewport.doLayout();
+        // - important for correct work of setViewPosition
+
+        // - IllegalArgumentException possible
+        final Dimension newCanvasSize = tiffPanel.getPreferredSize();
+
+        int newViewX = (int) Math.round(worldCenterX * newZoom - extentSize.width / 2.0);
+        int newViewY = (int) Math.round(worldCenterY * newZoom - extentSize.height / 2.0);
+
+        newViewX = Math.clamp(newViewX, 0, Math.max(0, newCanvasSize.width - extentSize.width));
+        newViewY = Math.clamp(newViewY, 0, Math.max(0, newCanvasSize.height - extentSize.height));
+        viewport.setViewPosition(new Point(newViewX, newViewY));
+    }
+
     private void enterDraggingMode() {
         if (!shiftDown) {
             shiftDown = true;
@@ -59,7 +91,7 @@ class JTiffScrollPane extends JScrollPane {
     }
 
     private void initPanListener() {
-        JViewport viewport = getViewport();
+        final JViewport viewport = getViewport();
 
         MouseAdapter adapter = new MouseAdapter() {
             @Override

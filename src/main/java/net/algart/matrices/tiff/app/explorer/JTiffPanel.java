@@ -34,6 +34,10 @@ import java.awt.image.BufferedImage;
 import java.util.Objects;
 
 class JTiffPanel extends JComponent {
+    private static final Paint TRANSPARENCY_PAINT = createChessPaint(
+            8,
+            new Color(255, 255, 255),
+            new Color(200, 200, 200));
     private static final Paint ERROR_PAINT = createChessPaint(
             8,
             new Color(255, 0, 0),
@@ -240,6 +244,8 @@ class JTiffPanel extends JComponent {
             BufferedImage bi = viewer.reloadFragment(
                     clip.x, clip.y, clip.x + clip.width, clip.y + clip.height, zoom);
             if (bi != null) {
+                g.setPaint(TRANSPARENCY_PAINT);
+                g.fillRect(clip.x, clip.y, clip.width, clip.height);
                 g.drawImage(bi, clip.x, clip.y, null);
             } else if (clip.width > 0 && clip.height > 0) {
                 g.setPaint(ERROR_PAINT);
