@@ -44,8 +44,8 @@ import java.util.OptionalInt;
 class TiffImageViewer {
     private static final String DEFAULT_STATUS =
             "Use mouse drag to select a rectangle, or SHIFT-drag to move the image";
-    private static final long CACHING_MEMORY = 32 * 1048576L;
-    // - 32MB is enough to store several user screens
+    private static final long CACHING_MEMORY = 256 * 1048576L;
+    // - 256MB = 16 * 16M is enough to store several user screens even with the zoom 1:4
     private static final boolean PRELOAD_LITTLE_AREA_WHILE_OPENING = true;
     // - should be true; you may clear this flag to debug possible I/O errors during the drawing process
 
@@ -62,8 +62,9 @@ class TiffImageViewer {
     private TiffReadMap map = null;
     private int numberOfImages = -1;
 
-    private Rectangle viewport = null;
-    private BufferedImage image = null;
+    private double lastImageZoom = 0.0;
+    private Rectangle lastImageRectangle = null;
+    private BufferedImage lastImage = null;
     private IOException exception = null;
 
     private String lastStatus = DEFAULT_STATUS;
@@ -81,7 +82,7 @@ class TiffImageViewer {
     }
 
     public void disposeResources() {
-        image = null;
+        lastImage = null;
         tiffPanel.disposeResources();
         try {
             this.reader.close();
@@ -135,11 +136,11 @@ class TiffImageViewer {
     }
 
     public Rectangle getSelection() {
-        return tiffPanel.getSelection();
+        return tiffPanel.getImageSelection();
     }
 
     public void setSelection(int left, int top, int width, int height) {
-        tiffPanel.setSelection(left, top, (long) left + (long) width, (long) top + (long) height);
+        tiffPanel.setImageSelection(left, top, (long) left + (long) width, (long) top + (long) height);
     }
 
     public void copyImageToClipboard() throws IOException {
@@ -150,32 +151,53 @@ class TiffImageViewer {
         }
     }
 
-    public BufferedImage reloadFragment(int fromX, int fromY, int sizeX, int sizeY) {
-        fromX = Math.clamp(fromX, 0, map.dimX());
-        fromY = Math.clamp(fromY, 0, map.dimY());
-        sizeX = Math.clamp(sizeX, 0, map.dimX() - fromX);
-        sizeY = Math.clamp(sizeY, 0, map.dimY() - fromY);
-        final Rectangle r = new Rectangle(fromX, fromY, sizeX, sizeY);
-        if (!Objects.equals(r, this.viewport)) {
-            this.viewport = new Rectangle(r);
+    public BufferedImage reloadFragment(int zoomedFromX, int zoomedFromY, int zoomedToX, int zoomedToY, double zoom) {
+        int fromX = (int) Math.floor(zoomedFromX / zoom);
+        int fromY = (int) Math.floor(zoomedFromY / zoom);
+        int toX = (int) Math.ceil(zoomedToX / zoom);
+        int toY = (int) Math.ceil(zoomedToY / zoom);
+        final Rectangle r = new Rectangle(fromX, fromY, toX - fromX, toY - fromY);
+        if (zoom != lastImageZoom || !Objects.equals(r, this.lastImageRectangle)) {
+            BufferedImage bi;
+            this.lastImageRectangle = new Rectangle(r);
+            this.lastImageZoom = zoom;
             try {
-                image = readImage(r);
+                bi = readImage(r);
                 exception = null;
             } catch (IOException e) {
-                image = null;
+                bi = null;
                 exception = e;
             }
-            if (exception == null) {
-                LOG.log(System.Logger.Level.DEBUG, "Viewer loaded the fragment %dx%d starting at (%d,%d)"
-                        .formatted(r.width, r.height, r.x, r.y));
-                showNormalStatus();
-            } else {
+            if (exception != null) {
                 LOG.log(System.Logger.Level.ERROR, "Error while reading " + map.streamName() +
                         ": " + exception.getMessage(), exception);
                 showError(exception.getMessage());
+                return null;
             }
+            if (zoom == 1.0) {
+                lastImage = bi;
+            } else {
+                int w = zoomedToX - zoomedFromX;
+                int h = zoomedToY - zoomedFromY;
+                BufferedImage scaled = new BufferedImage(w, h, bi.getColorModel().hasAlpha() ?
+                        BufferedImage.TYPE_INT_ARGB :
+                        BufferedImage.TYPE_INT_RGB);
+                Graphics2D g = scaled.createGraphics();
+                g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                        zoom < 1.0 ?
+                                RenderingHints.VALUE_INTERPOLATION_BILINEAR :
+                                RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+                g.drawImage(bi, 0, 0, w, h, null);
+                g.dispose();
+                lastImage = scaled;
+            }
+            LOG.log(System.Logger.Level.DEBUG,  "Viewer loaded the image region %dx%d starting at (%d,%d)%s"
+                    .formatted(r.width, r.height, r.x, r.y,
+                            zoom == 1.0 ? "" : " and scaled it to %dx%d (zoom %s)"
+                                    .formatted(lastImage.getWidth(), lastImage.getHeight(), zoom)));
+            showNormalStatus();
         }
-        return image;
+        return lastImage;
     }
 
     private void alignSelection() {
@@ -188,7 +210,7 @@ class TiffImageViewer {
             final long fromY = (long) selection.y / tileY * tileY;
             final long toX = ((long) selection.x + (long) selection.width + tileX - 1) / tileX * tileX;
             final long toY = ((long) selection.y + (long) selection.height + tileY - 1) / tileY * tileY;
-            tiffPanel.setSelection(fromX, fromY, toX, toY);
+            tiffPanel.setImageSelection(fromX, fromY, toX, toY);
         }
     }
 
@@ -205,8 +227,8 @@ class TiffImageViewer {
 
     public void resetCache() {
         reader.resetCache();
-        viewport = null;
-        image = null;
+        lastImageRectangle = null;
+        lastImage = null;
         exception = null;
     }
 
@@ -252,29 +274,6 @@ class TiffImageViewer {
 
     private JMenuBar buildMenuBar() {
         JMenuBar menuBar = new JMenuBar();
-
-        JMenu viewMenu = new JMenu("View");
-        JCheckBoxMenuItem tileGridItem = new JCheckBoxMenuItem(
-                "Draw %s".formatted(map.isTiled() ? "tile grid" : "strip boundaries"));
-        tileGridItem.setSelected(false);
-        tileGridItem.addActionListener(e -> {
-            reader.setViewTileGrid(tileGridItem.isSelected());
-            updateView();
-        });
-        viewMenu.add(tileGridItem);
-
-        // RandomAccessFile does not strictly lock the file: other processes, for example,
-        // other instances of TiffExplorer may edit the same file
-        JMenuItem reloadItem = new JMenuItem("Reload TIFF image");
-        reloadItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
-        reloadItem.addActionListener(event -> {
-            try {
-                reload();
-            } catch (Exception e) {
-                showErrorMessage(e, "Error reloading TIFF");
-            }
-        });
-        viewMenu.add(reloadItem);
 
         JMenu editMenu = new JMenu("Edit");
         JMenuItem selectAllItem = new JMenuItem("Select all");
@@ -334,10 +333,44 @@ class TiffImageViewer {
             final var copier = new TiffImageSelectionCopier(this, frame);
             Path file = copier.chooseTiffFileToCopy();
             if (file != null) {
-               copier.showCopyToTiffDialog(file);
+                copier.showCopyToTiffDialog(file);
             }
         });
         editMenu.add(saveToTiffItem);
+
+        JMenu viewMenu = new JMenu("View");
+        JCheckBoxMenuItem tileGridItem = new JCheckBoxMenuItem(
+                "Draw %s".formatted(map.isTiled() ? "tile grid" : "strip boundaries"));
+        tileGridItem.setSelected(false);
+        tileGridItem.addActionListener(e -> {
+            reader.setViewTileGrid(tileGridItem.isSelected());
+            updateView();
+        });
+        viewMenu.add(tileGridItem);
+
+        // RandomAccessFile does not strictly lock the file: other processes, for example,
+        // other instances of TiffExplorer may edit the same file
+        JMenuItem reloadItem = new JMenuItem("Reload TIFF image");
+        reloadItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
+        reloadItem.addActionListener(event -> {
+            try {
+                reload();
+            } catch (Exception e) {
+                showErrorMessage(e, "Error reloading TIFF");
+            }
+        });
+        viewMenu.add(reloadItem);
+        JMenu zoomMenu = new JMenu("Zoom");
+        ButtonGroup zoomGroup = new ButtonGroup();
+        addZoomItem(zoomMenu, zoomGroup, "800% (8:1)", 8.0);
+        addZoomItem(zoomMenu, zoomGroup, "400% (4:1)", 4.0);
+        addZoomItem(zoomMenu, zoomGroup, "200% (2:1)", 2.0);
+        addZoomItem(zoomMenu, zoomGroup, "100% (1:1)", 1.0);
+        addZoomItem(zoomMenu, zoomGroup, "50% (1:2)", 0.5);
+        addZoomItem(zoomMenu, zoomGroup, "25% (1:4, may be slow)", 0.25);
+        addZoomItem(zoomMenu, zoomGroup, "12.5% (1:8, may be slow)", 0.125);
+        viewMenu.addSeparator();
+        viewMenu.add(zoomMenu);
 
         final MenuUpdater menuUpdater = new MenuUpdater(() -> {
             if (alignSelectionItem != null) {
@@ -348,16 +381,33 @@ class TiffImageViewer {
             exportItem.setEnabled(tiffPanel.hasNonEmptySelection());
             saveToTiffItem.setEnabled(tiffPanel.hasNonEmptySelection());
         });
-        viewMenu.addMenuListener(menuUpdater);
         editMenu.addMenuListener(menuUpdater);
+        viewMenu.addMenuListener(menuUpdater);
 
-        menuBar.add(viewMenu);
         menuBar.add(editMenu);
-        editMenu.setMnemonic('E');
+        menuBar.add(viewMenu);
         viewMenu.setMnemonic('V');
+        editMenu.setMnemonic('E');
         return menuBar;
     }
 
+    private void addZoomItem(JMenu menu, ButtonGroup group, String title, double zoomValue) {
+        JRadioButtonMenuItem item = new JRadioButtonMenuItem(title);
+        if (zoomValue == 1.0) {
+            item.setSelected(true);
+        }
+        item.addActionListener(e -> {
+            try {
+                tiffPanel.setZoom(zoomValue);
+            } catch (Exception ex) {
+                showErrorMessage(ex, "Cannot set zoom");
+            }
+            item.setSelected(true);
+            updateView();
+        });
+        group.add(item);
+        menu.add(item);
+    }
 
     private void setStatus(String status, boolean error) {
         Objects.requireNonNull(status);
@@ -391,7 +441,7 @@ class TiffImageViewer {
         final JTextField widthField = new JTextField(8);
         final JTextField heightField = new JTextField(8);
 
-        final Rectangle current = tiffPanel.getSelection();
+        final Rectangle current = tiffPanel.getImageSelection();
         if (current != null) {
             leftField.setText(Integer.toString(current.x));
             topField.setText(Integer.toString(current.y));

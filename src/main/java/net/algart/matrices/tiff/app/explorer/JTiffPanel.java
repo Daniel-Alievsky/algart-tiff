@@ -135,10 +135,30 @@ class JTiffPanel extends JComponent {
         if (zoom <= 0.0) {
             throw new IllegalArgumentException("Negative zoom: " + zoom);
         }
-        this.zoom = zoom;
-        this.canvasDimX = (int) Math.round(map.dimX() * zoom);
-        this.canvasDimY = (int) Math.round(map.dimY() * zoom);
+        if (zoom != this.zoom) {
+            long canvasDimX = Math.round(map.dimX() * zoom);
+            long canvasDimY = Math.round(map.dimY() * zoom);
+            if (canvasDimX > Integer.MAX_VALUE || canvasDimY > Integer.MAX_VALUE) {
+                throw new IllegalArgumentException(
+                        "Too big zoom: the zoomed image will be " + canvasDimX + "x" + canvasDimY);
+            }
+            this.zoom = zoom;
+            this.canvasDimX = (int) canvasDimX;
+            this.canvasDimY = (int) canvasDimY;
+            removeSelection();
+            reset();
+            revalidate();
+            repaint();
+        }
         return this;
+    }
+
+    public int getCanvasDimX() {
+        return canvasDimX;
+    }
+
+    public int getCanvasDimY() {
+        return canvasDimY;
     }
 
     public void removeSelection() {
@@ -147,11 +167,35 @@ class JTiffPanel extends JComponent {
         viewer.showNormalStatus();
     }
 
-    public void setSelectionAll() {
-        setSelection(0, 0, canvasDimX, canvasDimY);
+    public boolean isSelected() {
+        return selected;
     }
 
-    public void setSelection(long fromX, long fromY, long toX, long toY) {
+    public boolean hasNonEmptySelection() {
+        return selected && fromX != toX && fromY != toY;
+    }
+
+    public Rectangle getImageSelection() {
+        return getSelection(zoom);
+    }
+
+    public Rectangle getCanvasSelection() {
+        return getSelection(1.0);
+    }
+
+    public void setSelectionAll() {
+        setCanvasSelection(0, 0, canvasDimX, canvasDimY);
+    }
+
+    public void setImageSelection(long fromX, long fromY, long toX, long toY) {
+        final long canvasFromX = (long) Math.floor(fromX * zoom);
+        final long canvasFromY = (long) Math.floor(fromY * zoom);
+        final long canvasToX = (long) Math.ceil(toX * zoom);
+        final long canvasToY = (long) Math.ceil(toY * zoom);
+        setCanvasSelection(canvasFromX, canvasFromY, canvasToX, canvasToY);
+    }
+
+    public void setCanvasSelection(long fromX, long fromY, long toX, long toY) {
         if (this.selected && fromX == this.fromX && fromY == this.fromY && toX == this.toX && toY == this.toY) {
             return;
         }
@@ -168,30 +212,6 @@ class JTiffPanel extends JComponent {
         viewer.showNormalStatus();
     }
 
-    public void setMouseHandleEnabled(boolean mouseHandleEnabled) {
-        this.mouseHandleEnabled = mouseHandleEnabled;
-    }
-
-    public boolean isSelected() {
-        return selected;
-    }
-
-    public boolean hasNonEmptySelection() {
-        return selected && fromX != toX && fromY != toY;
-    }
-
-    public Rectangle getSelection() {
-        if (selected) {
-            final int fromX = Math.min(this.fromX, toX);
-            final int fromY = Math.min(this.fromY, toY);
-            final int toX = Math.max(this.fromX, this.toX);
-            final int toY = Math.max(this.fromY, this.toY);
-            return new Rectangle(fromX, fromY, toX - fromX, toY - fromY);
-        } else {
-            return null;
-        }
-    }
-
     private void normalizeNegativeSelection() {
         if (fromX > toX) {
             int temp = fromX;
@@ -205,6 +225,10 @@ class JTiffPanel extends JComponent {
         }
     }
 
+    public void setMouseHandleEnabled(boolean mouseHandleEnabled) {
+        this.mouseHandleEnabled = mouseHandleEnabled;
+    }
+
     @Override
     protected void paintComponent(Graphics graphics) {
         super.paintComponent(graphics);
@@ -213,7 +237,8 @@ class JTiffPanel extends JComponent {
         Rectangle clip = graphics.getClipBounds();
         if (clip != null) {
             clip = cropRectangleByCanvas(clip);
-            BufferedImage bi = viewer.reloadFragment(clip.x, clip.y, clip.width, clip.height);
+            BufferedImage bi = viewer.reloadFragment(
+                    clip.x, clip.y, clip.x + clip.width, clip.y + clip.height, zoom);
             if (bi != null) {
                 g.drawImage(bi, clip.x, clip.y, null);
             } else if (clip.width > 0 && clip.height > 0) {
@@ -318,7 +343,7 @@ class JTiffPanel extends JComponent {
                 final int mx = e.getX();
                 final int my = e.getY();
                 if (creatingNewFrame) {
-                    toX = Math.clamp(mx, 0, canvasDimX);;
+                    toX = Math.clamp(mx, 0, canvasDimX);
                     toY = Math.clamp(my, 0, canvasDimY);
                 } else if (resizingFrame && selectedHandle != null) {
                     resizeFrame(selectedHandle, mx, my);
@@ -383,7 +408,7 @@ class JTiffPanel extends JComponent {
     }
 
     private FrameHandle getHandleUnder(int x, int y) {
-        final Rectangle frame = getSelection();
+        final Rectangle frame = getCanvasSelection();
         if (frame == null) {
             return null;
         }
@@ -421,6 +446,25 @@ class JTiffPanel extends JComponent {
         r.width = Math.clamp(r.width, 0, canvasDimX - r.x);
         r.height = Math.clamp(r.height, 0, canvasDimY - r.y);
         return r;
+    }
+
+    private Rectangle getSelection(double zoom) {
+        if (selected) {
+            int fromX = Math.min(this.fromX, this.toX);
+            int fromY = Math.min(this.fromY, this.toY);
+            int toX = Math.max(this.fromX, this.toX);
+            int toY = Math.max(this.fromY, this.toY);
+            if (zoom != 1.0) {
+                fromX = Math.clamp((long) Math.floor(fromX / zoom), 0, map.dimX());
+                fromY = Math.clamp((long) Math.floor(fromY / zoom), 0, map.dimY());
+                toX = Math.clamp((long) Math.floor(toX / zoom), 0, map.dimX());
+                toY = Math.clamp((long) Math.floor(toY / zoom), 0, map.dimY());
+                // Math.floor for both fromX and toX: empty selection is transformed to empty rectangle
+            }
+            return new Rectangle(fromX, fromY, toX - fromX, toY - fromY);
+        } else {
+            return null;
+        }
     }
 
     private static TexturePaint createChessPaint(int size, Color c1, Color c2) {
