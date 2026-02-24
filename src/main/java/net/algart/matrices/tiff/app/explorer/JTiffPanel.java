@@ -191,6 +191,11 @@ class JTiffPanel extends JComponent {
         setCanvasSelection(0, 0, canvasDimX, canvasDimY);
     }
 
+    public void setImageSelection(Rectangle r) {
+        Objects.requireNonNull(r, "Null rectangle");
+        setImageSelection(r.x, r.y, (long) r.x + (long) r.width, (long) r.y + (long) r.height);
+    }
+
     public void setImageSelection(long fromX, long fromY, long toX, long toY) {
         final long canvasFromX = (long) Math.floor(fromX * zoom);
         final long canvasFromY = (long) Math.floor(fromY * zoom);
@@ -226,6 +231,12 @@ class JTiffPanel extends JComponent {
             int temp = fromY;
             fromY = toY;
             toY = temp;
+        }
+    }
+
+    private void adjustSelectionToZoomedPixels() {
+        if (zoom > 1.0) {
+            setImageSelection(getImageSelection());
         }
     }
 
@@ -335,6 +346,7 @@ class JTiffPanel extends JComponent {
                     removeSelection();
                 }
                 normalizeNegativeSelection();
+                adjustSelectionToZoomedPixels();
                 creatingNewFrame = false;
                 resizingFrame = false;
                 movingFrame = false;
