@@ -79,8 +79,10 @@ class JTiffPanel extends JComponent {
     private static final System.Logger LOG = System.getLogger(JTiffPanel.class.getName());
 
     private final TiffImageViewer viewer;
-    private final int dimX;
-    private final int dimY;
+    private final TiffReadMap map;
+    private int canvasDimX;
+    private int canvasDimY;
+    private double zoom = 1.0;
 
     private int fromX = -1;
     private int fromY = -1;
@@ -101,9 +103,9 @@ class JTiffPanel extends JComponent {
 
     public JTiffPanel(TiffImageViewer viewer) {
         this.viewer = Objects.requireNonNull(viewer, "Null viewer");
-        final TiffReadMap map = viewer.map();
-        this.dimX = map.dimX();
-        this.dimY = map.dimY();
+        this.map = viewer.map();
+        this.canvasDimX = map.dimX();
+        this.canvasDimY = map.dimY();
         reset();
 
         dashTimer = new Timer(300, e -> {
@@ -122,7 +124,21 @@ class JTiffPanel extends JComponent {
     }
 
     public void reset() {
-        setPreferredSize(new Dimension(dimX, dimY));
+        setPreferredSize(new Dimension(canvasDimX, canvasDimY));
+    }
+
+    public double getZoom() {
+        return zoom;
+    }
+
+    public JTiffPanel setZoom(double zoom) {
+        if (zoom <= 0.0) {
+            throw new IllegalArgumentException("Negative zoom: " + zoom);
+        }
+        this.zoom = zoom;
+        this.canvasDimX = (int) Math.round(map.dimX() * zoom);
+        this.canvasDimY = (int) Math.round(map.dimY() * zoom);
+        return this;
     }
 
     public void removeSelection() {
@@ -132,7 +148,7 @@ class JTiffPanel extends JComponent {
     }
 
     public void setSelectionAll() {
-        setSelection(0, 0, dimX, dimY);
+        setSelection(0, 0, canvasDimX, canvasDimY);
     }
 
     public void setSelection(long fromX, long fromY, long toX, long toY) {
@@ -143,10 +159,10 @@ class JTiffPanel extends JComponent {
             this.selected = false;
         } else {
             this.selected = true;
-            this.fromX = Math.clamp(fromX, 0, dimX);
-            this.fromY = Math.clamp(fromY, 0, dimY);
-            this.toX = Math.clamp(toX, 0, dimX);
-            this.toY = Math.clamp(toY, 0, dimY);
+            this.fromX = Math.clamp(fromX, 0, canvasDimX);
+            this.fromY = Math.clamp(fromY, 0, canvasDimY);
+            this.toX = Math.clamp(toX, 0, canvasDimX);
+            this.toY = Math.clamp(toY, 0, canvasDimY);
         }
         repaint();
         viewer.showNormalStatus();
@@ -196,8 +212,8 @@ class JTiffPanel extends JComponent {
 
         Rectangle clip = graphics.getClipBounds();
         if (clip != null) {
-            clip = new Rectangle(clip);
-            BufferedImage bi = viewer.reloadFragment(clip);
+            clip = cropRectangleByCanvas(clip);
+            BufferedImage bi = viewer.reloadFragment(clip.x, clip.y, clip.width, clip.height);
             if (bi != null) {
                 g.drawImage(bi, clip.x, clip.y, null);
             } else if (clip.width > 0 && clip.height > 0) {
@@ -205,10 +221,10 @@ class JTiffPanel extends JComponent {
                 g.fillRect(clip.x, clip.y, clip.width, clip.height);
             }
         }
-        drawFrame(g);
+        drawSelectionBorder(g);
     }
 
-    private void drawFrame(Graphics2D g) {
+    private void drawSelectionBorder(Graphics2D g) {
         if (selected) {
             final int fromX = Math.min(this.fromX, toX);
             final int fromY = Math.min(this.fromY, toY);
@@ -302,15 +318,15 @@ class JTiffPanel extends JComponent {
                 final int mx = e.getX();
                 final int my = e.getY();
                 if (creatingNewFrame) {
-                    toX = Math.clamp(mx, 0, dimX);;
-                    toY = Math.clamp(my, 0, dimY);
+                    toX = Math.clamp(mx, 0, canvasDimX);;
+                    toY = Math.clamp(my, 0, canvasDimY);
                 } else if (resizingFrame && selectedHandle != null) {
                     resizeFrame(selectedHandle, mx, my);
                 } else if (movingFrame) {
                     final int sizeX = toX - fromX;
                     final int sizeY = toY - fromY;
-                    fromX = Math.clamp(mx - dragOffsetX, 0, Math.max(0, dimX - sizeX));
-                    fromY = Math.clamp(my - dragOffsetY, 0, Math.max(0, dimY - sizeY));
+                    fromX = Math.clamp(mx - dragOffsetX, 0, Math.max(0, canvasDimX - sizeX));
+                    fromY = Math.clamp(my - dragOffsetY, 0, Math.max(0, canvasDimY - sizeY));
                     toX = fromX + sizeX;
                     toY = fromY + sizeY;
                 }
@@ -340,8 +356,8 @@ class JTiffPanel extends JComponent {
     }
 
     private void resizeFrame(FrameHandle handle, int mx, int my) {
-        mx = Math.clamp(mx, 0, dimX);
-        my = Math.clamp(my, 0, dimY);
+        mx = Math.clamp(mx, 0, canvasDimX);
+        my = Math.clamp(my, 0, canvasDimY);
         switch (handle) {
             case TOP_LEFT -> {
                 fromX = mx;
@@ -396,6 +412,15 @@ class JTiffPanel extends JComponent {
         g.fillRect(cx - half, cy - half, FRAME_HANDLE_SIZE, FRAME_HANDLE_SIZE);
         g.setColor(Color.BLACK);
         g.drawRect(cx - half, cy - half, FRAME_HANDLE_SIZE, FRAME_HANDLE_SIZE);
+    }
+
+    private Rectangle cropRectangleByCanvas(Rectangle rectangle) {
+        Rectangle r = new Rectangle(rectangle);
+        r.x = Math.clamp(r.x, 0, canvasDimX);
+        r.y = Math.clamp(r.y, 0, canvasDimY);
+        r.width = Math.clamp(r.width, 0, canvasDimX - r.x);
+        r.height = Math.clamp(r.height, 0, canvasDimY - r.y);
+        return r;
     }
 
     private static TexturePaint createChessPaint(int size, Color c1, Color c2) {

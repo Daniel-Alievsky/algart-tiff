@@ -150,22 +150,16 @@ class TiffImageViewer {
         }
     }
 
-    /**
-     * Loads the image fragment specified by the rectangle.
-     * If the rectangle is too large, the argument is modified: the rectangle is cropped to fit the image dimensions.
-     *
-     * @param viewport fragment to load.
-     * @return loaded image fragment or {@code null} if the fragment is empty.
-     */
-    public BufferedImage reloadFragment(Rectangle viewport) {
-        final int toX = Math.min(viewport.x + viewport.width, map.dimX());
-        final int toY = Math.min(viewport.y + viewport.height, map.dimY());
-        viewport.width = Math.max(toX - viewport.x, 0);
-        viewport.height = Math.max(toY - viewport.y, 0);
-        if (!Objects.equals(viewport, this.viewport)) {
-            this.viewport = new Rectangle(viewport);
+    public BufferedImage reloadFragment(int fromX, int fromY, int sizeX, int sizeY) {
+        fromX = Math.clamp(fromX, 0, map.dimX());
+        fromY = Math.clamp(fromY, 0, map.dimY());
+        sizeX = Math.clamp(sizeX, 0, map.dimX() - fromX);
+        sizeY = Math.clamp(sizeY, 0, map.dimY() - fromY);
+        final Rectangle r = new Rectangle(fromX, fromY, sizeX, sizeY);
+        if (!Objects.equals(r, this.viewport)) {
+            this.viewport = new Rectangle(r);
             try {
-                image = readImage(viewport);
+                image = readImage(r);
                 exception = null;
             } catch (IOException e) {
                 image = null;
@@ -173,7 +167,7 @@ class TiffImageViewer {
             }
             if (exception == null) {
                 LOG.log(System.Logger.Level.DEBUG, "Viewer loaded the fragment %dx%d starting at (%d,%d)"
-                        .formatted(viewport.width, viewport.height, viewport.x, viewport.y));
+                        .formatted(r.width, r.height, r.x, r.y));
                 showNormalStatus();
             } else {
                 LOG.log(System.Logger.Level.ERROR, "Error while reading " + map.streamName() +
