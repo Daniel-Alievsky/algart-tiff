@@ -184,13 +184,13 @@ public class TiffExplorer {
         // - the user cannot reduce window size too much, so that elements become invisible
         frame.setLocationRelativeTo(null);
         loadFramePreferences();
-        frame.setVisible(true);
         frame.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
                 savePreferences();
             }
         });
+        frame.setVisible(true);
         if (args.length >= 1) {
             loadTiff(Path.of(args[0]));
         }

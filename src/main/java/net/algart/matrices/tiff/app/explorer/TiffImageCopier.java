@@ -27,11 +27,13 @@ package net.algart.matrices.tiff.app.explorer;
 import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffCopier;
 import net.algart.matrices.tiff.TiffWriter;
+import net.algart.matrices.tiff.tags.TagCompression;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -39,7 +41,7 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
-class TiffImageSelectionCopier {
+class TiffImageCopier {
     private static final String PREF_LAST_EXPORT_SELECTION_DIR = "lastExportSelectionDirectory";
     private static final String PREF_LAST_COPY_SELECTION_TO_TIFF_DIR = "lastCopySelectionToTiffDirectory";
     private static final FileFilter ANY_IMAGE_FILTER = new FileNameExtensionFilter(
@@ -61,8 +63,12 @@ class TiffImageSelectionCopier {
 
     private JLabel progressLabel;
     private JTextField compressionField;
+    private JComboBox<TagCompression> compressionMethodBox;
+    private JButton startCopyButton;
+    private JButton cancelCopyButton;
+    private JDialog copySettingsDialog;
 
-    public TiffImageSelectionCopier(TiffImageViewer viewer, JFrame frame) {
+    public TiffImageCopier(TiffImageViewer viewer, JFrame frame) {
         this.viewer = Objects.requireNonNull(viewer);
         this.frame = Objects.requireNonNull(frame);
         this.copier = new TiffCopier().setInterruptionChecker(() -> stopRequested);
@@ -142,8 +148,8 @@ class TiffImageSelectionCopier {
             return;
         }
 
-        final JDialog dialog = new JDialog(frame, "Copy selection to TIFF", true);
-        dialog.setLayout(new BorderLayout(10, 10));
+        copySettingsDialog = new JDialog(frame, "Copy selection to TIFF", true);
+        copySettingsDialog.setLayout(new BorderLayout(10, 10));
 
         final JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
@@ -167,89 +173,105 @@ class TiffImageSelectionCopier {
         mainPanel.add(infoLabel);
         mainPanel.add(Box.createVerticalStrut(10));
 
-        final JPanel compressionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        compressionPanel.add(new JLabel("Compression quality (for JPEG, from 0.0 to 1.0):"));
+        final JPanel settingsPanel = new JPanel(new GridLayout(2, 2, 5, 5));
+        settingsPanel.add(new JLabel("Compression quality (for JPEG, from 0.0 to 1.0):"));
         compressionField = new JTextField(6);
-        compressionPanel.add(compressionField);
-        compressionPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        mainPanel.add(compressionPanel);
+        settingsPanel.add(compressionField);
+        settingsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        settingsPanel.add(new JLabel("Compression method:"));
+        compressionMethodBox = new JComboBox<>(new TagCompression[]{
+                TagCompression.NONE,
+                TagCompression.LZW,
+                TagCompression.DEFLATE,
+                TagCompression.JPEG,
+                TagCompression.JPEG_RGB,
+                TagCompression.JPEG_2000,
+                TagCompression.JPEG_2000_APERIO});
+//        settingsPanel.add(compressionMethodBox);
+
+        settingsPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, settingsPanel.getPreferredSize().height));
+
+        mainPanel.add(settingsPanel);
 
         mainPanel.add(Box.createVerticalStrut(10));
 
-        progressLabel = new JLabel("");
+        progressLabel = new JLabel("999/999 tiles copied...");
         progressLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         copier.setProgressUpdater(p -> SwingUtilities.invokeLater(() -> {
             progressLabel.setText("%d/%d tiles copied...".formatted(p.tileIndex() + 1, p.tileCount()));
         }));
         mainPanel.add(progressLabel);
 
-        dialog.add(mainPanel, BorderLayout.CENTER);
+        copySettingsDialog.add(mainPanel, BorderLayout.CENTER);
 
         final JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        final JButton startButton = new JButton("Start");
-        final JButton cancelButton = new JButton("Cancel");
-        buttonPanel.add(startButton);
-        buttonPanel.add(cancelButton);
-        dialog.add(buttonPanel, BorderLayout.SOUTH);
+        startCopyButton = new JButton("Start");
+        cancelCopyButton = new JButton("Cancel");
+        buttonPanel.add(startCopyButton);
+        buttonPanel.add(cancelCopyButton);
+        copySettingsDialog.add(buttonPanel, BorderLayout.SOUTH);
+        cancelCopyButton.addActionListener(e -> cancelCopy());
+        startCopyButton.addActionListener(e -> startCopy(targetFile, selection));
 
         stopRequested = false;
         copyingInProgress = false;
-        cancelButton.addActionListener(e -> {
-            if (copyingInProgress) {
-                stopRequested = true;
-            } else {
-                dialog.dispose();
+        copySettingsDialog.pack();
+        progressLabel.setText("");
+        copySettingsDialog.setLocationRelativeTo(frame);
+        copySettingsDialog.setVisible(true);
+
+
+    }
+
+    private void startCopy(Path targetFile, Rectangle selection) {
+        startCopyButton.setEnabled(false);
+        startCopyButton.setVisible(false);
+        cancelCopyButton.setText("Cancel copying");
+        copyingInProgress = true;
+        new SwingWorker<TiffWriter, Void>() {
+            @Override
+            protected TiffWriter doInBackground() throws Exception {
+                TiffWriter writer = new TiffWriter(targetFile);
+                writer.setSmartCorrection(true);
+                writer.setFormatLike(viewer.reader());
+                customizeCopying(writer);
+                // - without this operator, direct copy will be impossible for LE format
+                // if (true) throw new IOException("Test exception");
+                writer.create();
+                copier.copyImage(writer, viewer.map(), selection.x, selection.y, selection.width, selection.height);
+                return writer;
             }
-        });
 
-        startButton.addActionListener(e -> {
-            startButton.setEnabled(false);
-            startButton.setVisible(false);
-            cancelButton.setText("Cancel copying");
-            copyingInProgress = true;
-            new SwingWorker<TiffWriter, Void>() {
-                @Override
-                protected TiffWriter doInBackground() throws Exception {
-                    TiffWriter writer = new TiffWriter(targetFile);
-                    writer.setSmartCorrection(true);
-                    writer.setFormatLike(viewer.reader());
-                    customizeCopying(writer);
-                    // - without this operator, direct copy will be impossible for LE format
-                    // if (true) throw new IOException("Test exception");
-                    writer.create();
-                    copier.copyImage(
-                            writer, viewer.map(),
-                            selection.x, selection.y, selection.width, selection.height);
-                    return writer;
-                }
-
-                @Override
-                protected void done() {
-                    TiffWriter writer = null;
-                    try {
-                        writer = get();
-                    } catch (InterruptedException | ExecutionException e) {
-                        showErrorMessage(e, "Error copying TIFF");
-                    } finally {
-                        if (writer != null) {
-                            try {
-                                writer.close();
-                            } catch (IOException ex) {
-                                showErrorMessage(ex, "Error closing TIFF writer");
-                            }
+            @Override
+            protected void done() {
+                TiffWriter writer = null;
+                try {
+                    writer = get();
+                } catch (InterruptedException | ExecutionException e) {
+                    showErrorMessage(e, "Error copying TIFF");
+                } finally {
+                    if (writer != null) {
+                        try {
+                            writer.close();
+                        } catch (IOException ex) {
+                            showErrorMessage(ex, "Error closing TIFF writer");
                         }
                     }
-                    copyingInProgress = false;
-                    cancelButton.setText("Close");
-                    // dialog.dispose();
                 }
+                copyingInProgress = false;
+                cancelCopyButton.setText("Close");
+                // copySettingsDialog.dispose();
+            }
 
-            }.execute();
-        });
+        }.execute();
+    }
 
-        dialog.pack();
-        dialog.setLocationRelativeTo(frame);
-        dialog.setVisible(true);
+    private void cancelCopy() {
+        if (copyingInProgress) {
+            stopRequested = true;
+        } else {
+            copySettingsDialog.dispose();
+        }
     }
 
     private File chooseFile(JFileChooser chooser) {
@@ -289,6 +311,9 @@ class TiffImageSelectionCopier {
             writer.setCompressionQuality(compressionQuality);
         }
         copier.setDirectCopy(!hasCompression);
+        copier.setIfdCorrector(ifd -> {
+//            ifd.putCompression((TagCompression) compressionMethodBox.getSelectedItem());
+        });
     }
 
 

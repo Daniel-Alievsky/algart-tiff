@@ -186,7 +186,7 @@ public final class TiffCopier {
      * Default value is <code>null</code>, meaning that no correction is performed.
      *
      * @param tiffIfdCorrector function that corrects IFD writing it to the target TIFF;
-     *                     may be <code>null</code>, than it is ignored.
+     *                         may be <code>null</code>, than it is ignored.
      * @return a reference to this object.
      */
     public TiffCopier setIfdCorrector(TiffIFDCorrector tiffIfdCorrector) {
@@ -223,6 +223,33 @@ public final class TiffCopier {
     public static void copyFile(Path targetTiffFile, Path sourceTiffFile)
             throws IOException {
         new TiffCopier().copyAllTiff(targetTiffFile, sourceTiffFile);
+    }
+
+
+    /**
+     * Checks whether the specified position ({@code x}, {@code y}) is aligned
+     * with the tile grid of the given TIFF image.
+     *
+     * <p>This method is equivalent to the following check:
+     * <pre>
+     *     x % map.tileSizeX() == 0 &amp;&amp; y % map.tileSizeY() == 0
+     * </pre>
+     *
+     * <p>This allows ensuring that the starting position is aligned with tile boundaries
+     * is useful when calling
+     * {@link #copyImage(TiffWriter, TiffReadMap, int, int, int, int)}
+     * with {@code fromX} and {@code fromY} equal to the checked coordinates.
+     * In most cases, such alignment allows significantly faster data transfer
+     * because whole tiles can be copied directly in their compressed form,
+     * bypassing decoding and recompression by the codec.
+     *
+     * @param map the TIFF map describing the source image.
+     * @param x   the starting X-coordinate in the source image.
+     * @param y   the starting Y-coordinate in the source image.
+     * @return {@code true} if the specified position is aligned with the tile grid; {@code false} otherwise.
+     */
+    public static boolean isTileAligned(TiffMap map, int x, int y) {
+        return x % map.tileSizeX() == 0 && y % map.tileSizeY() == 0;
     }
 
     /**
@@ -323,7 +350,7 @@ public final class TiffCopier {
             ifdCorrector.correct(writeIFD);
             // - theoretically, we can essentially modify IFD here
         }
-        final boolean actuallyDirectCopy = canBeImageCopiedDirectly(writeIFD, writer.getByteOrder(), readMap);
+        final boolean actuallyDirectCopy = canCopyImageDirectly(writeIFD, writer.getByteOrder(), readMap);
         // - Note: unlike copying a rectangle in the other method, here we check compatibility
         // BEFORE calling newMap and, so, without correction of writeIFD by correctForEncoding.
         // Thus, most of the checks besides the byte order will usually be unnecessary
@@ -426,7 +453,7 @@ public final class TiffCopier {
         final int gridCountX = writeMap.gridCountX();
         final int mapTileSizeX = writeMap.tileSizeX();
         final int mapTileSizeY = writeMap.tileSizeY();
-        final boolean directCopy = canBeRectangleCopiedDirectly(writeMap, readMap, fromX, fromY);
+        final boolean directCopy = canCopyRectangleDirectly(writeMap, readMap, fromX, fromY);
         final boolean swapOrder = !readMap.isByteOrderCompatible(writeMap.byteOrder());
         if (swapOrder && directCopy) {
             throw new AssertionError("If we use swapOrder branch, " +
@@ -522,7 +549,7 @@ public final class TiffCopier {
         }
     }
 
-    private boolean canBeImageCopiedDirectly(TiffIFD writeIFD, ByteOrder writeByteOrder, TiffReadMap readMap)
+    private boolean canCopyImageDirectly(TiffIFD writeIFD, ByteOrder writeByteOrder, TiffReadMap readMap)
             throws TiffException {
         if (!readMap.isByteOrderCompatible(writeByteOrder)) {
             // - theoretically, this check is extra: byteOrderIsNotUsedForImageData will be false
@@ -557,16 +584,15 @@ public final class TiffCopier {
         return readMap.isBinary() || readMap.sampleType().bitsPerSample() == 8;
     }
 
-    private boolean canBeRectangleCopiedDirectly(TiffWriteMap writeMap, TiffReadMap readMap, int fromX, int fromY)
+    private boolean canCopyRectangleDirectly(TiffWriteMap writeMap, TiffReadMap readMap, int fromX, int fromY)
             throws TiffException {
-        final int mapTileSizeX = writeMap.tileSizeX();
-        final int mapTileSizeY = writeMap.tileSizeY();
-        final boolean equalTiles = readMap.tileSizeX() == mapTileSizeX && readMap.tileSizeY() == mapTileSizeY;
+        final boolean equalTiles =
+                readMap.tileSizeX() == writeMap.tileSizeX() && readMap.tileSizeY() == writeMap.tileSizeY();
         // - note: for stripped images, this flag will be false almost always:
         // the strip "size-X" is the image width
         return equalTiles &&
-                fromX % mapTileSizeX == 0 && fromY % mapTileSizeY == 0 &&
-                canBeImageCopiedDirectly(writeMap.ifd(), writeMap.byteOrder(), readMap);
+                isTileAligned(writeMap, fromX, fromY) &&
+                canCopyImageDirectly(writeMap.ifd(), writeMap.byteOrder(), readMap);
     }
 
     private static int copyRectangle(

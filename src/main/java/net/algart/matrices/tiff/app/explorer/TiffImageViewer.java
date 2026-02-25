@@ -321,7 +321,7 @@ class TiffImageViewer {
         exportItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E,
                 InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
         exportItem.addActionListener(e -> {
-            final var copier = new TiffImageSelectionCopier(this, frame);
+            final var copier = new TiffImageCopier(this, frame);
             Path file = copier.chooseFileToExport();
             if (file != null) {
                 try {
@@ -337,7 +337,7 @@ class TiffImageViewer {
         saveToTiffItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
                 InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
         saveToTiffItem.addActionListener(e -> {
-            final var copier = new TiffImageSelectionCopier(this, frame);
+            final var copier = new TiffImageCopier(this, frame);
             Path file = copier.chooseTiffFileToCopy();
             if (file != null) {
                 copier.showCopyToTiffDialog(file);
