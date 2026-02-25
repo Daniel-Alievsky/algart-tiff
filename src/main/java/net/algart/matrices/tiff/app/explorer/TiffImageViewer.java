@@ -136,6 +136,25 @@ class TiffImageViewer {
         updateView();
     }
 
+    public void resetTitle() {
+        final OptionalInt bitDepth = map.tryEqualBitDepth();
+        final double zoom = tiffPanel.getZoom();
+        final int intZoom100 = (int) (zoom * 100.0);
+        final String zoom100 = zoom * 100.0 == intZoom100 ?
+                String.valueOf(intZoom100) :
+                "%.1f".formatted(zoom * 1);
+        final String zoomTitle = zoom == 1.0 ? "" :
+                zoom > 1.0
+                        ? "  %s%% (%d:1)".formatted(zoom100, (int) zoom)
+                        : "  %s%% (1:%d)".formatted(zoom100, (int) Math.round(1.0 / zoom));
+        frame.setTitle("TIFF Image #%d from %d (%dx%d, %d channel%s, %s bits/channel)  %s%s".formatted(
+                index, numberOfImages, map.dimX(), map.dimY(),
+                map.numberOfChannels(), map.numberOfChannels() == 1 ? "" : "s",
+                bitDepth.isPresent() ? bitDepth.getAsInt() : Arrays.toString(map.bitsPerSample()),
+                map.compression().orElse(TagCompression.NONE).prettyName(),
+                zoomTitle));
+    }
+
     public Rectangle getSelection() {
         return tiffPanel.getImageSelection();
     }
@@ -241,12 +260,6 @@ class TiffImageViewer {
 
     private void createGUI() {
         frame = new JTiffFrame(this);
-        final OptionalInt bitDepth = map.tryEqualBitDepth();
-        frame.setTitle("TIFF Image #%d from %d images (%dx%d, %d channel%s, %s bits/channel)  %s".formatted(
-                index, numberOfImages, map.dimX(), map.dimY(),
-                map.numberOfChannels(), map.numberOfChannels() == 1 ? "" : "s",
-                bitDepth.isPresent() ? bitDepth.getAsInt() : Arrays.toString(map.bitsPerSample()),
-                map.compression().orElse(TagCompression.NONE).prettyName()));
         frame.setLayout(new BorderLayout());
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setJMenuBar(buildMenuBar());
@@ -262,6 +275,7 @@ class TiffImageViewer {
         statusPanel.add(statusLabel);
         frame.add(statusPanel, BorderLayout.SOUTH);
 
+        resetTitle();
         frame.getRootPane().registerKeyboardAction(
                 e -> tiffPanel.removeSelection(),
                 KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0),
@@ -281,6 +295,34 @@ class TiffImageViewer {
 
     private JMenuBar buildMenuBar() {
         JMenuBar menuBar = new JMenuBar();
+        JMenu fileMenu = new JMenu("File");
+        JMenuItem exportItem = new JMenuItem("Export selection...");
+        exportItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E,
+                InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
+        exportItem.addActionListener(e -> {
+            final var copier = new TiffImageCopier(this, frame);
+            Path file = copier.chooseFileToExport();
+            if (file != null) {
+                try {
+                    copier.exportSelectedImageToFile(file);
+                } catch (Exception ex) {
+                    // - including possible non-I/O exceptions like an empty file extension
+                    showErrorMessage(ex, "Error exporting image");
+                }
+            }
+        });
+        fileMenu.add(exportItem);
+        JMenuItem saveToTiffItem = new JMenuItem("Save selection to a new TIFF...");
+        saveToTiffItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
+                InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
+        saveToTiffItem.addActionListener(e -> {
+            final var copier = new TiffImageCopier(this, frame);
+            Path file = copier.chooseTiffFileToCopy();
+            if (file != null) {
+                copier.showCopyToTiffDialog(file);
+            }
+        });
+        fileMenu.add(saveToTiffItem);
 
         JMenu editMenu = new JMenu("Edit");
         JMenuItem selectAllItem = new JMenuItem("Select all");
@@ -316,34 +358,6 @@ class TiffImageViewer {
             }
         });
         editMenu.add(copyItem);
-        editMenu.addSeparator();
-        JMenuItem exportItem = new JMenuItem("Export selection...");
-        exportItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E,
-                InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
-        exportItem.addActionListener(e -> {
-            final var copier = new TiffImageCopier(this, frame);
-            Path file = copier.chooseFileToExport();
-            if (file != null) {
-                try {
-                    copier.exportSelectedImageToFile(file);
-                } catch (Exception ex) {
-                    // - including possible non-I/O exceptions like an empty file extension
-                    showErrorMessage(ex, "Error exporting image");
-                }
-            }
-        });
-        editMenu.add(exportItem);
-        JMenuItem saveToTiffItem = new JMenuItem("Save selection to a new TIFF...");
-        saveToTiffItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
-                InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
-        saveToTiffItem.addActionListener(e -> {
-            final var copier = new TiffImageCopier(this, frame);
-            Path file = copier.chooseTiffFileToCopy();
-            if (file != null) {
-                copier.showCopyToTiffDialog(file);
-            }
-        });
-        editMenu.add(saveToTiffItem);
 
         JMenu viewMenu = new JMenu("View");
         JCheckBoxMenuItem tileGridItem = new JCheckBoxMenuItem(
@@ -388,13 +402,16 @@ class TiffImageViewer {
             exportItem.setEnabled(tiffPanel.hasNonEmptySelection());
             saveToTiffItem.setEnabled(tiffPanel.hasNonEmptySelection());
         });
+        fileMenu.addMenuListener(menuUpdater);
         editMenu.addMenuListener(menuUpdater);
         viewMenu.addMenuListener(menuUpdater);
 
-        menuBar.add(editMenu);
-        menuBar.add(viewMenu);
+        fileMenu.setMnemonic('F');
         viewMenu.setMnemonic('V');
         editMenu.setMnemonic('E');
+        menuBar.add(fileMenu);
+        menuBar.add(editMenu);
+        menuBar.add(viewMenu);
         return menuBar;
     }
 
@@ -406,6 +423,7 @@ class TiffImageViewer {
         item.addActionListener(e -> {
             try {
                 tiffScrollPane.setZoomWithCentering(zoomValue);
+                resetTitle();
             } catch (IllegalArgumentException ex) {
                 showErrorMessage(ex, "Cannot set zoom");
             }

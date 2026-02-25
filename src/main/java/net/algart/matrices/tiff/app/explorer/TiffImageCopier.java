@@ -28,16 +28,18 @@ import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffCopier;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tiles.TiffMap;
+import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
@@ -54,6 +56,40 @@ class TiffImageCopier {
 
     private static final System.Logger LOG = System.getLogger(TiffImageViewer.class.getName());
 
+    private enum CopyCompression {
+        UNCHANGED(null),
+        // - must be the first one
+        NONE(TagCompression.NONE),
+        LZW(TagCompression.LZW),
+        DEFLATE(TagCompression.DEFLATE),
+        JPEG(TagCompression.JPEG),
+        JPEG_2000(TagCompression.JPEG_2000),
+        JPEG_2000_APERIO(TagCompression.JPEG_2000_APERIO);
+        // - note: JPEG_RBG variant has no sense here, because the difference from JPEG
+        // is not important when the PhotometricInterpretation tag exists
+
+        private final TagCompression tagCompression;
+
+        CopyCompression(TagCompression tagCompression) {
+            this.tagCompression = tagCompression;
+        }
+
+        public String toString(TiffMap previous) {
+            return this == UNCHANGED ?
+                    previous.compression().orElse(TagCompression.NONE).prettyName() + " (unchanged)" :
+                    this == NONE ? "None" : tagCompression.prettyName();
+        }
+
+        public static CopyCompression fromString(String name) {
+            for (CopyCompression value : values()) {
+                if (value.tagCompression != null && value.tagCompression.prettyName().equalsIgnoreCase(name)) {
+                    return value;
+                }
+            }
+            return UNCHANGED;
+        }
+    }
+
     private final TiffImageViewer viewer;
     private final JFrame frame;
     private final TiffCopier copier;
@@ -63,7 +99,7 @@ class TiffImageCopier {
 
     private JLabel progressLabel;
     private JTextField compressionField;
-    private JComboBox<TagCompression> compressionMethodBox;
+    private JComboBox<String> compressionMethodBox;
     private JButton startCopyButton;
     private JButton cancelCopyButton;
     private JDialog copySettingsDialog;
@@ -148,6 +184,7 @@ class TiffImageCopier {
             return;
         }
 
+        final TiffReadMap map = viewer.map();
         copySettingsDialog = new JDialog(frame, "Copy selection to TIFF", true);
         copySettingsDialog.setLayout(new BorderLayout(10, 10));
 
@@ -166,7 +203,7 @@ class TiffImageCopier {
                 
                 """.formatted(
                 selection.width, selection.height,
-                viewer.map().streamName(), targetFile.getFileName()
+                map.streamName(), targetFile.getFileName()
         ));
         infoLabel.setFont(infoLabel.getFont().deriveFont((float) DEFAULT_FONT_SIZE));
         infoLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -179,15 +216,8 @@ class TiffImageCopier {
         settingsPanel.add(compressionField);
         settingsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         settingsPanel.add(new JLabel("Compression method:"));
-        compressionMethodBox = new JComboBox<>(new TagCompression[]{
-                TagCompression.NONE,
-                TagCompression.LZW,
-                TagCompression.DEFLATE,
-                TagCompression.JPEG,
-                TagCompression.JPEG_2000,
-                TagCompression.JPEG_2000_APERIO});
-        // - note: JPEG_RBG variant has no sense here, because the difference from JPEG
-        // is not important when the PhotometricInterpretation tag exists
+        compressionMethodBox = new JComboBox<>(Arrays.stream(CopyCompression.values())
+                .map(v -> v.toString(map)).toArray(String[]::new));
         settingsPanel.add(compressionMethodBox);
 
         settingsPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, settingsPanel.getPreferredSize().height));
@@ -313,7 +343,15 @@ class TiffImageCopier {
         }
         copier.setDirectCopy(!hasCompression);
         copier.setIfdCorrector(ifd -> {
-            ifd.putCompression((TagCompression) compressionMethodBox.getSelectedItem());
+            int selectedIndex = compressionMethodBox.getSelectedIndex();
+            if (selectedIndex != 0) {
+                final String selected = compressionMethodBox.getItemAt(selectedIndex);
+                CopyCompression compression = CopyCompression.fromString(selected);
+                if (compression != null) {
+                    // - should not happen
+                    ifd.putCompression(compression.tagCompression);
+                }
+            }
         });
     }
 
