@@ -184,10 +184,11 @@ class TiffImageCopier {
                 TagCompression.LZW,
                 TagCompression.DEFLATE,
                 TagCompression.JPEG,
-                TagCompression.JPEG_RGB,
                 TagCompression.JPEG_2000,
                 TagCompression.JPEG_2000_APERIO});
-//        settingsPanel.add(compressionMethodBox);
+        // - note: JPEG_RBG variant has no sense here, because the difference from JPEG
+        // is not important when the PhotometricInterpretation tag exists
+        settingsPanel.add(compressionMethodBox);
 
         settingsPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, settingsPanel.getPreferredSize().height));
 
@@ -312,7 +313,7 @@ class TiffImageCopier {
         }
         copier.setDirectCopy(!hasCompression);
         copier.setIfdCorrector(ifd -> {
-//            ifd.putCompression((TagCompression) compressionMethodBox.getSelectedItem());
+            ifd.putCompression((TagCompression) compressionMethodBox.getSelectedItem());
         });
     }
 

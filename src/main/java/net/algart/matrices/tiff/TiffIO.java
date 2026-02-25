@@ -178,7 +178,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         if (scifio == null) {
             // - in other words, this.context is not set
             throw new UnsupportedTiffFormatException("Reading with TIFF compression " +
-                    TagCompression.toPrettyString(ifd.optInt(Tags.COMPRESSION, TiffIFD.COMPRESSION_NONE)) +
+                    TagCompression.toPrettyString(ifd.optCompressionCode(TiffIFD.COMPRESSION_NONE)) +
                     " is not supported without external codecs");
         }
         return scifio;

@@ -1161,7 +1161,7 @@ public non-sealed class TiffWriter extends TiffIO {
             }
             if (newPhotometric == null) {
                 newPhotometric = samplesPerPixel == 1 ? TagPhotometricInterpretation.BLACK_IS_ZERO :
-                        (compression.isPreferRGB() || !ifd.isChunked()) ?
+                        (compression.isRGBPreferred() || !ifd.isChunked()) ?
                                 TagPhotometricInterpretation.RGB : TagPhotometricInterpretation.Y_CB_CR;
             } else {
                 checkPhotometricInterpretation(newPhotometric,
@@ -1199,7 +1199,7 @@ public non-sealed class TiffWriter extends TiffIO {
                         samplesPerPixel + "-channel image");
             }
         } else if (samplesPerPixel == 3) {
-            if (newPhotometric == null) {
+            if (newPhotometric == null || compression.isRGBRequired()) {
                 newPhotometric = TagPhotometricInterpretation.RGB;
             } else {
                 // Unlike 1 channel/pixel (the case above), we do not prevent the user from
@@ -1737,7 +1737,7 @@ public non-sealed class TiffWriter extends TiffIO {
         if (scifio == null) {
             // - in other words, this.context is not set
             throw new UnsupportedTiffFormatException("Writing with TIFF compression " +
-                    TagCompression.toPrettyString(ifd.optInt(Tags.COMPRESSION, TiffIFD.COMPRESSION_NONE)) +
+                    TagCompression.toPrettyString(ifd.optCompressionCode(TiffIFD.COMPRESSION_NONE)) +
                     " is not supported without external codecs");
         }
         final Object compression;

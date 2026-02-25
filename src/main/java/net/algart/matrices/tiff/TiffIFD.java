@@ -176,6 +176,14 @@ public final class TiffIFD {
      * Compression code for {@link TagCompression#PACK_BITS}.
      */
     public static final int COMPRESSION_PACK_BITS = 32773;
+    /**
+     * Compression code for {@link TagCompression#JPEG_2000}.
+     */
+    public static final int COMPRESSION_JPEG_2000 = 34712;
+    /**
+     * Compression code for {@link TagCompression#JPEG_2000_APERIO}.
+     */
+    public static final int COMPRESSION_JPEG_2000_APERIO = 33005;
 
     /**
      * Contiguous (chunked) samples format (PlanarConfiguration), for example, RGBRGBRGB....
@@ -774,8 +782,7 @@ public final class TiffIFD {
     }
 
     public int getSamplesPerPixel() throws TiffException {
-        int compressionValue = optInt(Tags.COMPRESSION, 0);
-        if (compressionValue == TiffIFD.COMPRESSION_OLD_JPEG) {
+        if (optCompressionCode(-1) == TiffIFD.COMPRESSION_OLD_JPEG) {
             return 3;
             // always 3 channels: RGB
         }
@@ -1100,6 +1107,10 @@ public final class TiffIFD {
         return result;
     }
 
+    public int optCompressionCode(int defaultValue) {
+        return optInt(Tags.COMPRESSION, defaultValue);
+    }
+
     public int getCompressionCode() throws TiffException {
         return getInt(Tags.COMPRESSION, COMPRESSION_NONE);
     }
@@ -1128,7 +1139,7 @@ public final class TiffIFD {
      * @return TIFF compression.
      */
     public Optional<TagCompression> optCompression() {
-        final int code = optInt(Tags.COMPRESSION, -1);
+        final int code = optCompressionCode(-1);
         if (code == -1) {
             return Optional.empty();
         }
@@ -1152,7 +1163,7 @@ public final class TiffIFD {
     }
 
     public String compressionPrettyName() {
-        final int code = optInt(Tags.COMPRESSION, -1);
+        final int code = optCompressionCode(-1);
         if (code == -1) {
             return "unspecified compression";
         }
@@ -1689,6 +1700,11 @@ public final class TiffIFD {
         if (!photometricInterpretation.isUnknown()) {
             put(Tags.PHOTOMETRIC_INTERPRETATION, photometricInterpretation.code());
         }
+        return this;
+    }
+
+    public TiffIFD removePhotometricInterpretation() {
+        remove(Tags.PHOTOMETRIC_INTERPRETATION);
         return this;
     }
 

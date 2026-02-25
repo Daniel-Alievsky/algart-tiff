@@ -130,8 +130,11 @@ public enum TagCompression {
      * JPEG-2000 standard compression (type 34712).
      * Default quality is chosen as for lossy JPEG-2000 formats
      * (see {@link JPEG2000Codec.JPEG2000Options#DEFAULT_NORMAL_QUALITY}).
+     *
+     * <p>For writing, the <code>PhotometricInterpretation</code> will be automatically set
+     * to RGB (default value).</p>
      */
-    JPEG_2000(34712, "JPEG-2000", JPEG2000Codec::new, false),
+    JPEG_2000(TiffIFD.COMPRESSION_JPEG_2000, "JPEG-2000", JPEG2000Codec::new, false),
 
     /**
      * The same compression code as in {@link #JPEG_2000},
@@ -140,7 +143,7 @@ public enum TagCompression {
      * <p>This compression never appears while reading TIFF by {@link net.algart.matrices.tiff.TiffReader},
      * but can be useful while writing by {@link net.algart.matrices.tiff.TiffWriter}.</p>
      */
-    JPEG_2000_LOSSLESS(34712, "JPEG-2000 lossless", JPEG2000Codec::new, true),
+    JPEG_2000_LOSSLESS(TiffIFD.COMPRESSION_JPEG_2000, "JPEG-2000 lossless", JPEG2000Codec::new, true),
     // - Note: this variant has the same code as the previous one;
     // it must be specified AFTER: it can only be a result of setting compression for writing
     // and cannot appear when parsing an existing TIFF.
@@ -165,8 +168,11 @@ public enum TagCompression {
 
     /**
      * JPEG-2000 Aperio compression for RGB (type 33005).
+     *
+     * <p>For writing, the <code>PhotometricInterpretation</code> will be automatically set
+     * to RGB (default value).</p>
      */
-    JPEG_2000_APERIO(33005, "JPEG-2000 Aperio 33005",
+    JPEG_2000_APERIO(TiffIFD.COMPRESSION_JPEG_2000_APERIO, "JPEG-2000 Aperio 33005",
             JPEG2000Codec::new, false);
 
     private static final Map<Integer, TagCompression> LOOKUP;
@@ -281,7 +287,7 @@ public enum TagCompression {
         return isStandardJpeg() || this == OLD_JPEG;
     }
 
-    public boolean isPreferRGB() {
+    public boolean isRGBPreferred() {
         return this == JPEG_RGB;
     }
 
@@ -291,6 +297,13 @@ public enum TagCompression {
 
     public boolean isJpeg2000Lossy() {
         return jpeg2000Lossless != null && !jpeg2000Lossless;
+    }
+
+    public boolean isRGBRequired() {
+        return code == TiffIFD.COMPRESSION_OLD_JPEG ||
+                code == TiffIFD.COMPRESSION_JPEG_2000 ||
+                code == TiffIFD.COMPRESSION_JPEG_2000_APERIO;
+        // - current version of JAI ImageIO (jai-imageio-jpeg2000) cannot write JPEG-2000 in YCbCr color space
     }
 
     public boolean isWritingSupported() {
