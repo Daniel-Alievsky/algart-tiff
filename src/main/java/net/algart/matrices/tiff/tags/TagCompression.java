@@ -94,8 +94,7 @@ public enum TagCompression {
      * This is typically useful when creating a new IFD image with help of {@link net.algart.matrices.tiff.TiffWriter}
      * on the base of a newly created IFD.
      *
-     * <p>This compression never appears while reading TIFF by {@link net.algart.matrices.tiff.TiffReader},
-     * but can be useful while writing by {@link net.algart.matrices.tiff.TiffWriter}.</p>
+     * <p>This can be useful while writing by {@link net.algart.matrices.tiff.TiffWriter}.</p>
      *
      * <p>This compression is ignored (equivalent to {@link #JPEG}) if the TIFF writer
      * is {@link net.algart.matrices.tiff.TiffWriter#setEnforceUseExternalCodec(boolean)
