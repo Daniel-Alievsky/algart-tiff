@@ -64,7 +64,9 @@ class TiffImageExport {
     private volatile boolean stopRequested = false;
 
     private JLabel progressLabel;
-    private JTextField compressionField;
+    private JCheckBox directMode;
+    private JLabel compressionQualityLabel;
+    private JTextField compressionQualityField;
     private JComboBox<String> compressionMethodBox;
     private JButton startCopyButton;
     private JButton cancelCopyButton;
@@ -151,8 +153,14 @@ class TiffImageExport {
         }
 
         final TiffReadMap map = viewer.map();
+        final boolean tileAligned = TiffCopier.isTileAligned(map, selection.x, selection.y);
+        TagCompression compression = map.compression().orElse(TagCompression.NONE);
+        if (!compression.isWritingSupported()) {
+            compression = TagCompression.NONE;
+        }
         copySettingsDialog = new JDialog(frame, "Copy selection to TIFF", true);
         copySettingsDialog.setLayout(new BorderLayout(10, 10));
+        copySettingsDialog.setResizable(false);
 
         final JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
@@ -176,18 +184,24 @@ class TiffImageExport {
         mainPanel.add(infoLabel);
         mainPanel.add(Box.createVerticalStrut(10));
 
+        directMode = new JCheckBox("Quick direct copying (\"as-is\")");
+        directMode.setEnabled(tileAligned);
+        directMode.setSelected(tileAligned);
+        directMode.addActionListener(e -> applyDirectMode());
+        mainPanel.add(directMode);
+        mainPanel.add(Box.createVerticalStrut(10));
+
         final JPanel settingsPanel = new JPanel(new GridLayout(2, 2, 5, 5));
-        settingsPanel.add(new JLabel("Compression quality (for JPEG, from 0.0 to 1.0):"));
-        compressionField = new JTextField(6);
-        settingsPanel.add(compressionField);
+        compressionQualityLabel = new JLabel(compressionQualityLabel(TagCompression.JPEG_2000));
+        // - JPEG_2000 is the maximally long variant for calculating positions
+        settingsPanel.add(compressionQualityLabel);
+        compressionQualityField = new JTextField(6);
+        settingsPanel.add(compressionQualityField);
         settingsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         settingsPanel.add(new JLabel("Compression method:"));
-        TagCompression compression = map.compression().orElse(TagCompression.NONE);
         compressionMethodBox = new JComboBox<>(makeCompressionNames(compression));
-        if (!compression.isWritingSupported()) {
-            compression = TagCompression.NONE;
-        }
         compressionMethodBox.setSelectedItem(compression.prettyName());
+        compressionMethodBox.addActionListener(e -> correctCompressionQualityLabel());
         settingsPanel.add(compressionMethodBox);
 
         settingsPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, settingsPanel.getPreferredSize().height));
@@ -222,6 +236,8 @@ class TiffImageExport {
         copySettingsDialog.pack();
         TiffExplorer.addCloseOnEscape(copySettingsDialog);
         progressLabel.setText("");
+        correctCompressionQualityLabel();
+        applyDirectMode();
         copySettingsDialog.setLocationRelativeTo(frame);
         copySettingsDialog.setVisible(true);
 
@@ -304,7 +320,7 @@ class TiffImageExport {
     }
 
     private void customizeCopying(TiffWriter writer) {
-        final String text = compressionField.getText().trim();
+        final String text = compressionQualityField.getText().trim();
         boolean hasCompression = !text.isEmpty();
         if (hasCompression) {
             double compressionQuality;
@@ -315,12 +331,38 @@ class TiffImageExport {
             }
             writer.setCompressionQuality(compressionQuality);
         }
-        copier.setDirectCopy(!hasCompression);
-        final int selectedIndex = compressionMethodBox.getSelectedIndex();
-        final String selected = compressionMethodBox.getItemAt(selectedIndex);
-        copier.setCompression(TagCompression.fromPrettyName(selected).orElseThrow());
+        if (copier.isDirectCopy()) {
+            copier.removeCompression();
+            // - necessary to ensure that direct copy is possible
+        } else {
+            TagCompression compression = getSelectedCompression();
+            copier.setCompression(compression);
+        }
     }
 
+    private TagCompression getSelectedCompression() {
+        final int selectedIndex = compressionMethodBox.getSelectedIndex();
+        final String selected = compressionMethodBox.getItemAt(selectedIndex);
+        return TagCompression.fromPrettyName(selected).orElseThrow();
+    }
+
+    private void correctCompressionQualityLabel() {
+        compressionQualityLabel.setText(compressionQualityLabel(getSelectedCompression()));
+    }
+
+    private void applyDirectMode() {
+        final boolean directCopy = directMode.isSelected();
+        copier.setDirectCopy(directCopy);
+        compressionQualityField.setEnabled(!directCopy);
+        compressionMethodBox.setEnabled(!directCopy);
+    }
+
+    private static String compressionQualityLabel(TagCompression compression) {
+        return "Compression quality" +
+                (compression.isStandardJpeg() ? " (from 0 to 1)" :
+                        compression.isJpeg2000() ? " (from ~0.5 to ~20 or higher)" : "")
+                + ":";
+    }
 
     private void showErrorMessage(Throwable e, String title) {
         TiffExplorer.showErrorMessage(frame, e, title);
@@ -329,6 +371,10 @@ class TiffImageExport {
     private static String[] makeCompressionNames(TagCompression sourceCompression) {
         List<String> list = new ArrayList<>();
         for (TagCompression tagCompression : TagCompression.values()) {
+            if (tagCompression.isOldFormat() && !sourceCompression.isOldFormat()) {
+                // - don't show old formats excepting the case if the current compression is old
+                continue;
+            }
             if (tagCompression.isWritingSupported()) {
                 list.add(tagCompression.prettyName());
             }

@@ -296,6 +296,13 @@ public enum TagCompression {
         return codec == null ? null : codec.get();
     }
 
+    public boolean isOldFormat() {
+        return code == TiffIFD.COMPRESSION_CCITT_T4 ||
+                code == TiffIFD.COMPRESSION_CCITT_T6 ||
+                code == TiffIFD.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE ||
+                code == TiffIFD.COMPRESSION_OLD_JPEG;
+    }
+
     /**
      * Returns <code>true</code> for {@link #JPEG} and {@link #JPEG_RGB}.
      *
