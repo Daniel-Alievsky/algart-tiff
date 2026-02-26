@@ -42,7 +42,7 @@ public enum TagCompression {
     /**
      * Uncompressed TIFF image (type 1).
      */
-    NONE(TiffIFD.COMPRESSION_NONE, "uncompressed", UncompressedCodec::new),
+    NONE(TiffIFD.COMPRESSION_NONE, "Uncompressed", UncompressedCodec::new),
 
     /**
      * CCITT RLE: Modified Huffman compression (type 2).
@@ -101,6 +101,7 @@ public enum TagCompression {
      * enforced to use external codec}.
      */
     JPEG_RGB(TiffIFD.COMPRESSION_JPEG, "JPEG (RGB)", JPEGCodec::new),
+    // - Note: this variant has the same code as the previous one; it must be specified AFTER
 
     /**
      * Zlib deflate compression (ZIP), compatible with ZLib and {@link java.util.zip.DeflaterOutputStream} (type 8).
@@ -143,7 +144,8 @@ public enum TagCompression {
      * <p>This compression never appears while reading TIFF by {@link net.algart.matrices.tiff.TiffReader},
      * but can be useful while writing by {@link net.algart.matrices.tiff.TiffWriter}.</p>
      */
-    JPEG_2000_LOSSLESS(TiffIFD.COMPRESSION_JPEG_2000, "JPEG-2000 lossless", JPEG2000Codec::new, true),
+    JPEG_2000_LOSSLESS(TiffIFD.COMPRESSION_JPEG_2000, "JPEG-2000 lossless",
+            JPEG2000Codec::new, true),
     // - Note: this variant has the same code as the previous one;
     // it must be specified AFTER: it can only be a result of setting compression for writing
     // and cannot appear when parsing an existing TIFF.
@@ -175,14 +177,25 @@ public enum TagCompression {
     JPEG_2000_APERIO(TiffIFD.COMPRESSION_JPEG_2000_APERIO, "JPEG-2000 Aperio 33005",
             JPEG2000Codec::new, false);
 
-    private static final Map<Integer, TagCompression> LOOKUP;
+    private static final Map<Integer, TagCompression> CODE_LOOKUP = new HashMap<>();
+    private static final Map<String, TagCompression> NAME_LOOKUP = new HashMap<>();
+    private static final Map<String, TagCompression> PRETTY_NAME_LOOKUP = new HashMap<>();
 
     static {
-        final Map<Integer, TagCompression> map = new HashMap<>();
         for (TagCompression v : values()) {
-            map.putIfAbsent(v.code(), v);
+            CODE_LOOKUP.putIfAbsent(v.code, v);
+            // - Note: the order of values is IMPORTANT here
+            final String name = v.name().toUpperCase();
+            if (NAME_LOOKUP.containsKey(name)) {
+                throw new AssertionError("Duplicate name (ignoring case): " + name);
+            }
+            NAME_LOOKUP.put(name, v);
+            final String pretty = v.prettyName().toUpperCase();
+            if (PRETTY_NAME_LOOKUP.containsKey(pretty)) {
+                throw new AssertionError("Duplicate pretty name (ignoring case): " + pretty);
+            }
+            PRETTY_NAME_LOOKUP.put(pretty, v);
         }
-        LOOKUP = map;
     }
 
     private static final boolean ALWAYS_ALLOW_WRITING = false;
@@ -225,13 +238,22 @@ public enum TagCompression {
      * @return optional compression.
      */
     public static Optional<TagCompression> fromName(String name) {
-        for (TagCompression value : values()) {
-            if (value.name().equalsIgnoreCase(name)) {
-                return Optional.of(value);
-            }
-        }
-        return Optional.empty();
+        return Optional.ofNullable(name == null ? null : NAME_LOOKUP.get(name.toUpperCase()));
     }
+
+    /**
+     * Returns an {@link Optional} containing the {@link TagCompression} with the given {@link #prettyName()}
+     * (case-insensitive).
+     * <p>If no compression with the specified pretty name exists or if the argument is {@code null},
+     * an empty optional is returned.
+     *
+     * @param name the compression pretty name; may be {@code null}.
+     * @return optional compression.
+     */
+    public static Optional<TagCompression> fromPrettyName(String name) {
+        return Optional.ofNullable(name == null ? null : PRETTY_NAME_LOOKUP.get(name.toUpperCase()));
+    }
+
     /**
      * Returns an {@link Optional} containing the {@link TagCompression} with the given {@link #code()}.
      * <p>If no data kind with the specified name exists, an empty optional is returned.
@@ -240,7 +262,7 @@ public enum TagCompression {
      * @return optional compression.
      */
     public static Optional<TagCompression> fromCode(int code) {
-        return Optional.ofNullable(LOOKUP.get(code));
+        return Optional.ofNullable(CODE_LOOKUP.get(code));
     }
 
     public static Optional<TagCompression> fromCode(String codeString) {
@@ -311,7 +333,7 @@ public enum TagCompression {
     }
 
     public boolean isWritingSupported() {
-        return writingSupported;
+        return writingSupported && codec != null;
     }
 
     public boolean isStandard() {

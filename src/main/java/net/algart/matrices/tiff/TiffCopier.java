@@ -206,6 +206,10 @@ public final class TiffCopier {
      * changing the compression disables direct copying,
      * even if that flag is <code>true</code>.</p>
      *
+     * <p>Please remember that the compression set by this method will apply to <i>all</i>
+     * TIFF images copied by this object. This can be problematic if the TIFF contains multiple images
+     * compressed using different methods, such as an SVS image pyramid or similar files.</p>
+     *
      * @param compression the new compression; can be {@code null}, in which case the source compression is used.
      * @return a reference to this object.
      */
@@ -537,7 +541,8 @@ public final class TiffCopier {
                         && sizeYInTile == mapTileSizeY
                         && readY <= readDimY - sizeYInTile
                         && readX <= readDimX - sizeXInTile;
-                // - note that the tile must be completely inside BOTH maps to be copied directly
+                // - note that the tile must be completely inside BOTH maps to be copied directly;
+                // the last tiles at the image boundaries are usually copied with repacking
                 if (this.actuallyDirectCopy) {
                     final int readXIndex = fromXIndex + xIndex;
                     final int readYIndex = fromYIndex + yIndex;
@@ -630,7 +635,8 @@ public final class TiffCopier {
         // However, if they are actually equal, even non-standard, we should enable direct copying.
         final boolean photometricInterpretationEqual =
                 readMap.photometricInterpretationCode() == writeIFD.getPhotometricInterpretationCode();
-        // - Photometric interpretation MAY become different after smart correction by correctForEncoding
+        // - necessary because corrrectIFD() can remove the photometric interpretation!
+        // It also MAY become different after smart correction by correctForEncoding
         return (readMap.byteOrder() == writeByteOrder || byteOrderIsNotUsedForImageData) &&
                 compressionCode == writeIFD.getCompressionCode() &&
                 bitDepthEqual &&
@@ -695,10 +701,18 @@ public final class TiffCopier {
     private void correctIFD(TiffIFD writeIFD) {
         Objects.requireNonNull(writeIFD, "Null TIFF IFD");
         if (compression != null) {
-            if (compression.isJpegFamily()) {
-                writeIFD.removePhotometricInterpretation();
+            final TagCompression existing = writeIFD.optCompression().orElse(null);
+            if (compression != existing) {
+                // - in particular, with the same compression code: JPEG_RGB != JPEG!
+                // But if we have correctly recognized JPEG_RGB, and we request JPEG_RGB,
+                // there is no sense to change anything.
+                if (compression.isJpegFamily()) {
+                    writeIFD.removePhotometricInterpretation();
+                    // - usually leads to disabling direct copy
+                }
+                writeIFD.putCompression(compression);
             }
-            writeIFD.putCompression(compression);
+            // - else we still can perform repacking by setDirectCopy(false)
         }
         if (ifdCorrector != null) {
             ifdCorrector.correct(writeIFD);

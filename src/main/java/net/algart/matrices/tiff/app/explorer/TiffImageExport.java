@@ -28,7 +28,6 @@ import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffCopier;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 import javax.swing.*;
@@ -39,11 +38,12 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
-class TiffImageCopier {
+class TiffImageExport {
     private static final String PREF_LAST_EXPORT_SELECTION_DIR = "lastExportSelectionDirectory";
     private static final String PREF_LAST_COPY_SELECTION_TO_TIFF_DIR = "lastCopySelectionToTiffDirectory";
     private static final FileFilter ANY_IMAGE_FILTER = new FileNameExtensionFilter(
@@ -55,40 +55,6 @@ class TiffImageCopier {
     private static final int DEFAULT_FONT_SIZE = 15;
 
     private static final System.Logger LOG = System.getLogger(TiffImageViewer.class.getName());
-
-    private enum CopyCompression {
-        UNCHANGED(null),
-        // - must be the first one
-        NONE(TagCompression.NONE),
-        LZW(TagCompression.LZW),
-        DEFLATE(TagCompression.DEFLATE),
-        JPEG(TagCompression.JPEG),
-        JPEG_2000(TagCompression.JPEG_2000),
-        JPEG_2000_APERIO(TagCompression.JPEG_2000_APERIO);
-        // - note: JPEG_RBG variant has no sense here, because the difference from JPEG
-        // is not important when the PhotometricInterpretation tag exists
-
-        private final TagCompression tagCompression;
-
-        CopyCompression(TagCompression tagCompression) {
-            this.tagCompression = tagCompression;
-        }
-
-        public String toString(TiffMap previous) {
-            return this == UNCHANGED ?
-                    previous.compression().orElse(TagCompression.NONE).prettyName() + " (unchanged)" :
-                    this == NONE ? "None" : tagCompression.prettyName();
-        }
-
-        public static CopyCompression fromString(String name) {
-            for (CopyCompression value : values()) {
-                if (value.tagCompression != null && value.tagCompression.prettyName().equalsIgnoreCase(name)) {
-                    return value;
-                }
-            }
-            return UNCHANGED;
-        }
-    }
 
     private final TiffImageViewer viewer;
     private final JFrame frame;
@@ -104,7 +70,7 @@ class TiffImageCopier {
     private JButton cancelCopyButton;
     private JDialog copySettingsDialog;
 
-    public TiffImageCopier(TiffImageViewer viewer, JFrame frame) {
+    public TiffImageExport(TiffImageViewer viewer, JFrame frame) {
         this.viewer = Objects.requireNonNull(viewer);
         this.frame = Objects.requireNonNull(frame);
         this.copier = new TiffCopier().setInterruptionChecker(() -> stopRequested);
@@ -216,20 +182,26 @@ class TiffImageCopier {
         settingsPanel.add(compressionField);
         settingsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         settingsPanel.add(new JLabel("Compression method:"));
-        compressionMethodBox = new JComboBox<>(Arrays.stream(CopyCompression.values())
-                .map(v -> v.toString(map)).toArray(String[]::new));
+        TagCompression compression = map.compression().orElse(TagCompression.NONE);
+        compressionMethodBox = new JComboBox<>(makeCompressionNames(compression));
+        if (!compression.isWritingSupported()) {
+            compression = TagCompression.NONE;
+        }
+        compressionMethodBox.setSelectedItem(compression.prettyName());
         settingsPanel.add(compressionMethodBox);
 
         settingsPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, settingsPanel.getPreferredSize().height));
 
         mainPanel.add(settingsPanel);
-
         mainPanel.add(Box.createVerticalStrut(10));
 
         progressLabel = new JLabel("999/999 tiles copied...");
         progressLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         copier.setProgressUpdater(p -> SwingUtilities.invokeLater(() -> {
-            progressLabel.setText("%d/%d tiles copied...".formatted(p.tileIndex() + 1, p.tileCount()));
+            progressLabel.setText("%d/%d tiles copied (%s)%s".formatted(
+                    p.tileIndex() + 1, p.tileCount(),
+                    p.copier().actuallyDirectCopy() ? "direct" : "repacking",
+                    p.isLastTileCopied() ? "" : "..."));
         }));
         mainPanel.add(progressLabel);
 
@@ -241,16 +213,17 @@ class TiffImageCopier {
         buttonPanel.add(startCopyButton);
         buttonPanel.add(cancelCopyButton);
         copySettingsDialog.add(buttonPanel, BorderLayout.SOUTH);
+        copySettingsDialog.getRootPane().setDefaultButton(startCopyButton);
         cancelCopyButton.addActionListener(e -> cancelCopy());
         startCopyButton.addActionListener(e -> startCopy(targetFile, selection));
 
         stopRequested = false;
         copyingInProgress = false;
         copySettingsDialog.pack();
+        TiffExplorer.addCloseOnEscape(copySettingsDialog);
         progressLabel.setText("");
         copySettingsDialog.setLocationRelativeTo(frame);
         copySettingsDialog.setVisible(true);
-
 
     }
 
@@ -290,6 +263,7 @@ class TiffImageCopier {
                     }
                 }
                 copyingInProgress = false;
+                copySettingsDialog.getRootPane().setDefaultButton(cancelCopyButton);
                 cancelCopyButton.setText("Close");
                 // copySettingsDialog.dispose();
             }
@@ -342,21 +316,23 @@ class TiffImageCopier {
             writer.setCompressionQuality(compressionQuality);
         }
         copier.setDirectCopy(!hasCompression);
-        copier.setIfdCorrector(ifd -> {
-            int selectedIndex = compressionMethodBox.getSelectedIndex();
-            if (selectedIndex != 0) {
-                final String selected = compressionMethodBox.getItemAt(selectedIndex);
-                CopyCompression compression = CopyCompression.fromString(selected);
-                if (compression != null) {
-                    // - should not happen
-                    ifd.putCompression(compression.tagCompression);
-                }
-            }
-        });
+        final int selectedIndex = compressionMethodBox.getSelectedIndex();
+        final String selected = compressionMethodBox.getItemAt(selectedIndex);
+        copier.setCompression(TagCompression.fromPrettyName(selected).orElseThrow());
     }
 
 
     private void showErrorMessage(Throwable e, String title) {
         TiffExplorer.showErrorMessage(frame, e, title);
+    }
+
+    private static String[] makeCompressionNames(TagCompression sourceCompression) {
+        List<String> list = new ArrayList<>();
+        for (TagCompression tagCompression : TagCompression.values()) {
+            if (tagCompression.isWritingSupported()) {
+                list.add(tagCompression.prettyName());
+            }
+        }
+        return list.toArray(new String[0]);
     }
 }

@@ -300,11 +300,11 @@ class TiffImageViewer {
         exportItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E,
                 InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
         exportItem.addActionListener(e -> {
-            final var copier = new TiffImageCopier(this, frame);
-            Path file = copier.chooseFileToExport();
+            final var export = new TiffImageExport(this, frame);
+            Path file = export.chooseFileToExport();
             if (file != null) {
                 try {
-                    copier.exportSelectedImageToFile(file);
+                    export.exportSelectedImageToFile(file);
                 } catch (Exception ex) {
                     // - including possible non-I/O exceptions like an empty file extension
                     showErrorMessage(ex, "Error exporting image");
@@ -316,10 +316,10 @@ class TiffImageViewer {
         saveToTiffItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
                 InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
         saveToTiffItem.addActionListener(e -> {
-            final var copier = new TiffImageCopier(this, frame);
-            Path file = copier.chooseTiffFileToCopy();
+            final var export = new TiffImageExport(this, frame);
+            Path file = export.chooseTiffFileToCopy();
             if (file != null) {
-                copier.showCopyToTiffDialog(file);
+                export.showCopyToTiffDialog(file);
             }
         });
         fileMenu.add(saveToTiffItem);

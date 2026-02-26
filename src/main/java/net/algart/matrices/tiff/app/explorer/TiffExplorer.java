@@ -769,7 +769,7 @@ public class TiffExplorer {
         dialog.setVisible(true);
     }
 
-    private static void addCloseOnEscape(JDialog dialog) {
+    static void addCloseOnEscape(JDialog dialog) {
         dialog.getRootPane().registerKeyboardAction(
                 e -> dialog.dispose(),
                 KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
