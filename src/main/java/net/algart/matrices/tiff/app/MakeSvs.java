@@ -74,9 +74,7 @@ public class MakeSvs {
         }
         if (args.length > startArgIndex && args[startArgIndex].toLowerCase().startsWith("-compression=")) {
             final String s = args[startArgIndex].substring("-compression=".length());
-            make.compression = TagCompression.fromName(s)
-                    .or(() -> TagCompression.fromCode(s))
-                    .orElseThrow(() -> new IllegalArgumentException("Unknown compression name/code: " + s));
+            make.compression = ConvertToTiff.parseCompressionArgument(s);
             startArgIndex++;
         }
         if (args.length > startArgIndex && args[startArgIndex].toLowerCase().startsWith("-quality=")) {

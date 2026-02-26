@@ -109,15 +109,16 @@ public final class TiffCopier {
     }
 
     /**
-     * Sets the flag that enforces an attempt of direct copying TIFF image tiles without decompression/compression.
-     * Default value is <code>true</code>.
+     * Enables or disables direct copying of TIFF image tiles without decompression and recompression.
+     * The default value is <code>true</code>.
      *
-     * <p>Note that this flag is ignored (as if it would be <code>false</code>) when the source and target
-     * encoded tiles can be different, for example, due to different byte order, changing compression
-     * due to using {@link #setCompression(TagCompression)} method or other possible changes performed
-     * by the {@link #setIfdCorrector(TiffIFDCorrector) IFD corrector} method.
+     * <p>This flag is ignored (treated as <code>false</code>) when the
+     * encoded tiles in the source and target TIFF may differ, for example,
+     * due to different byte order, a change of compression as a result of
+     * calling {@link #setCompression(TagCompression)}, or other modifications
+     * performed by the {@link #setIfdCorrector(TiffIFDCorrector) IFD corrector}.</p>
      *
-     * @param directCopy whether the direct copying of TIFF tiles should be used.
+     * @param directCopy whether direct copying of TIFF tiles should be used when possible.
      * @return a reference to this object.
      */
     public TiffCopier setDirectCopy(boolean directCopy) {
@@ -185,23 +186,27 @@ public final class TiffCopier {
     }
 
     /**
-     * Sets the required compression for writing images in the target TIFF.
-     * Default value is <code>null</code>, which means that the copier writes the target TIFF tiles
-     * with the same compression as in the source TIFF.
-     * If you call this method with non-<code>null</code> argument,
-     * the copier will override the compression from the source IFD
-     * with the new compression specified in the method argument.
+     * Sets the compression to be used when writing images to the target TIFF.
+     * The default value is <code>null</code>, which means that the copier writes
+     * the target TIFF tiles using the same compression as the source TIFF.
      *
-     * <p>Note: if the specified compression belongs to {@link TagCompression#isJpegFamily() JPEG family},
-     * the copier will also {@link TiffIFD#removePhotometricInterpretation() remove photometric interpetation}
-     * (if the source IFD contains it) to allow the TIFF writer to set the necessary
-     * <code>PhotometricInterpetation</code> tag automatically.</p>
+     * <p>If this method is called with a non-<code>null</code> argument,
+     * the copier overrides the compression specified in the source IFD
+     * with the compression provided in the argument.</p>
      *
-     * <p>Usually you should not use this method if the flag {@link #isDirectCopy()}
-     * is set to <code>true</code>: changing compression disables direct copying even
-     * if that flag has been set to <code>true</code>.</p>
+     * <p>Note: if the specified compression belongs to the
+     * {@link TagCompression#isJpegFamily() JPEG family},
+     * the copier will also {@link TiffIFD#removePhotometricInterpretation()
+     * remove the photometric interpretation} (if present in the source IFD),
+     * so that the TIFF writer will set the appropriate
+     * <code>PhotometricInterpretation</code> tag automatically.</p>
      *
-     * @param compression new compression; may be <code>null</code>, then the source compression will be used.
+     * <p>In most cases, this method should not be used
+     * when {@link #isDirectCopy() direct copy} mode is enabled:
+     * changing the compression disables direct copying,
+     * even if that flag is <code>true</code>.</p>
+     *
+     * @param compression the new compression; can be {@code null}, in which case the source compression is used.
      * @return a reference to this object.
      */
     public TiffCopier setCompression(TagCompression compression) {
@@ -219,9 +224,10 @@ public final class TiffCopier {
     }
 
     /**
-     * Returns a function that corrects IFD from the source TIFF read map before writing it to the target TIFF.
+     * Returns the IFD corrector: a function that corrects the IFD obtained
+     * from the source TIFF read map before writing it to the target TIFF.
      *
-     * @return a function that corrects IFD writing it to the target TIFF.
+     * @return the current IFD curretor or <code>null</code> if no IFD corrector is set.
      */
     public TiffIFDCorrector getIfdCorrector() {
         return ifdCorrector;
@@ -233,17 +239,17 @@ public final class TiffCopier {
     }
 
     /**
-     * Sets a function that corrects IFD from the source TIFF read map before writing it to the target TIFF.
-     * Usually you should not use this method if the flag {@link #isDirectCopy()}
-     * is set to <code>true</code>.
-     * Default value is <code>null</code>, meaning that no correction is performed.
+     * Sets the IFD corrector: a function that corrects the IFD obtained
+     * from the source TIFF read map before writing it to the target TIFF.
+     * Usually this method should not be used when {@link #isDirectCopy() direct copy} mode is enabled.
+     * The default value is <code>null</code>, meaning that no correction
+     * is performed.
      *
-     * <p>Note: this function is called <i>after</i> changing the compression
-     * specified by {@link #setCompression(TagCompression)} method (if it was called with
-     * a non-<code>null</code> argument).</p>
+     * <p>Note: this function is called <i>after</i> applying the compression
+     * change requested by {@link #setCompression(TagCompression)} method
+     * (if that method was called with a non-<code>null</code> argument).</p>
      *
-     * @param tiffIfdCorrector function that corrects IFD writing it to the target TIFF;
-     *                         may be <code>null</code>, than it is ignored.
+     * @param tiffIfdCorrector new IFD corrector; can be {@code null}, in which case no correction is performed.
      * @return a reference to this object.
      */
     public TiffCopier setIfdCorrector(TiffIFDCorrector tiffIfdCorrector) {

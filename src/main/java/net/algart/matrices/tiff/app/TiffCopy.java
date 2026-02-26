@@ -27,6 +27,7 @@ package net.algart.matrices.tiff.app;
 import net.algart.matrices.tiff.TiffCopier;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
+import net.algart.matrices.tiff.tags.TagCompression;
 
 import java.io.IOException;
 import java.nio.ByteOrder;
@@ -41,7 +42,9 @@ public class TiffCopy {
     boolean smart = false;
     ByteOrder byteOrder = null;
     Boolean bigTiff = null;
+    TagCompression compression = null;
     Double quality = null;
+    Double compressionLevel = null;
     private int firstIFDIndex = 0;
     private int lastIFDIndex = Integer.MAX_VALUE;
 
@@ -95,6 +98,11 @@ public class TiffCopy {
             copy.bigTiff = false;
             startArgIndex++;
         }
+        if (args.length > startArgIndex && args[startArgIndex].toLowerCase().startsWith("-compression=")) {
+            final String s = args[startArgIndex].substring("-compression=".length());
+            copy.compression = ConvertToTiff.parseCompressionArgument(s);
+            startArgIndex++;
+        }
         if (args.length > startArgIndex && args[startArgIndex].toLowerCase().startsWith("-quality=")) {
             final String s = args[startArgIndex].toLowerCase().substring("-quality=".length());
             if (!s.equals("null")) {
@@ -102,13 +110,19 @@ public class TiffCopy {
             }
             startArgIndex++;
         }
+        if (args.length > startArgIndex && args[startArgIndex].toLowerCase().startsWith("-compressionlevel=")) {
+            final String s = args[startArgIndex].toLowerCase().substring("-compressionlevel=".length());
+            copy.compressionLevel = Double.parseDouble(s);
+            startArgIndex++;
+        }
         if (callConvertFromTiff || callConvertToTiff || args.length < startArgIndex + 2) {
             System.out.printf("Usage:%n    %s [-append] [-repack] [-smart] [-le|-be] " +
-                            "[-bigTiff|-noBigTIFF] [-quality=xxx] " +
+                            "[-bigTiff|-noBigTIFF] [-compression=xxx] [-quality=xxx] [-compressionLevel=1.0] " +
                             "source.tiff target.tiff [firstIFDIndex [lastIFDIndex]]%n",
                     TiffCopy.class.getSimpleName());
-            System.out.printf("or%n    %s -toTiff [-bigTiff] [-littleEndian] [-quality=xxx] " +
-                                    "[-compressionLevel=1.0] source.jpg/png/bmp target.tiff [compression]%n",
+            System.out.printf("or%n    %s -toTiff [-bigTiff] [-littleEndian] [-compression=xxx] " +
+                            "[-quality=xxx] [-compressionLevel=1.0] " +
+                            "source.jpg/png/bmp target.tiff%n",
                     TiffCopy.class.getSimpleName());
             System.out.printf("or%n    %s -fromTiff source.tiff target.jpg/png/bmp IFDIndex%n",
                     TiffCopy.class.getSimpleName());
@@ -122,7 +136,7 @@ public class TiffCopy {
                     -smart option allows copying some file formats that are not supported for writing \
                     (like 16-bit float values);
                     they will be repacked into the "closest" supported format.
-                    In the second case, possible "compression" is: NONE, LZW, DEFLATE, JPEG, JPEG_2000, ..."
+                    Possible "compression" is: NONE, LZW, DEFLATE, JPEG, JPEG_2000, ..."
                     """);
             return;
         }
@@ -140,12 +154,13 @@ public class TiffCopy {
     public void copy(Path sourceFile, Path targetFile) throws IOException {
         final TiffCopier copier = new TiffCopier();
         copier.setDirectCopy(!repack);
+        copier.setCompression(compression);
         copier.setProgressUpdater(this::updateProgress);
 
         System.out.printf("Copying %s to %s%s%s%s%s...%n",
                 sourceFile,
                 targetFile,
-                repack ? " with recompression" : "",
+                repack ? " with recompression" : " directly when possible",
                 quality == null ? "" : " (quality " + quality + ")",
                 byteOrder == null ? "" : byteOrder == ByteOrder.LITTLE_ENDIAN ? ", little-endian" : ", big-endian",
                 smart ? ", smart mode" : "");
@@ -160,9 +175,8 @@ public class TiffCopy {
                 writer.setBigTiff(bigTiff);
             }
             writer.setSmartCorrection(smart);
-            if (quality != null) {
-                writer.setCompressionQuality(quality);
-            }
+            writer.setCompressionQuality(quality);
+            writer.setLosslessCompressionLevel(compressionLevel);
             writer.create(append);
             final int firstIndex = Math.max(this.firstIFDIndex, 0);
             final int lastIndex = Math.min(this.lastIFDIndex, reader.numberOfImages() - 1);

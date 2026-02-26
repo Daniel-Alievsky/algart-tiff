@@ -54,6 +54,12 @@ public class ConvertToTiff {
             littleEndian = true;
             startArgIndex++;
         }
+        TagCompression compression = null;
+        if (args.length > startArgIndex && args[startArgIndex].toLowerCase().startsWith("-compression=")) {
+            final String s = args[startArgIndex].substring("-compression=".length());
+            compression = parseCompressionArgument(s);
+            startArgIndex++;
+        }
         Double quality = null;
         if (args.length > startArgIndex && args[startArgIndex].toLowerCase().startsWith("-quality=")) {
             final String s = args[startArgIndex].toLowerCase().substring("-quality=".length());
@@ -69,8 +75,9 @@ public class ConvertToTiff {
         if (args.length < startArgIndex + 2) {
             if (printUsage) {
                 System.out.println("Usage:");
-                System.out.printf("    %s [-bigTiff] [-littleEndian] [-quality=0.3] [-compressionLevel=1.0] " +
-                                "source.jpg/png/bmp target.tiff [compression]%n" +
+                System.out.printf("    %s [-bigTiff] [-littleEndian] [-compression=xxx] " +
+                                "[-quality=0.3] [-compressionLevel=1.0] " +
+                                "source.jpg/png/bmp target.tiff%n" +
                                 "Possible \"compression\": NONE, LZW, DEFLATE, JPEG, JPEG_2000, ...",
                         ConvertToTiff.class.getName());
             }
@@ -78,8 +85,6 @@ public class ConvertToTiff {
         }
         final Path sourceFile = Paths.get(args[startArgIndex]);
         final Path targetFile = Paths.get(args[startArgIndex + 1]);
-        final TagCompression compression = startArgIndex + 2 < args.length ?
-                TagCompression.valueOf(args[startArgIndex + 2]) : null;
 
         System.out.printf("Reading %s...%n", sourceFile);
         long t1 = System.nanoTime();
@@ -105,5 +110,11 @@ public class ConvertToTiff {
                 "Conversion to TIFF finished: %.3f seconds reading, %.3f seconds writing TIFF.%n",
                 (t2 - t1) * 1e-9, (t3 - t2) * 1e-9);
         return true;
+    }
+
+    static TagCompression parseCompressionArgument(String s) {
+        return TagCompression.fromName(s)
+                .or(() -> TagCompression.fromCode(s))
+                .orElseThrow(() -> new IllegalArgumentException("Unknown compression name/code: " + s));
     }
 }
