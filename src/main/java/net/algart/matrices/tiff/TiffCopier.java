@@ -89,6 +89,7 @@ public final class TiffCopier {
     private int maxInMemoryTemporaryFileSize = 0;
     private TemporaryFileCreator temporaryFileCreator = TemporaryFileCreator.DEFAULT;
     private TiffIFDCorrector ifdCorrector = null;
+    private TagCompression compression = null;
     private Consumer<ProgressInformation> progressUpdater = null;
     private BooleanSupplier interruptionChecker = null;
     private final ProgressInformation progressInformation = new ProgressInformation();
@@ -108,8 +109,13 @@ public final class TiffCopier {
     }
 
     /**
-     * Sets the flag that enforces direct copying of TIFF image tiles without decompression/compression.
+     * Sets the flag that enforces an attempt of direct copying TIFF image tiles without decompression/compression.
      * Default value is <code>true</code>.
+     *
+     * <p>Note that this flag is ignored (as if it would be <code>false</code>) when the source and target
+     * encoded tiles can be different, for example, due to different byte order, changing compression
+     * due to using {@link #setCompression(TagCompression)} method or other possible changes performed
+     * by the {@link #setIfdCorrector(TiffIFDCorrector) IFD corrector} method.
      *
      * @param directCopy whether the direct copying of TIFF tiles should be used.
      * @return a reference to this object.
@@ -170,6 +176,48 @@ public final class TiffCopier {
         return this;
     }
 
+    public boolean hasCompression() {
+        return compression != null;
+    }
+
+    public TagCompression getCompression() {
+        return compression;
+    }
+
+    /**
+     * Sets the required compression for writing images in the target TIFF.
+     * Default value is <code>null</code>, which means that the copier writes the target TIFF tiles
+     * with the same compression as in the source TIFF.
+     * If you call this method with non-<code>null</code> argument,
+     * the copier will override the compression from the source IFD
+     * with the new compression specified in the method argument.
+     *
+     * <p>Note: if the specified compression belongs to {@link TagCompression#isJpegFamily() JPEG family},
+     * the copier will also {@link TiffIFD#removePhotometricInterpretation() remove photometric interpetation}
+     * (if the source IFD contains it) to allow the TIFF writer to set the necessary
+     * <code>PhotometricInterpetation</code> tag automatically.</p>
+     *
+     * <p>Usually you should not use this method if the flag {@link #isDirectCopy()}
+     * is set to <code>true</code>: changing compression disables direct copying even
+     * if that flag has been set to <code>true</code>.</p>
+     *
+     * @param compression new compression; may be <code>null</code>, then the source compression will be used.
+     * @return a reference to this object.
+     */
+    public TiffCopier setCompression(TagCompression compression) {
+        this.compression = compression;
+        return this;
+    }
+
+    public TiffCopier removeCompression() {
+        this.compression = null;
+        return this;
+    }
+
+    public boolean hasIfdCorrector() {
+        return ifdCorrector != null;
+    }
+
     /**
      * Returns a function that corrects IFD from the source TIFF read map before writing it to the target TIFF.
      *
@@ -179,11 +227,20 @@ public final class TiffCopier {
         return ifdCorrector;
     }
 
+    public TiffCopier removeIfdCorrector() {
+        this.ifdCorrector = null;
+        return this;
+    }
+
     /**
      * Sets a function that corrects IFD from the source TIFF read map before writing it to the target TIFF.
      * Usually you should not use this method if the flag {@link #isDirectCopy()}
      * is set to <code>true</code>.
      * Default value is <code>null</code>, meaning that no correction is performed.
+     *
+     * <p>Note: this function is called <i>after</i> changing the compression
+     * specified by {@link #setCompression(TagCompression)} method (if it was called with
+     * a non-<code>null</code> argument).</p>
      *
      * @param tiffIfdCorrector function that corrects IFD writing it to the target TIFF;
      *                         may be <code>null</code>, than it is ignored.
@@ -346,10 +403,7 @@ public final class TiffCopier {
         resetImageCounters();
         final TiffIFD writeIFD = new TiffIFD(readMap.ifd());
         // - creating a clone of IFD: we must not modify the reader IFD
-        if (ifdCorrector != null) {
-            ifdCorrector.correct(writeIFD);
-            // - theoretically, we can essentially modify IFD here
-        }
+        correctIFD(writeIFD);
         final boolean actuallyDirectCopy = canCopyImageDirectly(writeIFD, writer.getByteOrder(), readMap);
         // - Note: unlike copying a rectangle in the other method, here we check compatibility
         // BEFORE calling newMap and, so, without correction of writeIFD by correctForEncoding.
@@ -436,9 +490,7 @@ public final class TiffCopier {
         final TiffIFD writeIFD = new TiffIFD(readMap.ifd());
         // - creating a clone of IFD: we must not modify the reader IFD
         writeIFD.putImageDimensions(sizeX, sizeY, false);
-        if (ifdCorrector != null) {
-            ifdCorrector.correct(writeIFD);
-        }
+        correctIFD(writeIFD);
         final TiffWriteMap writeMap = writer.newMap(writeIFD, false, true);
         // - Unlike copying the entire image, here we MUST call correctForEncoding() even for direct copying:
         // the direct mode will be disabled for some fromX/fromY, and this behavior should not depend on it.
@@ -551,6 +603,9 @@ public final class TiffCopier {
 
     private boolean canCopyImageDirectly(TiffIFD writeIFD, ByteOrder writeByteOrder, TiffReadMap readMap)
             throws TiffException {
+        if (!this.directCopy) {
+            return false;
+        }
         if (!readMap.isByteOrderCompatible(writeByteOrder)) {
             // - theoretically, this check is extra: byteOrderIsNotUsedForImageData will be false
             return false;
@@ -570,8 +625,7 @@ public final class TiffCopier {
         final boolean photometricInterpretationEqual =
                 readMap.photometricInterpretationCode() == writeIFD.getPhotometricInterpretationCode();
         // - Photometric interpretation MAY become different after smart correction by correctForEncoding
-        return this.directCopy &&
-                (readMap.byteOrder() == writeByteOrder || byteOrderIsNotUsedForImageData) &&
+        return (readMap.byteOrder() == writeByteOrder || byteOrderIsNotUsedForImageData) &&
                 compressionCode == writeIFD.getCompressionCode() &&
                 bitDepthEqual &&
                 photometricInterpretationEqual;
@@ -629,6 +683,20 @@ public final class TiffCopier {
             targetTile.copyData(sourceTile, false);
             writeMap.put(targetTile);
             writeMap.writeTile(targetTile, true);
+        }
+    }
+
+    private void correctIFD(TiffIFD writeIFD) {
+        Objects.requireNonNull(writeIFD, "Null TIFF IFD");
+        if (compression != null) {
+            if (compression.isJpegFamily()) {
+                writeIFD.removePhotometricInterpretation();
+            }
+            writeIFD.putCompression(compression);
+        }
+        if (ifdCorrector != null) {
+            ifdCorrector.correct(writeIFD);
+            // - theoretically, we can essentially modify IFD here
         }
     }
 

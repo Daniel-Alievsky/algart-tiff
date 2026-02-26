@@ -299,6 +299,10 @@ public enum TagCompression {
         return jpeg2000Lossless != null && !jpeg2000Lossless;
     }
 
+    public boolean isJpegFamily() {
+        return isJpegOrOldJpeg() || isJpeg2000();
+    }
+
     public boolean isRGBRequired() {
         return code == TiffIFD.COMPRESSION_OLD_JPEG ||
                 code == TiffIFD.COMPRESSION_JPEG_2000 ||
