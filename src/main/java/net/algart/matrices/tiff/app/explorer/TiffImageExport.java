@@ -58,11 +58,11 @@ class TiffImageExport {
 
     private final TiffImageViewer viewer;
     private final JFrame frame;
-    private final TiffCopier copier;
 
     private volatile boolean copyingInProgress = false;
     private volatile boolean stopRequested = false;
 
+    private TiffCopier copier;
     private JLabel progressLabel;
     private JCheckBox directMode;
     private JLabel compressionQualityLabel;
@@ -75,7 +75,6 @@ class TiffImageExport {
     public TiffImageExport(TiffImageViewer viewer, JFrame frame) {
         this.viewer = Objects.requireNonNull(viewer);
         this.frame = Objects.requireNonNull(frame);
-        this.copier = new TiffCopier().setInterruptionChecker(() -> stopRequested);
     }
 
     public Path chooseFileToExport() {
@@ -126,23 +125,6 @@ class TiffImageExport {
         if (image != null) {
             LOG.log(System.Logger.Level.DEBUG, "Export selected image to " + targetFile + ": " + image);
             MatrixIO.writeBufferedImage(targetFile, image);
-        }
-    }
-
-    // Not used in the current version: it is a long operation and should be performed via SwingWorker
-    public void copySelectedImageToTiff(Path targetFile) throws IOException {
-        Objects.requireNonNull(targetFile, "Null targetFile");
-        Rectangle rectangle = viewer.getSelection();
-        if (rectangle == null) {
-            return;
-        }
-        LOG.log(System.Logger.Level.DEBUG, "Copying selected image to " + targetFile);
-        try (TiffWriter writer = new TiffWriter(targetFile)) {
-            writer.setSmartCorrection(true);
-            writer.setFormatLike(viewer.reader());
-            // - without this operator, direct copy will be impossible for LE format
-            writer.create();
-            copier.copyImage(writer, viewer.map(), rectangle.x, rectangle.y, rectangle.width, rectangle.height);
         }
     }
 
@@ -211,12 +193,6 @@ class TiffImageExport {
 
         progressLabel = new JLabel("999/999 tiles copied...");
         progressLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        copier.setProgressUpdater(p -> SwingUtilities.invokeLater(() -> {
-            progressLabel.setText("%d/%d tiles copied (%s)%s".formatted(
-                    p.tileIndex() + 1, p.tileCount(),
-                    p.copier().actuallyDirectCopy() ? "direct" : "repacking",
-                    p.isLastTileCopied() ? "" : "..."));
-        }));
         mainPanel.add(progressLabel);
 
         copySettingsDialog.add(mainPanel, BorderLayout.CENTER);
@@ -240,7 +216,6 @@ class TiffImageExport {
         applyDirectMode();
         copySettingsDialog.setLocationRelativeTo(frame);
         copySettingsDialog.setVisible(true);
-
     }
 
     private void startCopy(Path targetFile, Rectangle selection) {
@@ -320,6 +295,15 @@ class TiffImageExport {
     }
 
     private void customizeCopying(TiffWriter writer) {
+        this.copier = new TiffCopier();
+        copier.setInterruptionChecker(() -> stopRequested);
+        copier.setProgressUpdater(p -> SwingUtilities.invokeLater(() -> {
+            progressLabel.setText("%d/%d tiles copied (%s)%s".formatted(
+                    p.tileIndex() + 1, p.tileCount(),
+                    p.copier().actuallyDirectCopy() ? "direct" : "repacking",
+                    p.isLastTileCopied() ? "" : "..."));
+        }));
+        copier.setDirectCopy(directMode.isSelected());
         final String text = compressionQualityField.getText().trim();
         boolean hasCompression = !text.isEmpty();
         if (hasCompression) {
@@ -331,10 +315,7 @@ class TiffImageExport {
             }
             writer.setCompressionQuality(compressionQuality);
         }
-        if (copier.isDirectCopy()) {
-            copier.removeCompression();
-            // - necessary to ensure that direct copy is possible
-        } else {
+        if (!copier.isDirectCopy()) {
             TagCompression compression = getSelectedCompression();
             copier.setCompression(compression);
         }
@@ -352,7 +333,6 @@ class TiffImageExport {
 
     private void applyDirectMode() {
         final boolean directCopy = directMode.isSelected();
-        copier.setDirectCopy(directCopy);
         compressionQualityField.setEnabled(!directCopy);
         compressionMethodBox.setEnabled(!directCopy);
     }
