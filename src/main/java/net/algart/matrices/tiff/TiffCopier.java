@@ -495,6 +495,12 @@ public final class TiffCopier {
         Objects.requireNonNull(writer, "Null TIFF writer");
         Objects.requireNonNull(readMap, "Null TIFF read map");
         TiffMap.checkRequestedArea(fromX, fromY, sizeX, sizeY);
+        if (fromX < 0) {
+            throw new IllegalArgumentException("Negative fromX: " + fromX);
+        }
+        if (fromY < 0) {
+            throw new IllegalArgumentException("Negative fromY: " + fromY);
+        }
         long t1 = TiffIO.debugTime();
         resetImageCounters();
         final TiffIFD writeIFD = new TiffIFD(readMap.ifd());
