@@ -77,8 +77,11 @@ public class TiffCopyRectangleDemo {
 //         copier.setIfdCorrector(ifd -> ifd.putTileSizes(64, 64));
         // - possible corrections
         copier.setProgressUpdater(p ->
-                System.out.printf("\r%d/%d...", p.tileIndex() + 1, p.tileCount()));
-        try (TiffReader reader = new TiffReader(sourceFile); TiffWriter writer = new TiffWriter(targetFile)) {
+                System.out.printf("\r%d/%d (%s)...",
+                        p.tileIndex() + 1, p.tileCount(),
+                        p.copier().actuallyDirectCopy() ? "direct" : "repacking"));
+        try (TiffReader reader = new TiffReader(sourceFile);
+             TiffWriter writer = new TiffWriter(targetFile)) {
             // reader.setCaching(false); // - slows down copying when the rectangle does not consist of whole tiles
             // reader.setAutoUnpackBits(TiffReader.UnpackBits.UNPACK_TO_0_255);
             // - should not affect the result
@@ -104,7 +107,7 @@ public class TiffCopyRectangleDemo {
             writer.create();
             System.out.printf("Copying image %d, rectangle %d..%dx%d..%d%n", ifdIndex, x, x + w - 1, y, y + h - 1);
             copier.copyImage(writer, readMap, x, y, w, h);
-            System.out.print("\r               \r");
+            System.out.println();
         }
         System.out.printf("Done%n");
     }

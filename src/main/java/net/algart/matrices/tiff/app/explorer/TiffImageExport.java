@@ -62,7 +62,6 @@ class TiffImageExport {
     private volatile boolean copyingInProgress = false;
     private volatile boolean stopRequested = false;
 
-    private TiffCopier copier;
     private JLabel progressLabel;
     private JCheckBox directMode;
     private JLabel compressionQualityLabel;
@@ -219,39 +218,35 @@ class TiffImageExport {
     }
 
     private void startCopy(Path targetFile, Rectangle selection) {
+        final TiffCopier copier = buildCopier();
+        final Double compressionQuality = getCompressionQuality();
         startCopyButton.setEnabled(false);
         startCopyButton.setVisible(false);
         cancelCopyButton.setText("Cancel copying");
         copyingInProgress = true;
-        new SwingWorker<TiffWriter, Void>() {
+        new SwingWorker<Void, Void>() {
             @Override
-            protected TiffWriter doInBackground() throws Exception {
-                TiffWriter writer = new TiffWriter(targetFile);
-                writer.setSmartCorrection(true);
-                writer.setFormatLike(viewer.reader());
-                customizeCopying(writer);
-                // - without this operator, direct copy will be impossible for LE format
-                // if (true) throw new IOException("Test exception");
-                writer.create();
-                copier.copyImage(writer, viewer.map(), selection.x, selection.y, selection.width, selection.height);
-                return writer;
+            protected Void doInBackground() throws Exception {
+                try (TiffWriter writer = new TiffWriter(targetFile)) {
+                    writer.setSmartCorrection(true);
+                    writer.setFormatLike(viewer.reader());
+                    // - without this operator, direct copy will be impossible for LE format
+                    // if (true) throw new IOException("Test exception");
+                    writer.setCompressionQuality(compressionQuality);
+                    writer.create();
+                    copier.copyImage(
+                            writer, viewer.map(),
+                            selection.x, selection.y, selection.width, selection.height);
+                }
+                return null;
             }
 
             @Override
             protected void done() {
-                TiffWriter writer = null;
                 try {
-                    writer = get();
+                    get();
                 } catch (InterruptedException | ExecutionException e) {
                     showErrorMessage(e, "Error copying TIFF");
-                } finally {
-                    if (writer != null) {
-                        try {
-                            writer.close();
-                        } catch (IOException ex) {
-                            showErrorMessage(ex, "Error closing TIFF writer");
-                        }
-                    }
                 }
                 copyingInProgress = false;
                 copySettingsDialog.getRootPane().setDefaultButton(cancelCopyButton);
@@ -294,8 +289,8 @@ class TiffImageExport {
         return file;
     }
 
-    private void customizeCopying(TiffWriter writer) {
-        this.copier = new TiffCopier();
+    private TiffCopier buildCopier() {
+        TiffCopier copier = new TiffCopier();
         copier.setInterruptionChecker(() -> stopRequested);
         copier.setProgressUpdater(p -> SwingUtilities.invokeLater(() -> {
             progressLabel.setText("%d/%d tiles copied (%s)%s".formatted(
@@ -304,20 +299,18 @@ class TiffImageExport {
                     p.isLastTileCopied() ? "" : "..."));
         }));
         copier.setDirectCopy(directMode.isSelected());
-        final String text = compressionQualityField.getText().trim();
-        boolean hasCompression = !text.isEmpty();
-        if (hasCompression) {
-            double compressionQuality;
-            try {
-                compressionQuality = Double.parseDouble(text);
-            } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("Invalid compression quality: " + text);
-            }
-            writer.setCompressionQuality(compressionQuality);
-        }
         if (!copier.isDirectCopy()) {
-            TagCompression compression = getSelectedCompression();
-            copier.setCompression(compression);
+            copier.setCompression(getSelectedCompression());
+        }
+        return copier;
+    }
+
+    private Double getCompressionQuality() {
+        final String text = compressionQualityField.getText().trim();
+        try {
+            return text.isEmpty() ? null : Double.valueOf(text);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid compression quality: " + text);
         }
     }
 

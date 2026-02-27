@@ -319,7 +319,12 @@ class TiffImageViewer {
             final var export = new TiffImageExport(this, frame);
             Path file = export.chooseTiffFileToCopy();
             if (file != null) {
-                export.showCopyToTiffDialog(file);
+                try {
+                    export.showCopyToTiffDialog(file);
+                } catch (Exception ex) {
+                    // - should not occur
+                    showErrorMessage(ex, "Unexpected error");
+                }
             }
         });
         fileMenu.add(saveToTiffItem);

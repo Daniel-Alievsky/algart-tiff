@@ -515,6 +515,8 @@ public final class TiffCopier {
         final int gridCountX = writeMap.gridCountX();
         final int mapTileSizeX = writeMap.tileSizeX();
         final int mapTileSizeY = writeMap.tileSizeY();
+        assert readMap.tileSizeX() == mapTileSizeX;
+        assert readMap.tileSizeY() == mapTileSizeY;
         final boolean directCopy = canCopyRectangleDirectly(writeMap, readMap, fromX, fromY);
         final boolean swapOrder = !readMap.isByteOrderCompatible(writeMap.byteOrder());
         if (swapOrder && directCopy) {
@@ -530,26 +532,27 @@ public final class TiffCopier {
         long t2 = TiffIO.debugTime();
         int repackCount = 0;
         int tileCount = 0;
-        for (int yIndex = 0, y = 0; yIndex < gridCountY; yIndex++, y += mapTileSizeY) {
-            final int sizeYInTile = Math.min(sizeY - y, mapTileSizeY);
+        for (int toYIndex = 0, y = 0; toYIndex < gridCountY; toYIndex++, y += mapTileSizeY) {
             final int readY = fromY + y;
-            for (int xIndex = 0, x = 0; xIndex < gridCountX; xIndex++, x += mapTileSizeX) {
-                final int sizeXInTile = Math.min(sizeX - x, mapTileSizeX);
+            final int writeSizeYInTile = Math.min(sizeY - y, mapTileSizeY);
+            final int readSizeYInTile = Math.min(readDimY - readY, mapTileSizeY);
+            for (int toXIndex = 0, x = 0; toXIndex < gridCountX; toXIndex++, x += mapTileSizeX) {
                 final int readX = fromX + x;
+                final int writeSizeXInTile = Math.min(sizeX - x, mapTileSizeX);
+                final int readSizeXInTile = Math.min(readDimX - readX, mapTileSizeX);
+                // - readSizeX/YInTile can be < writeSizeX/YInTile and even < 0:
+                // then we will use repacking to fill the extra pixels by zeros
                 this.actuallyDirectCopy = directCopy
-                        && sizeXInTile == mapTileSizeX
-                        && sizeYInTile == mapTileSizeY
-                        && readY <= readDimY - sizeYInTile
-                        && readX <= readDimX - sizeXInTile;
-                // - note that the tile must be completely inside BOTH maps to be copied directly;
-                // the last tiles at the image boundaries are usually copied with repacking
+                        && writeSizeXInTile == readSizeXInTile
+                        && writeSizeYInTile == readSizeYInTile;
+                // - note that the tile must be completely inside BOTH maps to be copied directly
                 if (this.actuallyDirectCopy) {
-                    final int readXIndex = fromXIndex + xIndex;
-                    final int readYIndex = fromYIndex + yIndex;
-                    copyEncodedTile(writeMap, readMap, xIndex, yIndex, readXIndex, readYIndex);
+                    final int readXIndex = fromXIndex + toXIndex;
+                    final int readYIndex = fromYIndex + toYIndex;
+                    copyEncodedTile(writeMap, readMap, toXIndex, toYIndex, readXIndex, readYIndex);
                 } else {
                     final int written = copyRectangle(
-                            writeMap, readMap, x, y, readX, readY, sizeXInTile, sizeYInTile, swapOrder);
+                            writeMap, readMap, x, y, readX, readY, writeSizeXInTile, writeSizeYInTile, swapOrder);
                     if (written != writeMap.numberOfSeparatedPlanes()) {
                         // - we copy exactly one tile, and it should be completed: we created a non-resizable map,
                         // so, the initial unset area of the tile, i.e. actualRectangle(),
