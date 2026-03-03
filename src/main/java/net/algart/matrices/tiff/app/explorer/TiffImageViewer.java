@@ -272,10 +272,11 @@ class TiffImageViewer {
         frame.add(statusPanel, BorderLayout.SOUTH);
 
         resetTitle();
-        frame.getRootPane().registerKeyboardAction(
-                e -> tiffPanel.removeSelection(),
-                KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0),
-                JComponent.WHEN_IN_FOCUSED_WINDOW);
+        // The following can be used instead of setAccelerator:
+//        frame.getRootPane().registerKeyboardAction(
+//                e -> tiffPanel.removeSelection(),
+//                KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0),
+//                JComponent.WHEN_IN_FOCUSED_WINDOW);
         frame.pack();
 
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
@@ -308,7 +309,6 @@ class TiffImageViewer {
         });
         fileMenu.add(saveImageAsTiffItem);
         JMenuItem exportImageItem = new JMenuItem("Export image...");
-        exportImageItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, InputEvent.CTRL_DOWN_MASK));
         exportImageItem.addActionListener(e -> {
             final var export = new TiffImageExport(this, frame);
             Path file = export.chooseFileToExport(false);
@@ -373,6 +373,7 @@ class TiffImageViewer {
             editMenu.add(alignSelectionItem);
         }
         JMenuItem removeSelectionItem = new JMenuItem("Remove selection");
+        removeSelectionItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0));
         removeSelectionItem.addActionListener(e -> {
             tiffPanel.removeSelection();
         });
