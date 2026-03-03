@@ -200,11 +200,20 @@ class TiffViewer {
                 return null;
             }
             if (zoom != 1.0 && scaled != null) {
+                // possible Image-base solution:
+//                final Image scaledImage = original.getScaledInstance(zoomedSizeX, zoomedSizeY,
+//                        zoom < 1 ?
+//                                Image.SCALE_AREA_AVERAGING :
+//                                Image.SCALE_FAST);
+//                Graphics2D g = scaled.createGraphics();
+//                g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+//                                RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+//                g.drawImage(scaledImage, 0, 0, null);
+//                g.dispose();
+
                 Graphics2D g = scaled.createGraphics();
                 g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                        zoom < 1.0 ?
-                                RenderingHints.VALUE_INTERPOLATION_BILINEAR :
-                                RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+                        RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
                 g.drawImage(original, 0, 0, zoomedSizeX, zoomedSizeY, null);
                 g.dispose();
             }
