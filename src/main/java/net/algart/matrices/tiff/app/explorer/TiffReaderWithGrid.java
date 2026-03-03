@@ -34,6 +34,7 @@ import java.nio.file.Path;
 
 class TiffReaderWithGrid extends TiffReader {
     private boolean viewTileGrid = false;
+    private int border = 1;
 
     TiffReaderWithGrid(Path tiffFile) throws IOException {
         super(tiffFile);
@@ -48,31 +49,47 @@ class TiffReaderWithGrid extends TiffReader {
         return this;
     }
 
+    public int getBorder() {
+        return border;
+    }
+
+    public TiffReaderWithGrid setBorder(int border) {
+        if (border < 0) {
+            throw new IllegalArgumentException("Negative gap: " + border);
+        }
+        this.border = border;
+        return this;
+    }
+
     @Override
     public TiffTile readTile(TiffTileIndex tileIndex) throws IOException {
         final TiffTile tile = super.readTile(tileIndex);
-        if (viewTileGrid) {
+        if (viewTileGrid && border > 0) {
             addTileBorder(tile);
         }
         return tile;
     }
 
-    private static void addTileBorder(TiffTile tile) {
+    private void addTileBorder(TiffTile tile) {
         if (!tile.isSeparated()) {
             throw new AssertionError("Tile is not separated");
         }
-        byte[] decoded = tile.getDecodedData();
+        final byte[] data = tile.getDecodedData();
         final int sample = tile.bitsPerSample();
         final int sizeX = tile.getSizeX() * sample;
         final int sizeY = tile.getSizeY();
         final int sizeInBits = sizeX * sizeY;
+        final int gap = Math.min(this.border, Math.min(tile.getSizeX(), tile.getSizeY()) / 2);
+        final int filledSamples = sample * gap;
+        final int filledLines = sizeX * gap;
+        // - just in case
         for (int c = 0; c < tile.samplesPerPixel(); c++) {
             int disp = c * sizeInBits;
-            PackedBitArraysPer8.fillBits(decoded, disp, sizeX, false);
-            PackedBitArraysPer8.fillBits(decoded, disp + sizeInBits - sizeX, sizeX, false);
-            for (int k = 0; k < sizeY; k++, disp += sizeX) {
-                PackedBitArraysPer8.fillBits(decoded, disp, sample, false);
-                PackedBitArraysPer8.fillBits(decoded, disp + sizeX - sample, sample, false);
+            PackedBitArraysPer8.fillBits(data, disp, filledLines, false);
+            PackedBitArraysPer8.fillBits(data, disp + sizeInBits - filledLines, filledLines, false);
+            for (int y = 0; y < sizeY; y++, disp += sizeX) {
+                PackedBitArraysPer8.fillBits(data, disp, filledSamples, false);
+                PackedBitArraysPer8.fillBits(data, disp + sizeX - filledSamples, filledSamples, false);
             }
         }
     }

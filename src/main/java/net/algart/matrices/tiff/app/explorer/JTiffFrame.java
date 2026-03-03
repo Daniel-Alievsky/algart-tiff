@@ -28,14 +28,14 @@ import javax.swing.*;
 import java.util.Objects;
 
 class JTiffFrame extends JFrame {
-    private final TiffImageViewer viewer;
+    private final TiffViewer viewer;
 
-    public JTiffFrame(TiffImageViewer viewer) {
+    public JTiffFrame(TiffViewer viewer) {
         this.viewer = Objects.requireNonNull(viewer);
         TiffExplorer.setTiffExplorerIcon(this);
     }
 
-    public TiffImageViewer viewer() {
+    public TiffViewer viewer() {
         return viewer;
     }
 

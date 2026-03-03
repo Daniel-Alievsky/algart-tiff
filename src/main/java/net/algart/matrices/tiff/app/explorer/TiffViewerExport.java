@@ -43,7 +43,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
-class TiffImageExport {
+class TiffViewerExport {
     private static final int MAX_SINGLE_IMAGE_SIZE_IN_PIXELS = 25 * 1024 * 1024;
     // - 25 megapixels: even for RGBA with float precision, it is only 4*4*25 MB = 400 MB < 2^31 bytes
     private static final String PREF_LAST_EXPORT__DIR = "lastExportDirectory";
@@ -56,9 +56,9 @@ class TiffImageExport {
             "tif", "tiff");
     private static final int DEFAULT_FONT_SIZE = 14;
 
-    private static final System.Logger LOG = System.getLogger(TiffImageViewer.class.getName());
+    private static final System.Logger LOG = System.getLogger(TiffViewer.class.getName());
 
-    private final TiffImageViewer viewer;
+    private final TiffViewer viewer;
     private final JFrame frame;
 
     private volatile boolean copyingInProgress = false;
@@ -73,7 +73,7 @@ class TiffImageExport {
     private JButton cancelCopyButton;
     private JDialog copySettingsDialog;
 
-    public TiffImageExport(TiffImageViewer viewer, JFrame frame) {
+    public TiffViewerExport(TiffViewer viewer, JFrame frame) {
         this.viewer = Objects.requireNonNull(viewer);
         this.frame = Objects.requireNonNull(frame);
     }

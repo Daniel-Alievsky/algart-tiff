@@ -41,7 +41,7 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.OptionalInt;
 
-class TiffImageViewer {
+class TiffViewer {
     private static final String DEFAULT_STATUS =
             "Use mouse drag to select a rectangle, or SHIFT-drag to move the image";
     private static final long CACHING_MEMORY = 256 * 1048576L;
@@ -49,7 +49,7 @@ class TiffImageViewer {
     private static final boolean PRELOAD_LITTLE_AREA_WHILE_OPENING = true;
     // - should be true; you may clear this flag to debug possible I/O errors during the drawing process
 
-    private static final System.Logger LOG = System.getLogger(TiffImageViewer.class.getName());
+    private static final System.Logger LOG = System.getLogger(TiffViewer.class.getName());
 
     private static final Color COMMON_COLOR = Color.BLACK;
     private static final Color ERROR_COLOR = Color.RED;
@@ -74,7 +74,7 @@ class TiffImageViewer {
     private JTiffPanel tiffPanel;
     private JTiffScrollPane tiffScrollPane;
 
-    public TiffImageViewer(Path tiffFile, int index) throws IOException {
+    public TiffViewer(Path tiffFile, int index) throws IOException {
         Objects.requireNonNull(tiffFile);
         this.reader = new TiffReaderWithGrid(tiffFile);
         this.reader.setMaxCacheMemory(CACHING_MEMORY);
@@ -296,7 +296,7 @@ class TiffImageViewer {
         JMenuItem saveImageAsTiffItem = new JMenuItem("Save image as TIFF...");
         saveImageAsTiffItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
         saveImageAsTiffItem.addActionListener(e -> {
-            final var export = new TiffImageExport(this, frame);
+            final var export = new TiffViewerExport(this, frame);
             Path file = export.chooseTiffFileToSave(false);
             if (file != null) {
                 try {
@@ -310,7 +310,7 @@ class TiffImageViewer {
         fileMenu.add(saveImageAsTiffItem);
         JMenuItem exportImageItem = new JMenuItem("Export image...");
         exportImageItem.addActionListener(e -> {
-            final var export = new TiffImageExport(this, frame);
+            final var export = new TiffViewerExport(this, frame);
             Path file = export.chooseFileToExport(false);
             if (file != null) {
                 try {
@@ -328,7 +328,7 @@ class TiffImageViewer {
         saveSelectionAsTiffItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
                 InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
         saveSelectionAsTiffItem.addActionListener(e -> {
-            final var export = new TiffImageExport(this, frame);
+            final var export = new TiffViewerExport(this, frame);
             Path file = export.chooseTiffFileToSave(true);
             if (file != null) {
                 try {
@@ -342,7 +342,7 @@ class TiffImageViewer {
         fileMenu.add(saveSelectionAsTiffItem);
         JMenuItem exportSelectionItem = new JMenuItem("Export selection...");
         exportSelectionItem.addActionListener(e -> {
-            final var export = new TiffImageExport(this, frame);
+            final var export = new TiffViewerExport(this, frame);
             Path file = export.chooseFileToExport(true);
             if (file != null) {
                 try {
@@ -384,7 +384,7 @@ class TiffImageViewer {
         copyItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK));
         copyItem.addActionListener(e -> {
             try {
-                final var export = new TiffImageExport(this, frame);
+                final var export = new TiffViewerExport(this, frame);
                 export.copySelectedAreaToClipboard();
             } catch (IOException ex) {
                 showErrorMessage(ex, "Error copying the image to the clipboard");
@@ -421,8 +421,8 @@ class TiffImageViewer {
         addZoomItem(zoomMenu, zoomGroup, "200% (2:1)", 2.0);
         addZoomItem(zoomMenu, zoomGroup, "100% (1:1)", 1.0);
         addZoomItem(zoomMenu, zoomGroup, "50% (1:2)", 0.5);
-        addZoomItem(zoomMenu, zoomGroup, "25% (1:4, may be slow)", 0.25);
-        addZoomItem(zoomMenu, zoomGroup, "12.5% (1:8, may be slow)", 0.125);
+        addZoomItem(zoomMenu, zoomGroup, "25% (1:4, may be slow)", 0.25, 2);
+        addZoomItem(zoomMenu, zoomGroup, "12.5% (1:8, may be slow)", 0.125, 4);
         viewMenu.addSeparator();
         viewMenu.add(zoomMenu);
 
@@ -449,6 +449,10 @@ class TiffImageViewer {
     }
 
     private void addZoomItem(JMenu menu, ButtonGroup group, String title, double zoomValue) {
+        addZoomItem(menu, group, title, zoomValue, 1);
+    }
+
+    private void addZoomItem(JMenu menu, ButtonGroup group, String title, double zoomValue, int border) {
         JRadioButtonMenuItem item = new JRadioButtonMenuItem(title);
         if (zoomValue == 1.0) {
             item.setSelected(true);
@@ -461,6 +465,7 @@ class TiffImageViewer {
                 showErrorMessage(ex, "Cannot set zoom");
             }
             item.setSelected(true);
+            reader.setBorder(border);
             updateView();
         });
         group.add(item);

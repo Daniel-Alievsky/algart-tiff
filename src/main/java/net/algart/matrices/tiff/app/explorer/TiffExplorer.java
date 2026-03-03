@@ -625,7 +625,7 @@ public class TiffExplorer {
         }
         setShowImageInProgress(true);
         try {
-            TiffImageViewer imageViewer = new TiffImageViewer(tiffFile, index);
+            TiffViewer imageViewer = new TiffViewer(tiffFile, index);
             setShowImageInProgress(true);
             imageViewer.show();
         } catch (IOException e) {

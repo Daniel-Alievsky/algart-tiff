@@ -82,7 +82,7 @@ class JTiffPanel extends JComponent {
 
     private static final System.Logger LOG = System.getLogger(JTiffPanel.class.getName());
 
-    private final TiffImageViewer viewer;
+    private final TiffViewer viewer;
     private final TiffReadMap map;
     private int canvasDimX;
     private int canvasDimY;
@@ -105,7 +105,7 @@ class JTiffPanel extends JComponent {
     private final Timer dashTimer;
     private int dashPhase = 0;
 
-    public JTiffPanel(TiffImageViewer viewer) {
+    public JTiffPanel(TiffViewer viewer) {
         this.viewer = Objects.requireNonNull(viewer, "Null viewer");
         this.map = viewer.map();
         this.canvasDimX = map.dimX();
