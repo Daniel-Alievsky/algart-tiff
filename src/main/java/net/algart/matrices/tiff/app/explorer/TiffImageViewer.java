@@ -163,14 +163,6 @@ class TiffImageViewer {
         tiffPanel.setImageSelection(left, top, (long) left + (long) width, (long) top + (long) height);
     }
 
-    public void copyImageToClipboard() throws IOException {
-        BufferedImage image = readSelectedImage();
-        if (image != null) {
-            LOG.log(System.Logger.Level.DEBUG, "Copied image to clipboard: " + image);
-            ClipboardTools.copyImageToClipboard(image);
-        }
-    }
-
     public BufferedImage reloadFragment(int zoomedFromX, int zoomedFromY, int zoomedToX, int zoomedToY, double zoom) {
         final int zoomedSizeX = zoomedToX - zoomedFromX;
         final int zoomedSizeY = zoomedToY - zoomedFromY;
@@ -240,6 +232,10 @@ class TiffImageViewer {
         }
     }
 
+    public BufferedImage readEntireImage() throws IOException {
+        return map.readBufferedImage();
+    }
+
     public BufferedImage readSelectedImage() throws IOException {
         Rectangle rectangle = getSelection();
         return rectangle == null ? null : readImage(rectangle);
@@ -296,38 +292,68 @@ class TiffImageViewer {
     private JMenuBar buildMenuBar() {
         JMenuBar menuBar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
-        JMenuItem exportItem = new JMenuItem("Export selection...");
-        exportItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E,
-                InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
-        exportItem.addActionListener(e -> {
+        JMenuItem saveImageAsTiffItem = new JMenuItem("Save image as TIFF...");
+        saveImageAsTiffItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
+        saveImageAsTiffItem.addActionListener(e -> {
             final var export = new TiffImageExport(this, frame);
-            Path file = export.chooseFileToExport();
+            Path file = export.chooseTiffFileToSave(false);
             if (file != null) {
                 try {
-                    export.exportSelectedImageToFile(file);
-                } catch (Exception ex) {
-                    // - including possible non-I/O exceptions like an empty file extension
-                    showErrorMessage(ex, "Error exporting image");
-                }
-            }
-        });
-        fileMenu.add(exportItem);
-        JMenuItem saveToTiffItem = new JMenuItem("Save selection to a new TIFF...");
-        saveToTiffItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
-                InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
-        saveToTiffItem.addActionListener(e -> {
-            final var export = new TiffImageExport(this, frame);
-            Path file = export.chooseTiffFileToCopy();
-            if (file != null) {
-                try {
-                    export.showCopyToTiffDialog(file);
+                    export.showCopyToTiffDialog(file, false);
                 } catch (Exception ex) {
                     // - should not occur
                     showErrorMessage(ex, "Unexpected error");
                 }
             }
         });
-        fileMenu.add(saveToTiffItem);
+        fileMenu.add(saveImageAsTiffItem);
+        JMenuItem exportImageItem = new JMenuItem("Export image...");
+        exportImageItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, InputEvent.CTRL_DOWN_MASK));
+        exportImageItem.addActionListener(e -> {
+            final var export = new TiffImageExport(this, frame);
+            Path file = export.chooseFileToExport(false);
+            if (file != null) {
+                try {
+                    export.exportImageToFile(file, false);
+                } catch (Exception ex) {
+                    // - including possible non-I/O exceptions like an empty file extension
+                    showErrorMessage(ex, "Error exporting image");
+                }
+            }
+        });
+        fileMenu.add(exportImageItem);
+        fileMenu.addSeparator();
+
+        JMenuItem saveSelectionAsTiffItem = new JMenuItem("Save selection as TIFF...");
+        saveSelectionAsTiffItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
+                InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
+        saveSelectionAsTiffItem.addActionListener(e -> {
+            final var export = new TiffImageExport(this, frame);
+            Path file = export.chooseTiffFileToSave(true);
+            if (file != null) {
+                try {
+                    export.showCopyToTiffDialog(file, true);
+                } catch (Exception ex) {
+                    // - should not occur
+                    showErrorMessage(ex, "Unexpected error");
+                }
+            }
+        });
+        fileMenu.add(saveSelectionAsTiffItem);
+        JMenuItem exportSelectionItem = new JMenuItem("Export selection...");
+        exportSelectionItem.addActionListener(e -> {
+            final var export = new TiffImageExport(this, frame);
+            Path file = export.chooseFileToExport(true);
+            if (file != null) {
+                try {
+                    export.exportImageToFile(file, true);
+                } catch (Exception ex) {
+                    // - including possible non-I/O exceptions like an empty file extension
+                    showErrorMessage(ex, "Error exporting the selected area");
+                }
+            }
+        });
+        fileMenu.add(exportSelectionItem);
 
         JMenu editMenu = new JMenu("Edit");
         JMenuItem selectAllItem = new JMenuItem("Select all");
@@ -357,9 +383,10 @@ class TiffImageViewer {
         copyItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK));
         copyItem.addActionListener(e -> {
             try {
-                copyImageToClipboard();
+                final var export = new TiffImageExport(this, frame);
+                export.copySelectedAreaToClipboard();
             } catch (IOException ex) {
-                showErrorMessage(ex, "Error copying image to clipboard");
+                showErrorMessage(ex, "Error copying the image to the clipboard");
             }
         });
         editMenu.add(copyItem);
@@ -404,8 +431,8 @@ class TiffImageViewer {
             }
             removeSelectionItem.setEnabled(tiffPanel.isSelected());
             copyItem.setEnabled(tiffPanel.hasNonEmptySelection());
-            exportItem.setEnabled(tiffPanel.hasNonEmptySelection());
-            saveToTiffItem.setEnabled(tiffPanel.hasNonEmptySelection());
+            exportSelectionItem.setEnabled(tiffPanel.hasNonEmptySelection());
+            saveSelectionAsTiffItem.setEnabled(tiffPanel.hasNonEmptySelection());
         });
         fileMenu.addMenuListener(menuUpdater);
         editMenu.addMenuListener(menuUpdater);

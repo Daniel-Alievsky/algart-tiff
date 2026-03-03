@@ -79,6 +79,8 @@ public class TiffExplorer {
         }
     }
 
+    private static final float ALL_FONTS_SCALE = 1.2f;
+    // - default font sizes in Java API are usually too small
     private static final String APPLICATION_TITLE = "TIFF Information Viewer";
     private static final boolean DEFAULT_WORD_WRAP = false;
     private static final int DEFAULT_FONT_SIZE = 15;
@@ -137,6 +139,15 @@ public class TiffExplorer {
         }
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            UIDefaults defaults = UIManager.getDefaults();
+
+            for (Object key : defaults.keySet()) {
+                Object value = defaults.get(key);
+                if (value instanceof Font font) {
+                    float newSize = font.getSize2D() * ALL_FONTS_SCALE;
+                    defaults.put(key, font.deriveFont(newSize));
+                }
+            }
             // For cross-platform:
             // UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
         } catch (Exception e) {
@@ -679,7 +690,7 @@ public class TiffExplorer {
                 The current image description will be permanently replaced.<br>
                 You may create a backup copy if the file is important.</html>
                 """.formatted(tiffFile));
-        warningLabel.setFont(warningLabel.getFont().deriveFont((float) DEFAULT_FONT_SIZE));
+//        warningLabel.setFont(warningLabel.getFont().deriveFont((float) DEFAULT_FONT_SIZE));
         warningLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 //        warningLabel.setForeground(new Color(140, 0, 0));
         content.add(warningLabel);
@@ -726,7 +737,7 @@ public class TiffExplorer {
         content.add(Box.createVerticalStrut(16));
 
         JLabel title = centeredLabel("AlgART TIFF Explorer");
-        title.setFont(title.getFont().deriveFont(Font.BOLD, 16f));
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 18f));
         content.add(title);
         content.add(Box.createVerticalStrut(8));
 
