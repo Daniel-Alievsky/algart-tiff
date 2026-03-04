@@ -685,9 +685,9 @@ public class TiffExplorer {
         content.add(Box.createVerticalStrut(10));
 
         JLabel warningLabel = new JLabel("""
-                <html><b>Warning:</b> This action will rewrite the IFD in the TIFF file:<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;%s<br>
-                The current image description will be permanently replaced.<br>
+                <html>Warning! This action will rewrite the IFD in the TIFF file:<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
+                The current image description will be permanently <b>replaced</b>.<br>
                 You may create a backup copy if the file is important.</html>
                 """.formatted(tiffFile));
 //        warningLabel.setFont(warningLabel.getFont().deriveFont((float) DEFAULT_FONT_SIZE));

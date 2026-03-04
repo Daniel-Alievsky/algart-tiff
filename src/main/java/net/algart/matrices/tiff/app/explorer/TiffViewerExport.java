@@ -186,15 +186,15 @@ class TiffViewerExport {
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        final String whatToCopy = (selection == null ?
-                "The TIFF image (%dx%d)" : "The selected area (%dx%d) of the TIFF image")
-                .formatted(sizeX, sizeY);
+        final String whatToCopy = selection == null ?
+                "The TIFF image #%d (%dx%d)".formatted(viewer.ifdIndex(), sizeX, sizeY) :
+                "The selected area (%dx%d) of the TIFF image #%d".formatted(sizeX, sizeY, viewer.ifdIndex());
         final JLabel infoLabel = new JLabel("""
                 <html>
-                %s<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;%s<br><br>
-                will be copied to a new TIFF file<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;%s<br>&nbsp;
+                %s from the file:<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br><br>
+                will be copied to a new TIFF file:<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>&nbsp;
                 """.formatted(
                 whatToCopy,
                 map.streamName(), targetFile.toAbsolutePath()

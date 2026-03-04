@@ -55,7 +55,7 @@ class TiffViewer {
     private static final Color ERROR_COLOR = Color.RED;
 
     private final TiffReaderWithGrid reader;
-    private final int index;
+    private final int ifdIndex;
 
     private JLabel statusLabel;
 
@@ -74,12 +74,12 @@ class TiffViewer {
     private JTiffPanel tiffPanel;
     private JTiffScrollPane tiffScrollPane;
 
-    public TiffViewer(Path tiffFile, int index) throws IOException {
+    public TiffViewer(Path tiffFile, int ifdIndex) throws IOException {
         Objects.requireNonNull(tiffFile);
         this.reader = new TiffReaderWithGrid(tiffFile);
         this.reader.setMaxCacheMemory(CACHING_MEMORY);
+        this.ifdIndex = ifdIndex;
         LOG.log(System.Logger.Level.INFO, "Viewer opened " + reader.streamName());
-        this.index = index;
     }
 
     public void disposeResources() {
@@ -98,6 +98,11 @@ class TiffViewer {
 
     public TiffReader reader() {
         return reader;
+    }
+
+
+    public int ifdIndex() {
+        return ifdIndex;
     }
 
     public TiffReadMap map() {
@@ -148,7 +153,7 @@ class TiffViewer {
                         ? "  %s%% (%d:1)".formatted(zoom100, (int) zoom)
                         : "  %s%% (1:%d)".formatted(zoom100, (int) Math.round(1.0 / zoom));
         frame.setTitle("TIFF Image #%d from %d (%dx%d, %d channel%s, %s bits/channel)  %s%s".formatted(
-                index, numberOfImages, map.dimX(), map.dimY(),
+                ifdIndex, numberOfImages, map.dimX(), map.dimY(),
                 map.numberOfChannels(), map.numberOfChannels() == 1 ? "" : "s",
                 bitDepth.isPresent() ? bitDepth.getAsInt() : Arrays.toString(map.bitsPerSample()),
                 map.compression().orElse(TagCompression.NONE).prettyName(),
@@ -200,7 +205,7 @@ class TiffViewer {
                 return null;
             }
             if (zoom != 1.0 && scaled != null) {
-                // possible Image-base solution:
+                // possible Image-based solution:
 //                final Image scaledImage = original.getScaledInstance(zoomedSizeX, zoomedSizeY,
 //                        zoom < 1 ?
 //                                Image.SCALE_AREA_AVERAGING :
@@ -494,7 +499,7 @@ class TiffViewer {
     }
 
     private void openMap() throws IOException {
-        map = reader.map(index);
+        map = reader.map(ifdIndex);
         numberOfImages = reader.numberOfImages();
         if (PRELOAD_LITTLE_AREA_WHILE_OPENING) {
             map.readSampleBytes(0, 0, 64, 64);
