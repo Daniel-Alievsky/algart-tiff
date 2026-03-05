@@ -73,7 +73,7 @@ public class ReadBufferDataHandle<L extends Location> extends AbstractHigherOrde
 	private final int pageSize;
 	private final List<byte[]> pages;
 	private final int[] slotToPage;
-	private final LRUReplacementStrategy replacementStrategy;
+	private LRUReplacementStrategy replacementStrategy;
 	private final Map<Integer, Integer> pageToSlot;
 
 	/**
@@ -127,9 +127,9 @@ public class ReadBufferDataHandle<L extends Location> extends AbstractHigherOrde
 
 		// init maps
 		slotToPage = new int[numPages];
-		Arrays.fill(slotToPage, -1);
-
 		pages = new ArrayList<>(numPages);
+
+		Arrays.fill(slotToPage, -1);
 		for (int i = 0; i < numPages; i++) {
 			pages.add(null);
 		}
@@ -139,18 +139,26 @@ public class ReadBufferDataHandle<L extends Location> extends AbstractHigherOrde
 	}
 
 	/**
-	 * Removs the cached data.
-	 *
-	 * @return a reference to this object.
+	 * Removes the cached data and seeks to the zero position.
 	 */
-	public ReadBufferDataHandle resetCache() {
+	public void reset() {
+		final int numPages = slotToPage.length;
+		Arrays.fill(slotToPage, -1);
+		pages.clear();
+		for (int i = 0; i < numPages; i++) {
+			pages.add(null);
+		}
 		pageToSlot.clear();
-        pages.replaceAll(ignored -> null);
 		length = -1;
-		offset = 0L;
 		currentPage = null;
 		currentPageID = -1;
-		return this;
+		replacementStrategy = new LRUReplacementStrategy(numPages);
+        try {
+            handle().seek(0);
+        } catch (IOException ignored) {
+            // not a problem here
+        }
+        offset = 0;
 	}
 
 	/**

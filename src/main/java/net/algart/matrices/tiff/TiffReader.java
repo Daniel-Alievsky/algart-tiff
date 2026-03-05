@@ -401,7 +401,7 @@ public non-sealed class TiffReader extends TiffIO {
                 if (!(stream instanceof ReadBufferDataHandle<?>)) {
                     throw new AssertionError("Input stream was not correcty replaced in the constructor");
                 }
-                ((ReadBufferDataHandle<?>) stream).resetCache();
+                ((ReadBufferDataHandle<?>) stream).reset();
         }
         return this;
     }

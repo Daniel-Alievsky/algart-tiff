@@ -50,6 +50,7 @@ class TiffViewer {
     private static final Color ERROR_COLOR = Color.RED;
 
     private final TiffReaderWithGrid reader;
+    private final Path path;
     private final int ifdIndex;
 
     private TiffReadMap map = null;
@@ -64,9 +65,9 @@ class TiffViewer {
 
     private JTiffFrame frame;
 
-    public TiffViewer(Path tiffFile, int ifdIndex) throws IOException {
-        Objects.requireNonNull(tiffFile);
-        this.reader = new TiffReaderWithGrid(tiffFile);
+    public TiffViewer(Path path, int ifdIndex) throws IOException {
+        this.path = Objects.requireNonNull(path);
+        this.reader = new TiffReaderWithGrid(path);
         this.reader.setMaxCacheMemory(CACHING_MEMORY);
         this.ifdIndex = ifdIndex;
         LOG.log(System.Logger.Level.INFO, "Viewer opened " + reader.streamName());
@@ -85,10 +86,13 @@ class TiffViewer {
         LOG.log(System.Logger.Level.DEBUG, "Viewer closed " + reader.streamName());
     }
 
+    public Path path() {
+        return path;
+    }
+
     public TiffReader reader() {
         return reader;
     }
-
 
     public int ifdIndex() {
         return ifdIndex;
