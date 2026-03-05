@@ -83,10 +83,9 @@ class JTiffPanel extends JComponent {
     private static final System.Logger LOG = System.getLogger(JTiffPanel.class.getName());
 
     private final TiffViewer viewer;
-    private final TiffReadMap map;
     private int canvasDimX;
     private int canvasDimY;
-    private double zoom = 1.0;
+    private double zoom;
 
     private int fromX = -1;
     private int fromY = -1;
@@ -107,10 +106,11 @@ class JTiffPanel extends JComponent {
 
     public JTiffPanel(TiffViewer viewer) {
         this.viewer = Objects.requireNonNull(viewer, "Null viewer");
-        this.map = viewer.map();
+        final TiffReadMap map = viewer.map();
+        zoom = 1.0;
         this.canvasDimX = map.dimX();
         this.canvasDimY = map.dimY();
-        reset();
+        setPreferredSize(new Dimension(canvasDimX, canvasDimY));
 
         dashTimer = new Timer(300, e -> {
             dashPhase = (dashPhase + 1) % 16;
@@ -128,7 +128,17 @@ class JTiffPanel extends JComponent {
     }
 
     public void reset() {
-        setPreferredSize(new Dimension(canvasDimX, canvasDimY));
+        try {
+            resetSizes();
+        } catch (TooBigZoomException e) {
+            zoom = 1.0;
+            try {
+                resetSizes();
+            } catch (TooBigZoomException ex) {
+                throw new AssertionError("Should not occur for zoom=1.0!", ex);
+            }
+        }
+
     }
 
     public double getZoom() {
@@ -140,21 +150,26 @@ class JTiffPanel extends JComponent {
             throw new IllegalArgumentException("Negative zoom: " + zoom);
         }
         if (zoom != this.zoom) {
-            long canvasDimX = Math.round(map.dimX() * zoom);
-            long canvasDimY = Math.round(map.dimY() * zoom);
-            if (canvasDimX > Integer.MAX_VALUE || canvasDimY > Integer.MAX_VALUE) {
-                throw new TooBigZoomException(
-                        "Too big zoom: the zoomed image will be " + canvasDimX + "x" + canvasDimY);
-            }
             this.zoom = zoom;
-            this.canvasDimX = (int) canvasDimX;
-            this.canvasDimY = (int) canvasDimY;
+            resetSizes();
             removeSelection();
-            reset();
+            setPreferredSize(new Dimension(canvasDimX, canvasDimY));
             revalidate();
             repaint();
         }
         return this;
+    }
+
+    private void resetSizes() throws TooBigZoomException {
+        final TiffReadMap map = viewer.map();
+        long canvasDimX = Math.round(map.dimX() * zoom);
+        long canvasDimY = Math.round(map.dimY() * zoom);
+        if (canvasDimX > Integer.MAX_VALUE || canvasDimY > Integer.MAX_VALUE) {
+            throw new TooBigZoomException(
+                    "Too big zoom: the zoomed image will be " + canvasDimX + "x" + canvasDimY);
+        }
+        this.canvasDimX = (int) canvasDimX;
+        this.canvasDimY = (int) canvasDimY;
     }
 
     public int getCanvasDimX() {
@@ -468,6 +483,7 @@ class JTiffPanel extends JComponent {
 
     private Rectangle getSelection(double zoom) {
         if (selected) {
+            TiffReadMap map = viewer.map();
             int fromX = Math.min(this.fromX, this.toX);
             int fromY = Math.min(this.fromY, this.toY);
             int toX = Math.max(this.fromX, this.toX);

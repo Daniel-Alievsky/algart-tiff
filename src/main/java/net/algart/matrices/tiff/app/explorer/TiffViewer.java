@@ -131,7 +131,6 @@ class TiffViewer {
         try {
             resetCache();
             openMap();
-            resetCache();
         } finally {
             frame.resetTitle();
             frame.tiffPanel().reset();

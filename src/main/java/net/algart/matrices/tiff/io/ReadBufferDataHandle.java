@@ -74,7 +74,7 @@ public class ReadBufferDataHandle<L extends Location> extends AbstractHigherOrde
 	private final List<byte[]> pages;
 	private final int[] slotToPage;
 	private LRUReplacementStrategy replacementStrategy;
-	private final Map<Integer, Integer> pageToSlot;
+	private Map<Integer, Integer> pageToSlot;
 
 	/**
 	 * Cached length value, for performance. When reading data, length is not
@@ -152,12 +152,13 @@ public class ReadBufferDataHandle<L extends Location> extends AbstractHigherOrde
 		length = -1;
 		currentPage = null;
 		currentPageID = -1;
+		pageToSlot = new HashMap<>();
 		replacementStrategy = new LRUReplacementStrategy(numPages);
         try {
             handle().seek(0);
         } catch (IOException ignored) {
-            // not a problem here
-        }
+			// very improbable and should not affect the behavior
+		}
         offset = 0;
 	}
 
