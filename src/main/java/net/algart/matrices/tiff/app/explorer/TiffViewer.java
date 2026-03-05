@@ -229,21 +229,21 @@ class TiffViewer {
                 null;
     }
 
-    public void resetCache() {
+    public void resetCache() throws IOException {
         reader.resetCache();
         lastImageRectangle = null;
         lastImage = null;
         exception = null;
     }
 
-    void setTileGridVisibility(boolean visible) {
+    void setTileGridVisibility(boolean visible) throws IOException {
         if (visible != reader.isViewTileGrid()) {
             reader.setViewTileGrid(visible);
             resetCache();
         }
     }
 
-    void setTileGridThickness(int tileGridThickness) {
+    void setTileGridThickness(int tileGridThickness) throws IOException {
         reader.setTileGridThickness(tileGridThickness);
         resetCache();
     }

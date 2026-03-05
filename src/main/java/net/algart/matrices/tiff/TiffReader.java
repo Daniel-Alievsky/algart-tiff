@@ -161,10 +161,10 @@ public non-sealed class TiffReader extends TiffIO {
     private boolean missingTilesAllowed = false;
     private byte byteFiller = 0;
 
-    private final Exception openingException;
-    private final boolean tiff;
-    private final boolean validTiff;
-    private final boolean bigTiff;
+    private final IOException openingException;
+    private volatile boolean validTiff;
+    private volatile boolean tiff;
+    private volatile boolean bigTiff;
 
     /**
      * Cached list of IFDs in the current file.
@@ -297,13 +297,11 @@ public non-sealed class TiffReader extends TiffIO {
                 } catch (Exception ignored) {
                 }
             }
-            if (openingException instanceof IOException e) {
-                throw e;
+            if (openingException != null) {
+                throw openingException;
+            } else {
+                throw new AssertionError("Should not occur!");
             }
-            if (openingException instanceof RuntimeException e) {
-                throw e;
-            }
-            throw new TiffException(openingException);
         }
         if (openMode.isRequireTiff()) {
             checkFirstOffset();
@@ -346,12 +344,7 @@ public non-sealed class TiffReader extends TiffIO {
                 new ReadBufferDataHandle<>(inputStream));
         // - Note: the argument inputStream cannot be ReadBufferDataHandle if we use TiffWriter.newReader method.
         // ReadBufferDataHandle is read-only (cannot write anything), so it cannot be used in TiffWriter.
-        AtomicBoolean tiff = new AtomicBoolean(false);
-        AtomicBoolean bigTiff = new AtomicBoolean(false);
-        this.openingException = startReading(tiff, bigTiff);
-        this.tiff = tiff.get();
-        this.bigTiff = bigTiff.get();
-        this.validTiff = openingException == null;
+        this.openingException = startReading();
         // - in the current version, a TIFF but invalid can be detected when
         // its length < MINIMAL_ALLOWED_TIFF_FILE_LENGTH (see testHeader())
         assert !(this.validTiff && !this.tiff);
@@ -391,7 +384,7 @@ public non-sealed class TiffReader extends TiffIO {
         return this;
     }
 
-    public TiffReader resetCache() {
+    public TiffReader resetCache() throws IOException {
         synchronized (tileCacheLock) {
             synchronized (fileLock) {
                 tileCacheMap.clear();
@@ -402,6 +395,10 @@ public non-sealed class TiffReader extends TiffIO {
                     throw new AssertionError("Input stream was not correcty replaced in the constructor");
                 }
                 ((ReadBufferDataHandle<?>) stream).reset();
+                final IOException exception = startReading();
+                if (exception != null) {
+                    throw exception;
+                }
         }
         return this;
     }
@@ -1830,27 +1827,26 @@ public non-sealed class TiffReader extends TiffIO {
         timeCompleteDecoding = 0;
     }
 
-    // We prefer to make this.tiff and this.bigTiff final fields, so we cannot set them outside the constructor
-    private Exception startReading(AtomicBoolean tiffReference, AtomicBoolean bigTiffReference) {
-        tiffReference.set(false);
-        bigTiffReference.set(false);
-        try {
-            synchronized (fileLock) {
-                // - this synchronization is extra, but may become useful
-                // if we decide to make this method public and called not only from the constructor
+    private IOException startReading() {
+        synchronized (fileLock) {
+            try {
+                this.tiff = false;
+                this.bigTiff = false;
+                this.validTiff = false;
                 if (!stream.exists()) {
                     return new FileNotFoundException("File not found:" + spacedStreamName());
                 }
-                testHeader(tiffReference, bigTiffReference);
-                assert tiffReference.get();
+                testHeader();
+                assert this.tiff;
+                this.validTiff = true;
                 return null;
+            } catch (IOException e) {
+                return e;
             }
-        } catch (IOException e) {
-            return e;
         }
     }
 
-    private void testHeader(AtomicBoolean tiffReference, AtomicBoolean bigTiffReference) throws IOException {
+    private void testHeader() throws IOException {
         // TIFF file header:
         //  16 bits - TIFF byte-order identifier:
         //                  4949h ("II", little-endian, Intel format)
@@ -1890,8 +1886,8 @@ public non-sealed class TiffReader extends TiffIO {
             if (magic != FILE_USUAL_MAGIC_NUMBER && magic != FILE_BIG_TIFF_MAGIC_NUMBER) {
                 throw new TiffException("The file" + spacedStreamName() + " is not TIFF");
             }
-            tiffReference.set(true);
-            bigTiffReference.set(bigTiff);
+            this.tiff = true;
+            this.bigTiff = bigTiff;
             // - this is definitely TIFF, but, probably, non-valid; in the latter case we will throw exceptions
             if (length < MINIMAL_ALLOWED_TIFF_FILE_LENGTH) {
                 // - sometimes we can meet 8-byte "TIFF files" (or 16-byte "BigTIFF") that contain only header
@@ -2087,13 +2083,12 @@ public non-sealed class TiffReader extends TiffIO {
         }
         if (offset < 0) {
             // - possibly in BigTIFF only
-            throw new TiffException("Invalid TIFF" + spacedStreamName() +
-                    ": negative 64-bit offset " + offset + " at file position " + fileOffset +
-                    ", probably the file is corrupted");
+            throw new TiffException(("Invalid TIFF%s: negative 64-bit offset %d (0x%X) at file position %d, " +
+                    "probably the file is corrupted").formatted(spacedStreamName(), offset, offset, fileOffset));
         }
         if (offset >= fileLength) {
-            throw new TiffException("Invalid TIFF" + spacedStreamName() + ": offset " + offset +
-                    " at file position " + fileOffset + " is outside the file, probably the is corrupted");
+            throw new TiffException(("Invalid TIFF%s: offset %d (0x%X) at file position %d is outside the file, " +
+                    "probably the is corrupted").formatted(spacedStreamName(), offset, offset, fileOffset));
         }
         if (updatePositionOfLastOffset) {
             this.positionOfLastIFDOffset = fileOffset;

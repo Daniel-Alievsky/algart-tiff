@@ -119,8 +119,7 @@ class JTiffFrame extends JFrame {
                 map.numberOfChannels(), map.numberOfChannels() == 1 ? "" : "s",
                 bitDepth.isPresent() ? bitDepth.getAsInt() : Arrays.toString(map.bitsPerSample()),
                 map.compression().orElse(TagCompression.NONE).prettyName(),
-                zoomTitle,
-                viewer.path().getFileName()));
+                zoomTitle, viewer.path().getFileName()));
     }
 
     private JMenuBar buildMenuBar() {
@@ -245,8 +244,12 @@ class JTiffFrame extends JFrame {
                 "Draw %s".formatted(viewer.map().isTiled() ? "tile grid" : "strip boundaries"));
         tileGridItem.setSelected(false);
         tileGridItem.addActionListener(e -> {
-            viewer.setTileGridVisibility(tileGridItem.isSelected());
-            tiffPanel.repaint();
+            try {
+                viewer.setTileGridVisibility(tileGridItem.isSelected());
+                tiffPanel.repaint();
+            } catch (IOException ex) {
+                showErrorMessage(ex, "Error reloading image");
+            }
         });
         viewMenu.add(tileGridItem);
 
@@ -297,10 +300,10 @@ class JTiffFrame extends JFrame {
             try {
                 tiffScrollPane.setZoomWithCentering(zoomValue);
                 resetTitle();
-            } catch (TooBigZoomException ex) {
+                viewer.setTileGridThickness(tileGridThickness);
+            } catch (TooBigZoomException | IOException ex) {
                 showErrorMessage(ex, "Cannot set zoom");
             }
-            viewer.setTileGridThickness(tileGridThickness);
             tiffPanel.repaint();
             item.setSelected(true);
         });

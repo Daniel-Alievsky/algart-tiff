@@ -144,24 +144,21 @@ public class ReadBufferDataHandle<L extends Location> extends AbstractHigherOrde
 	public void reset() {
 		final int numPages = slotToPage.length;
 		Arrays.fill(slotToPage, -1);
-		pages.clear();
 		for (int i = 0; i < numPages; i++) {
-			pages.add(null);
+			pages.set(i, null);
 		}
-		pageToSlot.clear();
 		length = -1;
 		currentPage = null;
 		currentPageID = -1;
+		offset = 0;
 		pageToSlot = new HashMap<>();
 		replacementStrategy = new LRUReplacementStrategy(numPages);
-        try {
+		try {
+            //noinspection resource
             handle().seek(0);
-        } catch (IOException ignored) {
-			// very improbable and should not affect the behavior
+		} catch (IOException ignored) {
 		}
-        offset = 0;
 	}
-
 	/**
 	 * Ensures that the byte at the given offset is buffered, and sets the current
 	 * page to be the one containing the specified location.
@@ -179,7 +176,7 @@ public class ReadBufferDataHandle<L extends Location> extends AbstractHigherOrde
 			// update the mappings
 			slotToPage[slotID] = pageID;
 			pageToSlot.put(pageID, slotID);
-			pageToSlot.put(inSlotID, null);
+			pageToSlot.remove(inSlotID);
 
 			// read the page
 			currentPage = readPage(pageID, slotID);
