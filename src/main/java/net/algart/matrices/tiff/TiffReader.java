@@ -31,6 +31,7 @@ import net.algart.matrices.tiff.data.TiffJPEGDecodingHelper;
 import net.algart.matrices.tiff.data.TiffPrediction;
 import net.algart.matrices.tiff.data.TiffUnpacking;
 import net.algart.matrices.tiff.data.TiffUnusualPrecisions;
+import net.algart.matrices.tiff.io.ReadBufferDataHandle;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.matrices.tiff.tags.TagTypes;
@@ -38,7 +39,6 @@ import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.*;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.FileHandle;
-import org.scijava.io.handle.ReadBufferDataHandle;
 import org.scijava.io.location.FileLocation;
 
 import java.awt.image.BufferedImage;
@@ -397,6 +397,11 @@ public non-sealed class TiffReader extends TiffIO {
                 tileCacheMap.clear();
                 this.allIFDs = null;            }
                 this.mainIFDs = null;
+                this.positionOfLastIFDOffset = -1;
+                if (!(stream instanceof ReadBufferDataHandle<?>)) {
+                    throw new AssertionError("Input stream was not correcty replaced in the constructor");
+                }
+                ((ReadBufferDataHandle<?>) stream).resetCache();
         }
         return this;
     }

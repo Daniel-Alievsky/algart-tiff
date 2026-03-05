@@ -35,7 +35,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.function.Predicate;
 
-public final class TiffWriteMap extends TiffIOMap {
+public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
     private static final boolean AUTO_INTERLEAVE_SOURCE = true;
     // - See TiffWriter.AUTO_INTERLEAVE_SOURCE.
     // IF YOU CHANGE IT, YOU MUST CORRECT ALSO TiffWriter.AUTO_INTERLEAVE_SOURCE.
@@ -46,7 +46,7 @@ public final class TiffWriteMap extends TiffIOMap {
     private final boolean existing;
 
     public TiffWriteMap(TiffWriter owner, TiffIFD ifd, boolean resizable, boolean existing) {
-        super(ifd, resizable);
+        super(owner, ifd, resizable);
         if (existing) {
             if (!ifd.isLoadedFromFile()) {
                 throw new IllegalArgumentException("For existing map, IFD must be read from TIFF file");
@@ -62,17 +62,6 @@ public final class TiffWriteMap extends TiffIOMap {
     @Override
     public TiffReader reader() {
         return owner.reader();
-    }
-
-    /**
-     * Returns the associated owning writer, passed to the constructor.
-     * Never returns <code>null</code>.
-     *
-     * @return the writer-owner.
-     */
-    @Override
-    public TiffWriter owner() {
-        return owner;
     }
 
     @Override

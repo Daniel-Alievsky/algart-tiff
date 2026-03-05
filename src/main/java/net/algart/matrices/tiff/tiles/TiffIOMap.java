@@ -37,19 +37,30 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-public abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, TiffWriteMap {
+public abstract sealed class TiffIOMap<IO extends TiffIO> extends TiffMap permits TiffReadMap, TiffWriteMap {
     @FunctionalInterface
     public interface TileSupplier {
         TiffTile getTile(TiffTileIndex tiffTileIndex) throws IOException;
     }
 
-    public TiffIOMap(TiffIFD ifd, boolean resizable) {
+    private final IO owner;
+
+    public TiffIOMap(IO owner, TiffIFD ifd, boolean resizable) {
         super(ifd, resizable);
+        this.owner = Objects.requireNonNull(owner, "Null owner");
     }
 
     public abstract TiffReader reader();
 
-    public abstract TiffIO owner();
+    /**
+     * Returns the associated owning reader or writer, passed to the constructor.
+     * Never returns <code>null</code>.
+     *
+     * @return the reader-owner.
+     */
+    public final IO owner() {
+        return owner;
+    };
 
     @SuppressWarnings("resource")
     public String streamName() {

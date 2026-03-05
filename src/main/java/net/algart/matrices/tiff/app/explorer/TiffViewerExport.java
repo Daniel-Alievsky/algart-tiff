@@ -73,9 +73,9 @@ class TiffViewerExport {
     private JButton cancelCopyButton;
     private JDialog copySettingsDialog;
 
-    public TiffViewerExport(TiffViewer viewer, JFrame frame) {
-        this.viewer = Objects.requireNonNull(viewer);
+    public TiffViewerExport(JTiffFrame frame) {
         this.frame = Objects.requireNonNull(frame);
+        this.viewer = frame.viewer();
     }
 
     public Path chooseFileToExport(boolean processSelection) {

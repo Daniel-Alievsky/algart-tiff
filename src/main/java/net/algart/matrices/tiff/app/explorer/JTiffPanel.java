@@ -135,7 +135,7 @@ class JTiffPanel extends JComponent {
         return zoom;
     }
 
-    public JTiffPanel setZoom(double zoom) {
+    public JTiffPanel setZoom(double zoom) throws TooBigZoomException {
         if (zoom <= 0.0) {
             throw new IllegalArgumentException("Negative zoom: " + zoom);
         }
@@ -143,7 +143,7 @@ class JTiffPanel extends JComponent {
             long canvasDimX = Math.round(map.dimX() * zoom);
             long canvasDimY = Math.round(map.dimY() * zoom);
             if (canvasDimX > Integer.MAX_VALUE || canvasDimY > Integer.MAX_VALUE) {
-                throw new IllegalArgumentException(
+                throw new TooBigZoomException(
                         "Too big zoom: the zoomed image will be " + canvasDimX + "x" + canvasDimY);
             }
             this.zoom = zoom;

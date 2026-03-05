@@ -34,7 +34,7 @@ import java.nio.file.Path;
 
 class TiffReaderWithGrid extends TiffReader {
     private boolean viewTileGrid = false;
-    private int border = 1;
+    private int tileGridThickness = 1;
 
     TiffReaderWithGrid(Path tiffFile) throws IOException {
         super(tiffFile);
@@ -49,22 +49,22 @@ class TiffReaderWithGrid extends TiffReader {
         return this;
     }
 
-    public int getBorder() {
-        return border;
+    public int getTileGridThickness() {
+        return tileGridThickness;
     }
 
-    public TiffReaderWithGrid setBorder(int border) {
-        if (border < 0) {
-            throw new IllegalArgumentException("Negative gap: " + border);
+    public TiffReaderWithGrid setTileGridThickness(int tileGridThickness) {
+        if (tileGridThickness < 0) {
+            throw new IllegalArgumentException("Negative tileGridThickness: " + tileGridThickness);
         }
-        this.border = border;
+        this.tileGridThickness = tileGridThickness;
         return this;
     }
 
     @Override
     public TiffTile readTile(TiffTileIndex tileIndex) throws IOException {
         final TiffTile tile = super.readTile(tileIndex);
-        if (viewTileGrid && border > 0) {
+        if (viewTileGrid && tileGridThickness > 0) {
             addTileBorder(tile);
         }
         return tile;
@@ -79,7 +79,7 @@ class TiffReaderWithGrid extends TiffReader {
         final int sizeX = tile.getSizeX() * sample;
         final int sizeY = tile.getSizeY();
         final int sizeInBits = sizeX * sizeY;
-        final int gap = Math.min(this.border, Math.min(tile.getSizeX(), tile.getSizeY()) / 2);
+        final int gap = Math.min(this.tileGridThickness, Math.min(tile.getSizeX(), tile.getSizeY()) / 2);
         final int filledSamples = sample * gap;
         final int filledLines = sizeX * gap;
         // - just in case

@@ -42,7 +42,7 @@ class JTiffScrollPane extends JScrollPane {
         initPanListener();
     }
 
-    public void setZoomWithCentering(double newZoom) {
+    public void setZoomWithCentering(double newZoom) throws TooBigZoomException {
         final JViewport viewport = this.getViewport();
 
         final double oldZoom = tiffPanel.getZoom();

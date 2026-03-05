@@ -83,7 +83,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     public String streamName(String prefix) {
         Objects.requireNonNull(prefix, "Null prefix");
         if (filePath != null) {
-            return filePath.toString();
+            return prefix + filePath;
         }
         Location location = stream.get();
         if (location == null) {
@@ -93,7 +93,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         if (uri == null) {
             return "";
         }
-        return (prefix + "%s").formatted(uri);
+        return prefix + uri;
     }
 
     public Context getContext() {
