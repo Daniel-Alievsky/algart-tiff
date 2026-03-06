@@ -52,7 +52,6 @@ import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -200,7 +199,7 @@ public non-sealed class TiffReader extends TiffIO {
      * Equivalent to <code>{@link #TiffReader(Path, TiffOpenMode)
      * TiffReader}(file, {@link TiffOpenMode#VALID_TIFF})</code>.
      *
-     * @param file input TIFF tile.
+     * @param file input TIFF file.
      * @throws IOException in the case of any I/O errors, including a non-TIFF file or non-existing file.
      */
     public TiffReader(Path file) throws IOException {
@@ -384,11 +383,35 @@ public non-sealed class TiffReader extends TiffIO {
         return this;
     }
 
+    /**
+     * Clears all cached data and initializes the reader by re-reading the TIFF header.
+     *
+     * <p>This method removes all cached tiles and cached IFD structures, clears an internal cache in
+     * the {@link ReadBufferDataHandle} input stream, and reads the TIFF header again by calling
+     * the same internal initialization logic that is used in the constructor.</p>
+     *
+     * <p>Unlike the constructor, this method is stricter: if the underlying stream does
+     * not represent a valid TIFF file or if any I/O error occurs while re-reading the
+     * header, an {@link IOException} is thrown.</p>
+     *
+     * <p>After a successful call, the reader state is equivalent to a freshly opened
+     * {@code TiffReader} for the same stream.</p>
+     *
+     * <p>This method is thread-safe and synchronizes on both the tile cache lock and
+     * the file lock.</p>
+     *
+     * @return this reader.
+     * @throws IOException if the tile is not a valid TIFF file,
+     *                     or if an I/O error occurs while re-reading the header
+     */
     public TiffReader resetCache() throws IOException {
         synchronized (tileCacheLock) {
             synchronized (fileLock) {
-                tileCacheMap.clear();
-                this.allIFDs = null;            }
+                // Lock order: tileCacheLock -> fileLock; we should use the same order in all places!
+                this.tileCacheMap.clear();
+                this.tileCache.clear();
+                this.currentCacheMemory = 0;
+                this.allIFDs = null;
                 this.mainIFDs = null;
                 this.positionOfLastIFDOffset = -1;
                 if (!(stream instanceof ReadBufferDataHandle<?>)) {
@@ -399,6 +422,7 @@ public non-sealed class TiffReader extends TiffIO {
                 if (exception != null) {
                     throw exception;
                 }
+            }
         }
         return this;
     }
@@ -1255,6 +1279,7 @@ public non-sealed class TiffReader extends TiffIO {
         long t2 = debugTime();
 
         if (codec != null) {
+            // assert compression != null;
             options = compression.customizeReading(tile, options);
             if (USE_LEGACY_UNPACK_BYTES) {
                 options.setInterleaved(true);
@@ -1271,7 +1296,7 @@ public non-sealed class TiffReader extends TiffIO {
             if (decodedData.isEmpty()) {
                 throw new UnsupportedTiffFormatException("TIFF compression with code " +
                         tile.compressionCode() +
-                        (tile.compression().isPresent() ? " (" + tile.compression().get().prettyName() + ")": "") +
+                        (tile.compression().isPresent() ? " (" + tile.compression().get().prettyName() + ")" : "") +
                         " cannot be decoded");
             }
             tile.setPartiallyDecodedData(decodedData.get());
@@ -2385,7 +2410,7 @@ public non-sealed class TiffReader extends TiffIO {
                     tileCache.add(this);
                     LOG.log(System.Logger.Level.TRACE, () -> "STORING tile in cache: " + tileIndex);
                     while (currentCacheMemory > maxCacheMemory) {
-                        CachedTile cached = tileCache.remove();
+                        final CachedTile cached = tileCache.remove();
                         assert cached != null;
                         currentCacheMemory -= cached.cachedDataLength;
                         cached.cachedTile = null;

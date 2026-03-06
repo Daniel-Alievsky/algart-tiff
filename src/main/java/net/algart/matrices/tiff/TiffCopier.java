@@ -521,8 +521,8 @@ public final class TiffCopier {
         final int gridCountX = writeMap.gridCountX();
         final int mapTileSizeX = writeMap.tileSizeX();
         final int mapTileSizeY = writeMap.tileSizeY();
-        assert readMap.tileSizeX() == mapTileSizeX;
-        assert readMap.tileSizeY() == mapTileSizeY;
+        assert readMap.tileSizeX() == mapTileSizeX : "different tiles in " + readMap + " and " + writeMap;
+        assert readMap.tileSizeY() == mapTileSizeY : "different tiles in " + readMap + " and " + writeMap;
         final boolean directCopy = canCopyRectangleDirectly(writeMap, readMap, fromX, fromY);
         final boolean swapOrder = !readMap.isByteOrderCompatible(writeMap.byteOrder());
         if (swapOrder && directCopy) {
