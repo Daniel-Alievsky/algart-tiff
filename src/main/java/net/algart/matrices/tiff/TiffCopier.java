@@ -521,8 +521,16 @@ public final class TiffCopier {
         final int gridCountX = writeMap.gridCountX();
         final int mapTileSizeX = writeMap.tileSizeX();
         final int mapTileSizeY = writeMap.tileSizeY();
-        assert readMap.tileSizeX() == mapTileSizeX : "different tiles in " + readMap + " and " + writeMap;
-        assert readMap.tileSizeY() == mapTileSizeY : "different tiles in " + readMap + " and " + writeMap;
+        assert readMap.isTiled() == writeMap.isTiled() : "Different tiling";
+        if (readMap.isTiled()) {
+            // - for stripped images, the strip width is equal to the image width and can be different
+            if (readMap.tileSizeX() != mapTileSizeX) {
+                throw new AssertionError("Different tiles in%n%s and %n%s".formatted(readMap, writeMap));
+            }
+            if (readMap.tileSizeY() != mapTileSizeY) {
+                throw new AssertionError("Different tiles in%n%s and %n%s".formatted(readMap, writeMap));
+            }
+        }
         final boolean directCopy = canCopyRectangleDirectly(writeMap, readMap, fromX, fromY);
         final boolean swapOrder = !readMap.isByteOrderCompatible(writeMap.byteOrder());
         if (swapOrder && directCopy) {
