@@ -285,6 +285,7 @@ public non-sealed class TiffReader extends TiffIO {
             throws IOException {
         this(checkNonNull(inputStream, openMode), (Consumer<Exception>) null);
         assert this.tiff || !this.validTiff;
+        // - in other words, if validTiff, then tiff
         if (!openMode.isAnythingChecked()) {
             return;
         }
