@@ -388,8 +388,9 @@ public non-sealed class TiffReader extends TiffIO {
      * Clears all cached data and initializes the reader by re-reading the TIFF header.
      *
      * <p>This method removes all cached tiles and cached IFD structures, clears an internal cache in
-     * the {@link ReadBufferDataHandle} input stream, and reads the TIFF header again by calling
-     * the same internal initialization logic that is used in the constructor.</p>
+     * the {@link ReadBufferDataHandle} input stream and seeks it to zero position,
+     * and then reads the TIFF header again by calling
+     * the same initialization logic that is used in the constructor.</p>
      *
      * <p>Unlike the constructor, this method is stricter: if the underlying stream does
      * not represent a valid TIFF file or if any I/O error occurs while re-reading the
@@ -402,7 +403,7 @@ public non-sealed class TiffReader extends TiffIO {
      * the file lock.</p>
      *
      * @return this reader.
-     * @throws IOException if the tile is not a valid TIFF file,
+     * @throws IOException if the file is not a valid TIFF file,
      *                     or if an I/O error occurs while re-reading the header
      */
     public TiffReader resetCache() throws IOException {
