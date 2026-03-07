@@ -126,7 +126,8 @@ class JTiffFrame extends JFrame {
         JMenuBar menuBar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
         JMenuItem saveImageAsTiffItem = new JMenuItem("Save image as TIFF...");
-        saveImageAsTiffItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
+        saveImageAsTiffItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
+                InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
         saveImageAsTiffItem.addActionListener(e -> {
             final var export = new TiffViewerExport(this);
             Path file = export.chooseTiffFileToSave(false);
@@ -158,7 +159,7 @@ class JTiffFrame extends JFrame {
 
         JMenuItem saveSelectionAsTiffItem = new JMenuItem("Save selection as TIFF...");
         saveSelectionAsTiffItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
-                InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
+                InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
         saveSelectionAsTiffItem.addActionListener(e -> {
             final var export = new TiffViewerExport(this);
             Path file = export.chooseTiffFileToSave(true);
