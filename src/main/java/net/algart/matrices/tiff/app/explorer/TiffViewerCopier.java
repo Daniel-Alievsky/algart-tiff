@@ -215,7 +215,7 @@ class TiffViewerCopier {
         if (selection != null) {
             final String directComment = !tiled ? """
                     Quick direct copying is unavailable: this image is stripped (not tiled).<br>
-                    Direct copying is designed for large tiled images (e.g., SVS pyramids).
+                    Direct copying is designed for copying large tiled images (such as SVS pyramids).
                     """
                     : tileAligned ? """
                     Quick copying is available: selection corner (%d,%d) is aligned to the tile grid.
