@@ -189,38 +189,38 @@ public class TiffExplorer {
             return;
         }
 
-        JDialog dialog = new JDialog(frame, "Edit image description", true);
+        final JDialog dialog = new JDialog(frame, "Edit image description", true);
         dialog.setLayout(new BorderLayout(10, 10));
 
-        JPanel content = new JPanel();
+        final JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        JTextArea descriptionArea = new JTextArea(6, 60);
+        final JTextArea descriptionArea = new JTextArea(6, 60);
         descriptionArea.setLineWrap(false);
         descriptionArea.setWrapStyleWord(true);
         descriptionArea.setFont(frame.getCurrentPreferredMonoFont());
-        String description = info.metadata().description(index).description("");
+        final String description = info.metadata().description(index).description("");
         descriptionArea.setText(description);
         descriptionArea.setCaretPosition(0);
 
-        JScrollPane scrollPane = new JScrollPane(
+        final JScrollPane scrollPane = new JScrollPane(
                 descriptionArea,
                 JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                 JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
         );
         scrollPane.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel imageDescriptionLabel = new JLabel(
+        final JLabel imageDescriptionLabel = new JLabel(
                 "Description of TIFF image #%d (\"ImageDescription\" tag)".formatted(index));
         imageDescriptionLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         content.add(imageDescriptionLabel);
         content.add(Box.createVerticalStrut(5));
         content.add(scrollPane);
 
-        JPanel toolsPanel = new JPanel(new BorderLayout());
+        final JPanel toolsPanel = new JPanel(new BorderLayout());
         toolsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        JCheckBox wordWrapCheckbox = new JCheckBox("Word wrap");
+        final JCheckBox wordWrapCheckbox = new JCheckBox("Word wrap");
         wordWrapCheckbox.setSelected(false);
         wordWrapCheckbox.addActionListener(event -> {
             boolean wordWrap = wordWrapCheckbox.isSelected();
@@ -232,7 +232,7 @@ public class TiffExplorer {
         toolsPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, toolsPanel.getPreferredSize().height));
         content.add(Box.createVerticalStrut(10));
 
-        JLabel warningLabel = new JLabel("""
+        final JLabel warningLabel = new JLabel("""
                 <html>Warning! This action will rewrite the IFD in the TIFF file:<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
                 The current image description will be permanently <b>replaced</b>.<br>
@@ -243,8 +243,8 @@ public class TiffExplorer {
 
         dialog.add(content, BorderLayout.CENTER);
 
-        JButton okButton = new JButton("Rewrite IFD in the file");
-        JButton cancelButton = new JButton("Cancel");
+        final JButton okButton = new JButton("Rewrite IFD in the file");
+        final JButton cancelButton = new JButton("Cancel");
 
         okButton.addActionListener(event -> {
             String newDescription = descriptionArea.getText();
@@ -257,7 +257,7 @@ public class TiffExplorer {
         });
         cancelButton.addActionListener(e -> dialog.dispose());
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        final JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         buttonPanel.add(okButton);
         buttonPanel.add(cancelButton);
         dialog.add(buttonPanel, BorderLayout.SOUTH);

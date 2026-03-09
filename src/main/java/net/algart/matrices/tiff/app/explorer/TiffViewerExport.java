@@ -236,8 +236,9 @@ class TiffViewerExport {
         copySettingsDialog.add(mainPanel, BorderLayout.CENTER);
 
         final JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        startCopyButton = new JButton("Start");
-        cancelCopyButton = new JButton("Cancel");
+        startCopyButton = new JButton();
+        cancelCopyButton = new JButton();
+        initializeButtons();
         buttonPanel.add(startCopyButton);
         buttonPanel.add(cancelCopyButton);
         copySettingsDialog.add(buttonPanel, BorderLayout.SOUTH);
@@ -256,9 +257,17 @@ class TiffViewerExport {
         copySettingsDialog.setVisible(true);
     }
 
+    private void initializeButtons() {
+        startCopyButton.setText("Start");
+        cancelCopyButton.setText("Cancel");
+        startCopyButton.setEnabled(true);
+        startCopyButton.setVisible(true);
+    }
+
     private void startCopy(Path targetFile, Rectangle r) {
         final TiffCopier copier = buildCopier();
         final Double compressionQuality = getCompressionQuality();
+        stopRequested = false;
         startCopyButton.setEnabled(false);
         startCopyButton.setVisible(false);
         cancelCopyButton.setText("Cancel copying");
@@ -291,7 +300,11 @@ class TiffViewerExport {
                 }
                 copyingInProgress = false;
                 copySettingsDialog.getRootPane().setDefaultButton(cancelCopyButton);
-                cancelCopyButton.setText("Close");
+                if (copier.isCancalled()) {
+                    initializeButtons();
+                } else {
+                    cancelCopyButton.setText("Close");
+                }
                 // copySettingsDialog.dispose();
             }
 

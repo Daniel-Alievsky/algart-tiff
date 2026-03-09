@@ -92,6 +92,7 @@ public final class TiffCopier {
     private TagCompression compression = null;
     private Consumer<ProgressInformation> progressUpdater = null;
     private BooleanSupplier interruptionChecker = null;
+    private volatile boolean cancelled = false;
     private final ProgressInformation progressInformation = new ProgressInformation();
 
     private boolean actuallyDirectCopy = false;
@@ -281,6 +282,10 @@ public final class TiffCopier {
 
     public ProgressInformation progressInformation() {
         return progressInformation;
+    }
+
+    public boolean isCancalled() {
+        return cancelled;
     }
 
     public boolean actuallyDirectCopy() {
@@ -742,8 +747,8 @@ public final class TiffCopier {
         try {
             long t1 = TiffIO.debugTime();
             final long sizeInBytes;
-            shouldBreak();
-            // - ignore the result: no sense to break at this last stage
+            updateProgress();
+            // - don't try to break: no sense at this last stage
             if (tempBuffer instanceof BytesHandle tempBytes) {
                 try (DataHandle<?> tiffStream = TiffIO.getFileHandle(tiffFile)) {
                     sizeInBytes = TiffIO.copyFile(tempBytes, tiffStream);
@@ -781,13 +786,22 @@ public final class TiffCopier {
         progressInformation.tileIndex = 0;
         progressInformation.tileCount = 0;
         progressInformation.copyingTemporaryFile = false;
+        cancelled = false;
     }
 
     private boolean shouldBreak() {
+        updateProgress();
+        final boolean result = interruptionChecker != null && interruptionChecker.getAsBoolean();
+        if (result) {
+            cancelled = true;
+        }
+        return result;
+    }
+
+    private void updateProgress() {
         if (progressUpdater != null) {
             progressUpdater.accept(progressInformation);
         }
-        return interruptionChecker != null && interruptionChecker.getAsBoolean();
     }
 }
 

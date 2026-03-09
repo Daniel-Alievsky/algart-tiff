@@ -493,7 +493,7 @@ public class JTiffExplorerFrame extends JFrame {
         }
     }
 
-    void setOpenInProgress(boolean inProgress) {
+    private void setOpenInProgress(boolean inProgress) {
         openFileButton.setEnabled(!inProgress);
         openItem.setEnabled(!inProgress);
         reloadItem.setEnabled(!inProgress);

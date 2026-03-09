@@ -329,26 +329,4 @@ class TiffViewer {
     private void showErrorMessage(Throwable e, String title) {
         TiffExplorer.showErrorMessage(frame, e, title);
     }
-
-    private static final class MenuUpdater implements MenuListener {
-        private final Runnable updater;
-
-        private MenuUpdater(Runnable updater) {
-            this.updater = updater;
-        }
-
-        @Override
-        public void menuSelected(MenuEvent e) {
-            updater.run();
-        }
-
-        @Override
-        public void menuDeselected(MenuEvent e) {
-
-        }
-
-        @Override
-        public void menuCanceled(MenuEvent e) {
-        }
-    }
 }
