@@ -26,16 +26,12 @@ package net.algart.matrices.tiff.app.explorer;
 
 import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.app.TiffInfo;
-import net.algart.matrices.tiff.pyramids.TiffPyramidMetadata;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
-import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -47,57 +43,10 @@ import java.util.prefs.Preferences;
 public class TiffExplorer {
     public static final String ALGART_TIFF_WEBSITE = "https://algart.net/java/AlgART-TIFF/";
 
-    public enum ViewMode {
-        BRIEF(TiffIFD.StringFormat.BRIEF, "Brief"),
-        NORMAL(TiffIFD.StringFormat.NORMAL, "Normal"),
-        NORMAL_SORTED(TiffIFD.StringFormat.NORMAL_SORTED, "Normal (sorted)"),
-        DETAILED(TiffIFD.StringFormat.DETAILED, "Detailed"),
-        JSON(TiffIFD.StringFormat.JSON, "JSON");
-
-        private final TiffIFD.StringFormat stringFormat;
-        private final String caption;
-
-        ViewMode(TiffIFD.StringFormat stringFormat, String caption) {
-            this.stringFormat = stringFormat;
-            this.caption = caption;
-        }
-
-        @Override
-        public String toString() {
-            return caption;
-        }
-    }
-
-    private enum FontFamily {
-        STANDARD("System (default)"),
-        CONSOLAS("Consolas");
-        // - CONSOLAS has a reduced set of characters, for example, no Hebrew
-        private final String fontName;
-
-        FontFamily(String fontName) {
-            this.fontName = fontName;
-        }
-    }
-
     private static final float ALL_FONTS_SCALE = 1.2f;
     // - default font sizes in Java API are usually too small
-    private static final String APPLICATION_TITLE = "TIFF Information Viewer";
-    private static final boolean DEFAULT_WORD_WRAP = false;
-    private static final int DEFAULT_FONT_SIZE = 15;
-    private static final int[] FONT_SIZES = {12, DEFAULT_FONT_SIZE, 18, 22};
-    private static final FontFamily DEFAULT_FONT_FAMILY = FontFamily.CONSOLAS;
-    private static final Color COMMON_BACKGROUND = new Color(240, 240, 240);
-    private static final Color ERROR_BACKGROUND = new Color(255, 255, 155);
-    private static final Color SVS_FOREGROUND = new Color(0, 128, 0);
 
     private static final String PREF_LAST_DIR = "lastDirectory";
-    private static final String PREF_WINDOW_X = "windowX";
-    private static final String PREF_WINDOW_Y = "windowY";
-    private static final String PREF_WINDOW_WIDTH = "windowWidth";
-    private static final String PREF_WINDOW_HEIGHT = "windowHeight";
-    private static final String PREF_FONT_FAMILY = "fontFamily";
-    private static final String PREF_FONT_SIZE = "fontSize";
-    private static final String PREF_WORD_WRAP = "wordWrap";
 
     private static final FileFilter TIFF_FILTER = new FileNameExtensionFilter(
             "TIFF / SVS files (*.tif, *.tiff, *.svs)", "tif", "tiff", "svs");
@@ -108,28 +57,12 @@ public class TiffExplorer {
 
     static final Preferences PREFERENCES = Preferences.userNodeForPackage(TiffExplorer.class);
 
-    private JFrame frame;
-    private JButton openFileButton;
-    private JButton showImageButton;
-    private JMenuItem openItem;
-    private JMenuItem reloadItem;
-    private JMenuItem showImageItem;
-    private JComboBox<String> ifdComboBox;
-    private JTextArea ifdTextArea;
-    private JTextArea summaryInfoTextArea;
-    private JTextArea svsInfoTextArea;
+    private JTiffExplorerFrame frame;
     private FileFilter lastFileFilter = TIFF_FILTER;
-
-    private int fontSize = DEFAULT_FONT_SIZE;
-    private FontFamily fontFamily = DEFAULT_FONT_FAMILY;
-    private boolean wordWrap = DEFAULT_WORD_WRAP;
 
     private TiffInfo info = null;
     private Path tiffFile = null;
     private TiffIFD.StringFormat stringFormat = TiffIFD.StringFormat.NORMAL;
-
-    private volatile boolean loadingInProgress = false;
-    private volatile boolean loadingOk = false;
 
     public static void main(String[] args) {
         if (args.length >= 1 && args[0].equals("-h")) {
@@ -158,306 +91,36 @@ public class TiffExplorer {
             try {
                 tiffExplorer.createGUI(args);
             } catch (Throwable e) {
-                tiffExplorer.showErrorMessage(e, "Error while creating GUI");
+                showErrorMessage(tiffExplorer.frame, e, "Error while creating GUI");
             }
         });
     }
 
+    public TiffInfo getInfo() {
+        return info;
+    }
+
+    public Path getTiffFile() {
+        return tiffFile;
+    }
+
+    public TiffIFD.StringFormat getStringFormat() {
+        return stringFormat;
+    }
+
+    public TiffExplorer setStringFormat(TiffIFD.StringFormat stringFormat) {
+        this.stringFormat = stringFormat;
+        return this;
+    }
+
     private void createGUI(String[] args) {
-        loadPreferences();
-        frame = new JFrame(APPLICATION_TITLE);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setLayout(new BorderLayout());
-        frame.setJMenuBar(buildMenuBar());
-        setTiffExplorerIcon(frame);
-
-        JPanel topToolboxPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
-
-        openFileButton = new JButton("Open TIFF");
-        openFileButton.addActionListener(e -> chooseAndOpenFile());
-        topToolboxPanel.add(openFileButton);
-
-//        addFormatComboBox(topToolboxPanel);
-// - deprecated solution (replacing with the menu)
-
-        addIFDComboBox(topToolboxPanel);
-        addShowImageButton(topToolboxPanel);
-//        topPanel.add(topToolboxPanel, BorderLayout.WEST);
-        frame.add(topToolboxPanel, BorderLayout.NORTH);
-
-        addBottomInfoTextArea();
-        addIFDTextArea();
-
-        frame.pack();
-        final Dimension frameSize = frame.getPreferredSize();
-        frame.setMinimumSize(new Dimension(
-                frameSize.width, frameSize.height - ifdTextArea.getPreferredSize().height + 32));
-        // - the user cannot reduce window size too much, so that elements become invisible
-        frame.setLocationRelativeTo(null);
-        loadFramePreferences();
-        frame.addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-                savePreferences();
-            }
-        });
-        frame.setVisible(true);
+        this.frame = new JTiffExplorerFrame(this);
         if (args.length >= 1) {
             loadTiff(Path.of(args[0]));
         }
     }
 
-    private void addIFDTextArea() {
-        JPanel textPanel = new JPanel(new BorderLayout());
-        textPanel.setBackground(COMMON_BACKGROUND);
-        textPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        ifdTextArea = new JTextArea(10, 80);
-        ifdTextArea.setFont(getPreferredMonoFont(fontFamily, fontSize));
-        ifdTextArea.setEditable(false);
-        ifdTextArea.setLineWrap(wordWrap);
-        ifdTextArea.setWrapStyleWord(true);
-        ifdTextArea.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        ifdTextArea.setBackground(Color.WHITE);
-        ifdTextArea.setForeground(new Color(20, 20, 20));
-        ifdTextArea.setOpaque(true);
-        JScrollPane scrollPane = new JScrollPane(ifdTextArea,
-                JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        textPanel.add(scrollPane, BorderLayout.CENTER);
-        frame.add(textPanel, BorderLayout.CENTER);
-    }
-
-    private void addBottomInfoTextArea() {
-        summaryInfoTextArea = new JTextArea(2, 80);
-        summaryInfoTextArea.setEditable(false);
-        summaryInfoTextArea.setLineWrap(wordWrap);
-        summaryInfoTextArea.setWrapStyleWord(true);
-        summaryInfoTextArea.setBorder(BorderFactory.createEmptyBorder(3, 5, 3, 5));
-        summaryInfoTextArea.setFont(getPreferredMonoFont(fontFamily, fontSize));
-        summaryInfoTextArea.setBackground(COMMON_BACKGROUND);
-        summaryInfoTextArea.setForeground(new Color(20, 20, 20));
-        summaryInfoTextArea.setOpaque(true);
-        svsInfoTextArea = new JTextArea(1, 80);
-        svsInfoTextArea.setEditable(false);
-        svsInfoTextArea.setLineWrap(wordWrap);
-        svsInfoTextArea.setWrapStyleWord(true);
-        svsInfoTextArea.setBorder(BorderFactory.createEmptyBorder(3, 5, 3, 5));
-        svsInfoTextArea.setFont(getPreferredMonoFont(fontFamily, fontSize));
-        svsInfoTextArea.setBackground(COMMON_BACKGROUND);
-        svsInfoTextArea.setForeground(SVS_FOREGROUND);
-        svsInfoTextArea.setOpaque(true);
-        svsInfoTextArea.setVisible(false);
-        // - invisible by default
-        JPanel infoPanel = new JPanel();
-        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
-        infoPanel.add(summaryInfoTextArea);
-        infoPanel.add(svsInfoTextArea);
-        frame.add(infoPanel, BorderLayout.SOUTH);
-    }
-
-    private void addShowImageButton(JPanel toolboxPanel) {
-        showImageButton = new JButton("Show image");
-        showImageButton.setEnabled(false);
-        showImageButton.addActionListener(e -> showImageWindow());
-        toolboxPanel.add(Box.createHorizontalStrut(10));
-        toolboxPanel.add(showImageButton);
-    }
-
-    private void addIFDComboBox(JPanel toolboxPanel) {
-        ifdComboBox = new JComboBox<>();
-        ifdComboBox.setFont(new Font(Font.MONOSPACED, Font.PLAIN, DEFAULT_FONT_SIZE));
-        ifdComboBox.setMaximumRowCount(32);
-        ifdComboBox.addActionListener(e -> updateTextArea());
-        ifdComboBox.setPrototypeDisplayValue("Image #999");
-        toolboxPanel.add(Box.createHorizontalStrut(10));
-        toolboxPanel.add(new JLabel("Select TIFF image (IFD):"));
-        toolboxPanel.add(ifdComboBox);
-    }
-
-    // Deprecated
-    private void addFormatComboBox(JPanel toolboxPanel) {
-        JComboBox<ViewMode> formatComboBox = new JComboBox<>(ViewMode.values());
-        formatComboBox.setSelectedItem(stringFormat);
-        formatComboBox.addActionListener(e -> {
-            ViewMode selectedItem = (ViewMode) formatComboBox.getSelectedItem();
-            if (selectedItem != null) {
-                stringFormat = selectedItem.stringFormat;
-                reload();
-                updateTextArea();
-            }
-        });
-        toolboxPanel.add(Box.createRigidArea(new Dimension(10, 0)));
-        toolboxPanel.add(new JLabel("View mode:"));
-        toolboxPanel.add(formatComboBox);
-    }
-
-    private JMenuBar buildMenuBar() {
-        JMenuBar menuBar = new JMenuBar();
-
-        JMenu fileMenu = new JMenu("File");
-        openItem = new JMenuItem("Open TIFF...");
-        openItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
-        openItem.addActionListener(e -> chooseAndOpenFile());
-        fileMenu.add(openItem);
-        reloadItem = new JMenuItem("Reload TIFF");
-        reloadItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
-        reloadItem.addActionListener(e -> reload());
-        fileMenu.add(reloadItem);
-        fileMenu.addSeparator();
-
-        JMenuItem exitItem = new JMenuItem("Exit");
-        exitItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.ALT_DOWN_MASK));
-        exitItem.addActionListener(e ->
-                frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING)));
-        fileMenu.add(exitItem);
-
-        JMenu editMenu = new JMenu("Edit");
-        JMenuItem copyItem = new JMenuItem("Copy");
-        copyItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK));
-        copyItem.addActionListener(e -> ifdTextArea.copy());
-        editMenu.add(copyItem);
-        editMenu.addSeparator();
-
-        JMenuItem editDescriptionItem = new JMenuItem("Edit description...");
-        editDescriptionItem.addActionListener(e -> showEditDescriptionDialog());
-        editMenu.add(editDescriptionItem);
-
-        JMenu viewMenu = new JMenu("View");
-        JMenu viewModeMenu = new JMenu("View mode");
-        ButtonGroup viewModeGroup = new ButtonGroup();
-
-        for (final ViewMode viewMode : ViewMode.values()) {
-            JRadioButtonMenuItem item = new JRadioButtonMenuItem(viewMode.toString());
-            if (viewMode.stringFormat == stringFormat) {
-                item.setSelected(true);
-            }
-            item.addActionListener(e -> {
-                stringFormat = viewMode.stringFormat;
-                reload();
-                updateTextArea();
-            });
-
-            viewModeGroup.add(item);
-            viewModeMenu.add(item);
-        }
-        viewMenu.add(viewModeMenu);
-        viewMenu.addSeparator();
-
-        JMenu fontFamilyMenu = new JMenu("Font");
-        ButtonGroup fontFamilyGroup = new ButtonGroup();
-        for (FontFamily family : FontFamily.values()) {
-            JRadioButtonMenuItem familyItem = new JRadioButtonMenuItem(family.fontName);
-            if (family == fontFamily) {
-                familyItem.setSelected(true);
-            }
-            familyItem.addActionListener(e -> {
-                fontFamily = family;
-                updateTextAreasFontSize();
-            });
-            fontFamilyGroup.add(familyItem);
-            fontFamilyMenu.add(familyItem);
-        }
-        viewMenu.add(fontFamilyMenu);
-
-        JMenu fontSizeMenu = new JMenu("Font size");
-        ButtonGroup fontSizeGroup = new ButtonGroup();
-        for (int size : FONT_SIZES) {
-            JRadioButtonMenuItem sizeItem = new JRadioButtonMenuItem(size + " pt");
-            if (size == fontSize) {
-                sizeItem.setSelected(true);
-            }
-            sizeItem.addActionListener(e -> {
-                fontSize = size;
-                updateTextAreasFontSize();
-            });
-            fontSizeGroup.add(sizeItem);
-            fontSizeMenu.add(sizeItem);
-        }
-        viewMenu.add(fontSizeMenu);
-
-        JCheckBoxMenuItem wrapItem = new JCheckBoxMenuItem("Word wrap");
-        wrapItem.setSelected(wordWrap);
-        wrapItem.addActionListener(e -> {
-            wordWrap = wrapItem.isSelected();
-            updateWordWrap();
-        });
-        viewMenu.add(wrapItem);
-        viewMenu.addSeparator();
-        JMenuItem prevImageItem = new JMenuItem("Previous image");
-        prevImageItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, InputEvent.ALT_DOWN_MASK));
-        prevImageItem.addActionListener(e -> selectPreviousImage());
-        viewMenu.add(prevImageItem);
-        JMenuItem nextImageItem = new JMenuItem("Next image");
-        nextImageItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, InputEvent.ALT_DOWN_MASK));
-        nextImageItem.addActionListener(e -> selectNextImage());
-        viewMenu.add(nextImageItem);
-
-        viewMenu.addSeparator();
-        showImageItem = new JMenuItem("Show image");
-        showImageItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F3, 0));
-        showImageItem.addActionListener(e -> showImageWindow());
-        viewMenu.add(showImageItem);
-
-        JMenu helpMenu = new JMenu("Help");
-        JMenuItem aboutItem = new JMenuItem("About");
-        aboutItem.addActionListener(e -> showAboutDialog());
-        helpMenu.add(aboutItem);
-
-        fileMenu.setMnemonic('F');
-        editMenu.setMnemonic('E');
-        viewMenu.setMnemonic('V');
-        helpMenu.setMnemonic('H');
-        fixMenuItemMargins(fileMenu);
-        fixMenuItemMargins(editMenu);
-        fixMenuItemMargins(viewMenu);
-        fixMenuItemMargins(helpMenu);
-        menuBar.add(fileMenu);
-        menuBar.add(editMenu);
-        menuBar.add(viewMenu);
-        menuBar.add(helpMenu);
-        return menuBar;
-    }
-
-    private void fixMenuItemMargins(JMenu menu) {
-        // No good ideas how to remove the left gap added on Windows...
-//        for (int i = 0; i < menu.getMenuComponentCount(); i++) {
-//            Component comp = menu.getMenuComponent(i);
-//            if (comp instanceof JMenuItem item && !(item instanceof JRadioButtonMenuItem)) {
-//                item.setMargin(new Insets(0, -10, 0, 0));
-//                System.out.println(item.getText() + " " + item.getMargin());
-//            }
-//        }
-    }
-
-    private void updateTextAreasFontSize() {
-        final Font mono = getPreferredMonoFont(fontFamily, fontSize);
-        ifdTextArea.setFont(mono);
-        summaryInfoTextArea.setFont(mono);
-        svsInfoTextArea.setFont(mono);
-    }
-
-    private void updateWordWrap() {
-        ifdTextArea.setLineWrap(wordWrap);
-        summaryInfoTextArea.setLineWrap(wordWrap);
-        svsInfoTextArea.setLineWrap(wordWrap);
-    }
-
-    private void selectNextImage() {
-        selectImage(ifdComboBox.getSelectedIndex() + 1);
-    }
-
-    private void selectPreviousImage() {
-        selectImage(ifdComboBox.getSelectedIndex() - 1);
-    }
-
-    private void selectImage(int index) {
-        if (index >= 0 && index < ifdComboBox.getItemCount()) {
-            ifdComboBox.setSelectedIndex(index);
-        }
-    }
-
-
-    private void chooseAndOpenFile() {
+    void chooseAndOpenFile() {
         JFileChooser chooser = new JFileChooser();
         String last = PREFERENCES.get(PREF_LAST_DIR, null);
         File dir = new File(last == null ? "." : last);
@@ -485,158 +148,43 @@ public class TiffExplorer {
 
     private void loadTiff(Path file) {
         this.tiffFile = file;
-        reload();
+        frame.reload();
     }
 
-    private void reload() {
-        if (tiffFile == null || loadingInProgress) {
-            LOG.log(System.Logger.Level.DEBUG, "Skipping loading...");
-            return;
-        }
-        final int currentIndex = ifdComboBox.getSelectedIndex();
-        ifdComboBox.removeAllItems();
-        ifdTextArea.setText("Analysing TIFF file...");
-        summaryInfoTextArea.setText("");
-        svsInfoTextArea.setText("");
-        loadingOk = false;
-        setOpenInProgress(true);
-
-        new SwingWorker<Void, Void>() {
-            @Override
-            protected Void doInBackground() throws Exception {
-                info = new TiffInfo();
-                info.setDisableAppendingForStrictFormats(true);
-                info.setStringFormat(stringFormat);
+    void loadTiffInfo() throws IOException {
+        info = new TiffInfo();
+        info.setDisableAppendingForStrictFormats(true);
+        info.setStringFormat(stringFormat);
 //                 Thread.sleep(5000);
-                info.collectTiffInfo(tiffFile);
-                loadingOk = true;
-                return null;
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    get();
-                } catch (InterruptedException | ExecutionException e) {
-                    showErrorMessage(e, "Error reading TIFF");
-                    ifdTextArea.setText("");
-                } finally {
-                    setOpenInProgress(false);
-                }
-                applyInfo();
-                selectImage(currentIndex);
-            }
-        }.execute();
-    }
-
-    private void applyInfo() {
-        summaryInfoTextArea.setText(info.prefixInfo() + "\n" + info.summaryInfo());
-        summaryInfoTextArea.setBackground(info.isTiff() ? COMMON_BACKGROUND : ERROR_BACKGROUND);
-        summaryInfoTextArea.setCaretPosition(0);
-        svsInfoTextArea.setText(info.svsInfo());
-        svsInfoTextArea.setVisible(info.metadata().isNonTrivial());
-        svsInfoTextArea.setCaretPosition(0);
-        TiffPyramidMetadata metadata = info.metadata();
-        assert metadata != null;
-        String longest = "";
-        assert info.getFirstIFDIndex() == 0;
-        // - so, the index below is equal to the index in the ifds list
-        String[] captions = new String[info.numberOfImages()];
-        for (int i = 0; i < info.numberOfImages(); i++) {
-            final TiffIFD ifd = metadata.ifd(i);
-            String caption;
-            try {
-                caption = (ifd.isMainIFD() ? "" : "  ") +
-                        "#" + i + " [" + ifd.getImageDimX() + "x" + ifd.getImageDimY() +
-                        (ifd.hasTileInformation() ? " tiled" : "") + "]";
-            } catch (TiffException e) {
-                caption = "#" + i + " [error]";
-                LOG.log(System.Logger.Level.ERROR, "Error parsing IFD", e);
-            }
-            if (caption.length() > longest.length()) {
-                longest = caption;
-            }
-            captions[i] = caption;
-        }
-        final int maxLength = longest.length();
-        for (int i = 0; i < captions.length; i++) {
-            String caption = captions[i];
-            final StringBuilder sb = new StringBuilder(caption + " ".repeat(maxLength - caption.length()));
-            final int layer = metadata.imageToLayer(i);
-            if (metadata.isPyramid()) {
-                if (layer >= 0) {
-                    sb.append(" (layer ").append(layer).append(")");
-                }
-                for (var kind : TiffImageKind.values()) {
-                    if (metadata.specialKindIndex(kind) == i) {
-                        sb.append(" (").append(kind.kindName().toUpperCase()).append(")");
-                    }
-                }
-            }
-            caption = sb.toString();
-            ifdComboBox.addItem(caption);
-            if (caption.length() > longest.length()) {
-                longest = caption;
-            }
-        }
-        if (info.numberOfImages() == 0) {
-            ifdTextArea.setText("");
-        } else {
-            ifdComboBox.setSelectedIndex(0);
-            updateTextArea();
-        }
-        ifdComboBox.setPrototypeDisplayValue(longest);
-        frame.setTitle(APPLICATION_TITLE + ": " + tiffFile.toString());
+        info.collectTiffInfo(tiffFile);
     }
 
     private void changeDescription(int index, String newDescription) throws IOException {
         try (TiffWriter writer = new TiffWriter(tiffFile, TiffCreateMode.OPEN_EXISTING)) {
             writer.rewriteDescription(index, newDescription);
         }
-        reload();
+        frame.reload();
     }
 
-    void setOpenInProgress(boolean inProgress) {
-        openFileButton.setEnabled(!inProgress);
-        openItem.setEnabled(!inProgress);
-        reloadItem.setEnabled(!inProgress);
-        showImageButton.setEnabled(loadingOk);
-        showImageItem.setEnabled(loadingOk);
-        loadingInProgress = inProgress;
-    }
-
-    void setShowImageInProgress(boolean inProgress) {
-        showImageButton.setEnabled(loadingOk && !inProgress);
-        showImageItem.setEnabled(loadingOk && !inProgress);
-        showImageButton.setText(inProgress ? "Opening..." : "Show image");
-    }
-
-    private void updateTextArea() {
-        int index = ifdComboBox.getSelectedIndex();
-        if (index >= 0 && info != null && index < info.numberOfImages()) {
-            ifdTextArea.setText(info.ifdInformation(index));
-            ifdTextArea.setCaretPosition(0);
-        }
-    }
-    private void showImageWindow() {
-        int index = ifdComboBox.getSelectedIndex();
+    void showImageWindow() {
+        int index = frame.selectedImage();
         if (notInitialized(index)) {
             return;
         }
-        setShowImageInProgress(true);
+        frame.setShowImageInProgress(true);
         try {
             TiffViewer imageViewer = new TiffViewer(tiffFile, index);
-            setShowImageInProgress(true);
+            frame.setShowImageInProgress(true);
             imageViewer.show();
         } catch (IOException e) {
-            showErrorMessage(e, "Error opening the TIFF image");
+            showErrorMessage(frame, e, "Error opening the TIFF image");
         } finally {
-            setShowImageInProgress(false);
+            frame.setShowImageInProgress(false);
         }
     }
 
-    private void showEditDescriptionDialog() {
-        int index = ifdComboBox.getSelectedIndex();
+    void showEditDescriptionDialog() {
+        int index = frame.selectedImage();
         if (notInitialized(index)) {
             return;
         }
@@ -651,7 +199,7 @@ public class TiffExplorer {
         JTextArea descriptionArea = new JTextArea(6, 60);
         descriptionArea.setLineWrap(false);
         descriptionArea.setWrapStyleWord(true);
-        descriptionArea.setFont(getPreferredMonoFont(fontFamily, fontSize));
+        descriptionArea.setFont(frame.getCurrentPreferredMonoFont());
         String description = info.metadata().description(index).description("");
         descriptionArea.setText(description);
         descriptionArea.setCaretPosition(0);
@@ -704,7 +252,7 @@ public class TiffExplorer {
             try {
                 changeDescription(index, newDescription.isEmpty() ? null : newDescription);
             } catch (Exception e) {
-                showErrorMessage(e, "Error updating ImageDescription");
+                showErrorMessage(frame, e, "Error updating ImageDescription");
             }
         });
         cancelButton.addActionListener(e -> dialog.dispose());
@@ -720,7 +268,7 @@ public class TiffExplorer {
         dialog.setVisible(true);
     }
 
-    private void showAboutDialog() {
+    void showAboutDialog() {
         JDialog dialog = new JDialog(frame, "About TIFF Information Viewer", true);
         dialog.setLayout(new BorderLayout(10, 10));
         dialog.setMinimumSize(new Dimension(100, 200));
@@ -790,10 +338,6 @@ public class TiffExplorer {
         return index < 0 || info == null || index >= info.numberOfImages();
     }
 
-    private void showErrorMessage(Throwable e, String title) {
-        showErrorMessage(frame, e, title);
-    }
-
     static void showErrorMessage(JFrame frame, Throwable e, String title) {
         if (e instanceof ExecutionException && e.getCause() != null) {
             // ExecutionExcepion is a wrapper added by this utility: no sense to show it
@@ -812,68 +356,6 @@ public class TiffExplorer {
         label.setAlignmentX(Component.CENTER_ALIGNMENT);
         label.setHorizontalAlignment(SwingConstants.CENTER);
         return label;
-    }
-
-    private static Font getPreferredMonoFont(FontFamily family, int size) {
-        if (family != FontFamily.STANDARD) {
-            String preferred = family.fontName;
-            if (isFontAvailable(preferred)) {
-                return new Font(preferred, Font.PLAIN, size);
-            }
-        }
-        return new Font(Font.MONOSPACED, Font.PLAIN, size);
-    }
-
-    private static boolean isFontAvailable(String fontName) {
-        String[] fonts = GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames();
-        for (String f : fonts) {
-            if (f.equalsIgnoreCase(fontName)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-
-    private void savePreferences() {
-        Rectangle bounds = frame.getBounds();
-        PREFERENCES.putInt(PREF_WINDOW_X, bounds.x);
-        PREFERENCES.putInt(PREF_WINDOW_Y, bounds.y);
-        PREFERENCES.putInt(PREF_WINDOW_WIDTH, bounds.width);
-        PREFERENCES.putInt(PREF_WINDOW_HEIGHT, bounds.height);
-        PREFERENCES.putInt(PREF_FONT_SIZE, fontSize);
-        PREFERENCES.put(PREF_FONT_FAMILY, fontFamily.name());
-        PREFERENCES.putBoolean(PREF_WORD_WRAP, wordWrap);
-    }
-
-    private void loadPreferences() {
-        fontSize = PREFERENCES.getInt(PREF_FONT_SIZE, DEFAULT_FONT_SIZE);
-        String fontFamilyName = PREFERENCES.get(PREF_FONT_FAMILY, DEFAULT_FONT_FAMILY.name());
-        try {
-            fontFamily = FontFamily.valueOf(fontFamilyName);
-        } catch (IllegalArgumentException ignored) {
-        }
-        wordWrap = PREFERENCES.getBoolean(PREF_WORD_WRAP, DEFAULT_WORD_WRAP);
-    }
-
-    private void loadFramePreferences() {
-        final int x = PREFERENCES.getInt(PREF_WINDOW_X, Integer.MIN_VALUE);
-        final int y = PREFERENCES.getInt(PREF_WINDOW_Y, Integer.MIN_VALUE);
-        final int w = PREFERENCES.getInt(PREF_WINDOW_WIDTH, frame.getWidth());
-        final int h = PREFERENCES.getInt(PREF_WINDOW_HEIGHT, frame.getHeight());
-        frame.setSize(w, h);
-
-        if (x != Integer.MIN_VALUE && y != Integer.MIN_VALUE) {
-            Rectangle screen = frame.getGraphicsConfiguration().getBounds();
-            if (x + w <= screen.x + screen.width &&
-                    y + h <= screen.y + screen.height) {
-                frame.setLocation(x, y);
-            } else {
-                frame.setLocationRelativeTo(null);
-            }
-        } else {
-            frame.setLocationRelativeTo(null);
-        }
     }
 
     static void setTiffExplorerIcon(JFrame frame) {
