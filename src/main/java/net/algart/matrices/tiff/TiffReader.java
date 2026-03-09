@@ -2427,5 +2427,4 @@ public non-sealed class TiffReader extends TiffIO {
             }
         }
     }
-
 }

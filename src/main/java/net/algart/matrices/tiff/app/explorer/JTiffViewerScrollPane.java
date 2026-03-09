@@ -28,13 +28,13 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 
-class JTiffScrollPane extends JScrollPane {
-    private final JTiffPanel tiffPanel;
+class JTiffViewerScrollPane extends JScrollPane {
+    private final JTiffViewerPanel tiffPanel;
 
     private Point panStart = null;
     private boolean shiftDown = false;
 
-    public JTiffScrollPane(JTiffPanel tiffPanel) {
+    public JTiffViewerScrollPane(JTiffViewerPanel tiffPanel) {
         super(tiffPanel);
         this.tiffPanel = tiffPanel;
         setWheelScrollingEnabled(false);

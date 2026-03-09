@@ -33,7 +33,7 @@ import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.util.Objects;
 
-class JTiffPanel extends JComponent {
+class JTiffViewerPanel extends JComponent {
     private static final Paint TRANSPARENCY_PAINT = createChessPaint(
             8,
             new Color(255, 255, 255),
@@ -80,7 +80,7 @@ class JTiffPanel extends JComponent {
     private static final int FRAME_HANDLE_SIZE = 8;
     private static final int CREATING_NEW_FRAME_MINIMAL_SHIFT = 5;
 
-    private static final System.Logger LOG = System.getLogger(JTiffPanel.class.getName());
+    private static final System.Logger LOG = System.getLogger(JTiffViewerPanel.class.getName());
 
     private final TiffViewer viewer;
     private int canvasDimX;
@@ -104,7 +104,7 @@ class JTiffPanel extends JComponent {
     private final Timer dashTimer;
     private int dashPhase = 0;
 
-    public JTiffPanel(TiffViewer viewer) {
+    public JTiffViewerPanel(TiffViewer viewer) {
         this.viewer = Objects.requireNonNull(viewer, "Null viewer");
         final TiffReadMap map = viewer.map();
         zoom = 1.0;
@@ -145,7 +145,7 @@ class JTiffPanel extends JComponent {
         return zoom;
     }
 
-    public JTiffPanel setZoom(double zoom) throws TooBigZoomException {
+    public JTiffViewerPanel setZoom(double zoom) throws TooBigZoomException {
         if (zoom <= 0.0) {
             throw new IllegalArgumentException("Negative zoom: " + zoom);
         }

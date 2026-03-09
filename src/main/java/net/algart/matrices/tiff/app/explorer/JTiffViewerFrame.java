@@ -28,8 +28,6 @@ import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 import javax.swing.*;
-import javax.swing.event.MenuEvent;
-import javax.swing.event.MenuListener;
 import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
@@ -39,21 +37,21 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.OptionalInt;
 
-class JTiffFrame extends JFrame {
+class JTiffViewerFrame extends JFrame {
     private final TiffViewer viewer;
-    private JTiffPanel tiffPanel;
-    private JTiffScrollPane tiffScrollPane;
-    private JLabel statusLabel;
+    private final JTiffViewerPanel tiffPanel;
+    private final JTiffViewerScrollPane tiffScrollPane;
+    private final JLabel statusLabel;
 
-    public JTiffFrame(TiffViewer viewer) {
+    public JTiffViewerFrame(TiffViewer viewer) {
         this.viewer = Objects.requireNonNull(viewer);
         TiffExplorer.setTiffExplorerIcon(this);
         this.setLayout(new BorderLayout());
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         this.setJMenuBar(buildMenuBar());
 
-        tiffPanel = new JTiffPanel(viewer);
-        tiffScrollPane = new JTiffScrollPane(tiffPanel);
+        tiffPanel = new JTiffViewerPanel(viewer);
+        tiffScrollPane = new JTiffViewerScrollPane(tiffPanel);
         tiffScrollPane.setBorder(BorderFactory.createEmptyBorder());
         this.add(tiffScrollPane, BorderLayout.CENTER);
 
@@ -71,8 +69,8 @@ class JTiffFrame extends JFrame {
 //                JComponent.WHEN_IN_FOCUSED_WINDOW);
         this.pack();
 
-        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        Dimension frameSize = this.getSize();
+        final Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        final Dimension frameSize = this.getSize();
         frameSize.width = Math.min(frameSize.width, screenSize.width - 10);
         frameSize.height = Math.min(frameSize.height, screenSize.height - 50);
         // - ensure that scroll bar and other elements will be visible even for very large images
@@ -86,7 +84,7 @@ class JTiffFrame extends JFrame {
         return viewer;
     }
 
-    public JTiffPanel tiffPanel() {
+    public JTiffViewerPanel tiffPanel() {
         return tiffPanel;
     }
 
@@ -329,27 +327,5 @@ class JTiffFrame extends JFrame {
 
     private void showErrorMessage(Throwable e, String title) {
         TiffExplorer.showErrorMessage(this, e, title);
-    }
-
-    private static final class MenuUpdater implements MenuListener {
-        private final Runnable updater;
-
-        private MenuUpdater(Runnable updater) {
-            this.updater = updater;
-        }
-
-        @Override
-        public void menuSelected(MenuEvent e) {
-            updater.run();
-        }
-
-        @Override
-        public void menuDeselected(MenuEvent e) {
-
-        }
-
-        @Override
-        public void menuCanceled(MenuEvent e) {
-        }
     }
 }

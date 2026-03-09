@@ -63,7 +63,7 @@ class TiffViewer {
     private String lastStatus = DEFAULT_STATUS;
     private boolean lastErrorFlag = false;
 
-    private JTiffFrame frame;
+    private JTiffViewerFrame frame;
 
     public TiffViewer(Path path, int ifdIndex) throws IOException {
         this.path = Objects.requireNonNull(path);
@@ -249,7 +249,7 @@ class TiffViewer {
     }
 
     private void createGUI() {
-        frame = new JTiffFrame(this);
+        frame = new JTiffViewerFrame(this);
     }
 
     private void setStatus(String status, boolean error) {

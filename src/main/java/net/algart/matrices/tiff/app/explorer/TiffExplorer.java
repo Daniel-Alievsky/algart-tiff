@@ -690,9 +690,7 @@ public class TiffExplorer {
                 The current image description will be permanently <b>replaced</b>.<br>
                 You may create a backup copy if the file is important.</html>
                 """.formatted(tiffFile));
-//        warningLabel.setFont(warningLabel.getFont().deriveFont((float) DEFAULT_FONT_SIZE));
         warningLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-//        warningLabel.setForeground(new Color(140, 0, 0));
         content.add(warningLabel);
 
         dialog.add(content, BorderLayout.CENTER);
