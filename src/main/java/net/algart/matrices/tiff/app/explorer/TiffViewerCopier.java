@@ -208,7 +208,8 @@ class TiffViewerCopier {
 
         directMode = new JCheckBox("Quick direct copying (\"as-is\")");
         directMode.setEnabled(tileAligned);
-        directMode.setSelected(tileAligned);
+        directMode.setSelected(false);
+        // - by default, we prefer to enable editing compression
         directMode.addActionListener(e -> applyDirectMode());
         mainPanel.add(directMode);
         final JLabel directCommentLabel;
