@@ -28,8 +28,6 @@ import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 import javax.swing.*;
-import javax.swing.event.MenuEvent;
-import javax.swing.event.MenuListener;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -46,7 +44,7 @@ class TiffViewer {
 
     private static final System.Logger LOG = System.getLogger(TiffViewer.class.getName());
 
-    private static final Color COMMON_COLOR = Color.BLACK;
+    private static final Color COMMON_COLOR = TiffExplorer.getUIColor("Label.foreground", Color.BLACK);
     private static final Color ERROR_COLOR = Color.RED;
 
     private final TiffReaderWithGrid reader;
@@ -112,9 +110,9 @@ class TiffViewer {
         final String status = r == null ?
                 DEFAULT_STATUS :
                 r.width == 0 || r.height == 0 ?
-                        "%dx%d: top-left (%d,%d)".formatted(
+                        "%d\u00D7%d: top-left (%d,%d)".formatted(
                                 r.width, r.height, r.x, r.y) :
-                        "%dx%d: top-left (%d,%d), bottom-right (%d,%d)".formatted(
+                        "%d\u00D7%d: top-left (%d,%d), bottom-right (%d,%d)".formatted(
                                 r.width, r.height, r.x, r.y, r.x + r.width - 1, r.y + r.height - 1);
         showStatus(status);
     }
@@ -127,9 +125,15 @@ class TiffViewer {
         setStatus(status, true);
     }
 
+    public String alignSelectionToTileGridCommand() {
+        return map == null ?
+                "Align selection to tile grid" :
+                "Align selection to tile grid %d\u00D7%d".formatted(map.tileSizeX(), map.tileSizeY());
+    }
+
     public void reload() throws IOException {
         try {
-            resetCache();
+            invalidateCache();
             openMap();
         } finally {
             frame.resetTitle();
@@ -229,8 +233,8 @@ class TiffViewer {
                 null;
     }
 
-    public void resetCache() throws IOException {
-        reader.resetCache();
+    public void invalidateCache() throws IOException {
+        reader.invalidateCache();
         lastImageRectangle = null;
         lastImage = null;
         exception = null;
@@ -239,13 +243,13 @@ class TiffViewer {
     void setTileGridVisibility(boolean visible) throws IOException {
         if (visible != reader.isViewTileGrid()) {
             reader.setViewTileGrid(visible);
-            resetCache();
+            invalidateCache();
         }
     }
 
     void setTileGridThickness(int tileGridThickness) throws IOException {
         reader.setTileGridThickness(tileGridThickness);
-        resetCache();
+        invalidateCache();
     }
 
     private void createGUI() {

@@ -385,9 +385,9 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     /**
-     * Clears all cached data and initializes the reader by re-reading the TIFF header.
+     * Invalidates all internal caches and initializes the reader by re-reading the TIFF header.
      *
-     * <p>This method removes all cached tiles and cached IFD structures, clears an internal cache in
+     * <p>This method clears all cached tiles and cached IFD structures, resets an internal cache in
      * the {@link ReadBufferDataHandle} input stream and seeks it to zero position,
      * and then reads the TIFF header again by calling
      * the same initialization logic that is used in the constructor.</p>
@@ -406,20 +406,18 @@ public non-sealed class TiffReader extends TiffIO {
      * @throws IOException if the file is not a valid TIFF file,
      *                     or if an I/O error occurs while re-reading the header
      */
-    public TiffReader resetCache() throws IOException {
+    public TiffReader invalidateCache() throws IOException {
         synchronized (tileCacheLock) {
             synchronized (fileLock) {
                 // Lock order: tileCacheLock -> fileLock; we should use the same order in all places!
-                this.tileCacheMap.clear();
-                this.tileCache.clear();
-                this.currentCacheMemory = 0;
+                invalidateTileCache();
                 this.allIFDs = null;
                 this.mainIFDs = null;
                 this.positionOfLastIFDOffset = -1;
                 if (!(stream instanceof ReadBufferDataHandle<?>)) {
                     throw new AssertionError("Input stream was not correcty replaced in the constructor");
                 }
-                ((ReadBufferDataHandle<?>) stream).reset();
+                ((ReadBufferDataHandle<?>) stream).invalidateCache();
                 final IOException exception = startReading();
                 if (exception != null) {
                     throw exception;
@@ -427,6 +425,16 @@ public non-sealed class TiffReader extends TiffIO {
             }
         }
         return this;
+    }
+
+    private void invalidateTileCache() {
+        synchronized (tileCacheLock) {
+            synchronized (fileLock) {
+                this.tileCacheMap.clear();
+                this.tileCache.clear();
+                this.currentCacheMemory = 0;
+            }
+        }
     }
 
     public UnpackBits getAutoUnpackBits() {

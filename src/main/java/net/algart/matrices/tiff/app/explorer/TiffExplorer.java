@@ -326,16 +326,16 @@ public class TiffExplorer {
         dialog.setVisible(true);
     }
 
+    private boolean notInitialized(int index) {
+        return index < 0 || info == null || index >= info.numberOfImages();
+    }
+
     static void addCloseOnEscape(JDialog dialog) {
         dialog.getRootPane().registerKeyboardAction(
                 e -> dialog.dispose(),
                 KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
                 JComponent.WHEN_IN_FOCUSED_WINDOW
         );
-    }
-
-    private boolean notInitialized(int index) {
-        return index < 0 || info == null || index >= info.numberOfImages();
     }
 
     static void showErrorMessage(JFrame frame, Throwable e, String title) {
@@ -356,6 +356,11 @@ public class TiffExplorer {
         label.setAlignmentX(Component.CENTER_ALIGNMENT);
         label.setHorizontalAlignment(SwingConstants.CENTER);
         return label;
+    }
+
+    static Color getUIColor(String name, Color defaultValue) {
+        final Color color = UIManager.getColor(name);
+        return color != null ? color : defaultValue;
     }
 
     static void setTiffExplorerIcon(JFrame frame) {

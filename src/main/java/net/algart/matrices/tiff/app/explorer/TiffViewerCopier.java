@@ -43,7 +43,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
-class TiffViewerExport {
+class TiffViewerCopier {
     private static final int MAX_SINGLE_IMAGE_SIZE_IN_PIXELS = 25 * 1024 * 1024;
     // - 25 megapixels: even for RGBA with float precision, it is only 4*4*25 MB = 400 MB < 2^31 bytes
     private static final String PREF_LAST_EXPORT__DIR = "lastExportDirectory";
@@ -73,7 +73,7 @@ class TiffViewerExport {
     private JButton cancelCopyButton;
     private JDialog copySettingsDialog;
 
-    public TiffViewerExport(JTiffViewerFrame frame) {
+    public TiffViewerCopier(JTiffViewerFrame frame) {
         this.frame = Objects.requireNonNull(frame);
         this.viewer = frame.viewer();
     }
@@ -150,7 +150,8 @@ class TiffViewerExport {
         }
     }
 
-    public void showCopyToTiffDialog(Path targetFile, boolean processSelection) throws IOException {
+    public void showCopyToTiffDialog(Path targetFile, boolean processSelection) {
+        final boolean tiled = viewer.map().isTiled();
         final int sizeX;
         final int sizeY;
         final Rectangle selection;
@@ -162,7 +163,7 @@ class TiffViewerExport {
             }
             sizeX = selection.width;
             sizeY = selection.height;
-            tileAligned = TiffCopier.isTileAligned(viewer.map(), selection.x, selection.y);
+            tileAligned = tiled && TiffCopier.isTileAligned(viewer.map(), selection.x, selection.y);
         } else {
             selection = null;
             final TiffReadMap map = viewer.map();
@@ -187,8 +188,9 @@ class TiffViewerExport {
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         final String whatToCopy = selection == null ?
-                "The TIFF image #%d (%dx%d)".formatted(viewer.ifdIndex(), sizeX, sizeY) :
-                "The selected area (%dx%d) of the TIFF image #%d".formatted(sizeX, sizeY, viewer.ifdIndex());
+                "The TIFF image #%d (%d\u00D7%d)".formatted(viewer.ifdIndex(), sizeX, sizeY) :
+                "The selected area %d\u00D7%d (top-left at %d,%d) of the TIFF image #%d"
+                        .formatted(sizeX, sizeY, selection.x, selection.y, viewer.ifdIndex());
         final JLabel infoLabel = new JLabel("""
                 <html>
                 %s from the file:<br>
@@ -209,6 +211,29 @@ class TiffViewerExport {
         directMode.setSelected(tileAligned);
         directMode.addActionListener(e -> applyDirectMode());
         mainPanel.add(directMode);
+        final JLabel directCommentLabel;
+        if (selection != null) {
+            final String directComment = !tiled ? """
+                    Quick direct copying is unavailable: this image is stripped (not tiled).<br>
+                    Direct copying is designed for large tiled images (e.g., SVS pyramids).
+                    """
+                    : tileAligned ? """
+                    Quick copying is available: selection corner (%d,%d) is aligned to the tile grid.
+                    """.formatted(selection.x, selection.y)
+                    : """
+                    Quick copying is unavailable for unaligned selection (started at %d,%d).<br>
+                    You can use<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;Edit \u25B8 %s  (Ctrl+Alt+A)<br>
+                    to enable direct copying.
+                    """.formatted(
+                    selection.x, selection.y,
+                    viewer.alignSelectionToTileGridCommand());
+            directCommentLabel = new JLabel("<html>" + directComment);
+            directCommentLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            directCommentLabel.setEnabled(false);
+            // - gray color: this is a comment, not an important element
+            mainPanel.add(directCommentLabel);
+        }
         mainPanel.add(Box.createVerticalStrut(10));
 
         final JPanel settingsPanel = new JPanel(new GridLayout(2, 2, 5, 5));
@@ -249,6 +274,7 @@ class TiffViewerExport {
         stopRequested = false;
         copyingInProgress = false;
         copySettingsDialog.pack();
+
         TiffExplorer.addCloseOnEscape(copySettingsDialog);
         progressLabel.setText("");
         correctCompressionQualityLabel();

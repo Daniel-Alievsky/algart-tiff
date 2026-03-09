@@ -127,7 +127,7 @@ class JTiffViewerFrame extends JFrame {
         saveImageAsTiffItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
                 InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
         saveImageAsTiffItem.addActionListener(e -> {
-            final var export = new TiffViewerExport(this);
+            final var export = new TiffViewerCopier(this);
             Path file = export.chooseTiffFileToSave(false);
             if (file != null) {
                 try {
@@ -141,11 +141,11 @@ class JTiffViewerFrame extends JFrame {
         fileMenu.add(saveImageAsTiffItem);
         JMenuItem exportImageItem = new JMenuItem("Export image...");
         exportImageItem.addActionListener(e -> {
-            final var export = new TiffViewerExport(this);
-            Path file = export.chooseFileToExport(false);
+            final var copier = new TiffViewerCopier(this);
+            Path file = copier.chooseFileToExport(false);
             if (file != null) {
                 try {
-                    export.exportImageToFile(file, false);
+                    copier.exportImageToFile(file, false);
                 } catch (Exception ex) {
                     // - including possible non-I/O exceptions like an empty file extension
                     showErrorMessage(ex, "Error exporting image");
@@ -159,11 +159,11 @@ class JTiffViewerFrame extends JFrame {
         saveSelectionAsTiffItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
                 InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
         saveSelectionAsTiffItem.addActionListener(e -> {
-            final var export = new TiffViewerExport(this);
-            Path file = export.chooseTiffFileToSave(true);
+            final var copier = new TiffViewerCopier(this);
+            Path file = copier.chooseTiffFileToSave(true);
             if (file != null) {
                 try {
-                    export.showCopyToTiffDialog(file, true);
+                    copier.showCopyToTiffDialog(file, true);
                 } catch (Exception ex) {
                     // - should not occur
                     showErrorMessage(ex, "Unexpected error");
@@ -173,11 +173,11 @@ class JTiffViewerFrame extends JFrame {
         fileMenu.add(saveSelectionAsTiffItem);
         JMenuItem exportSelectionItem = new JMenuItem("Export selection...");
         exportSelectionItem.addActionListener(e -> {
-            final var export = new TiffViewerExport(this);
-            Path file = export.chooseFileToExport(true);
+            final var copier = new TiffViewerCopier(this);
+            Path file = copier.chooseFileToExport(true);
             if (file != null) {
                 try {
-                    export.exportImageToFile(file, true);
+                    copier.exportImageToFile(file, true);
                 } catch (Exception ex) {
                     // - including possible non-I/O exceptions like an empty file extension
                     showErrorMessage(ex, "Error exporting the selected area");
@@ -210,7 +210,7 @@ class JTiffViewerFrame extends JFrame {
         setSelectionItem.addActionListener(e -> viewer.showSetSelectionDialog());
         editMenu.add(setSelectionItem);
         JMenuItem alignSelectionItem = viewer.map().isTiled() ?
-                new JMenuItem("Align selection to tile grid") :
+                new JMenuItem(viewer.alignSelectionToTileGridCommand()) :
                 null;
         if (alignSelectionItem != null) {
             alignSelectionItem.addActionListener(e -> alignSelection());
@@ -230,7 +230,7 @@ class JTiffViewerFrame extends JFrame {
         copyItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK));
         copyItem.addActionListener(e -> {
             try {
-                final var export = new TiffViewerExport(this);
+                final var export = new TiffViewerCopier(this);
                 export.copySelectedAreaToClipboard();
             } catch (IOException ex) {
                 showErrorMessage(ex, "Error copying the image to the clipboard");
@@ -266,6 +266,7 @@ class JTiffViewerFrame extends JFrame {
 
         final MenuUpdater menuUpdater = new MenuUpdater(() -> {
             if (alignSelectionItem != null) {
+                alignSelectionItem.setText(viewer.alignSelectionToTileGridCommand());
                 alignSelectionItem.setEnabled(tiffPanel.isSelected());
             }
             removeSelectionItem.setEnabled(tiffPanel.isSelected());

@@ -141,7 +141,7 @@ public class ReadBufferDataHandle<L extends Location> extends AbstractHigherOrde
 	/**
 	 * Removes the cached data and seeks to the zero position.
 	 */
-	public void reset() {
+	public void invalidateCache() {
 		final int numPages = slotToPage.length;
 		Arrays.fill(slotToPage, -1);
 		for (int i = 0; i < numPages; i++) {
@@ -159,6 +159,7 @@ public class ReadBufferDataHandle<L extends Location> extends AbstractHigherOrde
 		} catch (IOException ignored) {
 		}
 	}
+
 	/**
 	 * Ensures that the byte at the given offset is buffered, and sets the current
 	 * page to be the one containing the specified location.
