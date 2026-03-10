@@ -70,7 +70,7 @@ public class TiffCropAllToRectangleDemo {
         if (!copier.isDirectCopy()) {
             throw new AssertionError("direct mode must be enabled by default");
         }
-        copier.setProgressUpdater(TiffCopyDemo::updateProgress);
+        copier.setProgressUpdater(TiffCopyDemo::updateProgress, 50);
         long t1 = System.nanoTime();
         try (TiffReader reader = new TiffReader(sourceFile); var writer = new TiffWriter(targetFile)) {
             writer.setFormatLike(reader);

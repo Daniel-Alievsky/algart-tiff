@@ -155,7 +155,7 @@ public class TiffCopy {
         final TiffCopier copier = new TiffCopier();
         copier.setDirectCopy(!repack);
         copier.setCompression(compression);
-        copier.setProgressUpdater(this::updateProgress);
+        copier.setProgressUpdater(this::updateProgress, 500);
 
         System.out.printf("Copying %s to %s%s%s%s%s...%n",
                 sourceFile,

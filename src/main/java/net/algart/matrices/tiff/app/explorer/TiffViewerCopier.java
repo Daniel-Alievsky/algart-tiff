@@ -264,7 +264,7 @@ class TiffViewerCopier {
         final JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         startCopyButton = new JButton();
         cancelCopyButton = new JButton();
-        initializeButtons();
+        initializeButtons(false);
         buttonPanel.add(startCopyButton);
         buttonPanel.add(cancelCopyButton);
         copySettingsDialog.add(buttonPanel, BorderLayout.SOUTH);
@@ -284,9 +284,9 @@ class TiffViewerCopier {
         copySettingsDialog.setVisible(true);
     }
 
-    private void initializeButtons() {
-        startCopyButton.setText("Start");
-        cancelCopyButton.setText("Cancel");
+    private void initializeButtons(boolean again) {
+        startCopyButton.setText(again ? "Start again" : "Start");
+        cancelCopyButton.setText(again ? "Close" : "Cancel");
         startCopyButton.setEnabled(true);
         startCopyButton.setVisible(true);
     }
@@ -327,11 +327,7 @@ class TiffViewerCopier {
                 }
                 copyingInProgress = false;
                 copySettingsDialog.getRootPane().setDefaultButton(cancelCopyButton);
-                if (copier.isCancalled()) {
-                    initializeButtons();
-                } else {
-                    cancelCopyButton.setText("Close");
-                }
+                initializeButtons(!copier.isCancelled());
                 // copySettingsDialog.dispose();
             }
 
@@ -414,7 +410,7 @@ class TiffViewerCopier {
                     p.tileIndex() + 1, p.tileCount(),
                     p.copier().actuallyDirectCopy() ? "direct" : "repacking",
                     p.isLastTileCopied() ? "" : "..."));
-        }));
+        }), 500);
         copier.setDirectCopy(directMode.isSelected());
         if (!copier.isDirectCopy()) {
             copier.setCompression(getSelectedCompression());

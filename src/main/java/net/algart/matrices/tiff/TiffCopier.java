@@ -38,7 +38,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.function.BooleanSupplier;
-import java.util.function.Consumer;
 
 @SuppressWarnings("UnusedReturnValue")
 public final class TiffCopier {
@@ -82,6 +81,11 @@ public final class TiffCopier {
         }
     }
 
+    @FunctionalInterface
+    public interface ProgressUpdater {
+        void update(ProgressInformation progressInformation);
+    }
+
     private static final System.Logger LOG = System.getLogger(TiffCopier.class.getName());
     private static final boolean LOGGABLE_DEBUG = LOG.isLoggable(System.Logger.Level.DEBUG);
 
@@ -90,10 +94,13 @@ public final class TiffCopier {
     private TemporaryFileCreator temporaryFileCreator = TemporaryFileCreator.DEFAULT;
     private TiffIFDCorrector ifdCorrector = null;
     private TagCompression compression = null;
-    private Consumer<ProgressInformation> progressUpdater = null;
+    private ProgressUpdater progressUpdater = null;
     private BooleanSupplier interruptionChecker = null;
+    private int progressUpdateDelay = 0;
+
     private volatile boolean cancelled = false;
     private final ProgressInformation progressInformation = new ProgressInformation();
+    private long lastProgressUpdateTime = Long.MIN_VALUE;
 
     private boolean actuallyDirectCopy = false;
 
@@ -262,16 +269,20 @@ public final class TiffCopier {
         return this;
     }
 
-    public Consumer<ProgressInformation> progressUpdater() {
+    public ProgressUpdater getProgressUpdater() {
         return progressUpdater;
     }
 
-    public TiffCopier setProgressUpdater(Consumer<ProgressInformation> progressUpdater) {
+    public TiffCopier setProgressUpdater(ProgressUpdater progressUpdater, int progressUpdateDelay) {
+        return setProgressUpdateDelay(progressUpdateDelay).setProgressUpdater(progressUpdater);
+    }
+
+    public TiffCopier setProgressUpdater(ProgressUpdater progressUpdater) {
         this.progressUpdater = progressUpdater;
         return this;
     }
 
-    public BooleanSupplier cancellationChecker() {
+    public BooleanSupplier getInterruptionChecker() {
         return interruptionChecker;
     }
 
@@ -280,11 +291,45 @@ public final class TiffCopier {
         return this;
     }
 
+    public long getProgressUpdateDelay() {
+        return progressUpdateDelay;
+    }
+
+    public TiffCopier removeProgressUpdateDelay() {
+        this.progressUpdateDelay = 0;
+        return this;
+    }
+
+    /**
+     * Sets the minimal delay between calls of the {@link ProgressUpdater}.
+     *
+     * <p>If the delay is positive, the progress updater is not called more often than once
+     * within the specified number of milliseconds. This helps to avoid excessively frequent
+     * updates when copying many small tiles.</p>
+     *
+     * <p>Note: the progress updater is always called after processing the last tile in an image
+     * regardless of this parameter.</p>
+     *
+     * <p>A zero value disables this feature and allows the updater to be called for every
+     * progress event.</p>
+     *
+     * @param progressUpdateDelay minimal delay between progress updates in milliseconds, 0 to disable this feature.
+     * @return this copier instance.
+     * @throws IllegalArgumentException if {@code progressUpdateDelay} is negative.
+     */
+    public TiffCopier setProgressUpdateDelay(int progressUpdateDelay) {
+        if (progressUpdateDelay < 0) {
+            throw new IllegalArgumentException("Negative progressUpdateDelay: " + progressUpdateDelay);
+        }
+        this.progressUpdateDelay = progressUpdateDelay;
+        return this;
+    }
+
     public ProgressInformation progressInformation() {
         return progressInformation;
     }
 
-    public boolean isCancalled() {
+    public boolean isCancelled() {
         return cancelled;
     }
 
@@ -800,7 +845,20 @@ public final class TiffCopier {
 
     private void updateProgress() {
         if (progressUpdater != null) {
-            progressUpdater.accept(progressInformation);
+            boolean enableUpdate = progressUpdateDelay <= 0 ||
+                    progressInformation.isLastTileCopied() ||
+                    progressInformation.isCopyingTemporaryFile();
+            if (!enableUpdate) {
+                long t = System.currentTimeMillis();
+                if (t > lastProgressUpdateTime + progressUpdateDelay) {
+                    // - not use "t - lastProgressUpdateTime": overflow at the very beginning
+                    lastProgressUpdateTime = t;
+                    enableUpdate = true;
+                }
+            }
+            if (enableUpdate) {
+                progressUpdater.update(progressInformation);
+            }
         }
     }
 }

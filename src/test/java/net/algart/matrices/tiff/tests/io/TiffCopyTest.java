@@ -167,7 +167,8 @@ public class TiffCopyTest {
         }
        copier.setProgressUpdater(
                 p ->
-                        System.out.printf("\r%d/%d...", p.tileIndex() + 1, p.tileCount()));
+                        System.out.printf("\r%d/%d...", p.tileIndex() + 1, p.tileCount()),
+               200);
         // copier.setCancellationChecker(() -> copier.copiedTileCount() == 12);
         // - uncomment to cancel copying after 12 tiles
         if (uncompress) {

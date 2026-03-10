@@ -79,7 +79,8 @@ public class TiffCopyRectangleDemo {
         copier.setProgressUpdater(p ->
                 System.out.printf("\r%d/%d (%s)...",
                         p.tileIndex() + 1, p.tileCount(),
-                        p.copier().actuallyDirectCopy() ? "direct" : "repacking"));
+                        p.copier().actuallyDirectCopy() ? "direct" : "repacking"),
+                300);
         try (TiffReader reader = new TiffReader(sourceFile);
              TiffWriter writer = new TiffWriter(targetFile)) {
             // reader.setCaching(false); // - slows down copying when the rectangle does not consist of whole tiles

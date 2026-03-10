@@ -63,7 +63,8 @@ public class TiffCopyCustomDemo {
                 sourceFile, targetFile, !repack ? "as-is" : "with recompression");
         final var copier = new TiffCopier().setDirectCopy(!repack);
         copier.setProgressUpdater(p ->
-                System.out.printf("\r%d/%d...", p.tileIndex() + 1, p.tileCount()));
+                System.out.printf("\r%d/%d...", p.tileIndex() + 1, p.tileCount()),
+                300);
         try (TiffReader reader = new TiffReader(sourceFile); var writer = new TiffWriter(targetFile)) {
             if (writer.getByteOrder() != ByteOrder.BIG_ENDIAN) throw new AssertionError();
             writer.setSmartCorrection(true);

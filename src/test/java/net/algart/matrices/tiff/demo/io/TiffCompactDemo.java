@@ -57,7 +57,7 @@ public class TiffCompactDemo {
 
         System.out.printf("Compacting %s...%n", tiffFile);
         final TiffCopier copier = new TiffCopier();
-        copier.setProgressUpdater(TiffCopyDemo::updateProgress);
+        copier.setProgressUpdater(TiffCopyDemo::updateProgress, 500);
         // copier.setTemporaryFileCreator(() -> Files.createTempFile(Path.of("/tmp/"), "my-", ".tmp"));
         // - uncomment if you want to change the way of creating temporary files
         copier.setDirectCopy(!repack);
