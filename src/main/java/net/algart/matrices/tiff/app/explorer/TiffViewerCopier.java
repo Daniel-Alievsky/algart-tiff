@@ -246,7 +246,7 @@ class TiffViewerCopier {
         settingsPanel.add(new JLabel("Compression method:"));
         compressionMethodBox = new JComboBox<>(makeCompressionNames(compression));
         compressionMethodBox.setSelectedItem(compression.prettyName());
-        compressionMethodBox.addActionListener(e -> correctCompressionQualityLabel());
+        compressionMethodBox.addActionListener(e -> correctCompressionQualityInformation());
         settingsPanel.add(compressionMethodBox);
         settingsPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, settingsPanel.getPreferredSize().height));
         mainPanel.add(settingsPanel);
@@ -286,7 +286,7 @@ class TiffViewerCopier {
 
         TiffExplorer.addCloseOnEscape(copySettingsDialog);
         progressLabel.setText("");
-        correctCompressionQualityLabel();
+        correctCompressionQualityInformation();
         applyDirectMode();
         copySettingsDialog.setLocationRelativeTo(frame);
         copySettingsDialog.setVisible(true);
@@ -441,8 +441,12 @@ class TiffViewerCopier {
         return TagCompression.fromPrettyName(selected).orElseThrow();
     }
 
-    private void correctCompressionQualityLabel() {
-        compressionQualityLabel.setText(compressionQualityLabel(getSelectedCompression()));
+    private void correctCompressionQualityInformation() {
+        final TagCompression compression = getSelectedCompression();
+        final boolean compressionQualitySupported = compression.isCompressionQualitySupported();
+        compressionQualityLabel.setText(compressionQualityLabel(compression));
+        compressionQualityLabel.setEnabled(compressionQualitySupported);
+        compressionQualityField.setEnabled(compressionQualitySupported);
     }
 
     private void applyDirectMode() {

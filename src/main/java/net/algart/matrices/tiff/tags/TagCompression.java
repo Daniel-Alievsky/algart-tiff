@@ -343,6 +343,10 @@ public enum TagCompression {
         return writingSupported && codec != null;
     }
 
+    public boolean isCompressionQualitySupported() {
+        return isJpeg2000() || isStandardJpeg();
+    }
+
     public boolean isStandard() {
         return code <= 10 || this == PACK_BITS;
         // - actually, the maximal supported standard compression is DEFLATE=8
