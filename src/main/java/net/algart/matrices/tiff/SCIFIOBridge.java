@@ -52,6 +52,10 @@ class SCIFIOBridge {
         }
         checkIsScifioInstalled();
         assert SCIFIO_CLASS != null && CONTEXT_CLASS != null;
+        if (!CONTEXT_CLASS.isInstance(context)) {
+            throw new IllegalStateException("Context must be an instance of " + CONTEXT_CLASS +
+                    ", but it is " + context.getClass());
+        }
         try {
             return SCIFIO_CLASS.getConstructor(CONTEXT_CLASS).newInstance(context);
         } catch (InstantiationException | IllegalAccessException |
