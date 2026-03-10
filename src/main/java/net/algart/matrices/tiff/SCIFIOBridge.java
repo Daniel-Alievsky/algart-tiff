@@ -24,17 +24,18 @@
 
 package net.algart.matrices.tiff;
 
-import org.scijava.Context;
-
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 
 class SCIFIOBridge {
-    static final String SCIFIO_CLASS_NAME = "io.scif.SCIFIO";
-    private static final Class<?> SCIFIO_CLASS = findScifioClass();
+    private static final String CONTEXT_CLASS_NAME = "org.scijava.Context";
+    private static final String SCIFIO_CLASS_NAME = "io.scif.SCIFIO";
+    private static final Class<?> CONTEXT_CLASS = findClassOrNull(CONTEXT_CLASS_NAME);
+    private static final Class<?> SCIFIO_CLASS = findClassOrNull(SCIFIO_CLASS_NAME);
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     static boolean isScifioInstalled() {
-        return SCIFIO_CLASS != null;
+        return SCIFIO_CLASS != null && CONTEXT_CLASS != null;
     }
 
     static Class<?> codecOptionsClass() {
@@ -45,31 +46,29 @@ class SCIFIOBridge {
         return scifioClass("io.scif.formats.tiff.IFD");
     }
 
-    static Object createScifioFromContext(Context context) {
+    static Object createScifioFromContext(Object context) {
         if (context == null) {
             return null;
         }
-        if (SCIFIO_CLASS == null) {
-            throw new UnsupportedOperationException("SCIFIO library is not installed");
-        }
+        checkIsScifioInstalled();
+        assert SCIFIO_CLASS != null && CONTEXT_CLASS != null;
         try {
-            return SCIFIO_CLASS.getConstructor(Context.class).newInstance(context);
+            return SCIFIO_CLASS.getConstructor(CONTEXT_CLASS).newInstance(context);
         } catch (InstantiationException | IllegalAccessException |
                  InvocationTargetException | NoSuchMethodException e) {
             throw new IllegalStateException("SCIFIO library cannot be called, probably due to version mismatch", e);
         }
     }
 
-    static Context getDefaultScifioContext() {
-        if (SCIFIO_CLASS == null) {
-            throw new UnsupportedOperationException("Cannot create SCIFIO context: SCIFIO library is not installed");
-        }
+    static Object getDefaultScifioContext() {
+        checkIsScifioInstalled();
+        assert SCIFIO_CLASS != null && CONTEXT_CLASS != null;
         try {
             // return new SCIFIO().context();
             final Object scifio = SCIFIO_CLASS.getConstructor().newInstance();
-            return (Context) SCIFIO_CLASS.getMethod("getContext").invoke(scifio);
+            return SCIFIO_CLASS.getMethod("getContext").invoke(scifio);
         } catch (InstantiationException | IllegalAccessException |
-                 InvocationTargetException | NoSuchMethodException | ClassCastException e) {
+                 InvocationTargetException | NoSuchMethodException e) {
             throw new IllegalStateException("SCIFIO library cannot be called, probably due to version mismatch", e);
         }
     }
@@ -175,6 +174,13 @@ class SCIFIOBridge {
         return (byte[]) result;
     }
 
+    private static void checkIsScifioInstalled() {
+        if (SCIFIO_CLASS == null || CONTEXT_CLASS == null) {
+            throw new UnsupportedOperationException("SCIFIO library is not installed: cannot find " +
+                    (SCIFIO_CLASS == null ? SCIFIO_CLASS_NAME : CONTEXT_CLASS_NAME) + " class");
+        }
+    }
+
     private static Class<?> scifioClass(String className) {
         try {
             return Class.forName(className);
@@ -193,9 +199,9 @@ class SCIFIOBridge {
         }
     }
 
-    private static Class<?> findScifioClass() {
+    private static Class<?> findClassOrNull(String className) {
         try {
-            return Class.forName(SCIFIO_CLASS_NAME);
+            return Class.forName(className);
         } catch (ClassNotFoundException e) {
             return null;
         }

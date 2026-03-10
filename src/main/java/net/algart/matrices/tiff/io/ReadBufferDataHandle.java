@@ -141,7 +141,7 @@ public class ReadBufferDataHandle<L extends Location> extends AbstractHigherOrde
 	/**
 	 * Removes the cached data and seeks to the zero position.
 	 */
-	public void invalidateCache() {
+	public void clearCache() {
 		final int numPages = slotToPage.length;
 		Arrays.fill(slotToPage, -1);
 		for (int i = 0; i < numPages; i++) {

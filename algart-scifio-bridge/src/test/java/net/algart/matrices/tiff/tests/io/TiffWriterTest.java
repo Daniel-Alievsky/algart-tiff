@@ -200,6 +200,12 @@ public class TiffWriterTest {
             useContext = true;
             startArgIndex++;
         }
+        boolean enforceExternal = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-enforceExternal")) {
+            enforceExternal = true;
+            useContext = true;
+            startArgIndex++;
+        }
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
             System.out.println("    " + TiffWriterTest.class.getName() +
@@ -238,17 +244,23 @@ public class TiffWriterTest {
             if (compatibility && !existingFile) {
                 Files.deleteIfExists(targetFile);
             }
-            try (final Context context = !useContext ? null : TiffReader.newSCIFIOContext();
+            try (final Context context = !useContext ? null : (Context) TiffReader.newSCIFIOContext();
                  final TiffWriter writer = compatibility ?
                          new TiffSaver(context, targetFile.toString()) :
                          new TiffWriter(targetFile)) {
-                writer.setContext(context);
+                if (!compatibility) {
+                    writer.setContext(context);
+                    // - if compatibility, context should be set by the constructor
+                }
 //                 TiffWriter writer = new TiffSaver(context, targetFile.toString())) {
 //                writer.setEnforceUseExternalCodec(true);
 //                writer.setWritingForwardAllowed(false);
                 writer.setBigTiff(bigTiff);
                 if (littleEndian) {
                     writer.setLittleEndian(true);
+                }
+                if (enforceExternal) {
+                    writer.setEnforceUseExternalCodec(true);
                 }
                 writer.setCompressionQuality(quality);
                 writer.setLosslessCompressionLevel(compressionLevel);

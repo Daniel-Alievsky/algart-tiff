@@ -127,8 +127,8 @@ class TiffViewer {
 
     public String alignSelectionToTileGridCommand() {
         return map == null ?
-                "Align selection to tile grid" :
-                "Align selection to tile grid %d\u00D7%d".formatted(map.tileSizeX(), map.tileSizeY());
+                "Align selection to tiles" :
+                "Align selection to tiles (%d\u00D7%d)".formatted(map.tileSizeX(), map.tileSizeY());
     }
 
     public void reload() throws IOException {
@@ -234,7 +234,7 @@ class TiffViewer {
     }
 
     public void invalidateCache() throws IOException {
-        reader.invalidateCache();
+        reader.clearCache();
         lastImageRectangle = null;
         lastImage = null;
         exception = null;
@@ -326,11 +326,7 @@ class TiffViewer {
             }
             setSelection(left, top, width, height);
         } catch (Exception ex) {
-            showErrorMessage(ex, "Invalid selection values");
+            TiffExplorer.showErrorMessage(frame, ex, "Invalid selection values");
         }
-    }
-
-    private void showErrorMessage(Throwable e, String title) {
-        TiffExplorer.showErrorMessage(frame, e, title);
     }
 }

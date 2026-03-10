@@ -406,18 +406,18 @@ public non-sealed class TiffReader extends TiffIO {
      * @throws IOException if the file is not a valid TIFF file,
      *                     or if an I/O error occurs while re-reading the header
      */
-    public TiffReader invalidateCache() throws IOException {
+    public TiffReader clearCache() throws IOException {
         synchronized (tileCacheLock) {
             synchronized (fileLock) {
                 // Lock order: tileCacheLock -> fileLock; we should use the same order in all places!
-                invalidateTileCache();
+                clearTileCache();
                 this.allIFDs = null;
                 this.mainIFDs = null;
                 this.positionOfLastIFDOffset = -1;
                 if (!(stream instanceof ReadBufferDataHandle<?>)) {
                     throw new AssertionError("Input stream was not correcty replaced in the constructor");
                 }
-                ((ReadBufferDataHandle<?>) stream).invalidateCache();
+                ((ReadBufferDataHandle<?>) stream).clearCache();
                 final IOException exception = startReading();
                 if (exception != null) {
                     throw exception;
@@ -427,7 +427,7 @@ public non-sealed class TiffReader extends TiffIO {
         return this;
     }
 
-    private void invalidateTileCache() {
+    private void clearTileCache() {
         synchronized (tileCacheLock) {
             synchronized (fileLock) {
                 this.tileCacheMap.clear();

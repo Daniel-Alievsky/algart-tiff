@@ -95,7 +95,7 @@ public class TiffReaderTest {
 //        TiffInfo.showTiffInfo(tiffFile);
 
         for (int repeat = 1; repeat <= numberOfCompleteRepeats; repeat++) {
-            try (final Context context = !useContext ? null : TiffReader.newSCIFIOContext()) {
+            try (final Context context = !useContext ? null : (Context) TiffReader.newSCIFIOContext()) {
                 long t1 = System.nanoTime();
                 final TiffReader reader = compatibility ?
                         new TiffParser(context, tiffFile) :

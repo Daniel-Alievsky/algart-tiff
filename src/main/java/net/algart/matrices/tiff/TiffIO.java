@@ -25,8 +25,6 @@
 package net.algart.matrices.tiff;
 
 import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tags.Tags;
-import org.scijava.Context;
 import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.FileHandle;
@@ -59,7 +57,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     // - using in streamName() for more pretty name
     final Object fileLock = new Object();
 
-    volatile Context context = null;
+    volatile Object context = null;
     volatile Object scifio = null;
 
     public TiffIO(DataHandle<?> stream) {
@@ -96,11 +94,11 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return prefix + uri;
     }
 
-    public Context getContext() {
+    public Object getContext() {
         return context;
     }
 
-    public void setContext(Context context) {
+    public void setContext(Object context) {
         this.scifio = null;
         this.context = context;
     }
@@ -121,7 +119,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         }
     }
 
-    public static Context newSCIFIOContext() {
+    public static Object newSCIFIOContext() {
         return SCIFIOBridge.getDefaultScifioContext();
     }
 

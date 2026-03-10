@@ -111,6 +111,7 @@ public class TiffSaver extends TiffWriter {
         scifio = new SCIFIO(ctx);
         log = scifio.log();
         this.dataHandleService = ctx.getService(DataHandleService.class);
+        this.setContext(ctx);
         // Disable new features of TiffWriter for compatibility:
         this.setWritingSequentially(false);
         this.setEnforceUseExternalCodec(true);
@@ -155,6 +156,18 @@ public class TiffSaver extends TiffWriter {
     @Deprecated
     public DataHandle<Location> getStream() {
         return (DataHandle<Location>) super.stream();
+    }
+
+    public void setContext(Object context) {
+        if (context != null && !(context instanceof Context)) {
+            throw new IllegalArgumentException("Context must be an instance of " + Context.class);
+        }
+        super.setContext(context);
+    }
+
+    public Context getContext() {
+        Object context = super.getContext();
+        return (Context) context;
     }
 
     /**

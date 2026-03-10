@@ -61,7 +61,7 @@ public class TiffReaderWriterScifioTest {
             TiffReader reader = new TiffReader(bytesHandle, TiffOpenMode.NO_CHECKS);
             System.out.printf("Stream name: \"%s\"%n", reader.streamName());
             checkContext(reader);
-            Context context = TiffReader.newSCIFIOContext();
+            Object context = TiffReader.newSCIFIOContext();
             reader.setContext(context);
             checkContext(reader);
             reader.setContext(context);
