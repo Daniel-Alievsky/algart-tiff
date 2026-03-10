@@ -174,10 +174,9 @@ class TiffViewerCopier {
         final String whatToSave = processSelection ? "the selected area" : "the TIFF image";
 
         final TiffReadMap map = viewer.map();
-        TagCompression compression = map.compression().orElse(TagCompression.NONE);
-        if (!compression.isWritingSupported()) {
-            compression = TagCompression.NONE;
-        }
+        final TagCompression originalCompression = map.compression().orElse(TagCompression.NONE);
+        final boolean originalCompressionSupported = originalCompression.isWritingSupported();
+        final TagCompression compression = !originalCompressionSupported ? TagCompression.NONE : originalCompression;
         copySettingsDialog = new JDialog(frame);
         copySettingsDialog.setTitle("Save " + whatToSave + " as a new TIFF file...");
         copySettingsDialog.setLayout(new BorderLayout(10, 10));
@@ -222,7 +221,7 @@ class TiffViewerCopier {
                     Quick copying is available: selection corner (%d,%d) is aligned to the tile grid.
                     """.formatted(selection.x, selection.y)
                     : """
-                    Quick copying is unavailable for unaligned selection (started at %d,%d).<br>
+                    Quick copying is unavailable for an unaligned selection (starting at %d,%d).<br>
                     You can use<br>
                     &nbsp;&nbsp;&nbsp;&nbsp;Edit \u25B8 %s  (Ctrl+Alt+A)<br>
                     to enable direct copying.
@@ -249,11 +248,20 @@ class TiffViewerCopier {
         compressionMethodBox.setSelectedItem(compression.prettyName());
         compressionMethodBox.addActionListener(e -> correctCompressionQualityLabel());
         settingsPanel.add(compressionMethodBox);
-
         settingsPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, settingsPanel.getPreferredSize().height));
-
         mainPanel.add(settingsPanel);
-        mainPanel.add(Box.createVerticalStrut(10));
+
+        if (!originalCompressionSupported) {
+            final JLabel compressionMethodComment = new JLabel("""
+                    <html>Note: the original compression method<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;"%s"<br>
+                    is not supported for writing.
+                    """.formatted(originalCompression.prettyName()));
+            compressionMethodComment.setAlignmentX(Component.LEFT_ALIGNMENT);
+            compressionMethodComment.setEnabled(false);
+            mainPanel.add(compressionMethodComment);
+        }
+        mainPanel.add(Box.createVerticalStrut(5));
 
         progressLabel = new JLabel("999/999 tiles copied...");
         progressLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
