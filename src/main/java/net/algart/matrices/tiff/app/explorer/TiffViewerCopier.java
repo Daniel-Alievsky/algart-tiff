@@ -209,7 +209,7 @@ class TiffViewerCopier {
         directMode.setEnabled(tileAligned);
         directMode.setSelected(false);
         // - by default, we prefer to enable editing compression
-        directMode.addActionListener(e -> applyDirectMode());
+        directMode.addActionListener(e -> correctCompressionControls());
         mainPanel.add(directMode);
         final JLabel directCommentLabel;
         if (selection != null) {
@@ -246,7 +246,7 @@ class TiffViewerCopier {
         settingsPanel.add(new JLabel("Compression method:"));
         compressionMethodBox = new JComboBox<>(makeCompressionNames(compression));
         compressionMethodBox.setSelectedItem(compression.prettyName());
-        compressionMethodBox.addActionListener(e -> correctCompressionQualityInformation());
+        compressionMethodBox.addActionListener(e -> correctCompressionControls());
         settingsPanel.add(compressionMethodBox);
         settingsPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, settingsPanel.getPreferredSize().height));
         mainPanel.add(settingsPanel);
@@ -286,8 +286,7 @@ class TiffViewerCopier {
 
         TiffExplorer.addCloseOnEscape(copySettingsDialog);
         progressLabel.setText("");
-        correctCompressionQualityInformation();
-        applyDirectMode();
+        correctCompressionControls();
         copySettingsDialog.setLocationRelativeTo(frame);
         copySettingsDialog.setVisible(true);
     }
@@ -300,13 +299,20 @@ class TiffViewerCopier {
     }
 
     private void startCopy(Path targetFile, Rectangle r) {
-        final TiffCopier copier = buildCopier();
-        final Double compressionQuality = getCompressionQuality();
-        stopRequested = false;
-        startCopyButton.setEnabled(false);
-        startCopyButton.setVisible(false);
-        cancelCopyButton.setText("Cancel copying");
-        copyingInProgress = true;
+        final TiffCopier copier;
+        final Double compressionQuality;
+        try {
+            copier = buildCopier();
+            compressionQuality = getCompressionQuality();
+            stopRequested = false;
+            startCopyButton.setEnabled(false);
+            startCopyButton.setVisible(false);
+            cancelCopyButton.setText("Cancel copying");
+            copyingInProgress = true;
+        } catch (Exception e) {
+            showErrorMessage(e, "Error copying TIFF");
+            return;
+        }
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
@@ -427,6 +433,10 @@ class TiffViewerCopier {
     }
 
     private Double getCompressionQuality() {
+        if (!compressionQualityField.isEnabled()) {
+            return null;
+            // - no sense to throw an exception for invalid text in a disabled field
+        }
         final String text = compressionQualityField.getText().trim();
         try {
             return text.isEmpty() ? null : Double.valueOf(text);
@@ -441,17 +451,13 @@ class TiffViewerCopier {
         return TagCompression.fromPrettyName(selected).orElseThrow();
     }
 
-    private void correctCompressionQualityInformation() {
+    private void correctCompressionControls() {
         final TagCompression compression = getSelectedCompression();
-        final boolean compressionQualitySupported = compression.isCompressionQualitySupported();
+        final boolean directCopy = directMode.isSelected();
+        final boolean compressionQualitySupported = compression.isCompressionQualitySupported() && !directCopy;
         compressionQualityLabel.setText(compressionQualityLabel(compression));
         compressionQualityLabel.setEnabled(compressionQualitySupported);
         compressionQualityField.setEnabled(compressionQualitySupported);
-    }
-
-    private void applyDirectMode() {
-        final boolean directCopy = directMode.isSelected();
-        compressionQualityField.setEnabled(!directCopy);
         compressionMethodBox.setEnabled(!directCopy);
     }
 

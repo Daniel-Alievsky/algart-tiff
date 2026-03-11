@@ -1034,7 +1034,7 @@ public non-sealed class TiffWriter extends TiffIO {
             final Optional<byte[]> encodedData = encodeByExternalCodec(tile, tile.getDecodedData(), options);
             if (encodedData.isEmpty()) {
                 throw new UnsupportedTiffFormatException("TIFF compression with code " +
-                        tile.compressionCode() + " cannot be encoded: " + tile.ifd());
+                        tile.compressionCode() + " is not supported and cannot be encoded: " + tile.ifd());
             }
             tile.setEncodedData(encodedData.get());
         }

@@ -49,19 +49,19 @@ public enum TagCompression {
      * For binary images only (1 sample/pixel, 1 bit/sample).
      */
     CCITT_MODIFIED_HUFFMAN_RLE(TiffIFD.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE,
-            "CCITT Modified Huffman RLE compression", CCITTFaxCodec::new),
+            "CCITT Modified Huffman RLE", CCITTFaxCodec::new),
 
     /**
      * CCITT T.4: Bi-level encoding/Group 3 facsimile compression (type 3).
      * For binary images only (1 sample/pixel, 1 bit/sample).
      */
-    CCITT_T4(TiffIFD.COMPRESSION_CCITT_T4, "CCITT T.4/Group 3 Fax compression", CCITTFaxCodec::new),
+    CCITT_T4(TiffIFD.COMPRESSION_CCITT_T4, "CCITT T.4 Group 3 Fax", CCITTFaxCodec::new),
 
     /**
      * CCITT T.6: Bi-level encoding/Group 4 facsimile compression (type 4).
      * For binary images only (1 sample/pixel, 1 bit/sample).
      */
-    CCITT_T6(TiffIFD.COMPRESSION_CCITT_T6, "CCITT T.6/Group 4 Fax compression", CCITTFaxCodec::new),
+    CCITT_T6(TiffIFD.COMPRESSION_CCITT_T6, "CCITT T.6 Group 4 Fax", CCITTFaxCodec::new),
 
     /**
      * LZW compression (type 5).
@@ -100,7 +100,7 @@ public enum TagCompression {
      * is {@link net.algart.matrices.tiff.TiffWriter#setEnforceUseExternalCodec(boolean)
      * enforced to use external codec}.
      */
-    JPEG_RGB(TiffIFD.COMPRESSION_JPEG, "JPEG (RGB)", JPEGCodec::new),
+    JPEG_RGB(TiffIFD.COMPRESSION_JPEG, "JPEG RGB", JPEGCodec::new),
     // - Note: this variant has the same code as the previous one; it must be specified AFTER
 
     /**
@@ -119,7 +119,7 @@ public enum TagCompression {
      *     In both cases each image segment (strip or tile) is written as a single complete zlib data stream.
      * </blockquote>
      */
-    DEFLATE_PROPRIETARY(TiffIFD.COMPRESSION_DEFLATE_PROPRIETARY, "ZLib-Deflate (32946)", DeflateCodec::new),
+    DEFLATE_PROPRIETARY(TiffIFD.COMPRESSION_DEFLATE_PROPRIETARY, "ZLib-Deflate 32946", DeflateCodec::new),
 
     /**
      * PackBits run-length compression (type 32773).
@@ -175,7 +175,97 @@ public enum TagCompression {
      * to RGB (default value).</p>
      */
     JPEG_2000_APERIO(TiffIFD.COMPRESSION_JPEG_2000_APERIO, "JPEG-2000 Aperio 33005",
-            JPEG2000Codec::new, false);
+            JPEG2000Codec::new, false),
+
+    /**
+     * NeXT RLE compression (type 32766).
+     * Not supported in the current version.
+     */
+    NEXT(32766, "NeXT RLE", null),
+
+    /**
+     * CCITT RLEW: CCITT Modified Huffman RLE with word alignment (type 32771).
+     * Not supported in the current version.
+     */
+    CCITT_RLEW(32771, "CCITT Modified Huffman RLE (Word Aligned)", null),
+
+    /**
+     * Macintosh Binary Image (MBI) / Apple VideoView RLE (type 32775).
+     * Not supported in the current version.
+     */
+    MBI_RLE(32775, "MBI RLE / Apple VideoView", null),
+
+    /**
+     * Apple ThunderScan RLE compression (type 32809).
+     * Not supported in the current version.
+     */
+    THUNDER_SCAN(32809, "Apple ThunderScan", null),
+
+    /**
+     * IT8 CT Pad: Prepress data exchange (type 32895).
+     * Not supported in the current version.
+     */
+    IT8_CT_PAD(32895, "IT8 CT Pad", null),
+
+    /**
+     * IT8 Linework (type 32896).
+     * Not supported in the current version.
+     */
+    IT8_LW(32896, "IT8 Linework", null),
+
+    /**
+     * IT8 Monochrome Picture (type 32897).
+     * Not supported in the current version.
+     */
+    IT8_MP(32897, "IT8 Monochrome Picture", null),
+
+    /**
+     * IT8 Binary Linework (type 32898).
+     * Not supported in the current version.
+     */
+    IT8_BL(32898, "IT8 Binary Linework", null),
+
+    /**
+     * Pixar Film RLE compression (type 32908).
+     * Not supported in the current version.
+     */
+    PIXAR_FILM(32908, "Pixar Film RLE", null),
+
+    /**
+     * Pixar Logarithmic compression (type 32909).
+     * Not supported in the current version.
+     */
+    PIXAR_LOG(32909, "Pixar Logarithmic", null),
+
+    /**
+     * Kodak DCS (Digital Camera System) compression (type 32947).
+     * Not supported in the current version.
+     */
+    KODAK_DCS(32947, "Kodak DCS", null),
+
+    /**
+     * JBIG: ISO/IEC 11544 bi-level image compression (type 34661).
+     * Not supported in the current version.
+     */
+    JBIG(34661, "JBIG", null),
+
+    /**
+     * SGI LogL (CIE Log Luminance) compression (type 34676).
+     * Not supported in the current version.
+     */
+    SGI_LOG_L(34676, "SGI LogL", null),
+
+    /**
+     * SGI LogLuv (CIE Log Luminance/Chroma) compression (type 34677).
+     * Not supported in the current version.
+     */
+    SGI_LOG_LUV(34677, "SGI LogLuv", null),
+
+    /**
+     * Nikon NEF (Lossy Huffman) or SGI LogLuv  (type 34713).
+     * Used in Nikon Digital Camera raw files. Not supported.
+     */
+    NIKON_NEF(34713, "Nikon NEF / SGI LogLuv", null);
 
     private static final Map<Integer, TagCompression> CODE_LOOKUP = new HashMap<>();
     private static final Map<String, TagCompression> NAME_LOOKUP = new HashMap<>();

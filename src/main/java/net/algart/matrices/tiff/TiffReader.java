@@ -1307,7 +1307,7 @@ public non-sealed class TiffReader extends TiffIO {
                 throw new UnsupportedTiffFormatException("TIFF compression with code " +
                         tile.compressionCode() +
                         (tile.compression().isPresent() ? " (" + tile.compression().get().prettyName() + ")" : "") +
-                        " cannot be decoded");
+                        " is not supported and cannot be decoded");
             }
             tile.setPartiallyDecodedData(decodedData.get());
         }
