@@ -776,10 +776,6 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    public TiffReader newReader(TiffOpenMode openMode) throws IOException {
-        return new TiffReader(stream, openMode, false);
-    }
-
     @SuppressWarnings("UnusedReturnValue")
     public long rewriteIFD(TiffIFD ifd) throws IOException {
         return rewriteIFD(ifd, false);
@@ -2234,21 +2230,13 @@ public non-sealed class TiffWriter extends TiffIO {
     @SuppressWarnings("RedundantThrows")
     private TiffCodec.Options buildOptions(TiffTile tile) throws TiffException {
         TiffCodec.Options options = this.codecOptions.clone();
-        options.setSizes(tile.getSizeX(), tile.getSizeY());
-        options.setBitsPerSample(tile.bitsPerSample());
-        options.setNumberOfChannels(tile.samplesPerPixel());
-        options.setSigned(tile.sampleType().isSigned());
-        options.setFloatingPoint(tile.sampleType().isFloatingPoint());
-        options.setCompressionCode(tile.compressionCode());
-        options.setByteOrder(tile.byteOrder());
-        options.setInterleaved(true);
+        options.setMainOptions(tile);
         if (this.compressionQuality != null) {
             options.setCompressionQuality(this.compressionQuality);
         }
         if (this.losslessCompressionLevel != null) {
             options.setLosslessCompressionLevel(this.losslessCompressionLevel);
         }
-        options.setIfd(tile.ifd());
         return options;
     }
 

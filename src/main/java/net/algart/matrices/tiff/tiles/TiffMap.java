@@ -31,6 +31,7 @@ import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagDescription;
+import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 
 import java.nio.ByteOrder;
 import java.util.*;
@@ -132,6 +133,7 @@ public sealed class TiffMap permits TiffIOMap {
     private final Optional<TagCompression> compression;
     // - storing Optional value is not a usual way; we do this only for quick access to TiffIFD optCompression()
     private final int photometricInterpretationCode;
+    private final TagPhotometricInterpretation photometricInterpretation;
     private volatile int dimX = 0;
     private volatile int dimY = 0;
     private volatile int gridCountX = 0;
@@ -211,6 +213,8 @@ public sealed class TiffMap permits TiffIOMap {
             this.compressionCode = ifd.getCompressionCode();
             this.compression = ifd.optCompression();
             this.photometricInterpretationCode = ifd.getPhotometricInterpretationCode();
+            this.photometricInterpretation = TagPhotometricInterpretation.fromCodeOrUnknown(
+                    photometricInterpretationCode);
             if (hasImageDimensions) {
                 setDimensions(ifd.getImageDimX(), ifd.getImageDimY(), false);
             }
@@ -414,6 +418,10 @@ public sealed class TiffMap permits TiffIOMap {
 
     public int photometricInterpretationCode() {
         return photometricInterpretationCode;
+    }
+
+    public TagPhotometricInterpretation photometricInterpretation() {
+        return photometricInterpretation;
     }
 
     public int dimX() {

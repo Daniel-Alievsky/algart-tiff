@@ -555,7 +555,7 @@ public non-sealed class TiffReader extends TiffIO {
      * with inverted sense of pixel brightness, i.e., when PhotometricInterpretation TIFF tag is "WhiteIsZero" (0)
      * or "Separated" (CMYK, 5). (In these color spaces, white color is encoded as zero, and black color is encoded
      * as maximal allowed value like 255 for 8-bit samples.)
-     * Note that this flag <b>do not provide</b> correct processing CMYK color model
+     * Note that this flag <b>does not provide</b> correct processing CMYK color model
      * and absolutely useless for more complex color spaces like CIELAB, but for PhotometricInterpretation=0 or 5
      * it helps to provide RGB results more similar to the correct picture.
      *
@@ -1943,13 +1943,7 @@ public non-sealed class TiffReader extends TiffIO {
     @SuppressWarnings("RedundantThrows")
     private TiffCodec.Options buildOptions(TiffTile tile) throws TiffException {
         TiffCodec.Options options = this.codecOptions.clone();
-        options.setSizes(tile.getSizeX(), tile.getSizeY());
-        options.setBitsPerSample(tile.bitsPerSample());
-        options.setNumberOfChannels(tile.samplesPerPixel());
-        options.setSigned(tile.sampleType().isSigned());
-        options.setFloatingPoint(tile.sampleType().isFloatingPoint());
-        options.setCompressionCode(tile.compressionCode());
-        options.setByteOrder(tile.byteOrder());
+        options.setMainOptions(tile);
         // - Note: codecs in SCIFIO did not use the options above, but some new codes like CCITTFaxCodec need them
 
         options.setMaxSizeInBytes(tile.getSizeInBytesInsideTIFF());
@@ -1964,15 +1958,9 @@ public non-sealed class TiffReader extends TiffIO {
         // If it is invalid (too large value), the returned decoded data will be too large,
         // and that is not too good: this class could throw an exception "data may be lost" in further
         // tile.adjustNumberOfPixels() call if it called it without allowDecreasing=true argument.
-        options.setInterleaved(true);
-        // - Value "true" is necessary for most codecs that work with high-level classes (like JPEG or JPEG-2000) and
-        // need to be instructed to interleave results.
-        // (For comparison, LZW or DECOMPRESSED work with data "as-is" and suppose
-        // that data are interleaved according to TIFF format specification).
-        // For JPEG, TagCompression overrides this value to false because it works faster in this mode.
-        options.setIfd(tile.ifd());
         return options;
     }
+
 
     private CachedTile getCachedTile(TiffTileIndex tileIndex) {
         synchronized (tileCacheLock) {

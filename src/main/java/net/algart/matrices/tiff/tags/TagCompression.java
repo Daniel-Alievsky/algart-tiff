@@ -178,6 +178,14 @@ public enum TagCompression {
             JPEG2000Codec::new, true, false),
 
     /**
+     * Apple ThunderScan RLE compression (type 32809).
+     *
+     * <p>Note {@link net.algart.matrices.tiff.TiffWriter} does not support this compression.
+     */
+    THUNDER_SCAN(TiffIFD.COMPRESSION_THUNDER_SCAN, "Apple ThunderScan",
+            ThunderScanCodec::new, false),
+
+    /**
      * NeXT RLE compression (type 32766).
      * Not supported in the current version.
      */
@@ -194,12 +202,6 @@ public enum TagCompression {
      * Not supported in the current version.
      */
     MBI_RLE(32775, "MBI RLE / Apple VideoView", null),
-
-    /**
-     * Apple ThunderScan RLE compression (type 32809).
-     * Not supported in the current version.
-     */
-    THUNDER_SCAN(32809, "Apple ThunderScan", ThunderScanCodec::new),
 
     /**
      * IT8 CT Pad: Prepress data exchange (type 32895).
@@ -301,6 +303,10 @@ public enum TagCompression {
         this(code, name, codec, true, null);
     }
 
+    TagCompression(int code, String name, Supplier<TiffCodec> codec, boolean writingSupported) {
+        this(code, name, codec, writingSupported, null);
+    }
+
     TagCompression(
             int code,
             String name,
@@ -386,7 +392,8 @@ public enum TagCompression {
         return code == TiffIFD.COMPRESSION_CCITT_T4 ||
                 code == TiffIFD.COMPRESSION_CCITT_T6 ||
                 code == TiffIFD.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE ||
-                code == TiffIFD.COMPRESSION_OLD_JPEG;
+                code == TiffIFD.COMPRESSION_OLD_JPEG ||
+                code == TiffIFD.COMPRESSION_THUNDER_SCAN;
     }
 
     /**

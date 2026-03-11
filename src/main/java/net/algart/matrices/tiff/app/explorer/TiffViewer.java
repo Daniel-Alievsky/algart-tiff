@@ -66,6 +66,7 @@ class TiffViewer {
     public TiffViewer(Path path, int ifdIndex) throws IOException {
         this.path = Objects.requireNonNull(path);
         this.reader = new TiffReaderWithGrid(path);
+        this.reader.setAutoCorrectInvertedBrightness(true);
         this.reader.setMaxCacheMemory(CACHING_MEMORY);
         this.ifdIndex = ifdIndex;
         LOG.log(System.Logger.Level.INFO, "Viewer opened " + reader.streamName());
@@ -228,9 +229,10 @@ class TiffViewer {
     }
 
     public BufferedImage readImage(Rectangle viewport) throws IOException {
-        return viewport.width > 0 && viewport.height > 0 ?
-                map.readBufferedImage(viewport.x, viewport.y, viewport.width, viewport.height) :
-                null;
+        if (viewport.width <= 0 || viewport.height <= 0) {
+            return null;
+        }
+        return map.readBufferedImage(viewport.x, viewport.y, viewport.width, viewport.height);
     }
 
     public void invalidateCache() throws IOException {

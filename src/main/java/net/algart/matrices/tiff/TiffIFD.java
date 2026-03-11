@@ -184,6 +184,10 @@ public final class TiffIFD {
      * Compression code for {@link TagCompression#JPEG_2000_APERIO}.
      */
     public static final int COMPRESSION_JPEG_2000_APERIO = 33005;
+    /**
+     * Compression code for {@link TagCompression#THUNDER_SCAN}.
+     */
+    public static final int COMPRESSION_THUNDER_SCAN = 32809;
 
     /**
      * Contiguous (chunked) samples format (PlanarConfiguration), for example, RGBRGBRGB....

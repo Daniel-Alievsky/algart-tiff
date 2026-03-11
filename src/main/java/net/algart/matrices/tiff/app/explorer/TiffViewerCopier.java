@@ -26,6 +26,8 @@ package net.algart.matrices.tiff.app.explorer;
 
 import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffCopier;
+import net.algart.matrices.tiff.TiffOpenMode;
+import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
@@ -300,8 +302,14 @@ class TiffViewerCopier {
 
     private void startCopy(Path targetFile, Rectangle r) {
         final TiffCopier copier;
+        final TiffReader newReader;
+        final TiffReadMap readMap;
         final Double compressionQuality;
         try {
+            //noinspection resource
+            newReader = viewer.reader().newReader(TiffOpenMode.VALID_TIFF);
+            // - we must create a new reader without customizing setAutoCorrectInvertedBrightness
+            readMap = newReader.map(viewer.ifdIndex());
             copier = buildCopier();
             compressionQuality = getCompressionQuality();
             stopRequested = false;
@@ -318,15 +326,15 @@ class TiffViewerCopier {
             protected Void doInBackground() throws Exception {
                 try (TiffWriter writer = new TiffWriter(targetFile)) {
                     writer.setSmartCorrection(true);
-                    writer.setFormatLike(viewer.reader());
+                    writer.setFormatLike(newReader);
                     // - without this operator, direct copy will be impossible for LE format
                     // if (true) throw new IOException("Test exception");
                     writer.setCompressionQuality(compressionQuality);
                     writer.create();
                     if (r == null) {
-                        copier.copyImage(writer, viewer.map());
+                        copier.copyImage(writer, readMap);
                     } else {
-                        copier.copyImage(writer, viewer.map(), r.x, r.y, r.width, r.height);
+                        copier.copyImage(writer, readMap, r.x, r.y, r.width, r.height);
                     }
                 }
                 return null;

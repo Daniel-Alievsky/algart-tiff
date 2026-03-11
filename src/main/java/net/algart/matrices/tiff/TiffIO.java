@@ -64,6 +64,16 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         this.stream = Objects.requireNonNull(stream, "Null data handle (input/output stream)");
     }
 
+    public Object getContext() {
+        return context;
+    }
+
+    public void setContext(Object context) {
+        this.scifio = null;
+        this.context = context;
+    }
+
+
     /**
      * Returns the input/output stream for operation with this TIFF file.
      */
@@ -94,15 +104,6 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return prefix + uri;
     }
 
-    public Object getContext() {
-        return context;
-    }
-
-    public void setContext(Object context) {
-        this.scifio = null;
-        this.context = context;
-    }
-
     public long fileLength() {
         try {
             return stream.length();
@@ -110,6 +111,10 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             // - very improbable, it is better just to return something
             return 0;
         }
+    }
+
+    public TiffReader newReader(TiffOpenMode openMode) throws IOException {
+        return new TiffReader(stream, openMode, false);
     }
 
     @Override

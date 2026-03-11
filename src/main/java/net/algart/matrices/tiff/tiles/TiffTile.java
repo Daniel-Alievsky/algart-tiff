@@ -29,6 +29,7 @@ import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.data.TiffUnusualPrecisions;
 import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 
 import java.lang.reflect.Array;
 import java.nio.ByteOrder;
@@ -179,6 +180,14 @@ public final class TiffTile {
 
     public Optional<TagCompression> compression() {
         return map.compression();
+    }
+
+    public int photometricInterpretationCode() {
+        return map.photometricInterpretationCode();
+    }
+
+    public TagPhotometricInterpretation photometricInterpretation() {
+        return map.photometricInterpretation();
     }
 
     public int fromX() {

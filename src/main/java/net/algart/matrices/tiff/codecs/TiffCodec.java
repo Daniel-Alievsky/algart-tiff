@@ -26,6 +26,7 @@ package net.algart.matrices.tiff.codecs;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.tiles.TiffTile;
 
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteOrder;
@@ -63,6 +64,7 @@ public interface TiffCodec {
         int maxSizeInBytes = 0;
         private Double compressionQuality = null;
         private Double losslessCompressionLevel = null;
+        // - but we do not add photometricInterpretation: the codec SHOULD NOT interpret colors!
         private TiffIFD ifd = null;
         // - used only if other information is not enough
 
@@ -148,7 +150,6 @@ public interface TiffCodec {
             return this;
         }
 
-
         public boolean isLittleEndian() {
             return littleEndian;
         }
@@ -226,6 +227,24 @@ public interface TiffCodec {
 
         public Options setIfd(TiffIFD ifd) {
             this.ifd = ifd;
+            return this;
+        }
+
+        public Options setMainOptions(TiffTile tile) {
+            this.setSizes(tile.getSizeX(), tile.getSizeY());
+            this.setBitsPerSample(tile.bitsPerSample());
+            this.setNumberOfChannels(tile.samplesPerPixel());
+            this.setSigned(tile.sampleType().isSigned());
+            this.setFloatingPoint(tile.sampleType().isFloatingPoint());
+            this.setCompressionCode(tile.compressionCode());
+            this.setByteOrder(tile.byteOrder());
+            this.setInterleaved(true);
+            // - Value "true" is necessary for most codecs that work with high-level classes (like JPEG or JPEG-2000)
+            // and need to be instructed to interleave results while reading.
+            // (For comparison, LZW or DECOMPRESSED work with data "as-is" and suppose
+            // that data are interleaved according to TIFF format specification).
+            // For JPEG, TagCompression overrides this value to false because it works faster in this mode.
+            this.setIfd(tile.ifd());
             return this;
         }
 
