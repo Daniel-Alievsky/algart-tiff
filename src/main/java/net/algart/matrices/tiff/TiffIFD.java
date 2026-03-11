@@ -1490,6 +1490,11 @@ public final class TiffIFD {
                 getPhotometricInterpretation() == TagPhotometricInterpretation.Y_CB_CR;
     }
 
+    public boolean isLowLevelInterpretation() {
+        final Optional<TagCompression> compression = optCompression();
+        return compression.isPresent() && compression.get().isLowLevelInterpretation();
+    }
+
     public boolean isStandardCompression() {
         final Optional<TagCompression> compression = optCompression();
         return compression.isPresent() && compression.get().isStandard();
@@ -1502,8 +1507,7 @@ public final class TiffIFD {
 
     public boolean isStandardInvertedCompression() throws TiffException {
         final TagCompression compression = optCompression().orElse(null);
-        return compression != null && compression.isStandard() &&
-                !compression.isJpegOrOldJpeg() &&
+        return compression != null && compression.isLowLevelInterpretation() &&
                 getPhotometricInterpretation().isInvertedBrightness();
     }
 

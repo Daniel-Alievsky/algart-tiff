@@ -440,6 +440,33 @@ public enum TagCompression {
         return isJpeg2000() || isStandardJpeg();
     }
 
+    /**
+     * Returns {@code true} if the decompressed data unpacked by the codec
+     * should be further processed, for example, inverted in some photometric interpretations,
+     * appended to whole number of bytes etc.
+     * This is {@code true} for the following codecs:
+     * {@link #NONE}, {@link #CCITT_T4}, {@link #CCITT_T6},
+     * {@link #CCITT_MODIFIED_HUFFMAN_RLE},
+     * {@link #LZW}, {@link #DEFLATE}, {@link #DEFLATE_PROPRIETARY},
+     * {@link #PACK_BITS}, {@link #THUNDER_SCAN}.
+     *
+     * @return whether this compression codec is low-level.
+     */
+    public boolean isLowLevelInterpretation() {
+        return switch (code) {
+            case TiffIFD.COMPRESSION_NONE,
+                 TiffIFD.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE,
+                 TiffIFD.COMPRESSION_CCITT_T4,
+                 TiffIFD.COMPRESSION_CCITT_T6,
+                 TiffIFD.COMPRESSION_LZW,
+                 TiffIFD.COMPRESSION_DEFLATE,
+                 TiffIFD.COMPRESSION_DEFLATE_PROPRIETARY,
+                 TiffIFD.COMPRESSION_PACK_BITS,
+                 TiffIFD.COMPRESSION_THUNDER_SCAN -> true;
+            default -> false;
+        };
+    }
+
     public boolean isStandard() {
         return code <= 10 || this == PACK_BITS;
         // - actually, the maximal supported standard compression is DEFLATE=8

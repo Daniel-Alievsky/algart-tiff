@@ -50,7 +50,7 @@ public class PackBitsCodec implements TiffCodec {
     public byte[] decompress(byte[] data, Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
-        byte[] result = new byte[options.maxSizeInBytes];
+        byte[] result = new byte[(options.maxSizeInBytes + 1) >>> 1];
         unpackBytes(result, data, data.length);
         return result;
     }
