@@ -55,8 +55,8 @@ public class TiffUnpacking {
         final int decodedDataLength = tile.getDecodedDataLength();
         final TiffIFD ifd = tile.ifd();
 
-        final AtomicBoolean simpleNonJpegFormat = new AtomicBoolean();
-        if (!isSimpleRearrangingBytesEnough(ifd, simpleNonJpegFormat)) {
+        final AtomicBoolean lowLevelFormat = new AtomicBoolean();
+        if (!isSimpleRearrangingBytesEnough(ifd, lowLevelFormat)) {
             return false;
         }
         if (!OPTIMIZE_SEPARATING_WHOLE_BYTES && tile.isInterleaved()) {
@@ -70,7 +70,7 @@ public class TiffUnpacking {
         // for all other cases isSimpleRearrangingBytesEnough returns false.
         // The only unusual case here is 3 bytes/sample: 24-bit float or 24-bit integer;
         // these cases (as well as 16-bit float) will be processed later in unpackUnusualPrecisions.
-        if (decodedDataLength > tile.map().tileSizeInBytes() && !simpleNonJpegFormat.get()) {
+        if (decodedDataLength > tile.map().tileSizeInBytes() && !lowLevelFormat.get()) {
             // - Strange situation: JPEG or some extended codec has decoded too large tile.
             // But for "simple" compressions (uncompressed, Deflate) we enable this situation:
             // it helps to create special tests (for example, an image with "fake" too little dimensions).
@@ -301,15 +301,15 @@ public class TiffUnpacking {
         return true;
     }
 
-    private static boolean isSimpleRearrangingBytesEnough(TiffIFD ifd, AtomicBoolean simpleNonJpegFormat)
+    private static boolean isSimpleRearrangingBytesEnough(TiffIFD ifd, AtomicBoolean lowLevelFormat)
             throws TiffException {
         final TagCompression compression = ifd.optCompression().orElse(null);
         final boolean advancedFormat = compression != null && !compression.isLowLevelInterpretation();
-        if (simpleNonJpegFormat != null) {
-            simpleNonJpegFormat.set(!advancedFormat);
+        if (lowLevelFormat != null) {
+            lowLevelFormat.set(!advancedFormat);
         }
         if (advancedFormat) {
-            // JPEG codec and all non-standard codecs like JPEG-2000 should perform all necessary
+            // JPEG codec and non-standard codecs like JPEG-2000 should perform all necessary
             // bits unpacking or color space corrections themselves
             return true;
         }
@@ -326,7 +326,8 @@ public class TiffUnpacking {
             // - convertYCbCrToRGB function performs necessary repacking itself
             return false;
         }
-        return !ifd.isStandardInvertedCompression();
+        // System.out.println("ifd.isLowLevelInvertedCompression(): " + ifd.isLowLevelInvertedCompression());
+        return !ifd.isLowLevelInvertedCompression();
     }
 
     // Below is almost exact copy of old TiffParser.unpackBytes method:
