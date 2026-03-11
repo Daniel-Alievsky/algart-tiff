@@ -1,0 +1,138 @@
+package net.algart.matrices.tiff.codecs;
+
+import net.algart.matrices.tiff.TiffException;
+
+import java.util.Objects;
+
+public class ThunderScanCodec implements TiffCodec {
+
+    private static final int THUNDER_DATA = 0x3f;
+    private static final int THUNDER_CODE = 0xc0;
+
+    private static final int THUNDER_RUN = 0x00;
+    private static final int THUNDER_2BITDELTAS = 0x40;
+    private static final int THUNDER_3BITDELTAS = 0x80;
+    private static final int THUNDER_RAW = 0xc0;
+
+    private static final int DELTA2_SKIP = 2;
+    private static final int DELTA3_SKIP = 4;
+
+    private static final int[] TWOBIT_DELTAS = {0, 1, 0, -1};
+    private static final int[] THREEBIT_DELTAS = {0, 1, 2, 3, 0, -3, -2, -1};
+
+    @Override
+    public byte[] compress(byte[] data, Options options) {
+        throw new UnsupportedOperationException("ThunderScan compression is not supported");
+    }
+
+    /**
+     * The Options parameter should have the following fields set:
+     * {@link Options#getMaxSizeInBytes()}.
+     */
+    @Override
+    public byte[] decompress(byte[] data, Options options) throws TiffException {
+        Objects.requireNonNull(data, "Null data");
+        Objects.requireNonNull(options, "Null codec options");
+
+        byte[] result = new byte[options.maxSizeInBytes];
+        unpackThunderScan(result, data, data.length);
+        return result;
+    }
+
+    public static int unpackThunderScan(byte[] dest, byte[] src, int packedLength) {
+        int srcPos = 0;
+        int destPos = 0;
+
+        int lastPixel = 0;
+        int npixels = 0;
+        int maxPixels = dest.length * 2;
+
+        while (srcPos < packedLength && npixels < maxPixels) {
+
+            int n = src[srcPos++] & 0xFF;
+
+            switch (n & THUNDER_CODE) {
+
+                case THUNDER_RUN: {
+                    int count = n & THUNDER_DATA;
+
+                    if ((npixels & 1) != 0) {
+                        dest[destPos] |= lastPixel;
+                        lastPixel = dest[destPos++] & 0xFF;
+                        npixels++;
+                        count--;
+                    } else {
+                        lastPixel |= lastPixel << 4;
+                    }
+
+                    npixels += count;
+
+                    if (npixels < maxPixels) {
+                        for (; count > 0; count -= 2) {
+                            dest[destPos++] = (byte) lastPixel;
+                        }
+                    }
+
+                    if (count == -1) {
+                        dest[--destPos] &= 0xF0;
+                    }
+
+                    lastPixel &= 0xF;
+                    break;
+                }
+
+                case THUNDER_2BITDELTAS: {
+                    int delta;
+
+                    delta = (n >> 4) & 3;
+                    if (delta != DELTA2_SKIP)
+                        destPos = setPixel(dest, destPos, lastPixel += TWOBIT_DELTAS[delta], npixels++);
+
+                    delta = (n >> 2) & 3;
+                    if (delta != DELTA2_SKIP)
+                        destPos = setPixel(dest, destPos, lastPixel += TWOBIT_DELTAS[delta], npixels++);
+
+                    delta = n & 3;
+                    if (delta != DELTA2_SKIP)
+                        destPos = setPixel(dest, destPos, lastPixel += TWOBIT_DELTAS[delta], npixels++);
+
+                    break;
+                }
+
+                case THUNDER_3BITDELTAS: {
+                    int delta;
+
+                    delta = (n >> 3) & 7;
+                    if (delta != DELTA3_SKIP)
+                        destPos = setPixel(dest, destPos, lastPixel += THREEBIT_DELTAS[delta], npixels++);
+
+                    delta = n & 7;
+                    if (delta != DELTA3_SKIP)
+                        destPos = setPixel(dest, destPos, lastPixel += THREEBIT_DELTAS[delta], npixels++);
+
+                    break;
+                }
+
+                case THUNDER_RAW: {
+                    destPos = setPixel(dest, destPos, n, npixels++);
+                    lastPixel = n & 0xF;
+                    break;
+                }
+            }
+        }
+
+        return destPos;
+    }
+
+    private static int setPixel(byte[] dest, int destPos, int value, int npixels) {
+        int lastPixel = value & 0xF;
+
+        if ((npixels & 1) != 0) {
+            dest[destPos] |= lastPixel;
+            return destPos + 1;
+        } else {
+            dest[destPos] = (byte) (lastPixel << 4);
+            return destPos;
+        }
+    }
+}

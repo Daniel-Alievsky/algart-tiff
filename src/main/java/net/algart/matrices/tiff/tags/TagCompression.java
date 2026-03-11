@@ -135,7 +135,7 @@ public enum TagCompression {
      * <p>For writing, the <code>PhotometricInterpretation</code> will be automatically set
      * to RGB (default value).</p>
      */
-    JPEG_2000(TiffIFD.COMPRESSION_JPEG_2000, "JPEG-2000", JPEG2000Codec::new, false),
+    JPEG_2000(TiffIFD.COMPRESSION_JPEG_2000, "JPEG-2000", JPEG2000Codec::new, true, false),
 
     /**
      * The same compression code as in {@link #JPEG_2000},
@@ -145,7 +145,7 @@ public enum TagCompression {
      * but can be useful while writing by {@link net.algart.matrices.tiff.TiffWriter}.</p>
      */
     JPEG_2000_LOSSLESS(TiffIFD.COMPRESSION_JPEG_2000, "JPEG-2000 lossless",
-            JPEG2000Codec::new, true),
+            JPEG2000Codec::new, true, true),
     // - Note: this variant has the same code as the previous one;
     // it must be specified AFTER: it can only be a result of setting compression for writing
     // and cannot appear when parsing an existing TIFF.
@@ -166,7 +166,7 @@ public enum TagCompression {
      * <p>Note {@link net.algart.matrices.tiff.TiffWriter} does not support this compression.</p>
      */
     JPEG_2000_APERIO_33004(33004, "JPEG-2000 Aperio 33004 lossless",
-            JPEG2000Codec::new, true, false),
+            JPEG2000Codec::new, false, true),
 
     /**
      * JPEG-2000 Aperio compression for RGB (type 33005).
@@ -175,7 +175,7 @@ public enum TagCompression {
      * to RGB (default value).</p>
      */
     JPEG_2000_APERIO(TiffIFD.COMPRESSION_JPEG_2000_APERIO, "JPEG-2000 Aperio 33005",
-            JPEG2000Codec::new, false),
+            JPEG2000Codec::new, true, false),
 
     /**
      * NeXT RLE compression (type 32766).
@@ -199,7 +199,7 @@ public enum TagCompression {
      * Apple ThunderScan RLE compression (type 32809).
      * Not supported in the current version.
      */
-    THUNDER_SCAN(32809, "Apple ThunderScan", null),
+    THUNDER_SCAN(32809, "Apple ThunderScan", ThunderScanCodec::new),
 
     /**
      * IT8 CT Pad: Prepress data exchange (type 32895).
@@ -298,24 +298,20 @@ public enum TagCompression {
     private final boolean writingSupported;
 
     TagCompression(int code, String name, Supplier<TiffCodec> codec) {
-        this(code, name, codec, null);
-    }
-
-    TagCompression(int code, String name, Supplier<TiffCodec> codec, Boolean jpeg2000Lossless) {
-        this(code, name, codec, jpeg2000Lossless, true);
+        this(code, name, codec, true, null);
     }
 
     TagCompression(
             int code,
             String name,
             Supplier<TiffCodec> codec,
-            Boolean jpeg2000Lossless,
-            boolean writingSupported) {
+            boolean writingSupported,
+            Boolean jpeg2000Lossless) {
         this.code = code;
         this.name = Objects.requireNonNull(name);
         this.codec = codec;
-        this.jpeg2000Lossless = jpeg2000Lossless;
         this.writingSupported = ALWAYS_ALLOW_WRITING || writingSupported;
+        this.jpeg2000Lossless = jpeg2000Lossless;
     }
 
     /**
