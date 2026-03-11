@@ -46,7 +46,7 @@ public class TiffExplorer {
     private static final float ALL_FONTS_SCALE = 1.2f;
     // - default font sizes in Java API are usually too small
 
-    private static final String PREF_LAST_DIR = "lastDirectory";
+    private static final String PREF_LAST_DIR = "main.lastDirectory";
 
     private static final FileFilter TIFF_FILTER = new FileNameExtensionFilter(
             "TIFF / SVS files (*.tif, *.tiff, *.svs)", "tif", "tiff", "svs");

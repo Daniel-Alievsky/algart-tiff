@@ -1495,11 +1495,6 @@ public final class TiffIFD {
         return compression.isPresent() && compression.get().isLowLevelInterpretation();
     }
 
-    public boolean isStandardCompression() {
-        final Optional<TagCompression> compression = optCompression();
-        return compression.isPresent() && compression.get().isStandard();
-    }
-
     public boolean isJpegOrOldJpeg() {
         final Optional<TagCompression> compression = optCompression();
         return compression.isPresent() && compression.get().isJpegOrOldJpeg();

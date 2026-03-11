@@ -48,15 +48,17 @@ import java.util.concurrent.ExecutionException;
 class TiffViewerCopier {
     private static final int MAX_SINGLE_IMAGE_SIZE_IN_PIXELS = 25 * 1024 * 1024;
     // - 25 megapixels: even for RGBA with float precision, it is only 4*4*25 MB = 400 MB < 2^31 bytes
-    private static final String PREF_LAST_EXPORT__DIR = "lastExportDirectory";
-    private static final String PREF_LAST_SAVE_AS_TIFF_DIR = "lastSaveAsTiffDirectory";
+
+    private static final String PREF_LAST_EXPORT__DIR = "viewer.export.lastDirectory";
+    private static final String PREF_LAST_SAVE_AS_TIFF_DIR = "viewer.copier.lastSaveAsTiffDirectory";
+    private static final String PREF_AUTO_CLOSE = "viewer.copier.autoClose";
+
     private static final FileFilter ANY_IMAGE_FILTER = new FileNameExtensionFilter(
             "Image files (*.png, *.jpg, *.jpeg, *.bmp, *.gif, *.tif, *.tiff)",
             "png", "jpg", "jpeg", "bmp", "gif", "tif", "tiff");
     private static final FileFilter TIFF_FILTER = new FileNameExtensionFilter(
             "TIFF files (*.tif, *.tiff)",
             "tif", "tiff");
-    private static final int DEFAULT_FONT_SIZE = 14;
 
     private static final System.Logger LOG = System.getLogger(TiffViewer.class.getName());
 
@@ -71,6 +73,7 @@ class TiffViewerCopier {
     private JLabel compressionQualityLabel;
     private JTextField compressionQualityField;
     private JComboBox<String> compressionMethodBox;
+    private JCheckBox autoClose;
     private JButton startCopyButton;
     private JButton cancelCopyButton;
     private JDialog copySettingsDialog;
@@ -264,6 +267,9 @@ class TiffViewerCopier {
             mainPanel.add(compressionMethodComment);
         }
         mainPanel.add(Box.createVerticalStrut(5));
+        autoClose = new JCheckBox("Close this dialog automatically after copying");
+        autoClose.setSelected(TiffExplorer.PREFERENCES.getBoolean(PREF_AUTO_CLOSE, false));
+        mainPanel.add(autoClose);
 
         progressLabel = new JLabel("999/999 tiles copied...");
         progressLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -291,13 +297,6 @@ class TiffViewerCopier {
         correctCompressionControls();
         copySettingsDialog.setLocationRelativeTo(frame);
         copySettingsDialog.setVisible(true);
-    }
-
-    private void initializeButtons(boolean again) {
-        startCopyButton.setText(again ? "Start again" : "Start");
-        cancelCopyButton.setText(again ? "Close" : "Cancel");
-        startCopyButton.setEnabled(true);
-        startCopyButton.setVisible(true);
     }
 
     private void startCopy(Path targetFile, Rectangle r) {
@@ -342,17 +341,24 @@ class TiffViewerCopier {
 
             @Override
             protected void done() {
+                boolean successful = false;
                 try {
                     get();
+                    successful = !copier.isCancelled();
                 } catch (InterruptedException | ExecutionException e) {
                     showErrorMessage(e, "Error copying TIFF");
                 }
+                final boolean closeAfterCopy = autoClose.isSelected();
+                TiffExplorer.PREFERENCES.putBoolean(PREF_AUTO_CLOSE, closeAfterCopy);
                 copyingInProgress = false;
-                copySettingsDialog.getRootPane().setDefaultButton(cancelCopyButton);
-                initializeButtons(!copier.isCancelled());
-                // copySettingsDialog.dispose();
+                if (successful) {
+                    copySettingsDialog.getRootPane().setDefaultButton(cancelCopyButton);
+                }
+                initializeButtons(successful);
+                if (successful && closeAfterCopy) {
+                    copySettingsDialog.dispose();
+                }
             }
-
         }.execute();
     }
 
@@ -362,6 +368,13 @@ class TiffViewerCopier {
         } else {
             copySettingsDialog.dispose();
         }
+    }
+
+    private void initializeButtons(boolean again) {
+        startCopyButton.setText(again ? "Start again" : "Start");
+        cancelCopyButton.setText(again ? "Close" : "Cancel");
+        startCopyButton.setEnabled(true);
+        startCopyButton.setVisible(true);
     }
 
     private boolean confirmImageSize(String actionName, String recommendedAction, boolean processSelection) {

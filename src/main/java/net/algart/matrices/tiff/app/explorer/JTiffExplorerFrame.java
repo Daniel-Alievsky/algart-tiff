@@ -82,13 +82,13 @@ public class JTiffExplorerFrame extends JFrame {
     private static final String APPLICATION_TITLE = "TIFF Explorer";
 
     private static final Color SVS_FOREGROUND = new Color(0, 128, 0);
-    private static final String PREF_WINDOW_X = "windowX";
-    private static final String PREF_WINDOW_Y = "windowY";
-    private static final String PREF_WINDOW_WIDTH = "windowWidth";
-    private static final String PREF_WINDOW_HEIGHT = "windowHeight";
-    private static final String PREF_FONT_FAMILY = "fontFamily";
-    private static final String PREF_FONT_SIZE = "fontSize";
-    private static final String PREF_WORD_WRAP = "wordWrap";
+    private static final String PREF_WINDOW_X = "main.window.x";
+    private static final String PREF_WINDOW_Y = "main.window.y";
+    private static final String PREF_WINDOW_WIDTH = "main.window.width";
+    private static final String PREF_WINDOW_HEIGHT = "main.window.height";
+    private static final String PREF_FONT_FAMILY = "main.font.family";
+    private static final String PREF_FONT_SIZE = "main.font.size";
+    private static final String PREF_WORD_WRAP = "main.wordWrap";
 
     private static final System.Logger LOG = System.getLogger(JTiffExplorerFrame.class.getName());
 
