@@ -114,9 +114,9 @@ public enum TagCompression {
      * See Oracle's document "TIFF Metadata Format Specification and Usage Notes":
      *
      * <blockquote>
-     *     ZLib and Deflate compression are identical except for the value of the TIFF Compression field:
-     *     for ZLib the Compression field has value 8 whereas for Deflate it has value 32946 (0x80b2).
-     *     In both cases each image segment (strip or tile) is written as a single complete zlib data stream.
+     * ZLib and Deflate compression are identical except for the value of the TIFF Compression field:
+     * for ZLib the Compression field has value 8 whereas for Deflate it has value 32946 (0x80b2).
+     * In both cases each image segment (strip or tile) is written as a single complete zlib data stream.
      * </blockquote>
      */
     DEFLATE_PROPRIETARY(TiffIFD.COMPRESSION_DEFLATE_PROPRIETARY, "ZLib-Deflate 32946", DeflateCodec::new),
@@ -443,16 +443,19 @@ public enum TagCompression {
     /**
      * Returns {@code true} if the decompressed data unpacked by the codec
      * should be further processed, for example, inverted in some photometric interpretations,
-     * appended to whole number of bytes etc.
+     * expanded to whole number of bytes (e.g., 4 bits to 8, 12 bits to 16), etc.
      * This is {@code true} for the following codecs:
      * {@link #NONE}, {@link #CCITT_T4}, {@link #CCITT_T6},
      * {@link #CCITT_MODIFIED_HUFFMAN_RLE},
      * {@link #LZW}, {@link #DEFLATE}, {@link #DEFLATE_PROPRIETARY},
      * {@link #PACK_BITS}, {@link #THUNDER_SCAN}.
      *
+     * <p>For high-level compressions like JPEG this method returns {@code false}.
+     * Such codecs typically return a ready-to-use image, like while reading from a file.</p>
+     *
      * @return whether this compression codec is low-level.
      */
-    public boolean isLowLevelInterpretation() {
+    public boolean isLowLevelBitsProcessing() {
         return switch (code) {
             case TiffIFD.COMPRESSION_NONE,
                  TiffIFD.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE,
@@ -480,7 +483,7 @@ public enum TagCompression {
      * but theoretically, a codec might use this metadata when encoding control or auxiliary information.
      *
      * @return whether the byte order may affect encoding in the case of byte-sized or binary samples;
-     *         usually <code>false</code>.
+     * usually <code>false</code>.
      */
     public boolean canUseByteOrderForByteData() {
         return false;

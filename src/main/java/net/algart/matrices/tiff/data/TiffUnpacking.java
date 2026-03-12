@@ -253,7 +253,7 @@ public class TiffUnpacking {
             return false;
         }
         checkInterleaved(tile);
-        if (OPTIMIZE_SEPARATING_WHOLE_BYTES && !ifd.isLowLevelInterpretation()) {
+        if (OPTIMIZE_SEPARATING_WHOLE_BYTES && !ifd.isLowLevelBitsProcessing()) {
             throw new IllegalStateException("Corrupted IFD, probably by direct modifications (" +
                     "non-standard/JPEG compression, though it was already checked)");
             // - was checked in isSimpleRearrangingBytesEnough
@@ -304,7 +304,7 @@ public class TiffUnpacking {
     private static boolean isSimpleRearrangingBytesEnough(TiffIFD ifd, AtomicBoolean lowLevelFormat)
             throws TiffException {
         final TagCompression compression = ifd.optCompression().orElse(null);
-        final boolean advancedFormat = compression != null && !compression.isLowLevelInterpretation();
+        final boolean advancedFormat = compression != null && !compression.isLowLevelBitsProcessing();
         if (lowLevelFormat != null) {
             lowLevelFormat.set(!advancedFormat);
         }
