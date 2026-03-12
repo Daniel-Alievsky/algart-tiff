@@ -370,7 +370,7 @@ public class TiffWriterTest {
                         // but the following images will be written with new properties.
                         // Note: it seems that we need to "flush" current writer.getStream(),
                         // but DataHandle has not any analogs of flush() method.
-                        final TiffReader reader = writer.reader();
+                        final TiffReader reader = writer.companionReader();
                         ifd = reader.readSingleIFD(ifdIndex);
                         ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
                     }

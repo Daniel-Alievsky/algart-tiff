@@ -61,7 +61,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
 
     @Override
     public TiffReader reader() {
-        return owner.reader();
+        return owner.companionReader();
     }
 
     @Override

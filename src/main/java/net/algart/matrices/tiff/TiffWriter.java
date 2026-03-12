@@ -608,7 +608,7 @@ public non-sealed class TiffWriter extends TiffIO {
      */
     public final void open(boolean createIfNotExists) throws IOException {
         synchronized (fileLock) {
-            resetReader();
+            resetCompanionReader();
             if (!stream.exists() || stream.length() == 0L) {
                 // - Important: we ALLOW appending to zero-length files.
                 // It is necessary when creating temporary zero-length files: we should never remove/recreate it!
@@ -667,7 +667,7 @@ public non-sealed class TiffWriter extends TiffIO {
      */
     public final void create() throws IOException {
         synchronized (fileLock) {
-            resetReader();
+            resetCompanionReader();
             allUsedIFDOffsets.clear();
             stream.seek(0);
             // - this call actually creates and opens the file if it was not opened before
@@ -700,28 +700,28 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Returns <code>{@link #reader()}.{@link TiffReader#numberOfMainIFDs() numberOfMainIFDs()}</code>.
+     * Returns <code>{@link #companionReader()}.{@link TiffReader#numberOfMainIFDs() numberOfMainIFDs()}</code>.
      * This is the number of existing IFDs that can be read by {@link #existingIFD(int)} method.
      *
      * @return the number of existing main IFDs (not sub-IFDs).
      */
     public int numberOfExistingImages() {
         //noinspection resource
-        return reader().numberOfMainIFDs();
+        return companionReader().numberOfMainIFDs();
     }
 
-    public TiffReader reader() {
-        return reader(false);
+    public TiffReader companionReader() {
+        return companionReader(false);
     }
 
 
     /**
-     * Returns the TIFF reader for reading the same file stream {@link #stream()} used by this object.
+     * Returns the "companion" TIFF reader for reading the same file stream {@link #stream()} used by this object.
      * You <b>don't need</b> to close it: this stream will be closed when closing this writer.
      *
      * <p>The returned reference is stored inside this object, and will be returned by further calls
      * of this method, unless you set <code>alwaysCreateNew=true</code>.
-     * However, the stored reference is cleared to {@code null} by {@link #resetReader()} method
+     * However, the stored reference is cleared to {@code null} by {@link #resetCompanionReader()} method
      * (so that the following call of this method will re-create the reader) in the following cases:
      *
      * <ul>
@@ -745,7 +745,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *                        and create a new one.
      * @return new TIFF reader.
      */
-    public TiffReader reader(boolean alwaysCreateNew) {
+    public TiffReader companionReader(boolean alwaysCreateNew) {
         synchronized (fileLock) {
             if (alwaysCreateNew || this.reader == null) {
                 try {
@@ -760,15 +760,16 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Clears the reference to the TIFF reader stored inside this object and returned by {@link #reader()} method.
-     * Ensures that the next call of {@link #reader()} will create a new reader.
+     * Clears the reference to the "companion" TIFF reader stored inside this object
+     * and returned by {@link #companionReader()} method.
+     * Ensures that the next call of {@link #companionReader()} will create a new reader.
      * Usually you don't need to call this method because it is called automatically.
      *
      * <p>Note: this method <i>does not</i> clear the offsets, stored in {@link #allUsedIFDOffsets()}.
      * These offsets are used only for automatic IFD linkage by {@link #writeIFDAt(TiffIFD, Long, boolean)}
      * method and are not important if you perform the linkage manually.</p>
      */
-    public void resetReader() {
+    public void resetCompanionReader() {
         synchronized (fileLock) {
             this.reader = null;
             // - No sense to clear usedIFDOffsets:
@@ -849,7 +850,7 @@ public non-sealed class TiffWriter extends TiffIO {
     public long writeIFDAt(TiffIFD ifd, Long startOffset, boolean updateIFDLinkages) throws IOException {
         synchronized (fileLock) {
             checkVirginFile();
-            resetReader();
+            resetCompanionReader();
             if (startOffset == null) {
                 appendFileUntilEvenLength();
                 startOffset = stream.length();
@@ -912,7 +913,7 @@ public non-sealed class TiffWriter extends TiffIO {
             if (ifdIndex == 0) {
                 position = positionOfFirstIFDOffset();
             } else {
-                @SuppressWarnings("resource") final TiffReader reader = reader();
+                @SuppressWarnings("resource") final TiffReader reader = companionReader();
                 reader.readSingleIFDOffset(ifdIndex);
                 position = reader.positionOfLastIFDOffset();
             }
@@ -987,7 +988,7 @@ public non-sealed class TiffWriter extends TiffIO {
         long t1 = debugTime();
         synchronized (fileLock) {
             checkVirginFile();
-            resetReader();
+            resetCompanionReader();
             TiffTileIO.write(tile, stream, alwaysWriteToFileEnd, !bigTiff);
             if (freeAndFreezeAfterWriting) {
                 tile.freeAndFreeze();
@@ -1264,7 +1265,7 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Reads IFD by  <code>{@link #reader()}.{@link TiffReader#readSingleIFD(int) readSingleIFD(ifdIndex)}</code>
+     * Reads IFD by  <code>{@link #companionReader()}.{@link TiffReader#readSingleIFD(int) readSingleIFD(ifdIndex)}</code>
      * and sets its {@link TiffIFD#setFileOffsetForWriting(long) offset-for-writing}
      * to be equal to the {@link TiffIFD#getFileOffsetForReading() offset-for-reading}.
      *
@@ -1276,7 +1277,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *                       and this was not detected while opening it.
      */
     public TiffIFD existingIFD(int ifdIndex) throws IOException {
-        @SuppressWarnings("resource") final TiffReader reader = reader();
+        @SuppressWarnings("resource") final TiffReader reader = companionReader();
         final TiffIFD ifd = reader.readSingleIFD(ifdIndex);
         // - no sense to read and cache all IFD: this reader will probably be cleared after TIFF changes
         ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
@@ -1678,7 +1679,7 @@ public non-sealed class TiffWriter extends TiffIO {
     public void close() throws IOException {
         lastMap = null;
         super.close();
-        resetReader();
+        resetCompanionReader();
     }
 
     public int sizeOfHeader() {
@@ -2191,7 +2192,7 @@ public non-sealed class TiffWriter extends TiffIO {
             throws IOException {
         synchronized (fileLock) {
             // - to be on the safe side (this synchronization is not necessary)
-            resetReader();
+            resetCompanionReader();
             final long savedPosition = stream.offset();
             try {
                 stream.seek(positionToWrite);
