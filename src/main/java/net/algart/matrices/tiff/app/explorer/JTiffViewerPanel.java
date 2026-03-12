@@ -34,6 +34,9 @@ import java.awt.image.BufferedImage;
 import java.util.Objects;
 
 class JTiffViewerPanel extends JComponent {
+    private static final boolean DRAFT_EMULATING_CMYK = true;
+    // - much better than false, but CMYK is still not viewed ideally
+
     private static final Paint TRANSPARENCY_PAINT = createChessPaint(
             8,
             new Color(255, 255, 255),
@@ -270,7 +273,11 @@ class JTiffViewerPanel extends JComponent {
             BufferedImage bi = viewer.reloadFragment(
                     clip.x, clip.y, clip.x + clip.width, clip.y + clip.height, zoom);
             if (bi != null) {
-                g.setPaint(TRANSPARENCY_PAINT);
+                if (DRAFT_EMULATING_CMYK && viewer.map().photometricInterpretation().isCMYK()) {
+                    g.setColor(Color.BLACK);
+                } else {
+                    g.setPaint(TRANSPARENCY_PAINT);
+                }
                 g.fillRect(clip.x, clip.y, clip.width, clip.height);
                 g.drawImage(bi, clip.x, clip.y, null);
             } else if (clip.width > 0 && clip.height > 0) {

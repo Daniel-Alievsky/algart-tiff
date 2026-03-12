@@ -25,6 +25,7 @@
 package net.algart.matrices.tiff.app.explorer;
 
 import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 import javax.swing.*;
@@ -41,6 +42,8 @@ class JTiffViewerFrame extends JFrame {
     private final TiffViewer viewer;
     private final JTiffViewerPanel tiffPanel;
     private final JTiffViewerScrollPane tiffScrollPane;
+    private final JPanel noticePanel;
+    private final JLabel noticeLabel;
     private final JLabel statusLabel;
 
     public JTiffViewerFrame(TiffViewer viewer) {
@@ -51,6 +54,13 @@ class JTiffViewerFrame extends JFrame {
         this.setJMenuBar(buildMenuBar());
 
         tiffPanel = new JTiffViewerPanel(viewer);
+
+        noticePanel = new JPanel();
+        noticePanel.setLayout(new FlowLayout(FlowLayout.LEFT, 5, 5));
+        noticeLabel = new JLabel("Lorem ipsum");
+        noticePanel.add(noticeLabel);
+        this.add(noticePanel, BorderLayout.NORTH);
+
         tiffScrollPane = new JTiffViewerScrollPane(tiffPanel);
         tiffScrollPane.setBorder(BorderFactory.createEmptyBorder());
         this.add(tiffScrollPane, BorderLayout.CENTER);
@@ -61,7 +71,7 @@ class JTiffViewerFrame extends JFrame {
         statusPanel.add(statusLabel);
         this.add(statusPanel, BorderLayout.SOUTH);
 
-        resetTitle();
+        resetImage();
         // The following can be used instead of setAccelerator:
 //        frame.getRootPane().registerKeyboardAction(
 //                e -> tiffPanel.removeSelection(),
@@ -99,7 +109,7 @@ class JTiffViewerFrame extends JFrame {
         tiffPanel.disposeResources();
     }
 
-    void resetTitle() {
+    void resetImage() {
         final TiffReadMap map = viewer.map();
         final OptionalInt bitDepth = map.tryEqualBitDepth();
         final double zoom = tiffPanel.getZoom();
@@ -118,6 +128,13 @@ class JTiffViewerFrame extends JFrame {
                 bitDepth.isPresent() ? bitDepth.getAsInt() : Arrays.toString(map.bitsPerSample()),
                 map.compression().orElse(TagCompression.NONE).prettyName(),
                 zoomTitle, viewer.path().getFileName()));
+        final TagPhotometricInterpretation photometricInterpretation = map.photometricInterpretation();
+        final boolean simplyRenderable = photometricInterpretation.isSimplyRenderable();
+        if (!simplyRenderable) {
+            noticeLabel.setText("Photometric interpretation %s is not supported: colors may be incorrect"
+                            .formatted(photometricInterpretation.prettyName()));
+        }
+        noticePanel.setVisible(!simplyRenderable);
     }
 
     private JMenuBar buildMenuBar() {
@@ -299,7 +316,7 @@ class JTiffViewerFrame extends JFrame {
         item.addActionListener(e -> {
             try {
                 tiffScrollPane.setZoomWithCentering(zoomValue);
-                resetTitle();
+                resetImage();
                 viewer.setTileGridThickness(tileGridThickness);
             } catch (TooBigZoomException | IOException ex) {
                 showErrorMessage(ex, "Cannot set zoom");

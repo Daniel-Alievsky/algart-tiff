@@ -140,54 +140,111 @@ public final class TiffIFD {
      * Compression code for {@link TagCompression#NONE}.
      */
     public static final int COMPRESSION_NONE = 1;
+
     /**
      * Compression code for {@link TagCompression#CCITT_MODIFIED_HUFFMAN_RLE}.
      */
     public static final int COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE = 2;
+
     /**
      * Compression code for {@link TagCompression#CCITT_T4}.
      */
     public static final int COMPRESSION_CCITT_T4 = 3;
+
     /**
      * Compression code for {@link TagCompression#CCITT_T6}.
      */
     public static final int COMPRESSION_CCITT_T6 = 4;
+
     /**
      * Compression code for {@link TagCompression#LZW}.
      */
     public static final int COMPRESSION_LZW = 5;
+
     /**
      * Compression code for {@link TagCompression#OLD_JPEG}.
      */
     public static final int COMPRESSION_OLD_JPEG = 6;
+
     /**
      * Compression code for {@link TagCompression#JPEG}.
      */
     public static final int COMPRESSION_JPEG = 7;
+
     /**
      * Compression code for {@link TagCompression#DEFLATE}.
      */
     public static final int COMPRESSION_DEFLATE = 8;
+
     /**
      * Compression code for {@link TagCompression#DEFLATE_PROPRIETARY}.
      */
     public static final int COMPRESSION_DEFLATE_PROPRIETARY = 32946;
+
     /**
      * Compression code for {@link TagCompression#PACK_BITS}.
      */
     public static final int COMPRESSION_PACK_BITS = 32773;
+
     /**
      * Compression code for {@link TagCompression#JPEG_2000}.
      */
     public static final int COMPRESSION_JPEG_2000 = 34712;
+
     /**
      * Compression code for {@link TagCompression#JPEG_2000_APERIO}.
      */
     public static final int COMPRESSION_JPEG_2000_APERIO = 33005;
+
     /**
      * Compression code for {@link TagCompression#THUNDER_SCAN}.
      */
     public static final int COMPRESSION_THUNDER_SCAN = 32809;
+
+    /**
+     * Photometric interpretation code for {@link TagPhotometricInterpretation#WHITE_IS_ZERO}.
+     */
+    public static final int PHOTOMETRIC_INTERPRETATION_WHITE_IS_ZERO = 0;
+
+    /**
+     * Photometric interpretation code for {@link TagPhotometricInterpretation#BLACK_IS_ZERO}.
+     */
+    public static final int PHOTOMETRIC_INTERPRETATION_BLACK_IS_ZERO = 1;
+
+    /**
+     * Photometric interpretation code for {@link TagPhotometricInterpretation#RGB}.
+     */
+    public static final int PHOTOMETRIC_INTERPRETATION_RGB = 2;
+
+    /**
+     * Photometric interpretation code for {@link TagPhotometricInterpretation#RGB_PALETTE}.
+     */
+    public static final int PHOTOMETRIC_INTERPRETATION_RGB_PALETTE = 3;
+
+    /**
+     * Photometric interpretation code for {@link TagPhotometricInterpretation#TRANSPARENCY_MASK}.
+     */
+    public static final int PHOTOMETRIC_INTERPRETATION_TRANSPARENCY_MASK = 4;
+
+    /**
+     * Photometric interpretation code for {@link TagPhotometricInterpretation#CMYK}.
+     */
+    public static final int PHOTOMETRIC_INTERPRETATION_CMYK = 5;
+
+    /**
+     * Photometric interpretation code for {@link TagPhotometricInterpretation#Y_CB_CR}.
+     */
+    public static final int PHOTOMETRIC_INTERPRETATION_Y_CB_CR = 6;
+
+    /**
+     * Photometric interpretation code for {@link TagPhotometricInterpretation#CIE_LAB}.
+     */
+    public static final int PHOTOMETRIC_INTERPRETATION_CIE_LAB = 8;
+
+    /**
+     * Photometric interpretation code for {@link TagPhotometricInterpretation#ICC_LAB}.
+     */
+    public static final int PHOTOMETRIC_INTERPRETATION_ICC_LAB = 9;
 
     /**
      * Contiguous (chunked) samples format (PlanarConfiguration), for example, RGBRGBRGB....

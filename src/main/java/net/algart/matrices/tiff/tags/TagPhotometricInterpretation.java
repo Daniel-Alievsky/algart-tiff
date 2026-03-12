@@ -24,21 +24,24 @@
 
 package net.algart.matrices.tiff.tags;
 
+import net.algart.matrices.tiff.TiffIFD;
+
 import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 public enum TagPhotometricInterpretation {
-    WHITE_IS_ZERO(0, "White-is-zero"),
-    BLACK_IS_ZERO(1, "Black-is-zero"),
-    RGB(2, "RGB"),
-    RGB_PALETTE(3, "RGB palette"),
-    TRANSPARENCY_MASK(4, "Transparency mask"),
-    CMYK(5, "CMYK"),
-    Y_CB_CR(6, "YCbCr"),
-    CIE_LAB(8, "CIELAB"),
-    ICC_LAB(9, "ICCLAB"),
+    WHITE_IS_ZERO(TiffIFD.PHOTOMETRIC_INTERPRETATION_WHITE_IS_ZERO, "White-is-zero"),
+    BLACK_IS_ZERO(TiffIFD.PHOTOMETRIC_INTERPRETATION_BLACK_IS_ZERO, "Black-is-zero"),
+    RGB(TiffIFD.PHOTOMETRIC_INTERPRETATION_RGB, "RGB"),
+    RGB_PALETTE(TiffIFD.PHOTOMETRIC_INTERPRETATION_RGB_PALETTE, "RGB palette"),
+    TRANSPARENCY_MASK(TiffIFD.PHOTOMETRIC_INTERPRETATION_TRANSPARENCY_MASK, "Transparency mask"),
+    CMYK(TiffIFD.PHOTOMETRIC_INTERPRETATION_CMYK, "CMYK"),
+    Y_CB_CR(TiffIFD.PHOTOMETRIC_INTERPRETATION_Y_CB_CR, "YCbCr"),
+    CIE_LAB(TiffIFD.PHOTOMETRIC_INTERPRETATION_CIE_LAB, "CIELAB"),
+    ICC_LAB(TiffIFD.PHOTOMETRIC_INTERPRETATION_ICC_LAB, "ICCLAB"),
     CFA_ARRAY(32803, "Color filter array"),
+    LINEAR_RAW(34892, "Linear raw"),
     UNKNOWN(-1, "unknown");
 
     private final int code;
@@ -68,6 +71,35 @@ public enum TagPhotometricInterpretation {
 
     public boolean isInvertedBrightness() {
         return this == WHITE_IS_ZERO || this == CMYK;
+    }
+
+    public boolean isCMYK() {
+        return this == CMYK;
+    }
+
+    /**
+     * Returns true if this photometric interpretation can be read by {@link net.algart.matrices.tiff.TiffReader}
+     * and then rendered directly via standard Java AWT/Swing tools.
+     *
+     * <p>This includes grayscale ({@link #WHITE_IS_ZERO} and {@link #BLACK_IS_ZERO}), {@link #RGB},
+     * {@link #TRANSPARENCY_MASK} for bit masks and {@link #Y_CB_CR} for YCbCr color space.</p>
+     *
+     * <p>Note: YCbCr is included because {@link net.algart.matrices.tiff.TiffReader} usually converts
+     * such TIFF images into a standard RGB form automatically.</p>
+     * * <p>Note: {@link #WHITE_IS_ZERO} will be rendered correctly only if you set
+     * {@link net.algart.matrices.tiff.TiffReader#setAutoCorrectInvertedBrightness(boolean)} flag.</p>
+     *
+     * @return true if the image is ready for simple rendering.
+     */
+    public boolean isSimplyRenderable() {
+        return switch (code) {
+            case TiffIFD.PHOTOMETRIC_INTERPRETATION_WHITE_IS_ZERO,
+                 TiffIFD.PHOTOMETRIC_INTERPRETATION_BLACK_IS_ZERO,
+                 TiffIFD.PHOTOMETRIC_INTERPRETATION_RGB,
+                 TiffIFD.PHOTOMETRIC_INTERPRETATION_TRANSPARENCY_MASK,
+                 TiffIFD.PHOTOMETRIC_INTERPRETATION_Y_CB_CR -> true;
+            default -> false;
+        };
     }
 
     public boolean isIndexed() {
