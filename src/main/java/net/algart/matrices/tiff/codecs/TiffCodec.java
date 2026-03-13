@@ -26,6 +26,7 @@ package net.algart.matrices.tiff.codecs;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 import net.algart.matrices.tiff.tiles.TiffTile;
 
 import java.lang.reflect.InvocationTargetException;
@@ -64,7 +65,9 @@ public interface TiffCodec {
         int maxSizeInBytes = 0;
         private Double compressionQuality = null;
         private Double losslessCompressionLevel = null;
-        // - but we do not add photometricInterpretation: the codec SHOULD NOT interpret colors!
+        private TagPhotometricInterpretation photometricInterpretation = null;
+        // - not used in the current implementation; the future codec may need this information
+        // for "high-level" formats (when TagCompression.isLowLevelBitsProcessing returns false)
         private TiffIFD ifd = null;
         // - used only if other information is not enough
 
@@ -221,6 +224,15 @@ public interface TiffCodec {
             return this;
         }
 
+        public TagPhotometricInterpretation getPhotometricInterpretation() {
+            return photometricInterpretation;
+        }
+
+        public Options setPhotometricInterpretation(TagPhotometricInterpretation photometricInterpretation) {
+            this.photometricInterpretation = photometricInterpretation;
+            return this;
+        }
+
         public TiffIFD getIfd() {
             return ifd;
         }
@@ -237,6 +249,7 @@ public interface TiffCodec {
             this.setSigned(tile.sampleType().isSigned());
             this.setFloatingPoint(tile.sampleType().isFloatingPoint());
             this.setCompressionCode(tile.compressionCode());
+            this.setPhotometricInterpretation(tile.photometricInterpretation());
             this.setByteOrder(tile.byteOrder());
             this.setInterleaved(true);
             // - Value "true" is necessary for most codecs that work with high-level classes (like JPEG or JPEG-2000)

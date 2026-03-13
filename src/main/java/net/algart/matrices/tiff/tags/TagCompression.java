@@ -443,17 +443,20 @@ public enum TagCompression {
     /**
      * Returns {@code true} if the decompressed data unpacked by the codec
      * should be further processed, for example, inverted in some photometric interpretations,
-     * expanded to whole number of bytes (e.g., 4 bits to 8, 12 bits to 16), etc.
+     * expanded to a whole number of bytes (e.g., 4 bits to 8, 12 bits to 16), etc.
      * This is {@code true} for the following codecs:
      * {@link #NONE}, {@link #CCITT_T4}, {@link #CCITT_T6},
      * {@link #CCITT_MODIFIED_HUFFMAN_RLE},
      * {@link #LZW}, {@link #DEFLATE}, {@link #DEFLATE_PROPRIETARY},
      * {@link #PACK_BITS}, {@link #THUNDER_SCAN}.
      *
-     * <p>For high-level compressions like JPEG this method returns {@code false}.
-     * Such codecs typically return a ready-to-use image, like while reading from a file.</p>
+     * <p>For high-level compressions like JPEG, this method returns {@code false}.
+     * Such codecs typically return a ready-to-use image, similar to the results of reading from a file.
+     * In particular, for CMYK photometric interpretation, the codec should correctly tranlate the colors
+     * to RGB space (the standard model for {@link net.algart.matrices.tiff.TiffReader}
+     * and {@link java.awt.image.BufferedImage}).</p>
      *
-     * @return whether this compression codec is low-level.
+     * @return whether this compression codec works with a low-level bit stream.
      */
     public boolean isLowLevelBitsProcessing() {
         return switch (code) {

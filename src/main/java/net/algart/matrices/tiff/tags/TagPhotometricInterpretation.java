@@ -87,7 +87,7 @@ public enum TagPhotometricInterpretation {
      * <p>Note: YCbCr is included because {@link net.algart.matrices.tiff.TiffReader} usually converts
      * such TIFF images into a standard RGB form automatically.</p>
      * * <p>Note: {@link #WHITE_IS_ZERO} will be rendered correctly only if you set
-     * {@link net.algart.matrices.tiff.TiffReader#setAutoCorrectInvertedBrightness(boolean)} flag.</p>
+     * {@link net.algart.matrices.tiff.TiffReader#setAutoCorrectColors(boolean)} flag.</p>
      *
      * @return true if the image is ready for simple rendering.
      */

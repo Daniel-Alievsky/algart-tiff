@@ -1557,7 +1557,7 @@ public final class TiffIFD {
         return compression.isPresent() && compression.get().isJpegOrOldJpeg();
     }
 
-    public boolean isLowLevelInvertedCompression() throws TiffException {
+    public boolean isLowLevelInvertedBrightness() throws TiffException {
         final TagCompression compression = optCompression().orElse(null);
         return compression != null && compression.isLowLevelBitsProcessing() &&
                 getPhotometricInterpretation().isInvertedBrightness();

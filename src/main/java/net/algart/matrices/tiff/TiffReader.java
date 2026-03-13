@@ -153,7 +153,7 @@ public non-sealed class TiffReader extends TiffIO {
     private UnpackBits autoUnpackBits = UnpackBits.NONE;
     private UnusualPrecisions unusualPrecisions = UnusualPrecisions.UNPACK;
     private boolean autoScaleWhenIncreasingBitDepth = true;
-    private boolean autoCorrectInvertedBrightness = false;
+    private boolean autoCorrectColors = false;
     private boolean enforceUseExternalCodec = false;
     private boolean cropTilesToImageBoundaries = true;
     private boolean cachingIFDs = true;
@@ -510,25 +510,26 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     /**
-     * Sets the flag, whether do we need to scale pixel sample values when automatically increasing bit depths,
-     * for example, when we decode 12-bit grayscale image into 16-bit result.
+     * Sets the flag specifying whether this reader scales pixel sample values
+     * when automatically increasing bit depths,
+     * for example, when we decode a 12-bit grayscale image into a 16-bit result.
      *
-     * <p>This class can successfully read TIFF with bit depths not divided by 8, such as 4-bit, 12-bit images or
+     * <p>This class can successfully read TIFF with bit depths multiples of 8, such as 4-bit, 12-bit images or
      * 5+5+5 "HiRes" RGB images. But the data returned by this class is always represented by 8-bit, 16-bit,
      * 32-bit integer values (signed or unsigned) or by 32- or 64-bit floating-point values
      * (these bit depths correspond to Java primitive types). If the source pixel values have another bit depth,
      * they are automatically converted to the nearest "larger" type: for example, 4-bit integer is converted
      * to 8-bit, 12-bit integer is converted to 16-bit, 24-bit to 32-bit.</p>
      *
-     * <p>If this flag is <code>false</code>, this conversion is performed "as-is", so, values 0..15 in 4-bit source
+     * <p>If this flag is <code>false</code>, this conversion is performed as-is, so, values 0..15 in 4-bit source
      * data will be converted to the same values 0..15 with 8-bit precision.
      * This is good if you need to process these values using some kind of algorithm.
      * However, if you need to show the real picture to the end user, then values 0..15 with 8-bit
      * precision (or 0..4095 with 16-bit precision) will look almost black. To avoid this,
      * you can use <code>true</code>
-     * value of this flag, which causes automatic scaling returned values: multiplying by
+     * value of this flag to automatically scale the values: multiplying by
      * (2<sup><i>n</i></sup>&minus;1)/(2<sup><i>k</i></sup>&minus;1), where <i>n</i> is the result bit depth
-     * and <i>k</i> is the source one (for example, for 12-bit image <i>k</i>=12 and <i>n</i>=16).
+     * and <i>k</i> is the source bit depth (for example, for 12-bit image <i>k</i>=12 and <i>n</i>=16).
      * As a result, the returned picture will look alike the source one.</p>
      *
      * <p>Default value is <code>true</code>. However, the scaling is still not performed if
@@ -546,28 +547,36 @@ public non-sealed class TiffReader extends TiffIO {
         return this;
     }
 
-    public boolean isAutoCorrectInvertedBrightness() {
-        return autoCorrectInvertedBrightness;
+    public boolean isAutoCorrectColors() {
+        return autoCorrectColors;
     }
 
     /**
-     * Sets the flag, whether do we need to automatically correct (invert) pixel sample values in color spaces
-     * with inverted sense of pixel brightness, i.e., when PhotometricInterpretation TIFF tag is "WhiteIsZero" (0)
-     * or "Separated" (CMYK, 5). (In these color spaces, white color is encoded as zero, and black color is encoded
-     * as maximal allowed value like 255 for 8-bit samples.)
-     * Note that this flag <b>does not provide</b> correct processing CMYK color model
-     * and absolutely useless for more complex color spaces like CIELAB, but for PhotometricInterpretation=0 or 5
-     * it helps to provide RGB results more similar to the correct picture.
+     * Sets the flag specifying whether this reader performs some color correction based on the
+     * {@link net.algart.matrices.tiff.tags.TagPhotometricInterpretation PhotometricInterpretation} TIFF tag.
      *
-     * <p>Default value is <code>false</code>. You may set it to <code>true</code> if the only goal of reading TIFF
-     * is to show the image to a user.
+     * <p>When set to <code>true</code>, the reader attempts to normalize pixel values for specific
+     * color spaces, especially where the sense of brightness or color is inverted. For example:
+     * <ul>
+     * <li><b>WhiteIsZero (0):</b> the reader inverts samples so that 0 becomes black and
+     * the maximum value becomes white.</li>
+     * <li><b>CMYK (5):</b> the reader inverts samples to provide a visual representation closer to RGB
+     * (though this is a simple inversion and not a professional CMYK-to-RGB conversion).</li>
+     * </ul>
      *
-     * @param autoCorrectInvertedBrightness whether do we need to invert samples for "WhiteIsZero" and "CMYK"
-     *                                      photometric interpretations?
+     * <p>Note: this flag does not provide full support for all PhotometricInterpretation values
+     * (such as CIELAB) and does not replace a proper color management system.
+     *
+     * <p>Default value is <code>false</code>. It is the correct choice if you want to process the data,
+     * not just to display the image. For instance, this flag should be <code>false</code> if you want to copy
+     * the data into another TIFF using the {@link TiffCopier} class.
+     *
+     * @param autoCorrectColors whether to apply basic inversion/correction for "WhiteIsZero" and "CMYK"
+     *                          photometric interpretations.
      * @return a reference to this object.
      */
-    public TiffReader setAutoCorrectInvertedBrightness(boolean autoCorrectInvertedBrightness) {
-        this.autoCorrectInvertedBrightness = autoCorrectInvertedBrightness;
+    public TiffReader setAutoCorrectColors(boolean autoCorrectColors) {
+        this.autoCorrectColors = autoCorrectColors;
         return this;
     }
 
@@ -1427,7 +1436,7 @@ public non-sealed class TiffReader extends TiffIO {
                 if (!TiffUnpacking.separateYCbCrToRGB(tile)) {
                     TiffUnpacking.unpackTiffBitsAndInvertValues(tile,
                             autoScaleWhenIncreasingBitDepth,
-                            autoCorrectInvertedBrightness);
+                            autoCorrectColors);
                 }
             }
         }

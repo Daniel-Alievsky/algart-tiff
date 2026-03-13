@@ -327,7 +327,7 @@ public class TiffUnpacking {
             return false;
         }
         // System.out.println("ifd.isLowLevelInvertedCompression(): " + ifd.isLowLevelInvertedCompression());
-        return !ifd.isLowLevelInvertedCompression();
+        return !ifd.isLowLevelInvertedBrightness();
     }
 
     // Below is almost exact copy of old TiffParser.unpackBytes method:

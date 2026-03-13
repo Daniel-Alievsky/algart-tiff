@@ -131,7 +131,8 @@ class JTiffViewerFrame extends JFrame {
         final TagPhotometricInterpretation photometricInterpretation = map.photometricInterpretation();
         final boolean simplyRenderable = photometricInterpretation.isSimplyRenderable();
         if (!simplyRenderable) {
-            noticeLabel.setText("Photometric interpretation %s is not supported: colors may be incorrect"
+            noticeLabel.setText(
+                    "Note: photometric interpretation %s is not fully supported; colors may be incorrect"
                             .formatted(photometricInterpretation.prettyName()));
         }
         noticePanel.setVisible(!simplyRenderable);
