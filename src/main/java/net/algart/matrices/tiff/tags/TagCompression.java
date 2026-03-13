@@ -451,8 +451,8 @@ public enum TagCompression {
      * {@link #PACK_BITS}, {@link #THUNDER_SCAN}.
      *
      * <p>For high-level compressions like JPEG, this method returns {@code false}.
-     * Such codecs typically return a ready-to-use image, similar to the results of reading from a file.
-     * In particular, for CMYK photometric interpretation, the codec should correctly tranlate the colors
+     * Such codecs typically return a ready-to-use image, similar to the result of reading from a file.
+     * In particular, for the CMYK photometric interpretation, the codec should correctly translate the colors
      * to RGB space (the standard model for {@link net.algart.matrices.tiff.TiffReader}
      * and {@link java.awt.image.BufferedImage}).</p>
      *

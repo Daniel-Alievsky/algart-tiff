@@ -310,7 +310,7 @@ public class TiffUnpacking {
         }
         if (advancedFormat) {
             // JPEG codec and non-standard codecs like JPEG-2000 should perform all necessary
-            // bits unpacking or color space corrections themselves
+            // bits unpacking or color corrections (including inverting brightness) themselves
             return true;
         }
         int bits = ifd.tryEqualBitDepthAlignedByBytes().orElse(-1);
@@ -330,7 +330,7 @@ public class TiffUnpacking {
         return !ifd.isLowLevelInvertedBrightness();
     }
 
-    // Below is almost exact copy of old TiffParser.unpackBytes method:
+    // Below is an almost exact copy of the old TiffParser.unpackBytes method:
 
     /*
     static void unpackBytesLegacy(
