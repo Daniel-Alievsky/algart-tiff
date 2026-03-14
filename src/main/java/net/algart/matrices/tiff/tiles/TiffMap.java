@@ -31,7 +31,7 @@ import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagDescription;
-import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
+import net.algart.matrices.tiff.tags.TagPhotometric;
 
 import java.nio.ByteOrder;
 import java.util.*;
@@ -131,9 +131,11 @@ public sealed class TiffMap permits TiffIOMap {
     private final int compressionCode;
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private final Optional<TagCompression> compression;
-    // - storing Optional value is not a usual way; we do this only for quick access to TiffIFD optCompression()
-    private final int photometricInterpretationCode;
-    private final TagPhotometricInterpretation photometricInterpretation;
+    // - storing Optional value is not a usual way; we do this only for quick replacement of TiffIFD method
+    private final int photometricCode;
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private final Optional<TagPhotometric> photometric;
+    // - storing Optional value is not a usual way; we do this only for quick replacement of TiffIFD method
     private volatile int dimX = 0;
     private volatile int dimY = 0;
     private volatile int gridCountX = 0;
@@ -212,9 +214,8 @@ public sealed class TiffMap permits TiffIOMap {
             assert tileSizeX > 0 && tileSizeY > 0 : "non-positive tile sizes are not checked in IFD methods";
             this.compressionCode = ifd.getCompressionCode();
             this.compression = ifd.optCompression();
-            this.photometricInterpretationCode = ifd.getPhotometricInterpretationCode();
-            this.photometricInterpretation = TagPhotometricInterpretation.fromCodeOrUnknown(
-                    photometricInterpretationCode);
+            this.photometricCode = ifd.getPhotometricCode();
+            this.photometric = ifd.optPhotometric();
             if (hasImageDimensions) {
                 setDimensions(ifd.getImageDimX(), ifd.getImageDimY(), false);
             }
@@ -416,12 +417,12 @@ public sealed class TiffMap permits TiffIOMap {
         return compression;
     }
 
-    public int photometricInterpretationCode() {
-        return photometricInterpretationCode;
+    public int photometricCode() {
+        return photometricCode;
     }
 
-    public TagPhotometricInterpretation photometricInterpretation() {
-        return photometricInterpretation;
+    public Optional<TagPhotometric> photometric() {
+        return photometric;
     }
 
     public int dimX() {

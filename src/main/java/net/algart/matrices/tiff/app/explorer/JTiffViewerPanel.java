@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff.app.explorer;
 
+import net.algart.matrices.tiff.tags.TagPhotometric;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 import javax.swing.*;
@@ -274,7 +275,7 @@ class JTiffViewerPanel extends JComponent {
             BufferedImage bi = viewer.reloadFragment(
                     clip.x, clip.y, clip.x + clip.width, clip.y + clip.height, zoom);
             if (bi != null) {
-                if (EMULATING_CMYK && viewer.map().photometricInterpretation().isCMYK()) {
+                if (EMULATING_CMYK && viewer.map().photometric().orElse(TagPhotometric.RGB).isCMYK()) {
                     g.setColor(Color.BLACK);
                 } else {
                     g.setPaint(TRANSPARENCY_PAINT);

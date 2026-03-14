@@ -28,7 +28,7 @@ import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.awt.AWTImages;
 import net.algart.matrices.tiff.awt.JPEGDecoding;
 import net.algart.matrices.tiff.awt.JPEGEncoding;
-import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
+import net.algart.matrices.tiff.tags.TagPhotometric;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.DataHandleInputStream;
 
@@ -43,26 +43,17 @@ import java.util.Objects;
 public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
     public static class JPEGOptions extends Options {
         /**
-         * Value of TIFF tag PhotometricInterpretation (READ/WRITE).
-         */
-        private TagPhotometricInterpretation photometricInterpretation = TagPhotometricInterpretation.Y_CB_CR;
-        /**
          * Value of TIFF tag YCbCrSubSampling (READ).
          */
         private int[] yCbCrSubsampling = {2, 2};
 
         public JPEGOptions() {
+            setPhotometric(TagPhotometric.Y_CB_CR);
             setCompressionQuality(1.0);
         }
 
-        public TagPhotometricInterpretation getPhotometricInterpretation() {
-            return photometricInterpretation;
-        }
-
-        public JPEGOptions setPhotometricInterpretation(
-                TagPhotometricInterpretation photometricInterpretation) {
-            this.photometricInterpretation = Objects.requireNonNull(photometricInterpretation,
-                    "Null photometricInterpretation");
+        public JPEGOptions setPhotometric(TagPhotometric photometric) {
+            super.setPhotometric(photometric);
             return this;
         }
 
@@ -75,12 +66,10 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
             return this;
         }
 
-
         @Override
         public JPEGOptions setTo(Options options) {
             super.setTo(options);
             if (options instanceof JPEGOptions o) {
-                this.photometricInterpretation = o.photometricInterpretation;
                 this.yCbCrSubsampling = o.yCbCrSubsampling.clone();
             } else {
                 Double quality = getCompressionQuality();
@@ -98,7 +87,6 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         @Override
         public String toString() {
             return super.toString() +
-                    ", photometricInterpretation=" + photometricInterpretation +
                     ", yCbCrSubsampling=" + Arrays.toString(yCbCrSubsampling);
         }
     }
@@ -143,9 +131,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         // loaded from CodecOptions class, but in does not make sense in TIFF
 
         long t2 = timing ? System.nanoTime() : 0;
-        final TagPhotometricInterpretation colorSpace = options instanceof JPEGOptions extended ?
-                extended.getPhotometricInterpretation() :
-                TagPhotometricInterpretation.Y_CB_CR;
+        final TagPhotometric colorSpace = options.getPhotometric();
         final double jpegQuality = Math.min(options.compressionQuality(), 1.0);
         // - for JPEG, the maximal possible quality is 1.0, but it is better to allow greater qualities
         // (for comparison, the maximal quality in JPEG-2000 is Double.MAX_VALUE)
@@ -189,10 +175,10 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
             options = new JPEGOptions();
         }
         boolean completeDecoding = false;
-        TagPhotometricInterpretation declaredColorSpace = null;
+        TagPhotometric declaredColorSpace = null;
         int[] declaredSubsampling = null;
         if (options instanceof JPEGOptions extended) {
-            declaredColorSpace = extended.getPhotometricInterpretation();
+            declaredColorSpace = extended.getPhotometric();
             declaredSubsampling = extended.getYCbCrSubsampling();
             completeDecoding = JPEGDecoding.isCompleteDecodingYCbCrNecessary(
                     info, declaredColorSpace, declaredSubsampling);

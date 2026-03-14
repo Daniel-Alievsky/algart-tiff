@@ -27,7 +27,7 @@ package net.algart.matrices.tiff.tests.io;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
-import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
+import net.algart.matrices.tiff.tags.TagPhotometric;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -48,9 +48,9 @@ public class TiffFalsifyTags {
         final int ifdIndex = Integer.parseInt(args[startArgIndex++]);
         final int newDimX = Integer.parseInt(args[startArgIndex++]);
         final int newDimY = Integer.parseInt(args[startArgIndex++]);
-        TagPhotometricInterpretation photometricInterpretation = null;
+        TagPhotometric photometric = null;
         if (startArgIndex < args.length) {
-            photometricInterpretation = TagPhotometricInterpretation.valueOf(args[startArgIndex]);
+            photometric = TagPhotometric.valueOf(args[startArgIndex]);
         }
 
         try (var reader = new TiffReader(targetFile); var writer = new TiffWriter(targetFile)) {
@@ -62,8 +62,8 @@ public class TiffFalsifyTags {
             if (newDimX > 0 && newDimY > 0) {
                 ifd.putImageDimensions(newDimX, newDimY);
             }
-            if (photometricInterpretation != null) {
-                ifd.putPhotometricInterpretation(photometricInterpretation);
+            if (photometric != null) {
+                ifd.putPhotometric(photometric);
             }
             writer.rewriteIFD(ifd);
             // - replacing dimensions

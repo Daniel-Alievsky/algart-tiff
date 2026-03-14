@@ -296,8 +296,8 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * <p>IFD, offered by the user for writing TIFF image (usually with help of {@link #newFixedMap(TiffIFD)} method),
      * may contain specification, which are incorrect or not supported by this class. For example,
-     * the user may specify {@link TiffIFD#putPhotometricInterpretation(TagPhotometricInterpretation)
-     * photometric interpretation} {@link TagPhotometricInterpretation#RGB_PALETTE}, but not provide actual
+     * the user may specify {@link TiffIFD#putPhotometric(TagPhotometric)
+     * photometric interpretation} {@link TagPhotometric#RGB_PALETTE}, but not provide actual
      * palette via the corresponding TIFF entry, or may specify 1000000 bits/pixel etc.</p>
      *
      * <p>If the settings in the specified IFD are absolutely incorrect, this class always throws
@@ -1146,9 +1146,8 @@ public non-sealed class TiffWriter extends TiffIO {
                     " (\"" + compression.prettyName() + "\") is not supported for writing");
         }
 
-        final TagPhotometricInterpretation suggestedPhotometric =
-                ifd.containsKey(Tags.PHOTOMETRIC_INTERPRETATION) ? ifd.getPhotometricInterpretation() : null;
-        TagPhotometricInterpretation newPhotometric = suggestedPhotometric;
+        final TagPhotometric suggestedPhotometric = ifd.optPhotometric().orElse(null);
+        TagPhotometric newPhotometric = suggestedPhotometric;
         // - note: it is possible that we DO NOT KNOW this newPhotometric interpretation;
         // in this case, newPhotometric will be UNKNOWN, but we should not prevent writing such an image
         // in simple formats like UNCOMPRESSED or LZW: maybe, the client knows how to process it
@@ -1157,24 +1156,24 @@ public non-sealed class TiffWriter extends TiffIO {
                 throw new TiffException("JPEG compression for " + samplesPerPixel + " channels is not supported");
             }
             if (newPhotometric == null) {
-                newPhotometric = samplesPerPixel == 1 ? TagPhotometricInterpretation.BLACK_IS_ZERO :
+                newPhotometric = samplesPerPixel == 1 ? TagPhotometric.BLACK_IS_ZERO :
                         (compression.isRGBPreferred() || !ifd.isChunked()) ?
-                                TagPhotometricInterpretation.RGB : TagPhotometricInterpretation.Y_CB_CR;
+                                TagPhotometric.RGB : TagPhotometric.Y_CB_CR;
             } else {
-                checkPhotometricInterpretation(newPhotometric,
-                        samplesPerPixel == 1 ? EnumSet.of(TagPhotometricInterpretation.BLACK_IS_ZERO) :
+                checkPhotometric(newPhotometric,
+                        samplesPerPixel == 1 ? EnumSet.of(TagPhotometric.BLACK_IS_ZERO) :
                                 !enforceUseExternalCodec ?
-                                        EnumSet.of(TagPhotometricInterpretation.Y_CB_CR,
-                                                TagPhotometricInterpretation.RGB) :
-                                        EnumSet.of(TagPhotometricInterpretation.Y_CB_CR),
+                                        EnumSet.of(TagPhotometric.Y_CB_CR,
+                                                TagPhotometric.RGB) :
+                                        EnumSet.of(TagPhotometric.Y_CB_CR),
                         "JPEG " + samplesPerPixel + "-channel image");
             }
         } else if (samplesPerPixel == 1) {
             final boolean hasColorMap = ifd.containsKey(Tags.COLOR_MAP);
             if (newPhotometric == null) {
                 newPhotometric = hasColorMap ?
-                        TagPhotometricInterpretation.RGB_PALETTE :
-                        TagPhotometricInterpretation.BLACK_IS_ZERO;
+                        TagPhotometric.RGB_PALETTE :
+                        TagPhotometric.BLACK_IS_ZERO;
             } else {
                 // There are no reasons to create custom photometric interpretations for 1 channel,
                 // excepting RGB palette, BLACK_IS_ZERO, WHITE_IS_ZERO
@@ -1185,19 +1184,19 @@ public non-sealed class TiffWriter extends TiffIO {
                 // as well as we do not invert values for the CMYK below.
                 // This is important because TiffReader (by default) also does not invert brightness in these cases:
                 // autoCorrectInvertedBrightness=false, so, TiffReader+TiffWriter can copy such IFD correctly.
-                if (newPhotometric == TagPhotometricInterpretation.RGB_PALETTE && !hasColorMap) {
+                if (newPhotometric == TagPhotometric.RGB_PALETTE && !hasColorMap) {
                     throw new TiffException("Cannot write TIFF image: newPhotometric interpretation \"" +
                             newPhotometric.prettyName() + "\" requires also \"ColorMap\" tag");
                 }
-                checkPhotometricInterpretation(newPhotometric,
-                        EnumSet.of(TagPhotometricInterpretation.BLACK_IS_ZERO,
-                                TagPhotometricInterpretation.WHITE_IS_ZERO,
-                                TagPhotometricInterpretation.RGB_PALETTE),
+                checkPhotometric(newPhotometric,
+                        EnumSet.of(TagPhotometric.BLACK_IS_ZERO,
+                                TagPhotometric.WHITE_IS_ZERO,
+                                TagPhotometric.RGB_PALETTE),
                         samplesPerPixel + "-channel image");
             }
         } else if (samplesPerPixel == 3) {
             if (newPhotometric == null || compression.isRGBRequired()) {
-                newPhotometric = TagPhotometricInterpretation.RGB;
+                newPhotometric = TagPhotometric.RGB;
             } else {
                 // Unlike 1 channel/pixel (the case above), we do not prevent the user from
                 // setting non-standard custom photometric interpretations: maybe he wants
@@ -1214,7 +1213,7 @@ public non-sealed class TiffWriter extends TiffIO {
                         // Note that for JPEG we have no such problem: we CAN encode JPEG as YCbCr.
                         // For other models (like CMYK or CIE Lab), we ignore newPhotometric interpretation
                         // and suppose that the user herself prepared channels in the necessary model.
-                        newPhotometric = TagPhotometricInterpretation.RGB;
+                        newPhotometric = TagPhotometric.RGB;
                     }
                 }
             }
@@ -1222,7 +1221,7 @@ public non-sealed class TiffWriter extends TiffIO {
             if (newPhotometric == null) {
                 if (samplesPerPixel == 4) {
                     // - probably RGBA
-                    newPhotometric = TagPhotometricInterpretation.RGB;
+                    newPhotometric = TagPhotometric.RGB;
                 }
                 // else we stay IFD without photometric interpretation: incorrect for good TIFF,
                 // but better than senseless interpretation
@@ -1231,7 +1230,7 @@ public non-sealed class TiffWriter extends TiffIO {
             // for example, the user can prepare correct data for CMYK image.
         }
         if (newPhotometric != suggestedPhotometric) {
-            ifd.putPhotometricInterpretation(newPhotometric);
+            ifd.putPhotometric(newPhotometric);
         }
         correctForEntireTiff(ifd);
     }
@@ -2325,16 +2324,16 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    private static void checkPhotometricInterpretation(
-            TagPhotometricInterpretation photometricInterpretation,
-            EnumSet<TagPhotometricInterpretation> allowed,
+    private static void checkPhotometric(
+            TagPhotometric photometric,
+            EnumSet<TagPhotometric> allowed,
             String whatToWrite)
             throws TiffException {
-        if (photometricInterpretation != null) {
-            if (!allowed.contains(photometricInterpretation)) {
+        if (photometric != null) {
+            if (!allowed.contains(photometric)) {
                 throw new TiffException("Writing " + whatToWrite + " with photometric interpretation \"" +
-                        photometricInterpretation.prettyName() + "\" is not supported (only " +
-                        allowed.stream().map(photometric -> "\"" + photometric.prettyName() + "\"")
+                        photometric.prettyName() + "\" is not supported (only " +
+                        allowed.stream().map(ph -> "\"" + ph.prettyName() + "\"")
                                 .collect(Collectors.joining(", ")) +
                         " allowed)");
             }

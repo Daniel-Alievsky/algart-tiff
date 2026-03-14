@@ -25,7 +25,7 @@
 package net.algart.matrices.tiff.app.explorer;
 
 import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
+import net.algart.matrices.tiff.tags.TagPhotometric;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 import javax.swing.*;
@@ -128,12 +128,12 @@ class JTiffViewerFrame extends JFrame {
                 bitDepth.isPresent() ? bitDepth.getAsInt() : Arrays.toString(map.bitsPerSample()),
                 map.compression().orElse(TagCompression.NONE).prettyName(),
                 zoomTitle, viewer.path().getFileName()));
-        final TagPhotometricInterpretation photometricInterpretation = map.photometricInterpretation();
-        final boolean simplyRenderable = photometricInterpretation.isSimplyRenderable();
+        final TagPhotometric photometric = map.photometric().orElse(TagPhotometric.RGB);
+        final boolean simplyRenderable = photometric.isSimplyRenderable();
         if (!simplyRenderable) {
             noticeLabel.setText(
                     "Note: photometric interpretation %s is not fully supported; colors may be incorrect"
-                            .formatted(photometricInterpretation.prettyName()));
+                            .formatted(photometric.prettyName()));
         }
         noticePanel.setVisible(!simplyRenderable);
     }

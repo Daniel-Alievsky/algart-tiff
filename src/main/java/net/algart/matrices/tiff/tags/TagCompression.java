@@ -82,12 +82,12 @@ public enum TagCompression {
     /**
      * The same compression code as in {@link #JPEG},
      * but the default photometric interpretation (when it is not explicitly specified)
-     * is set to {@link TagPhotometricInterpretation#RGB}.
-     * In comparison, {@link #JPEG} variant uses {@link TagPhotometricInterpretation#Y_CB_CR}
+     * is set to {@link TagPhotometric#RGB}.
+     * In comparison, {@link #JPEG} variant uses {@link TagPhotometric#Y_CB_CR}
      * as the default color space: this is more typical for JPEG format.
      *
      * <p>Note: if the photometric interpretation is already set in {@link TiffIFD}, for example, using
-     * {@link TiffIFD#putPhotometricInterpretation(TagPhotometricInterpretation)} method,
+     * {@link TiffIFD#putPhotometric(TagPhotometric)} method,
      * behavior of this variant and {@link #JPEG} is identical.
      * This option makes sense when the IFD does not contain this tag,
      * and we need to choose the default photometric interpretation.
@@ -516,7 +516,7 @@ public enum TagCompression {
             throws TiffException {
         TiffIFD ifd = tile.ifd();
         return new JPEGCodec.JPEGOptions()
-                .setPhotometricInterpretation(ifd.getPhotometricInterpretation())
+                .setPhotometric(ifd.optPhotometric().orElse(null))
                 .setYCbCrSubsampling(ifd.getYCbCrSubsampling())
                 .setInterleaved(false);
         // JPEGCodec works faster in with non-interleaved data, and in any case, it is better
@@ -527,9 +527,8 @@ public enum TagCompression {
     private static TiffCodec.Options customizeWritingJpeg(TiffTile tile, TiffCodec.Options options)
             throws TiffException {
         final JPEGCodec.JPEGOptions result = new JPEGCodec.JPEGOptions().setTo(options);
-        if (tile.ifd().optInt(Tags.PHOTOMETRIC_INTERPRETATION, -1) ==
-                TagPhotometricInterpretation.RGB.code()) {
-            result.setPhotometricInterpretation(TagPhotometricInterpretation.RGB);
+        if (tile.ifd().optPhotometricCode(-1) == TiffIFD.PHOTOMETRIC_INTERPRETATION_RGB) {
+            result.setPhotometric(TagPhotometric.RGB);
         }
         return result;
     }

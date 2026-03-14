@@ -28,7 +28,7 @@ import net.algart.matrices.tiff.TiffCopier;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
-import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
+import net.algart.matrices.tiff.tags.TagPhotometric;
 import net.algart.matrices.tiff.tags.Tags;
 
 import java.io.IOException;
@@ -47,8 +47,8 @@ public class TiffFalsifyJPEGColorSpace {
         }
         final Path sourceFile = Paths.get(args[startArgIndex++]);
         final Path targetFile = Paths.get(args[startArgIndex++]);
-        final TagPhotometricInterpretation before = TagPhotometricInterpretation.valueOf(args[startArgIndex++]);
-        final TagPhotometricInterpretation after = TagPhotometricInterpretation.valueOf(args[startArgIndex++]);
+        final TagPhotometric before = TagPhotometric.valueOf(args[startArgIndex++]);
+        final TagPhotometric after = TagPhotometric.valueOf(args[startArgIndex++]);
         final int firstIFDIndex = startArgIndex < args.length ?
                 Integer.parseInt(args[startArgIndex]) :
                 0;
@@ -68,9 +68,9 @@ public class TiffFalsifyJPEGColorSpace {
             final TiffCopier copier = new TiffCopier()
                     .setDirectCopy(false)
                     .setIfdCorrector(ifd -> {
-                        ifd.putPhotometricInterpretation(before);
+                        ifd.putPhotometric(before);
                         ifd.put(Tags.Y_CB_CR_SUB_SAMPLING,
-                                before == TagPhotometricInterpretation.RGB ? new int[]{1, 1} : new int[]{2, 2});
+                                before == TagPhotometric.RGB ? new int[]{1, 1} : new int[]{2, 2});
                         // - instruct Java AWT to store as RGB and disable subsampling
                         // (RGB are encoded without subsampling)
                     });
@@ -87,7 +87,7 @@ public class TiffFalsifyJPEGColorSpace {
                 final var writeMap = copier.copyImage(writer, readMap);
                 final TiffIFD cloneIFD = new TiffIFD(writeMap.ifd());
                 // - writeMap is frozen and cannot be modified
-                cloneIFD.putPhotometricInterpretation(after);
+                cloneIFD.putPhotometric(after);
                 writer.rewriteIFD(cloneIFD);
                 // - replacing photometric interpretation in the already written IFD
             }

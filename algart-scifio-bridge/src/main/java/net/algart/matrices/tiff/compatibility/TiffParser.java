@@ -35,7 +35,6 @@ import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.codecs.TiffCodec;
-import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
 import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
@@ -1055,7 +1054,7 @@ public class TiffParser extends TiffReader {
         final CodecOptions codecOptions = options.toSCIFIOStyleOptions(CodecOptions.class);
         final TiffIFD ifd = tile.ifd();
         final int[] declaredSubsampling = ifd.getYCbCrSubsampling();
-        if (ifd.getPhotometricInterpretation() == TagPhotometricInterpretation.Y_CB_CR &&
+        if (ifd.getPhotometricCode() == TiffIFD.PHOTOMETRIC_INTERPRETATION_Y_CB_CR &&
                 declaredSubsampling.length >= 2 && declaredSubsampling[0] == 1 && declaredSubsampling[1] == 1 &&
                 this.ycbcrCorrection) {
             codecOptions.ycbcr = true;

@@ -28,9 +28,10 @@ import net.algart.matrices.tiff.TiffIFD;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-public enum TagPhotometricInterpretation {
+public enum TagPhotometric {
     WHITE_IS_ZERO(TiffIFD.PHOTOMETRIC_INTERPRETATION_WHITE_IS_ZERO, "White-is-zero"),
     BLACK_IS_ZERO(TiffIFD.PHOTOMETRIC_INTERPRETATION_BLACK_IS_ZERO, "Black-is-zero"),
     RGB(TiffIFD.PHOTOMETRIC_INTERPRETATION_RGB, "RGB"),
@@ -41,27 +42,25 @@ public enum TagPhotometricInterpretation {
     CIE_LAB(TiffIFD.PHOTOMETRIC_INTERPRETATION_CIE_LAB, "CIELAB"),
     ICC_LAB(TiffIFD.PHOTOMETRIC_INTERPRETATION_ICC_LAB, "ICCLAB"),
     CFA_ARRAY(32803, "Color filter array"),
-    LINEAR_RAW(34892, "Linear raw"),
-    UNKNOWN(-1, "unknown");
+    LINEAR_RAW(34892, "Linear raw");
 
     private final int code;
     private final String name;
 
-    private static final Map<Integer, TagPhotometricInterpretation> LOOKUP =
+    private static final Map<Integer, TagPhotometric> CODE_LOOKUP =
             Arrays.stream(values()).filter(v -> v.code >= 0)
-                    .collect(Collectors.toMap(TagPhotometricInterpretation::code, v -> v));
+                    .collect(Collectors.toMap(TagPhotometric::code, v -> v));
 
-    TagPhotometricInterpretation(int code, String name) {
+    TagPhotometric(int code, String name) {
         this.code = code;
         this.name = name;
     }
 
-    public static TagPhotometricInterpretation fromCodeOrUnknown(int code) {
-        return LOOKUP.getOrDefault(code, UNKNOWN);
+    public static Optional<TagPhotometric> fromCode(int code) {
+        return Optional.ofNullable(CODE_LOOKUP.get(code));
     }
 
     public int code() {
-        checkUnknown();
         return code;
     }
 
@@ -71,6 +70,11 @@ public enum TagPhotometricInterpretation {
 
     public boolean isInvertedBrightness() {
         return this == WHITE_IS_ZERO || this == CMYK;
+    }
+
+    public static boolean isInvertedBrightness(int code) {
+        return code == TiffIFD.PHOTOMETRIC_INTERPRETATION_WHITE_IS_ZERO ||
+                code == TiffIFD.PHOTOMETRIC_INTERPRETATION_CMYK;
     }
 
     public boolean isCMYK() {
@@ -104,16 +108,5 @@ public enum TagPhotometricInterpretation {
 
     public boolean isIndexed() {
         return this == RGB_PALETTE || this == CFA_ARRAY;
-    }
-
-    public boolean isUnknown() {
-        return this == UNKNOWN;
-    }
-
-    public TagPhotometricInterpretation checkUnknown() {
-        if (this == UNKNOWN) {
-            throw new IllegalArgumentException("Unknown TIFF photometric interpretation is not allowed");
-        }
-        return this;
     }
 }

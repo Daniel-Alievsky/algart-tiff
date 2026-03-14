@@ -24,7 +24,7 @@
 
 package net.algart.matrices.tiff.awt;
 
-import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
+import net.algart.matrices.tiff.tags.TagPhotometric;
 
 import javax.imageio.*;
 import javax.imageio.metadata.IIOMetadata;
@@ -46,15 +46,13 @@ public class JPEGEncoding {
     public static void writeJPEG(
             BufferedImage image,
             OutputStream out,
-            TagPhotometricInterpretation colorSpace,
+            TagPhotometric colorSpace,
             double quality) throws IOException {
         Objects.requireNonNull(image, "Null image");
         Objects.requireNonNull(out, "Null output stream");
         Objects.requireNonNull(colorSpace, "Null color space");
-        if (colorSpace != TagPhotometricInterpretation.Y_CB_CR && colorSpace != TagPhotometricInterpretation.RGB) {
-            throw new IllegalArgumentException("Unsupported color space: " + colorSpace);
-        }
-        final boolean enforceRGB = colorSpace == TagPhotometricInterpretation.RGB;
+        // - note: colorSpace can be also BLACK_IS_ZERO, for example, for 1-channel JPEG
+        final boolean enforceRGB = colorSpace == TagPhotometric.RGB;
 
         final ImageOutputStream ios = JPEGDecoding.USE_MEMORY_CACHE ?
                 new MemoryCacheImageOutputStream(out) :

@@ -25,7 +25,7 @@
 package net.algart.matrices.tiff.awt;
 
 import net.algart.matrices.tiff.TiffException;
-import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
+import net.algart.matrices.tiff.tags.TagPhotometric;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -125,14 +125,14 @@ public class JPEGDecoding {
 
     public static boolean isCompleteDecodingYCbCrNecessary(
             ImageInformation imageInformation,
-            TagPhotometricInterpretation declaredColorSpace,
+            TagPhotometric declaredColorSpace,
             int[] declaredSubsampling) {
         Objects.requireNonNull(imageInformation, "Null image information");
         Objects.requireNonNull(declaredColorSpace, "Null color space");
         Objects.requireNonNull(declaredSubsampling, "Null declared subsampling");
         final String colorSpace = tryToFindColorSpace(imageInformation.metadata);
         return "RGB".equalsIgnoreCase(colorSpace)
-                && declaredColorSpace == TagPhotometricInterpretation.Y_CB_CR
+                && declaredColorSpace == TagPhotometric.Y_CB_CR
                 && declaredSubsampling.length >= 2
                 && declaredSubsampling[0] == 1 && declaredSubsampling[1] == 1
                 && imageInformation.bufferedImage.getRaster().getNumBands() == 3;
@@ -144,7 +144,7 @@ public class JPEGDecoding {
     public static void completeDecodingYCbCr(
             byte[][] data,
             ImageInformation imageInformation,
-            TagPhotometricInterpretation declaredColorSpace,
+            TagPhotometric declaredColorSpace,
             int[] declaredSubsampling)
             throws TiffException {
         Objects.requireNonNull(data, "Null data");

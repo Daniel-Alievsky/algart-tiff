@@ -202,47 +202,47 @@ public final class TiffIFD {
     public static final int COMPRESSION_THUNDER_SCAN = 32809;
 
     /**
-     * Photometric interpretation code for {@link TagPhotometricInterpretation#WHITE_IS_ZERO}.
+     * Photometric interpretation code for {@link TagPhotometric#WHITE_IS_ZERO}.
      */
     public static final int PHOTOMETRIC_INTERPRETATION_WHITE_IS_ZERO = 0;
 
     /**
-     * Photometric interpretation code for {@link TagPhotometricInterpretation#BLACK_IS_ZERO}.
+     * Photometric interpretation code for {@link TagPhotometric#BLACK_IS_ZERO}.
      */
     public static final int PHOTOMETRIC_INTERPRETATION_BLACK_IS_ZERO = 1;
 
     /**
-     * Photometric interpretation code for {@link TagPhotometricInterpretation#RGB}.
+     * Photometric interpretation code for {@link TagPhotometric#RGB}.
      */
     public static final int PHOTOMETRIC_INTERPRETATION_RGB = 2;
 
     /**
-     * Photometric interpretation code for {@link TagPhotometricInterpretation#RGB_PALETTE}.
+     * Photometric interpretation code for {@link TagPhotometric#RGB_PALETTE}.
      */
     public static final int PHOTOMETRIC_INTERPRETATION_RGB_PALETTE = 3;
 
     /**
-     * Photometric interpretation code for {@link TagPhotometricInterpretation#TRANSPARENCY_MASK}.
+     * Photometric interpretation code for {@link TagPhotometric#TRANSPARENCY_MASK}.
      */
     public static final int PHOTOMETRIC_INTERPRETATION_TRANSPARENCY_MASK = 4;
 
     /**
-     * Photometric interpretation code for {@link TagPhotometricInterpretation#CMYK}.
+     * Photometric interpretation code for {@link TagPhotometric#CMYK}.
      */
     public static final int PHOTOMETRIC_INTERPRETATION_CMYK = 5;
 
     /**
-     * Photometric interpretation code for {@link TagPhotometricInterpretation#Y_CB_CR}.
+     * Photometric interpretation code for {@link TagPhotometric#Y_CB_CR}.
      */
     public static final int PHOTOMETRIC_INTERPRETATION_Y_CB_CR = 6;
 
     /**
-     * Photometric interpretation code for {@link TagPhotometricInterpretation#CIE_LAB}.
+     * Photometric interpretation code for {@link TagPhotometric#CIE_LAB}.
      */
     public static final int PHOTOMETRIC_INTERPRETATION_CIE_LAB = 8;
 
     /**
-     * Photometric interpretation code for {@link TagPhotometricInterpretation#ICC_LAB}.
+     * Photometric interpretation code for {@link TagPhotometric#ICC_LAB}.
      */
     public static final int PHOTOMETRIC_INTERPRETATION_ICC_LAB = 9;
 
@@ -1185,7 +1185,7 @@ public final class TiffIFD {
      *
      * <p>Note: for the compression code {@link #COMPRESSION_JPEG}, the result depends on the
      * <code>PhotometricInterpretation</code> tag. If this tag presents and contains value 2
-     * (i.e., {@link TagPhotometricInterpretation#RGB}, this method returns
+     * (i.e., {@link TagPhotometric#RGB}, this method returns
      * <code>Optional.of({@link TagCompression#JPEG_RGB})</code>, otherwise, it returns
      * <code>Optional.of({@link TagCompression#JPEG})</code>.</p>
      *
@@ -1208,19 +1208,11 @@ public final class TiffIFD {
             return Optional.of(detailedCompression);
         }
         if (code == COMPRESSION_JPEG) {
-            return optInt(Tags.PHOTOMETRIC_INTERPRETATION, -1) == TagPhotometricInterpretation.RGB.code() ?
+            return optPhotometricCode(-1) == TiffIFD.PHOTOMETRIC_INTERPRETATION_RGB ?
                     Optional.of(TagCompression.JPEG_RGB) :
                     Optional.of(TagCompression.JPEG);
         }
         return TagCompression.fromCode(code);
-    }
-
-    public int optPredictorCode() {
-        return optInt(Tags.PREDICTOR, TagPredictor.NONE.code());
-    }
-
-    public TagPredictor getPredictor() {
-        return TagPredictor.fromCodeOrUnknown(optPredictorCode());
     }
 
     public String compressionPrettyName() {
@@ -1232,17 +1224,40 @@ public final class TiffIFD {
         return compression.isEmpty() ? "unsupported compression " + code : compression.get().prettyName();
     }
 
-    public int getPhotometricInterpretationCode() throws TiffException {
+    public int optPredictorCode() {
+        return optInt(Tags.PREDICTOR, TagPredictor.NONE.code());
+    }
+
+    public TagPredictor getPredictor() {
+        return TagPredictor.fromCodeOrUnknown(optPredictorCode());
+    }
+
+    public int optPhotometricCode(int defaultValue) {
+        return optInt(Tags.PHOTOMETRIC_INTERPRETATION, defaultValue);
+    }
+
+    public int getPhotometricCode() throws TiffException {
         return getInt(Tags.PHOTOMETRIC_INTERPRETATION, -1);
     }
 
-    public TagPhotometricInterpretation getPhotometricInterpretation() throws TiffException {
+    public Optional<TagPhotometric> optPhotometric()  {
         if (!containsKey(Tags.PHOTOMETRIC_INTERPRETATION)
-                && getInt(Tags.COMPRESSION, 0) == COMPRESSION_OLD_JPEG) {
-            return TagPhotometricInterpretation.RGB;
+                && optInt(Tags.COMPRESSION, 0) == COMPRESSION_OLD_JPEG) {
+            return Optional.of(TagPhotometric.RGB);
         }
-        final int code = getPhotometricInterpretationCode();
-        return TagPhotometricInterpretation.fromCodeOrUnknown(code);
+        final int code = optPhotometricCode(-1);
+        return TagPhotometric.fromCode(code);
+    }
+
+    public String photometricPrettyName() {
+        final int code = optPhotometricCode(-1);
+        if (code == -1) {
+            return "unspecified photometric interpretation";
+        }
+        final Optional<TagPhotometric> photometric = optPhotometric();
+        return photometric.isEmpty() ?
+                "unsupported photometric interpretation " + code :
+                photometric.get().prettyName();
     }
 
     public int[] getYCbCrSubsampling() throws TiffException {
@@ -1541,10 +1556,10 @@ public final class TiffIFD {
         return bitsPerSample[0];
     }
 
-    public boolean isStandardYCbCrNonJpeg() throws TiffException {
+    public boolean isStandardYCbCrNonJpeg() {
         final TagCompression compression = optCompression().orElse(null);
         return compression != null && compression.isStandard() && !compression.isJpegOrOldJpeg() &&
-                getPhotometricInterpretation() == TagPhotometricInterpretation.Y_CB_CR;
+                optPhotometricCode(-1) == TiffIFD.PHOTOMETRIC_INTERPRETATION_Y_CB_CR;
     }
 
     public boolean isLowLevelBitsProcessing() {
@@ -1557,10 +1572,10 @@ public final class TiffIFD {
         return compression.isPresent() && compression.get().isJpegOrOldJpeg();
     }
 
-    public boolean isLowLevelInvertedBrightness() throws TiffException {
+    public boolean isLowLevelInvertedBrightness() {
         final TagCompression compression = optCompression().orElse(null);
         return compression != null && compression.isLowLevelBitsProcessing() &&
-                getPhotometricInterpretation().isInvertedBrightness();
+                TagPhotometric.isInvertedBrightness(optPhotometricCode(-1));
     }
 
     public boolean isReducedImage() {
@@ -1755,15 +1770,16 @@ public final class TiffIFD {
         return this;
     }
 
-    public TiffIFD putPhotometricInterpretation(TagPhotometricInterpretation photometricInterpretation) {
-        Objects.requireNonNull(photometricInterpretation, "Null photometricInterpretation");
-        if (!photometricInterpretation.isUnknown()) {
-            put(Tags.PHOTOMETRIC_INTERPRETATION, photometricInterpretation.code());
+    public TiffIFD putPhotometric(TagPhotometric photometric) {
+        if (photometric == null) {
+            remove(Tags.PHOTOMETRIC_INTERPRETATION);
+        } else {
+            put(Tags.PHOTOMETRIC_INTERPRETATION, photometric.code());
         }
         return this;
     }
 
-    public TiffIFD removePhotometricInterpretation() {
+    public TiffIFD removePhotometric() {
         remove(Tags.PHOTOMETRIC_INTERPRETATION);
         return this;
     }
@@ -2479,7 +2495,7 @@ public final class TiffIFD {
         Object additional = null;
         try {
             switch (tag) {
-                case Tags.PHOTOMETRIC_INTERPRETATION -> additional = getPhotometricInterpretation().prettyName();
+                case Tags.PHOTOMETRIC_INTERPRETATION -> additional = photometricPrettyName();
                 case Tags.COMPRESSION -> additional = compressionPrettyName();
                 case Tags.PLANAR_CONFIGURATION -> {
                     if (tagValue instanceof Number number) {

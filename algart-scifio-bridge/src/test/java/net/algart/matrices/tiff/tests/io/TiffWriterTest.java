@@ -141,6 +141,11 @@ public class TiffWriterTest {
             color = true;
             startArgIndex++;
         }
+        boolean alpha = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-alpha")) {
+            alpha = true;
+            startArgIndex++;
+        }
         Double quality = null;
         if (args.length > startArgIndex && args[startArgIndex].toLowerCase().startsWith("-quality=")) {
             final String s = args[startArgIndex].toLowerCase().substring("-quality=".length());
@@ -209,7 +214,7 @@ public class TiffWriterTest {
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
             System.out.println("    " + TiffWriterTest.class.getName() +
-                    " [-resizable] [-append] [-bigTiff] [-color] [-jpegRGB] [-quality=N] [-singleStrip] " +
+                    " [-resizable] [-append] [-bigTiff] [-color [-alpha]] [-jpegRGB] [-quality=N] [-singleStrip] " +
                     "[-tiled] [-planarSeparated] " +
                     "target.tiff unit8|int8|uint16|int16|uint32|int32|float|double [number_of_images [compression]]" +
                     "[x y width height [number_of_tests [1st_IFD_index_to_overwrite]]");
@@ -232,7 +237,7 @@ public class TiffWriterTest {
         }
         final int numberOfTests = ++startArgIndex < args.length ? Integer.parseInt(args[startArgIndex]) : 1;
         final int firstIfdIndex = ++startArgIndex < args.length ? Integer.parseInt(args[startArgIndex]) : 0;
-        final int numberOfChannels = color ? 3 : 1;
+        final int numberOfChannels = (color ? 3 : 1) + (alpha ? 1 : 0);
         final boolean existingFile = append || randomAccess;
 
         System.out.printf("%d images %s, %d total test%n",
@@ -485,7 +490,7 @@ public class TiffWriterTest {
             case BIT -> {
                 boolean[] channels = new boolean[matrixSize * bandCount];
                 for (int y = 0; y < dimY; y++) {
-                    int c1 = (y / 32 + 1) % (bandCount + 1) - 1;
+                    int c1 = (y / 32 + 1) % (Math.min(bandCount, 3) + 1) - 1;
                     int c2 = c1;
                     if (c1 == -1) {
                         c1 = 0;
@@ -501,8 +506,11 @@ public class TiffWriterTest {
             }
             case UINT8, INT8 -> {
                 byte[] channels = new byte[matrixSize * bandCount];
+                if (bandCount == 4) {
+                    Arrays.fill(channels, 3 * matrixSize, 4 * matrixSize, (byte) 128);
+                }
                 for (int y = 0; y < dimY; y++) {
-                    int c1 = (y / 32 + 1) % (bandCount + 1) - 1;
+                    int c1 = (y / 32 + 1) % (Math.min(bandCount, 3) + 1) - 1;
                     int c2 = c1;
                     if (c1 == -1) {
                         c1 = 0;
@@ -513,13 +521,21 @@ public class TiffWriterTest {
                             channels[disp + c * matrixSize] = (byte) (50 * ifdIndex + Math.min(x, 500) + y);
                         }
                     }
+                    if (c1 != c2 && bandCount == 4) {
+                        // alpha
+                        int disp = y * dimX + 3 * matrixSize;
+                        Arrays.fill(channels,disp, disp + dimX, (byte) 0xFF);
+                    }
                 }
                 return channels;
             }
             case UINT16, INT16 -> {
                 short[] channels = new short[matrixSize * bandCount];
+                if (bandCount == 4) {
+                    Arrays.fill(channels, 3 * matrixSize, 4 * matrixSize, (short) 32768);
+                }
                 for (int y = 0; y < dimY; y++) {
-                    int c1 = (y / 32 + 1) % (bandCount + 1) - 1;
+                    int c1 = (y / 32 + 1) % (Math.min(bandCount, 3) + 1) - 1;
                     int c2 = c1;
                     if (c1 == -1) {
                         c1 = 0;
@@ -539,6 +555,9 @@ public class TiffWriterTest {
             }
             case INT32, UINT32 -> {
                 int[] channels = new int[matrixSize * bandCount];
+                if (bandCount == 4) {
+                    Arrays.fill(channels, 3 * matrixSize, 4 * matrixSize, Integer.MAX_VALUE);
+                }
                 for (int y = 0, disp = 0; y < dimY; y++) {
                     final int c = (y / 32 + 1) % bandCount;
                     for (int x = 0; x < dimX; x++, disp++) {
@@ -549,6 +568,9 @@ public class TiffWriterTest {
             }
             case FLOAT -> {
                 float[] channels = new float[matrixSize * bandCount];
+                if (bandCount == 4) {
+                    Arrays.fill(channels, 3 * matrixSize, 4 * matrixSize, 0.5f);
+                }
                 for (int y = 0, disp = 0; y < dimY; y++) {
                     final int c = (y / 32 + 1) % bandCount;
                     for (int x = 0; x < dimX; x++, disp++) {
@@ -560,6 +582,9 @@ public class TiffWriterTest {
             }
             case DOUBLE -> {
                 double[] channels = new double[matrixSize * bandCount];
+                if (bandCount == 4) {
+                    Arrays.fill(channels, 3 * matrixSize, 4 * matrixSize, 0.5);
+                }
                 for (int y = 0, disp = 0; y < dimY; y++) {
                     final int c = (y / 32 + 1) % bandCount;
                     for (int x = 0; x < dimX; x++, disp++) {

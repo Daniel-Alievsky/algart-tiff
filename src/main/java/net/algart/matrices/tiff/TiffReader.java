@@ -32,10 +32,7 @@ import net.algart.matrices.tiff.data.TiffPrediction;
 import net.algart.matrices.tiff.data.TiffUnpacking;
 import net.algart.matrices.tiff.data.TiffUnusualPrecisions;
 import net.algart.matrices.tiff.io.ReadBufferDataHandle;
-import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tags.TagRational;
-import net.algart.matrices.tiff.tags.TagTypes;
-import net.algart.matrices.tiff.tags.Tags;
+import net.algart.matrices.tiff.tags.*;
 import net.algart.matrices.tiff.tiles.*;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.FileHandle;
@@ -553,7 +550,7 @@ public non-sealed class TiffReader extends TiffIO {
 
     /**
      * Sets the flag specifying whether this reader performs some color correction based on the
-     * {@link net.algart.matrices.tiff.tags.TagPhotometricInterpretation PhotometricInterpretation} TIFF tag.
+     * {@link TagPhotometric PhotometricInterpretation} TIFF tag.
      *
      * <p>When set to <code>true</code>, the reader attempts to normalize pixel values for specific
      * color spaces, especially where the sense of brightness or color is inverted. For example:

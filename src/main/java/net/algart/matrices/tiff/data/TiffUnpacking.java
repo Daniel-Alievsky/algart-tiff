@@ -30,7 +30,7 @@ import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
+import net.algart.matrices.tiff.tags.TagPhotometric;
 import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffMap;
@@ -258,17 +258,16 @@ public class TiffUnpacking {
                     "non-standard/JPEG compression, though it was already checked)");
             // - was checked in isSimpleRearrangingBytesEnough
         }
-        final TagPhotometricInterpretation photometricInterpretation = ifd.getPhotometricInterpretation();
-        if (photometricInterpretation.isIndexed() ||
-                photometricInterpretation == TagPhotometricInterpretation.TRANSPARENCY_MASK) {
+        final TagPhotometric photometric = ifd.optPhotometric().orElse(null);
+        if (photometric != null && photometric.isIndexed() || photometric == TagPhotometric.TRANSPARENCY_MASK) {
             scaleWhenIncreasingBitDepth = false;
         }
-        final boolean invertedBrightness = photometricInterpretation.isInvertedBrightness();
+        final boolean invertedBrightness = photometric != null && photometric.isInvertedBrightness();
         if (tile.sampleType().isFloatingPoint() && OPTIMIZE_SEPARATING_WHOLE_BYTES) {
             // - TIFF with float/double samples must not require bit unpacking or inverting brightness
             throw new TiffException("Invalid TIFF image: floating-point values, compression \"" +
-                    ifd.compressionPrettyName() + "\", photometric interpretation \"" +
-                    photometricInterpretation.prettyName() + "\", " +
+                    ifd.compressionPrettyName() + "\", \"" +
+                    ifd.photometricPrettyName() + "\", " +
                     Arrays.toString(ifd.getBitsPerSample()) + " bits per sample");
         }
         final boolean invertValues = correctInvertedBrightness && invertedBrightness;
@@ -322,7 +321,7 @@ public class TiffUnpacking {
             throw new UnsupportedTiffFormatException("Not supported TIFF format: compression \"" +
                     ifd.compressionPrettyName() + "\", " + bits + " bits per every sample");
         }
-        if (ifd.getPhotometricInterpretation() == TagPhotometricInterpretation.Y_CB_CR) {
+        if (ifd.optPhotometricCode(-1) == TiffIFD.PHOTOMETRIC_INTERPRETATION_Y_CB_CR) {
             // - convertYCbCrToRGB function performs necessary repacking itself
             return false;
         }
@@ -519,7 +518,7 @@ public class TiffUnpacking {
         final int[] bitsPerSample = ifd.getBitsPerSample();
         final boolean byteAligned = Arrays.stream(bitsPerSample).noneMatch(bits -> (bits & 7) != 0);
         if (byteAligned
-                && !ifd.getPhotometricInterpretation().isInvertedBrightness()
+                && !ifd.optPhotometric().orElse(TagPhotometric.RGB).isInvertedBrightness()
                 && OPTIMIZE_SEPARATING_WHOLE_BYTES) {
             throw new IllegalStateException("Corrupted IFD, probably from a parallel thread " +
                     "(BitsPerSample tag is byte-aligned and inversion is not necessary, " +

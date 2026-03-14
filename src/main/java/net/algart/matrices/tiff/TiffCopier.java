@@ -204,7 +204,7 @@ public final class TiffCopier {
      *
      * <p>Note: if the specified compression belongs to the
      * {@link TagCompression#isJpegFamily() JPEG family},
-     * the copier will also {@link TiffIFD#removePhotometricInterpretation()
+     * the copier will also {@link TiffIFD#removePhotometric()
      * remove the photometric interpretation} (if present in the source IFD),
      * so that the TIFF writer will set the appropriate
      * <code>PhotometricInterpretation</code> tag automatically.</p>
@@ -700,14 +700,13 @@ public final class TiffCopier {
         // 2) in the case of non-whole bytes: N bits per samples, N > 1 and N%8 != 1;
         // they are always unpacked to format with an integer number of bytes per sample.
         // However, if they are actually equal, even non-standard, we should enable direct copying.
-        final boolean photometricInterpretationEqual =
-                readMap.photometricInterpretationCode() == writeIFD.getPhotometricInterpretationCode();
+        final boolean photometricEqual = readMap.photometricCode() == writeIFD.getPhotometricCode();
         // - necessary because corrrectIFD() can remove the photometric interpretation!
         // It also MAY become different after smart correction by correctForEncoding
         return (readMap.byteOrder() == writeByteOrder || byteOrderIsNotUsedForImageData) &&
                 compressionCode == writeIFD.getCompressionCode() &&
                 bitDepthEqual &&
-                photometricInterpretationEqual;
+                photometricEqual;
         // Also note that the compatibility of the sample type and pixel structure (number of channels and
         // planar separated mode) will be checked later in checkImageCompatibility() method.
 
@@ -774,7 +773,7 @@ public final class TiffCopier {
                 // But if we have correctly recognized JPEG_RGB, and we request JPEG_RGB,
                 // there is no sense to change anything.
                 if (compression.isJpegFamily()) {
-                    writeIFD.removePhotometricInterpretation();
+                    writeIFD.removePhotometric();
                     // - usually leads to disabling direct copy
                 }
                 writeIFD.putCompression(compression);

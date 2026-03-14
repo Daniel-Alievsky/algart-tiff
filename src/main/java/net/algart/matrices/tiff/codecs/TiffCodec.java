@@ -26,7 +26,7 @@ package net.algart.matrices.tiff.codecs;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.tags.TagPhotometricInterpretation;
+import net.algart.matrices.tiff.tags.TagPhotometric;
 import net.algart.matrices.tiff.tiles.TiffTile;
 
 import java.lang.reflect.InvocationTargetException;
@@ -65,9 +65,10 @@ public interface TiffCodec {
         int maxSizeInBytes = 0;
         private Double compressionQuality = null;
         private Double losslessCompressionLevel = null;
-        private TagPhotometricInterpretation photometricInterpretation = null;
-        // - not used in the current implementation; the future codec may need this information
-        // for "high-level" formats (when TagCompression.isLowLevelBitsProcessing returns false)
+        private TagPhotometric photometric = null;
+        // - the codec may need this information for "high-level" formats
+        // (when TagCompression.isLowLevelBitsProcessing returns false);
+        // in the current version, JPEGCodec and JPEGOptions use it
         private TiffIFD ifd = null;
         // - used only if other information is not enough
 
@@ -224,12 +225,12 @@ public interface TiffCodec {
             return this;
         }
 
-        public TagPhotometricInterpretation getPhotometricInterpretation() {
-            return photometricInterpretation;
+        public TagPhotometric getPhotometric() {
+            return photometric;
         }
 
-        public Options setPhotometricInterpretation(TagPhotometricInterpretation photometricInterpretation) {
-            this.photometricInterpretation = photometricInterpretation;
+        public Options setPhotometric(TagPhotometric photometric) {
+            this.photometric = photometric;
             return this;
         }
 
@@ -249,7 +250,7 @@ public interface TiffCodec {
             this.setSigned(tile.sampleType().isSigned());
             this.setFloatingPoint(tile.sampleType().isFloatingPoint());
             this.setCompressionCode(tile.compressionCode());
-            this.setPhotometricInterpretation(tile.photometricInterpretation());
+            tile.photometric().ifPresent(this::setPhotometric);
             this.setByteOrder(tile.byteOrder());
             this.setInterleaved(true);
             // - Value "true" is necessary for most codecs that work with high-level classes (like JPEG or JPEG-2000)
@@ -274,6 +275,7 @@ public interface TiffCodec {
             this.maxSizeInBytes = options.maxSizeInBytes;
             this.compressionQuality = options.compressionQuality;
             this.losslessCompressionLevel = options.losslessCompressionLevel;
+            this.photometric = options.photometric;
             this.ifd = options.ifd;
             return this;
         }
@@ -340,7 +342,8 @@ public interface TiffCodec {
                     ", interleaved=" + interleaved +
                     ", maxSizeInBytes=" + maxSizeInBytes +
                     ", compressionQuality=" + compressionQuality +
-                    ", losslessCompressionLevel=" + losslessCompressionLevel;
+                    ", losslessCompressionLevel=" + losslessCompressionLevel +
+                    ", photometricInterpretation=" + photometric;
         }
 
         public Options clone() {
