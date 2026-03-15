@@ -1163,8 +1163,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 checkPhotometric(newPhotometric,
                         samplesPerPixel == 1 ? EnumSet.of(TagPhotometric.BLACK_IS_ZERO) :
                                 !enforceUseExternalCodec ?
-                                        EnumSet.of(TagPhotometric.Y_CB_CR,
-                                                TagPhotometric.RGB) :
+                                        EnumSet.of(TagPhotometric.Y_CB_CR, TagPhotometric.RGB) :
                                         EnumSet.of(TagPhotometric.Y_CB_CR),
                         "JPEG " + samplesPerPixel + "-channel image");
             }

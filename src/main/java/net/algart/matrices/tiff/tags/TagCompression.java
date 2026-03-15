@@ -367,6 +367,11 @@ public enum TagCompression {
         return fromCode(code);
     }
 
+    @Override
+    public String toString() {
+        return name() + " (" + prettyName() + ")";
+    }
+
     public static String toPrettyString(int code) {
         final Optional<TagCompression> compression = fromCode(code);
         //noinspection OptionalIsPresent
@@ -526,11 +531,16 @@ public enum TagCompression {
     @SuppressWarnings("RedundantThrows")
     private static TiffCodec.Options customizeWritingJpeg(TiffTile tile, TiffCodec.Options options)
             throws TiffException {
-        final JPEGCodec.JPEGOptions result = new JPEGCodec.JPEGOptions().setTo(options);
-        if (tile.ifd().optPhotometricCode(-1) == TiffIFD.PHOTOMETRIC_INTERPRETATION_RGB) {
-            result.setPhotometric(TagPhotometric.RGB);
-        }
-        return result;
+        return new JPEGCodec.JPEGOptions().setTo(options);
+        // - adding default quality when not specified
+
+        // Deprecated solution: it was necessary in the versions until 1.5.1, where
+        // TiffWriter.buildOptions did not add PhotometricInterpretation to TiffCodec.Options
+        //
+        // if (tile.ifd().optPhotometricCode(-1) == TiffIFD.PHOTOMETRIC_INTERPRETATION_RGB) {
+        //    result.setPhotometric(TagPhotometric.RGB);
+        // }
+        // return result;
     }
 
     private static JPEG2000Codec.JPEG2000Options customizeWritingJpeg2000(
@@ -538,7 +548,8 @@ public enum TagCompression {
             TiffCodec.Options defaultOptions,
             boolean lossless,
             boolean writingSupported) {
-        return new JPEG2000Codec.JPEG2000Options().setTo(defaultOptions, lossless)
+        return new JPEG2000Codec.JPEG2000Options()
+                .setTo(defaultOptions, lossless)
                 .setWritingSupported(writingSupported);
     }
 }

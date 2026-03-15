@@ -128,8 +128,8 @@ public class JPEGDecoding {
             TagPhotometric declaredColorSpace,
             int[] declaredSubsampling) {
         Objects.requireNonNull(imageInformation, "Null image information");
-        Objects.requireNonNull(declaredColorSpace, "Null color space");
         Objects.requireNonNull(declaredSubsampling, "Null declared subsampling");
+        // - Note: declaredColorSpace=null is allowed, but very improbable
         final String colorSpace = tryToFindColorSpace(imageInformation.metadata);
         return "RGB".equalsIgnoreCase(colorSpace)
                 && declaredColorSpace == TagPhotometric.Y_CB_CR
@@ -141,6 +141,7 @@ public class JPEGDecoding {
     }
 
     // Note: this method may be tested with the image jpeg_ycbcr_encoded_as_rgb.tiff from the demo resources
+    // declaredColorSpace and declaredSubsampling are not used by the current implementation
     public static void completeDecodingYCbCr(
             byte[][] data,
             ImageInformation imageInformation,
@@ -149,8 +150,6 @@ public class JPEGDecoding {
             throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(imageInformation, "Null image information");
-        Objects.requireNonNull(declaredColorSpace, "Null color space");
-        Objects.requireNonNull(declaredSubsampling, "Null declared subsampling");
         final long bandLength = (long) imageInformation.bufferedImage.getWidth()
                 * (long) imageInformation.bufferedImage.getHeight();
         if (data[0].length != bandLength) {

@@ -49,7 +49,9 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
 
         public JPEGOptions() {
             setPhotometric(TagPhotometric.Y_CB_CR);
+            // - not too important: JPEGCodec should work normally with null photometric value
             setCompressionQuality(1.0);
+            // - but the quality should not be null!
         }
 
         public JPEGOptions setPhotometric(TagPhotometric photometric) {
@@ -72,6 +74,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
             if (options instanceof JPEGOptions o) {
                 this.yCbCrSubsampling = o.yCbCrSubsampling.clone();
             } else {
+                // for example, this branch is actual in TagCompression.customizeWritingJpeg
                 Double quality = getCompressionQuality();
                 if (quality == null) {
                     setCompressionQuality(1.0);

@@ -26,6 +26,7 @@ package net.algart.matrices.tiff.codecs;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagPhotometric;
 import net.algart.matrices.tiff.tiles.TiffTile;
 
@@ -59,16 +60,16 @@ public interface TiffCodec {
         int bitsPerSample = 0;
         boolean signed = false;
         boolean floatingPoint = false;
-        int compressionCode = TiffIFD.COMPRESSION_NONE;
         boolean littleEndian = false;
         boolean interleaved = false;
         int maxSizeInBytes = 0;
-        private Double compressionQuality = null;
-        private Double losslessCompressionLevel = null;
+        private TagCompression compression = null;
         private TagPhotometric photometric = null;
         // - the codec may need this information for "high-level" formats
         // (when TagCompression.isLowLevelBitsProcessing returns false);
         // in the current version, JPEGCodec and JPEGOptions use it
+        private Double compressionQuality = null;
+        private Double losslessCompressionLevel = null;
         private TiffIFD ifd = null;
         // - used only if other information is not enough
 
@@ -145,15 +146,6 @@ public interface TiffCodec {
             return this;
         }
 
-        public int getCompressionCode() {
-            return compressionCode;
-        }
-
-        public Options setCompressionCode(int compressionCode) {
-            this.compressionCode = compressionCode;
-            return this;
-        }
-
         public boolean isLittleEndian() {
             return littleEndian;
         }
@@ -196,6 +188,28 @@ public interface TiffCodec {
             return this;
         }
 
+        public TagCompression getCompression() {
+            return compression;
+        }
+
+        public int compressionCode(int defaultValue) {
+            return compression == null ? defaultValue : compression.code();
+        }
+
+        public Options setCompression(TagCompression compression) {
+            this.compression = compression;
+            return this;
+        }
+
+        public TagPhotometric getPhotometric() {
+            return photometric;
+        }
+
+        public Options setPhotometric(TagPhotometric photometric) {
+            this.photometric = photometric;
+            return this;
+        }
+
         public boolean hasQuality() {
             return compressionQuality != null;
         }
@@ -225,15 +239,6 @@ public interface TiffCodec {
             return this;
         }
 
-        public TagPhotometric getPhotometric() {
-            return photometric;
-        }
-
-        public Options setPhotometric(TagPhotometric photometric) {
-            this.photometric = photometric;
-            return this;
-        }
-
         public TiffIFD getIfd() {
             return ifd;
         }
@@ -249,8 +254,6 @@ public interface TiffCodec {
             this.setNumberOfChannels(tile.samplesPerPixel());
             this.setSigned(tile.sampleType().isSigned());
             this.setFloatingPoint(tile.sampleType().isFloatingPoint());
-            this.setCompressionCode(tile.compressionCode());
-            tile.photometric().ifPresent(this::setPhotometric);
             this.setByteOrder(tile.byteOrder());
             this.setInterleaved(true);
             // - Value "true" is necessary for most codecs that work with high-level classes (like JPEG or JPEG-2000)
@@ -258,6 +261,10 @@ public interface TiffCodec {
             // (For comparison, LZW or DECOMPRESSED work with data "as-is" and suppose
             // that data are interleaved according to TIFF format specification).
             // For JPEG, TagCompression overrides this value to false because it works faster in this mode.
+            tile.compression().ifPresent(this::setCompression);
+            // - default value can be not-null
+            tile.photometric().ifPresent(this::setPhotometric);
+            // - default value can be not-null
             this.setIfd(tile.ifd());
             return this;
         }
@@ -275,6 +282,7 @@ public interface TiffCodec {
             this.maxSizeInBytes = options.maxSizeInBytes;
             this.compressionQuality = options.compressionQuality;
             this.losslessCompressionLevel = options.losslessCompressionLevel;
+            this.compression = options.compression;
             this.photometric = options.photometric;
             this.ifd = options.ifd;
             return this;
@@ -337,13 +345,13 @@ public interface TiffCodec {
                     ", bitsPerSample=" + bitsPerSample +
                     ", signed=" + signed +
                     ", floatingPoint=" + floatingPoint +
-                    ", compressionCode=" + compressionCode +
                     ", littleEndian=" + littleEndian +
                     ", interleaved=" + interleaved +
                     ", maxSizeInBytes=" + maxSizeInBytes +
+                    ", compression=" + compression +
+                    ", photometric=" + photometric +
                     ", compressionQuality=" + compressionQuality +
-                    ", losslessCompressionLevel=" + losslessCompressionLevel +
-                    ", photometricInterpretation=" + photometric;
+                    ", losslessCompressionLevel=" + losslessCompressionLevel;
         }
 
         public Options clone() {
@@ -375,6 +383,10 @@ public interface TiffCodec {
             } catch (IllegalAccessException | NoSuchFieldException e) {
                 throw new IllegalArgumentException("Cannot get field \"" + fieldName + "\" in the class " +
                         oldStyleClass.getName() + ": " + e);
+            }
+            if (result == null) {
+                throw new IllegalArgumentException("The field \"" + fieldName + "\" in the class " +
+                        oldStyleClass.getName() + " contains null");
             }
             try {
                 return fieldType.cast(result);
