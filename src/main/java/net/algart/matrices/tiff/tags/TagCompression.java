@@ -537,10 +537,10 @@ public enum TagCompression {
         // Deprecated solution: it was necessary in the versions until 1.5.1, where
         // TiffWriter.buildOptions did not add PhotometricInterpretation to TiffCodec.Options
         //
-        // if (tile.ifd().optPhotometricCode(-1) == TiffIFD.PHOTOMETRIC_INTERPRETATION_RGB) {
-        //    result.setPhotometric(TagPhotometric.RGB);
+        // if (tile.ifd().optInt(Tags.PHOTOMETRIC_INTERPRETATION, -1) ==
+        //         TagPhotometricInterpretation.RGB.code()) {
+        //    result.setPhotometricInterpretation(TagPhotometricInterpretation.RGB);
         // }
-        // return result;
     }
 
     private static JPEG2000Codec.JPEG2000Options customizeWritingJpeg2000(

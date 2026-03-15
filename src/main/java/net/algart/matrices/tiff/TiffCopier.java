@@ -774,7 +774,7 @@ public final class TiffCopier {
                 // there is no sense to change anything.
                 if (compression.isJpegFamily()) {
                     writeIFD.removePhotometric();
-                    // - usually leads to disabling direct copy
+                    // - usually leads to disabling direct copy, even though the compression code is the same (JPEG)
                 }
                 writeIFD.putCompression(compression);
             }
