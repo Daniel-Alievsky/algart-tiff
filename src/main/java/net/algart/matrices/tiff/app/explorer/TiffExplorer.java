@@ -41,8 +41,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.prefs.Preferences;
 
 public class TiffExplorer {
-    public static final String ALGART_TIFF_WEBSITE = "https://algart.net/java/AlgART-TIFF/";
-
     private static final float ALL_FONTS_SCALE = 1.2f;
     // - default font sizes in Java API are usually too small
 
@@ -269,61 +267,7 @@ public class TiffExplorer {
     }
 
     void showAboutDialog() {
-        JDialog dialog = new JDialog(frame, "About TIFF Information Viewer", true);
-        dialog.setLayout(new BorderLayout(10, 10));
-        dialog.setMinimumSize(new Dimension(100, 200));
-        dialog.setResizable(false);
-        JPanel content = new JPanel();
-        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBorder(BorderFactory.createEmptyBorder(10, 50, 10, 50));
-
-        JLabel icon = new JLabel(new ImageIcon(reqResource("TiffExplorer_icon_32.png")));
-        icon.setAlignmentX(Component.CENTER_ALIGNMENT);
-        content.add(icon);
-        content.add(Box.createVerticalStrut(16));
-
-        JLabel title = centeredLabel("AlgART TIFF Explorer");
-        title.setFont(title.getFont().deriveFont(Font.BOLD, 18f));
-        content.add(title);
-        content.add(Box.createVerticalStrut(8));
-
-        content.add(centeredLabel("By Daniel Alievsky (AlgART Laboratory)"));
-        content.add(centeredLabel("Version 1.5.2"));
-        content.add(Box.createVerticalStrut(8));
-
-        JLabel link = centeredLabel("<html><a href=\"\">" + ALGART_TIFF_WEBSITE + "</a></html>");
-        link.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-        link.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseClicked(java.awt.event.MouseEvent e) {
-                try {
-                    Desktop.getDesktop().browse(new java.net.URI(ALGART_TIFF_WEBSITE));
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(dialog,
-                            "Cannot open browser:\n" + ex.getMessage(),
-                            "Error",
-                            JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        });
-
-        content.add(Box.createVerticalStrut(10));
-        content.add(link);
-
-        dialog.add(content, BorderLayout.CENTER);
-
-        JButton ok = new JButton("OK");
-        ok.addActionListener(e -> dialog.dispose());
-        JPanel btnPanel = new JPanel();
-        btnPanel.add(ok);
-
-        dialog.add(btnPanel, BorderLayout.SOUTH);
-
-        dialog.pack();
-        addCloseOnEscape(dialog);
-        dialog.setLocationRelativeTo(frame);
-        dialog.setVisible(true);
+        new JTiffExplorerAboutDialog(frame).setVisible(true);
     }
 
     private boolean notInitialized(int index) {
@@ -349,13 +293,6 @@ public class TiffExplorer {
             e = e.getCause();
         }
         JOptionPane.showMessageDialog(frame, e.getMessage(), title, JOptionPane.ERROR_MESSAGE);
-    }
-
-    private static JLabel centeredLabel(String text) {
-        JLabel label = new JLabel(text);
-        label.setAlignmentX(Component.CENTER_ALIGNMENT);
-        label.setHorizontalAlignment(SwingConstants.CENTER);
-        return label;
     }
 
     static Color getUIColor(String name, Color defaultValue) {
