@@ -1595,7 +1595,7 @@ public final class TiffIFD {
      * is interpreted or displayed.
      * If this argument is {@code false}, some tags are treated as non-critical and
      * this method returns {@code false} for them (for example,
-     * {@link Tags#PHOTOMETRIC_INTERPRETATION} or {@link Tags#PREDICTOR}).</p>
+     * {@link Tags#PHOTOMETRIC_INTERPRETATION} or {@link Tags#ORIENTATION}).</p>
      *
      * @param tag    the TIFF tag identifier.
      * @param strict if {@code true}, also treat tags required for correct interpretation
@@ -1609,7 +1609,10 @@ public final class TiffIFD {
         return switch (tag) {
             case Tags.SAMPLES_PER_PIXEL -> optInt(tag, -1) != 1;
             case Tags.COMPRESSION -> optInt(tag, -1) != COMPRESSION_NONE;
-            case Tags.PHOTOMETRIC_INTERPRETATION -> strict;
+            case Tags.FILL_ORDER -> optInt(tag, -1) != FILL_ORDER_NORMAL;
+            case Tags.PREDICTOR -> optInt(tag, -1) != TagPredictor.NONE.code();
+            case Tags.PHOTOMETRIC_INTERPRETATION,
+                 Tags.ORIENTATION -> strict;
             default -> true;
         };
     }

@@ -202,6 +202,7 @@ public class Tags {
             PLANAR_CONFIGURATION,
             FILL_ORDER,
             PREDICTOR,
+            ORIENTATION,
             JPEG_TABLES,
             JPEG_INTERCHANGE_FORMAT,
             JPEG_INTERCHANGE_FORMAT_LENGTH,
