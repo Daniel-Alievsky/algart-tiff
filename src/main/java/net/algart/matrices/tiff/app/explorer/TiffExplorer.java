@@ -305,7 +305,10 @@ public class TiffExplorer {
             tagListPanel.setLayout(new BoxLayout(tagListPanel, BoxLayout.Y_AXIS));
             final Map<Integer, JCheckBox> tagsToSelect = new java.util.HashMap<>();
             for (int tag : tagsToPossiblyRemove) {
-                final JCheckBox checkBox = new JCheckBox(Tags.prettyName(tag, true));
+                final String caption = "<html>%s%s</html>".formatted(
+                        Tags.prettyName(tag, true),
+                        ifd.isTagCritical(tag, true) ? " <font color=\"red\">\u2013 be careful!</font>" : "");
+                final JCheckBox checkBox = new JCheckBox(caption);
                 checkBox.setAlignmentX(Component.LEFT_ALIGNMENT);
                 checkBox.addActionListener(e ->
                         okButton.setEnabled(!selectedTags(tagsToSelect).isEmpty()));
