@@ -552,7 +552,7 @@ public non-sealed class TiffWriter extends TiffIO {
 
     /**
      * Returns position in the file of the last IFD offset, written by methods of this object.
-     * It is updated by {@link #rewriteIFD(TiffIFD, boolean)}.
+     * It is updated by {@link #overwriteIFDInPlace(TiffIFD, boolean)}.
      *
      * <p>Immediately after creating this object without opening a file
      * ({@link TiffCreateMode#NO_ACTIONS} mode)
@@ -778,11 +778,11 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     @SuppressWarnings("UnusedReturnValue")
-    public long rewriteIFD(TiffIFD ifd) throws IOException {
-        return rewriteIFD(ifd, false);
+    public long overwriteIFDInPlace(TiffIFD ifd) throws IOException {
+        return overwriteIFDInPlace(ifd, false);
     }
 
-    public long rewriteIFD(TiffIFD ifd, boolean updateIFDLinkages) throws IOException {
+    public long overwriteIFDInPlace(TiffIFD ifd, boolean updateIFDLinkages) throws IOException {
         Objects.requireNonNull(ifd, "Null IFD");
         if (!ifd.hasFileOffsetForWriting()) {
             throw new IllegalArgumentException("Offset for writing IFD is not specified");
@@ -1624,7 +1624,7 @@ public non-sealed class TiffWriter extends TiffIO {
 
         if (ifd.hasFileOffsetForWriting()) {
             // - usually it means that we did call writeForward
-            rewriteIFD(ifd, true);
+            overwriteIFDInPlace(ifd, true);
         } else {
             writeIFDAt(ifd, null, true);
         }
@@ -1636,11 +1636,11 @@ public non-sealed class TiffWriter extends TiffIO {
         return count;
     }
 
-    public void rewriteDescription(int ifdIndex, String description) throws IOException {
-        rewriteDescription(ifdIndex, description, false);
+    public void updateDescription(int ifdIndex, String description) throws IOException {
+        updateDescription(ifdIndex, description, false);
     }
 
-    public TiffIFD rewriteDescription(int ifdIndex, String newDescription, boolean enforceRelocateIFD)
+    public TiffIFD updateDescription(int ifdIndex, String newDescription, boolean enforceRelocateIFD)
             throws IOException {
         final TiffIFD ifd = this.existingIFD(ifdIndex);
         final TiffIFD changedIFD = new TiffIFD(ifd);
@@ -1666,6 +1666,10 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     public void replaceIFD(int ifdIndex, TiffIFD changedIFD, boolean relocateIFD) throws IOException {
+        Objects.requireNonNull(changedIFD, "Null changed IFD");
+        if (ifdIndex < 0) {
+            throw new IllegalArgumentException("Negative IFD index: " + ifdIndex);
+        }
         if (relocateIFD) {
             // We must relocate IFD: overwriting in the same place will damage the further image
             final long p = this.writeIFDAtFileEnd(changedIFD);
@@ -1673,7 +1677,7 @@ public non-sealed class TiffWriter extends TiffIO {
             this.rewriteIFDOffset(ifdIndex, p);
             // - restoring IFD sequence
         } else {
-            this.rewriteIFD(changedIFD);
+            this.overwriteIFDInPlace(changedIFD);
         }
     }
 
@@ -1821,7 +1825,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * Writes the given IFD value to the {@link #stream() main output stream}, excepting "extra" data,
      * which are written into the specified <code>extraBuffer</code>. After calling this method, you
      * should copy full content of <code>extraBuffer</code> into the main stream at the position,
-     * specified by the second argument; {@link #rewriteIFD(TiffIFD, boolean)} method does it automatically.
+     * specified by the second argument; {@link #overwriteIFDInPlace(TiffIFD, boolean)} method does it automatically.
      *
      * <p>Here "extra" data means all data, for which IFD contains their offsets instead of data itself,
      * like arrays or text strings. The "main" data is a 12-byte IFD record (20-byte for BigTIFF),

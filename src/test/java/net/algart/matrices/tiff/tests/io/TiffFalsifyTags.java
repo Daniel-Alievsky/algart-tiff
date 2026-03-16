@@ -65,7 +65,7 @@ public class TiffFalsifyTags {
             if (photometric != null) {
                 ifd.putPhotometric(photometric);
             }
-            writer.rewriteIFD(ifd);
+            writer.overwriteIFDInPlace(ifd);
             // - replacing dimensions
         }
         System.out.println("Done");

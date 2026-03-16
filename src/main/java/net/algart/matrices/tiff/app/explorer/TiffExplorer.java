@@ -378,7 +378,7 @@ public class TiffExplorer {
 
     private void changeDescription(int index, String newDescription) throws IOException {
         try (TiffWriter writer = new TiffWriter(tiffFile, TiffCreateMode.OPEN_EXISTING)) {
-            writer.rewriteDescription(index, newDescription);
+            writer.updateDescription(index, newDescription);
         }
         frame.reload();
     }
