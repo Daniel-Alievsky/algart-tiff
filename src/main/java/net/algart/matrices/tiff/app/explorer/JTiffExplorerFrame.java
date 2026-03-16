@@ -248,6 +248,10 @@ public class JTiffExplorerFrame extends JFrame {
         editDescriptionItem.addActionListener(e -> explorer.showEditDescriptionDialog());
         editMenu.add(editDescriptionItem);
 
+        JMenuItem removeTagsItem = new JMenuItem("Remove tags...");
+        removeTagsItem.addActionListener(e -> explorer.showRemoveTagsDialog());
+        editMenu.add(removeTagsItem);
+
         JMenu viewMenu = new JMenu("View");
         JMenu viewModeMenu = new JMenu("View mode");
         ButtonGroup viewModeGroup = new ButtonGroup();
@@ -328,6 +332,18 @@ public class JTiffExplorerFrame extends JFrame {
         JMenuItem aboutItem = new JMenuItem("About");
         aboutItem.addActionListener(e -> explorer.showAboutDialog());
         helpMenu.add(aboutItem);
+
+        final MenuUpdater menuUpdater = new MenuUpdater(() -> {
+            boolean initialized = explorer.isInitialized();
+            reloadItem.setEnabled(initialized);
+            copyItem.setEnabled(initialized);
+            editDescriptionItem.setEnabled(initialized);
+            removeTagsItem.setEnabled(initialized);
+            showImageItem.setEnabled(initialized);
+        });
+        fileMenu.addMenuListener(menuUpdater);
+        editMenu.addMenuListener(menuUpdater);
+        viewMenu.addMenuListener(menuUpdater);
 
         fileMenu.setMnemonic('F');
         editMenu.setMnemonic('E');

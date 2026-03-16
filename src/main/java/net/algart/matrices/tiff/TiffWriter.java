@@ -1661,7 +1661,12 @@ public non-sealed class TiffWriter extends TiffIO {
                         oldDescription == null ? 0 : oldDescription.length(),
                         newDescription == null ? 0 : newDescription.length()));
         changedIFD.putDescription(newDescription);
-        if (lengthIncreased || enforceRelocateIFD) {
+        replaceIFD(ifdIndex, changedIFD, lengthIncreased || enforceRelocateIFD);
+        return changedIFD;
+    }
+
+    public void replaceIFD(int ifdIndex, TiffIFD changedIFD, boolean relocateIFD) throws IOException {
+        if (relocateIFD) {
             // We must relocate IFD: overwriting in the same place will damage the further image
             final long p = this.writeIFDAtFileEnd(changedIFD);
             // Note: we ignore sub-IFDs here. So, this method is not absolutely universal.
@@ -1670,7 +1675,6 @@ public non-sealed class TiffWriter extends TiffIO {
         } else {
             this.rewriteIFD(changedIFD);
         }
-        return changedIFD;
     }
 
     @Override

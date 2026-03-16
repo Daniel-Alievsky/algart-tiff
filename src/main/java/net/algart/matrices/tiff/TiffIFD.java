@@ -712,7 +712,7 @@ public final class TiffIFD {
             return Optional.empty();
         }
         if (!requiredClass.isInstance(value)) {
-            throw new TiffException("TIFF tag " + Tags.tiffTagName(tag, true) +
+            throw new TiffException("TIFF tag " + Tags.prettyName(tag, true) +
                     " has wrong type: " + value.getClass().getSimpleName() +
                     " instead of expected " + requiredClass.getSimpleName());
         }
@@ -721,7 +721,7 @@ public final class TiffIFD {
 
     public <R> R reqValue(int tag, Class<? extends R> requiredClass) throws TiffException {
         return getValue(tag, requiredClass).orElseThrow(() -> new TiffException(
-                "TIFF tag " + Tags.tiffTagName(tag, true) + " is required, but it is absent"));
+                "TIFF tag " + Tags.prettyName(tag, true) + " is required, but it is absent"));
     }
 
     public OptionalInt optType(int tag) {
@@ -775,7 +775,7 @@ public final class TiffIFD {
                 results[i] = v[i];
             }
         } else if (value != null) {
-            throw new TiffException("TIFF tag " + Tags.tiffTagName(tag, true) +
+            throw new TiffException("TIFF tag " + Tags.prettyName(tag, true) +
                     " has wrong type: " + value.getClass().getSimpleName() +
                     " instead of expected Number, Number[], long[] or int[]");
         }
@@ -800,7 +800,7 @@ public final class TiffIFD {
                 results[i] = checkedIntValue(v[i].longValue(), tag);
             }
         } else if (value != null) {
-            throw new TiffException("TIFF tag " + Tags.tiffTagName(tag, true) +
+            throw new TiffException("TIFF tag " + Tags.prettyName(tag, true) +
                     " has wrong type: " + value.getClass().getSimpleName() +
                     " instead of expected Number, Number[], long[] or int[]");
         }
@@ -1240,7 +1240,7 @@ public final class TiffIFD {
         return getInt(Tags.PHOTOMETRIC_INTERPRETATION, -1);
     }
 
-    public Optional<TagPhotometric> optPhotometric()  {
+    public Optional<TagPhotometric> optPhotometric() {
         if (!containsKey(Tags.PHOTOMETRIC_INTERPRETATION)
                 && optInt(Tags.COMPRESSION, 0) == COMPRESSION_OLD_JPEG) {
             return Optional.of(TagPhotometric.RGB);
@@ -1580,6 +1580,38 @@ public final class TiffIFD {
 
     public boolean isReducedImage() {
         return (optInt(Tags.NEW_SUBFILE_TYPE, 0) & FILETYPE_REDUCED_IMAGE) != 0;
+    }
+
+    /**
+     * Returns {@code true} if the specified TIFF tag should be treated as critical
+     * for this IFD and therefore should not be removed.
+     *
+     * <p>The set of potentially critical tags is defined by {@link Tags#CRITICAL_TAGS}.
+     * Some of them may still be safely omitted when their values correspond to the
+     * TIFF default values; such cases are checked here.</p>
+     *
+     * <p>If {@code strict} is {@code true}, this method also treats tags as critical
+     * when removing them would not make the image undecodable but may change how it
+     * is interpreted or displayed.
+     * If this argument is {@code false}, some tags are treated as non-critical and
+     * this method returns {@code false} for them (for example,
+     * {@link Tags#PHOTOMETRIC_INTERPRETATION} or {@link Tags#PREDICTOR}).</p>
+     *
+     * @param tag    the TIFF tag identifier.
+     * @param strict if {@code true}, also treat tags required for correct interpretation
+     *               or displaying of the image as critical.
+     * @return {@code true} if removing this tag may break decoding of the image.
+     */
+    public boolean isTagCritical(int tag, boolean strict) {
+        if (!Tags.CRITICAL_TAGS.contains(tag)) {
+            return false;
+        }
+        return switch (tag) {
+            case Tags.SAMPLES_PER_PIXEL -> optInt(tag, -1) != 1;
+            case Tags.COMPRESSION -> optInt(tag, -1) != COMPRESSION_NONE;
+            case Tags.PHOTOMETRIC_INTERPRETATION, Tags.PREDICTOR -> strict;
+            default -> true;
+        };
     }
 
     public TiffIFD putMatrixInformation(Matrix<? extends PArray> matrix) {
@@ -2354,7 +2386,7 @@ public final class TiffIFD {
         sb.append(json ?
                 "{\n" :
                 "IFD");
-        final String ifdTypeName = subIFDType == null ? "main" : Tags.tiffTagName(subIFDType, false);
+        final String ifdTypeName = subIFDType == null ? "main" : Tags.prettyName(subIFDType, false);
         boolean reducedImage = isReducedImage();
         if (json || subIFDType != null) {
             sb.append((json ? "  \"ifdType\": \"%s\",\n" : " (%s)").formatted(ifdTypeName));
@@ -2490,7 +2522,7 @@ public final class TiffIFD {
             int tag,
             Object tagValue,
             boolean manyValues) {
-        final String tagName = Tags.tiffTagName(tag, true);
+        final String tagName = Tags.prettyName(tag, true);
         sb.append("%n".formatted());
         Object additional = null;
         try {
@@ -2572,7 +2604,7 @@ public final class TiffIFD {
             Object tagValue,
             boolean manyValues,
             boolean firstEntry) {
-        String tagName = Tags.tiffTagName(tag, false);
+        String tagName = Tags.prettyName(tag, false);
         sb.append(firstEntry ? "" : ",\n");
         sb.append("    \"%s\": ".formatted(escapeJsonString(tagName)));
         if (manyValues) {
@@ -2641,12 +2673,12 @@ public final class TiffIFD {
         Objects.requireNonNull(value);
         long result = value.longValue();
         if (result > Integer.MAX_VALUE) {
-            throw new TiffException("Very large " + Tags.tiffTagName(tag, true) +
+            throw new TiffException("Very large " + Tags.prettyName(tag, true) +
                     " = " + value + " >= 2^31 is not supported");
         }
         if (result < Integer.MIN_VALUE) {
             throw new TiffException("Very large (by absolute value) negative " +
-                    Tags.tiffTagName(tag, true) +
+                    Tags.prettyName(tag, true) +
                     " = " + value + " < -2^31 is not supported");
         }
         return (int) result;
@@ -2825,7 +2857,7 @@ public final class TiffIFD {
         @Override
         public String toString() {
             return "TiffEntry: " +
-                    "tag " + Tags.tiffTagName(tag, true) +
+                    "tag " + Tags.prettyName(tag, true) +
                     ", type " + TagTypes.typeToString(type) +
                     ", valueCount " + valueCount +
                     ", valueOffset " + valueOffset +

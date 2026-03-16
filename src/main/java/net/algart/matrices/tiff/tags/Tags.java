@@ -25,6 +25,7 @@
 package net.algart.matrices.tiff.tags;
 
 import java.util.Objects;
+import java.util.Set;
 
 public class Tags {
     private Tags() {
@@ -174,6 +175,41 @@ public class Tags {
     public static final int STO_NITS = 37439;
 
     /**
+     * A set of TIFF tags that are considered structurally critical.
+     *
+     * <p>Removing any of these tags from IFD may break the ability to decode the image.</p>
+     *
+     * <p>Other TIFF tags may contain useful metadata (for example, color profiles),
+     * but removing them should not prevent a standard TIFF reader from decoding
+     * the image.</p>
+     */
+    public static final Set<Integer> CRITICAL_TAGS = Set.of(
+            IMAGE_WIDTH,
+            IMAGE_LENGTH,
+            BITS_PER_SAMPLE,
+            SAMPLES_PER_PIXEL,
+            SAMPLE_FORMAT,
+            COMPRESSION,
+            PHOTOMETRIC_INTERPRETATION,
+            Y_CB_CR_SUB_SAMPLING,
+            ROWS_PER_STRIP,
+            TILE_WIDTH,
+            TILE_LENGTH,
+            STRIP_OFFSETS,
+            STRIP_BYTE_COUNTS,
+            TILE_OFFSETS,
+            TILE_BYTE_COUNTS,
+            PLANAR_CONFIGURATION,
+            PREDICTOR,
+            JPEG_TABLES,
+            JPEG_INTERCHANGE_FORMAT,
+            JPEG_INTERCHANGE_FORMAT_LENGTH,
+            JPEG_Q_TABLES,
+            JPEG_DC_TABLES,
+            JPEG_AC_TABLES
+    );
+
+    /**
      * Returns a user-friendly name of the given TIFF tag.
      * It is used, in particular, in {@link #toString()} function.
      *
@@ -181,9 +217,9 @@ public class Tags {
      * @param includeNumeric include numeric value into the result.
      * @return user-friendly name in a style of Java constant
      */
-    public static String tiffTagName(int tag, boolean includeNumeric) {
+    public static String prettyName(int tag, boolean includeNumeric) {
         String name = Objects.requireNonNullElse(
-                TagFriendlyNames.TAG_NAMES.get(tag),
+                TagPrettyNames.TAG_NAMES.get(tag),
                 "UnknownTag" + tag);
         if (!includeNumeric) {
             return name;

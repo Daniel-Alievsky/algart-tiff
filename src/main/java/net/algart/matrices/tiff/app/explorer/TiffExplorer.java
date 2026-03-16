@@ -26,6 +26,7 @@ package net.algart.matrices.tiff.app.explorer;
 
 import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.app.TiffInfo;
+import net.algart.matrices.tiff.tags.Tags;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
@@ -36,9 +37,14 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.prefs.Preferences;
+import java.util.stream.Collectors;
 
 public class TiffExplorer {
     private static final float ALL_FONTS_SCALE = 1.2f;
@@ -92,6 +98,11 @@ public class TiffExplorer {
                 showErrorMessage(tiffExplorer.frame, e, "Error while creating GUI");
             }
         });
+    }
+
+    public boolean isInitialized() {
+        int index = frame.selectedImage();
+        return isInitialized(index);
     }
 
     public TiffInfo getInfo() {
@@ -157,16 +168,9 @@ public class TiffExplorer {
         info.collectTiffInfo(tiffFile);
     }
 
-    private void changeDescription(int index, String newDescription) throws IOException {
-        try (TiffWriter writer = new TiffWriter(tiffFile, TiffCreateMode.OPEN_EXISTING)) {
-            writer.rewriteDescription(index, newDescription);
-        }
-        frame.reload();
-    }
-
     void showImageWindow() {
         int index = frame.selectedImage();
-        if (notInitialized(index)) {
+        if (!isInitialized(index)) {
             return;
         }
         frame.setShowImageInProgress(true);
@@ -183,7 +187,7 @@ public class TiffExplorer {
 
     void showEditDescriptionDialog() {
         int index = frame.selectedImage();
-        if (notInitialized(index)) {
+        if (!isInitialized(index)) {
             return;
         }
 
@@ -246,12 +250,12 @@ public class TiffExplorer {
 
         okButton.addActionListener(event -> {
             String newDescription = descriptionArea.getText();
-            dialog.dispose();
             try {
                 changeDescription(index, newDescription.isEmpty() ? null : newDescription);
             } catch (Exception e) {
                 showErrorMessage(frame, e, "Error updating ImageDescription");
             }
+            dialog.dispose();
         });
         cancelButton.addActionListener(e -> dialog.dispose());
 
@@ -266,12 +270,135 @@ public class TiffExplorer {
         dialog.setVisible(true);
     }
 
+    void showRemoveTagsDialog() {
+        int index = frame.selectedImage();
+        if (!isInitialized(index)) {
+            return;
+        }
+
+        final JDialog dialog = new JDialog(frame, "Remove IFD tags", true);
+        dialog.setResizable(false);
+        dialog.setLayout(new BorderLayout(10, 10));
+
+        final JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        final TiffIFD ifd = info.metadata().ifd(index);
+        final List<Integer> tagsToPossiblyRemove = tagsToPossiblyRemove(ifd);
+
+        final boolean hasTags = !tagsToPossiblyRemove.isEmpty();
+        final JLabel tagListLabel = new JLabel(!hasTags ?
+                "No tags can be safely removed" :
+                "The following tags may be removed");
+        tagListLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        content.add(tagListLabel);
+        content.add(Box.createVerticalStrut(10));
+
+        if (hasTags) {
+            final JPanel tagListPanel = new JPanel();
+            tagListPanel.setLayout(new BoxLayout(tagListPanel, BoxLayout.Y_AXIS));
+            final Map<Integer, JCheckBox> selectedTags = new java.util.HashMap<>();
+            for (int tag : tagsToPossiblyRemove) {
+                final JCheckBox checkBox = new JCheckBox(Tags.prettyName(tag, true));
+                tagListPanel.add(checkBox);
+                selectedTags.put(tag, checkBox);
+            }
+            final JScrollPane scrollPane = new JScrollPane(
+                    tagListPanel,
+                    JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                    JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+            );
+            scrollPane.setAlignmentX(Component.LEFT_ALIGNMENT);
+            Dimension pref = tagListPanel.getPreferredSize();
+            int maxHeight = 300;
+            scrollPane.setPreferredSize(
+                    new Dimension(scrollPane.getPreferredSize().width, Math.min(pref.height, maxHeight))
+            );
+            content.add(scrollPane);
+
+            final JLabel warningLabel = new JLabel("""
+                    <html>Warning! This action will rewrite the IFD in the TIFF file:<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
+                    The selected tags will be permanently <b>deleted</b>.<br>
+                    This may cause the image to be displayed incorrectly.<br>
+                    You may create a backup copy if the file is important.</html>
+                    """.formatted(tiffFile));
+            warningLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            content.add(warningLabel);
+
+            dialog.add(content, BorderLayout.CENTER);
+
+            final JButton okButton = new JButton("Rewrite IFD in the file");
+            final JButton cancelButton = new JButton("Cancel");
+
+            okButton.addActionListener(event -> {
+                java.util.List<Integer> tagsToRemove = new ArrayList<>();
+                for (Map.Entry<Integer, JCheckBox> entry : selectedTags.entrySet()) {
+                    if (entry.getValue().isSelected()) {
+                        tagsToRemove.add(entry.getKey());
+                    }
+                }
+                try {
+                    removeTags(index, tagsToRemove);
+                } catch (Exception e) {
+                    showErrorMessage(frame, e, "Error updating IFD");
+                }
+                dialog.dispose();
+            });
+            cancelButton.addActionListener(e -> dialog.dispose());
+            final JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+            buttonPanel.add(okButton);
+            buttonPanel.add(cancelButton);
+            dialog.add(buttonPanel, BorderLayout.SOUTH);
+        } else {
+            final JButton closeButton = new JButton("Close");
+            closeButton.addActionListener(e -> dialog.dispose());
+            final JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+            buttonPanel.add(closeButton);
+            dialog.add(buttonPanel, BorderLayout.SOUTH);
+        }
+        dialog.pack();
+        addCloseOnEscape(dialog);
+        dialog.setLocationRelativeTo(frame);
+        dialog.setVisible(true);
+    }
+
     void showAboutDialog() {
         new JTiffExplorerAboutDialog(frame).setVisible(true);
     }
 
-    private boolean notInitialized(int index) {
-        return index < 0 || info == null || index >= info.numberOfImages();
+    private void changeDescription(int index, String newDescription) throws IOException {
+        try (TiffWriter writer = new TiffWriter(tiffFile, TiffCreateMode.OPEN_EXISTING)) {
+            writer.rewriteDescription(index, newDescription);
+        }
+        frame.reload();
+    }
+
+    private java.util.List<Integer> tagsToPossiblyRemove(TiffIFD ifd) {
+        return ifd.map().keySet().stream()
+                .filter(tag -> !ifd.isTagCritical(tag, false))
+                .collect(Collectors.toList());
+    }
+
+    private void removeTags(int index, Collection<Integer> tags) throws IOException {
+        if (tags.isEmpty()) {
+            return;
+        }
+        try (TiffWriter writer = new TiffWriter(tiffFile, TiffCreateMode.OPEN_EXISTING)) {
+            final TiffIFD ifd = writer.existingIFD(index);
+            final TiffIFD changedIFD = new TiffIFD(ifd);
+            for (int tag : tags) {
+                changedIFD.remove(tag);
+            }
+            writer.replaceIFD(index, changedIFD, false);
+            // - we don't need to relocate IFD: its size was decreased
+        }
+        frame.reload();
+    }
+
+    private boolean isInitialized(int index) {
+        return info != null && index >= 0 && index < info.numberOfImages();
     }
 
     static void addCloseOnEscape(JDialog dialog) {

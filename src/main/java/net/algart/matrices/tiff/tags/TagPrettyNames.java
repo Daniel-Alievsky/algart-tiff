@@ -28,8 +28,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-class TagFriendlyNames {
-    private TagFriendlyNames() {
+class TagPrettyNames {
+    private TagPrettyNames() {
     }
 
     static final Map<Integer, String> TAG_NAMES = buildTagNames();
