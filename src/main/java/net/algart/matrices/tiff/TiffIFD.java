@@ -1609,7 +1609,7 @@ public final class TiffIFD {
         return switch (tag) {
             case Tags.SAMPLES_PER_PIXEL -> optInt(tag, -1) != 1;
             case Tags.COMPRESSION -> optInt(tag, -1) != COMPRESSION_NONE;
-            case Tags.PHOTOMETRIC_INTERPRETATION, Tags.PREDICTOR -> strict;
+            case Tags.PHOTOMETRIC_INTERPRETATION -> strict;
             default -> true;
         };
     }

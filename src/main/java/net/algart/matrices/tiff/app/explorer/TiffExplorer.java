@@ -37,7 +37,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -47,8 +46,9 @@ import java.util.prefs.Preferences;
 import java.util.stream.Collectors;
 
 public class TiffExplorer {
-    private static final float ALL_FONTS_SCALE = 1.2f;
+    private static final float ALL_FONTS_SCALE = 1.3f;
     // - default font sizes in Java API are usually too small
+    private static final String ALL_LINE_HEIGHT_SCALE = "1.3";
 
     private static final String PREF_LAST_DIR = "main.lastDirectory";
 
@@ -234,12 +234,12 @@ public class TiffExplorer {
         toolsPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, toolsPanel.getPreferredSize().height));
         content.add(Box.createVerticalStrut(10));
 
-        final JLabel warningLabel = new JLabel("""
-                <html>Warning! This action will rewrite the IFD in the TIFF file:<br>
+        final JLabel warningLabel = new JLabel(smartHtmlLines("""
+                Warning! This action will rewrite the IFD %d in the TIFF file:<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
                 The current image description will be permanently <b>replaced</b>.<br>
-                You may create a backup copy if the file is important.</html>
-                """.formatted(tiffFile));
+                You may create a backup copy if the file is important.
+                """.formatted(index, tiffFile)));
         warningLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         content.add(warningLabel);
 
@@ -279,6 +279,7 @@ public class TiffExplorer {
         final JDialog dialog = new JDialog(frame, "Remove IFD tags", true);
         dialog.setResizable(false);
         dialog.setLayout(new BorderLayout(10, 10));
+        dialog.setMinimumSize(new Dimension(250, 50));
 
         final JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
@@ -293,71 +294,75 @@ public class TiffExplorer {
                 "The following tags may be removed");
         tagListLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         content.add(tagListLabel);
-        content.add(Box.createVerticalStrut(10));
-
+        final JPanel buttonPanel;
         if (hasTags) {
+            content.add(Box.createVerticalStrut(10));
+            final JButton okButton = new JButton("Remove the selected tags");
+            okButton.setEnabled(false);
+            final JButton cancelButton = new JButton("Cancel");
+
             final JPanel tagListPanel = new JPanel();
             tagListPanel.setLayout(new BoxLayout(tagListPanel, BoxLayout.Y_AXIS));
-            final Map<Integer, JCheckBox> selectedTags = new java.util.HashMap<>();
+            final Map<Integer, JCheckBox> tagsToSelect = new java.util.HashMap<>();
             for (int tag : tagsToPossiblyRemove) {
                 final JCheckBox checkBox = new JCheckBox(Tags.prettyName(tag, true));
+                checkBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+                checkBox.addActionListener(e ->
+                        okButton.setEnabled(!selectedTags(tagsToSelect).isEmpty()));
                 tagListPanel.add(checkBox);
-                selectedTags.put(tag, checkBox);
+                tagsToSelect.put(tag, checkBox);
             }
-            final JScrollPane scrollPane = new JScrollPane(
-                    tagListPanel,
-                    JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-                    JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
-            );
-            scrollPane.setAlignmentX(Component.LEFT_ALIGNMENT);
-            Dimension pref = tagListPanel.getPreferredSize();
-            int maxHeight = 300;
-            scrollPane.setPreferredSize(
-                    new Dimension(scrollPane.getPreferredSize().width, Math.min(pref.height, maxHeight))
-            );
-            content.add(scrollPane);
+            final Dimension tagListprefSize = tagListPanel.getPreferredSize();
+            final int maxHeight = 150;
+            if (tagListprefSize.height > maxHeight) {
+                final JScrollPane scrollPane = new JScrollPane(
+                        tagListPanel,
+                        JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                        JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+                );
+                scrollPane.setBorder(BorderFactory.createEmptyBorder());
+                scrollPane.setAlignmentX(Component.LEFT_ALIGNMENT);
+                scrollPane.setPreferredSize(new Dimension(scrollPane.getPreferredSize().width + 30, maxHeight));
+                content.add(scrollPane);
+            } else {
+                content.add(tagListPanel);
+            }
+            content.add(Box.createVerticalStrut(15));
 
-            final JLabel warningLabel = new JLabel("""
-                    <html>Warning! This action will rewrite the IFD in the TIFF file:<br>
+            final JLabel warningLabel = new JLabel(smartHtmlLines("""
+                    Warning! This is a <b>low-level modification</b> of the IFD %d in the TIFF file:<br>
                     &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
-                    The selected tags will be permanently <b>deleted</b>.<br>
-                    This may cause the image to be displayed incorrectly.<br>
-                    You may create a backup copy if the file is important.</html>
-                    """.formatted(tiffFile));
+                    Selected tags will be permanently <b>deleted</b> from the IFD.<br>
+                    In some cases, this may cause the image to be displayed incorrectly.<br>
+                    You may create a backup copy if the file is important.
+                    """.formatted(index, tiffFile)));
             warningLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
             content.add(warningLabel);
 
-            dialog.add(content, BorderLayout.CENTER);
-
-            final JButton okButton = new JButton("Rewrite IFD in the file");
-            final JButton cancelButton = new JButton("Cancel");
-
             okButton.addActionListener(event -> {
-                java.util.List<Integer> tagsToRemove = new ArrayList<>();
-                for (Map.Entry<Integer, JCheckBox> entry : selectedTags.entrySet()) {
-                    if (entry.getValue().isSelected()) {
-                        tagsToRemove.add(entry.getKey());
-                    }
-                }
+                List<Integer> tagsToRemove = selectedTags(tagsToSelect);
                 try {
-                    removeTags(index, tagsToRemove);
+                    if (!removeTags(index, tagsToRemove)) {
+                        return;
+                    }
                 } catch (Exception e) {
                     showErrorMessage(frame, e, "Error updating IFD");
                 }
                 dialog.dispose();
             });
             cancelButton.addActionListener(e -> dialog.dispose());
-            final JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+            buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
             buttonPanel.add(okButton);
             buttonPanel.add(cancelButton);
-            dialog.add(buttonPanel, BorderLayout.SOUTH);
         } else {
             final JButton closeButton = new JButton("Close");
             closeButton.addActionListener(e -> dialog.dispose());
-            final JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+            buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
             buttonPanel.add(closeButton);
-            dialog.add(buttonPanel, BorderLayout.SOUTH);
         }
+        dialog.add(content, BorderLayout.CENTER);
+        dialog.add(buttonPanel, BorderLayout.SOUTH);
+
         dialog.pack();
         addCloseOnEscape(dialog);
         dialog.setLocationRelativeTo(frame);
@@ -381,9 +386,30 @@ public class TiffExplorer {
                 .collect(Collectors.toList());
     }
 
-    private void removeTags(int index, Collection<Integer> tags) throws IOException {
+    private static List<Integer> selectedTags(Map<Integer, JCheckBox> selectedTags) {
+        return selectedTags.entrySet().stream()
+                .filter(entry -> entry.getValue().isSelected())
+                .map(Map.Entry::getKey).collect(Collectors.toList());
+    }
+
+    private boolean removeTags(int index, Collection<Integer> tags) throws IOException {
         if (tags.isEmpty()) {
-            return;
+            return true;
+        }
+        final String tagList = tags.stream()
+                .map(tag -> " \u2022 " + Tags.prettyName(tag, true))
+                .collect(Collectors.joining("\n"));
+        int choice = JOptionPane.showConfirmDialog(
+                frame,
+                "You are about to permanently delete the following tags from the IFD:\n\n" +
+                        tagList +
+                        "\n\nAre you sure you want to proceed?",
+                "Confirm Tag Removal",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE
+        );
+        if (choice != JOptionPane.YES_OPTION) {
+            return false;
         }
         try (TiffWriter writer = new TiffWriter(tiffFile, TiffCreateMode.OPEN_EXISTING)) {
             final TiffIFD ifd = writer.existingIFD(index);
@@ -395,6 +421,7 @@ public class TiffExplorer {
             // - we don't need to relocate IFD: its size was decreased
         }
         frame.reload();
+        return true;
     }
 
     private boolean isInitialized(int index) {
@@ -420,6 +447,15 @@ public class TiffExplorer {
             e = e.getCause();
         }
         JOptionPane.showMessageDialog(frame, e.getMessage(), title, JOptionPane.ERROR_MESSAGE);
+    }
+
+    static String smartHtmlLines(String htmlContent) {
+        String[] lines = htmlContent.trim().split("<br>", -1);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < lines.length; i++) {
+            sb.append("<div%s>%s</div>".formatted(i == 0 ? "" : " style=\"margin-top: 5px\"", lines[i]));
+        }
+        return "<html>" + sb + "</html>";
     }
 
     static Color getUIColor(String name, Color defaultValue) {

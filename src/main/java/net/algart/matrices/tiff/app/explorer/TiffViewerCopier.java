@@ -195,8 +195,7 @@ class TiffViewerCopier {
                 "The TIFF image #%d (%d\u00D7%d)".formatted(viewer.ifdIndex(), sizeX, sizeY) :
                 "The selected area %d\u00D7%d (top-left at %d,%d) of the TIFF image #%d"
                         .formatted(sizeX, sizeY, selection.x, selection.y, viewer.ifdIndex());
-        final JLabel infoLabel = new JLabel("""
-                <html>
+        final JLabel infoLabel = new JLabel(TiffExplorer.smartHtmlLines("""
                 %s from the file:<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br><br>
                 will be copied to a new TIFF file:<br>
@@ -204,7 +203,7 @@ class TiffViewerCopier {
                 """.formatted(
                 whatToCopy,
                 map.streamName(), targetFile.toAbsolutePath()
-        ));
+        )));
 //        infoLabel.setFont(infoLabel.getFont().deriveFont((float) DEFAULT_FONT_SIZE));
         infoLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         mainPanel.add(infoLabel);
@@ -233,7 +232,7 @@ class TiffViewerCopier {
                     """.formatted(
                     selection.x, selection.y,
                     viewer.alignSelectionToTileGridCommand());
-            directCommentLabel = new JLabel("<html>" + directComment);
+            directCommentLabel = new JLabel(TiffExplorer.smartHtmlLines(directComment));
             directCommentLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
             directCommentLabel.setEnabled(false);
             // - gray color: this is a comment, not an important element

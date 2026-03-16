@@ -200,6 +200,7 @@ public class Tags {
             TILE_OFFSETS,
             TILE_BYTE_COUNTS,
             PLANAR_CONFIGURATION,
+            FILL_ORDER,
             PREDICTOR,
             JPEG_TABLES,
             JPEG_INTERCHANGE_FORMAT,
