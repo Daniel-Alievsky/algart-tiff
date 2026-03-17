@@ -248,8 +248,8 @@ public class JTiffExplorerFrame extends JFrame {
         editDescriptionItem.addActionListener(e -> explorer.showEditDescriptionDialog());
         editMenu.add(editDescriptionItem);
 
-        JMenuItem replacePhotometricItem = new JMenuItem("Replace photometric interpretation...");
-        replacePhotometricItem.addActionListener(e -> explorer.showReplacePhotometricDialog());
+        JMenuItem replacePhotometricItem = new JMenuItem("Rewrite photometric interpretation...");
+        replacePhotometricItem.addActionListener(e -> explorer.showRewritePhotometricDialog());
         editMenu.add(replacePhotometricItem);
 
         JMenuItem removeTagsItem = new JMenuItem("Remove tags...");

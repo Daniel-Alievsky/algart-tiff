@@ -212,7 +212,7 @@ public class TiffExplorer {
         );
         scrollPane.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        content.add(leftLabel("Description of TIFF image #%d (\"ImageDescription\" tag)".formatted(index)));
+        content.add(leftLabel("Description of TIFF image #%d (ImageDescription tag)".formatted(index)));
         content.add(Box.createVerticalStrut(5));
         content.add(scrollPane);
 
@@ -239,7 +239,7 @@ public class TiffExplorer {
 
         dialog.add(content, BorderLayout.CENTER);
 
-        final JButton okButton = new JButton("Rewrite IFD in the file");
+        final JButton okButton = new JButton("Rewrite ImageDescription tag");
         final JButton cancelButton = new JButton("Cancel");
 
         okButton.addActionListener(event -> {
@@ -264,13 +264,13 @@ public class TiffExplorer {
         dialog.setVisible(true);
     }
 
-    void showReplacePhotometricDialog() {
+    void showRewritePhotometricDialog() {
         int index = frame.selectedImage();
         if (!isInitialized(index)) {
             return;
         }
 
-        final JDialog dialog = new JDialog(frame, "Replace PhotometricInterpretation tag", true);
+        final JDialog dialog = new JDialog(frame, "Rewrite photometric interpretation", true);
         dialog.setResizable(false);
         dialog.setLayout(new BorderLayout(10, 10));
         dialog.setMinimumSize(new Dimension(250, 50));
@@ -279,7 +279,7 @@ public class TiffExplorer {
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        final JButton okButton = new JButton("Rewrite PhotometricInterpretation");
+        final JButton okButton = new JButton("Rewrite PhotometricInterpretation tag");
         okButton.setEnabled(false);
         final JButton cancelButton = new JButton("Cancel");
 
