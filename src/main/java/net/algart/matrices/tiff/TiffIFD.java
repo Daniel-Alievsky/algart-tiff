@@ -1240,6 +1240,10 @@ public final class TiffIFD {
         return getInt(Tags.PHOTOMETRIC_INTERPRETATION, -1);
     }
 
+    public boolean hasPhotometric() {
+        return containsKey(Tags.PHOTOMETRIC_INTERPRETATION);
+    }
+
     public Optional<TagPhotometric> optPhotometric() {
         if (!containsKey(Tags.PHOTOMETRIC_INTERPRETATION)
                 && optInt(Tags.COMPRESSION, 0) == COMPRESSION_OLD_JPEG) {
@@ -1806,10 +1810,14 @@ public final class TiffIFD {
     }
 
     public TiffIFD putPhotometric(TagPhotometric photometric) {
-        if (photometric == null) {
+        return putPhotometricCode(photometric == null ? null : photometric.code());
+    }
+
+    public TiffIFD putPhotometricCode(Integer photometricCode) {
+        if (photometricCode == null) {
             remove(Tags.PHOTOMETRIC_INTERPRETATION);
         } else {
-            put(Tags.PHOTOMETRIC_INTERPRETATION, photometric.code());
+            put(Tags.PHOTOMETRIC_INTERPRETATION, photometricCode);
         }
         return this;
     }

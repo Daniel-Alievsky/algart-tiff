@@ -26,6 +26,7 @@ package net.algart.matrices.tiff.app.explorer;
 
 import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.app.TiffInfo;
+import net.algart.matrices.tiff.tags.TagPhotometric;
 import net.algart.matrices.tiff.tags.Tags;
 
 import javax.swing.*;
@@ -37,10 +38,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
-import java.util.Collection;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.prefs.Preferences;
 import java.util.stream.Collectors;
@@ -213,10 +212,7 @@ public class TiffExplorer {
         );
         scrollPane.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        final JLabel imageDescriptionLabel = new JLabel(
-                "Description of TIFF image #%d (\"ImageDescription\" tag)".formatted(index));
-        imageDescriptionLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        content.add(imageDescriptionLabel);
+        content.add(leftLabel("Description of TIFF image #%d (\"ImageDescription\" tag)".formatted(index)));
         content.add(Box.createVerticalStrut(5));
         content.add(scrollPane);
 
@@ -234,14 +230,12 @@ public class TiffExplorer {
         toolsPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, toolsPanel.getPreferredSize().height));
         content.add(Box.createVerticalStrut(10));
 
-        final JLabel warningLabel = new JLabel(smartHtmlLines("""
+        content.add(leftLabel(smartHtmlLines("""
                 Warning! This action will rewrite the IFD %d in the TIFF file:<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
                 The current image description will be permanently <b>replaced</b>.<br>
                 You may create a backup copy if the file is important.
-                """.formatted(index, tiffFile)));
-        warningLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        content.add(warningLabel);
+                """.formatted(index, tiffFile))));
 
         dialog.add(content, BorderLayout.CENTER);
 
@@ -262,6 +256,96 @@ public class TiffExplorer {
         final JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         buttonPanel.add(okButton);
         buttonPanel.add(cancelButton);
+        dialog.add(buttonPanel, BorderLayout.SOUTH);
+
+        dialog.pack();
+        addCloseOnEscape(dialog);
+        dialog.setLocationRelativeTo(frame);
+        dialog.setVisible(true);
+    }
+
+    void showReplacePhotometricDialog() {
+        int index = frame.selectedImage();
+        if (!isInitialized(index)) {
+            return;
+        }
+
+        final JDialog dialog = new JDialog(frame, "Replace PhotometricInterpretation tag", true);
+        dialog.setResizable(false);
+        dialog.setLayout(new BorderLayout(10, 10));
+        dialog.setMinimumSize(new Dimension(250, 50));
+
+        final JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        final JButton okButton = new JButton("Rewrite PhotometricInterpretation");
+        okButton.setEnabled(false);
+        final JButton cancelButton = new JButton("Cancel");
+
+        content.add(leftLabel("You may rewrite the PhotometricInterpretation tag in this IFD."));
+        content.add(Box.createVerticalStrut(10));
+
+        final TiffIFD ifd = info.metadata().ifd(index);
+        final Optional<TagPhotometric> photometric = ifd.optPhotometric();
+        final int photometricCode = ifd.optPhotometricCode(-1);
+        final PhotometricItem photometricItem = new PhotometricItem(photometricCode, photometric.orElse(null));
+        final boolean unknownPhotometric = ifd.hasPhotometric() && photometricItem.photometric == null;
+        if (ifd.hasPhotometric()) {
+            content.add(leftLabel("Current value:"));
+            JLabel previousPhotometricLabel = new JLabel("<html><b>" + photometricItem + "</b></html>");
+            content.add(previousPhotometricLabel);
+        } else {
+            content.add(leftLabel("Nothing (does not exist)"));
+        }
+        content.add(Box.createVerticalStrut(10));
+
+        content.add(leftLabel("New value to write:"));
+        final JComboBox<PhotometricItem> photometricComboBox = new JComboBox<>();
+        photometricComboBox.addItem(new PhotometricItem(null, null));
+        for (TagPhotometric tag : TagPhotometric.values()) {
+            photometricComboBox.addItem(new PhotometricItem(tag.code(), tag));
+        }
+        if (unknownPhotometric) {
+            photometricComboBox.addItem(photometricItem);
+        }
+        photometricComboBox.setSelectedItem(photometricItem);
+        photometricComboBox.addActionListener(e -> {
+                    PhotometricItem selectedItem = (PhotometricItem) photometricComboBox.getSelectedItem();
+                    okButton.setEnabled(selectedItem != null && !selectedItem.equalPhotometric(photometricItem));
+                }
+        );
+        photometricComboBox.setMaximumSize(photometricComboBox.getPreferredSize());
+        photometricComboBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+        content.add(photometricComboBox);
+        content.add(Box.createVerticalStrut(15));
+
+        content.add(leftLabel(smartHtmlLines("""
+                Warning! This is a <b>low-level modification</b> of the IFD %d in the TIFF file:<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
+                Changing this tag does <b>not</b> convert the actual pixel data.<br>
+                Primarily for testing; usually causes the image to be displayed incorrectly.<br>
+                You may create a backup copy if the file is important.
+                """.formatted(index, tiffFile))));
+
+        okButton.addActionListener(event -> {
+            PhotometricItem selectedItem = (PhotometricItem) photometricComboBox.getSelectedItem();
+            if (selectedItem == null) {
+                // - just in case
+                return;
+            }
+            try {
+                replacePhotometric(index, selectedItem.code);
+            } catch (Exception e) {
+                showErrorMessage(frame, e, "Error updating IFD");
+            }
+            dialog.dispose();
+        });
+        cancelButton.addActionListener(e -> dialog.dispose());
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        buttonPanel.add(okButton);
+        buttonPanel.add(cancelButton);
+        dialog.add(content, BorderLayout.CENTER);
         dialog.add(buttonPanel, BorderLayout.SOUTH);
 
         dialog.pack();
@@ -415,16 +499,31 @@ public class TiffExplorer {
             return false;
         }
         try (TiffWriter writer = new TiffWriter(tiffFile, TiffCreateMode.OPEN_EXISTING)) {
-            final TiffIFD ifd = writer.existingIFD(index);
-            final TiffIFD changedIFD = new TiffIFD(ifd);
-            for (int tag : tags) {
-                changedIFD.remove(tag);
-            }
-            writer.replaceIFD(index, changedIFD, false);
-            // - we don't need to relocate IFD: its size was decreased
+            writer.updateIFD(index, ifd -> {
+                for (int tag : tags) {
+                    ifd.remove(tag);
+                }
+                return TiffWriter.IFDUpdateResult.IN_PLACE;
+                // - we don't need to relocate IFD: its size was decreased
+            });
         }
         frame.reload();
         return true;
+    }
+
+    private void replacePhotometric(int index, Integer photometricCode) throws IOException {
+        try (TiffWriter writer = new TiffWriter(tiffFile, TiffCreateMode.OPEN_EXISTING)) {
+            writer.updateIFD(index, ifd -> {
+                final Integer existing = ifd.hasPhotometric() ? ifd.optPhotometricCode(-1) : null;
+                if (Objects.equals(existing, photometricCode)) {
+                    return TiffWriter.IFDUpdateResult.UNCHANGED;
+                }
+                ifd.putPhotometricCode(photometricCode);
+                return TiffWriter.IFDUpdateResult.ofExpanded(existing == null);
+                // - we don't need to relocate IFD: its size was unchanged
+            });
+        }
+        frame.reload();
     }
 
     private boolean isInitialized(int index) {
@@ -476,5 +575,26 @@ public class TiffExplorer {
         final URL result = TiffExplorer.class.getResource(name);
         Objects.requireNonNull(result, "Resource " + name + " not found");
         return result;
+    }
+
+    private static JLabel leftLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return label;
+    }
+
+    // code=null: no photometric tag
+    // code=157: unknown photometric tag
+    private record PhotometricItem(Integer code, TagPhotometric photometric) {
+        public boolean equalPhotometric(PhotometricItem other) {
+            return Objects.equals(code, other.code);
+        }
+
+        @SuppressWarnings("NullableProblems")
+        @Override
+        public String toString() {
+            return code == null ? "Nothing (does not exist)" :
+                    photometric == null ? code + " (unknown)" : photometric.toString();
+        }
     }
 }

@@ -48,6 +48,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -60,6 +61,24 @@ import java.util.stream.Collectors;
  * The same is true for the result of {@link #stream()} method.</p>
  */
 public non-sealed class TiffWriter extends TiffIO {
+    public enum IFDUpdateResult {
+        UNCHANGED,
+        IN_PLACE,
+        EXPANDED;
+
+        public static IFDUpdateResult ofExpanded(boolean expanded) {
+            return expanded ? EXPANDED : IN_PLACE;
+        }
+
+        public boolean isUnchanged() {
+            return this == UNCHANGED;
+        }
+
+        public boolean isRelocationNecessary() {
+            return this == EXPANDED;
+        }
+    }
+
     /**
      * If the file grows to about this limit and {@link #setBigTiff(boolean) big-TIFF} mode is not set,
      * attempt to write new IFD at the file end by methods of this class throw IO exception.
@@ -1636,41 +1655,44 @@ public non-sealed class TiffWriter extends TiffIO {
         return count;
     }
 
-    public void updateDescription(int ifdIndex, String description) throws IOException {
-        updateDescription(ifdIndex, description, false);
+    public TiffIFD updateDescription(int ifdIndex, String description) throws IOException {
+        return updateDescription(ifdIndex, description, false);
     }
 
     public TiffIFD updateDescription(int ifdIndex, String newDescription, boolean enforceRelocateIFD)
             throws IOException {
+        return updateIFD(ifdIndex,
+                ifd -> changeDescription(ifd, newDescription, enforceRelocateIFD));
+    }
+
+    public TiffIFD updateIFD(int ifdIndex, Function<TiffIFD, IFDUpdateResult> updater) throws IOException {
+        Objects.requireNonNull(updater, "Null updater");
         final TiffIFD ifd = this.existingIFD(ifdIndex);
         final TiffIFD changedIFD = new TiffIFD(ifd);
-        final String oldDescription = ifd.getDescription().description(null);
-        if (Objects.equals(oldDescription, newDescription)) {
-            return changedIFD;
-        }
-        final boolean lengthIncreased = oldDescription == null ||
-                (newDescription != null && newDescription.length() > oldDescription.length());
-        LOG.log(System.Logger.Level.DEBUG,
-                () -> "IFD #%d/%d: %s image description%s%n%sString length %s: from %d to %d%n".formatted(
-                        ifdIndex,
-                        this.numberOfExistingImages(),
-                        oldDescription == null ? "writing new" : newDescription == null ? "removing" : "overwriting",
-                        newDescription == null ? "" : "%n\"%s\"".formatted(newDescription),
-                        oldDescription == null ? "" : "(instead of: \"%s\")%n".formatted(oldDescription),
-                        lengthIncreased ? "increased" : "not increased (overwriting possible)",
-                        oldDescription == null ? 0 : oldDescription.length(),
-                        newDescription == null ? 0 : newDescription.length()));
-        changedIFD.putDescription(newDescription);
-        replaceIFD(ifdIndex, changedIFD, lengthIncreased || enforceRelocateIFD);
+        final IFDUpdateResult placement = updater.apply(changedIFD);
+        updateIFD(ifdIndex, changedIFD, placement);
         return changedIFD;
     }
 
-    public void replaceIFD(int ifdIndex, TiffIFD changedIFD, boolean relocateIFD) throws IOException {
+    public void updateIFD(int ifdIndex, TiffIFD changedIFD, IFDUpdateResult placement) throws IOException {
         Objects.requireNonNull(changedIFD, "Null changed IFD");
+        Objects.requireNonNull(placement, "Null IFD placement");
         if (ifdIndex < 0) {
             throw new IllegalArgumentException("Negative IFD index: " + ifdIndex);
         }
-        if (relocateIFD) {
+        LOG.log(System.Logger.Level.DEBUG,
+                () -> "IFD #%d/%d %s".formatted(
+                        ifdIndex,
+                        this.numberOfExistingImages(),
+                        switch (placement) {
+                            case UNCHANGED -> "unchanged";
+                            case IN_PLACE -> "updated in place";
+                            case EXPANDED -> "updated with relocation at the file end";
+                        }));
+        if (placement.isUnchanged()) {
+            return;
+        }
+        if (placement.isRelocationNecessary()) {
             // We must relocate IFD: overwriting in the same place will damage the further image
             final long p = this.writeIFDAtFileEnd(changedIFD);
             // Note: we ignore sub-IFDs here. So, this method is not absolutely universal.
@@ -2329,6 +2351,25 @@ public non-sealed class TiffWriter extends TiffIO {
                     timeWriting * 1e-6,
                     sizeInBytes / 1048576.0 / ((t5 - t1) * 1e-9)));
         }
+    }
+
+    private static IFDUpdateResult changeDescription(TiffIFD ifd, String newDescription, boolean enforceRelocate) {
+        final String oldDescription = ifd.getDescription().description(null);
+        if (Objects.equals(oldDescription, newDescription)) {
+            return IFDUpdateResult.UNCHANGED;
+        }
+        final boolean lengthIncreased = oldDescription == null ||
+                (newDescription != null && newDescription.length() > oldDescription.length());
+        LOG.log(System.Logger.Level.DEBUG,
+                () -> "%s image description%s%n%sString length %s: from %d to %d".formatted(
+                        oldDescription == null ? "Writing new" : newDescription == null ? "Removing" : "Overwriting",
+                        newDescription == null ? "" : "%n\"%s\"".formatted(newDescription),
+                        oldDescription == null ? "" : "(instead of: \"%s\")%n".formatted(oldDescription),
+                        lengthIncreased ? "increased" : "not increased",
+                        oldDescription == null ? 0 : oldDescription.length(),
+                        newDescription == null ? 0 : newDescription.length()));
+        ifd.putDescription(newDescription);
+        return IFDUpdateResult.ofExpanded(lengthIncreased || enforceRelocate);
     }
 
     private static void checkPhotometric(

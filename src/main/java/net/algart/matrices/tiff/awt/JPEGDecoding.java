@@ -43,8 +43,6 @@ import java.util.Iterator;
 import java.util.Objects;
 
 public class JPEGDecoding {
-    private static final System.Logger LOG = System.getLogger(JPEGDecoding.class.getName());
-
     static final boolean USE_MEMORY_CACHE = true;
     // - Must be true for normal performance.
     // Important: our codec is implemented for reading separate tiles, which SHOULD be not too large

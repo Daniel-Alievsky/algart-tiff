@@ -109,4 +109,9 @@ public enum TagPhotometric {
     public boolean isIndexed() {
         return this == RGB_PALETTE || this == CFA_ARRAY;
     }
+
+    @Override
+    public String toString() {
+        return "%s (%d)".formatted(name, code);
+    }
 }
