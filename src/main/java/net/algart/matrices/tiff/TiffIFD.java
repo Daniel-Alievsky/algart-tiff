@@ -1294,6 +1294,10 @@ public final class TiffIFD {
         return Arrays.copyOf(result, 2);
     }
 
+    public boolean hasYCbCrSubsampling() {
+        return containsKey(Tags.Y_CB_CR_SUB_SAMPLING);
+    }
+
     public int[] getYCbCrSubsamplingLogarithms() throws TiffException {
         int[] result = getYCbCrSubsampling();
         for (int k = 0; k < result.length; k++) {
@@ -1598,8 +1602,8 @@ public final class TiffIFD {
      * when removing them would not make the image undecodable but may change how it
      * is interpreted or displayed.
      * If this argument is {@code false}, some tags are treated as non-critical and
-     * this method returns {@code false} for them (for example,
-     * {@link Tags#PHOTOMETRIC_INTERPRETATION} or {@link Tags#ORIENTATION}).</p>
+     * this method returns {@code false} for them (in particular,
+     * {@link Tags#PHOTOMETRIC_INTERPRETATION} or {@link Tags#Y_CB_CR_SUB_SAMPLING}).</p>
      *
      * @param tag    the TIFF tag identifier.
      * @param strict if {@code true}, also treat tags required for correct interpretation
@@ -1616,6 +1620,7 @@ public final class TiffIFD {
             case Tags.FILL_ORDER -> optInt(tag, -1) != FILL_ORDER_NORMAL;
             case Tags.PREDICTOR -> optInt(tag, -1) != TagPredictor.NONE.code();
             case Tags.PHOTOMETRIC_INTERPRETATION,
+                 Tags.Y_CB_CR_SUB_SAMPLING,
                  Tags.ORIENTATION -> strict;
             default -> true;
         };
@@ -1824,6 +1829,24 @@ public final class TiffIFD {
 
     public TiffIFD removePhotometric() {
         remove(Tags.PHOTOMETRIC_INTERPRETATION);
+        return this;
+    }
+
+    public TiffIFD putYCbCrSubsampling(int subSamplingX, int subSamplingY) {
+        if (subSamplingX != 1 && subSamplingX != 2 && subSamplingX != 4) {
+            throw new IllegalArgumentException("TIFF tag YCbCrSubSampling must contain only values 1, 2 or 4, " +
+                    "but the specified subSamplingX = " + subSamplingX);
+        }
+        if (subSamplingY != 1 && subSamplingY != 2 && subSamplingY != 4) {
+            throw new IllegalArgumentException("TIFF tag YCbCrSubSampling must contain only values 1, 2 or 4, " +
+                    "but the specified subSamplingY = " + subSamplingY);
+        }
+        put(Tags.Y_CB_CR_SUB_SAMPLING, new int[] {subSamplingX, subSamplingY});
+        return this;
+    }
+
+    public TiffIFD removeYCbCrSubsampling() {
+        remove(Tags.Y_CB_CR_SUB_SAMPLING);
         return this;
     }
 

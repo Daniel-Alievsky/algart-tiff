@@ -128,12 +128,14 @@ class JTiffViewerFrame extends JFrame {
                 bitDepth.isPresent() ? bitDepth.getAsInt() : Arrays.toString(map.bitsPerSample()),
                 map.compression().orElse(TagCompression.NONE).prettyName(),
                 zoomTitle, viewer.path().getFileName()));
-        final TagPhotometric photometric = map.photometric().orElse(TagPhotometric.RGB);
-        final boolean simplyRenderable = photometric.isSimplyRenderable();
+        final TagPhotometric photometric = map.photometric().orElse(null);
+        final boolean simplyRenderable = photometric != null && photometric.isSimplyRenderable();
         if (!simplyRenderable) {
             noticeLabel.setText(
-                    "Note: photometric interpretation %s is not fully supported; colors may be incorrect"
-                            .formatted(photometric.prettyName()));
+                    (photometric == null ? "Note: PhotometricInterpretation tag is not set" :
+                            "Note: PhotometricInterpretation %s is not fully supported"
+                                    .formatted(photometric.prettyName()))
+                            + "; colors may be incorrect");
         }
         noticePanel.setVisible(!simplyRenderable);
     }

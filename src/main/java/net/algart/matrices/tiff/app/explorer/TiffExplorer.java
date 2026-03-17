@@ -287,14 +287,13 @@ public class TiffExplorer {
         content.add(Box.createVerticalStrut(10));
 
         final TiffIFD ifd = info.metadata().ifd(index);
-        final Optional<TagPhotometric> photometric = ifd.optPhotometric();
-        final int photometricCode = ifd.optPhotometricCode(-1);
-        final PhotometricItem photometricItem = new PhotometricItem(photometricCode, photometric.orElse(null));
-        final boolean unknownPhotometric = ifd.hasPhotometric() && photometricItem.photometric == null;
+        final PhotometricItem existingPhotometricItem = new PhotometricItem(
+                ifd.hasPhotometric() ? ifd.optPhotometricCode(-1) : null,
+                ifd.optPhotometric().orElse(null));
+        final boolean unknownPhotometric = ifd.hasPhotometric() && existingPhotometricItem.photometric == null;
         if (ifd.hasPhotometric()) {
             content.add(leftLabel("Current value:"));
-            JLabel previousPhotometricLabel = new JLabel("<html><b>" + photometricItem + "</b></html>");
-            content.add(previousPhotometricLabel);
+            content.add(leftIndent(new JLabel("<html><b>" + existingPhotometricItem + "</b></html>"), 25));
         } else {
             content.add(leftLabel("Nothing (does not exist)"));
         }
@@ -302,22 +301,23 @@ public class TiffExplorer {
 
         content.add(leftLabel("New value to write:"));
         final JComboBox<PhotometricItem> photometricComboBox = new JComboBox<>();
+        photometricComboBox.setMaximumRowCount(50);
         photometricComboBox.addItem(new PhotometricItem(null, null));
         for (TagPhotometric tag : TagPhotometric.values()) {
             photometricComboBox.addItem(new PhotometricItem(tag.code(), tag));
         }
         if (unknownPhotometric) {
-            photometricComboBox.addItem(photometricItem);
+            photometricComboBox.addItem(existingPhotometricItem);
         }
-        photometricComboBox.setSelectedItem(photometricItem);
+        photometricComboBox.setSelectedItem(existingPhotometricItem);
         photometricComboBox.addActionListener(e -> {
-                    PhotometricItem selectedItem = (PhotometricItem) photometricComboBox.getSelectedItem();
-                    okButton.setEnabled(selectedItem != null && !selectedItem.equalPhotometric(photometricItem));
+                    final PhotometricItem selected = (PhotometricItem) photometricComboBox.getSelectedItem();
+                    okButton.setEnabled(selected != null && !selected.equalPhotometric(existingPhotometricItem));
                 }
         );
         photometricComboBox.setMaximumSize(photometricComboBox.getPreferredSize());
         photometricComboBox.setAlignmentX(Component.LEFT_ALIGNMENT);
-        content.add(photometricComboBox);
+        content.add(leftIndent(photometricComboBox, 20));
         content.add(Box.createVerticalStrut(15));
 
         content.add(leftLabel(smartHtmlLines("""
@@ -335,7 +335,7 @@ public class TiffExplorer {
                 return;
             }
             try {
-                replacePhotometric(index, selectedItem.code);
+                replacePhotometric(index, ifd, selectedItem.code);
             } catch (Exception e) {
                 showErrorMessage(frame, e, "Error updating IFD");
             }
@@ -373,11 +373,9 @@ public class TiffExplorer {
         final List<Integer> tagsToPossiblyRemove = tagsToPossiblyRemove(ifd);
 
         final boolean hasTags = !tagsToPossiblyRemove.isEmpty();
-        final JLabel tagListLabel = new JLabel(!hasTags ?
+        content.add(leftLabel(!hasTags ?
                 "No tags can be safely removed" :
-                "The following tags may be removed");
-        tagListLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        content.add(tagListLabel);
+                "The following tags may be removed"));
         final JPanel buttonPanel;
         if (hasTags) {
             content.add(Box.createVerticalStrut(10));
@@ -486,7 +484,7 @@ public class TiffExplorer {
         final String tagList = tags.stream()
                 .map(tag -> " \u2022 " + Tags.prettyName(tag, true))
                 .collect(Collectors.joining("\n"));
-        int choice = JOptionPane.showConfirmDialog(
+        final int choice = JOptionPane.showConfirmDialog(
                 frame,
                 "You are about to permanently delete the following tags from the IFD:\n\n" +
                         tagList +
@@ -511,7 +509,32 @@ public class TiffExplorer {
         return true;
     }
 
-    private void replacePhotometric(int index, Integer photometricCode) throws IOException {
+    private void replacePhotometric(int index, TiffIFD existingIFD, Integer photometricCode) throws IOException {
+        final boolean addYCbCrSubSampling;
+        if (photometricCode != null
+                && photometricCode == TiffIFD.PHOTOMETRIC_INTERPRETATION_Y_CB_CR
+                && !existingIFD.hasYCbCrSubsampling()) {
+            final int choice = JOptionPane.showConfirmDialog(
+                    frame,
+                    """
+                            You are changing the PhotometricInterpretation to YCbCr.
+                            But the current IFD does not contain YCbCrSubSampling tag.
+                            Default sub-sampling is 2x2, which can be incompatible with the existing image.
+                            
+                            Would you like to add the YCbCrSubSampling tag 1x1 (no sub-sampling)
+                            to provide data structure compatibility?
+                            """,
+                    "Confirm Adding YCbCrSubSampling",
+                    JOptionPane.YES_NO_CANCEL_OPTION,
+                    JOptionPane.QUESTION_MESSAGE
+            );
+            if (choice == JOptionPane.CANCEL_OPTION) {
+                return;
+            }
+            addYCbCrSubSampling = choice == JOptionPane.YES_OPTION;
+        } else {
+            addYCbCrSubSampling = false;
+        }
         try (TiffWriter writer = new TiffWriter(tiffFile, TiffCreateMode.OPEN_EXISTING)) {
             writer.updateIFD(index, ifd -> {
                 final Integer existing = ifd.hasPhotometric() ? ifd.optPhotometricCode(-1) : null;
@@ -519,7 +542,10 @@ public class TiffExplorer {
                     return TiffWriter.IFDUpdateResult.UNCHANGED;
                 }
                 ifd.putPhotometricCode(photometricCode);
-                return TiffWriter.IFDUpdateResult.ofExpanded(existing == null);
+                if (addYCbCrSubSampling) {
+                    ifd.putYCbCrSubsampling(1, 1);
+                }
+                return TiffWriter.IFDUpdateResult.ofExpanded(existing == null || addYCbCrSubSampling);
                 // - we don't need to relocate IFD: its size was unchanged
             });
         }
@@ -581,6 +607,14 @@ public class TiffExplorer {
         JLabel label = new JLabel(text);
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
         return label;
+    }
+
+    private static JComponent leftIndent(JComponent component, int gap) {
+        Box box = Box.createHorizontalBox();
+        box.add(Box.createHorizontalStrut(gap));
+        box.add(component);
+        box.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return box;
     }
 
     // code=null: no photometric tag

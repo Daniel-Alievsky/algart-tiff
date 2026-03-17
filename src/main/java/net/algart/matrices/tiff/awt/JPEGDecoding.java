@@ -49,6 +49,8 @@ public class JPEGDecoding {
     // to be located in memory. For comparison, other codecs like DeflateCodec always work in memory.
     private static final boolean IGNORE_EXCEPTION_WHILE_ATTEMPT_TO_READ_METADATA = true;
     // - Must be true for correct processing some TIFF.
+    private static final boolean CORRECT_Y_CB_CR_WITH_SUB_SAMPLING_1X1_ONLY = false;
+    // - Should be false; true value is more compatible with SCIFIO TiffParser
 
     public record ImageInformation(BufferedImage bufferedImage, IIOMetadata metadata) {
     }
@@ -129,10 +131,11 @@ public class JPEGDecoding {
         Objects.requireNonNull(declaredSubsampling, "Null declared subsampling");
         // - Note: declaredColorSpace=null is allowed, but very improbable
         final String colorSpace = tryToFindColorSpace(imageInformation.metadata);
+        final boolean suitableSubSampling = !CORRECT_Y_CB_CR_WITH_SUB_SAMPLING_1X1_ONLY ||
+                (declaredSubsampling.length >= 2 && declaredSubsampling[0] == 1 && declaredSubsampling[1] == 1);
         return "RGB".equalsIgnoreCase(colorSpace)
                 && declaredColorSpace == TagPhotometric.Y_CB_CR
-                && declaredSubsampling.length >= 2
-                && declaredSubsampling[0] == 1 && declaredSubsampling[1] == 1
+                && suitableSubSampling
                 && imageInformation.bufferedImage.getRaster().getNumBands() == 3;
         // Rare case: YCbCr is encoded with non-standard subsampling (more exactly, without subsampling),
         // and the JPEG is incorrectly detected as RGB; so, there is no sense to optimize this.
