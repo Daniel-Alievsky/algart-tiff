@@ -914,14 +914,23 @@ public final class AWTImages {
      * have width * height * 2 bytes.
      */
     public static byte[][] getPixelBytes(BufferedImage img, boolean little, int x, int y, int w, int h) {
-        final Object pixels = getPixels(img, x, y, w, h);
+        final Raster raster = img.getRaster();
         final int imageType = img.getType();
-        byte[][] pixelBytes = null;
+        return getPixelBytes(raster, imageType, little, x, y, w, h);
+    }
 
-       final ByteOrder byteOrder = little ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
+    public static byte[][] getPixelBytes(Raster raster, int imageType, boolean little, int x, int y, int w, int h) {
+        final Object pixels = getPixels(raster, x, y, w, h);
+        return pixelsToBytes(pixels, imageType, little);
+    }
+
+    public static byte[][] pixelsToBytes(Object pixels, int imageType, boolean little) {
         if (pixels instanceof byte[][]) {
-            pixelBytes = (byte[][]) pixels;
-        } else if (pixels instanceof short[][] s) {
+            return  (byte[][]) pixels;
+        }
+        byte[][] pixelBytes = null;
+        final ByteOrder byteOrder = little ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
+        if (pixels instanceof short[][] s) {
             pixelBytes = new byte[s.length][s[0].length * 2];
             for (int i = 0; i < pixelBytes.length; i++) {
                 for (int j = 0; j < s[0].length; j++) {
@@ -967,7 +976,6 @@ public final class AWTImages {
                 }
             }
         }
-
         return pixelBytes;
     }
 

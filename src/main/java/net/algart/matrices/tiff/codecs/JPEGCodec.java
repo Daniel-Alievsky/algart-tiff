@@ -190,7 +190,8 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         long t2 = timing ? System.nanoTime() : 0;
         timeMain += t2 - t1;
 
-        final byte[][] data = AWTImages.getPixelBytes(bi, options.littleEndian);
+        final byte[][] data = AWTImages.getPixelBytes(
+                bi, options.littleEndian, 0, 0, bi.getWidth(), bi.getHeight());
         long t3 = timing ? System.nanoTime() : 0;
 
         if (completeDecoding) {
