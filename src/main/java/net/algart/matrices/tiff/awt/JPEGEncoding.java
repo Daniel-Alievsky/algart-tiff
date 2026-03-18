@@ -46,13 +46,13 @@ public class JPEGEncoding {
     public static void writeJPEG(
             BufferedImage image,
             OutputStream out,
-            TagPhotometric colorSpace,
+            TagPhotometric declaredColorSpace,
             double quality) throws IOException {
         Objects.requireNonNull(image, "Null image");
         Objects.requireNonNull(out, "Null output stream");
-        // - note: colorSpace can be also BLACK_IS_ZERO, for example, for 1-channel JPEG;
+        // - note: declaredColorSpace can be also BLACK_IS_ZERO, for example, for 1-channel JPEG;
         // null is also allowed, but very improbable
-        final boolean enforceRGB = colorSpace == TagPhotometric.RGB;
+        final boolean enforceRGB = declaredColorSpace == TagPhotometric.RGB;
 
         final ImageOutputStream ios = JPEGDecoding.USE_MEMORY_CACHE ?
                 new MemoryCacheImageOutputStream(out) :

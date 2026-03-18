@@ -49,10 +49,22 @@ public class JPEGDecoding {
     // to be located in memory. For comparison, other codecs like DeflateCodec always work in memory.
     private static final boolean IGNORE_EXCEPTION_WHILE_ATTEMPT_TO_READ_METADATA = true;
     // - Must be true for correct processing some TIFF.
+    private static final boolean PROCESSING_COLOR_SPACE_MISMATCH = true;
+    // - Should be true
+    private static final boolean TRY_TO_FIND_BUILTIN_AWT_IMAGE_READER = true;
+    // - Should be true.
+    // The false value switches to a maximally typical behavior, used, in particular, in ImageIO.read/write.
+    // But it can be not the desirable behavior when we have some third-party libraries
+    // like TwelveMonkeys ImageIO, which are registered as the first plugin INSTEAD of built-in
+    // Java AWT plugin.
+    // For example, TwelveMonkeys ImageReader does not guarantee the identical behavior:
+    // OpenSlide images like "CMU-1.svs" will be decoded incorrectly.
+    // When this flag is true, we will try to find and use the original AWT plugin, which works correctly.
+
     private static final boolean CORRECT_Y_CB_CR_WITH_SUB_SAMPLING_1X1_ONLY = false;
     // - Should be false; true value is more compatible with SCIFIO TiffParser
 
-    public record ImageInformation(BufferedImage bufferedImage, IIOMetadata metadata) {
+    public record ImageInformation(BufferedImage bufferedImage, IIOMetadata metadata, String colorSpace) {
     }
 
     private JPEGDecoding() {
@@ -62,7 +74,7 @@ public class JPEGDecoding {
      * Analog of <code>ImageIO.read</code>. Actually can read any formats, not only JPEG.
      * Also reads metadata (but not thumbnails).
      */
-    public static ImageInformation readJPEG(InputStream in) throws IOException {
+    public static ImageInformation readJPEG(InputStream in, TagPhotometric declaredColorSpace) throws IOException {
         final ImageInputStream stream = USE_MEMORY_CACHE ?
                 new MemoryCacheImageInputStream(in) :
                 ImageIO.createImageInputStream(in);
@@ -91,8 +103,9 @@ public class JPEGDecoding {
                 // LOG.log(System.Logger.Level.DEBUG, "Cannot read metadata: " + e);
                 // - usually logging is also unnecessary, but you may uncomment it for debugging.
             }
+            final String colorSpace = tryToFindColorSpace(imageMetadata);
             final BufferedImage image = reader.read(0, param);
-            return new ImageInformation(image, imageMetadata);
+            return new ImageInformation(image, imageMetadata, colorSpace);
         } finally {
             reader.dispose();
         }
@@ -129,17 +142,20 @@ public class JPEGDecoding {
             int[] declaredSubsampling) {
         Objects.requireNonNull(imageInformation, "Null image information");
         Objects.requireNonNull(declaredSubsampling, "Null declared subsampling");
+        if (!PROCESSING_COLOR_SPACE_MISMATCH) {
+            return false;
+        }
         // - Note: declaredColorSpace=null is allowed, but very improbable
-        final String colorSpace = tryToFindColorSpace(imageInformation.metadata);
         final boolean suitableSubSampling = !CORRECT_Y_CB_CR_WITH_SUB_SAMPLING_1X1_ONLY ||
                 (declaredSubsampling.length >= 2 && declaredSubsampling[0] == 1 && declaredSubsampling[1] == 1);
-        return "RGB".equalsIgnoreCase(colorSpace)
+        return "RGB".equalsIgnoreCase(imageInformation.colorSpace)
                 && declaredColorSpace == TagPhotometric.Y_CB_CR
                 && suitableSubSampling
                 && imageInformation.bufferedImage.getRaster().getNumBands() == 3;
         // Rare case: YCbCr is encoded with non-standard subsampling (more exactly, without subsampling),
         // and the JPEG is incorrectly detected as RGB; so, there is no sense to optimize this.
     }
+
 
     // Note: this method may be tested with the image jpeg_ycbcr_encoded_as_rgb.tiff from the demo resources
     // declaredColorSpace and declaredSubsampling are not used by the current implementation
@@ -151,14 +167,7 @@ public class JPEGDecoding {
             throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(imageInformation, "Null image information");
-        final long bandLength = (long) imageInformation.bufferedImage.getWidth()
-                * (long) imageInformation.bufferedImage.getHeight();
-        if (data[0].length != bandLength) {
-            // - should not occur
-            throw new TiffException("Cannot correct unpacked JPEG: number of bytes per sample in JPEG " +
-                    "must be 1, but actually we have " +
-                    (double) data[0].length / (double) bandLength + " bytes/sample");
-        }
+        checkBands(data, imageInformation);
         for (int i = 0; i < data[0].length; i++) {
             int y = data[0][i] & 0xFF;
             int cb = data[1][i] & 0xFF;
@@ -176,6 +185,53 @@ public class JPEGDecoding {
             data[2][i] = (byte) toUnsignedByte(blue);
         }
     }
+
+    private static void checkBands(byte[][] data, ImageInformation imageInformation) throws TiffException {
+        final long bandLength = (long) imageInformation.bufferedImage.getWidth()
+                * (long) imageInformation.bufferedImage.getHeight();
+        if (data.length < 3) {
+            // - should not occur
+            throw new TiffException("Cannot correct unpacked JPEG: number bands must be 3, " +
+                    "but actually we have " + data.length + " bands");
+        }
+        for (int i = 0; i < 3; i++) {
+            if (data[i].length != bandLength) {
+                // - should not occur
+                throw new TiffException("Cannot correct unpacked JPEG: number of bytes per sample in JPEG " +
+                        "must be 1, but actually we have " +
+                        (double) data[i].length / (double) bandLength + " bytes/sample in the band " + i);
+            }
+        }
+    }
+
+    // The following code (conversion RGB -> YCbCr) is a bad idea: if ImageReader already decoded
+    // YCbCr into RGB BY A MISTAKE, the information was lost!
+    // We cannot restore original bytes due to clamping by 0..255 range.
+    /*
+    public static void completeDecodingRGB(
+            byte[][] data,
+            ImageInformation imageInformation,
+            TagPhotometric declaredColorSpace)
+            throws TiffException {
+        Objects.requireNonNull(data, "Null data");
+        Objects.requireNonNull(imageInformation, "Null image information");
+        checkBands(data, imageInformation);
+        for (int i = 0; i < data[0].length; i++) {
+            int r = data[0][i] & 0xFF;
+            int g = data[1][i] & 0xFF;
+            int b = data[2][i] & 0xFF;
+
+            double rAsFakeY  = 0.299 * r + 0.587 * g + 0.114 * b;
+            double gAsFakeCb = -0.168736 * r - 0.331264 * g + 0.5 * b + 128.0;
+            double bAsFakeCr = 0.5 * r - 0.418688 * g - 0.081312 * b + 128.0;
+
+            data[0][i] = (byte) toUnsignedByte(rAsFakeY);
+            data[1][i] = (byte) toUnsignedByte(gAsFakeCb);
+            data[2][i] = (byte) toUnsignedByte(bAsFakeCr);
+        }
+    }
+    */
+
 
     /*
     private static void decodeYCbCrLegacy(byte[][] buf, long bandLength) {
@@ -214,11 +270,6 @@ public class JPEGDecoding {
         T first = iterator.next();
         if (isProbableAWTClass(first)) {
             return first;
-            // - This is maximally typical behavior, in particularly, used in ImageIO.read/write.
-            // But it can be not the desirable behavior, when we have some additional plugins
-            // like TwelveMonkeys ImageIO, which are registered as the first plugin INSTEAD of built-in
-            // Java AWT plugin, because, for example, TwelveMonkeys does not guarantee the identical behavior;
-            // in this case, we should try to find the original AWT plugin.
         }
         //noinspection WhileCanBeDoWhile
         while (iterator.hasNext()) {
@@ -235,6 +286,9 @@ public class JPEGDecoding {
     }
 
     private static boolean isProbableAWTClass(Object o) {
+        if (!TRY_TO_FIND_BUILTIN_AWT_IMAGE_READER) {
+            return true;
+        }
         return o != null && o.getClass().getName().startsWith("com.sun.");
     }
 }

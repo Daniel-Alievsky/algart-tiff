@@ -672,7 +672,7 @@ public final class AWTImages {
      * double[][], depending on the image's transfer type.
      */
     public static Object getPixels(BufferedImage image, int x, int y, int w, int h) {
-        final WritableRaster raster = image.getRaster();
+        final Raster raster = image.getRaster();
         return getPixels(raster, x, y, w, h);
     }
 
@@ -681,7 +681,7 @@ public final class AWTImages {
      * returned type will be either byte[][], short[][], int[][], float[][] or
      * double[][], depending on the raster's transfer type.
      */
-    public static Object getPixels(WritableRaster raster) {
+    public static Object getPixels(Raster raster) {
         return getPixels(raster, 0, 0, raster.getWidth(), raster.getHeight());
     }
 
@@ -690,7 +690,7 @@ public final class AWTImages {
      * returned type will be either byte[][], short[][], int[][], float[][] or
      * double[][], depending on the raster's transfer type.
      */
-    public static Object getPixels(WritableRaster raster, int x, int y, int w, int h) {
+    public static Object getPixels(Raster raster, int x, int y, int w, int h) {
         final int tt = raster.getTransferType();
         if (tt == DataBuffer.TYPE_BYTE) {
             return getBytes(raster, x, y, w, h);
@@ -711,21 +711,21 @@ public final class AWTImages {
      * Extracts pixel data as arrays of unsigned bytes, one per channel.
      */
     public static byte[][] getBytes(BufferedImage image) {
-        final WritableRaster r = image.getRaster();
+        final Raster r = image.getRaster();
         return getBytes(r);
     }
 
     /**
      * Extracts pixel data as arrays of unsigned bytes, one per channel.
      */
-    public static byte[][] getBytes(WritableRaster r) {
+    public static byte[][] getBytes(Raster r) {
         return getBytes(r, 0, 0, r.getWidth(), r.getHeight());
     }
 
     /**
      * Extracts pixel data as arrays of unsigned bytes, one per channel.
      */
-    public static byte[][] getBytes(WritableRaster r, int x, int y, int w, int h) {
+    public static byte[][] getBytes(Raster r, int x, int y, int w, int h) {
         final boolean wholeImage = x == 0 && y == 0 && w == r.getWidth() && h == r.getHeight();
         if (wholeImage && canDirectlyUseBankData(r, DataBuffer.TYPE_BYTE, DataBufferByte.class)) {
             return ((DataBufferByte) r.getDataBuffer()).getBankData();
@@ -757,21 +757,21 @@ public final class AWTImages {
      * Extracts pixel data as arrays of unsigned shorts, one per channel.
      */
     public static short[][] getShorts(BufferedImage image) {
-        final WritableRaster r = image.getRaster();
+        final Raster r = image.getRaster();
         return getShorts(r);
     }
 
     /**
      * Extracts pixel data as arrays of unsigned shorts, one per channel.
      */
-    public static short[][] getShorts(WritableRaster r) {
+    public static short[][] getShorts(Raster r) {
         return getShorts(r, 0, 0, r.getWidth(), r.getHeight());
     }
 
     /**
      * Extracts pixel data as arrays of unsigned shorts, one per channel.
      */
-    public static short[][] getShorts(WritableRaster r, int x, int y, int w, int h) {
+    public static short[][] getShorts(Raster r, int x, int y, int w, int h) {
         final boolean wholeImage = x == 0 && y == 0 && w == r.getWidth() && h == r.getHeight();
         if (wholeImage && canDirectlyUseBankData(r, DataBuffer.TYPE_USHORT, DataBufferUShort.class)) {
             return ((DataBufferUShort) r.getDataBuffer()).getBankData();
@@ -792,21 +792,21 @@ public final class AWTImages {
      * Extracts pixel data as arrays of signed integers, one per channel.
      */
     public static int[][] getInts(BufferedImage image) {
-        final WritableRaster r = image.getRaster();
+        final Raster r = image.getRaster();
         return getInts(r);
     }
 
     /**
      * Extracts pixel data as arrays of signed integers, one per channel.
      */
-    public static int[][] getInts(WritableRaster r) {
+    public static int[][] getInts(Raster r) {
         return getInts(r, 0, 0, r.getWidth(), r.getHeight());
     }
 
     /**
      * Extracts pixel data as arrays of signed integers, one per channel.
      */
-    public static int[][] getInts(WritableRaster r, int x, int y, int w, int h) {
+    public static int[][] getInts(Raster r, int x, int y, int w, int h) {
         final boolean wholeImage = x == 0 && y == 0 && w == r.getWidth() && h == r.getHeight();
         if (wholeImage && canDirectlyUseBankData(r, DataBuffer.TYPE_INT, DataBufferInt.class)) {
             return ((DataBufferInt) r.getDataBuffer()).getBankData();
@@ -824,21 +824,21 @@ public final class AWTImages {
      * Extracts pixel data as arrays of floats, one per channel.
      */
     public static float[][] getFloats(BufferedImage image) {
-        final WritableRaster r = image.getRaster();
+        final Raster r = image.getRaster();
         return getFloats(r);
     }
 
     /**
      * Extracts pixel data as arrays of floats, one per channel.
      */
-    public static float[][] getFloats(WritableRaster r) {
+    public static float[][] getFloats(Raster r) {
         return getFloats(r, 0, 0, r.getWidth(), r.getHeight());
     }
 
     /**
      * Extracts pixel data as arrays of floats, one per channel.
      */
-    public static float[][] getFloats(WritableRaster r, int x, int y, int w, int h) {
+    public static float[][] getFloats(Raster r, int x, int y, int w, int h) {
         final boolean wholeImage = x == 0 && y == 0 && w == r.getWidth() && h == r.getHeight();
         if (wholeImage && canDirectlyUseBankData(r, DataBuffer.TYPE_FLOAT, DataBufferFloat.class)) {
             return ((DataBufferFloat) r.getDataBuffer()).getBankData();
@@ -856,21 +856,21 @@ public final class AWTImages {
      * Extracts pixel data as arrays of doubles, one per channel.
      */
     public static double[][] getDoubles(BufferedImage image) {
-        final WritableRaster r = image.getRaster();
+        final Raster r = image.getRaster();
         return getDoubles(r);
     }
 
     /**
      * Extracts pixel data as arrays of doubles, one per channel.
      */
-    public static double[][] getDoubles(WritableRaster r) {
+    public static double[][] getDoubles(Raster r) {
         return getDoubles(r, 0, 0, r.getWidth(), r.getHeight());
     }
 
     /**
      * Extracts pixel data as arrays of doubles, one per channel.
      */
-    public static double[][] getDoubles(WritableRaster r, int x, int y, int w, int h) {
+    public static double[][] getDoubles(Raster r, int x, int y, int w, int h) {
         final boolean wholeImage = x == 0 && y == 0 && w == r.getWidth() && h == r.getHeight();
         if (wholeImage && canDirectlyUseBankData(r, DataBuffer.TYPE_DOUBLE, DataBufferDouble.class)) {
             return ((DataBufferDouble) r.getDataBuffer()).getBankData();
@@ -902,7 +902,7 @@ public final class AWTImages {
      * given an image with 16-bit data, each channel of the resulting array will
      * have width * height * 2 bytes.
      */
-    public static byte[][] getPixelBytes(WritableRaster r, boolean little) {
+    public static byte[][] getPixelBytes(Raster r, boolean little) {
         return getPixelBytes(r, little, 0, 0, r.getWidth(), r.getHeight());
     }
 
@@ -978,7 +978,7 @@ public final class AWTImages {
      * given an image with 16-bit data, each channel of the resulting array will
      * have width * height * 2 bytes.
      */
-    public static byte[][] getPixelBytes(WritableRaster r, boolean little, int x, int y, int w, int h) {
+    public static byte[][] getPixelBytes(Raster r, boolean little, int x, int y, int w, int h) {
         final Object pixels = getPixels(r);
         byte[][] pixelBytes = null;
         int bpp = 0;
@@ -1068,7 +1068,7 @@ public final class AWTImages {
      * copy or conversion operations.
      */
     private static boolean canDirectlyUseBankData(
-            WritableRaster r,
+            Raster r,
             int transferType,
             Class<? extends DataBuffer> dataBufferClass) {
         final int tt = r.getTransferType();
@@ -1110,7 +1110,7 @@ public final class AWTImages {
         return true;
     }
 
-    private static int[] tryDirectlyUseBankDataForRGB(WritableRaster raster) {
+    private static int[] tryDirectlyUseBankDataForRGB(Raster raster) {
         if (raster.getTransferType() != DataBuffer.TYPE_BYTE) {
             return null;
         }

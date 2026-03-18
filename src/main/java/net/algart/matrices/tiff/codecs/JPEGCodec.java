@@ -134,12 +134,12 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         // loaded from CodecOptions class, but in does not make sense in TIFF
 
         long t2 = timing ? System.nanoTime() : 0;
-        final TagPhotometric colorSpace = options.getPhotometric();
+        final TagPhotometric declaredColorSpace = options.getPhotometric();
         final double jpegQuality = Math.min(options.compressionQuality(), 1.0);
         // - for JPEG, the maximal possible quality is 1.0, but it is better to allow greater qualities
         // (for comparison, the maximal quality in JPEG-2000 is Double.MAX_VALUE)
         try {
-            JPEGEncoding.writeJPEG(image, output, colorSpace, jpegQuality);
+            JPEGEncoding.writeJPEG(image, output, declaredColorSpace, jpegQuality);
         } catch (final IOException e) {
             throw new TiffException("Cannot compress JPEG data", e);
         }
@@ -153,11 +153,14 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
     @Override
     public byte[] decompress(DataHandle<?> in, Options options) throws IOException {
         Objects.requireNonNull(in, "Null input handle");
+        if (options == null) {
+            options = new JPEGOptions();
+        }
         final long offset = in.offset();
         long t1 = timing ? System.nanoTime() : 0;
         JPEGDecoding.ImageInformation info;
         try (InputStream input = new BufferedInputStream(new DataHandleInputStream<>(in), 8192)) {
-            info = JPEGDecoding.readJPEG(input);
+            info = JPEGDecoding.readJPEG(input, options.getPhotometric());
         } catch (IOException jpegException) {
             // probably a lossless JPEG; delegate to LosslessJPEGCodec
             in.seek(offset);
@@ -174,9 +177,6 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
             // - for example, OLD_JPEG
         }
 
-        if (options == null) {
-            options = new JPEGOptions();
-        }
         boolean completeDecoding = false;
         TagPhotometric declaredColorSpace = null;
         int[] declaredSubsampling = null;
