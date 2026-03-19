@@ -26,7 +26,6 @@ package net.algart.matrices.tiff.codecs;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.tags.TagCompression;
 
 import java.io.*;
 import java.util.Objects;
@@ -39,7 +38,7 @@ public class CCITTFaxCodec implements TiffCodec {
         final TiffIFD ifd = options.getIfd();
         Objects.requireNonNull(ifd, "IFD is not set in the options");
         if (options.numberOfChannels != 1 || options.bitsPerSample != 1) {
-            throw new TiffException("CCITT compression (" + options.getCompression() + ") for " +
+            throw new TiffException("CCITT compression (" + options.compression + ") for " +
                     options.numberOfChannels + " channels and " + options.bitsPerSample +
                     "-bit samples is not allowed (CCITT compressions support 1 sample/pixel, 1 bit/sample only)");
         }

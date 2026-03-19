@@ -38,6 +38,7 @@ import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.MemoryCacheImageInputStream;
 import java.awt.image.BufferedImage;
+import java.awt.image.Raster;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Iterator;
@@ -50,8 +51,10 @@ public class JPEGDecoding {
     // to be located in memory. For comparison, other codecs like DeflateCodec always work in memory.
     private static final boolean IGNORE_EXCEPTION_WHILE_ATTEMPT_TO_READ_METADATA = true;
     // - Must be true for correct processing some TIFF.
-    private static final boolean PROCESS_COLOR_SPACE_MISMATCH = true;
-    // - Should be true
+    private static final boolean DIRECT_READING_Y_CB_CR_RASTER_NECESSARY = true;
+    // - Should be true for better processing mismatched color spaces (YCbCr in JPEG stream, RGB in TIFF IFD).
+    private static final boolean COMPLETE_DECODING_Y_CB_CR_NECESSARY = true;
+    // - Should be true for better processing mismatched color spaces (RGB in JPEG stream, YCbCr in TIFF IFD).
     private static final boolean DISABLE_THIRD_PARTY_IMAGE_READER = Arrays.SystemSettings.getBooleanProperty(
             "net.algart.matrices.tiff.jpeg.disableThirdPartyImageReader", true);
     // - Should be true.
@@ -66,7 +69,12 @@ public class JPEGDecoding {
     private static final boolean CORRECT_Y_CB_CR_WITH_SUB_SAMPLING_1X1_ONLY = false;
     // - Should be false; true value is more compatible with SCIFIO TiffParser
 
-    public record ImageInformation(BufferedImage bufferedImage, IIOMetadata metadata, String colorSpace) {
+    public record ImageInformation(
+            IIOMetadata metadata,
+            byte[][] pixelBytes,
+            BufferedImage bufferedImage,
+            String colorSpaceName,
+            boolean basedOnBufferedImage) {
     }
 
     private JPEGDecoding() {
@@ -76,7 +84,11 @@ public class JPEGDecoding {
      * Analog of <code>ImageIO.read</code>. Actually can read any formats, not only JPEG.
      * Also reads metadata (but not thumbnails).
      */
-    public static ImageInformation readJPEG(InputStream in, TagPhotometric declaredColorSpace) throws IOException {
+    public static ImageInformation readJPEG(
+            InputStream in,
+            TagPhotometric declaredColorSpace,
+            int numberOfChannels,
+            boolean littleEndian) throws IOException {
         final ImageInputStream stream = USE_MEMORY_CACHE ?
                 new MemoryCacheImageInputStream(in) :
                 ImageIO.createImageInputStream(in);
@@ -87,30 +99,45 @@ public class JPEGDecoding {
         final ImageReadParam param = reader.getDefaultReadParam();
         reader.setInput(stream, true, true);
         try {
-            IIOMetadata imageMetadata = null;
-            try {
-                imageMetadata = reader.getImageMetadata(0);
-                // - these metadata are necessary to correctly decompress images like
-                // jpeg_ycbcr_encoded_as_rgb.tiff from the demo resources
-            } catch (IOException e) {
-                if (!IGNORE_EXCEPTION_WHILE_ATTEMPT_TO_READ_METADATA) {
-                    throw e;
-                }
-                // Sometimes TIFF files contain JPEG data with an invalid marker sequence.
-                // In such cases ImageReader.getImageMetadata() may throw an exception like
-                // "JFIF APP0 must be first marker after SOI".
-                // In this case, we ignore this exception and still try to read image:
-                // probably the read() method (based on the native JPEG decoder) will work normally.
-
-                // LOG.log(System.Logger.Level.DEBUG, "Cannot read metadata: " + e);
-                // - usually logging is also unnecessary, but you may uncomment it for debugging.
+            final IIOMetadata metadata = retrieveMetadata(reader);
+            final String colorSpace = tryToFindColorSpace(metadata);
+            BufferedImage image = null;
+            byte[][] pixelBytes = null;
+            if (isDirectReadingYCbCrRasterNecessary(colorSpace, declaredColorSpace, numberOfChannels)) {
+                final Raster raster = reader.readRaster(0, param);
+                final Object pixels = AWTImages.getPixels(raster);
+                pixelBytes = AWTImages.tryDirectPixelToBytes(pixels);
             }
-            final String colorSpace = tryToFindColorSpace(imageMetadata);
-            final BufferedImage image = reader.read(0, param);
-            return new ImageInformation(image, imageMetadata, colorSpace);
+            if (pixelBytes == null) {
+                image = reader.read(0, param);
+                pixelBytes = AWTImages.getPixelBytes(image, littleEndian);
+            }
+            return new ImageInformation(metadata, pixelBytes, image, colorSpace, image != null);
         } finally {
             reader.dispose();
         }
+    }
+
+    private static IIOMetadata retrieveMetadata(ImageReader reader) throws IOException {
+        IIOMetadata imageMetadata = null;
+        try {
+            imageMetadata = reader.getImageMetadata(0);
+            // - these metadata are necessary to correctly decompress images like
+            // jpeg_ycbcr_encoded_as_rgb.tiff from the demo resources
+        } catch (IOException e) {
+            if (!IGNORE_EXCEPTION_WHILE_ATTEMPT_TO_READ_METADATA) {
+                throw e;
+            }
+            // Sometimes TIFF files contain JPEG data with an invalid marker sequence.
+            // In such cases ImageReader.getImageMetadata() may throw an exception like
+            // "JFIF APP0 must be first marker after SOI".
+            // In this case, we ignore this exception and still try to read image:
+            // probably the read() method (based on the native JPEG decoder) will work normally.
+
+            // LOG.log(System.Logger.Level.DEBUG, "Cannot read metadata: " + e);
+            // - usually logging is also unnecessary, but you may uncomment it for debugging.
+        }
+        return imageMetadata;
     }
 
     public static String tryToFindColorSpace(IIOMetadata metadata) {
@@ -138,26 +165,39 @@ public class JPEGDecoding {
         return null;
     }
 
+    public static boolean isDirectReadingYCbCrRasterNecessary(
+            String actualColorSpace,
+            TagPhotometric declaredColorSpace,
+            int numberOfChannels) {
+        if (!DIRECT_READING_Y_CB_CR_RASTER_NECESSARY) {
+            return false;
+        }
+        // - Note: declaredColorSpace=null is allowed, but very improbable
+        return "YCbCr".equalsIgnoreCase(actualColorSpace)
+                && declaredColorSpace == TagPhotometric.RGB
+                && numberOfChannels == 3;
+        // Rare case: RGB is encoded directly in JPEG, but ImageReader incorrectly detected it as YCbCr
+    }
+
     public static boolean isCompleteDecodingYCbCrNecessary(
             ImageInformation imageInformation,
             TagPhotometric declaredColorSpace,
             int[] declaredSubsampling) {
         Objects.requireNonNull(imageInformation, "Null image information");
         Objects.requireNonNull(declaredSubsampling, "Null declared subsampling");
-        if (!PROCESS_COLOR_SPACE_MISMATCH) {
+        if (!COMPLETE_DECODING_Y_CB_CR_NECESSARY) {
             return false;
         }
         // - Note: declaredColorSpace=null is allowed, but very improbable
         final boolean suitableSubSampling = !CORRECT_Y_CB_CR_WITH_SUB_SAMPLING_1X1_ONLY ||
                 (declaredSubsampling.length >= 2 && declaredSubsampling[0] == 1 && declaredSubsampling[1] == 1);
-        return "RGB".equalsIgnoreCase(imageInformation.colorSpace)
+        return "RGB".equalsIgnoreCase(imageInformation.colorSpaceName)
                 && declaredColorSpace == TagPhotometric.Y_CB_CR
                 && suitableSubSampling
                 && imageInformation.bufferedImage.getRaster().getNumBands() == 3;
         // Rare case: YCbCr is encoded with non-standard subsampling (more exactly, without subsampling),
         // and the JPEG is incorrectly detected as RGB; so, there is no sense to optimize this.
     }
-
 
     // Note: this method may be tested with the image jpeg_ycbcr_encoded_as_rgb.tiff from the demo resources
     // declaredColorSpace and declaredSubsampling are not used by the current implementation

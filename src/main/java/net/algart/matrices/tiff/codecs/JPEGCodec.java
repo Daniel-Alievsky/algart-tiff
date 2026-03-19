@@ -54,15 +54,18 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
             // - but the quality should not be null!
         }
 
-        public JPEGOptions setPhotometric(TagPhotometric photometric) {
-            super.setPhotometric(photometric);
-            return this;
-        }
-
         public int[] getYCbCrSubsampling() {
             return yCbCrSubsampling.clone();
         }
 
+        /**
+         * Sets the YCbCr subsampling. This option is usually not needed, but it was used
+         * in an old version compatible with SCIFIO (see JPEGDecoding.CORRECT_Y_CB_CR_WITH_SUB_SAMPLING_1X1_ONLY).
+         *
+         * @param yCbCrSubsampling new subsampling.
+         * @return a reference to this object.
+         * @throws NullPointerException if the given array is null.
+         */
         public JPEGOptions setYCbCrSubsampling(int[] yCbCrSubsampling) {
             this.yCbCrSubsampling = Objects.requireNonNull(yCbCrSubsampling, "Null yCbCrSubsampling").clone();
             return this;
@@ -134,12 +137,11 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         // loaded from CodecOptions class, but in does not make sense in TIFF
 
         long t2 = timing ? System.nanoTime() : 0;
-        final TagPhotometric declaredColorSpace = options.getPhotometric();
         final double jpegQuality = Math.min(options.compressionQuality(), 1.0);
         // - for JPEG, the maximal possible quality is 1.0, but it is better to allow greater qualities
         // (for comparison, the maximal quality in JPEG-2000 is Double.MAX_VALUE)
         try {
-            JPEGEncoding.writeJPEG(image, output, declaredColorSpace, jpegQuality);
+            JPEGEncoding.writeJPEG(image, output, options.photometric, jpegQuality);
         } catch (final IOException e) {
             throw new TiffException("Cannot compress JPEG data", e);
         }
@@ -160,7 +162,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         long t1 = timing ? System.nanoTime() : 0;
         JPEGDecoding.ImageInformation info;
         try (InputStream input = new BufferedInputStream(new DataHandleInputStream<>(in), 8192)) {
-            info = JPEGDecoding.readJPEG(input, options.getPhotometric());
+            info = JPEGDecoding.readJPEG(input, options.photometric, options.numberOfChannels, options.littleEndian);
         } catch (IOException jpegException) {
             // probably a lossless JPEG; delegate to LosslessJPEGCodec
             in.seek(offset);
@@ -178,25 +180,22 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         }
 
         boolean completeDecoding = false;
-        TagPhotometric declaredColorSpace = null;
         int[] declaredSubsampling = null;
         if (options instanceof JPEGOptions extended) {
-            declaredColorSpace = extended.getPhotometric();
             declaredSubsampling = extended.getYCbCrSubsampling();
             completeDecoding = JPEGDecoding.isCompleteDecodingYCbCrNecessary(
-                    info, declaredColorSpace, declaredSubsampling);
+                    info, options.photometric, declaredSubsampling);
         }
-        BufferedImage bi = info.bufferedImage();
         long t2 = timing ? System.nanoTime() : 0;
         timeMain += t2 - t1;
 
-        final byte[][] data = AWTImages.getPixelBytes(
-                bi, options.littleEndian, 0, 0, bi.getWidth(), bi.getHeight());
-        long t3 = timing ? System.nanoTime() : 0;
+        final byte[][] data = info.pixelBytes();
 
         if (completeDecoding) {
-            JPEGDecoding.completeDecodingYCbCr(data, info, declaredColorSpace, declaredSubsampling);
+            //TODO!! check that BufferedImage is not null
+            JPEGDecoding.completeDecodingYCbCr(data, info, options.photometric, declaredSubsampling);
         }
+        long t3 = timing ? System.nanoTime() : 0;
         timeBridge += t3 - t2;
 
         final byte[] result;

@@ -63,8 +63,8 @@ public interface TiffCodec {
         boolean littleEndian = false;
         boolean interleaved = false;
         int maxSizeInBytes = 0;
-        private TagCompression compression = null;
-        private TagPhotometric photometric = null;
+        TagCompression compression = null;
+        TagPhotometric photometric = null;
         // - the codec may need this information for "high-level" formats
         // (when TagCompression.isLowLevelBitsProcessing returns false);
         // in the current version, JPEGCodec and JPEGOptions use it
