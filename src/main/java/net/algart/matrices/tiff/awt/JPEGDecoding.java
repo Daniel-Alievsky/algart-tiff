@@ -75,7 +75,6 @@ public class JPEGDecoding {
             IIOMetadata metadata,
             Raster raster,
             byte[][] pixelBytes,
-            BufferedImage bufferedImage,
             String colorSpaceName) {
 
         public ImageInformation {
@@ -108,7 +107,6 @@ public class JPEGDecoding {
             final IIOMetadata metadata = retrieveMetadata(reader);
             final String colorSpace = tryToFindColorSpace(metadata);
             Raster raster = null;
-            BufferedImage image = null;
             byte[][] pixelBytes = null;
             if (isDirectReadingYCbCrRasterNecessary(colorSpace, declaredColorSpace, numberOfChannels)) {
                 raster = reader.readRaster(0, param);
@@ -119,11 +117,11 @@ public class JPEGDecoding {
                                 colorSpace, (pixelBytes != null ? "" : " (but failed)")));
             }
             if (pixelBytes == null) {
-                image = reader.read(0, param);
+                final BufferedImage image = reader.read(0, param);
                 raster = image.getRaster();
                 pixelBytes = AWTImages.getImagePixelBytes(image, littleEndian);
             }
-            return new ImageInformation(metadata, raster, pixelBytes, image, colorSpace);
+            return new ImageInformation(metadata, raster, pixelBytes, colorSpace);
         } finally {
             reader.dispose();
         }
@@ -180,7 +178,7 @@ public class JPEGDecoding {
         return "RGB".equalsIgnoreCase(imageInformation.colorSpaceName)
                 && declaredColorSpace == TagPhotometric.Y_CB_CR
                 && suitableSubSampling
-                && imageInformation.bufferedImage.getRaster().getNumBands() == 3;
+                && imageInformation.raster.getNumBands() == 3;
         // Rare case: YCbCr is encoded with non-standard subsampling (more exactly, without subsampling),
         // and the JPEG is incorrectly detected as RGB; so, there is no sense to optimize this.
     }
