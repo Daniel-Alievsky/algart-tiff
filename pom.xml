@@ -56,18 +56,19 @@
             <artifactId>scijava-common</artifactId>
             <version>2.99.2</version>
         </dependency>
-        <!-- Note: the following dependencies MUST NOT affect to correct reading/writing JPEG -->
+        <!-- Note: the following TwelveMonkey dependencies MUST NOT affect the correct reading/writing JPEG -->
+        <!-- See JPEGDecoding.DISABLE_THIRD_PARTY_IMAGE_READER constant -->
         <!-- You may uncomment them for testing this fact! -->
-        <!--        <dependency>-->
-        <!--            <groupId>com.twelvemonkeys.imageio</groupId>-->
-        <!--            <artifactId>imageio-jpeg</artifactId>-->
-        <!--            <version>3.9.4</version>-->
-        <!--        </dependency>-->
-        <!--        <dependency>-->
-        <!--            <groupId>com.twelvemonkeys.imageio</groupId>-->
-        <!--            <artifactId>imageio-tiff</artifactId>-->
-        <!--            <version>3.9.4</version>-->
-        <!--        </dependency>-->
+<!--                <dependency>-->
+<!--                    <groupId>com.twelvemonkeys.imageio</groupId>-->
+<!--                    <artifactId>imageio-jpeg</artifactId>-->
+<!--                    <version>3.13.1</version>-->
+<!--                </dependency>-->
+<!--                <dependency>-->
+<!--                    <groupId>com.twelvemonkeys.imageio</groupId>-->
+<!--                    <artifactId>imageio-tiff</artifactId>-->
+<!--                    <version>3.13.1</version>-->
+<!--                </dependency>-->
     </dependencies>
 
     <build>

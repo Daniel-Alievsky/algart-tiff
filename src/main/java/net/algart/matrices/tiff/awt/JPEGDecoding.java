@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff.awt;
 
+import net.algart.arrays.Arrays;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.tags.TagPhotometric;
 import org.w3c.dom.NamedNodeMap;
@@ -49,9 +50,10 @@ public class JPEGDecoding {
     // to be located in memory. For comparison, other codecs like DeflateCodec always work in memory.
     private static final boolean IGNORE_EXCEPTION_WHILE_ATTEMPT_TO_READ_METADATA = true;
     // - Must be true for correct processing some TIFF.
-    private static final boolean PROCESSING_COLOR_SPACE_MISMATCH = true;
+    private static final boolean PROCESS_COLOR_SPACE_MISMATCH = true;
     // - Should be true
-    private static final boolean TRY_TO_FIND_BUILTIN_AWT_IMAGE_READER = true;
+    private static final boolean DISABLE_THIRD_PARTY_IMAGE_READER = Arrays.SystemSettings.getBooleanProperty(
+            "net.algart.matrices.tiff.jpeg.disableThirdPartyImageReader", true);
     // - Should be true.
     // The false value switches to a maximally typical behavior, used, in particular, in ImageIO.read/write.
     // But it can be not the desirable behavior when we have some third-party libraries
@@ -142,7 +144,7 @@ public class JPEGDecoding {
             int[] declaredSubsampling) {
         Objects.requireNonNull(imageInformation, "Null image information");
         Objects.requireNonNull(declaredSubsampling, "Null declared subsampling");
-        if (!PROCESSING_COLOR_SPACE_MISMATCH) {
+        if (!PROCESS_COLOR_SPACE_MISMATCH) {
             return false;
         }
         // - Note: declaredColorSpace=null is allowed, but very improbable
@@ -286,7 +288,7 @@ public class JPEGDecoding {
     }
 
     private static boolean isProbableAWTClass(Object o) {
-        if (!TRY_TO_FIND_BUILTIN_AWT_IMAGE_READER) {
+        if (!DISABLE_THIRD_PARTY_IMAGE_READER) {
             return true;
         }
         return o != null && o.getClass().getName().startsWith("com.sun.");
