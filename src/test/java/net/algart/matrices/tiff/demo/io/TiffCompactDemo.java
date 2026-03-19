@@ -62,7 +62,7 @@ public class TiffCompactDemo {
         // - uncomment if you want to change the way of creating temporary files
         copier.setDirectCopy(!repack);
         if (inMemory) {
-            copier.setMaxInMemoryTemporaryFileSize(DEFAULT_MAX_IN_MEMORY_TEMP_FILE_SIZE);
+            copier.setMaxInMemoryTempFileSize(DEFAULT_MAX_IN_MEMORY_TEMP_FILE_SIZE);
         }
         for (int test = 1; test <= numberOfTests; test++) {
             System.out.printf("Test %d/%d...%n", test, numberOfTests);

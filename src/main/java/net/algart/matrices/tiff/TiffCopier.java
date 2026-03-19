@@ -86,11 +86,15 @@ public final class TiffCopier {
         void update(ProgressInformation progressInformation);
     }
 
+    public static final int DEFAULT_MAX_IN_MEMORY_TEMP_FILE_SIZE = Math.max(0,
+            net.algart.arrays.Arrays.SystemSettings.getIntProperty(
+                    "net.algart.matrices.tiff.defaultMaxInMemoryTempFileSize", 32 * 1048576));
+
     private static final System.Logger LOG = System.getLogger(TiffCopier.class.getName());
     private static final boolean LOGGABLE_DEBUG = LOG.isLoggable(System.Logger.Level.DEBUG);
 
     private boolean directCopy = true;
-    private int maxInMemoryTemporaryFileSize = 0;
+    private int maxInMemoryTempFileSize = DEFAULT_MAX_IN_MEMORY_TEMP_FILE_SIZE;
     private TemporaryFileCreator temporaryFileCreator = TemporaryFileCreator.DEFAULT;
     private TiffIFDCorrector ifdCorrector = null;
     private TagCompression compression = null;
@@ -134,36 +138,37 @@ public final class TiffCopier {
         return this;
     }
 
-    public int getMaxInMemoryTemporaryFileSize() {
-        return maxInMemoryTemporaryFileSize;
+    public int getMaxInMemoryTempFileSize() {
+        return maxInMemoryTempFileSize;
     }
 
     /**
      * Sets the threshold used by {@link #compact(Path)} method.
-     * If the source TIFF file size is not longer than this limit, the source TIFF file
-     * is copied to temporary "file" in memory ({@link BytesHandle},
+     * If the source TIFF file size is not larger than this threshold, the source TIFF file
+     * is copied to temporary "file" in memory ({@link BytesHandle}),
      * otherwise we create a real temporary file using
      * {@link Files#createTempFile(Path, String, String, java.nio.file.attribute.FileAttribute[])
      * Files.createTempFile} method.
+     * Zero value disables this feature.
      *
-     * <p>The default value is 0, which means that this feature is disabled.
-     * You may set this limit to some value like 100 MB, depending on the available memory.
-     * Please note that the actual size of the temporary file may become larger than this limit;
+     * <p>The initial value is {@link #DEFAULT_MAX_IN_MEMORY_TEMP_FILE_SIZE} (32 MB by default).
+     * You may set this threshold to some value like 100 MB, depending on the available memory.
+     * Please note that the actual size of the temporary file may become larger than this threshold;
      * for example, this is possible when the source TIFF contains multiple tiles with identical offsets.
      * Another possible situation &mdash; if you enforce recompression of all tiles via the call
      * {@link #setDirectCopy(boolean) setDirectCopy(false)}; however, this optimization is not as useful
      * in the latter case.
      *
-     * @param maxInMemoryTemporaryFileSize maximal TIFF file size to be compacted in-memory.
+     * @param maxInMemoryTempFileSize maximal TIFF file size to be compacted in-memory.
      * @return a reference to this object.
      * @throws IllegalArgumentException if the argument is negative.
      */
-    public TiffCopier setMaxInMemoryTemporaryFileSize(int maxInMemoryTemporaryFileSize) {
-        if (maxInMemoryTemporaryFileSize < 0) {
+    public TiffCopier setMaxInMemoryTempFileSize(int maxInMemoryTempFileSize) {
+        if (maxInMemoryTempFileSize < 0) {
             throw new IllegalArgumentException("Negative maxInMemoryTemporaryFileSize: " +
-                    maxInMemoryTemporaryFileSize);
+                    maxInMemoryTempFileSize);
         }
-        this.maxInMemoryTemporaryFileSize = maxInMemoryTemporaryFileSize;
+        this.maxInMemoryTempFileSize = maxInMemoryTempFileSize;
         return this;
     }
 
@@ -378,7 +383,7 @@ public final class TiffCopier {
      */
     public void compact(Path tiffFile) throws IOException {
         Objects.requireNonNull(tiffFile, "Null TIFF file");
-        final boolean inMemory = Files.size(tiffFile) <= maxInMemoryTemporaryFileSize;
+        final boolean inMemory = Files.size(tiffFile) <= maxInMemoryTempFileSize;
         // - note: a correct TIFF cannot have a zero length
         if (inMemory) {
             final BytesHandle tempBytes = new BytesHandle(new BytesLocation(0));
