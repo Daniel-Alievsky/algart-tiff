@@ -375,17 +375,17 @@ public class JPEG2000Codec implements TiffCodec {
         JPEG2000Options jpeg2000Options = new JPEG2000Options().setTo(options);
 
         byte[][] single;
-        WritableRaster b;
+        Raster raster;
         int bpp;
 
         try {
             final ByteArrayInputStream bis = new ByteArrayInputStream(data);
-            b = (WritableRaster) readRaster(bis, jpeg2000Options);
+            raster = readRaster(bis, jpeg2000Options);
             // - instead of:
-            // b = (WritableRaster) this.jaiIIOService.readRaster(bis,
+            // raster = (WritableRaster) this.jaiIIOService.readRaster(bis,
             //        (JPEG2000CodecOptions) options);
-            single = AWTImages.getPixelBytes(b, jpeg2000Options.littleEndian);
-            bpp = single[0].length / (b.getWidth() * b.getHeight());
+            single = AWTImages.getPixelBytes(raster, jpeg2000Options.littleEndian);
+            bpp = single[0].length / (raster.getWidth() * raster.getHeight());
 
             bis.close();
         } catch (final IOException e) {

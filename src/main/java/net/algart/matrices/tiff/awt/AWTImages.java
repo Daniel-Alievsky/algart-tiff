@@ -891,8 +891,8 @@ public final class AWTImages {
      * given an image with 16-bit data, each channel of the resulting array will
      * have width * height * 2 bytes.
      */
-    public static byte[][] getPixelBytes(BufferedImage img, boolean little) {
-        return getPixelBytes(img, little, 0, 0, img.getWidth(), img.getHeight());
+    public static byte[][] getImagePixelBytes(BufferedImage img, boolean little) {
+        return getImagePixelBytes(img, little, 0, 0, img.getWidth(), img.getHeight());
     }
 
     /**
@@ -913,14 +913,14 @@ public final class AWTImages {
      * given an image with 16-bit data, each channel of the resulting array will
      * have width * height * 2 bytes.
      */
-    public static byte[][] getPixelBytes(BufferedImage img, boolean little, int x, int y, int w, int h) {
+    public static byte[][] getImagePixelBytes(BufferedImage img, boolean little, int x, int y, int w, int h) {
         final Raster raster = img.getRaster();
         final int imageType = img.getType();
-        return getPixelBytes(raster, imageType, little, x, y, w, h);
+        return getImagePixelBytes(raster, imageType, little, x, y, w, h);
     }
 
-    public static byte[][] getPixelBytes(Raster raster, int imageType, boolean little, int x, int y, int w, int h) {
-        final Object pixels = getPixels(raster, x, y, w, h);
+    public static byte[][] getImagePixelBytes(Raster r, int imageType, boolean little, int x, int y, int w, int h) {
+        final Object pixels = getPixels(r, x, y, w, h);
         return pixelsToBytes(pixels, imageType, little);
     }
 

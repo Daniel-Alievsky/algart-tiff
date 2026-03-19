@@ -70,7 +70,7 @@ public class AWTImageConversionsSpeed {
         for (int test = 1; test <= numberOfTests; test++) {
             System.out.printf("%nDecoding test %d%n", test);
             long t1 = System.nanoTime();
-            data = AWTImages.getPixelBytes(bi, LITTLE_ENDIAN);
+            data = AWTImages.getImagePixelBytes(bi, LITTLE_ENDIAN);
             long t2 = System.nanoTime();
             ImageToMatrix converter = new ImageToMatrix.ToInterleavedRGB();
             Matrix<? extends UpdatablePArray> matrix = converter.toMatrix(bi);
