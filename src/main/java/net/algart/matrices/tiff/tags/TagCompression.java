@@ -521,7 +521,7 @@ public enum TagCompression {
             throws TiffException {
         TiffIFD ifd = tile.ifd();
         return new JPEGCodec.JPEGOptions()
-                .setPhotometric(ifd.optPhotometric().orElse(null))
+                .setTo(options)
                 .setYCbCrSubsampling(ifd.getYCbCrSubsampling())
                 .setInterleaved(false);
         // JPEGCodec works faster in with non-interleaved data, and in any case, it is better

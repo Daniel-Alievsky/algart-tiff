@@ -924,9 +924,18 @@ public final class AWTImages {
         return pixelsToBytes(pixels, imageType, little);
     }
 
+    public static byte[][] tryDirectPixelToBytes(Object pixels) {
+        if (pixels instanceof byte[][] bytes) {
+            return bytes;
+        } else {
+            return null;
+        }
+    }
+
     public static byte[][] pixelsToBytes(Object pixels, int imageType, boolean little) {
-        if (pixels instanceof byte[][]) {
-            return  (byte[][]) pixels;
+        byte[][] directBytes = tryDirectPixelToBytes(pixels);
+        if (directBytes != null) {
+            return directBytes;
         }
         byte[][] pixelBytes = null;
         final ByteOrder byteOrder = little ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
