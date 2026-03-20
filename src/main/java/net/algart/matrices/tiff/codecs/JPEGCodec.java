@@ -199,7 +199,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         if (data.length == 1) {
             result = data[0];
         } else {
-            result = new byte[data.length * bandSize];
+            result = new byte[Math.multiplyExact(data.length, bandSize)];
             if (options.interleaved) {
                 int next = 0;
                 for (int i = 0; i < bandSize; i++) {
