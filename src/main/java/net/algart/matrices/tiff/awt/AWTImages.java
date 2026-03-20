@@ -703,7 +703,7 @@ public final class AWTImages {
         } else if (tt == DataBuffer.TYPE_DOUBLE) {
             return getDoubles(raster, x, y, w, h);
         } else {
-            return null;
+            throw new IllegalArgumentException("Unsupported raster transfer type: " + tt);
         }
     }
 
@@ -933,6 +933,7 @@ public final class AWTImages {
     }
 
     public static byte[][] pixelsToBytes(Object pixels, int imageType, boolean little) {
+        Objects.requireNonNull(pixels, "Null pixels");
         byte[][] directBytes = tryDirectPixelToBytes(pixels);
         if (directBytes != null) {
             return directBytes;
@@ -984,6 +985,8 @@ public final class AWTImages {
                     JArrays.setBytes8(pixelBytes[i], j * 8, v, 8, byteOrder);
                 }
             }
+        } else {
+            throw new IllegalArgumentException("Unsupported pixel type: " + pixels.getClass().getSimpleName());
         }
         return pixelBytes;
     }
@@ -1100,6 +1103,7 @@ public final class AWTImages {
         if (!(model instanceof ComponentSampleModel csm)) {
             return false;
         }
+        // - thus, we have most probably PixelInterleavedSampleModel or BandedSampleModel
         final int pixelStride = csm.getPixelStride();
         if (pixelStride != 1) {
             return false;
@@ -1114,13 +1118,28 @@ public final class AWTImages {
         if (bandOffsets.length != c) {
             return false;
         }
+        if (c == 0) {
+            // - strange case
+            return false;
+        }
+        if (c == 1) {
+            // - monochrome image (typically PixelInterleavedSampleModel)
+            return bandOffsets[0] == 0;
+        }
+        if (!(csm instanceof BandedSampleModel)) {
+            return false;
+        }
+        if (buffer.getNumBanks() != c) {
+            return false;
+        }
         for (int bandOffset : bandOffsets) {
             if (bandOffset != 0) {
                 return false;
             }
         }
-        for (int i = 0; i < bandOffsets.length; i++) {
-            if (bandOffsets[i] != i) {
+        final int[] bankIndices = csm.getBankIndices();
+        for (int i = 0; i < c; i++) {
+            if (bankIndices[i] != i) {
                 return false;
             }
         }

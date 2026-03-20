@@ -54,7 +54,8 @@ public class AWTImagesMakeBufferedImageTest {
             System.out.println("    " + AWTImagesMakeBufferedImageTest.class.getName()
                     + " some_image.jpeg/png/bmp/... result_1.jpeg/png/bmp/... " +
                     "result_2.jpeg/png/bmp/... result_3.jpeg/png/bmp/... " +
-                    "result_4.jpeg/png/bmp/... result_5.jpeg/png/bmp/...");
+                    "result_4.jpeg/png/bmp/... result_5.jpeg/png/bmp/..." +
+                    "result_6.jpeg/png/bmp/...");
             return;
         }
 
@@ -63,7 +64,8 @@ public class AWTImagesMakeBufferedImageTest {
         final Path resultFile2 = Path.of(args[startArgIndex++]);
         final Path resultFile3 = Path.of(args[startArgIndex++]);
         final Path resultFile4 = Path.of(args[startArgIndex++]);
-        final Path resultFile5 = Path.of(args[startArgIndex]);
+        final Path resultFile5 = Path.of(args[startArgIndex++]);
+        final Path resultFile6 = Path.of(args[startArgIndex]);
 
         System.out.printf("Reading %s...%n", srcFile);
         BufferedImage bi1 = MatrixIO.readBufferedImage(srcFile);
@@ -86,11 +88,11 @@ public class AWTImagesMakeBufferedImageTest {
         Object pixels = AWTImages.getPixels(bi1);
         System.out.printf("All pixels: %s, %d channels%n", pixels.getClass().getSimpleName(), Array.getLength(pixels));
         // - Note: in packed mode, a result type will be incorrect (int[][] instead of byte[][])!
-        // This problem is not resolved in current version of AWTImages.
+        // This problem is not resolved in the current version of AWTImages.
         System.out.println();
 
         // The following code will reduce precision to 8-bit samples
-        final byte[][] bytes = AWTImages.getBytes(bi1);
+        byte[][] bytes = AWTImages.getBytes(bi1);
         var matrices3 = Arrays.stream(bytes).map(b -> Matrix.as(b, dimX, dimY)).toList();
         System.out.printf("AWTImages.getBytes matrices: %s%n", matrices3);
         System.out.printf("Writing to %s...%n%n", resultFile3);
@@ -111,6 +113,12 @@ public class AWTImagesMakeBufferedImageTest {
         System.out.printf("AWTImages.constructImage: %s%n", toString(bi5));
         System.out.printf("Writing %s...%n%n%n", resultFile5);
         MatrixIO.writeBufferedImage(resultFile5, bi5);
+
+        bytes = AWTImages.getBytes(bi5);
+        var matrices6 = Arrays.stream(bytes).map(b -> Matrix.as(b, dimX, dimY)).toList();
+        System.out.printf("AWTImages.getBytes matrices: %s%n", matrices6);
+        System.out.printf("Writing to %s...%n%n", resultFile6);
+        MatrixIO.writeImage(resultFile6, matrices6);
     }
 
     static String toString(BufferedImage bi) {

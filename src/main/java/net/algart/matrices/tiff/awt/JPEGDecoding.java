@@ -55,6 +55,8 @@ public class JPEGDecoding {
     // - Should be true for better processing mismatched color spaces (YCbCr in JPEG stream, RGB in TIFF IFD).
     private static final boolean COMPLETE_DECODING_Y_CB_CR_NECESSARY = true;
     // - Should be true for better processing mismatched color spaces (RGB in JPEG stream, YCbCr in TIFF IFD).
+    private static final boolean LOG_COLOR_SPACE_MISMATCH = Arrays.SystemSettings.getBooleanProperty(
+            "net.algart.matrices.tiff.jpeg.logColorSpaceMismatch", false);
     private static final boolean DISABLE_THIRD_PARTY_IMAGE_READER = Arrays.SystemSettings.getBooleanProperty(
             "net.algart.matrices.tiff.jpeg.disableThirdPartyImageReader", true);
     // - Should be true.
@@ -65,7 +67,6 @@ public class JPEGDecoding {
     // For example, TwelveMonkeys ImageReader does not guarantee the identical behavior:
     // OpenSlide images like "CMU-1.svs" will be decoded incorrectly.
     // When this flag is true, we will try to find and use the original AWT plugin, which works correctly.
-
     private static final boolean CORRECT_Y_CB_CR_WITH_SUB_SAMPLING_1X1_ONLY = false;
     // - Should be false; true value is more compatible with SCIFIO TiffParser
 
@@ -75,10 +76,12 @@ public class JPEGDecoding {
             IIOMetadata metadata,
             Raster raster,
             byte[][] pixelBytes,
-            String colorSpaceName) {
+            String colorSpaceName,
+            boolean basedOnBufferedImage) {
 
         public ImageInformation {
-            assert raster != null && pixelBytes != null;
+            Objects.requireNonNull(raster, "Null raster");
+            Objects.requireNonNull(pixelBytes, "Null pixelBytes");
         }
     }
 
@@ -109,19 +112,30 @@ public class JPEGDecoding {
             Raster raster = null;
             byte[][] pixelBytes = null;
             if (isDirectReadingYCbCrRasterNecessary(colorSpace, declaredColorSpace, numberOfChannels)) {
+                // - AWT recognizes JPEG in the byte stream as YCbCr, but the declared color space
+                // (photometric interpretation) is RGB:
+                // we should use the readRaster() method to avoid conversion to RGB performed by the image.read() call
                 raster = reader.readRaster(0, param);
                 final Object pixels = AWTImages.getPixels(raster);
                 pixelBytes = AWTImages.tryDirectPixelToBytes(pixels);
-                LOG.log(System.Logger.Level.TRACE,
+                // - mostly probable that the pixel data is stored by AWT as byte[], and then the getPixels() method
+                // has separated them into byte[][]: we just use them;
+                // if not (very improbable: for example, AWT prefers returning RBBA packed into int[]),
+                // the method tryDirectPixelToBytes() will return null, and we will switch
+                // to a usual reader.read() below (better than nothing)
+                LOG.log(LOG_COLOR_SPACE_MISMATCH ? System.Logger.Level.INFO : System.Logger.Level.TRACE,
                         "RGB photometric interpretation with %s color space JPEG: attempt to read Raster%s".formatted(
                                 colorSpace, (pixelBytes != null ? "" : " (but failed)")));
             }
-            if (pixelBytes == null) {
+            final boolean basedOnBufferedImage = pixelBytes == null;
+            if (basedOnBufferedImage) {
+                // - mostly probable branch: when possible, we prefer using the read() method
+                // as the most popular, stable and high-performance method for reading JPEG images.
                 final BufferedImage image = reader.read(0, param);
                 raster = image.getRaster();
                 pixelBytes = AWTImages.getImagePixelBytes(image, littleEndian);
             }
-            return new ImageInformation(metadata, raster, pixelBytes, colorSpace);
+            return new ImageInformation(metadata, raster, pixelBytes, colorSpace, basedOnBufferedImage);
         } finally {
             reader.dispose();
         }
@@ -189,7 +203,7 @@ public class JPEGDecoding {
             throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(imageInformation, "Null image information");
-        LOG.log(System.Logger.Level.TRACE,
+        LOG.log(LOG_COLOR_SPACE_MISMATCH ? System.Logger.Level.INFO : System.Logger.Level.TRACE,
                 "RGB photometric interpretation with YCbCr color space RGB: additional decoding");
         checkBands(data, imageInformation);
         for (int i = 0; i < data[0].length; i++) {
