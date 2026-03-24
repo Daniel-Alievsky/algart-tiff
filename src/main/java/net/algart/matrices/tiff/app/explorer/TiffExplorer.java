@@ -24,7 +24,10 @@
 
 package net.algart.matrices.tiff.app.explorer;
 
-import net.algart.matrices.tiff.*;
+import net.algart.matrices.tiff.TiffCreateMode;
+import net.algart.matrices.tiff.TiffException;
+import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.app.TiffInfo;
 import net.algart.matrices.tiff.tags.TagPhotometric;
 import net.algart.matrices.tiff.tags.Tags;
@@ -38,8 +41,10 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.prefs.Preferences;
 import java.util.stream.Collectors;
@@ -182,6 +187,69 @@ public class TiffExplorer {
         } finally {
             frame.setShowImageInProgress(false);
         }
+    }
+
+    public void showCompactDialog() {
+        if (tiffFile == null) {
+            return;
+        }
+        JDialog compactDialog = new JDialog(frame);
+        compactDialog.setTitle("Compact TIFF file " + tiffFile);
+        compactDialog.setLayout(new BorderLayout(10, 10));
+        compactDialog.setResizable(false);
+
+        final JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        final JLabel infoLabel = new JLabel(TiffExplorer.smartHtmlLines("""
+                The TIFF file:<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br><br>
+                will be fully rewritten and compacted
+                """.formatted(
+                tiffFile
+        )));
+//        infoLabel.setFont(infoLabel.getFont().deriveFont((float) DEFAULT_FONT_SIZE));
+        infoLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        content.add(infoLabel);
+        content.add(Box.createVerticalStrut(10));
+
+        content.add(Box.createVerticalStrut(10));
+
+        content.add(Box.createVerticalStrut(5));
+
+        JLabel progressLabel = new JLabel("999/999 tiles copied...");
+        progressLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        content.add(leftLabel(smartHtmlLines("""
+                Warning! This action will fully rewrite the TIFF file.<br>
+                The current image description will be permanently <b>replaced</b>.<br>
+                You may create a backup copy if the file is important.
+                """)));
+
+        content.add(progressLabel);
+
+        compactDialog.add(content, BorderLayout.CENTER);
+
+        final JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        JButton startCopyButton = new JButton();
+        JButton cancelCopyButton = new JButton();
+        // initializeButtons(false);
+        buttonPanel.add(startCopyButton);
+        buttonPanel.add(cancelCopyButton);
+        compactDialog.add(buttonPanel, BorderLayout.SOUTH);
+        compactDialog.getRootPane().setDefaultButton(startCopyButton);
+//        cancelCopyButton.addActionListener(e -> cancelCopy());
+//        startCopyButton.addActionListener(e -> startCopy(targetFile, selection));
+
+        // stopRequested = false;
+        // copyingInProgress = false;
+        compactDialog.pack();
+
+        TiffExplorer.addCloseOnEscape(compactDialog);
+        progressLabel.setText("");
+        // correctCompressionControls();
+        compactDialog.setLocationRelativeTo(frame);
+        compactDialog.setVisible(true);
     }
 
     void showEditDescriptionDialog() {
