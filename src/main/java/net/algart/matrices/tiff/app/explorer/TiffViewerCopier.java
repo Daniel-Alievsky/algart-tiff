@@ -66,13 +66,13 @@ class TiffViewerCopier {
     private final JFrame frame;
 
     private volatile boolean copyingInProgress = false;
-    private volatile boolean stopRequested = false;
+    private volatile boolean stopCopyingRequested = false;
 
-    private JLabel progressLabel;
     private JCheckBox directMode;
     private JLabel compressionQualityLabel;
     private JTextField compressionQualityField;
     private JComboBox<String> compressionMethodBox;
+    private JLabel copyProgressLabel;
     private JCheckBox autoClose;
     private JButton startCopyButton;
     private JButton cancelCopyButton;
@@ -183,6 +183,7 @@ class TiffViewerCopier {
         final boolean originalCompressionSupported = originalCompression.isWritingSupported();
         final TagCompression compression = !originalCompressionSupported ? TagCompression.NONE : originalCompression;
         copySettingsDialog = new JDialog(frame);
+        copySettingsDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         copySettingsDialog.setTitle("Save " + whatToSave + " as a new TIFF file...");
         copySettingsDialog.setLayout(new BorderLayout(10, 10));
         copySettingsDialog.setResizable(false);
@@ -270,9 +271,9 @@ class TiffViewerCopier {
         autoClose.setSelected(TiffExplorer.PREFERENCES.getBoolean(PREF_AUTO_CLOSE, false));
         mainPanel.add(autoClose);
 
-        progressLabel = new JLabel("999/999 tiles copied...");
-        progressLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        mainPanel.add(progressLabel);
+        copyProgressLabel = new JLabel("999/999 tiles copied...");
+        copyProgressLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        mainPanel.add(copyProgressLabel);
 
         copySettingsDialog.add(mainPanel, BorderLayout.CENTER);
 
@@ -287,12 +288,12 @@ class TiffViewerCopier {
         cancelCopyButton.addActionListener(e -> cancelCopy());
         startCopyButton.addActionListener(e -> startCopy(targetFile, selection));
 
-        stopRequested = false;
+        stopCopyingRequested = false;
         copyingInProgress = false;
         copySettingsDialog.pack();
 
         TiffExplorer.addCloseOnEscape(copySettingsDialog);
-        progressLabel.setText("");
+        copyProgressLabel.setText("");
         correctCompressionControls();
         copySettingsDialog.setLocationRelativeTo(frame);
         copySettingsDialog.setVisible(true);
@@ -304,19 +305,19 @@ class TiffViewerCopier {
         final TiffReadMap readMap;
         final Double compressionQuality;
         try {
-            //noinspection resource
             newReader = viewer.reader().newReader(TiffOpenMode.VALID_TIFF);
             // - we must create a new reader without customizing setAutoCorrectInvertedBrightness
             readMap = newReader.map(viewer.ifdIndex());
             copier = buildCopier();
             compressionQuality = getCompressionQuality();
-            stopRequested = false;
+            stopCopyingRequested = false;
             startCopyButton.setEnabled(false);
             startCopyButton.setVisible(false);
             cancelCopyButton.setText("Cancel copying");
+            copySettingsDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
             copyingInProgress = true;
         } catch (Exception e) {
-            showErrorMessage(e, "Error copying TIFF");
+            TiffExplorer.showErrorMessage(frame, e, "Error copying TIFF");
             return;
         }
         new SwingWorker<Void, Void>() {
@@ -345,11 +346,12 @@ class TiffViewerCopier {
                     get();
                     successful = !copier.isCancelled();
                 } catch (InterruptedException | ExecutionException e) {
-                    showErrorMessage(e, "Error copying TIFF");
+                    TiffExplorer.showErrorMessage(frame, e, "Error copying TIFF");
                 }
                 final boolean closeAfterCopy = autoClose.isSelected();
                 TiffExplorer.PREFERENCES.putBoolean(PREF_AUTO_CLOSE, closeAfterCopy);
                 copyingInProgress = false;
+                copySettingsDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
                 if (successful) {
                     copySettingsDialog.getRootPane().setDefaultButton(cancelCopyButton);
                 }
@@ -363,7 +365,7 @@ class TiffViewerCopier {
 
     private void cancelCopy() {
         if (copyingInProgress) {
-            stopRequested = true;
+            stopCopyingRequested = true;
         } else {
             copySettingsDialog.dispose();
         }
@@ -438,18 +440,21 @@ class TiffViewerCopier {
 
     private TiffCopier buildCopier() {
         TiffCopier copier = new TiffCopier();
-        copier.setInterruptionChecker(() -> stopRequested);
-        copier.setProgressUpdater(p -> SwingUtilities.invokeLater(() -> {
-            progressLabel.setText("%d/%d tiles copied (%s)%s".formatted(
-                    p.tileIndex() + 1, p.tileCount(),
-                    p.copier().actuallyDirectCopy() ? "direct" : "repacking",
-                    p.isLastTileCopied() ? "" : "..."));
-        }), 500);
+        copier.setInterruptionChecker(() -> stopCopyingRequested);
+        copier.setProgressUpdater(this::updateProgress, 500);
         copier.setDirectCopy(directMode.isSelected());
         if (!copier.isDirectCopy()) {
             copier.setCompression(getSelectedCompression());
         }
         return copier;
+    }
+
+    private void updateProgress(TiffCopier.ProgressInformation p) {
+        SwingUtilities.invokeLater(() ->
+                copyProgressLabel.setText("%d/%d tiles copied (%s)%s".formatted(
+                        p.tileIndex() + 1, p.tileCount(),
+                        p.copier().isActuallyDirectCopy() ? "direct" : "repacking",
+                        p.isLastTileCopied() ? "" : "...")));
     }
 
     private Double getCompressionQuality() {
@@ -486,10 +491,6 @@ class TiffViewerCopier {
                 (compression.isStandardJpeg() ? " (from 0 to 1)" :
                         compression.isJpeg2000() ? " (from ~0.5 to ~20 or higher)" : "")
                 + ":";
-    }
-
-    private void showErrorMessage(Throwable e, String title) {
-        TiffExplorer.showErrorMessage(frame, e, title);
     }
 
     private static String[] makeCompressionNames(TagCompression sourceCompression) {

@@ -32,6 +32,7 @@ public class JTiffExplorerAboutDialog extends JDialog {
 
     public JTiffExplorerAboutDialog(Frame frame) {
         super(frame, "About TIFF Explorer", true);
+        this.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         this.setLayout(new BorderLayout(10, 10));
         this.setMinimumSize(new Dimension(100, 200));
         this.setResizable(false);

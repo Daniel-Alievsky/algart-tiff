@@ -79,6 +79,10 @@ public final class TiffCopier {
         public boolean isCopyingTemporaryFile() {
             return copyingTemporaryFile;
         }
+
+        public boolean isCompactingInMemory() {
+            return TiffCopier.this.isCompactingInMemory();
+        }
     }
 
     @FunctionalInterface
@@ -106,6 +110,7 @@ public final class TiffCopier {
     private final ProgressInformation progressInformation = new ProgressInformation();
     private long lastProgressUpdateTime = Long.MIN_VALUE;
 
+    private boolean compactingInMemory = false;
     private boolean actuallyDirectCopy = false;
 
     public TiffCopier() {
@@ -338,7 +343,24 @@ public final class TiffCopier {
         return cancelled;
     }
 
-    public boolean actuallyDirectCopy() {
+    /**
+     * Returns <code>true</code> if the last (or current) {@link #compact(Path)} operation
+     * was performed in-memory.
+     *
+     * <p>This flag is set to <code>true</code> at the beginning of the {@link #compact(Path)}
+     * method if the source TIFF file size does not exceed the threshold set by
+     * {@link #setMaxInMemoryTempFileSize(int)}. If the file is larger, or if
+     * the <code>compact</code> method has not been called yet, this method
+     * returns <code>false</code>.</p>
+     *
+     * @return <code>true</code> if the compaction is performed in RAM;
+     * <code>false</code> if a real temporary file on disk is used.
+     */
+    public boolean isCompactingInMemory() {
+        return compactingInMemory;
+    }
+
+    public boolean isActuallyDirectCopy() {
         return actuallyDirectCopy;
     }
 
@@ -383,9 +405,9 @@ public final class TiffCopier {
      */
     public void compact(Path tiffFile) throws IOException {
         Objects.requireNonNull(tiffFile, "Null TIFF file");
-        final boolean inMemory = Files.size(tiffFile) <= maxInMemoryTempFileSize;
+        this.compactingInMemory = Files.size(tiffFile) <= maxInMemoryTempFileSize;
         // - note: a correct TIFF cannot have a zero length
-        if (inMemory) {
+        if (compactingInMemory) {
             final BytesHandle tempBytes = new BytesHandle(new BytesLocation(0));
             // final BytesHandle sourceBytes = TiffIO.getBytesHandle(Files.readAllBytes(tiffFile));
             // - not-too-serious optimization: TiffReader automatically uses buffered reading

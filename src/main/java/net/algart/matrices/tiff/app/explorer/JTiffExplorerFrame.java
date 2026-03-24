@@ -147,7 +147,10 @@ public class JTiffExplorerFrame extends JFrame {
             }
         });
         this.setVisible(true);
+    }
 
+    public TiffExplorer explorer() {
+        return explorer;
     }
 
     private void addIFDTextArea() {
@@ -229,6 +232,9 @@ public class JTiffExplorerFrame extends JFrame {
         reloadItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
         reloadItem.addActionListener(e -> reload());
         fileMenu.add(reloadItem);
+        final JMenuItem compactItem = new JMenuItem("Compact TIFF...");
+        compactItem.addActionListener(e -> explorer.showCompactDialog());
+        fileMenu.add(compactItem);
         fileMenu.addSeparator();
 
         JMenuItem exitItem = new JMenuItem("Exit");
@@ -340,6 +346,7 @@ public class JTiffExplorerFrame extends JFrame {
         final MenuUpdater menuUpdater = new MenuUpdater(() -> {
             boolean initialized = explorer.isInitialized();
             reloadItem.setEnabled(initialized);
+            compactItem.setEnabled(initialized);
             copyItem.setEnabled(initialized);
             editDescriptionItem.setEnabled(initialized);
             removeTagsItem.setEnabled(initialized);

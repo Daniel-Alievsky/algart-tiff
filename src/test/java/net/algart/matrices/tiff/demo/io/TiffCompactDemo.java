@@ -63,6 +63,8 @@ public class TiffCompactDemo {
         copier.setDirectCopy(!repack);
         if (inMemory) {
             copier.setMaxInMemoryTempFileSize(DEFAULT_MAX_IN_MEMORY_TEMP_FILE_SIZE);
+        } else {
+            copier.setMaxInMemoryTempFileSize(0);
         }
         for (int test = 1; test <= numberOfTests; test++) {
             System.out.printf("Test %d/%d...%n", test, numberOfTests);

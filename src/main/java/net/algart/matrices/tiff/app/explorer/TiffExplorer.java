@@ -159,9 +159,17 @@ public class TiffExplorer {
         }
     }
 
+    void showCompactDialog() {
+        new TiffExplorerCompactor(frame).showCompactDialog();
+    }
+
+    void reload() {
+        frame.reload();
+    }
+
     private void loadTiff(Path file) {
         this.tiffFile = file;
-        frame.reload();
+        reload();
     }
 
     void loadTiffInfo() throws IOException {
@@ -189,69 +197,6 @@ public class TiffExplorer {
         }
     }
 
-    public void showCompactDialog() {
-        if (tiffFile == null) {
-            return;
-        }
-        JDialog compactDialog = new JDialog(frame);
-        compactDialog.setTitle("Compact TIFF file " + tiffFile);
-        compactDialog.setLayout(new BorderLayout(10, 10));
-        compactDialog.setResizable(false);
-
-        final JPanel content = new JPanel();
-        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        final JLabel infoLabel = new JLabel(TiffExplorer.smartHtmlLines("""
-                The TIFF file:<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br><br>
-                will be fully rewritten and compacted
-                """.formatted(
-                tiffFile
-        )));
-//        infoLabel.setFont(infoLabel.getFont().deriveFont((float) DEFAULT_FONT_SIZE));
-        infoLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        content.add(infoLabel);
-        content.add(Box.createVerticalStrut(10));
-
-        content.add(Box.createVerticalStrut(10));
-
-        content.add(Box.createVerticalStrut(5));
-
-        JLabel progressLabel = new JLabel("999/999 tiles copied...");
-        progressLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        content.add(leftLabel(smartHtmlLines("""
-                Warning! This action will fully rewrite the TIFF file.<br>
-                The current image description will be permanently <b>replaced</b>.<br>
-                You may create a backup copy if the file is important.
-                """)));
-
-        content.add(progressLabel);
-
-        compactDialog.add(content, BorderLayout.CENTER);
-
-        final JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        JButton startCopyButton = new JButton();
-        JButton cancelCopyButton = new JButton();
-        // initializeButtons(false);
-        buttonPanel.add(startCopyButton);
-        buttonPanel.add(cancelCopyButton);
-        compactDialog.add(buttonPanel, BorderLayout.SOUTH);
-        compactDialog.getRootPane().setDefaultButton(startCopyButton);
-//        cancelCopyButton.addActionListener(e -> cancelCopy());
-//        startCopyButton.addActionListener(e -> startCopy(targetFile, selection));
-
-        // stopRequested = false;
-        // copyingInProgress = false;
-        compactDialog.pack();
-
-        TiffExplorer.addCloseOnEscape(compactDialog);
-        progressLabel.setText("");
-        // correctCompressionControls();
-        compactDialog.setLocationRelativeTo(frame);
-        compactDialog.setVisible(true);
-    }
-
     void showEditDescriptionDialog() {
         int index = frame.selectedImage();
         if (!isInitialized(index)) {
@@ -259,6 +204,7 @@ public class TiffExplorer {
         }
 
         final JDialog dialog = new JDialog(frame, "Edit image description", true);
+        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         dialog.setLayout(new BorderLayout(10, 10));
 
         final JPanel content = new JPanel();
@@ -339,6 +285,7 @@ public class TiffExplorer {
         }
 
         final JDialog dialog = new JDialog(frame, "Rewrite photometric interpretation", true);
+        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         dialog.setResizable(false);
         dialog.setLayout(new BorderLayout(10, 10));
         dialog.setMinimumSize(new Dimension(250, 50));
@@ -429,6 +376,7 @@ public class TiffExplorer {
         }
 
         final JDialog dialog = new JDialog(frame, "Remove IFD tags", true);
+        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         dialog.setResizable(false);
         dialog.setLayout(new BorderLayout(10, 10));
         dialog.setMinimumSize(new Dimension(250, 50));
@@ -621,15 +569,23 @@ public class TiffExplorer {
     }
 
     private boolean isInitialized(int index) {
-        return info != null && index >= 0 && index < info.numberOfImages();
+        return tiffFile != null && info != null && index >= 0 && index < info.numberOfImages();
     }
 
-    static void addCloseOnEscape(JDialog dialog) {
+    static void addActionOnEscape(JDialog dialog, Runnable action) {
         dialog.getRootPane().registerKeyboardAction(
-                e -> dialog.dispose(),
+                e -> action.run(),
                 KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
                 JComponent.WHEN_IN_FOCUSED_WINDOW
         );
+    }
+
+    static void addCloseOnEscape(JDialog dialog) {
+        addActionOnEscape(dialog, () -> {
+            if (dialog.getDefaultCloseOperation() == JDialog.DISPOSE_ON_CLOSE) {
+                dialog.dispose();
+            }
+        });
     }
 
     static void showErrorMessage(JFrame frame, Throwable e, String title) {
@@ -671,13 +627,13 @@ public class TiffExplorer {
         return result;
     }
 
-    private static JLabel leftLabel(String text) {
+    static JLabel leftLabel(String text) {
         JLabel label = new JLabel(text);
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
         return label;
     }
 
-    private static JComponent leftIndent(JComponent component, int gap) {
+    static JComponent leftIndent(JComponent component, int gap) {
         Box box = Box.createHorizontalBox();
         box.add(Box.createHorizontalStrut(gap));
         box.add(component);

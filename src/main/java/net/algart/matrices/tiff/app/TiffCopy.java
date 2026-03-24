@@ -193,7 +193,7 @@ public class TiffCopy {
             System.out.printf("\rImage %d/%d, tile %d/%d (%s)%s",
                     p.imageIndex() + 1, p.imageCount(),
                     p.tileIndex() + 1, p.tileCount(),
-                    p.copier().actuallyDirectCopy() ? "direct" : "repacking",
+                    p.copier().isActuallyDirectCopy() ? "direct" : "repacking",
                     p.isLastTileCopied() ? "" : "...");
             if (p.isLastTileCopied()) {
                 System.out.println();

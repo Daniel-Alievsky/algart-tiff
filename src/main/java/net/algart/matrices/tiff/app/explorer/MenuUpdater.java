@@ -27,7 +27,7 @@ package net.algart.matrices.tiff.app.explorer;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 
-final class MenuUpdater implements MenuListener {
+class MenuUpdater implements MenuListener {
     private final Runnable updater;
 
     MenuUpdater(Runnable updater) {
