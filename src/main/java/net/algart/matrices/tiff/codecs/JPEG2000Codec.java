@@ -84,42 +84,17 @@ public class JPEG2000Codec implements TiffCodec {
         public static final boolean DEFAULT_WRITE_METADATA = false;
         // - Should be false for better compatibility with Aperio Image Viewer, GIMP and other applications.
 
-        /**
-         * The lossless mode affects the default quality and the argument of J2KImageWriteParam.setFilter method
-         * (WRITE).
-         */
-        boolean lossless = true;
+        private boolean lossless = true;
 
-        /**
-         * Color model to use when constructing an image (WRITE).
-         */
-        ColorModel colorModel = null;
+        private ColorModel colorModel = null;
 
-        /**
-         * The maximum code-block size to use per tile-component as it would be
-         * provided to: {@code J2KImageWriteParam#setCodeBlockSize(int[])} (WRITE).
-         */
-        int[] codeBlockSize = {64, 64};
+        private int[] codeBlockSize = {64, 64};
 
-        /**
-         * The number of decomposition levels as would be provided to:
-         * {@code J2KImageWriteParam#setNumDecompositionLevels(int)} (WRITE). Leaving
-         * this value {@code null} signifies that when a JPEG 2000 parameter set is
-         * created for the purposes of compression the number of decomposition levels
-         * will be left as the default.
-         */
-        Integer numberOfDecompositionLevels = null;
+        private Integer numberOfDecompositionLevels = null;
 
-        /**
-         * The resolution level as would be provided to:
-         * {@code J2KImageWriteParam#setResolution(int)} (READ). Leaving this value
-         * {@code null} signifies that when a JPEG 2000 parameter set is created for
-         * the purposes of compression the number of decomposition levels will be left
-         * as the default.
-         */
-        Integer resolution = null;
+        private Integer resolution = null;
 
-        boolean writeMetadata = DEFAULT_WRITE_METADATA;
+        private boolean writeMetadata = DEFAULT_WRITE_METADATA;
 
         private boolean writingSupported = true;
 
@@ -131,6 +106,10 @@ public class JPEG2000Codec implements TiffCodec {
             return lossless;
         }
 
+        /**
+         * The lossless mode affects the default quality and the argument of J2KImageWriteParam.setFilter method
+         * (WRITE).
+         */
         public JPEG2000Options setLossless(boolean lossless) {
             this.lossless = lossless;
             return this;
@@ -140,6 +119,9 @@ public class JPEG2000Codec implements TiffCodec {
             return colorModel;
         }
 
+        /**
+         * Color model to use when constructing an image (WRITE).
+         */
         public JPEG2000Options setColorModel(ColorModel colorModel) {
             this.colorModel = colorModel;
             return this;
@@ -149,6 +131,10 @@ public class JPEG2000Codec implements TiffCodec {
             return codeBlockSize.clone();
         }
 
+        /**
+         * The maximum code-block size to use per tile-component as it would be
+         * provided to: {@code J2KImageWriteParam#setCodeBlockSize(int[])} (WRITE).
+         */
         public JPEG2000Options setCodeBlockSize(int[] codeBlockSize) {
             Objects.requireNonNull(codeBlockSize, "Null codeBlockSize");
             // see J2KImageWriteParamJava constructor: it requires non-null j2kParam.getCodeBlockSize
@@ -164,6 +150,13 @@ public class JPEG2000Codec implements TiffCodec {
             return numberOfDecompositionLevels;
         }
 
+        /**
+         * The number of decomposition levels as would be provided to:
+         * {@code J2KImageWriteParam#setNumDecompositionLevels(int)} (WRITE). Leaving
+         * this value {@code null} signifies that when a JPEG 2000 parameter set is
+         * created for the purposes of compression the number of decomposition levels
+         * will be left as the default.
+         */
         public JPEG2000Options setNumberOfDecompositionLevels(Integer numberOfDecompositionLevels) {
             this.numberOfDecompositionLevels = numberOfDecompositionLevels;
             return this;
@@ -173,6 +166,13 @@ public class JPEG2000Codec implements TiffCodec {
             return resolution;
         }
 
+        /**
+         * The resolution level as would be provided to:
+         * {@code J2KImageWriteParam#setResolution(int)} (READ). Leaving this value
+         * {@code null} signifies that when a JPEG 2000 parameter set is created for
+         * the purposes of compression the number of decomposition levels will be left
+         * as the default.
+         */
         public JPEG2000Options setResolution(Integer resolution) {
             this.resolution = resolution;
             return this;
@@ -253,10 +253,10 @@ public class JPEG2000Codec implements TiffCodec {
     public byte[] compress(byte[] data, Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
-        if (options.floatingPoint) {
+        if (options.isFloatingPoint()) {
             throw new TiffException("JPEG-2000 compression cannot be used for floating-point values");
         }
-        if (options.signed) {
+        if (options.isSigned()) {
             throw new TiffException("JPEG compression for signed samples is not supported " +
                     "(only unsigned samples allowed)");
         }
@@ -282,75 +282,83 @@ public class JPEG2000Codec implements TiffCodec {
         // DataBuffer.TYPE_INT (so a single int is used to store all the
         // channels for a specific pixel).
 
-        final int plane = jpeg2000Options.width * jpeg2000Options.height;
+        final int plane = Math.multiplyExact(jpeg2000Options.getWidth(), jpeg2000Options.getHeight());
 
-        if (jpeg2000Options.bitsPerSample == 8) {
-            final byte[][] b = new byte[jpeg2000Options.numberOfChannels][plane];
-            if (jpeg2000Options.interleaved) {
+        final int bitsPerSample = jpeg2000Options.getBitsPerSample();
+        final int numberOfChannels = jpeg2000Options.getNumberOfChannels();
+        final boolean interleaved = jpeg2000Options.isInterleaved();
+        if (bitsPerSample == 8) {
+            final byte[][] b = new byte[numberOfChannels][plane];
+            if (interleaved) {
                 for (int q = 0; q < plane; q++) {
-                    for (int c = 0; c < jpeg2000Options.numberOfChannels; c++) {
+                    for (int c = 0; c < numberOfChannels; c++) {
                         b[c][q] = data[next++];
                     }
                 }
             } else {
-                for (int c = 0; c < jpeg2000Options.numberOfChannels; c++) {
+                for (int c = 0; c < numberOfChannels; c++) {
                     System.arraycopy(data, c * plane, b[c], 0, plane);
                 }
             }
             final DataBuffer buffer = new DataBufferByte(b, plane);
             img = AWTImages.constructImage(b.length, DataBuffer.TYPE_BYTE,
-                    jpeg2000Options.width, jpeg2000Options.height, false, true, buffer,
-                    jpeg2000Options.colorModel);
-        } else if (jpeg2000Options.bitsPerSample == 16) {
-            final short[][] s = new short[jpeg2000Options.numberOfChannels][plane];
-            if (jpeg2000Options.interleaved) {
-                for (int q = 0; q < plane; q++) {
-                    for (int c = 0; c < jpeg2000Options.numberOfChannels; c++) {
-                        // assert toShort(data, next, false) == Bytes.toShort(data, next, 2, false);
-                        // assert toShort(data, next, true) == Bytes.toShort(data, next, 2, true);
-                        s[c][q] = toShort(data, next, jpeg2000Options.littleEndian);
-                        next += 2;
-                    }
-                }
-            } else {
-                for (int c = 0; c < jpeg2000Options.numberOfChannels; c++) {
-                    for (int q = 0; q < plane; q++) {
-                        s[c][q] = toShort(data, next, jpeg2000Options.littleEndian);
-                        next += 2;
-                    }
-                }
-            }
-            final DataBuffer buffer = new DataBufferUShort(s, plane);
-            img = AWTImages.constructImage(s.length, DataBuffer.TYPE_USHORT,
-                    jpeg2000Options.width, jpeg2000Options.height, false, true, buffer,
-                    jpeg2000Options.colorModel);
-        } else if (jpeg2000Options.bitsPerSample == 32) {
-            final int[][] s = new int[jpeg2000Options.numberOfChannels][plane];
-            if (jpeg2000Options.interleaved) {
-                for (int q = 0; q < plane; q++) {
-                    for (int c = 0; c < jpeg2000Options.numberOfChannels; c++) {
-//                        assert toInt(data, next, true) == Bytes.toInt(data, next, 4, true);
-//                        assert toInt(data, next, false) == Bytes.toInt(data, next, 4, false);
-                        s[c][q] = toInt(data, next, jpeg2000Options.littleEndian);
-                        next += 4;
-                    }
-                }
-            } else {
-                for (int c = 0; c < jpeg2000Options.numberOfChannels; c++) {
-                    for (int q = 0; q < plane; q++) {
-                        s[c][q] = toInt(data, next, jpeg2000Options.littleEndian);
-                        next += 4;
-                    }
-                }
-            }
-
-            final DataBuffer buffer = new UnsignedIntBuffer(s, plane);
-            img = AWTImages.constructImage(s.length, DataBuffer.TYPE_INT,
-                    jpeg2000Options.width, jpeg2000Options.height, false, true, buffer,
+                    jpeg2000Options.getWidth(), jpeg2000Options.getHeight(), false, true, buffer,
                     jpeg2000Options.colorModel);
         } else {
-            throw new TiffException("JPEG-2000 compression for " + jpeg2000Options.bitsPerSample +
-                    "-bit samples is not supported (only 8-bit, 16-bit and 32-bit samples allowed)");
+            final boolean littleEndian = jpeg2000Options.isLittleEndian();
+            if (bitsPerSample == 16) {
+                final short[][] s = new short[numberOfChannels][plane];
+                if (interleaved) {
+                    for (int q = 0; q < plane; q++) {
+                        for (int c = 0; c < numberOfChannels; c++) {
+                            // assert toShort(data, next, false) == Bytes.toShort(data, next, 2, false);
+                            // assert toShort(data, next, true) == Bytes.toShort(data, next, 2, true);
+                            s[c][q] = toShort(data, next, littleEndian);
+                            next += 2;
+                        }
+                    }
+                } else {
+                    for (int c = 0; c < numberOfChannels; c++) {
+                        for (int q = 0; q < plane; q++) {
+                            s[c][q] = toShort(data, next, littleEndian);
+                            next += 2;
+                        }
+                    }
+                }
+                final DataBuffer buffer = new DataBufferUShort(s, plane);
+                img = AWTImages.constructImage(s.length, DataBuffer.TYPE_USHORT,
+                        jpeg2000Options.getWidth(), jpeg2000Options.getHeight(),
+                        false, true,
+                        buffer,
+                        jpeg2000Options.getColorModel());
+            } else if (bitsPerSample == 32) {
+                final int[][] s = new int[numberOfChannels][plane];
+                if (interleaved) {
+                    for (int q = 0; q < plane; q++) {
+                        for (int c = 0; c < numberOfChannels; c++) {
+    //                        assert toInt(data, next, true) == Bytes.toInt(data, next, 4, true);
+    //                        assert toInt(data, next, false) == Bytes.toInt(data, next, 4, false);
+                            s[c][q] = toInt(data, next, littleEndian);
+                            next += 4;
+                        }
+                    }
+                } else {
+                    for (int c = 0; c < numberOfChannels; c++) {
+                        for (int q = 0; q < plane; q++) {
+                            s[c][q] = toInt(data, next, littleEndian);
+                            next += 4;
+                        }
+                    }
+                }
+
+                final DataBuffer buffer = new UnsignedIntBuffer(s, plane);
+                img = AWTImages.constructImage(s.length, DataBuffer.TYPE_INT,
+                        jpeg2000Options.getWidth(), jpeg2000Options.getHeight(), false, true, buffer,
+                        jpeg2000Options.getColorModel());
+            } else {
+                throw new TiffException("JPEG-2000 compression for " + bitsPerSample +
+                        "-bit samples is not supported (only 8-bit, 16-bit and 32-bit samples allowed)");
+            }
         }
 
         try {
@@ -384,7 +392,7 @@ public class JPEG2000Codec implements TiffCodec {
             // - instead of:
             // raster = (WritableRaster) this.jaiIIOService.readRaster(bis,
             //        (JPEG2000CodecOptions) options);
-            single = AWTImages.getPixelBytes(raster, jpeg2000Options.littleEndian);
+            single = AWTImages.getPixelBytes(raster, jpeg2000Options.isLittleEndian());
             bpp = single[0].length / (raster.getWidth() * raster.getHeight());
 
             bis.close();
@@ -399,7 +407,7 @@ public class JPEG2000Codec implements TiffCodec {
 
         if (single.length == 1) return single[0];
         final byte[] rtn = new byte[single.length * single[0].length];
-        if (jpeg2000Options.interleaved) {
+        if (jpeg2000Options.isInterleaved()) {
             int next = 0;
             for (int i = 0; i < single[0].length / bpp; i++) {
                 for (byte[] bytes : single) {

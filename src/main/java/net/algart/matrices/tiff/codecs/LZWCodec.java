@@ -246,16 +246,15 @@ public class LZWCodec extends StreamTiffCodec {
         if (options == null) options = new Options();
 
         // Output buffer
-        final byte[] output = new byte[options.maxSizeInBytes];
-        // Position in output buffer to write next byte to
+        final byte[] output = new byte[options.getMaxSizeInBytes()];
+        // Position in the output buffer to write the next byte to
         int currOutPos = 0;
 
         // Table mapping codes to strings.
         // Its structure is based on the fact that a string for a code has form:
         // (string for another code) + (new byte).
-        // Thus, at index 'code': first array contains 'another code', second
-        // array
-        // contains 'new byte', and third array contains length of the string.
+        // Thus, at index 'code': the first array contains 'another code', the second array
+        // contains 'new byte', and the third array contains the length of the string.
         // The length is needed to make retrieving the string faster.
         final int[] anotherCodes = new int[4096];
         final byte[] newBytes = new byte[4096];

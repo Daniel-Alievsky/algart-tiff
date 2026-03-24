@@ -35,10 +35,10 @@ public class PackBitsCodec implements TiffCodec {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
         return packImage(data,
-                options.width,
-                options.height,
-                options.numberOfChannels,
-                options.bitsPerSample);
+                options.getWidth(),
+                options.getHeight(),
+                options.getNumberOfChannels(),
+                options.getBitsPerSample());
     }
 
 
@@ -50,7 +50,7 @@ public class PackBitsCodec implements TiffCodec {
     public byte[] decompress(byte[] data, Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
-        byte[] result = new byte[options.maxSizeInBytes];
+        byte[] result = new byte[options.getMaxSizeInBytes()];
         unpackBytes(result, data, data.length);
         return result;
     }

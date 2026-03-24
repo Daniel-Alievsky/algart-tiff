@@ -31,7 +31,7 @@ public class ThunderScanCodec implements TiffCodec {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
 
-        final int maxPixels = options.maxSizeInBytes;
+        final int maxPixels = options.getMaxSizeInBytes();
         // - maxSizeInBytes relates to unpacked data consisting of whole bytes
         final byte[] result = new byte[(maxPixels + 1) >>> 1];
         // - zero-filled by Java

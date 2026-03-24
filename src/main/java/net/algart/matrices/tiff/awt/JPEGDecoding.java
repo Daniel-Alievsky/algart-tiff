@@ -141,27 +141,40 @@ public class JPEGDecoding {
         }
     }
 
-    private static IIOMetadata retrieveMetadata(ImageReader reader) throws IOException {
-        IIOMetadata imageMetadata = null;
-        try {
-            imageMetadata = reader.getImageMetadata(0);
-            // - these metadata are necessary to correctly decompress images like
-            // jpeg_ycbcr_encoded_as_rgb.tiff from the demo resources
-        } catch (IOException e) {
-            if (!IGNORE_EXCEPTION_WHILE_ATTEMPT_TO_READ_METADATA) {
-                throw e;
-            }
-            // Sometimes TIFF files contain JPEG data with an invalid marker sequence.
-            // In such cases ImageReader.getImageMetadata() may throw an exception like
-            // "JFIF APP0 must be first marker after SOI".
-            // In this case, we ignore this exception and still try to read image:
-            // probably the read() method (based on the native JPEG decoder) will work normally.
-
-            // LOG.log(System.Logger.Level.DEBUG, "Cannot read metadata: " + e);
-            // - usually logging is also unnecessary, but you may uncomment it for debugging.
+    // Note: this method may be tested with the image jpeg_ycbcr_encoded_as_rgb.tiff from the demo resources
+    // declaredColorSpace and declaredSubsampling are not used by the current implementation
+    public static void completeDecodingYCbCr(
+            byte[][] data,
+            ImageInformation imageInformation,
+            TagPhotometric declaredColorSpace,
+            int[] declaredSubsampling)
+            throws TiffException {
+        Objects.requireNonNull(data, "Null data");
+        Objects.requireNonNull(imageInformation, "Null image information");
+        if (!isCompleteDecodingYCbCrNecessary(imageInformation, declaredColorSpace,declaredSubsampling)) {
+            return;
         }
-        return imageMetadata;
+        LOG.log(LOG_COLOR_SPACE_MISMATCH ? System.Logger.Level.INFO : System.Logger.Level.TRACE,
+                "RGB photometric interpretation with YCbCr color space RGB: additional decoding");
+        checkBands(data, imageInformation);
+        for (int i = 0; i < data[0].length; i++) {
+            int y = data[0][i] & 0xFF;
+            int cb = data[1][i] & 0xFF;
+            int cr = data[2][i] & 0xFF;
+
+            cb -= 128;
+            cr -= 128;
+
+            double red = (y + 1.402 * cr);
+            double green = (y - 0.34414 * cb - 0.71414 * cr);
+            double blue = (y + 1.772 * cb);
+
+            data[0][i] = (byte) toUnsignedByte(red);
+            data[1][i] = (byte) toUnsignedByte(green);
+            data[2][i] = (byte) toUnsignedByte(blue);
+        }
     }
+
 
     public static boolean isDirectReadingYCbCrRasterNecessary(
             String actualColorSpace,
@@ -197,33 +210,6 @@ public class JPEGDecoding {
         // and the JPEG is incorrectly detected as RGB; so, there is no sense to optimize this.
     }
 
-    // Note: this method may be tested with the image jpeg_ycbcr_encoded_as_rgb.tiff from the demo resources
-    // declaredColorSpace and declaredSubsampling are not used by the current implementation
-    public static void completeDecodingYCbCr(byte[][] data, ImageInformation imageInformation)
-            throws TiffException {
-        Objects.requireNonNull(data, "Null data");
-        Objects.requireNonNull(imageInformation, "Null image information");
-        LOG.log(LOG_COLOR_SPACE_MISMATCH ? System.Logger.Level.INFO : System.Logger.Level.TRACE,
-                "RGB photometric interpretation with YCbCr color space RGB: additional decoding");
-        checkBands(data, imageInformation);
-        for (int i = 0; i < data[0].length; i++) {
-            int y = data[0][i] & 0xFF;
-            int cb = data[1][i] & 0xFF;
-            int cr = data[2][i] & 0xFF;
-
-            cb -= 128;
-            cr -= 128;
-
-            double red = (y + 1.402 * cr);
-            double green = (y - 0.34414 * cb - 0.71414 * cr);
-            double blue = (y + 1.772 * cb);
-
-            data[0][i] = (byte) toUnsignedByte(red);
-            data[1][i] = (byte) toUnsignedByte(green);
-            data[2][i] = (byte) toUnsignedByte(blue);
-        }
-    }
-
     public static String tryToFindColorSpace(IIOMetadata metadata) {
         if (metadata == null) {
             return null;
@@ -247,6 +233,28 @@ public class JPEGDecoding {
             }
         }
         return null;
+    }
+
+    private static IIOMetadata retrieveMetadata(ImageReader reader) throws IOException {
+        IIOMetadata imageMetadata = null;
+        try {
+            imageMetadata = reader.getImageMetadata(0);
+            // - these metadata are necessary to correctly decompress images like
+            // jpeg_ycbcr_encoded_as_rgb.tiff from the demo resources
+        } catch (IOException e) {
+            if (!IGNORE_EXCEPTION_WHILE_ATTEMPT_TO_READ_METADATA) {
+                throw e;
+            }
+            // Sometimes TIFF files contain JPEG data with an invalid marker sequence.
+            // In such cases ImageReader.getImageMetadata() may throw an exception like
+            // "JFIF APP0 must be first marker after SOI".
+            // In this case, we ignore this exception and still try to read image:
+            // probably the read() method (based on the native JPEG decoder) will work normally.
+
+            // LOG.log(System.Logger.Level.DEBUG, "Cannot read metadata: " + e);
+            // - usually logging is also unnecessary, but you may uncomment it for debugging.
+        }
+        return imageMetadata;
     }
 
     private static void checkBands(byte[][] data, ImageInformation imageInformation) throws TiffException {

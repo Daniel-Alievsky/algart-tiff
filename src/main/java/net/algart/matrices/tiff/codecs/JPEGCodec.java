@@ -109,18 +109,20 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
     public byte[] compress(byte[] data, Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
-        if (options.floatingPoint) {
+        if (options.isFloatingPoint()) {
             throw new TiffException("JPEG compression cannot be used for floating-point values");
         }
-        if (options.numberOfChannels != 1 && options.numberOfChannels != 3) {
-            throw new TiffException("JPEG compression for " + options.numberOfChannels + " channels is not supported");
+        final int numberOfChannels = options.getNumberOfChannels();
+        final int bitsPerSample = options.getBitsPerSample();
+        if (numberOfChannels != 1 && numberOfChannels != 3) {
+            throw new TiffException("JPEG compression for " + numberOfChannels + " channels is not supported");
         }
-        if (options.bitsPerSample != 8) {
-            throw new TiffException("JPEG compression for " + options.bitsPerSample +
+        if (bitsPerSample != 8) {
+            throw new TiffException("JPEG compression for " + bitsPerSample +
                     "-bit samples is not supported (only unsigned 8-bit samples allowed)");
         }
-        if (options.signed) {
-            throw new TiffException("JPEG compression for signed " + options.bitsPerSample +
+        if (options.isSigned()) {
+            throw new TiffException("JPEG compression for signed " + bitsPerSample +
                     "-bit samples is not supported (only unsigned 8-bit samples allowed)");
         }
         if (data.length == 0) {
@@ -129,9 +131,10 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         long t1 = timing ? System.nanoTime() : 0;
 
         final ByteArrayOutputStream output = new ByteArrayOutputStream();
-        final BufferedImage image = AWTImages.makeImage(data, options.width,
-                options.height, options.numberOfChannels, options.interleaved,
-                options.bitsPerSample / 8, false, options.littleEndian,
+        final BufferedImage image = AWTImages.makeImage(
+                data, options.getWidth(), options.getHeight(), numberOfChannels,
+                options.isInterleaved(),
+                bitsPerSample / 8, false, options.isLittleEndian(),
                 false);
         // - original SCIFIO codec io.scif.codec.JPEGCodec supports any "signed" parameter,
         // loaded from CodecOptions class, but in does not make sense in TIFF
@@ -141,7 +144,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         // - for JPEG, the maximal possible quality is 1.0, but it is better to allow greater qualities
         // (for comparison, the maximal quality in JPEG-2000 is Double.MAX_VALUE)
         try {
-            JPEGEncoding.writeJPEG(image, output, options.photometric, jpegQuality);
+            JPEGEncoding.writeJPEG(image, output, options.getPhotometric(), jpegQuality);
         } catch (final IOException e) {
             throw new TiffException("Cannot compress JPEG data", e);
         }
@@ -160,9 +163,13 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         }
         final long offset = in.offset();
         long t1 = timing ? System.nanoTime() : 0;
-        JPEGDecoding.ImageInformation info;
+        JPEGDecoding.ImageInformation imageInformation;
         try (InputStream input = new BufferedInputStream(new DataHandleInputStream<>(in), 8192)) {
-            info = JPEGDecoding.readJPEG(input, options.photometric, options.numberOfChannels, options.littleEndian);
+            imageInformation = JPEGDecoding.readJPEG(
+                    input,
+                    options.getPhotometric(),
+                    options.getNumberOfChannels(),
+                    options.isLittleEndian());
         } catch (IOException jpegException) {
             // probably a lossless JPEG; delegate to LosslessJPEGCodec
             in.seek(offset);
@@ -174,23 +181,20 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
             // zero length usually means that SOF3 (lossless JPEG) was not found
             throw jpegException;
         }
-        if (info == null) {
+        if (imageInformation == null) {
             throw new TiffException("Cannot read JPEG image: unknown format");
             // - for example, OLD_JPEG
         }
-
-        final boolean completeDecoding = JPEGDecoding.isCompleteDecodingYCbCrNecessary(
-                info,
-                options.photometric,
-                options instanceof JPEGOptions extended ? extended.getYCbCrSubsampling() : null);
         long t2 = timing ? System.nanoTime() : 0;
         timeMain += t2 - t1;
 
-        final byte[][] data = info.pixelBytes();
+        final byte[][] data = imageInformation.pixelBytes();
 
-        if (completeDecoding) {
-            JPEGDecoding.completeDecodingYCbCr(data, info);
-        }
+        JPEGDecoding.completeDecodingYCbCr(
+                data,
+                imageInformation,
+                options.getPhotometric(),
+                options instanceof JPEGOptions extended ? extended.getYCbCrSubsampling() : null);
         long t3 = timing ? System.nanoTime() : 0;
         timeBridge += t3 - t2;
 
@@ -200,7 +204,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
             result = data[0];
         } else {
             result = new byte[Math.multiplyExact(data.length, bandSize)];
-            if (options.interleaved) {
+            if (options.isInterleaved()) {
                 int next = 0;
                 for (int i = 0; i < bandSize; i++) {
                     for (byte[] bytes : data) {

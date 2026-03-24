@@ -37,9 +37,9 @@ public class CCITTFaxCodec implements TiffCodec {
         Objects.requireNonNull(options, "Null codec options");
         final TiffIFD ifd = options.getIfd();
         Objects.requireNonNull(ifd, "IFD is not set in the options");
-        if (options.numberOfChannels != 1 || options.bitsPerSample != 1) {
-            throw new TiffException("CCITT compression (" + options.compression + ") for " +
-                    options.numberOfChannels + " channels and " + options.bitsPerSample +
+        if (options.getNumberOfChannels() != 1 || options.getBitsPerSample() != 1) {
+            throw new TiffException("CCITT compression (" + options.getCompression() + ") for " +
+                    options.getNumberOfChannels() + " channels and " + options.getBitsPerSample() +
                     "-bit samples is not allowed (CCITT compressions support 1 sample/pixel, 1 bit/sample only)");
         }
 
@@ -47,7 +47,7 @@ public class CCITTFaxCodec implements TiffCodec {
         final ByteArrayOutputStream compressedDataStream = new ByteArrayOutputStream();
         final long writingOptions = TinyTwelveMonkey.getCCITTWritingOptions(ifd, compressionCode);
         final OutputStream compressorStream = new CCITTFaxEncoderStreamAdapted(
-                compressedDataStream, options.width, options.height, compressionCode,
+                compressedDataStream, options.getWidth(), options.getHeight(), compressionCode,
                 TinyTwelveMonkey.FILL_LEFT_TO_RIGHT,
                 writingOptions);
         // - we always specify FILL_LEFT_TO_RIGHT: TiffWriter performs the bit inversion, if necessary,
@@ -75,13 +75,14 @@ public class CCITTFaxCodec implements TiffCodec {
             final int overrideCCITTCompressionCode = TinyTwelveMonkey.findCCITTType(
                     compressionCode, compressedDataStream);
             final InputStream decompressorStream = new CCITTFaxDecoderStreamAdapted(
-                    compressedDataStream, options.width, options.height, overrideCCITTCompressionCode, readingOptions,
+                    compressedDataStream, options.getWidth(), options.getHeight(),
+                    overrideCCITTCompressionCode, readingOptions,
                     compressionCode == TinyTwelveMonkey.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE);
             // - note: the last byteAligned argument should be determined one the base of compression code,
             // written in TIFF IFD, not on the base of overrideCCITTCompressionCode
-            final int bitsPerPixel = options.numberOfChannels * options.bitsPerSample;
-            final int bytesPerRow = (bitsPerPixel * options.width + 7) / 8;
-            final int resultSize = bytesPerRow * options.height;
+            final int bitsPerPixel = options.getNumberOfChannels() * options.getBitsPerSample();
+            final int bytesPerRow = (bitsPerPixel * options.getWidth() + 7) / 8;
+            final int resultSize = bytesPerRow * options.getHeight();
             return decompressorStream.readNBytes(resultSize);
         } catch (IOException e) {
             throw new TiffException(e);

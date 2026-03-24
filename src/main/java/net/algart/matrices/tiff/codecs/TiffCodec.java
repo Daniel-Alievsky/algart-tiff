@@ -54,17 +54,17 @@ public interface TiffCodec {
      * Options for compressing and decompressing data.
      */
     class Options implements Cloneable {
-        int width = 0;
-        int height = 0;
-        int numberOfChannels = 0;
-        int bitsPerSample = 0;
-        boolean signed = false;
-        boolean floatingPoint = false;
-        boolean littleEndian = false;
-        boolean interleaved = false;
-        int maxSizeInBytes = 0;
-        TagCompression compression = null;
-        TagPhotometric photometric = null;
+        private int width = 0;
+        private int height = 0;
+        private int numberOfChannels = 0;
+        private int bitsPerSample = 0;
+        private boolean signed = false;
+        private boolean floatingPoint = false;
+        private boolean littleEndian = false;
+        private boolean interleaved = false;
+        private int maxSizeInBytes = 0;
+        private TagCompression compression = null;
+        private TagPhotometric photometric = null;
         // - the codec may need this information for "high-level" formats
         // (when TagCompression.isLowLevelBitsProcessing returns false);
         // in the current version, JPEGCodec and JPEGOptions use it

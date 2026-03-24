@@ -343,7 +343,7 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
             }
         }
 
-        if (options.interleaved && nComponents > 1) {
+        if (options.isInterleaved() && nComponents > 1) {
             // data is stored in planar (RRR...GGG...BBB...) order
             final byte[] newBuf = new byte[buf.length];
             for (int i = 0; i < buf.length; i += nComponents * bytesPerSample) {
@@ -356,7 +356,7 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
             buf = newBuf;
         }
 
-        if (options.littleEndian && bytesPerSample > 1) {
+        if (options.isLittleEndian() && bytesPerSample > 1) {
             // data is stored in big endian order
             // reverse the bytes in each sample
             final byte[] newBuf = new byte[buf.length];
