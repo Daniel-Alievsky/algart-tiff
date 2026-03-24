@@ -190,11 +190,9 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
 
         final byte[][] data = imageInformation.pixelBytes();
 
-        JPEGDecoding.completeDecodingYCbCr(
-                data,
-                imageInformation,
-                options.getPhotometric(),
-                options instanceof JPEGOptions extended ? extended.getYCbCrSubsampling() : null);
+        final int[] subsampling = options instanceof JPEGOptions extended ? extended.getYCbCrSubsampling() : null;
+        JPEGDecoding.completeDecodingYCbCr(data, imageInformation, options.getPhotometric(), subsampling);
+        JPEGDecoding.completeDecodingWhiteIsZero(data, imageInformation, options.getPhotometric());
         long t3 = timing ? System.nanoTime() : 0;
         timeBridge += t3 - t2;
 
