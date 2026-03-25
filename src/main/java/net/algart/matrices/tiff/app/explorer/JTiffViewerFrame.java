@@ -116,7 +116,7 @@ class JTiffViewerFrame extends JFrame {
         final int intZoom100 = (int) (zoom * 100.0);
         final String zoom100 = zoom * 100.0 == intZoom100 ?
                 String.valueOf(intZoom100) :
-                "%.1f".formatted(zoom * 1);
+                "%.1f".formatted(zoom * 100.0);
         final String zoomTitle = zoom == 1.0 ? "" :
                 zoom > 1.0
                         ? "  %s%% (%d:1)".formatted(zoom100, (int) zoom)
