@@ -61,7 +61,6 @@ class TiffSaveHelper {
 
     private static final System.Logger LOG = System.getLogger(TiffViewer.class.getName());
 
-    private final TiffViewer viewer;
     private final JFrame frame;
 
     private volatile boolean copyingInProgress = false;
@@ -77,14 +76,14 @@ class TiffSaveHelper {
     private JButton cancelCopyButton;
     private JDialog copySettingsDialog;
 
-    public TiffSaveHelper(JTiffViewerFrame frame) {
+    public TiffSaveHelper(JFrame frame) {
         this.frame = Objects.requireNonNull(frame);
-        this.viewer = frame.viewer();
     }
 
-    public Path chooseFileToExport(boolean processSelection) {
+    public Path chooseFileToExport(TiffViewer viewer, boolean processSelection) {
         final String whatToExport = processSelection ? "the selected area" : "the image";
         if (!confirmImageSize(
+                viewer,
                 "export " + whatToExport + " to another file format",
                 processSelection ? "Save selection as TIFF" : "Save image as TIFF",
                 processSelection)) {
@@ -103,7 +102,9 @@ class TiffSaveHelper {
         chooser.setFileFilter(ANY_IMAGE_FILTER);
         chooser.setAcceptAllFileFilterUsed(true);
         File file = chooseFile(chooser);
-        if (file == null) return null;
+        if (file == null) {
+            return null;
+        }
         TiffExplorer.PREFERENCES.put(PREF_LAST_EXPORT__DIR, file.getParent());
         return file.toPath();
     }
@@ -130,8 +131,9 @@ class TiffSaveHelper {
         return file.toPath();
     }
 
-    public void copySelectedAreaToClipboard() throws IOException {
-        if (!confirmImageSize(
+    public void copySelectedAreaToClipboard(TiffViewer viewer) throws IOException {
+        Objects.requireNonNull(viewer, "Null viewer");
+        if (!confirmImageSize(viewer,
                 "copy the selected area to the clipboard",
                 "Save selection as TIFF",
                 true)) {
@@ -144,7 +146,8 @@ class TiffSaveHelper {
         }
     }
 
-    public void exportImageToFile(Path targetFile, boolean processSelection) throws IOException {
+    public void exportImageToFile(TiffViewer viewer, Path targetFile, boolean processSelection) throws IOException {
+        Objects.requireNonNull(viewer, "Null viewer");
         Objects.requireNonNull(targetFile, "Null targetFile");
         BufferedImage image = processSelection ? viewer.readSelectedImage() : viewer.readEntireImage();
         if (image != null) {
@@ -154,7 +157,8 @@ class TiffSaveHelper {
         }
     }
 
-    public void showCopyToTiffDialog(Path targetFile, boolean processSelection) {
+    public void showCopyToTiffDialog(TiffViewer viewer, Path targetFile, boolean processSelection) {
+        Objects.requireNonNull(viewer, "Null viewer");
         final boolean tiled = viewer.map().isTiled();
         final int sizeX;
         final int sizeY;
@@ -376,7 +380,11 @@ class TiffSaveHelper {
         startCopyButton.setVisible(true);
     }
 
-    private boolean confirmImageSize(String actionName, String recommendedAction, boolean processSelection) {
+    private boolean confirmImageSize(
+            TiffViewer viewer,
+            String actionName,
+            String recommendedAction,
+            boolean processSelection) {
         final int sizeX;
         final int sizeY;
         if (processSelection) {

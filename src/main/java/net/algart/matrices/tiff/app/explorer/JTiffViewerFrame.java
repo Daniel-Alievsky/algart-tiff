@@ -147,11 +147,11 @@ class JTiffViewerFrame extends JFrame {
         saveImageAsTiffItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
                 InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
         saveImageAsTiffItem.addActionListener(e -> {
-            final var export = new TiffSaveHelper(this);
-            Path file = export.chooseTiffFileToSave(false);
+            final var helper = new TiffSaveHelper(this);
+            Path file = helper.chooseTiffFileToSave(false);
             if (file != null) {
                 try {
-                    export.showCopyToTiffDialog(file, false);
+                    helper.showCopyToTiffDialog(viewer, file, false);
                 } catch (Exception ex) {
                     // - should not occur
                     showErrorMessage(ex, "Unexpected error");
@@ -161,11 +161,11 @@ class JTiffViewerFrame extends JFrame {
         fileMenu.add(saveImageAsTiffItem);
         JMenuItem exportImageItem = new JMenuItem("Export image...");
         exportImageItem.addActionListener(e -> {
-            final var copier = new TiffSaveHelper(this);
-            Path file = copier.chooseFileToExport(false);
+            final var helper = new TiffSaveHelper(this);
+            Path file = helper.chooseFileToExport(viewer, false);
             if (file != null) {
                 try {
-                    copier.exportImageToFile(file, false);
+                    helper.exportImageToFile(viewer, file, false);
                 } catch (Exception ex) {
                     // - including possible non-I/O exceptions like an empty file extension
                     showErrorMessage(ex, "Error exporting image");
@@ -179,11 +179,11 @@ class JTiffViewerFrame extends JFrame {
         saveSelectionAsTiffItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
                 InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
         saveSelectionAsTiffItem.addActionListener(e -> {
-            final var copier = new TiffSaveHelper(this);
-            Path file = copier.chooseTiffFileToSave(true);
+            final var helper = new TiffSaveHelper(this);
+            Path file = helper.chooseTiffFileToSave(true);
             if (file != null) {
                 try {
-                    copier.showCopyToTiffDialog(file, true);
+                    helper.showCopyToTiffDialog(viewer, file, true);
                 } catch (Exception ex) {
                     // - should not occur
                     showErrorMessage(ex, "Unexpected error");
@@ -193,11 +193,11 @@ class JTiffViewerFrame extends JFrame {
         fileMenu.add(saveSelectionAsTiffItem);
         JMenuItem exportSelectionItem = new JMenuItem("Export selection...");
         exportSelectionItem.addActionListener(e -> {
-            final var copier = new TiffSaveHelper(this);
-            Path file = copier.chooseFileToExport(true);
+            final var helper = new TiffSaveHelper(this);
+            Path file = helper.chooseFileToExport(viewer, true);
             if (file != null) {
                 try {
-                    copier.exportImageToFile(file, true);
+                    helper.exportImageToFile(viewer, file, true);
                 } catch (Exception ex) {
                     // - including possible non-I/O exceptions like an empty file extension
                     showErrorMessage(ex, "Error exporting the selected area");
@@ -251,7 +251,7 @@ class JTiffViewerFrame extends JFrame {
         copyItem.addActionListener(e -> {
             try {
                 final var export = new TiffSaveHelper(this);
-                export.copySelectedAreaToClipboard();
+                export.copySelectedAreaToClipboard(viewer);
             } catch (IOException ex) {
                 showErrorMessage(ex, "Error copying the image to the clipboard");
             }
