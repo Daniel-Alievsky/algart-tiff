@@ -247,12 +247,17 @@ class JTiffViewerFrame extends JFrame {
         JMenuItem copyItem = new JMenuItem("Copy");
         copyItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK));
         copyItem.addActionListener(e -> {
-            try {
-                final var helper = new TiffSaveImageHelper(this);
-                helper.copySelectedAreaToClipboard(viewer);
-            } catch (IOException ex) {
-                showErrorMessage(ex, "Error copying the image to the clipboard");
-            }
+            TiffExplorer.setWaitCursor(this, true);
+            SwingUtilities.invokeLater(() -> {
+                try {
+                    final var helper = new TiffSaveImageHelper(this);
+                    helper.copySelectedAreaToClipboard(viewer);
+                } catch (IOException ex) {
+                    showErrorMessage(ex, "Error copying the image to the clipboard");
+                }  finally {
+                    TiffExplorer.setWaitCursor(this, false);
+                }
+            });
         });
         editMenu.add(copyItem);
 

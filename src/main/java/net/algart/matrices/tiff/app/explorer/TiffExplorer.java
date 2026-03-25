@@ -585,6 +585,17 @@ public class TiffExplorer {
         return tiffFile != null && info != null && index >= 0 && index < info.numberOfImages();
     }
 
+    static void setWaitCursor(JFrame frame, boolean wait) {
+        final Component glassPane = frame.getGlassPane();
+        if (wait) {
+            glassPane.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+            glassPane.setVisible(true);
+        } else {
+            glassPane.setVisible(false);
+            glassPane.setCursor(Cursor.getDefaultCursor());
+        }
+    }
+
     static void addActionOnEscape(JDialog dialog, Runnable action) {
         dialog.getRootPane().registerKeyboardAction(
                 e -> action.run(),
