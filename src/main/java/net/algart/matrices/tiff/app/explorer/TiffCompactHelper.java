@@ -32,7 +32,7 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
-class TiffExplorerCompactor {
+class TiffCompactHelper {
     private final JFrame frame;
     private final TiffExplorer explorer;
 
@@ -43,7 +43,7 @@ class TiffExplorerCompactor {
     private JButton cancelCompactButton;
     private JDialog compactDialog;
 
-    public TiffExplorerCompactor(JTiffExplorerFrame frame) {
+    public TiffCompactHelper(JTiffExplorerFrame frame) {
         this.frame = Objects.requireNonNull(frame);
         this.explorer = frame.explorer();
     }

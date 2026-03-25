@@ -45,7 +45,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
-class TiffViewerCopier {
+class TiffSaveHelper {
     private static final int MAX_SINGLE_IMAGE_SIZE_IN_PIXELS = 25 * 1024 * 1024;
     // - 25 megapixels: even for RGBA with float precision, it is only 4*4*25 MB = 400 MB < 2^31 bytes
 
@@ -78,13 +78,13 @@ class TiffViewerCopier {
     private JButton cancelCopyButton;
     private JDialog copySettingsDialog;
 
-    public TiffViewerCopier(JTiffViewerFrame frame) {
+    public TiffSaveHelper(JTiffViewerFrame frame) {
         this.frame = Objects.requireNonNull(frame);
         this.viewer = frame.viewer();
     }
 
     public Path chooseFileToExport(boolean processSelection) {
-        final String whatToExport = processSelection ? "the selected area" : "the TIFF image";
+        final String whatToExport = processSelection ? "the selected area" : "the image";
         if (!confirmImageSize(
                 "export " + whatToExport + " to another file format",
                 processSelection ? "Save selection as TIFF" : "Save image as TIFF",
@@ -97,7 +97,7 @@ class TiffViewerCopier {
         if (dir.isDirectory()) {
             chooser.setCurrentDirectory(dir);
         }
-        chooser.setDialogTitle("Export " + whatToExport + " as...");
+        chooser.setDialogTitle("Export " + whatToExport);
         chooser.setSelectedFile(new File(processSelection ? "selected.png" : "image.png"));
         chooser.setDialogType(JFileChooser.SAVE_DIALOG);
         chooser.addChoosableFileFilter(ANY_IMAGE_FILTER);
@@ -110,14 +110,14 @@ class TiffViewerCopier {
     }
 
     public Path chooseTiffFileToSave(boolean processSelection) {
-        final String whatToSave = processSelection ? "the selected area" : "the TIFF image";
+        final String whatToSave = processSelection ? "the selected area" : "the image";
         JFileChooser chooser = new JFileChooser();
         String last = TiffExplorer.PREFERENCES.get(PREF_LAST_SAVE_AS_TIFF_DIR, null);
         File dir = new File(last == null ? "." : last);
         if (dir.isDirectory()) {
             chooser.setCurrentDirectory(dir);
         }
-        chooser.setDialogTitle("Save " + whatToSave + " as a new TIFF file...");
+        chooser.setDialogTitle("Save " + whatToSave + " as a new TIFF file");
         chooser.setSelectedFile(new File(processSelection ? "selected.tiff" : "image.tiff"));
         chooser.setDialogType(JFileChooser.SAVE_DIALOG);
         chooser.addChoosableFileFilter(TIFF_FILTER);
@@ -176,7 +176,7 @@ class TiffViewerCopier {
             sizeY = map.dimY();
             tileAligned = true;
         }
-        final String whatToSave = processSelection ? "the selected area" : "the TIFF image";
+        final String whatToSave = processSelection ? "the selected area" : "the image";
 
         final TiffReadMap map = viewer.map();
         final TagCompression originalCompression = map.compression().orElse(TagCompression.NONE);
@@ -184,7 +184,7 @@ class TiffViewerCopier {
         final TagCompression compression = !originalCompressionSupported ? TagCompression.NONE : originalCompression;
         copySettingsDialog = new JDialog(frame);
         copySettingsDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-        copySettingsDialog.setTitle("Save " + whatToSave + " as a new TIFF file...");
+        copySettingsDialog.setTitle("Save " + whatToSave + " as a new TIFF file");
         copySettingsDialog.setLayout(new BorderLayout(10, 10));
         copySettingsDialog.setResizable(false);
 

@@ -258,7 +258,7 @@ public class JTiffExplorerFrame extends JFrame {
         replacePhotometricItem.addActionListener(e -> explorer.showRewritePhotometricDialog());
         editMenu.add(replacePhotometricItem);
 
-        JMenuItem removeTagsItem = new JMenuItem("Remove tags...");
+        JMenuItem removeTagsItem = new JMenuItem("Remove IFD tags...");
         removeTagsItem.addActionListener(e -> explorer.showRemoveTagsDialog());
         editMenu.add(removeTagsItem);
 

@@ -147,7 +147,7 @@ class JTiffViewerFrame extends JFrame {
         saveImageAsTiffItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
                 InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
         saveImageAsTiffItem.addActionListener(e -> {
-            final var export = new TiffViewerCopier(this);
+            final var export = new TiffSaveHelper(this);
             Path file = export.chooseTiffFileToSave(false);
             if (file != null) {
                 try {
@@ -161,7 +161,7 @@ class JTiffViewerFrame extends JFrame {
         fileMenu.add(saveImageAsTiffItem);
         JMenuItem exportImageItem = new JMenuItem("Export image...");
         exportImageItem.addActionListener(e -> {
-            final var copier = new TiffViewerCopier(this);
+            final var copier = new TiffSaveHelper(this);
             Path file = copier.chooseFileToExport(false);
             if (file != null) {
                 try {
@@ -179,7 +179,7 @@ class JTiffViewerFrame extends JFrame {
         saveSelectionAsTiffItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
                 InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
         saveSelectionAsTiffItem.addActionListener(e -> {
-            final var copier = new TiffViewerCopier(this);
+            final var copier = new TiffSaveHelper(this);
             Path file = copier.chooseTiffFileToSave(true);
             if (file != null) {
                 try {
@@ -193,7 +193,7 @@ class JTiffViewerFrame extends JFrame {
         fileMenu.add(saveSelectionAsTiffItem);
         JMenuItem exportSelectionItem = new JMenuItem("Export selection...");
         exportSelectionItem.addActionListener(e -> {
-            final var copier = new TiffViewerCopier(this);
+            final var copier = new TiffSaveHelper(this);
             Path file = copier.chooseFileToExport(true);
             if (file != null) {
                 try {
@@ -208,7 +208,7 @@ class JTiffViewerFrame extends JFrame {
         fileMenu.addSeparator();
         // RandomAccessFile does not strictly lock the file: other processes, for example,
         // other instances of TiffExplorer may edit the same file
-        JMenuItem reloadItem = new JMenuItem("Reload TIFF image");
+        JMenuItem reloadItem = new JMenuItem("Reload image");
         reloadItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
         reloadItem.addActionListener(event -> {
             try {
@@ -250,7 +250,7 @@ class JTiffViewerFrame extends JFrame {
         copyItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK));
         copyItem.addActionListener(e -> {
             try {
-                final var export = new TiffViewerCopier(this);
+                final var export = new TiffSaveHelper(this);
                 export.copySelectedAreaToClipboard();
             } catch (IOException ex) {
                 showErrorMessage(ex, "Error copying the image to the clipboard");

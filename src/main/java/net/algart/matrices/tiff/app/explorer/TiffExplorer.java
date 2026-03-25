@@ -160,7 +160,7 @@ public class TiffExplorer {
     }
 
     void showCompactDialog() {
-        new TiffExplorerCompactor(frame).showCompactDialog();
+        new TiffCompactHelper(frame).showCompactDialog();
     }
 
     void reload() {
