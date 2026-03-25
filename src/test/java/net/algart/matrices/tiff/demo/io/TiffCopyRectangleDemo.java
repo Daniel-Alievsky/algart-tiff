@@ -100,7 +100,7 @@ public class TiffCopyRectangleDemo {
             if (h < 0) {
                 h = readMap.dimY() - y;
             }
-            writer.setFormatLike(reader);
+            writer.setCompatibleFileFormat(reader);
             // - without this operator, direct copy will be impossible for LE format
             if (byteOrder != null) {
                 writer.setByteOrder(byteOrder);

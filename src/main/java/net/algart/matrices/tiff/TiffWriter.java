@@ -290,7 +290,7 @@ public non-sealed class TiffWriter extends TiffIO {
         return this;
     }
 
-    public TiffWriter setFormatLike(TiffReader reader) {
+    public TiffWriter setCompatibleFileFormat(TiffReader reader) {
         Objects.requireNonNull(reader, "Null TIFF reader");
         this.setBigTiff(reader.isBigTiff());
         this.setLittleEndian(reader.isLittleEndian());
@@ -648,7 +648,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 // - MUST be compatible with reader() method contract
                 final long[] offsets = reader.readIFDOffsets();
                 final long readerPositionOfLastOffset = reader.positionOfLastIFDOffset();
-                this.setFormatLike(reader);
+                this.setCompatibleFileFormat(reader);
                 allUsedIFDOffsets.addAll(Arrays.stream(offsets).boxed().toList());
                 positionOfLastIFDOffset = readerPositionOfLastOffset;
                 seekToEnd();

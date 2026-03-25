@@ -33,6 +33,7 @@ import net.algart.matrices.tiff.tags.Tags;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -48,6 +49,9 @@ public class TiffInfo {
     private final List<String> ifdInfo = new ArrayList<>();
     private TiffPyramidMetadata metadata;
     private boolean tiff;
+    private boolean bigTiff;
+    private ByteOrder byteOrder = null;
+    private long tiffFileLength = -1;
     private String prefixInfo;
     private String summaryInfo;
     private String svsInfo;
@@ -129,6 +133,18 @@ public class TiffInfo {
         return tiff;
     }
 
+    public boolean isBigTiff() {
+        return bigTiff;
+    }
+
+    public ByteOrder byteOrder() {
+        return byteOrder;
+    }
+
+    public long tiffFileLength() {
+        return tiffFileLength;
+    }
+
     public TiffPyramidMetadata metadata() {
         return metadata;
     }
@@ -164,7 +180,10 @@ public class TiffInfo {
                 throw new AssertionError();
             }
             this.tiff = reader.isTiff();
+            this.bigTiff = reader.isBigTiff();
+            this.byteOrder = reader.getByteOrder();
             this.metadata = TiffPyramidMetadata.empty();
+            this.tiffFileLength = reader.stream().length();
             if (!this.tiff) {
                 final Exception e = reader.openingException();
                 prefixInfo = "%nFile %s: not TIFF%s".formatted(tiffFile,
@@ -199,7 +218,6 @@ public class TiffInfo {
                                         metadata.numberOfImages() + " images)" :
                                 "");
                 AtomicLong totalSize = new AtomicLong(reader.sizeOfHeader());
-                final long tiffFileLength = reader.stream().length();
                 for (int k = firstIndex; k <= lastIndex; k++) {
                     final TiffIFD ifd = allIFDs.get(k);
                     ifdInfo.add(ifdInformation(reader, ifd, k, totalSize));

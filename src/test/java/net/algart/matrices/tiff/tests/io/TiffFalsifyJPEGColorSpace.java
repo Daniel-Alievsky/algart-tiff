@@ -59,7 +59,7 @@ public class TiffFalsifyJPEGColorSpace {
         System.out.printf("Opening %s...%n", sourceFile);
 
         try (TiffReader reader = new TiffReader(sourceFile); var writer = new TiffWriter(targetFile)) {
-            writer.setFormatLike(reader);
+            writer.setCompatibleFileFormat(reader);
             writer.create();
 
             System.out.printf("Transforming to %s...%n", targetFile);

@@ -70,7 +70,7 @@ public class TiffCopyDemo {
             copier.setProgressUpdater(TiffCopyDemo::updateProgress, 100);
             copier.setDirectCopy(false);
             // - unnecessary (it is the default); true value means the repacking copy
-            copier.copyAllTiff(targetFile, sourceFile);
+            copier.copyEntireTiff(targetFile, sourceFile);
         }
         System.out.printf("%nDone%n");
     }

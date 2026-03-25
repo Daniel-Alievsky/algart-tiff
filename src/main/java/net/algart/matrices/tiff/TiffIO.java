@@ -40,6 +40,7 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
+import java.util.Optional;
 
 public sealed abstract class TiffIO implements Closeable permits TiffReader, TiffWriter{
     public static final int FILE_USUAL_MAGIC_NUMBER = 0x2a;
@@ -76,12 +77,26 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
     /**
      * Returns the input/output stream for operation with this TIFF file.
+     *
+     * @return the {@link DataHandle} for this TIFF file; never {@code null}.
      */
     public DataHandle<?> stream() {
         synchronized (fileLock) {
             // - we prefer not to return this stream in the middle of I/O operations
             return stream;
         }
+    }
+
+    /**
+     * Returns an {@link Optional} containing the path to the TIFF file if this object was created by a constructor
+     * with a {@link Path} argument.
+     * If the path is unknown (for example, if the object was created from a {@link DataHandle}),
+     * it returns {@link Optional#empty()}.
+     *
+     * @return the path to the TIFF file, or an empty {@code Optional} if there is no associated file path.
+     */
+    public Optional<Path> path() {
+        return Optional.ofNullable(filePath);
     }
 
     public String streamName() {

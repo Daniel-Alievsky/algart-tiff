@@ -101,6 +101,10 @@ class TiffViewer {
         return map;
     }
 
+    public JFrame frame() {
+        return frame;
+    }
+
     public void show() throws IOException {
         openMap();
         createGUI();

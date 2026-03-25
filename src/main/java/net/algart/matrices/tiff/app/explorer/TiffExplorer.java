@@ -133,7 +133,7 @@ public class TiffExplorer {
         }
     }
 
-    void chooseAndOpenFile() {
+    void chooseFileAndOpen() {
         JFileChooser chooser = new JFileChooser();
         String last = PREFERENCES.get(PREF_LAST_DIR, null);
         File dir = new File(last == null ? "." : last);
@@ -159,8 +159,21 @@ public class TiffExplorer {
         }
     }
 
+    void chooseFileAndShowSaveDialog() {
+        TiffSaveHelper helper = new TiffSaveHelper(frame);
+        Path file = helper.chooseTiffFileToSave();
+        if (file != null) {
+            try {
+                helper.showSaveTiffDialog(file);
+            } catch (Exception ex) {
+                // - should not occur
+                showErrorMessage(frame, ex, "Unexpected error");
+            }
+        }
+    }
+
     void showCompactDialog() {
-        new TiffCompactHelper(frame).showCompactDialog();
+        new TiffSaveHelper(frame).showCompactDialog();
     }
 
     void reload() {
@@ -400,6 +413,7 @@ public class TiffExplorer {
             final JButton cancelButton = new JButton("Cancel");
 
             final JPanel tagListPanel = new JPanel();
+            tagListPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
             tagListPanel.setLayout(new BoxLayout(tagListPanel, BoxLayout.Y_AXIS));
             final Map<Integer, JCheckBox> tagsToSelect = new java.util.HashMap<>();
             for (int tag : tagsToPossiblyRemove) {
@@ -636,6 +650,7 @@ public class TiffExplorer {
     static JComponent leftIndent(JComponent component, int gap) {
         Box box = Box.createHorizontalBox();
         box.add(Box.createHorizontalStrut(gap));
+        component.setAlignmentX(Component.LEFT_ALIGNMENT);
         box.add(component);
         box.setAlignmentX(Component.LEFT_ALIGNMENT);
         return box;

@@ -167,7 +167,7 @@ public class TiffCopy {
         final long t1 = System.nanoTime();
         try (TiffReader reader = new TiffReader(sourceFile);
              TiffWriter writer = new TiffWriter(targetFile)) {
-            writer.setFormatLike(reader);
+            writer.setCompatibleFileFormat(reader);
             if (byteOrder != null) {
                 writer.setByteOrder(byteOrder);
             }
