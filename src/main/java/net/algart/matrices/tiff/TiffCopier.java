@@ -369,6 +369,38 @@ public final class TiffCopier {
         new TiffCopier().copyEntireTiff(targetTiffFile, sourceTiffFile);
     }
 
+    public static void checkDifferentFiles(TiffWriter writer, TiffReader reader) throws IOException {
+        Objects.requireNonNull(writer, "Null TIFF writer");
+        Objects.requireNonNull(reader, "Null TIFF reader");
+        final Path source = reader.path().orElse(null);
+        final Path target = writer.path().orElse(null);
+        checkDifferentFiles(source, target);
+    }
+
+    /**
+     * Checks that the two specified paths do not point to the same existing file.
+     *
+     * <p>This method checks:
+     * <ul>
+     *     <li>whether both paths are non-{@code null} and point to existing files;</li>
+     *     <li>{@link Files#isSameFile(Path, Path)} returns {@code true} for them.</li>
+     * </ul>
+     * <p>In this case this method throws an {@link IOException}.
+     *
+     * <p>If either {@code source} or {@code target} is {@code null}, this method
+     * does nothing.
+     *
+     * @param source the path to the source file; can be {@code null}.
+     * @param target the path to the target file; can be {@code null}.
+     * @throws IOException if both paths are non-{@code null} and point to the same file.
+     */
+    public static void checkDifferentFiles(Path source, Path target) throws IOException {
+        if (source != null && target != null &&
+                Files.exists(source) && Files.exists(target) &&
+                Files.isSameFile(source, target)) {
+            throw new IOException("Source and target files are identical: " + source);
+        }
+    }
 
     /**
      * Checks whether the specified position ({@code x}, {@code y}) is aligned
@@ -445,14 +477,7 @@ public final class TiffCopier {
 
     public void copyEntireTiff(TiffWriter writer, TiffReader reader, boolean enforceCompatibleFileFormat)
             throws IOException {
-        Objects.requireNonNull(writer, "Null TIFF writer");
-        Objects.requireNonNull(reader, "Null TIFF reader");
-        final Path source = reader.path().orElse(null);
-        final Path target = writer.path().orElse(null);
-        if (source != null && target != null && Files.isSameFile(source, target)) {
-            throw new IOException("Cannot copy the entire tiff when the source and target files are the same: " +
-                    source);
-        }
+        checkDifferentFiles(writer, reader);
         if (enforceCompatibleFileFormat) {
             writer.setCompatibleFileFormat(reader);
         }

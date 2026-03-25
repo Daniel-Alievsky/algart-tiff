@@ -155,7 +155,7 @@ class TiffSaveImageHelper {
         }
     }
 
-    public void showSaveImageDialog(TiffViewer viewer, Path targetFile, boolean processSelection) {
+    public void showSaveImageDialog(TiffViewer viewer, Path targetFile, boolean processSelection) throws IOException {
         Objects.requireNonNull(viewer, "Null viewer");
         Objects.requireNonNull(targetFile, "Null targetFile");
         final boolean tiled = viewer.map().isTiled();
@@ -181,6 +181,8 @@ class TiffSaveImageHelper {
         final String whatToSave = processSelection ? "the selected area" : "the image";
 
         final Path tiffFile = viewer.path();
+        TiffCopier.checkDifferentFiles(tiffFile, targetFile);
+
         final TiffReadMap map = viewer.map();
         final int ifdIndex = viewer.ifdIndex();
         final TagCompression originalCompression = map.compression().orElse(TagCompression.NONE);

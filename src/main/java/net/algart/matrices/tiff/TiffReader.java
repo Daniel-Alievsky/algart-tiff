@@ -1285,9 +1285,10 @@ public non-sealed class TiffReader extends TiffIO {
         prepareDecoding(tile);
 
         final byte[] encodedData = tile.getEncodedData();
-        final TagCompression compression = tile.compression().orElse(null);
+        final TagCompression compression = tile.compression().orElse(TagCompression.NONE);
+        // - "compression" is an optional tag: NONE is the default value
         TiffCodec codec = null;
-        if (!enforceUseExternalCodec && compression != null) {
+        if (!enforceUseExternalCodec) {
             codec = compression.codec();
             // - we are sure that this codec does not require SCIFIO context
         }

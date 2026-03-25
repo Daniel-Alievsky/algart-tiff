@@ -36,6 +36,7 @@ import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.io.File;
+import java.io.IOException;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.util.Locale;
@@ -124,13 +125,15 @@ class TiffSaveHelper {
         return file.toPath();
     }
 
-    public void showSaveTiffDialog(Path targetFile) {
+    public void showSaveTiffDialog(Path targetFile) throws IOException {
         Objects.requireNonNull(targetFile, "Null targetFile");
         final Path tiffFile = explorer.getTiffFile();
         TiffInfo info = explorer.getInfo();
         if (tiffFile == null) {
             return;
         }
+        TiffCopier.checkDifferentFiles(tiffFile, targetFile);
+
         settingsDialog = new JDialog(frame);
         settingsDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         settingsDialog.setTitle("Save a copy of the entire TIFF");

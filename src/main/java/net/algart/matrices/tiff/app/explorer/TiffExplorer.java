@@ -166,8 +166,7 @@ public class TiffExplorer {
             try {
                 helper.showSaveTiffDialog(file);
             } catch (Exception ex) {
-                // - should not occur
-                showErrorMessage(frame, ex, "Unexpected error");
+                showErrorMessage(frame, ex, "Error copying TIFF");
             }
         }
     }

@@ -153,8 +153,7 @@ class JTiffViewerFrame extends JFrame {
                 try {
                     helper.showSaveImageDialog(viewer, file, false);
                 } catch (Exception ex) {
-                    // - should not occur
-                    showErrorMessage(ex, "Unexpected error");
+                    showErrorMessage(ex, "Error copying TIFF");
                 }
             }
         });
@@ -185,8 +184,7 @@ class JTiffViewerFrame extends JFrame {
                 try {
                     helper.showSaveImageDialog(viewer, file, true);
                 } catch (Exception ex) {
-                    // - should not occur
-                    showErrorMessage(ex, "Unexpected error");
+                    showErrorMessage(ex, "Error copying TIFF");
                 }
             }
         });

@@ -55,7 +55,6 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
     final DataHandle<?> stream;
     Path filePath = null;
-    // - using in streamName() for more pretty name
     final Object fileLock = new Object();
 
     volatile Object context = null;
