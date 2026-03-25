@@ -137,7 +137,7 @@ public class TiffCopyTest {
                                 ifdIndex, maps.size(), readMap.ifd());
                         final TiffCopier copier = getCopier();
                         copier.setDirectCopy(!repack);
-                        copier.copyImage(writer, readMap, 0, 0, readMap.dimX(), readMap.dimY());
+                        copier.copyRectangle(writer, readMap, 0, 0, readMap.dimX(), readMap.dimY());
                     } else if (!repack && byteOrder == null && !uncompress) {
                         System.out.printf("\r  Direct copying #%d/%d: %s%n", ifdIndex, maps.size(), readMap.ifd());
                         // - below is an example of the simplest usage for a single IFD image:

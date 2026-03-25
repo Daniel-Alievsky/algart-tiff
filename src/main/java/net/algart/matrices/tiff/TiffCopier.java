@@ -381,7 +381,7 @@ public final class TiffCopier {
      *
      * <p>This allows ensuring that the starting position is aligned with tile boundaries
      * is useful when calling
-     * {@link #copyImage(TiffWriter, TiffReadMap, int, int, int, int)}
+     * {@link #copyRectangle(TiffWriter, TiffReadMap, int, int, int, int)}
      * with {@code fromX} and {@code fromY} equal to the checked coordinates.
      * In most cases, such alignment allows significantly faster data transfer
      * because whole tiles can be copied directly in their compressed form,
@@ -566,7 +566,27 @@ public final class TiffCopier {
         return writeMap;
     }
 
-    public TiffWriteMap copyImage(TiffWriter writer, TiffReadMap readMap, int fromX, int fromY, int sizeX, int sizeY)
+    public TiffWriteMap copyRectangle(
+            TiffWriter writer,
+            TiffReader reader,
+            int sourceIfdIndex,
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY) throws IOException {
+        Objects.requireNonNull(writer, "Null TIFF writer");
+        Objects.requireNonNull(reader, "Null TIFF reader");
+        final TiffReadMap readMap = reader.map(sourceIfdIndex);
+        return copyRectangle(writer, readMap, fromX, fromY, sizeX, sizeY);
+    }
+
+    public TiffWriteMap copyRectangle(
+            TiffWriter writer,
+            TiffReadMap readMap,
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY)
             throws IOException {
         // - note that this area may be outside readMap!
         Objects.requireNonNull(writer, "Null TIFF writer");

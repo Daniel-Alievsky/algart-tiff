@@ -107,7 +107,7 @@ public class TiffCopyRectangleDemo {
             }
             writer.create();
             System.out.printf("Copying image %d, rectangle %d..%dx%d..%d%n", ifdIndex, x, x + w - 1, y, y + h - 1);
-            copier.copyImage(writer, readMap, x, y, w, h);
+            copier.copyRectangle(writer, readMap, x, y, w, h);
             System.out.println();
         }
         System.out.printf("Done%n");

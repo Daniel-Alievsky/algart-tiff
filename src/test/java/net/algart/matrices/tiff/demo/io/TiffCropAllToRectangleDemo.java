@@ -92,7 +92,7 @@ public class TiffCropAllToRectangleDemo {
                     toY = Math.min(dimY, alignUp(toY, readMap.tileSizeY()));
                 }
                 System.out.printf("Copying image %d, rectangle %d..%dx%d..%d%n", ifdIndex, fromX, toX, fromY, toY);
-                copier.copyImage(writer, readMap, fromX, fromY, toX - fromX, toY - fromY);
+                copier.copyRectangle(writer, readMap, fromX, fromY, toX - fromX, toY - fromY);
                 System.out.print("\r                                 \r");
             }
         }

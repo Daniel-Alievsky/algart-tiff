@@ -26,7 +26,6 @@ package net.algart.matrices.tiff.app.explorer;
 
 import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffCopier;
-import net.algart.matrices.tiff.TiffOpenMode;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
@@ -178,7 +177,9 @@ class TiffSaveHelper {
         }
         final String whatToSave = processSelection ? "the selected area" : "the image";
 
+        final Path tiffFile = viewer.path();
         final TiffReadMap map = viewer.map();
+        final int ifdIndex = viewer.ifdIndex();
         final TagCompression originalCompression = map.compression().orElse(TagCompression.NONE);
         final boolean originalCompressionSupported = originalCompression.isWritingSupported();
         final TagCompression compression = !originalCompressionSupported ? TagCompression.NONE : originalCompression;
@@ -193,9 +194,9 @@ class TiffSaveHelper {
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         final String whatToCopy = selection == null ?
-                "The TIFF image #%d (%d\u00D7%d)".formatted(viewer.ifdIndex(), sizeX, sizeY) :
+                "The TIFF image #%d (%d\u00D7%d)".formatted(ifdIndex, sizeX, sizeY) :
                 "The selected area %d\u00D7%d (top-left at %d,%d) of the TIFF image #%d"
-                        .formatted(sizeX, sizeY, selection.x, selection.y, viewer.ifdIndex());
+                        .formatted(sizeX, sizeY, selection.x, selection.y, ifdIndex);
         final JLabel infoLabel = new JLabel(TiffExplorer.smartHtmlLines("""
                 %s from the file:<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br><br>
@@ -203,7 +204,7 @@ class TiffSaveHelper {
                 &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>&nbsp;
                 """.formatted(
                 whatToCopy,
-                map.streamName(), targetFile.toAbsolutePath()
+                tiffFile, targetFile.toAbsolutePath()
         )));
 //        infoLabel.setFont(infoLabel.getFont().deriveFont((float) DEFAULT_FONT_SIZE));
         infoLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -286,7 +287,7 @@ class TiffSaveHelper {
         copySettingsDialog.add(buttonPanel, BorderLayout.SOUTH);
         copySettingsDialog.getRootPane().setDefaultButton(startCopyButton);
         cancelCopyButton.addActionListener(e -> cancelCopy());
-        startCopyButton.addActionListener(e -> startCopy(targetFile, selection));
+        startCopyButton.addActionListener(e -> startCopy(tiffFile, targetFile, ifdIndex, selection));
 
         stopCopyingRequested = false;
         copyingInProgress = false;
@@ -299,15 +300,10 @@ class TiffSaveHelper {
         copySettingsDialog.setVisible(true);
     }
 
-    private void startCopy(Path targetFile, Rectangle r) {
+    private void startCopy(Path sourceFile, Path targetFile, int ifdIndex, Rectangle r) {
         final TiffCopier copier;
-        final TiffReader newReader;
-        final TiffReadMap readMap;
         final Double compressionQuality;
         try {
-            newReader = viewer.reader().newReader(TiffOpenMode.VALID_TIFF);
-            // - we must create a new reader without customizing setAutoCorrectInvertedBrightness
-            readMap = newReader.map(viewer.ifdIndex());
             copier = buildCopier();
             compressionQuality = getCompressionQuality();
             stopCopyingRequested = false;
@@ -323,17 +319,19 @@ class TiffSaveHelper {
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
-                try (TiffWriter writer = new TiffWriter(targetFile)) {
+                try (TiffReader reader = new TiffReader(sourceFile);
+                        TiffWriter writer = new TiffWriter(targetFile)) {
+                    // - we must create a new reader without customizing setAutoCorrectColors
                     writer.setSmartCorrection(true);
-                    writer.setFormatLike(newReader);
+                    writer.setFormatLike(reader);
                     // - without this operator, direct copy will be impossible for LE format
                     // if (true) throw new IOException("Test exception");
                     writer.setCompressionQuality(compressionQuality);
                     writer.create();
                     if (r == null) {
-                        copier.copyImage(writer, readMap);
+                        copier.copyImage(writer, reader, ifdIndex);
                     } else {
-                        copier.copyImage(writer, readMap, r.x, r.y, r.width, r.height);
+                        copier.copyRectangle(writer, reader, ifdIndex, r.x, r.y, r.width, r.height);
                     }
                 }
                 return null;
