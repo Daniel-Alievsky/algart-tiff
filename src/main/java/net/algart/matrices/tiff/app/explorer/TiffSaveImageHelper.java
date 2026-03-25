@@ -403,13 +403,17 @@ class TiffSaveImageHelper {
         if ((long) sizeX * (long) sizeY > MAX_SINGLE_IMAGE_SIZE_IN_PIXELS) {
             int choice = JOptionPane.showConfirmDialog(
                     frame, """
-                            You are trying to %s: %d×%d pixels.
-                            
-                            This operation may require a large amount of memory and can fail due to Java memory limits.
-                            Instead, you can use "%s", which works reliably with images of any size.
-                            
-                            Do you want to continue?
-                            
+                            <html>
+                            You are trying to %s: %d×%d pixels.<br>
+                            <br>
+                            This operation may require a large amount of memory and
+                            can fail due to Java memory limits.<br>
+                            Instead, you can use the command<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;File \u25B8%s...<br>
+                            which works reliably with images of any size.<br>
+                            <br>
+                            Do you want to continue?<br>
+                            <br>&nbsp;
                             """.formatted(actionName, sizeX, sizeY, recommendedAction),
                     "Large Image Warning",
                     JOptionPane.YES_NO_OPTION,
