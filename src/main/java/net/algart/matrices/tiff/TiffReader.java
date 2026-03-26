@@ -581,6 +581,21 @@ public non-sealed class TiffReader extends TiffIO {
      * @see TiffMap#isColorCorrectionApplicable()
      */
     public TiffReader setColorCorrection(boolean colorCorrection) {
+        // In principle, there is no problem processing YCbCr similarly to CMYK,
+        // but this only applies to low-level formats (non-JPEG).
+        //
+        // 1) First, unpacking YCbCr in the separateYCbCrToRGB method affects
+        // not only the color but the entire data stream due to subsampling reversal.
+        // This unpacking is mandatory; preserving "original" values in this context
+        // looks very strange.
+        //
+        // 2) Moreover, the current YCbCr implementation is a targeted workaround
+        // for specific legacy cases (3 channels, exactly 8-bit) rather than
+        // full-scale support. This workaround strictly validates these conditions
+        // and throws an error if they are not met.
+        // In contrast, White-Is-Zero and CMYK are fully supported from a data
+        // perspective, though the library does not provide a high-level API
+        // for professional-grade color visualization in these spaces.
         this.colorCorrection = colorCorrection;
         return this;
     }

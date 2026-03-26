@@ -40,20 +40,23 @@ import java.util.OptionalInt;
 
 class JTiffViewerFrame extends JFrame {
     private final TiffViewer viewer;
-    private final JTiffViewerPanel tiffPanel;
-    private final JTiffViewerScrollPane tiffScrollPane;
+    private final JTiffViewerPanel viewerPanel;
+    private final JTiffViewerScrollPane viewerScrollPane;
     private final JPanel noticePanel;
     private final JLabel noticeLabel;
     private final JLabel statusLabel;
 
     public JTiffViewerFrame(TiffViewer viewer) {
         this.viewer = Objects.requireNonNull(viewer);
+        if (viewer.map() == null) {
+            throw new AssertionError("map must be set before using the viewer frame");
+        }
         TiffExplorer.setTiffExplorerIcon(this);
         this.setLayout(new BorderLayout());
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         this.setJMenuBar(buildMenuBar());
 
-        tiffPanel = new JTiffViewerPanel(viewer);
+        viewerPanel = new JTiffViewerPanel(viewer);
 
         noticePanel = new JPanel();
         noticePanel.setLayout(new FlowLayout(FlowLayout.LEFT, 5, 5));
@@ -61,9 +64,9 @@ class JTiffViewerFrame extends JFrame {
         noticePanel.add(noticeLabel);
         this.add(noticePanel, BorderLayout.NORTH);
 
-        tiffScrollPane = new JTiffViewerScrollPane(tiffPanel);
-        tiffScrollPane.setBorder(BorderFactory.createEmptyBorder());
-        this.add(tiffScrollPane, BorderLayout.CENTER);
+        viewerScrollPane = new JTiffViewerScrollPane(viewerPanel);
+        viewerScrollPane.setBorder(BorderFactory.createEmptyBorder());
+        this.add(viewerScrollPane, BorderLayout.CENTER);
 
         final JPanel statusPanel = new JPanel();
         statusPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 5, 5));
@@ -95,7 +98,7 @@ class JTiffViewerFrame extends JFrame {
     }
 
     public JTiffViewerPanel tiffPanel() {
-        return tiffPanel;
+        return viewerPanel;
     }
 
     public JLabel statusLabel() {
@@ -106,16 +109,13 @@ class JTiffViewerFrame extends JFrame {
     public void dispose() {
         super.dispose();
         viewer.disposeResources();
-        tiffPanel.disposeResources();
+        viewerPanel.disposeResources();
     }
 
     void resetImage() {
         final TiffReadMap map = viewer.map();
-        if (map == null) {
-            throw new AssertionError("map must be set before using the viewer frame");
-        }
         final OptionalInt bitDepth = map.tryEqualBitDepth();
-        final double zoom = tiffPanel.getZoom();
+        final double zoom = viewerPanel.getZoom();
         final int intZoom100 = (int) (zoom * 100.0);
         final String zoom100 = zoom * 100.0 == intZoom100 ?
                 String.valueOf(intZoom100) :
@@ -224,26 +224,20 @@ class JTiffViewerFrame extends JFrame {
         JMenuItem selectAllItem = new JMenuItem("Select all");
         selectAllItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK));
         selectAllItem.addActionListener(e -> {
-            tiffPanel.setSelectionAll();
+            viewerPanel.setSelectionAll();
         });
         editMenu.add(selectAllItem);
         JMenuItem setSelectionItem = new JMenuItem("Set selection...");
         setSelectionItem.addActionListener(e -> viewer.showSetSelectionDialog());
         editMenu.add(setSelectionItem);
-        JMenuItem alignSelectionItem = viewer.map().isTiled() ?
-                new JMenuItem(viewer.alignSelectionToTileGridCommand()) :
-                null;
-        if (alignSelectionItem != null) {
-            alignSelectionItem.addActionListener(e -> alignSelection());
-            alignSelectionItem.setAccelerator(KeyStroke.getKeyStroke(
-                    KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
-            editMenu.add(alignSelectionItem);
-        }
+        JMenuItem alignSelectionItem = new JMenuItem("Align selection to tiles");
+        alignSelectionItem.addActionListener(e -> alignSelection());
+        alignSelectionItem.setAccelerator(KeyStroke.getKeyStroke(
+                KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
+        editMenu.add(alignSelectionItem);
         JMenuItem removeSelectionItem = new JMenuItem("Remove selection");
         removeSelectionItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0));
-        removeSelectionItem.addActionListener(e -> {
-            tiffPanel.removeSelection();
-        });
+        removeSelectionItem.addActionListener(e -> viewerPanel.removeSelection());
         editMenu.add(removeSelectionItem);
         editMenu.addSeparator();
 
@@ -265,14 +259,29 @@ class JTiffViewerFrame extends JFrame {
         editMenu.add(copyItem);
 
         JMenu viewMenu = new JMenu("View");
-        JCheckBoxMenuItem tileGridItem = new JCheckBoxMenuItem(
-                "Draw %s".formatted(viewer.map().isTiled() ? "tile grid" : "strip boundaries"));
+        JMenu colorCorrectionMenu = new JMenu("Color correction");
+        ButtonGroup correctionGroup = new ButtonGroup();
+        JRadioButtonMenuItem rawItem = new JRadioButtonMenuItem("No color correction");
+        rawItem.setEnabled(false);
+        rawItem.addActionListener(e -> setColorCorrection(false));
+
+        JRadioButtonMenuItem correctedItem = new JRadioButtonMenuItem("Color correction");
+        correctedItem.setEnabled(false);
+        correctedItem.addActionListener(e -> setColorCorrection(true));
+        correctionGroup.add(rawItem);
+        correctionGroup.add(correctedItem);
+        colorCorrectionMenu.add(rawItem);
+        colorCorrectionMenu.add(correctedItem);
+        viewMenu.add(colorCorrectionMenu);
+        viewMenu.addSeparator();
+
+        JCheckBoxMenuItem tileGridItem = new JCheckBoxMenuItem("Draw grid");
         tileGridItem.setSelected(false);
         tileGridItem.addActionListener(e -> {
             try {
                 viewer.setTileGridVisibility(tileGridItem.isSelected());
-                tiffPanel.repaint();
-            } catch (IOException ex) {
+                viewerPanel.repaint();
+            } catch (Exception ex) {
                 showErrorMessage(ex, "Error reloading image");
             }
         });
@@ -291,14 +300,39 @@ class JTiffViewerFrame extends JFrame {
         viewMenu.add(zoomMenu);
 
         final MenuUpdater menuUpdater = new MenuUpdater(() -> {
-            if (alignSelectionItem != null) {
-                alignSelectionItem.setText(viewer.alignSelectionToTileGridCommand());
-                alignSelectionItem.setEnabled(tiffPanel.isSelected());
+            final TiffReadMap map = viewer.map();
+            alignSelectionItem.setText(viewer.alignSelectionToTileGridCommand());
+            alignSelectionItem.setEnabled(viewerPanel.isSelected());
+            alignSelectionItem.setVisible(map.isTiled());
+            removeSelectionItem.setEnabled(viewerPanel.isSelected());
+            copyItem.setEnabled(viewerPanel.hasNonEmptySelection());
+            exportSelectionItem.setEnabled(viewerPanel.hasNonEmptySelection());
+            saveSelectionAsTiffItem.setEnabled(viewerPanel.hasNonEmptySelection());
+
+            final boolean colorCorrectionApplicable = map.isColorCorrectionApplicable();
+            final boolean colorCorrection = viewer.isColorCorrection();
+            String rawLabel = map.numberOfChannels() == 1 ?
+                    "No correction (grayscale, 0 is black)" :
+                    "No correction (unsupported color models will be displayed as RGB)";
+            String correctedLabel = map.numberOfChannels() == 1 ?
+                    "Corrected (grayscale, 0 is white)" :
+                    "Corrected (CMYK will be converted to RGB)";
+            colorCorrectionMenu.setText(colorCorrectionApplicable ? "Color correction" : "Color correction (n/a)");
+            rawItem.setText(rawLabel);
+            rawItem.setEnabled(colorCorrectionApplicable);
+            rawItem.setSelected(!colorCorrection);
+            correctedItem.setText(correctedLabel);
+            correctedItem.setEnabled(colorCorrectionApplicable);
+            correctedItem.setSelected(colorCorrection);
+            Color colorCorrectionForeground = colorCorrectionApplicable ?
+                    viewMenu.getForeground() :
+                    UIManager.getColor("MenuItem.disabledForeground");
+            if (colorCorrectionForeground != null) {
+                colorCorrectionMenu.setForeground(new Color(colorCorrectionForeground.getRGB()));
+                // - when possible, emulate the "disabled" menu state without actual disabling;
+                // may not work without explicit new Color(...)
             }
-            removeSelectionItem.setEnabled(tiffPanel.isSelected());
-            copyItem.setEnabled(tiffPanel.hasNonEmptySelection());
-            exportSelectionItem.setEnabled(tiffPanel.hasNonEmptySelection());
-            saveSelectionAsTiffItem.setEnabled(tiffPanel.hasNonEmptySelection());
+            tileGridItem.setText("Draw %s".formatted(map.isTiled() ? "tile grid" : "strip boundaries"));
         });
         fileMenu.addMenuListener(menuUpdater);
         editMenu.addMenuListener(menuUpdater);
@@ -324,13 +358,13 @@ class JTiffViewerFrame extends JFrame {
         }
         item.addActionListener(e -> {
             try {
-                tiffScrollPane.setZoomWithCentering(zoomValue);
+                viewerScrollPane.setZoomWithCentering(zoomValue);
                 resetImage();
                 viewer.setTileGridThickness(tileGridThickness);
             } catch (TooBigZoomException | IOException ex) {
                 showErrorMessage(ex, "Cannot set zoom");
             }
-            tiffPanel.repaint();
+            viewerPanel.repaint();
             item.setSelected(true);
         });
         group.add(item);
@@ -348,7 +382,16 @@ class JTiffViewerFrame extends JFrame {
             final long fromY = (long) selection.y / tileY * tileY;
             final long toX = ((long) selection.x + (long) selection.width + tileX - 1) / tileX * tileX;
             final long toY = ((long) selection.y + (long) selection.height + tileY - 1) / tileY * tileY;
-            tiffPanel.setImageSelection(fromX, fromY, toX, toY);
+            viewerPanel.setImageSelection(fromX, fromY, toX, toY);
+        }
+    }
+
+    private void setColorCorrection(boolean colorCorrection) {
+        try {
+            viewer.setColorCorrection(colorCorrection);
+            viewerPanel.repaint();
+        } catch (IOException ex) {
+            showErrorMessage(ex, "Error reloading image");
         }
     }
 

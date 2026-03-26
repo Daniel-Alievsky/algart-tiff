@@ -29,7 +29,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class UIKeyListTest {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
+        showDefaults();
+        UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        showDefaults();
+    }
+
+    private static void showDefaults() {
+        System.out.println(UIManager.getSystemLookAndFeelClassName());
         UIDefaults defaults = UIManager.getDefaults();
         List<String> list = new ArrayList<>();
         for (Object o : defaults.keySet()) {
@@ -43,5 +50,7 @@ public class UIKeyListTest {
         for (String key : list) {
             System.out.println(key + " = " + defaults.get(key));
         }
+        System.out.println("Menu item disabled: " + UIManager.getColor("MenuItem.disabledForeground"));
+        System.out.println();
     }
 }

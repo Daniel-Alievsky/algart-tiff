@@ -37,6 +37,7 @@ import java.util.Objects;
 class TiffViewer {
     static final String DEFAULT_STATUS =
             "Use mouse drag to select a rectangle, or SHIFT-drag to move the image";
+    static final boolean DEFAULT_COLOR_CORRECTION = true;
     private static final long CACHING_MEMORY = 256 * 1048576L;
     // - 256MB = 16 * 16M is enough to store several user screens even with the zoom 1:4
     private static final boolean PRELOAD_LITTLE_AREA_WHILE_OPENING = true;
@@ -66,7 +67,7 @@ class TiffViewer {
     public TiffViewer(Path path, int ifdIndex) throws IOException {
         this.path = Objects.requireNonNull(path);
         this.reader = new TiffReaderWithGrid(path);
-        this.reader.setColorCorrection(true);
+        this.reader.setColorCorrection(DEFAULT_COLOR_CORRECTION);
         this.reader.setMaxCacheMemory(CACHING_MEMORY);
         this.ifdIndex = ifdIndex;
         LOG.log(System.Logger.Level.INFO, "Viewer opened " + reader.streamName());
@@ -244,6 +245,17 @@ class TiffViewer {
         lastImageRectangle = null;
         lastImage = null;
         exception = null;
+    }
+
+    public boolean isColorCorrection() {
+        return reader.isColorCorrection();
+    }
+
+    void setColorCorrection(boolean colorCorrection) throws IOException {
+        if (colorCorrection != reader.isColorCorrection()) {
+            reader.setColorCorrection(colorCorrection);
+            invalidateCache();
+        }
     }
 
     void setTileGridVisibility(boolean visible) throws IOException {
