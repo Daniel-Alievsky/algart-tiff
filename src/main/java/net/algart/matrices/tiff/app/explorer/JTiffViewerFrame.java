@@ -111,6 +111,9 @@ class JTiffViewerFrame extends JFrame {
 
     void resetImage() {
         final TiffReadMap map = viewer.map();
+        if (map == null) {
+            throw new AssertionError("map must be set before using the viewer frame");
+        }
         final OptionalInt bitDepth = map.tryEqualBitDepth();
         final double zoom = tiffPanel.getZoom();
         final int intZoom100 = (int) (zoom * 100.0);

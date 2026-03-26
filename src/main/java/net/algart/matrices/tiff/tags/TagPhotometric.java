@@ -69,7 +69,7 @@ public enum TagPhotometric {
     }
 
     public boolean isInvertedBrightness() {
-        return this == WHITE_IS_ZERO || this == CMYK;
+        return isInvertedBrightness(code);
     }
 
     public static boolean isInvertedBrightness(int code) {
@@ -91,7 +91,7 @@ public enum TagPhotometric {
      * <p>Note: YCbCr is included because {@link net.algart.matrices.tiff.TiffReader} usually converts
      * such TIFF images into a standard RGB form automatically.</p>
      * * <p>Note: {@link #WHITE_IS_ZERO} will be rendered correctly only if you set
-     * {@link net.algart.matrices.tiff.TiffReader#setCorrectColors(boolean)} flag.</p>
+     * {@link net.algart.matrices.tiff.TiffReader#setColorCorrection(boolean)} flag.</p>
      *
      * @return true if the image is ready for simple rendering.
      */

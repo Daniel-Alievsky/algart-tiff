@@ -66,7 +66,7 @@ class TiffViewer {
     public TiffViewer(Path path, int ifdIndex) throws IOException {
         this.path = Objects.requireNonNull(path);
         this.reader = new TiffReaderWithGrid(path);
-        this.reader.setCorrectColors(true);
+        this.reader.setColorCorrection(true);
         this.reader.setMaxCacheMemory(CACHING_MEMORY);
         this.ifdIndex = ifdIndex;
         LOG.log(System.Logger.Level.INFO, "Viewer opened " + reader.streamName());

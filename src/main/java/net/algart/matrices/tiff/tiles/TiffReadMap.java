@@ -67,8 +67,8 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
         return reader.isScaleWhenIncreasingBitDepth();
     }
 
-    public boolean isCorrectColors() {
-        return reader.isCorrectColors();
+    public boolean isColorCorrection() {
+        return reader.isColorCorrection();
     }
 
     public byte[] loadSampleBytes() throws IOException {

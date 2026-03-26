@@ -136,6 +136,7 @@ public sealed class TiffMap permits TiffIOMap {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private final Optional<TagPhotometric> photometric;
     // - storing Optional value is not a usual way; we do this only for quick replacement of TiffIFD method
+    private final boolean colorCorrectionApplicable;
     private volatile int dimX = 0;
     private volatile int dimY = 0;
     private volatile int gridCountX = 0;
@@ -216,6 +217,7 @@ public sealed class TiffMap permits TiffIOMap {
             this.compression = ifd.optCompression();
             this.photometricCode = ifd.getPhotometricCode();
             this.photometric = ifd.optPhotometric();
+            this.colorCorrectionApplicable = ifd.isLowLevelInvertedBrightness();
             if (hasImageDimensions) {
                 setDimensions(ifd.getImageDimX(), ifd.getImageDimY(), false);
             }
@@ -423,6 +425,25 @@ public sealed class TiffMap permits TiffIOMap {
 
     public Optional<TagPhotometric> photometric() {
         return photometric;
+    }
+
+    /**
+     * Returns <code>true</code> if the current map's combination of compression and
+     * photometric interpretation allows for color correction.
+     * In the current version, it is equivalent to:
+     * <pre>
+     * {@link #ifd()}.{@link TiffIFD#isLowLevelInvertedBrightness() isLowLevelInvertedBrightness()}
+     * </pre>
+     *
+     * <p>If this method returns <code>false</code>, the {@link TiffReader#setColorCorrection(boolean)}
+     * flag will have no effect while reading from this map.</p>
+     *
+     * @return <code>true</code> if color correction is applicable to this TIFF image.
+     * @see TiffReader#setColorCorrection(boolean)
+     *
+     */
+    public boolean isColorCorrectionApplicable() {
+        return colorCorrectionApplicable;
     }
 
     public int dimX() {

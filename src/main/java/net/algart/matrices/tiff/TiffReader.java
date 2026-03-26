@@ -150,7 +150,7 @@ public non-sealed class TiffReader extends TiffIO {
     private UnpackBits autoUnpackBits = UnpackBits.NONE;
     private UnusualPrecisions unusualPrecisions = UnusualPrecisions.UNPACK;
     private boolean scaleWhenIncreasingBitDepth = true;
-    private boolean correctColors = false;
+    private boolean colorCorrection = false;
     private boolean enforceUseExternalCodec = false;
     private boolean cropTilesToImageBoundaries = true;
     private boolean cachingIFDs = true;
@@ -545,8 +545,8 @@ public non-sealed class TiffReader extends TiffIO {
         return this;
     }
 
-    public boolean isCorrectColors() {
-        return correctColors;
+    public boolean isColorCorrection() {
+        return colorCorrection;
     }
 
     /**
@@ -562,6 +562,12 @@ public non-sealed class TiffReader extends TiffIO {
      * (though this is a simple inversion and not a professional CMYK-to-RGB conversion).</li>
      * </ul>
      *
+     * <p>Note: photometric interpretation <b>YCbCr</b> (6) is always decoded regardless of this flag.
+     * However, we do not support writing this photometric interpretation
+     * for compressions besides JPEG codec;
+     * an attempt to write such a TIFF image will replace <b>YCbCr</b> with the usual <b>RGB</b>
+     * (see {@link TiffWriter#setSmartCorrection(boolean)}).</p>
+     *
      * <p>Note: this flag does not provide full support for all PhotometricInterpretation values
      * (such as CIELAB) and does not replace a proper color management system.
      *
@@ -569,12 +575,13 @@ public non-sealed class TiffReader extends TiffIO {
      * not just to display the image. For instance, this flag should be <code>false</code> if you want to copy
      * the data into another TIFF using the {@link TiffCopier} class.
      *
-     * @param correctColors whether to apply basic inversion/correction for "WhiteIsZero" and "CMYK"
-     *                      photometric interpretations.
+     * @param colorCorrection whether to apply basic inversion/correction for "WhiteIsZero" and "CMYK"
+     *                        photometric interpretations.
      * @return a reference to this object.
+     * @see TiffMap#isColorCorrectionApplicable()
      */
-    public TiffReader setCorrectColors(boolean correctColors) {
-        this.correctColors = correctColors;
+    public TiffReader setColorCorrection(boolean colorCorrection) {
+        this.colorCorrection = colorCorrection;
         return this;
     }
 
@@ -1433,7 +1440,7 @@ public non-sealed class TiffReader extends TiffIO {
         } else {
             if (!TiffUnpacking.separateUnpackedSamples(tile)) {
                 if (!TiffUnpacking.separateYCbCrToRGB(tile)) {
-                    TiffUnpacking.unpackTiffBitsAndInvertValues(tile, scaleWhenIncreasingBitDepth, correctColors);
+                    TiffUnpacking.unpackTiffBitsAndInvertValues(tile, scaleWhenIncreasingBitDepth, colorCorrection);
                 }
             }
         }

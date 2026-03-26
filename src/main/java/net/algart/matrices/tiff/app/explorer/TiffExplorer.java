@@ -199,9 +199,7 @@ public class TiffExplorer {
         }
         frame.setShowImageInProgress(true);
         try {
-            TiffViewer imageViewer = new TiffViewer(tiffFile, index);
-            frame.setShowImageInProgress(true);
-            imageViewer.show();
+            new TiffViewer(tiffFile, index).show();
         } catch (IOException e) {
             showErrorMessage(frame, e, "Error opening the TIFF image");
         } finally {
