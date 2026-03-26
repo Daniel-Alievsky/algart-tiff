@@ -112,11 +112,20 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         if (options.isFloatingPoint()) {
             throw new TiffException("JPEG compression cannot be used for floating-point values");
         }
+        final TagPhotometric photometric = options.getPhotometric();
         final int numberOfChannels = options.getNumberOfChannels();
-        final int bitsPerSample = options.getBitsPerSample();
-        if (numberOfChannels != 1 && numberOfChannels != 3) {
-            throw new TiffException("JPEG compression for " + numberOfChannels + " channels is not supported");
+        final int expectedChannels = switch (photometric) {
+            case null -> throw new TiffException("Photometric interpretation is not set in the options");
+            case BLACK_IS_ZERO -> 1;
+            case RGB, Y_CB_CR -> 3;
+            default -> throw new TiffException("JPEG compression for photometric interpretation " + photometric +
+                    " is not supported");
+        };
+        if (numberOfChannels != expectedChannels) {
+            throw new TiffException("JPEG compression for " + numberOfChannels + " channels for " +
+                    "photometric inpterpretation " + photometric + " is not supported");
         }
+        final int bitsPerSample = options.getBitsPerSample();
         if (bitsPerSample != 8) {
             throw new TiffException("JPEG compression for " + bitsPerSample +
                     "-bit samples is not supported (only unsigned 8-bit samples allowed)");
@@ -144,7 +153,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         // - for JPEG, the maximal possible quality is 1.0, but it is better to allow greater qualities
         // (for comparison, the maximal quality in JPEG-2000 is Double.MAX_VALUE)
         try {
-            JPEGEncoding.writeJPEG(image, output, options.getPhotometric(), jpegQuality);
+            JPEGEncoding.writeJPEG(image, output, photometric, jpegQuality);
         } catch (final IOException e) {
             throw new TiffException("Cannot compress JPEG data", e);
         }
