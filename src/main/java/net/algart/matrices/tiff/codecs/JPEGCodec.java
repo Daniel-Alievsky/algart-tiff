@@ -117,6 +117,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         final int expectedChannels = switch (photometric) {
             case null -> throw new TiffException("Photometric interpretation is not set in the options");
             case BLACK_IS_ZERO -> 1;
+            // - unlike decompress() method, compression of WHITE_IS_ZERO is not supported
             case RGB, Y_CB_CR -> 3;
             default -> throw new TiffException("JPEG compression for photometric interpretation " + photometric +
                     " is not supported");

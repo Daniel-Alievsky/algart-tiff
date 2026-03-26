@@ -60,8 +60,9 @@ public class TiffUnpacking {
             return false;
         }
         if (!OPTIMIZE_SEPARATING_WHOLE_BYTES && tile.isInterleaved()) {
-            // - if a tile is not interleaved, we MUST use this method:
-            // separateBitsAndInvertValues does not "understand" this situation
+            // - actually never happens: OPTIMIZE_SEPARATING_WHOLE_BYTES=true
+            // (if a tile is not interleaved, we MUST use this method:
+            // unpackTiffBitsAndInvertValues method does not "understand" this situation)
             return false;
         }
 
@@ -302,12 +303,12 @@ public class TiffUnpacking {
 
     private static boolean isSimpleRearrangingBytesEnough(TiffIFD ifd, AtomicBoolean lowLevelFormat)
             throws TiffException {
-        final TagCompression compression = ifd.optCompression().orElse(null);
-        final boolean advancedFormat = compression != null && !compression.isLowLevelBitsProcessing();
+        final TagCompression compression = ifd.optCompression().orElse(TagCompression.NONE);
+        final boolean lowLevel = compression.isLowLevelBitsProcessing();
         if (lowLevelFormat != null) {
-            lowLevelFormat.set(!advancedFormat);
+            lowLevelFormat.set(lowLevel);
         }
-        if (advancedFormat) {
+        if (!lowLevel) {
             // JPEG codec and non-standard codecs like JPEG-2000 should perform all necessary
             // bits unpacking or color corrections (including inverting brightness) themselves
             return true;
@@ -523,7 +524,7 @@ public class TiffUnpacking {
             throw new IllegalStateException("Corrupted IFD, probably from a parallel thread " +
                     "(BitsPerSample tag is byte-aligned and inversion is not necessary, " +
                     "though it was already checked)");
-            // - was checked in isSimpleRearrangingBytesEnough; other case,
+            // - was checked in isSimpleRearrangingBytesEnough; in the other case,
             // when we have DIFFERENT number of bytes, must be checked while creating TiffMap
         }
         if (samplesPerPixel > bitsPerSample.length)

@@ -660,7 +660,7 @@ public final class TiffTile {
      * <p>This method is rarely necessary: {@link #getDecodedData()} is enough for most needs.
      *
      * <p>The argument <code>autoScaleWhenIncreasingBitDepth</code> specifies how to unpack 3-byte integer data.
-     * Usually it should be equal to {@link TiffReader#setAutoScaleWhenIncreasingBitDepth(boolean)
+     * Usually it should be equal to {@link TiffReader#setScaleWhenIncreasingBitDepth(boolean)
      * the corresponding flag} of {@link TiffReader} class used for reading this tile.
      * The typical value is <code>true</code>.
      *

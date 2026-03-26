@@ -149,8 +149,8 @@ public non-sealed class TiffReader extends TiffIO {
     private volatile long maxCacheMemory = DEFAULT_MAX_CACHING_MEMORY;
     private UnpackBits autoUnpackBits = UnpackBits.NONE;
     private UnusualPrecisions unusualPrecisions = UnusualPrecisions.UNPACK;
-    private boolean autoScaleWhenIncreasingBitDepth = true;
-    private boolean autoCorrectColors = false;
+    private boolean scaleWhenIncreasingBitDepth = true;
+    private boolean correctColors = false;
     private boolean enforceUseExternalCodec = false;
     private boolean cropTilesToImageBoundaries = true;
     private boolean cachingIFDs = true;
@@ -412,7 +412,8 @@ public non-sealed class TiffReader extends TiffIO {
                 this.mainIFDs = null;
                 this.positionOfLastIFDOffset = -1;
                 if (!(stream instanceof ReadBufferDataHandle<?>)) {
-                    throw new AssertionError("Input stream was not correcty replaced in the constructor");
+                    throw new AssertionError(
+                            "Input stream was not correctly replaced in the constructor");
                 }
                 ((ReadBufferDataHandle<?>) stream).clearCache();
                 final IOException exception = startReading();
@@ -502,8 +503,8 @@ public non-sealed class TiffReader extends TiffIO {
         return this;
     }
 
-    public boolean isAutoScaleWhenIncreasingBitDepth() {
-        return autoScaleWhenIncreasingBitDepth;
+    public boolean isScaleWhenIncreasingBitDepth() {
+        return scaleWhenIncreasingBitDepth;
     }
 
     /**
@@ -533,19 +534,19 @@ public non-sealed class TiffReader extends TiffIO {
      * PhotometricInterpretation TIFF tag is "Palette" (3) or "Transparency Mask" (4): in these cases,
      * scaling has no sense.
      *
-     * @param autoScaleWhenIncreasingBitDepth whether do we need to scale pixel samples, represented with <i>k</i>
-     *                                        bits/sample, <i>k</i>%8&nbsp;&ne;&nbsp;0, when increasing bit depth
-     *                                        to the nearest <i>n</i> bits/sample, where
-     *                                        <i>n</i>&nbsp;&gt;&nbsp;<i>k</i> and <i>n</i> is divided by 8.
+     * @param scaleWhenIncreasingBitDepth whether do we need to scale pixel samples, represented with <i>k</i>
+     *                                    bits/sample, <i>k</i>%8&nbsp;&ne;&nbsp;0, when increasing bit depth
+     *                                    to the nearest <i>n</i> bits/sample, where
+     *                                    <i>n</i>&nbsp;&gt;&nbsp;<i>k</i> and <i>n</i> is divided by 8.
      * @return a reference to this object.
      */
-    public TiffReader setAutoScaleWhenIncreasingBitDepth(boolean autoScaleWhenIncreasingBitDepth) {
-        this.autoScaleWhenIncreasingBitDepth = autoScaleWhenIncreasingBitDepth;
+    public TiffReader setScaleWhenIncreasingBitDepth(boolean scaleWhenIncreasingBitDepth) {
+        this.scaleWhenIncreasingBitDepth = scaleWhenIncreasingBitDepth;
         return this;
     }
 
-    public boolean isAutoCorrectColors() {
-        return autoCorrectColors;
+    public boolean isCorrectColors() {
+        return correctColors;
     }
 
     /**
@@ -568,12 +569,12 @@ public non-sealed class TiffReader extends TiffIO {
      * not just to display the image. For instance, this flag should be <code>false</code> if you want to copy
      * the data into another TIFF using the {@link TiffCopier} class.
      *
-     * @param autoCorrectColors whether to apply basic inversion/correction for "WhiteIsZero" and "CMYK"
-     *                          photometric interpretations.
+     * @param correctColors whether to apply basic inversion/correction for "WhiteIsZero" and "CMYK"
+     *                      photometric interpretations.
      * @return a reference to this object.
      */
-    public TiffReader setAutoCorrectColors(boolean autoCorrectColors) {
-        this.autoCorrectColors = autoCorrectColors;
+    public TiffReader setCorrectColors(boolean correctColors) {
+        this.correctColors = correctColors;
         return this;
     }
 
@@ -1432,9 +1433,7 @@ public non-sealed class TiffReader extends TiffIO {
         } else {
             if (!TiffUnpacking.separateUnpackedSamples(tile)) {
                 if (!TiffUnpacking.separateYCbCrToRGB(tile)) {
-                    TiffUnpacking.unpackTiffBitsAndInvertValues(tile,
-                            autoScaleWhenIncreasingBitDepth,
-                            autoCorrectColors);
+                    TiffUnpacking.unpackTiffBitsAndInvertValues(tile, scaleWhenIncreasingBitDepth, correctColors);
                 }
             }
         }

@@ -32,7 +32,6 @@ import net.algart.matrices.tiff.TiffReader;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.List;
-import java.util.Objects;
 
 public final class TiffReadMap extends TiffIOMap<TiffReader> {
     private final TiffReader reader;
@@ -64,8 +63,12 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
         return reader.getAutoUnpackBits();
     }
 
-    public boolean isAutoScaleWhenIncreasingBitDepth() {
-        return reader.isAutoScaleWhenIncreasingBitDepth();
+    public boolean isScaleWhenIncreasingBitDepth() {
+        return reader.isScaleWhenIncreasingBitDepth();
+    }
+
+    public boolean isCorrectColors() {
+        return reader.isCorrectColors();
     }
 
     public byte[] loadSampleBytes() throws IOException {

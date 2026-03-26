@@ -120,7 +120,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         final byte[] samples = new byte[sizeInBytes];
 
         @SuppressWarnings("resource") final TiffReader reader = reader();
-        final boolean scaleUnsignedInt24 = reader.isAutoScaleWhenIncreasingBitDepth();
+        final boolean scaleUnsignedInt24 = reader.isScaleWhenIncreasingBitDepth();
         final byte byteFiller = reader.getByteFiller();
         if (byteFiller != 0) {
             // - Java already zero-fills samples array

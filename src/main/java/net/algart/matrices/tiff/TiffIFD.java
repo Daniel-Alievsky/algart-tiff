@@ -1565,24 +1565,21 @@ public final class TiffIFD {
     }
 
     public boolean isStandardYCbCrNonJpeg() {
-        final TagCompression compression = optCompression().orElse(null);
-        return compression != null && compression.isStandard() && !compression.isJpegOrOldJpeg() &&
-                optPhotometricCode(-1) == TiffIFD.PHOTOMETRIC_INTERPRETATION_Y_CB_CR;
+        final TagCompression compression = optCompression().orElse(TagCompression.NONE);
+        return compression.isStandard() &&
+                !compression.isJpegOrOldJpeg() && optPhotometricCode(-1) == TiffIFD.PHOTOMETRIC_INTERPRETATION_Y_CB_CR;
     }
 
     public boolean isLowLevelBitsProcessing() {
-        final Optional<TagCompression> compression = optCompression();
-        return compression.isPresent() && compression.get().isLowLevelBitsProcessing();
+        return optCompression().orElse(TagCompression.NONE).isLowLevelBitsProcessing();
     }
 
     public boolean isJpegOrOldJpeg() {
-        final Optional<TagCompression> compression = optCompression();
-        return compression.isPresent() && compression.get().isJpegOrOldJpeg();
+        return optCompression().orElse(TagCompression.NONE).isJpegOrOldJpeg();
     }
 
     public boolean isLowLevelInvertedBrightness() {
-        final TagCompression compression = optCompression().orElse(null);
-        return compression != null && compression.isLowLevelBitsProcessing() &&
+        return optCompression().orElse(TagCompression.NONE).isLowLevelBitsProcessing() &&
                 TagPhotometric.isInvertedBrightness(optPhotometricCode(-1));
     }
 
