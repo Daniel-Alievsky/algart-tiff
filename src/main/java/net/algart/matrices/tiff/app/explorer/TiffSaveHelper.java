@@ -46,7 +46,8 @@ import java.util.concurrent.ExecutionException;
 class TiffSaveHelper {
     private enum UserByteOrder {
         BIG_ENDIAN(ByteOrder.BIG_ENDIAN, "Big-endian"),
-        LITTLE_ENDIAN(ByteOrder.LITTLE_ENDIAN, "Little-endian"), ;
+        LITTLE_ENDIAN(ByteOrder.LITTLE_ENDIAN, "Little-endian"),
+        ;
 
         private final ByteOrder byteOrder;
         private final String name;
@@ -188,10 +189,12 @@ class TiffSaveHelper {
         bigTiffCheckBox.setSelected(info.isBigTiff());
         settingsPanel.add(bigTiffCheckBox);
         if (info.tiffFileLength() > 1024L * 1024L * 1024L) {
+            settingsPanel.add(Box.createVerticalStrut(5));
             settingsPanel.add(TiffExplorer.leftLabel(
                     String.format(Locale.US,
-                            "<html>The TIFF file is very large (<b>%.3f GB</b>, >1 GB)! " +
-                                    "Big-TIFF is recommended for possible future needs.",
+                            TiffExplorer.smartHtmlLines(
+                                    "The TIFF file is very large (<b>%.3f GB</b>, &gt;1 GB)!<br>" +
+                                            "We recommend using Big-TIFF, allowing to store &gt;4 GB of data."),
                             (double) info.tiffFileLength() / (double) (1024L * 1024L * 1024L))));
         }
         mainPanel.add(settingsPanel);
