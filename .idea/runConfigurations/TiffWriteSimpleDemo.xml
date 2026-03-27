@@ -3,6 +3,7 @@
     <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.demo.io.TiffWriteSimpleDemo" />
     <module name="algart-tiff" />
     <option name="PROGRAM_PARAMETERS" value="src/test/resources/demo/images/lenna.png /tmp/lenna.tiff" />
+    <option name="VM_PARAMETERS" value="-Dnet.algart.matrices.tiff.strip=50" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>

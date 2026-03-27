@@ -61,7 +61,7 @@ public class TiffWriteSimpleDemo {
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
         try (var writer = new TiffWriter(targetFile, TiffCreateMode.ofCreateOptions(bigTiff, false))) {
-            final TiffIFD ifd = writer.newIFD()
+            final TiffIFD ifd = TiffIFD.newIFD()
                 .putChannelsInformation(image)
                 .putCompression(TagCompression.JPEG);
             final TiffWriteMap map = writer.newFixedMap(ifd);

@@ -99,7 +99,7 @@ public class ConvertToTiff {
             writer.create();
             writer.setCompressionQuality(quality);
             writer.setLosslessCompressionLevel(compressionLevel);
-            final TiffIFD ifd = writer.newIFD()
+            final TiffIFD ifd = TiffIFD.newIFD()
                     .putChannelsInformation(image)
                     .putCompression(compression);
             final var map = writer.newFixedMap(ifd);

@@ -73,7 +73,7 @@ public class TiffWriteSimpleBitTest {
             writer.setLittleEndian(true);
             for (int k = 1; k <= numberOfTests; k++) {
                 writer.create();
-                TiffIFD ifd = writer.newIFD();
+                TiffIFD ifd = TiffIFD.newIFD();
                 ifd.putCompression(TagCompression.PACK_BITS);
                 ifd.putMatrixInformation(m);
                 final var map = writer.newMap(ifd, false);

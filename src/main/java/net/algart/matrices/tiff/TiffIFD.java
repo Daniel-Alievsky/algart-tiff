@@ -85,6 +85,23 @@ public final class TiffIFD {
      */
     public static final long MAX_NUMBER_OF_BITS_IN_BYTE_ARRAY = (1L << 34) - 1;
 
+    /**
+     * The default tile size (width and height), used by {@link #defaultTileSizes()}
+     * (the same value for width and height: we typically use square tiles).
+     * It is 512 by default but can be overridden via the
+     * {@code "net.algart.matrices.tiff.tile"} system property
+     */
+    public static final int DEFAULT_TILE_SIZE = net.algart.arrays.Arrays.SystemSettings.getIntProperty(
+            "net.algart.matrices.tiff.tile", 512);
+
+    /**
+     * The default strip height, used by {@link #defaultStripSize()}.
+     * It is 128 by default but can be overridden via the
+     * {@code "net.algart.matrices.tiff.strip"} system property.
+     */
+    public static final int DEFAULT_STRIP_SIZE = net.algart.arrays.Arrays.SystemSettings.getIntProperty(
+            "net.algart.matrices.tiff.strip", 128);
+
     private static final boolean USE_LONG_IMAGE_DIMENSIONS = true;
 
     private static final long MAX_LONG_DIV_MAX_BITS_PER_PIXEL = Long.MAX_VALUE /
@@ -131,10 +148,6 @@ public final class TiffIFD {
     }
 
     public static final int LAST_IFD_OFFSET = 0;
-
-    public static final int DEFAULT_TILE_SIZE_X = 512;
-    public static final int DEFAULT_TILE_SIZE_Y = 512;
-    public static final int DEFAULT_STRIP_SIZE = 128;
 
     /**
      * Compression code for {@link TagCompression#NONE}.
@@ -330,6 +343,40 @@ public final class TiffIFD {
             // - without a guarantee that keys are not null, "new TreeSet" call in toString() can throw an exception
         }
         this.detailedEntries = detailedEntries;
+    }
+
+    /**
+     * Equivalent to <code>{@link #newIFD(boolean) newIFD}(false)</code>.
+     *
+     * @return a new {@code TiffIFD} instance with basic mandatory tags for stripped (not tiled) image.
+     */
+    public static TiffIFD newIFD() {
+        return newIFD(false);
+    }
+
+    /**
+     * Creates a minimal new IFD for further customization.
+     * It will have the following tags:
+     * <ul>
+     * <li>{@code Compression} containing {@value #COMPRESSION_NONE} (no compression);</li>
+     * <li>if {@code tiled} is {@code true}: {@code TileWidth} and {@code TileLength}
+     * containing {@link #DEFAULT_TILE_SIZE};</li>
+     * <li>if {@code tiled} is {@code false}: {@code RowsPerStrip}
+     * containing {@link #DEFAULT_STRIP_SIZE}.</li>
+     * </ul>
+     *
+     * @param tiled whether to initialize this IFD with tiles ({@code true}) or with strips ({@code false}).
+     * @return a new {@code TiffIFD} instance with basic mandatory tags.
+     */
+    public static TiffIFD newIFD(boolean tiled) {
+        final TiffIFD ifd = new TiffIFD();
+        ifd.putCompression(TagCompression.NONE);
+        if (tiled) {
+            ifd.defaultTileSizes();
+        } else {
+            ifd.defaultStripSize();
+        }
+        return ifd;
     }
 
     public boolean isLoadedFromFile() {
@@ -1839,7 +1886,7 @@ public final class TiffIFD {
             throw new IllegalArgumentException("TIFF tag YCbCrSubSampling must contain only values 1, 2 or 4, " +
                     "but the specified subSamplingY = " + subSamplingY);
         }
-        put(Tags.Y_CB_CR_SUB_SAMPLING, new int[] {subSamplingX, subSamplingY});
+        put(Tags.Y_CB_CR_SUB_SAMPLING, new int[]{subSamplingX, subSamplingY});
         return this;
     }
 
@@ -1936,7 +1983,7 @@ public final class TiffIFD {
     }
 
     public TiffIFD defaultTileSizes() {
-        return putTileSizes(DEFAULT_TILE_SIZE_X, DEFAULT_TILE_SIZE_Y);
+        return putTileSizes(DEFAULT_TILE_SIZE, DEFAULT_TILE_SIZE);
     }
 
     /**

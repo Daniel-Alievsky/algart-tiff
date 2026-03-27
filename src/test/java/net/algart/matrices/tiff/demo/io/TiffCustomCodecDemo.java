@@ -74,7 +74,7 @@ public class TiffCustomCodecDemo {
                         Optional.empty();
             }
         }) {
-            final TiffIFD ifd = writer.newIFD();
+            final TiffIFD ifd = TiffIFD.newIFD();
             ifd.putChannelsInformation(image);
             ifd.putCompressionCode(MY_GZIP_COMPRESSION_CODE);
             // ifd.putCompression(TagCompression.DEFLATE); // - uncomment to compare sizes

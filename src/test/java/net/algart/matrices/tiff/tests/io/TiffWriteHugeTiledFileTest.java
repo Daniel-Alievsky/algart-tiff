@@ -60,7 +60,7 @@ public class TiffWriteHugeTiledFileTest {
             writer.setLittleEndian(true);
             writer.create();
             for (int k = 1; k <= numberOfImages; k++) {
-                TiffIFD ifd = writer.newIFD(true);
+                TiffIFD ifd = TiffIFD.newIFD(true);
                 ifd.putImageDimensions(IMAGE_WIDTH, IMAGE_HEIGHT);
                 ifd.putTileSizes(1024, 1024);
                 ifd.putPixelInformation(3, byte.class);

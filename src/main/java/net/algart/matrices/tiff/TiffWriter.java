@@ -1268,23 +1268,9 @@ public non-sealed class TiffWriter extends TiffIO {
         // - not used, but helps to provide better TiffIFD.toString
     }
 
-    public TiffIFD newIFD() {
-        return newIFD(false);
-    }
-
-    public TiffIFD newIFD(boolean tiled) {
-        final TiffIFD ifd = new TiffIFD();
-        ifd.putCompression(TagCompression.NONE);
-        if (tiled) {
-            ifd.defaultTileSizes();
-        } else {
-            ifd.defaultStripSize();
-        }
-        return ifd;
-    }
-
     /**
-     * Reads IFD by  <code>{@link #companionReader()}.{@link TiffReader#readSingleIFD(int) readSingleIFD(ifdIndex)}</code>
+     * Reads IFD by
+     * <code>{@link #companionReader()}.{@link TiffReader#readSingleIFD(int) readSingleIFD(ifdIndex)}</code>
      * and sets its {@link TiffIFD#setFileOffsetForWriting(long) offset-for-writing}
      * to be equal to the {@link TiffIFD#getFileOffsetForReading() offset-for-reading}.
      *
