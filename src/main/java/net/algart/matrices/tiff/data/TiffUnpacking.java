@@ -153,13 +153,13 @@ public class TiffUnpacking {
         }
         final int yBlack = reference[0];
         final int yWhite = reference[1];
-        final int cbBlack = reference[2];
-        final int cbWhite = reference[3];
-        final int crBlack = reference[4];
-        final int crWhite = reference[5];
-        final double yScale  = yWhite != yBlack ? 255.0 / (yWhite - yBlack) : 1.0;
-        final double cbScale = cbWhite != cbBlack ? 255.0 / (cbWhite - cbBlack) : 1.0;
-        final double crScale = crWhite != crBlack ? 255.0 / (crWhite - crBlack) : 1.0;
+        final double cbShiftedBlack = reference[2] - 128.0;
+        final double cbShiftedWhite = reference[3] - 128.0;
+        final double crShiftedBlack = reference[4] - 128.0;
+        final double crShiftedWhite = reference[5] - 128.0;
+        final double yScale = yWhite == yBlack ? 1.0 : 255.0 / (yWhite - yBlack);
+        final double cbScale = cbShiftedWhite == cbShiftedBlack ? 1.0 : 127.0 / (cbShiftedWhite - cbShiftedBlack);
+        final double crScale = crShiftedWhite == crShiftedBlack ? 1.0 : 127.0 / (crShiftedWhite - crShiftedBlack);
         // - avoiding 0.0/0.0
         final int[] subsamplingLog = ifd.getYCbCrSubsamplingLogarithms();
         final TagRational[] coefficients = ifd.getValue(Tags.Y_CB_CR_COEFFICIENTS, TagRational[].class)
@@ -225,16 +225,17 @@ public class TiffUnpacking {
                     // - for a case when the sizes are not aligned by subX/subY
                     continue;
                 }
-
                 final int resultIndex = resultYIndex * sizeX + resultXIndex;
-                final double y = ((data[lumaIndex] & 0xff) - yBlack) * yScale;
-                final double cb = ((data[chromaIndex] & 0xff) - cbBlack) * cbScale;
-                final double cr = ((data[chromaIndex + 1] & 0xff) - crBlack) * crScale;
+                final int yRaw = data[lumaIndex] & 0xff;
+                final int cbRaw = (data[chromaIndex] & 0xff) - 128;
+                final int crRaw = (data[chromaIndex + 1] & 0xff) - 128;
+                final double y = (yRaw - yBlack) * yScale;
+                final double cb = (cbRaw - cbShiftedBlack) * cbScale;
+                final double cr = (crRaw - crShiftedBlack) * crScale;
 
                 final double red = cr * crCoefficient + y;
                 final double blue = cb * cbCoefficient + y;
                 final double green = (y - lumaBlue * blue - lumaRed * red) * lumaGreenInv;
-
                 unpacked[resultIndex] = (byte) toUnsignedByte(red);
                 unpacked[numberOfPixels + resultIndex] = (byte) toUnsignedByte(green);
                 unpacked[2 * numberOfPixels + resultIndex] = (byte) toUnsignedByte(blue);
@@ -244,7 +245,6 @@ public class TiffUnpacking {
                 // - horizontal alignment
             }
         }
-
         tile.setDecodedData(unpacked);
         tile.setInterleaved(false);
         return true;

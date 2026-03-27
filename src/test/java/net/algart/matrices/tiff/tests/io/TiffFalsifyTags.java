@@ -76,7 +76,7 @@ public class TiffFalsifyTags {
                 ifd.putPhotometric(photometric);
             }
             if (addReferenceBlackWhite) {
-                ifd.put(Tags.REFERENCE_BLACK_WHITE, new int[]{0, 100, 0, 200, 50, 100});
+                ifd.put(Tags.REFERENCE_BLACK_WHITE, new int[]{0, 100, 100, 200, 50, 100});
                 relocate = true;
             }
             writer.updateIFD(ifdIndex, ifd, TiffWriter.IFDUpdateResult.ofExpanded(relocate));
