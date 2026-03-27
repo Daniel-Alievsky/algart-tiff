@@ -28,6 +28,7 @@ import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagPhotometric;
+import net.algart.matrices.tiff.tags.Tags;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -36,10 +37,16 @@ import java.nio.file.Paths;
 public class TiffFalsifyTags {
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
+        boolean addReferenceBlackWhite = false;
+        if (args.length > startArgIndex && args[startArgIndex]
+                .equalsIgnoreCase("-addReferenceBlackWhite")) {
+            addReferenceBlackWhite = true;
+            startArgIndex++;
+        }
         if (args.length < startArgIndex + 4) {
             System.out.println("Usage:");
             System.out.println("    " + TiffFalsifyTags.class.getName()
-                    + " target.tif ifdIndex newWidth newLength [colorSpace]");
+                    + " [-addReferenceBlackWhite] target.tif ifdIndex newWidth newLength [colorSpace]");
             System.out.println("newWidth/newLength are (0,0) (to avoid changing) or " +
                     "new sizes of this IFD (but you should not try to increase total number of pixels)");
             return;
@@ -57,15 +64,22 @@ public class TiffFalsifyTags {
             writer.openExisting();
 
             System.out.printf("Transforming %s...%n", targetFile);
-            final TiffIFD ifd = reader.readSingleIFD(ifdIndex);
-            ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
+            final TiffIFD ifd = writer.existingIFD(ifdIndex);
             if (newDimX > 0 && newDimY > 0) {
                 ifd.putImageDimensions(newDimX, newDimY);
             }
+            boolean relocate = false;
             if (photometric != null) {
+                if (!ifd.hasPhotometric()) {
+                    relocate = true;
+                }
                 ifd.putPhotometric(photometric);
             }
-            writer.overwriteIFDInPlace(ifd);
+            if (addReferenceBlackWhite) {
+                ifd.put(Tags.REFERENCE_BLACK_WHITE, new int[]{0, 100, 0, 200, 50, 100});
+                relocate = true;
+            }
+            writer.updateIFD(ifdIndex, ifd, TiffWriter.IFDUpdateResult.ofExpanded(relocate));
             // - replacing dimensions
         }
         System.out.println("Done");

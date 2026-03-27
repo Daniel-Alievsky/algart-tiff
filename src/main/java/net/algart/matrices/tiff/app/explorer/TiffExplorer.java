@@ -425,8 +425,8 @@ public class TiffExplorer {
                 tagsToSelect.put(tag, checkBox);
             }
             final Dimension tagListprefSize = tagListPanel.getPreferredSize();
-            final int maxHeight = 150;
-            if (tagListprefSize.height > maxHeight) {
+            final int tagListMaxHeight = 200;
+            if (tagListprefSize.height > tagListMaxHeight) {
                 final JScrollPane scrollPane = new JScrollPane(
                         tagListPanel,
                         JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
@@ -434,7 +434,8 @@ public class TiffExplorer {
                 );
                 scrollPane.setBorder(BorderFactory.createEmptyBorder());
                 scrollPane.setAlignmentX(Component.LEFT_ALIGNMENT);
-                scrollPane.setPreferredSize(new Dimension(scrollPane.getPreferredSize().width + 30, maxHeight));
+                scrollPane.setPreferredSize(
+                        new Dimension(scrollPane.getPreferredSize().width + 30, tagListMaxHeight));
                 content.add(scrollPane);
             } else {
                 content.add(tagListPanel);

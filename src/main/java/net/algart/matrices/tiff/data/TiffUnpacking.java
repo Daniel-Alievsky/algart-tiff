@@ -145,11 +145,22 @@ public class TiffUnpacking {
         double lumaRed = 0.299;
         double lumaGreen = 0.587;
         double lumaBlue = 0.114;
-        int[] reference = ifd.getIntArray(Tags.REFERENCE_BLACK_WHITE);
-        if (reference == null) {
-            reference = new int[]{0, 255, 128, 255, 128, 255};
-            // - original SCIFIO code used here zero-filled array, this is incorrect
+        final int[] declaredReference = ifd.getIntArray(Tags.REFERENCE_BLACK_WHITE);
+        final int[] reference = new int[]{0, 255, 128, 255, 128, 255};
+        // - original SCIFIO code used here zero-filled array, this is incorrect
+        if (declaredReference != null) {
+            System.arraycopy(declaredReference, 0, reference, 0, declaredReference.length);
         }
+        final int yBlack = reference[0];
+        final int yWhite = reference[1];
+        final int cbBlack = reference[2];
+        final int cbWhite = reference[3];
+        final int crBlack = reference[4];
+        final int crWhite = reference[5];
+        final double yScale  = yWhite != yBlack ? 255.0 / (yWhite - yBlack) : 1.0;
+        final double cbScale = cbWhite != cbBlack ? 255.0 / (cbWhite - cbBlack) : 1.0;
+        final double crScale = crWhite != crBlack ? 255.0 / (crWhite - crBlack) : 1.0;
+        // - avoiding 0.0/0.0
         final int[] subsamplingLog = ifd.getYCbCrSubsamplingLogarithms();
         final TagRational[] coefficients = ifd.getValue(Tags.Y_CB_CR_COEFFICIENTS, TagRational[].class)
                 .orElse(new TagRational[0]);
@@ -167,6 +178,7 @@ public class TiffUnpacking {
         final int blockLog = subXLog + subYLog;
         final int block = 1 << blockLog;
         final int numberOfXBlocks = (sizeX + subXMinus1) >>> subXLog;
+        UnpackingLoop:
         for (int yIndex = 0, i = 0; yIndex < sizeY; yIndex++) {
             final int yBlockIndex = yIndex >>> subYLog;
             final int yAligned = yBlockIndex << subYLog;
@@ -188,8 +200,8 @@ public class TiffUnpacking {
                 //    YYYYbrYYYYbrYYYYbr...
                 //                |"blockStart" position
 
-                if (chromaIndex + 1 >= data.length) {
-                    break;
+                if (chromaIndex + 1 >= data.length || lumaIndex >= data.length) {
+                    break UnpackingLoop;
                 }
 
                 final int yIndexInBlock = indexInBlock >>> subXLog;
@@ -215,9 +227,9 @@ public class TiffUnpacking {
                 }
 
                 final int resultIndex = resultYIndex * sizeX + resultXIndex;
-                final int y = (data[lumaIndex] & 0xff) - reference[0];
-                final int cb = (data[chromaIndex] & 0xff) - reference[2];
-                final int cr = (data[chromaIndex + 1] & 0xff) - reference[4];
+                final double y = ((data[lumaIndex] & 0xff) - yBlack) * yScale;
+                final double cb = ((data[chromaIndex] & 0xff) - cbBlack) * cbScale;
+                final double cr = ((data[chromaIndex + 1] & 0xff) - crBlack) * crScale;
 
                 final double red = cr * crCoefficient + y;
                 final double blue = cb * cbCoefficient + y;
@@ -655,5 +667,4 @@ public class TiffUnpacking {
             System.out.println();
         }
     }
-
 }
