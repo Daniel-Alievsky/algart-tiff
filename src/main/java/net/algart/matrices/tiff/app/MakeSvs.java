@@ -27,9 +27,9 @@ package net.algart.matrices.tiff.app;
 import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
-import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffImageKind;
+import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.pyramids.TiffPyramidMetadata;
 import net.algart.matrices.tiff.tags.SvsDescription;
@@ -117,17 +117,17 @@ public class MakeSvs {
     public void makeSvs() throws IOException {
         System.out.printf("Reading %s...%n", baseFile);
         long t1 = System.nanoTime();
-        final List<? extends Matrix<? extends PArray>> image = MatrixIO.readImage(baseFile);
+        final List<? extends Matrix<? extends PArray>> image = TiffReader.readImage(baseFile);
 
         List<? extends Matrix<? extends PArray>> label = null;
         List<? extends Matrix<? extends PArray>> macro = null;
         if (labelFile != null) {
             System.out.printf("Reading %s...%n", labelFile);
-            label = MatrixIO.readImage(labelFile);
+            label = TiffReader.readImage(labelFile);
         }
         if (macroFile != null) {
             System.out.printf("Reading %s...%n", macroFile);
-            macro = MatrixIO.readImage(macroFile);
+            macro = TiffReader.readImage(macroFile);
         }
 
         System.out.printf("Building %s, base compression %s (\"%s\")...%n",

@@ -28,7 +28,7 @@ import org.scijava.io.handle.DataHandle;
 
 /**
  * Mode of opening a TIFF file by {@link TiffReader}.
- * See comments to {@link TiffReader#TiffReader(DataHandle, TiffOpenMode)} constructor.
+ * See comments to {@link TiffReader#TiffReader(DataHandle, TiffOpenMode, boolean)} constructor.
  */
 public enum TiffOpenMode {
     /**
@@ -37,10 +37,15 @@ public enum TiffOpenMode {
      */
     NO_CHECKS(false),
     /**
-     * No exceptions for non-existing file or non-TIFF file;
+     * No exceptions for a non-existing file or a non-TIFF file;
      * {@link TiffReader#isTiff()} should be checked before usage.
      */
     ALLOW_NON_TIFF(false),
+    /**
+     * No exceptions for a non-TIFF file, but an exception is thrown for a non-existing file;
+     * {@link TiffReader#isTiff()} should be checked before usage.
+     */
+    ALLOW_EXISTING_NON_TIFF(false),
     /**
      * The file must be a valid existing TIFF file, any problem leads to an exception.
      */

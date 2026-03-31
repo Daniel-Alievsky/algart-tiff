@@ -25,6 +25,7 @@
 package net.algart.matrices.tiff;
 
 import net.algart.arrays.*;
+import net.algart.io.MatrixIO;
 import net.algart.io.awt.MatrixToImage;
 import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.data.TiffJPEGDecodingHelper;
@@ -193,6 +194,48 @@ public non-sealed class TiffReader extends TiffIO {
     private long timeCompleteDecoding = 0;
 
     /**
+     * Reads the image from the specified file as a list of 2-dimensional matrices containing color channels.
+     *
+     * <p>If the file is a TIFF file, this method calls
+     * {@link #readChannels(int) readChannels(0)} to read data.
+     * If the file is not a TIFF, the call is redirected to {@link MatrixIO#readImage(Path)}.</p>
+     *
+     * @param file the path to the image file.
+     * @return a list of matrices representing the image channels.
+     * @throws IOException in the case of any problems with the input file or if the format is unsupported.
+     * @see MatrixIO#readImage(Path)
+     */
+    public static List<Matrix<UpdatablePArray>> readImage(Path file) throws IOException {
+        try (TiffReader reader = new TiffReader(file, TiffOpenMode.ALLOW_EXISTING_NON_TIFF)) {
+            if (reader.isTiff()) {
+                return reader.readChannels(0);
+            }
+        }
+        return MatrixIO.readImage(file);
+    }
+
+    /**
+     * Reads the image from the specified file as a <code>BufferedImage</code>.
+     *
+     * <p>If the file is a TIFF file, this method calls
+     * {@link #readBufferedImage(int) readBufferedImage(0)} to read data.
+     * Otherwise, the call is redirected to {@link MatrixIO#readBufferedImage(Path)}.</p>
+     *
+     * @param file the path to the image file.
+     * @return the content of the image as a {@link BufferedImage}.
+     * @throws IOException in the case of any problems with the input file or if the format is unsupported.
+     * @see MatrixIO#readBufferedImage(Path)
+     */
+    public static BufferedImage readBufferedImage(Path file) throws IOException {
+        try (TiffReader reader = new TiffReader(file, TiffOpenMode.ALLOW_EXISTING_NON_TIFF)) {
+            if (reader.isTiff()) {
+                return reader.readBufferedImage(0);
+            }
+        }
+        return MatrixIO.readBufferedImage(file);
+    }
+
+    /**
      * Equivalent to <code>{@link #TiffReader(Path, TiffOpenMode)
      * TiffReader}(file, {@link TiffOpenMode#VALID_TIFF})</code>.
      *
@@ -210,15 +253,14 @@ public non-sealed class TiffReader extends TiffIO {
      * FileHandle}(new {@link FileLocation#FileLocation(File)
      * FileLocation}(file.toFile()))</code>
      *
-     * @param file     input TIFF tile.
+     * @param file     input TIFF file.
      * @param openMode what should be checked while opening?
      * @throws IOException in the case of any I/O errors, including a non-TIFF file or non-existing file.
      */
     public TiffReader(Path file, TiffOpenMode openMode) throws IOException {
         // We should not use getExistingFileHandle() here: if the file does not exist,
         // the exception should be suppressed when openMode=TiffOpenMode.NO_CHECKS
-        this(getFileHandle(file), openMode, true);
-        this.filePath = file;
+        this(getFileHandle(file), file, openMode, true);
     }
 
     /**
@@ -253,15 +295,18 @@ public non-sealed class TiffReader extends TiffIO {
      * All other errors including a non-existing file do not result in exceptions (they are caught),
      * and you can know the occurred exception by {@link #openingException()} method.
      *
+     * <p>If <code>openMode</code> is {@link TiffOpenMode#ALLOW_EXISTING_NON_TIFF}, the behavior is similar,
+     * but non-existing file leads to throwing an exception.</p>
+     *
      * <p>If <code>openMode</code> is {@link TiffOpenMode#NO_CHECKS}, the constructor catches
      * all possible exceptions. In the case of any exception, {@link #isValidTiff()} method will return
      * <code>false</code> and you can know the occurred exception by {@link #openingException()} method.
      *
      * <p>In the case where an exception is thrown (not caught),
      * <code>closeStreamOnException</code> argument specifies whether this function
-     * must close the input stream or no. It <b>should</b> be true when you call this constructor
+     * must close the input stream or not. It <b>should</b> be true when you call this constructor
      * from another constructor, which creates <code>DataHandle</code>: it is the only way to close
-     * an invalid file. In another situation this flag may be <code>false</code>, then you must close
+     * an invalid file. In other situations this flag may be <code>false</code>, then you must close
      * the input stream yourself.
      *
      * <p>The specified input stream is automatically replaced (wrapped) with {@link ReadBufferDataHandle}
@@ -278,32 +323,8 @@ public non-sealed class TiffReader extends TiffIO {
     public TiffReader(
             DataHandle<?> inputStream,
             TiffOpenMode openMode,
-            boolean closeStreamOnException)
-            throws IOException {
-        this(checkNonNull(inputStream, openMode), (Consumer<Exception>) null);
-        assert this.tiff || !this.validTiff;
-        // - in other words, if validTiff, then tiff
-        if (!openMode.isAnythingChecked()) {
-            return;
-        }
-        final boolean tiffButInvalid = this.tiff && !this.validTiff;
-        if (openMode.isRequireTiff() ? !this.validTiff : tiffButInvalid) {
-            if (closeStreamOnException) {
-                try {
-                    stream.close();
-                } catch (Exception ignored) {
-                }
-            }
-            if (openingException != null) {
-                throw openingException;
-            } else {
-                throw new AssertionError("Should not occur!");
-            }
-        }
-        if (openMode.isRequireTiff()) {
-            checkFirstOffset();
-            // - additional check of zero or extremely large offset
-        }
+            boolean closeStreamOnException) throws IOException {
+        this(inputStream, null, openMode, closeStreamOnException);
     }
 
     /**
@@ -336,9 +357,49 @@ public non-sealed class TiffReader extends TiffIO {
      *                         with catching exception.
      */
     public TiffReader(DataHandle<?> inputStream, Consumer<Exception> exceptionHandler) {
+        this(inputStream, (Path) null, exceptionHandler);
+    }
+
+    private TiffReader(
+            DataHandle<?> inputStream,
+            Path file,
+            TiffOpenMode openMode,
+            boolean closeStreamOnException) throws IOException {
+        this(checkNonNull(inputStream, openMode), file, (Consumer<Exception>) null);
+        assert this.tiff || !this.validTiff;
+        // - in other words, if validTiff, then tiff
+        if (!openMode.isAnythingChecked()) {
+            return;
+        }
+        boolean tiffButInvalid = this.tiff && !this.validTiff;
+        if (openMode == TiffOpenMode.ALLOW_EXISTING_NON_TIFF && openingException instanceof FileNotFoundException) {
+            // - see startReading()
+            tiffButInvalid = true;
+        }
+        if (openMode.isRequireTiff() ? !this.validTiff : tiffButInvalid) {
+            if (closeStreamOnException) {
+                try {
+                    stream.close();
+                } catch (Exception ignored) {
+                }
+            }
+            if (openingException != null) {
+                throw openingException;
+            } else {
+                throw new AssertionError("Should not occur!");
+            }
+        }
+        if (openMode.isRequireTiff()) {
+            checkFirstOffset();
+            // - additional check of zero or extremely large offset
+        }
+    }
+
+    private TiffReader(DataHandle<?> inputStream, Path file, Consumer<Exception> exceptionHandler) {
         super(inputStream instanceof ReadBufferDataHandle ?
                 inputStream :
-                new ReadBufferDataHandle<>(inputStream));
+                new ReadBufferDataHandle<>(inputStream),
+                file);
         // - Note: the argument inputStream cannot be ReadBufferDataHandle if we use TiffWriter.newReader method.
         // ReadBufferDataHandle is read-only (cannot write anything), so it cannot be used in TiffWriter.
         this.openingException = startReading();
@@ -1536,12 +1597,12 @@ public non-sealed class TiffReader extends TiffIO {
         return readJavaArray(map(ifdIndex));
     }
 
-    public byte[] readSampleBytes(TiffIOMap map) throws IOException {
+    public byte[] readSampleBytes(TiffIOMap<?> map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readSampleBytes(map, 0, 0, map.dimX(), map.dimY());
     }
 
-    public byte[] readSampleBytes(TiffIOMap map, int fromX, int fromY, int sizeX, int sizeY) throws IOException {
+    public byte[] readSampleBytes(TiffIOMap<?> map, int fromX, int fromY, int sizeX, int sizeY) throws IOException {
         return readSampleBytes(
                 map,
                 fromX, fromY, sizeX, sizeY,
@@ -1551,7 +1612,7 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     public byte[] readSampleBytes(
-            TiffIOMap map,
+            TiffIOMap<?> map,
             int fromX,
             int fromY,
             int sizeX,
@@ -1633,17 +1694,17 @@ public non-sealed class TiffReader extends TiffIO {
         return readJavaArray(map(ifdIndex));
     }
 
-    public Object readJavaArray(TiffIOMap map) throws IOException {
+    public Object readJavaArray(TiffIOMap<?> map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readJavaArray(map, 0, 0, map.dimX(), map.dimY());
     }
 
-    public Object readJavaArray(TiffIOMap map, int fromX, int fromY, int sizeX, int sizeY) throws IOException {
+    public Object readJavaArray(TiffIOMap<?> map, int fromX, int fromY, int sizeX, int sizeY) throws IOException {
         return readJavaArray(map, fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
     }
 
     public Object readJavaArray(
-            TiffIOMap map,
+            TiffIOMap<?> map,
             int fromX,
             int fromY,
             int sizeX,
@@ -1698,18 +1759,18 @@ public non-sealed class TiffReader extends TiffIO {
      * @throws IOException              in the case of any problems with the input file.
      * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
      */
-    public Matrix<UpdatablePArray> readMatrix(TiffIOMap map) throws IOException {
+    public Matrix<UpdatablePArray> readMatrix(TiffIOMap<?> map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readMatrix(map, 0, 0, map.dimX(), map.dimY());
     }
 
-    public Matrix<UpdatablePArray> readMatrix(TiffIOMap map, int fromX, int fromY, int sizeX, int sizeY)
+    public Matrix<UpdatablePArray> readMatrix(TiffIOMap<?> map, int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
         return readMatrix(map, fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
     }
 
     public Matrix<UpdatablePArray> readMatrix(
-            TiffIOMap map,
+            TiffIOMap<?> map,
             int fromX,
             int fromY,
             int sizeX,
@@ -1725,18 +1786,18 @@ public non-sealed class TiffReader extends TiffIO {
         return readInterleavedMatrix(map(ifdIndex));
     }
 
-    public Matrix<UpdatablePArray> readInterleavedMatrix(TiffIOMap map) throws IOException {
+    public Matrix<UpdatablePArray> readInterleavedMatrix(TiffIOMap<?> map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readInterleavedMatrix(map, 0, 0, map.dimX(), map.dimY());
     }
 
-    public Matrix<UpdatablePArray> readInterleavedMatrix(TiffIOMap map, int fromX, int fromY, int sizeX, int sizeY)
+    public Matrix<UpdatablePArray> readInterleavedMatrix(TiffIOMap<?> map, int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
         return readInterleavedMatrix(map, fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
     }
 
     public Matrix<UpdatablePArray> readInterleavedMatrix(
-            TiffIOMap map,
+            TiffIOMap<?> map,
             int fromX,
             int fromY,
             int sizeX,
@@ -1766,18 +1827,18 @@ public non-sealed class TiffReader extends TiffIO {
      *                       and this was not detected while opening it.
      * @throws IOException   in the case of any other problems with the input file.
      */
-    public List<Matrix<UpdatablePArray>> readChannels(TiffIOMap map) throws IOException {
+    public List<Matrix<UpdatablePArray>> readChannels(TiffIOMap<?> map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readChannels(map, 0, 0, map.dimX(), map.dimY());
     }
 
-    public List<Matrix<UpdatablePArray>> readChannels(TiffIOMap map, int fromX, int fromY, int sizeX, int sizeY)
+    public List<Matrix<UpdatablePArray>> readChannels(TiffIOMap<?> map, int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
         return readChannels(map, fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
     }
 
     public List<Matrix<UpdatablePArray>> readChannels(
-            TiffIOMap map,
+            TiffIOMap<?> map,
             int fromX,
             int fromY,
             int sizeX,
@@ -1807,18 +1868,18 @@ public non-sealed class TiffReader extends TiffIO {
      *                       and this was not detected while opening it.
      * @throws IOException   in the case of any other problems with the input file.
      */
-    public BufferedImage readBufferedImage(TiffIOMap map) throws IOException {
+    public BufferedImage readBufferedImage(TiffIOMap<?> map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         return readBufferedImage(map, 0, 0, map.dimX(), map.dimY());
     }
 
-    public BufferedImage readBufferedImage(TiffIOMap map, int fromX, int fromY, int sizeX, int sizeY)
+    public BufferedImage readBufferedImage(TiffIOMap<?> map, int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
         return readBufferedImage(map, fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
     }
 
     public BufferedImage readBufferedImage(
-            TiffIOMap map,
+            TiffIOMap<?> map,
             int fromX,
             int fromY,
             int sizeX,
@@ -1898,6 +1959,8 @@ public non-sealed class TiffReader extends TiffIO {
                 this.validTiff = false;
                 if (!stream.exists()) {
                     return new FileNotFoundException("File not found:" + spacedStreamName());
+                    // - important: this exception is checked "instanceof FileNotFoundException"
+                    // in the constructor; if we change this class, we must change the constructor also
                 }
                 testHeader();
                 assert this.tiff;

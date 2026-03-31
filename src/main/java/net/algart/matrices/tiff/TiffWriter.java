@@ -140,11 +140,10 @@ public non-sealed class TiffWriter extends TiffIO {
      *     TiffWriter}(path, {@link TiffCreateMode#CREATE CreateMode.CREATE});
      * </pre>
      *
-     * @param file output TIFF tile.
+     * @param file output TIFF file.
      */
     public TiffWriter(Path file) {
         this(getFileHandle(file));
-        this.filePath = file;
     }
 
     /**
@@ -195,15 +194,14 @@ public non-sealed class TiffWriter extends TiffIO {
      * Instead, you may use the single-argument constructor {@link #TiffWriter(Path)},
      * perform necessary customizing, and then call {@link #create()} or {@link #open(boolean)} method.
      *
-     * @param file       output TIFF tile.
+     * @param file       output TIFF file.
      * @param createMode what do you need to do with this file?
      * @throws IOException in the case of any I/O errors.
      */
     public TiffWriter(Path file, TiffCreateMode createMode) throws IOException {
-        this(openWithDeletingPreviousFileIfRequested(file, createMode));
+        this(openWithDeletingPreviousFileIfRequested(file, createMode), file);
         try {
             createMode.configureWriter(this);
-            this.filePath = file;
         } catch (IOException exception) {
             try {
                 stream.close();
@@ -226,7 +224,11 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param outputStream output stream.
      */
     public TiffWriter(DataHandle<?> outputStream) {
-        super(outputStream);
+        this(outputStream, null);
+    }
+
+    private TiffWriter(DataHandle<?> outputStream, Path file) {
+        super(outputStream, file);
         // - we do not use WriteBufferDataHandle here: this is not too important for efficiency
     }
 

@@ -26,8 +26,8 @@ package net.algart.matrices.tiff.app;
 
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
-import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
 
@@ -88,7 +88,7 @@ public class ConvertToTiff {
 
         System.out.printf("Reading %s...%n", sourceFile);
         long t1 = System.nanoTime();
-        final List<? extends Matrix<? extends PArray>> image = MatrixIO.readImage(sourceFile);
+        final List<? extends Matrix<? extends PArray>> image = TiffReader.readImage(sourceFile);
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
         long t2 = System.nanoTime();
