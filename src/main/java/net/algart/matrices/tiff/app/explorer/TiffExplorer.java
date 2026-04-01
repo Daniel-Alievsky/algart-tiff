@@ -581,7 +581,7 @@ public class TiffExplorer {
     }
 
     private boolean isInitialized(int index) {
-        return tiffFile != null && info != null && index >= 0 && index < info.numberOfImages();
+        return tiffFile != null && info != null &&  index >= 0 && index < info.numberOfImages();
     }
 
     static void setWaitCursor(JFrame frame, boolean wait) {

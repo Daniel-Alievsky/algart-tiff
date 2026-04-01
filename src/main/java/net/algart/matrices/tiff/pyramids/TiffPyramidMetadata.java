@@ -38,7 +38,6 @@ import java.io.IOException;
 import java.util.*;
 
 public final class TiffPyramidMetadata {
-
     public static final int SVS_THUMBNAIL_INDEX = 1;
 
     private static final boolean DETECT_LABEL_AND_MACRO_PAIR =

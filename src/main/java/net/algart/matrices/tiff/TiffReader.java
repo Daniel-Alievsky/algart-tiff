@@ -159,6 +159,7 @@ public non-sealed class TiffReader extends TiffIO {
     private byte byteFiller = 0;
 
     private final IOException openingException;
+    private volatile boolean existingFile;
     private volatile boolean validTiff;
     private volatile boolean tiff;
     private volatile boolean bigTiff;
@@ -372,11 +373,11 @@ public non-sealed class TiffReader extends TiffIO {
             return;
         }
         boolean tiffButInvalid = this.tiff && !this.validTiff;
-        if (openMode == TiffOpenMode.ALLOW_EXISTING_NON_TIFF && openingException instanceof FileNotFoundException) {
+        if (openMode.isExistingRequired() && !this.existingFile) {
             // - see startReading()
             tiffButInvalid = true;
         }
-        if (openMode.isRequireTiff() ? !this.validTiff : tiffButInvalid) {
+        if (openMode.isTiffRequired() ? !this.validTiff : tiffButInvalid) {
             if (closeStreamOnException) {
                 try {
                     stream.close();
@@ -389,7 +390,7 @@ public non-sealed class TiffReader extends TiffIO {
                 throw new AssertionError("Should not occur!");
             }
         }
-        if (openMode.isRequireTiff()) {
+        if (openMode.isTiffRequired()) {
             checkFirstOffset();
             // - additional check of zero or extremely large offset
         }
@@ -769,8 +770,8 @@ public non-sealed class TiffReader extends TiffIO {
      * Returns whether this file is a TIFF file, both ordinary or BigTIFF
      * (i.e., whether it contains the correct TIFF or BigTIFF file header).
      *
-     * <p>Note: this method always returns <code>true</code> if you used a constructor with
-     * the open mode {@link TiffOpenMode#VALID_TIFF}.
+     * <p>Note: if the constructor with {@link TiffOpenMode#VALID_TIFF} mode
+     * completed successfully, this method is guaranteed to return {@code true}.
      *
      * <p>Note: if this method returns <code>true</code>, the file can be still invalid.
      * If the problem was detected while opening the file in the mode {@link TiffOpenMode#NO_CHECKS},
@@ -783,22 +784,18 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     /**
-     * Returns whether this file is a BigTIFF file (i.e., whether it contains the BigTIFF file header).
-     *
-     * @return whether this is a BigTIFF.
-     */
-    public boolean isBigTiff() {
-        return bigTiff;
-    }
-
-    /**
      * Returns <code>true</code> if the file is a TIFF file and if the constructor did not detect
      * any problems while opening the file.
      * However, this is not a guarantee that problems
      * (like format errors) will not be found later while reading IFDs or image data.
      *
-     * <p>Note: this method always returns <code>true</code> if you used a constructor with
-     * any {@link TiffOpenMode open mode} besides {@link TiffOpenMode#NO_CHECKS}.
+     * <p>In most cases, this method returns the same value as {@link #isTiff()}.
+     * It may return {@code false} while {@link #isTiff()} is {@code true} only
+     * if the TIFF header is present but corrupted (e.g., the file is truncated),
+     * and the reader was opened in the {@link TiffOpenMode#NO_CHECKS} mode.
+     *
+     * <p>Note: if the constructor with {@link TiffOpenMode#VALID_TIFF} mode
+     * completed successfully, this method is guaranteed to return {@code true}.
      *
      * <p>Note: this method is equivalent to the check <code>{@link #openingException()} == null</code>.
      *
@@ -806,6 +803,28 @@ public non-sealed class TiffReader extends TiffIO {
      */
     public boolean isValidTiff() {
         return validTiff;
+    }
+
+    /**
+     * Returns <code>true</code> if the file is an existing file.
+     *
+     * <p>Note: if the constructor was called with {@link TiffOpenMode#VALID_TIFF}
+     * or {@link TiffOpenMode#ALLOW_EXISTING_NON_TIFF} mode and
+     * completed successfully, this method is guaranteed to return {@code true}.
+     *
+     * @return whether this file exists.
+     */
+    public boolean isExistingFile() {
+        return existingFile;
+    }
+
+    /**
+     * Returns whether this file is a BigTIFF file (i.e., whether it contains the BigTIFF file header).
+     *
+     * @return whether this is a BigTIFF.
+     */
+    public boolean isBigTiff() {
+        return bigTiff;
     }
 
     /**
@@ -1957,10 +1976,9 @@ public non-sealed class TiffReader extends TiffIO {
                 this.tiff = false;
                 this.bigTiff = false;
                 this.validTiff = false;
-                if (!stream.exists()) {
+                this.existingFile = stream.exists();
+                if (!existingFile) {
                     return new FileNotFoundException("File not found:" + spacedStreamName());
-                    // - important: this exception is checked "instanceof FileNotFoundException"
-                    // in the constructor; if we change this class, we must change the constructor also
                 }
                 testHeader();
                 assert this.tiff;

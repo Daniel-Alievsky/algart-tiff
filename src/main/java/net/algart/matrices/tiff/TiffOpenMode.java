@@ -51,25 +51,29 @@ public enum TiffOpenMode {
      */
     VALID_TIFF(true);
 
-    private final boolean requireTiff;
+    private final boolean tiffRequired;
 
-    TiffOpenMode(boolean requireTiff) {
-        this.requireTiff = requireTiff;
+    TiffOpenMode(boolean tiffRequired) {
+        this.tiffRequired = tiffRequired;
     }
 
     /**
-     * Equivalent to <code>requireTiff ? VALID_TIFF : ALLOW_NON_TIFF</code>.
+     * Equivalent to <code>tiffRequired ? VALID_TIFF : ALLOW_NON_TIFF</code>.
      *
-     * @param requireTiff whether the file must be a valid existing TIFF file.
-     * @return {@link #VALID_TIFF} if <code>requireTiff</code> is <code>true</code>,
+     * @param tiffRequired whether the file must be a valid existing TIFF file.
+     * @return {@link #VALID_TIFF} if <code>tiffRequired</code> is <code>true</code>,
      * otherwise {@link #ALLOW_NON_TIFF}.
      */
-    public static TiffOpenMode ofRequireTiff(boolean requireTiff) {
-        return requireTiff ? VALID_TIFF : ALLOW_NON_TIFF;
+    public static TiffOpenMode ofTiffRequired(boolean tiffRequired) {
+        return tiffRequired ? VALID_TIFF : ALLOW_NON_TIFF;
     }
 
-    public boolean isRequireTiff() {
-        return requireTiff;
+    public boolean isTiffRequired() {
+        return tiffRequired;
+    }
+
+    public boolean isExistingRequired() {
+        return tiffRequired || this == ALLOW_EXISTING_NON_TIFF;
     }
 
     public boolean isAnythingChecked() {

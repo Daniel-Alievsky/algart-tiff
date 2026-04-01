@@ -171,6 +171,7 @@ public class TiffInfo {
 
     public void collectTiffInfo(Path tiffFile) throws IOException {
         ifdInfo.clear();
+        metadata = TiffPyramidMetadata.empty();
         prefixInfo = "";
         summaryInfo = "";
         svsInfo = "";
@@ -182,12 +183,16 @@ public class TiffInfo {
             this.tiff = reader.isTiff();
             this.bigTiff = reader.isBigTiff();
             this.byteOrder = reader.getByteOrder();
-            this.metadata = TiffPyramidMetadata.empty();
             this.tiffFileLength = reader.stream().length();
             if (!this.tiff) {
                 final Exception e = reader.openingException();
-                prefixInfo = "%nFile %s: not TIFF%s".formatted(tiffFile,
-                        e instanceof TiffException ? "" : "%n  (%s)".formatted(e == null ? "??" : e.getMessage()));
+                final boolean exists = reader.isExistingFile();
+                prefixInfo = "%nFile %s%s%s".formatted(
+                        tiffFile,
+                        exists ? ": not TIFF" : " does not exist",
+                        e instanceof TiffException || !exists ?
+                                "" :
+                                "%n  (%s)".formatted(e == null ? "??" : e.getMessage()));
             } else {
                 final List<TiffIFD> allIFDs;
                 try {
