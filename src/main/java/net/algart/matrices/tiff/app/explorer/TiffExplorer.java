@@ -640,8 +640,16 @@ public class TiffExplorer {
 
     static void setTiffExplorerIcon(JFrame frame) {
         frame.setIconImages(java.util.List.of(
-                new ImageIcon(reqResource("TiffExplorer_icon_16.png")).getImage(),
-                new ImageIcon(reqResource("TiffExplorer_icon_32.png")).getImage()));
+                getAppIcon16().getImage(),
+                getAppIcon32().getImage()));
+    }
+
+    static ImageIcon getAppIcon32() {
+        return new ImageIcon(reqResource("TiffExplorer_icon_32.png"));
+    }
+
+    static ImageIcon getAppIcon16() {
+        return new ImageIcon(reqResource("TiffExplorer_icon_16.png"));
     }
 
     static URL reqResource(String name) {

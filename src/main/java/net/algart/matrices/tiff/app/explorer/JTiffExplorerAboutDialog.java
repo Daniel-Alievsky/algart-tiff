@@ -40,7 +40,7 @@ public class JTiffExplorerAboutDialog extends JDialog {
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBorder(BorderFactory.createEmptyBorder(10, 50, 10, 50));
 
-        JLabel icon = new JLabel(new ImageIcon(TiffExplorer.reqResource("TiffExplorer_icon_32.png")));
+        JLabel icon = new JLabel(TiffExplorer.getAppIcon32());
         icon.setAlignmentX(Component.CENTER_ALIGNMENT);
         content.add(icon);
         content.add(Box.createVerticalStrut(16));

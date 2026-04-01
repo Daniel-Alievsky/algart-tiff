@@ -344,6 +344,7 @@ public class JTiffExplorerFrame extends JFrame {
 
         JMenu helpMenu = new JMenu("Help");
         JMenuItem aboutItem = new JMenuItem("About");
+        aboutItem.setIcon(TiffExplorer.getAppIcon16());
         aboutItem.addActionListener(e -> explorer.showAboutDialog());
         helpMenu.add(aboutItem);
 
