@@ -44,6 +44,10 @@ public enum TiffOpenMode {
     /**
      * No exceptions for a non-TIFF file, but an exception is thrown for a non-existing file;
      * {@link TiffReader#isTiff()} should be checked before usage.
+     *
+     * <p>Note that file existence is checked without distinguishing between
+     * regular files and directories: if there is an existing subdirectory
+     * with the name specified by the constructor, this mode will not lead to an exception.
      */
     ALLOW_EXISTING_NON_TIFF(false),
     /**

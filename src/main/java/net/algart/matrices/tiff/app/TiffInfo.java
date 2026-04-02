@@ -183,13 +183,13 @@ public class TiffInfo {
             this.tiff = reader.isTiff();
             this.bigTiff = reader.isBigTiff();
             this.byteOrder = reader.getByteOrder();
-            this.tiffFileLength = reader.stream().length();
+            this.tiffFileLength = reader.fileLength();
             if (!this.tiff) {
                 final Exception e = reader.openingException();
                 final boolean exists = reader.isExistingFile();
                 prefixInfo = "%nFile %s%s%s".formatted(
                         tiffFile,
-                        exists ? ": not TIFF" : " does not exist",
+                        exists ? ": not a TIFF file" : " does not exist",
                         e instanceof TiffException || !exists ?
                                 "" :
                                 "%n  (%s)".formatted(e == null ? "??" : e.getMessage()));
@@ -273,7 +273,7 @@ public class TiffInfo {
                 ifdCount,
                 stringFormat.isJson() ? "%n".formatted() : " ",
                 ifd.toString(stringFormat)));
-        final long tiffFileLength = reader.stream().length();
+        final long tiffFileLength = reader.fileLength();
         final OptionalLong sizeOfIFDOptional = ifd.sizeOfIFD(tiffFileLength);
         AtomicBoolean imageDataAligned = new AtomicBoolean(false);
         if (sizeOfIFDOptional.isPresent()) {
@@ -311,7 +311,7 @@ public class TiffInfo {
         try {
             showTiffInfo(tiffFile);
         } catch (IOException e) {
-            System.err.printf("%nFile %s is invalid:%n  %s%n", tiffFile, e.getMessage());
+            System.err.printf("%nError while reading %s:%n  %s%n", tiffFile, e.getMessage());
         }
     }
 

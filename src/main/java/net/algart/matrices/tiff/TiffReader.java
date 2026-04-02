@@ -806,13 +806,17 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     /**
-     * Returns <code>true</code> if the file is an existing file.
+     * Returns {@code true} if the file (or directory) exists.
+     *
+     * <p>Note that file existence is checked without distinguishing between
+     * regular files and directories: if there is an existing subdirectory
+     * with the name specified by the constructor, this method returns {@code true}.
      *
      * <p>Note: if the constructor was called with {@link TiffOpenMode#VALID_TIFF}
      * or {@link TiffOpenMode#ALLOW_EXISTING_NON_TIFF} mode and
      * completed successfully, this method is guaranteed to return {@code true}.
      *
-     * @return whether this file exists.
+     * @return whether this file or directory exists.
      */
     public boolean isExistingFile() {
         return existingFile;

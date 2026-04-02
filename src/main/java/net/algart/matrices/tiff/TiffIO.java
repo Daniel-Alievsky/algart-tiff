@@ -123,11 +123,20 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return prefix + uri;
     }
 
+    /**
+     * Returns the length of the file, in bytes.
+     * This method never throws an exception; in case of any error (for example, "access is denied"),
+     * it returns 0.
+     *
+     * @return the length of this file.
+     */
     public long fileLength() {
         try {
             return stream.length();
         } catch (IOException e) {
-            // - very improbable, it is better just to return something
+            // - very improbable
+            // (example: this is a subdirectory, and length() throws "FileNotFoundExceptoin ... (Access is denied)";
+            // it is much better just to return something
             return 0;
         }
     }
