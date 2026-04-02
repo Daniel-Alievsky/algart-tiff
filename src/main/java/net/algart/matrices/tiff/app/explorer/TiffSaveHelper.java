@@ -32,8 +32,6 @@ import net.algart.matrices.tiff.app.TiffInfo;
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.TitledBorder;
-import javax.swing.filechooser.FileFilter;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
@@ -78,10 +76,6 @@ class TiffSaveHelper {
         }
     }
 
-    static final FileFilter TIFF_FILTER = new FileNameExtensionFilter(
-            "TIFF files (*.tif, *.tiff)",
-            "tif", "tiff");
-
     private static final String PREF_LAST_SAVE_TIFF_DIR = "viewer.copier.lastSaveTiffDirectory";
 
     private final JFrame frame;
@@ -115,8 +109,8 @@ class TiffSaveHelper {
         chooser.setDialogTitle("Save the entire TIFF");
         chooser.setSelectedFile(new File("copy.tiff"));
         chooser.setDialogType(JFileChooser.SAVE_DIALOG);
-        chooser.addChoosableFileFilter(TIFF_FILTER);
-        chooser.setFileFilter(TIFF_FILTER);
+        chooser.addChoosableFileFilter(TiffExplorer.TIFF_FILTER);
+        chooser.setFileFilter(TiffExplorer.TIFF_FILTER);
         chooser.setAcceptAllFileFilterUsed(true);
         File file = chooseFile(frame, chooser);
         if (file == null) {

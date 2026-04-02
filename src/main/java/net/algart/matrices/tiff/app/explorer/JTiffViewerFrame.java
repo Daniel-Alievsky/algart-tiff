@@ -147,6 +147,7 @@ class JTiffViewerFrame extends JFrame {
         JMenuBar menuBar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
         JMenuItem saveImageAsTiffItem = new JMenuItem("Save image as TIFF...");
+        saveImageAsTiffItem.setMnemonic(KeyEvent.VK_S);
         saveImageAsTiffItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
                 InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
         saveImageAsTiffItem.addActionListener(e -> {
@@ -154,14 +155,31 @@ class JTiffViewerFrame extends JFrame {
             Path file = helper.chooseTiffFileToSaveImage(false);
             if (file != null) {
                 try {
-                    helper.showSaveImageDialog(viewer, file, false);
+                    helper.showSaveEntireImageDialog(viewer, file);
                 } catch (Exception ex) {
-                    showErrorMessage(ex, "Error copying TIFF");
+                    showErrorMessage(ex, "Error saving TIFF");
                 }
             }
         });
         fileMenu.add(saveImageAsTiffItem);
+        JMenuItem appendImageToTiffItem = new JMenuItem("Append image to TIFF...");
+        appendImageToTiffItem.setMnemonic(KeyEvent.VK_D);
+        appendImageToTiffItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D,
+                InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK));
+        appendImageToTiffItem.addActionListener(e -> {
+            final var helper = new TiffSaveImageHelper(this);
+            Path file = helper.chooseTiffFileToAppendImage(false);
+            if (file != null) {
+                try {
+                    helper.showAppendEntireImageDialog(viewer, file);
+                } catch (Exception ex) {
+                    showErrorMessage(ex, "Error appending TIFF");
+                }
+            }
+        });
+        fileMenu.add(appendImageToTiffItem);
         JMenuItem exportImageItem = new JMenuItem("Export image...");
+        exportImageItem.setMnemonic(KeyEvent.VK_E);
         exportImageItem.addActionListener(e -> {
             final var helper = new TiffSaveImageHelper(this);
             Path file = helper.chooseFileToExportImage(viewer, false);
@@ -185,13 +203,28 @@ class JTiffViewerFrame extends JFrame {
             Path file = helper.chooseTiffFileToSaveImage(true);
             if (file != null) {
                 try {
-                    helper.showSaveImageDialog(viewer, file, true);
+                    helper.showSaveSelectionDialog(viewer, file);
                 } catch (Exception ex) {
-                    showErrorMessage(ex, "Error copying TIFF");
+                    showErrorMessage(ex, "Error saving the selected area");
                 }
             }
         });
         fileMenu.add(saveSelectionAsTiffItem);
+        JMenuItem appendSelectionToTiffItem = new JMenuItem("Append selection to TIFF...");
+        appendSelectionToTiffItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D,
+                InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
+        appendSelectionToTiffItem.addActionListener(e -> {
+            final var helper = new TiffSaveImageHelper(this);
+            Path file = helper.chooseTiffFileToAppendImage(true);
+            if (file != null) {
+                try {
+                    helper.showAppendSelectionDialog(viewer, file);
+                } catch (Exception ex) {
+                    showErrorMessage(ex, "Error appending the selected area");
+                }
+            }
+        });
+        fileMenu.add(appendSelectionToTiffItem);
         JMenuItem exportSelectionItem = new JMenuItem("Export selection...");
         exportSelectionItem.addActionListener(e -> {
             final var helper = new TiffSaveImageHelper(this);
@@ -210,6 +243,7 @@ class JTiffViewerFrame extends JFrame {
         // RandomAccessFile does not strictly lock the file: other processes, for example,
         // other instances of TiffExplorer may edit the same file
         JMenuItem reloadItem = new JMenuItem("Reload image");
+        reloadItem.setMnemonic(KeyEvent.VK_R);
         reloadItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
         reloadItem.addActionListener(event -> {
             try {
@@ -222,6 +256,7 @@ class JTiffViewerFrame extends JFrame {
 
         JMenu editMenu = new JMenu("Edit");
         JMenuItem selectAllItem = new JMenuItem("Select all");
+        selectAllItem.setMnemonic(KeyEvent.VK_A);
         selectAllItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK));
         selectAllItem.addActionListener(e -> {
             viewerPanel.setSelectionAll();
@@ -236,6 +271,7 @@ class JTiffViewerFrame extends JFrame {
                 KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
         editMenu.add(alignSelectionItem);
         JMenuItem removeSelectionItem = new JMenuItem("Remove selection");
+        removeSelectionItem.setMnemonic(KeyEvent.VK_D);
         removeSelectionItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0));
         removeSelectionItem.addActionListener(e -> viewerPanel.removeSelection());
         editMenu.add(removeSelectionItem);
@@ -277,6 +313,7 @@ class JTiffViewerFrame extends JFrame {
 
         JCheckBoxMenuItem tileGridItem = new JCheckBoxMenuItem("Draw grid");
         tileGridItem.setSelected(false);
+        tileGridItem.setMnemonic(KeyEvent.VK_G);
         tileGridItem.addActionListener(e -> {
             try {
                 viewer.setTileGridVisibility(tileGridItem.isSelected());
@@ -288,6 +325,7 @@ class JTiffViewerFrame extends JFrame {
         viewMenu.add(tileGridItem);
 
         JMenu zoomMenu = new JMenu("Zoom");
+        zoomMenu.setMnemonic(KeyEvent.VK_Z);
         ButtonGroup zoomGroup = new ButtonGroup();
         addZoomItem(zoomMenu, zoomGroup, "800% (8:1)", 8.0);
         addZoomItem(zoomMenu, zoomGroup, "400% (4:1)", 4.0);

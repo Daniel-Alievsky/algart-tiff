@@ -222,26 +222,30 @@ public class JTiffExplorerFrame extends JFrame {
 
     private JMenuBar buildMenuBar() {
         JMenuBar menuBar = new JMenuBar();
-
         JMenu fileMenu = new JMenu("File");
         openItem = new JMenuItem("Open TIFF...");
+        openItem.setMnemonic(KeyEvent.VK_O);
         openItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
         openItem.addActionListener(e -> explorer.chooseFileAndOpen());
         fileMenu.add(openItem);
         final JMenuItem saveAsItem = new JMenuItem("Save TIFF as...");
+        saveAsItem.setMnemonic(KeyEvent.VK_S);
         saveAsItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
         saveAsItem.addActionListener(e -> explorer.chooseFileAndShowSaveDialog());
         fileMenu.add(saveAsItem);
         final JMenuItem compactItem = new JMenuItem("Compact TIFF...");
+        compactItem.setMnemonic(KeyEvent.VK_C);
         compactItem.addActionListener(e -> explorer.showCompactDialog());
         fileMenu.add(compactItem);
         reloadItem = new JMenuItem("Reload TIFF");
+        reloadItem.setMnemonic(KeyEvent.VK_R);
         reloadItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
         reloadItem.addActionListener(e -> reload());
         fileMenu.add(reloadItem);
         fileMenu.addSeparator();
 
         JMenuItem exitItem = new JMenuItem("Exit");
+        exitItem.setMnemonic(KeyEvent.VK_X);
         exitItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.ALT_DOWN_MASK));
         exitItem.addActionListener(e ->
                 this.dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING)));
@@ -249,6 +253,7 @@ public class JTiffExplorerFrame extends JFrame {
 
         JMenu editMenu = new JMenu("Edit");
         JMenuItem copyItem = new JMenuItem("Copy");
+        copyItem.setMnemonic(KeyEvent.VK_C);
         copyItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK));
         copyItem.addActionListener(e -> ifdTextArea.copy());
         editMenu.add(copyItem);
@@ -344,6 +349,7 @@ public class JTiffExplorerFrame extends JFrame {
 
         JMenu helpMenu = new JMenu("Help");
         JMenuItem aboutItem = new JMenuItem("About");
+        aboutItem.setMnemonic(KeyEvent.VK_A);
         aboutItem.setIcon(TiffExplorer.getAppIcon16());
         aboutItem.addActionListener(e -> explorer.showAboutDialog());
         helpMenu.add(aboutItem);
@@ -379,7 +385,8 @@ public class JTiffExplorerFrame extends JFrame {
     }
 
     private void fixMenuItemMargins(JMenu menu) {
-        // No good ideas how to remove the left gap added on Windows...
+        // No good ideas how to remove the left gap added on Windows (reserved for icons);
+        // it is much better to actually add icons, as for About
 //        for (int i = 0; i < menu.getMenuComponentCount(); i++) {
 //            Component comp = menu.getMenuComponent(i);
 //            if (comp instanceof JMenuItem item && !(item instanceof JRadioButtonMenuItem)) {

@@ -78,13 +78,13 @@ class TiffSaveImageHelper {
         this.frame = Objects.requireNonNull(frame);
     }
 
-    public Path chooseFileToExportImage(TiffViewer viewer, boolean processSelection) {
-        final String whatToExport = processSelection ? "the selected area" : "the image";
+    public Path chooseFileToExportImage(TiffViewer viewer, boolean selectionOnly) {
+        final String whatToExport = selectionOnly ? "the selected area" : "the image";
         if (!confirmImageSize(
                 viewer,
                 "export " + whatToExport + " to another file format",
-                processSelection ? "Save selection as TIFF" : "Save image as TIFF",
-                processSelection)) {
+                selectionOnly ? "Save selection as TIFF" : "Save image as TIFF",
+                selectionOnly)) {
             return null;
         }
         JFileChooser chooser = new JFileChooser();
@@ -94,7 +94,7 @@ class TiffSaveImageHelper {
             chooser.setCurrentDirectory(dir);
         }
         chooser.setDialogTitle("Export " + whatToExport);
-        chooser.setSelectedFile(new File(processSelection ? "selected.png" : "image.png"));
+        chooser.setSelectedFile(new File(selectionOnly ? "selected.png" : "image.png"));
         chooser.setDialogType(JFileChooser.SAVE_DIALOG);
         chooser.addChoosableFileFilter(ANY_IMAGE_FILTER);
         chooser.setFileFilter(ANY_IMAGE_FILTER);
@@ -107,8 +107,8 @@ class TiffSaveImageHelper {
         return file.toPath();
     }
 
-    public Path chooseTiffFileToSaveImage(boolean processSelection) {
-        final String whatToSave = processSelection ? "the selected area" : "the image";
+    public Path chooseTiffFileToSaveImage(boolean selectionOnly) {
+        final String whatToSave = selectionOnly ? "the selected area" : "the image";
         JFileChooser chooser = new JFileChooser();
         String last = TiffExplorer.PREFERENCES.get(PREF_LAST_SAVE_IMAGE_DIR, null);
         File dir = new File(last == null ? "." : last);
@@ -116,10 +116,10 @@ class TiffSaveImageHelper {
             chooser.setCurrentDirectory(dir);
         }
         chooser.setDialogTitle("Save " + whatToSave);
-        chooser.setSelectedFile(new File(processSelection ? "selected.tiff" : "image.tiff"));
+        chooser.setSelectedFile(new File(selectionOnly ? "selection.tiff" : "image.tiff"));
         chooser.setDialogType(JFileChooser.SAVE_DIALOG);
-        chooser.addChoosableFileFilter(TiffSaveHelper.TIFF_FILTER);
-        chooser.setFileFilter(TiffSaveHelper.TIFF_FILTER);
+        chooser.addChoosableFileFilter(TiffExplorer.TIFF_FILTER);
+        chooser.setFileFilter(TiffExplorer.TIFF_FILTER);
         chooser.setAcceptAllFileFilterUsed(true);
         File file = TiffSaveHelper.chooseFile(frame, chooser);
         if (file == null) {
@@ -127,6 +127,31 @@ class TiffSaveImageHelper {
         }
         TiffExplorer.PREFERENCES.put(PREF_LAST_SAVE_IMAGE_DIR, file.getParent());
         return file.toPath();
+    }
+
+    public Path chooseTiffFileToAppendImage(boolean selectionOnly) {
+        final String whatToSave = selectionOnly ? "the selected area" : "the image";
+        JFileChooser chooser = new JFileChooser();
+        String last = TiffExplorer.PREFERENCES.get(PREF_LAST_SAVE_IMAGE_DIR, null);
+        File dir = new File(last == null ? "." : last);
+        if (dir.isDirectory()) {
+            chooser.setCurrentDirectory(dir);
+        }
+        chooser.setDialogTitle("Append " + whatToSave + " to TIFF");
+        chooser.setSelectedFile(new File(selectionOnly ? "selection.tiff" : "image.tiff"));
+        chooser.addChoosableFileFilter(TiffExplorer.TIFF_FILTER);
+        chooser.addChoosableFileFilter(TiffExplorer.TIFF_OR_SVS_FILTER);
+        chooser.setFileFilter(TiffExplorer.TIFF_FILTER);
+        chooser.setAcceptAllFileFilterUsed(true);
+        int result = chooser.showOpenDialog(frame);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File file = chooser.getSelectedFile();
+            if (file != null) {
+                TiffExplorer.PREFERENCES.put(PREF_LAST_SAVE_IMAGE_DIR, file.getParent());
+                return file.toPath();
+            }
+        }
+        return null;
     }
 
     public void copySelectedAreaToClipboard(TiffViewer viewer) throws IOException {
@@ -144,18 +169,39 @@ class TiffSaveImageHelper {
         }
     }
 
-    public void exportImageToFile(TiffViewer viewer, Path targetFile, boolean processSelection) throws IOException {
+    public void exportImageToFile(TiffViewer viewer, Path targetFile, boolean selectionOnly) throws IOException {
         Objects.requireNonNull(viewer, "Null viewer");
         Objects.requireNonNull(targetFile, "Null targetFile");
-        BufferedImage image = processSelection ? viewer.readSelectedImage() : viewer.readEntireImage();
+        BufferedImage image = selectionOnly ? viewer.readSelectedImage() : viewer.readEntireImage();
         if (image != null) {
             LOG.log(System.Logger.Level.DEBUG, "Export %s to %s: %s".formatted(
-                    processSelection ? "the selected area" : "TIFF image", targetFile, image));
+                    selectionOnly ? "the selected area" : "TIFF image", targetFile, image));
             MatrixIO.writeBufferedImage(targetFile, image);
         }
     }
 
-    public void showSaveImageDialog(TiffViewer viewer, Path targetFile, boolean processSelection) throws IOException {
+    public void showSaveEntireImageDialog(TiffViewer viewer, Path targetFile) throws IOException {
+        showSaveOrAppendImageDialog(viewer, targetFile, false, false);
+    }
+
+    public void showSaveSelectionDialog(TiffViewer viewer, Path targetFile) throws IOException {
+        showSaveOrAppendImageDialog(viewer, targetFile, false, true);
+    }
+
+    public void showAppendEntireImageDialog(TiffViewer viewer, Path targetFile) throws IOException {
+        showSaveOrAppendImageDialog(viewer, targetFile, true, false);
+    }
+
+    public void showAppendSelectionDialog(TiffViewer viewer, Path targetFile) throws IOException {
+        showSaveOrAppendImageDialog(viewer, targetFile, true, true);
+    }
+
+    private void showSaveOrAppendImageDialog(TiffViewer viewer, Path targetFile, boolean append, boolean selectionOnly)
+            throws IOException {
+        if (append) {
+            //TODO!!
+            throw new UnsupportedOperationException("Append mode is not supported yet");
+        }
         Objects.requireNonNull(viewer, "Null viewer");
         Objects.requireNonNull(targetFile, "Null targetFile");
         final boolean tiled = viewer.map().isTiled();
@@ -163,7 +209,7 @@ class TiffSaveImageHelper {
         final int sizeY;
         final Rectangle selection;
         final boolean tileAligned;
-        if (processSelection) {
+        if (selectionOnly) {
             selection = viewer.getSelection();
             if (selection == null || selection.width <= 0 || selection.height <= 0) {
                 return;
@@ -178,7 +224,7 @@ class TiffSaveImageHelper {
             sizeY = map.dimY();
             tileAligned = true;
         }
-        final String whatToSave = processSelection ? "the selected area" : "the image";
+        final String whatToSave = selectionOnly ? "the selected area" : "the image";
 
         final Path tiffFile = viewer.path();
         TiffCopier.checkDifferentFiles(tiffFile, targetFile);
@@ -385,10 +431,10 @@ class TiffSaveImageHelper {
             TiffViewer viewer,
             String actionName,
             String recommendedAction,
-            boolean processSelection) {
+            boolean selectionOnly) {
         final int sizeX;
         final int sizeY;
-        if (processSelection) {
+        if (selectionOnly) {
             final Rectangle selection = viewer.getSelection();
             if (selection == null || selection.width <= 0 || selection.height <= 0) {
                 return false;

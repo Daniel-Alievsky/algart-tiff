@@ -56,8 +56,11 @@ public class TiffExplorer {
 
     private static final String PREF_LAST_DIR = "main.lastDirectory";
 
-    private static final FileFilter TIFF_FILTER = new FileNameExtensionFilter(
+    static final FileFilter TIFF_OR_SVS_FILTER = new FileNameExtensionFilter(
             "TIFF / SVS files (*.tif, *.tiff, *.svs)", "tif", "tiff", "svs");
+    static final FileFilter TIFF_FILTER = new FileNameExtensionFilter(
+            "TIFF files (*.tif, *.tiff)",
+            "tif", "tiff");
     private static final FileFilter SVS_FILTER = new FileNameExtensionFilter(
             "SVS files only (*.svs)", "svs");
 
@@ -66,7 +69,7 @@ public class TiffExplorer {
     static final Preferences PREFERENCES = Preferences.userNodeForPackage(TiffExplorer.class);
 
     private JTiffExplorerFrame frame;
-    private FileFilter lastFileFilter = TIFF_FILTER;
+    private FileFilter lastFileFilter = TIFF_OR_SVS_FILTER;
 
     private TiffInfo info = null;
     private Path tiffFile = null;
@@ -140,7 +143,7 @@ public class TiffExplorer {
         if (dir.isDirectory()) {
             chooser.setCurrentDirectory(dir);
         }
-        chooser.addChoosableFileFilter(TIFF_FILTER);
+        chooser.addChoosableFileFilter(TIFF_OR_SVS_FILTER);
         chooser.addChoosableFileFilter(SVS_FILTER);
         chooser.setAcceptAllFileFilterUsed(true);
         chooser.setFileFilter(lastFileFilter != null ? lastFileFilter : chooser.getAcceptAllFileFilter());
