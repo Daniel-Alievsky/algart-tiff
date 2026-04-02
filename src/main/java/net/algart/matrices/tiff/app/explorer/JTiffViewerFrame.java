@@ -376,9 +376,9 @@ class JTiffViewerFrame extends JFrame {
         editMenu.addMenuListener(menuUpdater);
         viewMenu.addMenuListener(menuUpdater);
 
-        fileMenu.setMnemonic('F');
-        viewMenu.setMnemonic('V');
-        editMenu.setMnemonic('E');
+        fileMenu.setMnemonic(KeyEvent.VK_F);
+        editMenu.setMnemonic(KeyEvent.VK_E);
+        viewMenu.setMnemonic(KeyEvent.VK_V);
         menuBar.add(fileMenu);
         menuBar.add(editMenu);
         menuBar.add(viewMenu);

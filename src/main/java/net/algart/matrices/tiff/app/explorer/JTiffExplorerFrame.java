@@ -369,10 +369,10 @@ public class JTiffExplorerFrame extends JFrame {
         editMenu.addMenuListener(menuUpdater);
         viewMenu.addMenuListener(menuUpdater);
 
-        fileMenu.setMnemonic('F');
-        editMenu.setMnemonic('E');
-        viewMenu.setMnemonic('V');
-        helpMenu.setMnemonic('H');
+        fileMenu.setMnemonic(KeyEvent.VK_F);
+        editMenu.setMnemonic(KeyEvent.VK_E);
+        viewMenu.setMnemonic(KeyEvent.VK_V);
+        helpMenu.setMnemonic(KeyEvent.VK_H);
         fixMenuItemMargins(fileMenu);
         fixMenuItemMargins(editMenu);
         fixMenuItemMargins(viewMenu);
