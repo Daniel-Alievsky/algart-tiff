@@ -25,6 +25,7 @@
 package net.algart.matrices.tiff.app.explorer;
 
 import javax.swing.*;
+import javax.swing.text.View;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.io.File;
@@ -39,8 +40,30 @@ class TinySwingTools {
     }
 
     static JLabel leftLabel(String text) {
-        JLabel label = new JLabel(text);
+        JLabel label = newLabel(text);
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return label;
+    }
+
+    static JLabel newLabel(String text) {
+        JLabel label = new JLabel(text);
+        final int maxWidth = (int) (Toolkit.getDefaultToolkit().getScreenSize().width * 0.9);
+        // - limit the width to 90% of the screen to prevent the window from going off-screen
+        Dimension sizes = label.getPreferredSize();
+        if (sizes.width > maxWidth) {
+            View view = (View) label.getClientProperty(javax.swing.plaf.basic.BasicHTML.propertyKey);
+            // - access the underlying HTML rendering engine (View)
+            if (view != null) {
+                // - for HTML, force the engine to wrap text within maxWidth;
+                view.setSize(maxWidth, 0);
+                // - height (0) is ignored as it's a dependent result in flow layout
+                float height = view.getPreferredSpan(View.Y_AXIS);
+                label.setPreferredSize(new Dimension(maxWidth, (int) height));
+            } else {
+                // - plain text: just clip the width
+                label.setPreferredSize(new Dimension(maxWidth, sizes.height));
+            }
+        }
         return label;
     }
 
@@ -86,7 +109,7 @@ class TinySwingTools {
         for (int i = 0; i < lines.length; i++) {
             sb.append("<div%s>%s</div>".formatted(i == 0 ? "" : " style=\"margin-top: 5px\"", lines[i]));
         }
-        return "<html>" + sb + "</html>";
+        return "<html><body>" + sb + "</body></html>";
     }
 
     static Color getUIColor(String name, Color defaultValue) {

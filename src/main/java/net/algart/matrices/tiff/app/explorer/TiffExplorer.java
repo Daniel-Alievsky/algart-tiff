@@ -445,7 +445,7 @@ public class TiffExplorer {
             }
             content.add(Box.createVerticalStrut(15));
 
-            final JLabel warningLabel = new JLabel(TinySwingTools.smartHtmlLines("""
+            final JLabel warningLabel = TinySwingTools.newLabel(TinySwingTools.smartHtmlLines("""
                     Warning! This is a <b>low-level modification</b> of the IFD %d in the TIFF file:<br>
                     &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
                     Selected tags will be permanently <b>deleted</b> from the IFD.<br>

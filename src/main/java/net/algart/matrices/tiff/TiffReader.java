@@ -325,7 +325,7 @@ public non-sealed class TiffReader extends TiffIO {
             DataHandle<?> inputStream,
             TiffOpenMode openMode,
             boolean closeStreamOnException) throws IOException {
-        this(inputStream, null, openMode, closeStreamOnException);
+        this(inputStream, (Path) null, openMode, closeStreamOnException);
     }
 
     /**
@@ -358,6 +358,7 @@ public non-sealed class TiffReader extends TiffIO {
      *                         with catching exception.
      */
     public TiffReader(DataHandle<?> inputStream, Consumer<Exception> exceptionHandler) {
+        //noinspection RedundantCast
         this(inputStream, (Path) null, exceptionHandler);
     }
 
@@ -370,6 +371,7 @@ public non-sealed class TiffReader extends TiffIO {
         assert this.tiff || !this.validTiff;
         // - in other words, if validTiff, then tiff
         if (!openMode.isAnythingChecked()) {
+            assert openMode == TiffOpenMode.NO_CHECKS;
             return;
         }
         boolean tiffButInvalid = this.tiff && !this.validTiff;
@@ -389,6 +391,10 @@ public non-sealed class TiffReader extends TiffIO {
             } else {
                 throw new AssertionError("Should not occur!");
             }
+        }
+        assert !tiffButInvalid : "exception was not thrown";
+        if (this.tiff != this.validTiff) {
+            throw new AssertionError("tiff != validTiff is possible for NO_CHECKS only");
         }
         if (openMode.isTiffRequired()) {
             checkFirstOffset();

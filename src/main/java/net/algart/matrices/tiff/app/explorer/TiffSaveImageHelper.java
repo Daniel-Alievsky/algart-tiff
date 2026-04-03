@@ -38,6 +38,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -198,10 +199,6 @@ class TiffSaveImageHelper {
 
     private void showSaveOrAppendImageDialog(TiffViewer viewer, Path targetFile, boolean append, boolean selectionOnly)
             throws IOException {
-        if (append) {
-            //TODO!!
-            throw new UnsupportedOperationException("Append mode is not supported yet");
-        }
         Objects.requireNonNull(viewer, "Null viewer");
         Objects.requireNonNull(targetFile, "Null targetFile");
         final boolean tiled = viewer.map().isTiled();
@@ -228,6 +225,7 @@ class TiffSaveImageHelper {
 
         final Path tiffFile = viewer.path();
         TiffCopier.checkDifferentFiles(tiffFile, targetFile);
+        final boolean exists = Files.exists(targetFile);
 
         final TiffReadMap map = viewer.map();
         final int ifdIndex = viewer.ifdIndex();
@@ -237,7 +235,11 @@ class TiffSaveImageHelper {
 
         settingsDialog = new JDialog(frame);
         settingsDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-        settingsDialog.setTitle("Save " + whatToSave + " as a new TIFF file");
+        settingsDialog.setTitle(!exists ?
+                "Save " + whatToSave + " as a TIFF file" :
+                append ?
+                        "Append " + whatToSave + " to an existing TIFF file" :
+                        "Save " + whatToSave + " in a newly created TIFF file");
         settingsDialog.setLayout(new BorderLayout(10, 10));
         settingsDialog.setResizable(false);
 
@@ -249,14 +251,20 @@ class TiffSaveImageHelper {
                 "The TIFF image #%d (%d\u00D7%d)".formatted(ifdIndex, sizeX, sizeY) :
                 "The selected area %d\u00D7%d (top-left at %d,%d) of the TIFF image #%d"
                         .formatted(sizeX, sizeY, selection.x, selection.y, ifdIndex);
+        final String whatToDo = !exists ?
+                "copied to a new TIFF file" :
+                append ? "appended to the end of an existing file" :
+                        "copied to an existing TIFF file (overwriting its current content)";
         mainPanel.add(TinySwingTools.leftLabel(TinySwingTools.smartHtmlLines("""
                 %s from the file:<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
-                will be copied to a new TIFF file:<br>
+                will be %s:<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>&nbsp;
                 """.formatted(
                 whatToCopy,
-                tiffFile, targetFile.toAbsolutePath()
+                tiffFile,
+                whatToDo,
+                targetFile.toAbsolutePath()
         ))));
         mainPanel.add(Box.createVerticalStrut(10));
 
@@ -284,7 +292,7 @@ class TiffSaveImageHelper {
                     """.formatted(
                     selection.x, selection.y,
                     viewer.alignSelectionToTileGridCommand());
-            directCommentLabel = new JLabel(TinySwingTools.smartHtmlLines(directComment));
+            directCommentLabel = TinySwingTools.newLabel(TinySwingTools.smartHtmlLines(directComment));
             directCommentLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
             directCommentLabel.setEnabled(false);
             // - gray color: this is a comment, not an important element
@@ -337,8 +345,10 @@ class TiffSaveImageHelper {
         buttonPanel.add(cancelCopyButton);
         settingsDialog.add(buttonPanel, BorderLayout.SOUTH);
         settingsDialog.getRootPane().setDefaultButton(startCopyButton);
-        startCopyButton.addActionListener(e -> startCopyImage(tiffFile, targetFile, ifdIndex, selection));
-        cancelCopyButton.addActionListener(e -> cancelCopy());
+        startCopyButton.addActionListener(
+                e -> startCopyImage(tiffFile, targetFile, ifdIndex, selection, append));
+        cancelCopyButton.addActionListener(
+                e -> cancelCopy());
 
         stopRequested = false;
         copyingInProgress = false;
@@ -351,7 +361,7 @@ class TiffSaveImageHelper {
         settingsDialog.setVisible(true);
     }
 
-    private void startCopyImage(Path sourceFile, Path targetFile, int ifdIndex, Rectangle r) {
+    private void startCopyImage(Path sourceFile, Path targetFile, int ifdIndex, Rectangle r, boolean append) {
         final TiffCopier copier;
         final Double compressionQuality;
         try {
@@ -371,14 +381,14 @@ class TiffSaveImageHelper {
             @Override
             protected Void doInBackground() throws Exception {
                 try (TiffReader reader = new TiffReader(sourceFile);
-                        TiffWriter writer = new TiffWriter(targetFile)) {
+                     TiffWriter writer = new TiffWriter(targetFile)) {
                     // - we must create a new reader without customizing setAutoCorrectColors
                     writer.setSmartCorrection(true);
                     writer.setCompatibleFileFormat(reader);
                     // - without this operator, direct copy will be impossible for LE format
                     // if (true) throw new IOException("Test exception");
                     writer.setCompressionQuality(compressionQuality);
-                    writer.create();
+                    writer.create(append);
                     if (r == null) {
                         copier.copyImage(writer, reader, ifdIndex);
                     } else {
