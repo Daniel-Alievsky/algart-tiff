@@ -46,6 +46,7 @@ public class TinySwing {
     }
 
     static JLabel newLabel(String text) {
+        Objects.requireNonNull(text, "Null text");
         JLabel label = new JLabel(text);
         final int maxWidth = (int) (Toolkit.getDefaultToolkit().getScreenSize().width * 0.9);
         // - limit the width to 90% of the screen to prevent the window from going off-screen
@@ -68,6 +69,7 @@ public class TinySwing {
     }
 
     static JComponent leftIndent(JComponent component, int gap) {
+        Objects.requireNonNull(component, "Null component");
         Box box = Box.createHorizontalBox();
         box.add(Box.createHorizontalStrut(gap));
         component.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -77,6 +79,7 @@ public class TinySwing {
     }
 
     static void setWaitCursor(JFrame frame, boolean wait) {
+        Objects.requireNonNull(frame, "Null frame");
         final Component glassPane = frame.getGlassPane();
         if (wait) {
             glassPane.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
@@ -85,6 +88,17 @@ public class TinySwing {
             glassPane.setVisible(false);
             glassPane.setCursor(Cursor.getDefaultCursor());
         }
+    }
+
+    static void doLongOperation(JFrame frame, Runnable runnable) {
+        TinySwing.setWaitCursor(frame, true);
+        SwingUtilities.invokeLater(() -> {
+            try {
+                runnable.run();
+            }  finally {
+                TinySwing.setWaitCursor(frame, false);
+            }
+        });
     }
 
     static void addActionOnEscape(JDialog dialog, Runnable action) {
