@@ -237,7 +237,7 @@ public class TiffExplorer {
         );
         scrollPane.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        content.add(TinySwingTools.leftLabel(
+        content.add(TinySwing.leftLabel(
                 "Description of TIFF image #%d (ImageDescription tag)".formatted(index)));
         content.add(Box.createVerticalStrut(5));
         content.add(scrollPane);
@@ -256,7 +256,7 @@ public class TiffExplorer {
         toolsPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, toolsPanel.getPreferredSize().height));
         content.add(Box.createVerticalStrut(10));
 
-        content.add(TinySwingTools.leftLabel(TinySwingTools.smartHtmlLines("""
+        content.add(TinySwing.leftLabel(TinySwing.smartHtmlLines("""
                 Warning! This action will rewrite the IFD %d in the TIFF file:<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
                 The current image description will be permanently <b>replaced</b>.<br>
@@ -285,7 +285,7 @@ public class TiffExplorer {
         dialog.add(buttonPanel, BorderLayout.SOUTH);
 
         dialog.pack();
-        TinySwingTools.addCloseOnEscape(dialog);
+        TinySwing.addCloseOnEscape(dialog);
         dialog.setLocationRelativeTo(frame);
         dialog.setVisible(true);
     }
@@ -310,7 +310,7 @@ public class TiffExplorer {
         okButton.setEnabled(false);
         final JButton cancelButton = new JButton("Cancel");
 
-        content.add(TinySwingTools.leftLabel("You may rewrite the PhotometricInterpretation tag in this IFD."));
+        content.add(TinySwing.leftLabel("You may rewrite the PhotometricInterpretation tag in this IFD."));
         content.add(Box.createVerticalStrut(10));
 
         final TiffIFD ifd = info.metadata().ifd(index);
@@ -319,15 +319,15 @@ public class TiffExplorer {
                 ifd.optPhotometric().orElse(null));
         final boolean unknownPhotometric = ifd.hasPhotometric() && existingPhotometricItem.photometric == null;
         if (ifd.hasPhotometric()) {
-            content.add(TinySwingTools.leftLabel("Current value:"));
-            content.add(TinySwingTools.leftIndent(
+            content.add(TinySwing.leftLabel("Current value:"));
+            content.add(TinySwing.leftIndent(
                     new JLabel("<html><b>" + existingPhotometricItem + "</b></html>"), 25));
         } else {
-            content.add(TinySwingTools.leftLabel("Nothing (does not exist)"));
+            content.add(TinySwing.leftLabel("Nothing (does not exist)"));
         }
         content.add(Box.createVerticalStrut(10));
 
-        content.add(TinySwingTools.leftLabel("New value to write:"));
+        content.add(TinySwing.leftLabel("New value to write:"));
         final JComboBox<PhotometricItem> photometricComboBox = new JComboBox<>();
         photometricComboBox.setMaximumRowCount(50);
         photometricComboBox.addItem(new PhotometricItem(null, null));
@@ -345,10 +345,10 @@ public class TiffExplorer {
         );
         photometricComboBox.setMaximumSize(photometricComboBox.getPreferredSize());
         photometricComboBox.setAlignmentX(Component.LEFT_ALIGNMENT);
-        content.add(TinySwingTools.leftIndent(photometricComboBox, 20));
+        content.add(TinySwing.leftIndent(photometricComboBox, 20));
         content.add(Box.createVerticalStrut(15));
 
-        content.add(TinySwingTools.leftLabel(TinySwingTools.smartHtmlLines("""
+        content.add(TinySwing.leftLabel(TinySwing.smartHtmlLines("""
                 Warning! This is a <b>low-level modification</b> of the IFD %d in the TIFF file:<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
                 Changing this tag does <b>not</b> convert the actual pixel data.<br>
@@ -377,7 +377,7 @@ public class TiffExplorer {
         dialog.add(buttonPanel, BorderLayout.SOUTH);
 
         dialog.pack();
-        TinySwingTools.addCloseOnEscape(dialog);
+        TinySwing.addCloseOnEscape(dialog);
         dialog.setLocationRelativeTo(frame);
         dialog.setVisible(true);
     }
@@ -402,7 +402,7 @@ public class TiffExplorer {
         final List<Integer> tagsToPossiblyRemove = tagsToPossiblyRemove(ifd);
 
         final boolean hasTags = !tagsToPossiblyRemove.isEmpty();
-        content.add(TinySwingTools.leftLabel(!hasTags ?
+        content.add(TinySwing.leftLabel(!hasTags ?
                 "No tags can be safely removed" :
                 "The following tags may be removed"));
         final JPanel buttonPanel;
@@ -445,7 +445,7 @@ public class TiffExplorer {
             }
             content.add(Box.createVerticalStrut(15));
 
-            final JLabel warningLabel = TinySwingTools.newLabel(TinySwingTools.smartHtmlLines("""
+            final JLabel warningLabel = TinySwing.newLabel(TinySwing.smartHtmlLines("""
                     Warning! This is a <b>low-level modification</b> of the IFD %d in the TIFF file:<br>
                     &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
                     Selected tags will be permanently <b>deleted</b> from the IFD.<br>
@@ -480,7 +480,7 @@ public class TiffExplorer {
         dialog.add(buttonPanel, BorderLayout.SOUTH);
 
         dialog.pack();
-        TinySwingTools.addCloseOnEscape(dialog);
+        TinySwing.addCloseOnEscape(dialog);
         dialog.setLocationRelativeTo(frame);
         dialog.setVisible(true);
     }
@@ -607,11 +607,11 @@ public class TiffExplorer {
     }
 
     static ImageIcon getAppIcon32() {
-        return new ImageIcon(TinySwingTools.reqResource("TiffExplorer_icon_32.png"));
+        return new ImageIcon(TinySwing.reqResource("TiffExplorer_icon_32.png"));
     }
 
     static ImageIcon getAppIcon16() {
-        return new ImageIcon(TinySwingTools.reqResource("TiffExplorer_icon_16.png"));
+        return new ImageIcon(TinySwing.reqResource("TiffExplorer_icon_16.png"));
     }
 
     // code=null: no photometric tag

@@ -84,7 +84,7 @@ public class JTiffExplorerAboutDialog extends JDialog {
         this.add(btnPanel, BorderLayout.SOUTH);
 
         this.pack();
-        TinySwingTools.addCloseOnEscape(this);
+        TinySwing.addCloseOnEscape(this);
         this.setLocationRelativeTo(frame);
     }
 

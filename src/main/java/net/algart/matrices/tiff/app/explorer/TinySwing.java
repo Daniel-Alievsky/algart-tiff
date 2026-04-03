@@ -32,7 +32,7 @@ import java.io.File;
 import java.net.URL;
 import java.util.Objects;
 
-class TinySwingTools {
+public class TinySwing {
     static URL reqResource(String name) {
         final URL result = TiffExplorer.class.getResource(name);
         Objects.requireNonNull(result, "Resource " + name + " not found");
