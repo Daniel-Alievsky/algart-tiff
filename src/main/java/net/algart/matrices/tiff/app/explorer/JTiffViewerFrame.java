@@ -280,7 +280,7 @@ class JTiffViewerFrame extends JFrame {
         JMenuItem copyItem = new JMenuItem("Copy");
         copyItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK));
         copyItem.addActionListener(e -> {
-            TiffExplorer.setWaitCursor(this, true);
+            TinySwingTools.setWaitCursor(this, true);
             SwingUtilities.invokeLater(() -> {
                 try {
                     final var helper = new TiffSaveImageHelper(this);
@@ -288,7 +288,7 @@ class JTiffViewerFrame extends JFrame {
                 } catch (IOException ex) {
                     showErrorMessage(ex, "Error copying the image to the clipboard");
                 }  finally {
-                    TiffExplorer.setWaitCursor(this, false);
+                    TinySwingTools.setWaitCursor(this, false);
                 }
             });
         });

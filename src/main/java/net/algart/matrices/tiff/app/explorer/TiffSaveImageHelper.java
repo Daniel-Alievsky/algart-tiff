@@ -99,7 +99,7 @@ class TiffSaveImageHelper {
         chooser.addChoosableFileFilter(ANY_IMAGE_FILTER);
         chooser.setFileFilter(ANY_IMAGE_FILTER);
         chooser.setAcceptAllFileFilterUsed(true);
-        File file = TiffSaveHelper.chooseFile(frame, chooser);
+        File file = TinySwingTools.chooseFile(frame, chooser);
         if (file == null) {
             return null;
         }
@@ -121,7 +121,7 @@ class TiffSaveImageHelper {
         chooser.addChoosableFileFilter(TiffExplorer.TIFF_FILTER);
         chooser.setFileFilter(TiffExplorer.TIFF_FILTER);
         chooser.setAcceptAllFileFilterUsed(true);
-        File file = TiffSaveHelper.chooseFile(frame, chooser);
+        File file = TinySwingTools.chooseFile(frame, chooser);
         if (file == null) {
             return null;
         }
@@ -249,7 +249,7 @@ class TiffSaveImageHelper {
                 "The TIFF image #%d (%d\u00D7%d)".formatted(ifdIndex, sizeX, sizeY) :
                 "The selected area %d\u00D7%d (top-left at %d,%d) of the TIFF image #%d"
                         .formatted(sizeX, sizeY, selection.x, selection.y, ifdIndex);
-        mainPanel.add(TiffExplorer.leftLabel(TiffExplorer.smartHtmlLines("""
+        mainPanel.add(TinySwingTools.leftLabel(TinySwingTools.smartHtmlLines("""
                 %s from the file:<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
                 will be copied to a new TIFF file:<br>
@@ -284,7 +284,7 @@ class TiffSaveImageHelper {
                     """.formatted(
                     selection.x, selection.y,
                     viewer.alignSelectionToTileGridCommand());
-            directCommentLabel = new JLabel(TiffExplorer.smartHtmlLines(directComment));
+            directCommentLabel = new JLabel(TinySwingTools.smartHtmlLines(directComment));
             directCommentLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
             directCommentLabel.setEnabled(false);
             // - gray color: this is a comment, not an important element
@@ -310,7 +310,7 @@ class TiffSaveImageHelper {
         mainPanel.add(settingsGrid);
 
         if (!originalCompressionSupported) {
-            final JLabel compressionMethodComment = TiffExplorer.leftLabel("""
+            final JLabel compressionMethodComment = TinySwingTools.leftLabel("""
                     <html>Note: the original compression method<br>
                     &nbsp;&nbsp;&nbsp;&nbsp;"%s"<br>
                     is not supported for writing.
@@ -324,7 +324,7 @@ class TiffSaveImageHelper {
         autoClose.setSelected(TiffExplorer.PREFERENCES.getBoolean(PREF_AUTO_CLOSE, false));
         mainPanel.add(autoClose);
 
-        copyProgressLabel = TiffExplorer.leftLabel("999/999 tiles copied...");
+        copyProgressLabel = TinySwingTools.leftLabel("999/999 tiles copied...");
         mainPanel.add(copyProgressLabel);
 
         settingsDialog.add(mainPanel, BorderLayout.CENTER);
@@ -344,7 +344,7 @@ class TiffSaveImageHelper {
         copyingInProgress = false;
         settingsDialog.pack();
 
-        TiffExplorer.addCloseOnEscape(settingsDialog);
+        TinySwingTools.addCloseOnEscape(settingsDialog);
         copyProgressLabel.setText("");
         correctCompressionControls();
         settingsDialog.setLocationRelativeTo(frame);

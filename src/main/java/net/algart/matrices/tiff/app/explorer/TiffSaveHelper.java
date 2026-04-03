@@ -112,7 +112,7 @@ class TiffSaveHelper {
         chooser.addChoosableFileFilter(TiffExplorer.TIFF_FILTER);
         chooser.setFileFilter(TiffExplorer.TIFF_FILTER);
         chooser.setAcceptAllFileFilterUsed(true);
-        File file = chooseFile(frame, chooser);
+        File file = TinySwingTools.chooseFile(frame, chooser);
         if (file == null) {
             return null;
         }
@@ -139,7 +139,7 @@ class TiffSaveHelper {
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        mainPanel.add(TiffExplorer.leftLabel(TiffExplorer.smartHtmlLines("""
+        mainPanel.add(TinySwingTools.leftLabel(TinySwingTools.smartHtmlLines("""
                 The entire TIFF from the file:<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
                 will be copied to a new TIFF file:<br>
@@ -184,9 +184,9 @@ class TiffSaveHelper {
         settingsPanel.add(bigTiffCheckBox);
         if (info.tiffFileLength() > 1024L * 1024L * 1024L) {
             settingsPanel.add(Box.createVerticalStrut(5));
-            settingsPanel.add(TiffExplorer.leftLabel(
+            settingsPanel.add(TinySwingTools.leftLabel(
                     String.format(Locale.US,
-                            TiffExplorer.smartHtmlLines(
+                            TinySwingTools.smartHtmlLines(
                                     "The TIFF file is very large (<b>%.3f GB</b>, &gt;1 GB)!<br>" +
                                             "We recommend using Big-TIFF, allowing to store &gt;4 GB of data."),
                             (double) info.tiffFileLength() / (double) (1024L * 1024L * 1024L))));
@@ -194,7 +194,7 @@ class TiffSaveHelper {
         mainPanel.add(settingsPanel);
 
         mainPanel.add(Box.createVerticalStrut(10));
-        copyProgressLabel = TiffExplorer.leftLabel("999/999 tiles copied...");
+        copyProgressLabel = TinySwingTools.leftLabel("999/999 tiles copied...");
         mainPanel.add(copyProgressLabel);
         settingsDialog.add(mainPanel, BorderLayout.CENTER);
 
@@ -213,7 +213,7 @@ class TiffSaveHelper {
         copyingInProgress = false;
         settingsDialog.pack();
 
-        TiffExplorer.addCloseOnEscape(settingsDialog);
+        TinySwingTools.addCloseOnEscape(settingsDialog);
         copyProgressLabel.setText("");
         settingsDialog.setLocationRelativeTo(frame);
         settingsDialog.setVisible(true);
@@ -234,7 +234,7 @@ class TiffSaveHelper {
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        content.add(TiffExplorer.leftLabel(TiffExplorer.smartHtmlLines("""
+        content.add(TinySwingTools.leftLabel(TinySwingTools.smartHtmlLines("""
                 Compacting the TIFF file:<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
                 &nbsp;<br>
@@ -248,7 +248,7 @@ class TiffSaveHelper {
                 """.formatted(tiffFile))));
         content.add(Box.createVerticalStrut(10));
 
-        copyProgressLabel = TiffExplorer.leftLabel("999/999 tiles copied...");
+        copyProgressLabel = TinySwingTools.leftLabel("999/999 tiles copied...");
         content.add(copyProgressLabel);
         settingsDialog.add(content, BorderLayout.CENTER);
 
@@ -267,7 +267,7 @@ class TiffSaveHelper {
         copyingInProgress = false;
         settingsDialog.pack();
 
-        TiffExplorer.addCloseOnEscape(settingsDialog);
+        TinySwingTools.addCloseOnEscape(settingsDialog);
         copyProgressLabel.setText("");
         settingsDialog.setLocationRelativeTo(frame);
         settingsDialog.setVisible(true);
@@ -360,30 +360,6 @@ class TiffSaveHelper {
         final Border padding = BorderFactory.createEmptyBorder(5, 10, 10, 10);
         titledBorder.setTitleJustification(TitledBorder.CENTER);
         settingsPanel.setBorder(BorderFactory.createCompoundBorder(titledBorder, padding));
-    }
-
-    static File chooseFile(JFrame frame, JFileChooser chooser) {
-        int result = chooser.showSaveDialog(frame);
-        if (result != JFileChooser.APPROVE_OPTION) {
-            return null;
-        }
-        File file = chooser.getSelectedFile();
-        if (file == null) {
-            return null;
-        }
-        if (file.exists()) {
-            int answer = JOptionPane.showConfirmDialog(
-                    frame,
-                    "File already exists:\n" + file.getAbsolutePath() + "\nDo you want to replace it?",
-                    "Confirm overwrite",
-                    JOptionPane.YES_NO_OPTION,
-                    JOptionPane.WARNING_MESSAGE
-            );
-            if (answer != JOptionPane.YES_OPTION) {
-                return null;
-            }
-        }
-        return file;
     }
 
     private void updateProgress(TiffCopier.ProgressInformation p) {

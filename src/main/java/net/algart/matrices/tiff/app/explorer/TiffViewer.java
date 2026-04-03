@@ -45,7 +45,7 @@ class TiffViewer {
 
     private static final System.Logger LOG = System.getLogger(TiffViewer.class.getName());
 
-    private static final Color COMMON_COLOR = TiffExplorer.getUIColor("Label.foreground", Color.BLACK);
+    private static final Color COMMON_COLOR = TinySwingTools.getUIColor("Label.foreground", Color.BLACK);
     private static final Color ERROR_COLOR = Color.RED;
 
     private final TiffReaderWithGrid reader;
