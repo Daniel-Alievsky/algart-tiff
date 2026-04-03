@@ -25,7 +25,6 @@
 package net.algart.matrices.tiff.app.explorer;
 
 import net.algart.matrices.tiff.TiffCreateMode;
-import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.app.TiffInfo;
@@ -43,14 +42,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ExecutionException;
 import java.util.prefs.Preferences;
 import java.util.stream.Collectors;
 
 public class TiffExplorer {
     private static final float ALL_FONTS_SCALE = 1.3f;
     // - default font sizes in Java API are usually too small
-    private static final String ALL_LINE_HEIGHT_SCALE = "1.3";
 
     private static final String PREF_LAST_DIR = "main.lastDirectory";
 
@@ -100,7 +97,7 @@ public class TiffExplorer {
             try {
                 tiffExplorer.createGUI(args);
             } catch (Throwable e) {
-                showErrorMessage(tiffExplorer.frame, e, "Error while creating GUI");
+                TinySwing.showErrorMessage(tiffExplorer.frame, e, "Error while creating GUI");
             }
         });
     }
@@ -167,7 +164,7 @@ public class TiffExplorer {
             try {
                 helper.showSaveTiffDialog(file);
             } catch (Exception ex) {
-                showErrorMessage(frame, ex, "Error copying TIFF");
+                TinySwing.showErrorMessage(frame, ex, "Error copying TIFF");
             }
         }
     }
@@ -202,7 +199,7 @@ public class TiffExplorer {
         try {
             new TiffViewer(tiffFile, index).show();
         } catch (IOException e) {
-            showErrorMessage(frame, e, "Error opening the TIFF image");
+            TinySwing.showErrorMessage(frame, e, "Error opening the TIFF image");
         } finally {
             frame.setShowImageInProgress(false);
         }
@@ -273,7 +270,7 @@ public class TiffExplorer {
             try {
                 changeDescription(index, newDescription.isEmpty() ? null : newDescription);
             } catch (Exception e) {
-                showErrorMessage(frame, e, "Error updating ImageDescription");
+                TinySwing.showErrorMessage(frame, e, "Error updating ImageDescription");
             }
             dialog.dispose();
         });
@@ -365,7 +362,7 @@ public class TiffExplorer {
             try {
                 replacePhotometric(index, ifd, selectedItem.code);
             } catch (Exception e) {
-                showErrorMessage(frame, e, "Error updating IFD");
+                TinySwing.showErrorMessage(frame, e, "Error updating IFD");
             }
             dialog.dispose();
         });
@@ -462,7 +459,7 @@ public class TiffExplorer {
                         return;
                     }
                 } catch (Exception e) {
-                    showErrorMessage(frame, e, "Error updating IFD");
+                    TinySwing.showErrorMessage(frame, e, "Error updating IFD");
                 }
                 dialog.dispose();
             });
@@ -585,19 +582,6 @@ public class TiffExplorer {
 
     private boolean isInitialized(int index) {
         return tiffFile != null && info != null &&  index >= 0 && index < info.numberOfImages();
-    }
-
-    static void showErrorMessage(JFrame frame, Throwable e, String title) {
-        if (e instanceof ExecutionException && e.getCause() != null) {
-            // ExecutionExcepion is a wrapper added by this utility: no sense to show it
-            e = e.getCause();
-        }
-        LOG.log(System.Logger.Level.ERROR, title + ": " + e.getMessage(), e);
-        if (e instanceof TiffException && e.getCause() instanceof IOException) {
-            // It is a wrapper added by TiffReader: no sense to show it to the end user
-            e = e.getCause();
-        }
-        JOptionPane.showMessageDialog(frame, e.getMessage(), title, JOptionPane.ERROR_MESSAGE);
     }
 
     static void setTiffExplorerIcon(JFrame frame) {

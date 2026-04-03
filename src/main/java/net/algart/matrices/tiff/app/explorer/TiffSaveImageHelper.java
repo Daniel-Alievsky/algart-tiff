@@ -374,7 +374,7 @@ class TiffSaveImageHelper {
             settingsDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
             copyingInProgress = true;
         } catch (Exception e) {
-            TiffExplorer.showErrorMessage(frame, e, "Error copying TIFF");
+            TinySwing.showErrorMessage(frame, e, "Error copying TIFF");
             return;
         }
         new SwingWorker<Void, Void>() {
@@ -405,7 +405,7 @@ class TiffSaveImageHelper {
                     get();
                     successful = !copier.isCancelled();
                 } catch (InterruptedException | ExecutionException e) {
-                    TiffExplorer.showErrorMessage(frame, e, "Error copying TIFF");
+                    TinySwing.showErrorMessage(frame, e, "Error copying TIFF");
                 }
                 final boolean closeAfterCopy = autoClose.isSelected();
                 TiffExplorer.PREFERENCES.putBoolean(PREF_AUTO_CLOSE, closeAfterCopy);

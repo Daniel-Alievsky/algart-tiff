@@ -299,7 +299,7 @@ class TiffSaveHelper {
             settingsDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
             copyingInProgress = true;
         } catch (Exception e) {
-            TiffExplorer.showErrorMessage(frame, e, "Error " + name + " TIFF");
+            TinySwing.showErrorMessage(frame, e, "Error " + name + " TIFF");
             return;
         }
         new SwingWorker<Void, Void>() {
@@ -317,7 +317,7 @@ class TiffSaveHelper {
                     get();
                     successful = !copier.isCancelled();
                 } catch (InterruptedException | ExecutionException e) {
-                    TiffExplorer.showErrorMessage(frame, e, "Error " + name + " TIFF");
+                    TinySwing.showErrorMessage(frame, e, "Error " + name + " TIFF");
                 }
                 copyingInProgress = false;
                 settingsDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);

@@ -344,7 +344,7 @@ class TiffViewer {
             }
             setSelection(left, top, width, height);
         } catch (Exception ex) {
-            TiffExplorer.showErrorMessage(frame, ex, "Invalid selection values");
+            TinySwing.showErrorMessage(frame, ex, "Invalid selection values");
         }
     }
 }

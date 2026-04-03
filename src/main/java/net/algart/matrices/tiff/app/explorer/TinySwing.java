@@ -29,12 +29,16 @@ import javax.swing.text.View;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 
 public class TinySwing {
+    private static final System.Logger LOG = System.getLogger(TinySwing.class.getName());
+
     static URL reqResource(String name) {
-        final URL result = TiffExplorer.class.getResource(name);
+        final URL result = TinySwing.class.getResource(name);
         Objects.requireNonNull(result, "Resource " + name + " not found");
         return result;
     }
@@ -93,9 +97,14 @@ public class TinySwing {
     static void doLongOperation(JFrame frame, Runnable runnable) {
         TinySwing.setWaitCursor(frame, true);
         SwingUtilities.invokeLater(() -> {
+            // Note: unlike using SwingWorker, this is executed synchronously in EDT after the cursor is updated.
+            // It prevents parallel user actions by occupying the event thread.
             try {
                 runnable.run();
-            }  finally {
+            } catch (Throwable e) {
+                // - In case of unexpected error, we still show it
+                showErrorMessage(frame, e, "Unexpected error");
+            } finally {
                 TinySwing.setWaitCursor(frame, false);
             }
         });
@@ -153,5 +162,18 @@ public class TinySwing {
             }
         }
         return file;
+    }
+
+    static void showErrorMessage(JFrame frame, Throwable e, String title) {
+        if (e instanceof ExecutionException && e.getCause() != null) {
+            // ExecutionExcepion is a wrapper added by this utility: no sense to show it
+            e = e.getCause();
+        }
+        LOG.log(System.Logger.Level.ERROR, title + ": " + e.getMessage(), e);
+        if (e instanceof IOException && e.getCause() instanceof IOException) {
+            // It is probably a wrapper: no sense to show it to the end user
+            e = e.getCause();
+        }
+        JOptionPane.showMessageDialog(frame, e.getMessage(), title, JOptionPane.ERROR_MESSAGE);
     }
 }

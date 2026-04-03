@@ -184,12 +184,14 @@ class JTiffViewerFrame extends JFrame {
             final var helper = new TiffSaveImageHelper(this);
             Path file = helper.chooseFileToExportImage(viewer, false);
             if (file != null) {
-                try {
-                    helper.exportImageToFile(viewer, file, false);
-                } catch (Exception ex) {
-                    // - including possible non-I/O exceptions like an empty file extension
-                    showErrorMessage(ex, "Error exporting image");
-                }
+                TinySwing.doLongOperation(this, () -> {
+                    try {
+                        helper.exportImageToFile(viewer, file, false);
+                    } catch (Exception ex) {
+                        // - including possible non-I/O exceptions like an empty file extension
+                        showErrorMessage(ex, "Error exporting image");
+                    }
+                });
             }
         });
         fileMenu.add(exportImageItem);
@@ -230,12 +232,14 @@ class JTiffViewerFrame extends JFrame {
             final var helper = new TiffSaveImageHelper(this);
             Path file = helper.chooseFileToExportImage(viewer, true);
             if (file != null) {
-                try {
-                    helper.exportImageToFile(viewer, file, true);
-                } catch (Exception ex) {
-                    // - including possible non-I/O exceptions like an empty file extension
-                    showErrorMessage(ex, "Error exporting the selected area");
-                }
+                TinySwing.doLongOperation(this, () -> {
+                    try {
+                        helper.exportImageToFile(viewer, file, true);
+                    } catch (Exception ex) {
+                        // - including possible non-I/O exceptions like an empty file extension
+                        showErrorMessage(ex, "Error exporting the selected area");
+                    }
+                });
             }
         });
         fileMenu.add(exportSelectionItem);
@@ -433,6 +437,6 @@ class JTiffViewerFrame extends JFrame {
     }
 
     private void showErrorMessage(Throwable e, String title) {
-        TiffExplorer.showErrorMessage(this, e, title);
+        TinySwing.showErrorMessage(this, e, title);
     }
 }

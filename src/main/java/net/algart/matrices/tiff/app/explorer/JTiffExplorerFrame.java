@@ -422,7 +422,7 @@ public class JTiffExplorerFrame extends JFrame {
                 try {
                     get();
                 } catch (InterruptedException | ExecutionException e) {
-                    TiffExplorer.showErrorMessage(JTiffExplorerFrame.this, e, "Error reading TIFF");
+                    TinySwing.showErrorMessage(JTiffExplorerFrame.this, e, "Error reading TIFF");
                     ifdTextArea.setText("");
                 } finally {
                     setOpenInProgress(false);
