@@ -25,6 +25,7 @@ package net.algart.matrices.tiff.codecs;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import net.algart.matrices.tiff.tags.Tags;
 import org.scijava.io.handle.DataHandle;
 
@@ -36,7 +37,7 @@ public class OldJPEGCodec implements TiffCodec {
 
     @Override
     public byte[] compress(byte[] data, Options options) throws TiffException {
-        throw new UnsupportedOperationException("Old-style JPEG compression is not supported");
+        throw new UnsupportedTiffFormatException("Old-style JPEG compression is not supported");
     }
 
     @Override
