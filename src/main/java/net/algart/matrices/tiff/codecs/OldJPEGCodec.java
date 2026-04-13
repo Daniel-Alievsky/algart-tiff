@@ -36,7 +36,7 @@ public class OldJPEGCodec implements TiffCodec {
 
     @Override
     public byte[] compress(byte[] data, Options options) throws TiffException {
-        throw new UnsupportedOperationException("Old-style JPEG encoding is not supported");
+        throw new UnsupportedOperationException("Old-style JPEG compression is not supported");
     }
 
     @Override
