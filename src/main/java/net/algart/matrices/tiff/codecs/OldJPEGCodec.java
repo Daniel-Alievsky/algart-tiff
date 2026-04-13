@@ -171,6 +171,7 @@ public class OldJPEGCodec implements TiffCodec {
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             for (int i = 0; i < offsets.length; i++) {
+                // Read and wrap each table found at the given offsets
                 byte[] table = readAndWrapTable(handle, offsets[i], tag, i);
                 out.write(table);
             }
@@ -180,9 +181,10 @@ public class OldJPEGCodec implements TiffCodec {
         }
     }
 
-    private static byte[] readAndWrapTable(DataHandle<?> handle, long offset, int tag, int tableId) throws IOException {
+    private static byte[] readAndWrapTable(DataHandle<?> handle, long offset, int tag, int tableIndex) throws IOException {
         handle.seek(offset);
-        // Проверяем, нет ли там уже готового маркера (Case 1 у TwelveMonkeys)
+
+        // Check if the table already has a valid JPEG marker (0xFF)
         int first = handle.readUnsignedByte();
         if (first == 0xFF) {
             int marker = handle.readUnsignedByte();
@@ -196,24 +198,24 @@ public class OldJPEGCodec implements TiffCodec {
             return result;
         }
 
-        // Если данных нет, возвращаемся к началу смещения
+        // If no marker found, return to the start of the offset to read raw data
         handle.seek(offset);
 
         if (tag == Tags.JPEG_Q_TABLES) {
-            // Логика JAI/TwelveMonkeys для DQT
+            // Handle Quantization Tables (DQT)
             byte[] qtable = new byte[64];
             handle.readFully(qtable);
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             baos.write(0xff);
-            baos.write(0xDB); // DQT
+            baos.write(0xDB); // DQT marker
             baos.write(0);    // Length MSB
-            baos.write(67);   // Length LSB (2 + 1 + 64)
-            baos.write(tableId); // У них это: "Table ID and precision"
+            baos.write(67);   // Length LSB (2 bytes for length + 1 byte for ID + 64 bytes for table)
+            baos.write(tableIndex); // Table ID and precision (0..3)
             baos.write(qtable);
             return baos.toByteArray();
         } else {
-            // Логика JAI/TwelveMonkeys для DHT (DC/AC)
+            // Handle Huffman Tables (DHT: DC or AC)
             byte[] blengths = new byte[16];
             handle.readFully(blengths);
             int numCodes = 0;
@@ -224,13 +226,14 @@ public class OldJPEGCodec implements TiffCodec {
             int markerLength = 19 + numCodes;
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             baos.write(0xff);
-            baos.write(0xC4); // DHT
+            baos.write(0xC4); // DHT marker
             baos.write((markerLength >>> 8) & 0xff);
             baos.write(markerLength & 0xff);
 
-            // В TwelveMonkeys: i | (k << 4), где k=0 для DC, k=1 для AC
+            // Define table class: 0 for DC, 1 for AC
             int tableClass = (tag == Tags.JPEG_AC_TABLES) ? 1 : 0;
-            baos.write(tableId | (tableClass << 4));
+            // The byte is formatted as (Class << 4) | ID
+            baos.write(tableIndex | (tableClass << 4));
 
             baos.write(blengths);
             byte[] bcodes = new byte[numCodes];
@@ -250,11 +253,6 @@ public class OldJPEGCodec implements TiffCodec {
 
     public static byte[] getJpegACTables(TiffIFD ifd, DataHandle<?> handle) throws TiffException {
         return readJpegTables(ifd, handle, Tags.JPEG_AC_TABLES);
-    }
-
-    private static void writeMarker(ByteArrayOutputStream out, int marker) {
-        out.write(0xFF);
-        out.write(marker);
     }
 
     private static boolean isJPEG(byte[] data) {
