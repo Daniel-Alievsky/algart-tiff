@@ -55,40 +55,54 @@ public class OldJPEGCodec implements TiffCodec {
         byte[] jpeg;
         try {
             jpeg = tryBuildCompleteJPEG(data, ifd, options, stream);
+            return new JPEGCodec().decompress(jpeg, options);
         } catch (IOException e) {
             throw new TiffException("Cannot decode old-style JPEG: " + e.getMessage(), e);
         }
-        return new JPEGCodec().decompress(jpeg, options);
     }
 
     private static byte[] tryBuildCompleteJPEG(byte[] raw, TiffIFD ifd, Options options, DataHandle<?> handle)
             throws IOException {
-        // Если это уже полноценный JPEG (Case 1), возвращаем как есть
+        // 1. If it's already a valid JPEG (starts with SOI), return as is
         if (isJPEG(raw)) {
             return raw;
         }
 
+        final int samplesPerPixel = options.getNumberOfChannels();
+        // Use TileWidth/Height if available, falling back to ImageWidth/Height
+        final int width = options.getWidth();
+        final int height = options.getHeight();
+
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            // 1. SOI (Start of Image)
-            writeMarker(out, 0xD8);
+            // --- STEP 1: SOI (Start of Image) ---
+            out.write(0xFF); out.write(0xD8);
 
-            // 2. TABLES (Case 4/5)
-            // Проверяем JPEGInterchangeFormat для Case 4 (таблицы могут быть общими в заголовке файла)
-            long interchangeOffset = ifd.getLong(Tags.JPEG_INTERCHANGE_FORMAT, -1);
-            long interchangeLength = ifd.getLong(Tags.JPEG_INTERCHANGE_FORMAT_LENGTH, -1);
+            boolean hasSOF = false;
+            boolean hasSOS = false;
 
-            if (interchangeOffset >= 0 && interchangeLength >= 2) {
-                handle.seek(interchangeOffset);
-                byte[] tables = new byte[(int) interchangeLength];
-                handle.readFully(tables);
+            // --- STEP 2: Tables / Header from JPEGInterchangeFormat ---
+            long jpegOffset = ifd.getLong(Tags.JPEG_INTERCHANGE_FORMAT, -1);
+            long jpegLength = ifd.getLong(Tags.JPEG_INTERCHANGE_FORMAT_LENGTH, -1);
 
-                // TwelveMonkeys отрезает SOI и EOI из этого блока, если они есть
-                int start = (tables[0] & 0xFF) == 0xFF && (tables[1] & 0xFF) == 0xD8 ? 2 : 0;
-                int end = (tables[tables.length - 2] & 0xFF) == 0xFF && (tables[tables.length - 1] & 0xFF) == 0xD9
-                        ? tables.length - 2 : tables.length;
-                out.write(tables, start, end - start);
+            if (jpegOffset > 0) {
+                handle.seek(jpegOffset);
+                byte[] interchange = new byte[(int) (jpegLength > 0 ? jpegLength : 1024)];
+                int actualRead = handle.read(interchange);
+
+                // Scan interchange for existing markers to avoid duplication
+                for (int i = 0; i < actualRead - 1; i++) {
+                    if ((interchange[i] & 0xFF) == 0xFF) {
+                        int marker = interchange[i + 1] & 0xFF;
+                        if (marker >= 0xC0 && marker <= 0xC3) hasSOF = true;
+                        if (marker == 0xDA) hasSOS = true;
+                    }
+                }
+
+                // Write interchange data, skipping its SOI if present
+                int startIdx = (actualRead >= 2 && (interchange[0] & 0xFF) == 0xFF && (interchange[1] & 0xFF) == 0xD8) ? 2 : 0;
+                out.write(interchange, startIdx, actualRead - startIdx);
             } else {
-                // Case 5: Собираем таблицы из тегов Q/DC/AC вручную (наша предыдущая логика)
+                // No interchange: build tables from individual TIFF tags
                 byte[] q = getJpegQTables(ifd, handle);
                 if (q != null) out.write(q);
                 byte[] dc = getJpegDCTables(ifd, handle);
@@ -97,69 +111,58 @@ public class OldJPEGCodec implements TiffCodec {
                 if (ac != null) out.write(ac);
             }
 
-            // 3. SOF0 (Start of Frame)
-            // TwelveMonkeys берет субдискретизацию из тега 530
-            int[] subsampling = ifd.getIntArray(Tags.Y_CB_CR_SUB_SAMPLING);
-            int subX = (subsampling != null && subsampling.length >= 2) ? subsampling[0] : 2;
-            int subY = (subsampling != null && subsampling.length >= 2) ? subsampling[1] : 2;
+            // --- STEP 3: Mandatory SOF0 (if not provided by interchange) ---
+            if (!hasSOF) {
+                int[] subsampling = ifd.getIntArray(Tags.Y_CB_CR_SUB_SAMPLING);
+                int subX = (subsampling != null && subsampling.length >= 2) ? subsampling[0] : 2;
+                int subY = (subsampling != null && subsampling.length >= 2) ? subsampling[1] : 2;
 
-            writeSOF0_Advanced(out, options.getWidth(), options.getHeight(), options.getNumberOfChannels(), subX, subY);
-
-            // 4. SOS (Start of Scan)
-            // Если raw не начинается с SOS, добавляем его
-            if (!((raw[0] & 0xFF) == 0xFF && (raw[1] & 0xFF) == 0xDA)) {
-                writeSOS(out, options.getNumberOfChannels());
+                out.write(0xFF); out.write(0xC0); // SOF0 marker
+                int sofLen = 8 + 3 * samplesPerPixel;
+                out.write((sofLen >>> 8) & 0xFF); out.write(sofLen & 0xFF);
+                out.write(8); // Precision (8 bits)
+                out.write((height >>> 8) & 0xFF); out.write(height & 0xFF);
+                out.write((width >>> 8) & 0xFF); out.write(width & 0xFF);
+                out.write(samplesPerPixel);
+                for (int i = 0; i < samplesPerPixel; i++) {
+                    out.write(i + 1); // Component ID (1, 2, 3)
+                    out.write(i == 0 ? (((subX & 0x0F) << 4) | (subY & 0x0F)) : 0x11);
+                    out.write(i); // Quantization table ID
+                }
             }
 
-            // 5. DATA
-            out.write(raw);
+            // --- STEP 4: Handle SOS and "Wang" raw data offset ---
+            int rawOffset = 0;
+            if (raw.length >= 4 && (raw[0] & 0xFF) == 0xFF && (raw[1] & 0xFF) == 0xDA) {
+                // Raw data starts with an SOS marker. We skip it because we provide our own
+                // normalized SOS header to ensure component IDs match our SOF.
+                int internalSosLen = ((raw[2] & 0xFF) << 8) | (raw[3] & 0xFF);
+                rawOffset = 2 + internalSosLen;
+            }
 
-            // 6. EOI
-            writeMarker(out, 0xD9);
+            if (!hasSOS) {
+                // Write our normalized SOS header
+                out.write(0xFF); out.write(0xDA); // SOS marker
+                int sosLen = 6 + 2 * samplesPerPixel;
+                out.write((sosLen >>> 8) & 0xFF); out.write(sosLen & 0xFF);
+                out.write(samplesPerPixel);
+                for (int i = 0; i < samplesPerPixel; i++) {
+                    out.write(i + 1); // Component ID must match SOF
+                    out.write((i << 4) | i); // Huffman table selectors (DC | AC)
+                }
+                out.write(0x00); // Start of spectral selection
+                out.write(0x3F); // End of spectral selection
+                out.write(0x00); // Successive approximation
+            }
+
+            // --- STEP 5: Data and EOI ---
+            if (rawOffset < raw.length) {
+                out.write(raw, rawOffset, raw.length - rawOffset);
+            }
+            out.write(0xFF); out.write(0xD9); // EOI (End of Image)
 
             return out.toByteArray();
         }
-    }
-
-    private static void writeSOF0_Advanced(ByteArrayOutputStream out, int w, int h, int samples, int subX, int subY)
-            throws IOException {
-        writeMarker(out, 0xC0);
-        int length = 8 + (samples * 3);
-        out.write((length >> 8) & 0xFF);
-        out.write(length & 0xFF);
-        out.write(8); // Precision
-        out.write((h >> 8) & 0xFF);
-        out.write(h & 0xFF);
-        out.write((w >> 8) & 0xFF);
-        out.write(w & 0xFF);
-        out.write(samples);
-
-        for (int i = 0; i < samples; i++) {
-            out.write(i + 1); // Component ID
-            if (i == 0) {
-                // Для Y используем реальную субдискретизацию (обычно 0x22 или 0x21)
-                out.write(((subX & 0x0F) << 4) | (subY & 0x0F));
-            } else {
-                // Для Cb/Cr всегда 1x1
-                out.write(0x11);
-            }
-            out.write(i); // Q-Table ID
-        }
-    }
-
-    private static void writeSOS(ByteArrayOutputStream out, int samples) throws IOException {
-        writeMarker(out, 0xDA);
-        int length = 6 + (samples * 2);
-        out.write((length >> 8) & 0xFF);
-        out.write(length & 0xFF);
-        out.write(samples);
-        for (int i = 0; i < samples; i++) {
-            out.write(i + 1);
-            out.write((i << 4) | i); // DC/AC table IDs
-        }
-        out.write(0x00); // Start of spectral
-        out.write(0x3F); // End of spectral
-        out.write(0x00); // Successive approximation
     }
 
     private static byte[] readJpegTables(TiffIFD ifd, DataHandle<?> handle, int tag) throws TiffException {

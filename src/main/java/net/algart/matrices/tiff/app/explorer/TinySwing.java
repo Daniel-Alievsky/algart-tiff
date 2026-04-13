@@ -170,10 +170,11 @@ public class TinySwing {
             e = e.getCause();
         }
         LOG.log(System.Logger.Level.ERROR, title + ": " + e.getMessage(), e);
-        if (e instanceof IOException && e.getCause() instanceof IOException) {
+        String message = e.getMessage();
+//        if (e instanceof IOException && e.getCause() instanceof IOException) {
             // It is probably a wrapper: no sense to show it to the end user
-            e = e.getCause();
-        }
-        JOptionPane.showMessageDialog(frame, e.getMessage(), title, JOptionPane.ERROR_MESSAGE);
+//            message += "\n" + e.getCause().getMessage();
+//        }
+        JOptionPane.showMessageDialog(frame, message, title, JOptionPane.ERROR_MESSAGE);
     }
 }
