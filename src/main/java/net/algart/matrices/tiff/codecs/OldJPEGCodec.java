@@ -54,14 +54,16 @@ public class OldJPEGCodec implements TiffCodec {
 
         byte[] jpeg;
         try {
-            jpeg = tryBuildCompleteJPEG(data, ifd, stream);
+            jpeg = tryBuildCompleteJPEG(data, ifd, options, stream);
         } catch (IOException e) {
             throw new TiffException("Cannot decode old-style JPEG: " + e.getMessage(), e);
         }
         return new JPEGCodec().decompress(jpeg, options);
     }
 
-    private static byte[] tryBuildCompleteJPEG(byte[] raw, TiffIFD ifd, DataHandle<?> handle) throws IOException {
+    private static byte[] tryBuildCompleteJPEG(byte[] raw, TiffIFD ifd, Options options, DataHandle<?> handle)
+            throws IOException {
+        // Если это уже полноценный JPEG (Case 1), возвращаем как есть
         if (isJPEG(raw)) {
             return raw;
         }
@@ -70,79 +72,169 @@ public class OldJPEGCodec implements TiffCodec {
             // 1. SOI (Start of Image)
             writeMarker(out, 0xD8);
 
-            // 2. Insert tables from IFD.
-            // These methods return full JPEG markers (FF DB... or FF C4...)
-            byte[] qTables = getJpegQTables(ifd, handle);
-            if (qTables != null) {
-                out.write(qTables);
+            // 2. TABLES (Case 4/5)
+            // Проверяем JPEGInterchangeFormat для Case 4 (таблицы могут быть общими в заголовке файла)
+            long interchangeOffset = ifd.getLong(Tags.JPEG_INTERCHANGE_FORMAT, -1);
+            long interchangeLength = ifd.getLong(Tags.JPEG_INTERCHANGE_FORMAT_LENGTH, -1);
+
+            if (interchangeOffset >= 0 && interchangeLength >= 2) {
+                handle.seek(interchangeOffset);
+                byte[] tables = new byte[(int) interchangeLength];
+                handle.readFully(tables);
+
+                // TwelveMonkeys отрезает SOI и EOI из этого блока, если они есть
+                int start = (tables[0] & 0xFF) == 0xFF && (tables[1] & 0xFF) == 0xD8 ? 2 : 0;
+                int end = (tables[tables.length - 2] & 0xFF) == 0xFF && (tables[tables.length - 1] & 0xFF) == 0xD9
+                        ? tables.length - 2 : tables.length;
+                out.write(tables, start, end - start);
+            } else {
+                // Case 5: Собираем таблицы из тегов Q/DC/AC вручную (наша предыдущая логика)
+                byte[] q = getJpegQTables(ifd, handle);
+                if (q != null) out.write(q);
+                byte[] dc = getJpegDCTables(ifd, handle);
+                if (dc != null) out.write(dc);
+                byte[] ac = getJpegACTables(ifd, handle);
+                if (ac != null) out.write(ac);
             }
 
-            byte[] dcTables = getJpegDCTables(ifd, handle);
-            if (dcTables != null) {
-                out.write(dcTables);
+            // 3. SOF0 (Start of Frame)
+            // TwelveMonkeys берет субдискретизацию из тега 530
+            int[] subsampling = ifd.getIntArray(Tags.Y_CB_CR_SUB_SAMPLING);
+            int subX = (subsampling != null && subsampling.length >= 2) ? subsampling[0] : 2;
+            int subY = (subsampling != null && subsampling.length >= 2) ? subsampling[1] : 2;
+
+            writeSOF0_Advanced(out, options.getWidth(), options.getHeight(), options.getNumberOfChannels(), subX, subY);
+
+            // 4. SOS (Start of Scan)
+            // Если raw не начинается с SOS, добавляем его
+            if (!((raw[0] & 0xFF) == 0xFF && (raw[1] & 0xFF) == 0xDA)) {
+                writeSOS(out, options.getNumberOfChannels());
             }
 
-            byte[] acTables = getJpegACTables(ifd, handle);
-            if (acTables != null) {
-                out.write(acTables);
-            }
-
-            // 3. Main data (usually starts with SOS - Start of Scan)
-            // Note: If raw data lacks SOS (FF DA) or SOF markers,
-            // they might need to be injected here based on other TIFF tags.
+            // 5. DATA
             out.write(raw);
 
-            // 4. EOI (End of Image)
+            // 6. EOI
             writeMarker(out, 0xD9);
 
             return out.toByteArray();
         }
     }
 
-  private static byte[] readJpegTables(TiffIFD ifd, DataHandle<?> handle, int tag) throws TiffException {
-        if (handle == null) {
-            return null;
-        }
+    private static void writeSOF0_Advanced(ByteArrayOutputStream out, int w, int h, int samples, int subX, int subY)
+            throws IOException {
+        writeMarker(out, 0xC0);
+        int length = 8 + (samples * 3);
+        out.write((length >> 8) & 0xFF);
+        out.write(length & 0xFF);
+        out.write(8); // Precision
+        out.write((h >> 8) & 0xFF);
+        out.write(h & 0xFF);
+        out.write((w >> 8) & 0xFF);
+        out.write(w & 0xFF);
+        out.write(samples);
 
-        final long[] offsets = ifd.getLongArray(tag);
-        if (offsets == null || offsets.length == 0) {
-            return null;
+        for (int i = 0; i < samples; i++) {
+            out.write(i + 1); // Component ID
+            if (i == 0) {
+                // Для Y используем реальную субдискретизацию (обычно 0x22 или 0x21)
+                out.write(((subX & 0x0F) << 4) | (subY & 0x0F));
+            } else {
+                // Для Cb/Cr всегда 1x1
+                out.write(0x11);
+            }
+            out.write(i); // Q-Table ID
         }
+    }
+
+    private static void writeSOS(ByteArrayOutputStream out, int samples) throws IOException {
+        writeMarker(out, 0xDA);
+        int length = 6 + (samples * 2);
+        out.write((length >> 8) & 0xFF);
+        out.write(length & 0xFF);
+        out.write(samples);
+        for (int i = 0; i < samples; i++) {
+            out.write(i + 1);
+            out.write((i << 4) | i); // DC/AC table IDs
+        }
+        out.write(0x00); // Start of spectral
+        out.write(0x3F); // End of spectral
+        out.write(0x00); // Successive approximation
+    }
+
+    private static byte[] readJpegTables(TiffIFD ifd, DataHandle<?> handle, int tag) throws TiffException {
+        final long[] offsets = ifd.getLongArray(tag);
+        if (offsets == null) return null;
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            for (long offset : offsets) {
-                byte[] table = readJpegTable(handle, offset);
+            for (int i = 0; i < offsets.length; i++) {
+                byte[] table = readAndWrapTable(handle, offsets[i], tag, i);
                 out.write(table);
             }
             return out.toByteArray();
         } catch (IOException e) {
-            throw new TiffException("Error reading JPEG tables for tag " +
-                    Tags.prettyName(tag, true), e);
+            throw new TiffException("Error reading tag " + tag, e);
         }
     }
 
-    private static byte[] readJpegTable(DataHandle<?> handle, long offset) throws IOException {
+    private static byte[] readAndWrapTable(DataHandle<?> handle, long offset, int tag, int tableId) throws IOException {
         handle.seek(offset);
-
-        // JPEG marker must start with 0xFF
+        // Проверяем, нет ли там уже готового маркера (Case 1 у TwelveMonkeys)
         int first = handle.readUnsignedByte();
-        if (first != 0xFF) {
-            throw new IOException("Invalid JPEG table at offset " + offset + ": expected 0xFF");
+        if (first == 0xFF) {
+            int marker = handle.readUnsignedByte();
+            int length = handle.readUnsignedShort();
+            byte[] result = new byte[length + 2];
+            result[0] = (byte) 0xFF;
+            result[1] = (byte) marker;
+            result[2] = (byte) ((length >> 8) & 0xFF);
+            result[3] = (byte) (length & 0xFF);
+            handle.readFully(result, 4, length - 2);
+            return result;
         }
 
-        int marker = handle.readUnsignedByte();
-        // DQT = 0xDB, DHT = 0xC4
-        int length = handle.readUnsignedShort();
+        // Если данных нет, возвращаемся к началу смещения
+        handle.seek(offset);
 
-        // Construct a buffer for the full marker: [0xFF, marker, lengthHigh, lengthLow, data...]
-        byte[] result = new byte[length + 2];
-        result[0] = (byte) 0xFF;
-        result[1] = (byte) marker;
-        result[2] = (byte) ((length >> 8) & 0xFF);
-        result[3] = (byte) (length & 0xFF);
+        if (tag == Tags.JPEG_Q_TABLES) {
+            // Логика JAI/TwelveMonkeys для DQT
+            byte[] qtable = new byte[64];
+            handle.readFully(qtable);
 
-        handle.readFully(result, 4, length - 2);
-        return result;
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            baos.write(0xff);
+            baos.write(0xDB); // DQT
+            baos.write(0);    // Length MSB
+            baos.write(67);   // Length LSB (2 + 1 + 64)
+            baos.write(tableId); // У них это: "Table ID and precision"
+            baos.write(qtable);
+            return baos.toByteArray();
+        } else {
+            // Логика JAI/TwelveMonkeys для DHT (DC/AC)
+            byte[] blengths = new byte[16];
+            handle.readFully(blengths);
+            int numCodes = 0;
+            for (int j = 0; j < 16; j++) {
+                numCodes += (blengths[j] & 0xff);
+            }
+
+            int markerLength = 19 + numCodes;
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            baos.write(0xff);
+            baos.write(0xC4); // DHT
+            baos.write((markerLength >>> 8) & 0xff);
+            baos.write(markerLength & 0xff);
+
+            // В TwelveMonkeys: i | (k << 4), где k=0 для DC, k=1 для AC
+            int tableClass = (tag == Tags.JPEG_AC_TABLES) ? 1 : 0;
+            baos.write(tableId | (tableClass << 4));
+
+            baos.write(blengths);
+            byte[] bcodes = new byte[numCodes];
+            handle.readFully(bcodes);
+            baos.write(bcodes);
+            return baos.toByteArray();
+        }
     }
 
     public static byte[] getJpegQTables(TiffIFD ifd, DataHandle<?> handle) throws TiffException {
