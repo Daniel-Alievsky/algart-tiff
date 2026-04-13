@@ -31,10 +31,12 @@ import org.scijava.io.location.BytesLocation;
 import org.scijava.io.location.Location;
 
 import java.io.IOException;
+import java.util.Objects;
 
 abstract class StreamTiffCodec implements TiffCodec {
     @Override
     public byte[] decompress(byte[] data, Options options) throws TiffException {
+        Objects.requireNonNull(data, "Null data");
         try {
             try (DataHandle<?> handle = new BytesHandle(new BytesLocation(data))) {
                 return decompress(handle, options);

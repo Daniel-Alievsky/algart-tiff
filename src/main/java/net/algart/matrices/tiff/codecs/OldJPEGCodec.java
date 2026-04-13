@@ -21,109 +21,138 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 package net.algart.matrices.tiff.codecs;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.tags.Tags;
 import org.scijava.io.handle.DataHandle;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Objects;
 
-public class OldJPEGCodec extends StreamTiffCodec {
-
-    private final JPEGCodec delegate = new JPEGCodec();
+public class OldJPEGCodec implements TiffCodec {
 
     @Override
     public byte[] compress(byte[] data, Options options) throws TiffException {
-        throw new UnsupportedOperationException("OLD_JPEG encoding is not supported");
+        throw new UnsupportedOperationException("Old-style JPEG encoding is not supported");
     }
 
     @Override
-    public byte[] decompress(DataHandle<?> in, Options options) throws IOException {
-        Objects.requireNonNull(in, "Null input");
-        Objects.requireNonNull(options, "Null options");
-
+    public byte[] decompress(byte[] data, Options options) throws TiffException {
+        Objects.requireNonNull(data, "Null data");
+        Objects.requireNonNull(options, "Null codec options");
         TiffIFD ifd = options.getIfd();
         if (ifd == null) {
-            throw new TiffException("OLD_JPEG requires access to full IFD");
+            throw new TiffException("Old-style JPEG decoding requires access to full IFD");
+        }
+        DataHandle<?> stream = options.getStream();
+        if (stream == null) {
+            throw new TiffException("Old-style JPEG decoding requires access to file stream");
         }
 
-        byte[] raw = readAll(in);
-
-        byte[] jpeg = tryBuildCompleteJPEG(raw, ifd);
-
-        if (jpeg == null) {
-            // fallback: maybe it's already a valid JPEG
-            return delegate.decompress(raw, options);
-        }
-
-        return delegate.decompress(jpeg, options);
+        byte[] jpeg = tryBuildCompleteJPEG(data, ifd, stream);
+        return new JPEGCodec().decompress(jpeg, options);
     }
 
-    private static byte[] readAll(DataHandle<?> in) throws IOException {
-        long len = in.length();
-        if (len > Integer.MAX_VALUE) {
-            throw new IOException("Too large JPEG segment");
-        }
-        byte[] data = new byte[(int) len];
-        in.readFully(data);
-        return data;
-    }
-
-    private static byte[] tryBuildCompleteJPEG(byte[] raw, TiffIFD ifd) {
-        // If already looks like JPEG → return as-is
+    private static byte[] tryBuildCompleteJPEG(byte[] raw, TiffIFD ifd, DataHandle<?> handle) {
         if (isJPEG(raw)) {
             return raw;
         }
 
-        try {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-            // SOI
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            // 1. SOI (Start of Image)
             writeMarker(out, 0xD8);
 
-            // --- Insert tables from IFD if present ---
-/*            byte[][] qTables = ifd.getJpegQTables();
+            // 2. Insert tables from IFD.
+            // These methods return full JPEG markers (FF DB... or FF C4...)
+            byte[] qTables = getJpegQTables(ifd, handle);
             if (qTables != null) {
-                for (int i = 0; i < qTables.length; i++) {
-                    writeDQT(out, i, qTables[i]);
-                }
+                out.write(qTables);
             }
 
-            byte[][] dcTables = ifd.getJpegDCTables();
+            byte[] dcTables = getJpegDCTables(ifd, handle);
             if (dcTables != null) {
-                for (int i = 0; i < dcTables.length; i++) {
-                    writeDHT(out, 0, i, dcTables[i]);
-                }
+                out.write(dcTables);
             }
 
-            byte[][] acTables = ifd.getJpegACTables();
+            byte[] acTables = getJpegACTables(ifd, handle);
             if (acTables != null) {
-                for (int i = 0; i < acTables.length; i++) {
-                    writeDHT(out, 1, i, acTables[i]);
-                }
+                out.write(acTables);
             }
-*/
-            // --- Raw data ---
+
+            // 3. Main data (usually starts with SOS - Start of Scan)
+            // Note: If raw data lacks SOS (FF DA) or SOF markers,
+            // they might need to be injected here based on other TIFF tags.
             out.write(raw);
 
-            // EOI
+            // 4. EOI (End of Image)
             writeMarker(out, 0xD9);
 
             return out.toByteArray();
-
         } catch (Exception e) {
+            // Log error in production environment
             return null;
         }
     }
 
-    private static boolean isJPEG(byte[] data) {
-        return data.length >= 2 &&
-                (data[0] & 0xFF) == 0xFF &&
-                (data[1] & 0xFF) == 0xD8;
+    private static byte[] readJpegTables(TiffIFD ifd, DataHandle<?> handle, int tag) throws TiffException {
+        if (handle == null) {
+            return null;
+        }
+
+        final long[] offsets = ifd.getLongArray(tag);
+        if (offsets == null || offsets.length == 0) {
+            return null;
+        }
+
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            for (long offset : offsets) {
+                byte[] table = readJpegTable(handle, offset);
+                out.write(table);
+            }
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new TiffException("Error reading JPEG tables for tag " +
+                    Tags.prettyName(tag, true), e);
+        }
+    }
+
+    private static byte[] readJpegTable(DataHandle<?> handle, long offset) throws IOException {
+        handle.seek(offset);
+
+        // JPEG marker must start with 0xFF
+        int first = handle.readUnsignedByte();
+        if (first != 0xFF) {
+            throw new IOException("Invalid JPEG table at offset " + offset + ": expected 0xFF");
+        }
+
+        int marker = handle.readUnsignedByte();
+        // DQT = 0xDB, DHT = 0xC4
+        int length = handle.readUnsignedShort();
+
+        // Construct a buffer for the full marker: [0xFF, marker, lengthHigh, lengthLow, data...]
+        byte[] result = new byte[length + 2];
+        result[0] = (byte) 0xFF;
+        result[1] = (byte) marker;
+        result[2] = (byte) ((length >> 8) & 0xFF);
+        result[3] = (byte) (length & 0xFF);
+
+        handle.readFully(result, 4, length - 2);
+        return result;
+    }
+
+    public static byte[] getJpegQTables(TiffIFD ifd, DataHandle<?> handle) throws TiffException {
+        return readJpegTables(ifd, handle, Tags.JPEG_Q_TABLES);
+    }
+
+    public static byte[] getJpegDCTables(TiffIFD ifd, DataHandle<?> handle) throws TiffException {
+        return readJpegTables(ifd, handle, Tags.JPEG_DC_TABLES);
+    }
+
+    public static byte[] getJpegACTables(TiffIFD ifd, DataHandle<?> handle) throws TiffException {
+        return readJpegTables(ifd, handle, Tags.JPEG_AC_TABLES);
     }
 
     private static void writeMarker(ByteArrayOutputStream out, int marker) {
@@ -131,26 +160,9 @@ public class OldJPEGCodec extends StreamTiffCodec {
         out.write(marker);
     }
 
-    private static void writeDQT(ByteArrayOutputStream out, int tableId, byte[] table) throws IOException {
-        writeMarker(out, 0xDB);
-        int length = 2 + 1 + table.length;
-        out.write((length >> 8) & 0xFF);
-        out.write(length & 0xFF);
-        out.write(tableId);
-        out.write(table);
-    }
-
-    private static void writeDHT(
-            ByteArrayOutputStream out,
-            int tableClass, // 0=DC, 1=AC
-            int tableId,
-            byte[] table) throws IOException {
-
-        writeMarker(out, 0xC4);
-        int length = 2 + 1 + table.length;
-        out.write((length >> 8) & 0xFF);
-        out.write(length & 0xFF);
-        out.write((tableClass << 4) | tableId);
-        out.write(table);
+    private static boolean isJPEG(byte[] data) {
+        return data.length >= 2 &&
+                (data[0] & 0xFF) == 0xFF &&
+                (data[1] & 0xFF) == 0xD8;
     }
 }

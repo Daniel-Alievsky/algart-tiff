@@ -2064,6 +2064,7 @@ public non-sealed class TiffReader extends TiffIO {
         TiffCodec.Options options = this.codecOptions.clone();
         options.setMainOptions(tile);
         // - Note: codecs in SCIFIO did not use the options above, but some new codes like CCITTFaxCodec need them
+        options.setStream(stream);
 
         options.setMaxSizeInBytes(tile.getSizeInBytesInsideTIFF());
         // - Note: this may be LESS than the usual number of samples in the tile/strip.

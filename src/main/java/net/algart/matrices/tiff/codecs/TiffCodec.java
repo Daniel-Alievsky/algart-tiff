@@ -29,6 +29,7 @@ import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagPhotometric;
 import net.algart.matrices.tiff.tiles.TiffTile;
+import org.scijava.io.handle.DataHandle;
 
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteOrder;
@@ -72,6 +73,8 @@ public interface TiffCodec {
         private Double losslessCompressionLevel = null;
         private TiffIFD ifd = null;
         // - used only if other information is not enough
+        private DataHandle<?> stream = null;
+        // - used only while reading if other information is not enough
 
         public Options() {
         }
@@ -245,6 +248,15 @@ public interface TiffCodec {
 
         public Options setIfd(TiffIFD ifd) {
             this.ifd = ifd;
+            return this;
+        }
+
+        public DataHandle<?> getStream() {
+            return stream;
+        }
+
+        public Options setStream(DataHandle<?> stream) {
+            this.stream = stream;
             return this;
         }
 

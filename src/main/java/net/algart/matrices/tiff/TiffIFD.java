@@ -742,7 +742,7 @@ public final class TiffIFD {
         return map.get(key);
     }
 
-    public <R> Optional<R> optValue(final int tag, final Class<? extends R> requiredClass) {
+    public <R> Optional<R> optValue(int tag, Class<? extends R> requiredClass) {
         Objects.requireNonNull(requiredClass, "Null requiredClass");
         Object value = get(tag);
         if (!requiredClass.isInstance(value)) {
