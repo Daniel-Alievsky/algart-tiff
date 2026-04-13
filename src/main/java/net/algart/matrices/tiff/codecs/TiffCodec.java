@@ -74,6 +74,7 @@ public interface TiffCodec {
         private TiffIFD ifd = null;
         // - used only if other information is not enough
         private DataHandle<?> stream = null;
+        private Object fileLock = null;
         // - used only while reading if other information is not enough
 
         public Options() {
@@ -255,10 +256,16 @@ public interface TiffCodec {
             return stream;
         }
 
-        public Options setStream(DataHandle<?> stream) {
+        public Object getFileLock() {
+            return fileLock;
+        }
+
+        public Options setStream(DataHandle<?> stream, Object fileLock) {
             this.stream = stream;
+            this.fileLock = fileLock;
             return this;
         }
+
 
         public Options setMainOptions(TiffTile tile) {
             this.setSizes(tile.getSizeX(), tile.getSizeY());

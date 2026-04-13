@@ -42,7 +42,7 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Optional;
 
-public sealed abstract class TiffIO implements Closeable permits TiffReader, TiffWriter{
+public sealed abstract class TiffIO implements Closeable permits TiffReader, TiffWriter {
     public static final int FILE_USUAL_MAGIC_NUMBER = 0x2a;
     public static final int FILE_BIG_TIFF_MAGIC_NUMBER = 0x2b;
     public static final int FILE_PREFIX_LITTLE_ENDIAN = 0x49;
@@ -77,7 +77,6 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         this.scifio = null;
         this.context = context;
     }
-
 
     /**
      * Returns the input/output stream for operation with this TIFF file.
