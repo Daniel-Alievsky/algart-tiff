@@ -1117,7 +1117,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *     <li><code>BitsPerSample</code> (258) and <code>SampleFormat</code> (339) &mdash; in the smart mode,
      *     if the actual number of bits per sample is not 1, 8, 16, 32, 64;</li>
      *     <li><code>Compression</code> (259) &mdash; if it is not specified,
-     *     it is set to {@link TiffIFD#COMPRESSION_NONE});</li>
+     *     it is set to {@link TiffIFD#COMPRESSION_NONE} (1);</li>
      *     <li><code>PhotometricInterpretation</code> (262) &mdash; if it is not specified or in the smart mode;</li>
      *     <li><code>JPEGTables</code> (347) &mdash; this tag is removed for standard JPEG compression (code 7),
      *     because we do not support "abbreviated" JPEG streams: all JPEG tables are always
