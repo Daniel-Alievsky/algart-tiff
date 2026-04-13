@@ -74,14 +74,23 @@ public class OldJPEGCodec implements TiffCodec {
         final int height = options.getHeight();
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            // --- STEP 1: SOI (Start of Image) ---
+            // STEP 1: SOI (Start of Image)
             out.write(0xFF);
             out.write(0xD8);
 
             boolean hasSOF = false;
             boolean hasSOS = false;
 
-            // --- STEP 2: Tables / Header from JPEGInterchangeFormat ---
+            // STEP 2: Handle JPEG tables and headers.
+            // According to TIFF Supplement 2 (Old-style JPEG), tables can be stored in two ways:
+            // 1. As a single block pointed to by JPEGInterchangeFormat (Tag 513). This block
+            // usually contains all necessary DQT, DHT, and SOF markers.
+            // 2. As individual components in JPEGQTables (519), JPEGDCTables (520), and
+            // JPEGACTables (521) tags.
+            // If JPEGInterchangeFormat is present, it takes precedence. We must ignore
+            // individual table tags to avoid duplicating markers in the resulting JPEG stream,
+            // which could lead to decoding errors.
+
             long jpegOffset = ifd.getLong(Tags.JPEG_INTERCHANGE_FORMAT, -1);
             long jpegLength = ifd.getLong(Tags.JPEG_INTERCHANGE_FORMAT_LENGTH, -1);
 
@@ -94,8 +103,12 @@ public class OldJPEGCodec implements TiffCodec {
                 for (int i = 0; i < actualRead - 1; i++) {
                     if ((interchange[i] & 0xFF) == 0xFF) {
                         int marker = interchange[i + 1] & 0xFF;
-                        if (marker >= 0xC0 && marker <= 0xC3) hasSOF = true;
-                        if (marker == 0xDA) hasSOS = true;
+                        if (marker >= 0xC0 && marker <= 0xC3) {
+                            hasSOF = true;
+                        }
+                        if (marker == 0xDA) {
+                            hasSOS = true;
+                        }
                     }
                 }
 
@@ -125,7 +138,7 @@ public class OldJPEGCodec implements TiffCodec {
                 }
             }
 
-            // --- STEP 3: Mandatory SOF0 (if not provided by interchange) ---
+            // STEP 3: Mandatory SOF0 (if not provided by interchange)
             if (!hasSOF) {
                 int[] subsampling = ifd.getIntArray(Tags.Y_CB_CR_SUB_SAMPLING);
                 int subX = (subsampling != null && subsampling.length >= 2) ? subsampling[0] : 2;
@@ -149,7 +162,7 @@ public class OldJPEGCodec implements TiffCodec {
                 }
             }
 
-            // --- STEP 4: Handle SOS and "Wang" raw data offset ---
+            // STEP 4: Handle SOS and "Wang" raw data offset
             int rawOffset = 0;
             if (raw.length >= 4 && (raw[0] & 0xFF) == 0xFF && (raw[1] & 0xFF) == 0xDA) {
                 // Raw data starts with an SOS marker. We skip it because we provide our own
@@ -199,9 +212,12 @@ public class OldJPEGCodec implements TiffCodec {
         return readRawJpegTables(ifd, handle, Tags.JPEG_AC_TABLES, -1);
     }
 
-    private static byte[][] readRawJpegTables(TiffIFD ifd, DataHandle<?> handle, int tag, int fixedSize) throws TiffException {
+    private static byte[][] readRawJpegTables(TiffIFD ifd, DataHandle<?> handle, int tag, int fixedSize)
+            throws TiffException {
         final long[] offsets = ifd.getLongArray(tag);
-        if (offsets == null) return null;
+        if (offsets == null) {
+            return null;
+        }
 
         byte[][] tables = new byte[offsets.length][];
         try {
@@ -229,7 +245,9 @@ public class OldJPEGCodec implements TiffCodec {
                         byte[] bits = new byte[16];
                         handle.readFully(bits);
                         int count = 0;
-                        for (byte b : bits) count += (b & 0xFF);
+                        for (byte b : bits) {
+                            count += (b & 0xFF);
+                        }
                         byte[] raw = new byte[16 + count];
                         System.arraycopy(bits, 0, raw, 0, 16);
                         handle.readFully(raw, 16, count);
@@ -245,7 +263,9 @@ public class OldJPEGCodec implements TiffCodec {
 
     private static byte[] readJpegTables(TiffIFD ifd, DataHandle<?> handle, int tag) throws TiffException {
         final long[] offsets = ifd.getLongArray(tag);
-        if (offsets == null) return null;
+        if (offsets == null) {
+            return null;
+        }
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             for (int i = 0; i < offsets.length; i++) {
