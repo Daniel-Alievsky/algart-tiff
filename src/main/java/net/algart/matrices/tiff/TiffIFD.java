@@ -1896,6 +1896,21 @@ public final class TiffIFD {
     }
 
     /**
+     * Removes the tag {@code JPEGTables} (347).
+     *
+     * <p>This is a good idea for TIFF images written by {@link TiffWriter} (standard JPEG, code 7),
+     * because it does not support "abbreviated" JPEG streams: all JPEG tables are always
+     * embedded into each tile/strip. Removing this tag prevents duplication and
+     * potential conflicts during decoding.</p>
+     *
+     * @return a reference to this object.
+     */
+    public TiffIFD removeJPEGTables() {
+        remove(Tags.JPEG_TABLES);
+        return this;
+    }
+
+    /**
      * Puts TIFF Predictor tag.
      * Note that only {@link TagPredictor#HORIZONTAL} case is supported by this library
      * (besides {@link TagPredictor#NONE}).
