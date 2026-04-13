@@ -26,7 +26,6 @@ package net.algart.matrices.tiff.data;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffTile;
@@ -36,11 +35,13 @@ public class TiffJPEGDecodingHelper {
     }
 
     // For example, this is necessary in src/test/resources/demo/images/tiff/libtiffpic/quad-jpeg.tif
-    public static void embedJPEGTableInDataIfRequested(TiffTile tile, boolean throwExceptionForStrangeDataStream)
-            throws TiffException {
+    public static void embedJPEGTableInDataIfRequested(TiffTile tile) throws TiffException {
         final TiffIFD ifd = tile.ifd();
         final TagCompression compression = ifd.optCompression().orElse(null);
-        if (compression == null || !compression.isJpegOrOldJpeg()) {
+        if (compression == null || !compression.isStandardJpeg()) {
+            // This method is designed for standard JPEG only (code 7)!
+            // For Old-style JPEG (code 6), using JPEG_TABLES has no sense: we should use
+            // JPEG_Q_TABLES, JPEG_DC_TABLES, JPEG_AC_TABLES or JPEG_INTERCHANGE_FORMAT
             return;
         }
         final byte[] data = tile.getEncodedData();
@@ -62,19 +63,8 @@ public class TiffJPEGDecodingHelper {
         if (data.length < 2 || data[0] != (byte) 0xFF || data[1] != (byte) 0xD8) {
             // - the same check is performed inside Java API ImageIO (JPEGImageReaderSpi),
             // and we prefer to repeat it here for better diagnostics
-            if (compression.isStandardJpeg()) {
-                throw new TiffException(
-                        "Invalid TIFF image: it is declared as JPEG, but the data are not actually JPEG");
-            } else {
-                if (!throwExceptionForStrangeDataStream) {
-                    return;
-                }
-                throw new UnsupportedTiffFormatException(
-                        "Unsupported format of TIFF image: it is declared as \"" + compression.prettyName() +
-                                "\", but the data are not actually JPEG");
-                // - it is better than throwing strange exception in SCIFIO external codec
-                // (like NullPointerException)
-            }
+            throw new TiffException(
+                    "Invalid TIFF image: it is declared as JPEG, but the data are not actually JPEG");
         }
         if (jpegTable != null) {
             // We need to include JPEG table into JPEG data stream

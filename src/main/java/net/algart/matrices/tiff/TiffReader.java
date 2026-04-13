@@ -1459,9 +1459,7 @@ public non-sealed class TiffReader extends TiffIO {
         if (tile.ifd().isReversedFillOrder()) {
             PackedBitArraysPer8.reverseBitOrderInPlace(tile.getEncodedData());
         }
-        boolean throwExceptionForStrangeDataStream = context != null;
-        // - if context == null, there are no available external codecs; later we will throw a correct exception
-        TiffJPEGDecodingHelper.embedJPEGTableInDataIfRequested(tile, throwExceptionForStrangeDataStream);
+        TiffJPEGDecodingHelper.embedJPEGTableInDataIfRequested(tile);
     }
 
     /**
