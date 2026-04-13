@@ -396,7 +396,7 @@ public class JPEG2000Codec implements TiffCodec {
             bpp = single[0].length / (raster.getWidth() * raster.getHeight());
 
             bis.close();
-        } catch (final IOException e) {
+        } catch (IOException e) {
             throw new TiffException("Could not decompress JPEG2000 image. Please " +
                     "make sure that jai_imageio.jar is installed.", e);
         }

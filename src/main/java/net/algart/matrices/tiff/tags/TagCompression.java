@@ -72,7 +72,7 @@ public enum TagCompression {
      * "Old-style" (obsolete) JPEG compression (type 6).
      * Not supported in the current version.
      */
-    OLD_JPEG(TiffIFD.COMPRESSION_OLD_JPEG, "Old-style JPEG", null),
+    OLD_JPEG(TiffIFD.COMPRESSION_OLD_JPEG, "Old-style JPEG", OldJPEGCodec::new, false),
 
     /**
      * JPEG compression (type 7).

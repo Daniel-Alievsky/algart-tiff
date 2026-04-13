@@ -52,11 +52,16 @@ public class OldJPEGCodec implements TiffCodec {
             throw new TiffException("Old-style JPEG decoding requires access to file stream");
         }
 
-        byte[] jpeg = tryBuildCompleteJPEG(data, ifd, stream);
+        byte[] jpeg;
+        try {
+            jpeg = tryBuildCompleteJPEG(data, ifd, stream);
+        } catch (IOException e) {
+            throw new TiffException("Cannot decode old-style JPEG: " + e.getMessage(), e);
+        }
         return new JPEGCodec().decompress(jpeg, options);
     }
 
-    private static byte[] tryBuildCompleteJPEG(byte[] raw, TiffIFD ifd, DataHandle<?> handle) {
+    private static byte[] tryBuildCompleteJPEG(byte[] raw, TiffIFD ifd, DataHandle<?> handle) throws IOException {
         if (isJPEG(raw)) {
             return raw;
         }
@@ -91,13 +96,10 @@ public class OldJPEGCodec implements TiffCodec {
             writeMarker(out, 0xD9);
 
             return out.toByteArray();
-        } catch (Exception e) {
-            // Log error in production environment
-            return null;
         }
     }
 
-    private static byte[] readJpegTables(TiffIFD ifd, DataHandle<?> handle, int tag) throws TiffException {
+  private static byte[] readJpegTables(TiffIFD ifd, DataHandle<?> handle, int tag) throws TiffException {
         if (handle == null) {
             return null;
         }
