@@ -103,18 +103,24 @@ public class OldJPEGCodec implements TiffCodec {
                 for (int i = 0; i < actualRead - 1; i++) {
                     if ((interchange[i] & 0xFF) == 0xFF) {
                         int marker = interchange[i + 1] & 0xFF;
-                        if (marker >= 0xC0 && marker <= 0xC3) {
+                        if (marker >= 0xC0 && marker <= 0xCF &&
+                                marker != 0xC4 && marker != 0xC8 && marker != 0xCC) {
                             hasSOF = true;
                         }
                         if (marker == 0xDA) {
                             hasSOS = true;
                         }
+                        if (hasSOF && hasSOS) {
+                            break;
+                        }
                     }
                 }
 
                 // Write interchange data, skipping its SOI if present
-                int startIdx =
-                        (actualRead >= 2 && (interchange[0] & 0xFF) == 0xFF && (interchange[1] & 0xFF) == 0xD8) ? 2 : 0;
+                int startIdx = actualRead >= 2 &&
+                        (interchange[0] & 0xFF) == 0xFF &&
+                        (interchange[1] & 0xFF) == 0xD8 ?
+                        2 : 0;
                 out.write(interchange, startIdx, actualRead - startIdx);
             } else {
                 // No interchange: build tables from individual TIFF tags
@@ -141,8 +147,8 @@ public class OldJPEGCodec implements TiffCodec {
             // STEP 3: Mandatory SOF0 (if not provided by interchange)
             if (!hasSOF) {
                 int[] subsampling = ifd.getIntArray(Tags.Y_CB_CR_SUB_SAMPLING);
-                int subX = (subsampling != null && subsampling.length >= 2) ? subsampling[0] : 2;
-                int subY = (subsampling != null && subsampling.length >= 2) ? subsampling[1] : 2;
+                int subX = samplesPerPixel == 1 ? 1 : subsampling != null ? subsampling[0] : 2;
+                int subY = samplesPerPixel == 1 ? 1 : subsampling != null ? subsampling[1] : 2;
 
                 out.write(0xFF);
                 out.write(0xC0); // SOF0 marker
@@ -246,7 +252,10 @@ public class OldJPEGCodec implements TiffCodec {
                         handle.readFully(bits);
                         int count = 0;
                         for (byte b : bits) {
-                            count += (b & 0xFF);
+                            count += b & 0xFF;
+                        }
+                        if (count > 256) {
+                            throw new TiffException("Invalid JPEG Huffman table: too many symbols (" + count + ")");
                         }
                         byte[] raw = new byte[16 + count];
                         System.arraycopy(bits, 0, raw, 0, 16);
@@ -318,7 +327,7 @@ public class OldJPEGCodec implements TiffCodec {
             handle.readFully(blengths);
             int numCodes = 0;
             for (int j = 0; j < 16; j++) {
-                numCodes += (blengths[j] & 0xff);
+                numCodes += blengths[j] & 0xff;
             }
 
             int markerLength = 19 + numCodes;
@@ -329,7 +338,7 @@ public class OldJPEGCodec implements TiffCodec {
             baos.write(markerLength & 0xff);
 
             // Define table class: 0 for DC, 1 for AC
-            int tableClass = (tag == Tags.JPEG_AC_TABLES) ? 1 : 0;
+            int tableClass = tag == Tags.JPEG_AC_TABLES ? 1 : 0;
             // The byte is formatted as (Class << 4) | ID
             baos.write(tableIndex | (tableClass << 4));
 
