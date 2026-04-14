@@ -68,13 +68,12 @@ public class OldJPEGCodec implements TiffCodec {
 
     private static byte[] tryBuildCompleteJPEG(byte[] raw, TiffIFD ifd, Options options, DataHandle<?> handle)
             throws IOException {
-        // 1. If it's already a valid JPEG (starts with SOI), return as is
+        // 1. If it's already a valid JPEG (starts with SOI), return as-is
         if (isJPEG(raw)) {
             return raw;
         }
 
         final int samplesPerPixel = options.getNumberOfChannels();
-        // Use TileWidth/Height if available, falling back to ImageWidth/Height
         final int width = options.getWidth();
         final int height = options.getHeight();
 
@@ -82,9 +81,6 @@ public class OldJPEGCodec implements TiffCodec {
             // STEP 1: SOI (Start of Image)
             out.write(0xFF);
             out.write(0xD8);
-
-            boolean hasSOF = false;
-            boolean hasSOS = false;
 
             // STEP 2: Handle JPEG tables and headers.
             // According to TIFF Supplement 2 (Old-style JPEG), tables can be stored in two ways:
@@ -96,15 +92,17 @@ public class OldJPEGCodec implements TiffCodec {
             // individual table tags to avoid duplicating markers in the resulting JPEG stream,
             // which could lead to decoding errors.
 
-            long jpegOffset = ifd.getLong(Tags.JPEG_INTERCHANGE_FORMAT, -1);
-            long jpegLength = ifd.getLong(Tags.JPEG_INTERCHANGE_FORMAT_LENGTH, -1);
+            final long interchangeOffset = ifd.getLong(Tags.JPEG_INTERCHANGE_FORMAT, -1);
 
-            if (jpegOffset > 0) {
-                handle.seek(jpegOffset);
-                byte[] interchange = new byte[(int) (jpegLength > 0 ? jpegLength : 1024)];
+            if (interchangeOffset > 0) {
+                final int interchangeLength = ifd.reqInt(Tags.JPEG_INTERCHANGE_FORMAT_LENGTH);
+                handle.seek(interchangeOffset);
+                byte[] interchange = new byte[interchangeLength];
                 int actualRead = handle.read(interchange);
 
-                // Scan interchange for existing markers to avoid duplication
+                // Scan interchange for existing markers to avoid duplication (heuristic)
+                boolean hasSOF = false;
+                boolean hasSOS = false;
                 for (int i = 0; i < actualRead - 1; i++) {
                     if ((interchange[i] & 0xFF) == 0xFF) {
                         int marker = interchange[i + 1] & 0xFF;
@@ -127,6 +125,12 @@ public class OldJPEGCodec implements TiffCodec {
                         (interchange[1] & 0xFF) == 0xD8 ?
                         2 : 0;
                 out.write(interchange, startIdx, actualRead - startIdx);
+                if (!hasSOF) {
+                    writeSOF0(out, ifd, height, width, samplesPerPixel, true);
+                }
+                if (!hasSOS) {
+                    writeSOS(out, samplesPerPixel, true);
+                }
             } else {
                 // No interchange: build tables from individual TIFF tags
                 byte[][] qTables = getJpegQTables(ifd, handle);
@@ -147,56 +151,16 @@ public class OldJPEGCodec implements TiffCodec {
                         writeDHT(out, 1, i, acTables[i]); // 1 = AC
                     }
                 }
+                writeSOF0(out, ifd, height, width, samplesPerPixel, false);
+                writeSOS(out, samplesPerPixel, false);
             }
 
-            // STEP 3: Mandatory SOF0 (if not provided by interchange)
-            if (!hasSOF) {
-                int[] subsampling = ifd.getIntArray(Tags.Y_CB_CR_SUB_SAMPLING);
-                int subX = samplesPerPixel == 1 ? 1 : subsampling != null ? subsampling[0] : 2;
-                int subY = samplesPerPixel == 1 ? 1 : subsampling != null ? subsampling[1] : 2;
-
-                out.write(0xFF);
-                out.write(0xC0); // SOF0 marker
-                int sofLen = 8 + 3 * samplesPerPixel;
-                out.write((sofLen >>> 8) & 0xFF);
-                out.write(sofLen & 0xFF);
-                out.write(8); // Precision (8 bits)
-                out.write((height >>> 8) & 0xFF);
-                out.write(height & 0xFF);
-                out.write((width >>> 8) & 0xFF);
-                out.write(width & 0xFF);
-                out.write(samplesPerPixel);
-                for (int i = 0; i < samplesPerPixel; i++) {
-                    out.write(i + 1); // Component ID (1, 2, 3)
-                    out.write(i == 0 ? (((subX & 0x0F) << 4) | (subY & 0x0F)) : 0x11);
-                    out.write(i); // Quantization table ID
-                }
-            }
-
-            // STEP 4: Handle SOS and "Wang" raw data offset
             int rawOffset = 0;
             if (raw.length >= 4 && (raw[0] & 0xFF) == 0xFF && (raw[1] & 0xFF) == 0xDA) {
                 // Raw data starts with an SOS marker. We skip it because we provide our own
                 // normalized SOS header to ensure component IDs match our SOF.
                 int internalSosLen = ((raw[2] & 0xFF) << 8) | (raw[3] & 0xFF);
                 rawOffset = 2 + internalSosLen;
-            }
-
-            if (!hasSOS) {
-                // Write our normalized SOS header
-                out.write(0xFF);
-                out.write(0xDA); // SOS marker
-                int sosLen = 6 + 2 * samplesPerPixel;
-                out.write((sosLen >>> 8) & 0xFF);
-                out.write(sosLen & 0xFF);
-                out.write(samplesPerPixel);
-                for (int i = 0; i < samplesPerPixel; i++) {
-                    out.write(i + 1); // Component ID must match SOF
-                    out.write((i << 4) | i); // Huffman table selectors (DC | AC)
-                }
-                out.write(0x00); // Start of spectral selection
-                out.write(0x3F); // End of spectral selection
-                out.write(0x00); // Successive approximation
             }
 
             // --- STEP 5: Data and EOI ---
@@ -275,105 +239,57 @@ public class OldJPEGCodec implements TiffCodec {
         return tables;
     }
 
-    private static byte[] readJpegTables(TiffIFD ifd, DataHandle<?> handle, int tag) throws TiffException {
-        final long[] offsets = ifd.getLongArray(tag);
-        if (offsets == null) {
-            return null;
-        }
 
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            for (int i = 0; i < offsets.length; i++) {
-                // Read and wrap each table found at the given offsets
-                byte[] table = readAndWrapTable(handle, offsets[i], tag, i);
-                out.write(table);
-            }
-            return out.toByteArray();
-        } catch (IOException e) {
-            throw new TiffException("Error reading tag " + tag, e);
-        }
-    }
-
-    private static byte[] readAndWrapTable(DataHandle<?> handle, long offset, int tag, int tableIndex) throws IOException {
-        handle.seek(offset);
-
-        // Check if the table already has a valid JPEG marker (0xFF)
-        int first = handle.readUnsignedByte();
-        if (first == 0xFF) {
-            int marker = handle.readUnsignedByte();
-            int length = handle.readUnsignedShort();
-            byte[] result = new byte[length + 2];
-            result[0] = (byte) 0xFF;
-            result[1] = (byte) marker;
-            result[2] = (byte) ((length >> 8) & 0xFF);
-            result[3] = (byte) (length & 0xFF);
-            handle.readFully(result, 4, length - 2);
-            return result;
-        }
-
-        // If no marker found, return to the start of the offset to read raw data
-        handle.seek(offset);
-
-        if (tag == Tags.JPEG_Q_TABLES) {
-            // Handle Quantization Tables (DQT)
-            byte[] qtable = new byte[64];
-            handle.readFully(qtable);
-
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            baos.write(0xff);
-            baos.write(0xDB); // DQT marker
-            baos.write(0);    // Length MSB
-            baos.write(67);   // Length LSB (2 bytes for length + 1 byte for ID + 64 bytes for table)
-            baos.write(tableIndex); // Table ID and precision (0..3)
-            baos.write(qtable);
-            return baos.toByteArray();
-        } else {
-            // Handle Huffman Tables (DHT: DC or AC)
-            byte[] blengths = new byte[16];
-            handle.readFully(blengths);
-            int numCodes = 0;
-            for (int j = 0; j < 16; j++) {
-                numCodes += blengths[j] & 0xff;
-            }
-
-            int markerLength = 19 + numCodes;
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            baos.write(0xff);
-            baos.write(0xC4); // DHT marker
-            baos.write((markerLength >>> 8) & 0xff);
-            baos.write(markerLength & 0xff);
-
-            // Define table class: 0 for DC, 1 for AC
-            int tableClass = tag == Tags.JPEG_AC_TABLES ? 1 : 0;
-            // The byte is formatted as (Class << 4) | ID
-            baos.write(tableIndex | (tableClass << 4));
-
-            baos.write(blengths);
-            byte[] bcodes = new byte[numCodes];
-            handle.readFully(bcodes);
-            baos.write(bcodes);
-            return baos.toByteArray();
-        }
-    }
-
-//    public static byte[] getJpegQTables(TiffIFD ifd, DataHandle<?> handle) throws TiffException {
-//        return readJpegTables(ifd, handle, Tags.JPEG_Q_TABLES);
-//    }
-//
-//    public static byte[] getJpegDCTables(TiffIFD ifd, DataHandle<?> handle) throws TiffException {
-//        return readJpegTables(ifd, handle, Tags.JPEG_DC_TABLES);
-//    }
-//
-//    public static byte[] getJpegACTables(TiffIFD ifd, DataHandle<?> handle) throws TiffException {
-//        return readJpegTables(ifd, handle, Tags.JPEG_AC_TABLES);
-//    }
-
-    private static void writeMarker(ByteArrayOutputStream out, int marker) {
+    private static void writeSOS(ByteArrayOutputStream out, int samplesPerPixel, boolean twoTables) {
         out.write(0xFF);
-        out.write(marker);
+        out.write(0xDA); // SOS marker
+        int sosLen = 6 + 2 * samplesPerPixel;
+        out.write((sosLen >>> 8) & 0xFF);
+        out.write(sosLen & 0xFF);
+        out.write(samplesPerPixel);
+        for (int i = 0; i < samplesPerPixel; i++) {
+            out.write(i + 1); // Component ID must match SOF
+            int tableId = twoTables && i > 0 ? 1 : i;
+            out.write((tableId << 4) | tableId); // DC | AC
+        }
+        out.write(0x00); // Start of spectral selection
+        out.write(0x3F); // End of spectral selection
+        out.write(0x00); // Successive approximation
+    }
+
+    private static void writeSOF0(
+            ByteArrayOutputStream out,
+            TiffIFD ifd,
+            int height,
+            int width,
+            int samplesPerPixel,
+            boolean twoTables)
+            throws TiffException {
+        int[] subsampling = ifd.getIntArray(Tags.Y_CB_CR_SUB_SAMPLING);
+        int subX = samplesPerPixel == 1 ? 1 : subsampling != null ? subsampling[0] : 2;
+        int subY = samplesPerPixel == 1 ? 1 : subsampling != null ? subsampling[1] : 2;
+
+        out.write(0xFF);
+        out.write(0xC0); // SOF0 marker
+        int sofLen = 8 + 3 * samplesPerPixel;
+        out.write((sofLen >>> 8) & 0xFF);
+        out.write(sofLen & 0xFF);
+        out.write(8); // Precision (8 bits)
+        out.write((height >>> 8) & 0xFF);
+        out.write(height & 0xFF);
+        out.write((width >>> 8) & 0xFF);
+        out.write(width & 0xFF);
+        out.write(samplesPerPixel);
+        for (int i = 0; i < samplesPerPixel; i++) {
+            out.write(i + 1); // Component ID (1, 2, 3)
+            out.write(i == 0 ? (((subX & 0x0F) << 4) | (subY & 0x0F)) : 0x11);
+            out.write(twoTables && i > 0 ? 1 : i); // Quantization table ID
+        }
     }
 
     private static void writeDQT(ByteArrayOutputStream out, int tableId, byte[] table) throws IOException {
-        writeMarker(out, 0xDB);
+        out.write(0xFF);
+        out.write(0xDB);
         int length = 2 + 1 + table.length; // length(2) + identifier(1) + data
         out.write((length >> 8) & 0xFF);
         out.write(length & 0xFF);
@@ -383,7 +299,8 @@ public class OldJPEGCodec implements TiffCodec {
 
     private static void writeDHT(ByteArrayOutputStream out, int tableClass, int tableId, byte[] table)
             throws IOException {
-        writeMarker(out, 0xC4);
+        out.write(0xFF);
+        out.write(0xC4);
         int length = 2 + 1 + table.length; // length(2) + class/ID(1) + data
         out.write((length >> 8) & 0xFF);
         out.write(length & 0xFF);
