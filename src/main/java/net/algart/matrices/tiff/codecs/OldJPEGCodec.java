@@ -193,44 +193,28 @@ public class OldJPEGCodec implements TiffCodec {
         if (offsets == null) {
             return null;
         }
-
         byte[][] tables = new byte[offsets.length][];
         try {
             for (int i = 0; i < offsets.length; i++) {
                 handle.seek(offsets[i]);
-
-                // Handle cases where the table is already wrapped in a JPEG marker
-                int first = handle.readUnsignedByte();
-                if (first == 0xFF) {
-                    handle.readUnsignedByte(); // skip marker type (DB, C4, etc.)
-                    int length = handle.readUnsignedShort();
-                    byte[] raw = new byte[length - 3]; // skip length and ID/precision byte
-                    handle.skipBytes(1); // skip ID byte
+                if (fixedSize > 0) {
+                    byte[] raw = new byte[fixedSize];
                     handle.readFully(raw);
                     tables[i] = raw;
                 } else {
-                    handle.seek(offsets[i]);
-                    if (fixedSize > 0) {
-                        // Typical for Q-tables (64 bytes)
-                        byte[] raw = new byte[fixedSize];
-                        handle.readFully(raw);
-                        tables[i] = raw;
-                    } else {
-                        // Typical for Huffman tables: read 16 bytes (lengths), then sum them
-                        byte[] bits = new byte[16];
-                        handle.readFully(bits);
-                        int count = 0;
-                        for (byte b : bits) {
-                            count += b & 0xFF;
-                        }
-                        if (count > 256) {
-                            throw new TiffException("Invalid JPEG Huffman table: too many symbols (" + count + ")");
-                        }
-                        byte[] raw = new byte[16 + count];
-                        System.arraycopy(bits, 0, raw, 0, 16);
-                        handle.readFully(raw, 16, count);
-                        tables[i] = raw;
+                    byte[] lengths = new byte[16];
+                    handle.readFully(lengths);
+                    int count = 0;
+                    for (byte b : lengths) {
+                        count += b & 0xFF;
                     }
+                    if (count > 256) {
+                        throw new TiffException("Invalid JPEG Huffman table: too many symbols (" + count + ")");
+                    }
+                    byte[] raw = new byte[16 + count];
+                    System.arraycopy(lengths, 0, raw, 0, 16);
+                    handle.readFully(raw, 16, count);
+                    tables[i] = raw;
                 }
             }
         } catch (IOException e) {
@@ -238,7 +222,6 @@ public class OldJPEGCodec implements TiffCodec {
         }
         return tables;
     }
-
 
     private static void writeSOS(ByteArrayOutputStream out, int samplesPerPixel, boolean twoTables) {
         out.write(0xFF);
