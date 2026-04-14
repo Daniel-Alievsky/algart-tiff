@@ -82,12 +82,23 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * Returns the input/output stream for operation with this TIFF file.
      *
      * @return the {@link DataHandle} for this TIFF file; never {@code null}.
+     * @see #fileLock()
      */
     public DataHandle<?> stream() {
         synchronized (fileLock) {
             // - we prefer not to return this stream in the middle of I/O operations
             return stream;
         }
+    }
+
+    /**
+     * Returns the object used to synchronize access to the underlying file {@link #stream() stream}.
+     * Clients must synchronize on this object when performing manual IO operations to ensure thread safety.
+     *
+     * @return the lock object for synchronizing access to the stream.
+     */
+    public Object fileLock() {
+        return fileLock;
     }
 
     /**
