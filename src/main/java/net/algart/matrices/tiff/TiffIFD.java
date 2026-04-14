@@ -1292,10 +1292,6 @@ public final class TiffIFD {
     }
 
     public Optional<TagPhotometric> optPhotometric() {
-        if (!containsKey(Tags.PHOTOMETRIC_INTERPRETATION)
-                && optInt(Tags.COMPRESSION, 0) == COMPRESSION_OLD_JPEG) {
-            return Optional.of(TagPhotometric.RGB);
-        }
         final int code = optPhotometricCode(-1);
         return TagPhotometric.fromCode(code);
     }
