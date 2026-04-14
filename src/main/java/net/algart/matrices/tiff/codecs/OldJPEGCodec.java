@@ -25,6 +25,7 @@ package net.algart.matrices.tiff.codecs;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.TiffIO;
 import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import net.algart.matrices.tiff.tags.Tags;
 import org.scijava.io.handle.DataHandle;
@@ -48,21 +49,20 @@ public class OldJPEGCodec implements TiffCodec {
         if (ifd == null) {
             throw new TiffException("Old-style JPEG decoding requires access to full IFD");
         }
-        DataHandle<?> stream = options.getStream();
-        Object fileLock = options.getFileLock();
-        if (stream == null) {
-            throw new TiffException("Old-style JPEG decoding requires access to file stream");
+        final TiffIO reader = options.getIo();
+        if (reader == null) {
+            throw new TiffException("Old-style JPEG decoding requires access to TIFF reader");
         }
-        if (fileLock == null) {
-            throw new TiffException("Old-style JPEG decoding requires access to file lock");
-        }
-        synchronized (fileLock) {
-            try {
-                byte[] jpeg = tryBuildCompleteJPEG(data, ifd, options, stream);
-                return new JPEGCodec().decompress(jpeg, options);
-            } catch (IOException e) {
-                throw new TiffException("Cannot decode old-style JPEG: " + e.getMessage(), e);
+        final DataHandle<?> stream = reader.stream();
+        final Object fileLock = reader.fileLock();
+        try {
+            byte[] jpeg;
+            synchronized (fileLock) {
+                jpeg = tryBuildCompleteJPEG(data, ifd, options, stream);
             }
+            return new JPEGCodec().decompress(jpeg, options);
+        } catch (IOException e) {
+            throw new TiffException("Cannot decode old-style JPEG: " + e.getMessage(), e);
         }
     }
 

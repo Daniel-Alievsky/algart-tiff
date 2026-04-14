@@ -236,7 +236,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * Returns whether we are writing little-endian data.
      */
     public boolean isLittleEndian() {
-        synchronized (fileLock) {
+        synchronized (fileLock()) {
             return stream.isLittleEndian();
         }
     }
@@ -250,7 +250,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *                     little-endian (<code>true</code>); default is <code>false</code>.
      */
     public TiffWriter setLittleEndian(final boolean littleEndian) {
-        synchronized (fileLock) {
+        synchronized (fileLock()) {
             stream.setLittleEndian(littleEndian);
         }
         return this;
@@ -628,7 +628,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @throws IOException in the case of any I/O errors.
      */
     public final void open(boolean createIfNotExists) throws IOException {
-        synchronized (fileLock) {
+        synchronized (fileLock()) {
             resetCompanionReader();
             if (!stream.exists() || stream.length() == 0L) {
                 // - Important: we ALLOW appending to zero-length files.
@@ -687,7 +687,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @throws IOException in the case of any I/O errors.
      */
     public final void create() throws IOException {
-        synchronized (fileLock) {
+        synchronized (fileLock()) {
             resetCompanionReader();
             allUsedIFDOffsets.clear();
             stream.seek(0);
@@ -767,7 +767,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @return new TIFF reader.
      */
     public TiffReader companionReader(boolean alwaysCreateNew) {
-        synchronized (fileLock) {
+        synchronized (fileLock()) {
             if (alwaysCreateNew || this.reader == null) {
                 try {
                     this.reader = new TiffReader(stream, TiffOpenMode.NO_CHECKS, false);
@@ -791,7 +791,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * method and are not important if you perform the linkage manually.</p>
      */
     public void resetCompanionReader() {
-        synchronized (fileLock) {
+        synchronized (fileLock()) {
             this.reader = null;
             // - No sense to clear usedIFDOffsets:
             // there are no reasons to remove previously saved elements from the set
@@ -869,7 +869,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @throws IOException in the case of any I/O errors.
      */
     public long writeIFDAt(TiffIFD ifd, Long startOffset, boolean updateIFDLinkages) throws IOException {
-        synchronized (fileLock) {
+        synchronized (fileLock()) {
             checkVirginFile();
             resetCompanionReader();
             if (startOffset == null) {
@@ -920,7 +920,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *                               (<code>{@link #positionOfLastIFDOffset()}==-1</code>).
      */
     public void rewriteIFDOffset(int ifdIndex, long ifdOffset) throws IOException {
-        synchronized (fileLock) {
+        synchronized (fileLock()) {
             if (ifdIndex < 0) {
                 throw new IllegalArgumentException("Negative IFD index: " + ifdIndex);
             }
@@ -955,7 +955,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *                               (<code>{@link #positionOfLastIFDOffset()}==-1</code>).
      */
     public void rewriteLastIFDOffset(long newLastIFDOffset) throws IOException {
-        synchronized (fileLock) {
+        synchronized (fileLock()) {
             if (newLastIFDOffset < 0) {
                 throw new IllegalArgumentException("Negative new last IFD offset " + newLastIFDOffset);
             }
@@ -1007,7 +1007,7 @@ public non-sealed class TiffWriter extends TiffIO {
             return;
         }
         long t1 = debugTime();
-        synchronized (fileLock) {
+        synchronized (fileLock()) {
             checkVirginFile();
             resetCompanionReader();
             TiffTileIO.write(tile, stream, alwaysWriteToFileEnd, !bigTiff);
@@ -2214,7 +2214,7 @@ public non-sealed class TiffWriter extends TiffIO {
 
     private void writeIFDOffsetAt(long offset, long positionToWrite, boolean updatePositionOfLastIFDOffset)
             throws IOException {
-        synchronized (fileLock) {
+        synchronized (fileLock()) {
             // - to be on the safe side (this synchronization is not necessary)
             resetCompanionReader();
             final long savedPosition = stream.offset();
@@ -2232,13 +2232,13 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     private void seekToEnd() throws IOException {
-        synchronized (fileLock) {
+        synchronized (fileLock()) {
             stream.seek(stream.length());
         }
     }
 
     private void appendFileUntilEvenLength() throws IOException {
-        synchronized (fileLock) {
+        synchronized (fileLock()) {
             seekToEnd();
             appendUntilEvenPosition(stream);
         }
@@ -2256,6 +2256,7 @@ public non-sealed class TiffWriter extends TiffIO {
     private TiffCodec.Options buildOptions(TiffTile tile) throws TiffException {
         TiffCodec.Options options = this.codecOptions.clone();
         options.setMainOptions(tile);
+        options.setIo(this);
         if (this.compressionQuality != null) {
             options.setCompressionQuality(this.compressionQuality);
         }

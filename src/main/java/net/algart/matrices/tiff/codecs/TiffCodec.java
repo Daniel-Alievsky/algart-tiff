@@ -26,6 +26,7 @@ package net.algart.matrices.tiff.codecs;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.TiffIO;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagPhotometric;
 import net.algart.matrices.tiff.tiles.TiffTile;
@@ -73,8 +74,7 @@ public interface TiffCodec {
         private Double losslessCompressionLevel = null;
         private TiffIFD ifd = null;
         // - used only if other information is not enough
-        private DataHandle<?> stream = null;
-        private Object fileLock = null;
+        private TiffIO io = null;
         // - used only while reading if other information is not enough
 
         public Options() {
@@ -252,20 +252,14 @@ public interface TiffCodec {
             return this;
         }
 
-        public DataHandle<?> getStream() {
-            return stream;
+        public TiffIO getIo() {
+            return io;
         }
 
-        public Object getFileLock() {
-            return fileLock;
-        }
-
-        public Options setStream(DataHandle<?> stream, Object fileLock) {
-            this.stream = stream;
-            this.fileLock = fileLock;
+        public Options setIo(TiffIO io) {
+            this.io = io;
             return this;
         }
-
 
         public Options setMainOptions(TiffTile tile) {
             this.setSizes(tile.getSizeX(), tile.getSizeY());
@@ -304,6 +298,7 @@ public interface TiffCodec {
             this.compression = options.compression;
             this.photometric = options.photometric;
             this.ifd = options.ifd;
+            this.io = options.io;
             return this;
         }
 
@@ -334,6 +329,7 @@ public interface TiffCodec {
             setField(scifioStyleClass, result, "bitsPerSample", bitsPerSample);
             setField(scifioStyleClass, result, "littleEndian", littleEndian);
             setField(scifioStyleClass, result, "interleaved", interleaved);
+            setField(scifioStyleClass, result, "signed", signed);
             setField(scifioStyleClass, result, "maxBytes", maxSizeInBytes);
             if (compressionQuality != null) {
                 setField(scifioStyleClass, result, "quality", compressionQuality);
@@ -347,7 +343,7 @@ public interface TiffCodec {
             setHeight(getField(scifioStyleOptions, Integer.class, "height"));
             setNumberOfChannels(getField(scifioStyleOptions, Integer.class, "channels"));
             setBitsPerSample(getField(scifioStyleOptions, Integer.class, "bitsPerSample"));
-            setSigned(false);
+            setSigned(getField(scifioStyleOptions, Boolean.class, "signed"));
             setFloatingPoint(false);
             setLittleEndian(getField(scifioStyleOptions, Boolean.class, "littleEndian"));
             setInterleaved(getField(scifioStyleOptions, Boolean.class, "interleaved"));
@@ -371,6 +367,7 @@ public interface TiffCodec {
                     ", photometric=" + photometric +
                     ", compressionQuality=" + compressionQuality +
                     ", losslessCompressionLevel=" + losslessCompressionLevel;
+            // - not include ifd and io: they are not values, but references to complex objects
         }
 
         public Options clone() {

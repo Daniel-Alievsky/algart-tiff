@@ -245,7 +245,8 @@ public class JPEG2000Codec implements TiffCodec {
                     ", numberOfDecompositionLevels=" + numberOfDecompositionLevels +
                     ", resolution=" + resolution +
                     ", writeMetadata=" + writeMetadata +
-                    '}';
+                    ", writingSupported=" + writingSupported +
+                    "} " + super.toString();
         }
     }
 

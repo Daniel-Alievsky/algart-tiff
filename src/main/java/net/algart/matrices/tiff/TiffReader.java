@@ -473,7 +473,7 @@ public non-sealed class TiffReader extends TiffIO {
      */
     public TiffReader clearCache() throws IOException {
         synchronized (tileCacheLock) {
-            synchronized (fileLock) {
+            synchronized (fileLock()) {
                 // Lock order: tileCacheLock -> fileLock; we should use the same order in all places!
                 clearTileCache();
                 this.allIFDs = null;
@@ -495,7 +495,7 @@ public non-sealed class TiffReader extends TiffIO {
 
     private void clearTileCache() {
         synchronized (tileCacheLock) {
-            synchronized (fileLock) {
+            synchronized (fileLock()) {
                 this.tileCacheMap.clear();
                 this.tileCache.clear();
                 this.currentCacheMemory = 0;
@@ -1030,7 +1030,7 @@ public non-sealed class TiffReader extends TiffIO {
     public List<TiffIFD> allIFDs() throws IOException {
         long t1 = debugTime();
         List<TiffIFD> allIFDs;
-        synchronized (fileLock) {
+        synchronized (fileLock()) {
             // - this synchronization is necessary for correct work of resetCache(),
             // and also it helps to be sure that the client will not try to read TIFF images
             // when all IFD are not fully loaded and checked
@@ -1082,7 +1082,7 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     public List<TiffIFD> mainIFDs() throws IOException {
-        synchronized (fileLock) {
+        synchronized (fileLock()) {
             allIFDs();
             return Collections.unmodifiableList(mainIFDs);
         }
@@ -1133,7 +1133,7 @@ public non-sealed class TiffReader extends TiffIO {
      * Updates {@link #positionOfLastIFDOffset()} to the position of first offset (4, for Bit-TIFF 8).
      */
     public long readFirstIFDOffset() throws IOException {
-        synchronized (fileLock) {
+        synchronized (fileLock()) {
             stream.seek(positionOfFirstIFDOffset());
             return readFirstOffsetFromCurrentPosition(true, this.bigTiff);
         }
@@ -1153,7 +1153,7 @@ public non-sealed class TiffReader extends TiffIO {
         if (ifdIndex < 0) {
             throw new IllegalArgumentException("Negative IFD index = " + ifdIndex);
         }
-        synchronized (fileLock) {
+        synchronized (fileLock()) {
             final long fileLength = stream.length();
             long offset = readFirstIFDOffset();
 
@@ -1183,7 +1183,7 @@ public non-sealed class TiffReader extends TiffIO {
      * For a valid TIFF, the result cannot be empty.
      */
     public long[] readIFDOffsets() throws IOException {
-        synchronized (fileLock) {
+        synchronized (fileLock()) {
             if (!validTiff) {
                 return new long[0];
             }
@@ -1237,7 +1237,7 @@ public non-sealed class TiffReader extends TiffIO {
         long timeEntries = 0;
         long timeArrays = 0;
         final TiffIFD ifd;
-        synchronized (fileLock) {
+        synchronized (fileLock()) {
             if (startOffset >= stream.length()) {
                 throw new TiffException("TIFF IFD offset " + startOffset + " is outside the file");
             }
@@ -1372,7 +1372,7 @@ public non-sealed class TiffReader extends TiffIO {
             return result;
         }
 
-        synchronized (fileLock) {
+        synchronized (fileLock()) {
             if (offset >= stream.length()) {
                 throw new TiffException("Offset of TIFF tile/strip " + offset + " is out of file length (tile " +
                         tileIndex + ")");
@@ -1979,7 +1979,7 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     private IOException startReading() {
-        synchronized (fileLock) {
+        synchronized (fileLock()) {
             try {
                 this.tiff = false;
                 this.bigTiff = false;
@@ -2062,7 +2062,7 @@ public non-sealed class TiffReader extends TiffIO {
         TiffCodec.Options options = this.codecOptions.clone();
         options.setMainOptions(tile);
         // - Note: codecs in SCIFIO did not use the options above, but some new codes like CCITTFaxCodec need them
-        options.setStream(stream, fileLock);
+        options.setIo(this);
 
         options.setMaxSizeInBytes(tile.getSizeInBytesInsideTIFF());
         // - Note: this may be LESS than the usual number of samples in the tile/strip.
@@ -2143,7 +2143,7 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     public void checkFirstOffset() throws IOException {
-        synchronized (fileLock) {
+        synchronized (fileLock()) {
             final long savedOffset = stream.offset();
             try {
                 stream.seek(positionOfFirstIFDOffset());

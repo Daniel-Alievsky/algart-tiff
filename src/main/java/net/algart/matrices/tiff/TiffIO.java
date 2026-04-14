@@ -54,8 +54,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     static final boolean BUILT_IN_TIMING = getBooleanProperty("net.algart.matrices.tiff.timing");
 
     final DataHandle<?> stream;
-    final Path filePath;
-    final Object fileLock = new Object();
+    private final Path filePath;
+    private final Object fileLock = new Object();
 
     volatile Object context = null;
     volatile Object scifio = null;
