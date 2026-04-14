@@ -268,7 +268,7 @@ class TiffSaveImageHelper {
         ))));
         mainPanel.add(Box.createVerticalStrut(10));
 
-        directMode = new JCheckBox("Quick direct copying (\"as-is\")");
+        directMode = new JCheckBox("Quick direct copying (\"as-is\", no decoding and encoding)");
         directMode.setAlignmentX(Component.LEFT_ALIGNMENT);
         directMode.setEnabled(tileAligned);
         directMode.setSelected(false);
@@ -300,8 +300,10 @@ class TiffSaveImageHelper {
         }
         mainPanel.add(Box.createVerticalStrut(10));
 
+        final JPanel settingsWithCommentsPanel = new JPanel();
+        settingsWithCommentsPanel.setLayout(new BoxLayout(settingsWithCommentsPanel, BoxLayout.Y_AXIS));
+        TiffSaveHelper.addTitledBorder(settingsWithCommentsPanel, "Compression settings");
         final JPanel settingsGrid = new JPanel(new GridLayout(2, 2, 5, 5));
-        TiffSaveHelper.addTitledBorder(settingsGrid, "Compression settings");
         settingsGrid.setAlignmentX(Component.LEFT_ALIGNMENT);
         compressionQualityLabel = new JLabel(compressionQualityLabel(TagCompression.JPEG_2000));
         // - JPEG_2000 is the maximally long variant for calculating positions
@@ -315,17 +317,18 @@ class TiffSaveImageHelper {
         compressionMethodComboBox.addActionListener(e -> correctCompressionControls());
         settingsGrid.add(compressionMethodComboBox);
         settingsGrid.setMaximumSize(new Dimension(Integer.MAX_VALUE, settingsGrid.getPreferredSize().height));
-        mainPanel.add(settingsGrid);
-
+        settingsWithCommentsPanel.add(settingsGrid);
         if (!originalCompressionSupported) {
             final JLabel compressionMethodComment = TinySwing.leftLabel("""
                     <html>Note: the original compression method<br>
                     &nbsp;&nbsp;&nbsp;&nbsp;"%s"<br>
-                    is not supported for writing.
+                    is <b>not supported</b> for writing. You should select another compression.
                     """.formatted(originalCompression.prettyName()));
-            compressionMethodComment.setEnabled(false);
-            mainPanel.add(compressionMethodComment);
+            compressionMethodComment.setForeground(TiffExplorer.ERROR_COLOR);
+            settingsWithCommentsPanel.add(compressionMethodComment);
         }
+        mainPanel.add(settingsWithCommentsPanel);
+
         mainPanel.add(Box.createVerticalStrut(5));
         autoClose = new JCheckBox("Close this dialog automatically after copying");
         autoClose.setAlignmentX(Component.LEFT_ALIGNMENT);

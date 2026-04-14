@@ -46,6 +46,11 @@ import java.util.prefs.Preferences;
 import java.util.stream.Collectors;
 
 public class TiffExplorer {
+    static final Color COMMON_COLOR = TinySwing.getUIColor("Label.foreground", Color.BLACK);
+    static final Color ERROR_COLOR = Color.RED;
+
+    static final Preferences PREFERENCES = Preferences.userNodeForPackage(TiffExplorer.class);
+
     private static final float ALL_FONTS_SCALE = 1.3f;
     // - default font sizes in Java API are usually too small
 
@@ -60,8 +65,6 @@ public class TiffExplorer {
             "SVS files only (*.svs)", "svs");
 
     private static final System.Logger LOG = System.getLogger(TiffExplorer.class.getName());
-
-    static final Preferences PREFERENCES = Preferences.userNodeForPackage(TiffExplorer.class);
 
     private JTiffExplorerFrame frame;
     private FileFilter lastFileFilter = TIFF_OR_SVS_FILTER;

@@ -1133,6 +1133,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @throws TiffException in the case of some problems, in particular, if IFD settings are not supported.
      */
     public void correctForEncoding(TiffIFD ifd, boolean smartCorrection) throws TiffException {
+        Objects.requireNonNull(ifd, "Null IFD");
         final int samplesPerPixel = ifd.getSamplesPerPixel();
         if (!ifd.containsKey(Tags.BITS_PER_SAMPLE)) {
             ifd.put(Tags.BITS_PER_SAMPLE, new int[]{1});
@@ -1264,6 +1265,14 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     public void correctForEntireTiff(TiffIFD ifd) throws TiffException {
+        Objects.requireNonNull(ifd, "Null IFD");
+        final TagCompression compression = ifd.optCompression().orElse(TagCompression.NONE);
+        if (compression.hasAdditionalFileEmbeddedMetadata() && !compression.isWritingSupported()) {
+            throw new UnsupportedTiffFormatException("TIFF compression with code " + compression.code() +
+                    " (\"" + compression.prettyName() + "\") cannot be processed: " +
+                    "this format uses file-embedded metadata and requires a full re-encoding, " +
+                    "but encoding is not supported");
+        }
         ifd.remove(Tags.SUB_IFD);
         ifd.remove(Tags.EXIF);
         ifd.remove(Tags.GPS_TAG);

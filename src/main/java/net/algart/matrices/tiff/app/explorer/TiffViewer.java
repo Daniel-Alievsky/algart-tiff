@@ -45,9 +45,6 @@ class TiffViewer {
 
     private static final System.Logger LOG = System.getLogger(TiffViewer.class.getName());
 
-    private static final Color COMMON_COLOR = TinySwing.getUIColor("Label.foreground", Color.BLACK);
-    private static final Color ERROR_COLOR = Color.RED;
-
     private final TiffReaderWithGrid reader;
     private final Path path;
     private final int ifdIndex;
@@ -279,7 +276,7 @@ class TiffViewer {
         if (error != lastErrorFlag || !status.equals(lastStatus)) {
             SwingUtilities.invokeLater(() -> {
                 final JLabel statusLabel = frame.statusLabel();
-                statusLabel.setForeground(error ? ERROR_COLOR : COMMON_COLOR);
+                statusLabel.setForeground(error ? TiffExplorer.ERROR_COLOR : TiffExplorer.COMMON_COLOR);
                 statusLabel.setText(status);
             });
             lastStatus = status;

@@ -753,15 +753,29 @@ public final class TiffIFD {
     }
 
     public <R> Optional<R> getValue(int tag, Class<? extends R> requiredClass) throws TiffException {
+        return getValue(tag, requiredClass, null);
+    }
+
+    public <R> Optional<R> getValue(
+            int tag,
+            Class<? extends R> requiredClass,
+            Integer requiredEntryType) throws TiffException {
         Objects.requireNonNull(requiredClass, "Null requiredClass");
         Object value = get(tag);
         if (value == null) {
             return Optional.empty();
         }
         if (!requiredClass.isInstance(value)) {
+            TiffEntry entry = null;
+            if (detailedEntries != null) {
+                entry = detailedEntries.get(tag);
+            }
             throw new TiffException("TIFF tag " + Tags.prettyName(tag, true) +
-                    " has wrong type: " + value.getClass().getSimpleName() +
-                    " instead of expected " + requiredClass.getSimpleName());
+                    " has wrong type: " +
+                    (entry == null ? value.getClass().getSimpleName() : TagTypes.typeToString(entry.type)) +
+                    " instead of expected " +
+                    (requiredEntryType == null ? "" : TagTypes.typeToString(requiredEntryType) + ", or ") +
+                    requiredClass.getSimpleName());
         }
         return Optional.of(requiredClass.cast(value));
     }

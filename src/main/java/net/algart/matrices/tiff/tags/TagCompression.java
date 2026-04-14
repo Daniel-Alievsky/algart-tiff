@@ -410,6 +410,31 @@ public enum TagCompression {
         return code == TiffIFD.COMPRESSION_JPEG;
     }
 
+    /**
+     * Returns {@code true} if this compression method relies on additional metadata
+     * embedded directly in the TIFF file, separate from IFD tags, TIFF tiles or strips.
+     *
+     * <p>When this is {@code true} (as with {@link #OLD_JPEG}), the compressed
+     * streams in strips or tiles are incomplete. They require external information
+     * stored elsewhere in the file.
+     * Since these are referenced via file offsets, the image <b>cannot be
+     * safely copied</b> or moved to a new TIFF structure without a codec that
+     * understands how to re-embed this metadata.
+     *
+     * <p>This is {@code true} only for {@link #OLD_JPEG} format, which stores Huffman or Quantization tables
+     * in separate fragments of the file and refers to them via offsets stored in special IFD tags.
+     * In comparison, {@link #JPEG} format can store the same metadata in <code>JPEGTables</code> tag,
+     * but this information is completely stored inside IFD and does not refer to any offsets inside the file;
+     * Thus, this method returns {@code false} for {@link #JPEG}:
+     * it is possible to copy such an image directly to another TIFF by simply preserving the IFD tags
+     * and bit-to-bit copying tiles/strips: there is no need to use the codec.
+     *
+     * @return {@code true} if the format requires file-embedded metadata besides the standard IFD information.
+     */
+    public boolean hasAdditionalFileEmbeddedMetadata() {
+        return this == OLD_JPEG;
+    }
+
     public boolean isJpegOrOldJpeg() {
         return isStandardJpeg() || this == OLD_JPEG;
     }
