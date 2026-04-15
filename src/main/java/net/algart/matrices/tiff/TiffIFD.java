@@ -770,7 +770,7 @@ public final class TiffIFD {
             if (detailedEntries != null) {
                 entry = detailedEntries.get(tag);
             }
-            throw new TiffException("TIFF tag " + Tags.prettyName(tag, true) +
+            throw new TiffException("TIFF tag " + Tags.prettyName(tag) +
                     " has wrong type: " +
                     (entry == null ? value.getClass().getSimpleName() : TagTypes.typeToString(entry.type)) +
                     " instead of expected " +
@@ -782,7 +782,7 @@ public final class TiffIFD {
 
     public <R> R reqValue(int tag, Class<? extends R> requiredClass) throws TiffException {
         return getValue(tag, requiredClass).orElseThrow(() -> new TiffException(
-                "TIFF tag " + Tags.prettyName(tag, true) + " is required, but it is absent"));
+                "TIFF tag " + Tags.prettyName(tag) + " is required, but it is absent"));
     }
 
     public OptionalInt optType(int tag) {

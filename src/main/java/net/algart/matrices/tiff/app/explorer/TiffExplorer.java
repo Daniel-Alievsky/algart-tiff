@@ -418,7 +418,7 @@ public class TiffExplorer {
             final Map<Integer, JCheckBox> tagsToSelect = new java.util.HashMap<>();
             for (int tag : tagsToPossiblyRemove) {
                 final String caption = "<html>%s%s</html>".formatted(
-                        Tags.prettyName(tag, true),
+                        Tags.prettyName(tag),
                         ifd.isTagCritical(tag, true) ? " <font color=\"red\">\u2013 be careful!</font>" : "");
                 final JCheckBox checkBox = new JCheckBox(caption);
                 checkBox.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -513,7 +513,7 @@ public class TiffExplorer {
             return true;
         }
         final String tagList = tags.stream()
-                .map(tag -> " \u2022 " + Tags.prettyName(tag, true))
+                .map(tag -> " \u2022 " + Tags.prettyName(tag))
                 .collect(Collectors.joining("\n"));
         final int choice = JOptionPane.showConfirmDialog(
                 frame,
