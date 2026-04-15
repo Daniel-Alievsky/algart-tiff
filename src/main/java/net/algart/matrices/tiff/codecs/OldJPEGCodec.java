@@ -90,6 +90,7 @@ public class OldJPEGCodec implements TiffCodec {
         final int samplesPerPixel = options.getNumberOfChannels();
         final int width = options.getWidth();
         final int height = options.getHeight();
+//        System.out.printf("%x %x %x %x ...%n", raw[0], raw[1], raw[2], raw[3]);
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             // STEP 1: SOI (Start of Image)
@@ -152,7 +153,7 @@ public class OldJPEGCodec implements TiffCodec {
                 if (!hasSOS) {
                     writeSOS(out, samplesPerPixel, true);
                 }
-                return finishJPEG(out, raw);
+                return finishJPEG(out, raw, true);
             }
 
             final byte[][] qTables = readJpegQTables(ifd, handle);
@@ -169,26 +170,24 @@ public class OldJPEGCodec implements TiffCodec {
             }
             writeSOF0(out, ifd, height, width, samplesPerPixel, false);
             writeSOS(out, samplesPerPixel, false);
-            return finishJPEG(out, raw);
+            return finishJPEG(out, raw, false);
         }
     }
 
-    private static byte[] finishJPEG(ByteArrayOutputStream out, byte[] raw) {
+    private static byte[] finishJPEG(ByteArrayOutputStream out, byte[] raw, boolean interchange) {
         int rawOffset = 0;
-        if (raw.length >= 4 && (raw[0] & 0xFF) == 0xFF && (raw[1] & 0xFF) == SOS_BYTE) {
+        if (interchange && raw.length >= 4 && (raw[0] & 0xFF) == 0xFF && (raw[1] & 0xFF) == SOS_BYTE) {
             // Raw data starts with an SOS marker. We skip it because we provide our own
             // normalized SOS header to ensure component IDs match our SOF.
+            // Necessary for old-style-jpeg-bogus-jpeginterchangeformatlength
             int internalSosLen = ((raw[2] & 0xFF) << 8) | (raw[3] & 0xFF);
             rawOffset = 2 + internalSosLen;
         }
-
-        // --- STEP 5: Data and EOI ---
         if (rawOffset < raw.length) {
             out.write(raw, rawOffset, raw.length - rawOffset);
         }
         out.write(0xFF);
         out.write(EOI_BYTE);
-
         return out.toByteArray();
     }
 
