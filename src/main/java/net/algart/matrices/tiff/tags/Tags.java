@@ -228,4 +228,8 @@ public class Tags {
         }
         return "%s (%d or 0x%X)".formatted(name, tag, tag);
     }
+
+    public static String prettyName(int tag) {
+        return prettyName(tag, true);
+    }
 }

@@ -818,54 +818,20 @@ public final class TiffIFD {
         return optValue(tag, Number.class).orElse(defaultValue).longValue();
     }
 
+    public long[] reqLongArray(int tag) throws TiffException {
+        return getLongArray(tag, true);
+    }
+
     public long[] getLongArray(int tag) throws TiffException {
-        final Object value = get(tag);
-        long[] results = null;
-        if (value instanceof long[] v) {
-            results = v.clone();
-        } else if (value instanceof Number v) {
-            results = new long[]{v.longValue()};
-        } else if (value instanceof Number[] v) {
-            results = new long[v.length];
-            for (int i = 0; i < results.length; i++) {
-                results[i] = v[i].longValue();
-            }
-        } else if (value instanceof int[] v) {
-            results = new long[v.length];
-            for (int i = 0; i < v.length; i++) {
-                results[i] = v[i];
-            }
-        } else if (value != null) {
-            throw new TiffException("TIFF tag " + Tags.prettyName(tag, true) +
-                    " has wrong type: " + value.getClass().getSimpleName() +
-                    " instead of expected Number, Number[], long[] or int[]");
-        }
-        return results;
+        return getLongArray(tag, false);
+    }
+
+    public int[] reqIntArray(int tag) throws TiffException {
+        return getIntArray(tag, true);
     }
 
     public int[] getIntArray(int tag) throws TiffException {
-        final Object value = get(tag);
-        int[] results = null;
-        if (value instanceof int[] v) {
-            results = v.clone();
-        } else if (value instanceof Number v) {
-            results = new int[]{checkedIntValue(v, tag)};
-        } else if (value instanceof long[] v) {
-            results = new int[v.length];
-            for (int i = 0; i < v.length; i++) {
-                results[i] = checkedIntValue(v[i], tag);
-            }
-        } else if (value instanceof Number[] v) {
-            results = new int[v.length];
-            for (int i = 0; i < results.length; i++) {
-                results[i] = checkedIntValue(v[i].longValue(), tag);
-            }
-        } else if (value != null) {
-            throw new TiffException("TIFF tag " + Tags.prettyName(tag, true) +
-                    " has wrong type: " + value.getClass().getSimpleName() +
-                    " instead of expected Number, Number[], long[] or int[]");
-        }
-        return results;
+        return getIntArray(tag, false);
     }
 
     public Optional<String> optString(int tag) {
@@ -2428,6 +2394,64 @@ public final class TiffIFD {
         return addPaddingBeforeFirstLine ? spaces + s : s;
     }
 
+    private long[] getLongArray(int tag, boolean required) throws TiffException {
+        final Object value = get(tag);
+        if  (value == null && required) {
+            throw new TiffException("TIFF tag " + Tags.prettyName(tag) + " is required, but it is absent");
+        }
+        long[] results = null;
+        if (value instanceof long[] v) {
+            results = v.clone();
+        } else if (value instanceof Number v) {
+            results = new long[]{v.longValue()};
+        } else if (value instanceof Number[] v) {
+            results = new long[v.length];
+            for (int i = 0; i < results.length; i++) {
+                results[i] = v[i].longValue();
+            }
+        } else if (value instanceof int[] v) {
+            results = new long[v.length];
+            for (int i = 0; i < v.length; i++) {
+                results[i] = v[i];
+            }
+        } else if (value != null) {
+            throw new TiffException("TIFF tag " + Tags.prettyName(tag) +
+                    " has wrong type: " + value.getClass().getSimpleName() +
+                    " instead of expected Number, Number[], long[] or int[]");
+        }
+        assert !required || results != null;
+        return results;
+    }
+
+    private int[] getIntArray(int tag, boolean required) throws TiffException {
+        final Object value = get(tag);
+        if  (value == null && required) {
+            throw new TiffException("TIFF tag " + Tags.prettyName(tag) + " is required, but it is absent");
+        }
+        int[] results = null;
+        if (value instanceof int[] v) {
+            results = v.clone();
+        } else if (value instanceof Number v) {
+            results = new int[]{checkedIntValue(v, tag)};
+        } else if (value instanceof long[] v) {
+            results = new int[v.length];
+            for (int i = 0; i < v.length; i++) {
+                results[i] = checkedIntValue(v[i], tag);
+            }
+        } else if (value instanceof Number[] v) {
+            results = new int[v.length];
+            for (int i = 0; i < results.length; i++) {
+                results[i] = checkedIntValue(v[i].longValue(), tag);
+            }
+        } else if (value != null) {
+            throw new TiffException("TIFF tag " + Tags.prettyName(tag) +
+                    " has wrong type: " + value.getClass().getSimpleName() +
+                    " instead of expected Number, Number[], long[] or int[]");
+        }
+        assert !required || results != null;
+        return results;
+    }
+
     private void clearCache() {
         cachedTileOrStripByteCounts = null;
         cachedTileOrStripOffsets = null;
@@ -2626,7 +2650,7 @@ public final class TiffIFD {
             int tag,
             Object tagValue,
             boolean manyValues) {
-        final String tagName = Tags.prettyName(tag, true);
+        final String tagName = Tags.prettyName(tag);
         sb.append("%n".formatted());
         Object additional = null;
         try {
@@ -2777,12 +2801,11 @@ public final class TiffIFD {
         Objects.requireNonNull(value);
         long result = value.longValue();
         if (result > Integer.MAX_VALUE) {
-            throw new TiffException("Very large " + Tags.prettyName(tag, true) +
+            throw new TiffException("Very large " + Tags.prettyName(tag) +
                     " = " + value + " >= 2^31 is not supported");
         }
         if (result < Integer.MIN_VALUE) {
-            throw new TiffException("Very large (by absolute value) negative " +
-                    Tags.prettyName(tag, true) +
+            throw new TiffException("Very large (by absolute value) negative " + Tags.prettyName(tag) +
                     " = " + value + " < -2^31 is not supported");
         }
         return (int) result;
@@ -2961,7 +2984,7 @@ public final class TiffIFD {
         @Override
         public String toString() {
             return "TiffEntry: " +
-                    "tag " + Tags.prettyName(tag, true) +
+                    "tag " + Tags.prettyName(tag) +
                     ", type " + TagTypes.typeToString(type) +
                     ", valueCount " + valueCount +
                     ", valueOffset " + valueOffset +

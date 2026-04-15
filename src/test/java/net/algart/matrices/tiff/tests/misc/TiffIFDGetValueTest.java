@@ -33,7 +33,7 @@ import java.util.Optional;
 public class TiffIFDGetValueTest {
     static void showTag(TiffIFD ifd, int tag, Class<?> requiredClass) {
         System.out.printf("Tag %s, required class %s:%n",
-                Tags.prettyName(tag, true),
+                Tags.prettyName(tag),
                 requiredClass.getSimpleName());
         Optional<?> opt = ifd.optValue(tag, requiredClass);
         System.out.printf("optValue: %s [%s]%n",
