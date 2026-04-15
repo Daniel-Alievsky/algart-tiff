@@ -153,7 +153,7 @@ public class OldJPEGCodec implements TiffCodec {
                 if (!hasSOS) {
                     writeSOS(out, samplesPerPixel, true);
                 }
-                return finishJPEG(out, raw, true);
+                return finishJPEG(out, raw, samplesPerPixel, true);
             }
 
             final byte[][] qTables = readJpegQTables(ifd, handle);
@@ -170,19 +170,12 @@ public class OldJPEGCodec implements TiffCodec {
             }
             writeSOF0(out, ifd, height, width, samplesPerPixel, false);
             writeSOS(out, samplesPerPixel, false);
-            return finishJPEG(out, raw, false);
+            return finishJPEG(out, raw, samplesPerPixel, false);
         }
     }
 
-    private static byte[] finishJPEG(ByteArrayOutputStream out, byte[] raw, boolean interchange) {
-        int rawOffset = 0;
-        if (interchange && raw.length >= 4 && (raw[0] & 0xFF) == 0xFF && (raw[1] & 0xFF) == SOS_BYTE) {
-            // Raw data starts with an SOS marker. We skip it because we provide our own
-            // normalized SOS header to ensure component IDs match our SOF.
-            // Necessary for old-style-jpeg-bogus-jpeginterchangeformatlength
-            int internalSosLen = ((raw[2] & 0xFF) << 8) | (raw[3] & 0xFF);
-            rawOffset = 2 + internalSosLen;
-        }
+    private static byte[] finishJPEG(ByteArrayOutputStream out, byte[] raw, int samplesPerPixel, boolean interchange) {
+        int rawOffset = interchange ? sosOffset(raw, samplesPerPixel) : 0;
         if (rawOffset < raw.length) {
             out.write(raw, rawOffset, raw.length - rawOffset);
         }
@@ -191,10 +184,30 @@ public class OldJPEGCodec implements TiffCodec {
         return out.toByteArray();
     }
 
+    private static int sosOffset(byte[] raw, int samplesPerPixel) {
+        if (raw.length < 4) {
+            return 0;
+        }
+        if ((raw[0] & 0xFF) == 0xFF && (raw[1] & 0xFF) == SOS_BYTE) {
+            // Raw data starts with an SOS marker. We skip it because we provide our own
+            // normalized SOS header to ensure component IDs match our SOF.
+            // Necessary for old-style-jpeg-bogus-jpeginterchangeformatlength.tif (for example).
+            // Probabiliy of false detection is very low: ~ 1/2^40
+            int internalSosLen = ((raw[2] & 0xFF) << 8) | (raw[3] & 0xFF);
+            int expectedLen = 6 + 2 * samplesPerPixel;
+            if (internalSosLen == expectedLen &&
+                    2 + internalSosLen <= raw.length &&
+                    raw[2 + internalSosLen - 1] == 0) {
+                // - last byte in a correct SOS is always zero
+                return 2 + internalSosLen;
+            }
+        }
+        return 0;
+    }
+
     public static boolean hasJpegInterchange(TiffIFD ifd) {
         return ifd.containsKey(Tags.JPEG_INTERCHANGE_FORMAT);
     }
-
 
     public static byte[] readJpegInterchange(TiffIFD ifd, DataHandle<?> handle) throws IOException {
         final long interchangeOffset = ifd.getLong(Tags.JPEG_INTERCHANGE_FORMAT, -1);
