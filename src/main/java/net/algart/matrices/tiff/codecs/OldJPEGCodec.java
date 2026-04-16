@@ -114,8 +114,8 @@ public class OldJPEGCodec implements TiffCodec {
             TryInterchangeFormat:
             if (hasInterchange) {
                 final byte[] interchange = readJpegInterchange(ifd, handle);
-                if (interchange == null || !isProbableJPEG(interchange)) {
-                    if (isProbableJPEG(raw)) {
+                if (interchange == null || !isJPEG(interchange)) {
+                    if (isJPEG(raw)) {
                         return raw;
                     } else if (hasTables) {
                         break TryInterchangeFormat;
@@ -145,7 +145,7 @@ public class OldJPEGCodec implements TiffCodec {
                         }
                     }
                 }
-                assert isProbableJPEG(interchange);
+                assert isJPEG(interchange);
                 out.write(interchange, 2, interchange.length - 2);
                 if (!hasSOF) {
                     writeSOF0(out, ifd, height, width, samplesPerPixel, true);
@@ -340,9 +340,11 @@ public class OldJPEGCodec implements TiffCodec {
         out.write(table);
     }
 
-    private static boolean isProbableJPEG(byte[] data) {
-        return data.length >= 2 &&
-                (data[0] & 0xFF) == 0xFF &&
-                (data[1] & 0xFF) == SOI_BYTE;
+    private static boolean isJPEG(byte[] raw) {
+        return raw.length >= 2 &&
+                (raw[0] & 0xFF) == 0xFF &&
+                (raw[1] & 0xFF) == SOI_BYTE;
+        // Note: due to byte stuffing (every 0xFF in raw data is replaced with 0xFF-0x00),
+        // raw JPEG data in a strip/tile cannot start from these 2 bytes
     }
 }
