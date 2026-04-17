@@ -42,6 +42,9 @@ import java.util.Arrays;
 import java.util.Objects;
 
 public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
+    private static final boolean RESTRICT_READING_TOO_LARGE_STRIPS = true;
+    // - should be true for normal processing some old-style JPEG files
+
     public static class JPEGOptions extends Options {
         /**
          * Value of TIFF tag YCbCrSubSampling (READ).
@@ -178,13 +181,15 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         try (InputStream input = new BufferedInputStream(new DataHandleInputStream<>(in), 8192)) {
             imageInformation = JPEGDecoding.readJPEG(
                     input,
-                    options.isTiled() ? null : new Dimension(options.getWidth(), options.getHeight()),
+                    RESTRICT_READING_TOO_LARGE_STRIPS && !options.isTiled()?
+                            new Dimension(options.getWidth(), options.getHeight()) :
+                            null,
                     options.getPhotometric(),
                     options.getNumberOfChannels(),
                     options.isLittleEndian());
             // - for stripped image we also specify "sizes" argument that enforces readJPEG
             // to restrict reading via param.setSourceRegion call;
-            // this is necessary for some Old-style JPEG files like
+            // this is necessary for some OLD_JPEG (old-style JPEG) files like
             // "libtiff/test/images/ojpeg_chewey_subsamp21_multi_strip.tiff"
         } catch (IOException jpegException) {
             // probably a lossless JPEG; delegate to LosslessJPEGCodec

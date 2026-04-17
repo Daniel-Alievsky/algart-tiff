@@ -78,7 +78,7 @@ public class TiffUnpacking {
                 decodedDataLength > tile.map().tileSizeInBytes() &&
                 !lowLevelFormat.get()) {
             // - Strange situation: JPEG or some extended codec has decoded too large tile.
-            // (For example, it occurs in some Old-style JPEG files like
+            // (For example, it occurs in some OLD_JPEG (old-style JPEG) files like
             // "libtiff/test/images/ojpeg_chewey_subsamp21_multi_strip.tiff",
             // which stores full image sizes in the SOF0 marker instead of sizes of the strip,
             // if we do not restrict reading JPEG by ImageReadParam.)

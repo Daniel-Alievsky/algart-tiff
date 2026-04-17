@@ -87,6 +87,9 @@ public class OldJPEGCodec implements TiffCodec {
             // Actually we do not support "Lossless" and always try to interpret data as "Baseline":
             // "Lossless" is a very rare case and probably written by a mistake?
         }
+        if (isJPEG(raw)) {
+            return raw;
+        }
         final int samplesPerPixel = options.getNumberOfChannels();
         final int width = options.getWidth();
         final int height = options.getHeight();
@@ -107,18 +110,15 @@ public class OldJPEGCodec implements TiffCodec {
             // individual table tags to avoid duplicating markers in the resulting JPEG stream,
             // which could lead to decoding errors.
 
+            final boolean hasInterchange = ifd.containsKey(Tags.OLD_JPEG_INTERCHANGE_FORMAT);
             final boolean hasTables = ifd.containsKey(Tags.OLD_JPEG_Q_TABLES) &&
                     ifd.containsKey(Tags.OLD_JPEG_DC_TABLES) &&
                     ifd.containsKey(Tags.OLD_JPEG_AC_TABLES);
-            final boolean hasInterchange = hasJpegInterchange(ifd);
-            TryInterchangeFormat:
+            byte[] interchange = hasInterchange ? readJpegInterchange(ifd, handle) : null;
             if (hasInterchange) {
-                final byte[] interchange = readJpegInterchange(ifd, handle);
                 if (interchange == null || !isJPEG(interchange)) {
-                    if (isJPEG(raw)) {
-                        return raw;
-                    } else if (hasTables) {
-                        break TryInterchangeFormat;
+                    if (hasTables) {
+                        interchange = null;
                     } else {
                         throw new TiffException(
                                 "Cannot recode old-style JPEG: " + (interchange == null ?
@@ -127,6 +127,8 @@ public class OldJPEGCodec implements TiffCodec {
                                         "JPEGInterchangeFormat does not start with Start-Of-Image marker"));
                     }
                 }
+            }
+            if (interchange != null) {
                 // Scan interchange for existing markers to avoid duplication (heuristic)
                 boolean hasSOF = false;
                 boolean hasSOS = false;
@@ -153,29 +155,29 @@ public class OldJPEGCodec implements TiffCodec {
                 if (!hasSOS) {
                     writeSOS(out, samplesPerPixel, true);
                 }
-                return finishJPEG(out, raw, samplesPerPixel, true);
+                return finishJPEG(out, raw, true);
+            } else {
+                final byte[][] qTables = readJpegQTables(ifd, handle);
+                for (int i = 0; i < qTables.length; i++) {
+                    writeDQT(out, i, qTables[i]);
+                }
+                final byte[][] dcTables = readJpegDCTables(ifd, handle);
+                for (int i = 0; i < dcTables.length; i++) {
+                    writeDHT(out, 0, i, dcTables[i]); // 0 = DC
+                }
+                final byte[][] acTables = readJpegACTables(ifd, handle);
+                for (int i = 0; i < acTables.length; i++) {
+                    writeDHT(out, 1, i, acTables[i]); // 0x10 = AC
+                }
+                writeSOF0(out, ifd, height, width, samplesPerPixel, false);
+                writeSOS(out, samplesPerPixel, false);
+                return finishJPEG(out, raw, false);
             }
-
-            final byte[][] qTables = readJpegQTables(ifd, handle);
-            for (int i = 0; i < qTables.length; i++) {
-                writeDQT(out, i, qTables[i]);
-            }
-            final byte[][] dcTables = readJpegDCTables(ifd, handle);
-            for (int i = 0; i < dcTables.length; i++) {
-                writeDHT(out, 0, i, dcTables[i]); // 0 = DC
-            }
-            final byte[][] acTables = readJpegACTables(ifd, handle);
-            for (int i = 0; i < acTables.length; i++) {
-                writeDHT(out, 1, i, acTables[i]); // 0x10 = AC
-            }
-            writeSOF0(out, ifd, height, width, samplesPerPixel, false);
-            writeSOS(out, samplesPerPixel, false);
-            return finishJPEG(out, raw, samplesPerPixel, false);
         }
     }
 
-    private static byte[] finishJPEG(ByteArrayOutputStream out, byte[] raw, int samplesPerPixel, boolean interchange) {
-        int rawOffset = interchange ? sosOffset(raw, samplesPerPixel) : 0;
+    private static byte[] finishJPEG(ByteArrayOutputStream out, byte[] raw, boolean interchange) {
+        int rawOffset = interchange ? sosOffset(raw) : 0;
         if (rawOffset < raw.length) {
             out.write(raw, rawOffset, raw.length - rawOffset);
         }
@@ -184,7 +186,7 @@ public class OldJPEGCodec implements TiffCodec {
         return out.toByteArray();
     }
 
-    private static int sosOffset(byte[] raw, int samplesPerPixel) {
+    private static int sosOffset(byte[] raw) {
         if (raw.length < 4) {
             return 0;
         }
@@ -192,21 +194,12 @@ public class OldJPEGCodec implements TiffCodec {
             // Raw data starts with an SOS marker. We skip it because we provide our own
             // normalized SOS header to ensure component IDs match our SOF.
             // Necessary for old-style-jpeg-bogus-jpeginterchangeformatlength.tif (for example).
-            // Probabiliy of false detection is very low: ~ 1/2^40
+            // Here false detection is impossible due to byte stuffing
+            // (every 0xFF in raw data is replaced with 0xFF-0x00)
             int internalSosLen = ((raw[2] & 0xFF) << 8) | (raw[3] & 0xFF);
-            int expectedLen = 6 + 2 * samplesPerPixel;
-            if (internalSosLen == expectedLen &&
-                    2 + internalSosLen <= raw.length &&
-                    raw[2 + internalSosLen - 1] == 0) {
-                // - last byte in a correct SOS is always zero
-                return 2 + internalSosLen;
-            }
+            return 2 + internalSosLen;
         }
         return 0;
-    }
-
-    public static boolean hasJpegInterchange(TiffIFD ifd) {
-        return ifd.containsKey(Tags.OLD_JPEG_INTERCHANGE_FORMAT);
     }
 
     public static byte[] readJpegInterchange(TiffIFD ifd, DataHandle<?> handle) throws IOException {
