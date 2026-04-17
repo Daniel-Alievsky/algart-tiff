@@ -96,16 +96,13 @@ public class OldJPEGCodec implements TiffCodec {
 //        System.out.printf("%x %x %x %x ...%n", raw[0], raw[1], raw[2], raw[3]);
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            // STEP 1: SOI (Start of Image)
             out.write(0xFF);
             out.write(SOI_BYTE);
 
-            // STEP 2: Handle JPEG tables and headers.
             // According to TIFF Supplement 2 (Old-style JPEG), tables can be stored in two ways:
             // 1. As a single block pointed to by JPEGInterchangeFormat (Tag 513). This block
             // usually contains all necessary DQT, DHT, and SOF markers.
-            // 2. As individual components in JPEGQTables (519), JPEGDCTables (520), and
-            // JPEGACTables (521) tags.
+            // 2. As individual components in JPEGQTables (519), JPEGDCTables (520), and JPEGACTables (521) tags.
             // If JPEGInterchangeFormat is present, it takes precedence. We must ignore
             // individual table tags to avoid duplicating markers in the resulting JPEG stream,
             // which could lead to decoding errors.
@@ -120,6 +117,7 @@ public class OldJPEGCodec implements TiffCodec {
                     if (hasTables) {
                         interchange = null;
                     } else {
+                        // see readJpegInterchange: it returns null if OLD_JPEG_INTERCHANGE_FORMAT_LENGTH is not found
                         throw new TiffException(
                                 "Cannot recode old-style JPEG: " + (interchange == null ?
                                         "TIFF tag " + Tags.prettyName(Tags.OLD_JPEG_INTERCHANGE_FORMAT_LENGTH) +
@@ -130,8 +128,13 @@ public class OldJPEGCodec implements TiffCodec {
             }
             if (interchange != null) {
                 // Scan interchange for existing markers to avoid duplication (heuristic)
-                boolean hasSOF = false;
-                boolean hasSOS = false;
+                SimpleJPEGParser parser = new SimpleJPEGParser(interchange);
+                boolean hasSOF = parser.hasSOF;
+                boolean hasSOS = parser.hasSOS;
+                /*
+                // Below is more simple, but inaccurate version: false detection is theoretically possible
+                hasSOF = false;
+                hasSOS = false;
                 for (int i = 0; i < interchange.length - 1; i++) {
                     if ((interchange[i] & 0xFF) == 0xFF) {
                         int marker = interchange[i + 1] & 0xFF;
@@ -147,7 +150,7 @@ public class OldJPEGCodec implements TiffCodec {
                         }
                     }
                 }
-                assert isJPEG(interchange);
+                */
                 out.write(interchange, 2, interchange.length - 2);
                 if (!hasSOF) {
                     writeSOF0(out, ifd, height, width, samplesPerPixel, true);
@@ -339,5 +342,69 @@ public class OldJPEGCodec implements TiffCodec {
                 (raw[1] & 0xFF) == SOI_BYTE;
         // Note: due to byte stuffing (every 0xFF in raw data is replaced with 0xFF-0x00),
         // raw JPEG data in a strip/tile cannot start from these 2 bytes
+    }
+    
+    private static class SimpleJPEGParser {
+        boolean hasSOI = false;
+        boolean hasSOS = false;
+        boolean hasSOF = false  ;
+
+        public SimpleJPEGParser(byte[] data) {
+            Objects.requireNonNull(data, "Null data");
+            if (data.length < 2)  {
+                return;
+            }
+            int p = 0;
+            if (data[0] == (byte) 0xFF &&  data[1] == (byte) SOI_BYTE) {
+                hasSOI = true;
+                p = 2;
+            }
+            while (p < data.length - 1) {
+                if (data[p] != (byte) 0xFF) {
+                    p++;
+                    continue;
+                    // strange stream: let's search for the next 0xFF
+                }
+                while (p + 1 < data.length && data[p + 1] == (byte) 0xFF) {
+                    // skipping several 0xFF
+                    p++;
+                }
+                // - returning the
+                int marker = data[p + 1] & 0xFF;
+                switch (marker) {
+                    case SOI_BYTE -> {
+                        // strange stream
+                        p += 2;
+                        continue;
+                    }
+                    case SOS_BYTE -> {
+                        hasSOS = true;
+                        // entropy data start here: the parsing loop will be more complex,
+                        // but we don't need the following markers
+                        // (entropy data are not included into JPEGInterchangeFormat)
+                        return;
+                    }
+                    case EOI_BYTE -> {
+                        return;
+                    }
+                    case 0xC0, 0xC1, 0xC2, 0xC3,
+                         0xC5, 0xC6, 0xC7,
+                         0xC9, 0xCA, 0xCB,
+                         0xCD, 0xCE, 0xCF -> {
+                        hasSOF = true;
+                    }
+                }
+                if (p < data.length - 3) {
+                    int segmentLength = ((data[p + 2] & 0xFF) << 8) | (data[p + 3] & 0xFF);
+                    p += 2 + segmentLength;
+                    if (p < 0) {
+                        // - overflow (very improbable)
+                        return;
+                    }
+                } else {
+                    return;
+                }
+            }
+        }
     }
 }

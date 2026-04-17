@@ -456,8 +456,7 @@ public enum TagCompression {
     }
 
     public boolean isRGBRequired() {
-        return code == TiffIFD.COMPRESSION_OLD_JPEG ||
-                code == TiffIFD.COMPRESSION_JPEG_2000 ||
+        return code == TiffIFD.COMPRESSION_JPEG_2000 ||
                 code == TiffIFD.COMPRESSION_JPEG_2000_APERIO;
         // - current version of JAI ImageIO (jai-imageio-jpeg2000) cannot write JPEG-2000 in YCbCr color space
     }

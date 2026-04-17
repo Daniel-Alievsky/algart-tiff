@@ -870,10 +870,6 @@ public final class TiffIFD {
     }
 
     public int getSamplesPerPixel() throws TiffException {
-        if (optCompressionCode(-1) == TiffIFD.COMPRESSION_OLD_JPEG) {
-            return 3;
-            // always 3 channels: RGB
-        }
         final int samplesPerPixel = getInt(Tags.SAMPLES_PER_PIXEL, 1);
         if (samplesPerPixel < 1) {
             throw new TiffException("TIFF tag SamplesPerPixel contains illegal zero or negative value: " +
