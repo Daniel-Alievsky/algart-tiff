@@ -369,7 +369,9 @@ public class OldJPEGCodec implements TiffCodec {
                     // skipping several 0xFF
                     p++;
                 }
-                // - returning the
+                if (p + 1 >= data.length) {
+                    return;
+                }
                 int marker = data[p + 1] & 0xFF;
                 switch (marker) {
                     case SOI_BYTE -> {
