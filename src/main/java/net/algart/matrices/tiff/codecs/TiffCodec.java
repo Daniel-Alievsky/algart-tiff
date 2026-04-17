@@ -60,6 +60,7 @@ public interface TiffCodec {
         private int height = 0;
         private int numberOfChannels = 0;
         private int bitsPerSample = 0;
+        private boolean tiled = false;
         private boolean signed = false;
         private boolean floatingPoint = false;
         private boolean littleEndian = false;
@@ -129,6 +130,15 @@ public interface TiffCodec {
                 throw new IllegalArgumentException("Negative bitsPerSample = " + bitsPerSample);
             }
             this.bitsPerSample = bitsPerSample;
+            return this;
+        }
+
+        public boolean isTiled() {
+            return tiled;
+        }
+
+        public Options setTiled(boolean tiled) {
+            this.tiled = tiled;
             return this;
         }
 
@@ -265,6 +275,7 @@ public interface TiffCodec {
             this.setSizes(tile.getSizeX(), tile.getSizeY());
             this.setBitsPerSample(tile.bitsPerSample());
             this.setNumberOfChannels(tile.samplesPerPixel());
+            this.setTiled(tile.tilingMode().isTileGrid());
             this.setSigned(tile.sampleType().isSigned());
             this.setFloatingPoint(tile.sampleType().isFloatingPoint());
             this.setByteOrder(tile.byteOrder());
@@ -288,6 +299,7 @@ public interface TiffCodec {
             this.height = options.height;
             this.numberOfChannels = options.numberOfChannels;
             this.bitsPerSample = options.bitsPerSample;
+            this.tiled = options.tiled;
             this.signed = options.signed;
             this.floatingPoint = options.floatingPoint;
             this.littleEndian = options.littleEndian;
@@ -358,6 +370,7 @@ public interface TiffCodec {
                     ", height=" + height +
                     ", numberOfChannels=" + numberOfChannels +
                     ", bitsPerSample=" + bitsPerSample +
+                    ", tiled=" + tiled +
                     ", signed=" + signed +
                     ", floatingPoint=" + floatingPoint +
                     ", littleEndian=" + littleEndian +

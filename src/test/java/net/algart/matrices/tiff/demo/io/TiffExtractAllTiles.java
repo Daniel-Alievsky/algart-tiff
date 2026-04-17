@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.tests.io;
+package net.algart.matrices.tiff.demo.io;
 
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
@@ -38,23 +38,25 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
 
-public class TiffReadTilesTest {
+public class TiffExtractAllTiles {
     private static final int MAX_IMAGE_DIM = 8000;
 
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
+        boolean crop = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-crop")) {
+            crop = true;
+            startArgIndex++;
+        }
         if (args.length < startArgIndex + 3) {
             System.out.println("Usage:");
-            System.out.println("    " + TiffReadTilesTest.class.getName() +
+            System.out.println("    " + TiffExtractAllTiles.class.getName() +
                     " some_tiff_file result_folder ifdIndex " +
                     "[x y width height [number_of_tests]");
             return;
         }
         final Path tiffFile = Paths.get(args[startArgIndex++]);
         final Path resultFolder = Paths.get(args[startArgIndex++]);
-        if (!Files.isDirectory(resultFolder)) {
-            throw new IOException("Result folder " + resultFolder + " is not an existing folder");
-        }
         final int ifdIndex = Integer.parseInt(args[startArgIndex++]);
         final int x = args.length <= startArgIndex ? 0 : Integer.parseInt(args[startArgIndex]);
         final int y = args.length <= ++startArgIndex ? 0 : Integer.parseInt(args[startArgIndex]);
@@ -64,7 +66,7 @@ public class TiffReadTilesTest {
 
         try (TiffReader reader = new TiffReader(tiffFile)) {
             reader.setByteFiller((byte) 0x40);
-            reader.setCropTilesToImageBoundaries(true);
+            reader.setCropTilesToImageBoundaries(crop);
             final TiffReadMap map = reader.map(ifdIndex);
             if (w < 0) {
                 w = Math.min(map.dimX(), MAX_IMAGE_DIM);
@@ -86,6 +88,9 @@ public class TiffReadTilesTest {
                 System.gc();
             }
 
+            if (!Files.isDirectory(resultFolder)) {
+                Files.createDirectory(resultFolder);
+            }
             final Path imageFile = resultFolder.resolve("result.bmp");
             System.out.printf("Saving result image into %s...%n", imageFile);
             writeImageFile(imageFile, matrix);

@@ -80,7 +80,7 @@ public class OldJPEGCodec implements TiffCodec {
         Objects.requireNonNull(ifd, "Null IFD");
         Objects.requireNonNull(handle, "Null handle");
         Objects.requireNonNull(options, "Null options");
-        final int jpegProc = ifd.getInt(Tags.JPEG_PROC, 1);
+        final int jpegProc = ifd.getInt(Tags.OLD_JPEG_PROC, 1);
         if (jpegProc != 1 && jpegProc != 14) {
             // 1 is "Baseline", 14 is "Lossless"
             throw new IIOException("Unknown TIFF JPEGProc value: " + jpegProc);
@@ -107,9 +107,9 @@ public class OldJPEGCodec implements TiffCodec {
             // individual table tags to avoid duplicating markers in the resulting JPEG stream,
             // which could lead to decoding errors.
 
-            final boolean hasTables = ifd.containsKey(Tags.JPEG_Q_TABLES) &&
-                    ifd.containsKey(Tags.JPEG_DC_TABLES) &&
-                    ifd.containsKey(Tags.JPEG_AC_TABLES);
+            final boolean hasTables = ifd.containsKey(Tags.OLD_JPEG_Q_TABLES) &&
+                    ifd.containsKey(Tags.OLD_JPEG_DC_TABLES) &&
+                    ifd.containsKey(Tags.OLD_JPEG_AC_TABLES);
             final boolean hasInterchange = hasJpegInterchange(ifd);
             TryInterchangeFormat:
             if (hasInterchange) {
@@ -122,7 +122,7 @@ public class OldJPEGCodec implements TiffCodec {
                     } else {
                         throw new TiffException(
                                 "Cannot recode old-style JPEG: " + (interchange == null ?
-                                        "TIFF tag " + Tags.prettyName(Tags.JPEG_INTERCHANGE_FORMAT_LENGTH) +
+                                        "TIFF tag " + Tags.prettyName(Tags.OLD_JPEG_INTERCHANGE_FORMAT_LENGTH) +
                                         " is missing, JPEGInterchangeFormat cannot be decoded" :
                                         "JPEGInterchangeFormat does not start with Start-Of-Image marker"));
                     }
@@ -206,15 +206,15 @@ public class OldJPEGCodec implements TiffCodec {
     }
 
     public static boolean hasJpegInterchange(TiffIFD ifd) {
-        return ifd.containsKey(Tags.JPEG_INTERCHANGE_FORMAT);
+        return ifd.containsKey(Tags.OLD_JPEG_INTERCHANGE_FORMAT);
     }
 
     public static byte[] readJpegInterchange(TiffIFD ifd, DataHandle<?> handle) throws IOException {
-        final long interchangeOffset = ifd.getLong(Tags.JPEG_INTERCHANGE_FORMAT, -1);
+        final long interchangeOffset = ifd.getLong(Tags.OLD_JPEG_INTERCHANGE_FORMAT, -1);
         if (interchangeOffset <= 0) {
             return null;
         }
-        final int interchangeLength = ifd.getInt(Tags.JPEG_INTERCHANGE_FORMAT_LENGTH, -1);
+        final int interchangeLength = ifd.getInt(Tags.OLD_JPEG_INTERCHANGE_FORMAT_LENGTH, -1);
         if (interchangeLength <= 0) {
             return null;
         }
@@ -226,16 +226,16 @@ public class OldJPEGCodec implements TiffCodec {
 
 
     public static byte[][] readJpegQTables(TiffIFD ifd, DataHandle<?> handle) throws TiffException {
-        return readRawJpegTables(ifd, handle, Tags.JPEG_Q_TABLES, 64);
+        return readRawJpegTables(ifd, handle, Tags.OLD_JPEG_Q_TABLES, 64);
     }
 
     public static byte[][] readJpegDCTables(TiffIFD ifd, DataHandle<?> handle) throws TiffException {
         // For Huffman tables, we don't have a fixed size, so we pass -1
-        return readRawJpegTables(ifd, handle, Tags.JPEG_DC_TABLES, -1);
+        return readRawJpegTables(ifd, handle, Tags.OLD_JPEG_DC_TABLES, -1);
     }
 
     public static byte[][] readJpegACTables(TiffIFD ifd, DataHandle<?> handle) throws TiffException {
-        return readRawJpegTables(ifd, handle, Tags.JPEG_AC_TABLES, -1);
+        return readRawJpegTables(ifd, handle, Tags.OLD_JPEG_AC_TABLES, -1);
     }
 
     private static byte[][] readRawJpegTables(TiffIFD ifd, DataHandle<?> handle, int tag, int fixedSize)

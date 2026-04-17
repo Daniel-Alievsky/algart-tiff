@@ -532,9 +532,8 @@ public final class TiffCopier {
         // (unless they have been changed by ifdCorrector).
         final boolean correctForEncoding = !actuallyDirectCopy;
         // - There is no sense to call correctForEncoding() method if we use tile-per-tile direct copying.
-        // We could use smartCorrection mode always by explicitly calling correctForEncoding(ifd, true),
+        // We could use smartCorrection mode always by explicitly calling TiffWriter.correctForEncoding(ifd, true),
         // but we prefer not to do this.
-        // Let this class depend on the smartCorrection flag in the writer.
         final TiffWriteMap writeMap = writer.newMap(writeIFD, false, correctForEncoding);
         checkImageCompatibility(writeMap, readMap);
         this.actuallyDirectCopy = actuallyDirectCopy;

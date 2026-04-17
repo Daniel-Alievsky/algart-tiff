@@ -93,15 +93,15 @@ public class Tags {
     public static final int S_MAX_SAMPLE_VALUE = 341;
     public static final int TRANSFER_RANGE = 342;
     public static final int JPEG_TABLES = 347;
-    public static final int JPEG_PROC = 512;
-    public static final int JPEG_INTERCHANGE_FORMAT = 513;
-    public static final int JPEG_INTERCHANGE_FORMAT_LENGTH = 514;
-    public static final int JPEG_RESTART_INTERVAL = 515;
-    public static final int JPEG_LOSSLESS_PREDICTORS = 517;
-    public static final int JPEG_POINT_TRANSFORMS = 518;
-    public static final int JPEG_Q_TABLES = 519;
-    public static final int JPEG_DC_TABLES = 520;
-    public static final int JPEG_AC_TABLES = 521;
+    public static final int OLD_JPEG_PROC = 512;
+    public static final int OLD_JPEG_INTERCHANGE_FORMAT = 513;
+    public static final int OLD_JPEG_INTERCHANGE_FORMAT_LENGTH = 514;
+    public static final int OLD_JPEG_RESTART_INTERVAL = 515;
+    public static final int OLD_JPEG_LOSSLESS_PREDICTORS = 517;
+    public static final int OLD_JPEG_POINT_TRANSFORMS = 518;
+    public static final int OLD_JPEG_Q_TABLES = 519;
+    public static final int OLD_JPEG_DC_TABLES = 520;
+    public static final int OLD_JPEG_AC_TABLES = 521;
     public static final int Y_CB_CR_COEFFICIENTS = 529;
     public static final int Y_CB_CR_SUB_SAMPLING = 530;
     public static final int Y_CB_CR_POSITIONING = 531;
@@ -204,11 +204,11 @@ public class Tags {
             PREDICTOR,
             ORIENTATION,
             JPEG_TABLES,
-            JPEG_INTERCHANGE_FORMAT,
-            JPEG_INTERCHANGE_FORMAT_LENGTH,
-            JPEG_Q_TABLES,
-            JPEG_DC_TABLES,
-            JPEG_AC_TABLES
+            OLD_JPEG_INTERCHANGE_FORMAT,
+            OLD_JPEG_INTERCHANGE_FORMAT_LENGTH,
+            OLD_JPEG_Q_TABLES,
+            OLD_JPEG_DC_TABLES,
+            OLD_JPEG_AC_TABLES
     );
 
     /**

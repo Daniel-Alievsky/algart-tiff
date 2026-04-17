@@ -170,6 +170,10 @@ public final class TiffTile {
         return map.elementType();
     }
 
+    public TiffMap.TilingMode tilingMode() {
+        return map.tilingMode();
+    }
+
     public ByteOrder byteOrder() {
         return map.byteOrder();
     }

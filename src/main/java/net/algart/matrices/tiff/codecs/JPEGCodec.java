@@ -32,6 +32,7 @@ import net.algart.matrices.tiff.tags.TagPhotometric;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.DataHandleInputStream;
 
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
@@ -177,9 +178,14 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         try (InputStream input = new BufferedInputStream(new DataHandleInputStream<>(in), 8192)) {
             imageInformation = JPEGDecoding.readJPEG(
                     input,
+                    options.isTiled() ? null : new Dimension(options.getWidth(), options.getHeight()),
                     options.getPhotometric(),
                     options.getNumberOfChannels(),
                     options.isLittleEndian());
+            // - for stripped image we also specify "sizes" argument that enforces readJPEG
+            // to restrict reading via param.setSourceRegion call;
+            // this is necessary for some Old-style JPEG files like
+            // "libtiff/test/images/ojpeg_chewey_subsamp21_multi_strip.tiff"
         } catch (IOException jpegException) {
             // probably a lossless JPEG; delegate to LosslessJPEGCodec
             in.seek(offset);

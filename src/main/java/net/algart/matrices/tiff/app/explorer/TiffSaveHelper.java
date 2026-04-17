@@ -44,8 +44,7 @@ import java.util.concurrent.ExecutionException;
 class TiffSaveHelper {
     private enum UserByteOrder {
         BIG_ENDIAN(ByteOrder.BIG_ENDIAN, "Big-endian"),
-        LITTLE_ENDIAN(ByteOrder.LITTLE_ENDIAN, "Little-endian"),
-        ;
+        LITTLE_ENDIAN(ByteOrder.LITTLE_ENDIAN, "Little-endian");
 
         private final ByteOrder byteOrder;
         private final String name;

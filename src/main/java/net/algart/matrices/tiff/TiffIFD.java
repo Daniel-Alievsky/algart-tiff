@@ -1872,6 +1872,24 @@ public final class TiffIFD {
     }
 
     /**
+     * Removes the tags used only by {@link TagCompression#OLD_JPEG} format.
+     *
+     * @return a reference to this object.
+     */
+    public TiffIFD removeOldJPEGTags() {
+        remove(Tags.OLD_JPEG_PROC);
+        remove(Tags.OLD_JPEG_INTERCHANGE_FORMAT);
+        remove(Tags.OLD_JPEG_INTERCHANGE_FORMAT_LENGTH);
+        remove(Tags.OLD_JPEG_RESTART_INTERVAL);
+        remove(Tags.OLD_JPEG_LOSSLESS_PREDICTORS);
+        remove(Tags.OLD_JPEG_POINT_TRANSFORMS);
+        remove(Tags.OLD_JPEG_Q_TABLES);
+        remove(Tags.OLD_JPEG_AC_TABLES);
+        remove(Tags.OLD_JPEG_DC_TABLES);
+        return this;
+    }
+
+    /**
      * Removes the tag {@code JPEGTables} (347).
      *
      * <p>This is a good idea for TIFF images written by {@link TiffWriter} (standard JPEG, code 7),

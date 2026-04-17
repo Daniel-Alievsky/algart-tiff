@@ -1166,11 +1166,17 @@ public non-sealed class TiffWriter extends TiffIO {
             ifd.put(Tags.COMPRESSION, TiffIFD.COMPRESSION_NONE);
             // - We prefer to explicitly specify this case
         }
-        final TagCompression compression = ifd.optCompression().orElse(TagCompression.NONE);
+        TagCompression compression = ifd.optCompression().orElse(TagCompression.NONE);
         // - NONE: we have set it above
         if (!compression.isWritingSupported()) {
-            throw new UnsupportedTiffFormatException("TIFF compression with code " + compression.code() +
-                    " (\"" + compression.prettyName() + "\") is not supported for writing");
+            if (smartCorrection && compression == TagCompression.OLD_JPEG) {
+                compression = TagCompression.JPEG;
+                ifd.putCompression(compression);
+                ifd.removeOldJPEGTags();
+            } else {
+                throw new UnsupportedTiffFormatException("TIFF compression with code " + compression.code() +
+                        " (\"" + compression.prettyName() + "\") is not supported for writing");
+            }
         }
 
         final TagPhotometric suggestedPhotometric = ifd.optPhotometric().orElse(null);

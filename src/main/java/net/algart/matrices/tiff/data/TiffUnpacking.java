@@ -45,7 +45,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class TiffUnpacking {
     private static final boolean OPTIMIZE_SEPARATING_WHOLE_BYTES = true;
     // - should be true for good performance; false value can help while debugging
+    private static final boolean DISABLE_TOO_LARGE_TILE_OR_STRIP = true;
+    // - should be true
     private static final boolean THOROUGHLY_TEST_Y_CB_CR_LOOP = false;
+    // - can be set to true for thoroughly testing
 
     private TiffUnpacking() {
     }
@@ -71,8 +74,14 @@ public class TiffUnpacking {
         // for all other cases isSimpleRearrangingBytesEnough returns false.
         // The only unusual case here is 3 bytes/sample: 24-bit float or 24-bit integer;
         // these cases (as well as 16-bit float) will be processed later in unpackUnusualPrecisions.
-        if (decodedDataLength > tile.map().tileSizeInBytes() && !lowLevelFormat.get()) {
+        if (DISABLE_TOO_LARGE_TILE_OR_STRIP &&
+                decodedDataLength > tile.map().tileSizeInBytes() &&
+                !lowLevelFormat.get()) {
             // - Strange situation: JPEG or some extended codec has decoded too large tile.
+            // (For example, it occurs in some Old-style JPEG files like
+            // "libtiff/test/images/ojpeg_chewey_subsamp21_multi_strip.tiff",
+            // which stores full image sizes in the SOF0 marker instead of sizes of the strip,
+            // if we do not restrict reading JPEG by ImageReadParam.)
             // But for "simple" compressions (uncompressed, Deflate) we enable this situation:
             // it helps to create special tests (for example, an image with "fake" too little dimensions).
             // (Note: for LZW compression, in the current version, this situation is impossible, because
@@ -87,8 +96,8 @@ public class TiffUnpacking {
         }
         tile.adjustNumberOfPixels(true);
         // - Note: decodedDataLength is unpredictable because it is the result of decompression by a codec;
-        // in particular, for JPEG compression,
-        // the last strip in non-tiled TIFF may be shorter or even larger than a full tile.
+        // in particular, for JPEG compression, the last strip in non-tiled TIFF
+        // may be shorter or even larger than a full tile.
         // If cropping boundary tiles is enabled, the actual height of the last strip is reduced
         // (see readEncodedTile method), so larger data is possible (it is a minor format separately).
         // If cropping boundary tiles is disabled, larger data MAY be considered as a format error,

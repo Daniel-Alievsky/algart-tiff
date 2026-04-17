@@ -37,6 +37,7 @@ import javax.imageio.ImageReader;
 import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.MemoryCacheImageInputStream;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.Raster;
 import java.io.IOException;
@@ -94,6 +95,7 @@ public class JPEGDecoding {
      */
     public static ImageInformation readJPEG(
             InputStream in,
+            Dimension sizes,
             TagPhotometric declaredColorSpace,
             int numberOfChannels,
             boolean littleEndian) throws IOException {
@@ -106,6 +108,9 @@ public class JPEGDecoding {
         }
         final ImageReadParam param = reader.getDefaultReadParam();
         reader.setInput(stream, true, true);
+        if (sizes != null) {
+            param.setSourceRegion(new Rectangle(0, 0, sizes.width, sizes.height));
+        }
         try {
             final IIOMetadata metadata = retrieveMetadata(reader);
             final String colorSpace = tryToFindColorSpace(metadata);
