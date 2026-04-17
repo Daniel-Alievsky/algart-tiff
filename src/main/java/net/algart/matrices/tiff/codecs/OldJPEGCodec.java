@@ -374,6 +374,11 @@ public class OldJPEGCodec implements TiffCodec {
                 }
                 int marker = data[p + 1] & 0xFF;
                 switch (marker) {
+                    case 0 -> {
+                        // strange stream (stuffed byte should not occur in JPEGInterchangeFormat)
+                        p += 2;
+                        continue;
+                    }
                     case SOI_BYTE -> {
                         // strange stream
                         p += 2;
@@ -381,8 +386,7 @@ public class OldJPEGCodec implements TiffCodec {
                     }
                     case SOS_BYTE -> {
                         hasSOS = true;
-                        // entropy data start here: the parsing loop will be more complex,
-                        // but we don't need the following markers
+                        // entropy data start here: we don't need the following markers
                         // (entropy data are not included into JPEGInterchangeFormat)
                         return;
                     }
