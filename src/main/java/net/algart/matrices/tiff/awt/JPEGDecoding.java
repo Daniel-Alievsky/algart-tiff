@@ -46,6 +46,13 @@ import java.util.Iterator;
 import java.util.Objects;
 
 public class JPEGDecoding {
+    public static final int SOI_BYTE = 0xD8; // start of image
+    public static final int EOI_BYTE = 0xD9; // end of image
+    public static final int SOS_BYTE = 0xDA; // start of scan
+    public static final int DQT_BYTE = 0xDB; // define quantization table(s)
+    public static final int DHT_BYTE = 0xC4; // define Huffman table(s)
+    public static final int SOF0_BASELINE = 0xC0; // baseline DCT
+
     static final boolean USE_MEMORY_CACHE = true;
     // - Must be true for normal performance.
     // Important: our codec is implemented for reading separate tiles, which SHOULD be not too large

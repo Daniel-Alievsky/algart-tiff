@@ -26,6 +26,7 @@ package net.algart.matrices.tiff.data;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.awt.JPEGDecoding;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagTypes;
 import net.algart.matrices.tiff.tags.Tags;
@@ -61,11 +62,12 @@ public class TiffJPEGDecodingHelper {
         //      When the JPEGTables field is present, it shall contain a valid JPEG
         //      "abbreviated table specification" data stream. This data stream shall begin
         //      with SOI and end with EOI.
-        if (data.length < 2 || data[0] != (byte) 0xFF || data[1] != (byte) 0xD8) {
+        if (data.length < 2 || data[0] != (byte) 0xFF || data[1] != (byte) JPEGDecoding.SOI_BYTE) {
             // - the same check is performed inside Java API ImageIO (JPEGImageReaderSpi),
             // and we prefer to repeat it here for better diagnostics
             throw new TiffException(
-                    "Invalid TIFF image: it is declared as JPEG, but the data are not actually JPEG");
+                    "Invalid TIFF image: it is declared as JPEG, but the data are not actually JPEG: " +
+                            "no starting Start-Of-Image (SOI) marker");
         }
         if (jpegTable != null) {
             // We need to include JPEG table into JPEG data stream
@@ -82,7 +84,7 @@ public class TiffJPEGDecodingHelper {
             }
             final byte[] appended = new byte[jpegTable.length + data.length - 4];
             appended[0] = (byte) 0xFF;
-            appended[1] = (byte) 0xD8;
+            appended[1] = (byte) JPEGDecoding.SOI_BYTE;
             // - writing SOI
             System.arraycopy(jpegTable, 2, appended, 2, jpegTable.length - 4);
             // - skipping both SOI and EOI (2 first and 2 last bytes) from jpegTable

@@ -27,6 +27,7 @@ import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffIO;
 import net.algart.matrices.tiff.UnsupportedTiffFormatException;
+import net.algart.matrices.tiff.awt.JPEGDecoding;
 import net.algart.matrices.tiff.tags.Tags;
 import org.scijava.io.handle.DataHandle;
 
@@ -37,13 +38,6 @@ import java.util.Arrays;
 import java.util.Objects;
 
 public class OldJPEGCodec implements TiffCodec {
-    private static final int SOI_BYTE = 0xD8; // start of image
-    private static final int EOI_BYTE = 0xD9; // end of image
-    private static final int SOS_BYTE = 0xDA; // start of scan
-    private static final int DQT_BYTE = 0xDB; // define quantization table(s)
-    private static final int DHT_BYTE = 0xC4; // define Huffman table(s)
-    private static final int SOF0_BASELINE = 0xC0; // baseline DCT
-
     @Override
     public byte[] compress(byte[] data, Options options) throws TiffException {
         throw new UnsupportedTiffFormatException("Old-style JPEG compression is not supported");
@@ -97,7 +91,7 @@ public class OldJPEGCodec implements TiffCodec {
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             out.write(0xFF);
-            out.write(SOI_BYTE);
+            out.write(JPEGDecoding.SOI_BYTE);
 
             // According to TIFF Supplement 2 (Old-style JPEG), tables can be stored in two ways:
             // 1. As a single block pointed to by JPEGInterchangeFormat (Tag 513). This block
@@ -131,6 +125,9 @@ public class OldJPEGCodec implements TiffCodec {
                 SimpleJPEGParser parser = new SimpleJPEGParser(interchange);
                 boolean hasSOF = parser.hasSOF;
                 boolean hasSOS = parser.hasSOS;
+                if (!parser.hasSOI) {
+                    throw new AssertionError("SOI tag missing, though we already checked isJPEG");
+                }
                 /*
                 // Below is more simple, but inaccurate version: false detection is theoretically possible
                 hasSOF = false;
@@ -185,7 +182,7 @@ public class OldJPEGCodec implements TiffCodec {
             out.write(raw, rawOffset, raw.length - rawOffset);
         }
         out.write(0xFF);
-        out.write(EOI_BYTE);
+        out.write(JPEGDecoding.EOI_BYTE);
         return out.toByteArray();
     }
 
@@ -193,7 +190,7 @@ public class OldJPEGCodec implements TiffCodec {
         if (raw.length < 4) {
             return 0;
         }
-        if ((raw[0] & 0xFF) == 0xFF && (raw[1] & 0xFF) == SOS_BYTE) {
+        if ((raw[0] & 0xFF) == 0xFF && (raw[1] & 0xFF) == JPEGDecoding.SOS_BYTE) {
             // Raw data starts with an SOS marker. We skip it because we provide our own
             // normalized SOS header to ensure component IDs match our SOF.
             // Necessary for old-style-jpeg-bogus-jpeginterchangeformatlength.tif (for example).
@@ -270,7 +267,7 @@ public class OldJPEGCodec implements TiffCodec {
 
     private static void writeSOS(ByteArrayOutputStream out, int samplesPerPixel, boolean twoTables) {
         out.write(0xFF);
-        out.write(SOS_BYTE); // SOS marker
+        out.write(JPEGDecoding.SOS_BYTE); // SOS marker
         int sosLen = 6 + 2 * samplesPerPixel;
         out.write((sosLen >>> 8) & 0xFF);
         out.write(sosLen & 0xFF);
@@ -298,7 +295,7 @@ public class OldJPEGCodec implements TiffCodec {
         int subY = samplesPerPixel == 1 ? 1 : subsampling != null ? subsampling[1] : 2;
 
         out.write(0xFF);
-        out.write(SOF0_BASELINE); // SOF0 marker
+        out.write(JPEGDecoding.SOF0_BASELINE); // SOF0 marker
         int sofLen = 8 + 3 * samplesPerPixel;
         out.write((sofLen >>> 8) & 0xFF);
         out.write(sofLen & 0xFF);
@@ -317,7 +314,7 @@ public class OldJPEGCodec implements TiffCodec {
 
     private static void writeDQT(ByteArrayOutputStream out, int tableId, byte[] table) throws IOException {
         out.write(0xFF);
-        out.write(DQT_BYTE);
+        out.write(JPEGDecoding.DQT_BYTE);
         int length = 2 + 1 + table.length; // length(2) + identifier(1) + data
         out.write((length >> 8) & 0xFF);
         out.write(length & 0xFF);
@@ -328,7 +325,7 @@ public class OldJPEGCodec implements TiffCodec {
     private static void writeDHT(ByteArrayOutputStream out, int tableClass, int tableId, byte[] table)
             throws IOException {
         out.write(0xFF);
-        out.write(DHT_BYTE);
+        out.write(JPEGDecoding.DHT_BYTE);
         int length = 2 + 1 + table.length; // length(2) + class/ID(1) + data
         out.write((length >> 8) & 0xFF);
         out.write(length & 0xFF);
@@ -339,7 +336,7 @@ public class OldJPEGCodec implements TiffCodec {
     private static boolean isJPEG(byte[] raw) {
         return raw.length >= 2 &&
                 (raw[0] & 0xFF) == 0xFF &&
-                (raw[1] & 0xFF) == SOI_BYTE;
+                (raw[1] & 0xFF) == JPEGDecoding.SOI_BYTE;
         // Note: due to byte stuffing (every 0xFF in raw data is replaced with 0xFF-0x00),
         // raw JPEG data in a strip/tile cannot start from these 2 bytes
     }
@@ -349,13 +346,13 @@ public class OldJPEGCodec implements TiffCodec {
         boolean hasSOS = false;
         boolean hasSOF = false  ;
 
-        public SimpleJPEGParser(byte[] data) {
+        SimpleJPEGParser(byte[] data) {
             Objects.requireNonNull(data, "Null data");
             if (data.length < 2)  {
                 return;
             }
             int p = 0;
-            if (data[0] == (byte) 0xFF &&  data[1] == (byte) SOI_BYTE) {
+            if (data[0] == (byte) 0xFF &&  data[1] == (byte) JPEGDecoding.SOI_BYTE) {
                 hasSOI = true;
                 p = 2;
             }
@@ -379,18 +376,18 @@ public class OldJPEGCodec implements TiffCodec {
                         p += 2;
                         continue;
                     }
-                    case SOI_BYTE -> {
+                    case JPEGDecoding.SOI_BYTE -> {
                         // strange stream
                         p += 2;
                         continue;
                     }
-                    case SOS_BYTE -> {
+                    case JPEGDecoding.SOS_BYTE -> {
                         hasSOS = true;
                         // entropy data start here: we don't need the following markers
                         // (entropy data are not included into JPEGInterchangeFormat)
                         return;
                     }
-                    case EOI_BYTE -> {
+                    case JPEGDecoding.EOI_BYTE -> {
                         return;
                     }
                     case 0xC0, 0xC1, 0xC2, 0xC3,
