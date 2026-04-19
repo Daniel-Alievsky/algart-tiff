@@ -88,6 +88,10 @@ public class OldJPEGCodec implements TiffCodec {
             return raw;
         }
         final int samplesPerPixel = options.getNumberOfChannels();
+        if (samplesPerPixel > 16) {
+            throw new TiffException("Cannot decode old-style JPEG: " +
+                    "too many number of channels = " + samplesPerPixel);
+        }
         final int width = options.getWidth();
         final int height = options.getHeight();
 //        System.out.printf("%x %x %x %x ...%n", raw[0], raw[1], raw[2], raw[3]);
@@ -116,7 +120,7 @@ public class OldJPEGCodec implements TiffCodec {
                     } else {
                         // see readJpegInterchange: it returns null if OLD_JPEG_INTERCHANGE_FORMAT_LENGTH is not found
                         throw new TiffException(
-                                "Cannot recode old-style JPEG: " + (interchange == null ?
+                                "Cannot decode old-style JPEG: " + (interchange == null ?
                                         "TIFF tag " + Tags.prettyName(Tags.OLD_JPEG_INTERCHANGE_FORMAT_LENGTH) +
                                         " is missing, JPEGInterchangeFormat cannot be decoded" :
                                         "JPEGInterchangeFormat does not start with a marker"));
@@ -152,7 +156,7 @@ public class OldJPEGCodec implements TiffCodec {
                 */
                 if (!markers.hasSOF) {
                     throw new TiffException(
-                            "Cannot recode old-style JPEG: JPEGInterchangeFormat does not contain " +
+                            "Cannot decode old-style JPEG: JPEGInterchangeFormat does not contain " +
                                     "necessary Start-Of-Frame (SOF) marker");
                 }
                 out.write(interchange, startOffset, interchange.length - startOffset);
@@ -160,10 +164,19 @@ public class OldJPEGCodec implements TiffCodec {
                     // - this is possible in Wang TIFF files, containing SOS in another place
                     // (the beginning of the 1st strip);
                     // in this case, we will try to synthesize SOS on the base on SOF
+                    if (markers.sofMarker != JPEGDecoding.SOF0_BASELINE) {
+                        throw new TiffException("Cannot decode old-style JPEG: " +
+                                "JPEGInterchangeFormat does not contain Start-Of-Scan (SOS) marker and " +
+                                "uses non-baseline format");
+                    }
                     writeSOS(out, samplesPerPixel, markers);
                 }
                 return finishJPEG(out, raw, true);
             } else {
+                if (jpegProc == 14) {
+                    throw new UnsupportedTiffFormatException(
+                            "Cannot decode old-style JPEG: lossless JPEG (JPEGProc=14) is not supported");
+                }
                 final byte[][] qTables = readJpegQTables(ifd, handle);
                 for (int i = 0; i < qTables.length; i++) {
                     writeDQT(out, i, qTables[i]);
@@ -368,6 +381,7 @@ public class OldJPEGCodec implements TiffCodec {
     private static class TinyJPEGMarkers {
         boolean hasSOI = false;
         boolean hasSOF = false;
+        int sofMarker = -1;
         boolean hasSOS = false;
         int sofNumberOfChannels = 0;
         int[] sofComponentId = null;
@@ -425,19 +439,21 @@ public class OldJPEGCodec implements TiffCodec {
                             // - in other case, this SOF is invalid
                             final int n = data[p + 9] & 0xFF;
                             if (n > 16) {
-                                throw new TiffException("Cannot recode old-style JPEG: " +
+                                throw new TiffException("Cannot decode old-style JPEG: " +
                                         dataName + " contains an invalid Start-Of-Frame (SOF) marker: " +
                                         "too many number of channels = " + n);
                             }
                             if (p + 10 < data.length - 3 * n) {
                                 // - in other case, this SOF is invalid
                                 hasSOF = true;
+                                sofMarker = marker;
                                 sofNumberOfChannels = n;
                                 sofDQTIndexes = new int[sofNumberOfChannels];
                                 sofComponentId = new int[sofNumberOfChannels];
                                 for (int i = 0; i < sofNumberOfChannels; i++) {
                                     sofComponentId[i] = data[p + 10 + 3 * i] & 0xFF;
-                                    sofDQTIndexes[i] = data[p + 12 + 3 * i] & 0xFF;
+                                    sofDQTIndexes[i] = data[p + 12 + 3 * i] & 0xF;
+                                    // - cannot be >15
                                 }
                             }
                         }
