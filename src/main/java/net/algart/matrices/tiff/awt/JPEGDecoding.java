@@ -46,12 +46,50 @@ import java.util.Iterator;
 import java.util.Objects;
 
 public class JPEGDecoding {
-    public static final int SOI_BYTE = 0xD8; // start of image
-    public static final int EOI_BYTE = 0xD9; // end of image
-    public static final int SOS_BYTE = 0xDA; // start of scan
-    public static final int DQT_BYTE = 0xDB; // define quantization table(s)
-    public static final int DHT_BYTE = 0xC4; // define Huffman table(s)
-    public static final int SOF0_BASELINE = 0xC0; // baseline DCT
+    /**
+     * Start of image marker byte.
+     */
+    public static final int SOI_BYTE = 0xD8;
+
+    /**
+     * End of image marker byte.
+     */
+    public static final int EOI_BYTE = 0xD9;
+
+    /**
+     * Start of scan marker byte.
+     */
+    public static final int SOS_BYTE = 0xDA;
+
+    /**
+     * Define quantization table(s) marker byte.
+     */
+    public static final int DQT_BYTE = 0xDB;
+
+    /**
+     * Define Huffman table(s) marker byte.
+     */
+    public static final int DHT_BYTE = 0xC4;
+
+    /**
+     * Baseline DCT (Start of Frame 0) marker byte.
+     */
+    public static final int SOF0_BASELINE = 0xC0;
+
+    /**
+     * Temporary marker byte.
+     */
+    public static final int TEM_BYTE = 0x01;
+
+    /**
+     * First restart interval marker byte (1st of 8).
+     */
+    public static final int RST_FIRST = 0xD0;
+
+    /**
+     * Last restart interval marker byte (8th of 8).
+     */
+    public static final int RST_LAST = 0xD7;
 
     static final boolean USE_MEMORY_CACHE = true;
     // - Must be true for normal performance.

@@ -38,6 +38,9 @@ import java.util.Arrays;
 import java.util.Objects;
 
 public class OldJPEGCodec implements TiffCodec {
+    private static final int DHT_DC_CLASS = 0;
+    private static final int DHT_AC_CLASS = 1;
+
     @Override
     public byte[] compress(byte[] data, Options options) throws TiffException {
         throw new UnsupportedTiffFormatException("Old-style JPEG compression is not supported");
@@ -107,7 +110,7 @@ public class OldJPEGCodec implements TiffCodec {
                     ifd.containsKey(Tags.OLD_JPEG_AC_TABLES);
             byte[] interchange = hasInterchange ? readJpegInterchange(ifd, handle) : null;
             if (hasInterchange) {
-                if (interchange == null || !isJPEG(interchange)) {
+                if (interchange == null || !isStartingWithMarker(interchange)) {
                     if (hasTables) {
                         interchange = null;
                     } else {
@@ -116,20 +119,19 @@ public class OldJPEGCodec implements TiffCodec {
                                 "Cannot recode old-style JPEG: " + (interchange == null ?
                                         "TIFF tag " + Tags.prettyName(Tags.OLD_JPEG_INTERCHANGE_FORMAT_LENGTH) +
                                         " is missing, JPEGInterchangeFormat cannot be decoded" :
-                                        "JPEGInterchangeFormat does not start with Start-Of-Image marker"));
+                                        "JPEGInterchangeFormat does not start with a marker"));
                     }
                 }
             }
             if (interchange != null) {
                 // Scan interchange for existing markers to avoid duplication (heuristic)
-                SimpleJPEGParser parser = new SimpleJPEGParser(interchange);
-                boolean hasSOF = parser.hasSOF;
-                boolean hasSOS = parser.hasSOS;
-                if (!parser.hasSOI) {
-                    throw new AssertionError("SOI tag missing, though we already checked isJPEG");
-                }
+                final TinyJPEGMarkers markers = new TinyJPEGMarkers(interchange, "interchange");
+                final int startOffset = markers.hasSOI ? 2 : 0;
+                // - if interchange data does not start with SOI, but start with another marker (like DHT),
+                // we will still use these data without skipping first 2 bytes
+
                 /*
-                // Below is more simple, but inaccurate version: false detection is theoretically possible
+                // Below is more simple, but inaccurate and obsolete version: false detection is theoretically possible
                 hasSOF = false;
                 hasSOS = false;
                 for (int i = 0; i < interchange.length - 1; i++) {
@@ -148,12 +150,17 @@ public class OldJPEGCodec implements TiffCodec {
                     }
                 }
                 */
-                out.write(interchange, 2, interchange.length - 2);
-                if (!hasSOF) {
-                    writeSOF0(out, ifd, height, width, samplesPerPixel, true);
+                if (!markers.hasSOF) {
+                    throw new TiffException(
+                            "Cannot recode old-style JPEG: JPEGInterchangeFormat does not contain " +
+                                    "necessary Start-Of-Frame (SOF) marker");
                 }
-                if (!hasSOS) {
-                    writeSOS(out, samplesPerPixel, true);
+                out.write(interchange, startOffset, interchange.length - startOffset);
+                if (!markers.hasSOS) {
+                    // - this is possible in Wang TIFF files, containing SOS in another place
+                    // (the beginning of the 1st strip);
+                    // in this case, we will try to synthesize SOS on the base on SOF
+                    writeSOS(out, samplesPerPixel, markers);
                 }
                 return finishJPEG(out, raw, true);
             } else {
@@ -163,14 +170,14 @@ public class OldJPEGCodec implements TiffCodec {
                 }
                 final byte[][] dcTables = readJpegDCTables(ifd, handle);
                 for (int i = 0; i < dcTables.length; i++) {
-                    writeDHT(out, 0, i, dcTables[i]); // 0 = DC
+                    writeDHT(out, DHT_DC_CLASS, i, dcTables[i]);
                 }
                 final byte[][] acTables = readJpegACTables(ifd, handle);
                 for (int i = 0; i < acTables.length; i++) {
-                    writeDHT(out, 1, i, acTables[i]); // 0x10 = AC
+                    writeDHT(out, DHT_AC_CLASS, i, acTables[i]);
                 }
-                writeSOF0(out, ifd, height, width, samplesPerPixel, false);
-                writeSOS(out, samplesPerPixel, false);
+                writeSOF0(out, ifd, height, width, samplesPerPixel);
+                writeSOS(out, samplesPerPixel, null);
                 return finishJPEG(out, raw, false);
             }
         }
@@ -265,7 +272,11 @@ public class OldJPEGCodec implements TiffCodec {
         return tables;
     }
 
-    private static void writeSOS(ByteArrayOutputStream out, int samplesPerPixel, boolean twoTables) {
+    private static void writeSOS(ByteArrayOutputStream out, int samplesPerPixel, TinyJPEGMarkers markers) {
+        final boolean useMarkers = markers != null && markers.hasSOF;
+        if (useMarkers) {
+            samplesPerPixel = markers.sofNumberOfChannels;
+        }
         out.write(0xFF);
         out.write(JPEGDecoding.SOS_BYTE); // SOS marker
         int sosLen = 6 + 2 * samplesPerPixel;
@@ -273,9 +284,12 @@ public class OldJPEGCodec implements TiffCodec {
         out.write(sosLen & 0xFF);
         out.write(samplesPerPixel);
         for (int i = 0; i < samplesPerPixel; i++) {
-            out.write(i + 1); // Component ID must match SOF
-            int tableId = twoTables && i > 0 ? 1 : i;
-            out.write((tableId << 4) | tableId); // DC | AC
+            out.write(useMarkers ? markers.sofComponentId[i] : i + 1);
+            // - component ID must match SOF
+            int tableId = useMarkers ? markers.sofDQTIndexes[i] : i;
+            // - we synthesize absent SOS on the base of existing SOF,
+            // assuming that the table IDs are the same for DQT and DHT
+            out.write((tableId << 4) | tableId);
         }
         out.write(0x00); // Start of spectral selection
         out.write(0x3F); // End of spectral selection
@@ -287,8 +301,7 @@ public class OldJPEGCodec implements TiffCodec {
             TiffIFD ifd,
             int height,
             int width,
-            int samplesPerPixel,
-            boolean twoTables)
+            int samplesPerPixel)
             throws TiffException {
         int[] subsampling = ifd.getIntArray(Tags.Y_CB_CR_SUB_SAMPLING);
         int subX = samplesPerPixel == 1 ? 1 : subsampling != null ? subsampling[0] : 2;
@@ -306,19 +319,23 @@ public class OldJPEGCodec implements TiffCodec {
         out.write(width & 0xFF);
         out.write(samplesPerPixel);
         for (int i = 0; i < samplesPerPixel; i++) {
-            out.write(i + 1); // Component ID (1, 2, 3)
+            out.write(i + 1);
+            // - component ID (1, 2, 3)
             out.write(i == 0 ? (((subX & 0x0F) << 4) | (subY & 0x0F)) : 0x11);
-            out.write(twoTables && i > 0 ? 1 : i); // Quantization table ID
+            out.write(i);
+            // - quantization table ID = i
         }
     }
 
     private static void writeDQT(ByteArrayOutputStream out, int tableId, byte[] table) throws IOException {
         out.write(0xFF);
         out.write(JPEGDecoding.DQT_BYTE);
-        int length = 2 + 1 + table.length; // length(2) + identifier(1) + data
+        int length = 2 + 1 + table.length;
+        // - length(2) + identifier(1) + data
         out.write((length >> 8) & 0xFF);
         out.write(length & 0xFF);
-        out.write(tableId & 0x0F); // Precision 0 (8-bit) and Table ID
+        out.write(tableId & 0x0F);
+        // - precision 0 (8-bit) and Table ID
         out.write(table);
     }
 
@@ -326,33 +343,43 @@ public class OldJPEGCodec implements TiffCodec {
             throws IOException {
         out.write(0xFF);
         out.write(JPEGDecoding.DHT_BYTE);
-        int length = 2 + 1 + table.length; // length(2) + class/ID(1) + data
+        int length = 2 + 1 + table.length;
+        // - length(2) + class/ID(1) + data
         out.write((length >> 8) & 0xFF);
         out.write(length & 0xFF);
         out.write((tableClass << 4) | (tableId & 0x0F));
         out.write(table);
     }
 
-    private static boolean isJPEG(byte[] raw) {
-        return raw.length >= 2 &&
-                (raw[0] & 0xFF) == 0xFF &&
-                (raw[1] & 0xFF) == JPEGDecoding.SOI_BYTE;
+    private static boolean isStartingWithMarker(byte[] data) {
+        return data.length >= 2 &&
+                (data[0] & 0xFF) == 0xFF &&
+                (data[1] & 0xFF) != 0 &&
+                (data[1] & 0xFF) != 0xFF;
+    }
+
+    private static boolean isJPEG(byte[] data) {
+        return isStartingWithMarker(data) &&
+                (data[1] & 0xFF) == JPEGDecoding.SOI_BYTE;
         // Note: due to byte stuffing (every 0xFF in raw data is replaced with 0xFF-0x00),
         // raw JPEG data in a strip/tile cannot start from these 2 bytes
     }
-    
-    private static class SimpleJPEGParser {
-        boolean hasSOI = false;
-        boolean hasSOS = false;
-        boolean hasSOF = false  ;
 
-        SimpleJPEGParser(byte[] data) {
+    private static class TinyJPEGMarkers {
+        boolean hasSOI = false;
+        boolean hasSOF = false;
+        boolean hasSOS = false;
+        int sofNumberOfChannels = 0;
+        int[] sofComponentId = null;
+        int[] sofDQTIndexes = null;
+
+        TinyJPEGMarkers(byte[] data, String dataName) throws TiffException {
             Objects.requireNonNull(data, "Null data");
-            if (data.length < 2)  {
+            if (data.length < 2) {
                 return;
             }
             int p = 0;
-            if (data[0] == (byte) 0xFF &&  data[1] == (byte) JPEGDecoding.SOI_BYTE) {
+            if (data[0] == (byte) 0xFF && data[1] == (byte) JPEGDecoding.SOI_BYTE) {
                 hasSOI = true;
                 p = 2;
             }
@@ -369,7 +396,7 @@ public class OldJPEGCodec implements TiffCodec {
                 if (p + 1 >= data.length) {
                     return;
                 }
-                int marker = data[p + 1] & 0xFF;
+                final int marker = data[p + 1] & 0xFF;
                 switch (marker) {
                     case 0 -> {
                         // strange stream (stuffed byte should not occur in JPEGInterchangeFormat)
@@ -394,16 +421,35 @@ public class OldJPEGCodec implements TiffCodec {
                          0xC5, 0xC6, 0xC7,
                          0xC9, 0xCA, 0xCB,
                          0xCD, 0xCE, 0xCF -> {
-                        hasSOF = true;
+                        if (p < data.length - 10) {
+                            // - in other case, this SOF is invalid
+                            final int n = data[p + 9] & 0xFF;
+                            if (n > 16) {
+                                throw new TiffException("Cannot recode old-style JPEG: " +
+                                        dataName + " contains an invalid Start-Of-Frame (SOF) marker: " +
+                                        "too many number of channels = " + n);
+                            }
+                            if (p + 10 < data.length - 3 * n) {
+                                // - in other case, this SOF is invalid
+                                hasSOF = true;
+                                sofNumberOfChannels = n;
+                                sofDQTIndexes = new int[sofNumberOfChannels];
+                                sofComponentId = new int[sofNumberOfChannels];
+                                for (int i = 0; i < sofNumberOfChannels; i++) {
+                                    sofComponentId[i] = data[p + 10 + 3 * i] & 0xFF;
+                                    sofDQTIndexes[i] = data[p + 12 + 3 * i] & 0xFF;
+                                }
+                            }
+                        }
                     }
                 }
-                if (p < data.length - 3) {
-                    int segmentLength = ((data[p + 2] & 0xFF) << 8) | (data[p + 3] & 0xFF);
+                boolean hasLength = marker != JPEGDecoding.TEM_BYTE &&
+                        !(marker >= JPEGDecoding.RST_FIRST && marker <= JPEGDecoding.RST_LAST);
+                if (!hasLength) {
+                    p += 2;
+                } else if (p < data.length - 3) {
+                    final int segmentLength = ((data[p + 2] & 0xFF) << 8) | (data[p + 3] & 0xFF);
                     p += 2 + segmentLength;
-                    if (p < 0) {
-                        // - overflow (very improbable)
-                        return;
-                    }
                 } else {
                     return;
                 }
