@@ -7,7 +7,7 @@ row_12bit = np.linspace(0, 4095, 512).astype(np.uint16)
 data_12bit = np.tile(row_12bit, (512, 1))
 
 tifffile.imwrite(
-    'gradient_12bit_lossless.tif', 
+    'gradient_12bit_lossless_jpeg.tif',
     data_12bit, 
     photometric='minisblack',
     compression='jpeg',
@@ -20,7 +20,7 @@ row_8bit = np.tile(np.arange(256, dtype=np.uint8), 2)
 data_8bit = np.tile(row_8bit, (512, 1))
 
 tifffile.imwrite(
-    'gradient_8bit_lossless.tif', 
+    'gradient_8bit_lossless_jpeg.tif',
     data_8bit, 
     photometric='minisblack',
     compression='jpeg',
