@@ -464,6 +464,5 @@ class HuffmanCodecAdaptedAndReduced {
             }
             return d.leafValue;
         }
-
     }
 }
