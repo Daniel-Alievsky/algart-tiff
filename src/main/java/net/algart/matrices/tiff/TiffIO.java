@@ -51,7 +51,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     static final System.Logger LOG = System.getLogger(TiffIO.class.getName());
     static final boolean LOGGABLE_DEBUG = LOG.isLoggable(System.Logger.Level.DEBUG);
 
-    static final boolean BUILT_IN_TIMING = getBooleanProperty("net.algart.matrices.tiff.timing");
+    public static final boolean BUILT_IN_TIMING = getBooleanProperty("net.algart.matrices.tiff.timing");
 
     final DataHandle<?> stream;
     private final Path filePath;

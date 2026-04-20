@@ -25,6 +25,7 @@
 package net.algart.matrices.tiff.codecs;
 
 import net.algart.matrices.tiff.TiffException;
+import net.algart.matrices.tiff.TiffIO;
 import net.algart.matrices.tiff.awt.AWTImages;
 import net.algart.matrices.tiff.awt.JPEGDecoding;
 import net.algart.matrices.tiff.awt.JPEGEncoding;
@@ -44,6 +45,7 @@ import java.util.Objects;
 public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
     private static final boolean RESTRICT_READING_TOO_LARGE_STRIPS = true;
     // - should be true for normal processing some old-style JPEG files
+    private static final System.Logger LOG = System.getLogger(JPEGCodec.class.getName());
 
     public static class JPEGOptions extends Options {
         /**
@@ -181,7 +183,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         try (InputStream input = new BufferedInputStream(new DataHandleInputStream<>(in), 8192)) {
             imageInformation = JPEGDecoding.readJPEG(
                     input,
-                    RESTRICT_READING_TOO_LARGE_STRIPS && !options.isTiled()?
+                    RESTRICT_READING_TOO_LARGE_STRIPS && !options.isTiled() ?
                             new Dimension(options.getWidth(), options.getHeight()) :
                             null,
                     options.getPhotometric(),
@@ -191,12 +193,15 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
             // to restrict reading via param.setSourceRegion call;
             // this is necessary for some OLD_JPEG (old-style JPEG) files like
             // "libtiff/test/images/ojpeg_chewey_subsamp21_multi_strip.tiff"
+            LOG.log(System.Logger.Level.TRACE, "TIFF JPEG image decoded using standard AWT codec");
         } catch (IOException jpegException) {
             // probably a lossless JPEG; delegate to LosslessJPEGCodec
             in.seek(offset);
             byte[] tryLossless = (new LosslessJPEGCodec()).decompress(in, options);
             assert tryLossless != null;
             if (tryLossless.length > 0) {
+                LOG.log(TiffIO.BUILT_IN_TIMING ? System.Logger.Level.DEBUG : System.Logger.Level.TRACE,
+                        "TIFF JPEG image decoded using lossless-JPEG codec");
                 return tryLossless;
             }
             // zero length usually means that SOF3 (lossless JPEG) was not found
