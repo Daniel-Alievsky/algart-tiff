@@ -39,7 +39,6 @@ import java.util.Objects;
  * <p>
  * Note: the only change in comparison with SCIFIO codec is removing usage of the Context
  * and usage of HuffmanCodecReduced.
- * Also note: this codec does not process 12-bit data correctly.
  * - Daniel Alievsky
  *
  * @author Melissa Linkert
