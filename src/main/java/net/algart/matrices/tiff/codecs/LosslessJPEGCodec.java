@@ -135,12 +135,13 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
     public byte[] decompress(DataHandle<?> in, Options options) throws IOException {
         Objects.requireNonNull(in, "Null input stream");
         Objects.requireNonNull(options, "Null codec options");
-        StreamParser parser = new StreamParser(in, options);
-        return parser.decodedData();
+        return new StreamDecoder(in, options).decode();
     }
 
-    private static class StreamParser {
-        DataHandle<?> in;
+    private static class StreamDecoder {
+        private final DataHandle<?> in;
+        private final Options options;
+
         byte[] buf = new byte[0];
         int width = 0, height;
         int bitsPerSample = 0, nComponents = 0, bytesPerSample = 0;
@@ -152,7 +153,12 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
 
         int[] dcTable, acTable;
 
-        private StreamParser(DataHandle<?> in, Options options) throws IOException {
+        private StreamDecoder(DataHandle<?> in, Options options) {
+            this.in = Objects.requireNonNull(in);
+            this.options = Objects.requireNonNull(options);
+        }
+
+        byte[] decode() throws IOException {
             while (in.offset() < in.length() - 1) {
                 final int code = in.readShort() & 0xffff;
                 int length = in.readShort() & 0xffff;
@@ -161,117 +167,15 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                     length = 0;
                     in.seek(fp - 2);
                 } else if (code == SOS) {
-                    nComponents = in.read();
-                    dcTable = new int[nComponents];
-                    acTable = new int[nComponents];
-                    for (int i = 0; i < nComponents; i++) {
-                        in.read(); // componentSelector
-                        final int tableSelector = in.read();
-                        dcTable[i] = (tableSelector & 0xf0) >> 4;
-                        acTable[i] = tableSelector & 0xf;
-                    }
-                    startPredictor = in.read();
-                    in.read(); // endPredictor
-                    in.read(); // least significant 4 bits = pointTransform
-
-                    // read image data
-
-                    byte[] toDecode = new byte[(int) (in.length() - in.offset())];
-                    in.read(toDecode);
-
-                    // scrub out byte stuffing
-
-                    final SmallHuffmanCodec.ByteVector b = new SmallHuffmanCodec.ByteVector();
-                    for (int i = 0; i < toDecode.length; i++) {
-                        b.add(toDecode[i]);
-                        if (toDecode[i] == (byte) 0xff && i + 1 < toDecode.length && toDecode[i + 1] == 0) {
-                            i++;
-                        }
-                    }
-                    toDecode = b.toByteArray();
-
-                    final SmallHuffmanCodec.BitBuffer bb = new SmallHuffmanCodec.BitBuffer(toDecode);
-                    final SmallHuffmanCodec huffman = new SmallHuffmanCodec();
-                    final SmallHuffmanCodec.HuffmanCodecOptions huffmanOptions =
-                            new SmallHuffmanCodec.HuffmanCodecOptions();
-                    if (bitsPerSample < 2 || bitsPerSample > 16) {
-                        throw new UnsupportedTiffFormatException("Lossless JPEG: " + bitsPerSample +
-                                " bits/sample is not supported (only 2..16 values are allowed)");
-                    }
-                    huffmanOptions.bitsPerSample = bitsPerSample;
-                    huffmanOptions.maxBytes = buf.length / nComponents;
-
-                    int nextSample = 0;
-                    while (nextSample < buf.length / nComponents) {
-                        for (int i = 0; i < nComponents; i++) {
-                            if (huffmanTables != null) {
-                                huffmanOptions.table = huffmanTables[dcTable[i]];
-                            }
-                            int v;
-
-                            if (huffmanOptions.table != null) {
-                                v = huffman.getSample(bb, huffmanOptions);
-                                if (nextSample == 0) {
-                                    v += 1 << (bitsPerSample - 1);
-                                }
-                            } else {
-                                throw new UnsupportedTiffFormatException("Lossless JPEG: Arithmetic coding not supported");
-                            }
-
-                            // apply predictor to the sample
-                            int predictor = startPredictor;
-                            if (nextSample < width * bytesPerSample) predictor = 1;
-                            else if ((nextSample % (width * bytesPerSample)) == 0) {
-                                predictor = 2;
-                            }
-
-                            final int componentOffset = i * (buf.length / nComponents);
-
-                            final int indexA = nextSample - bytesPerSample + componentOffset;
-                            final int indexB = nextSample - width * bytesPerSample +
-                                    componentOffset;
-                            final int indexC = nextSample - (width + 1) * bytesPerSample +
-                                    componentOffset;
-
-//                        if (indexA >= 0 && indexA < buf.length - 4)
-//                            assert Bytes.toInt(buf, indexA, 4, false) ==
-//                                    (int) JArrays.getBytes8InBigEndianOrder(buf, indexA, 4);
-//                        final int sampleA = indexA < 0 ? 0 : Bytes.toInt(buf, indexA, bytesPerSample, false);
-//                        final int sampleB = indexB < 0 ? 0 : Bytes.toInt(buf, indexB, bytesPerSample, false);
-//                        final int sampleC = indexC < 0 ? 0 : Bytes.toInt(buf, indexC, bytesPerSample, false);
-
-                            final int sampleA = indexA < 0 ? 0 :
-                                    (int) JArrays.getBytes8InBigEndianOrder(buf, indexA, bytesPerSample);
-                            final int sampleB = indexB < 0 ? 0 :
-                                    (int) JArrays.getBytes8InBigEndianOrder(buf, indexB, bytesPerSample);
-                            final int sampleC = indexC < 0 ? 0 :
-                                    (int) JArrays.getBytes8InBigEndianOrder(buf, indexC, bytesPerSample);
-
-                            if (nextSample > 0) {
-                                int pred = switch (predictor) {
-                                    case 1 -> sampleA;
-                                    case 2 -> sampleB;
-                                    case 3 -> sampleC;
-                                    case 4 -> sampleA + sampleB + sampleC;
-                                    case 5 -> sampleA + ((sampleB - sampleC) / 2);
-                                    case 6 -> sampleB + ((sampleA - sampleC) / 2);
-                                    case 7 -> (sampleA + sampleB) / 2;
-                                    default -> 0;
-                                };
-                                v += pred;
-                            }
-
-                            final int offset = componentOffset + nextSample;
-                            JArrays.setBytes8InBigEndianOrder(buf, offset, v, bytesPerSample);
-//                        Bytes.unpack(v, buf, offset, bytesPerSample, false);
-                        }
-                        nextSample += bytesPerSample;
-                    }
+                    decodeScan();
                 } else {
-                    length -= 2; // stored length includes length param
-                    if (length == 0) continue;
-
+                    length -= 2;
+                    // stored length includes length param
+                    if (length == 0) {
+                        continue;
+                    }
                     if (code == EOI) {
+                        // nothing to do
                     } else if (code == SOF3) {
                         // lossless w/Huffman coding
                         bitsPerSample = in.read();
@@ -296,46 +200,152 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                     } else if (code == SOF11) {
                         throw new UnsupportedTiffFormatException("Lossless JPEG: arithmetic coding is not yet supported");
                     } else if (code == DHT) {
-                        if (huffmanTables == null) {
-                            huffmanTables = new short[4][];
-                        }
-                        final int s = in.read();
-//                    final byte tableClass = (byte) ((s & 0xf0) >> 4);
-                        final byte destination = (byte) (s & 0xf);
-                        final int[] nCodes = new int[16];
-                        final MutableShortArray table = MutableShortArray.newArray();
-                        for (int i = 0; i < nCodes.length; i++) {
-                            nCodes[i] = in.read();
-                            table.pushShort((short) nCodes[i]);
-                        }
-
-                        for (int nCode : nCodes) {
-                            for (int j = 0; j < nCode; j++) {
-                                table.pushShort((short) (in.read() & 0xff));
-                            }
-                        }
-                        huffmanTables[destination] = new short[table.length32()];
-                        for (int i = 0; i < huffmanTables[destination].length; i++) {
-                            huffmanTables[destination][i] = (short) table.getShort(i);
-                        }
+                        readHuffmanTables();
                     }
                     in.seek(fp + length);
                 }
             }
 
-            if (options.isInterleaved() && nComponents > 1) {
-                // data is stored in planar (RRR...GGG...BBB...) order
-                final byte[] newBuf = new byte[buf.length];
-                for (int i = 0; i < buf.length; i += nComponents * bytesPerSample) {
-                    for (int c = 0; c < nComponents; c++) {
-                        final int src = c * (buf.length / nComponents) + (i / nComponents);
-                        final int dst = i + c * bytesPerSample;
-                        System.arraycopy(buf, src, newBuf, dst, bytesPerSample);
-                    }
-                }
-                buf = newBuf;
+            interleave();
+            fixByteOrder();
+            return buf;
+        }
+
+        private void readHuffmanTables() throws IOException {
+            if (huffmanTables == null) {
+                huffmanTables = new short[4][];
+            }
+            final int s = in.read();
+//                    final byte tableClass = (byte) ((s & 0xf0) >> 4);
+            final byte destination = (byte) (s & 0xf);
+            final int[] nCodes = new int[16];
+            final MutableShortArray table = MutableShortArray.newArray();
+            for (int i = 0; i < nCodes.length; i++) {
+                nCodes[i] = in.read();
+                table.pushShort((short) nCodes[i]);
             }
 
+            for (int nCode : nCodes) {
+                for (int j = 0; j < nCode; j++) {
+                    table.pushShort((short) (in.read() & 0xff));
+                }
+            }
+            huffmanTables[destination] = new short[table.length32()];
+            for (int i = 0; i < huffmanTables[destination].length; i++) {
+                huffmanTables[destination][i] = (short) table.getShort(i);
+            }
+        }
+
+        private void decodeScan() throws IOException {
+            nComponents = in.read();
+            dcTable = new int[nComponents];
+            acTable = new int[nComponents];
+            for (int i = 0; i < nComponents; i++) {
+                in.read(); // componentSelector
+                final int tableSelector = in.read();
+                dcTable[i] = (tableSelector & 0xf0) >> 4;
+                acTable[i] = tableSelector & 0xf;
+            }
+            startPredictor = in.read();
+            in.read(); // endPredictor
+            in.read(); // least significant 4 bits = pointTransform
+
+            // read image data
+
+            byte[] toDecode = new byte[(int) (in.length() - in.offset())];
+            in.read(toDecode);
+
+            // scrub out byte stuffing
+
+            final SmallHuffmanCodec.ByteVector b = new SmallHuffmanCodec.ByteVector();
+            for (int i = 0; i < toDecode.length; i++) {
+                b.add(toDecode[i]);
+                if (toDecode[i] == (byte) 0xff && i + 1 < toDecode.length && toDecode[i + 1] == 0) {
+                    i++;
+                }
+            }
+            toDecode = b.toByteArray();
+
+            final SmallHuffmanCodec.BitBuffer bb = new SmallHuffmanCodec.BitBuffer(toDecode);
+            final SmallHuffmanCodec huffman = new SmallHuffmanCodec();
+            final SmallHuffmanCodec.HuffmanCodecOptions huffmanOptions =
+                    new SmallHuffmanCodec.HuffmanCodecOptions();
+            if (bitsPerSample < 2 || bitsPerSample > 16) {
+                throw new UnsupportedTiffFormatException("Lossless JPEG: " + bitsPerSample +
+                        " bits/sample is not supported (only 2..16 values are allowed)");
+            }
+            huffmanOptions.bitsPerSample = bitsPerSample;
+            huffmanOptions.maxBytes = buf.length / nComponents;
+
+            int nextSample = 0;
+            while (nextSample < buf.length / nComponents) {
+                for (int i = 0; i < nComponents; i++) {
+                    if (huffmanTables != null) {
+                        huffmanOptions.table = huffmanTables[dcTable[i]];
+                    }
+                    int v;
+
+                    if (huffmanOptions.table != null) {
+                        v = huffman.getSample(bb, huffmanOptions);
+                        if (nextSample == 0) {
+                            v += 1 << (bitsPerSample - 1);
+                        }
+                    } else {
+                        throw new UnsupportedTiffFormatException("Lossless JPEG: Arithmetic coding not supported");
+                    }
+
+                    // apply predictor to the sample
+                    int predictor = startPredictor;
+                    if (nextSample < width * bytesPerSample) predictor = 1;
+                    else if ((nextSample % (width * bytesPerSample)) == 0) {
+                        predictor = 2;
+                    }
+
+                    final int componentOffset = i * (buf.length / nComponents);
+
+                    final int indexA = nextSample - bytesPerSample + componentOffset;
+                    final int indexB = nextSample - width * bytesPerSample +
+                            componentOffset;
+                    final int indexC = nextSample - (width + 1) * bytesPerSample +
+                            componentOffset;
+
+//                        if (indexA >= 0 && indexA < buf.length - 4)
+//                            assert Bytes.toInt(buf, indexA, 4, false) ==
+//                                    (int) JArrays.getBytes8InBigEndianOrder(buf, indexA, 4);
+//                        final int sampleA = indexA < 0 ? 0 : Bytes.toInt(buf, indexA, bytesPerSample, false);
+//                        final int sampleB = indexB < 0 ? 0 : Bytes.toInt(buf, indexB, bytesPerSample, false);
+//                        final int sampleC = indexC < 0 ? 0 : Bytes.toInt(buf, indexC, bytesPerSample, false);
+
+                    final int sampleA = indexA < 0 ? 0 :
+                            (int) JArrays.getBytes8InBigEndianOrder(buf, indexA, bytesPerSample);
+                    final int sampleB = indexB < 0 ? 0 :
+                            (int) JArrays.getBytes8InBigEndianOrder(buf, indexB, bytesPerSample);
+                    final int sampleC = indexC < 0 ? 0 :
+                            (int) JArrays.getBytes8InBigEndianOrder(buf, indexC, bytesPerSample);
+
+                    if (nextSample > 0) {
+                        int pred = switch (predictor) {
+                            case 1 -> sampleA;
+                            case 2 -> sampleB;
+                            case 3 -> sampleC;
+                            case 4 -> sampleA + sampleB + sampleC;
+                            case 5 -> sampleA + ((sampleB - sampleC) / 2);
+                            case 6 -> sampleB + ((sampleA - sampleC) / 2);
+                            case 7 -> (sampleA + sampleB) / 2;
+                            default -> 0;
+                        };
+                        v += pred;
+                    }
+
+                    final int offset = componentOffset + nextSample;
+                    JArrays.setBytes8InBigEndianOrder(buf, offset, v, bytesPerSample);
+//                        Bytes.unpack(v, buf, offset, bytesPerSample, false);
+                }
+                nextSample += bytesPerSample;
+            }
+        }
+
+        private void fixByteOrder() {
             if (options.isLittleEndian() && bytesPerSample > 1) {
                 // data is stored in big endian order
                 // reverse the bytes in each sample
@@ -349,8 +359,19 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
             }
         }
 
-        public byte[] decodedData() {
-            return buf;
+        private void interleave() {
+            if (options.isInterleaved() && nComponents > 1) {
+                // data is stored in planar (RRR...GGG...BBB...) order
+                final byte[] newBuf = new byte[buf.length];
+                for (int i = 0; i < buf.length; i += nComponents * bytesPerSample) {
+                    for (int c = 0; c < nComponents; c++) {
+                        final int src = c * (buf.length / nComponents) + (i / nComponents);
+                        final int dst = i + c * bytesPerSample;
+                        System.arraycopy(buf, src, newBuf, dst, bytesPerSample);
+                    }
+                }
+                buf = newBuf;
+            }
         }
     }
 }
