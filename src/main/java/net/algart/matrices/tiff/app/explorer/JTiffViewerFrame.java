@@ -122,8 +122,8 @@ class JTiffViewerFrame extends JFrame {
                 "%.1f".formatted(zoom * 100.0);
         final String zoomTitle = zoom == 1.0 ? "" :
                 zoom > 1.0
-                        ? "  %s%% (%d:1)".formatted(zoom100, (int) zoom)
-                        : "  %s%% (1:%d)".formatted(zoom100, (int) Math.round(1.0 / zoom));
+                ? "  %s%% (%d:1)".formatted(zoom100, (int) zoom)
+                : "  %s%% (1:%d)".formatted(zoom100, (int) Math.round(1.0 / zoom));
         setTitle("TIFF Image #%d from %d in the file (%dx%d, %d channel%s, %s bits/channel)  %s%s  [%s]".formatted(
                 viewer.ifdIndex(), map.numberOfImages(),
                 map.dimX(), map.dimY(),
@@ -137,7 +137,7 @@ class JTiffViewerFrame extends JFrame {
             noticeLabel.setText(
                     (photometric == null ? "Note: PhotometricInterpretation tag is not set" :
                             "Note: PhotometricInterpretation %s is not fully supported"
-                                    .formatted(photometric.prettyName()))
+                            .formatted(photometric.prettyName()))
                             + "; colors may be incorrect");
         }
         noticePanel.setVisible(!simplyRenderable);
@@ -304,7 +304,7 @@ class JTiffViewerFrame extends JFrame {
         rawItem.setEnabled(false);
         rawItem.addActionListener(e -> setColorCorrection(false));
 
-        JRadioButtonMenuItem correctedItem = new JRadioButtonMenuItem("Color correction");
+        JRadioButtonMenuItem correctedItem = new JRadioButtonMenuItem("Color correction (n/a)");
         correctedItem.setEnabled(false);
         correctedItem.addActionListener(e -> setColorCorrection(true));
         correctionGroup.add(rawItem);
@@ -339,6 +339,25 @@ class JTiffViewerFrame extends JFrame {
         addZoomItem(zoomMenu, zoomGroup, "12.5% (1:8, may be slow)", 0.125, 4);
         viewMenu.addSeparator();
         viewMenu.add(zoomMenu);
+        JMenuItem showDecodingReportItem = new JMenuItem("Show decoding report");
+        showDecodingReportItem.addActionListener(e -> {
+            final TiffReadMap map = viewer.map();
+            final var report = map.lastCodecReport();
+            if (report != null) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        """
+                                Additional information about decoding the last image %s
+                                (in addition to the TIFF IFD structure, already shown
+                                in the main TIFF Explorer window)
+                                
+                                %s
+                                """.formatted(map.isTiled() ? "tile" : "strip", report),
+                        "Decoding Report",
+                        JOptionPane.INFORMATION_MESSAGE);
+            }
+        });
+        viewMenu.add(showDecodingReportItem);
 
         final MenuUpdater menuUpdater = new MenuUpdater(() -> {
             final TiffReadMap map = viewer.map();
@@ -374,6 +393,7 @@ class JTiffViewerFrame extends JFrame {
                 // may not work without explicit new Color(...)
             }
             tileGridItem.setText("Draw %s".formatted(map.isTiled() ? "tile grid" : "strip boundaries"));
+            showDecodingReportItem.setEnabled(map.lastCodecReport() != null);
         });
         fileMenu.addMenuListener(menuUpdater);
         editMenu.addMenuListener(menuUpdater);

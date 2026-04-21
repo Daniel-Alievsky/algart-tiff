@@ -178,8 +178,8 @@ class TiffViewer {
                 scaled = zoom == 1.0 || original == null ?
                         original :
                         new BufferedImage(zoomedSizeX, zoomedSizeY, original.getColorModel().hasAlpha() ?
-                                BufferedImage.TYPE_INT_ARGB :
-                                BufferedImage.TYPE_INT_RGB);
+                                                                    BufferedImage.TYPE_INT_ARGB :
+                                                                    BufferedImage.TYPE_INT_RGB);
                 exception = null;
             } catch (Throwable e) {
                 // - including possible too large rectangles (IllegalArgumentException)
@@ -215,7 +215,7 @@ class TiffViewer {
             LOG.log(System.Logger.Level.DEBUG, "Viewer loaded the image region %dx%d starting at (%d,%d)%s"
                     .formatted(r.width, r.height, r.x, r.y,
                             zoom == 1.0 ? "" : " and scaled it to %dx%d (zoom %s)"
-                                    .formatted(zoomedSizeX, zoomedSizeY, zoom)));
+                                               .formatted(zoomedSizeX, zoomedSizeY, zoom)));
             showNormalStatus();
         }
         return lastImage;

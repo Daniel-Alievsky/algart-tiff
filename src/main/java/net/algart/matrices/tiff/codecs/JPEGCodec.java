@@ -104,15 +104,25 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
     }
 
     public static class JPEGCodecReport extends TiffIO.CodecReport {
-        private String jpegColorSpaceName;
+        private TagPhotometric tiffPhotometric;
+        private String encodedColorSpace;
         private boolean losslessJPEG;
 
-        public String getJpegColorSpaceName() {
-            return jpegColorSpaceName;
+        public TagPhotometric getTiffPhotometric() {
+            return tiffPhotometric;
         }
 
-        public JPEGCodecReport setJpegColorSpaceName(String jpegColorSpaceName) {
-            this.jpegColorSpaceName = jpegColorSpaceName;
+        public JPEGCodecReport setTiffPhotometric(TagPhotometric tiffPhotometric) {
+            this.tiffPhotometric = tiffPhotometric;
+            return this;
+        }
+
+        public String getEncodedColorSpace() {
+            return encodedColorSpace;
+        }
+
+        public JPEGCodecReport setEncodedColorSpace(String encodedColorSpace) {
+            this.encodedColorSpace = encodedColorSpace;
             return this;
         }
 
@@ -128,8 +138,12 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         @Override
         public String toString() {
             return "JPEG codec report:" +
-                    (jpegColorSpaceName != null ?
-                            "%n    Color space inside JPEG stream: %s".formatted(jpegColorSpaceName) :
+                    (tiffPhotometric != null ?
+                            "%n    Color space declared in TIFF PhotometricInterpretation tag: %s"
+                            .formatted(tiffPhotometric) :
+                            "") +
+                    (encodedColorSpace != null ?
+                            "%n    Color space encoded in JPEG stream: %s".formatted(encodedColorSpace) :
                             "") +
                     (losslessJPEG ?
                             "%n    Lossless JPEG".formatted() :
@@ -211,6 +225,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         Objects.requireNonNull(options, "Null codec options");
         final JPEGCodecReport report = new JPEGCodecReport();
         options.setReport(report);
+        report.setTiffPhotometric(options.getPhotometric());
         final long offset = in.offset();
         long t1 = timing ? System.nanoTime() : 0;
         JPEGDecoding.ImageInformation imageInformation;
@@ -246,7 +261,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
             throw new TiffException("Cannot read JPEG image: unknown format");
             // - for example, OLD_JPEG
         }
-        report.setJpegColorSpaceName(imageInformation.colorSpaceName());
+        report.setEncodedColorSpace(imageInformation.colorSpaceName());
         long t2 = timing ? System.nanoTime() : 0;
         timeMain += t2 - t1;
 

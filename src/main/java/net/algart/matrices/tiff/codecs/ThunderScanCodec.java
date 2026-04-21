@@ -35,7 +35,7 @@ public class ThunderScanCodec implements TiffCodec {
         final byte[] result = new byte[(maxPixels + 1) >>> 1];
         // - zero-filled by Java
 
-        // System.out.println("!!! " + options.getPhotometricInterpretation());
+//         System.out.println("!!! " + options.getPhotometric());
         unpackThunderScan(result, data, data.length, maxPixels);
         // - note: this format is classified as "low level" in TagCompression.isLowLevelBitsProcessing,
         // so we do not need to check the White-is-zero photometric interpretation
