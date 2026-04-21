@@ -29,7 +29,6 @@ import net.algart.arrays.MutableShortArray;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import org.scijava.io.handle.DataHandle;
-import org.scijava.io.location.Location;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -176,19 +175,23 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
 
                 // scrub out byte stuffing
 
-                final HuffmanCodecAdaptedAndReduced.ByteVector b = new HuffmanCodecAdaptedAndReduced.ByteVector();
+                final SmallHuffmanCodec.ByteVector b = new SmallHuffmanCodec.ByteVector();
                 for (int i = 0; i < toDecode.length; i++) {
                     b.add(toDecode[i]);
-                    if (toDecode[i] == (byte) 0xff && toDecode[i + 1] == 0) i++;
+                    if (toDecode[i] == (byte) 0xff && i + 1 < toDecode.length && toDecode[i + 1] == 0) {
+                        i++;
+                    }
                 }
                 toDecode = b.toByteArray();
 
-                final HuffmanCodecAdaptedAndReduced.BitBuffer bb =
-                        new HuffmanCodecAdaptedAndReduced.BitBuffer(toDecode);
-                final HuffmanCodecAdaptedAndReduced huffman =
-                        new HuffmanCodecAdaptedAndReduced();
-                final HuffmanCodecAdaptedAndReduced.HuffmanCodecOptions huffmanOptions =
-                        new HuffmanCodecAdaptedAndReduced.HuffmanCodecOptions();
+                final SmallHuffmanCodec.BitBuffer bb = new SmallHuffmanCodec.BitBuffer(toDecode);
+                final SmallHuffmanCodec huffman = new SmallHuffmanCodec();
+                final SmallHuffmanCodec.HuffmanCodecOptions huffmanOptions =
+                        new SmallHuffmanCodec.HuffmanCodecOptions();
+                if (bitsPerSample < 2 || bitsPerSample > 16) {
+                    throw new UnsupportedTiffFormatException("Lossless JPEG: " + bitsPerSample +
+                            " bits/sample is not supported (only 2..16 values are allowed)");
+                }
                 huffmanOptions.bitsPerSample = bitsPerSample;
                 huffmanOptions.maxBytes = buf.length / nComponents;
 
@@ -203,10 +206,10 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                         if (huffmanOptions.table != null) {
                             v = huffman.getSample(bb, huffmanOptions);
                             if (nextSample == 0) {
-                                v += (int) Math.pow(2, bitsPerSample - 1);
+                                v += 1 << (bitsPerSample - 1);
                             }
                         } else {
-                            throw new UnsupportedTiffFormatException("Arithmetic coding not supported");
+                            throw new UnsupportedTiffFormatException("Lossless JPEG: Arithmetic coding not supported");
                         }
 
                         // apply predictor to the sample
@@ -253,7 +256,6 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                         }
 
                         final int offset = componentOffset + nextSample;
-
                         JArrays.setBytes8InBigEndianOrder(buf, offset, v, bytesPerSample);
 //                        Bytes.unpack(v, buf, offset, bytesPerSample, false);
                     }
@@ -286,7 +288,7 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
 
                     buf = new byte[width * height * nComponents * bytesPerSample];
                 } else if (code == SOF11) {
-                    throw new UnsupportedTiffFormatException("Arithmetic coding is not yet supported");
+                    throw new UnsupportedTiffFormatException("Lossless JPEG: arithmetic coding is not yet supported");
                 } else if (code == DHT) {
                     if (huffmanTables == null) {
                         huffmanTables = new short[4][];
