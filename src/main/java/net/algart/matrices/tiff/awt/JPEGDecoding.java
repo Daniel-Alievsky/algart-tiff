@@ -118,14 +118,14 @@ public class JPEGDecoding {
 
     private static final System.Logger LOG = System.getLogger(JPEGDecoding.class.getName());
 
-    public record ImageInformation(
+    public record ImageData(
             IIOMetadata metadata,
             Raster raster,
             byte[][] pixelBytes,
             String colorSpaceName,
             boolean basedOnBufferedImage) {
 
-        public ImageInformation {
+        public ImageData {
             Objects.requireNonNull(raster, "Null raster");
             Objects.requireNonNull(pixelBytes, "Null pixelBytes");
         }
@@ -138,7 +138,7 @@ public class JPEGDecoding {
      * Analog of <code>ImageIO.read</code>. Actually can read any formats, not only JPEG.
      * Also reads metadata (but not thumbnails).
      */
-    public static ImageInformation readJPEG(
+    public static ImageData readJPEG(
             InputStream in,
             Dimension sizes,
             TagPhotometric declaredColorSpace,
@@ -185,7 +185,7 @@ public class JPEGDecoding {
                 raster = image.getRaster();
                 pixelBytes = AWTImages.getImagePixelBytes(image, littleEndian);
             }
-            return new ImageInformation(metadata, raster, pixelBytes, colorSpace, basedOnBufferedImage);
+            return new ImageData(metadata, raster, pixelBytes, colorSpace, basedOnBufferedImage);
         } finally {
             reader.dispose();
         }
@@ -195,17 +195,17 @@ public class JPEGDecoding {
     // declaredColorSpace and declaredSubsampling are not used by the current implementation
     public static void completeDecodingYCbCr(
             byte[][] data,
-            ImageInformation imageInformation,
+            ImageData imageData,
             TagPhotometric declaredColorSpace,
             int[] declaredSubsampling)
             throws TiffException {
         Objects.requireNonNull(data, "Null data");
-        if (!isCompleteDecodingYCbCrNecessary(imageInformation, declaredColorSpace, declaredSubsampling)) {
+        if (!isCompleteDecodingYCbCrNecessary(imageData, declaredColorSpace, declaredSubsampling)) {
             return;
         }
         LOG.log(LOG_COLOR_SPACE_MISMATCH ? System.Logger.Level.INFO : System.Logger.Level.TRACE,
                 "RGB photometric interpretation with YCbCr color space in JPEG: additional decoding");
-        checkBands(data, 3, imageInformation);
+        checkBands(data, 3, imageData);
         for (int i = 0; i < data[0].length; i++) {
             int y = data[0][i] & 0xFF;
             int cb = data[1][i] & 0xFF;
@@ -228,16 +228,16 @@ public class JPEGDecoding {
     // and someone set incorrect photometric interpretation "White-is-zero"
     public static void completeDecodingWhiteIsZero(
             byte[][] data,
-            ImageInformation imageInformation,
+            ImageData imageData,
             TagPhotometric declaredColorSpace)
             throws TiffException {
         Objects.requireNonNull(data, "Null data");
-        if (!isCompleteDecodingWhiteIsZeroNecessary(imageInformation, declaredColorSpace)) {
+        if (!isCompleteDecodingWhiteIsZeroNecessary(imageData, declaredColorSpace)) {
             return;
         }
         LOG.log(LOG_COLOR_SPACE_MISMATCH ? System.Logger.Level.INFO : System.Logger.Level.TRACE,
                 "GRAY photometric interpretation with White-is-zero color space in JPEG: additional decoding");
-        checkBands(data, 1, imageInformation);
+        checkBands(data, 1, imageData);
         byte[] band0 = data[0];
         for (int i = 0; i < band0.length; i++) {
             band0[i] = (byte) (~band0[i]);
@@ -259,10 +259,10 @@ public class JPEGDecoding {
     }
 
     public static boolean isCompleteDecodingYCbCrNecessary(
-            ImageInformation imageInformation,
+            ImageData imageData,
             TagPhotometric declaredColorSpace,
             int[] declaredSubsampling) {
-        Objects.requireNonNull(imageInformation, "Null image information");
+        Objects.requireNonNull(imageData, "Null image information");
         if (!COMPLETE_DECODING_Y_CB_CR_NECESSARY) {
             return false;
         }
@@ -271,21 +271,21 @@ public class JPEGDecoding {
                 (declaredSubsampling != null && declaredSubsampling.length >= 2 &&
                         declaredSubsampling[0] == 1 && declaredSubsampling[1] == 1);
         return declaredColorSpace == TagPhotometric.Y_CB_CR &&
-                "RGB".equalsIgnoreCase(imageInformation.colorSpaceName) &&
+                "RGB".equalsIgnoreCase(imageData.colorSpaceName) &&
                 suitableSubSampling &&
-                imageInformation.raster.getNumBands() == 3;
+                imageData.raster.getNumBands() == 3;
         // Rare case: YCbCr is encoded with non-standard subsampling (more exactly, without subsampling),
         // and the JPEG is incorrectly detected as RGB; so, there is no sense to optimize this.
     }
 
     public static boolean isCompleteDecodingWhiteIsZeroNecessary(
-            ImageInformation imageInformation,
+            ImageData imageData,
             TagPhotometric declaredColorSpace) {
-        Objects.requireNonNull(imageInformation, "Null image information");
+        Objects.requireNonNull(imageData, "Null image information");
         // - Note: declaredColorSpace=null is allowed, but very improbable
         return declaredColorSpace == TagPhotometric.WHITE_IS_ZERO &&
-                "GRAY".equalsIgnoreCase(imageInformation.colorSpaceName) &&
-                imageInformation.raster.getNumBands() == 1;
+                "GRAY".equalsIgnoreCase(imageData.colorSpaceName) &&
+                imageData.raster.getNumBands() == 1;
     }
 
     public static String tryToFindColorSpace(IIOMetadata metadata) {
@@ -335,8 +335,8 @@ public class JPEGDecoding {
         return imageMetadata;
     }
 
-    private static void checkBands(byte[][] data, int n, ImageInformation imageInformation) throws TiffException {
-        final long bandLength = (long) imageInformation.raster.getWidth() * (long) imageInformation.raster.getHeight();
+    private static void checkBands(byte[][] data, int n, ImageData imageData) throws TiffException {
+        final long bandLength = (long) imageData.raster.getWidth() * (long) imageData.raster.getHeight();
         if (data.length < n) {
             // - should not occur
             throw new TiffException("Cannot correct unpacked JPEG: number of bands must be at least " + n +
@@ -352,35 +352,6 @@ public class JPEGDecoding {
             }
         }
     }
-
-    // The following code (conversion RGB -> YCbCr) is a bad idea: if ImageReader already decoded
-    // YCbCr into RGB BY A MISTAKE, the information was lost!
-    // We cannot restore original bytes due to clamping by 0..255 range.
-    /*
-    public static void completeDecodingRGB(
-            byte[][] data,
-            ImageInformation imageInformation,
-            TagPhotometric declaredColorSpace)
-            throws TiffException {
-        Objects.requireNonNull(data, "Null data");
-        Objects.requireNonNull(imageInformation, "Null image information");
-        checkBands(data, imageInformation);
-        for (int i = 0; i < data[0].length; i++) {
-            int r = data[0][i] & 0xFF;
-            int g = data[1][i] & 0xFF;
-            int b = data[2][i] & 0xFF;
-
-            double rAsFakeY  = 0.299 * r + 0.587 * g + 0.114 * b;
-            double gAsFakeCb = -0.168736 * r - 0.331264 * g + 0.5 * b + 128.0;
-            double bAsFakeCr = 0.5 * r - 0.418688 * g - 0.081312 * b + 128.0;
-
-            data[0][i] = (byte) toUnsignedByte(rAsFakeY);
-            data[1][i] = (byte) toUnsignedByte(gAsFakeCb);
-            data[2][i] = (byte) toUnsignedByte(bAsFakeCr);
-        }
-    }
-    */
-
 
     /*
     private static void decodeYCbCrLegacy(byte[][] buf, long bandLength) {

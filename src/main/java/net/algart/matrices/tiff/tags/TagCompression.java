@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.tags;
 
-import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.codecs.*;
 import net.algart.matrices.tiff.tiles.TiffTile;
@@ -530,17 +529,14 @@ public enum TagCompression {
         // - none of our codecs use byte order information for 8-bit samples
     }
 
-    public TiffCodec.Options customizeReading(TiffTile tile, TiffCodec.Options options) throws TiffException {
+    public TiffCodec.Options customizeReading(TiffTile tile, TiffCodec.Options options) {
         if (isStandardJpeg()) {
             return customizeReadingJpeg(tile, options);
         }
         return options;
     }
 
-    public TiffCodec.Options customizeWriting(TiffTile tile, TiffCodec.Options options) throws TiffException {
-        if (isStandardJpeg()) {
-            return customizeWritingJpeg(tile, options);
-        }
+    public TiffCodec.Options customizeWriting(TiffTile tile, TiffCodec.Options options) {
         if (isJpeg2000()) {
             return customizeWritingJpeg2000(tile, options, !isJpeg2000Lossy(), isWritingSupported());
         }
@@ -549,31 +545,22 @@ public enum TagCompression {
 
 
     // Note: corrections, performed by this method, may be tested with the image jpeg_ycbcr_encoded_as_rgb.tiff
-    private static TiffCodec.Options customizeReadingJpeg(TiffTile tile, TiffCodec.Options options)
-            throws TiffException {
-        TiffIFD ifd = tile.ifd();
-        return new JPEGCodec.JPEGOptions()
-                .setTo(options)
-                .setYCbCrSubsampling(ifd.getYCbCrSubsampling())
-                .setInterleaved(false);
+    private static TiffCodec.Options customizeReadingJpeg(TiffTile tile, TiffCodec.Options options) {
+        return options.clone().setInterleaved(false);
         // JPEGCodec works faster in with non-interleaved data, and in any case, it is better
         // because TiffReader needs non-interleaved results.
     }
 
-    @SuppressWarnings("RedundantThrows")
-    private static TiffCodec.Options customizeWritingJpeg(TiffTile tile, TiffCodec.Options options)
-            throws TiffException {
-        return new JPEGCodec.JPEGOptions().setTo(options);
-        // - adding default quality when not specified
-
-        // Deprecated solution: it was necessary in the versions until 1.5.1, where
-        // TiffWriter.buildOptions did not add PhotometricInterpretation to TiffCodec.Options
-        //
-        // if (tile.ifd().optInt(Tags.PHOTOMETRIC_INTERPRETATION, -1) ==
-        //         TagPhotometricInterpretation.RGB.code()) {
-        //    result.setPhotometricInterpretation(TagPhotometricInterpretation.RGB);
-        // }
-    }
+    // Deprecated solution: it was necessary in the versions until 1.5.1, where
+    // TiffWriter.buildOptions did not add PhotometricInterpretation to TiffCodec.Options
+    // private static TiffCodec.Options customizeWritingJpeg(TiffTile tile, TiffCodec.Options options)
+    // throws TiffException {
+    //
+    //     if (tile.ifd().optInt(Tags.PHOTOMETRIC_INTERPRETATION, -1) ==
+    //             TagPhotometricInterpretation.RGB.code()) {
+    //        result.setPhotometricInterpretation(TagPhotometricInterpretation.RGB);
+    //     }
+    // }
 
     private static JPEG2000Codec.JPEG2000Options customizeWritingJpeg2000(
             TiffTile tile,

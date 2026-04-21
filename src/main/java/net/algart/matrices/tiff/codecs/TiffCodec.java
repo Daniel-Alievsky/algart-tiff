@@ -33,6 +33,7 @@ import net.algart.matrices.tiff.tiles.TiffTile;
 
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 import java.util.Objects;
 
 /**
@@ -70,6 +71,7 @@ public interface TiffCodec {
         // - the codec may need this information for "high-level" formats
         // (when TagCompression.isLowLevelBitsProcessing returns false);
         // in the current version, JPEGCodec and JPEGOptions use it
+        private int[] yCbCrSubsampling = {2, 2};
         private Double compressionQuality = null;
         private Double losslessCompressionLevel = null;
         private TiffIFD ifd = null;
@@ -224,7 +226,16 @@ public interface TiffCodec {
             return this;
         }
 
-        public boolean hasQuality() {
+        public int[] getYCbCrSubsampling() {
+            return yCbCrSubsampling == null ? null : yCbCrSubsampling.clone();
+        }
+
+        public Options setYCbCrSubsampling(int[] yCbCrSubsampling) {
+            this.yCbCrSubsampling = yCbCrSubsampling == null ? null : yCbCrSubsampling.clone();
+            return this;
+        }
+
+        public boolean hasCompressionQuality() {
             return compressionQuality != null;
         }
 
@@ -237,9 +248,16 @@ public interface TiffCodec {
             return this;
         }
 
+        public double compressionQuality(double defaultValue) {
+            if (compressionQuality == null) {
+                return defaultValue;
+            }
+            return compressionQuality;
+        }
+
         public double compressionQuality() {
             if (compressionQuality == null) {
-                throw new IllegalStateException("Lossy quality level is required, but is not set");
+                throw new IllegalStateException("Quality level is required, but is not set");
             }
             return compressionQuality;
         }
@@ -298,6 +316,7 @@ public interface TiffCodec {
             // - default value can be not-null
             tile.photometric().ifPresent(this::setPhotometric);
             // - default value can be not-null
+            this.setYCbCrSubsampling(tile.getYCbCrSubsampling());
             this.setIfd(tile.ifd());
             return this;
         }
@@ -318,6 +337,7 @@ public interface TiffCodec {
             this.losslessCompressionLevel = options.losslessCompressionLevel;
             this.compression = options.compression;
             this.photometric = options.photometric;
+            this.yCbCrSubsampling = options.yCbCrSubsampling == null ? null : options.yCbCrSubsampling.clone();
             this.ifd = options.ifd;
             this.io = options.io;
             // but without codec report
@@ -388,6 +408,7 @@ public interface TiffCodec {
                     ", maxSizeInBytes=" + maxSizeInBytes +
                     ", compression=" + compression +
                     ", photometric=" + photometric +
+                    ", yCbCrSubsampling=" + Arrays.toString(yCbCrSubsampling) +
                     ", compressionQuality=" + compressionQuality +
                     ", losslessCompressionLevel=" + losslessCompressionLevel;
             // - not include ifd and io: they are not values, but references to complex objects

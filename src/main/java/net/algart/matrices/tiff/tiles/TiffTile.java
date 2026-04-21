@@ -195,6 +195,10 @@ public final class TiffTile {
         return map.photometric();
     }
 
+    public int[] getYCbCrSubsampling() {
+        return map.getYCbCrSubsampling();
+    }
+
     public int fromX() {
         return index.fromX();
     }

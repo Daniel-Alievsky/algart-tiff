@@ -136,6 +136,8 @@ public sealed class TiffMap permits TiffIOMap {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private final Optional<TagPhotometric> photometric;
     // - storing Optional value is not a usual way; we do this only for quick replacement of TiffIFD method
+    private final int[] yCbCrSubsampling;
+
     private final boolean colorCorrectionApplicable;
     private volatile int dimX = 0;
     private volatile int dimY = 0;
@@ -217,6 +219,7 @@ public sealed class TiffMap permits TiffIOMap {
             this.compression = ifd.optCompression();
             this.photometricCode = ifd.getPhotometricCode();
             this.photometric = ifd.optPhotometric();
+            this.yCbCrSubsampling = ifd.getYCbCrSubsampling();
             this.colorCorrectionApplicable = ifd.isLowLevelInvertedBrightness();
             if (hasImageDimensions) {
                 setDimensions(ifd.getImageDimX(), ifd.getImageDimY(), false);
@@ -425,6 +428,10 @@ public sealed class TiffMap permits TiffIOMap {
 
     public Optional<TagPhotometric> photometric() {
         return photometric;
+    }
+
+    public int[] getYCbCrSubsampling() {
+        return yCbCrSubsampling == null ? null : yCbCrSubsampling.clone();
     }
 
     /**

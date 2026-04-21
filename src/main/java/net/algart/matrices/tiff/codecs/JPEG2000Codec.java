@@ -80,6 +80,7 @@ public class JPEG2000Codec implements TiffCodec {
      * Options for compressing and decompressing JPEG-2000 data.
      */
     public static class JPEG2000Options extends Options {
+        public static final double DEFAULT_MAXIMAL_QUALITY = Double.MAX_VALUE;
         public static final double DEFAULT_NORMAL_QUALITY = 5.0;
         public static final boolean DEFAULT_WRITE_METADATA = false;
         // - Should be false for better compatibility with Aperio Image Viewer, GIMP and other applications.
@@ -99,7 +100,7 @@ public class JPEG2000Codec implements TiffCodec {
         private boolean writingSupported = true;
 
         public JPEG2000Options() {
-            setCompressionQuality(Double.MAX_VALUE);
+            setCompressionQuality(DEFAULT_MAXIMAL_QUALITY);
         }
 
         public boolean isLossless() {
@@ -214,8 +215,8 @@ public class JPEG2000Codec implements TiffCodec {
                 setWritingSupported(o.writingSupported);
             } else {
                 setLossless(lossless);
-                if (!hasQuality()) {
-                    setCompressionQuality(lossless ? Double.MAX_VALUE : DEFAULT_NORMAL_QUALITY);
+                if (!hasCompressionQuality()) {
+                    setCompressionQuality(lossless ? DEFAULT_MAXIMAL_QUALITY : DEFAULT_NORMAL_QUALITY);
                 }
             }
             return this;

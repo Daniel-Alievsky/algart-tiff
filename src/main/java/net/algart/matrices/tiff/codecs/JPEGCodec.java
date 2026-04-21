@@ -39,69 +39,12 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
 import java.util.Objects;
 
 public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
     private static final boolean RESTRICT_READING_TOO_LARGE_STRIPS = true;
     // - should be true for normal processing some old-style JPEG files
     private static final System.Logger LOG = System.getLogger(JPEGCodec.class.getName());
-
-    public static class JPEGOptions extends Options {
-        /**
-         * Value of TIFF tag YCbCrSubSampling (READ).
-         */
-        private int[] yCbCrSubsampling = {2, 2};
-
-        public JPEGOptions() {
-            setPhotometric(TagPhotometric.Y_CB_CR);
-            // - not too important: JPEGCodec should work normally with null photometric value
-            setCompressionQuality(1.0);
-            // - but the quality should not be null!
-        }
-
-        public int[] getYCbCrSubsampling() {
-            return yCbCrSubsampling.clone();
-        }
-
-        /**
-         * Sets the YCbCr subsampling. This option is usually not needed, but it was used
-         * in an old version compatible with SCIFIO (see JPEGDecoding.CORRECT_Y_CB_CR_WITH_SUB_SAMPLING_1X1_ONLY).
-         *
-         * @param yCbCrSubsampling new subsampling.
-         * @return a reference to this object.
-         * @throws NullPointerException if the given array is null.
-         */
-        public JPEGOptions setYCbCrSubsampling(int[] yCbCrSubsampling) {
-            this.yCbCrSubsampling = Objects.requireNonNull(yCbCrSubsampling, "Null yCbCrSubsampling").clone();
-            return this;
-        }
-
-        @Override
-        public JPEGOptions setTo(Options options) {
-            super.setTo(options);
-            if (options instanceof JPEGOptions o) {
-                this.yCbCrSubsampling = o.yCbCrSubsampling.clone();
-            } else {
-                // for example, this branch is actual in TagCompression.customizeWritingJpeg
-                Double quality = getCompressionQuality();
-                if (quality == null) {
-                    setCompressionQuality(1.0);
-                } else if (quality > 1.0) {
-                    // - for JPEG, the maximal possible quality is 1.0
-                    // (for comparison, the maximal quality in JPEG-2000 is Double.MAX_VALUE)
-                    setCompressionQuality(1.0);
-                }
-            }
-            return this;
-        }
-
-        @Override
-        public String toString() {
-            return super.toString() +
-                    ", yCbCrSubsampling=" + Arrays.toString(yCbCrSubsampling);
-        }
-    }
 
     public static class JPEGCodecReport extends TiffIO.CodecReport {
         private TagPhotometric tiffPhotometric;
@@ -178,7 +121,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         };
         if (numberOfChannels != expectedChannels) {
             throw new TiffException("JPEG compression for " + numberOfChannels + " channels for " +
-                    "photometric inpterpretation " + photometric + " is not supported");
+                    "photometric interpretation " + photometric + " is not supported");
         }
         final int bitsPerSample = options.getBitsPerSample();
         if (bitsPerSample != 8) {
@@ -204,7 +147,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         // loaded from CodecOptions class, but in does not make sense in TIFF
 
         long t2 = timing ? System.nanoTime() : 0;
-        final double jpegQuality = Math.min(options.compressionQuality(), 1.0);
+        final double jpegQuality = Math.min(options.compressionQuality(1.0), 1.0);
         // - for JPEG, the maximal possible quality is 1.0, but it is better to allow greater qualities
         // (for comparison, the maximal quality in JPEG-2000 is Double.MAX_VALUE)
         try {
@@ -228,9 +171,9 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         report.setTiffPhotometric(options.getPhotometric());
         final long offset = in.offset();
         long t1 = timing ? System.nanoTime() : 0;
-        JPEGDecoding.ImageInformation imageInformation;
+        JPEGDecoding.ImageData imageData;
         try (InputStream input = new BufferedInputStream(new DataHandleInputStream<>(in), 8192)) {
-            imageInformation = JPEGDecoding.readJPEG(
+            imageData = JPEGDecoding.readJPEG(
                     input,
                     RESTRICT_READING_TOO_LARGE_STRIPS && !options.isTiled() ?
                             new Dimension(options.getWidth(), options.getHeight()) :
@@ -257,19 +200,18 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
             // zero length usually means that SOF3 (lossless JPEG) was not found
             throw jpegException;
         }
-        if (imageInformation == null) {
+        if (imageData == null) {
             throw new TiffException("Cannot read JPEG image: unknown format");
             // - for example, OLD_JPEG
         }
-        report.setEncodedColorSpace(imageInformation.colorSpaceName());
+        report.setEncodedColorSpace(imageData.colorSpaceName());
         long t2 = timing ? System.nanoTime() : 0;
         timeMain += t2 - t1;
 
-        final byte[][] data = imageInformation.pixelBytes();
+        final byte[][] data = imageData.pixelBytes();
 
-        final int[] subsampling = options instanceof JPEGOptions extended ? extended.getYCbCrSubsampling() : null;
-        JPEGDecoding.completeDecodingYCbCr(data, imageInformation, options.getPhotometric(), subsampling);
-        JPEGDecoding.completeDecodingWhiteIsZero(data, imageInformation, options.getPhotometric());
+        JPEGDecoding.completeDecodingYCbCr(data, imageData, options.getPhotometric(), options.getYCbCrSubsampling());
+        JPEGDecoding.completeDecodingWhiteIsZero(data, imageData, options.getPhotometric());
         long t3 = timing ? System.nanoTime() : 0;
         timeBridge += t3 - t2;
 
