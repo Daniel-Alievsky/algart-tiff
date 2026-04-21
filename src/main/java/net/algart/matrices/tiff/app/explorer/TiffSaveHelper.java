@@ -99,7 +99,7 @@ class TiffSaveHelper {
         if (!explorer.isInitialized()) {
             return null;
         }
-        JFileChooser chooser = new JFileChooser();
+        JFileChooser chooser = TinySwing.newFileChooser();
         String last = TiffExplorer.PREFERENCES.get(PREF_LAST_SAVE_TIFF_DIR, null);
         File dir = new File(last == null ? "." : last);
         if (dir.isDirectory()) {

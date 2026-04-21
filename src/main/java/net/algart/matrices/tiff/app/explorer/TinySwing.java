@@ -29,7 +29,6 @@ import javax.swing.text.View;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.io.File;
-import java.io.IOException;
 import java.net.URL;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
@@ -140,6 +139,12 @@ public class TinySwing {
         return color != null ? color : defaultValue;
     }
 
+    static JFileChooser newFileChooser() {
+        JFileChooser fileChooser = new JFileChooser();
+        SwingUtilities.invokeLater(() -> tryToDisableNewFolderButton(fileChooser));
+        return fileChooser;
+    }
+
     static File chooseFile(JFrame frame, JFileChooser chooser) {
         int result = chooser.showSaveDialog(frame);
         if (result != JFileChooser.APPROVE_OPTION) {
@@ -176,5 +181,21 @@ public class TinySwing {
 //            message += "\n" + e.getCause().getMessage();
 //        }
         JOptionPane.showMessageDialog(frame, message, title, JOptionPane.ERROR_MESSAGE);
+    }
+
+    private static void tryToDisableNewFolderButton(Container c) {
+        Icon newFolderIcon = UIManager.getIcon("FileChooser.newFolderIcon");
+        for (Component comp : c.getComponents()) {
+            if (comp instanceof JButton b) {
+                Icon icon = b.getIcon();
+                if (icon != null && icon.equals(newFolderIcon)) {
+                    b.setVisible(false);
+                    b.setEnabled(false);
+                }
+            }
+            if (comp instanceof Container child) {
+                tryToDisableNewFolderButton(child);
+            }
+        }
     }
 }

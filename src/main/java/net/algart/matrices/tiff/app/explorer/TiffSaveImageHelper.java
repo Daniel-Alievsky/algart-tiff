@@ -88,7 +88,7 @@ class TiffSaveImageHelper {
                 selectionOnly)) {
             return null;
         }
-        JFileChooser chooser = new JFileChooser();
+        JFileChooser chooser = TinySwing.newFileChooser();
         String last = TiffExplorer.PREFERENCES.get(PREF_LAST_EXPORT__DIR, null);
         File dir = new File(last == null ? "." : last);
         if (dir.isDirectory()) {
@@ -110,7 +110,7 @@ class TiffSaveImageHelper {
 
     public Path chooseTiffFileToSaveImage(boolean selectionOnly) {
         final String whatToSave = selectionOnly ? "the selected area" : "the image";
-        JFileChooser chooser = new JFileChooser();
+        JFileChooser chooser = TinySwing.newFileChooser();
         String last = TiffExplorer.PREFERENCES.get(PREF_LAST_SAVE_IMAGE_DIR, null);
         File dir = new File(last == null ? "." : last);
         if (dir.isDirectory()) {
@@ -132,7 +132,7 @@ class TiffSaveImageHelper {
 
     public Path chooseTiffFileToAppendImage(boolean selectionOnly) {
         final String whatToSave = selectionOnly ? "the selected area" : "the image";
-        JFileChooser chooser = new JFileChooser();
+        JFileChooser chooser = TinySwing.newFileChooser();
         String last = TiffExplorer.PREFERENCES.get(PREF_LAST_SAVE_IMAGE_DIR, null);
         File dir = new File(last == null ? "." : last);
         if (dir.isDirectory()) {

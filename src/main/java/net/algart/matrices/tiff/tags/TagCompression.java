@@ -543,8 +543,6 @@ public enum TagCompression {
         return options;
     }
 
-
-    // Note: corrections, performed by this method, may be tested with the image jpeg_ycbcr_encoded_as_rgb.tiff
     private static TiffCodec.Options customizeReadingJpeg(TiffTile tile, TiffCodec.Options options) {
         return options.clone().setInterleaved(false);
         // JPEGCodec works faster in with non-interleaved data, and in any case, it is better
@@ -553,6 +551,8 @@ public enum TagCompression {
 
     // Deprecated solution: it was necessary in the versions until 1.5.1, where
     // TiffWriter.buildOptions did not add PhotometricInterpretation to TiffCodec.Options
+    //
+    // Note: corrections, performed by this method, may be tested with the image jpeg_ycbcr_encoded_as_rgb.tiff
     // private static TiffCodec.Options customizeWritingJpeg(TiffTile tile, TiffCodec.Options options)
     // throws TiffException {
     //

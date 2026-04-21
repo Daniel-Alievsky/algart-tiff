@@ -82,12 +82,17 @@ public class TiffExplorer {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             UIDefaults defaults = UIManager.getDefaults();
-
-            for (Object key : defaults.keySet()) {
-                Object value = defaults.get(key);
-                if (value instanceof Font font) {
-                    float newSize = font.getSize2D() * ALL_FONTS_SCALE;
-                    defaults.put(key, font.deriveFont(newSize));
+            // UIManager.put("FileChooser.readOnly", Boolean.TRUE);
+            // - not too good idea: renaming files is sometimes convenient
+            final boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
+            if (isWindows) {
+                // - for other OS, scaling fonts is not too good idea: we risk degrading the interface
+                for (Object key : defaults.keySet()) {
+                    Object value = defaults.get(key);
+                    if (value instanceof Font font) {
+                        float newSize = font.getSize2D() * ALL_FONTS_SCALE;
+                        defaults.put(key, font.deriveFont(newSize));
+                    }
                 }
             }
             // For cross-platform:
@@ -135,7 +140,7 @@ public class TiffExplorer {
     }
 
     void chooseFileAndOpen() {
-        JFileChooser chooser = new JFileChooser();
+        JFileChooser chooser = TinySwing.newFileChooser();
         String last = PREFERENCES.get(PREF_LAST_DIR, null);
         File dir = new File(last == null ? "." : last);
         if (dir.isDirectory()) {
