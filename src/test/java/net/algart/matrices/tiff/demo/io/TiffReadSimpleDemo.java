@@ -57,10 +57,12 @@ public class TiffReadSimpleDemo {
             final TiffReadMap map = reader.map(ifdIndex);
             System.out.printf("Reading %s...%n", map);
             System.out.printf("Detailed TIFF tags:%n%s%n", map.ifd().toString(TiffIFD.StringFormat.DETAILED));
+            // - print detailed information stored in TIFF tags
             image = map.readChannels();
             final var report = map.lastCodecReport();
             if (report != null) {
                 System.out.printf("Last decoding report:%n  %s%n", report);
+                // - if applicable, print any additional information collected while decoding
             }
         }
         System.out.printf("Writing %s...%n", targetFile);

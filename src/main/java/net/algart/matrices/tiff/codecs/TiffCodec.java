@@ -30,7 +30,6 @@ import net.algart.matrices.tiff.TiffIO;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagPhotometric;
 import net.algart.matrices.tiff.tiles.TiffTile;
-import org.scijava.io.handle.DataHandle;
 
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteOrder;
@@ -77,7 +76,7 @@ public interface TiffCodec {
         // - used only if other information is not enough
         private TiffIO io = null;
         // - used only while reading if other information is not enough
-        private Report report = null;
+        private TiffIO.CodecReport report = null;
 
         public Options() {
         }
@@ -272,11 +271,11 @@ public interface TiffCodec {
             return this;
         }
 
-        public Report getReport() {
+        public TiffIO.CodecReport getReport() {
             return report;
         }
 
-        public Options setReport(Report report) {
+        public Options setReport(TiffIO.CodecReport report) {
             this.report = report;
             return this;
         }
@@ -321,7 +320,7 @@ public interface TiffCodec {
             this.photometric = options.photometric;
             this.ifd = options.ifd;
             this.io = options.io;
-            // but without report
+            // but without codec report
             return this;
         }
 
@@ -435,9 +434,6 @@ public interface TiffCodec {
                         oldStyleClass.getName() + ": " + result.getClass() + " instead of required " + fieldType);
             }
         }
-    }
-
-    class Report {
     }
 
     /**

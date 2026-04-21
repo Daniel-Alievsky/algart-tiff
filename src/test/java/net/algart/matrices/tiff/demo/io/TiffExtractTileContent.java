@@ -65,11 +65,16 @@ public class TiffExtractTileContent {
             System.out.printf("Opening %s by %s...%n", tiffFile, reader);
             final TiffReadMap map = reader.map(ifdIndex);
             System.out.printf("TIFF map #%d: %s%n", ifdIndex, map);
+            System.out.printf("TIFF tags:%n%s%n", map.ifd().toString(TiffIFD.StringFormat.NORMAL));
             final TiffTileIndex tileIndex = map.index(col, row, separatedPlaneIndex);
             TiffTile tile;
             if (unpack) {
                 tile = reader.readTile(tileIndex);
                 System.out.printf("Decoded tile:%n    %s%n", tile);
+                final var report = tile.getReport();
+                if (report != null) {
+                    System.out.println(report);
+                }
                 final var image = tile.getUnpackedMatrix().asLayers();
                 MatrixIO.writeImage(resultFile, image);
                 System.out.printf("Writing tile in %s%n", resultFile);

@@ -44,6 +44,13 @@ import java.util.Objects;
 import java.util.Optional;
 
 public sealed abstract class TiffIO implements Closeable permits TiffReader, TiffWriter {
+    /**
+     * Subclasses of this class can be used for storing additional information about encoding or decoding tiles,
+     * for example, in some specific TIFF codecs.
+     */
+    public static class CodecReport {
+    }
+
     public static final int FILE_USUAL_MAGIC_NUMBER = 0x2a;
     public static final int FILE_BIG_TIFF_MAGIC_NUMBER = 0x2b;
     public static final int FILE_PREFIX_LITTLE_ENDIAN = 0x49;
@@ -60,7 +67,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
     volatile Object context = null;
     volatile Object scifio = null;
-    private volatile TiffCodec.Report lastCodecReport = null;
+    private volatile CodecReport lastCodecReport = null;
 
     public TiffIO(DataHandle<?> stream) {
         this(stream, null);
@@ -157,11 +164,11 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return new TiffReader(stream, openMode, false);
     }
 
-    void setLastCodecReport(TiffCodec.Report lastCodecReport) {
+    void setLastCodecReport(CodecReport lastCodecReport) {
         this.lastCodecReport = lastCodecReport;
     }
 
-    public TiffCodec.Report lastCodecReport() {
+    public CodecReport lastCodecReport() {
         return lastCodecReport;
     }
 

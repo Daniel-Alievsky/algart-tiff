@@ -61,7 +61,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
      */
     public final T owner() {
         return owner;
-    };
+    }
 
     @SuppressWarnings("resource")
     public String streamName() {
@@ -70,7 +70,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
 
     public abstract boolean isExistingInFile();
 
-    public TiffCodec.Report lastCodecReport() {
+    public TiffIO.CodecReport lastCodecReport() {
         return owner.lastCodecReport();
     }
 

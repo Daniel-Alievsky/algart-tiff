@@ -103,7 +103,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         }
     }
 
-    public static class JPEGReport extends Report {
+    public static class JPEGCodecReport extends TiffIO.CodecReport {
         private String jpegColorSpaceName;
         private boolean losslessJPEG;
 
@@ -111,7 +111,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
             return jpegColorSpaceName;
         }
 
-        public JPEGReport setJpegColorSpaceName(String jpegColorSpaceName) {
+        public JPEGCodecReport setJpegColorSpaceName(String jpegColorSpaceName) {
             this.jpegColorSpaceName = jpegColorSpaceName;
             return this;
         }
@@ -120,7 +120,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
             return losslessJPEG;
         }
 
-        public JPEGReport setLosslessJPEG(boolean losslessJPEG) {
+        public JPEGCodecReport setLosslessJPEG(boolean losslessJPEG) {
             this.losslessJPEG = losslessJPEG;
             return this;
         }
@@ -209,7 +209,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
     public byte[] decompress(DataHandle<?> in, Options options) throws IOException {
         Objects.requireNonNull(in, "Null input stream");
         Objects.requireNonNull(options, "Null codec options");
-        final JPEGReport report = new JPEGReport();
+        final JPEGCodecReport report = new JPEGCodecReport();
         options.setReport(report);
         final long offset = in.offset();
         long t1 = timing ? System.nanoTime() : 0;

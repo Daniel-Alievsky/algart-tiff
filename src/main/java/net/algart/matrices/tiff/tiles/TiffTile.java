@@ -68,6 +68,7 @@ public final class TiffTile {
     // - null value marks that all is empty;
     // it helps to defer actual subtracting until the moment when we know the correct tile sizes
     private boolean frozen = false;
+    private TiffIO.CodecReport report = null;
 
     /**
      * Creates new tile with given index.
@@ -775,6 +776,15 @@ public final class TiffTile {
      */
     public boolean isFrozen() {
         return frozen;
+    }
+
+    public TiffIO.CodecReport getReport() {
+        return report;
+    }
+
+    public TiffTile setReport(TiffIO.CodecReport report) {
+        this.report = report;
+        return this;
     }
 
     public void freeData() {

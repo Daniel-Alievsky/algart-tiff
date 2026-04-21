@@ -1051,6 +1051,7 @@ public non-sealed class TiffWriter extends TiffIO {
             final byte[] encodedData = codec.compress(data, options);
             setLastCodecReport(options.getReport());
             tile.setEncodedData(encodedData);
+            tile.setReport(options.getReport());
         } else {
             final Optional<byte[]> encodedData = encodeByExternalCodec(tile, tile.getDecodedData(), options);
             if (encodedData.isEmpty()) {

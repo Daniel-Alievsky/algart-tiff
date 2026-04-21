@@ -1422,6 +1422,7 @@ public non-sealed class TiffReader extends TiffIO {
             final byte[] decodedData = codec.decompress(encodedData, options);
             setLastCodecReport(options.getReport());
             tile.setPartiallyDecodedData(decodedData);
+            tile.setReport(options.getReport());
         } else {
             final Optional<byte[]> decodedData = decodeByExternalCodec(tile, encodedData, options);
             if (decodedData.isEmpty()) {
