@@ -384,16 +384,10 @@ class SmallHuffmanCodec {
 
     // -- HuffmanCodec API methods --
 
-    public int getSample(BitBuffer bb, HuffmanCodecOptions options)
-            throws TiffException {
+    public int getSample(BitBuffer bb, HuffmanCodecOptions options) {
         if (bb == null) {
             throw new IllegalArgumentException("No data to handle.");
         }
-        if (options == null) {
-            throw new TiffException("Options must be an instance of " +
-                    "loci.formats.codec.HuffmanCodecOptions.");
-        }
-
         Decoder decoder = cachedDecoders.get(options.table);
         if (decoder == null) {
             decoder = new Decoder(options.table);
@@ -405,7 +399,8 @@ class SmallHuffmanCodec {
             return 0x8000;
         }
         if (bitCount < 0) bitCount = 0;
-        int v = bb.getBits(bitCount) & ((int) Math.pow(2, bitCount) - 1);
+        int pow2 = 1 << bitCount;
+        int v = bb.getBits(bitCount) & (pow2 - 1);
         if ((v & (1 << (bitCount - 1))) == 0) {
             v -= (1 << bitCount) - 1;
         }

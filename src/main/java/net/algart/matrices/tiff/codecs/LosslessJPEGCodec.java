@@ -27,6 +27,7 @@ package net.algart.matrices.tiff.codecs;
 import net.algart.arrays.JArrays;
 import net.algart.arrays.MutableShortArray;
 import net.algart.matrices.tiff.TiffException;
+import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import org.scijava.io.handle.DataHandle;
 
@@ -141,11 +142,16 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
     private static class StreamDecoder {
         private final DataHandle<?> in;
         private final Options options;
+        private final boolean scaleWhenIncreasingBitDepth;
 
         byte[] buf = new byte[0];
-        int width = 0, height;
-        int bitsPerSample = 0, nComponents = 0, bytesPerSample = 0;
-        int[] horizontalSampling, verticalSampling;
+        int width = 0;
+        int height = 0;
+        int bitsPerSample = 0;
+        int nComponents = 0;
+        int bytesPerSample = 0;
+        int[] horizontalSampling;
+        int[] verticalSampling;
         int[] quantizationTable;
         short[][] huffmanTables = null;
 
@@ -156,6 +162,8 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
         private StreamDecoder(DataHandle<?> in, Options options) {
             this.in = Objects.requireNonNull(in);
             this.options = Objects.requireNonNull(options);
+            this.scaleWhenIncreasingBitDepth = options.getIo() instanceof TiffReader reader &&
+                    reader.isScaleWhenIncreasingBitDepth();
         }
 
         byte[] decode() throws IOException {
@@ -213,7 +221,6 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                 huffmanTables = new short[4][];
             }
             final int s = in.read();
-//                    final byte tableClass = (byte) ((s & 0xf0) >> 4);
             final byte destination = (byte) (s & 0xf);
             final int[] nCodes = new int[16];
             final MutableShortArray table = MutableShortArray.newArray();
@@ -234,7 +241,9 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
         }
 
         private void decodeScan() throws IOException {
-            nComponents = in.read();
+            final int nComponents = in.read();
+            final int numberOfPixels = buf.length / nComponents;
+            this.nComponents = nComponents;
             dcTable = new int[nComponents];
             acTable = new int[nComponents];
             for (int i = 0; i < nComponents; i++) {
@@ -247,13 +256,11 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
             in.read(); // endPredictor
             in.read(); // least significant 4 bits = pointTransform
 
-            // read image data
-
             byte[] toDecode = new byte[(int) (in.length() - in.offset())];
             in.read(toDecode);
+            final int scalingShift = scaleWhenIncreasingBitDepth ? 8 * bytesPerSample - bitsPerSample : 0;
 
             // scrub out byte stuffing
-
             final SmallHuffmanCodec.ByteVector b = new SmallHuffmanCodec.ByteVector();
             for (int i = 0; i < toDecode.length; i++) {
                 b.add(toDecode[i]);
@@ -272,10 +279,10 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                         " bits/sample is not supported (only 2..16 values are allowed)");
             }
             huffmanOptions.bitsPerSample = bitsPerSample;
-            huffmanOptions.maxBytes = buf.length / nComponents;
+            huffmanOptions.maxBytes = numberOfPixels;
 
-            int nextSample = 0;
-            while (nextSample < buf.length / nComponents) {
+            int nextSampleIndex = 0;
+            while (nextSampleIndex < numberOfPixels) {
                 for (int i = 0; i < nComponents; i++) {
                     if (huffmanTables != null) {
                         huffmanOptions.table = huffmanTables[dcTable[i]];
@@ -284,24 +291,25 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                         throw new UnsupportedTiffFormatException("Lossless JPEG: arithmetic coding not supported");
                     }
                     int v = huffman.getSample(bb, huffmanOptions);
-                    if (nextSample == 0) {
+                    if (nextSampleIndex == 0) {
                         v += 1 << (bitsPerSample - 1);
                     }
-
+                    v <<= scalingShift;
 
                     // apply predictor to the sample
                     int predictor = startPredictor;
-                    if (nextSample < width * bytesPerSample) predictor = 1;
-                    else if ((nextSample % (width * bytesPerSample)) == 0) {
+                    if (nextSampleIndex < width * bytesPerSample) {
+                        predictor = 1;
+                    } else if ((nextSampleIndex % (width * bytesPerSample)) == 0) {
                         predictor = 2;
                     }
 
-                    final int componentOffset = i * (buf.length / nComponents);
+                    final int componentOffset = i * (numberOfPixels);
 
-                    final int indexA = nextSample - bytesPerSample + componentOffset;
-                    final int indexB = nextSample - width * bytesPerSample +
+                    final int indexA = nextSampleIndex - bytesPerSample + componentOffset;
+                    final int indexB = nextSampleIndex - width * bytesPerSample +
                             componentOffset;
-                    final int indexC = nextSample - (width + 1) * bytesPerSample +
+                    final int indexC = nextSampleIndex - (width + 1) * bytesPerSample +
                             componentOffset;
 
 //                        if (indexA >= 0 && indexA < buf.length - 4)
@@ -318,7 +326,7 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                     final int sampleC = indexC < 0 ? 0 :
                             (int) JArrays.getBytes8InBigEndianOrder(buf, indexC, bytesPerSample);
 
-                    if (nextSample > 0) {
+                    if (nextSampleIndex > 0) {
                         int pred = switch (predictor) {
                             case 1 -> sampleA;
                             case 2 -> sampleB;
@@ -332,11 +340,11 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                         v += pred;
                     }
 
-                    final int offset = componentOffset + nextSample;
+                    final int offset = componentOffset + nextSampleIndex;
                     JArrays.setBytes8InBigEndianOrder(buf, offset, v, bytesPerSample);
 //                        Bytes.unpack(v, buf, offset, bytesPerSample, false);
                 }
-                nextSample += bytesPerSample;
+                nextSampleIndex += bytesPerSample;
             }
         }
 
