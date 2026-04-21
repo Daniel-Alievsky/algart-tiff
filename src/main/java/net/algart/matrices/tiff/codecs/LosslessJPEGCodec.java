@@ -134,8 +134,8 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
      */
     @Override
     public byte[] decompress(DataHandle<?> in, Options options) throws IOException {
-        Objects.requireNonNull(in, "Null input handle");
-        if (options == null) options = new Options();
+        Objects.requireNonNull(in, "Null input stream");
+        Objects.requireNonNull(options, "Null codec options");
         byte[] buf = new byte[0];
 
         int width = 0, height;

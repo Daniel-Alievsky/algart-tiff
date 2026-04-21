@@ -37,6 +37,7 @@ abstract class StreamTiffCodec implements TiffCodec {
     @Override
     public byte[] decompress(byte[] data, Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
+        Objects.requireNonNull(options, "Null codec options");
         try {
             try (DataHandle<?> handle = new BytesHandle(new BytesLocation(data))) {
                 return decompress(handle, options);

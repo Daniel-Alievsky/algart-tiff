@@ -51,7 +51,7 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
     }
 
     @Override
-    public boolean isExisting() {
+    public boolean isExistingInFile() {
         return true;
     }
 

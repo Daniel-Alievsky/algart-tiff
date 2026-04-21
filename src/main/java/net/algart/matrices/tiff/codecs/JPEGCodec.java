@@ -103,6 +103,40 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         }
     }
 
+    public static class JPEGReport extends Report {
+        private String jpegColorSpaceName;
+        private boolean losslessJPEG;
+
+        public String getJpegColorSpaceName() {
+            return jpegColorSpaceName;
+        }
+
+        public JPEGReport setJpegColorSpaceName(String jpegColorSpaceName) {
+            this.jpegColorSpaceName = jpegColorSpaceName;
+            return this;
+        }
+
+        public boolean isLosslessJPEG() {
+            return losslessJPEG;
+        }
+
+        public JPEGReport setLosslessJPEG(boolean losslessJPEG) {
+            this.losslessJPEG = losslessJPEG;
+            return this;
+        }
+
+        @Override
+        public String toString() {
+            return "JPEG codec report:" +
+                    (jpegColorSpaceName != null ?
+                            "%n    Color space inside JPEG stream: %s".formatted(jpegColorSpaceName) :
+                            "") +
+                    (losslessJPEG ?
+                            "%n    Lossless JPEG".formatted() :
+                            "");
+        }
+    }
+
     private long timeMain = 0;
     private long timeBridge = 0;
     private long timeAdditional = 0;
@@ -173,10 +207,10 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
 
     @Override
     public byte[] decompress(DataHandle<?> in, Options options) throws IOException {
-        Objects.requireNonNull(in, "Null input handle");
-        if (options == null) {
-            options = new JPEGOptions();
-        }
+        Objects.requireNonNull(in, "Null input stream");
+        Objects.requireNonNull(options, "Null codec options");
+        final JPEGReport report = new JPEGReport();
+        options.setReport(report);
         final long offset = in.offset();
         long t1 = timing ? System.nanoTime() : 0;
         JPEGDecoding.ImageInformation imageInformation;
@@ -200,6 +234,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
             byte[] tryLossless = (new LosslessJPEGCodec()).decompress(in, options);
             assert tryLossless != null;
             if (tryLossless.length > 0) {
+                report.setLosslessJPEG(true);
                 LOG.log(TiffIO.BUILT_IN_TIMING ? System.Logger.Level.DEBUG : System.Logger.Level.TRACE,
                         "TIFF JPEG image decoded using lossless-JPEG codec");
                 return tryLossless;
@@ -211,6 +246,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
             throw new TiffException("Cannot read JPEG image: unknown format");
             // - for example, OLD_JPEG
         }
+        report.setJpegColorSpaceName(imageInformation.colorSpaceName());
         long t2 = timing ? System.nanoTime() : 0;
         timeMain += t2 - t1;
 

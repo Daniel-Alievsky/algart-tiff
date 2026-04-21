@@ -1050,7 +1050,7 @@ public class TiffParser extends TiffReader {
             throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(encodedData, "Null encoded data");
-        Objects.requireNonNull(options, "Null options");
+        Objects.requireNonNull(options, "Null codec options");
         final CodecOptions codecOptions = options.toSCIFIOStyleOptions(CodecOptions.class);
         final TiffIFD ifd = tile.ifd();
         final int[] declaredSubsampling = ifd.getYCbCrSubsampling();

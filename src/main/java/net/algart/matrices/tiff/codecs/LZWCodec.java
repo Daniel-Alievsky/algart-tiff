@@ -26,10 +26,10 @@ package net.algart.matrices.tiff.codecs;
 
 import net.algart.matrices.tiff.TiffException;
 import org.scijava.io.handle.DataHandle;
-import org.scijava.io.location.Location;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Objects;
 
 public class LZWCodec extends StreamTiffCodec {
     // (It is placed here to avoid autocorrection by IntelliJ IDEA)
@@ -94,7 +94,11 @@ public class LZWCodec extends StreamTiffCodec {
 
     @Override
     public byte[] compress(byte[] data, Options options) throws TiffException {
-        if (data == null || data.length == 0) return data;
+        Objects.requireNonNull(data, "Null data");
+        Objects.requireNonNull(options, "Null codec options");
+        if (data.length == 0) {
+            return data;
+        }
 
         // Output buffer (see class comments for justification of size).
         final long bufferSize = ((long) data.length * 141) / 100 + 3;
@@ -242,8 +246,11 @@ public class LZWCodec extends StreamTiffCodec {
      */
     @Override
     public byte[] decompress(DataHandle<?> in, Options options) throws IOException {
-        if (in == null || in.length() == 0) return null;
-        if (options == null) options = new Options();
+        Objects.requireNonNull(in, "Null input stream");
+        Objects.requireNonNull(options, "Null codec options");
+        if (in.length() == 0) {
+            return new byte[0];
+        }
 
         // Output buffer
         final byte[] output = new byte[options.getMaxSizeInBytes()];

@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff;
 
+import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.tags.TagCompression;
 import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
@@ -59,6 +60,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
     volatile Object context = null;
     volatile Object scifio = null;
+    private volatile TiffCodec.Report lastCodecReport = null;
 
     public TiffIO(DataHandle<?> stream) {
         this(stream, null);
@@ -153,6 +155,14 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
     public TiffReader newReader(TiffOpenMode openMode) throws IOException {
         return new TiffReader(stream, openMode, false);
+    }
+
+    void setLastCodecReport(TiffCodec.Report lastCodecReport) {
+        this.lastCodecReport = lastCodecReport;
+    }
+
+    public TiffCodec.Report lastCodecReport() {
+        return lastCodecReport;
     }
 
     @Override

@@ -24,6 +24,8 @@
 
 package net.algart.matrices.tiff.codecs;
 
+import java.util.Objects;
+
 /**
  * A codec which just returns the exact data it was given, performing no
  * compression or decompression.
@@ -60,11 +62,15 @@ public class UncompressedCodec implements TiffCodec {
      */
     @Override
     public byte[] decompress(byte[] data, Options options) {
+        Objects.requireNonNull(data, "Null data");
+        Objects.requireNonNull(options, "Null codec options");
         return data;
     }
 
     @Override
     public byte[] compress(byte[] data, Options options) {
+        Objects.requireNonNull(data, "Null data");
+        Objects.requireNonNull(options, "Null codec options");
         return data;
     }
 }

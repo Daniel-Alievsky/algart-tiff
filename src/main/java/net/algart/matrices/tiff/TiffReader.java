@@ -1420,6 +1420,7 @@ public non-sealed class TiffReader extends TiffIO {
                 timing.clearTiming();
             }
             final byte[] decodedData = codec.decompress(encodedData, options);
+            setLastCodecReport(options.getReport());
             tile.setPartiallyDecodedData(decodedData);
         } else {
             final Optional<byte[]> decodedData = decodeByExternalCodec(tile, encodedData, options);
@@ -1959,7 +1960,7 @@ public non-sealed class TiffReader extends TiffIO {
             throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(encodedData, "Null encoded data");
-        Objects.requireNonNull(options, "Null options");
+        Objects.requireNonNull(options, "Null codec options");
         if (!SCIFIOBridge.isScifioInstalled()) {
             return Optional.empty();
         }

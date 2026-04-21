@@ -27,6 +27,7 @@ package net.algart.matrices.tiff.demo.io;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.io.MatrixIO;
+import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 
@@ -47,7 +48,7 @@ public class TiffReadSimpleDemo {
         final Path targetFile = Paths.get(args[1]);
         final int ifdIndex = Integer.parseInt(args[2]);
 
-        System.out.printf("Reading TIFF %s...%n", sourceFile);
+        System.out.printf("Reading TIFF %s, image %d...%n", sourceFile, ifdIndex);
         List<Matrix<UpdatablePArray>> image;
         try (TiffReader reader = new TiffReader(sourceFile)) {
             // reader.setEnforceUseExternalCodec(true); // - throws exception: no SCIFIO or other external codecs
@@ -55,7 +56,12 @@ public class TiffReadSimpleDemo {
             // reader.setInterleaveResults(true); // - slows down reading (unnecessary interleaving+separating)
             final TiffReadMap map = reader.map(ifdIndex);
             System.out.printf("Reading %s...%n", map);
+            System.out.printf("Detailed TIFF tags:%n%s%n", map.ifd().toString(TiffIFD.StringFormat.DETAILED));
             image = map.readChannels();
+            final var report = map.lastCodecReport();
+            if (report != null) {
+                System.out.printf("Last decoding report:%n  %s%n", report);
+            }
         }
         System.out.printf("Writing %s...%n", targetFile);
         MatrixIO.writeImage(targetFile, image);

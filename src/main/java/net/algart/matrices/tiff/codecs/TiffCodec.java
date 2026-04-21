@@ -77,6 +77,7 @@ public interface TiffCodec {
         // - used only if other information is not enough
         private TiffIO io = null;
         // - used only while reading if other information is not enough
+        private Report report = null;
 
         public Options() {
         }
@@ -271,6 +272,15 @@ public interface TiffCodec {
             return this;
         }
 
+        public Report getReport() {
+            return report;
+        }
+
+        public Options setReport(Report report) {
+            this.report = report;
+            return this;
+        }
+
         public Options setMainOptions(TiffTile tile) {
             this.setSizes(tile.getSizeX(), tile.getSizeY());
             this.setBitsPerSample(tile.bitsPerSample());
@@ -311,6 +321,7 @@ public interface TiffCodec {
             this.photometric = options.photometric;
             this.ifd = options.ifd;
             this.io = options.io;
+            // but without report
             return this;
         }
 
@@ -426,14 +437,17 @@ public interface TiffCodec {
         }
     }
 
+    class Report {
+    }
+
     /**
      * Compresses a block of data.
      *
      * @param data    The data to be compressed.
      * @param options Options to be used during compression, if appropriate.
      * @return The compressed data.
-     * @throws TiffException If input is not a compressed data block of the
-     *                       appropriate type.
+     * @throws TiffException        if input is not a compressed data block of the appropriate type.
+     * @throws NullPointerException if one of the arguments is {@code null}.
      */
     byte[] compress(byte[] data, Options options) throws TiffException;
 
@@ -443,7 +457,8 @@ public interface TiffCodec {
      * @param data    the data to be decompressed
      * @param options Options to be used during decompression.
      * @return the decompressed data.
-     * @throws TiffException If data is not valid.
+     * @throws TiffException        if data is not valid.
+     * @throws NullPointerException if one of the arguments is {@code null}.
      */
     byte[] decompress(byte[] data, Options options) throws TiffException;
 }

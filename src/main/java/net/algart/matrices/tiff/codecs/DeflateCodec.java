@@ -66,6 +66,7 @@ public class DeflateCodec implements TiffCodec {
     @Override
     public byte[] decompress(byte[] data, Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
+        Objects.requireNonNull(options, "Null codec options");
         Inflater inflater = new Inflater();
         inflater.setInput(data);
 

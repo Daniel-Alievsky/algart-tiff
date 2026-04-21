@@ -25,14 +25,16 @@
 package net.algart.matrices.tiff.tiles;
 
 import net.algart.arrays.*;
-import net.algart.arrays.Arrays;
 import net.algart.io.awt.ImageToMatrix;
 import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
@@ -65,7 +67,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
     }
 
     @Override
-    public boolean isExisting() {
+    public boolean isExistingInFile() {
         return existing;
     }
 
@@ -483,7 +485,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
     }
 
     public void updateIFD() throws TiffException {
-        if (!isExisting()) {
+        if (!isExistingInFile()) {
             throw new IllegalStateException("IFD can be updated only for existing maps");
         }
         if (isResizable()) {

@@ -1049,6 +1049,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 timing.clearTiming();
             }
             final byte[] encodedData = codec.compress(data, options);
+            setLastCodecReport(options.getReport());
             tile.setEncodedData(encodedData);
         } else {
             final Optional<byte[]> encodedData = encodeByExternalCodec(tile, tile.getDecodedData(), options);
@@ -1734,7 +1735,7 @@ public non-sealed class TiffWriter extends TiffIO {
             throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(decodedData, "Null decoded data");
-        Objects.requireNonNull(options, "Null options");
+        Objects.requireNonNull(options, "Null codec options");
         if (!SCIFIOBridge.isScifioInstalled()) {
             return Optional.empty();
         }

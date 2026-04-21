@@ -30,6 +30,7 @@ import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffIO;
 import net.algart.matrices.tiff.TiffReader;
+import net.algart.matrices.tiff.codecs.TiffCodec;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -67,7 +68,11 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         return owner().streamName();
     }
 
-    public abstract boolean isExisting();
+    public abstract boolean isExistingInFile();
+
+    public TiffCodec.Report lastCodecReport() {
+        return owner.lastCodecReport();
+    }
 
     @SuppressWarnings("resource")
     public TileSupplier simpleTileSupplier() {
@@ -110,7 +115,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         checkRequestedArea(fromX, fromY, sizeX, sizeY);
         final int sizeInBytes = sizeOfRegionWithPossibleNonStandardPrecisions(sizeX, sizeY);
         final long sizeInPixels = (long) sizeX * (long) sizeY;
-        if (!isExisting()) {
+        if (!isExistingInFile()) {
             throw new IllegalStateException("Image data can only be read from a TIFF map for an existing IFD, " +
                     "not for a newly created map for writing new image");
         }

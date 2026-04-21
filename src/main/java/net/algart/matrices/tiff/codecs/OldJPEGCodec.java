@@ -76,7 +76,7 @@ public class OldJPEGCodec implements TiffCodec {
         Objects.requireNonNull(raw, "Null raw");
         Objects.requireNonNull(ifd, "Null IFD");
         Objects.requireNonNull(handle, "Null handle");
-        Objects.requireNonNull(options, "Null options");
+        Objects.requireNonNull(options, "Null codec options");
         final int jpegProc = ifd.getInt(Tags.OLD_JPEG_PROC, 1);
         if (jpegProc != 1 && jpegProc != 14) {
             // 1 is "Baseline", 14 is "Lossless"
