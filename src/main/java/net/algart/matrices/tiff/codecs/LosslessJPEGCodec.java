@@ -192,10 +192,7 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                             verticalSampling[i] = s & 0x0f;
                             quantizationTable[i] = in.read();
                         }
-
-                        bytesPerSample = bitsPerSample / 8;
-                        if ((bitsPerSample % 8) != 0) bytesPerSample++;
-
+                        bytesPerSample = (bitsPerSample + 7) >>> 3;
                         buf = new byte[width * height * nComponents * bytesPerSample];
                     } else if (code == SOF11) {
                         throw new UnsupportedTiffFormatException("Lossless JPEG: arithmetic coding is not yet supported");
@@ -283,16 +280,14 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                     if (huffmanTables != null) {
                         huffmanOptions.table = huffmanTables[dcTable[i]];
                     }
-                    int v;
-
-                    if (huffmanOptions.table != null) {
-                        v = huffman.getSample(bb, huffmanOptions);
-                        if (nextSample == 0) {
-                            v += 1 << (bitsPerSample - 1);
-                        }
-                    } else {
-                        throw new UnsupportedTiffFormatException("Lossless JPEG: Arithmetic coding not supported");
+                    if (huffmanOptions.table == null) {
+                        throw new UnsupportedTiffFormatException("Lossless JPEG: arithmetic coding not supported");
                     }
+                    int v = huffman.getSample(bb, huffmanOptions);
+                    if (nextSample == 0) {
+                        v += 1 << (bitsPerSample - 1);
+                    }
+
 
                     // apply predictor to the sample
                     int predictor = startPredictor;
