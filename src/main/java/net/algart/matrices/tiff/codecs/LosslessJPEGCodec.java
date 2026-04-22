@@ -204,7 +204,8 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                                 width, height, nComponents, 8 * bytesPerSample);
                         buf = new byte[sizeInBytes];
                     } else if (code == SOF11) {
-                        throw new UnsupportedTiffFormatException("Lossless JPEG: arithmetic coding is not yet supported");
+                        throw new UnsupportedTiffFormatException(
+                                "Cannot decode lossless JPEG: arithmetic coding is not yet supported");
                     } else if (code == DHT) {
                         readHuffmanTables();
                     }
@@ -242,6 +243,10 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
         }
 
         private void decodeScan() throws IOException {
+            if (buf.length == 0) {
+                throw new UnsupportedTiffFormatException(
+                        "Invalid lossless JPEG stream: SOS marker found before necessary SOF3 marker (0xFFC3)");
+            }
             final int nComponents = in.read();
             final int numberOfPixels = buf.length / nComponents;
             this.nComponents = nComponents;
@@ -289,7 +294,8 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                         huffmanOptions.table = huffmanTables[dcTable[i]];
                     }
                     if (huffmanOptions.table == null) {
-                        throw new UnsupportedTiffFormatException("Lossless JPEG: arithmetic coding not supported");
+                        throw new UnsupportedTiffFormatException(
+                                "Cannot decode lossless JPEG: arithmetic coding not supported");
                     }
                     int v = huffman.getSample(bb, huffmanOptions);
                     if (nextSampleIndex == 0) {
@@ -305,7 +311,7 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                         predictor = 2;
                     }
 
-                    final int componentOffset = i * (numberOfPixels);
+                    final int componentOffset = i * numberOfPixels;
 
                     final int indexA = nextSampleIndex - bytesPerSample + componentOffset;
                     final int indexB = nextSampleIndex - width * bytesPerSample +
@@ -332,7 +338,8 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                             case 1 -> sampleA;
                             case 2 -> sampleB;
                             case 3 -> sampleC;
-                            case 4 -> sampleA + sampleB + sampleC;
+                            case 4 -> sampleA + sampleB - sampleC;
+                            // in SCIFIO code, here was sampleA + sampleB + sampleC: it was a bug
                             case 5 -> sampleA + ((sampleB - sampleC) / 2);
                             case 6 -> sampleB + ((sampleA - sampleC) / 2);
                             case 7 -> (sampleA + sampleB) / 2;
