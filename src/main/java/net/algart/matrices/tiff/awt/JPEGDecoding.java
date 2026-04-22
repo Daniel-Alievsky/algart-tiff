@@ -193,6 +193,7 @@ public class JPEGDecoding {
 
     // Note: this method may be tested with the image jpeg_ycbcr_encoded_as_rgb.tiff from the demo resources
     // declaredColorSpace and declaredSubsampling are not used by the current implementation
+    // Note: declaredSubsampling is usually ignored (unless CORRECT_Y_CB_CR_WITH_SUB_SAMPLING_1X1_ONLY=true)
     public static void completeDecodingYCbCr(
             byte[][] data,
             ImageData imageData,

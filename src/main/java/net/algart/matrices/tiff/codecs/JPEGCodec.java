@@ -110,17 +110,17 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
             throw new TiffException("JPEG compression cannot be used for floating-point values");
         }
         final TagPhotometric photometric = options.getPhotometric();
-        final int numberOfChannels = options.getNumberOfChannels();
+        final int samplesPerPixel = options.getSamplesPerPixel();
         final int expectedChannels = switch (photometric) {
             case null -> throw new TiffException("Photometric interpretation is not set in the options");
             case BLACK_IS_ZERO -> 1;
             // - unlike decompress() method, compression of WHITE_IS_ZERO is not supported
-            case RGB, Y_CB_CR -> 3;
+            case RGB, Y_CB_CR -> options.isPlanarSeparated() ? 1 : 3;
             default -> throw new TiffException("JPEG compression for photometric interpretation " + photometric +
                     " is not supported");
         };
-        if (numberOfChannels != expectedChannels) {
-            throw new TiffException("JPEG compression for " + numberOfChannels + " channels for " +
+        if (samplesPerPixel != expectedChannels) {
+            throw new TiffException("JPEG compression for " + samplesPerPixel + " channels for " +
                     "photometric interpretation " + photometric + " is not supported");
         }
         final int bitsPerSample = options.getBitsPerSample();
@@ -139,7 +139,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
 
         final ByteArrayOutputStream output = new ByteArrayOutputStream();
         final BufferedImage image = AWTImages.makeImage(
-                data, options.getWidth(), options.getHeight(), numberOfChannels,
+                data, options.getWidth(), options.getHeight(), samplesPerPixel,
                 options.isInterleaved(),
                 bitsPerSample / 8, false, options.isLittleEndian(),
                 false);
@@ -150,8 +150,10 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         final double jpegQuality = Math.min(options.compressionQuality(1.0), 1.0);
         // - for JPEG, the maximal possible quality is 1.0, but it is better to allow greater qualities
         // (for comparison, the maximal quality in JPEG-2000 is Double.MAX_VALUE)
+        final boolean enforceRGBFor3Channels = photometric == TagPhotometric.RGB;
+        // - for 1 channel, this flag is ignored
         try {
-            JPEGEncoding.writeJPEG(image, output, photometric, jpegQuality);
+            JPEGEncoding.writeJPEG(image, output, enforceRGBFor3Channels, jpegQuality);
         } catch (final IOException e) {
             throw new TiffException("Cannot compress JPEG data", e);
         }
@@ -179,7 +181,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
                             new Dimension(options.getWidth(), options.getHeight()) :
                             null,
                     options.getPhotometric(),
-                    options.getNumberOfChannels(),
+                    options.getSamplesPerPixel(),
                     options.isLittleEndian());
             // - for stripped image we also specify "sizes" argument that enforces readJPEG
             // to restrict reading via param.setSourceRegion call;

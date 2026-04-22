@@ -37,9 +37,9 @@ public class CCITTFaxCodec implements TiffCodec {
         Objects.requireNonNull(options, "Null codec options");
         final TiffIFD ifd = options.getIfd();
         Objects.requireNonNull(ifd, "IFD is not set in the options");
-        if (options.getNumberOfChannels() != 1 || options.getBitsPerSample() != 1) {
+        if (options.getSamplesPerPixel() != 1 || options.getBitsPerSample() != 1) {
             throw new TiffException("CCITT compression (" + options.getCompression() + ") for " +
-                    options.getNumberOfChannels() + " channels and " + options.getBitsPerSample() +
+                    options.getSamplesPerPixel() + " channels and " + options.getBitsPerSample() +
                     "-bit samples is not allowed (CCITT compressions support 1 sample/pixel, 1 bit/sample only)");
         }
 
@@ -80,7 +80,7 @@ public class CCITTFaxCodec implements TiffCodec {
                     compressionCode == TinyTwelveMonkey.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE);
             // - note: the last byteAligned argument should be determined one the base of compression code,
             // written in TIFF IFD, not on the base of overrideCCITTCompressionCode
-            final int bitsPerPixel = options.getNumberOfChannels() * options.getBitsPerSample();
+            final int bitsPerPixel = options.getSamplesPerPixel() * options.getBitsPerSample();
             final int bytesPerRow = (bitsPerPixel * options.getWidth() + 7) / 8;
             final int resultSize = bytesPerRow * options.getHeight();
             return decompressorStream.readNBytes(resultSize);

@@ -287,18 +287,18 @@ public class JPEG2000Codec implements TiffCodec {
         final int plane = Math.multiplyExact(jpeg2000Options.getWidth(), jpeg2000Options.getHeight());
 
         final int bitsPerSample = jpeg2000Options.getBitsPerSample();
-        final int numberOfChannels = jpeg2000Options.getNumberOfChannels();
+        final int samplesPerPixel = jpeg2000Options.getSamplesPerPixel();
         final boolean interleaved = jpeg2000Options.isInterleaved();
         if (bitsPerSample == 8) {
-            final byte[][] b = new byte[numberOfChannels][plane];
+            final byte[][] b = new byte[samplesPerPixel][plane];
             if (interleaved) {
                 for (int q = 0; q < plane; q++) {
-                    for (int c = 0; c < numberOfChannels; c++) {
+                    for (int c = 0; c < samplesPerPixel; c++) {
                         b[c][q] = data[next++];
                     }
                 }
             } else {
-                for (int c = 0; c < numberOfChannels; c++) {
+                for (int c = 0; c < samplesPerPixel; c++) {
                     System.arraycopy(data, c * plane, b[c], 0, plane);
                 }
             }
@@ -309,10 +309,10 @@ public class JPEG2000Codec implements TiffCodec {
         } else {
             final boolean littleEndian = jpeg2000Options.isLittleEndian();
             if (bitsPerSample == 16) {
-                final short[][] s = new short[numberOfChannels][plane];
+                final short[][] s = new short[samplesPerPixel][plane];
                 if (interleaved) {
                     for (int q = 0; q < plane; q++) {
-                        for (int c = 0; c < numberOfChannels; c++) {
+                        for (int c = 0; c < samplesPerPixel; c++) {
                             // assert toShort(data, next, false) == Bytes.toShort(data, next, 2, false);
                             // assert toShort(data, next, true) == Bytes.toShort(data, next, 2, true);
                             s[c][q] = toShort(data, next, littleEndian);
@@ -320,7 +320,7 @@ public class JPEG2000Codec implements TiffCodec {
                         }
                     }
                 } else {
-                    for (int c = 0; c < numberOfChannels; c++) {
+                    for (int c = 0; c < samplesPerPixel; c++) {
                         for (int q = 0; q < plane; q++) {
                             s[c][q] = toShort(data, next, littleEndian);
                             next += 2;
@@ -334,10 +334,10 @@ public class JPEG2000Codec implements TiffCodec {
                         buffer,
                         jpeg2000Options.getColorModel());
             } else if (bitsPerSample == 32) {
-                final int[][] s = new int[numberOfChannels][plane];
+                final int[][] s = new int[samplesPerPixel][plane];
                 if (interleaved) {
                     for (int q = 0; q < plane; q++) {
-                        for (int c = 0; c < numberOfChannels; c++) {
+                        for (int c = 0; c < samplesPerPixel; c++) {
     //                        assert toInt(data, next, true) == Bytes.toInt(data, next, 4, true);
     //                        assert toInt(data, next, false) == Bytes.toInt(data, next, 4, false);
                             s[c][q] = toInt(data, next, littleEndian);
@@ -345,7 +345,7 @@ public class JPEG2000Codec implements TiffCodec {
                         }
                     }
                 } else {
-                    for (int c = 0; c < numberOfChannels; c++) {
+                    for (int c = 0; c < samplesPerPixel; c++) {
                         for (int q = 0; q < plane; q++) {
                             s[c][q] = toInt(data, next, littleEndian);
                             next += 4;

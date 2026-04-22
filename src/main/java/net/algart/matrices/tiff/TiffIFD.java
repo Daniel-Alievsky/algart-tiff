@@ -1287,6 +1287,7 @@ public final class TiffIFD {
         final Object value = get(Tags.Y_CB_CR_SUB_SAMPLING);
         if (value == null) {
             return new int[]{2, 2};
+            // - default sumsampling
         }
         int[] result;
         if (value instanceof int[] ints) {

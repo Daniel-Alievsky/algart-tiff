@@ -37,7 +37,7 @@ public class PackBitsCodec implements TiffCodec {
         return packImage(data,
                 options.getWidth(),
                 options.getHeight(),
-                options.getNumberOfChannels(),
+                options.getSamplesPerPixel(),
                 options.getBitsPerSample());
     }
 

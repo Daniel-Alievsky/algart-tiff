@@ -58,8 +58,9 @@ public interface TiffCodec {
     class Options implements Cloneable {
         private int width = 0;
         private int height = 0;
-        private int numberOfChannels = 0;
+        private int samplesPerPixel = 0;
         private int bitsPerSample = 0;
+        private boolean planarSeparated = false;
         private boolean tiled = false;
         private boolean signed = false;
         private boolean floatingPoint = false;
@@ -71,7 +72,7 @@ public interface TiffCodec {
         // - the codec may need this information for "high-level" formats
         // (when TagCompression.isLowLevelBitsProcessing returns false);
         // in the current version, JPEGCodec and JPEGOptions use it
-        private int[] yCbCrSubsampling = {2, 2};
+        private int[] yCbCrSubsampling = null;
         private Double compressionQuality = null;
         private Double losslessCompressionLevel = null;
         private TiffIFD ifd = null;
@@ -111,15 +112,22 @@ public interface TiffCodec {
             return setWidth(width).setHeight(height);
         }
 
-        public int getNumberOfChannels() {
-            return numberOfChannels;
+        /**
+         * Returns number of samples per pixel. Note that it will be always 1 in
+         * {@link #isPlanarSeparated() planar-separated} mode, even for 3-channels images.
+         * In a usual (chunked) mode, this number is equal to the number of channels.
+         *
+         * @return number of samples per pixel.
+         */
+        public int getSamplesPerPixel() {
+            return samplesPerPixel;
         }
 
-        public Options setNumberOfChannels(int numberOfChannels) {
-            if (numberOfChannels < 0) {
-                throw new IllegalArgumentException("Negative numberOfChannels = " + numberOfChannels);
+        public Options setSamplesPerPixel(int samplesPerPixel) {
+            if (samplesPerPixel < 0) {
+                throw new IllegalArgumentException("Negative samplesPerPixel = " + samplesPerPixel);
             }
-            this.numberOfChannels = numberOfChannels;
+            this.samplesPerPixel = samplesPerPixel;
             return this;
         }
 
@@ -132,6 +140,15 @@ public interface TiffCodec {
                 throw new IllegalArgumentException("Negative bitsPerSample = " + bitsPerSample);
             }
             this.bitsPerSample = bitsPerSample;
+            return this;
+        }
+
+        public boolean isPlanarSeparated() {
+            return planarSeparated;
+        }
+
+        public Options setPlanarSeparated(boolean planarSeparated) {
+            this.planarSeparated = planarSeparated;
             return this;
         }
 
@@ -301,7 +318,8 @@ public interface TiffCodec {
         public Options setMainOptions(TiffTile tile) {
             this.setSizes(tile.getSizeX(), tile.getSizeY());
             this.setBitsPerSample(tile.bitsPerSample());
-            this.setNumberOfChannels(tile.samplesPerPixel());
+            this.setSamplesPerPixel(tile.samplesPerPixel());
+            this.setPlanarSeparated(tile.isPlanarSeparated());
             this.setTiled(tile.tilingMode().isTileGrid());
             this.setSigned(tile.sampleType().isSigned());
             this.setFloatingPoint(tile.sampleType().isFloatingPoint());
@@ -325,8 +343,9 @@ public interface TiffCodec {
             Objects.requireNonNull(options, "Null options");
             this.width = options.width;
             this.height = options.height;
-            this.numberOfChannels = options.numberOfChannels;
+            this.samplesPerPixel = options.samplesPerPixel;
             this.bitsPerSample = options.bitsPerSample;
+            this.planarSeparated = options.planarSeparated;
             this.tiled = options.tiled;
             this.signed = options.signed;
             this.floatingPoint = options.floatingPoint;
@@ -367,7 +386,7 @@ public interface TiffCodec {
             }
             setField(scifioStyleClass, result, "width", width);
             setField(scifioStyleClass, result, "height", height);
-            setField(scifioStyleClass, result, "channels", numberOfChannels);
+            setField(scifioStyleClass, result, "channels", samplesPerPixel);
             setField(scifioStyleClass, result, "bitsPerSample", bitsPerSample);
             setField(scifioStyleClass, result, "littleEndian", littleEndian);
             setField(scifioStyleClass, result, "interleaved", interleaved);
@@ -383,7 +402,7 @@ public interface TiffCodec {
             Objects.requireNonNull(scifioStyleOptions, "Null scifioStyleOptions");
             setWidth(getField(scifioStyleOptions, Integer.class, "width"));
             setHeight(getField(scifioStyleOptions, Integer.class, "height"));
-            setNumberOfChannels(getField(scifioStyleOptions, Integer.class, "channels"));
+            setSamplesPerPixel(getField(scifioStyleOptions, Integer.class, "channels"));
             setBitsPerSample(getField(scifioStyleOptions, Integer.class, "bitsPerSample"));
             setSigned(getField(scifioStyleOptions, Boolean.class, "signed"));
             setFloatingPoint(false);
@@ -398,8 +417,9 @@ public interface TiffCodec {
             return "Options: " +
                     "width=" + width +
                     ", height=" + height +
-                    ", numberOfChannels=" + numberOfChannels +
+                    ", samplesPerPixel=" + samplesPerPixel +
                     ", bitsPerSample=" + bitsPerSample +
+                    ", planarSeparated=" + planarSeparated +
                     ", tiled=" + tiled +
                     ", signed=" + signed +
                     ", floatingPoint=" + floatingPoint +

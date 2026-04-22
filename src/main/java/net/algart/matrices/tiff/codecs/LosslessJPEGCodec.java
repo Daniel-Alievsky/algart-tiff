@@ -143,16 +143,16 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
         private final Options options;
         private final boolean scaleWhenIncreasingBitDepth;
 
-        byte[] buf = new byte[0];
-        int width = 0;
-        int height = 0;
-        int bitsPerSample = 0;
-        int nComponents = 0;
-        int bytesPerSample = 0;
-        int[] horizontalSampling;
-        int[] verticalSampling;
-        int[] quantizationTable;
-        short[][] huffmanTables = null;
+        private byte[] buf = new byte[0];
+        private int width = 0;
+        private int height = 0;
+        private int bitsPerSample = 0;
+        private int nComponents = 0;
+        private int bytesPerSample = 0;
+        private int[] horizontalSampling;
+        private int[] verticalSampling;
+        private int[] quantizationTable;
+        private short[][] huffmanTables = null;
 
         int startPredictor;
 

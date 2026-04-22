@@ -87,7 +87,7 @@ public class OldJPEGCodec implements TiffCodec {
         if (isJPEG(raw)) {
             return raw;
         }
-        final int samplesPerPixel = options.getNumberOfChannels();
+        final int samplesPerPixel = options.getSamplesPerPixel();
         if (samplesPerPixel > 16) {
             throw new TiffException("Cannot decode old-style JPEG: " +
                     "too many number of channels = " + samplesPerPixel);

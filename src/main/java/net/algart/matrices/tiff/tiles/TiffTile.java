@@ -106,6 +106,17 @@ public final class TiffTile {
         return map.isPlanarSeparated();
     }
 
+    public int numberOfChannels() {
+        return map.numberOfChannels();
+    }
+
+    /**
+     * Returns number of samples per pixel. Note that it will be always 1 in
+     * {@link #isPlanarSeparated() planar-separated} mode, even for 3-channels images.
+     * In a usual (chunked) mode, this number is equal to the number of channels.
+     *
+     * @return number of samples per pixel.
+     */
     public int samplesPerPixel() {
         return samplesPerPixel;
     }
