@@ -537,8 +537,9 @@ public class TiffExplorer {
                 for (int tag : tags) {
                     ifd.remove(tag);
                 }
-                return TiffWriter.IFDUpdateResult.IN_PLACE;
-                // - we don't need to relocate IFD: its size was decreased
+                return TiffWriter.IFDUpdateResult.CHANGED;
+                // - we always need to relocate IFD, because we did not write it:
+                // for example, Old-style JPEG can store necessary information near the IFD table
             });
         }
         frame.reload();
@@ -581,8 +582,7 @@ public class TiffExplorer {
                 if (addYCbCrSubSampling) {
                     ifd.putYCbCrSubsampling(1, 1);
                 }
-                return TiffWriter.IFDUpdateResult.ofExpanded(existing == null || addYCbCrSubSampling);
-                // - we don't need to relocate IFD: its size was unchanged
+                return TiffWriter.IFDUpdateResult.CHANGED;
             });
         }
         frame.reload();

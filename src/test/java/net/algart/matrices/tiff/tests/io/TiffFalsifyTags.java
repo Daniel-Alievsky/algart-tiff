@@ -68,18 +68,13 @@ public class TiffFalsifyTags {
             if (newDimX > 0 && newDimY > 0) {
                 ifd.putImageDimensions(newDimX, newDimY);
             }
-            boolean relocate = false;
             if (photometric != null) {
-                if (!ifd.hasPhotometric()) {
-                    relocate = true;
-                }
                 ifd.putPhotometric(photometric);
             }
             if (addReferenceBlackWhite) {
                 ifd.put(Tags.REFERENCE_BLACK_WHITE, new int[]{0, 100, 100, 200, 50, 100});
-                relocate = true;
             }
-            writer.updateIFD(ifdIndex, ifd, TiffWriter.IFDUpdateResult.ofExpanded(relocate));
+            writer.updateIFD(ifdIndex, ifd, TiffWriter.IFDUpdateResult.CHANGED);
             // - replacing dimensions
         }
         System.out.println("Done");

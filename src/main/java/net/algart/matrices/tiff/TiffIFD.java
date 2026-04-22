@@ -1639,6 +1639,7 @@ public final class TiffIFD {
             case Tags.SAMPLES_PER_PIXEL -> optInt(tag, -1) != 1;
             case Tags.COMPRESSION -> optInt(tag, -1) != COMPRESSION_NONE;
             case Tags.FILL_ORDER -> optInt(tag, -1) != FILL_ORDER_NORMAL;
+            case Tags.PLANAR_CONFIGURATION ->  optInt(tag, -1) != PLANAR_CONFIGURATION_CHUNKED;
             case Tags.PREDICTOR -> optInt(tag, -1) != TagPredictor.NONE.code();
             case Tags.PHOTOMETRIC_INTERPRETATION,
                  Tags.Y_CB_CR_SUB_SAMPLING,

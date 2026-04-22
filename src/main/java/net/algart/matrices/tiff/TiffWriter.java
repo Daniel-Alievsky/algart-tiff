@@ -63,19 +63,18 @@ import java.util.stream.Collectors;
 public non-sealed class TiffWriter extends TiffIO {
     public enum IFDUpdateResult {
         UNCHANGED,
-        IN_PLACE,
-        EXPANDED;
-
-        public static IFDUpdateResult ofExpanded(boolean expanded) {
-            return expanded ? EXPANDED : IN_PLACE;
-        }
+        /**
+         * <b>Warning:</b> this variant can be used <b>only</b> if this IFD was written by this class!
+         */
+        OVERWRITE_IN_PLACE,
+        CHANGED;
 
         public boolean isUnchanged() {
             return this == UNCHANGED;
         }
 
         public boolean isRelocationNecessary() {
-            return this == EXPANDED;
+            return this == CHANGED;
         }
     }
 
@@ -1669,7 +1668,7 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     public TiffIFD updateDescription(int ifdIndex, String description) throws IOException {
-        return updateDescription(ifdIndex, description, false);
+        return updateDescription(ifdIndex, description, true);
     }
 
     public TiffIFD updateDescription(int ifdIndex, String newDescription, boolean enforceRelocateIFD)
@@ -1699,8 +1698,8 @@ public non-sealed class TiffWriter extends TiffIO {
                         this.numberOfExistingImages(),
                         switch (placement) {
                             case UNCHANGED -> "unchanged";
-                            case IN_PLACE -> "updated in place";
-                            case EXPANDED -> "updated with relocation at the file end";
+                            case OVERWRITE_IN_PLACE -> "updated in place";
+                            case CHANGED -> "updated with relocation at the file end";
                         }));
         if (placement.isUnchanged()) {
             return;
@@ -2383,7 +2382,7 @@ public non-sealed class TiffWriter extends TiffIO {
                         oldDescription == null ? 0 : oldDescription.length(),
                         newDescription == null ? 0 : newDescription.length()));
         ifd.putDescription(newDescription);
-        return IFDUpdateResult.ofExpanded(lengthIncreased || enforceRelocate);
+        return lengthIncreased || enforceRelocate ? IFDUpdateResult.CHANGED : IFDUpdateResult.OVERWRITE_IN_PLACE;
     }
 
     private static void checkPhotometric(
