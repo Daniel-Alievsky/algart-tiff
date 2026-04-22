@@ -144,7 +144,7 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
         private final Options options;
         private final boolean scaleWhenIncreasingBitDepth;
 
-        private byte[] buf = new byte[0];
+        private byte[] result = new byte[0];
         private int width = 0;
         private int height = 0;
         private int bitsPerSample = 0;
@@ -202,7 +202,7 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                         bytesPerSample = (bitsPerSample + 7) >>> 3;
                         final int sizeInBytes = TiffIFD.sizeOfRegionInBytes(
                                 width, height, nComponents, 8 * bytesPerSample);
-                        buf = new byte[sizeInBytes];
+                        result = new byte[sizeInBytes];
                     } else if (code == SOF11) {
                         throw new UnsupportedTiffFormatException(
                                 "Cannot decode lossless JPEG: arithmetic coding is not yet supported");
@@ -215,7 +215,7 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
 
             interleave();
             fixByteOrder();
-            return buf;
+            return result;
         }
 
         private void readHuffmanTables() throws IOException {
@@ -243,12 +243,12 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
         }
 
         private void decodeScan() throws IOException {
-            if (buf.length == 0) {
+            if (result.length == 0) {
                 throw new UnsupportedTiffFormatException(
                         "Invalid lossless JPEG stream: SOS marker found before necessary SOF3 marker (0xFFC3)");
             }
             final int nComponents = in.read();
-            final int numberOfPixels = buf.length / nComponents;
+            final int numberOfPixels = result.length / nComponents;
             this.nComponents = nComponents;
             dcTable = new int[nComponents];
             acTable = new int[nComponents];
@@ -327,11 +327,11 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
 //                        final int sampleC = indexC < 0 ? 0 : Bytes.toInt(buf, indexC, bytesPerSample, false);
 
                     final int sampleA = indexA < 0 ? 0 :
-                            (int) JArrays.getBytes8InBigEndianOrder(buf, indexA, bytesPerSample);
+                            (int) JArrays.getBytes8InBigEndianOrder(result, indexA, bytesPerSample);
                     final int sampleB = indexB < 0 ? 0 :
-                            (int) JArrays.getBytes8InBigEndianOrder(buf, indexB, bytesPerSample);
+                            (int) JArrays.getBytes8InBigEndianOrder(result, indexB, bytesPerSample);
                     final int sampleC = indexC < 0 ? 0 :
-                            (int) JArrays.getBytes8InBigEndianOrder(buf, indexC, bytesPerSample);
+                            (int) JArrays.getBytes8InBigEndianOrder(result, indexC, bytesPerSample);
 
 //                    if (predictor == 4) {
 //                        System.out.println("!!! " + sampleA + " " + sampleB + " " + sampleC);
@@ -352,7 +352,7 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                     }
 
                     final int offset = componentOffset + nextSampleIndex;
-                    JArrays.setBytes8InBigEndianOrder(buf, offset, v, bytesPerSample);
+                    JArrays.setBytes8InBigEndianOrder(result, offset, v, bytesPerSample);
 //                        Bytes.unpack(v, buf, offset, bytesPerSample, false);
                 }
                 nextSampleIndex += bytesPerSample;
@@ -363,28 +363,28 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
             if (options.isLittleEndian() && bytesPerSample > 1) {
                 // data is stored in big endian order
                 // reverse the bytes in each sample
-                final byte[] newBuf = new byte[buf.length];
-                for (int i = 0; i < buf.length; i += bytesPerSample) {
+                final byte[] buffer = new byte[result.length];
+                for (int i = 0; i < result.length; i += bytesPerSample) {
                     for (int q = 0; q < bytesPerSample; q++) {
-                        newBuf[i + bytesPerSample - q - 1] = buf[i + q];
+                        buffer[i + bytesPerSample - q - 1] = result[i + q];
                     }
                 }
-                buf = newBuf;
+                result = buffer;
             }
         }
 
         private void interleave() {
             if (options.isInterleaved() && nComponents > 1) {
                 // data is stored in planar (RRR...GGG...BBB...) order
-                final byte[] newBuf = new byte[buf.length];
-                for (int i = 0; i < buf.length; i += nComponents * bytesPerSample) {
+                final byte[] buffer = new byte[result.length];
+                for (int i = 0; i < result.length; i += nComponents * bytesPerSample) {
                     for (int c = 0; c < nComponents; c++) {
-                        final int src = c * (buf.length / nComponents) + (i / nComponents);
+                        final int src = c * (result.length / nComponents) + (i / nComponents);
                         final int dst = i + c * bytesPerSample;
-                        System.arraycopy(buf, src, newBuf, dst, bytesPerSample);
+                        System.arraycopy(result, src, buffer, dst, bytesPerSample);
                     }
                 }
-                buf = newBuf;
+                result = buffer;
             }
         }
     }
