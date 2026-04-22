@@ -333,6 +333,9 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                     final int sampleC = indexC < 0 ? 0 :
                             (int) JArrays.getBytes8InBigEndianOrder(buf, indexC, bytesPerSample);
 
+//                    if (predictor == 4) {
+//                        System.out.println("!!! " + sampleA + " " + sampleB + " " + sampleC);
+//                    }
                     if (nextSampleIndex > 0) {
                         int pred = switch (predictor) {
                             case 1 -> sampleA;
