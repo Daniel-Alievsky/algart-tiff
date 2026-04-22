@@ -413,12 +413,13 @@ public class OldJPEGCodec implements TiffCodec {
                 final int marker = data[p + 1] & 0xFF;
                 switch (marker) {
                     case 0 -> {
-                        // strange stream (stuffed byte should not occur in JPEGInterchangeFormat)
+                        // stuffed byte
+                        // (not too important for OldJPEGCodec: it should not occur in JPEGInterchangeFormat)
                         p += 2;
                         continue;
                     }
                     case JPEGDecoding.SOI_BYTE -> {
-                        // strange stream
+                        // strange stream: several SOI
                         p += 2;
                         continue;
                     }
@@ -431,16 +432,20 @@ public class OldJPEGCodec implements TiffCodec {
                     case JPEGDecoding.EOI_BYTE -> {
                         return;
                     }
-                    case 0xC0, 0xC1, 0xC2, 0xC3,
+                    case JPEGDecoding.SOF0_BASELINE,
+                         0xC1, 0xC2, 0xC3,
+                         // not 0xC4 (DHT)
                          0xC5, 0xC6, 0xC7,
+                         // not 0xC8 (JPG)
                          0xC9, 0xCA, 0xCB,
+                         // not 0xCC (DAC)
                          0xCD, 0xCE, 0xCF -> {
                         if (p < data.length - 10) {
                             // - in other case, this SOF is invalid
                             final int n = data[p + 9] & 0xFF;
                             if (n > 16) {
                                 throw new TiffException("Cannot decode old-style JPEG: " +
-                                        dataName + " contains an invalid Start-Of-Frame (SOF) marker: " +
+                                        dataName + " contains an invalid Start-Of-Frame (SOF) marker with " +
                                         "too many number of channels = " + n);
                             }
                             if (p + 10 < data.length - 3 * n) {
