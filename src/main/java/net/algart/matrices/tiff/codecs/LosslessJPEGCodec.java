@@ -27,6 +27,7 @@ package net.algart.matrices.tiff.codecs;
 import net.algart.arrays.JArrays;
 import net.algart.arrays.MutableShortArray;
 import net.algart.matrices.tiff.TiffException;
+import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import org.scijava.io.handle.DataHandle;
@@ -149,9 +150,6 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
         private int bitsPerSample = 0;
         private int nComponents = 0;
         private int bytesPerSample = 0;
-        private int[] horizontalSampling;
-        private int[] verticalSampling;
-        private int[] quantizationTable;
         private short[][] huffmanTables = null;
 
         int startPredictor;
@@ -186,21 +184,25 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                     } else if (code == SOF3) {
                         // lossless w/Huffman coding
                         bitsPerSample = in.read();
-                        height = in.readShort();
-                        width = in.readShort();
+                        height = in.readShort() & 0xFFFF;
+                        width = in.readShort() & 0xFFFF;
                         nComponents = in.read();
-                        horizontalSampling = new int[nComponents];
-                        verticalSampling = new int[nComponents];
-                        quantizationTable = new int[nComponents];
                         for (int i = 0; i < nComponents; i++) {
                             in.skipBytes(1);
                             final int s = in.read();
-                            horizontalSampling[i] = (s & 0xf0) >> 4;
-                            verticalSampling[i] = s & 0x0f;
-                            quantizationTable[i] = in.read();
+                            final int hSampling = (s & 0xf0) >> 4;
+                            final int vSampling = s & 0x0f;
+                            if (hSampling != 1 || vSampling != 1) {
+                                throw new UnsupportedTiffFormatException(
+                                        "Lossless JPEG with subsampling is not supported (channel #" +
+                                                i + " has sampling " + hSampling + "x" + vSampling + ")");
+                            }
+                            in.read(); // QTable is not used in lossless JPEG
                         }
                         bytesPerSample = (bitsPerSample + 7) >>> 3;
-                        buf = new byte[width * height * nComponents * bytesPerSample];
+                        final int sizeInBytes = TiffIFD.sizeOfRegionInBytes(
+                                width, height, nComponents, 8 * bytesPerSample);
+                        buf = new byte[sizeInBytes];
                     } else if (code == SOF11) {
                         throw new UnsupportedTiffFormatException("Lossless JPEG: arithmetic coding is not yet supported");
                     } else if (code == DHT) {
