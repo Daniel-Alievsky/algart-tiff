@@ -545,8 +545,8 @@ public enum TagCompression {
 
     private static TiffCodec.Options customizeReadingJpeg(TiffTile tile, TiffCodec.Options options) {
         return options.clone().setInterleaved(false);
-        // JPEGCodec works faster in with non-interleaved data, and in any case, it is better
-        // because TiffReader needs non-interleaved results.
+        // JPEGCodec and LosslessJPEGCodec work faster in with non-interleaved data, and in any case,
+        // it is better because TiffReader needs non-interleaved results.
     }
 
     // Deprecated solution: it was necessary in the versions until 1.5.1, where

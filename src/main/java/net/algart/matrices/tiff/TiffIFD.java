@@ -1614,7 +1614,9 @@ public final class TiffIFD {
      *
      * <p>The set of potentially critical tags is defined by {@link Tags#CRITICAL_TAGS}.
      * Some of them may still be safely omitted when their values correspond to the
-     * TIFF default values; such cases are checked here.</p>
+     * TIFF default values; such cases are checked here.
+     * Moreover, some tags are necessary with {@link TagCompression#OLD_JPEG} compression only;
+     * if the current compression is another, this method returns {@code false} for them.</p>
      *
      * <p>If {@code strict} is {@code true}, this method also treats tags as critical
      * when removing them would not make the image undecodable but may change how it
@@ -1632,6 +1634,7 @@ public final class TiffIFD {
         if (!Tags.CRITICAL_TAGS.contains(tag)) {
             return false;
         }
+        final boolean oldJpeg = optCompressionCode(-1) == COMPRESSION_OLD_JPEG;
         return switch (tag) {
             case Tags.SAMPLES_PER_PIXEL -> optInt(tag, -1) != 1;
             case Tags.COMPRESSION -> optInt(tag, -1) != COMPRESSION_NONE;
@@ -1640,6 +1643,15 @@ public final class TiffIFD {
             case Tags.PHOTOMETRIC_INTERPRETATION,
                  Tags.Y_CB_CR_SUB_SAMPLING,
                  Tags.ORIENTATION -> strict;
+            case Tags.OLD_JPEG_PROC,
+                 Tags.OLD_JPEG_INTERCHANGE_FORMAT,
+                 Tags.OLD_JPEG_INTERCHANGE_FORMAT_LENGTH,
+                 Tags.OLD_JPEG_RESTART_INTERVAL,
+                 Tags.OLD_JPEG_LOSSLESS_PREDICTORS,
+                 Tags.OLD_JPEG_POINT_TRANSFORMS,
+                 Tags.OLD_JPEG_Q_TABLES,
+                 Tags.OLD_JPEG_AC_TABLES,
+                 Tags.OLD_JPEG_DC_TABLES -> oldJpeg;
             default -> true;
         };
     }

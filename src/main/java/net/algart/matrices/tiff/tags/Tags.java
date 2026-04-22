@@ -204,8 +204,12 @@ public class Tags {
             PREDICTOR,
             ORIENTATION,
             JPEG_TABLES,
+            OLD_JPEG_PROC,
             OLD_JPEG_INTERCHANGE_FORMAT,
             OLD_JPEG_INTERCHANGE_FORMAT_LENGTH,
+            OLD_JPEG_RESTART_INTERVAL,
+            OLD_JPEG_LOSSLESS_PREDICTORS,
+            OLD_JPEG_POINT_TRANSFORMS,
             OLD_JPEG_Q_TABLES,
             OLD_JPEG_DC_TABLES,
             OLD_JPEG_AC_TABLES
