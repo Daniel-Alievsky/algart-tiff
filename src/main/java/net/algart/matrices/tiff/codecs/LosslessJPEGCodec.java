@@ -193,7 +193,7 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                         width = in.readShort() & 0xFFFF;
                         samplesPerPixel = in.read();
                         for (int i = 0; i < samplesPerPixel; i++) {
-                            in.skipBytes(1);
+                            in.read(); // skipping component ID
                             final int s = in.read();
                             final int hSampling = (s & 0xf0) >> 4;
                             final int vSampling = s & 0x0f;
@@ -255,13 +255,14 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                         "Invalid lossless JPEG stream: SOS marker found before necessary SOF3 marker (0xFFC3)");
             }
             final int samplesPerPixel = in.read();
-            final int planeLength = result.length / samplesPerPixel;
-            // 3 samples, 2 bytes/sample, 100 pixels = 300 samples; planeLength = 600 / 3 = 200 bytes
+            final int planeLength = numberOfPixels * bytesPerSample;
+            assert planeLength * samplesPerPixel == result.length;
+            // - example: 3 samples, 2 bytes/sample, 100 pixels = 300 samples; planeLength = 600 / 3 = 200 bytes
             this.samplesPerPixel = samplesPerPixel;
             dcTable = new int[samplesPerPixel];
             acTable = new int[samplesPerPixel];
             for (int i = 0; i < samplesPerPixel; i++) {
-                in.read(); // componentSelector
+                in.read(); // skipping component ID
                 final int tableSelector = in.read();
                 dcTable[i] = (tableSelector & 0xf0) >> 4;
                 acTable[i] = tableSelector & 0xf;
@@ -292,8 +293,8 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
             huffmanOptions.maxBytes = planeLength;
 
             final int widthInBytes = width * bytesPerSample;
-            int nextSampleIndex = 0;
-            while (nextSampleIndex < planeLength) {
+            final int widthInBytesPlusSample = (width + 1) * bytesPerSample;
+            for (int nextSampleIndex = 0; nextSampleIndex < planeLength; nextSampleIndex += bytesPerSample) {
                 for (int i = 0; i < samplesPerPixel; i++) {
                     if (huffmanTables != null) {
                         huffmanOptions.table = huffmanTables[dcTable[i]];
@@ -312,17 +313,15 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                     int predictor = startPredictor;
                     if (nextSampleIndex < widthInBytes) {
                         predictor = 1;
-                    } else if ((nextSampleIndex % (widthInBytes)) == 0) {
+                    } else if ((nextSampleIndex % widthInBytes) == 0) {
                         predictor = 2;
                     }
 
                     final int componentOffset = i * planeLength;
 
                     final int indexA = nextSampleIndex - bytesPerSample + componentOffset;
-                    final int indexB = nextSampleIndex - widthInBytes +
-                            componentOffset;
-                    final int indexC = nextSampleIndex - (width + 1) * bytesPerSample +
-                            componentOffset;
+                    final int indexB = nextSampleIndex - widthInBytes + componentOffset;
+                    final int indexC = nextSampleIndex - widthInBytesPlusSample + componentOffset;
 
 //                        if (indexA >= 0 && indexA < buf.length - 4)
 //                            assert Bytes.toInt(buf, indexA, 4, false) ==
@@ -331,12 +330,9 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
 //                        final int sampleB = indexB < 0 ? 0 : Bytes.toInt(buf, indexB, bytesPerSample, false);
 //                        final int sampleC = indexC < 0 ? 0 : Bytes.toInt(buf, indexC, bytesPerSample, false);
 
-                    final int sampleA = indexA < 0 ? 0 :
-                            (int) JArrays.getBytes8(result, indexA, bytesPerSample);
-                    final int sampleB = indexB < 0 ? 0 :
-                            (int) JArrays.getBytes8(result, indexB, bytesPerSample);
-                    final int sampleC = indexC < 0 ? 0 :
-                            (int) JArrays.getBytes8(result, indexC, bytesPerSample);
+                    final int sampleA = indexA < 0 ? 0 : (int) JArrays.getBytes8(result, indexA, bytesPerSample);
+                    final int sampleB = indexB < 0 ? 0 : (int) JArrays.getBytes8(result, indexB, bytesPerSample);
+                    final int sampleC = indexC < 0 ? 0 : (int) JArrays.getBytes8(result, indexC, bytesPerSample);
 
 //                    if (predictor == 4) {
 //                        System.out.println("!!! " + sampleA + " " + sampleB + " " + sampleC);
@@ -360,7 +356,6 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                     JArrays.setBytes8(result, offset, v, bytesPerSample);
 //                        Bytes.unpack(v, buf, offset, bytesPerSample, false);
                 }
-                nextSampleIndex += bytesPerSample;
             }
         }
 
@@ -384,9 +379,9 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                 for (int i = 0; i < planeLength; i += bytesPerSample) {
                     // no sense to more optimize: usually options.isInterleaved() is false for JPEG
                     for (int c = 0; c < samplesPerPixel; c++) {
-                        final int src = c * planeLength + i;
-                        final int dst = i * samplesPerPixel + c * bytesPerSample;
-                        System.arraycopy(result, src, buffer, dst, bytesPerSample);
+                        final int srcOffset = c * planeLength + i;
+                        final int destOffset = i * samplesPerPixel + c * bytesPerSample;
+                        System.arraycopy(result, srcOffset, buffer, destOffset, bytesPerSample);
                     }
                 }
                 result = buffer;

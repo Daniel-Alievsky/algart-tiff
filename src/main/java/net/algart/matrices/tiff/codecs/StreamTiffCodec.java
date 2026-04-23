@@ -48,7 +48,6 @@ abstract class StreamTiffCodec implements TiffCodec {
         }
     }
 
-
     /**
      * Decompresses data from the given DataHandle.
      *
