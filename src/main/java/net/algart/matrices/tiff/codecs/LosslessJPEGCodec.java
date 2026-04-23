@@ -168,12 +168,13 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
             while (in.offset() < in.length() - 1) {
                 final int code = in.readShort() & 0xffff;
                 int length = in.readShort() & 0xffff;
-                final long fp = in.offset();
+                final long position = in.offset();
                 if (length > 0xff00) {
                     length = 0;
-                    in.seek(fp - 2);
+                    in.seek(position - 2);
                 } else if (code == SOS) {
                     decodeScan();
+                    // - reads all data until in.length() - now we will break from the while loop
                 } else {
                     length -= 2;
                     // stored length includes length param
@@ -216,7 +217,7 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                     } else if (code == DHT) {
                         readHuffmanTables();
                     }
-                    in.seek(fp + length);
+                    in.seek(position + length);
                 }
             }
 
@@ -256,6 +257,7 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
             }
             final int samplesPerPixel = in.read();
             final int planeLength = numberOfPixels * bytesPerSample;
+            assert numberOfPixels == width * height;
             assert planeLength * samplesPerPixel == result.length;
             // - example: 3 samples, 2 bytes/sample, 100 pixels = 300 samples; planeLength = 600 / 3 = 200 bytes
             this.samplesPerPixel = samplesPerPixel;
@@ -338,18 +340,18 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
 //                        System.out.println("!!! " + sampleA + " " + sampleB + " " + sampleC);
 //                    }
                     if (nextSampleIndex > 0) {
-                        int pred = switch (predictor) {
+                        int increment = switch (predictor) {
                             case 1 -> sampleA;
                             case 2 -> sampleB;
                             case 3 -> sampleC;
                             case 4 -> sampleA + sampleB - sampleC;
-                            // in SCIFIO code, here was sampleA + sampleB + sampleC: it was a bug
+                            // - in SCIFIO code, here was sampleA + sampleB + sampleC: it was a bug
                             case 5 -> sampleA + ((sampleB - sampleC) / 2);
                             case 6 -> sampleB + ((sampleA - sampleC) / 2);
                             case 7 -> (sampleA + sampleB) / 2;
                             default -> 0;
                         };
-                        v += pred;
+                        v += increment;
                     }
 
                     final int offset = componentOffset + nextSampleIndex;
