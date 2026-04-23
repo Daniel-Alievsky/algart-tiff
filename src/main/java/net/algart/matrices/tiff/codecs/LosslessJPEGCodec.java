@@ -320,7 +320,6 @@ public class LosslessJPEGCodec extends StreamTiffCodec {
                     }
 
                     final int componentOffset = i * planeLength;
-
                     final int indexA = nextSampleIndex - bytesPerSample + componentOffset;
                     final int indexB = nextSampleIndex - widthInBytes + componentOffset;
                     final int indexC = nextSampleIndex - widthInBytesPlusSample + componentOffset;

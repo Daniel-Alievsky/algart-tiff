@@ -107,16 +107,20 @@ public final class TiffIFD {
     private static final long MAX_LONG_DIV_MAX_BITS_PER_PIXEL = Long.MAX_VALUE /
             (MAX_NUMBER_OF_CHANNELS * MAX_BITS_PER_SAMPLE);
 
-    public record UnsupportedTypeValue(int type, int count, long valueOrOffset) {
-        public UnsupportedTypeValue {
-            if (count < 0) {
-                throw new IllegalArgumentException("Negative count of values");
-            }
+    public enum UpdateResult {
+        UNCHANGED,
+        /**
+         * <b>Warning:</b> this variant can be used <b>only</b> if this IFD was written by {@link TiffWriter}!
+         */
+        OVERWRITE_IN_PLACE,
+        CHANGED;
+
+        public boolean isUnchanged() {
+            return this == UNCHANGED;
         }
 
-        @Override
-        public String toString() {
-            return "Unsupported TIFF value (unknown type code " + type + ", " + count + " elements)";
+        public boolean isRelocationNecessary() {
+            return this == CHANGED;
         }
     }
 
@@ -144,6 +148,19 @@ public final class TiffIFD {
 
         public boolean isStrict() {
             return this == JSON;
+        }
+    }
+
+    public record UnsupportedTypeValue(int type, int count, long valueOrOffset) {
+        public UnsupportedTypeValue {
+            if (count < 0) {
+                throw new IllegalArgumentException("Negative count of values");
+            }
+        }
+
+        @Override
+        public String toString() {
+            return "Unsupported TIFF value (unknown type code " + type + ", " + count + " elements)";
         }
     }
 

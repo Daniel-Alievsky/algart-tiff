@@ -61,23 +61,6 @@ import java.util.stream.Collectors;
  * The same is true for the result of {@link #stream()} method.</p>
  */
 public non-sealed class TiffWriter extends TiffIO {
-    public enum IFDUpdateResult {
-        UNCHANGED,
-        /**
-         * <b>Warning:</b> this variant can be used <b>only</b> if this IFD was written by this class!
-         */
-        OVERWRITE_IN_PLACE,
-        CHANGED;
-
-        public boolean isUnchanged() {
-            return this == UNCHANGED;
-        }
-
-        public boolean isRelocationNecessary() {
-            return this == CHANGED;
-        }
-    }
-
     /**
      * If the file grows to about this limit and {@link #setBigTiff(boolean) big-TIFF} mode is not set,
      * attempt to write new IFD at the file end by methods of this class throw IO exception.
@@ -1677,16 +1660,16 @@ public non-sealed class TiffWriter extends TiffIO {
                 ifd -> changeDescription(ifd, newDescription, enforceRelocateIFD));
     }
 
-    public TiffIFD updateIFD(int ifdIndex, Function<TiffIFD, IFDUpdateResult> updater) throws IOException {
+    public TiffIFD updateIFD(int ifdIndex, Function<TiffIFD, TiffIFD.UpdateResult> updater) throws IOException {
         Objects.requireNonNull(updater, "Null updater");
         final TiffIFD ifd = this.existingIFD(ifdIndex);
         final TiffIFD changedIFD = new TiffIFD(ifd);
-        final IFDUpdateResult placement = updater.apply(changedIFD);
+        final TiffIFD.UpdateResult placement = updater.apply(changedIFD);
         updateIFD(ifdIndex, changedIFD, placement);
         return changedIFD;
     }
 
-    public void updateIFD(int ifdIndex, TiffIFD changedIFD, IFDUpdateResult placement) throws IOException {
+    public void updateIFD(int ifdIndex, TiffIFD changedIFD, TiffIFD.UpdateResult placement) throws IOException {
         Objects.requireNonNull(changedIFD, "Null changed IFD");
         Objects.requireNonNull(placement, "Null IFD placement");
         if (ifdIndex < 0) {
@@ -2366,10 +2349,10 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    private static IFDUpdateResult changeDescription(TiffIFD ifd, String newDescription, boolean enforceRelocate) {
+    private static TiffIFD.UpdateResult changeDescription(TiffIFD ifd, String newDescription, boolean enforceRelocate) {
         final String oldDescription = ifd.getDescription().description(null);
         if (Objects.equals(oldDescription, newDescription)) {
-            return IFDUpdateResult.UNCHANGED;
+            return TiffIFD.UpdateResult.UNCHANGED;
         }
         final boolean lengthIncreased = oldDescription == null ||
                 (newDescription != null && newDescription.length() > oldDescription.length());
@@ -2382,7 +2365,7 @@ public non-sealed class TiffWriter extends TiffIO {
                         oldDescription == null ? 0 : oldDescription.length(),
                         newDescription == null ? 0 : newDescription.length()));
         ifd.putDescription(newDescription);
-        return lengthIncreased || enforceRelocate ? IFDUpdateResult.CHANGED : IFDUpdateResult.OVERWRITE_IN_PLACE;
+        return lengthIncreased || enforceRelocate ? TiffIFD.UpdateResult.CHANGED : TiffIFD.UpdateResult.OVERWRITE_IN_PLACE;
     }
 
     private static void checkPhotometric(

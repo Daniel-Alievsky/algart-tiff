@@ -74,7 +74,7 @@ public class TiffFalsifyTags {
             if (addReferenceBlackWhite) {
                 ifd.put(Tags.REFERENCE_BLACK_WHITE, new int[]{0, 100, 100, 200, 50, 100});
             }
-            writer.updateIFD(ifdIndex, ifd, TiffWriter.IFDUpdateResult.CHANGED);
+            writer.updateIFD(ifdIndex, ifd, TiffIFD.UpdateResult.CHANGED);
             // - replacing dimensions
         }
         System.out.println("Done");

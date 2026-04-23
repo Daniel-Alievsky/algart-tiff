@@ -537,7 +537,7 @@ public class TiffExplorer {
                 for (int tag : tags) {
                     ifd.remove(tag);
                 }
-                return TiffWriter.IFDUpdateResult.CHANGED;
+                return TiffIFD.UpdateResult.CHANGED;
                 // - we always need to relocate IFD, because we did not write it:
                 // for example, Old-style JPEG can store necessary information near the IFD table
             });
@@ -576,13 +576,13 @@ public class TiffExplorer {
             writer.updateIFD(index, ifd -> {
                 final Integer existing = ifd.hasPhotometric() ? ifd.optPhotometricCode(-1) : null;
                 if (Objects.equals(existing, photometricCode)) {
-                    return TiffWriter.IFDUpdateResult.UNCHANGED;
+                    return TiffIFD.UpdateResult.UNCHANGED;
                 }
                 ifd.putPhotometricCode(photometricCode);
                 if (addYCbCrSubSampling) {
                     ifd.putYCbCrSubsampling(1, 1);
                 }
-                return TiffWriter.IFDUpdateResult.CHANGED;
+                return TiffIFD.UpdateResult.CHANGED;
             });
         }
         frame.reload();
