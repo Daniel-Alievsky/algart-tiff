@@ -238,49 +238,52 @@ public class OldJPEGCodec implements TiffCodec {
     }
 
 
-    public static byte[][] readJpegQTables(TiffIFD ifd, DataHandle<?> handle) throws TiffException {
-        return readRawJpegTables(ifd, handle, Tags.OLD_JPEG_Q_TABLES, 64);
+    public static byte[][] readJpegQTables(TiffIFD ifd, DataHandle<?> handle) throws IOException {
+        return readRawJpegTables(ifd, handle, Tags.OLD_JPEG_Q_TABLES, true);
     }
 
-    public static byte[][] readJpegDCTables(TiffIFD ifd, DataHandle<?> handle) throws TiffException {
+    public static byte[][] readJpegDCTables(TiffIFD ifd, DataHandle<?> handle) throws IOException {
         // For Huffman tables, we don't have a fixed size, so we pass -1
-        return readRawJpegTables(ifd, handle, Tags.OLD_JPEG_DC_TABLES, -1);
+        return readRawJpegTables(ifd, handle, Tags.OLD_JPEG_DC_TABLES, false);
     }
 
-    public static byte[][] readJpegACTables(TiffIFD ifd, DataHandle<?> handle) throws TiffException {
-        return readRawJpegTables(ifd, handle, Tags.OLD_JPEG_AC_TABLES, -1);
+    public static byte[][] readJpegACTables(TiffIFD ifd, DataHandle<?> handle) throws IOException {
+        return readRawJpegTables(ifd, handle, Tags.OLD_JPEG_AC_TABLES, false);
     }
 
-    private static byte[][] readRawJpegTables(TiffIFD ifd, DataHandle<?> handle, int tag, int fixedSize)
-            throws TiffException {
+    private static byte[][] readRawJpegTables(TiffIFD ifd, DataHandle<?> handle, int tag, boolean quantizationTables)
+            throws IOException {
         final long[] offsets = ifd.reqLongArray(tag);
         assert offsets != null;
         byte[][] tables = new byte[offsets.length][];
-        try {
-            for (int i = 0; i < offsets.length; i++) {
-                handle.seek(offsets[i]);
-                if (fixedSize > 0) {
-                    byte[] raw = new byte[fixedSize];
-                    handle.readFully(raw);
-                    tables[i] = raw;
-                } else {
-                    byte[] lengths = new byte[16];
-                    handle.readFully(lengths);
-                    int count = 0;
-                    for (byte b : lengths) {
-                        count += b & 0xFF;
-                    }
-                    if (count > 256) {
-                        throw new TiffException("Invalid JPEG Huffman table: too many symbols (" + count + ")");
-                    }
-                    byte[] raw = new byte[16 + count];
-                    System.arraycopy(lengths, 0, raw, 0, 16);
-                    handle.readFully(raw, 16, count);
-                    tables[i] = raw;
+        for (int i = 0; i < offsets.length; i++) {
+            handle.seek(offsets[i]);
+            if (quantizationTables) {
+                byte[] raw = new byte[64];
+                // Structure of Quantization Tables, TIFF tag 519: 8x8 = 64 bytes
+                handle.readFully(raw);
+                tables[i] = raw;
+            } else {
+                // Structure of a raw Huffman table, TIFF tags 520/521:
+                // 1. BITS: 16 bytes.
+                //    Each byte i contains the number of codes with length i bits.
+                // 2. HUFFVAL: n bytes (where n is the sum of all bytes in BITS).
+                //    Contains the symbols associated with each code.
+                // Total length = 16 + sum(BITS).
+                byte[] lengths = new byte[16];
+                handle.readFully(lengths);
+                int count = 0;
+                for (byte b : lengths) {
+                    count += b & 0xFF;
                 }
+                if (count > 256) {
+                    throw new TiffException("Invalid JPEG Huffman table: too many symbols (" + count + ")");
+                }
+                byte[] raw = new byte[16 + count];
+                System.arraycopy(lengths, 0, raw, 0, 16);
+                handle.readFully(raw, 16, count);
+                tables[i] = raw;
             }
-        } catch (IOException e) {
-            throw new TiffException("Error reading raw JPEG tables for tag " + tag, e);
         }
         return tables;
     }
