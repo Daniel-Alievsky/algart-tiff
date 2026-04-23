@@ -36,6 +36,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 
 public final class TiffIFD {
     /**
@@ -1656,7 +1657,7 @@ public final class TiffIFD {
             case Tags.SAMPLES_PER_PIXEL -> optInt(tag, -1) != 1;
             case Tags.COMPRESSION -> optInt(tag, -1) != COMPRESSION_NONE;
             case Tags.FILL_ORDER -> optInt(tag, -1) != FILL_ORDER_NORMAL;
-            case Tags.PLANAR_CONFIGURATION ->  optInt(tag, -1) != PLANAR_CONFIGURATION_CHUNKED;
+            case Tags.PLANAR_CONFIGURATION -> optInt(tag, -1) != PLANAR_CONFIGURATION_CHUNKED;
             case Tags.PREDICTOR -> optInt(tag, -1) != TagPredictor.NONE.code();
             case Tags.PHOTOMETRIC_INTERPRETATION,
                  Tags.Y_CB_CR_SUB_SAMPLING,
@@ -2215,6 +2216,65 @@ public final class TiffIFD {
         return map.remove(key);
     }
 
+
+    /**
+     * Equivalent to
+     * <code>{@link #updateDescription(String, boolean) updateDescription}(newDescription, false)</code>.</p>
+     *
+     * @param newDescription the new image description string; may be {@code null}
+     *                       (that means removing the tag).
+     * @return the status of the update (always either {@link UpdateResult#UNCHANGED} or {@link UpdateResult#CHANGED}).
+     */
+    public UpdateResult updateDescription(String newDescription) {
+        return updateDescription(newDescription, false);
+    }
+
+    /**
+     * Updates the {@link Tags#IMAGE_DESCRIPTION} tag and returns the status of this change.
+     * This is intended to use together with
+     * {@link TiffWriter#updateIFD(int, Function)} method.
+     *
+     * <p>This method compares the new value with the existing one using {@link #optDescription()}.
+     * If the values are identical, it returns {@link UpdateResult#UNCHANGED}.
+     * In another case, it calls {@link #putDescription(String)} and checks
+     * whether the description length was increased or not ({@code null} description
+     * is treated as zero-length). If the length was not increased and
+     * {@code allowOverwriteInPlace} is {@code true}, it returns {@link UpdateResult#OVERWRITE_IN_PLACE},
+     * otherwise it returns {@link UpdateResult#CHANGED}.
+     *
+     * <p>Remember that you should set {@code allowOverwriteInPlace} <b>only</b>
+     * if you are sure that the file was written by {@link TiffWriter}.
+     * In other case, please set <code>allowOverwriteInPlace=false</code>:
+     * it can little increase the file size, but allows to guarantee that the changed
+     * IFD will not overwrite some important data outside IFD structure.</p>
+     *
+     * @param newDescription        the new image description string; may be {@code null}
+     *                              (that means removing the tag).
+     * @param allowOverwriteInPlace whether to allow returning {@link UpdateResult#OVERWRITE_IN_PLACE}.
+     * @return the status of the update.
+     * @see #optDescription()
+     * @see #putDescription(String)
+     * @see TiffWriter#updateIFD(int, Function)
+     */
+    public UpdateResult updateDescription(String newDescription, boolean allowOverwriteInPlace) {
+        final String oldDescription = this.optDescription().orElse(null);
+        if (Objects.equals(oldDescription, newDescription)) {
+            return TiffIFD.UpdateResult.UNCHANGED;
+        }
+        final boolean lengthIncreased = oldDescription == null ||
+                (newDescription != null && newDescription.length() > oldDescription.length());
+//        LOG.log(System.Logger.Level.DEBUG,
+//                () -> "%s image description%s%n%sString length %s: from %d to %d".formatted(
+//                        oldDescription == null ? "Writing new" : newDescription == null ? "Removing" : "Overwriting",
+//                        newDescription == null ? "" : "%n\"%s\"".formatted(newDescription),
+//                        oldDescription == null ? "" : "(instead of: \"%s\")%n".formatted(oldDescription),
+//                        lengthIncreased ? "increased" : "not increased",
+//                        oldDescription == null ? 0 : oldDescription.length(),
+//                        newDescription == null ? 0 : newDescription.length()));
+        this.putDescription(newDescription);
+        return lengthIncreased || !allowOverwriteInPlace ? UpdateResult.CHANGED : UpdateResult.OVERWRITE_IN_PLACE;
+    }
+
     public void clear() {
         checkImmutable();
         clearCache();
@@ -2441,7 +2501,7 @@ public final class TiffIFD {
 
     private long[] getLongArray(int tag, boolean required) throws TiffException {
         final Object value = get(tag);
-        if  (value == null && required) {
+        if (value == null && required) {
             throw new TiffException("TIFF tag " + Tags.prettyName(tag) + " is required, but it is absent");
         }
         long[] results = null;
@@ -2470,7 +2530,7 @@ public final class TiffIFD {
 
     private int[] getIntArray(int tag, boolean required) throws TiffException {
         final Object value = get(tag);
-        if  (value == null && required) {
+        if (value == null && required) {
             throw new TiffException("TIFF tag " + Tags.prettyName(tag) + " is required, but it is absent");
         }
         int[] results = null;
@@ -2653,8 +2713,8 @@ public final class TiffIFD {
                                         tileCountY,
                                         tileSizeY,
                                         dimY == tileCountY * tileSizeY ?
-                                                "full" :
-                                                remainderToString(dimY, tileSizeY) + " lines",
+                                        "full" :
+                                        remainderToString(dimY, tileSizeY) + " lines",
                                         tileSizeX,
                                         tileSizeY));
             }

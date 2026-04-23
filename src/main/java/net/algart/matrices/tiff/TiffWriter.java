@@ -1175,7 +1175,8 @@ public non-sealed class TiffWriter extends TiffIO {
             if (newPhotometric == null) {
                 newPhotometric = samplesPerPixel == 1 ? TagPhotometric.BLACK_IS_ZERO :
                         (compression.isRGBPreferred() || !ifd.isChunked()) ?
-                                TagPhotometric.RGB : TagPhotometric.Y_CB_CR;
+                        TagPhotometric.RGB :
+                        TagPhotometric.Y_CB_CR;
             } else {
                 checkPhotometric(newPhotometric,
                         samplesPerPixel == 1 ? EnumSet.of(TagPhotometric.BLACK_IS_ZERO) :
@@ -1651,13 +1652,7 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     public TiffIFD updateDescription(int ifdIndex, String description) throws IOException {
-        return updateDescription(ifdIndex, description, true);
-    }
-
-    public TiffIFD updateDescription(int ifdIndex, String newDescription, boolean enforceRelocateIFD)
-            throws IOException {
-        return updateIFD(ifdIndex,
-                ifd -> changeDescription(ifd, newDescription, enforceRelocateIFD));
+        return updateIFD(ifdIndex, ifd -> ifd.updateDescription(description));
     }
 
     public TiffIFD updateIFD(int ifdIndex, Function<TiffIFD, TiffIFD.UpdateResult> updater) throws IOException {
@@ -1689,6 +1684,11 @@ public non-sealed class TiffWriter extends TiffIO {
         }
         if (placement.isRelocationNecessary()) {
             // We must relocate IFD: overwriting in the same place will damage the further image
+            // or other embedded data (like Huffman tables in Old-style JPEG).
+            // Theoretically, we could provide additional special branch for a case when we REDUCE
+            // the size of IFD and DO NOT write anything else (for example, removing a tag);
+            // in this case, we could overwrite IFD WITHOUT rewriting any arrays references from IFD tags.
+            // But there is no sense to optimize this exotic situation.
             final long p = this.writeIFDAtFileEnd(changedIFD);
             // Note: we ignore sub-IFDs here. So, this method is not absolutely universal.
             this.rewriteIFDOffset(ifdIndex, p);
@@ -2347,25 +2347,6 @@ public non-sealed class TiffWriter extends TiffIO {
                     timeWriting * 1e-6,
                     sizeInBytes / 1048576.0 / ((t5 - t1) * 1e-9)));
         }
-    }
-
-    private static TiffIFD.UpdateResult changeDescription(TiffIFD ifd, String newDescription, boolean enforceRelocate) {
-        final String oldDescription = ifd.getDescription().description(null);
-        if (Objects.equals(oldDescription, newDescription)) {
-            return TiffIFD.UpdateResult.UNCHANGED;
-        }
-        final boolean lengthIncreased = oldDescription == null ||
-                (newDescription != null && newDescription.length() > oldDescription.length());
-        LOG.log(System.Logger.Level.DEBUG,
-                () -> "%s image description%s%n%sString length %s: from %d to %d".formatted(
-                        oldDescription == null ? "Writing new" : newDescription == null ? "Removing" : "Overwriting",
-                        newDescription == null ? "" : "%n\"%s\"".formatted(newDescription),
-                        oldDescription == null ? "" : "(instead of: \"%s\")%n".formatted(oldDescription),
-                        lengthIncreased ? "increased" : "not increased",
-                        oldDescription == null ? 0 : oldDescription.length(),
-                        newDescription == null ? 0 : newDescription.length()));
-        ifd.putDescription(newDescription);
-        return lengthIncreased || enforceRelocate ? TiffIFD.UpdateResult.CHANGED : TiffIFD.UpdateResult.OVERWRITE_IN_PLACE;
     }
 
     private static void checkPhotometric(
