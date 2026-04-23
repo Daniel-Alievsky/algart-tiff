@@ -1756,7 +1756,7 @@ public final class TiffIFD {
 
     /**
      * Equivalent to {@link #putImageDimensions(long, long)} with the only difference that this method
-     * does nothing when <code>forceUpdate=false</code> and the actual tags
+     * does nothing when <code>updateWhenEqual=false</code> and the actual tags
      * <code>ImageWidth</code> and <code>ImageLength</code> already
      * set to values equal to the specified arguments.
      *
@@ -1770,9 +1770,9 @@ public final class TiffIFD {
      *             must be in the range <code>1..Integer.MAX_VALUE</code>.
      * @return a reference to this object.
      */
-    public TiffIFD putImageDimensions(long dimX, long dimY, boolean forceUpdate) {
+    public TiffIFD putImageDimensions(long dimX, long dimY, boolean updateWhenEqual) {
         checkImmutable();
-        updateImageDimensions(dimX, dimY, forceUpdate);
+        putImageDimensionsIgnoringFreeze(dimX, dimY, updateWhenEqual);
         return this;
     }
 
@@ -2099,21 +2099,23 @@ public final class TiffIFD {
 
     /**
      * Puts new values for <code>ImageWidth</code> and <code>ImageLength</code> tags.
-     * The <code>forceUpdate</code> argument enforce updating even in the case
+     *
+     * <p>>The <code>updateWhenEqual</code> argument enforces updating even in the case
      * then the tags <code>ImageWidth</code> and <code>ImageLength</code> already
      * set to values equal to <code>dimX</code> and <code>dimY</code> arguments.
      *
      * <p>Note: unlike {@link #putImageDimensions(long, long, boolean)},
-     * this method works even when IFD is frozen by {@link #freeze()} method.
+     * this method works even when IFD is frozen by {@link #freeze()} method,
+     * bypassing immutability checks.
      *
-     * @param dimX        new TIFF image width (<code>ImageWidth</code> tag);
-     *                    must be in the range <code>1..Integer.MAX_VALUE</code>.
-     * @param dimY        new TIFF image height (<code>ImageLength</code> tag);
-     *                    must be in the range <code>1..Integer.MAX_VALUE</code>.
-     * @param forceUpdate whether to always update <code>ImageWidth</code> and <code>ImageLength</code> tags.
+     * @param dimX            new TIFF image width (<code>ImageWidth</code> tag);
+     *                        must be in the range <code>1..Integer.MAX_VALUE</code>.
+     * @param dimY            new TIFF image height (<code>ImageLength</code> tag);
+     *                        must be in the range <code>1..Integer.MAX_VALUE</code>.
+     * @param updateWhenEqual whether to always update <code>ImageWidth</code> and <code>ImageLength</code> tags.
      * @return a reference to this object.
      */
-    public TiffIFD updateImageDimensions(long dimX, long dimY, boolean forceUpdate) {
+    public TiffIFD putImageDimensionsIgnoringFreeze(long dimX, long dimY, boolean updateWhenEqual) {
         if (dimX <= 0) {
             throw new IllegalArgumentException("Zero or negative image width (x-dimension): " + dimX);
         }
@@ -2135,7 +2137,7 @@ public final class TiffIFD {
         // - to avoid illegal detection of the type
         assert dimX == (int) dimX;
         assert dimY == (int) dimY;
-        if (!forceUpdate
+        if (!updateWhenEqual
                 && optInt(Tags.IMAGE_WIDTH, -1) == dimX
                 && optInt(Tags.IMAGE_LENGTH, -1) == dimY) {
             // - if the sizes are already set correctly, leave them untouched to avoid changing the type
@@ -2159,12 +2161,13 @@ public final class TiffIFD {
      * <code>StripOffsets</code> / <code>StripByteCounts</code> tag, depending on the result of
      * {@link #hasTileInformation()} methods (<code>true</code> or <code>false</code> correspondingly).
      *
-     * <p>Note: this method works even when IFD is frozen by {@link #freeze()} method.
+     * <p>Note: this method works even when IFD is frozen by {@link #freeze()} method,
+     * bypassing immutability checks.
      *
      * @param offsets    byte offset of each tile/strip in a TIFF file.
      * @param byteCounts number of (compressed) bytes in each tile/strip.
      */
-    public void updateDataPositioning(long[] offsets, long[] byteCounts) {
+    public void putDataPositioningIgnoringFreeze(long[] offsets, long[] byteCounts) {
         Objects.requireNonNull(offsets, "Null offsets");
         Objects.requireNonNull(byteCounts, "Null byte counts");
         final boolean tiled;

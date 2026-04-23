@@ -1461,7 +1461,7 @@ public non-sealed class TiffWriter extends TiffIO {
         final long[] byteCounts = new long[map.numberOfGridTiles()];
         // - zero-filled by Java
         final TiffIFD ifd = map.ifd();
-        ifd.updateDataPositioning(offsets, byteCounts);
+        ifd.putDataPositioningIgnoringFreeze(offsets, byteCounts);
         if (!ifd.hasFileOffsetForWriting()) {
             writeIFDAt(ifd, null, false);
         }
@@ -1628,7 +1628,7 @@ public non-sealed class TiffWriter extends TiffIO {
 
         final TiffIFD ifd = map.ifd();
         if (resizable) {
-            ifd.updateImageDimensions(map.dimX(), map.dimY(), true);
+            ifd.putImageDimensionsIgnoringFreeze(map.dimX(), map.dimY(), true);
         }
 
         final int count = completeWritingMap(map);
@@ -2149,7 +2149,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 }
             }
         }
-        map.ifd().updateDataPositioning(offsets, byteCounts);
+        map.ifd().putDataPositioningIgnoringFreeze(offsets, byteCounts);
         long t2 = debugTime();
         logTiles(map, "completion", "wrote", count, sizeInBytes, t1, t2);
         return count;

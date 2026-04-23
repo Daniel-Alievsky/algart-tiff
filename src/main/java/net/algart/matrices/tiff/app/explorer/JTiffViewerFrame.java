@@ -368,6 +368,7 @@ class JTiffViewerFrame extends JFrame {
             copyItem.setEnabled(viewerPanel.hasNonEmptySelection());
             exportSelectionItem.setEnabled(viewerPanel.hasNonEmptySelection());
             saveSelectionAsTiffItem.setEnabled(viewerPanel.hasNonEmptySelection());
+            appendSelectionToTiffItem.setEnabled(viewerPanel.hasNonEmptySelection());
 
             final boolean colorCorrectionApplicable = map.isColorCorrectionApplicable();
             final boolean colorCorrection = viewer.isColorCorrection();

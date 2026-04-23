@@ -518,7 +518,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                 }
             }
         }
-        ifd.updateDataPositioning(offsets, byteCounts);
+        ifd.putDataPositioningIgnoringFreeze(offsets, byteCounts);
     }
 
     @Override
