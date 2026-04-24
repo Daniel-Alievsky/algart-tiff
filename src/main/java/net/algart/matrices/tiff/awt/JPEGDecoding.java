@@ -195,22 +195,22 @@ public class JPEGDecoding {
     // declaredColorSpace and declaredSubsampling are not used by the current implementation
     // Note: declaredSubsampling is usually ignored (unless CORRECT_Y_CB_CR_WITH_SUB_SAMPLING_1X1_ONLY=true)
     public static void completeDecodingYCbCr(
-            byte[][] data,
+            byte[][] channels,
             ImageData imageData,
             TagPhotometric declaredColorSpace,
             int[] declaredSubsampling)
             throws TiffException {
-        Objects.requireNonNull(data, "Null data");
+        Objects.requireNonNull(channels, "Null channels");
         if (!isCompleteDecodingYCbCrNecessary(imageData, declaredColorSpace, declaredSubsampling)) {
             return;
         }
         LOG.log(LOG_COLOR_SPACE_MISMATCH ? System.Logger.Level.INFO : System.Logger.Level.TRACE,
                 "RGB photometric interpretation with YCbCr color space in JPEG: additional decoding");
-        checkBands(data, 3, imageData);
-        for (int i = 0; i < data[0].length; i++) {
-            int y = data[0][i] & 0xFF;
-            int cb = data[1][i] & 0xFF;
-            int cr = data[2][i] & 0xFF;
+        checkBands(channels, 3, imageData);
+        for (int i = 0; i < channels[0].length; i++) {
+            int y = channels[0][i] & 0xFF;
+            int cb = channels[1][i] & 0xFF;
+            int cr = channels[2][i] & 0xFF;
 
             cb -= 128;
             cr -= 128;
@@ -219,27 +219,27 @@ public class JPEGDecoding {
             double green = (y - 0.34414 * cb - 0.71414 * cr);
             double blue = (y + 1.772 * cb);
 
-            data[0][i] = (byte) toUnsignedByte(red);
-            data[1][i] = (byte) toUnsignedByte(green);
-            data[2][i] = (byte) toUnsignedByte(blue);
+            channels[0][i] = (byte) toUnsignedByte(red);
+            channels[1][i] = (byte) toUnsignedByte(green);
+            channels[2][i] = (byte) toUnsignedByte(blue);
         }
     }
 
     // Note: this situation is very rare; it is possible if the JPEG is monochrome
     // and someone set incorrect photometric interpretation "White-is-zero"
     public static void completeDecodingWhiteIsZero(
-            byte[][] data,
+            byte[][] channels,
             ImageData imageData,
             TagPhotometric declaredColorSpace)
             throws TiffException {
-        Objects.requireNonNull(data, "Null data");
+        Objects.requireNonNull(channels, "Null channels");
         if (!isCompleteDecodingWhiteIsZeroNecessary(imageData, declaredColorSpace)) {
             return;
         }
         LOG.log(LOG_COLOR_SPACE_MISMATCH ? System.Logger.Level.INFO : System.Logger.Level.TRACE,
                 "GRAY photometric interpretation with White-is-zero color space in JPEG: additional decoding");
-        checkBands(data, 1, imageData);
-        byte[] band0 = data[0];
+        checkBands(channels, 1, imageData);
+        byte[] band0 = channels[0];
         for (int i = 0; i < band0.length; i++) {
             band0[i] = (byte) (~band0[i]);
         }

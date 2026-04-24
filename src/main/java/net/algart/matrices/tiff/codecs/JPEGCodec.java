@@ -30,18 +30,16 @@ import net.algart.matrices.tiff.awt.AWTImages;
 import net.algart.matrices.tiff.awt.JPEGDecoding;
 import net.algart.matrices.tiff.awt.JPEGEncoding;
 import net.algart.matrices.tiff.tags.TagPhotometric;
-import org.scijava.io.handle.DataHandle;
-import org.scijava.io.handle.DataHandleInputStream;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
 
-public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
+public class JPEGCodec implements TiffCodec, TiffCodec.Timing {
     private static final boolean RESTRICT_READING_TOO_LARGE_STRIPS = true;
     // - should be true for normal processing some old-style JPEG files
     private static final System.Logger LOG = System.getLogger(JPEGCodec.class.getName());
@@ -165,16 +163,15 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
     }
 
     @Override
-    public byte[] decompress(DataHandle<?> in, Options options) throws IOException {
-        Objects.requireNonNull(in, "Null input stream");
+    public byte[] decompress(byte[] data, Options options) throws TiffException {
+        Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
         final JPEGCodecReport report = new JPEGCodecReport();
         options.setReport(report);
         report.setTiffPhotometric(options.getPhotometric());
-        final long offset = in.offset();
         long t1 = timing ? System.nanoTime() : 0;
         JPEGDecoding.ImageData imageData;
-        try (InputStream input = new BufferedInputStream(new DataHandleInputStream<>(in), 8192)) {
+        try (InputStream input = new ByteArrayInputStream(data)) {
             imageData = JPEGDecoding.readJPEG(
                     input,
                     RESTRICT_READING_TOO_LARGE_STRIPS && !options.isTiled() ?
@@ -190,8 +187,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
             LOG.log(System.Logger.Level.TRACE, "TIFF JPEG image decoded using standard AWT codec");
         } catch (IOException jpegException) {
             // probably a lossless JPEG; delegate to LosslessJPEGCodec
-            in.seek(offset);
-            byte[] tryLossless = (new LosslessJPEGCodec()).decompress(in, options);
+            byte[] tryLossless = (new LosslessJPEGCodec()).decompress(data, options);
             assert tryLossless != null;
             if (tryLossless.length > 0) {
                 report.setLosslessJPEG(true);
@@ -200,7 +196,7 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
                 return tryLossless;
             }
             // zero length usually means that SOF3 (lossless JPEG) was not found
-            throw jpegException;
+            throw jpegException instanceof TiffException e ? e : new TiffException(jpegException);
         }
         if (imageData == null) {
             throw new TiffException("Cannot read JPEG image: unknown format");
@@ -210,29 +206,30 @@ public class JPEGCodec extends StreamTiffCodec implements TiffCodec.Timing {
         long t2 = timing ? System.nanoTime() : 0;
         timeMain += t2 - t1;
 
-        final byte[][] data = imageData.pixelBytes();
+        final byte[][] channels = imageData.pixelBytes();
 
-        JPEGDecoding.completeDecodingYCbCr(data, imageData, options.getPhotometric(), options.getYCbCrSubsampling());
-        JPEGDecoding.completeDecodingWhiteIsZero(data, imageData, options.getPhotometric());
+        JPEGDecoding.completeDecodingYCbCr(channels, imageData, options.getPhotometric(),
+                options.getYCbCrSubsampling());
+        JPEGDecoding.completeDecodingWhiteIsZero(channels, imageData, options.getPhotometric());
         long t3 = timing ? System.nanoTime() : 0;
         timeBridge += t3 - t2;
 
         final byte[] result;
-        int bandSize = data[0].length;
-        if (data.length == 1) {
-            result = data[0];
+        int bandSize = channels[0].length;
+        if (channels.length == 1) {
+            result = channels[0];
         } else {
-            result = new byte[Math.multiplyExact(data.length, bandSize)];
+            result = new byte[Math.multiplyExact(channels.length, bandSize)];
             if (options.isInterleaved()) {
                 int next = 0;
                 for (int i = 0; i < bandSize; i++) {
-                    for (byte[] bytes : data) {
+                    for (byte[] bytes : channels) {
                         result[next++] = bytes[i];
                     }
                 }
             } else {
-                for (int i = 0; i < data.length; i++) {
-                    System.arraycopy(data[i], 0, result, i * bandSize, bandSize);
+                for (int i = 0; i < channels.length; i++) {
+                    System.arraycopy(channels[i], 0, result, i * bandSize, bandSize);
                 }
             }
         }
