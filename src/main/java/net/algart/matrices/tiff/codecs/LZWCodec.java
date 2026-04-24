@@ -25,13 +25,15 @@
 package net.algart.matrices.tiff.codecs;
 
 import net.algart.matrices.tiff.TiffException;
+import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
+import org.scijava.io.location.BytesLocation;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
 
-public class LZWCodec extends StreamTiffCodec {
+public class LZWCodec implements TiffCodec {
     // (It is placed here to avoid autocorrection by IntelliJ IDEA)
     /*
      * #%L
@@ -245,6 +247,19 @@ public class LZWCodec extends StreamTiffCodec {
      * {@link Options#getMaxSizeInBytes()}.
      */
     @Override
+    public byte[] decompress(byte[] data, Options options) throws TiffException {
+        Objects.requireNonNull(data, "Null data");
+        Objects.requireNonNull(options, "Null codec options");
+        try {
+            try (DataHandle<?> handle = new BytesHandle(new BytesLocation(data))) {
+                return decompress(handle, options);
+            }
+        } catch (IOException e) {
+            throw e instanceof TiffException tiffException ? tiffException : new TiffException(e);
+            // - last variant is very improbable
+        }
+    }
+
     public byte[] decompress(DataHandle<?> in, Options options) throws IOException {
         Objects.requireNonNull(in, "Null input stream");
         Objects.requireNonNull(options, "Null codec options");
