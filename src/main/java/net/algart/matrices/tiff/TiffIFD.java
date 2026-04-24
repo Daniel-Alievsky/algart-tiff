@@ -2134,7 +2134,7 @@ public final class TiffIFD {
         }
         clearCache();
         removeEntries(Tags.IMAGE_WIDTH, Tags.IMAGE_LENGTH);
-        // - to avoid illegal detection of the type
+        // - to avoid illegal detection of the type; we do this always for more stable behavior
         assert dimX == (int) dimX;
         assert dimY == (int) dimY;
         if (!updateWhenEqual

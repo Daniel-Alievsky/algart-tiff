@@ -484,7 +484,30 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
         return owner.completeWriting(this);
     }
 
-    public void updateIFD() throws TiffException {
+    /**
+     * Puts the current tile positions (offsets and byte counts) from the tiles,
+     * present in this map, back into the {@link #ifd() underlying IFD}.
+     *
+     * <p>To do this, this method loads the existing offsets and byte counts via the methods
+     * {@link #ifd()}.{@link TiffIFD#cachedTileOrStripOffsets() cachedTileOrStripOffsets()} and
+     * {@link #ifd()}.{@link TiffIFD#cachedTileOrStripByteCounts() cachedTileOrStripByteCounts()},
+     * accesses all existing tiles via
+     * {@link #get(TiffTileIndex)} to read their
+     * {@link TiffTile#getStoredInFileDataOffset()} and
+     * {@link TiffTile#getStoredInFileDataLength()},
+     * updates the corresponding elements of these two arrays
+     * and writes them into the IFD via
+     * {@link #ifd()}.{@link TiffIFD#putDataPositioningIgnoringFreeze(long[], long[])
+     * putDataPositioningIgnoringFreeze} method.
+     *
+     * <p>This can be useful when you need to synchronize the IFD metadata with
+     * the actual state of the tiles in this map, for example, to create
+     * a new map based on the same IFD.</p>
+     *
+     * @throws IllegalStateException if {@link #isExistingInFile()} returns {@code false}.
+     * @throws TiffException if case of problems with accessing the underlying IFD.
+     */
+    public void putTilePositionsToUnderlyingIFD() throws TiffException {
         if (!isExistingInFile()) {
             throw new IllegalStateException("IFD can be updated only for existing maps");
         }
@@ -502,7 +525,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
         final int n = numberOfGridTiles();
         assert n == gridCountX * gridCountY * numberOfSeparatedPlanes;
         if (offsets.length != n || byteCounts.length != n) {
-            throw new IllegalStateException("IFD offsets and byteCounts has been modified " +
+            throw new IllegalStateException("IFD offsets and byteCounts have been modified " +
                     "after creating this TIFF map: offsets.length = " + offsets.length +
                     ", byteCounts.length = " + byteCounts.length + ", but number of grids = " + n);
         }

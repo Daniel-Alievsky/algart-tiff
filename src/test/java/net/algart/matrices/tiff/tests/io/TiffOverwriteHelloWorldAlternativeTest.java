@@ -64,7 +64,7 @@ public class TiffOverwriteHelloWorldAlternativeTest {
             TiffReadMap readMap = writer.companionReader().map(ifd, false);
             overwriteUsingReadMap(writeMap, readMap, x, y, sizeX, sizeY);
 
-            writeMap.updateIFD();
+            writeMap.putTilePositionsToUnderlyingIFD();
             // 1) necessary to save new tile positions in the IFD (more lightweight call than completeWriting())
 
             readMap = writer.companionReader().map(ifd, false);
