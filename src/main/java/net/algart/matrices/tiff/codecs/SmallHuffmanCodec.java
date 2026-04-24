@@ -30,7 +30,6 @@ import org.scijava.io.location.Location;
 
 import java.awt.image.ColorModel;
 import java.io.IOException;
-import java.util.HashMap;
 
 // Reduced version of the analogous SCIFIO class (for compatibility).
 class SmallHuffmanCodec {
@@ -62,8 +61,11 @@ class SmallHuffmanCodec {
      * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
      * POSSIBILITY OF SUCH DAMAGE.
      * #L%
+     *
+     * This class implements Huffman decoding.
+     *
+     * @author Melissa Linkert
      */
-
 
     // Reduced version of analogous SCIFIO class (for compatibility).
     static class HuffmanCodecOptions {
@@ -80,7 +82,8 @@ class SmallHuffmanCodec {
         double quality;
         boolean ycbcr;
 
-        short[] table;
+        int tableIndex;
+        short[][] table;
     }
 
 
@@ -351,11 +354,12 @@ class SmallHuffmanCodec {
 
     private int leafCounter;
 
-    private final HashMap<short[], Decoder> cachedDecoders = new HashMap<>();
+    private Decoder[] cachedDecoders = new Decoder[0];
 
     // -- Codec API methods --
 
-    public byte[] decompress(DataHandle<Location> in, HuffmanCodecOptions options) throws IOException {
+    // Not used in current version
+    private byte[] decompress(DataHandle<Location> in, HuffmanCodecOptions options) throws IOException {
         if (in == null) throw new IllegalArgumentException(
                 "No data to decompress.");
         if (options == null) {
@@ -388,24 +392,39 @@ class SmallHuffmanCodec {
         if (bb == null) {
             throw new IllegalArgumentException("No data to handle.");
         }
-        Decoder decoder = cachedDecoders.get(options.table);
-        if (decoder == null) {
-            decoder = new Decoder(options.table);
-            cachedDecoders.put(options.table, decoder);
+        if (cachedDecoders.length != options.table.length) {
+            cachedDecoders = new Decoder[options.table.length];
         }
+        Decoder decoder = cachedDecoders[options.tableIndex];
+        if (decoder == null) {
+            decoder = new Decoder(options.table[options.tableIndex]);
+            cachedDecoders[options.tableIndex] = decoder;
+        }
+
 
         int bitCount = decoder.decode(bb);
-        if (bitCount == 16) {
-            return 0x8000;
-        }
-        if (bitCount < 0) bitCount = 0;
-        int pow2 = 1 << bitCount;
-        int v = bb.getBits(bitCount) & (pow2 - 1);
-        if ((v & (1 << (bitCount - 1))) == 0) {
+        int v = bb.getBits(bitCount);
+        // JPEG sign extension (as in libjpeg)
+        int half = 1 << (bitCount - 1);
+        if (v < half) {
+            // if bitCount==0, half will be invalid, but the following correction does nothing: v -= 0
             v -= (1 << bitCount) - 1;
         }
-
         return v;
+/*      Old solution from SCIFIO
+        if (bitCount == 16) {
+            return 0x8000; // - strange hack!
+        }
+        if (bitCount < 0) {
+            bitCount = 0;
+        }
+        int pow2Minus1 = (1 << bitCount) - 1;
+        int v = bb.getBits(bitCount) & pow2Minus1;
+        if ((v & (1 << (bitCount - 1))) == 0) {
+            v -= pow2Minus1;
+        }
+        return v;
+ */
     }
 
     // -- Helper class --

@@ -251,7 +251,7 @@ public class LosslessJPEGCodec implements TiffCodec {
         }
 
         private void decodeScan() throws TiffException {
-            if (unpacked.length == 0) {
+            if (unpacked.length == 0 || huffmanTables == null) {
                 throw new UnsupportedTiffFormatException(
                         "Invalid lossless JPEG stream: SOS marker found before necessary SOF3 marker (0xFFC3)");
             }
@@ -292,18 +292,16 @@ public class LosslessJPEGCodec implements TiffCodec {
                     new SmallHuffmanCodec.HuffmanCodecOptions();
             huffmanOptions.bitsPerSample = bitsPerSample;
             huffmanOptions.maxBytes = planeLength;
+            huffmanOptions.table = new short[samplesPerPixel][];
+            for (int i = 0; i < samplesPerPixel; i++) {
+                huffmanOptions.table[i] = huffmanTables[dcTable[i]];
+            }
 
             final int widthInBytes = width * bytesPerSample;
             final int widthInBytesPlusSample = (width + 1) * bytesPerSample;
             for (int nextSampleIndex = 0; nextSampleIndex < planeLength; nextSampleIndex += bytesPerSample) {
                 for (int i = 0; i < samplesPerPixel; i++) {
-                    if (huffmanTables != null) {
-                        huffmanOptions.table = huffmanTables[dcTable[i]];
-                    }
-                    if (huffmanOptions.table == null) {
-                        throw new UnsupportedTiffFormatException(
-                                "Cannot decode lossless JPEG: arithmetic coding not supported");
-                    }
+                    huffmanOptions.tableIndex = i;
                     int v = huffman.getSample(bb, huffmanOptions);
                     if (nextSampleIndex == 0) {
                         v += 1 << (bitsPerSample - 1);
