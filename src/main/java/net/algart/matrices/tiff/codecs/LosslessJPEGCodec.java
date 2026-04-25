@@ -166,8 +166,8 @@ public class LosslessJPEGCodec implements TiffCodec {
 
         byte[] decode() throws TiffException {
             while (position < stream.length - 1) {
-                final int code = readU16Bit();
-                int length = readU16Bit();
+                final int code = readUInt16();
+                int length = readUInt16();
                 final long savedPosition = this.position;
                 if (length > 0xff00) {
                     length = 0;
@@ -190,8 +190,8 @@ public class LosslessJPEGCodec implements TiffCodec {
                             throw new UnsupportedTiffFormatException("Lossless JPEG: " + bitsPerSample +
                                     " bits/sample is not supported (only 2..16 values are allowed)");
                         }
-                        height = readU16Bit();
-                        width = readU16Bit();
+                        height = readUInt16();
+                        width = readUInt16();
                         samplesPerPixel = readUByte();
                         for (int i = 0; i < samplesPerPixel; i++) {
                             readUByte(); // skipping component ID
@@ -386,7 +386,7 @@ public class LosslessJPEGCodec implements TiffCodec {
             return stream[position++] & 0xFF;
         }
 
-        private int readU16Bit() throws TiffException {
+        private int readUInt16() throws TiffException {
             if (position > stream.length - 2) {
                 throw new TiffException("Cannot decode lossless JPEG: unexpected end of stream data");
             }
