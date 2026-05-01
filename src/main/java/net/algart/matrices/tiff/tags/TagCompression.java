@@ -68,12 +68,6 @@ public enum TagCompression {
     LZW(TiffIFD.COMPRESSION_LZW, "LZW", LZWCodec::new),
 
     /**
-     * "Old-style" (obsolete) JPEG compression (type 6).
-     * Not supported in the current version.
-     */
-    OLD_JPEG(TiffIFD.COMPRESSION_OLD_JPEG, "Old-style JPEG", OldJPEGCodec::new, false),
-
-    /**
      * JPEG compression (type 7).
      */
     JPEG(TiffIFD.COMPRESSION_JPEG, "JPEG", JPEGCodec::new),
@@ -101,6 +95,12 @@ public enum TagCompression {
      */
     JPEG_RGB(TiffIFD.COMPRESSION_JPEG, "JPEG RGB", JPEGCodec::new),
     // - Note: this variant has the same code as the previous one; it must be specified AFTER
+
+    /**
+     * "Old-style" (obsolete) JPEG compression (type 6).
+     * Not supported in the current version.
+     */
+    OLD_JPEG(TiffIFD.COMPRESSION_OLD_JPEG, "Old-style JPEG", OldJPEGCodec::new, JPEG),
 
     /**
      * Zlib deflate compression (ZIP), compatible with ZLib and {@link java.util.zip.DeflaterOutputStream} (type 8).
@@ -134,7 +134,8 @@ public enum TagCompression {
      * <p>For writing, the <code>PhotometricInterpretation</code> will be automatically set
      * to RGB (default value).</p>
      */
-    JPEG_2000(TiffIFD.COMPRESSION_JPEG_2000, "JPEG-2000", JPEG2000Codec::new, true, false),
+    JPEG_2000(TiffIFD.COMPRESSION_JPEG_2000, "JPEG-2000",
+            JPEG2000Codec::new, null, false),
 
     /**
      * The same compression code as in {@link #JPEG_2000},
@@ -144,10 +145,19 @@ public enum TagCompression {
      * but can be useful while writing by {@link net.algart.matrices.tiff.TiffWriter}.</p>
      */
     JPEG_2000_LOSSLESS(TiffIFD.COMPRESSION_JPEG_2000, "JPEG-2000 lossless",
-            JPEG2000Codec::new, true, true),
+            JPEG2000Codec::new, null, true),
     // - Note: this variant has the same code as the previous one;
     // it must be specified AFTER: it can only be a result of setting compression for writing
     // and cannot appear when parsing an existing TIFF.
+
+    /**
+     * JPEG-2000 Aperio compression for RGB (type 33005).
+     *
+     * <p>For writing, the <code>PhotometricInterpretation</code> will be automatically set
+     * to RGB (default value).</p>
+     */
+    JPEG_2000_APERIO(TiffIFD.COMPRESSION_JPEG_2000_APERIO, "JPEG-2000 Aperio 33005",
+            JPEG2000Codec::new, null, false),
 
     /**
      * JPEG-2000 Aperio proprietary compression (type 33003).
@@ -157,7 +167,7 @@ public enum TagCompression {
      * as Aperio requires for type 33003.
      */
     JPEG_2000_APERIO_33003(33003, "JPEG-2000 Aperio proprietary 33003",
-            JPEG2000Codec::new, false, false),
+            JPEG2000Codec::new, JPEG_2000_APERIO, false),
 
     /**
      * JPEG-2000 Aperio compression (type 33004, probably lossless).
@@ -165,16 +175,7 @@ public enum TagCompression {
      * <p>Note {@link net.algart.matrices.tiff.TiffWriter} does not support this compression.</p>
      */
     JPEG_2000_APERIO_33004(33004, "JPEG-2000 Aperio 33004 lossless",
-            JPEG2000Codec::new, false, true),
-
-    /**
-     * JPEG-2000 Aperio compression for RGB (type 33005).
-     *
-     * <p>For writing, the <code>PhotometricInterpretation</code> will be automatically set
-     * to RGB (default value).</p>
-     */
-    JPEG_2000_APERIO(TiffIFD.COMPRESSION_JPEG_2000_APERIO, "JPEG-2000 Aperio 33005",
-            JPEG2000Codec::new, true, false),
+            JPEG2000Codec::new, JPEG_2000_APERIO, true),
 
     /**
      * Apple ThunderScan RLE compression (type 32809).
@@ -182,7 +183,7 @@ public enum TagCompression {
      * <p>Note {@link net.algart.matrices.tiff.TiffWriter} does not support this compression.
      */
     THUNDER_SCAN(TiffIFD.COMPRESSION_THUNDER_SCAN, "Apple ThunderScan",
-            ThunderScanCodec::new, false),
+            ThunderScanCodec::new, DEFLATE),
 
     /**
      * NeXT RLE compression (type 32766).
@@ -296,26 +297,28 @@ public enum TagCompression {
     private final String name;
     private final Supplier<TiffCodec> codec;
     private final Boolean jpeg2000Lossless;
-    private final boolean writingSupported;
+    private final TagCompression nearestWriteable;
 
     TagCompression(int code, String name, Supplier<TiffCodec> codec) {
-        this(code, name, codec, true, null);
+        this(code, name, codec, null);
     }
 
-    TagCompression(int code, String name, Supplier<TiffCodec> codec, boolean writingSupported) {
-        this(code, name, codec, writingSupported, null);
+    TagCompression(int code, String name, Supplier<TiffCodec> codec, TagCompression nearestWriteable) {
+        this(code, name, codec, nearestWriteable, null);
     }
 
     TagCompression(
             int code,
             String name,
             Supplier<TiffCodec> codec,
-            boolean writingSupported,
+            TagCompression nearestWriteable,
             Boolean jpeg2000Lossless) {
         this.code = code;
         this.name = Objects.requireNonNull(name);
         this.codec = codec;
-        this.writingSupported = ALWAYS_ALLOW_WRITING || writingSupported;
+        this.nearestWriteable = ALWAYS_ALLOW_WRITING || nearestWriteable == null ?
+                null :
+                nearestWriteable;
         this.jpeg2000Lossless = jpeg2000Lossless;
     }
 
@@ -386,7 +389,9 @@ public enum TagCompression {
     }
 
     /**
-     * Extended codec (must be able to work without context).
+     * Returns the codec.
+     *
+     * @see #isSupported()
      */
     public TiffCodec codec() {
         return codec == null ? null : codec.get();
@@ -460,8 +465,46 @@ public enum TagCompression {
         // - current version of JAI ImageIO (jai-imageio-jpeg2000) cannot write JPEG-2000 in YCbCr color space
     }
 
+    /**
+     * Returns this compression type if it {@link #isWritingSupported() supports writing}, or the most closely
+     * related type supporting writing otherwise.
+     *
+     * <p>In most cases, this method simply returns this object. However, for
+     * obsolete or proprietary formats that cannot be written (such as {@link #OLD_JPEG}
+     * or {@link #THUNDER_SCAN}), it returns a functional equivalent that can be recommended
+     * for writing instead of this type (for example, {@link #JPEG} for {@link #OLD_JPEG}
+     * or {@link #DEFLATE} for {@link #THUNDER_SCAN}).
+     *
+     * <p>The returned value is guaranteed to have {@link #isWritingSupported()}
+     * returning {@code true}. If no specific related type is defined for an
+     * unsupported format, {@link #NONE} is returned as a safe fallback.
+     *
+     * @return the nearest writeable compression type; never {@code null}.
+     * @see #isWritingSupported()
+     */
+    public TagCompression nearestWriteable() {
+        return nearestWriteable != null ? nearestWriteable : codec != null ? this : NONE;
+    }
+
+    /**
+     * Returns {@code true} if this compression type is supported (at least) for reading
+     * via the class {@link net.algart.matrices.tiff.TiffReader}.
+     * Equivalent to <code>{@link #codec()}&nbsp;!=&nbsp;null</code>.
+     *
+     * @return whether this compression type can be read.
+     */
+    public boolean isSupported() {
+        return codec != null;
+    }
+
+    /**
+     * Returns {@code true} if this compression type is supported both for reading and writing
+     * via the classes {@link net.algart.matrices.tiff.TiffReader} and {@link net.algart.matrices.tiff.TiffWriter}.
+     *
+     * @return whether this compression type can be read and written.
+     */
     public boolean isWritingSupported() {
-        return writingSupported && codec != null;
+        return nearestWriteable == null && codec != null;
     }
 
     public boolean isCompressionQualitySupported() {

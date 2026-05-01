@@ -35,8 +35,9 @@ public class TagCompressionTest {
             TagCompression requiredCompression,
             int requiredCode,
             boolean requiredContains) throws TiffException {
-        if (ifd.optCompression().orElse(null) != requiredCompression) {
-            throw new AssertionError("Invalid compression " + ifd.optCompression());
+        final var compression = ifd.optCompression();
+        if (compression.orElse(null) != requiredCompression) {
+            throw new AssertionError("Invalid compression " + compression);
         }
         if (ifd.getCompressionCode() != requiredCode) {
             throw new AssertionError("Invalid code = " + ifd.optPredictorCode());
@@ -44,8 +45,15 @@ public class TagCompressionTest {
         if (ifd.containsKey(Tags.COMPRESSION) != requiredContains) {
             throw new AssertionError("Invalid containsKey() = " + ifd.containsKey(Tags.COMPRESSION));
         }
-        System.out.printf("Compression: %s, code: %d, \"%s\"%n",
-                ifd.optCompression(), ifd.getCompressionCode(), ifd.compressionPrettyName());
+        //noinspection OptionalIsPresent
+        System.out.printf("Compression:%n    %s%n    code: %d%n    \"%s\"%n    writing: %s%n",
+                compression.isEmpty() ? "unknown" : compression.get().name(),
+                ifd.getCompressionCode(),
+                ifd.compressionPrettyName(),
+                compression.isEmpty() ? "n/a" :
+                        compression.get().isWritingSupported() ?
+                        "supported" :
+                        "not supported, nearest with support: " + compression.get().nearestWriteable());
     }
 
     public static void main(String[] args) throws TiffException {

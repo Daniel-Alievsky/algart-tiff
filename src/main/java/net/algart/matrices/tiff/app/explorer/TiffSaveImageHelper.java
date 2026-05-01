@@ -230,8 +230,7 @@ class TiffSaveImageHelper {
         final TiffReadMap map = viewer.map();
         final int ifdIndex = viewer.ifdIndex();
         final TagCompression originalCompression = map.compression().orElse(TagCompression.NONE);
-        final boolean originalCompressionSupported = originalCompression.isWritingSupported();
-        final TagCompression compression = !originalCompressionSupported ? TagCompression.NONE : originalCompression;
+        final TagCompression compression = originalCompression.nearestWriteable();
 
         settingsDialog = new JDialog(frame);
         settingsDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
@@ -318,7 +317,7 @@ class TiffSaveImageHelper {
         settingsGrid.add(compressionMethodComboBox);
         settingsGrid.setMaximumSize(new Dimension(Integer.MAX_VALUE, settingsGrid.getPreferredSize().height));
         settingsWithCommentsPanel.add(settingsGrid);
-        if (!originalCompressionSupported) {
+        if (!originalCompression.isWritingSupported()) {
             final JLabel compressionMethodComment = TinySwing.leftLabel("""
                     <html>Note: the original compression method<br>
                     &nbsp;&nbsp;&nbsp;&nbsp;"%s"<br>
