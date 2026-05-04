@@ -2,7 +2,7 @@
   <configuration default="false" name="TiffIFDAndIFDOffsetsTest" type="Application" factoryName="Application" nameIsGenerated="true">
     <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.tests.misc.TiffIFDAndIFDOffsetsTest" />
     <module name="algart-tiff" />
-    <option name="PROGRAM_PARAMETERS" value="src/test/resources/demo/images/tiff/libtiff/test/images/tiff_with_subifd_chain.tif  1" />
+    <option name="PROGRAM_PARAMETERS" value="src/test/resources/demo/images/tiff/libtiff/test/images/tiff_with_subifd_chain.tif 1" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="net.algart.matrices.tiff.tests.misc.*" />

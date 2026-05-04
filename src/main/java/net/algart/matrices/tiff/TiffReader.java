@@ -1145,25 +1145,46 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     /**
-     * Returns the file offset of IFD with given index or <code>-1</code> if the index is too high.
+     * Returns the file offset of the regular IFD with given index
+     * or throws an exception if the index is too high.
      * Updates {@link #positionOfLastIFDOffset()} to position of this offset.
      *
-     * <p>This method works only with {@link TiffIFD#isMainIFD() regular IFDs} (not sub-IFDs).
+     * <p>This method works only with {@link TiffIFD#isMainIFD() regular IFDs} (main, not sub-IFDs).
      * So, this index must be in the range <code>0..{@link #numberOfMainIFDs()}-1</code>.</p>
      *
-     * @param ifdIndex index of IFD (0, 1, ...).
-     * @return offset of this IFD in the file or <code>-1</code> if the index is too high.
+     * @param mainIFDIndex index of regular IFD (0, 1, ...).
+     * @return offset of this IFD in the file.
+     * @throws IllegalArgumentException if the index is negative.
+     * @throws TiffException if the index is too high.
      */
-    public long readMainIFDOffset(int ifdIndex) throws IOException {
-        if (ifdIndex < 0) {
-            throw new IllegalArgumentException("Negative IFD index = " + ifdIndex);
+    public long readMainIFDOffset(final int mainIFDIndex) throws IOException {
+        long result = tryToReadMainIFDOffset(mainIFDIndex);
+        if (result == -1) {
+            throw new TiffException("No main IFD #" + mainIFDIndex + " in TIFF" + spacedStreamName()
+                    + ": too large index");
+        }
+        return result;
+    }
+
+    /**
+     * Equivalent to {@link #readMainIFDOffset(int)} besides that this method returns {@code -1}
+     * instead of throwing exception when the IFD index is too high.
+     *
+     * @param mainIFDIndex index of regular IFD (0, 1, ...).
+     * @return offset of this IFD in the file.
+     * @throws IllegalArgumentException if the index is negative.
+     */
+    public long tryToReadMainIFDOffset(final int mainIFDIndex) throws IOException {
+        if (mainIFDIndex < 0) {
+            throw new IllegalArgumentException("Negative IFD index = " + mainIFDIndex);
         }
         synchronized (fileLock()) {
             final long fileLength = stream.length();
             long offset = readFirstIFDOffset();
 
+            int index = mainIFDIndex;
             while (offset > 0 && offset < fileLength) {
-                if (ifdIndex-- <= 0) {
+                if (index-- <= 0) {
                     return offset;
                 }
                 stream.seek(offset);
@@ -1213,7 +1234,7 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     /**
-     * Returns the IFD with given index or <code>-1</code> if the index is too high.
+     * Returns the IFD with given index or throws an exception if the index is too high.
      * Updates {@link #positionOfLastIFDOffset()} to position of this offset.
      *
      * <p>This method works only with {@link TiffIFD#isMainIFD() regular IFDs} (not sub-IFDs).
@@ -1221,14 +1242,12 @@ public non-sealed class TiffReader extends TiffIO {
      *
      * @param mainIFDIndex index of regular IFD (0, 1, ...).
      * @return the selected IFD.
-     * @throws TiffException if the index is too low ot too high.
+     * @throws IllegalArgumentException if the index is negative.
+     * @throws TiffException if the index is too high.
      */
     public TiffIFD readMainIFD(int mainIFDIndex) throws IOException {
         long startOffset = readMainIFDOffset(mainIFDIndex);
-        if (startOffset < 0) {
-            throw new TiffException("No main IFD #" + mainIFDIndex + " in TIFF" + spacedStreamName()
-                    + ": too large index");
-        }
+        assert startOffset >= 0;
         // - note: we do not call setIndexInList(mainIFDIndex),
         // becase this index will DIFFER from the index inside the allIFDs() list
         return readIFDAt(startOffset);

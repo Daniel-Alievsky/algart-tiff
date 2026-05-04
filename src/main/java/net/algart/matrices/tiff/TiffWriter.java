@@ -704,7 +704,7 @@ public non-sealed class TiffWriter extends TiffIO {
 
     /**
      * Returns <code>{@link #companionReader()}.{@link TiffReader#numberOfMainIFDs() numberOfMainIFDs()}</code>.
-     * This is the number of existing IFDs that can be read by {@link #existingIFD(int)} method.
+     * This is the number of existing regular IFDs that can be read by {@link #existingIFD(int)} method.
      *
      * @return the number of existing main IFDs (not sub-IFDs).
      */
@@ -918,6 +918,7 @@ public non-sealed class TiffWriter extends TiffIO {
             } else {
                 @SuppressWarnings("resource") final TiffReader reader = companionReader();
                 reader.readMainIFDOffset(mainIFDIndex);
+                // - also checks that mainIFDIndex is not too high
                 position = reader.positionOfLastIFDOffset();
             }
             writeIFDOffsetAt(mainIFDOffset, position, false);
@@ -1695,6 +1696,39 @@ public non-sealed class TiffWriter extends TiffIO {
             // - restoring IFD sequence
         } else {
             this.overwriteIFDInPlace(changedIFD);
+        }
+    }
+
+    public void deleteIFD(int mainIFDIndex) throws IOException {
+        if (mainIFDIndex < 0) {
+            throw new IllegalArgumentException("Negative IFD index: " + mainIFDIndex);
+        }
+        //noinspection resource
+        List<TiffIFD> ifds = companionReader().mainIFDs();
+        int numberOfImages = ifds.size();
+        if (mainIFDIndex >= numberOfImages) {
+            throw new TiffException("No main IFD #" + mainIFDIndex + " in TIFF" + spacedStreamName()
+                    + ": too large index");
+        }
+        if (numberOfImages == 1) {
+            throw new TiffException("Cannot delete the only existing TIFF image");
+        }
+        LOG.log(System.Logger.Level.DEBUG,
+                () -> "IFD #%d/%d deleted".formatted(mainIFDIndex, numberOfImages));
+        if (mainIFDIndex == 0) {
+            // so, mainIFDIndex + 1 <= numberOfImages
+            long nextIFDOffset = ifds.get(mainIFDIndex + 1).getFileOffsetForReading();
+            writeIFDOffsetAt(nextIFDOffset, positionOfFirstIFDOffset(), false);
+        } else {
+            final TiffIFD ifd = new TiffIFD(ifds.get(mainIFDIndex - 1));
+            ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
+            if (mainIFDIndex == numberOfImages - 1) {
+                ifd.removeNextIFDOffset();
+            } else {
+                ifd.setNextIFDOffset(ifds.get(mainIFDIndex + 1).getFileOffsetForReading());
+            }
+            this.overwriteIFDInPlace(ifd);
+            //TODO!! bad idea! cannot overwrite in place in a foreign file
         }
     }
 
