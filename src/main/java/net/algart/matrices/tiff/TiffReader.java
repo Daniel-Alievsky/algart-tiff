@@ -404,8 +404,8 @@ public non-sealed class TiffReader extends TiffIO {
 
     private TiffReader(DataHandle<?> inputStream, Path file, Consumer<Exception> exceptionHandler) {
         super(inputStream instanceof ReadBufferDataHandle ?
-                inputStream :
-                new ReadBufferDataHandle<>(inputStream),
+                        inputStream :
+                        new ReadBufferDataHandle<>(inputStream),
                 file);
         // - Note: the argument inputStream cannot be ReadBufferDataHandle if we use TiffWriter.newReader method.
         // ReadBufferDataHandle is read-only (cannot write anything), so it cannot be used in TiffWriter.
@@ -866,7 +866,7 @@ public non-sealed class TiffReader extends TiffIO {
 
     /**
      * Returns position in the file of the last IFD offset, loaded by {@link #readIFDOffsets()},
-     * {@link #readSingleIFDOffset(int)} or {@link #readFirstIFDOffset()} methods.
+     * {@link #readMainIFDOffset(int)} or {@link #readFirstIFDOffset()} methods.
      * Usually it is just a position of the last IFD offset, because
      * popular {@link #allIFDs()} method calls {@link #readIFDOffsets()} inside.
      *
@@ -1018,7 +1018,10 @@ public non-sealed class TiffReader extends TiffIO {
      * (But caching can be disabled using {@link #setCachingIFDs(boolean)} method).
      *
      * <p>Note: this method returns also the child sub-IFDs of a regular IFD (they are added directly after it).
-     * To retrive only main IFDs without the child ones, please use {@link #mainIFDs()}</p>.
+     * To retrieve only main IFDs without the child ones, please use {@link #mainIFDs()}</p>.
+     *
+     * <p>Note: this method does not work recursively and does not read nested sub-IFDs of other sub-IFDs
+     * (an extremely rare situation in typical TIFF).</p>
      *
      * <p>Note: if this TIFF file is not valid ({@link #isValidTiff()} returns <code>false</code>), this method
      * returns an empty list and does not throw an exception.
@@ -1026,6 +1029,8 @@ public non-sealed class TiffReader extends TiffIO {
      *
      * @throws TiffException if the file is not a correct TIFF file, but this was not detected while opening it.
      * @throws IOException   in the case of any problems with the input file.
+     * @see #mainIFDs()
+     * @see #exifIFDs()
      */
     public List<TiffIFD> allIFDs() throws IOException {
         long t1 = debugTime();
@@ -1043,10 +1048,10 @@ public non-sealed class TiffReader extends TiffIO {
             allIFDs = new ArrayList<>();
             final ArrayList<TiffIFD> mainIFDs = new ArrayList<>();
 
-            for (long offset : offsets) {
-                final TiffIFD ifd = readIFDAt(offset);
+            for (int i = 0; i < offsets.length; i++) {
+                final TiffIFD ifd = readIFDAt(offsets[i]);
                 assert ifd != null;
-                ifd.setGlobalIndex(allIFDs.size());
+                ifd.setGlobalIndexes(allIFDs.size(), i);
                 allIFDs.add(ifd);
                 mainIFDs.add(ifd);
                 long[] subOffsets = null;
@@ -1062,7 +1067,7 @@ public non-sealed class TiffReader extends TiffIO {
                     for (long subOffset : subOffsets) {
                         final TiffIFD subIFD = readIFDAt(subOffset, Tags.SUB_IFD, false);
                         assert subIFD != null;
-                        subIFD.setGlobalIndex(allIFDs.size());
+                        subIFD.setGlobalIndexes(allIFDs.size(), null);
                         allIFDs.add(subIFD);
                     }
                 }
@@ -1111,7 +1116,7 @@ public non-sealed class TiffReader extends TiffIO {
 
 
     /**
-     * Returns EXIF IFDs.
+     * Reads and returns all EXIF IFDs.
      */
     public List<TiffIFD> exifIFDs() throws IOException {
         final List<TiffIFD> ifds = allIFDs();
@@ -1143,13 +1148,13 @@ public non-sealed class TiffReader extends TiffIO {
      * Returns the file offset of IFD with given index or <code>-1</code> if the index is too high.
      * Updates {@link #positionOfLastIFDOffset()} to position of this offset.
      *
-     * <p>This method works only with regular IFDs (not sub-IFDs).
+     * <p>This method works only with {@link TiffIFD#isMainIFD() regular IFDs} (not sub-IFDs).
      * So, this index must be in the range <code>0..{@link #numberOfMainIFDs()}-1</code>.</p>
      *
      * @param ifdIndex index of IFD (0, 1, ...).
      * @return offset of this IFD in the file or <code>-1</code> if the index is too high.
      */
-    public long readSingleIFDOffset(int ifdIndex) throws IOException {
+    public long readMainIFDOffset(int ifdIndex) throws IOException {
         if (ifdIndex < 0) {
             throw new IllegalArgumentException("Negative IFD index = " + ifdIndex);
         }
@@ -1207,13 +1212,24 @@ public non-sealed class TiffReader extends TiffIO {
         }
     }
 
-    public TiffIFD readSingleIFD(int ifdIndex) throws IOException {
-        long startOffset = readSingleIFDOffset(ifdIndex);
+    /**
+     * Returns the IFD with given index or <code>-1</code> if the index is too high.
+     * Updates {@link #positionOfLastIFDOffset()} to position of this offset.
+     *
+     * <p>This method works only with {@link TiffIFD#isMainIFD() regular IFDs} (not sub-IFDs).
+     * So, this index must be in the range <code>0..{@link #numberOfMainIFDs()}-1</code>.</p>
+     *
+     * @param mainIFDIndex index of regular IFD (0, 1, ...).
+     * @return the selected IFD.
+     * @throws TiffException if the index is too low ot too high.
+     */
+    public TiffIFD readMainIFD(int mainIFDIndex) throws IOException {
+        long startOffset = readMainIFDOffset(mainIFDIndex);
         if (startOffset < 0) {
-            throw new TiffException("No IFD #" + ifdIndex + " in TIFF" + spacedStreamName()
+            throw new TiffException("No main IFD #" + mainIFDIndex + " in TIFF" + spacedStreamName()
                     + ": too large index");
         }
-        // - note: we do not call setIndexInList(ifdIndex),
+        // - note: we do not call setIndexInList(mainIFDIndex),
         // becase this index will DIFFER from the index inside the allIFDs() list
         return readIFDAt(startOffset);
     }
@@ -1226,7 +1242,7 @@ public non-sealed class TiffReader extends TiffIO {
         return readIFDAt(startOffset, null, true);
     }
 
-    public TiffIFD readIFDAt(long startOffset, Integer subIFDType, boolean readNextOffset) throws IOException {
+    public TiffIFD readIFDAt(long startOffset, final Integer subIFDType, boolean readNextOffset) throws IOException {
         if (startOffset < 0) {
             throw new IllegalArgumentException("Negative file offset = " + startOffset);
         }
@@ -1706,7 +1722,7 @@ public non-sealed class TiffReader extends TiffIO {
                                                     " + %.3f decode-bridge + %.3f decode-additional",
                                                     timeDecodingBridge * 1e-6,
                                                     timeDecodingAdditional * 1e-6) :
-                                            "") : "",
+                                    "") : "",
                     timeCompleteDecoding * 1e-6,
                     timeNonClassified * 1e-6,
                     unpackingBits ?

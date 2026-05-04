@@ -87,10 +87,10 @@ public class TiffIFDAndIFDOffsetsTest {
             System.out.printf("  Position of last IFD offset: %d%n", reader.positionOfLastIFDOffset());
 
             t1 = System.nanoTime();
-            long offset = reader.readSingleIFDOffset(ifdIndex);
+            long offset = reader.readMainIFDOffset(ifdIndex);
             t2 = System.nanoTime();
             System.out.printf(Locale.US,
-                    "readSingleIFDOffset(%d): %d (%.6f mcs)%n", ifdIndex, offset, (t2 - t1) * 1e-3);
+                    "readMainIFDOffset(%d): %d (%.6f mcs)%n", ifdIndex, offset, (t2 - t1) * 1e-3);
             System.out.printf("  Position of last IFD offset: %d%n", reader.positionOfLastIFDOffset());
 
             t1 = System.nanoTime();
@@ -127,10 +127,10 @@ public class TiffIFDAndIFDOffsetsTest {
             System.out.printf("  Position of last IFD offset: %d%n", reader.positionOfLastIFDOffset());
 
             t1 = System.nanoTime();
-            TiffIFD ifd = reader.readSingleIFD(ifdIndex);
+            TiffIFD ifd = reader.readMainIFD(ifdIndex);
             t2 = System.nanoTime();
             System.out.printf(Locale.US,
-                    "readSingleIFD(%d): %s (%.6f mcs)%n", ifdIndex, ifd, (t2 - t1) * 1e-3);
+                    "readMainIFD(%d): %s (%.6f mcs)%n", ifdIndex, ifd, (t2 - t1) * 1e-3);
             System.out.printf("  Position of last IFD offset: %d%n", reader.positionOfLastIFDOffset());
         }
 

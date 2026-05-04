@@ -92,7 +92,7 @@ public class TagDescription {
     }
 
     public String formatName(boolean pretty) {
-        return pretty ? "Additional description" : "description";
+        return pretty ? "Image description" : "description";
     }
 
     /**

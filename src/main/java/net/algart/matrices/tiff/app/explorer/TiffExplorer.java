@@ -111,7 +111,7 @@ public class TiffExplorer {
     }
 
     public boolean isInitialized() {
-        int index = frame.selectedImage();
+        final int index = frame.selectedImage();
         return isInitialized(index);
     }
 
@@ -199,7 +199,7 @@ public class TiffExplorer {
     }
 
     void showImageWindow() {
-        int index = frame.selectedImage();
+        final int index = frame.selectedImage();
         if (!isInitialized(index)) {
             return;
         }
@@ -214,8 +214,9 @@ public class TiffExplorer {
     }
 
     void showEditDescriptionDialog() {
-        int index = frame.selectedImage();
-        if (!isInitialized(index)) {
+        final int index = frame.selectedImage();
+        final int mainIndex = checkInitializedMainIfd(index);
+        if (mainIndex == -1) {
             return;
         }
 
@@ -276,7 +277,7 @@ public class TiffExplorer {
         okButton.addActionListener(event -> {
             String newDescription = descriptionArea.getText();
             try {
-                changeDescription(index, newDescription.isEmpty() ? null : newDescription);
+                changeDescription(mainIndex, newDescription.isEmpty() ? null : newDescription);
             } catch (Exception e) {
                 TinySwing.showErrorMessage(frame, e, "Error updating ImageDescription");
             }
@@ -296,8 +297,9 @@ public class TiffExplorer {
     }
 
     void showRewritePhotometricDialog() {
-        int index = frame.selectedImage();
-        if (!isInitialized(index)) {
+        final int index = frame.selectedImage();
+        final int mainIndex = checkInitializedMainIfd(index);
+        if (mainIndex == -1) {
             return;
         }
 
@@ -368,7 +370,7 @@ public class TiffExplorer {
                 return;
             }
             try {
-                replacePhotometric(index, ifd, selectedItem.code);
+                replacePhotometric(mainIndex, ifd, selectedItem.code);
             } catch (Exception e) {
                 TinySwing.showErrorMessage(frame, e, "Error updating IFD");
             }
@@ -388,8 +390,9 @@ public class TiffExplorer {
     }
 
     void showRemoveTagsDialog() {
-        int index = frame.selectedImage();
-        if (!isInitialized(index)) {
+        final int index = frame.selectedImage();
+        final int mainIndex = checkInitializedMainIfd(index);
+        if (mainIndex == -1) {
             return;
         }
 
@@ -463,7 +466,7 @@ public class TiffExplorer {
             okButton.addActionListener(event -> {
                 List<Integer> tagsToRemove = selectedTags(tagsToSelect);
                 try {
-                    if (!removeTags(index, tagsToRemove)) {
+                    if (!removeTags(mainIndex, tagsToRemove)) {
                         return;
                     }
                 } catch (Exception e) {
@@ -494,9 +497,9 @@ public class TiffExplorer {
         new JTiffExplorerAboutDialog(frame).setVisible(true);
     }
 
-    private void changeDescription(int index, String newDescription) throws IOException {
+    private void changeDescription(int mainIndex, String newDescription) throws IOException {
         try (TiffWriter writer = new TiffWriter(tiffFile, TiffCreateMode.OPEN_EXISTING)) {
-            writer.updateDescription(index, newDescription);
+            writer.updateDescription(mainIndex, newDescription);
         }
         frame.reload();
     }
@@ -513,7 +516,7 @@ public class TiffExplorer {
                 .map(Map.Entry::getKey).collect(Collectors.toList());
     }
 
-    private boolean removeTags(int index, Collection<Integer> tags) throws IOException {
+    private boolean removeTags(int mainIndex, Collection<Integer> tags) throws IOException {
         if (tags.isEmpty()) {
             return true;
         }
@@ -533,7 +536,7 @@ public class TiffExplorer {
             return false;
         }
         try (TiffWriter writer = new TiffWriter(tiffFile, TiffCreateMode.OPEN_EXISTING)) {
-            writer.updateIFD(index, ifd -> {
+            writer.updateIFD(mainIndex, ifd -> {
                 for (int tag : tags) {
                     ifd.remove(tag);
                 }
@@ -546,7 +549,7 @@ public class TiffExplorer {
         return true;
     }
 
-    private void replacePhotometric(int index, TiffIFD existingIFD, Integer photometricCode) throws IOException {
+    private void replacePhotometric(int mainIndex, TiffIFD existingIFD, Integer photometricCode) throws IOException {
         final boolean addYCbCrSubSampling;
         if (photometricCode != null
                 && photometricCode == TiffIFD.PHOTOMETRIC_INTERPRETATION_Y_CB_CR
@@ -573,7 +576,7 @@ public class TiffExplorer {
             addYCbCrSubSampling = false;
         }
         try (TiffWriter writer = new TiffWriter(tiffFile, TiffCreateMode.OPEN_EXISTING)) {
-            writer.updateIFD(index, ifd -> {
+            writer.updateIFD(mainIndex, ifd -> {
                 final Integer existing = ifd.hasPhotometric() ? ifd.optPhotometricCode(-1) : null;
                 if (Objects.equals(existing, photometricCode)) {
                     return TiffIFD.UpdateResult.UNCHANGED;
@@ -590,6 +593,26 @@ public class TiffExplorer {
 
     private boolean isInitialized(int index) {
         return tiffFile != null && info != null &&  index >= 0 && index < info.numberOfImages();
+    }
+
+    private int checkInitializedMainIfd(int index) {
+        if (!isInitialized(index)) {
+            return -1;
+        }
+        final TiffIFD ifd = info.metadata().ifd(index);
+        if (!ifd.hasGlobalIndex() || index != ifd.getGlobalIndex()) {
+            throw new AssertionError("Invalid global index != " + ifd.getGlobalIndex());
+        }
+        if (!ifd.isMainIFD()) {
+            JOptionPane.showMessageDialog(frame,
+                    "This operation is not supported for sub-IFD",
+                    "Cannot edit sub-IFD", JOptionPane.WARNING_MESSAGE);
+            return -1;
+        }
+        if (!ifd.hasGlobalMainIndex()) {
+            throw new AssertionError("No global main index");
+        }
+        return ifd.getGlobalMainIndex();
     }
 
     static void setTiffExplorerIcon(JFrame frame) {

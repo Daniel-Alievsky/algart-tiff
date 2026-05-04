@@ -187,6 +187,7 @@ public class MakeSvs {
                 .putChannelsInformation(image)
                 .putCompression(this.compression)
                 .setGlobalIndex(index);
+        // - note: the global index is used by SvsDescription.Builder
         TiffPyramidMetadata.correctForSpecialKinds(ifd, kind);
         SvsDescription.Builder builder = new SvsDescription.Builder();
         builder.applicationSuffix("(test)");

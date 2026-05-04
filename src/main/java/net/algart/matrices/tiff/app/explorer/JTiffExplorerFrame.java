@@ -449,6 +449,9 @@ public class JTiffExplorerFrame extends JFrame {
         String[] captions = new String[info.numberOfImages()];
         for (int i = 0; i < info.numberOfImages(); i++) {
             final TiffIFD ifd = metadata.ifd(i);
+            if (!ifd.hasGlobalIndex() || ifd.getGlobalIndex() != i) {
+                throw new AssertionError("Invalid global index "+ + ifd.getGlobalIndex());
+            }
             String caption;
             try {
                 caption = (ifd.isMainIFD() ? "" : "  ") +

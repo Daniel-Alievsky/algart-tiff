@@ -315,6 +315,7 @@ public final class TiffIFD {
     private boolean littleEndian = false;
     private boolean bigTiff = false;
     private Integer globalIndex = null;
+    private Integer globalMainIndex = null;
     private long fileOffsetForReading = -1;
     private long fileOffsetForWriting = -1;
     private long nextIFDOffset = -1;
@@ -445,18 +446,58 @@ public final class TiffIFD {
     }
 
     /**
-     * Returns the index of this IFD in the list of all IFDs in the TIFF file.
+     * Returns the index of this IFD in the list of all IFDs in the TIFF file,
+     * available via the {@link TiffReader#allIFDs()} method.
      * This index is set automatically by {@link TiffReader} class, but this is {@code null}
      * after creating this object.
+     * <p>Note that this index stays {@code null} for EXIF sub-IFDs loaded by {@link TiffReader#exifIFDs()} method.
      *
-     * @return the index of this IFD in the list of all IFDs in the TIFF file, or {@code null} if not set.
+     * @return the index of this IFD in the list of all IFDs, or {@code null} if not set.
      */
     public Integer getGlobalIndex() {
         return globalIndex;
     }
 
-    public TiffIFD setGlobalIndex(Integer globalIndex) {
+    public boolean hasGlobalMainIndex() {
+        return globalMainIndex != null;
+    }
+
+    /**
+     * Returns the index of this IFD in the list of all {@link #isMainIFD() main} IFDs
+     * in the TIFF file, or throws an exception if this is a sub-IFD.
+     * This index is set automatically by {@link TiffReader} class, but this is {@code null}
+     * after creating this object.
+     *
+     * @return the index of this main IFD, or {@code null} if not set.
+     * @throws IllegalStateException if this IFD is not {@link #isMainIFD() main}.
+     */
+    public Integer getGlobalMainIndex() {
+        if (!isMainIFD()) {
+            throw new IllegalStateException("Cannot get main index: this is sub-IFD");
+        }
+        return globalMainIndex;
+    }
+
+    /**
+     * Sets both the global main index and global index to the same value.
+     * This is a convenience method for the typical case when the TIFF
+     * does not contain any sub-IFDs.
+     *
+     * @param globalMainIndex the index of this IFD in the list of all IFDs
+     *                        (assuming all of them are {@link #isMainIFD() main IFDs}).
+     * @return a reference to this object.
+     */
+    public TiffIFD setGlobalIndex(Integer globalMainIndex) {
+        return setGlobalIndexes(globalMainIndex, globalMainIndex);
+    }
+
+    public TiffIFD setGlobalIndexes(Integer globalIndex, Integer globalMainIndex) {
+        if (globalMainIndex != null && globalIndex == null) {
+            throw new IllegalArgumentException("globalMainIndex is " + globalMainIndex +
+                    ", but globalIndex is null: this is impossible");
+        }
         this.globalIndex = globalIndex;
+        this.globalMainIndex = globalMainIndex;
         return this;
     }
 
@@ -551,6 +592,12 @@ public final class TiffIFD {
         return this;
     }
 
+    /**
+     * Returns {@code true} if this is a regular IFD (not sub-IFD).
+     * Equivalent to <code>{@link #getSubIFDType()}&nbsp;==&nbsp;null</code>.
+     *
+     * @return whether this IFD is a regular (main) IFD.
+     */
     public boolean isMainIFD() {
         return subIFDType == null;
     }

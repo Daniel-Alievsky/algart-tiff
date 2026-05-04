@@ -895,32 +895,32 @@ public non-sealed class TiffWriter extends TiffIO {
      * This method is useful if you want to organize the sequence of IFD inside the file manually,
      * without automatically updating IFD linkage.
      *
-     * @param ifdIndex  the index of the main IFD (sub-IFDs are ignored here).
-     * @param ifdOffset new IFD offset; must be positive.
+     * @param mainIFDIndex  the index of the main IFD (sub-IFDs are ignored here).
+     * @param mainIFDOffset new IFD offset; must be positive.
      * @throws IOException           in the case of any I/O errors.
      * @throws IllegalStateException if this file is not yet opened
      *                               (<code>{@link #positionOfLastIFDOffset()}==-1</code>).
      */
-    public void rewriteIFDOffset(int ifdIndex, long ifdOffset) throws IOException {
+    public void rewriteIFDOffset(int mainIFDIndex, long mainIFDOffset) throws IOException {
         synchronized (fileLock()) {
-            if (ifdIndex < 0) {
-                throw new IllegalArgumentException("Negative IFD index: " + ifdIndex);
+            if (mainIFDIndex < 0) {
+                throw new IllegalArgumentException("Negative IFD index: " + mainIFDIndex);
             }
-            if (ifdOffset <= 0) {
-                throw new IllegalArgumentException("Zero or negative IFD offset " + ifdOffset);
+            if (mainIFDOffset <= 0) {
+                throw new IllegalArgumentException("Zero or negative IFD offset " + mainIFDOffset);
             }
             if (positionOfLastIFDOffset < 0) {
                 throw new IllegalStateException("The TIFF file is not yet open");
             }
             long position;
-            if (ifdIndex == 0) {
+            if (mainIFDIndex == 0) {
                 position = positionOfFirstIFDOffset();
             } else {
                 @SuppressWarnings("resource") final TiffReader reader = companionReader();
-                reader.readSingleIFDOffset(ifdIndex);
+                reader.readMainIFDOffset(mainIFDIndex);
                 position = reader.positionOfLastIFDOffset();
             }
-            writeIFDOffsetAt(ifdOffset, position, false);
+            writeIFDOffsetAt(mainIFDOffset, position, false);
             // - last argument is not so important: the positionOfLastIFDOffset will not change in any case
         }
     }
@@ -1278,20 +1278,20 @@ public non-sealed class TiffWriter extends TiffIO {
 
     /**
      * Reads IFD by
-     * <code>{@link #companionReader()}.{@link TiffReader#readSingleIFD(int) readSingleIFD(ifdIndex)}</code>
+     * <code>{@link #companionReader()}.{@link TiffReader#readMainIFD(int) readMainIFD(mainIFDIndex)}</code>
      * and sets its {@link TiffIFD#setFileOffsetForWriting(long) offset-for-writing}
      * to be equal to the {@link TiffIFD#getFileOffsetForReading() offset-for-reading}.
      *
-     * @param ifdIndex index of the TIFF image.
+     * @param mainIFDIndex index of the {@link TiffIFD#isMainIFD() main IFD} the TIFF image.
      * @return the IFD with the specified index.
-     * @throws TiffException if <code>ifdIndex</code> is too large
+     * @throws TiffException if <code>mainIFDIndex</code> is too large
      *                       (&ge;{@link #numberOfExistingImages()}),
      *                       or if the file is not a correct TIFF file,
      *                       and this was not detected while opening it.
      */
-    public TiffIFD existingIFD(int ifdIndex) throws IOException {
+    public TiffIFD existingIFD(int mainIFDIndex) throws IOException {
         @SuppressWarnings("resource") final TiffReader reader = companionReader();
-        final TiffIFD ifd = reader.readSingleIFD(ifdIndex);
+        final TiffIFD ifd = reader.readMainIFD(mainIFDIndex);
         // - no sense to read and cache all IFD: this reader will probably be cleared after TIFF changes
         ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
         return ifd;
@@ -1651,28 +1651,28 @@ public non-sealed class TiffWriter extends TiffIO {
         return count;
     }
 
-    public TiffIFD updateDescription(int ifdIndex, String description) throws IOException {
-        return updateIFD(ifdIndex, ifd -> ifd.updateDescription(description));
+    public TiffIFD updateDescription(int mainIFDIndex, String description) throws IOException {
+        return updateIFD(mainIFDIndex, ifd -> ifd.updateDescription(description));
     }
 
-    public TiffIFD updateIFD(int ifdIndex, Function<TiffIFD, TiffIFD.UpdateResult> updater) throws IOException {
+    public TiffIFD updateIFD(int mainIFDIndex, Function<TiffIFD, TiffIFD.UpdateResult> updater) throws IOException {
         Objects.requireNonNull(updater, "Null updater");
-        final TiffIFD ifd = this.existingIFD(ifdIndex);
+        final TiffIFD ifd = this.existingIFD(mainIFDIndex);
         final TiffIFD changedIFD = new TiffIFD(ifd);
         final TiffIFD.UpdateResult placement = updater.apply(changedIFD);
-        updateIFD(ifdIndex, changedIFD, placement);
+        updateIFD(mainIFDIndex, changedIFD, placement);
         return changedIFD;
     }
 
-    public void updateIFD(int ifdIndex, TiffIFD changedIFD, TiffIFD.UpdateResult placement) throws IOException {
+    public void updateIFD(int mainIFDIndex, TiffIFD changedIFD, TiffIFD.UpdateResult placement) throws IOException {
         Objects.requireNonNull(changedIFD, "Null changed IFD");
         Objects.requireNonNull(placement, "Null IFD placement");
-        if (ifdIndex < 0) {
-            throw new IllegalArgumentException("Negative IFD index: " + ifdIndex);
+        if (mainIFDIndex < 0) {
+            throw new IllegalArgumentException("Negative IFD index: " + mainIFDIndex);
         }
         LOG.log(System.Logger.Level.DEBUG,
                 () -> "IFD #%d/%d %s".formatted(
-                        ifdIndex,
+                        mainIFDIndex,
                         this.numberOfExistingImages(),
                         switch (placement) {
                             case UNCHANGED -> "unchanged";
@@ -1691,7 +1691,7 @@ public non-sealed class TiffWriter extends TiffIO {
             // But there is no sense to optimize this exotic situation.
             final long p = this.writeIFDAtFileEnd(changedIFD);
             // Note: we ignore sub-IFDs here. So, this method is not absolutely universal.
-            this.rewriteIFDOffset(ifdIndex, p);
+            this.rewriteIFDOffset(mainIFDIndex, p);
             // - restoring IFD sequence
         } else {
             this.overwriteIFDInPlace(changedIFD);
