@@ -447,15 +447,24 @@ public final class TiffIFD {
 
     /**
      * Returns the index of this IFD in the list of all IFDs in the TIFF file,
-     * available via the {@link TiffReader#allIFDs()} method.
-     * This index is set automatically by {@link TiffReader} class, but this is {@code null}
+     * available via the {@link TiffReader#allIFDs()} method,
+     * or throws an exception if this index is not set.
+
+     * <p>Note: this index is set automatically by the {@link TiffReader} class, but is not set
      * after creating this object.
-     * <p>Note that this index stays {@code null} for EXIF sub-IFDs loaded by {@link TiffReader#exifIFDs()} method.
      *
-     * @return the index of this IFD in the list of all IFDs, or {@code null} if not set.
+     * <p>Note that this index is never set for EXIF sub-IFDs loaded by {@link TiffReader#exifIFDs()} method,
+     * so an attempt to use this method for EXIF IFD will throw an exception.
+     *
+     * @return the index of this IFD in the list of all IFDs.
+     * @throws IllegalStateException if this index is not set.
      */
-    public Integer getGlobalIndex() {
-        return globalIndex;
+    public int getGlobalIndex() {
+        Integer result = globalIndex;
+        if (result == null) {
+            throw new IllegalStateException("Global IFD index is not set");
+        }
+        return result;
     }
 
     public boolean hasGlobalMainIndex() {
@@ -464,18 +473,23 @@ public final class TiffIFD {
 
     /**
      * Returns the index of this IFD in the list of all {@link #isMainIFD() main} IFDs
-     * in the TIFF file, or throws an exception if this is a sub-IFD.
-     * This index is set automatically by {@link TiffReader} class, but this is {@code null}
+     * in the TIFF file, or throws an exception if this is a sub-IFD or if this index is not set.
+     *
+     * <p>Note: this index is set automatically by the {@link TiffReader} class, but is not set
      * after creating this object.
      *
-     * @return the index of this main IFD, or {@code null} if not set.
-     * @throws IllegalStateException if this IFD is not {@link #isMainIFD() main}.
+     * @return the index of this main IFD.
+     * @throws IllegalStateException if this IFD is not {@link #isMainIFD() main} or if this index is not set.
      */
-    public Integer getGlobalMainIndex() {
+    public int getGlobalMainIndex() {
         if (!isMainIFD()) {
-            throw new IllegalStateException("Cannot get main index: this is sub-IFD");
+            throw new IllegalStateException("Cannot get main IFD index: this is sub-IFD");
         }
-        return globalMainIndex;
+        Integer result = globalMainIndex;
+        if (result == null) {
+            throw new IllegalStateException("Global main IFD index is not set");
+        }
+        return result;
     }
 
     /**
@@ -507,7 +521,7 @@ public final class TiffIFD {
 
     public long getFileOffsetForReading() {
         if (fileOffsetForReading < 0) {
-            throw new IllegalStateException("IFD offset of the TIFF tile is not set while reading");
+            throw new IllegalStateException("IFD offset is not set while reading");
         }
         return fileOffsetForReading;
     }
@@ -531,7 +545,7 @@ public final class TiffIFD {
 
     public long getFileOffsetForWriting() {
         if (fileOffsetForWriting < 0) {
-            throw new IllegalStateException("IFD offset of the TIFF tile for writing is not set");
+            throw new IllegalStateException("IFD offset for writing is not set");
         }
         return fileOffsetForWriting;
     }
@@ -610,7 +624,7 @@ public final class TiffIFD {
      * Sets the "type" of this IFD if this is not a main IFD, but sub-IFD or EXIF IFD.
      * This is an informational field only and does not affect the behavior.
      *
-     * <p>This field is set automatically by {@link TiffReader} class.
+     * <p>This field is set automatically by the {@link TiffReader} class.
      *
      * <p>Note that {@link TiffWriter} cannot write sub-IFD or EXIF IFD: the corresponding tags
      * are automatically removed by {@link TiffWriter#newMap(TiffIFD, boolean, boolean)} method.
