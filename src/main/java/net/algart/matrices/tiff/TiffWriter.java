@@ -1933,9 +1933,9 @@ public non-sealed class TiffWriter extends TiffIO {
                 extraBuffer.writeDouble(doubleValue);
             }
         } else {
-            if (value instanceof TiffIFD.UnsupportedTypeValue) {
-                stream.writeShort(TagTypes.UNDEFINED);
-                // - let unknown tag be UNDEFINED
+            if (value instanceof TiffIFD.UnsupportedTypeValue unsupported) {
+                stream.writeShort(unsupported.type());
+                // - but we don't know the sense of its valueOrOffset field; it is better to write "0 elements"
                 writeIntOrLong(stream, 0);
                 for (int i = 0; i < dataLength; i++) {
                     stream.writeByte(0);
