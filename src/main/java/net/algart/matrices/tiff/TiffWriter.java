@@ -1687,11 +1687,14 @@ public non-sealed class TiffWriter extends TiffIO {
         final BytesLocation bytesLocation = new BytesLocation(0, "memory-buffer");
         final long fileOffsetOfNextOffset;
         try (final DataHandle<?> extraBuffer = getBytesHandle(bytesLocation)) {
+//            System.out.println("!!!" + stream.offset());
             extraBuffer.setLittleEndian(isLittleEndian());
             for (final Map.Entry<Integer, Object> e : ifd.entrySet()) {
+//                System.out.println(">> " + e.getKey() + ": " + stream.offset());
                 writeIFDValueAtCurrentOffset(extraBuffer, afterMain, e.getKey(), e.getValue());
             }
 
+//            System.out.println(">>>" + stream.offset());
             fileOffsetOfNextOffset = stream.offset();
             writeOffset(TiffIFD.LAST_IFD_OFFSET);
             // - not too important: will be rewritten in writeIFDNextOffset
@@ -1929,13 +1932,20 @@ public non-sealed class TiffWriter extends TiffIO {
             for (final double doubleValue : q) {
                 extraBuffer.writeDouble(doubleValue);
             }
-        } else if (!(value instanceof TiffIFD.UnsupportedTypeValue)) {
-            // - for unsupported type, we don't know the sense of its valueOrOffset field; it is better to skip it
-            throw new UnsupportedOperationException("Unknown IFD tag " + tag + " value type ("
-                    + value.getClass().getSimpleName() + "): " + value);
+        } else {
+            if (value instanceof TiffIFD.UnsupportedTypeValue) {
+                stream.writeShort(TagTypes.UNDEFINED);
+                // - let unknown tag be UNDEFINED
+                writeIntOrLong(stream, 0);
+                for (int i = 0; i < dataLength; i++) {
+                    stream.writeByte(0);
+                }
+            } else {
+                throw new UnsupportedOperationException("Unknown IFD tag " + tag + " value type ("
+                        + value.getClass().getSimpleName() + "): " + value);
+            }
         }
     }
-
 
     private void writeIFDNextOffsetAt(TiffIFD ifd, long fileOffsetToWrite, boolean updateFileOffsetOfLastIFDOffset)
             throws IOException {
