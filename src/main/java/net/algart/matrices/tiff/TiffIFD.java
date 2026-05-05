@@ -2792,7 +2792,7 @@ public final class TiffIFD {
         }
         if (!json) {
             if (hasFileOffsetForReading()) {
-                sb.append(", reading offset @%d=0x%X".formatted(fileOffsetForReading, fileOffsetForReading));
+                sb.append(", IFD starts at @%d=0x%X".formatted(fileOffsetForReading, fileOffsetForReading));
             }
             if (hasFileOffsetForWriting()) {
                 sb.append(", writing offset @%d=0x%X".formatted(fileOffsetForWriting, fileOffsetForWriting));

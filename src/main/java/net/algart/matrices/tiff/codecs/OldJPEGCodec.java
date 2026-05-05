@@ -28,6 +28,7 @@ import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffIO;
 import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import net.algart.matrices.tiff.awt.JPEGDecoding;
+import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.Tags;
 import org.scijava.io.handle.DataHandle;
 
@@ -41,9 +42,15 @@ public class OldJPEGCodec implements TiffCodec {
     private static final int DHT_DC_CLASS = 0;
     private static final int DHT_AC_CLASS = 1;
 
+    /**
+     * Note: this implementation only delegates to {@link JPEGCodec#compress(byte[], Options)}.
+     * This is <b>not</b> a valid implementation for {@link TagCompression#OLD_JPEG},
+     * so {@link TagCompression#isWritingSupported()} method returns {@code false} for this constant.
+     * But this is better than nothing.
+     */
     @Override
     public byte[] compress(byte[] data, Options options) throws TiffException {
-        throw new UnsupportedTiffFormatException("Old-style JPEG compression is not supported");
+        return new JPEGCodec().compress(data, options);
     }
 
     @Override

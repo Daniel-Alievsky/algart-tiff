@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff.demo.io;
 
+import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tiles.TiffTile;
@@ -56,14 +57,13 @@ public class TiffOverwriteHelloWorldDemo {
         final int sizeY = 50;
         // - estimated sizes sufficient for "Hello, world!"
         try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
-            // writer.setAlwaysWriteToFileEnd(true); // - should not affect the results
-            writer.updateDescription(ifdIndex, "Overwritten");
-            // - should not destroy the results despite the "true" flag
+//             writer.setAlwaysWriteToFileEnd(true); // - should not affect the results
             final TiffWriteMap writeMap = writer.existingMap(ifdIndex);
             overwrite(writeMap, x, y, sizeX, sizeY);
             overwrite(writeMap, x + sizeX / 2, y + sizeY / 2, sizeX, sizeY);
             overwrite(writeMap, x + sizeX / 2, y - sizeY / 2, sizeX, sizeY);
             int m = writeMap.completeWriting();
+            writer.updateDescription(ifdIndex, "Overwritten");
             System.out.printf("Completed %d tile, file length: %d%n", m, writeMap.fileLength());
             // - should be 0, because all tiles were preloaded
             if (m != 0) {

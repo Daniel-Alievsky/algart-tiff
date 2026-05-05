@@ -162,7 +162,6 @@ public non-sealed class TiffReader extends TiffIO {
     private volatile boolean existingFile;
     private volatile boolean validTiff;
     private volatile boolean tiff;
-    private volatile boolean bigTiff;
 
     /**
      * Cached list of IFDs in the current file.
@@ -177,7 +176,7 @@ public non-sealed class TiffReader extends TiffIO {
 
     private TiffCodec.Options codecOptions = new TiffCodec.Options();
 
-    private volatile long positionOfLastIFDOffset = -1;
+    private volatile long fileOffsetOfLastIFDOffset = -1;
 
     private final Map<TiffTileIndex, CachedTile> tileCacheMap = new HashMap<>();
     private final Queue<CachedTile> tileCache = new LinkedList<>();
@@ -478,7 +477,7 @@ public non-sealed class TiffReader extends TiffIO {
                 clearTileCache();
                 this.allIFDs = null;
                 this.mainIFDs = null;
-                this.positionOfLastIFDOffset = -1;
+                this.fileOffsetOfLastIFDOffset = -1;
                 if (!(stream instanceof ReadBufferDataHandle<?>)) {
                     throw new AssertionError(
                             "Input stream was not correctly replaced in the constructor");
@@ -829,15 +828,6 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     /**
-     * Returns whether this file is a BigTIFF file (i.e., whether it contains the BigTIFF file header).
-     *
-     * @return whether this is a BigTIFF.
-     */
-    public boolean isBigTiff() {
-        return bigTiff;
-    }
-
-    /**
      * Returns whether we are reading little-endian data.
      *
      * @return whether this is a little-endian TIFF.
@@ -856,15 +846,6 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     /**
-     * Returns position in the file of the first IFD offset: 8 for {@link #isBigTiff() BigTIFF}, 4 for a usual TIFF.
-     *
-     * @return position in the file of the first IFD offset.
-     */
-    public long positionOfFirstIFDOffset() {
-        return bigTiff ? 8L : 4L;
-    }
-
-    /**
      * Returns position in the file of the last IFD offset, loaded by {@link #readIFDOffsets()},
      * {@link #readMainIFDOffset(int)} or {@link #readFirstIFDOffset()} methods.
      * Usually it is just a position of the last IFD offset, because
@@ -874,8 +855,8 @@ public non-sealed class TiffReader extends TiffIO {
      *
      * @return file position of the last IFD offset.
      */
-    public long positionOfLastIFDOffset() {
-        return positionOfLastIFDOffset;
+    public long fileOffsetOfLastIFDOffset() {
+        return fileOffsetOfLastIFDOffset;
     }
 
     /**
@@ -1135,19 +1116,19 @@ public non-sealed class TiffReader extends TiffIO {
 
     /**
      * Gets offset to the first IFD.
-     * Updates {@link #positionOfLastIFDOffset()} to the position of first offset (4, for Bit-TIFF 8).
+     * Updates {@link #fileOffsetOfLastIFDOffset()} to the position of first offset (4, for Bit-TIFF 8).
      */
     public long readFirstIFDOffset() throws IOException {
         synchronized (fileLock()) {
-            stream.seek(positionOfFirstIFDOffset());
-            return readFirstOffsetFromCurrentPosition(true, this.bigTiff);
+            stream.seek(fileOffsetOfFirstIFDOffset());
+            return readFirstOffsetFromCurrentOffset(true, this.bigTiff);
         }
     }
 
     /**
      * Returns the file offset of the regular IFD with given index
      * or throws an exception if the index is too high.
-     * Updates {@link #positionOfLastIFDOffset()} to position of this offset.
+     * Updates {@link #fileOffsetOfLastIFDOffset()} to position of this offset.
      *
      * <p>This method works only with {@link TiffIFD#isMainIFD() regular IFDs} (main, not sub-IFDs).
      * So, this index must be in the range <code>0..{@link #numberOfMainIFDs()}-1</code>.</p>
@@ -1235,7 +1216,7 @@ public non-sealed class TiffReader extends TiffIO {
 
     /**
      * Returns the IFD with given index or throws an exception if the index is too high.
-     * Updates {@link #positionOfLastIFDOffset()} to position of this offset.
+     * Updates {@link #fileOffsetOfLastIFDOffset()} to position of this offset.
      *
      * <p>This method works only with {@link TiffIFD#isMainIFD() regular IFDs} (not sub-IFDs).
      * So, this index must be in the range <code>0..{@link #numberOfMainIFDs()}-1</code>.</p>
@@ -1307,8 +1288,8 @@ public non-sealed class TiffReader extends TiffIO {
                     detailedEntries.put(tag, entry);
                 }
             }
-            final long positionOfNextOffset = startOffset + baseOffset + bytesPerEntry * numberOfEntries;
-            stream.seek(positionOfNextOffset);
+            final long fileOffsetOfNextOffset = startOffset + baseOffset + bytesPerEntry * numberOfEntries;
+            stream.seek(fileOffsetOfNextOffset);
 
             ifd = new TiffIFD(map, detailedEntries);
             ifd.setLoadedFromFile(true);
@@ -1319,7 +1300,7 @@ public non-sealed class TiffReader extends TiffIO {
             if (readNextOffset) {
                 final long nextOffset = readNextOffset(false);
                 ifd.setNextIFDOffset(nextOffset);
-                stream.seek(positionOfNextOffset);
+                stream.seek(fileOffsetOfNextOffset);
                 // - this "in.seek" provides maximal compatibility with old code (which did not read next IFD offset)
                 // and also with the behavior of this method, when readNextOffset is not requested
             }
@@ -1339,7 +1320,7 @@ public non-sealed class TiffReader extends TiffIO {
      * Calls {@link #readTile(TiffTileIndex)} with the same argument with caching, if this was enabled
      * by {@link #setCaching(boolean)} method.
      *
-     * @param tileIndex position of the file.
+     * @param tileIndex coordinates of the tile.
      * @return loaded tile.
      * @throws IOException in the case of any problems with the input file.
      */
@@ -1355,7 +1336,7 @@ public non-sealed class TiffReader extends TiffIO {
      * <p>Note: the loaded tile is always {@link TiffTile#isSeparated() separated}.
      * <p>Note: this method does not cache tiles.
      *
-     * @param tileIndex position of the file.
+     * @param tileIndex coordinates of the tile.
      * @return loaded tile.
      * @throws IOException in the case of any problems with the input file.
      * @see #readCachedTile(TiffTileIndex)
@@ -2183,17 +2164,17 @@ public non-sealed class TiffReader extends TiffIO {
         synchronized (fileLock()) {
             final long savedOffset = stream.offset();
             try {
-                stream.seek(positionOfFirstIFDOffset());
-                readFirstOffsetFromCurrentPosition(false, this.bigTiff);
+                stream.seek(fileOffsetOfFirstIFDOffset());
+                readFirstOffsetFromCurrentOffset(false, this.bigTiff);
             } finally {
                 stream.seek(savedOffset);
             }
         }
     }
 
-    private long readFirstOffsetFromCurrentPosition(boolean updatePositionOfLastOffset, boolean bigTiff)
+    private long readFirstOffsetFromCurrentOffset(boolean updateFileOffsetOfLastOffset, boolean bigTiff)
             throws IOException {
-        final long offset = readNextOffset(updatePositionOfLastOffset, bigTiff);
+        final long offset = readNextOffset(updateFileOffsetOfLastOffset, bigTiff);
         if (offset == 0) {
             throw new TiffException("Uncompleted TIFF" + spacedStreamName() +
                     ": the file does not contain any images; " +
@@ -2222,8 +2203,8 @@ public non-sealed class TiffReader extends TiffIO {
         stream.skipBytes((int) skippedIFDBytes);
     }
 
-    private long readNextOffset(boolean updatePositionOfLastOffset) throws IOException {
-        return readNextOffset(updatePositionOfLastOffset, this.bigTiff);
+    private long readNextOffset(boolean updateFileOffsetOfLastOffset) throws IOException {
+        return readNextOffset(updateFileOffsetOfLastOffset, this.bigTiff);
     }
 
     /**
@@ -2232,7 +2213,7 @@ public non-sealed class TiffReader extends TiffIO {
      * For other Tiffs, a 32-bit number is read and possibly adjusted for a possible carry-over
      * from the previous offset.
      */
-    private long readNextOffset(boolean updatePositionOfLastOffset, boolean bigTiff)
+    private long readNextOffset(boolean updateFileOffsetOfLastOffset, boolean bigTiff)
             throws IOException {
         final long fileLength = stream.length();
         final long fileOffset = stream.offset();
@@ -2261,15 +2242,15 @@ public non-sealed class TiffReader extends TiffIO {
         }
         if (offset < 0) {
             // - possibly in BigTIFF only
-            throw new TiffException(("Invalid TIFF%s: negative 64-bit offset %d (0x%X) at file position %d, " +
+            throw new TiffException(("Invalid TIFF%s: negative 64-bit IFD offset %d (0x%X) at file position %d, " +
                     "probably the file is corrupted").formatted(spacedStreamName(), offset, offset, fileOffset));
         }
         if (offset >= fileLength) {
-            throw new TiffException(("Invalid TIFF%s: offset %d (0x%X) at file position %d is outside the file, " +
-                    "probably the is corrupted").formatted(spacedStreamName(), offset, offset, fileOffset));
+            throw new TiffException(("Invalid TIFF%s: IFD offset %d (0x%X) at file position %d is outside " +
+                    "the file, probably the is corrupted").formatted(spacedStreamName(), offset, offset, fileOffset));
         }
-        if (updatePositionOfLastOffset) {
-            this.positionOfLastIFDOffset = fileOffset;
+        if (updateFileOffsetOfLastOffset) {
+            this.fileOffsetOfLastIFDOffset = fileOffset;
         }
         return offset;
     }

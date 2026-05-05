@@ -2,7 +2,7 @@
   <configuration default="false" name="TiffExtractTileContent" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.demo.io.TiffExtractTileContent" />
     <module name="algart-tiff" />
-    <option name="PROGRAM_PARAMETERS" value="src/test/resources/demo/images/tiff/openslide/CMU-1-Small-Region.svs /tmp/tile.jpg 0 5 7" />
+    <option name="PROGRAM_PARAMETERS" value="/tmp/test.tiff /tmp/tile.jpg 0 0 0" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>

@@ -66,6 +66,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     private final Object fileLock = new Object();
 
     volatile Object context = null;
+    volatile boolean bigTiff = false;
+
     volatile Object scifio = null;
     private volatile CodecReport lastCodecReport = null;
 
@@ -88,16 +90,10 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     }
 
     /**
-     * Returns the input/output stream for operation with this TIFF file.
-     *
-     * @return the {@link DataHandle} for this TIFF file; never {@code null}.
-     * @see #fileLock()
+     * Returns whether we are writing BigTIFF data.
      */
-    public DataHandle<?> stream() {
-        synchronized (fileLock) {
-            // - we prefer not to return this stream in the middle of I/O operations
-            return stream;
-        }
+    public boolean isBigTiff() {
+        return bigTiff;
     }
 
     /**
@@ -120,6 +116,19 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      */
     public Optional<Path> path() {
         return Optional.ofNullable(filePath);
+    }
+
+    /**
+     * Returns the input/output stream for operation with this TIFF file.
+     *
+     * @return the {@link DataHandle} for this TIFF file; never {@code null}.
+     * @see #fileLock()
+     */
+    public DataHandle<?> stream() {
+        synchronized (fileLock) {
+            // - we prefer not to return this stream in the middle of I/O operations
+            return stream;
+        }
     }
 
     public String streamName() {
@@ -159,6 +168,17 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             return 0;
         }
     }
+
+    /**
+     * Returns position in the file of the first IFD offset:
+     * 8 for {@link TiffReader#isBigTiff() BigTIFF}, 4 for a usual TIFF.
+     *
+     * @return position in the file of the first IFD offset.
+     */
+    public long fileOffsetOfFirstIFDOffset() {
+        return bigTiff ? 8L : 4L;
+    }
+
 
     public TiffReader newReader(TiffOpenMode openMode) throws IOException {
         return new TiffReader(stream, openMode, false);
