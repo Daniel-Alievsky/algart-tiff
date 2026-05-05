@@ -316,7 +316,8 @@ public final class TiffIFD {
     private boolean bigTiff = false;
     private Integer globalIndex = null;
     private Integer globalMainIndex = null;
-    private long fileOffsetForReading = -1;
+    private long fileOffsetOfIFD = -1;
+    private long fileOffsetOfNextIFDOffset = -1;
     private long fileOffsetForWriting = -1;
     private long nextIFDOffset = -1;
     private Integer subIFDType = null;
@@ -338,7 +339,8 @@ public final class TiffIFD {
         loadedFromFile = ifd.loadedFromFile;
         // skipping copying littleEndian, bigTiff: they are attributes of the file, not of the IFD
         // skipping copying indexInIFDList: the copy will be probably placed into another list at another position
-        fileOffsetForReading = ifd.fileOffsetForReading;
+        fileOffsetOfIFD = ifd.fileOffsetOfIFD;
+        fileOffsetOfNextIFDOffset = ifd.fileOffsetOfNextIFDOffset;
         fileOffsetForWriting = ifd.fileOffsetForWriting;
         nextIFDOffset = ifd.nextIFDOffset;
         subIFDType = ifd.subIFDType;
@@ -515,27 +517,58 @@ public final class TiffIFD {
         return this;
     }
 
-    public boolean hasFileOffsetForReading() {
-        return fileOffsetForReading >= 0;
+    public boolean hasFileOffsetOfIFD() {
+        return fileOffsetOfIFD >= 0;
     }
 
-    public long getFileOffsetForReading() {
-        if (fileOffsetForReading < 0) {
-            throw new IllegalStateException("IFD offset is not set while reading");
+    public long getFileOffsetOfIFD() {
+        if (fileOffsetOfIFD < 0) {
+            throw new IllegalStateException("IFD file offset is not set while reading");
         }
-        return fileOffsetForReading;
+        return fileOffsetOfIFD;
     }
 
-    public TiffIFD setFileOffsetForReading(long fileOffsetForReading) {
-        if (fileOffsetForReading < 0) {
-            throw new IllegalArgumentException("Negative IFD offset in the file: " + fileOffsetForReading);
+    public TiffIFD setFileOffsetOfIFD(long fileOffsetOfIFD) {
+        if (fileOffsetOfIFD < 0) {
+            throw new IllegalArgumentException("Negative IFD file offset: " + fileOffsetOfIFD);
         }
-        this.fileOffsetForReading = fileOffsetForReading;
+        this.fileOffsetOfIFD = fileOffsetOfIFD;
         return this;
     }
 
-    public TiffIFD removeFileOffsetForReading() {
-        this.fileOffsetForReading = -1;
+    public TiffIFD removeFileOffsetOfIFD() {
+        this.fileOffsetOfIFD = -1;
+        return this;
+    }
+
+    /**
+     * Returns {@code true} if the file offset of the next IFD offset is set.
+     * Note that it is always {@code false} for sub-IFD or EXIF IFD.
+     *
+     * @return whether the file offset of the next IFD offset is set.
+     */
+    public boolean hasFileOffsetOfNextIFDOffset() {
+        return fileOffsetOfNextIFDOffset >= 0;
+    }
+
+    public long getFileOffsetOfNextIFDOffset() {
+        if (fileOffsetOfNextIFDOffset < 0) {
+            throw new IllegalStateException("File offset of the next IFD offset is not set while reading");
+        }
+        return fileOffsetOfNextIFDOffset;
+    }
+
+    public TiffIFD setFileOffsetOfNextIFDOffset(long fileOffsetOfNextIFDOffset) {
+        if (fileOffsetOfNextIFDOffset < 0) {
+            throw new IllegalArgumentException("Negative file offset of the next IFD offset: " +
+                    fileOffsetOfNextIFDOffset);
+        }
+        this.fileOffsetOfNextIFDOffset = fileOffsetOfNextIFDOffset;
+        return this;
+    }
+
+    public TiffIFD removeFileOffsetOfNextIFDOffset() {
+        this.fileOffsetOfNextIFDOffset = -1;
         return this;
     }
 
@@ -2791,14 +2824,19 @@ public final class TiffIFD {
                     " [cannot detect additional information: " + e.getMessage() + "]");
         }
         if (!json) {
-            if (hasFileOffsetForReading()) {
-                sb.append(", IFD starts at @%d=0x%X".formatted(fileOffsetForReading, fileOffsetForReading));
+            if (hasFileOffsetOfIFD()) {
+                sb.append(", IFD starts at @%d=0x%X".formatted(fileOffsetOfIFD, fileOffsetOfIFD));
             }
             if (hasFileOffsetForWriting()) {
                 sb.append(", writing offset @%d=0x%X".formatted(fileOffsetForWriting, fileOffsetForWriting));
             }
+            if (hasFileOffsetOfNextIFDOffset()) {
+                sb.append(", next link is at @%d=0x%X ->".formatted(
+                        fileOffsetOfNextIFDOffset, fileOffsetOfNextIFDOffset));
+            }
             if (hasNextIFDOffset()) {
-                sb.append(isLastIFD() ? ", LAST" : ", next IFD at @%d=0x%X".formatted(nextIFDOffset, nextIFDOffset));
+                sb.append(isLastIFD() ? " END" : " @%d=0x%X".formatted(
+                        nextIFDOffset, nextIFDOffset));
             }
         }
     }

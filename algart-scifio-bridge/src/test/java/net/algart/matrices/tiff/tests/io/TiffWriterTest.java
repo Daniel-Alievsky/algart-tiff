@@ -377,7 +377,7 @@ public class TiffWriterTest {
                         // but DataHandle has not any analogs of flush() method.
                         final TiffReader reader = writer.companionReader();
                         ifd = reader.readMainIFD(ifdIndex);
-                        ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
+                        ifd.setFileOffsetForWriting(ifd.getFileOffsetOfIFD());
                     }
                     if (overwriteExisting && preserveOld) {
                         boolean breakOldChain = numberOfImages > 1;

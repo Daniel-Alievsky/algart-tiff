@@ -1288,19 +1288,20 @@ public non-sealed class TiffReader extends TiffIO {
                     detailedEntries.put(tag, entry);
                 }
             }
-            final long fileOffsetOfNextOffset = startOffset + baseOffset + bytesPerEntry * numberOfEntries;
-            stream.seek(fileOffsetOfNextOffset);
+            final long fileOffsetOfNextIFDOffset = startOffset + baseOffset + bytesPerEntry * numberOfEntries;
+            stream.seek(fileOffsetOfNextIFDOffset);
 
             ifd = new TiffIFD(map, detailedEntries);
             ifd.setLoadedFromFile(true);
             ifd.setLittleEndian(stream.isLittleEndian());
             ifd.setBigTiff(bigTiff);
-            ifd.setFileOffsetForReading(startOffset);
+            ifd.setFileOffsetOfIFD(startOffset);
             ifd.setSubIFDType(subIFDType);
             if (readNextOffset) {
                 final long nextOffset = readNextOffset(false);
+                ifd.setFileOffsetOfNextIFDOffset(fileOffsetOfNextIFDOffset);
                 ifd.setNextIFDOffset(nextOffset);
-                stream.seek(fileOffsetOfNextOffset);
+                stream.seek(fileOffsetOfNextIFDOffset);
                 // - this "in.seek" provides maximal compatibility with old code (which did not read next IFD offset)
                 // and also with the behavior of this method, when readNextOffset is not requested
             }

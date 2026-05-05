@@ -1112,7 +1112,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * Reads IFD by
      * <code>{@link #companionReader()}.{@link TiffReader#readMainIFD(int) readMainIFD(mainIFDIndex)}</code>
      * and sets its {@link TiffIFD#setFileOffsetForWriting(long) offset-for-writing}
-     * to be equal to the {@link TiffIFD#getFileOffsetForReading() offset-for-reading}.
+     * to be equal to the {@link TiffIFD#getFileOffsetOfIFD() offset-for-reading}.
      *
      * @param mainIFDIndex index of the {@link TiffIFD#isMainIFD() main IFD} the TIFF image.
      * @return the IFD with the specified index.
@@ -1125,7 +1125,7 @@ public non-sealed class TiffWriter extends TiffIO {
         @SuppressWarnings("resource") final TiffReader reader = companionReader();
         final TiffIFD ifd = reader.readMainIFD(mainIFDIndex);
         // - no sense to read and cache all IFD: this reader will probably be cleared after TIFF changes
-        ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
+        ifd.setFileOffsetForWriting(ifd.getFileOffsetOfIFD());
         return ifd;
     }
 
@@ -1548,15 +1548,15 @@ public non-sealed class TiffWriter extends TiffIO {
                 () -> "IFD #%d/%d deleted".formatted(mainIFDIndex, numberOfImages));
         if (mainIFDIndex == 0) {
             // so, mainIFDIndex + 1 <= numberOfImages
-            long nextIFDOffset = ifds.get(mainIFDIndex + 1).getFileOffsetForReading();
+            long nextIFDOffset = ifds.get(mainIFDIndex + 1).getFileOffsetOfIFD();
             writeIFDOffsetAt(nextIFDOffset, fileOffsetOfFirstIFDOffset(), false);
         } else {
             final TiffIFD ifd = new TiffIFD(ifds.get(mainIFDIndex - 1));
-            ifd.setFileOffsetForWriting(ifd.getFileOffsetForReading());
+            ifd.setFileOffsetForWriting(ifd.getFileOffsetOfIFD());
             if (mainIFDIndex == numberOfImages - 1) {
                 ifd.removeNextIFDOffset();
             } else {
-                ifd.setNextIFDOffset(ifds.get(mainIFDIndex + 1).getFileOffsetForReading());
+                ifd.setNextIFDOffset(ifds.get(mainIFDIndex + 1).getFileOffsetOfIFD());
             }
             this.overwriteIFDInPlace(ifd);
             //TODO!! bad idea! cannot overwrite in place in a foreign file
