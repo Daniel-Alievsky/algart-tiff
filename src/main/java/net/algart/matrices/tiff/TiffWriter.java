@@ -1118,142 +1118,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @throws TiffException in the case of some problems, in particular, if IFD settings are not supported.
      */
     public void correctForEncoding(TiffIFD ifd, boolean smartCorrection) throws TiffException {
-        Objects.requireNonNull(ifd, "Null IFD");
-        final int samplesPerPixel = ifd.getSamplesPerPixel();
-        if (!ifd.containsKey(Tags.BITS_PER_SAMPLE)) {
-            ifd.put(Tags.BITS_PER_SAMPLE, new int[]{1});
-            // - Default value of BitsPerSample is 1 bit/pixel!
-            // This is a rare case, however, we CANNOT set here another value:
-            // probably we created this IFD as a copy of another IFD, like in copyImage method,
-            // and changing the supposed number of bits can lead to unpredictable behavior
-            // (for example, passing too short data to TiffTile.setDecodedData() method).
-        }
-        final TiffSampleType sampleType;
-        try {
-            sampleType = ifd.sampleType();
-        } catch (TiffException e) {
-            throw new UnsupportedTiffFormatException("Cannot write TIFF, because " +
-                    "requested combination of number of bits per sample and sample format is not supported: " +
-                    e.getMessage());
-        }
-        if (smartCorrection) {
-            ifd.putSampleType(sampleType);
-        } else {
-            final int bits = ifd.checkSupportedBitDepth();
-            if (sampleType == TiffSampleType.FLOAT && bits != 32) {
-                throw new UnsupportedTiffFormatException("Cannot write TIFF, because " +
-                        "requested number of bits per sample is not supported: " +
-                        bits + " bits for floating-point precision");
-            }
-        }
-
-        if (!ifd.containsKey(Tags.COMPRESSION)) {
-            ifd.put(Tags.COMPRESSION, TiffIFD.COMPRESSION_NONE);
-            // - We prefer to explicitly specify this case
-        }
-        TagCompression compression = ifd.optCompression().orElse(TagCompression.NONE);
-        // - NONE: we have set it above
-        if (!compression.isWritingSupported()) {
-            if (smartCorrection && compression == TagCompression.OLD_JPEG) {
-                compression = TagCompression.JPEG;
-                ifd.putCompression(compression);
-                ifd.removeOldJPEGTags();
-            } else {
-                throw new UnsupportedTiffFormatException("TIFF compression with code " + compression.code() +
-                        " (\"" + compression.prettyName() + "\") is not supported for writing");
-            }
-        }
-
-        final TagPhotometric suggestedPhotometric = ifd.optPhotometric().orElse(null);
-        TagPhotometric newPhotometric = suggestedPhotometric;
-        // - note: it is possible that we DO NOT KNOW this newPhotometric interpretation;
-        // in this case, newPhotometric will be UNKNOWN, but we should not prevent writing such an image
-        // in simple formats like UNCOMPRESSED or LZW: maybe, the client knows how to process it
-        if (compression.isStandardJpeg()) {
-            if (samplesPerPixel != 1 && samplesPerPixel != 3) {
-                throw new TiffException("JPEG compression for " + samplesPerPixel + " channels is not supported");
-            }
-            if (newPhotometric == null) {
-                newPhotometric = samplesPerPixel == 1 ? TagPhotometric.BLACK_IS_ZERO :
-                        (compression.isRGBPreferred() || !ifd.isChunked()) ?
-                        TagPhotometric.RGB :
-                        TagPhotometric.Y_CB_CR;
-            } else {
-                checkPhotometric(newPhotometric,
-                        samplesPerPixel == 1 ? EnumSet.of(TagPhotometric.BLACK_IS_ZERO) :
-                                !enforceUseExternalCodec ?
-                                        EnumSet.of(TagPhotometric.Y_CB_CR, TagPhotometric.RGB) :
-                                        EnumSet.of(TagPhotometric.Y_CB_CR),
-                        "JPEG " + samplesPerPixel + "-channel image");
-            }
-        } else if (samplesPerPixel == 1) {
-            final boolean hasColorMap = ifd.containsKey(Tags.COLOR_MAP);
-            if (newPhotometric == null) {
-                newPhotometric = hasColorMap ?
-                        TagPhotometric.RGB_PALETTE :
-                        TagPhotometric.BLACK_IS_ZERO;
-            } else {
-                // There are no reasons to create custom photometric interpretations for 1 channel,
-                // excepting RGB palette, BLACK_IS_ZERO, WHITE_IS_ZERO
-                // (we do not support TRANSPARENCY_MASK, that should be used together with other IFD).
-                // We have no special support for interpretations other than BLACK_IS_ZERO,
-                // but if the user wants, he can prepare correct data for them.
-                // We do not try to invert data for WHITE_IS_ZERO,
-                // as well as we do not invert values for the CMYK below.
-                // This is important because TiffReader (by default) also does not invert brightness in these cases:
-                // autoCorrectInvertedBrightness=false, so, TiffReader+TiffWriter can copy such IFD correctly.
-                if (newPhotometric == TagPhotometric.RGB_PALETTE && !hasColorMap) {
-                    throw new TiffException("Cannot write TIFF image: newPhotometric interpretation \"" +
-                            newPhotometric.prettyName() + "\" requires also \"ColorMap\" tag");
-                }
-                checkPhotometric(newPhotometric,
-                        EnumSet.of(TagPhotometric.BLACK_IS_ZERO,
-                                TagPhotometric.WHITE_IS_ZERO,
-                                TagPhotometric.RGB_PALETTE),
-                        samplesPerPixel + "-channel image");
-            }
-        } else if (samplesPerPixel == 3) {
-            if (newPhotometric == null || compression.isRGBRequired()) {
-                newPhotometric = TagPhotometric.RGB;
-            } else {
-                // Unlike 1 channel/pixel (the case above), we do not prevent the user from
-                // setting non-standard custom photometric interpretations: maybe he wants
-                // to create some LAB or CMYK TIFF, and he prepared all channels correctly.
-                if (ifd.isStandardYCbCrNonJpeg()) {
-                    if (!smartCorrection) {
-                        throw new UnsupportedTiffFormatException("Cannot write TIFF: encoding YCbCr " +
-                                "photometric interpretation is not supported for compression \"" +
-                                compression.prettyName() + "\"");
-                    } else {
-                        // - TiffReader automatically decodes YCbCr into RGB while reading;
-                        // we cannot encode pixels back to YCbCr,
-                        // and it would be better to change newPhotometric interpretation to RGB.
-                        // Note that for JPEG we have no such problem: we CAN encode JPEG as YCbCr.
-                        // For other models (like CMYK or CIE Lab), we ignore newPhotometric interpretation
-                        // and suppose that the user herself prepared channels in the necessary model.
-                        newPhotometric = TagPhotometric.RGB;
-                    }
-                }
-            }
-        } else {
-            if (newPhotometric == null) {
-                if (samplesPerPixel == 4) {
-                    // - probably RGBA
-                    newPhotometric = TagPhotometric.RGB;
-                }
-                // else we stay IFD without photometric interpretation: incorrect for good TIFF,
-                // but better than senseless interpretation
-            }
-            // But if newPhotometric is specified, we do not anything;
-            // for example, the user can prepare correct data for CMYK image.
-        }
-        if (newPhotometric != suggestedPhotometric) {
-            ifd.putPhotometric(newPhotometric);
-        }
-        if (compression.isStandardJpeg()) {
-            ifd.removeJPEGTables();
-        }
-        correctForEntireTiff(ifd);
+        correctForEncoding(ifd, smartCorrection, false);
     }
 
     public void correctForEntireTiff(TiffIFD ifd) throws TiffException {
@@ -2128,6 +1993,147 @@ public non-sealed class TiffWriter extends TiffIO {
         }
         long t2 = debugTime();
         logTiles(map, stage, "encoded", count, sizeInBytes, t1, t2);
+    }
+
+    private void correctForEncoding(TiffIFD ifd, boolean smartCorrection, boolean enableOldJpeg) throws TiffException {
+        Objects.requireNonNull(ifd, "Null IFD");
+        final int samplesPerPixel = ifd.getSamplesPerPixel();
+        if (!ifd.containsKey(Tags.BITS_PER_SAMPLE)) {
+            ifd.put(Tags.BITS_PER_SAMPLE, new int[]{1});
+            // - Default value of BitsPerSample is 1 bit/pixel!
+            // This is a rare case, however, we CANNOT set here another value:
+            // probably we created this IFD as a copy of another IFD, like in copyImage method,
+            // and changing the supposed number of bits can lead to unpredictable behavior
+            // (for example, passing too short data to TiffTile.setDecodedData() method).
+        }
+        final TiffSampleType sampleType;
+        try {
+            sampleType = ifd.sampleType();
+        } catch (TiffException e) {
+            throw new UnsupportedTiffFormatException("Cannot write TIFF, because " +
+                    "requested combination of number of bits per sample and sample format is not supported: " +
+                    e.getMessage());
+        }
+        if (smartCorrection) {
+            ifd.putSampleType(sampleType);
+        } else {
+            final int bits = ifd.checkSupportedBitDepth();
+            if (sampleType == TiffSampleType.FLOAT && bits != 32) {
+                throw new UnsupportedTiffFormatException("Cannot write TIFF, because " +
+                        "requested number of bits per sample is not supported: " +
+                        bits + " bits for floating-point precision");
+            }
+        }
+
+        if (!ifd.containsKey(Tags.COMPRESSION)) {
+            ifd.put(Tags.COMPRESSION, TiffIFD.COMPRESSION_NONE);
+            // - We prefer to explicitly specify this case
+        }
+        TagCompression compression = ifd.optCompression().orElse(TagCompression.NONE);
+        // - NONE: we have set it above
+        if (!compression.isWritingSupported()) {
+            if (smartCorrection && compression == TagCompression.OLD_JPEG) {
+                compression = TagCompression.JPEG;
+                ifd.putCompression(compression);
+                ifd.removeOldJPEGTags();
+            } else {
+                if (!enableOldJpeg || compression != TagCompression.OLD_JPEG) {
+                    throw new UnsupportedTiffFormatException("TIFF compression with code " + compression.code() +
+                            " (\"" + compression.prettyName() + "\") is not supported for writing");
+                }
+            }
+        }
+
+        final TagPhotometric suggestedPhotometric = ifd.optPhotometric().orElse(null);
+        TagPhotometric newPhotometric = suggestedPhotometric;
+        // - note: it is possible that we DO NOT KNOW this newPhotometric interpretation;
+        // in this case, newPhotometric will be UNKNOWN, but we should not prevent writing such an image
+        // in simple formats like UNCOMPRESSED or LZW: maybe, the client knows how to process it
+        if (compression.isStandardJpeg()) {
+            if (samplesPerPixel != 1 && samplesPerPixel != 3) {
+                throw new TiffException("JPEG compression for " + samplesPerPixel + " channels is not supported");
+            }
+            if (newPhotometric == null) {
+                newPhotometric = samplesPerPixel == 1 ? TagPhotometric.BLACK_IS_ZERO :
+                        (compression.isRGBPreferred() || !ifd.isChunked()) ?
+                        TagPhotometric.RGB :
+                        TagPhotometric.Y_CB_CR;
+            } else {
+                checkPhotometric(newPhotometric,
+                        samplesPerPixel == 1 ? EnumSet.of(TagPhotometric.BLACK_IS_ZERO) :
+                                !enforceUseExternalCodec ?
+                                        EnumSet.of(TagPhotometric.Y_CB_CR, TagPhotometric.RGB) :
+                                        EnumSet.of(TagPhotometric.Y_CB_CR),
+                        "JPEG " + samplesPerPixel + "-channel image");
+            }
+        } else if (samplesPerPixel == 1) {
+            final boolean hasColorMap = ifd.containsKey(Tags.COLOR_MAP);
+            if (newPhotometric == null) {
+                newPhotometric = hasColorMap ?
+                        TagPhotometric.RGB_PALETTE :
+                        TagPhotometric.BLACK_IS_ZERO;
+            } else {
+                // There are no reasons to create custom photometric interpretations for 1 channel,
+                // excepting RGB palette, BLACK_IS_ZERO, WHITE_IS_ZERO
+                // (we do not support TRANSPARENCY_MASK, that should be used together with other IFD).
+                // We have no special support for interpretations other than BLACK_IS_ZERO,
+                // but if the user wants, he can prepare correct data for them.
+                // We do not try to invert data for WHITE_IS_ZERO,
+                // as well as we do not invert values for the CMYK below.
+                // This is important because TiffReader (by default) also does not invert brightness in these cases:
+                // autoCorrectInvertedBrightness=false, so, TiffReader+TiffWriter can copy such IFD correctly.
+                if (newPhotometric == TagPhotometric.RGB_PALETTE && !hasColorMap) {
+                    throw new TiffException("Cannot write TIFF image: newPhotometric interpretation \"" +
+                            newPhotometric.prettyName() + "\" requires also \"ColorMap\" tag");
+                }
+                checkPhotometric(newPhotometric,
+                        EnumSet.of(TagPhotometric.BLACK_IS_ZERO,
+                                TagPhotometric.WHITE_IS_ZERO,
+                                TagPhotometric.RGB_PALETTE),
+                        samplesPerPixel + "-channel image");
+            }
+        } else if (samplesPerPixel == 3) {
+            if (newPhotometric == null || compression.isRGBRequired()) {
+                newPhotometric = TagPhotometric.RGB;
+            } else {
+                // Unlike 1 channel/pixel (the case above), we do not prevent the user from
+                // setting non-standard custom photometric interpretations: maybe he wants
+                // to create some LAB or CMYK TIFF, and he prepared all channels correctly.
+                if (ifd.isStandardYCbCrNonJpeg()) {
+                    if (!smartCorrection) {
+                        throw new UnsupportedTiffFormatException("Cannot write TIFF: encoding YCbCr " +
+                                "photometric interpretation is not supported for compression \"" +
+                                compression.prettyName() + "\"");
+                    } else {
+                        // - TiffReader automatically decodes YCbCr into RGB while reading;
+                        // we cannot encode pixels back to YCbCr,
+                        // and it would be better to change newPhotometric interpretation to RGB.
+                        // Note that for JPEG we have no such problem: we CAN encode JPEG as YCbCr.
+                        // For other models (like CMYK or CIE Lab), we ignore newPhotometric interpretation
+                        // and suppose that the user herself prepared channels in the necessary model.
+                        newPhotometric = TagPhotometric.RGB;
+                    }
+                }
+            }
+        } else {
+            if (newPhotometric == null) {
+                if (samplesPerPixel == 4) {
+                    // - probably RGBA
+                    newPhotometric = TagPhotometric.RGB;
+                }
+                // else we stay IFD without photometric interpretation: incorrect for good TIFF,
+                // but better than senseless interpretation
+            }
+            // But if newPhotometric is specified, we do not anything;
+            // for example, the user can prepare correct data for CMYK image.
+        }
+        if (newPhotometric != suggestedPhotometric) {
+            ifd.putPhotometric(newPhotometric);
+        }
+        if (compression.isStandardJpeg()) {
+            ifd.removeJPEGTables();
+        }
+        correctForEntireTiff(ifd);
     }
 
     private int completeWritingMap(TiffWriteMap map) throws IOException {
