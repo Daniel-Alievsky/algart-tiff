@@ -953,5 +953,4 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         }
         handle.writeByte(value);
     }
-
 }
