@@ -206,7 +206,7 @@ public class TiffExplorer {
         frame.setShowImageInProgress(true);
         try {
             new TiffViewer(tiffFile, index).show();
-        } catch (IOException e) {
+        } catch (Exception e) {
             TinySwing.showErrorMessage(frame, e, "Error opening the TIFF image");
         } finally {
             frame.setShowImageInProgress(false);

@@ -1856,9 +1856,11 @@ public non-sealed class TiffWriter extends TiffIO {
             } else {
                 appendUntilEvenOffset(extraBuffer);
                 writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
-                for (int intValue : q) {
-                    extraBuffer.writeShort(intValue);
+                short[] shorts = new short[q.length];
+                for (int i = 0; i < q.length; i++) {
+                    shorts[i] = (short) q[i];
                 }
+                extraBuffer.write(JArrays.shortArrayToBytes(shorts, byteOrder));
             }
         } else if (value instanceof long[] q) { // suppose LONG (unsigned 32-bit) or LONG8 for BitTIFF
             if (AVOID_LONG8_FOR_ACTUAL_32_BITS && q.length == 1 && bigTiff) {
@@ -1900,9 +1902,11 @@ public non-sealed class TiffWriter extends TiffIO {
             } else {
                 appendUntilEvenOffset(extraBuffer);
                 writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
-                for (long longValue : q) {
-                    writeIntOrLong(extraBuffer, bigTiff, longValue);
-                }
+                extraBuffer.write(longArrayToBytes(q, bigTiff, byteOrder));
+//              Old solution:
+//                for (long longValue : q) {
+//                    writeIntOrLong(extraBuffer, bigTiff, longValue);
+//                }
             }
         } else if (value instanceof TagRational[] q) {
             mainStream.writeShort(TagTypes.RATIONAL);
@@ -2204,6 +2208,24 @@ public non-sealed class TiffWriter extends TiffIO {
         long t2 = debugTime();
         logTiles(map, "completion", "wrote", count, sizeInBytes, t1, t2);
         return count;
+    }
+
+    private static byte[] longArrayToBytes(long[] values, boolean bigTiff, ByteOrder byteOrder) throws TiffException {
+        if (bigTiff) {
+            return JArrays.longArrayToBytes(values, byteOrder);
+        } else {
+            int[] ints = new int[values.length];
+            for (int i = 0; i < values.length; i++) {
+                long value = values[i];
+                if (value < Integer.MIN_VALUE || value > 0xFFFFFFFFL) {
+                    // - note: positive values in range 0x80000000..0xFFFFFFFF are mostly probably unsigned integers,
+                    // not signed values with overflow
+                    throw new TiffException("Attempt to write 64-bit value as 32-bit: " + value);
+                }
+                ints[i] = (int) value;
+            }
+            return JArrays.intArrayToBytes(ints, byteOrder);
+        }
     }
 
     /**
