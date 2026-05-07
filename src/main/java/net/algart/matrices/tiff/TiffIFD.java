@@ -128,9 +128,18 @@ public final class TiffIFD {
     public enum StringFormat {
         BRIEF(true, false),
         NORMAL(true, false),
+        /**
+         * Note that the tags should be always sorted according TIFF 6.0 standard,
+         * but some TIFF files do not comply this rule.
+         * Besides this, unsorted IFD is possible during its construction via
+         * {@link TiffIFD#put(int, Object)} or similar methods.
+         *
+         * @see TiffIFD#isCorrectlySorted()
+         */
         NORMAL_SORTED(true, true),
         DETAILED(false, false),
         JSON(false, false);
+
         private final boolean compactArrays;
         private final boolean sorted;
 
@@ -307,7 +316,7 @@ public final class TiffIFD {
 
     public static final int FILETYPE_REDUCED_IMAGE = 1;
 
-    private final Map<Integer, Object> map;
+    private final LinkedHashMap<Integer, Object> map;
     private TagCompression detailedCompression = null;
     // - allows clarifying optCompression() if we have several compressions with the same code
     private final LinkedHashMap<Integer, TiffEntry> detailedEntries;
@@ -2313,6 +2322,33 @@ public final class TiffIFD {
         return map.remove(key);
     }
 
+    /**
+     * Returns {@code true} if the tags in this IFD are sorted in ascending order.
+     *
+     * <p>According to the TIFF 6.0 Specification, entries in an IFD must be sorted
+     * in ascending order by Tag ID to allow for binary search by readers.
+     * </p>
+     * <p>This method may return {@code false} if:
+     * <ul>
+     *   <li>the source TIFF file does not comply the standard;</li>
+     *   <li>during constructing a new IFD via {@link #put(int, Object)} or similar methods.</li>
+     * </ul>
+     *
+     * @return {@code true} if tags are correctly sorted; {@code false} otherwise.
+     */
+    public boolean isCorrectlySorted() {
+        Integer previous = null;
+        for (Integer tag : map.keySet()) {
+            if (tag != null) {
+                // - should not occur
+                if (previous != null && tag < previous) {
+                    return false;
+                }
+                previous = tag;
+            }
+        }
+        return true;
+    }
 
     /**
      * Equivalent to

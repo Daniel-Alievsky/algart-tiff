@@ -850,6 +850,8 @@ public non-sealed class TiffWriter extends TiffIO {
 
             stream.seek(startOffset);
             final Map<Integer, Object> sortedIFD = new TreeMap<>(ifd.map());
+            // -  TIFF 6.0 standard, Sort Order:
+            // "The entries in an IFD must be sorted in ascending order by Tag"
             final int numberOfEntries = sortedIFD.size();
             final int mainIFDLength = TiffIFD.sizeOfIFDTable(numberOfEntries, bigTiff, true);
             writeIFDNumberOfEntries(numberOfEntries);
@@ -1684,14 +1686,14 @@ public non-sealed class TiffWriter extends TiffIO {
 
     private long writeIFDEntries(Map<Integer, Object> ifd, long startOffset, int mainIFDLength) throws IOException {
         final long afterMain = startOffset + mainIFDLength;
-        final BytesLocation bytesLocation = new BytesLocation(0, "memory-buffer");
         final long fileOffsetOfNextOffset;
-        try (final DataHandle<?> extraBuffer = getBytesHandle(bytesLocation)) {
+        try (final DataHandle<?> extraBuffer = newBytesHandle()) {
 //            System.out.println("!!!" + stream.offset());
             extraBuffer.setLittleEndian(isLittleEndian());
             for (final Map.Entry<Integer, Object> e : ifd.entrySet()) {
 //                System.out.println(">> " + e.getKey() + ": " + stream.offset());
-                writeIFDValueAtCurrentOffset(extraBuffer, afterMain, e.getKey(), e.getValue());
+                //TODO!! local
+                writeIFDValueAtCurrentOffset(stream, extraBuffer, afterMain, e.getKey(), e.getValue());
             }
 
 //            System.out.println(">>>" + stream.offset());
@@ -1716,7 +1718,8 @@ public non-sealed class TiffWriter extends TiffIO {
      * like arrays or text strings. The "main" data is a 12-byte IFD record (20-byte for BigTIFF),
      * which is written by this method into the main output stream from its current position.
      *
-     * @param extraBuffer              buffer to which "extra" IFD information should be written.
+     * @param stream                   main stream where IFD entries should be written.
+     * @param extraBuffer              buffer where "extra" IFD information should be written.
      * @param bufferOffsetInResultFile position of "extra" data in the result TIFF file =
      *                                 bufferOffsetInResultFile +
      *                                 offset of the written "extra" data inside <code>extraBuffer</code>;
@@ -1726,6 +1729,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param value                    IFD value to write.
      */
     private void writeIFDValueAtCurrentOffset(
+            final DataHandle<?> stream,
             final DataHandle<?> extraBuffer,
             final long bufferOffsetInResultFile,
             final int tag,

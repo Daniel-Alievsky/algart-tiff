@@ -273,6 +273,10 @@ public class TiffInfo {
                 ifdCount,
                 stringFormat.isJson() ? "%n".formatted() : " ",
                 ifd.toString(stringFormat)));
+        if (!ifd.isCorrectlySorted()) {
+            sb.append("INVALID tags order: they are not sorted in ascending order ")
+                    .append("(requirement of TIFF 6.0 standard)!%n".formatted());
+        }
         final long tiffFileLength = reader.fileLength();
         final OptionalLong sizeOfIFDOptional = ifd.sizeOfIFD(tiffFileLength);
         AtomicBoolean imageDataAligned = new AtomicBoolean(false);

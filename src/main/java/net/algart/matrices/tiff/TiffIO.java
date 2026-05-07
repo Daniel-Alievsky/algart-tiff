@@ -286,8 +286,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return new BytesHandle(new BytesLocation(data));
     }
 
-    static BytesHandle getBytesHandle(BytesLocation bytesLocation) {
-        Objects.requireNonNull(bytesLocation, "Null bytesLocation");
+    static BytesHandle newBytesHandle() {
+        final BytesLocation bytesLocation = new BytesLocation(0, "memory-buffer");
         return new BytesHandle(bytesLocation);
     }
 
