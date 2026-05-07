@@ -24,10 +24,7 @@
 
 package net.algart.matrices.tiff;
 
-import net.algart.arrays.Matrices;
-import net.algart.arrays.Matrix;
-import net.algart.arrays.PArray;
-import net.algart.arrays.PackedBitArraysPer8;
+import net.algart.arrays.*;
 import net.algart.io.awt.ImageToMatrix;
 import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.data.TiffPacking;
@@ -47,6 +44,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -1768,6 +1766,7 @@ public non-sealed class TiffWriter extends TiffIO {
         final int dataLength = bigTiff ? 8 : 4;
         final int dataLengthDiv2 = dataLength >> 1;
         final int dataLengthDiv4 = dataLength >> 2;
+        final ByteOrder byteOrder = extraBuffer.isLittleEndian() ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
 
         // write directory entry to output buffers
         writeUnsignedShort(mainStream, tag);
@@ -1801,9 +1800,11 @@ public non-sealed class TiffWriter extends TiffIO {
             } else {
                 appendUntilEvenOffset(extraBuffer);
                 writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
-                for (short shortValue : q) {
-                    extraBuffer.writeByte(shortValue);
+                byte[] bytes = new byte[q.length];
+                for (int i = 0; i < q.length; i++) {
+                    bytes[i] = (byte) q[i];
                 }
+                extraBuffer.write(bytes);
             }
         } else if (value instanceof String stringValue) { // suppose ASCII
             mainStream.writeShort(TagTypes.ASCII);
@@ -1822,13 +1823,14 @@ public non-sealed class TiffWriter extends TiffIO {
             } else {
                 appendUntilEvenOffset(extraBuffer);
                 writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
-                for (byte c : q) {
+                extraBuffer.write(q);
+//                for (byte c : q) {
 //                    if (charValue > 0xFF) {
 //                        throw new TiffException("Attempt to write a character with code " + (int) charValue +
 //                                " > 255; only ASCII characters with 0..255 codes are supported in string TIFF tags");
 //                    }
-                    writeUnsignedByte(extraBuffer, c & 0xFF);
-                }
+//                    writeUnsignedByte(extraBuffer, c & 0xFF);
+//                }
                 extraBuffer.writeByte(0); // concluding zero bytes
             }
         } else if (value instanceof int[] q) { // suppose SHORT (unsigned 16-bit)
