@@ -460,7 +460,7 @@ public final class TiffIFD {
      * Returns the index of this IFD in the list of all IFDs in the TIFF file,
      * available via the {@link TiffReader#allIFDs()} method,
      * or throws an exception if this index is not set.
-
+     *
      * <p>Note: this index is set automatically by the {@link TiffReader} class, but is not set
      * after creating this object.
      *

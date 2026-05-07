@@ -34,8 +34,8 @@ import net.algart.matrices.tiff.data.TiffPacking;
 import net.algart.matrices.tiff.data.TiffPrediction;
 import net.algart.matrices.tiff.tags.*;
 import net.algart.matrices.tiff.tiles.*;
+import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
-import org.scijava.io.location.BytesLocation;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -102,6 +102,7 @@ public non-sealed class TiffWriter extends TiffIO {
     private volatile TiffWriteMap lastMap = null;
 
     private long timeWriting = 0;
+    private boolean timeForward = false;
     private long timePreparingEncoding = 0;
     private long timeCustomizingEncoding = 0;
     private long timeEncoding = 0;
@@ -677,7 +678,7 @@ public non-sealed class TiffWriter extends TiffIO {
             }
             // Writing the "last offset" marker:
             fileOffsetOfLastIFDOffset = stream.offset();
-            writeOffset(TiffIFD.LAST_IFD_OFFSET);
+            writeOffset(stream, bigTiff, TiffIFD.LAST_IFD_OFFSET);
             // Truncating the file if it already existed:
             // it is necessary because this class writes all new information
             // to the file end (to avoid damaging existing content)
@@ -1289,6 +1290,7 @@ public non-sealed class TiffWriter extends TiffIO {
     public void writeForward(TiffWriteMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         if (!writingForwardAllowed || map.isResizable()) {
+            timeForward = false;
             return;
         }
         final long[] offsets = new long[map.numberOfGridTiles()];
@@ -1299,6 +1301,7 @@ public non-sealed class TiffWriter extends TiffIO {
         if (!ifd.hasFileOffsetForWriting()) {
             writeIFDAt(ifd, null, false);
         }
+        timeForward = true;
     }
 
     /**
@@ -1653,6 +1656,7 @@ public non-sealed class TiffWriter extends TiffIO {
 
     private void clearTime() {
         timeWriting = 0;
+        timeForward = false;
         timeCustomizingEncoding = 0;
         timePreparingEncoding = 0;
         timeEncoding = 0;
@@ -1687,23 +1691,24 @@ public non-sealed class TiffWriter extends TiffIO {
     private long writeIFDEntries(Map<Integer, Object> ifd, long startOffset, int mainIFDLength) throws IOException {
         final long afterMain = startOffset + mainIFDLength;
         final long fileOffsetOfNextOffset;
-        try (final DataHandle<?> extraBuffer = newBytesHandle()) {
+        try (final BytesHandle mainStream = newBytesHandle();
+             final BytesHandle extraBuffer = newBytesHandle()) {
 //            System.out.println("!!!" + stream.offset());
+            mainStream.setLittleEndian(isLittleEndian());
             extraBuffer.setLittleEndian(isLittleEndian());
             for (final Map.Entry<Integer, Object> e : ifd.entrySet()) {
-//                System.out.println(">> " + e.getKey() + ": " + stream.offset());
-                //TODO!! local
-                writeIFDValueAtCurrentOffset(stream, extraBuffer, afterMain, e.getKey(), e.getValue());
+//                System.out.println(">> " + e.getKey() + ": " + mainStream.offset());
+                writeIFDValueAtCurrentOffset(mainStream, extraBuffer, bigTiff, afterMain, e);
             }
+            copyData(mainStream, stream);
 
 //            System.out.println(">>>" + stream.offset());
             fileOffsetOfNextOffset = stream.offset();
-            writeOffset(TiffIFD.LAST_IFD_OFFSET);
+            writeOffset(stream, bigTiff, TiffIFD.LAST_IFD_OFFSET);
             // - not too important: will be rewritten in writeIFDNextOffset
             final long extraLength = extraBuffer.length();
             assert extraBuffer.offset() == extraLength;
-            extraBuffer.seek(0L);
-            copyData(extraBuffer, stream, extraLength);
+            copyData(extraBuffer, stream, true, extraLength);
         }
         return fileOffsetOfNextOffset;
     }
@@ -1718,22 +1723,24 @@ public non-sealed class TiffWriter extends TiffIO {
      * like arrays or text strings. The "main" data is a 12-byte IFD record (20-byte for BigTIFF),
      * which is written by this method into the main output stream from its current position.
      *
-     * @param stream                   main stream where IFD entries should be written.
+     * @param mainStream               main stream where IFD entries should be written.
      * @param extraBuffer              buffer where "extra" IFD information should be written.
+     * @param bigTiff                  bigTiff flag.
      * @param bufferOffsetInResultFile position of "extra" data in the result TIFF file =
      *                                 bufferOffsetInResultFile +
      *                                 offset of the written "extra" data inside <code>extraBuffer</code>;
      *                                 for example, this argument may be a position directly after
      *                                 the "main" content (sequence of 12/20-byte records).
-     * @param tag                      IFD tag to write.
-     * @param value                    IFD value to write.
+     * @param entry                    IFD tag and value to write.
      */
-    private void writeIFDValueAtCurrentOffset(
-            final DataHandle<?> stream,
+    private static void writeIFDValueAtCurrentOffset(
+            final DataHandle<?> mainStream,
             final DataHandle<?> extraBuffer,
+            final boolean bigTiff,
             final long bufferOffsetInResultFile,
-            final int tag,
-            Object value) throws IOException {
+            Map.Entry<Integer, Object> entry) throws IOException {
+        final int tag = entry.getKey();
+        Object value = entry.getValue();
         // convert singleton objects into arrays, for simplicity
         if (value instanceof Short v) {
             value = new short[]{v};
@@ -1758,64 +1765,63 @@ public non-sealed class TiffWriter extends TiffIO {
             value = list.stream().map(String::valueOf).collect(Collectors.joining("\0"));
         }
 
-        final boolean bigTiff = this.bigTiff;
         final int dataLength = bigTiff ? 8 : 4;
         final int dataLengthDiv2 = dataLength >> 1;
         final int dataLengthDiv4 = dataLength >> 2;
 
         // write directory entry to output buffers
-        writeUnsignedShort(stream, tag);
+        writeUnsignedShort(mainStream, tag);
         if (value instanceof byte[] q) {
-            stream.writeShort(TagTypes.UNDEFINED);
+            mainStream.writeShort(TagTypes.UNDEFINED);
             // - Most probable type. Maybe in future we will support here some algorithm,
             // determining the necessary type on the base of the tag value.
-            writeIntOrLong(stream, q.length);
+            writeIntOrLong(mainStream, bigTiff, q.length);
             if (q.length <= dataLength) {
                 for (byte byteValue : q) {
-                    stream.writeByte(byteValue);
+                    mainStream.writeByte(byteValue);
                 }
                 for (int i = q.length; i < dataLength; i++) {
-                    stream.writeByte(0);
+                    mainStream.writeByte(0);
                 }
             } else {
                 appendUntilEvenOffset(extraBuffer);
-                writeOffset(bufferOffsetInResultFile + extraBuffer.offset());
+                writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
                 extraBuffer.write(q);
             }
         } else if (value instanceof short[] q) { // suppose BYTE (unsigned 8-bit)
-            stream.writeShort(TagTypes.BYTE);
-            writeIntOrLong(stream, q.length);
+            mainStream.writeShort(TagTypes.BYTE);
+            writeIntOrLong(mainStream, bigTiff, q.length);
             if (q.length <= dataLength) {
                 for (short s : q) {
-                    stream.writeByte(s);
+                    mainStream.writeByte(s);
                 }
                 for (int i = q.length; i < dataLength; i++) {
-                    stream.writeByte(0);
+                    mainStream.writeByte(0);
                 }
             } else {
                 appendUntilEvenOffset(extraBuffer);
-                writeOffset(bufferOffsetInResultFile + extraBuffer.offset());
+                writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
                 for (short shortValue : q) {
                     extraBuffer.writeByte(shortValue);
                 }
             }
         } else if (value instanceof String stringValue) { // suppose ASCII
-            stream.writeShort(TagTypes.ASCII);
+            mainStream.writeShort(TagTypes.ASCII);
             final byte[] q = stringValue.getBytes(StandardCharsets.UTF_8);
-            writeIntOrLong(stream, emptyStringList ? 0 : q.length + 1);
+            writeIntOrLong(mainStream, bigTiff, emptyStringList ? 0 : q.length + 1);
             // - with concluding zero bytes, excepting an empty string list (produced by ASCII byte[0])
             if (q.length < dataLength) {
                 // - this branch is the same for an empty string list (byte[0])
                 // and for an empty string (byte[1] which contains 0)
                 for (byte c : q) {
-                    writeUnsignedByte(stream, c & 0xFF);
+                    writeUnsignedByte(mainStream, c & 0xFF);
                 }
                 for (int i = q.length; i < dataLength; i++) {
-                    stream.writeByte(0);
+                    mainStream.writeByte(0);
                 }
             } else {
                 appendUntilEvenOffset(extraBuffer);
-                writeOffset(bufferOffsetInResultFile + extraBuffer.offset());
+                writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
                 for (byte c : q) {
 //                    if (charValue > 0xFF) {
 //                        throw new TiffException("Attempt to write a character with code " + (int) charValue +
@@ -1830,24 +1836,24 @@ public non-sealed class TiffWriter extends TiffIO {
                 // - we should allow using usual int values for 32-bit tags to avoid a lot of obvious bugs
                 final int v = q[0];
                 if (v >= 0xFFFF) {
-                    stream.writeShort(TagTypes.LONG);
-                    writeIntOrLong(stream, q.length);
-                    writeIntOrLong(stream, v);
+                    mainStream.writeShort(TagTypes.LONG);
+                    writeIntOrLong(mainStream, bigTiff, q.length);
+                    writeIntOrLong(mainStream, bigTiff, v);
                     return;
                 }
             }
-            stream.writeShort(TagTypes.SHORT);
-            writeIntOrLong(stream, q.length);
+            mainStream.writeShort(TagTypes.SHORT);
+            writeIntOrLong(mainStream, bigTiff, q.length);
             if (q.length <= dataLengthDiv2) {
                 for (int intValue : q) {
-                    writeUnsignedShort(stream, intValue);
+                    writeUnsignedShort(mainStream, intValue);
                 }
                 for (int i = q.length; i < dataLengthDiv2; i++) {
-                    stream.writeShort(0);
+                    mainStream.writeShort(0);
                 }
             } else {
                 appendUntilEvenOffset(extraBuffer);
-                writeOffset(bufferOffsetInResultFile + extraBuffer.offset());
+                writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
                 for (int intValue : q) {
                     extraBuffer.writeShort(intValue);
                 }
@@ -1867,10 +1873,10 @@ public non-sealed class TiffWriter extends TiffIO {
                              Tags.IMAGE_DEPTH,
                              Tags.ROWS_PER_STRIP,
                              Tags.NEW_SUBFILE_TYPE -> {
-                            stream.writeShort(TagTypes.LONG);
-                            writeIntOrLong(stream, q.length);
-                            stream.writeInt((int) v);
-                            stream.writeInt(0);
+                            mainStream.writeShort(TagTypes.LONG);
+                            writeIntOrLong(mainStream, bigTiff, q.length);
+                            mainStream.writeInt((int) v);
+                            mainStream.writeInt(0);
                             // - 4 bytes of padding until full length 20 bytes
                             return;
                         }
@@ -1878,71 +1884,71 @@ public non-sealed class TiffWriter extends TiffIO {
                 }
             }
             final int type = bigTiff ? TagTypes.LONG8 : TagTypes.LONG;
-            stream.writeShort(type);
-            writeIntOrLong(stream, q.length);
+            mainStream.writeShort(type);
+            writeIntOrLong(mainStream, bigTiff, q.length);
 
             if (q.length <= 1) {
                 for (int i = 0; i < q.length; i++) {
-                    writeIntOrLong(stream, q[0]);
+                    writeIntOrLong(mainStream, bigTiff, q[0]);
                     // - q[0]: it is actually performed 0 or 1 times
                 }
                 for (int i = q.length; i < 1; i++) {
-                    writeIntOrLong(stream, 0);
+                    writeIntOrLong(mainStream, bigTiff, 0);
                 }
             } else {
                 appendUntilEvenOffset(extraBuffer);
-                writeOffset(bufferOffsetInResultFile + extraBuffer.offset());
+                writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
                 for (long longValue : q) {
-                    writeIntOrLong(extraBuffer, longValue);
+                    writeIntOrLong(extraBuffer, bigTiff, longValue);
                 }
             }
         } else if (value instanceof TagRational[] q) {
-            stream.writeShort(TagTypes.RATIONAL);
-            writeIntOrLong(stream, q.length);
+            mainStream.writeShort(TagTypes.RATIONAL);
+            writeIntOrLong(mainStream, bigTiff, q.length);
             if (bigTiff && q.length == 1) {
-                stream.writeInt((int) q[0].getNumerator());
-                stream.writeInt((int) q[0].getDenominator());
+                mainStream.writeInt((int) q[0].getNumerator());
+                mainStream.writeInt((int) q[0].getDenominator());
             } else {
                 appendUntilEvenOffset(extraBuffer);
-                writeOffset(bufferOffsetInResultFile + extraBuffer.offset());
+                writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
                 for (TagRational tagRational : q) {
                     extraBuffer.writeInt((int) tagRational.getNumerator());
                     extraBuffer.writeInt((int) tagRational.getDenominator());
                 }
             }
         } else if (value instanceof float[] q) {
-            stream.writeShort(TagTypes.FLOAT);
-            writeIntOrLong(stream, q.length);
+            mainStream.writeShort(TagTypes.FLOAT);
+            writeIntOrLong(mainStream, bigTiff, q.length);
             if (q.length <= dataLengthDiv4) {
                 for (float floatValue : q) {
-                    stream.writeFloat(floatValue); // value
+                    mainStream.writeFloat(floatValue); // value
                     // - in old SCIFIO code, here was a bug (for a case bigTiff): q[0] was always written
                 }
                 for (int i = q.length; i < dataLengthDiv4; i++) {
-                    stream.writeInt(0); // padding
+                    mainStream.writeInt(0); // padding
                 }
             } else {
                 appendUntilEvenOffset(extraBuffer);
-                writeOffset(bufferOffsetInResultFile + extraBuffer.offset());
+                writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
                 for (float floatValue : q) {
                     extraBuffer.writeFloat(floatValue);
                 }
             }
         } else if (value instanceof double[] q) {
-            stream.writeShort(TagTypes.DOUBLE);
-            writeIntOrLong(stream, q.length);
+            mainStream.writeShort(TagTypes.DOUBLE);
+            writeIntOrLong(mainStream, bigTiff, q.length);
             appendUntilEvenOffset(extraBuffer);
-            writeOffset(bufferOffsetInResultFile + extraBuffer.offset());
+            writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
             for (final double doubleValue : q) {
                 extraBuffer.writeDouble(doubleValue);
             }
         } else {
             if (value instanceof TiffIFD.UnsupportedTypeValue unsupported) {
-                stream.writeShort(unsupported.type());
+                mainStream.writeShort(unsupported.type());
                 // - but we don't know the sense of its valueOrOffset field; it is better to write "0 elements"
-                writeIntOrLong(stream, 0);
+                writeIntOrLong(mainStream, bigTiff, 0);
                 for (int i = 0; i < dataLength; i++) {
-                    stream.writeByte(0);
+                    mainStream.writeByte(0);
                 }
             } else {
                 throw new UnsupportedOperationException("Unknown IFD tag " + tag + " value type ("
@@ -2203,7 +2209,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * 'bigTiff' flag is set, then the value will be written as an 8-byte long;
      * otherwise, it will be written as a 4-byte integer.
      */
-    private void writeIntOrLong(DataHandle<?> handle, long value) throws IOException {
+    private static void writeIntOrLong(DataHandle<?> handle, boolean bigTiff, long value) throws IOException {
         if (bigTiff) {
             handle.writeLong(value);
         } else {
@@ -2216,7 +2222,7 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    private void writeIntOrLong(DataHandle<?> handle, int value) throws IOException {
+    private static void writeIntOrLong(DataHandle<?> handle, boolean bigTiff, int value) throws IOException {
         if (bigTiff) {
             handle.writeLong(value);
         } else {
@@ -2238,18 +2244,18 @@ public non-sealed class TiffWriter extends TiffIO {
         handle.writeByte(value);
     }
 
-    private void writeOffset(long offset) throws IOException {
+    private static void writeOffset(DataHandle<?> handle, boolean bigTiff, long offset) throws IOException {
         if (offset < 0) {
             throw new AssertionError("Illegal usage of writeOffset: negative offset " + offset);
         }
         if (bigTiff) {
-            stream.writeLong(offset);
+            handle.writeLong(offset);
         } else {
             if (offset > 0xFFFFFFF0L) {
                 throw new TiffException("Attempt to write too large 64-bit offset as unsigned 32-bit: " + offset
                         + " > 2^32-16; such large files should be written in BigTIFF mode");
             }
-            stream.writeInt((int) offset);
+            handle.writeInt((int) offset);
             // - masking by 0xFFFFFFFF is unnecessary: cast to (int) works properly also for 32-bit unsigned values
         }
     }
@@ -2262,7 +2268,7 @@ public non-sealed class TiffWriter extends TiffIO {
             final long savedFileOffset = stream.offset();
             try {
                 stream.seek(fileOffsetToWrite);
-                writeOffset(offset);
+                writeOffset(stream, bigTiff, offset);
                 allUsedIFDOffsets.add(offset);
                 if (updateFileOffsetOfLastIFDOffset && offset == TiffIFD.LAST_IFD_OFFSET) {
                     fileOffsetOfLastIFDOffset = fileOffsetToWrite;
@@ -2365,8 +2371,8 @@ public non-sealed class TiffWriter extends TiffIO {
             final long sizeInBytes = map.totalSizeInBytes();
             LOG.log(System.Logger.Level.DEBUG, () -> String.format(Locale.US,
                     "%s wrote %dx%dx%d %s (%.3f MB) in %.3f ms = " +
-                            "%.3f conversion/copying data + %.3f writing IFD " +
-                            "+ %.3f/%.3f encoding/writing " +
+                            "%.3f conversion/copying data%s" +
+                            " + %.3f/%.3f encoding/writing " +
                             "(%.3f prepare, " +
                             "%.3f customize, " +
                             "%.3f encode [%.3f main%s], " +
@@ -2376,7 +2382,10 @@ public non-sealed class TiffWriter extends TiffIO {
                     name,
                     sizeInBytes / 1048576.0,
                     (t5 - t1) * 1e-6,
-                    (t2 - t1) * 1e-6, (t3 - t2) * 1e-6,
+                    (t2 - t1) * 1e-6,
+                    (timeForward ?
+                            String.format(Locale.US, " + %.4f prewriting IFD", (t3 - t2) * 1e-6) :
+                            ""),
                     (t4 - t3) * 1e-6, (t5 - t4) * 1e-6,
                     timePreparingEncoding * 1e-6,
                     timeCustomizingEncoding * 1e-6,

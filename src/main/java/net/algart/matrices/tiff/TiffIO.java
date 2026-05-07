@@ -210,7 +210,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         inputStream.seek(0);
         outputStream.seek(0);
         final long inputLength = inputStream.length();
-        final long result = copyData(inputStream, outputStream, inputLength);
+        final long result = copyData(inputStream, outputStream, false, inputLength);
         outputStream.setLength(outputStream.offset());
         if (result != inputLength) {
             throw new EOFException("Copied only " + result + " bytes from all " + inputLength + " bytes");
@@ -219,11 +219,18 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return result;
     }
 
+    static long copyData(DataHandle<?> in, DataHandle<?> out) throws IOException {
+        return copyData(in, out, true, in.length());
+    }
+
     // A simplified clone of the function DataHandles.copy without the problem with invalid generic types
-    static long copyData(DataHandle<?> in, DataHandle<?> out, long length)
+    static long copyData(DataHandle<?> in, DataHandle<?> out, boolean fromZeroOffset, long length)
             throws IOException {
         if (length < 0) {
             throw new IllegalArgumentException("Negative length: " + length);
+        }
+        if (fromZeroOffset) {
+            in.seek(0);
         }
         final byte[] buffer = new byte[256 * 1024];
         long result = 0;
