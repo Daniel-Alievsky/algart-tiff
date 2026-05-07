@@ -67,6 +67,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
     volatile Object context = null;
     volatile boolean bigTiff = false;
+    volatile long fileOffsetOfLastIFDOffset = -1;
 
     volatile Object scifio = null;
     private volatile CodecReport lastCodecReport = null;
@@ -267,6 +268,56 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     " is not supported without external codecs");
         }
         return scifio;
+    }
+
+    /**
+     * Reads a file offset.
+     * For BigTIFF files, a 64-bit number is read.
+     * For other Tiffs, a 32-bit number is read and possibly adjusted for a possible carry-over
+     * from the previous offset.
+     */
+    long readNextOffset(boolean updateFileOffsetOfLastOffset)
+            throws IOException {
+        final long fileLength = stream.length();
+        final long fileOffsetOfNextOffset = stream.offset();
+        long offset;
+        if (bigTiff) {
+            offset = stream.readLong();
+        } else {
+            // Below is a deprecated solution
+            // (this "trick" cannot help if a SINGLE image is very large (>2^32): for example,
+            // previous = 8 (1st IFD) and the next is 0x120000000; but it is the mostly typical
+            // problematic situation: for example, very large 1st IFD in SVS file).
+            //
+            // offset = (previous & ~0xffffffffL) | (in.readInt() & 0xffffffffL);
+            // Only adjust the offset if we know that the file is too large for
+            // 32-bit
+            // offsets to be accurate; otherwise, we're making the incorrect
+            // assumption
+            // that IFDs are stored sequentially.
+            // if (offset < previous && offset != 0 && in.length() > Integer.MAX_VALUE) {
+            //      offset += 0x100000000L;
+            // }
+            // return offset;
+
+            offset = (long) stream.readInt() & 0xffffffffL;
+            // - in usual TIFF format, offset if 32-bit UNSIGNED value
+        }
+        if (offset < 0) {
+            // - possibly in BigTIFF only
+            throw new TiffException(("Invalid TIFF%s: negative 64-bit IFD offset %d (0x%X) at file position %d, " +
+                    "probably the file is corrupted").formatted(
+                    spacedStreamName(), offset, offset, fileOffsetOfNextOffset));
+        }
+        if (offset >= fileLength) {
+            throw new TiffException(("Invalid TIFF%s: IFD offset %d (0x%X) at file position %d is outside " +
+                    "the file, probably the is corrupted").formatted(
+                    spacedStreamName(), offset, offset, fileOffsetOfNextOffset));
+        }
+        if (updateFileOffsetOfLastOffset) {
+            this.fileOffsetOfLastIFDOffset = fileOffsetOfNextOffset;
+        }
+        return offset;
     }
 
     // Note used in the current version.

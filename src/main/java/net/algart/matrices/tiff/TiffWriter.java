@@ -47,6 +47,7 @@ import java.util.*;
 import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -95,7 +96,6 @@ public non-sealed class TiffWriter extends TiffIO {
     private volatile TiffReader reader = null;
 
     private final LinkedHashSet<Long> allUsedIFDOffsets = new LinkedHashSet<>();
-    private volatile long fileOffsetOfLastIFDOffset = -1;
 
     private volatile TiffWriteMap lastMap = null;
 
@@ -537,7 +537,10 @@ public non-sealed class TiffWriter extends TiffIO {
 
     /**
      * Returns position in the file of the last IFD offset, written by methods of this object.
-     * It is updated by {@link #overwriteIFDInPlace(TiffIFD, boolean)}.
+     * It is updated by {@link #overwriteIFDInPlace(TiffIFD, boolean)},
+     * {@link #writeIFDAt(TiffIFD, Long, boolean)},
+     * {@link #overwriteSelectedTagsAt(TiffIFD, long, IntPredicate, boolean)}
+     * when the last argument is {@code true}.
      *
      * <p>Immediately after creating this object without opening a file
      * ({@link TiffCreateMode#NO_ACTIONS} mode)
@@ -791,7 +794,7 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Writes IFD at the position, specified by <code>startOffset</code> argument, or at the file end
+     * Writes IFD at the position, specified by <code>startOffsetOrNull</code> argument, or at the file end
      * (aligned to nearest even length) if it is {@code null}.
      *
      * <p>Note: this IFD is automatically marked as last IFD in the file (next IFD offset is 0),
@@ -804,7 +807,8 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * <ol>
      *     <li>It updates the offset, stored in the file at {@link #fileOffsetOfLastIFDOffset()}, with start offset of
-     *     this IFD (i.e. <code>startOffset</code> or position of the file end). This action is performed <b>only</b>
+     *     this IFD (i.e. <code>startOffsetOrNull</code> or position of the file end).
+     *     This action is performed <b>only</b>
      *     if this start offset is really new for this file, i.e., if it did not present in an existing file
      *     while opening it by {@link #openExisting()} method and if some IFD was not already written
      *     at this position by some methods.
@@ -826,28 +830,15 @@ public non-sealed class TiffWriter extends TiffIO {
      * storing the next offset.</p>
      *
      * @param ifd               IFD to write in the output stream.
-     * @param startOffset       position in the output stream, where the IFD should be written.
+     * @param startOffsetOrNull position in the output stream, where the IFD should be written.
      * @param updateIFDLinkages see comments above.
      * @return the offest where this IFD was actually written
-     * (equal to <code>startOffset</code> argument if it is non-{@code null}).
+     * (equal to <code>startOffsetOrNull</code> argument if it is non-{@code null}).
      * @throws IOException in the case of any I/O errors.
      */
-    public long writeIFDAt(TiffIFD ifd, Long startOffset, boolean updateIFDLinkages) throws IOException {
+    public long writeIFDAt(TiffIFD ifd, Long startOffsetOrNull, boolean updateIFDLinkages) throws IOException {
         synchronized (fileLock()) {
-            checkVirginFile();
-            resetCompanionReader();
-            if (startOffset == null) {
-                appendFileUntilEvenLength();
-                startOffset = stream.length();
-            }
-            if (!bigTiff && startOffset > MAXIMAL_ALLOWED_32BIT_IFD_OFFSET) {
-                throw new TiffException("Attempt to write too large TIFF file without big-TIFF mode: " +
-                        "offset of new IFD will be " + startOffset + " > " + MAXIMAL_ALLOWED_32BIT_IFD_OFFSET);
-            }
-            ifd.setFileOffsetForWriting(startOffset);
-            // - checks that startOffset is even and >= 0
-
-            stream.seek(startOffset);
+            final long startOffset = prepareWriteIFDAt(ifd, startOffsetOrNull);
             final Map<Integer, Object> sortedIFD = new TreeMap<>(ifd.map());
             // -  TIFF 6.0 standard, Sort Order:
             // "The entries in an IFD must be sorted in ascending order by Tag"
@@ -860,6 +851,7 @@ public non-sealed class TiffWriter extends TiffIO {
             final long previousFileOffsetOfLastIFDOffset = fileOffsetOfLastIFDOffset;
             // - save it, because it will be updated in writeIFDNextOffsetAt
             writeIFDNextOffsetAt(ifd, fileOffsetOfNextOffset, updateIFDLinkages);
+            // - this call updates fileOffsetOfLastIFDOffset when updateIFDLinkages=true
             if (updateIFDLinkages && !allUsedIFDOffsets.contains(startOffset)) {
                 // - Only if it is really newly added IFD!
                 // If this offset is already contained in the list, an attempt to link to it
@@ -870,6 +862,60 @@ public non-sealed class TiffWriter extends TiffIO {
                 // - This method adds startOffset to usedIFDOffsets
             }
             return startOffset;
+        }
+    }
+
+    public long overwriteSelectedTagsAt(
+            TiffIFD ifd,
+            long startOffset,
+            IntPredicate tagsToUpdate,
+            boolean updateIFDLinkages) throws IOException {
+        Objects.requireNonNull(tagsToUpdate, "Null tagsToUpdate");
+        synchronized (fileLock()) {
+            prepareWriteIFDAt(ifd, startOffset);
+            final long numberOfEntries = bigTiff ? stream.readLong() : stream.readUnsignedShort();
+            TiffIFD.checkNumberOfEntries(numberOfEntries, bigTiff);
+            if (numberOfEntries != ifd.numberOfEntries()) {
+                throw new IllegalArgumentException("Number of entries in the IFD: " + ifd.numberOfEntries() +
+                        " does not match the number of entries stored in the file: " + numberOfEntries);
+            }
+            //TODO!!
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    private long prepareWriteIFDAt(TiffIFD ifd, Long startOffsetOrNull) throws IOException {
+        Objects.requireNonNull(ifd, "Null IFD");
+        checkVirginFile();
+        resetCompanionReader();
+        long startOffset;
+        if (startOffsetOrNull == null) {
+            appendFileUntilEvenLength();
+            startOffset = stream.length();
+            startOffsetOrNull = startOffset;
+        } else {
+            startOffset = startOffsetOrNull;
+        }
+        if (!bigTiff && startOffset > MAXIMAL_ALLOWED_32BIT_IFD_OFFSET) {
+            throw new TiffException("Attempt to write too large TIFF file without big-TIFF mode: " +
+                    "offset of new IFD will be " + startOffset + " > " + MAXIMAL_ALLOWED_32BIT_IFD_OFFSET);
+        }
+        checkFileOffsetForWriting(startOffset);
+        ifd.setFileOffsetForWriting(startOffset);
+        // - TODO!! remove this
+        stream.seek(startOffset);
+        return startOffset;
+    }
+
+    private static void checkFileOffsetForWriting(long fileOffsetOfIFD) {
+        if (fileOffsetOfIFD < 0) {
+            throw new IllegalArgumentException("Negative IFD file offset: " + fileOffsetOfIFD);
+        }
+        if ((fileOffsetOfIFD & 0x1) != 0) {
+            throw new IllegalArgumentException("Odd IFD file offset " + fileOffsetOfIFD +
+                    " is prohibited for writing valid TIFF");
+            // - But we allow such offsets for reading!
+            // Such minor inconsistency in the file is not a reason to decline the ability to read it.
         }
     }
 
