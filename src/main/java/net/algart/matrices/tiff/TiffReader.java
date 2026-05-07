@@ -33,7 +33,9 @@ import net.algart.matrices.tiff.data.TiffPrediction;
 import net.algart.matrices.tiff.data.TiffUnpacking;
 import net.algart.matrices.tiff.data.TiffUnusualPrecisions;
 import net.algart.matrices.tiff.io.ReadBufferDataHandle;
-import net.algart.matrices.tiff.tags.*;
+import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tags.TagPhotometric;
+import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.*;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.FileHandle;
@@ -1252,14 +1254,18 @@ public non-sealed class TiffReader extends TiffIO {
             // read in directory entries for this IFD
             stream.seek(startOffset);
             final long numberOfEntries = bigTiff ? stream.readLong() : stream.readUnsignedShort();
-            TiffIFD.checkNumberOfEntries(numberOfEntries, bigTiff);
+            final int n = TiffIFD.checkNumberOfEntries(numberOfEntries, bigTiff);
 
             final int bytesPerEntry = TiffIFD.TiffEntry.bytesPerEntry(bigTiff);
             final int baseOffset = bigTiff ? 8 : 2;
 
-            for (long i = 0; i < numberOfEntries; i++) {
+//            final byte[] ifdBytes = new byte[bytesPerEntry * n];
+//            stream.readFully(ifdBytes);
+//            final BytesHandle ifdStream = getBytesHandle(ifdBytes);
+            for (int i = 0; i < n; i++) {
                 long tEntry1 = debugTime();
-                final TiffIFD.TiffEntry entry = readIFDEntry(startOffset + baseOffset + bytesPerEntry * i);
+                final TiffIFD.TiffEntry entry = readIFDEntry(
+                        startOffset + baseOffset + (long) bytesPerEntry * i);
                 final int tag = entry.tag();
                 long tEntry2 = debugTime();
                 timeEntries += tEntry2 - tEntry1;
