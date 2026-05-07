@@ -301,7 +301,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         // - will be zero for an unknown type; in this case we will set valueOffset=in.offset() below
         final long valueLength = valueCount * (long) bytesPerElement;
         final boolean builtInData = TiffIFD.TiffEntry.builtInData(valueLength, bigTiff);
-        final long valueOffset = builtInData ? stream.offset() : readNextOffset(false);
+        final long valueOffset = builtInData ? stream.offset() : readOffset(stream, bigTiff);
         // - position in the file will be different depending on builtInData,
         // but it is not a problem: we will not use this position
         if (valueOffset < 0) {
@@ -769,9 +769,19 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * For other Tiffs, a 32-bit number is read and possibly adjusted for a possible carry-over
      * from the previous offset.
      */
-    long readNextOffset(boolean updateFileOffsetOfLastOffset) throws IOException {
-        final long fileLength = stream.length();
+    long readIFDNextOffset(boolean updateFileOffsetOfLastOffset) throws IOException {
         final long fileOffsetOfNextOffset = stream.offset();
+        long offset = readOffset(stream, bigTiff);
+        if (updateFileOffsetOfLastOffset) {
+            this.fileOffsetOfLastIFDOffset = fileOffsetOfNextOffset;
+        }
+        return offset;
+    }
+
+    long readOffset(DataHandle<?> stream, boolean bigTiff) throws IOException {
+        final long fileOffsetOfNextOffset = stream.offset();
+        //TODO!! remove together with assert
+        final long fileLength = stream.length();
         long offset;
         if (bigTiff) {
             offset = stream.readLong();
@@ -795,6 +805,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             offset = (long) stream.readInt() & 0xffffffffL;
             // - in usual TIFF format, offset if 32-bit UNSIGNED value
         }
+        final long previousOffset = stream.offset() - (bigTiff ? 8 : 4);
+        if (previousOffset != fileOffsetOfNextOffset) throw new AssertionError();
         if (offset < 0) {
             // - possibly in BigTIFF only
             throw new TiffException(("Invalid TIFF%s: negative 64-bit IFD offset %d (0x%X) at file position %d, " +
@@ -805,9 +817,6 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             throw new TiffException(("Invalid TIFF%s: IFD offset %d (0x%X) at file position %d is outside " +
                     "the file, probably the is corrupted").formatted(
                     spacedStreamName(), offset, offset, fileOffsetOfNextOffset));
-        }
-        if (updateFileOffsetOfLastOffset) {
-            this.fileOffsetOfLastIFDOffset = fileOffsetOfNextOffset;
         }
         return offset;
     }

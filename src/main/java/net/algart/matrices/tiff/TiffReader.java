@@ -1161,7 +1161,7 @@ public non-sealed class TiffReader extends TiffIO {
                 }
                 stream.seek(offset);
                 skipIFDEntries(fileLength);
-                final long newOffset = readNextOffset(true);
+                final long newOffset = readIFDNextOffset(true);
                 if (newOffset == offset) {
                     throw new TiffException("TIFF file is broken - infinite loop of IFD offsets is detected " +
                             "for offset " + offset);
@@ -1199,7 +1199,7 @@ public non-sealed class TiffReader extends TiffIO {
                             ", " + offset + ", ...)");
                 }
                 skipIFDEntries(fileLength);
-                offset = readNextOffset(true);
+                offset = readIFDNextOffset(true);
             }
             return ifdOffsets.stream().mapToLong(v -> v).toArray();
         }
@@ -1293,7 +1293,7 @@ public non-sealed class TiffReader extends TiffIO {
             ifd.setFileOffsetOfIFD(startOffset);
             ifd.setSubIFDType(subIFDType);
             if (readNextOffset) {
-                final long nextOffset = readNextOffset(false);
+                final long nextOffset = readIFDNextOffset(false);
                 ifd.setFileOffsetOfNextIFDOffset(fileOffsetOfNextIFDOffset);
                 ifd.setNextIFDOffset(nextOffset);
                 stream.seek(fileOffsetOfNextIFDOffset);
@@ -2169,7 +2169,7 @@ public non-sealed class TiffReader extends TiffIO {
 
     private long readFirstIFDOffset(boolean updateFileOffsetOfLastOffset) throws IOException {
         stream.seek(fileOffsetOfFirstIFDOffset());
-        final long offset = readNextOffset(updateFileOffsetOfLastOffset);
+        final long offset = readIFDNextOffset(updateFileOffsetOfLastOffset);
         if (offset == 0) {
             throw new TiffException("Uncompleted TIFF" + spacedStreamName() +
                     ": the file does not contain any images; " +
