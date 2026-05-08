@@ -180,7 +180,11 @@ public class TinySwing {
             // It is probably a wrapper: no sense to show it to the end user
 //            message += "\n" + e.getCause().getMessage();
 //        }
-        JOptionPane.showMessageDialog(frame, message, title, JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showMessageDialog(
+                frame,
+                message,
+                title + " (" + e.getClass().getSimpleName() + ")",
+                JOptionPane.ERROR_MESSAGE);
     }
 
     private static void tryToDisableNewFolderButton(Container c) {

@@ -24,13 +24,15 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
+import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffSampleType;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 
 public class TiffTileTest {
-    private static void testMap(int numberOfChannels, TiffSampleType sampleType, int testDataLength) {
+    private static void testMap(int numberOfChannels, TiffSampleType sampleType, int testDataLength)
+            throws TiffException {
         TiffIFD ifd = new TiffIFD();
         ifd.defaultTileSizes();
         ifd.putPixelInformation(numberOfChannels, sampleType);
@@ -72,7 +74,7 @@ public class TiffTileTest {
     }
 
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws TiffException {
         testMap(1, TiffSampleType.BIT, 157);
         testMap(3, TiffSampleType.BIT, 156);
         testMap(1, TiffSampleType.UINT8, 157);

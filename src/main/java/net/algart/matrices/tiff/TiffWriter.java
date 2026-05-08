@@ -1744,7 +1744,7 @@ public non-sealed class TiffWriter extends TiffIO {
             extraBuffer.setLittleEndian(isLittleEndian());
             for (final Map.Entry<Integer, Object> e : ifd.entrySet()) {
 //                System.out.println(">> " + e.getKey() + ": " + mainStream.offset());
-                writeIFDValueAtCurrentOffset(mainStream, extraBuffer, bigTiff, afterMain, e);
+                writeIFDValueAtCurrentOffsets(mainStream, extraBuffer, bigTiff, afterMain, e);
             }
             copyData(mainStream, stream);
 

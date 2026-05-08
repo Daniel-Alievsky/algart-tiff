@@ -511,27 +511,31 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     }
 
     /**
-     * Writes the given IFD value to the {@link #stream() main output stream}, excepting "extra" data,
-     * which are written into the specified <code>extraBuffer</code>. After calling this method, you
-     * should copy full content of <code>extraBuffer</code> into the main stream at the position,
+     * Writes the given IFD value, splitting it between the {@code mainStream}
+     * (the directory entry) and the {@code extraBuffer} (the actual data if it
+     * doesn't fit in the entry).
+     *
+     * Writing in both streams is performed starting from their current positions.
+     * After calling this method, you
+     * should copy full content of {@code extraBuffer} into the main stream at the position,
      * specified by the second argument;
-     * {@link TiffWriter#overwriteIFDInPlace(TiffIFD, boolean)} method does it automatically.
+     * {@link TiffWriter#writeIFDAt(TiffIFD, Long, boolean)} method does it automatically.
      *
      * <p>Here "extra" data means all data, for which IFD contains their offsets instead of data itself,
      * like arrays or text strings. The "main" data is a 12-byte IFD record (20-byte for BigTIFF),
      * which is written by this method into the main output stream from its current position.
      *
-     * @param mainStream               main stream where IFD entries should be written.
-     * @param extraBuffer              buffer where "extra" IFD information should be written.
-     * @param bigTiff                  bigTiff flag.
-     * @param bufferOffsetInResultFile position of "extra" data in the result TIFF file =
-     *                                 bufferOffsetInResultFile +
-     *                                 offset of the written "extra" data inside <code>extraBuffer</code>;
+     * @param mainStream               the main stream where IFD entries should be written.
+     * @param extraBuffer              the buffer where "extra" IFD information should be written.
+     * @param bigTiff                  Big-TIFF flag.
+     * @param bufferOffsetInResultFile the position of "extra" data in the result TIFF file =
+     *                                 {@code bufferOffsetInResultFile} +
+     *                                 offset of the written "extra" data inside {@code extraBuffer};
      *                                 for example, this argument may be a position directly after
      *                                 the "main" content (sequence of 12/20-byte records).
-     * @param entry                    IFD tag and value to write.
+     * @param entry                    the IFD tag and value to write.
      */
-    static void writeIFDValueAtCurrentOffset(
+    static void writeIFDValueAtCurrentOffsets(
             final DataHandle<?> mainStream,
             final DataHandle<?> extraBuffer,
             final boolean bigTiff,
@@ -539,7 +543,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             Map.Entry<Integer, Object> entry) throws IOException {
         final int tag = entry.getKey();
         Object value = entry.getValue();
-        // convert singleton objects into arrays, for simplicity
+        // Convert singleton objects into arrays, for simplicity:
         if (value instanceof Short v) {
             value = new short[]{v};
         } else if (value instanceof Integer v) {
@@ -570,196 +574,208 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
         // write directory entry to output buffers
         writeUnsignedShort(mainStream, tag);
-        if (value instanceof byte[] q) {
-            mainStream.writeShort(TagTypes.UNDEFINED);
-            // - Most probable type. Maybe in future we will support here some algorithm,
-            // determining the necessary type on the base of the tag value.
-            writeIntOrLong(mainStream, bigTiff, q.length);
-            if (q.length <= dataLength) {
-                for (byte byteValue : q) {
-                    mainStream.writeByte(byteValue);
+        switch (value) {
+            case byte[] v -> {
+                mainStream.writeShort(TagTypes.UNDEFINED);
+                // - Most probable type. Maybe in future we will support here some algorithm,
+                // determining the necessary type on the base of the tag value.
+                writeIntOrLong(mainStream, bigTiff, v.length);
+                if (v.length <= dataLength) {
+                    for (byte byteValue : v) {
+                        mainStream.writeByte(byteValue);
+                    }
+                    for (int i = v.length; i < dataLength; i++) {
+                        mainStream.writeByte(0);
+                    }
+                } else {
+                    appendUntilEvenOffset(extraBuffer);
+                    writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
+                    extraBuffer.write(v);
                 }
-                for (int i = q.length; i < dataLength; i++) {
-                    mainStream.writeByte(0);
-                }
-            } else {
-                appendUntilEvenOffset(extraBuffer);
-                writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
-                extraBuffer.write(q);
             }
-        } else if (value instanceof short[] q) { // suppose BYTE (unsigned 8-bit)
-            mainStream.writeShort(TagTypes.BYTE);
-            writeIntOrLong(mainStream, bigTiff, q.length);
-            if (q.length <= dataLength) {
-                for (short s : q) {
-                    mainStream.writeByte(s);
+            case short[] v -> {
+                // suppose BYTE (unsigned 8-bit)
+                mainStream.writeShort(TagTypes.BYTE);
+                writeIntOrLong(mainStream, bigTiff, v.length);
+                if (v.length <= dataLength) {
+                    for (short s : v) {
+                        mainStream.writeByte(s);
+                    }
+                    for (int i = v.length; i < dataLength; i++) {
+                        mainStream.writeByte(0);
+                    }
+                } else {
+                    appendUntilEvenOffset(extraBuffer);
+                    writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
+                    byte[] bytes = new byte[v.length];
+                    for (int i = 0; i < v.length; i++) {
+                        bytes[i] = (byte) v[i];
+                    }
+                    extraBuffer.write(bytes);
                 }
-                for (int i = q.length; i < dataLength; i++) {
-                    mainStream.writeByte(0);
-                }
-            } else {
-                appendUntilEvenOffset(extraBuffer);
-                writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
-                byte[] bytes = new byte[q.length];
-                for (int i = 0; i < q.length; i++) {
-                    bytes[i] = (byte) q[i];
-                }
-                extraBuffer.write(bytes);
             }
-        } else if (value instanceof String stringValue) { // suppose ASCII
-            mainStream.writeShort(TagTypes.ASCII);
-            final byte[] q = stringValue.getBytes(StandardCharsets.UTF_8);
-            writeIntOrLong(mainStream, bigTiff, emptyStringList ? 0 : q.length + 1);
-            // - with concluding zero bytes, excepting an empty string list (produced by ASCII byte[0])
-            if (q.length < dataLength) {
-                // - this branch is the same for an empty string list (byte[0])
-                // and for an empty string (byte[1] which contains 0)
-                for (byte c : q) {
-                    writeUnsignedByte(mainStream, c & 0xFF);
-                }
-                for (int i = q.length; i < dataLength; i++) {
-                    mainStream.writeByte(0);
-                }
-            } else {
-                appendUntilEvenOffset(extraBuffer);
-                writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
-                extraBuffer.write(q);
-//                for (byte c : q) {
+            case String stringValue -> {
+                // suppose ASCII
+                mainStream.writeShort(TagTypes.ASCII);
+                final byte[] v = stringValue.getBytes(StandardCharsets.UTF_8);
+                writeIntOrLong(mainStream, bigTiff, emptyStringList ? 0 : v.length + 1);
+                // - with concluding zero bytes, excepting an empty string list (produced by ASCII byte[0])
+                if (v.length < dataLength) {
+                    // - this branch is the same for an empty string list (byte[0])
+                    // and for an empty string (byte[1] which contains 0)
+                    for (byte c : v) {
+                        writeUnsignedByte(mainStream, c & 0xFF);
+                    }
+                    for (int i = v.length; i < dataLength; i++) {
+                        mainStream.writeByte(0);
+                    }
+                } else {
+                    appendUntilEvenOffset(extraBuffer);
+                    writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
+                    extraBuffer.write(v);
+//                for (byte c : v) {
 //                    if (charValue > 0xFF) {
 //                        throw new TiffException("Attempt to write a character with code " + (int) charValue +
 //                                " > 255; only ASCII characters with 0..255 codes are supported in string TIFF tags");
 //                    }
 //                    writeUnsignedByte(extraBuffer, c & 0xFF);
 //                }
-                extraBuffer.writeByte(0); // concluding zero bytes
-            }
-        } else if (value instanceof int[] q) { // suppose SHORT (unsigned 16-bit)
-            if (q.length == 1) {
-                // - we should allow using usual int values for 32-bit tags to avoid a lot of obvious bugs
-                final int v = q[0];
-                if (v >= 0xFFFF) {
-                    mainStream.writeShort(TagTypes.LONG);
-                    writeIntOrLong(mainStream, bigTiff, q.length);
-                    writeIntOrLong(mainStream, bigTiff, v);
-                    return;
+                    extraBuffer.writeByte(0); // concluding zero bytes
                 }
             }
-            mainStream.writeShort(TagTypes.SHORT);
-            writeIntOrLong(mainStream, bigTiff, q.length);
-            if (q.length <= dataLengthDiv2) {
-                for (int intValue : q) {
-                    writeUnsignedShort(mainStream, intValue);
+            case int[] v -> {
+                // suppose SHORT (unsigned 16-bit)
+                if (v.length == 1) {
+                    // - we should allow using usual int values for 32-bit tags to avoid a lot of obvious bugs
+                    final int v0 = v[0];
+                    if (v0 >= 0xFFFF) {
+                        mainStream.writeShort(TagTypes.LONG);
+                        writeIntOrLong(mainStream, bigTiff, v.length);
+                        writeIntOrLong(mainStream, bigTiff, v0);
+                        return;
+                    }
                 }
-                for (int i = q.length; i < dataLengthDiv2; i++) {
-                    mainStream.writeShort(0);
+                mainStream.writeShort(TagTypes.SHORT);
+                writeIntOrLong(mainStream, bigTiff, v.length);
+                if (v.length <= dataLengthDiv2) {
+                    for (int intValue : v) {
+                        writeUnsignedShort(mainStream, intValue);
+                    }
+                    for (int i = v.length; i < dataLengthDiv2; i++) {
+                        mainStream.writeShort(0);
+                    }
+                } else {
+                    appendUntilEvenOffset(extraBuffer);
+                    writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
+                    short[] shorts = new short[v.length];
+                    for (int i = 0; i < v.length; i++) {
+                        shorts[i] = (short) v[i];
+                    }
+                    extraBuffer.write(JArrays.shortArrayToBytes(shorts, byteOrder));
                 }
-            } else {
-                appendUntilEvenOffset(extraBuffer);
-                writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
-                short[] shorts = new short[q.length];
-                for (int i = 0; i < q.length; i++) {
-                    shorts[i] = (short) q[i];
-                }
-                extraBuffer.write(JArrays.shortArrayToBytes(shorts, byteOrder));
             }
-        } else if (value instanceof long[] q) { // suppose LONG (unsigned 32-bit) or LONG8 for BitTIFF
-            if (AVOID_LONG8_FOR_ACTUAL_32_BITS && q.length == 1 && bigTiff) {
-                // - note: inside TIFF, long[1] is saved in the same way as Long; we have a difference in Java only
-                final long v = q[0];
-                if (v == (int) v) {
-                    // - it is probable for the following tags if they are added
-                    // manually via TiffIFD.put with "long" argument
-                    switch (tag) {
-                        case Tags.IMAGE_WIDTH,
-                             Tags.IMAGE_LENGTH,
-                             Tags.TILE_WIDTH,
-                             Tags.TILE_LENGTH,
-                             Tags.IMAGE_DEPTH,
-                             Tags.ROWS_PER_STRIP,
-                             Tags.NEW_SUBFILE_TYPE -> {
-                            mainStream.writeShort(TagTypes.LONG);
-                            writeIntOrLong(mainStream, bigTiff, q.length);
-                            mainStream.writeInt((int) v);
-                            mainStream.writeInt(0);
-                            // - 4 bytes of padding until full length 20 bytes
-                            return;
+            case long[] v -> {
+                // suppose LONG (unsigned 32-bit) or LONG8 for BitTIFF
+                if (AVOID_LONG8_FOR_ACTUAL_32_BITS && v.length == 1 && bigTiff) {
+                    // - note: inside TIFF, long[1] is saved in the same way as Long; we have a difference in Java only
+                    final long v0 = v[0];
+                    if (v0 == (int) v0) {
+                        // - it is probable for the following tags if they are added
+                        // manually via TiffIFD.put with "long" argument
+                        switch (tag) {
+                            case Tags.IMAGE_WIDTH,
+                                 Tags.IMAGE_LENGTH,
+                                 Tags.TILE_WIDTH,
+                                 Tags.TILE_LENGTH,
+                                 Tags.IMAGE_DEPTH,
+                                 Tags.ROWS_PER_STRIP,
+                                 Tags.NEW_SUBFILE_TYPE -> {
+                                mainStream.writeShort(TagTypes.LONG);
+                                writeIntOrLong(mainStream, bigTiff, v.length);
+                                mainStream.writeInt((int) v0);
+                                mainStream.writeInt(0);
+                                // - 4 bytes of padding until full length 20 bytes
+                                return;
+                            }
                         }
                     }
                 }
-            }
-            final int type = bigTiff ? TagTypes.LONG8 : TagTypes.LONG;
-            mainStream.writeShort(type);
-            writeIntOrLong(mainStream, bigTiff, q.length);
+                final int type = bigTiff ? TagTypes.LONG8 : TagTypes.LONG;
+                mainStream.writeShort(type);
+                writeIntOrLong(mainStream, bigTiff, v.length);
 
-            if (q.length <= 1) {
-                for (int i = 0; i < q.length; i++) {
-                    writeIntOrLong(mainStream, bigTiff, q[0]);
-                    // - q[0]: it is actually performed 0 or 1 times
-                }
-                for (int i = q.length; i < 1; i++) {
-                    writeIntOrLong(mainStream, bigTiff, 0);
-                }
-            } else {
-                appendUntilEvenOffset(extraBuffer);
-                writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
-                extraBuffer.write(longArrayToBytes(q, bigTiff, byteOrder));
+                if (v.length <= 1) {
+                    for (int i = 0; i < v.length; i++) {
+                        writeIntOrLong(mainStream, bigTiff, v[0]);
+                        // - v[0]: it is actually performed 0 or 1 times
+                    }
+                    for (int i = v.length; i < 1; i++) {
+                        writeIntOrLong(mainStream, bigTiff, 0);
+                    }
+                } else {
+                    appendUntilEvenOffset(extraBuffer);
+                    writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
+                    extraBuffer.write(longArrayToBytes(v, bigTiff, byteOrder));
 //              Old solution:
-//                for (long longValue : q) {
+//                for (long longValue : v) {
 //                    writeIntOrLong(extraBuffer, bigTiff, longValue);
 //                }
+                }
             }
-        } else if (value instanceof TagRational[] q) {
-            mainStream.writeShort(TagTypes.RATIONAL);
-            writeIntOrLong(mainStream, bigTiff, q.length);
-            if (bigTiff && q.length == 1) {
-                mainStream.writeInt((int) q[0].getNumerator());
-                mainStream.writeInt((int) q[0].getDenominator());
-            } else {
+            case TagRational[] v -> {
+                mainStream.writeShort(TagTypes.RATIONAL);
+                writeIntOrLong(mainStream, bigTiff, v.length);
+                if (bigTiff && v.length == 1) {
+                    mainStream.writeInt((int) v[0].getNumerator());
+                    mainStream.writeInt((int) v[0].getDenominator());
+                } else {
+                    appendUntilEvenOffset(extraBuffer);
+                    writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
+                    for (TagRational tagRational : v) {
+                        extraBuffer.writeInt((int) tagRational.getNumerator());
+                        extraBuffer.writeInt((int) tagRational.getDenominator());
+                    }
+                }
+            }
+            case float[] v -> {
+                mainStream.writeShort(TagTypes.FLOAT);
+                writeIntOrLong(mainStream, bigTiff, v.length);
+                if (v.length <= dataLengthDiv4) {
+                    for (float floatValue : v) {
+                        mainStream.writeFloat(floatValue); // value
+                        // - in old SCIFIO code, here was a bug (for a case bigTiff): v[0] was always written
+                    }
+                    for (int i = v.length; i < dataLengthDiv4; i++) {
+                        mainStream.writeInt(0); // padding
+                    }
+                } else {
+                    appendUntilEvenOffset(extraBuffer);
+                    writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
+                    for (float floatValue : v) {
+                        extraBuffer.writeFloat(floatValue);
+                    }
+                }
+            }
+            case double[] v -> {
+                mainStream.writeShort(TagTypes.DOUBLE);
+                writeIntOrLong(mainStream, bigTiff, v.length);
                 appendUntilEvenOffset(extraBuffer);
                 writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
-                for (TagRational tagRational : q) {
-                    extraBuffer.writeInt((int) tagRational.getNumerator());
-                    extraBuffer.writeInt((int) tagRational.getDenominator());
+                for (final double doubleValue : v) {
+                    extraBuffer.writeDouble(doubleValue);
                 }
             }
-        } else if (value instanceof float[] q) {
-            mainStream.writeShort(TagTypes.FLOAT);
-            writeIntOrLong(mainStream, bigTiff, q.length);
-            if (q.length <= dataLengthDiv4) {
-                for (float floatValue : q) {
-                    mainStream.writeFloat(floatValue); // value
-                    // - in old SCIFIO code, here was a bug (for a case bigTiff): q[0] was always written
-                }
-                for (int i = q.length; i < dataLengthDiv4; i++) {
-                    mainStream.writeInt(0); // padding
-                }
-            } else {
-                appendUntilEvenOffset(extraBuffer);
-                writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
-                for (float floatValue : q) {
-                    extraBuffer.writeFloat(floatValue);
-                }
-            }
-        } else if (value instanceof double[] q) {
-            mainStream.writeShort(TagTypes.DOUBLE);
-            writeIntOrLong(mainStream, bigTiff, q.length);
-            appendUntilEvenOffset(extraBuffer);
-            writeOffset(mainStream, bigTiff, bufferOffsetInResultFile + extraBuffer.offset());
-            for (final double doubleValue : q) {
-                extraBuffer.writeDouble(doubleValue);
-            }
-        } else {
-            if (value instanceof TiffIFD.UnsupportedTypeValue unsupported) {
+            case TiffIFD.UnsupportedTypeValue unsupported -> {
                 mainStream.writeShort(unsupported.type());
                 // - but we don't know the sense of its valueOrOffset field; it is better to write "0 elements"
                 writeIntOrLong(mainStream, bigTiff, 0);
                 for (int i = 0; i < dataLength; i++) {
                     mainStream.writeByte(0);
                 }
-            } else {
-                throw new UnsupportedOperationException("Unknown IFD tag " + tag + " value type ("
-                        + value.getClass().getSimpleName() + "): " + value);
             }
+            case null -> throw new UnsupportedOperationException("IFD tag " + tag + " contains null value");
+            default -> throw new UnsupportedOperationException("Unknown IFD tag " + tag + " value type ("
+                    + value.getClass().getSimpleName() + "): " + value);
         }
     }
 

@@ -27,10 +27,10 @@ package net.algart.matrices.tiff.tiles;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PackedBitArraysPer8;
 import net.algart.arrays.UpdatablePArray;
+import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffIO;
 import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.codecs.TiffCodec;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -46,7 +46,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
 
     private final T owner;
 
-    public TiffIOMap(T owner, TiffIFD ifd, boolean resizable) {
+    public TiffIOMap(T owner, TiffIFD ifd, boolean resizable) throws TiffException {
         super(ifd, resizable);
         this.owner = Objects.requireNonNull(owner, "Null owner");
     }

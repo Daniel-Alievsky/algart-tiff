@@ -156,91 +156,87 @@ public sealed class TiffMap permits TiffIOMap {
      * @param resizable whether maximal dimensions of this set will grow while adding new tiles,
      *                  or they are fixed and must be specified in IFD.
      */
-    public TiffMap(TiffIFD ifd, boolean resizable) {
+    public TiffMap(TiffIFD ifd, boolean resizable) throws TiffException {
         this.ifd = Objects.requireNonNull(ifd, "Null IFD");
         this.resizable = resizable;
         final boolean hasImageDimensions = ifd.hasImageDimensions();
-        try {
-            if (!hasImageDimensions && !resizable) {
-                throw new IllegalArgumentException("TIFF image sizes (ImageWidth and ImageLength tags) " +
-                        "are not specified; it is not allowed for" +
-                        (this instanceof TiffReadMap ? "" : " non-resizable") +
-                        " tile " + mapKindName());
-            }
-            this.tilingMode = ifd.hasTileInformation() ? TilingMode.TILE_GRID : TilingMode.STRIPS;
-            if (resizable && !tilingMode.isTileGrid()) {
-                throw new IllegalArgumentException("TIFF image is not tiled (TileWidth and TileLength tags " +
-                        "are not specified); it is not allowed for resizable tile map: any processing " +
-                        "TIFF image, such as writing its fragments, requires either knowing its final fixed sizes, " +
-                        "or splitting image into tiles with known fixed sizes");
-            }
-            this.planarSeparated = ifd.isPlanarSeparated();
-            this.numberOfChannels = ifd.getSamplesPerPixel();
-            assert numberOfChannels <= TiffIFD.MAX_NUMBER_OF_CHANNELS;
-            this.numberOfSeparatedPlanes = planarSeparated ? numberOfChannels : 1;
-            this.tileSamplesPerPixel = planarSeparated ? 1 : numberOfChannels;
-            this.bitsPerSample = ifd.getBitsPerSample().clone();
-            this.alignedBitDepth = TiffIFD.alignedBitDepth(bitsPerSample);
-            // - we allow only EQUAL number of bytes/sample (but the number if bits/sample can be different)
-            assert (long) numberOfChannels * (long) alignedBitDepth <
-                    TiffIFD.MAX_NUMBER_OF_CHANNELS * TiffIFD.MAX_BITS_PER_SAMPLE;
-            // - actually must be in 8 times less
-            this.tileAlignedBitsPerPixel = tileSamplesPerPixel * alignedBitDepth;
-            this.totalAlignedBitsPerPixel = numberOfChannels * alignedBitDepth;
-            this.sampleType = ifd.sampleType();
-            this.wholeBytes = sampleType.isWholeBytes();
-            if (this.wholeBytes != ((alignedBitDepth & 7) == 0)) {
-                throw new ConcurrentModificationException("Corrupted IFD, probably from a parallel thread" +
-                        " (sample type " + sampleType + " is" +
-                        (wholeBytes ? "" : " NOT") +
-                        " whole-bytes, but we have " + alignedBitDepth + " bits/sample)");
-            }
-            if ((totalAlignedBitsPerPixel == 1) != sampleType.isBinary()) {
-                throw new ConcurrentModificationException("Corrupted IFD, probably from a parallel thread" +
-                        " (sample type is " + sampleType +
-                        ", but we have " + totalAlignedBitsPerPixel + " bits/pixel)");
-            }
-            if (sampleType.isBinary() && numberOfChannels > 1) {
-                throw new AssertionError("Binary IFD for " + numberOfChannels +
-                        " > 1 channels is not supported: invalid TiffIFD class");
-            }
-            this.bitsPerUnpackedSample = sampleType.bitsPerSample();
-            if (bitsPerUnpackedSample < alignedBitDepth) {
-                throw new AssertionError(sampleType + ".bitsPerSample() = " + bitsPerUnpackedSample +
-                        " is too little: less than ifd.alignedBitDepth() = " + alignedBitDepth);
-            }
-            this.elementType = sampleType.elementType();
-            this.byteOrder = ifd.getByteOrder();
-            this.maxNumberOfSamplesInArray = sampleType.maxNumberOfSamplesInArray();
-            this.tileSizeX = ifd.getTileSizeX();
-            this.tileSizeY = ifd.getTileSizeY();
-            assert tileSizeX > 0 && tileSizeY > 0 : "non-positive tile sizes are not checked in IFD methods";
-            this.compressionCode = ifd.getCompressionCode();
-            this.compression = ifd.optCompression();
-            this.photometricCode = ifd.getPhotometricCode();
-            this.photometric = ifd.optPhotometric();
-            this.yCbCrSubsampling = ifd.getYCbCrSubsampling();
-            this.colorCorrectionApplicable = ifd.isLowLevelInvertedBrightness();
-            if (hasImageDimensions) {
-                setDimensions(ifd.getImageDimX(), ifd.getImageDimY(), false);
-            }
-            if ((long) tileSizeX * (long) tileSizeY > Integer.MAX_VALUE) {
-                throw new IllegalArgumentException("Very large " +
-                        (tilingMode.isTileGrid() ? "TIFF tiles " : "TIFF strips ")
-                        + tileSizeX + "x" + tileSizeY +
-                        " >= 2^31 pixels are not supported");
-                // - note that it is also checked deeper in the next operator
-            }
-            this.tileSizeInPixels = tileSizeX * tileSizeY;
-            if ((long) tileSizeInPixels * (long) tileAlignedBitsPerPixel > Integer.MAX_VALUE) {
-                throw new IllegalArgumentException("Very large TIFF tiles " + tileSizeX + "x" + tileSizeY +
-                        ", " + tileSamplesPerPixel + " channels per " + alignedBitDepth +
-                        " bits >= 2^31 bits (256 MB) are not supported");
-            }
-            this.tileSizeInBytes = (tileSizeInPixels * tileAlignedBitsPerPixel + 7) >>> 3;
-        } catch (TiffException e) {
-            throw new IllegalArgumentException("Illegal IFD: " + e.getMessage(), e);
+        if (!hasImageDimensions && !resizable) {
+            throw new IllegalArgumentException("TIFF image sizes (ImageWidth and ImageLength tags) " +
+                    "are not specified; it is not allowed for" +
+                    (this instanceof TiffReadMap ? "" : " non-resizable") +
+                    " tile " + mapKindName());
         }
+        this.tilingMode = ifd.hasTileInformation() ? TilingMode.TILE_GRID : TilingMode.STRIPS;
+        if (resizable && !tilingMode.isTileGrid()) {
+            throw new IllegalArgumentException("TIFF image is not tiled (TileWidth and TileLength tags " +
+                    "are not specified); it is not allowed for resizable tile map: any processing " +
+                    "TIFF image, such as writing its fragments, requires either knowing its final fixed sizes, " +
+                    "or splitting image into tiles with known fixed sizes");
+        }
+        this.planarSeparated = ifd.isPlanarSeparated();
+        this.numberOfChannels = ifd.getSamplesPerPixel();
+        assert numberOfChannels <= TiffIFD.MAX_NUMBER_OF_CHANNELS;
+        this.numberOfSeparatedPlanes = planarSeparated ? numberOfChannels : 1;
+        this.tileSamplesPerPixel = planarSeparated ? 1 : numberOfChannels;
+        this.bitsPerSample = ifd.getBitsPerSample().clone();
+        this.alignedBitDepth = TiffIFD.alignedBitDepth(bitsPerSample);
+        // - we allow only EQUAL number of bytes/sample (but the number if bits/sample can be different)
+        assert (long) numberOfChannels * (long) alignedBitDepth <
+                TiffIFD.MAX_NUMBER_OF_CHANNELS * TiffIFD.MAX_BITS_PER_SAMPLE;
+        // - actually must be in 8 times less
+        this.tileAlignedBitsPerPixel = tileSamplesPerPixel * alignedBitDepth;
+        this.totalAlignedBitsPerPixel = numberOfChannels * alignedBitDepth;
+        this.sampleType = ifd.sampleType();
+        this.wholeBytes = sampleType.isWholeBytes();
+        if (this.wholeBytes != ((alignedBitDepth & 7) == 0)) {
+            throw new ConcurrentModificationException("Corrupted IFD, probably from a parallel thread" +
+                    " (sample type " + sampleType + " is" +
+                    (wholeBytes ? "" : " NOT") +
+                    " whole-bytes, but we have " + alignedBitDepth + " bits/sample)");
+        }
+        if ((totalAlignedBitsPerPixel == 1) != sampleType.isBinary()) {
+            throw new ConcurrentModificationException("Corrupted IFD, probably from a parallel thread" +
+                    " (sample type is " + sampleType +
+                    ", but we have " + totalAlignedBitsPerPixel + " bits/pixel)");
+        }
+        if (sampleType.isBinary() && numberOfChannels > 1) {
+            throw new AssertionError("Binary IFD for " + numberOfChannels +
+                    " > 1 channels is not supported: invalid TiffIFD class");
+        }
+        this.bitsPerUnpackedSample = sampleType.bitsPerSample();
+        if (bitsPerUnpackedSample < alignedBitDepth) {
+            throw new AssertionError(sampleType + ".bitsPerSample() = " + bitsPerUnpackedSample +
+                    " is too little: less than ifd.alignedBitDepth() = " + alignedBitDepth);
+        }
+        this.elementType = sampleType.elementType();
+        this.byteOrder = ifd.getByteOrder();
+        this.maxNumberOfSamplesInArray = sampleType.maxNumberOfSamplesInArray();
+        this.tileSizeX = ifd.getTileSizeX();
+        this.tileSizeY = ifd.getTileSizeY();
+        assert tileSizeX > 0 && tileSizeY > 0 : "non-positive tile sizes are not checked in IFD methods";
+        this.compressionCode = ifd.getCompressionCode();
+        this.compression = ifd.optCompression();
+        this.photometricCode = ifd.getPhotometricCode();
+        this.photometric = ifd.optPhotometric();
+        this.yCbCrSubsampling = ifd.getYCbCrSubsampling();
+        this.colorCorrectionApplicable = ifd.isLowLevelInvertedBrightness();
+        if (hasImageDimensions) {
+            setDimensions(ifd.getImageDimX(), ifd.getImageDimY(), false);
+        }
+        if ((long) tileSizeX * (long) tileSizeY > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Very large " +
+                    (tilingMode.isTileGrid() ? "TIFF tiles " : "TIFF strips ")
+                    + tileSizeX + "x" + tileSizeY +
+                    " >= 2^31 pixels are not supported");
+            // - note that it is also checked deeper in the next operator
+        }
+        this.tileSizeInPixels = tileSizeX * tileSizeY;
+        if ((long) tileSizeInPixels * (long) tileAlignedBitsPerPixel > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Very large TIFF tiles " + tileSizeX + "x" + tileSizeY +
+                    ", " + tileSamplesPerPixel + " channels per " + alignedBitDepth +
+                    " bits >= 2^31 bits (256 MB) are not supported");
+        }
+        this.tileSizeInBytes = (tileSizeInPixels * tileAlignedBitsPerPixel + 7) >>> 3;
     }
 
     public TiffIFD ifd() {

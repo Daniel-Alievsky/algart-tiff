@@ -47,7 +47,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
     private final TiffWriter owner;
     private final boolean existing;
 
-    public TiffWriteMap(TiffWriter owner, TiffIFD ifd, boolean resizable, boolean existing) {
+    public TiffWriteMap(TiffWriter owner, TiffIFD ifd, boolean resizable, boolean existing) throws TiffException {
         super(owner, ifd, resizable);
         if (existing) {
             if (!ifd.isLoadedFromFile()) {

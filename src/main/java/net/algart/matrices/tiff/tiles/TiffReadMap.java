@@ -26,6 +26,7 @@ package net.algart.matrices.tiff.tiles;
 
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
+import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 
@@ -37,7 +38,7 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
     private final TiffReader reader;
     // - identical to super.owner
 
-    public TiffReadMap(TiffReader owner, TiffIFD ifd) {
+    public TiffReadMap(TiffReader owner, TiffIFD ifd) throws TiffException {
         super(owner, ifd, false);
         if (!ifd.isLoadedFromFile()) {
             throw new IllegalArgumentException("IFD must be read from TIFF file");
