@@ -1255,27 +1255,31 @@ public non-sealed class TiffReader extends TiffIO {
 
             stream.seek(startOffset);
             final long numberOfEntries = bigTiff ? stream.readLong() : stream.readUnsignedShort();
-            final int sizeOfNumberOfEntries = bigTiff ? 8 : 2;
             final int n = TiffIFD.checkNumberOfEntries(numberOfEntries, bigTiff);
+            final long ifdStreamOffsetInTiffFile = startOffset + (bigTiff ? 8 : 2);
 
             final int bytesPerEntry = TiffIFD.TiffEntry.bytesPerEntry(bigTiff);
 
             final byte[] ifdBytes = new byte[bytesPerEntry * n];
             stream.readFully(ifdBytes);
             final BytesHandle ifdStream = getBytesHandle(ifdBytes, stream.isLittleEndian());
-
             for (int i = 0; i < n; i++) {
                 long tEntry1 = debugTime();
                 final TiffIFD.TiffEntry entry = readIFDEntry(
                         ifdStream,
                         (long) bytesPerEntry * i,
-                        startOffset + sizeOfNumberOfEntries,
+                        ifdStreamOffsetInTiffFile,
                         tiffFileLength);
                 final int tag = entry.tag();
                 long tEntry2 = debugTime();
                 timeEntries += tEntry2 - tEntry1;
 
-                final Object value = readIFDValueAtEntryOffset(stream, entry);
+                final Object value = readIFDValueAtEntryOffset(
+                        ifdStream,
+                        stream,
+                        entry.isDataEmbeddedInEntry(),
+                        ifdStreamOffsetInTiffFile,
+                        entry);
                 long tEntry3 = debugTime();
                 timeArrays += tEntry3 - tEntry2;
 //            System.err.printf("%d values from %d: %.6f ms%n", valueCount, valueOffset, (tEntry3 - tEntry2) * 1e-6);
@@ -1288,7 +1292,7 @@ public non-sealed class TiffReader extends TiffIO {
                     detailedEntries.put(tag, entry);
                 }
             }
-            final long fileOffsetOfNextIFDOffset = startOffset + sizeOfNumberOfEntries + bytesPerEntry * numberOfEntries;
+            final long fileOffsetOfNextIFDOffset = ifdStreamOffsetInTiffFile + bytesPerEntry * numberOfEntries;
             stream.seek(fileOffsetOfNextIFDOffset);
 
             ifd = new TiffIFD(map, detailedEntries);

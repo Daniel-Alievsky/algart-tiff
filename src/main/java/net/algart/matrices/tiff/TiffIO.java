@@ -289,25 +289,27 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     }
 
     TiffIFD.TiffEntry readIFDEntry(
-            DataHandle<?> stream,
+            DataHandle<?> ifdStream,
             long entryOffset,
-            long streamOffsetInTiffFile,
-            long fileLength) throws IOException {
-        return readIFDEntry(stream, bigTiff, entryOffset, streamOffsetInTiffFile, fileLength, this::streamName);
+            long ifdStreamOffsetInTiffFile,
+            long tiffFileLength) throws IOException {
+        return readIFDEntry(
+                ifdStream, bigTiff, entryOffset, ifdStreamOffsetInTiffFile, tiffFileLength, this::streamName);
     }
 
     static TiffIFD.TiffEntry readIFDEntry(
-            DataHandle<?> stream,
+            DataHandle<?> ifdStream,
             boolean bigTiff,
             long entryOffset,
-            long streamOffsetInTiffFile,
+            long ifdStreamOffsetInTiffFile,
             long tiffFileLength,
             Supplier<String> fileNameSupplier) throws IOException {
-        stream.seek(entryOffset);
-        final int entryTag = stream.readUnsignedShort();
-        final int entryType = stream.readUnsignedShort();
+        Objects.requireNonNull(ifdStream, "Null ifdStream");
+        ifdStream.seek(entryOffset);
+        final int entryTag = ifdStream.readUnsignedShort();
+        final int entryType = ifdStream.readUnsignedShort();
 
-        final long valueCount = bigTiff ? stream.readLong() : ((long) stream.readInt()) & 0xFFFFFFFFL;
+        final long valueCount = bigTiff ? ifdStream.readLong() : ((long) ifdStream.readInt()) & 0xFFFFFFFFL;
         if (valueCount < 0 || valueCount > Integer.MAX_VALUE) {
             throw new TiffException("Invalid TIFF: very large number of IFD values in array " +
                     (valueCount < 0 ? " >= 2^63" : valueCount + " >= 2^31") + " is not supported");
@@ -317,8 +319,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         final long valueLength = valueCount * (long) bytesPerElement;
         final boolean embeddedInEntry = TiffIFD.TiffEntry.isDataEmbeddedInEntry(valueLength, bigTiff);
         final long valueOffset = embeddedInEntry ?
-                streamOffsetInTiffFile + stream.offset() :
-                readOffset(stream, bigTiff, streamOffsetInTiffFile, tiffFileLength, fileNameSupplier);
+                ifdStreamOffsetInTiffFile + ifdStream.offset() :
+                readOffset(ifdStream, bigTiff, ifdStreamOffsetInTiffFile, tiffFileLength, fileNameSupplier);
         // - position in the file will be different depending on embeddedInEntry,
         // but it is not a problem: we will not use this position
         if (valueOffset < 0) {
@@ -337,16 +339,26 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return result;
     }
 
-    static Object readIFDValueAtEntryOffset(DataHandle<?> stream, TiffIFD.TiffEntry entry) throws IOException {
+    static Object readIFDValueAtEntryOffset(
+            DataHandle<?> ifdStream,
+            DataHandle<?> fileStream,
+            boolean readEmbeddedData,
+            long ifdStreamOffsetInTiffFile,
+            TiffIFD.TiffEntry entry) throws IOException {
+        Objects.requireNonNull(ifdStream, "Null ifdStream");
+        Objects.requireNonNull(fileStream, "Null fileStream");
+        Objects.requireNonNull(entry, "Null entry");
         final int type = entry.type();
         final int count = entry.valueCount();
         final long offset = entry.valueOffset();
-        final ByteOrder byteOrder = stream.isLittleEndian() ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
+        assert ifdStream.isLittleEndian() == fileStream.isLittleEndian();
+        final ByteOrder byteOrder = fileStream.isLittleEndian() ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
+        final DataHandle<?> stream = readEmbeddedData ? ifdStream : fileStream;
 
         LOG.log(System.Logger.Level.TRACE, () ->
                 "Reading entry " + entry.tag() + " from " + offset + "; type=" + type + ", count=" + count);
 
-        stream.seek(offset);
+        stream.seek(readEmbeddedData ? offset - ifdStreamOffsetInTiffFile : offset);
         switch (type) {
             case TagTypes.BYTE -> {
                 // 8-bit unsigned integer

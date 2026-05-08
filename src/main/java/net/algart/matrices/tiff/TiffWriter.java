@@ -859,9 +859,10 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    public long overwriteSelectedTagsAt(
+    public long rewriteSelectedTagsAt(
             TiffIFD ifd,
             long startOffset,
+            boolean requireIdenticalNumberOfEntries,
             IntPredicate tagsToUpdate,
             boolean updateIFDLinkages) throws IOException {
         Objects.requireNonNull(tagsToUpdate, "Null tagsToUpdate");
@@ -869,7 +870,7 @@ public non-sealed class TiffWriter extends TiffIO {
             prepareWriteIFDAt(ifd, startOffset);
             final long numberOfEntries = bigTiff ? stream.readLong() : stream.readUnsignedShort();
             TiffIFD.checkNumberOfEntries(numberOfEntries, bigTiff);
-            if (numberOfEntries != ifd.numberOfEntries()) {
+            if (requireIdenticalNumberOfEntries && numberOfEntries != ifd.numberOfEntries()) {
                 throw new IllegalArgumentException("Number of entries in the IFD: " + ifd.numberOfEntries() +
                         " does not match the number of entries stored in the file: " + numberOfEntries);
             }
