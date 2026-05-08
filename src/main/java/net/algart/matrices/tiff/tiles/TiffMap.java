@@ -162,14 +162,18 @@ public sealed class TiffMap permits TiffIOMap {
         final boolean hasImageDimensions = ifd.hasImageDimensions();
         if (!hasImageDimensions && !resizable) {
             throw new IllegalArgumentException("TIFF image sizes (ImageWidth and ImageLength tags) " +
-                    "are not specified; it is not allowed for" +
+                    "are not specified" +
+                    (ifd.hasGlobalIndex() ? " in IFD #" + ifd.getGlobalIndex() : "") +
+                    "; it is not allowed for" +
                     (this instanceof TiffReadMap ? "" : " non-resizable") +
                     " tile " + mapKindName());
         }
         this.tilingMode = ifd.hasTileInformation() ? TilingMode.TILE_GRID : TilingMode.STRIPS;
         if (resizable && !tilingMode.isTileGrid()) {
             throw new IllegalArgumentException("TIFF image is not tiled (TileWidth and TileLength tags " +
-                    "are not specified); it is not allowed for resizable tile map: any processing " +
+                    "are not specified)" +
+                    (ifd.hasGlobalIndex() ? " in IFD #" + ifd.getGlobalIndex() : "") +
+                    "; it is not allowed for resizable tile map: any processing " +
                     "TIFF image, such as writing its fragments, requires either knowing its final fixed sizes, " +
                     "or splitting image into tiles with known fixed sizes");
         }

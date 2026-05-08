@@ -2956,7 +2956,7 @@ public final class TiffIFD {
                 if (valueCount != 1) {
                     sb.append("[").append(valueCount).append("]");
                 }
-                if (!tiffEntry.builtInData()) {
+                if (!tiffEntry.isDataEmbeddedInEntry()) {
                     final long offset = tiffEntry.valueOffset();
                     final long length = tiffEntry.valueLength();
                     sb.append(" at @").append(offset).append("..").append(offset + length - 1)
@@ -3187,41 +3187,37 @@ public final class TiffIFD {
             }
         }
     }
+    static final class TiffEntry {
+        private final int tag;
+        private final int type;
+        private final int valueCount;
+        private final long valueLength;
+        private final long valueOffset;
+        private final boolean bigTiff;
+        private final boolean dataEmbeddedInEntry;
 
-    // Helper class for internal needs
-    record TiffEntry(int tag, int type, int valueCount, long valueOffset, boolean bigTiff) {
-        TiffEntry {
+        TiffEntry(int tag, int type, int valueCount, long valueOffset, boolean bigTiff) {
             if (valueCount < 0) {
                 throw new IllegalArgumentException("Negative valueCount = " + valueCount);
             }
             if (valueOffset < 0) {
                 throw new IllegalArgumentException("Negative valueOffset = " + valueOffset);
             }
-        }
-
-        long valueLength() {
-            return (long) valueCount * TagTypes.sizeOfType(type);
+            this.tag = tag;
+            this.type = type;
+            this.valueCount = valueCount;
+            this.valueLength = (long) valueCount * TagTypes.sizeOfType(type);
+            this.valueOffset = valueOffset;
+            this.bigTiff = bigTiff;
+            this.dataEmbeddedInEntry = isDataEmbeddedInEntry(valueLength, bigTiff);
         }
 
         long offsetAfter() {
             return valueOffset + valueLength();
         }
 
-        boolean builtInData() {
-            return builtInData(valueLength(), bigTiff);
-        }
-
         int bytesPerEntry() {
             return bytesPerEntry(this.bigTiff);
-        }
-
-        long sizeOf() {
-            final int builtInLength = bytesPerEntry();
-            if (builtInData()) {
-                return builtInLength;
-            }
-            long valueLength = valueLength();
-            return builtInLength + valueLength;
         }
 
         @Override
@@ -3234,12 +3230,69 @@ public final class TiffIFD {
                     (bigTiff ? ", bigTiff" : "");
         }
 
-        static boolean builtInData(long valueLength, boolean bigTiff) {
+        static boolean isDataEmbeddedInEntry(long valueLength, boolean bigTiff) {
             return valueLength <= (bigTiff ? 8 : 4);
         }
 
         static int bytesPerEntry(boolean bigTiff) {
             return bigTiff ? BIG_TIFF_BYTES_PER_ENTRY : BYTES_PER_ENTRY;
+        }
+
+        public int tag() {
+            return tag;
+        }
+
+        public int type() {
+            return type;
+        }
+
+        public int valueCount() {
+            return valueCount;
+        }
+
+        public long valueLength() {
+            return valueLength;
+        }
+
+        public long sizeOf() {
+            final int builtInLength = bytesPerEntry();
+            if (isDataEmbeddedInEntry()) {
+                return builtInLength;
+            }
+            return builtInLength + valueLength;
+        }
+
+        public long valueOffset() {
+            return valueOffset;
+        }
+
+        public boolean isBigTiff() {
+            return bigTiff;
+        }
+
+        public boolean isDataEmbeddedInEntry() {
+            return dataEmbeddedInEntry;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == this) {
+                return true;
+            }
+            if (obj == null || obj.getClass() != this.getClass()) {
+                return false;
+            }
+            var that = (TiffEntry) obj;
+            return this.tag == that.tag &&
+                    this.type == that.type &&
+                    this.valueCount == that.valueCount &&
+                    this.valueOffset == that.valueOffset &&
+                    this.bigTiff == that.bigTiff;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(tag, type, valueCount, valueOffset, bigTiff);
         }
     }
 }

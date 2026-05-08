@@ -37,6 +37,7 @@ import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagPhotometric;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.*;
+import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.FileHandle;
 import org.scijava.io.location.FileLocation;
@@ -1245,27 +1246,31 @@ public non-sealed class TiffReader extends TiffIO {
         long timeArrays = 0;
         final TiffIFD ifd;
         synchronized (fileLock()) {
-            if (startOffset >= stream.length()) {
+            final long tiffFileLength = stream.length();
+            if (startOffset >= tiffFileLength) {
                 throw new TiffException("TIFF IFD offset " + startOffset + " is outside the file");
             }
             final Map<Integer, Object> map = new LinkedHashMap<>();
             final LinkedHashMap<Integer, TiffIFD.TiffEntry> detailedEntries = new LinkedHashMap<>();
 
-            // read in directory entries for this IFD
             stream.seek(startOffset);
             final long numberOfEntries = bigTiff ? stream.readLong() : stream.readUnsignedShort();
+            final int sizeOfNumberOfEntries = bigTiff ? 8 : 2;
             final int n = TiffIFD.checkNumberOfEntries(numberOfEntries, bigTiff);
 
             final int bytesPerEntry = TiffIFD.TiffEntry.bytesPerEntry(bigTiff);
-            final int baseOffset = bigTiff ? 8 : 2;
 
-//            final byte[] ifdBytes = new byte[bytesPerEntry * n];
-//            stream.readFully(ifdBytes);
-//            final BytesHandle ifdStream = getBytesHandle(ifdBytes);
+            final byte[] ifdBytes = new byte[bytesPerEntry * n];
+            stream.readFully(ifdBytes);
+            final BytesHandle ifdStream = getBytesHandle(ifdBytes, stream.isLittleEndian());
+
             for (int i = 0; i < n; i++) {
                 long tEntry1 = debugTime();
                 final TiffIFD.TiffEntry entry = readIFDEntry(
-                        startOffset + baseOffset + (long) bytesPerEntry * i);
+                        ifdStream,
+                        (long) bytesPerEntry * i,
+                        startOffset + sizeOfNumberOfEntries,
+                        tiffFileLength);
                 final int tag = entry.tag();
                 long tEntry2 = debugTime();
                 timeEntries += tEntry2 - tEntry1;
@@ -1283,7 +1288,7 @@ public non-sealed class TiffReader extends TiffIO {
                     detailedEntries.put(tag, entry);
                 }
             }
-            final long fileOffsetOfNextIFDOffset = startOffset + baseOffset + bytesPerEntry * numberOfEntries;
+            final long fileOffsetOfNextIFDOffset = startOffset + sizeOfNumberOfEntries + bytesPerEntry * numberOfEntries;
             stream.seek(fileOffsetOfNextIFDOffset);
 
             ifd = new TiffIFD(map, detailedEntries);
@@ -2093,7 +2098,6 @@ public non-sealed class TiffReader extends TiffIO {
         return options;
     }
 
-
     private CachedTile getCachedTile(TiffTileIndex tileIndex) {
         synchronized (tileCacheLock) {
             CachedTile tile = tileCacheMap.get(tileIndex);
@@ -2108,7 +2112,6 @@ public non-sealed class TiffReader extends TiffIO {
             // strip offsets and strip byte counts for all tiles.
         }
     }
-
 
     private static int cachedByteCountWithCompatibilityTrick(TiffIFD ifd, int index) throws TiffException {
         final boolean tiled = ifd.hasTileInformation();
@@ -2174,6 +2177,21 @@ public non-sealed class TiffReader extends TiffIO {
             throw new TiffException("Uncompleted TIFF" + spacedStreamName() +
                     ": the file does not contain any images; " +
                     "probably the TIFF writing process was not completed normally");
+        }
+        return offset;
+    }
+
+    /**
+     * Reads a file offset.
+     * For BigTIFF files, a 64-bit number is read.
+     * For other Tiffs, a 32-bit number is read and possibly adjusted for a possible carry-over
+     * from the previous offset.
+     */
+    private long readIFDNextOffset(boolean updateFileOffsetOfLastOffset) throws IOException {
+        final long fileOffsetOfNextOffset = stream.offset();
+        long offset = readOffset(stream, bigTiff, 0, stream.length(), this::streamName);
+        if (updateFileOffsetOfLastOffset) {
+            this.fileOffsetOfLastIFDOffset = fileOffsetOfNextOffset;
         }
         return offset;
     }
