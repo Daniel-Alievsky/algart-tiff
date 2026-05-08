@@ -1738,14 +1738,14 @@ public non-sealed class TiffWriter extends TiffIO {
     private long writeIFDEntries(Map<Integer, Object> ifd, long startOffset, int mainIFDLength) throws IOException {
         final long afterMain = startOffset + mainIFDLength;
         final long fileOffsetOfNextOffset;
-        try (final BytesHandle mainStream = newBytesHandle(stream.isLittleEndian());
+        try (final BytesHandle ifdStream = newBytesHandle(stream.isLittleEndian());
              final BytesHandle extraBuffer = newBytesHandle(stream.isLittleEndian())) {
 //            System.out.println("!!!" + stream.offset());
             for (final Map.Entry<Integer, Object> e : ifd.entrySet()) {
-//                System.out.println(">> " + e.getKey() + ": " + mainStream.offset());
-                writeIFDValueAtCurrentOffsets(mainStream, extraBuffer, bigTiff, afterMain, e);
+//                System.out.println(">> " + e.getKey() + ": " + ifdStream.offset());
+                writeIFDValueAtCurrentOffsets(ifdStream, extraBuffer, bigTiff, afterMain, e);
             }
-            copyData(mainStream, stream);
+            copyData(ifdStream, stream);
 
 //            System.out.println(">>>" + stream.offset());
             fileOffsetOfNextOffset = stream.offset();
