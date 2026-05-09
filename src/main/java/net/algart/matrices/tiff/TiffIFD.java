@@ -2956,6 +2956,14 @@ public final class TiffIFD {
                 if (valueCount != 1) {
                     sb.append("[").append(valueCount).append("]");
                 }
+                final int bytesPerElement = TagTypes.sizeOfType(tagType);
+                sb.append(", ").append(bytesPerElement).append(" byte");
+                if (bytesPerElement != 1) {
+                    sb.append("s");
+                }
+                if (valueCount != 1) {
+                    sb.append("/element");
+                }
                 if (!tiffEntry.isDataEmbeddedInEntry()) {
                     final long offset = tiffEntry.valueOffset();
                     final long length = tiffEntry.valueLength();
