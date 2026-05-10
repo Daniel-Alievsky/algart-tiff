@@ -132,8 +132,14 @@ public non-sealed class TiffReader extends TiffIO {
     // (for example, one tiles row in the image 131072x131072)
 
     static final boolean USE_LEGACY_UNPACK_BYTES = false;
-    // - Should be false for better performance; necessary for debugging needs only
+    // - should be false for better performance; necessary for debugging needs only
     // (together with uncommenting unpackBytesLegacy call)
+    private static final boolean AUTO_BUFFERING_INPUT_STREAM = true;
+    // - should be true for good performance
+    private static final boolean READ_IFD_WITH_BUFFERING = true;
+    // - should be true for good performance when the stream is not ReadBufferDataHandle,
+    // for example, if the previous flag is false
+
 
     private static final int MINIMAL_ALLOWED_TIFF_FILE_LENGTH =
             TiffIFD.TIFF_FILE_HEADER_LENGTH + 2 + TiffIFD.BYTES_PER_ENTRY + 4;
@@ -396,7 +402,7 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     private TiffReader(DataHandle<?> inputStream, Path file, Consumer<Exception> exceptionHandler) {
-        super(inputStream instanceof ReadBufferDataHandle ?
+        super(inputStream instanceof ReadBufferDataHandle || !AUTO_BUFFERING_INPUT_STREAM ?
                         inputStream :
                         new ReadBufferDataHandle<>(inputStream),
                 file);
@@ -1285,24 +1291,30 @@ public non-sealed class TiffReader extends TiffIO {
 
             final int bytesPerEntry = TiffIFD.Entry.bytesPerEntry(bigTiff);
 
-            final byte[] ifdBytes = new byte[bytesPerEntry * n];
-            stream.readFully(ifdBytes);
-            final BytesHandle ifdStream = getBytesHandle(ifdBytes, stream.isLittleEndian());
+            final DataHandle<?> ifdStream;
+            if (READ_IFD_WITH_BUFFERING) {
+                final byte[] ifdBytes = new byte[bytesPerEntry * n];
+                stream.readFully(ifdBytes);
+                ifdStream = getBytesHandle(ifdBytes, stream.isLittleEndian());
+            } else {
+                ifdStream = stream;
+            }
             for (int i = 0; i < n; i++) {
                 long tEntry1 = debugTime();
+                final long entryOffset = (long) bytesPerEntry * i;
                 final TiffIFD.Entry entry = readIFDEntry(
                         ifdStream,
-                        (long) bytesPerEntry * i,
-                        ifdStreamOffsetInTiffFile,
+                        READ_IFD_WITH_BUFFERING ? entryOffset : entryOffset + ifdStreamOffsetInTiffFile,
+                        READ_IFD_WITH_BUFFERING ? ifdStreamOffsetInTiffFile : 0,
                         tiffFileLength);
                 final int tag = entry.tag();
                 long tEntry2 = debugTime();
                 timeEntries += tEntry2 - tEntry1;
 
                 final Object value = readIFDValueAtEntryOffset(
-                        ifdStream,
+                        READ_IFD_WITH_BUFFERING ? ifdStream : stream,
                         stream,
-                        entry.isDataEmbeddedInEntry(),
+                        READ_IFD_WITH_BUFFERING && entry.isDataEmbeddedInEntry(),
                         ifdStreamOffsetInTiffFile,
                         entry);
                 long tEntry3 = debugTime();

@@ -2368,7 +2368,7 @@ public final class TiffIFD {
      * unsigned 8-bit data in Java's signed environment.</p>
      *
      * <p>Note that the current version of {@link TiffWriter} <b>never writes</b>
-     * the following tag types: {@link TagType#SBYTE}, {@link TagType#SSHORT},
+     * the following (very rare) tag types: {@link TagType#SBYTE}, {@link TagType#SSHORT},
      * {@link TagType#SLONG}, {@link TagType#SLONG8}, {@link TagType#SRATIONAL},
      * {@link TagType#IFD}, {@link TagType#IFD8}. While they are successfully
      * recognized by {@link TiffReader}, an attempt to write them to a new TIFF file

@@ -76,7 +76,7 @@ public class TiffIFDAndIFDOffsetsTest {
             }
         } catch (TiffException ignored) {
         }
-        for (int test = 1; test <= 10; test++) {
+        for (int test = 1; test <= 16; test++) {
             System.out.printf("%nTest %d:%n", test);
 
             long t1 = System.nanoTime();
