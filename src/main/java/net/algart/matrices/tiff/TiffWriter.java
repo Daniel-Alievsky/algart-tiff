@@ -876,6 +876,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 throw new IllegalArgumentException("Number of entries in the IFD: " + ifd.numberOfEntries() +
                         " does not match the number of entries stored in the file: " + numberOfEntries);
             }
+            // You may compare the following code with TiffReader.readIFDAt
             final long ifdStreamOffsetInTiffFile = startOffset + (bigTiff ? 8 : 2);
             final int bytesPerEntry = TiffIFD.Entry.bytesPerEntry(bigTiff);
             final byte[] ifdBytes = new byte[bytesPerEntry * n];
