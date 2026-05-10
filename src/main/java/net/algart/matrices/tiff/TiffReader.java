@@ -1290,7 +1290,6 @@ public non-sealed class TiffReader extends TiffIO {
             final long ifdStreamOffsetInTiffFile = startOffset + (bigTiff ? 8 : 2);
 
             final int bytesPerEntry = TiffIFD.Entry.bytesPerEntry(bigTiff);
-
             final DataHandle<?> ifdStream;
             if (READ_IFD_WITH_BUFFERING) {
                 final byte[] ifdBytes = new byte[bytesPerEntry * n];

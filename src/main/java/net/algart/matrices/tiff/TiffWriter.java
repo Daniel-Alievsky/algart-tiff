@@ -533,7 +533,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * Returns position in the file of the last IFD offset, written by methods of this object.
      * It is updated by {@link #overwriteIFDInPlace(TiffIFD, boolean)},
      * {@link #writeIFDAt(TiffIFD, Long, boolean)},
-     * {@link #overwriteSelectedTagsAt(TiffIFD, long, IntPredicate, boolean)}
+     * {@link #rewriteSelectedTagsAt(TiffIFD, long, boolean, IntPredicate, boolean)}
      * when the last argument is {@code true}.
      *
      * <p>Immediately after creating this object without opening a file
@@ -868,13 +868,50 @@ public non-sealed class TiffWriter extends TiffIO {
         Objects.requireNonNull(tagsToUpdate, "Null tagsToUpdate");
         synchronized (fileLock()) {
             prepareWriteIFDAt(ifd, startOffset);
+            final boolean littleEndian = stream.isLittleEndian();
+            final long tiffFileLength = stream.length();
             final long numberOfEntries = bigTiff ? stream.readLong() : stream.readUnsignedShort();
-            TiffIFD.checkNumberOfEntries(numberOfEntries, bigTiff);
+            final int n = TiffIFD.checkNumberOfEntries(numberOfEntries, bigTiff);
             if (requireIdenticalNumberOfEntries && numberOfEntries != ifd.numberOfEntries()) {
                 throw new IllegalArgumentException("Number of entries in the IFD: " + ifd.numberOfEntries() +
                         " does not match the number of entries stored in the file: " + numberOfEntries);
             }
-            //TODO!!
+            final long ifdStreamOffsetInTiffFile = startOffset + (bigTiff ? 8 : 2);
+            final int bytesPerEntry = TiffIFD.Entry.bytesPerEntry(bigTiff);
+            final byte[] ifdBytes = new byte[bytesPerEntry * n];
+            stream.readFully(ifdBytes);
+            final DataHandle<?> existingIfdStream = getBytesHandle(ifdBytes, littleEndian);
+            final DataHandle<?> newIfdStream = getBytesHandle(ifdBytes.clone(), littleEndian);
+            final BytesHandle[] extraBuffers = new BytesHandle[n];
+            for (int i = 0; i < n; i++) {
+                final long entryOffset = (long) bytesPerEntry * i;
+                final TiffIFD.Entry existingEntry = readIFDEntry(
+                        existingIfdStream,
+                        entryOffset,
+                        ifdStreamOffsetInTiffFile,
+                        tiffFileLength);
+                final int tag = existingEntry.tag();
+                if (!tagsToUpdate.test(tag)) {
+                    continue;
+                }
+                final BytesHandle extraBuffer = newBytesHandle(littleEndian);
+                final Map.Entry<Integer, Object> e = new AbstractMap.SimpleEntry<>(tag, ifd.get(tag));
+                newIfdStream.seek(entryOffset);
+                writeIFDValueAtCurrentOffsets(newIfdStream, extraBuffer, bigTiff, null, e);
+                extraBuffers[i] = extraBuffer;
+                final TiffIFD.Entry newEntry = readIFDEntry(
+                        newIfdStream,
+                        entryOffset,
+                        ifdStreamOffsetInTiffFile,
+                        tiffFileLength);
+                if (newEntry.tag() != existingEntry.tag()) {
+                    throw new AssertionError();
+                }
+                //TODO!! compare other fields
+//            System.err.printf("%d values from %d: %.6f ms%n", valueCount, valueOffset, (tEntry3 - tEntry2) * 1e-6);
+            }
+
+            //TODO!! copy newIfdStream and all extraBuffers to the necessary places
             throw new UnsupportedOperationException();
         }
     }
@@ -896,6 +933,8 @@ public non-sealed class TiffWriter extends TiffIO {
                     "offset of new IFD will be " + startOffset + " > " + MAXIMAL_ALLOWED_32BIT_IFD_OFFSET);
         }
         checkFileOffsetForWriting(startOffset);
+        // - we check that the offset is even always, even while rewriting:
+        // we cannot rewrite IFD at the odd (non-standard) position
         ifd.setFileOffsetForWriting(startOffset);
         // - TODO!! remove this
         stream.seek(startOffset);
