@@ -1251,21 +1251,21 @@ public non-sealed class TiffReader extends TiffIO {
                 throw new TiffException("TIFF IFD offset " + startOffset + " is outside the file");
             }
             final Map<Integer, Object> map = new LinkedHashMap<>();
-            final LinkedHashMap<Integer, TiffIFD.TiffEntry> detailedEntries = new LinkedHashMap<>();
+            final LinkedHashMap<Integer, TiffIFD.Entry> detailedEntries = new LinkedHashMap<>();
 
             stream.seek(startOffset);
             final long numberOfEntries = bigTiff ? stream.readLong() : stream.readUnsignedShort();
             final int n = TiffIFD.checkNumberOfEntries(numberOfEntries, bigTiff);
             final long ifdStreamOffsetInTiffFile = startOffset + (bigTiff ? 8 : 2);
 
-            final int bytesPerEntry = TiffIFD.TiffEntry.bytesPerEntry(bigTiff);
+            final int bytesPerEntry = TiffIFD.Entry.bytesPerEntry(bigTiff);
 
             final byte[] ifdBytes = new byte[bytesPerEntry * n];
             stream.readFully(ifdBytes);
             final BytesHandle ifdStream = getBytesHandle(ifdBytes, stream.isLittleEndian());
             for (int i = 0; i < n; i++) {
                 long tEntry1 = debugTime();
-                final TiffIFD.TiffEntry entry = readIFDEntry(
+                final TiffIFD.Entry entry = readIFDEntry(
                         ifdStream,
                         (long) bytesPerEntry * i,
                         ifdStreamOffsetInTiffFile,
@@ -2202,7 +2202,7 @@ public non-sealed class TiffReader extends TiffIO {
 
     private void skipIFDEntries(long fileLength) throws IOException {
         final long offset = stream.offset();
-        final int bytesPerEntry = TiffIFD.TiffEntry.bytesPerEntry(bigTiff);
+        final int bytesPerEntry = TiffIFD.Entry.bytesPerEntry(bigTiff);
         final long numberOfEntries = bigTiff ? stream.readLong() : stream.readUnsignedShort();
         if (numberOfEntries < 0 || numberOfEntries > Integer.MAX_VALUE / bytesPerEntry) {
             throw new TiffException(

@@ -28,7 +28,7 @@ import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.awt.JPEGDecoding;
 import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tags.TagTypes;
+import net.algart.matrices.tiff.tags.TagType;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffTile;
 
@@ -47,7 +47,7 @@ public class TiffJPEGDecodingHelper {
             return;
         }
         final byte[] data = tile.getEncodedData();
-        final byte[] jpegTable = ifd.getValue(Tags.JPEG_TABLES, byte[].class, TagTypes.UNDEFINED).orElse(null);
+        final byte[] jpegTable = ifd.getValue(Tags.JPEG_TABLES, byte[].class, TagType.UNDEFINED).orElse(null);
         // Structure of data:
         //      FF D8 (SOI, start of image)
         //      FF C0 (SOF0, start of frame, or some other marker)

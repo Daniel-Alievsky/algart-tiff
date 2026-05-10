@@ -319,7 +319,7 @@ public final class TiffIFD {
     private final LinkedHashMap<Integer, Object> map;
     private TagCompression detailedCompression = null;
     // - allows clarifying optCompression() if we have several compressions with the same code
-    private final LinkedHashMap<Integer, TiffEntry> detailedEntries;
+    private final LinkedHashMap<Integer, Entry> detailedEntries;
     private boolean loadedFromFile = false;
     private boolean littleEndian = false;
     private boolean bigTiff = false;
@@ -365,7 +365,7 @@ public final class TiffIFD {
 
     // This constructor is called while reading from the TIFF file.
     // Note: this constructor does not clone the detailedEntries map.
-    TiffIFD(Map<Integer, Object> ifdEntries, LinkedHashMap<Integer, TiffEntry> detailedEntries) {
+    TiffIFD(Map<Integer, Object> ifdEntries, LinkedHashMap<Integer, Entry> detailedEntries) {
         Objects.requireNonNull(ifdEntries, "Null IFD entries map");
         this.map = new LinkedHashMap<>(ifdEntries);
         for (Integer key : ifdEntries.keySet()) {
@@ -725,11 +725,11 @@ public final class TiffIFD {
             return OptionalLong.empty();
         }
         long result = sizeOfIFDTableExcludingEntries(bigTiff, isMainIFD());
-        final List<TiffEntry> entries = new ArrayList<>(detailedEntries.values());
-        entries.sort(Comparator.comparingLong(TiffEntry::valueOffset));
+        final List<Entry> entries = new ArrayList<>(detailedEntries.values());
+        entries.sort(Comparator.comparingLong(Entry::valueOffset));
         long lastOffsetAfter = -Long.MAX_VALUE;
         long lastOffset = 0;
-        for (TiffEntry entry : entries) {
+        for (Entry entry : entries) {
             if (((lastOffset | entry.valueOffset) & 1) == 0 && lastOffsetAfter + 1 == entry.valueOffset) {
                 // - we have 1 "extra" byte because of aligning entry offset
                 // (this is impossible for built-in data)
@@ -880,22 +880,22 @@ public final class TiffIFD {
     public <R> Optional<R> getValue(
             int tag,
             Class<? extends R> requiredClass,
-            Integer requiredEntryType) throws TiffException {
+            TagType requiredType) throws TiffException {
         Objects.requireNonNull(requiredClass, "Null requiredClass");
         Object value = get(tag);
         if (value == null) {
             return Optional.empty();
         }
         if (!requiredClass.isInstance(value)) {
-            TiffEntry entry = null;
+            Entry entry = null;
             if (detailedEntries != null) {
                 entry = detailedEntries.get(tag);
             }
             throw new TiffException("TIFF tag " + Tags.prettyName(tag) +
                     " has wrong type: " +
-                    (entry == null ? value.getClass().getSimpleName() : TagTypes.typeToString(entry.type)) +
+                    (entry == null ? value.getClass().getSimpleName() : TagType.toString(entry.rawType)) +
                     " instead of expected " +
-                    (requiredEntryType == null ? "" : TagTypes.typeToString(requiredEntryType) + ", or ") +
+                    (requiredType == null ? "" : requiredType + ", or ") +
                     requiredClass.getSimpleName());
         }
         return Optional.of(requiredClass.cast(value));
@@ -907,8 +907,8 @@ public final class TiffIFD {
     }
 
     public OptionalInt optType(int tag) {
-        TiffEntry entry = detailedEntries == null ? null : detailedEntries.get(tag);
-        return entry == null ? OptionalInt.empty() : OptionalInt.of(entry.type());
+        Entry entry = detailedEntries == null ? null : detailedEntries.get(tag);
+        return entry == null ? OptionalInt.empty() : OptionalInt.of(entry.rawType());
     }
 
     public boolean optBoolean(int tag, boolean defaultValue) {
@@ -957,7 +957,7 @@ public final class TiffIFD {
 
     public Optional<String> optString(int tag) {
         Object value = get(tag);
-        TiffEntry entry = null;
+        Entry entry = null;
         if (detailedEntries != null) {
             entry = detailedEntries.get(tag);
         }
@@ -967,11 +967,11 @@ public final class TiffIFD {
         } else if (value instanceof String[] stringArray) {
             result = String.join("\n", stringArray);
         } else if (value instanceof byte[] bytes) {
-            if (entry != null && entry.type == TagTypes.UNDEFINED) {
+            if (entry != null && entry.type == TagType.UNDEFINED) {
                 result = String.join("\n", asciiToText(bytes));
             }
         } else if (value instanceof short[] shorts) {
-            if (entry != null && entry.type == TagTypes.BYTE) {
+            if (entry != null && entry.type == TagType.BYTE) {
                 byte[] bytes = new byte[shorts.length];
                 for (int i = 0; i < bytes.length; i++) {
                     bytes[i] = (byte) shorts[i];
@@ -1844,7 +1844,7 @@ public final class TiffIFD {
      * must actually be in the range <code>1..Integer.MAX_VALUE</code>.
      *
      * <p>Note that the tags <code>ImageWidth</code> and <code>ImageLength</code> set by this method
-     * will be saved in the TIFF file as {@link TagTypes#LONG} type (32-bit).
+     * will be saved in the TIFF file as {@link TagType#LONG} type (32-bit).
      *
      * @param dimX new TIFF image width (<code>ImageWidth</code> tag);
      *             must be in the range <code>1..Integer.MAX_VALUE</code>.
@@ -1865,7 +1865,7 @@ public final class TiffIFD {
      *
      * <p>This can be useful if you want to preserve the type of already existing
      * <code>ImageWidth</code> and <code>ImageLength</code>, for example, when they are stored as
-     * {@link TagTypes#SHORT} type (16-bit).
+     * {@link TagType#SHORT} type (16-bit).
      *
      * @param dimX new TIFF image width (<code>ImageWidth</code> tag);
      *             must be in the range <code>1..Integer.MAX_VALUE</code>.
@@ -2495,7 +2495,7 @@ public final class TiffIFD {
     }
 
     public static int sizeOfIFDTable(long numberOfEntries, boolean bigTiff, boolean mainIFD) throws TiffException {
-        final int bytesPerEntry = TiffEntry.bytesPerEntry(bigTiff);
+        final int bytesPerEntry = Entry.bytesPerEntry(bigTiff);
         final int n = checkNumberOfEntries(numberOfEntries, bigTiff);
         return sizeOfIFDTableExcludingEntries(bigTiff, mainIFD) + bytesPerEntry * n;
     }
@@ -2736,7 +2736,7 @@ public final class TiffIFD {
         if (detailedEntries == null) {
             return false;
         }
-        for (TiffEntry entry : detailedEntries.values()) {
+        for (Entry entry : detailedEntries.values()) {
             if (offset == entry.valueOffset()) {
                 return true;
                 // - This position is already occupied by some IFD.
@@ -2948,25 +2948,26 @@ public final class TiffIFD {
             sb.append(tagValue);
         }
         if (this.detailedEntries != null) {
-            final TiffEntry tiffEntry = this.detailedEntries.get(tag);
-            if (tiffEntry != null) {
-                final int tagType = tiffEntry.type();
-                sb.append(": ").append(TagTypes.typeToString(tagType));
-                int valueCount = tiffEntry.valueCount();
+            final Entry entry = this.detailedEntries.get(tag);
+            if (entry != null) {
+                sb.append(": ").append(TagType.toString(entry.rawType()));
+                int valueCount = entry.valueCount();
                 if (valueCount != 1) {
                     sb.append("[").append(valueCount).append("]");
                 }
-                final int bytesPerElement = TagTypes.sizeOfType(tagType);
-                sb.append(", ").append(bytesPerElement).append(" byte");
-                if (bytesPerElement != 1) {
-                    sb.append("s");
+                TagType type = entry.type();
+                if (type != null) {
+                    sb.append(", ").append(type.sizeOf()).append(" byte");
+                    if (type.sizeOf() > 1) {
+                        sb.append("s");
+                    }
+                    if (valueCount != 1) {
+                        sb.append("/element");
+                    }
                 }
-                if (valueCount != 1) {
-                    sb.append("/element");
-                }
-                if (!tiffEntry.isDataEmbeddedInEntry()) {
-                    final long offset = tiffEntry.valueOffset();
-                    final long length = tiffEntry.valueLength();
+                if (!entry.isDataEmbeddedInEntry()) {
+                    final long offset = entry.valueOffset();
+                    final long length = entry.valueLength();
                     sb.append(" at @").append(offset).append("..").append(offset + length - 1)
                             .append(" (").append(length).append(" bytes)");
                 }
@@ -3195,26 +3196,33 @@ public final class TiffIFD {
             }
         }
     }
-    static final class TiffEntry {
+
+    static final class Entry {
         private final int tag;
-        private final int type;
+        private final int rawType;
+        private final TagType type;
         private final int valueCount;
         private final long valueLength;
         private final long valueOffset;
         private final boolean bigTiff;
         private final boolean dataEmbeddedInEntry;
 
-        TiffEntry(int tag, int type, int valueCount, long valueOffset, boolean bigTiff) {
+        Entry(int tag, TagType type, int rawType, int valueCount, long valueOffset, boolean bigTiff) {
             if (valueCount < 0) {
                 throw new IllegalArgumentException("Negative valueCount = " + valueCount);
             }
             if (valueOffset < 0) {
                 throw new IllegalArgumentException("Negative valueOffset = " + valueOffset);
             }
+            if (type != null && type.type() != rawType) {
+                throw new IllegalArgumentException("Type mismatch: type = " + type +
+                        ", rawType = " + TagType.toString(rawType));
+            }
             this.tag = tag;
             this.type = type;
+            this.rawType = rawType;
             this.valueCount = valueCount;
-            this.valueLength = (long) valueCount * TagTypes.sizeOfType(type);
+            this.valueLength = this.type == null ? 0 : (long) valueCount * type.sizeOf();
             this.valueOffset = valueOffset;
             this.bigTiff = bigTiff;
             this.dataEmbeddedInEntry = isDataEmbeddedInEntry(valueLength, bigTiff);
@@ -3232,7 +3240,7 @@ public final class TiffIFD {
         public String toString() {
             return "TiffEntry: " +
                     "tag " + Tags.prettyName(tag) +
-                    ", type " + TagTypes.typeToString(type) +
+                    ", type " + TagType.toString(rawType) +
                     ", valueCount " + valueCount +
                     ", valueOffset " + valueOffset +
                     (bigTiff ? ", bigTiff" : "");
@@ -3250,8 +3258,12 @@ public final class TiffIFD {
             return tag;
         }
 
-        public int type() {
+        public TagType type() {
             return type;
+        }
+
+        public int rawType() {
+            return rawType;
         }
 
         public int valueCount() {
@@ -3290,9 +3302,9 @@ public final class TiffIFD {
             if (obj == null || obj.getClass() != this.getClass()) {
                 return false;
             }
-            var that = (TiffEntry) obj;
+            var that = (Entry) obj;
             return this.tag == that.tag &&
-                    this.type == that.type &&
+                    this.rawType == that.rawType &&
                     this.valueCount == that.valueCount &&
                     this.valueOffset == that.valueOffset &&
                     this.bigTiff == that.bigTiff;
@@ -3300,7 +3312,7 @@ public final class TiffIFD {
 
         @Override
         public int hashCode() {
-            return Objects.hash(tag, type, valueCount, valueOffset, bigTiff);
+            return Objects.hash(tag, rawType, valueCount, valueOffset, bigTiff);
         }
     }
 }

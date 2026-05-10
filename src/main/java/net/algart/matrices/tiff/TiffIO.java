@@ -25,10 +25,7 @@
 package net.algart.matrices.tiff;
 
 import net.algart.arrays.JArrays;
-import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tags.TagRational;
-import net.algart.matrices.tiff.tags.TagTypes;
-import net.algart.matrices.tiff.tags.Tags;
+import net.algart.matrices.tiff.tags.*;
 import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.FileHandle;
@@ -288,7 +285,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return scifio;
     }
 
-    TiffIFD.TiffEntry readIFDEntry(
+    TiffIFD.Entry readIFDEntry(
             DataHandle<?> ifdStream,
             long entryOffset,
             long ifdStreamOffsetInTiffFile,
@@ -297,7 +294,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 ifdStream, bigTiff, entryOffset, ifdStreamOffsetInTiffFile, tiffFileLength, this::streamName);
     }
 
-    static TiffIFD.TiffEntry readIFDEntry(
+    static TiffIFD.Entry readIFDEntry(
             DataHandle<?> ifdStream,
             boolean bigTiff,
             long entryOffset,
@@ -314,10 +311,11 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             throw new TiffException("Invalid TIFF: very large number of IFD values in array " +
                     (valueCount < 0 ? " >= 2^63" : valueCount + " >= 2^31") + " is not supported");
         }
-        final int bytesPerElement = TagTypes.sizeOfType(entryType);
+        final TagType type = TagType.fromType(entryType).orElse(null);
+        final int bytesPerElement = type == null ? 0 : type.sizeOf();
         // - will be zero for an unknown type; in this case we will set valueOffset=in.offset() below
         final long valueLength = valueCount * (long) bytesPerElement;
-        final boolean embeddedInEntry = TiffIFD.TiffEntry.isDataEmbeddedInEntry(valueLength, bigTiff);
+        final boolean embeddedInEntry = TiffIFD.Entry.isDataEmbeddedInEntry(valueLength, bigTiff);
         final long valueOffset = embeddedInEntry ?
                 ifdStreamOffsetInTiffFile + ifdStream.offset() :
                 readOffset(ifdStream, bigTiff, ifdStreamOffsetInTiffFile, tiffFileLength, fileNameSupplier);
@@ -331,7 +329,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     " + total lengths of values " + valueLength + " = " + valueCount + "*" + bytesPerElement +
                     " is outside the file length " + tiffFileLength);
         }
-        final var result = new TiffIFD.TiffEntry(entryTag, entryType, (int) valueCount, valueOffset, bigTiff);
+        final var result = new TiffIFD.Entry(entryTag, type, entryType, (int) valueCount, valueOffset, bigTiff);
         assert result.valueLength() == valueLength;
         assert result.isDataEmbeddedInEntry() == embeddedInEntry;
         LOG.log(System.Logger.Level.TRACE, () -> String.format(
@@ -344,11 +342,11 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             DataHandle<?> fileStream,
             boolean readEmbeddedData,
             long ifdStreamOffsetInTiffFile,
-            TiffIFD.TiffEntry entry) throws IOException {
+            TiffIFD.Entry entry) throws IOException {
         Objects.requireNonNull(ifdStream, "Null ifdStream");
         Objects.requireNonNull(fileStream, "Null fileStream");
         Objects.requireNonNull(entry, "Null entry");
-        final int type = entry.type();
+        final TagType type = entry.type();
         final int count = entry.valueCount();
         final long offset = entry.valueOffset();
         assert ifdStream.isLittleEndian() == fileStream.isLittleEndian();
@@ -360,7 +358,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
         stream.seek(readEmbeddedData ? offset - ifdStreamOffsetInTiffFile : offset);
         switch (type) {
-            case TagTypes.BYTE -> {
+            case BYTE -> {
                 // 8-bit unsigned integer
                 if (count == 1) {
                     return (short) stream.readByte();
@@ -370,11 +368,11 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 // bytes are unsigned, so use shorts
                 final short[] shorts = new short[count];
                 for (int j = 0; j < count; j++) {
-                    shorts[j] = (short) (bytes[j] & 0xff);
+                    shorts[j] = (short) (bytes[j] & 0xFF);
                 }
                 return shorts;
             }
-            case TagTypes.ASCII -> {
+            case ASCII -> {
                 // 8-bit byte that contains a 7-bit ASCII code;
                 // the last byte must be NUL (binary zero)
                 final byte[] ascii = new byte[count];
@@ -412,7 +410,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 return strings != null ? strings : s != null ? s : "";
                 */
             }
-            case TagTypes.SHORT -> {
+            case SHORT -> {
                 // 16-bit (2-byte) unsigned integer
                 if (count == 1) {
                     return stream.readUnsignedShort();
@@ -433,7 +431,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     return ints;
                 }
             }
-            case TagTypes.LONG, TagTypes.IFD -> {
+            case LONG, IFD -> {
                 // 32-bit (4-byte) unsigned integer
                 if (count == 1) {
                     return stream.readInt() & 0xFFFFFFFFL;
@@ -451,7 +449,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     return longs;
                 }
             }
-            case TagTypes.LONG8, TagTypes.SLONG8, TagTypes.IFD8 -> {
+            case LONG8, SLONG8, IFD8 -> {
                 if (count == 1) {
                     return stream.readLong();
                 }
@@ -466,7 +464,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     return longs;
                 }
             }
-            case TagTypes.RATIONAL, TagTypes.SRATIONAL -> {
+            case RATIONAL, SRATIONAL -> {
                 // Two LONGs or SLONGs: the first represents the numerator of a fraction; the second, the denominator
                 if (count == 1) {
                     return new TagRational(stream.readInt(), stream.readInt());
@@ -477,7 +475,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 }
                 return rationals;
             }
-            case TagTypes.SBYTE, TagTypes.UNDEFINED -> {
+            case SBYTE, UNDEFINED -> {
                 // SBYTE: An 8-bit signed (twos-complement) integer
                 // UNDEFINED: An 8-bit byte that may contain anything,
                 // depending on the definition of the field
@@ -488,7 +486,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 stream.read(sbytes);
                 return sbytes;
             }
-            case TagTypes.SSHORT -> {
+            case SSHORT -> {
                 // A 16-bit (2-byte) signed (twos-complement) integer
                 if (count == 1) {
                     return stream.readShort();
@@ -499,7 +497,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 }
                 return sshorts;
             }
-            case TagTypes.SLONG -> {
+            case SLONG -> {
                 // A 32-bit (4-byte) signed (twos-complement) integer
                 if (count == 1) {
                     return stream.readInt();
@@ -510,7 +508,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 }
                 return slongs;
             }
-            case TagTypes.FLOAT -> {
+            case FLOAT -> {
                 // Single precision (4-byte) IEEE format
                 if (count == 1) {
                     return stream.readFloat();
@@ -521,7 +519,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 }
                 return floats;
             }
-            case TagTypes.DOUBLE -> {
+            case DOUBLE -> {
                 // Double precision (8-byte) IEEE format
                 if (count == 1) {
                     return stream.readDouble();
@@ -532,9 +530,9 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 }
                 return doubles;
             }
-            default -> {
+            case null, default -> {
                 final long valueOrOffset = stream.readLong();
-                return new TiffIFD.UnsupportedTypeValue(type, count, valueOrOffset);
+                return new TiffIFD.UnsupportedTypeValue(entry.rawType(), count, valueOrOffset);
             }
         }
     }
@@ -605,7 +603,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         writeUnsignedShort(ifdStream, tag);
         switch (value) {
             case byte[] v -> {
-                ifdStream.writeShort(TagTypes.UNDEFINED);
+                ifdStream.writeShort(TagType.UNDEFINED.type());
                 // - Most probable type. Maybe in future we will support here some algorithm,
                 // determining the necessary type on the base of the tag value.
                 writeIntOrLong(ifdStream, bigTiff, v.length);
@@ -624,7 +622,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             }
             case short[] v -> {
                 // suppose BYTE (unsigned 8-bit)
-                ifdStream.writeShort(TagTypes.BYTE);
+                ifdStream.writeShort(TagType.BYTE.type());
                 writeIntOrLong(ifdStream, bigTiff, v.length);
                 if (v.length <= dataLength) {
                     for (short s : v) {
@@ -645,7 +643,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             }
             case String stringValue -> {
                 // suppose ASCII
-                ifdStream.writeShort(TagTypes.ASCII);
+                ifdStream.writeShort(TagType.ASCII.type());
                 final byte[] v = stringValue.getBytes(StandardCharsets.UTF_8);
                 writeIntOrLong(ifdStream, bigTiff, emptyStringList ? 0 : v.length + 1);
                 // - with concluding zero bytes, excepting an empty string list (produced by ASCII byte[0])
@@ -678,13 +676,13 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     // - we should allow using usual int values for 32-bit tags to avoid a lot of obvious bugs
                     final int v0 = v[0];
                     if (v0 >= 0xFFFF) {
-                        ifdStream.writeShort(TagTypes.LONG);
+                        ifdStream.writeShort(TagType.LONG.type());
                         writeIntOrLong(ifdStream, bigTiff, v.length);
                         writeIntOrLong(ifdStream, bigTiff, v0);
                         return;
                     }
                 }
-                ifdStream.writeShort(TagTypes.SHORT);
+                ifdStream.writeShort(TagType.SHORT.type());
                 writeIntOrLong(ifdStream, bigTiff, v.length);
                 if (v.length <= dataLengthDiv2) {
                     for (int intValue : v) {
@@ -719,7 +717,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                                  Tags.IMAGE_DEPTH,
                                  Tags.ROWS_PER_STRIP,
                                  Tags.NEW_SUBFILE_TYPE -> {
-                                ifdStream.writeShort(TagTypes.LONG);
+                                ifdStream.writeShort(TagType.LONG.type());
                                 writeIntOrLong(ifdStream, bigTiff, v.length);
                                 ifdStream.writeInt((int) v0);
                                 ifdStream.writeInt(0);
@@ -729,7 +727,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                         }
                     }
                 }
-                final int type = bigTiff ? TagTypes.LONG8 : TagTypes.LONG;
+                final int type = bigTiff ? TagType.LONG8.type() : TagType.LONG.type();
                 ifdStream.writeShort(type);
                 writeIntOrLong(ifdStream, bigTiff, v.length);
 
@@ -752,7 +750,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 }
             }
             case TagRational[] v -> {
-                ifdStream.writeShort(TagTypes.RATIONAL);
+                ifdStream.writeShort(TagType.RATIONAL.type());
                 writeIntOrLong(ifdStream, bigTiff, v.length);
                 if (bigTiff && v.length == 1) {
                     ifdStream.writeInt((int) v[0].getNumerator());
@@ -767,7 +765,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 }
             }
             case float[] v -> {
-                ifdStream.writeShort(TagTypes.FLOAT);
+                ifdStream.writeShort(TagType.FLOAT.type());
                 writeIntOrLong(ifdStream, bigTiff, v.length);
                 if (v.length <= dataLengthDiv4) {
                     for (float floatValue : v) {
@@ -786,7 +784,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 }
             }
             case double[] v -> {
-                ifdStream.writeShort(TagTypes.DOUBLE);
+                ifdStream.writeShort(TagType.DOUBLE.type());
                 writeIntOrLong(ifdStream, bigTiff, v.length);
                 appendUntilEvenOffset(extraBuffer);
                 writeOffset(ifdStream, bigTiff, extraBufferOffsetInTiffFile + extraBuffer.offset());
@@ -835,7 +833,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             // }
             // return offset;
 
-            offset = (long) stream.readInt() & 0xffffffffL;
+            offset = (long) stream.readInt() & 0xFFFFFFFFL;
             // - in usual TIFF format, offset if 32-bit UNSIGNED value
         }
 //        if (stream.offset() - (bigTiff ? 8 : 4) == fileOffsetOfNextOffset) {
