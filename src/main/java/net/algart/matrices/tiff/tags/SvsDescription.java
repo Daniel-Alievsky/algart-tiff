@@ -353,12 +353,12 @@ public final class SvsDescription extends TagDescription {
     }
 
     public static Optional<SvsDescription> fromIFDs(Collection<? extends TiffIFD> ifds) {
-        Objects.requireNonNull(ifds, "Null ifds");
+        Objects.requireNonNull(ifds, "Null IFDs");
         return fromIFDs(ifds.stream());
     }
 
     public static Optional<SvsDescription> fromIFDs(Stream<? extends TiffIFD> ifds) {
-        Objects.requireNonNull(ifds, "Null ifds");
+        Objects.requireNonNull(ifds, "Null IFDs");
         return fromDescriptions(ifds.filter(Objects::nonNull).map(TiffIFD::getDescription));
         // - check for null just in case
     }

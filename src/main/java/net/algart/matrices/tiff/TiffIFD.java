@@ -178,6 +178,7 @@ public final class TiffIFD {
 
     /**
      * Compression code for {@link TagCompression#NONE}.
+     * Default compression if there is no {@code Compression} tag.
      */
     public static final int COMPRESSION_NONE = 1;
 
@@ -1304,12 +1305,16 @@ public final class TiffIFD {
     }
 
     public static List<TagDescription> getDescriptions(Collection<? extends TiffIFD> ifds) {
-        Objects.requireNonNull(ifds, "Null ifds");
+        Objects.requireNonNull(ifds, "Null IFDs");
         final List<TagDescription> result = new ArrayList<>(ifds.size());
         for (TiffIFD ifd : ifds) {
             result.add(ifd == null ? null : ifd.getDescription());
         }
         return result;
+    }
+
+    public boolean hasCompression() {
+        return containsKey(Tags.COMPRESSION);
     }
 
     public int optCompressionCode(int defaultValue) {
@@ -1320,18 +1325,17 @@ public final class TiffIFD {
         return getInt(Tags.COMPRESSION, COMPRESSION_NONE);
     }
 
-    // Note: there is no getCompression() method, which ALWAYS returns some compression:
-    // we cannot be sure that we know all possible compressions!
 
     /**
-     * Returns the compression, stored in the {@link Tags#COMPRESSION} tag, or an empty optional
-     * if this tag is missing or contains an unknown value.
+     * Returns the compression, stored in the {@code Compression} tag, or {@link TagCompression#NONE}
+     * (default compression) if this tag is missing.
+     * If the compression stored in this tag is unknown, throws {@link UnsupportedTiffFormatException}.
      *
      * <p>Note: for the compression code {@link #COMPRESSION_JPEG}, the result depends on the
-     * <code>PhotometricInterpretation</code> tag. If this tag presents and contains value 2
+     * <code>PhotometricInterpretation</code> tag. If this tag is present and contains value 2
      * (i.e., {@link TagPhotometric#RGB}, this method returns
-     * <code>Optional.of({@link TagCompression#JPEG_RGB})</code>, otherwise, it returns
-     * <code>Optional.of({@link TagCompression#JPEG})</code>.</p>
+     * <code>{@link TagCompression#JPEG_RGB}</code>, otherwise, it returns
+     * <code>{@link TagCompression#JPEG}</code>.</p>
      *
      * <p>Note: if you called {@link #putCompression(TagCompression)} method
      * and did not change the stored compression in other ways,
@@ -1342,6 +1346,21 @@ public final class TiffIFD {
      * then the result will be returned based on the actual tag value stored in this IFD.</p>
      *
      * @return TIFF compression.
+     */
+    public TagCompression getCompression() throws UnsupportedTiffFormatException {
+        if (!hasCompression()) {
+            return TagCompression.NONE;
+        }
+        return optCompression().orElseThrow(() ->
+                new UnsupportedTiffFormatException("TIFF compression with code " +
+                        optCompressionCode(-1) + " is unknown and not supported"));
+    }
+
+    /**
+     * An analog of {@link #getCompression()} which returns <code>Optional.empty()</code> for
+     * the cases when {@code Compression} tag is absent or unknown.     *
+     *
+     * @return TIFF compression or <code>Optional.empty()</code> if there is no known compression.
      */
     public Optional<TagCompression> optCompression() {
         final int code = optCompressionCode(-1);
