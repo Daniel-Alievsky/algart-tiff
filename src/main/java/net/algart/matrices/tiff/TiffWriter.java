@@ -914,6 +914,7 @@ public non-sealed class TiffWriter extends TiffIO {
                             " changed to " + newEntry.prettyType());
                 }
                 //TODO!! compare other fields and throw TiffIFDMismatchException
+                //TODO!! assertionerror that the length of extraBuffer == valueLength
 //            System.err.printf("%d values from %d: %.6f ms%n", valueCount, valueOffset, (tEntry3 - tEntry2) * 1e-6);
             }
 
