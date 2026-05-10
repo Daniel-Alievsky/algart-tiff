@@ -881,13 +881,13 @@ public non-sealed class TiffWriter extends TiffIO {
             final int bytesPerEntry = TiffIFD.Entry.bytesPerEntry(bigTiff);
             final byte[] ifdBytes = new byte[bytesPerEntry * n];
             stream.readFully(ifdBytes);
-            final DataHandle<?> existingIfdStream = getBytesHandle(ifdBytes, littleEndian);
-            final DataHandle<?> newIfdStream = getBytesHandle(ifdBytes.clone(), littleEndian);
+            final DataHandle<?> existingStream = getBytesHandle(ifdBytes, littleEndian);
+            final DataHandle<?> newStream = getBytesHandle(ifdBytes.clone(), littleEndian);
             final BytesHandle[] extraBuffers = new BytesHandle[n];
             for (int i = 0; i < n; i++) {
                 final long entryOffset = (long) bytesPerEntry * i;
                 final TiffIFD.Entry existingEntry = readIFDEntry(
-                        existingIfdStream,
+                        existingStream,
                         entryOffset,
                         ifdStreamOffsetInTiffFile,
                         tiffFileLength);
@@ -896,23 +896,28 @@ public non-sealed class TiffWriter extends TiffIO {
                     continue;
                 }
                 final BytesHandle extraBuffer = newBytesHandle(littleEndian);
-                final Map.Entry<Integer, Object> e = new AbstractMap.SimpleEntry<>(tag, ifd.get(tag));
-                newIfdStream.seek(entryOffset);
-                writeIFDValueAtCurrentOffsets(newIfdStream, extraBuffer, bigTiff, null, e);
+                final Map.Entry<Integer, Object> tagAndValue = new AbstractMap.SimpleEntry<>(tag, ifd.get(tag));
+                newStream.seek(entryOffset);
+                writeIFDValueAtCurrentOffsets(newStream, extraBuffer, bigTiff, null, tagAndValue);
                 extraBuffers[i] = extraBuffer;
                 final TiffIFD.Entry newEntry = readIFDEntry(
-                        newIfdStream,
+                        newStream,
                         entryOffset,
                         ifdStreamOffsetInTiffFile,
                         tiffFileLength);
                 if (newEntry.tag() != existingEntry.tag()) {
                     throw new AssertionError();
                 }
-                //TODO!! compare other fields
+                if (newEntry.rawType() != existingEntry.rawType()) {
+                    throw new TiffIFDMismatchException("Cannot rewrite IFD entry for tag " +
+                            Tags.prettyName(tag) + ": the type " + existingEntry.prettyType() +
+                            " changed to " + newEntry.prettyType());
+                }
+                //TODO!! compare other fields and throw TiffIFDMismatchException
 //            System.err.printf("%d values from %d: %.6f ms%n", valueCount, valueOffset, (tEntry3 - tEntry2) * 1e-6);
             }
 
-            //TODO!! copy newIfdStream and all extraBuffers to the necessary places
+            //TODO!! copy newStream and all extraBuffers to the necessary places
             throw new UnsupportedOperationException();
         }
     }

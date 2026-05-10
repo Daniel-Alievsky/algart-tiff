@@ -3372,6 +3372,10 @@ public final class TiffIFD {
             return dataEmbeddedInEntry;
         }
 
+        public String prettyType() {
+            return TagType.toString(rawType);
+        }
+
         @Override
         public boolean equals(Object obj) {
             if (obj == this) {
