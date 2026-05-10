@@ -1325,27 +1325,29 @@ public final class TiffIFD {
         return getInt(Tags.COMPRESSION, COMPRESSION_NONE);
     }
 
-
     /**
      * Returns the compression, stored in the {@code Compression} tag, or {@link TagCompression#NONE}
-     * (default compression) if this tag is missing.
-     * If the compression stored in this tag is unknown, throws {@link UnsupportedTiffFormatException}.
+     * (the default value defined by the TIFF specification) if this tag is missing.
+     *
+     * <p>If the compression code stored in this tag is unknown/unsupported by this library,
+     * throws {@link UnsupportedTiffFormatException}.</p>
      *
      * <p>Note: for the compression code {@link #COMPRESSION_JPEG}, the result depends on the
-     * <code>PhotometricInterpretation</code> tag. If this tag is present and contains value 2
-     * (i.e., {@link TagPhotometric#RGB}, this method returns
-     * <code>{@link TagCompression#JPEG_RGB}</code>, otherwise, it returns
+     * <code>PhotometricInterpretation</code> tag. If this tag is present and contains the value 2
+     * (i.e., {@link TagPhotometric#RGB}), this method returns
+     * <code>{@link TagCompression#JPEG_RGB}</code>; otherwise, it returns
      * <code>{@link TagCompression#JPEG}</code>.</p>
      *
-     * <p>Note: if you called {@link #putCompression(TagCompression)} method
+     * <p>Note: if you called the {@link #putCompression(TagCompression)} method
      * and did not change the stored compression in other ways,
      * then the result will always be equal to its argument,
      * even if you have several {@link TagCompression} objects with the same code.
      * However, if the actual tag value in the IFD map differs from that argument
-     * (possible, for example, if you changed it by a direct call of the {@link #put(int, Object)} method),
-     * then the result will be returned based on the actual tag value stored in this IFD.</p>
+     * (for example, if you changed it by a direct call of the {@link #put(int, Object)} method),
+     * then the result will be based on the actual tag value stored in this IFD.</p>
      *
-     * @return TIFF compression.
+     * @return the TIFF compression.
+     * @throws UnsupportedTiffFormatException if the compression code is present but unknown.
      */
     public TagCompression getCompression() throws UnsupportedTiffFormatException {
         if (!hasCompression()) {
@@ -1376,6 +1378,10 @@ public final class TiffIFD {
                     Optional.of(TagCompression.JPEG);
         }
         return TagCompression.fromCode(code);
+    }
+
+    public TagCompression optCompressionOrNone() {
+        return optCompression().orElse(TagCompression.NONE);
     }
 
     public String compressionPrettyName() {
@@ -1725,23 +1731,22 @@ public final class TiffIFD {
     }
 
     public boolean isStandardYCbCrNonJpeg() {
-        final TagCompression compression = optCompression().orElse(TagCompression.NONE);
+        final TagCompression compression = optCompressionOrNone();
         return compression.isStandard() &&
                 !compression.isJpegOrOldJpeg() &&
                 optPhotometricCode(-1) == TiffIFD.PHOTOMETRIC_INTERPRETATION_Y_CB_CR;
     }
 
     public boolean isLowLevelBitsProcessing() {
-        return optCompression().orElse(TagCompression.NONE).isLowLevelBitsProcessing();
+        return optCompressionOrNone().isLowLevelBitsProcessing();
     }
 
     public boolean isJpegOrOldJpeg() {
-        return optCompression().orElse(TagCompression.NONE).isJpegOrOldJpeg();
+        return optCompressionOrNone().isJpegOrOldJpeg();
     }
 
     public boolean isLowLevelInvertedBrightness() {
-        return optCompression().orElse(TagCompression.NONE)
-                .isLowLevelInvertedBrightness(optPhotometricCode(-1));
+        return optCompressionOrNone().isLowLevelInvertedBrightness(optPhotometricCode(-1));
     }
 
     public boolean isReducedImage() {

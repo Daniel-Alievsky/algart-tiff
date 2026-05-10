@@ -1816,7 +1816,7 @@ public non-sealed class TiffWriter extends TiffIO {
             ifd.put(Tags.COMPRESSION, TiffIFD.COMPRESSION_NONE);
             // - We prefer to explicitly specify this case
         }
-        TagCompression compression = ifd.optCompression().orElse(TagCompression.NONE);
+        TagCompression compression = ifd.optCompressionOrNone();
         // - NONE: we have set it above
         if (!compression.isWritingSupported()) {
             if (smartCorrection && compression == TagCompression.OLD_JPEG) {
@@ -1925,7 +1925,7 @@ public non-sealed class TiffWriter extends TiffIO {
 
     private void correctForEntireTiff(TiffIFD ifd, boolean enableOldJpeg) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
-        final TagCompression compression = ifd.optCompression().orElse(TagCompression.NONE);
+        final TagCompression compression = ifd.optCompressionOrNone();
         if (compression.hasAdditionalFileEmbeddedMetadata() && !compression.isWritingSupported()) {
             if (!enableOldJpeg || compression != TagCompression.OLD_JPEG) {
                 throw new UnsupportedTiffFormatException("TIFF compression with code " + compression.code() +
