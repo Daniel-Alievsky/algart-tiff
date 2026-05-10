@@ -88,10 +88,10 @@ public class OldJPEGCodec implements TiffCodec {
                             "%n    Normal JPEG stream detected".formatted() :
                             "") +
                     (basedOnInterchange ?
-                            "%n    Reconstructed using JPEGInterchangeFormat tag".formatted() :
+                            "%n    Decoded using JPEGInterchangeFormat tag".formatted() :
                             "") +
                     (basedOnTables ?
-                            "%n    Reconstructed using tables (JPEGQTables, JPEGDCTables, JPEGACTables tags)"
+                            "%n    Decoded using tables (JPEGQTables, JPEGDCTables, JPEGACTables tags)"
                             .formatted() :
                             "") +
                     (syntheticSOS ?
