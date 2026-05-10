@@ -552,6 +552,12 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * like arrays or text strings. The "main" data is a 12-byte IFD record (20-byte for BigTIFF),
      * which is written by this method into the main output stream from its current position.
      *
+     * <p>Note: the current version <b>does not</b> use {@link TagType} information;
+     * instead, the type is recognized on the base of Java type of {@code entry.getValue()}.
+     * As a result, we cannot write {@link TagType#SBYTE}, {@link TagType#SSHORT},
+     * {@link TagType#SLONG}, {@link TagType#SLONG8}, {@link TagType#SRATIONAL},
+     * {@link TagType#IFD}, {@link TagType#IFD8} types.</p>
+     *
      * @param ifdStream                   the main stream where IFD entries should be written.
      * @param extraBuffer                 the buffer where "extra" IFD information should be written.
      * @param bigTiff                     Big-TIFF flag.
@@ -571,7 +577,9 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         final int tag = entry.getKey();
         Object value = entry.getValue();
         // Convert singleton objects into arrays, for simplicity:
-        if (value instanceof Short v) {
+        if (value instanceof Byte v) {
+            value = new byte[]{v};
+        } else if (value instanceof Short v) {
             value = new short[]{v};
         } else if (value instanceof Integer v) {
             value = new int[]{v};
@@ -626,7 +634,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 writeIntOrLong(ifdStream, bigTiff, v.length);
                 if (v.length <= dataLength) {
                     for (short s : v) {
-                        ifdStream.writeByte(s);
+                        writeUnsignedByte(ifdStream, s);
                     }
                     for (int i = v.length; i < dataLength; i++) {
                         ifdStream.writeByte(0);
@@ -636,7 +644,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     writeOffset(ifdStream, bigTiff, extraBufferOffsetInTiffFile + extraBuffer.offset());
                     byte[] bytes = new byte[v.length];
                     for (int i = 0; i < v.length; i++) {
-                        bytes[i] = (byte) v[i];
+                        bytes[i] = checkUnsignedByte(v[i]);
                     }
                     extraBuffer.write(bytes);
                 }
@@ -696,7 +704,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     writeOffset(ifdStream, bigTiff, extraBufferOffsetInTiffFile + extraBuffer.offset());
                     short[] shorts = new short[v.length];
                     for (int i = 0; i < v.length; i++) {
-                        shorts[i] = (short) v[i];
+                        shorts[i] = checkUnsignedShort(v[i]);
                     }
                     extraBuffer.write(JArrays.shortArrayToBytes(shorts, byteOrder));
                 }
@@ -987,16 +995,26 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     }
 
     private static void writeUnsignedShort(DataHandle<?> handle, int value) throws IOException {
-        if (value < 0 || value > 0xFFFF) {
-            throw new TiffException("Attempt to write 32-bit value as 16-bit: " + value);
-        }
+        checkUnsignedShort(value);
         handle.writeShort(value);
     }
 
+    private static short checkUnsignedShort(int value) throws TiffException {
+        if (value < 0 || value > 0xFFFF) {
+            throw new TiffException("Attempt to write 32-bit value as 16-bit: " + value);
+        }
+        return (short) value;
+    }
+
     private static void writeUnsignedByte(DataHandle<?> handle, int value) throws IOException {
+        checkUnsignedByte(value);
+        handle.writeByte(value);
+    }
+
+    private static byte checkUnsignedByte(int value) throws TiffException {
         if (value < 0 || value > 0xFF) {
             throw new TiffException("Attempt to write 16/32-bit value as 8-bit: " + value);
         }
-        handle.writeByte(value);
+        return (byte) value;
     }
 }

@@ -180,8 +180,11 @@ public class TagRational extends Number implements Comparable<TagRational> {
     @Override
     public int compareTo(final TagRational q) {
         long diff = (numer * q.denom - q.numer * denom);
-        if (diff > Integer.MAX_VALUE) diff = Integer.MAX_VALUE;
-        else if (diff < Integer.MIN_VALUE) diff = Integer.MIN_VALUE;
+        if (diff > Integer.MAX_VALUE) {
+            diff = Integer.MAX_VALUE;
+        } else if (diff < Integer.MIN_VALUE) {
+            diff = Integer.MIN_VALUE;
+        }
         return (int) diff;
     }
 

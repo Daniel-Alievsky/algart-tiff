@@ -2334,6 +2334,55 @@ public final class TiffIFD {
         map.remove(tiled ? Tags.STRIP_BYTE_COUNTS : Tags.TILE_BYTE_COUNTS);
     }
 
+    /**
+     * Sets the value for the specified tag key in this IFD.
+     *
+     * <p>When writing the IFD using
+     * {@link TiffWriter}, the TIFF {@link TagType} is automatically determined based on
+     * the Java type of the {@code value} object:</p>
+     *
+     * <ul>
+     *   <li><b>{@code Byte} or {@code byte[]}</b>: mapped to {@link TagType#UNDEFINED}.
+     *       Written as raw bytes without any interpretation.</li>
+     *   <li><b>{@code Short} or {@code short[]}</b>: mapped to {@link TagType#BYTE}.
+     *       Expected to be unsigned 8-bit values in the range 0..255.</li>
+     *   <li><b>{@code Integer} or {@code int[]}</b>: mapped to {@link TagType#SHORT}
+     *       (unsigned 16-bit, 0..65535). Note: a single {@code Integer} value
+     *       exceeding 0xFFFF is automatically promoted to {@link TagType#LONG}.</li>
+     *   <li><b>{@code Long} or {@code long[]}</b>: mapped to {@link TagType#LONG}
+     *       (unsigned 32-bit) or {@link TagType#LONG8} for BigTIFF files.</li>
+     *   <li><b>{@code TagRational} or {@code TagRational[]}</b>: mapped to
+     *       {@link TagType#RATIONAL} (pairs of unsigned 32-bit integers).</li>
+     *   <li><b>{@code Float} or {@code float[]}</b>: mapped to {@link TagType#FLOAT}
+     *       (32-bit IEEE floating point).</li>
+     *   <li><b>{@code Double} or {@code double[]}</b>: mapped to {@link TagType#DOUBLE}
+     *       (64-bit IEEE floating point).</li>
+     *   <li><b>{@code String}, {@code String[]}, or {@code List<String>}</b>:
+     *       mapped to {@link TagType#ASCII}. Strings are encoded using UTF-8
+     *       (compatible with ASCII 0..127) and are null-terminated.</li>
+     * </ul>
+     *
+     * <p>This mapping is symmetric: {@link TiffReader} uses the same logic
+     * to restore Java objects from TIFF tags. For example, a TIFF {@code BYTE} tag
+     * is always read as a {@code short[]} (or {@code Short}) to safely represent
+     * unsigned 8-bit data in Java's signed environment.</p>
+     *
+     * <p>Note that the current version of {@link TiffWriter} <b>never writes</b>
+     * the following tag types: {@link TagType#SBYTE}, {@link TagType#SSHORT},
+     * {@link TagType#SLONG}, {@link TagType#SLONG8}, {@link TagType#SRATIONAL},
+     * {@link TagType#IFD}, {@link TagType#IFD8}. While they are successfully
+     * recognized by {@link TiffReader}, an attempt to write them to a new TIFF file
+     * will probably result in their conversion to one of the types mentioned above
+     * or in an exception. For example, {@code SSHORT} and {@code SLONG} tags are
+     * represented in Java as {@code short[]} and {@code int[]} respectively;
+     * an attempt to write them back will trigger an exception if any value
+     * falls outside the unsigned {@code BYTE} (0..255) or {@code SHORT} (0..65535) range.</p>
+     *
+     * @param key   the tag identifier (typically from {@link Tags}).
+     * @param value the tag value (a singleton wrapper or an array of primitives).
+     * @return the previous value associated with the tag, or {@code null} if there was none.
+     * @throws IllegalStateException if this IFD is in immutable mode.
+     */
     public Object put(int key, Object value) {
         checkImmutable();
         removeEntries(key);
