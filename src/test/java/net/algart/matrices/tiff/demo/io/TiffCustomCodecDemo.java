@@ -112,7 +112,7 @@ public class TiffCustomCodecDemo {
             throw new TiffException(e);
         }
         byte[] result = output.toByteArray();
-        LOG.log(LOG_LEVEl, data.length + " bytes compressed to " + result.length);
+        LOG.log(LOG_LEVEl, data.length + " bytes compressed BY CUSTOM CODEC to " + result.length);
         return result;
     }
 
@@ -123,7 +123,7 @@ public class TiffCustomCodecDemo {
         } catch (IOException e) {
             throw new TiffException(e);
         }
-        LOG.log(LOG_LEVEl, data.length + " bytes decompressed to " + result.length);
+        LOG.log(LOG_LEVEl, data.length + " bytes decompressed BY CUSTOM CODEC to " + result.length);
         return result;
     }
 

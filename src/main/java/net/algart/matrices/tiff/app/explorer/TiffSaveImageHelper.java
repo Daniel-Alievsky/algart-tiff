@@ -229,7 +229,7 @@ class TiffSaveImageHelper {
 
         final TiffReadMap map = viewer.map();
         final int ifdIndex = viewer.ifdIndex();
-        final TagCompression originalCompression = map.compression().orElse(TagCompression.NONE);
+        final TagCompression originalCompression = map.compressionOrNoneForMissing().orElse(TagCompression.NONE);
         final TagCompression compression = originalCompression.nearestWriteable();
 
         settingsDialog = new JDialog(frame);

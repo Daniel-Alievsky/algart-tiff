@@ -1444,10 +1444,10 @@ public non-sealed class TiffReader extends TiffIO {
         prepareDecoding(tile);
 
         final byte[] encodedData = tile.getEncodedData();
-        final TagCompression compression = tile.compression().orElse(TagCompression.NONE);
-        // - "compression" is an optional tag: NONE is the default value
+        final TagCompression compression = tile.compressionOrNoneForMissing().orElse(null);
+        // - tile.compressionOrNoneForMissing() returns Optional.of(TagCompression.NONE) if this tag is absent!
         TiffCodec codec = null;
-        if (!enforceUseExternalCodec) {
+        if (!enforceUseExternalCodec && compression != null) {
             codec = compression.codec();
             // - we are sure that this codec does not require SCIFIO context
         }
@@ -1474,8 +1474,10 @@ public non-sealed class TiffReader extends TiffIO {
             if (decodedData.isEmpty()) {
                 throw new UnsupportedTiffFormatException("TIFF compression with code " +
                         tile.compressionCode() +
-                        (tile.compression().isPresent() ? " (" + tile.compression().get().prettyName() + ")" : "") +
-                        " is not supported and cannot be decoded");
+                        (tile.compressionOrNoneForMissing().isPresent() ?
+                                " (" + tile.compressionOrNoneForMissing().get().prettyName() + ")" :
+                                "") +
+                        " is not supported and cannot be decoded (even by an external codec)");
             }
             tile.setPartiallyDecodedData(decodedData.get());
         }

@@ -1346,6 +1346,11 @@ public final class TiffIFD {
      * (for example, if you changed it by a direct call of the {@link #put(int, Object)} method),
      * then the result will be based on the actual tag value stored in this IFD.</p>
      *
+     * <p>This method is not used by the {@link TiffReader} and {@link TiffWriter} classes;
+     * instead, they use {@link #optCompression()}.
+     * If the compression code is unknown to this library, those classes may still attempt
+     * to process the data using external codecs.</p>
+     *
      * @return the TIFF compression.
      * @throws UnsupportedTiffFormatException if the compression code is present but unknown.
      */

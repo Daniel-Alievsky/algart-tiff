@@ -194,8 +194,8 @@ public final class TiffTile {
         return map.compressionCode();
     }
 
-    public Optional<TagCompression> compression() {
-        return map.compression();
+    public Optional<TagCompression> compressionOrNoneForMissing() {
+        return map.compressionOrNoneForMissing();
     }
 
     public int photometricCode() {

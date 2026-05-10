@@ -1038,11 +1038,11 @@ public non-sealed class TiffWriter extends TiffIO {
         prepareEncoding(tile);
         long t2 = debugTime();
 
-        final TagCompression compression = tile.compression().orElse(TagCompression.NONE);
-        // - usually tile.compression() is not Optional.empty(): compression tag
-        // is set to NONE in correctForEncoding() if it was not set before
+        final TagCompression compression = tile.compressionOrNoneForMissing().orElse(null);
+        // - tile.compressionOrNoneForMissing() returns Optional.of(TagCompression.NONE) if this tag is absent!
+        // Note: compression tag is also set to NONE in correctForEncoding() if it was not set before
         TiffCodec codec = null;
-        if (!enforceUseExternalCodec) {
+        if (!enforceUseExternalCodec && compression != null) {
             codec = compression.codec();
             // - we are sure that this codec does not require SCIFIO context
         }

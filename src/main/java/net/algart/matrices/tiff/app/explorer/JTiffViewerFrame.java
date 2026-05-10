@@ -129,7 +129,7 @@ class JTiffViewerFrame extends JFrame {
                 map.dimX(), map.dimY(),
                 map.numberOfChannels(), map.numberOfChannels() == 1 ? "" : "s",
                 bitDepth.isPresent() ? bitDepth.getAsInt() : Arrays.toString(map.bitsPerSample()),
-                map.compression().orElse(TagCompression.NONE).prettyName(),
+                map.compressionOrNoneForMissing().orElse(TagCompression.NONE).prettyName(),
                 zoomTitle, viewer.path().getFileName()));
         final TagPhotometric photometric = map.photometric().orElse(null);
         final boolean simplyRenderable = photometric != null && photometric.isSimplyRenderable();

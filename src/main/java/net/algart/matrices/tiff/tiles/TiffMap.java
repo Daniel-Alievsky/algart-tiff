@@ -128,6 +128,7 @@ public sealed class TiffMap permits TiffIOMap {
     // - Note: we store here information about samples and tile structure, but
     // SHOULD NOT store information about image sizes (like number of tiles):
     // it is probable that we do not know final sizes while creating tiles of the image!
+    private final boolean hasCompression;
     private final int compressionCode;
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private final Optional<TagCompression> compression;
@@ -218,8 +219,14 @@ public sealed class TiffMap permits TiffIOMap {
         this.tileSizeX = ifd.getTileSizeX();
         this.tileSizeY = ifd.getTileSizeY();
         assert tileSizeX > 0 && tileSizeY > 0 : "non-positive tile sizes are not checked in IFD methods";
-        this.compressionCode = ifd.getCompressionCode();
-        this.compression = ifd.optCompression();
+        this.hasCompression = ifd.hasCompression();
+        this.compressionCode = ifd.optCompressionCode(-1);
+        this.compression = hasCompression ? ifd.optCompression() : Optional.of(TagCompression.NONE);
+        if (!hasCompression && compressionCode != -1) {
+            throw new ConcurrentModificationException("Corrupted IFD, probably from a parallel thread" +
+                    " (hasCompression " + sampleType +
+                    ", but we have compressionCode=" + compressionCode + ")");
+        }
         this.photometricCode = ifd.getPhotometricCode();
         this.photometric = ifd.optPhotometric();
         this.yCbCrSubsampling = ifd.getYCbCrSubsampling();
@@ -414,11 +421,23 @@ public sealed class TiffMap permits TiffIOMap {
         return tileSizeInBytes;
     }
 
+    public boolean hasCompression() {
+        return hasCompression;
+    }
+
     public int compressionCode() {
         return compressionCode;
     }
 
-    public Optional<TagCompression> compression() {
+    /**
+     * Returns {@link #ifd()}.{@link TiffIFD#optCompression() optCompression()} or
+     * <code>Optional.of({@link TagCompression#NONE})</code> if <code>!{@link #hasCompression()}</code>.
+     * In other words, this method "understands" that the default compression is {@link TagCompression#NONE},
+     * but still allows to recognize unknown compressions which should be processed via external codecs.
+     *
+     * @return TIFF compression or <code>Optional.empty()</code> for unknown compression.
+     */
+    public Optional<TagCompression> compressionOrNoneForMissing() {
         return compression;
     }
 
