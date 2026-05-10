@@ -33,24 +33,85 @@ import java.util.stream.Collectors;
  * Data types in IFD entries supported by the TIFF and BigTIFF specifications.
  */
 public enum TagType {
+    /**
+     * 8-bit unsigned integer.
+     */
     BYTE(1, 1),
+
+    /**
+     * 8-bit byte that contains a 7-bit ASCII code; the last byte must be NUL (binary zero).
+     */
     ASCII(2, 1),
+
+    /**
+     * 16-bit (2-byte) unsigned integer.
+     */
     SHORT(3, 2),
+
+    /**
+     * 32-bit (4-byte) unsigned integer.
+     */
     LONG(4, 4),
+
+    /**
+     * Two LONGs: the first represents the numerator of a fraction; the second, the denominator.
+     */
     RATIONAL(5, 8),
+
+    /**
+     * An 8-bit signed (2's complement) integer.
+     */
     SBYTE(6, 1),
+
+    /**
+     * An 8-bit byte that may contain anything, depending on the definition of the field.
+     */
     UNDEFINED(7, 1),
+
+    /**
+     * A 16-bit (2-byte) signed (2's complement) integer.
+     */
     SSHORT(8, 2),
+
+    /**
+     * A 32-bit (4-byte) signed (2's complement) integer.
+     */
     SLONG(9, 4),
+
+    /**
+     * Two SLONGs: the first represents the numerator; the second, the denominator.
+     */
     SRATIONAL(10, 8),
+
+    /**
+     * Single precision (4-byte) IEEE format floating point value.
+     */
     FLOAT(11, 4),
+
+    /**
+     * Double precision (8-byte) IEEE format floating point value.
+     */
     DOUBLE(12, 8),
     /**
-     * Used for storing IFD offsets.
+     * 32-bit unsigned integer, used for storing IFD offsets.
+     * Semantically equivalent to {@link #LONG}.
      */
     IFD(13, 4),
+
+    /**
+     * 64-bit unsigned integer (BigTIFF only).
+     */
     LONG8(16, 8),
+
+    /**
+     * 64-bit signed integer (BigTIFF only).
+     */
     SLONG8(17, 8),
+
+    /**
+     * 64-bit unsigned integer, used for storing IFD offsets (BigTIFF only).
+     * Semantically equivalent to {@link #LONG8}.
+     */
     IFD8(18, 8);
 
     private static final Map<Integer, TagType> LOOKUP =

@@ -906,9 +906,9 @@ public final class TiffIFD {
                 "TIFF tag " + Tags.prettyName(tag) + " is required, but it is absent"));
     }
 
-    public OptionalInt optType(int tag) {
+    public Optional<TagType> optType(int tag) {
         Entry entry = detailedEntries == null ? null : detailedEntries.get(tag);
-        return entry == null ? OptionalInt.empty() : OptionalInt.of(entry.rawType());
+        return entry == null ? Optional.empty() : Optional.ofNullable(entry.type());
     }
 
     public boolean optBoolean(int tag, boolean defaultValue) {

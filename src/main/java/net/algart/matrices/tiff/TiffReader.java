@@ -147,6 +147,7 @@ public non-sealed class TiffReader extends TiffIO {
     private UnusualPrecisions unusualPrecisions = UnusualPrecisions.UNPACK;
     private boolean scaleWhenIncreasingBitDepth = true;
     private boolean colorCorrection = false;
+    private boolean removeExtraChannelsIf5OrMoreForBufferedImage = false;
     private boolean enforceUseExternalCodec = false;
     private boolean cropTilesToImageBoundaries = true;
     private boolean cachingIFDs = true;
@@ -660,6 +661,30 @@ public non-sealed class TiffReader extends TiffIO {
         return this;
     }
 
+    public boolean isRemoveExtraChannelsIf5OrMoreForBufferedImage() {
+        return removeExtraChannelsIf5OrMoreForBufferedImage;
+    }
+
+    /**
+     * Sets the flag specifying whether {@link #readBufferedImage} should automatically
+     * remove (discard) extra channels if the source TIFF contains 5 or more channels.
+     *
+     * <p>This is a "safety" flag for {@link #readBufferedImage}. Standard Java images
+     * cannot handle more than 4 channels. If this flag is <code>true</code>, the reader
+     * will simply strip away the extra channels to provide
+     * a viewable image. If <code>false</code>, an exception will be thrown for
+     * such multichannel TIFF images.</p>
+     *
+     * @param removeExtraChannelsIf5OrMoreForBufferedImage whether to remove extrac channels
+     *                                                     to stay compatible with BufferedImage.
+     * @return a reference to this object.
+     */
+    public TiffReader setRemoveExtraChannelsIf5OrMoreForBufferedImage(
+            boolean removeExtraChannelsIf5OrMoreForBufferedImage) {
+        this.removeExtraChannelsIf5OrMoreForBufferedImage = removeExtraChannelsIf5OrMoreForBufferedImage;
+        return this;
+    }
+
     public boolean isEnforceUseExternalCodec() {
         return enforceUseExternalCodec;
     }
@@ -1128,7 +1153,7 @@ public non-sealed class TiffReader extends TiffIO {
      * @param mainIFDIndex index of regular IFD (0, 1, ...).
      * @return offset of this IFD in the file.
      * @throws IllegalArgumentException if the index is negative.
-     * @throws TiffException if the index is too high.
+     * @throws TiffException            if the index is too high.
      */
     public long readMainIFDOffset(final int mainIFDIndex) throws IOException {
         long result = tryToReadMainIFDOffset(mainIFDIndex);
@@ -1216,7 +1241,7 @@ public non-sealed class TiffReader extends TiffIO {
      * @param mainIFDIndex index of regular IFD (0, 1, ...).
      * @return the selected IFD.
      * @throws IllegalArgumentException if the index is negative.
-     * @throws TiffException if the index is too high.
+     * @throws TiffException            if the index is too high.
      */
     public TiffIFD readMainIFD(int mainIFDIndex) throws IOException {
         long startOffset = readMainIFDOffset(mainIFDIndex);
@@ -1937,8 +1962,10 @@ public non-sealed class TiffReader extends TiffIO {
             boolean storeTilesInMap,
             TiffIOMap.TileSupplier tileSupplier)
             throws IOException {
+        final Matrix<UpdatablePArray> mergedChannels =
+                readMatrix(map, fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
         final Matrix<? extends PArray> interleaved =
-                readInterleavedMatrix(map, fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
+                Matrices.interleave(extractFirst4(mergedChannels.asLayers()));
         // Note: we do not use MatrixToImage.toBufferedImage, because we need to call setUnsignedInt32
         return new MatrixToImage.InterleavedRGBToInterleaved()
                 .setUnsignedInt32(true)
@@ -2224,6 +2251,10 @@ public non-sealed class TiffReader extends TiffIO {
         Objects.requireNonNull(inputStream, "Null input stream");
         Objects.requireNonNull(openMode, "Null open mode");
         return inputStream;
+    }
+
+    private <T> List<T> extractFirst4(List<T> image) {
+        return !removeExtraChannelsIf5OrMoreForBufferedImage || image.size() <= 4 ? image : image.subList(0, 4);
     }
 
     class CachedTile {

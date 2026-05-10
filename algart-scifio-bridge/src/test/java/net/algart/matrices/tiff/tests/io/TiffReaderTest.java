@@ -192,13 +192,13 @@ public class TiffReaderTest {
             // - BufferedImage cannot have zero sizes
             final Matrix<? extends PArray> interleave = interleaved ?
                     matrix :
-                    Matrices.interleave(tryToExtractRGB(matrix.asLayers()));
+                    Matrices.interleave(extractFirst4(matrix.asLayers()));
             final BufferedImage bi = MatrixToImage.ofInterleaved(interleave);
             MatrixIO.writeBufferedImage(file, bi);
         }
     }
 
-    private static <T> List<T> tryToExtractRGB(List<T> image) {
+    private static <T> List<T> extractFirst4(List<T> image) {
         return image.size() <= 4 ? image : image.subList(0, 4);
     }
 }

@@ -65,6 +65,7 @@ class TiffViewer {
         this.path = Objects.requireNonNull(path);
         this.reader = new TiffReaderWithGrid(path);
         this.reader.setColorCorrection(DEFAULT_COLOR_CORRECTION);
+        this.reader.setRemoveExtraChannelsIf5OrMoreForBufferedImage(true);
         this.reader.setMaxCacheMemory(CACHING_MEMORY);
         this.ifdIndex = ifdIndex;
         LOG.log(System.Logger.Level.INFO, "Viewer opened " + reader.streamName());
