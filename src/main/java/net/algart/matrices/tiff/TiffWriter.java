@@ -832,7 +832,9 @@ public non-sealed class TiffWriter extends TiffIO {
      */
     public long writeIFDAt(TiffIFD ifd, Long ifdOffsetOrNull, boolean updateIFDLinkages) throws IOException {
         synchronized (fileLock()) {
-            final long ifdOffset = prepareWriteIFDAt(ifd, ifdOffsetOrNull);
+            final long ifdOffset = prepareWriteIFDAt(ifdOffsetOrNull);
+            ifd.setFileOffsetForWriting(ifdOffset);
+            // - TODO!! remove this
             stream.seek(ifdOffset);
             final Map<Integer, Object> sortedIFD = new TreeMap<>(ifd.map());
             // -  TIFF 6.0 standard, Sort Order:
@@ -867,7 +869,7 @@ public non-sealed class TiffWriter extends TiffIO {
             boolean updateIFDLinkages) throws IOException {
         Objects.requireNonNull(tagsToUpdate, "Null tagsToUpdate");
         synchronized (fileLock()) {
-            prepareWriteIFDAt(ifd, ifdOffset);
+            prepareWriteIFDAt(ifdOffset);
             final boolean littleEndian = stream.isLittleEndian();
             final long fileLength = stream.length();
             final int numberOfEntries = readNumberOfIFDEntriesAt(ifdOffset);
@@ -961,8 +963,7 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    private long prepareWriteIFDAt(TiffIFD ifd, Long startOffsetOrNull) throws IOException {
-        Objects.requireNonNull(ifd, "Null IFD");
+    private long prepareWriteIFDAt(Long startOffsetOrNull) throws IOException {
         checkVirginFile();
         resetCompanionReader();
         long startOffset;
@@ -980,8 +981,6 @@ public non-sealed class TiffWriter extends TiffIO {
         checkFileOffsetForWriting(startOffset);
         // - we check that the offset is even always, even while rewriting:
         // we cannot rewrite IFD at the odd (non-standard) position
-        ifd.setFileOffsetForWriting(startOffset);
-        // - TODO!! remove this
         return startOffset;
     }
 
