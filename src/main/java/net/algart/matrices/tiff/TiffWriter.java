@@ -533,7 +533,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * Returns position in the file of the last IFD offset, written by methods of this object.
      * It is updated by {@link #overwriteIFDInPlace(TiffIFD, boolean)},
      * {@link #writeIFDAt(TiffIFD, Long, boolean)},
-     * {@link #rewriteSelectedTagsAt(TiffIFD, long, boolean, IntPredicate, boolean)}
+     * {@link #rewriteSelectedTagsAt(TiffIFD, long, IntPredicate, boolean)}
      * when the last argument is {@code true}.
      *
      * <p>Immediately after creating this object without opening a file
@@ -860,7 +860,7 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    public long rewriteSelectedTagsAt(
+    public void rewriteSelectedTagsAt(
             TiffIFD ifd,
             long ifdOffset,
             IntPredicate tagsToUpdate,
@@ -882,38 +882,82 @@ public non-sealed class TiffWriter extends TiffIO {
             final long ifdStreamOffset = ifdOffset + (bigTiff ? 8 : 2);
             final int sizeOfEntry = sizeOfIFDEntry();
             final int sizeOfAllEntries = sizeOfEntry * numberOfEntries;
-            final byte[] ifdBytes = new byte[sizeOfAllEntries];
-            stream.readFully(ifdBytes);
-            final DataHandle<?> existingStream = getBytesHandle(ifdBytes, littleEndian);
-            final DataHandle<?> newStream = getBytesHandle(ifdBytes.clone(), littleEndian);
+            if (stream.offset() != ifdStreamOffset) {
+                throw new ConcurrentModificationException("Strange stream offset " +
+                        stream.offset() + " != " + ifdStreamOffset +
+                        ", probably due to operations in a parallel thread");
+            }
+            final byte[] oldIFDBytes = new byte[sizeOfAllEntries];
+            stream.readFully(oldIFDBytes);
+            final byte[] newIFDBytes = oldIFDBytes.clone();
+            final DataHandle<?> oldStream = getBytesHandle(oldIFDBytes, littleEndian);
+            final DataHandle<?> newStream = getBytesHandle(newIFDBytes, littleEndian);
             final BytesHandle[] extraBuffers = new BytesHandle[numberOfEntries];
+            // - null-filled by Java
+            final long[] extraOffsets = new long[numberOfEntries];
             for (int i = 0, disp = 0; i < numberOfEntries; i++, disp += sizeOfEntry) {
-                final TiffIFD.Entry existingEntry = readIFDEntry(existingStream, disp, ifdStreamOffset, fileLength);
-                final int tag = existingEntry.tag();
+                final TiffIFD.Entry oldEntry = readIFDEntry(oldStream, disp, ifdStreamOffset, fileLength);
+                final int tag = oldEntry.tag();
                 if (!tagsToUpdate.test(tag)) {
                     continue;
                 }
                 final BytesHandle extraBuffer = newBytesHandle(littleEndian);
                 final Map.Entry<Integer, Object> tagAndValue = new AbstractMap.SimpleEntry<>(tag, ifd.get(tag));
                 newStream.seek(disp);
-                writeIFDValueAtCurrentOffsets(newStream, extraBuffer, bigTiff, null, tagAndValue);
-                extraBuffers[i] = extraBuffer;
+                assert extraBuffer.offset() == 0;
+                final long addition = oldEntry.isDataEmbeddedInEntry() ? 0 : oldEntry.valueOffset();
+                // - addition + extraBuffer.offset() is a correct offset that should be written to new entry
+                writeIFDValueAtCurrentOffsets(newStream, extraBuffer, bigTiff, addition, tagAndValue);
                 final TiffIFD.Entry newEntry = readIFDEntry(newStream, disp, ifdStreamOffset, fileLength);
-                if (newEntry.tag() != existingEntry.tag()) {
-                    throw new AssertionError();
+                if (newEntry.tag() != oldEntry.tag() || newEntry.isBigTiff() != oldEntry.isBigTiff()) {
+                    throw new AssertionError("Write/read tag mismatch");
                 }
-                if (newEntry.rawType() != existingEntry.rawType()) {
+                if (newEntry.rawType() != oldEntry.rawType()) {
                     throw new TiffIFDMismatchException("Cannot rewrite IFD entry for tag " +
-                            Tags.prettyName(tag) + ": the type " + existingEntry.prettyType() +
+                            Tags.prettyName(tag) + ": the value type " + oldEntry.prettyType() +
                             " changed to " + newEntry.prettyType());
                 }
-                //TODO!! compare other fields and throw TiffIFDMismatchException
-                //TODO!! assertionerror that the length of extraBuffer == valueLength
-//            System.err.printf("%d values from %d: %.6f ms%n", valueCount, valueOffset, (tEntry3 - tEntry2) * 1e-6);
+                if (newEntry.valueCount() != oldEntry.valueCount()) {
+                    throw new TiffIFDMismatchException("Cannot rewrite IFD value for tag " +
+                            Tags.prettyName(tag) + ": the number of elements " + oldEntry.valueCount() +
+                            " changed to " + newEntry.valueCount());
+                }
+                if (newEntry.isDataEmbeddedInEntry() != oldEntry.isDataEmbeddedInEntry()) {
+                    // - this flag cannot be different if the type and value count are equal
+                    throw new AssertionError("isDataEmbeddedInEntry mismatch");
+                }
+                if (!newEntry.isDataEmbeddedInEntry()) {
+                    final long valueOffset = newEntry.valueOffset();
+                    final long valueLength = newEntry.valueLength();
+                    if (valueOffset != addition) {
+                        throw new AssertionError("Offset of the values array was not written " +
+                                "correctly: " + valueOffset + " instead of " + addition);
+                    }
+                    if (extraBuffer.length() != valueLength) {
+                        throw new AssertionError("Extra buffer length " + extraBuffer.length() +
+                                " is not equal to the value length " + valueLength);
+                    }
+                    if (valueOffset > fileLength - valueLength) {
+                        throw new TiffException("Invalid TIFF: offset of IFD values " + valueOffset +
+                                " + total lengths of values " + valueLength + " = " +
+                                " is outside the file length " + fileLength);
+                    }
+                    extraOffsets[i] = valueOffset;
+                    extraBuffers[i] = extraBuffer;
+                }
             }
-
-            //TODO!! copy newStream and all extraBuffers to the necessary places
-            throw new UnsupportedOperationException();
+            oldStream.close();
+            newStream.close();
+            // - just in case, usually not necessary (maybe for flushing data)
+            stream.seek(ifdStreamOffset);
+            stream.write(newIFDBytes);
+            for (int i = 0; i < numberOfEntries; i++) {
+                final BytesHandle extraBuffer = extraBuffers[i];
+                if (extraBuffer != null) {
+                    stream.seek(extraOffsets[i]);
+                    copyData(extraBuffer, stream, true, extraBuffer.length());
+                }
+            }
         }
     }
 

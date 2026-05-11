@@ -614,14 +614,14 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * like arrays or text strings. The "main" data is a 12-byte IFD record (20-byte for BigTIFF),
      * which is written by this method into the main output stream from its current position.
      *
-     * <p>The argument {@code extraBufferOffsetInTiffFile} used to calculate is the position of "extra" data
+     * <p>The argument {@code additionToExtraBufferOffset} used to calculate is the position of "extra" data
      * in the result TIFF file: it is<br>
-     * &nbsp;&nbsp;&nbsp;&nbsp;{@code extraBufferOffsetInTiffFile} +
+     * &nbsp;&nbsp;&nbsp;&nbsp;{@code additionToExtraBufferOffset} +
      * offset of the written "extra" data inside {@code extraBuffer};<br>
      * for example, this argument may be a position directly after
      * the "main" content (sequence of 12/20-byte records).
      * This position will be written into {@code ifdStream}.
-     * However, if {@code extraBufferOffsetInTiffFile=null}, this operation will be skipped.</p>
+     * However, if {@code additionToExtraBufferOffset=null}, this operation will be skipped.</p>
      *
      * <p>Note: the current version <b>does not</b> use {@link TagType} information;
      * instead, the type is recognized on the base of Java type of {@code entry.getValue()}.
@@ -632,8 +632,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @param ifdStream                   the main stream where IFD entries should be written.
      * @param extraBuffer                 the buffer where "extra" IFD information should be written.
      * @param bigTiff                     Big-TIFF flag.
-     * @param extraBufferOffsetInTiffFile the position of "extra" data in the result TIFF file =
-     *                                    {@code extraBufferOffsetInTiffFile} +
+     * @param additionToExtraBufferOffset the position of "extra" data in the result TIFF file =
+     *                                    {@code additionToExtraBufferOffset} +
      *                                    offset of the written "extra" data inside {@code extraBuffer};
      *                                    for example, this argument may be a position directly after
      *                                    the "main" content (sequence of 12/20-byte records).
@@ -643,7 +643,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             final DataHandle<?> ifdStream,
             final DataHandle<?> extraBuffer,
             final boolean bigTiff,
-            final Long extraBufferOffsetInTiffFile,
+            final long additionToExtraBufferOffset,
             Map.Entry<Integer, Object> entry) throws IOException {
         final int tag = entry.getKey();
         Object value = entry.getValue();
@@ -678,8 +678,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         final int dataLengthDiv4 = dataLength >> 2;
         final ByteOrder byteOrder = extraBuffer.isLittleEndian() ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
 
-        // write directory entry to output buffers
         writeUnsignedShort(ifdStream, tag);
+        // Note: we cannot get extraBuffer.offset() here, we MUST call appendUntilEvenOffset() before this!
         switch (value) {
             case byte[] v -> {
                 ifdStream.writeShort(TagType.UNDEFINED.type());
@@ -695,7 +695,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     }
                 } else {
                     appendUntilEvenOffset(extraBuffer);
-                    writeOrSkipOffset(ifdStream, bigTiff, extraBufferOffsetInTiffFile, extraBuffer.offset());
+                    writeOffsetWithAddition(ifdStream, bigTiff, additionToExtraBufferOffset, extraBuffer.offset());
                     extraBuffer.write(v);
                 }
             }
@@ -712,7 +712,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     }
                 } else {
                     appendUntilEvenOffset(extraBuffer);
-                    writeOrSkipOffset(ifdStream, bigTiff, extraBufferOffsetInTiffFile, extraBuffer.offset());
+                    writeOffsetWithAddition(ifdStream, bigTiff, additionToExtraBufferOffset, extraBuffer.offset());
                     byte[] bytes = new byte[v.length];
                     for (int i = 0; i < v.length; i++) {
                         bytes[i] = checkUnsignedByte(v[i]);
@@ -741,7 +741,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     }
                 } else {
                     appendUntilEvenOffset(extraBuffer);
-                    writeOrSkipOffset(ifdStream, bigTiff, extraBufferOffsetInTiffFile, extraBuffer.offset());
+                    writeOffsetWithAddition(ifdStream, bigTiff, additionToExtraBufferOffset, extraBuffer.offset());
                     extraBuffer.write(v);
 //                for (byte c : v) {
 //                    if (charValue > 0xFF) {
@@ -776,7 +776,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     }
                 } else {
                     appendUntilEvenOffset(extraBuffer);
-                    writeOrSkipOffset(ifdStream, bigTiff, extraBufferOffsetInTiffFile, extraBuffer.offset());
+                    writeOffsetWithAddition(ifdStream, bigTiff, additionToExtraBufferOffset, extraBuffer.offset());
                     short[] shorts = new short[v.length];
                     for (int i = 0; i < v.length; i++) {
                         shorts[i] = checkUnsignedShort(v[i]);
@@ -827,7 +827,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     }
                 } else {
                     appendUntilEvenOffset(extraBuffer);
-                    writeOrSkipOffset(ifdStream, bigTiff, extraBufferOffsetInTiffFile, extraBuffer.offset());
+                    writeOffsetWithAddition(ifdStream, bigTiff, additionToExtraBufferOffset, extraBuffer.offset());
                     extraBuffer.write(longArrayToBytes(v, bigTiff, byteOrder));
 //              Old solution:
 //                for (long longValue : v) {
@@ -843,7 +843,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     ifdStream.writeInt((int) v[0].getDenominator());
                 } else {
                     appendUntilEvenOffset(extraBuffer);
-                    writeOrSkipOffset(ifdStream, bigTiff, extraBufferOffsetInTiffFile, extraBuffer.offset());
+                    writeOffsetWithAddition(ifdStream, bigTiff, additionToExtraBufferOffset, extraBuffer.offset());
                     for (TagRational tagRational : v) {
                         extraBuffer.writeInt((int) tagRational.getNumerator());
                         extraBuffer.writeInt((int) tagRational.getDenominator());
@@ -863,7 +863,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     }
                 } else {
                     appendUntilEvenOffset(extraBuffer);
-                    writeOrSkipOffset(ifdStream, bigTiff, extraBufferOffsetInTiffFile, extraBuffer.offset());
+                    writeOffsetWithAddition(ifdStream, bigTiff, additionToExtraBufferOffset, extraBuffer.offset());
                     for (float floatValue : v) {
                         extraBuffer.writeFloat(floatValue);
                     }
@@ -873,7 +873,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 ifdStream.writeShort(TagType.DOUBLE.type());
                 writeIntOrLong(ifdStream, bigTiff, v.length);
                 appendUntilEvenOffset(extraBuffer);
-                writeOrSkipOffset(ifdStream, bigTiff, extraBufferOffsetInTiffFile, extraBuffer.offset());
+                writeOffsetWithAddition(ifdStream, bigTiff, additionToExtraBufferOffset, extraBuffer.offset());
                 for (final double doubleValue : v) {
                     extraBuffer.writeDouble(doubleValue);
                 }
@@ -1054,13 +1054,9 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         }
     }
 
-    private static void writeOrSkipOffset(DataHandle<?> handle, boolean bigTiff, Long increment, long offsetValue)
+    private static void writeOffsetWithAddition(DataHandle<?> handle, boolean bigTiff, long addition, long offset)
             throws IOException {
-        if (increment != null) {
-            writeOffset(handle, bigTiff, increment + offsetValue);
-        } else {
-            skipOffset(handle, bigTiff);
-        }
+        writeOffset(handle, bigTiff, addition + offset);
     }
 
     /**

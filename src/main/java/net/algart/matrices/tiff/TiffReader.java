@@ -1313,7 +1313,7 @@ public non-sealed class TiffReader extends TiffIO {
 
                 if (value != null && !map.containsKey(tag)) {
                     // - null value should not occur in the current version;
-                    // if this tag is present twice (strange mistake if a TIFF file),
+                    // if this tag is present twice (strange mistake in a TIFF file),
                     // we do not throw exception and just use the 1st entry
                     map.put(tag, value);
                     detailedEntries.put(tag, entry);
