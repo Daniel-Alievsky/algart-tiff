@@ -1069,8 +1069,8 @@ public non-sealed class TiffReader extends TiffIO {
                 }
                 if (subOffsets != null) {
                     for (long subOffset : subOffsets) {
-                        final TiffIFD subIFD = readIFDAt(subOffset, Tags.SUB_IFD, false);
-                        assert subIFD != null;
+                        final TiffIFD subIFD = readIFDAt(subOffset, false);
+                        subIFD.setSubIFDType(Tags.SUB_IFD);
                         subIFD.setGlobalIndexes(allIFDs.size(), null);
                         allIFDs.add(subIFD);
                     }
@@ -1128,10 +1128,9 @@ public non-sealed class TiffReader extends TiffIO {
         for (TiffIFD ifd : ifds) {
             final long offset = ifd.getLong(Tags.EXIF, 0);
             if (offset != 0) {
-                final TiffIFD exifIFD = readIFDAt(offset, Tags.EXIF, false);
-                if (exifIFD != null) {
-                    result.add(exifIFD);
-                }
+                final TiffIFD exifIFD = readIFDAt(offset, false);
+                exifIFD.setSubIFDType(Tags.EXIF);
+                result.add(exifIFD);
             }
         }
         return result;
@@ -1259,10 +1258,10 @@ public non-sealed class TiffReader extends TiffIO {
      * Never returns {@code null}.
      */
     public TiffIFD readIFDAt(long startOffset) throws IOException {
-        return readIFDAt(startOffset, null, true);
+        return readIFDAt(startOffset, true);
     }
 
-    public TiffIFD readIFDAt(long ifdOffset, final Integer subIFDType, boolean readNextOffset) throws IOException {
+    public TiffIFD readIFDAt(long ifdOffset, boolean readNextOffset) throws IOException {
         if (ifdOffset < 0) {
             throw new IllegalArgumentException("Negative IFD file offset = " + ifdOffset);
         }
@@ -1328,7 +1327,6 @@ public non-sealed class TiffReader extends TiffIO {
             ifd.setLittleEndian(stream.isLittleEndian());
             ifd.setBigTiff(bigTiff);
             ifd.setFileOffsetOfIFD(ifdOffset);
-            ifd.setSubIFDType(subIFDType);
             if (readNextOffset) {
                 final long nextOffset = readIFDNextOffset(false);
                 ifd.setFileOffsetOfNextIFDOffset(fileOffsetOfNextIFDOffset);
