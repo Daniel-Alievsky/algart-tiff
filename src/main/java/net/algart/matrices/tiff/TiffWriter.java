@@ -872,10 +872,13 @@ public non-sealed class TiffWriter extends TiffIO {
             final long tiffFileLength = stream.length();
             final long numberOfEntries = bigTiff ? stream.readLong() : stream.readUnsignedShort();
             final int n = TiffIFD.checkNumberOfEntries(numberOfEntries, bigTiff);
-            if (requireIdenticalNumberOfEntries && numberOfEntries != ifd.numberOfEntries()) {
-                throw new IllegalArgumentException("Number of entries in the IFD: " + ifd.numberOfEntries() +
-                        " does not match the number of entries stored in the file: " + numberOfEntries);
-            }
+
+            // Too complex usage
+//            if (requireIdenticalNumberOfEntries && numberOfEntries != ifd.numberOfEntries()) {
+//                throw new IllegalArgumentException("Number of entries in the IFD: " + ifd.numberOfEntries() +
+//                        " does not match the number of entries stored in the file: " + numberOfEntries);
+//            }
+
             // You may compare the following code with TiffReader.readIFDAt
             final long ifdStreamOffsetInTiffFile = startOffset + (bigTiff ? 8 : 2);
             final int bytesPerEntry = TiffIFD.Entry.bytesPerEntry(bigTiff);
@@ -1660,7 +1663,7 @@ public non-sealed class TiffWriter extends TiffIO {
         resetCompanionReader();
     }
 
-    public int sizeOfHeader() {
+    public int sizeOfTiffHeader() {
         return TiffIFD.sizeOfFileHeader(bigTiff);
     }
 
@@ -1755,7 +1758,7 @@ public non-sealed class TiffWriter extends TiffIO {
             throw new IllegalStateException("TIFF file is not yet created / opened for writing");
         }
         final boolean exists = stream.exists();
-        if (!exists || stream.length() < sizeOfHeader()) {
+        if (!exists || stream.length() < sizeOfTiffHeader()) {
             // - very improbable, but can occur as a result of direct operations with the output stream
             throw new IllegalStateException(
                     (exists ?

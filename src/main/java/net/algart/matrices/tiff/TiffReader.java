@@ -37,7 +37,6 @@ import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagPhotometric;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.*;
-import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.FileHandle;
 import org.scijava.io.location.FileLocation;
@@ -1191,8 +1190,7 @@ public non-sealed class TiffReader extends TiffIO {
                 if (index-- <= 0) {
                     return offset;
                 }
-                stream.seek(offset);
-                skipIFDEntries(fileLength);
+                skipIFDEntries(offset, fileLength);
                 final long newOffset = readIFDNextOffset(true);
                 if (newOffset == offset) {
                     throw new TiffException("TIFF file is broken - infinite loop of IFD offsets is detected " +
@@ -1222,7 +1220,6 @@ public non-sealed class TiffReader extends TiffIO {
             long offset = readFirstIFDOffset();
 
             while (offset > 0 && offset < fileLength) {
-                stream.seek(offset);
                 final boolean wasNotPresent = ifdOffsets.add(offset);
                 if (!wasNotPresent) {
                     throw new TiffException("TIFF file is broken - infinite loop of IFD offsets is detected " +
@@ -1230,7 +1227,7 @@ public non-sealed class TiffReader extends TiffIO {
                             ifdOffsets.stream().map(Object::toString).collect(Collectors.joining(", ")) +
                             ", " + offset + ", ...)");
                 }
-                skipIFDEntries(fileLength);
+                skipIFDEntries(offset, fileLength);
                 offset = readIFDNextOffset(true);
             }
             return ifdOffsets.stream().mapToLong(v -> v).toArray();
@@ -1265,12 +1262,12 @@ public non-sealed class TiffReader extends TiffIO {
         return readIFDAt(startOffset, null, true);
     }
 
-    public TiffIFD readIFDAt(long startOffset, final Integer subIFDType, boolean readNextOffset) throws IOException {
-        if (startOffset < 0) {
-            throw new IllegalArgumentException("Negative file offset = " + startOffset);
+    public TiffIFD readIFDAt(long ifdOffset, final Integer subIFDType, boolean readNextOffset) throws IOException {
+        if (ifdOffset < 0) {
+            throw new IllegalArgumentException("Negative IFD file offset = " + ifdOffset);
         }
-        if (startOffset < sizeOfHeader()) {
-            throw new IllegalArgumentException("Attempt to read IFD from too small start offset " + startOffset);
+        if (ifdOffset < sizeOfTiffHeader()) {
+            throw new IllegalArgumentException("Attempt to read IFD from too small start offset " + ifdOffset);
         }
         long t1 = debugTime();
         long timeEntries = 0;
@@ -1278,16 +1275,16 @@ public non-sealed class TiffReader extends TiffIO {
         final TiffIFD ifd;
         synchronized (fileLock()) {
             final long tiffFileLength = stream.length();
-            if (startOffset >= tiffFileLength) {
-                throw new TiffException("TIFF IFD offset " + startOffset + " is outside the file");
+            if (ifdOffset >= tiffFileLength) {
+                throw new TiffException("TIFF IFD offset " + ifdOffset + " is outside the file");
             }
             final Map<Integer, Object> map = new LinkedHashMap<>();
             final LinkedHashMap<Integer, TiffIFD.Entry> detailedEntries = new LinkedHashMap<>();
 
-            stream.seek(startOffset);
+            stream.seek(ifdOffset);
             final long numberOfEntries = bigTiff ? stream.readLong() : stream.readUnsignedShort();
             final int n = TiffIFD.checkNumberOfEntries(numberOfEntries, bigTiff);
-            final long ifdStreamOffsetInTiffFile = startOffset + (bigTiff ? 8 : 2);
+            final long ifdStreamOffsetInTiffFile = ifdOffset + (bigTiff ? 8 : 2);
 
             final int bytesPerEntry = TiffIFD.Entry.bytesPerEntry(bigTiff);
             final DataHandle<?> ifdStream;
@@ -1335,7 +1332,7 @@ public non-sealed class TiffReader extends TiffIO {
             ifd.setLoadedFromFile(true);
             ifd.setLittleEndian(stream.isLittleEndian());
             ifd.setBigTiff(bigTiff);
-            ifd.setFileOffsetOfIFD(startOffset);
+            ifd.setFileOffsetOfIFD(ifdOffset);
             ifd.setSubIFDType(subIFDType);
             if (readNextOffset) {
                 final long nextOffset = readIFDNextOffset(false);
@@ -1351,7 +1348,7 @@ public non-sealed class TiffReader extends TiffIO {
             long t2 = debugTime();
             LOG.log(System.Logger.Level.TRACE, String.format(Locale.US,
                     "%s read IFD at offset %d: %.3f ms, including %.6f entries + %.6f arrays",
-                    getClass().getSimpleName(), startOffset,
+                    getClass().getSimpleName(), ifdOffset,
                     (t2 - t1) * 1e-6, timeEntries * 1e-6, timeArrays * 1e-6));
         }
         return ifd;
@@ -2009,10 +2006,6 @@ public non-sealed class TiffReader extends TiffIO {
         super.close();
     }
 
-    public int sizeOfHeader() {
-        return TiffIFD.sizeOfFileHeader(bigTiff);
-    }
-
     @Override
     public String toString() {
         return "TIFF reader";
@@ -2240,24 +2233,17 @@ public non-sealed class TiffReader extends TiffIO {
         return offset;
     }
 
-    private void skipIFDEntries(long fileLength) throws IOException {
-        final long offset = stream.offset();
+    private void skipIFDEntries(long ifdOffset, long fileLength) throws IOException {
         final int bytesPerEntry = TiffIFD.Entry.bytesPerEntry(bigTiff);
-        final long numberOfEntries = bigTiff ? stream.readLong() : stream.readUnsignedShort();
-        if (numberOfEntries < 0 || numberOfEntries > Integer.MAX_VALUE / bytesPerEntry) {
-            throw new TiffException(
-                    "Too large number of IFD entries in Big TIFF: " +
-                            (numberOfEntries < 0 ? ">= 2^63" : numberOfEntries + "") +
-                            " (it is not supported, probably file is broken)");
-        }
-        final long skippedIFDBytes = numberOfEntries * bytesPerEntry;
-        if (offset + skippedIFDBytes >= fileLength) {
+        final int numberOfEntries = readNumberOfIFDEntriesAt(ifdOffset);
+        final int skippedIFDBytes = numberOfEntries * bytesPerEntry;
+        if (ifdOffset >= fileLength - skippedIFDBytes) {
             throw new TiffException(
                     "Invalid TIFF" + spacedStreamName() + ": position of next IFD offset " +
-                            (offset + skippedIFDBytes) + " after " + numberOfEntries +
+                            (ifdOffset + skippedIFDBytes) + " after " + numberOfEntries +
                             " entries is outside the file (probably file is broken)");
         }
-        stream.skipBytes((int) skippedIFDBytes);
+        stream.skipBytes(skippedIFDBytes);
     }
 
     private static DataHandle<?> checkNonNull(DataHandle<?> inputStream, TiffOpenMode openMode) {

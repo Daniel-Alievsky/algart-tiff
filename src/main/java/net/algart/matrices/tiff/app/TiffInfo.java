@@ -222,7 +222,7 @@ public class TiffInfo {
                                 " pyramid (" + metadata.numberOfLayers() + " layers, " +
                                         metadata.numberOfImages() + " images)" :
                                 "");
-                AtomicLong totalSize = new AtomicLong(reader.sizeOfHeader());
+                AtomicLong totalSize = new AtomicLong(reader.sizeOfTiffHeader());
                 for (int k = firstIndex; k <= lastIndex; k++) {
                     final TiffIFD ifd = allIFDs.get(k);
                     ifdInfo.add(ifdInformation(reader, ifd, k, totalSize));

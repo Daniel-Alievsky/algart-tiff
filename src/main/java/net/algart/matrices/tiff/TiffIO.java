@@ -189,6 +189,10 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         }
     }
 
+    public int sizeOfTiffHeader() {
+        return TiffIFD.sizeOfFileHeader(bigTiff);
+    }
+
     /**
      * Returns position in the file of the first IFD offset:
      * 8 for {@link TiffReader#isBigTiff() BigTIFF}, 4 for a usual TIFF.
@@ -201,6 +205,18 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
     public TiffReader newReader(TiffOpenMode openMode) throws IOException {
         return new TiffReader(stream, openMode, false);
+    }
+
+    public int readNumberOfIFDEntriesAt(long ifdOffset) throws IOException {
+        if (ifdOffset < 0) {
+            throw new IllegalArgumentException("Negative IFD file offset = " + ifdOffset);
+        }
+        if (ifdOffset < sizeOfTiffHeader()) {
+            throw new IllegalArgumentException("Attempt to read IFD from too small start offset " + ifdOffset);
+        }
+        stream.seek(ifdOffset);
+        final long numberOfEntries = bigTiff ? stream.readLong() : stream.readUnsignedShort();
+        return TiffIFD.checkNumberOfEntries(numberOfEntries, bigTiff);
     }
 
     void setLastCodecReport(CodecReport lastCodecReport) {
