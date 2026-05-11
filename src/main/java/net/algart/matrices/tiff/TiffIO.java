@@ -207,6 +207,18 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return new TiffReader(stream, openMode, false);
     }
 
+    /**
+     * Seeks the {@link #stream()} to the specified offset and reads the number of IFD entries.
+     * The value is validated using {@link TiffIFD#checkNumberOfEntries(long, boolean)}.
+     *
+     * <p>After a successful call, the stream position is set immediately after
+     * the count field (2 bytes for standard TIFF, 8 bytes for Big-TIFF).</p>
+     *
+     * @param ifdOffset the absolute offset of the IFD structure inside the TIFF file.
+     * @return the validated number of IFD entries.
+     * @throws IOException   in the case of any I/O errors.
+     * @throws TiffException if the number of entries is invalid or exceeds limits.
+     */
     public int readNumberOfIFDEntriesAt(long ifdOffset) throws IOException {
         if (ifdOffset < 0) {
             throw new IllegalArgumentException("Negative IFD file offset = " + ifdOffset);
@@ -214,9 +226,40 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         if (ifdOffset < sizeOfTiffHeader()) {
             throw new IllegalArgumentException("Attempt to read IFD from too small start offset " + ifdOffset);
         }
+        if (ifdOffset >= stream.length()) {
+            throw new TiffException("TIFF IFD offset " + ifdOffset + " is outside the file");
+        }
         stream.seek(ifdOffset);
         final long numberOfEntries = bigTiff ? stream.readLong() : stream.readUnsignedShort();
         return TiffIFD.checkNumberOfEntries(numberOfEntries, bigTiff);
+    }
+
+    /**
+     * Returns the byte length of a single IFD entry based on the TIFF format version,
+     * depending on {@link #isBigTiff()} flag.
+     *
+     * @return 12 for standard TIFF, 20 for Big-TIFF.
+     */
+    public int sizeOfIFDEntry() {
+        return TiffIFD.Entry.sizeOfEntry(bigTiff);
+    }
+
+    /**
+     * Returns the total size in bytes of the IFD entries table (excluding the entry count
+     * and the next IFD offset fields).
+     *
+     * @param numberOfEntries the number of entries in the IFD.
+     * @return the total size of all IFD entries in bytes.
+     * @throws IllegalArgumentException if {@code numberOfEntries} is invalid or too large.
+     */
+    public int sizeOfAllIFDEntries(int numberOfEntries) {
+        if (numberOfEntries < 0) {
+            throw new IllegalArgumentException("Negative number of IFD entries: " + numberOfEntries);
+        }
+        if (numberOfEntries > TiffIFD.MAX_NUMBER_OF_IFD_ENTRIES) {
+            throw new IllegalArgumentException("Too many IFD entries: " + numberOfEntries);
+        }
+        return numberOfEntries * sizeOfIFDEntry();
     }
 
     void setLastCodecReport(CodecReport lastCodecReport) {

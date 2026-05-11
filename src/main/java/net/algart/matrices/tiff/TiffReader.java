@@ -1275,27 +1275,22 @@ public non-sealed class TiffReader extends TiffIO {
         final TiffIFD ifd;
         synchronized (fileLock()) {
             final long tiffFileLength = stream.length();
-            if (ifdOffset >= tiffFileLength) {
-                throw new TiffException("TIFF IFD offset " + ifdOffset + " is outside the file");
-            }
             final Map<Integer, Object> map = new LinkedHashMap<>();
             final LinkedHashMap<Integer, TiffIFD.Entry> detailedEntries = new LinkedHashMap<>();
 
-            stream.seek(ifdOffset);
-            final long numberOfEntries = bigTiff ? stream.readLong() : stream.readUnsignedShort();
-            final int n = TiffIFD.checkNumberOfEntries(numberOfEntries, bigTiff);
+            final int numberOfEntries = readNumberOfIFDEntriesAt(ifdOffset);
             final long ifdStreamOffsetInTiffFile = ifdOffset + (bigTiff ? 8 : 2);
 
-            final int bytesPerEntry = TiffIFD.Entry.bytesPerEntry(bigTiff);
+            final int bytesPerEntry = sizeOfIFDEntry();
             final DataHandle<?> ifdStream;
             if (READ_IFD_WITH_BUFFERING) {
-                final byte[] ifdBytes = new byte[bytesPerEntry * n];
+                final byte[] ifdBytes = new byte[bytesPerEntry * numberOfEntries];
                 stream.readFully(ifdBytes);
                 ifdStream = getBytesHandle(ifdBytes, stream.isLittleEndian());
             } else {
                 ifdStream = stream;
             }
-            for (int i = 0; i < n; i++) {
+            for (int i = 0; i < numberOfEntries; i++) {
                 long tEntry1 = debugTime();
                 final long entryOffset = (long) bytesPerEntry * i;
                 final TiffIFD.Entry entry = readIFDEntry(
@@ -2234,9 +2229,8 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     private void skipIFDEntries(long ifdOffset, long fileLength) throws IOException {
-        final int bytesPerEntry = TiffIFD.Entry.bytesPerEntry(bigTiff);
         final int numberOfEntries = readNumberOfIFDEntriesAt(ifdOffset);
-        final int skippedIFDBytes = numberOfEntries * bytesPerEntry;
+        final int skippedIFDBytes = sizeOfAllIFDEntries(numberOfEntries);
         if (ifdOffset >= fileLength - skippedIFDBytes) {
             throw new TiffException(
                     "Invalid TIFF" + spacedStreamName() + ": position of next IFD offset " +

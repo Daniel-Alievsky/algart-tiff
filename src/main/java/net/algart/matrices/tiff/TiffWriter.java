@@ -881,7 +881,7 @@ public non-sealed class TiffWriter extends TiffIO {
 
             // You may compare the following code with TiffReader.readIFDAt
             final long ifdStreamOffsetInTiffFile = startOffset + (bigTiff ? 8 : 2);
-            final int bytesPerEntry = TiffIFD.Entry.bytesPerEntry(bigTiff);
+            final int bytesPerEntry = TiffIFD.Entry.sizeOfEntry(bigTiff);
             final byte[] ifdBytes = new byte[bytesPerEntry * n];
             stream.readFully(ifdBytes);
             final DataHandle<?> existingStream = getBytesHandle(ifdBytes, littleEndian);

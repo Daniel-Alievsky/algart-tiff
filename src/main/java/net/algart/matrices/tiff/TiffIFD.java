@@ -2573,7 +2573,7 @@ public final class TiffIFD {
     }
 
     public static int sizeOfIFDTable(long numberOfEntries, boolean bigTiff, boolean mainIFD) throws TiffException {
-        final int bytesPerEntry = Entry.bytesPerEntry(bigTiff);
+        final int bytesPerEntry = Entry.sizeOfEntry(bigTiff);
         final int n = checkNumberOfEntries(numberOfEntries, bigTiff);
         return sizeOfIFDTableExcludingEntries(bigTiff, mainIFD) + bytesPerEntry * n;
     }
@@ -3324,8 +3324,8 @@ public final class TiffIFD {
             return valueOffset + valueLength();
         }
 
-        int bytesPerEntry() {
-            return bytesPerEntry(this.bigTiff);
+        int sizeOfEntry() {
+            return sizeOfEntry(this.bigTiff);
         }
 
         @Override
@@ -3342,7 +3342,7 @@ public final class TiffIFD {
             return valueLength <= (bigTiff ? 8 : 4);
         }
 
-        static int bytesPerEntry(boolean bigTiff) {
+        static int sizeOfEntry(boolean bigTiff) {
             return bigTiff ? BIG_TIFF_BYTES_PER_ENTRY : BYTES_PER_ENTRY;
         }
 
@@ -3367,7 +3367,7 @@ public final class TiffIFD {
         }
 
         public long sizeOf() {
-            final int builtInLength = bytesPerEntry();
+            final int builtInLength = sizeOfEntry();
             if (isDataEmbeddedInEntry()) {
                 return builtInLength;
             }
