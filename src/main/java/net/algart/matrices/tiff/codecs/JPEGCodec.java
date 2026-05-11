@@ -78,7 +78,7 @@ public class JPEGCodec implements TiffCodec, TiffCodec.Timing {
 
         @Override
         public String toString() {
-            return "JPEG codec report:" +
+            return "JPEG decoder report:" +
                     (tiffPhotometric != null ?
                             "%n    Color space declared in TIFF PhotometricInterpretation tag: %s"
                             .formatted(tiffPhotometric) :

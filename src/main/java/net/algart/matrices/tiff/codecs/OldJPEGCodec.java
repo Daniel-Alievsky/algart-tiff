@@ -83,7 +83,7 @@ public class OldJPEGCodec implements TiffCodec {
 
         @Override
         public String toString() {
-            return "Old-style JPEG codec report:" +
+            return "Old-style JPEG decoder report:" +
                     (normalJPEGStream ?
                             "%n    Normal JPEG stream detected".formatted() :
                             "") +
@@ -95,7 +95,7 @@ public class OldJPEGCodec implements TiffCodec {
                             .formatted() :
                             "") +
                     (syntheticSOS ?
-                            "%n    Synthetic SOS (start-of-scan) marker was added to JPEG interchange data".formatted() :
+                            "%n    Synthetic SOS (start-of-scan) marker added to JPEG interchange data".formatted() :
                             "");
         }
     }

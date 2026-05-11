@@ -144,10 +144,14 @@ class TiffSaveHelper {
                 will be copied to a new TIFF file:<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
                 &nbsp;<br>
-                This operation will copy all IFD structures and all images of this TIFF file &mdash;
+                This operation copies all IFD structures and all images of this TIFF file &mdash;
                 image by image,<br>
                 tile by tile (for tiled images) &mdash; into a new file.<br>
-                This helps to eliminate unused space and fragmentation, like the command<br>
+                <b>Note:</b> if the TIFF contains non-standard or vendor-specific IFD tags used
+                by third-party software,<br>
+                some metadata may theoretically become incompatible with the new file structure after copying.<br>
+                &nbsp;<br>
+                The copying helps to eliminate unused space and fragmentation, similarly to:<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;File \u25B8 Compact TIFF...<br>
                 To save only the current image, click "Show image" and use<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;File \u25B8 Save image as TIFF...<br>
@@ -237,11 +241,16 @@ class TiffSaveHelper {
                 Compacting the TIFF file:<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
                 &nbsp;<br>
-                This operation will copy all IFD structures and all images of this TIFF file &mdash;
+                This operation copies all IFD structures and all images of this TIFF file &mdash;
                 image by image,<br>
-                tile by tile (for tiled images) &mdash; into a temporary file and
-                then rewrite the original file with this copy.<br>
-                This helps to eliminate unused space and fragmentation,
+                tile by tile (for tiled images) &mdash; into a temporary file<br>
+                and then rewrite the original file with this copy.<br>
+                <b>Note:</b> if the TIFF contains non-standard or vendor-specific IFD tags used
+                by third-party software,<br>
+                some metadata may theoretically become incompatible with the new file structure after copying.<br>
+                &nbsp;<br>
+                
+                The compacting helps to eliminate unused space and fragmentation,
                 providing more efficient access.<br>
                 You may create a backup copy if the file is important.
                 """.formatted(tiffFile))));

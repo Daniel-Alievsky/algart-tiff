@@ -25,7 +25,10 @@
 package net.algart.matrices.tiff;
 
 import net.algart.arrays.JArrays;
-import net.algart.matrices.tiff.tags.*;
+import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tags.TagRational;
+import net.algart.matrices.tiff.tags.TagType;
+import net.algart.matrices.tiff.tags.Tags;
 import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.FileHandle;
@@ -662,9 +665,13 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 // suppose ASCII
                 ifdStream.writeShort(TagType.ASCII.type());
                 final byte[] v = stringValue.getBytes(StandardCharsets.UTF_8);
-                writeIntOrLong(ifdStream, bigTiff, emptyStringList ? 0 : v.length + 1);
+                if (v.length > Integer.MAX_VALUE - 1) {
+                    throw new TiffException("Cannot write TIFF IFD: string value is too large (2^31-1 bytes)");
+                }
+                final int actualValueLength = v.length + 1;
+                writeIntOrLong(ifdStream, bigTiff, emptyStringList ? 0 : actualValueLength);
                 // - with concluding zero bytes, excepting an empty string list (produced by ASCII byte[0])
-                if (v.length < dataLength) {
+                if (actualValueLength <= dataLength) {
                     // - this branch is the same for an empty string list (byte[0])
                     // and for an empty string (byte[1] which contains 0)
                     for (byte c : v) {
@@ -719,7 +726,10 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 }
             }
             case long[] v -> {
-                // suppose LONG (unsigned 32-bit) or LONG8 for BitTIFF
+                // suppose LONG (unsigned 32-bit) or LONG8 for BitTIFF;
+                // IFD/IFD8 also decoded as long, but we MUST NOT write them back:
+                // these types are OFFSETS and surely will not be written correctly,
+                // because TiffWriter does not support any forms of Sub-IFD
                 if (AVOID_LONG8_FOR_ACTUAL_32_BITS && v.length == 1 && bigTiff) {
                     // - note: inside TIFF, long[1] is saved in the same way as Long; we have a difference in Java only
                     final long v0 = v[0];
