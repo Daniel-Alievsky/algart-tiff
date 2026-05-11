@@ -848,6 +848,7 @@ public non-sealed class TiffWriter extends TiffIO {
             final long previousFileOffsetOfLastIFDOffset = fileOffsetOfLastIFDOffset;
             // - save it, because it will be updated in writeIFDNextOffsetAt
             writeIFDNextOffsetAt(ifd, fileOffsetOfNextOffset, updateIFDLinkages);
+            // - writes (or rewrites) TiffIFD.LAST_IFD_OFFSET (or ifd.getNextIFDOffset() -> fileOffsetOfNextOffset;
             // - this call updates fileOffsetOfLastIFDOffset when updateIFDLinkages=true
             if (updateIFDLinkages && !allUsedIFDOffsets.contains(ifdOffset)) {
                 // - Only if it is really newly added IFD!
@@ -881,7 +882,7 @@ public non-sealed class TiffWriter extends TiffIO {
 //            }
 
             // You may compare the following code with TiffReader.readIFDAt
-            final long ifdStreamOffset = ifdOffset + (bigTiff ? 8 : 2);
+            final long ifdStreamOffset = ifdOffset + sizeOfNumberOfIFDEntries();
             final int sizeOfEntry = sizeOfIFDEntry();
             final int sizeOfAllEntries = sizeOfEntry * numberOfEntries;
             if (stream.offset() != ifdStreamOffset) {

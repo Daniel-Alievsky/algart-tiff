@@ -235,6 +235,16 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     }
 
     /**
+     * Returns the byte length of the field containing the number of IFD entries.
+     * This corresponds to the size of the value read by {@link #readNumberOfIFDEntriesAt(long)}.
+     *
+     * @return 8 for Big-TIFF (long), 2 for standard TIFF (unsigned short).
+     */
+    public int sizeOfNumberOfIFDEntries() {
+        return bigTiff ? 8 : 2;
+    }
+
+    /**
      * Returns the byte length of a single IFD entry based on the TIFF format version,
      * depending on {@link #isBigTiff()} flag.
      *

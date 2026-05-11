@@ -1278,7 +1278,7 @@ public non-sealed class TiffReader extends TiffIO {
             final LinkedHashMap<Integer, TiffIFD.Entry> detailedEntries = new LinkedHashMap<>();
 
             final int numberOfEntries = readNumberOfIFDEntriesAt(ifdOffset);
-            final long ifdStreamOffset = ifdOffset + (bigTiff ? 8 : 2);
+            final long ifdStreamOffset = ifdOffset + sizeOfNumberOfIFDEntries();
 
             final int sizeOfEntry = sizeOfIFDEntry();
             final int sizeOfAllEntries = sizeOfEntry * numberOfEntries;
