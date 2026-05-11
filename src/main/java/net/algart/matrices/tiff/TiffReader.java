@@ -1279,24 +1279,24 @@ public non-sealed class TiffReader extends TiffIO {
             final LinkedHashMap<Integer, TiffIFD.Entry> detailedEntries = new LinkedHashMap<>();
 
             final int numberOfEntries = readNumberOfIFDEntriesAt(ifdOffset);
-            final long ifdStreamOffsetInTiffFile = ifdOffset + (bigTiff ? 8 : 2);
+            final long ifdStreamOffset = ifdOffset + (bigTiff ? 8 : 2);
 
-            final int bytesPerEntry = sizeOfIFDEntry();
+            final int sizeOfEntry = sizeOfIFDEntry();
+            final int sizeOfAllEntries = sizeOfEntry * numberOfEntries;
             final DataHandle<?> ifdStream;
             if (READ_IFD_WITH_BUFFERING) {
-                final byte[] ifdBytes = new byte[bytesPerEntry * numberOfEntries];
+                final byte[] ifdBytes = new byte[sizeOfAllEntries];
                 stream.readFully(ifdBytes);
                 ifdStream = getBytesHandle(ifdBytes, stream.isLittleEndian());
             } else {
                 ifdStream = stream;
             }
-            for (int i = 0; i < numberOfEntries; i++) {
+            for (int i = 0, disp = 0; i < numberOfEntries; i++, disp += sizeOfEntry) {
                 long tEntry1 = debugTime();
-                final long entryOffset = (long) bytesPerEntry * i;
                 final TiffIFD.Entry entry = readIFDEntry(
                         ifdStream,
-                        READ_IFD_WITH_BUFFERING ? entryOffset : entryOffset + ifdStreamOffsetInTiffFile,
-                        READ_IFD_WITH_BUFFERING ? ifdStreamOffsetInTiffFile : 0,
+                        READ_IFD_WITH_BUFFERING ? disp : disp + ifdStreamOffset,
+                        READ_IFD_WITH_BUFFERING ? ifdStreamOffset : 0,
                         tiffFileLength);
                 final int tag = entry.tag();
                 long tEntry2 = debugTime();
@@ -1306,7 +1306,7 @@ public non-sealed class TiffReader extends TiffIO {
                         READ_IFD_WITH_BUFFERING ? ifdStream : stream,
                         stream,
                         READ_IFD_WITH_BUFFERING && entry.isDataEmbeddedInEntry(),
-                        ifdStreamOffsetInTiffFile,
+                        ifdStreamOffset,
                         entry);
                 long tEntry3 = debugTime();
                 timeArrays += tEntry3 - tEntry2;
@@ -1320,7 +1320,7 @@ public non-sealed class TiffReader extends TiffIO {
                     detailedEntries.put(tag, entry);
                 }
             }
-            final long fileOffsetOfNextIFDOffset = ifdStreamOffsetInTiffFile + bytesPerEntry * numberOfEntries;
+            final long fileOffsetOfNextIFDOffset = ifdStreamOffset + sizeOfAllEntries;
             stream.seek(fileOffsetOfNextIFDOffset);
 
             ifd = new TiffIFD(map, detailedEntries);
