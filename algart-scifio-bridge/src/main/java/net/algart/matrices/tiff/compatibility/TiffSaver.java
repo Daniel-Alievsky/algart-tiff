@@ -212,7 +212,7 @@ public class TiffSaver extends TiffWriter {
     }
 
     /**
-     * Use instead {@link #overwriteIFDInPlace(TiffIFD, boolean)} together with
+     * Use instead {@link #writeIFD(TiffIFD, boolean)} together with
      * {@link TiffIFD#setNextIFDOffset(long)} and {@link TiffIFD#setFileOffsetOfIFDForWriting(long)}.
      */
     @Deprecated
@@ -220,7 +220,7 @@ public class TiffSaver extends TiffWriter {
         TiffIFD tiffIFD = net.algart.matrices.tiff.compatibility.TiffParser.toTiffIFD(ifd);
         tiffIFD.setFileOffsetOfIFDForWriting(getStream().offset());
         tiffIFD.setNextIFDOffset(nextOffset);
-        overwriteIFDInPlace(tiffIFD, true);
+        writeIFD(tiffIFD, true);
     }
 
     @Deprecated
