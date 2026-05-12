@@ -76,8 +76,8 @@ public non-sealed class TiffWriter extends TiffIO {
     // IF YOU CHANGE IT, YOU MUST CORRECT ALSO TiffWriteMap.AUTO_INTERLEAVE_SOURCE
     // (and, for testing, the AUTO_INTERLEAVE_SOURCE constant in TiffWriterTest)
 
-    private static final boolean ACCURATE_REWRITING_IMAGE_LAYOUT_ON_COMPLETE = false;
-    // - Should be true, but false value also should work normally
+    private static final boolean ACCURATE_REWRITING_IMAGE_LAYOUT_ON_COMPLETE = true;
+    // - Should be true in the new version (since 1.5.2), but false value also should work normally
 
     private boolean writingForwardAllowed = true;
     private boolean smartCorrection = false;
@@ -877,7 +877,7 @@ public non-sealed class TiffWriter extends TiffIO {
             final long ifdOffset = ifd.getFileOffsetOfIFDForWriting();
             checkFileOffsetForWriting(ifdOffset);
             // for (int k = 0; k < 500; k++) rewriteTagsAt(ifd.map(), tagsToUpdate, ifdOffset); // - timing
-            final long fileOffsetOfNextOffset = rewriteTagsAt(ifd.map(), tagsToUpdate, ifdOffset);
+            final long fileOffsetOfNextOffset = rewriteSelectedTagsAt(ifd.map(), tagsToUpdate, ifdOffset);
             updateNextOffsetAndIFDLinkageAt(ifd, fileOffsetOfNextOffset, updateIFDLinkages, ifdOffset);
             // - note: usually there is no sense to write the next offset when updateLinkageForNewIFD=false,
             // but it is not a problem (usually it will be the same)
@@ -885,8 +885,8 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    public long rewriteImageLayout(TiffIFD ifd, boolean updateIFDLinkages) throws IOException {
-        return rewriteSelectedTags(ifd, TiffIFD::isImageLayoutTag, updateIFDLinkages);
+    public void rewriteImageLayout(TiffIFD ifd, boolean updateIFDLinkages) throws IOException {
+        rewriteSelectedTags(ifd, TiffIFD::isImageLayoutTag, updateIFDLinkages);
     }
 
     /**
@@ -1732,10 +1732,8 @@ public non-sealed class TiffWriter extends TiffIO {
         return fileOffsetOfNextOffset;
     }
 
-    private long rewriteTagsAt(
-            Map<Integer, Object> ifdMap,
-            IntPredicate tagsToUpdate,
-            long ifdOffset) throws IOException {
+    private long rewriteSelectedTagsAt(Map<Integer, Object> ifdMap, IntPredicate tagsToUpdate, long ifdOffset)
+            throws IOException {
         Objects.requireNonNull(ifdMap, "Null ifdMap");
         Objects.requireNonNull(tagsToUpdate, "Null tagsToUpdate");
         final boolean littleEndian = stream.isLittleEndian();
@@ -1771,12 +1769,14 @@ public non-sealed class TiffWriter extends TiffIO {
             if (!tagsToUpdate.test(tag) || !ifdMap.containsKey(tag)) {
                 continue;
             }
+            final Object value = ifdMap.get(tag);
             final BytesHandle extraBuffer = newBytesHandle(littleEndian);
             newStream.seek(disp);
             assert extraBuffer.offset() == 0;
-            final long addition = oldEntry.isDataEmbeddedInEntry() ? 0 : oldEntry.valueOffset();
+            final boolean dataEmbedded = oldEntry.isDataEmbeddedInEntry();
+            final long addition = dataEmbedded ? 0 : oldEntry.valueOffset();
             // - addition + extraBuffer.offset() is a correct offset that should be written to new entry
-            writeIFDValueAtCurrentOffsets(newStream, extraBuffer, bigTiff, addition, tag, ifdMap.get(tag));
+            writeIFDValueAtCurrentOffsets(newStream, extraBuffer, bigTiff, addition, tag, value);
             final TiffIFD.Entry newEntry = readIFDEntry(newStream, disp, ifdStreamOffset, fileLength);
             if (newEntry.tag() != oldEntry.tag() || newEntry.isBigTiff() != oldEntry.isBigTiff()) {
                 throw new AssertionError("Write/read tag mismatch");
@@ -1791,11 +1791,11 @@ public non-sealed class TiffWriter extends TiffIO {
                         Tags.prettyName(tag) + ": the number of elements " + oldEntry.valueCount() +
                         " changed to " + newEntry.valueCount());
             }
-            if (newEntry.isDataEmbeddedInEntry() != oldEntry.isDataEmbeddedInEntry()) {
+            if (newEntry.isDataEmbeddedInEntry() != dataEmbedded) {
                 // - this flag cannot be different if the type and value count are equal
                 throw new AssertionError("isDataEmbeddedInEntry mismatch");
             }
-            if (!newEntry.isDataEmbeddedInEntry()) {
+            if (!dataEmbedded) {
                 final long valueOffset = newEntry.valueOffset();
                 final long valueLength = newEntry.valueLength();
                 if (valueOffset != addition) {
@@ -1815,11 +1815,11 @@ public non-sealed class TiffWriter extends TiffIO {
                 extraBuffers[i] = extraBuffer;
             }
         }
-        oldStream.close();
-        newStream.close();
-        // - just in case, usually not necessary (maybe for flushing data)
         stream.seek(ifdStreamOffset);
-        stream.write(newIFDBytes);
+        copyData(newStream, stream, true, newIFDBytes.length);
+        // stream.write(newIFDBytes);
+        // - this call does not work in scijava-common 2.99.2: due to a bug in ByteArrayByteBank,
+        // writing bytes there ALWAYS reallocates the built-in Java array
         final long fileOffsetOfNextOffset = stream.offset();
         for (int i = 0; i < numberOfEntries; i++) {
             final BytesHandle extraBuffer = extraBuffers[i];

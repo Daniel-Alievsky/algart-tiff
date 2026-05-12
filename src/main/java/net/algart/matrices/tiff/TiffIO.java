@@ -388,9 +388,15 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         // - will be zero for an unknown type; in this case we will set valueOffset=in.offset() below
         final long valueLength = valueCount * (long) bytesPerElement;
         final boolean embeddedInEntry = TiffIFD.Entry.isDataEmbeddedInEntry(valueLength, bigTiff);
-        final long valueOffset = embeddedInEntry ?
-                ifdStreamOffsetInTiffFile + ifdStream.offset() :
-                readOffset(ifdStream, bigTiff, ifdStreamOffsetInTiffFile, tiffFileLength, fileNameSupplier);
+        final long valueOffset;
+        final long embedded;
+        if (embeddedInEntry) {
+            valueOffset = ifdStreamOffsetInTiffFile + ifdStream.offset();
+            embedded = bigTiff ? ifdStream.readLong() : ((long) ifdStream.readInt()) & 0xFFFFFFFFL;
+        }  else {
+            valueOffset = readOffset(ifdStream, bigTiff, ifdStreamOffsetInTiffFile, tiffFileLength, fileNameSupplier);
+            embedded = valueOffset;
+        }
         // - position in the file will be different depending on embeddedInEntry,
         // but it is not a problem: we will not use this position
         if (valueOffset < 0) {
@@ -401,7 +407,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     " + total lengths of values " + valueLength + " = " + valueCount + "*" + bytesPerElement +
                     " is outside the file length " + tiffFileLength);
         }
-        final var result = new TiffIFD.Entry(entryTag, type, entryType, (int) valueCount, valueOffset, bigTiff);
+        final TiffIFD.Entry result = new TiffIFD.Entry(
+                entryTag, type, entryType, (int) valueCount, valueOffset, embedded, bigTiff);
         assert result.valueLength() == valueLength;
         assert result.isDataEmbeddedInEntry() == embeddedInEntry;
         LOG.log(System.Logger.Level.TRACE, () -> String.format(
