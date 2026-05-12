@@ -1691,15 +1691,15 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
 
-    private long writeIFDEntries(Map<Integer, Object> ifd, long startOffset, int mainIFDLength) throws IOException {
+    private long writeIFDEntries(Map<Integer, Object> ifdMap, long startOffset, int mainIFDLength) throws IOException {
         final long afterMain = startOffset + mainIFDLength;
         final long fileOffsetOfNextOffset;
         try (final BytesHandle ifdStream = newBytesHandle(stream.isLittleEndian());
              final BytesHandle extraBuffer = newBytesHandle(stream.isLittleEndian())) {
 //            System.out.println("!!!" + stream.offset());
-            for (final Map.Entry<Integer, Object> e : ifd.entrySet()) {
+            for (final Map.Entry<Integer, Object> e : ifdMap.entrySet()) {
 //                System.out.println(">> " + e.getKey() + ": " + ifdStream.offset());
-                writeIFDValueAtCurrentOffsets(ifdStream, extraBuffer, bigTiff, afterMain, e);
+                writeIFDValueAtCurrentOffsets(ifdStream, extraBuffer, bigTiff, afterMain, e.getKey(), e.getValue());
             }
             copyData(ifdStream, stream);
 
@@ -1756,12 +1756,11 @@ public non-sealed class TiffWriter extends TiffIO {
                     continue;
                 }
                 final BytesHandle extraBuffer = newBytesHandle(littleEndian);
-                final Map.Entry<Integer, Object> tagAndValue = new AbstractMap.SimpleEntry<>(tag, ifdMap.get(tag));
                 newStream.seek(disp);
                 assert extraBuffer.offset() == 0;
                 final long addition = oldEntry.isDataEmbeddedInEntry() ? 0 : oldEntry.valueOffset();
                 // - addition + extraBuffer.offset() is a correct offset that should be written to new entry
-                writeIFDValueAtCurrentOffsets(newStream, extraBuffer, bigTiff, addition, tagAndValue);
+                writeIFDValueAtCurrentOffsets(newStream, extraBuffer, bigTiff, addition, tag, ifdMap.get(tag));
                 final TiffIFD.Entry newEntry = readIFDEntry(newStream, disp, ifdStreamOffset, fileLength);
                 if (newEntry.tag() != oldEntry.tag() || newEntry.isBigTiff() != oldEntry.isBigTiff()) {
                     throw new AssertionError("Write/read tag mismatch");

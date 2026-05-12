@@ -624,7 +624,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * like arrays or text strings. The "main" data is a 12-byte IFD record (20-byte for BigTIFF),
      * which is written by this method into the main output stream from its current position.
      *
-     * <p>The argument {@code additionToExtraBufferOffset} used to calculate is the position of "extra" data
+     * <p>The argument {@code additionToExtraBufferOffset} is used to calculate the position of "extra" data
      * in the result TIFF file: it is<br>
      * &nbsp;&nbsp;&nbsp;&nbsp;{@code additionToExtraBufferOffset} +
      * offset of the written "extra" data inside {@code extraBuffer};<br>
@@ -647,16 +647,16 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *                                    offset of the written "extra" data inside {@code extraBuffer};
      *                                    for example, this argument may be a position directly after
      *                                    the "main" content (sequence of 12/20-byte records).
-     * @param entry                       the IFD tag and value to write.
+     * @param tag                         the IFD tag to write.
+     * @param value                       the IFD value to write.
      */
     static void writeIFDValueAtCurrentOffsets(
             final DataHandle<?> ifdStream,
             final DataHandle<?> extraBuffer,
             final boolean bigTiff,
             final long additionToExtraBufferOffset,
-            Map.Entry<Integer, Object> entry) throws IOException {
-        final int tag = entry.getKey();
-        Object value = entry.getValue();
+            final int tag,
+            Object value) throws IOException {
         // Convert singleton objects into arrays, for simplicity:
         if (value instanceof Byte v) {
             value = new byte[]{v};
@@ -733,12 +733,14 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             case String stringValue -> {
                 // suppose ASCII
                 ifdStream.writeShort(TagType.ASCII.type());
-                final byte[] v = stringValue.getBytes(StandardCharsets.UTF_8);
+                final byte[] v = emptyStringList ? new byte[0] : stringValue.getBytes(StandardCharsets.UTF_8);
+                // note that an empty list will be an empty value (0 bytes),
+                // while an empty string will be a single empty string (1 zero byte)
                 if (v.length > Integer.MAX_VALUE - 1) {
                     throw new TiffException("Cannot write TIFF IFD: string value is too large (2^31-1 bytes)");
                 }
-                final int actualValueLength = v.length + 1;
-                writeIntOrLong(ifdStream, bigTiff, emptyStringList ? 0 : actualValueLength);
+                final int actualValueLength = emptyStringList ? 0 : v.length + 1;
+                writeIntOrLong(ifdStream, bigTiff, actualValueLength);
                 // - with concluding zero bytes, excepting an empty string list (produced by ASCII byte[0])
                 if (actualValueLength <= dataLength) {
                     // - this branch is the same for an empty string list (byte[0])

@@ -2395,7 +2395,10 @@ public final class TiffIFD {
      *       (64-bit IEEE floating point).</li>
      *   <li><b>{@code String}, {@code String[]}, or {@code List<String>}</b>:
      *       mapped to {@link TagType#ASCII}. Strings are encoded using UTF-8
-     *       (compatible with ASCII 0..127) and are null-terminated.</li>
+     *       (compatible with ASCII 0..127) and are zero-terminated. Note: an empty
+     *       array or list results in a zero-length tag (the value count = 0),
+     *       while an empty string (or a list containing one empty string) results in a single
+     *       zero-terminator byte (the value count = 1).</li>
      * </ul>
      *
      * <p>This mapping is symmetric: {@link TiffReader} uses the same logic
