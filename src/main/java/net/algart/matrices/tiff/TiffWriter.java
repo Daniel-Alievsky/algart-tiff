@@ -769,10 +769,7 @@ public non-sealed class TiffWriter extends TiffIO {
         if (!ifd.hasFileOffsetOfIFDForWriting()) {
             throw new IllegalArgumentException("Offset for writing IFD is not specified");
         }
-        final long offset = ifd.getFileOffsetOfIFDForWriting();
-        assert (offset & 0x1) == 0 : "TiffIFD.setFileOffsetForWriting() has not check offset parity: " + offset;
-
-        return writeIFDAt(ifd, offset, updateLinkageForNewIFD);
+        return writeIFD(ifd, updateLinkageForNewIFD);
     }
 
     /**
@@ -784,7 +781,8 @@ public non-sealed class TiffWriter extends TiffIO {
      * @throws IOException in the case of any I/O errors.
      */
     public long writeIFDAtFileEnd(TiffIFD ifd) throws IOException {
-        return writeIFDAt(ifd, null, false);
+        ifd.removeFileOffsetOfIFDForWriting();
+        return writeIFD(ifd, false);
     }
 
     /**
@@ -831,10 +829,20 @@ public non-sealed class TiffWriter extends TiffIO {
      * @throws IOException in the case of any I/O errors.
      */
     public long writeIFDAt(TiffIFD ifd, Long ifdOffsetOrNull, boolean updateLinkageForNewIFD) throws IOException {
+        if (ifdOffsetOrNull == null) {
+            ifd.removeFileOffsetOfIFDForWriting();
+        } else {
+            ifd.setFileOffsetOfIFDForWriting(ifdOffsetOrNull);
+        }
+        return writeIFD(ifd, updateLinkageForNewIFD);
+    }
+
+    public long writeIFD(TiffIFD ifd, boolean updateLinkageForNewIFD) throws IOException {
+       Objects.requireNonNull(ifd, "Null IFD");
         synchronized (fileLock()) {
-            final long ifdOffset = prepareWriteIFDAt(ifdOffsetOrNull);
+            final long ifdOffset = prepareWriteIFDAt(
+                    ifd.hasFileOffsetOfIFDForWriting() ? ifd.getFileOffsetOfIFDForWriting() : null);
             ifd.setFileOffsetOfIFDForWriting(ifdOffset);
-            // - TODO!! remove this
             stream.seek(ifdOffset);
             final Map<Integer, Object> sortedIFD = new TreeMap<>(ifd.map());
             // -  TIFF 6.0 standard, Sort Order:
@@ -972,7 +980,6 @@ public non-sealed class TiffWriter extends TiffIO {
         if (startOffsetOrNull == null) {
             appendFileUntilEvenLength();
             startOffset = stream.length();
-            startOffsetOrNull = startOffset;
         } else {
             startOffset = startOffsetOrNull;
         }
@@ -1423,7 +1430,7 @@ public non-sealed class TiffWriter extends TiffIO {
         ifd.putDataPositioningIgnoringFreeze(offsets, byteCounts);
         if (!ifd.hasFileOffsetOfIFDForWriting()) {
             // - prevents writing in the case of twice call
-            writeIFDAt(ifd, null, false);
+            writeIFD(ifd, false);
         }
         timeForward = true;
     }
@@ -1597,14 +1604,8 @@ public non-sealed class TiffWriter extends TiffIO {
         // - We could call here appendFileUntilEvenLength(),
         // but it not a standard behavior and not a good idea
         // (in this case we will need to "teach" TiffIFD.sizeOfImage method to consider this)
-
-        if (ifd.hasFileOffsetOfIFDForWriting()) {
-            // - usually it means that we did call writeForward
-            overwriteIFDInPlace(ifd, true);
-        } else {
-            writeIFDAt(ifd, null, true);
-        }
-
+        writeIFD(ifd, true);
+        // - This works correctly both when writeForward() was called and when not
         seekToEnd();
         // - This seeking to the file end is not necessary, but can help to avoid accidental bugs
         // (this is much better than keeping file offset in the middle of the last image
