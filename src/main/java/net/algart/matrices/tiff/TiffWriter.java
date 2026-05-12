@@ -76,6 +76,9 @@ public non-sealed class TiffWriter extends TiffIO {
     // IF YOU CHANGE IT, YOU MUST CORRECT ALSO TiffWriteMap.AUTO_INTERLEAVE_SOURCE
     // (and, for testing, the AUTO_INTERLEAVE_SOURCE constant in TiffWriterTest)
 
+    private static final boolean ACCURATE_REWRITING_IMAGE_LAYOUT_ON_COMPLETE = false;
+    // - Should be true, but false value also should work normally
+
     private boolean writingForwardAllowed = true;
     private boolean smartCorrection = false;
     private TiffCodec.Options codecOptions = new TiffCodec.Options();
@@ -852,6 +855,7 @@ public non-sealed class TiffWriter extends TiffIO {
             stream.seek(ifdOffset);
             writeIFDNumberOfEntries(numberOfEntries);
 
+            // for (int k = 0; k < 500; k++) writeIFDEntries(sortedIFD, ifdOffset, mainIFDLength); // - timing
             final long fileOffsetOfNextOffset = writeIFDEntries(sortedIFD, ifdOffset, mainIFDLength);
 
             updateNextOffsetAndIFDLinkageAt(ifd, fileOffsetOfNextOffset, updateLinkageForNewIFD, ifdOffset);
@@ -872,6 +876,7 @@ public non-sealed class TiffWriter extends TiffIO {
             resetCompanionReader();
             final long ifdOffset = ifd.getFileOffsetOfIFDForWriting();
             checkFileOffsetForWriting(ifdOffset);
+            // for (int k = 0; k < 500; k++) rewriteTagsAt(ifd.map(), tagsToUpdate, ifdOffset); // - timing
             final long fileOffsetOfNextOffset = rewriteTagsAt(ifd.map(), tagsToUpdate, ifdOffset);
             updateNextOffsetAndIFDLinkageAt(ifd, fileOffsetOfNextOffset, updateIFDLinkages, ifdOffset);
             // - note: usually there is no sense to write the next offset when updateLinkageForNewIFD=false,
@@ -1483,10 +1488,9 @@ public non-sealed class TiffWriter extends TiffIO {
         // - We could call here appendFileUntilEvenLength(),
         // but it not a standard behavior and not a good idea
         // (in this case we will need to "teach" TiffIFD.sizeOfImage method to consider this)
-        if (ifd.hasFileOffsetOfIFDForWriting()) {
+        if (ifd.hasFileOffsetOfIFDForWriting() && ACCURATE_REWRITING_IMAGE_LAYOUT_ON_COMPLETE) {
             // - usually it means that we did call writeForward
-            overwriteIFDInPlace(ifd, true);
-            //TODO!! replace with rewriting tags
+            rewriteImageLayout(ifd, true);
         } else {
             writeIFD(ifd, true);
         }
