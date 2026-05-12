@@ -27,6 +27,7 @@ package net.algart.matrices.tiff;
 import net.algart.arrays.*;
 import net.algart.io.awt.ImageToMatrix;
 import net.algart.matrices.tiff.tags.*;
+import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -619,6 +620,8 @@ public final class TiffIFD {
      * @param fileOffsetOfIFDForWriting the target file offset (must be even).
      * @return a reference to this IFD object.
      * @throws IllegalArgumentException if the offset is negative or odd.
+     * @see TiffWriter#writeIFD(TiffIFD, boolean)
+     * @see TiffWriter#completeWriting(TiffWriteMap)
      */
     public TiffIFD setFileOffsetOfIFDForWriting(long fileOffsetOfIFDForWriting) {
         if (fileOffsetOfIFDForWriting < 0) {
