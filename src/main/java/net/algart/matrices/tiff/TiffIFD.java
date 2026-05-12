@@ -2258,7 +2258,7 @@ public final class TiffIFD {
         return this;
     }
 
-    public void removeDataPositioning() {
+    public void removeDataPlacementInFile() {
         remove(Tags.STRIP_OFFSETS);
         remove(Tags.STRIP_BYTE_COUNTS);
         remove(Tags.TILE_OFFSETS);
@@ -2335,7 +2335,7 @@ public final class TiffIFD {
      * @param offsets    byte offset of each tile/strip in a TIFF file.
      * @param byteCounts number of (compressed) bytes in each tile/strip.
      */
-    public void putDataPositioningIgnoringFreeze(long[] offsets, long[] byteCounts) {
+    public void putDataPlacementInFileIgnoringFreeze(long[] offsets, long[] byteCounts) {
         Objects.requireNonNull(offsets, "Null offsets");
         Objects.requireNonNull(byteCounts, "Null byte counts");
         final boolean tiled;
@@ -2368,6 +2368,12 @@ public final class TiffIFD {
         // Just in case, let's also remove extra tags:
         map.remove(tiled ? Tags.STRIP_OFFSETS : Tags.TILE_OFFSETS);
         map.remove(tiled ? Tags.STRIP_BYTE_COUNTS : Tags.TILE_BYTE_COUNTS);
+    }
+
+    public static boolean isImageLayoutTag(int tag) {
+        return tag == Tags.IMAGE_WIDTH || tag == Tags.IMAGE_LENGTH ||
+                tag == Tags.TILE_OFFSETS || tag == Tags.STRIP_OFFSETS ||
+                tag == Tags.TILE_BYTE_COUNTS || tag == Tags.STRIP_BYTE_COUNTS;
     }
 
     /**

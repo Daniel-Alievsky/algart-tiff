@@ -861,7 +861,7 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    public void rewriteSelectedTags(TiffIFD ifd, IntPredicate tagsToUpdate, boolean updateIFDLinkages)
+    public long rewriteSelectedTags(TiffIFD ifd, IntPredicate tagsToUpdate, boolean updateIFDLinkages)
             throws IOException {
         Objects.requireNonNull(ifd, "Null IFD");
         if (!ifd.hasFileOffsetOfIFDForWriting()) {
@@ -876,7 +876,12 @@ public non-sealed class TiffWriter extends TiffIO {
             updateNextOffsetAndIFDLinkageAt(ifd, fileOffsetOfNextOffset, updateIFDLinkages, ifdOffset);
             // - note: usually there is no sense to write the next offset when updateLinkageForNewIFD=false,
             // but it is not a problem (usually it will be the same)
+            return ifdOffset;
         }
+    }
+
+    public long rewriteImageLayout(TiffIFD ifd, boolean updateIFDLinkages) throws IOException {
+        return rewriteSelectedTags(ifd, TiffIFD::isImageLayoutTag, updateIFDLinkages);
     }
 
     /**
@@ -1301,7 +1306,7 @@ public non-sealed class TiffWriter extends TiffIO {
         final long[] byteCounts = new long[map.numberOfGridTiles()];
         // - zero-filled by Java
         final TiffIFD ifd = map.ifd();
-        ifd.putDataPositioningIgnoringFreeze(offsets, byteCounts);
+        ifd.putDataPlacementInFileIgnoringFreeze(offsets, byteCounts);
         if (!ifd.hasFileOffsetOfIFDForWriting()) {
             // - prevents writing in the case of twice call
             writeIFD(ifd, false);
@@ -1609,7 +1614,7 @@ public non-sealed class TiffWriter extends TiffIO {
         // - useful to perform loops on all tiles, especially in non-resizable case
         TiffIFD ifd = map.ifd();
         ifd.removeNextIFDOffset();
-        ifd.removeDataPositioning();
+        ifd.removeDataPlacementInFile();
         if (map.isResizable()) {
             ifd.removeImageDimensions();
         }
@@ -2085,7 +2090,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 }
             }
         }
-        map.ifd().putDataPositioningIgnoringFreeze(offsets, byteCounts);
+        map.ifd().putDataPlacementInFileIgnoringFreeze(offsets, byteCounts);
         long t2 = debugTime();
         logTiles(map, "completion", "wrote", count, sizeInBytes, t1, t2);
         return count;

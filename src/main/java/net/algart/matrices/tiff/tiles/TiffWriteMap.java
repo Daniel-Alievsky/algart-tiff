@@ -501,8 +501,8 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
      * {@link TiffTile#getStoredInFileDataLength()},
      * updates the corresponding elements of these two arrays
      * and writes them into the IFD via
-     * {@link #ifd()}.{@link TiffIFD#putDataPositioningIgnoringFreeze(long[], long[])
-     * putDataPositioningIgnoringFreeze} method.
+     * {@link #ifd()}.{@link TiffIFD#putDataPlacementInFileIgnoringFreeze(long[], long[])
+     * putDataPlacementInFileIgnoringFreeze} method.
      *
      * <p>This can be useful when you need to synchronize the IFD metadata with
      * the actual state of the tiles in this map, for example, to create
@@ -511,7 +511,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
      * @throws IllegalStateException if {@link #isExistingInFile()} returns {@code false}.
      * @throws TiffException if case of problems with accessing the underlying IFD.
      */
-    public void putTilePositionsToUnderlyingIFD() throws TiffException {
+    public void putDataPlacementInFileToUnderlyingIFD() throws TiffException {
         if (!isExistingInFile()) {
             throw new IllegalStateException("IFD can be updated only for existing maps");
         }
@@ -545,7 +545,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                 }
             }
         }
-        ifd.putDataPositioningIgnoringFreeze(offsets, byteCounts);
+        ifd.putDataPlacementInFileIgnoringFreeze(offsets, byteCounts);
     }
 
     @Override

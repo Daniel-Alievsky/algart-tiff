@@ -876,10 +876,10 @@ public final class TiffTile {
         return this;
     }
 
-    public TiffTile setStoredInFileDataRange
-            (long storedInFileDataOffset,
-             int storedInFileDataLength,
-             boolean resetCapacity) {
+    public TiffTile setStoredInFileDataRange(
+            long storedInFileDataOffset,
+            int storedInFileDataLength,
+            boolean resetCapacity) {
         if (storedInFileDataOffset < 0) {
             throw new IllegalArgumentException("Negative storedInFileDataOffset = " + storedInFileDataOffset);
         }
@@ -1138,8 +1138,8 @@ public final class TiffTile {
                 ", index " + index +
                 (isStoredInFile() ?
                         " at file region " + storedInFileDataOffset + ".." + storedInFileDataOffset +
-                                "+" + (storedInFileDataLength - 1) +
-                                "/" + (storedInFileDataCapacity - 1) :
+                        "+" + (storedInFileDataLength - 1) +
+                        "/" + (storedInFileDataCapacity - 1) :
                         ", no file position");
     }
 
