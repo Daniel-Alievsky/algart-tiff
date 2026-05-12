@@ -532,7 +532,7 @@ public non-sealed class TiffWriter extends TiffIO {
     /**
      * Returns position in the file of the last IFD offset, written by methods of this object.
      * It is updated by {@link #overwriteIFDInPlace(TiffIFD, boolean)},
-     * {@link #writeIFDAt(TiffIFD, Long, boolean)},
+     * {@link #writeIFD(TiffIFD, boolean)},
      * {@link #rewriteSelectedTagsAt(TiffIFD, long, IntPredicate, boolean)}
      * when the last argument is {@code true}.
      *
@@ -748,7 +748,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * Usually you don't need to call this method because it is called automatically.
      *
      * <p>Note: this method <i>does not</i> clear the offsets, stored in {@link #allUsedIFDOffsets()}.
-     * These offsets are used only for automatic IFD linkage by {@link #writeIFDAt(TiffIFD, Long, boolean)}
+     * These offsets are used only for automatic IFD linkage by {@link #writeIFD(TiffIFD, boolean)}
      * method and are not important if you perform the linkage manually.</p>
      */
     public void resetCompanionReader() {
@@ -773,7 +773,7 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Equivalent to <code>{@link #writeIFDAt(TiffIFD, Long, boolean)
+     * Removes the Equivalent to <code>{@link #writeIFDAt(TiffIFD, Long, boolean)
      * writeIFDAt}(ifd, null, false)}</code>.
      *
      * @param ifd IFD to write in the output stream.

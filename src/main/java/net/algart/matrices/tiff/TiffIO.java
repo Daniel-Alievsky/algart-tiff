@@ -618,7 +618,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * After calling this method, you
      * should copy full content of {@code extraBuffer} into the main stream at the position,
      * specified by the second argument;
-     * {@link TiffWriter#writeIFDAt(TiffIFD, Long, boolean)} method does it automatically.
+     * {@link TiffWriter#writeIFD(TiffIFD, boolean)} method does it automatically.
      *
      * <p>Here "extra" data means all data, for which IFD contains their offsets instead of data itself,
      * like arrays or text strings. The "main" data is a 12-byte IFD record (20-byte for BigTIFF),

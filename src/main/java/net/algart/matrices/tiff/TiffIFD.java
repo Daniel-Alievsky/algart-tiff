@@ -600,18 +600,20 @@ public final class TiffIFD {
     }
 
     /**
-     * Sets the <i>for-writing</i> position, i.e., marks this IFD to be written into the TIFF file
+     * Sets the <i>for-writing</i> file offset, i.e., marks this IFD to be written into the TIFF file
      * at this position.
      *
-     * <p>By default, the <i>for-writing</i> position is unset, which means that this {@link TiffWriter}
+     * <p>By default, the <i>for-writing</i> file offset is unset, which means that {@link TiffWriter}
      * should write this IFD at the end of the TIFF file.
-     * When {@link TiffWriter} writes the IFD, it automatically sets this position.
+     * When {@link TiffWriter} writes the IFD, it automatically sets this file offset.</p>
      *
-     * <p>You may set this position manually, for example, if you are going to overwrite an existing IFD
-     * without changing its location in the file:<pre>
+     * <p>You may set this file offset manually, for example, if you are going to overwrite an existing IFD
+     * without changing its location in the file:</p>
+     * <pre>
      * ifd.{@link #setFileOffsetOfIFDForWriting
      * setFileOffsetOfIFDForWriting}(ifd.{@link #getFileOffsetOfIFD()});
      * </pre>
+     *
      * <p>Such a correction is performed automatically by the {@link TiffWriter#existingIFD(int)} method.</p>
      *
      * @param fileOffsetOfIFDForWriting the target file offset (must be even).
@@ -632,6 +634,12 @@ public final class TiffIFD {
         return this;
     }
 
+    /**
+     * Removes the <i>for-writing</i> file offset (which is the default state).
+     * This allows to instruct {@link TiffWriter} to write this IFD at the end of the TIFF file.
+     *
+     * @return a reference to this IFD object.
+     */
     public TiffIFD removeFileOffsetOfIFDForWriting() {
         this.fileOffsetOfIFDForWriting = -1;
         return this;

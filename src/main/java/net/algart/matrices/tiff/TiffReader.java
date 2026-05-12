@@ -1053,7 +1053,7 @@ public non-sealed class TiffReader extends TiffIO {
             final ArrayList<TiffIFD> mainIFDs = new ArrayList<>();
 
             for (int i = 0; i < offsets.length; i++) {
-                final TiffIFD ifd = readIFDAt(offsets[i]);
+                final TiffIFD ifd = readIFD(offsets[i]);
                 assert ifd != null;
                 ifd.setGlobalIndexes(allIFDs.size(), i);
                 allIFDs.add(ifd);
@@ -1069,7 +1069,7 @@ public non-sealed class TiffReader extends TiffIO {
                 }
                 if (subOffsets != null) {
                     for (long subOffset : subOffsets) {
-                        final TiffIFD subIFD = readIFDAt(subOffset, false);
+                        final TiffIFD subIFD = readIFD(subOffset, false);
                         subIFD.setSubIFDType(Tags.SUB_IFD);
                         subIFD.setGlobalIndexes(allIFDs.size(), null);
                         allIFDs.add(subIFD);
@@ -1110,7 +1110,7 @@ public non-sealed class TiffReader extends TiffIO {
             return this.firstIFD;
         }
         final long offset = readFirstIFDOffset();
-        firstIFD = readIFDAt(offset);
+        firstIFD = readIFD(offset);
         firstIFD.setGlobalIndex(0);
         if (cachingIFDs) {
             this.firstIFD = firstIFD;
@@ -1128,7 +1128,7 @@ public non-sealed class TiffReader extends TiffIO {
         for (TiffIFD ifd : ifds) {
             final long offset = ifd.getLong(Tags.EXIF, 0);
             if (offset != 0) {
-                final TiffIFD exifIFD = readIFDAt(offset, false);
+                final TiffIFD exifIFD = readIFD(offset, false);
                 exifIFD.setSubIFDType(Tags.EXIF);
                 result.add(exifIFD);
             }
@@ -1250,18 +1250,18 @@ public non-sealed class TiffReader extends TiffIO {
         assert startOffset >= 0;
         // - note: we do not call setIndexInList(mainIFDIndex),
         // becase this index will DIFFER from the index inside the allIFDs() list
-        return readIFDAt(startOffset);
+        return readIFD(startOffset);
     }
 
     /**
      * Reads the IFD stored at the given offset.
      * Never returns {@code null}.
      */
-    public TiffIFD readIFDAt(long startOffset) throws IOException {
-        return readIFDAt(startOffset, true);
+    public TiffIFD readIFD(long ifdOffset) throws IOException {
+        return readIFD(ifdOffset, true);
     }
 
-    public TiffIFD readIFDAt(long ifdOffset, boolean readNextOffset) throws IOException {
+    public TiffIFD readIFD(long ifdOffset, boolean readNextOffset) throws IOException {
         if (ifdOffset < 0) {
             throw new IllegalArgumentException("Negative IFD file offset = " + ifdOffset);
         }
