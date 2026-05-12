@@ -328,7 +328,7 @@ public final class TiffIFD {
     private Integer globalMainIndex = null;
     private long fileOffsetOfIFD = -1;
     private long fileOffsetOfNextIFDOffset = -1;
-    private long fileOffsetForWriting = -1;
+    private long fileOffsetOfIFDForWriting = -1;
     private long nextIFDOffset = -1;
     private Integer subIFDType = null;
     private volatile boolean frozen = false;
@@ -351,7 +351,7 @@ public final class TiffIFD {
         // skipping copying indexInIFDList: the copy will be probably placed into another list at another position
         fileOffsetOfIFD = ifd.fileOffsetOfIFD;
         fileOffsetOfNextIFDOffset = ifd.fileOffsetOfNextIFDOffset;
-        fileOffsetForWriting = ifd.fileOffsetForWriting;
+        fileOffsetOfIFDForWriting = ifd.fileOffsetOfIFDForWriting;
         nextIFDOffset = ifd.nextIFDOffset;
         subIFDType = ifd.subIFDType;
         description = ifd.description;
@@ -582,33 +582,58 @@ public final class TiffIFD {
         return this;
     }
 
-    public boolean hasFileOffsetForWriting() {
-        return fileOffsetForWriting >= 0;
+    /**
+     * Returns {@code true} if this IFD is marked for possible writing by {@link #setFileOffsetOfIFDForWriting(long)},
+     * in other words, if the <i>for-writing</i> position is set.
+     *
+     * @return the <i>for-writing</i> position is set.
+     */
+    public boolean hasFileOffsetOfIFDForWriting() {
+        return fileOffsetOfIFDForWriting >= 0;
     }
 
-    public long getFileOffsetForWriting() {
-        if (fileOffsetForWriting < 0) {
+    public long getFileOffsetOfIFDForWriting() {
+        if (fileOffsetOfIFDForWriting < 0) {
             throw new IllegalStateException("IFD offset for writing is not set");
         }
-        return fileOffsetForWriting;
+        return fileOffsetOfIFDForWriting;
     }
 
-    public TiffIFD setFileOffsetForWriting(long fileOffsetForWriting) {
-        if (fileOffsetForWriting < 0) {
-            throw new IllegalArgumentException("Negative IFD file offset: " + fileOffsetForWriting);
+    /**
+     * Sets the <i>for-writing</i> position, i.e., marks this IFD to be written into the TIFF file
+     * at this position.
+     *
+     * <p>By default, the <i>for-writing</i> position is unset, which means that this {@link TiffWriter}
+     * should write this IFD at the end of the TIFF file.
+     * When {@link TiffWriter} writes the IFD, it automatically sets this position.
+     *
+     * <p>You may set this position manually, for example, if you are going to overwrite an existing IFD
+     * without changing its location in the file:<pre>
+     * ifd.{@link #setFileOffsetOfIFDForWriting
+     * setFileOffsetOfIFDForWriting}(ifd.{@link #getFileOffsetOfIFD()});
+     * </pre>
+     * <p>Such a correction is performed automatically by the {@link TiffWriter#existingIFD(int)} method.</p>
+     *
+     * @param fileOffsetOfIFDForWriting the target file offset (must be even).
+     * @return a reference to this IFD object.
+     * @throws IllegalArgumentException if the offset is negative or odd.
+     */
+    public TiffIFD setFileOffsetOfIFDForWriting(long fileOffsetOfIFDForWriting) {
+        if (fileOffsetOfIFDForWriting < 0) {
+            throw new IllegalArgumentException("Negative IFD file offset: " + fileOffsetOfIFDForWriting);
         }
-        if ((fileOffsetForWriting & 0x1) != 0) {
-            throw new IllegalArgumentException("Odd IFD file offset " + fileOffsetForWriting +
+        if ((fileOffsetOfIFDForWriting & 0x1) != 0) {
+            throw new IllegalArgumentException("Odd IFD file offset " + fileOffsetOfIFDForWriting +
                     " is prohibited for writing valid TIFF");
             // - But we allow such offsets for reading!
             // Such minor inconsistency in the file is not a reason to decline the ability to read it.
         }
-        this.fileOffsetForWriting = fileOffsetForWriting;
+        this.fileOffsetOfIFDForWriting = fileOffsetOfIFDForWriting;
         return this;
     }
 
-    public TiffIFD removeFileOffsetForWriting() {
-        this.fileOffsetForWriting = -1;
+    public TiffIFD removeFileOffsetOfIFDForWriting() {
+        this.fileOffsetOfIFDForWriting = -1;
         return this;
     }
 
@@ -2955,12 +2980,13 @@ public final class TiffIFD {
             if (hasFileOffsetOfIFD()) {
                 sb.append(", IFD starts at @%d=0x%X".formatted(fileOffsetOfIFD, fileOffsetOfIFD));
             }
-            if (hasFileOffsetForWriting()) {
-                sb.append(", writing offset @%d=0x%X".formatted(fileOffsetForWriting, fileOffsetForWriting));
-            }
             if (hasFileOffsetOfNextIFDOffset()) {
                 sb.append(", next link is at @%d=0x%X ->".formatted(
                         fileOffsetOfNextIFDOffset, fileOffsetOfNextIFDOffset));
+            }
+            if (hasFileOffsetOfIFDForWriting()) {
+                sb.append(", writing offset @%d=0x%X".formatted(
+                        fileOffsetOfIFDForWriting, fileOffsetOfIFDForWriting));
             }
             if (hasNextIFDOffset()) {
                 sb.append(isLastIFD() ? " END" : " @%d=0x%X".formatted(

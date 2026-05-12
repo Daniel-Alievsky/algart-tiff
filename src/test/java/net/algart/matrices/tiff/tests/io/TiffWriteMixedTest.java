@@ -108,7 +108,8 @@ public class TiffWriteMixedTest {
 
             int sizeX = map.dimX() / 2;
             int sizeY = map.dimY() / 2;
-            // writer.writeForward(map); // - uncomment to write IFD BEFORE image
+            writer.writeForward(map); // - write IFD BEFORE image
+            map.writeForward(); // - twice call should do nothing
 
             // First writing a part of image (light)
             Object samples = makeSamples(map, sizeX, sizeY, numberOfChannels, 0.3);
@@ -144,7 +145,7 @@ public class TiffWriteMixedTest {
             // - equivalent to previous 3 TiffWriter methods
             printReaderInfo(writer);
 
-            System.out.printf("Actually saved IFD:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.DETAILED));
+            System.out.printf("Actually saved IFD:%n%s%n", ifd.toString(TiffIFD.StringFormat.DETAILED));
         }
         System.out.println("Done");
     }

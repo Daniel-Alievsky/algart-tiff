@@ -440,6 +440,10 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
         return updateChannels(ImageToMatrix.toChannels(bufferedImage), fromX, fromY);
     }
 
+    public void writeForward() throws IOException {
+        owner.writeForward(this);
+    }
+
     public void writeJavaArray(Object samplesArray) throws IOException {
         owner.writeJavaArray(this, samplesArray);
     }
