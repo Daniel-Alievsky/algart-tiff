@@ -54,7 +54,7 @@
         <dependency>
             <groupId>org.scijava</groupId>
             <artifactId>scijava-common</artifactId>
-            <version>2.99.2</version>
+            <version>2.100.0</version>
         </dependency>
         <!-- Note: the following TwelveMonkey dependencies MUST NOT affect the correct reading/writing JPEG -->
         <!-- See JPEGDecoding.DISABLE_THIRD_PARTY_IMAGE_READER constant -->
