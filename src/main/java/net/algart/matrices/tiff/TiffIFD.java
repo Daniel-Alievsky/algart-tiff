@@ -45,7 +45,7 @@ public final class TiffIFD {
      * it is mostly probable that it is a corrupted file.
      * Note that in regular files (not Big-TIFF) the limit is 65536 (2^16).
      */
-    public static final int MAX_NUMBER_OF_IFD_ENTRIES = 10_000_000;
+    public static final int MAX_NUMBER_OF_IFD_ENTRIES = 1_000_000;
 
     /**
      * The number of bytes in the TIFF file header.
