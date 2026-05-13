@@ -1229,24 +1229,32 @@ public non-sealed class TiffWriter extends TiffIO {
         correctForEntireTiff(ifd, false);
     }
 
+    public TiffIFD existingIFD(int mainIFDIndex) throws IOException {
+        return existingIFD(mainIFDIndex, true);
+    }
+
     /**
      * Reads IFD by
-     * <code>{@link #companionReader()}.{@link TiffReader#readMainIFD(int) readMainIFD(mainIFDIndex)}</code>
-     * and sets its {@link TiffIFD#assignFileOffsetOfIFDForWriting(long) offset-for-writing}
-     * to be equal to the {@link TiffIFD#getFileOffsetOfIFD() offset-for-reading}.
+     * <code>{@link #companionReader()}.{@link TiffReader#readMainIFD(int) readMainIFD(mainIFDIndex)}</code>,
+     * and, if the second argument is {@code true},
+     * assigns its {@link TiffIFD#assignFileOffsetOfIFDForWriting(long) offset-for-writing}
+     * to be equal to the {@link TiffIFD#getFileOffsetOfIFD()}.
      *
      * @param mainIFDIndex index of the {@link TiffIFD#isMainIFD() main IFD} the TIFF image.
+     * @param assignFileOffsetForWriting whether to assign the <i>for-writing</i> file offset.
      * @return the IFD with the specified index.
      * @throws TiffException if <code>mainIFDIndex</code> is too large
      *                       (&ge;{@link #numberOfExistingImages()}),
      *                       or if the file is not a correct TIFF file,
      *                       and this was not detected while opening it.
      */
-    public TiffIFD existingIFD(int mainIFDIndex) throws IOException {
+    public TiffIFD existingIFD(int mainIFDIndex, boolean assignFileOffsetForWriting) throws IOException {
         @SuppressWarnings("resource") final TiffReader reader = companionReader();
         final TiffIFD ifd = reader.readMainIFD(mainIFDIndex);
         // - no sense to read and cache all IFD: this reader will probably be cleared after TIFF changes
-        ifd.assignFileOffsetOfIFDForWriting(ifd.getFileOffsetOfIFD());
+        if (assignFileOffsetForWriting) {
+            ifd.assignFileOffsetOfIFDForWriting(ifd.getFileOffsetOfIFD());
+        }
         return ifd;
     }
 
