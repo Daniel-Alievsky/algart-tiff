@@ -584,7 +584,8 @@ public final class TiffIFD {
     }
 
     /**
-     * Returns {@code true} if this IFD is marked for possible writing by {@link #setFileOffsetOfIFDForWriting(long)},
+     * Returns {@code true} if this IFD is marked for possible writing by
+     * {@link #assignFileOffsetOfIFDForWriting(long)},
      * in other words, if the <i>for-writing</i> position is set.
      *
      * @return the <i>for-writing</i> position is set.
@@ -611,8 +612,8 @@ public final class TiffIFD {
      * <p>You may set this file offset manually, for example, if you are going to overwrite an existing IFD
      * without changing its location in the file:</p>
      * <pre>
-     * ifd.{@link #setFileOffsetOfIFDForWriting
-     * setFileOffsetOfIFDForWriting}(ifd.{@link #getFileOffsetOfIFD()});
+     * ifd.{@link #assignFileOffsetOfIFDForWriting
+     * assignFileOffsetOfIFDForWriting}(ifd.{@link #getFileOffsetOfIFD()});
      * </pre>
      *
      * <p>Such a correction is performed automatically by the {@link TiffWriter#existingIFD(int)} method.</p>
@@ -623,7 +624,7 @@ public final class TiffIFD {
      * @see TiffWriter#writeIFD(TiffIFD, boolean)
      * @see TiffWriter#completeWriting(TiffWriteMap)
      */
-    public TiffIFD setFileOffsetOfIFDForWriting(long fileOffsetOfIFDForWriting) {
+    public TiffIFD assignFileOffsetOfIFDForWriting(long fileOffsetOfIFDForWriting) {
         if (fileOffsetOfIFDForWriting < 0) {
             throw new IllegalArgumentException("Negative IFD file offset: " + fileOffsetOfIFDForWriting);
         }
