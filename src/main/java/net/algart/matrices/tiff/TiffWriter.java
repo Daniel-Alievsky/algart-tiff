@@ -536,7 +536,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * Returns position in the file of the last IFD offset, written by methods of this object.
      * It is updated by {@link #overwriteIFDInPlace(TiffIFD, boolean)},
      * {@link #writeIFD(TiffIFD, boolean)},
-     * {@link #rewriteSelectedTags(TiffIFD, IntPredicate, boolean)}
+     * {@link #rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, boolean)}
      * when the last argument is {@code true}.
      *
      * <p>Immediately after creating this object without opening a file
@@ -831,6 +831,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * (it will be equal to the result of the {@link TiffIFD#getFileOffsetOfIFDForWriting()} method
      * called on the {@code ifd} after this method completes).
      * @throws IOException in case of any I/O errors.
+     * @see #rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, boolean)
      */
     public long writeIFD(TiffIFD ifd, boolean updateLinkageForNewIFD) throws IOException {
         Objects.requireNonNull(ifd, "Null IFD");
@@ -865,9 +866,61 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    public long rewriteSelectedTags(TiffIFD ifd, IntPredicate tagsToUpdate, boolean updateIFDLinkages)
+    /**
+     * An analog of {@link #writeIFD(TiffIFD, boolean)} method which performs a "surgical"
+     * update of specific tags directly at their current positions in the file.
+     *
+     * <p>Unlike {@link #writeIFD(TiffIFD, boolean)}, this method requires a valid IFD to be
+     * already present in the file at the position
+     * <code>ifd.{@link TiffIFD#getFileOffsetOfIFDForWriting() getFileOffsetOfIFDForWriting()}.
+     * This method rewrites it with strictly preserving the existing
+     * TIFF structure and data placement.
+     * It reads tags from the file one by one and selects the tags for which
+     * {@code tagsToUpdate.test(tag)} method returns {@code true} and which also exist
+     * in the IFD argument.
+     * For the selected tags, it overwrites the values of such tags, ensuring that no data is
+     * moved and no "gaps" or "holes" are created in the file layout.</p>
+     *
+     * <p>In addition, this method writes the {@link TiffIFD#getNextIFDOffset() offset of the next IFD}
+     * (probably a zero marker for the last IFD)
+     * and performs correction of IFD linkage when {@code updateIFDLinkages=true} in the same manner
+     * as {@link #writeIFD(TiffIFD, boolean)} method.</p>
+     *
+     * <p>This method is used for updating metadata that describes the
+     * image layout (like offsets and byte counts) after the actual pixel data
+     * has been written to the stream.</p>
+     *
+     * <p>Constraints: this method can only be used if the new values have
+     * the <b>exact same</b> TIFF type and number of elements (count) as the values
+     * currently stored in the file. Any attempt to change the data layout (for example,
+     * replacing an array of 16-bit integers with an array of 32-bit values or changing array length)
+     * will result in a {@link TiffIFDMismatchException}.
+     * The only allowed exception is the situation
+     * when the data are embedded into IFD entry, for example, when the IFD value contains only 1 number
+     * and its type is changed from {@link TagType#SHORT} to {@link TagType#LONG}
+     * (sometimes it can occur for such tags as {@code ImageWidth}, {@code ImageLength},
+     * {@code TileWidth}, {@code TileLength} and similar tags).</p>
+     *
+     * @param ifd               the IFD containing the new values to be written.
+     * @param tagsToUpdate      a predicate to select which tags should be updated in the file.
+     * @param updateIFDLinkages if {@code true}, the method also updates the
+     *                          "next IFD" pointer and internal linkage state,
+     *                          similar to {@link #writeIFD(TiffIFD, boolean)}.
+     * @return the file offset where the IFD is located (the same as
+     *         {@code ifd.getFileOffsetOfIFDForWriting()}).
+     * @throws IOException              if any I/O error occurs.
+     * @throws TiffIFDMismatchException if the new value for a tag does not match
+     *                                  the existing value's type or count;
+     *                                  if you still need to write the IFD, you may catch this exception
+     *                                  and try to write it at the file end using
+     *                                  {@link #writeIFDAtFileEnd(TiffIFD)} method.
+     * @throws IllegalArgumentException if the IFD does not have a designated file offset.
+     * @see #writeIFD(TiffIFD, boolean)
+     */
+    public long rewriteIFDStrictlyInPlace(TiffIFD ifd, IntPredicate tagsToUpdate, boolean updateIFDLinkages)
             throws IOException {
         Objects.requireNonNull(ifd, "Null IFD");
+        Objects.requireNonNull(tagsToUpdate, "Null tagsToUpdate");
         if (!ifd.hasFileOffsetOfIFDForWriting()) {
             throw new IllegalArgumentException("Offset for writing IFD is not specified");
         }
@@ -886,8 +939,8 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    public void rewriteImageLayout(TiffIFD ifd, boolean updateIFDLinkages) throws IOException {
-        rewriteSelectedTags(ifd, TiffIFD::isImageLayoutTag, updateIFDLinkages);
+    public void rewriteImageLayoutStrictlyInPlace(TiffIFD ifd, boolean updateIFDLinkages) throws IOException {
+        rewriteIFDStrictlyInPlace(ifd, TiffIFD::isImageLayoutTag, updateIFDLinkages);
     }
 
     /**
@@ -1491,7 +1544,7 @@ public non-sealed class TiffWriter extends TiffIO {
         // (in this case we will need to "teach" TiffIFD.sizeOfImage method to consider this)
         if (ifd.hasFileOffsetOfIFDForWriting() && ACCURATE_REWRITING_IMAGE_LAYOUT_ON_COMPLETE) {
             // - usually it means that we did call writeForward
-            rewriteImageLayout(ifd, true);
+            rewriteImageLayoutStrictlyInPlace(ifd, true);
         } else {
             writeIFD(ifd, true);
         }
