@@ -874,6 +874,7 @@ public non-sealed class TiffWriter extends TiffIO {
         synchronized (fileLock()) {
             checkVirginFile();
             resetCompanionReader();
+//            System.out.println("Using accurate rewriting");
             final long ifdOffset = ifd.getFileOffsetOfIFDForWriting();
             checkFileOffsetForWriting(ifdOffset);
             // for (int k = 0; k < 500; k++) rewriteTagsAt(ifd.map(), tagsToUpdate, ifdOffset); // - timing

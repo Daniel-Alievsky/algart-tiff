@@ -2313,11 +2313,11 @@ public final class TiffIFD {
         }
         if (USE_LONG_IMAGE_DIMENSIONS) {
             // - long values enforce using LONG 32-bit format, but old TIFFs often use 16-bit SHORT here
-            // (int values are also possible: they will be stored as 32-bit LONG
-            // in TiffWriter.writeIFDValueAtCurrentPosition when they are >0xFFFF)
             map.put(Tags.IMAGE_WIDTH, dimX);
             map.put(Tags.IMAGE_LENGTH, dimY);
         } else {
+            // - but int values are also possible: they will be stored as 32-bit LONG
+            // in TiffIO.writeIFDValueAtCurrentOffsets when they are >0xFFFF
             map.put(Tags.IMAGE_WIDTH, (int) dimX);
             map.put(Tags.IMAGE_LENGTH, (int) dimY);
         }

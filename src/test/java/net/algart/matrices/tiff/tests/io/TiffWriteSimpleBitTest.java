@@ -31,6 +31,7 @@ import net.algart.math.functions.Func2;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tags.Tags;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -76,6 +77,9 @@ public class TiffWriteSimpleBitTest {
                 TiffIFD ifd = TiffIFD.newIFD();
                 ifd.putCompression(TagCompression.PACK_BITS);
                 ifd.putMatrixInformation(m);
+                ifd.put(Tags.IMAGE_WIDTH, (int) m.dimX());
+                ifd.put(Tags.IMAGE_LENGTH, (int) m.dimY());
+                // - testing a special check in TiffIO.writeIFDValueAtCurrentOffsets when a single value >0xFFFF
                 final var map = writer.newMap(ifd, false);
 
                 long t1 = System.nanoTime();
