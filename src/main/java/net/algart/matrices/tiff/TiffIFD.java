@@ -590,11 +590,18 @@ public final class TiffIFD {
      *
      * @return the <i>for-writing</i> position is set.
      */
-    public boolean hasFileOffsetOfIFDForWriting() {
+    public boolean isFileOffsetOfIFDForWritingAssigned() {
         return fileOffsetOfIFDForWriting >= 0;
     }
 
-    public long getFileOffsetOfIFDForWriting() {
+    /**
+     * Returns the <i>for-writing</i> file offset assigned for writing this IFD
+     * by {@link #assignFileOffsetOfIFDForWriting(long)} method.
+     *
+     * @return the assigned <i>for-writing</i> position.
+     * @throws IllegalStateException if no <i>for-writing</i> offset has been assigned yet.
+     */
+    public long assignedFileOffsetOfIFDForWriting() {
         if (fileOffsetOfIFDForWriting < 0) {
             throw new IllegalStateException("IFD offset for writing is not set");
         }
@@ -3005,7 +3012,7 @@ public final class TiffIFD {
                 sb.append(", next link is at @%d=0x%X ->".formatted(
                         fileOffsetOfNextIFDOffset, fileOffsetOfNextIFDOffset));
             }
-            if (hasFileOffsetOfIFDForWriting()) {
+            if (isFileOffsetOfIFDForWritingAssigned()) {
                 sb.append(", writing offset @%d=0x%X".formatted(
                         fileOffsetOfIFDForWriting, fileOffsetOfIFDForWriting));
             }
