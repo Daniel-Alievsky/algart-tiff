@@ -60,7 +60,7 @@ public class TiffFalsifyTags {
             photometric = TagPhotometric.valueOf(args[startArgIndex]);
         }
 
-        try (var reader = new TiffReader(targetFile); var writer = new TiffWriter(targetFile)) {
+        try (var writer = new TiffWriter(targetFile)) {
             writer.openExisting();
 
             System.out.printf("Transforming %s...%n", targetFile);

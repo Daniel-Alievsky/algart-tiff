@@ -770,7 +770,7 @@ public non-sealed class TiffWriter extends TiffIO {
     public long overwriteIFDInPlace(TiffIFD ifd, boolean updateLinkageForNewIFD) throws IOException {
         Objects.requireNonNull(ifd, "Null IFD");
         if (!ifd.hasFileOffsetOfIFDForWriting()) {
-            throw new IllegalArgumentException("Offset for writing IFD is not specified");
+            throw new IllegalArgumentException("Offset for writing IFD has not been set");
         }
         return writeIFD(ifd, updateLinkageForNewIFD);
     }
@@ -867,6 +867,27 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
+     * Equivalent to
+     * <code>{@link #rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, boolean)
+     * rewriteIFDStrictlyInPlace}(ifd, tagsToUpdate, false)</code>.
+     *
+     * @param ifd          the IFD containing the new values to be written.
+     * @param tagsToUpdate a predicate to select which tags should be updated in the file.
+     * @return the file offset where the IFD is located (equal to
+     * {@code ifd.getFileOffsetOfIFDForWriting()}).
+     * @throws IOException              if any I/O error occurs.
+     * @throws TiffIFDMismatchException if the new value for a tag does not match
+     *                                  the existing value's type or count;
+     *                                  if you still need to write the IFD, you may catch this exception
+     *                                  and write it at the end of the file using
+     *                                  the {@link #writeIFDAtFileEnd(TiffIFD)} method.
+     * @throws IllegalArgumentException if the IFD does not have the <i>for-writing</i> file offset.
+     */
+    public long rewriteIFDStrictlyInPlace(TiffIFD ifd, IntPredicate tagsToUpdate) throws IOException {
+        return rewriteIFDStrictlyInPlace(ifd, tagsToUpdate, false);
+    }
+
+    /**
      * An analog of the {@link #writeIFD(TiffIFD, boolean)} method which performs a "surgical"
      * update of specific tags directly at their current positions in the file.
      *
@@ -905,7 +926,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *                          "next IFD" pointer and internal linkage state,
      *                          similar to {@link #writeIFD(TiffIFD, boolean)}.
      * @return the file offset where the IFD is located (equal to
-     *         {@code ifd.getFileOffsetOfIFDForWriting()}).
+     * {@code ifd.getFileOffsetOfIFDForWriting()}).
      * @throws IOException              if any I/O error occurs.
      * @throws TiffIFDMismatchException if the new value for a tag does not match
      *                                  the existing value's type or count;
@@ -1608,6 +1629,7 @@ public non-sealed class TiffWriter extends TiffIO {
             this.rewriteIFDOffset(mainIFDIndex, p);
             // - restoring IFD sequence
         } else {
+            // System.out.println("In place!");
             this.overwriteIFDInPlace(changedIFD);
         }
     }
