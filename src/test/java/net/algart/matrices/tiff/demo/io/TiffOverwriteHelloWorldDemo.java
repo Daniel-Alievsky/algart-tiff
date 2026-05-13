@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.demo.io;
 
-import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tiles.TiffTile;
@@ -42,8 +41,11 @@ public class TiffOverwriteHelloWorldDemo {
         int startArgIndex = 0;
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
-            System.out.printf("    %s target.tiff ifdIndex [x y]%n",
+            System.out.printf("    %s target.tiff ifdIndex [x y [quality]]%n",
                     TiffOverwriteHelloWorldDemo.class.getName());
+            System.out.println("For JPEG compression, low quality (for example, 0.1) increases probability");
+            System.out.println("that the updated picture will be located at the same file offset" +
+                    "and the file length will not increase.");
             System.out.println("Note that target.tiff will be modified!");
             return;
         }
@@ -51,19 +53,23 @@ public class TiffOverwriteHelloWorldDemo {
         final int ifdIndex = Integer.parseInt(args[startArgIndex + 1]);
         final int x = startArgIndex + 2 < args.length ? Integer.parseInt(args[startArgIndex + 2]) : 0;
         final int y = startArgIndex + 3 < args.length ? Integer.parseInt(args[startArgIndex + 3]) : 0;
+        final Double quality = startArgIndex + 4 < args.length ? Double.parseDouble(args[startArgIndex + 4]) : null;
 
-        System.out.printf("Opening and rewriting TIFF %s...%n", targetFile);
+        System.out.printf("Opening and rewriting TIFF %s%s...%n",
+                targetFile,
+                quality == null ? "": " with quality " + quality);
         final int sizeX = 250;
         final int sizeY = 50;
         // - estimated sizes sufficient for "Hello, world!"
         try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
 //             writer.setAlwaysWriteToFileEnd(true); // - should not affect the results
+            writer.setCompressionQuality(quality);
             final TiffWriteMap writeMap = writer.existingMap(ifdIndex);
             overwrite(writeMap, x, y, sizeX, sizeY);
             overwrite(writeMap, x + sizeX / 2, y + sizeY / 2, sizeX, sizeY);
             overwrite(writeMap, x + sizeX / 2, y - sizeY / 2, sizeX, sizeY);
             int m = writeMap.completeWriting();
-            writer.updateDescription(ifdIndex, "Overwritten");
+//            writer.updateDescription(ifdIndex, "Overwritten"); // - will lead to rewring IFD to a new place
             System.out.printf("Completed %d tile, file length: %d%n", m, writeMap.fileLength());
             // - should be 0, because all tiles were preloaded
             if (m != 0) {

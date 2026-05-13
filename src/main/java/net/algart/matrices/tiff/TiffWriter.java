@@ -1804,12 +1804,6 @@ public non-sealed class TiffWriter extends TiffIO {
         final long fileLength = stream.length();
         final int numberOfEntries = readNumberOfIFDEntriesAt(ifdOffset);
 
-        // Too complex usage
-//            if (requireIdenticalNumberOfEntries && numberOfEntries != ifd.numberOfEntries()) {
-//                throw new IllegalArgumentException("Number of entries in the IFD: " + ifd.numberOfEntries() +
-//                        " does not match the number of entries stored in the file: " + numberOfEntries);
-//            }
-
         // You may compare the following code with TiffReader.readIFDAt
         final long ifdStreamOffset = ifdOffset + sizeOfNumberOfIFDEntries();
         final int sizeOfEntry = sizeOfIFDEntry();
@@ -1837,15 +1831,18 @@ public non-sealed class TiffWriter extends TiffIO {
             final BytesHandle extraBuffer = newBytesHandle(littleEndian);
             newStream.seek(disp);
             assert extraBuffer.offset() == 0;
-            final boolean dataEmbedded = oldEntry.isDataEmbeddedInEntry();
-            final long addition = dataEmbedded ? 0 : oldEntry.valueOffset();
+            final boolean oldDataEmbedded = oldEntry.isDataEmbeddedInEntry();
+            final long addition = oldDataEmbedded ? 0 : oldEntry.valueOffset();
             // - addition + extraBuffer.offset() is a correct offset that should be written to new entry
             writeIFDValueAtCurrentOffsets(newStream, extraBuffer, bigTiff, addition, tag, value);
             final TiffIFD.Entry newEntry = readIFDEntry(newStream, disp, ifdStreamOffset, fileLength);
             if (newEntry.tag() != oldEntry.tag() || newEntry.isBigTiff() != oldEntry.isBigTiff()) {
+                // assertion, not concurrent modification: we have full control over oldStream and newStream
                 throw new AssertionError("Write/read tag mismatch");
             }
-            if (newEntry.rawType() != oldEntry.rawType()) {
+            final boolean newDataEmbedded = newEntry.isDataEmbeddedInEntry();
+            final boolean bothEmbedded = oldDataEmbedded && newDataEmbedded;
+            if (newEntry.rawType() != oldEntry.rawType() && !bothEmbedded) {
                 throw new TiffIFDMismatchException("Cannot rewrite IFD entry for tag " +
                         Tags.prettyName(tag) + ": the value type " + oldEntry.prettyType() +
                         " changed to " + newEntry.prettyType());
@@ -1855,11 +1852,12 @@ public non-sealed class TiffWriter extends TiffIO {
                         Tags.prettyName(tag) + ": the number of elements " + oldEntry.valueCount() +
                         " changed to " + newEntry.valueCount());
             }
-            if (newEntry.isDataEmbeddedInEntry() != dataEmbedded) {
-                // - this flag cannot be different if the type and value count are equal
+            if (newDataEmbedded != oldDataEmbedded) {
+                // - this flag cannot be different if the types and value counts are equal,
+                // or if the value counts are equal and the types are different BUT bothEmbedded=true
                 throw new AssertionError("isDataEmbeddedInEntry mismatch");
             }
-            if (!dataEmbedded) {
+            if (!oldDataEmbedded) {
                 final long valueOffset = newEntry.valueOffset();
                 final long valueLength = newEntry.valueLength();
                 if (valueOffset != addition) {
