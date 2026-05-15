@@ -27,7 +27,7 @@ package net.algart.matrices.tiff.tags;
 import java.util.Objects;
 
 /**
- * Base class for representing types {@link TagType#RATIONAL} and {@link TagType#RATIONAL}.
+ * Base class for representing types {@link TagType#RATIONAL} and {@link TagType#SRATIONAL}.
  *
  * <p>Note: it extends {@link Number} class to provide correct reading some tags as
  * {@link Tags#REFERENCE_BLACK_WHITE} as numeric values
