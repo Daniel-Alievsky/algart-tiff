@@ -94,145 +94,6 @@ public final class TiffIFD {
     }
 
     /**
-     * Base class for representing types {@link TagType#RATIONAL} and {@link TagType#RATIONAL}.
-     *
-     * <p>Note: it extends {@link Number} class to provide correct reading some tags as
-     * {@link Tags#REFERENCE_BLACK_WHITE} as numeric values
-     * (this is used in {@link net.algart.matrices.tiff.data.TiffUnpacking#separateYCbCrToRGB}).
-     *
-     */
-    public static abstract class Rational extends Number {
-        private final int rawNumerator;
-        private final int rawDenominator;
-
-        private Rational(int rawNumerator, int rawDenominator) {
-            this.rawNumerator = rawNumerator;
-            this.rawDenominator = rawDenominator;
-        }
-
-        public int intValue() {
-            return rawDenominator == 0 ? Integer.MAX_VALUE : (int) doubleValue();
-        }
-
-        public long longValue() {
-            return rawDenominator == 0 ? Long.MAX_VALUE : (long) doubleValue();
-        }
-
-        public float floatValue() {
-            return (float) doubleValue();
-        }
-
-        public double doubleValue() {
-            return rawDenominator == 0 ? Double.MAX_VALUE : ((double) numerator() / (double) denominator());
-        }
-
-        public int rawNumerator() {
-            return rawNumerator;
-        }
-
-        public int rawDenominator() {
-            return rawDenominator;
-        }
-
-        public abstract long numerator();
-
-        public abstract long denominator();
-
-        public String mathString() {
-            return numerator() + "/" + denominator();
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == this) {
-                return true;
-            }
-            if (obj == null || obj.getClass() != this.getClass()) {
-                return false;
-            }
-            final Rational that = (Rational) obj;
-            return this.rawNumerator == that.rawNumerator && this.rawDenominator == that.rawDenominator;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(rawNumerator, rawDenominator);
-        }
-    }
-
-    public static class SignedRational extends Rational {
-        private SignedRational(int signedNumerator, int signedDenominator) {
-            super(signedNumerator, signedDenominator);
-        }
-
-        public static SignedRational of(int signedNumerator, int signedDenominator) {
-            return new SignedRational(signedNumerator, signedDenominator);
-        }
-
-        @Override
-        public long numerator() {
-            return rawNumerator();
-        }
-
-        @Override
-        public long denominator() {
-            return rawDenominator();
-        }
-
-        @Override
-        public String toString() {
-            return numerator() + "/" + denominator() + " (signed " + doubleValue() + ")";
-        }
-
-        @Override
-        public int hashCode() {
-            return super.hashCode() ^ 'S';
-        }
-    }
-
-    public static class UnsignedRational extends Rational {
-        private UnsignedRational(int unsignedNumerator, int unsignedDenominator) {
-            super(unsignedNumerator, unsignedDenominator);
-        }
-
-        public static UnsignedRational ofRaw(int unsignedNumerator, int unsignedDenominator) {
-            return new UnsignedRational(unsignedNumerator, unsignedDenominator);
-        }
-
-        public static UnsignedRational of(long unsignedNumerator, long unsignedDenominator) {
-            if (unsignedNumerator < 0 || unsignedNumerator > 0xFFFFFFFFL) {
-                throw new IllegalArgumentException("Unsigned 32-bit numerator = " + unsignedNumerator +
-                        " is out of range 0..2^32-1");
-            }
-            if (unsignedDenominator < 0 || unsignedDenominator > 0xFFFFFFFFL) {
-                throw new IllegalArgumentException("Unsigned 32-bit denominator = " + unsignedDenominator +
-                        " is out of range 0..2^32-1");
-            }
-            return new UnsignedRational((int) unsignedNumerator, (int) unsignedDenominator);
-        }
-
-        @Override
-        public long numerator() {
-            return rawNumerator() & 0xFFFFFFFFL;
-        }
-
-        @Override
-        public long denominator() {
-            return rawDenominator() & 0xFFFFFFFFL;
-        }
-
-        @Override
-        public String toString() {
-            return numerator() + "/" + denominator() + " (unsigned " + doubleValue() + ")";
-        }
-
-        @Override
-        public int hashCode() {
-            return super.hashCode() ^ 'U';
-        }
-    }
-
-    /**
      * An IFD with the number of entries, greater than this limit, is not allowed even in Big-TIFF:
      * it is mostly probable that it is a corrupted file.
      * Note that in regular files (not Big-TIFF) the limit is 65536 (2^16).
@@ -2540,11 +2401,11 @@ public final class TiffIFD {
      *       exceeding 0xFFFF is automatically promoted to {@link TagType#LONG}.</li>
      *   <li><b>{@code Long} or {@code long[]}</b>: mapped to {@link TagType#LONG}
      *       (unsigned 32-bit) or {@link TagType#LONG8} for BigTIFF files.</li>
-     *   <li><b>{@link UnsignedRational UnsignedRational} or
-     *   <code>{@link UnsignedRational UnsignedRational}[]</code></b>: mapped to
+     *   <li><b>{@link TagRational.Unsigned TagRational.Unsigned} or
+     *   <code>{@link TagRational.Unsigned TagRational.Unsigned}[]</code></b>: mapped to
      *       {@link TagType#RATIONAL} (pairs of unsigned 32-bit integers).</li>
-     *   <li><b>{@link SignedRational SignedRational} or
-     *   <code>{@link SignedRational SignedRational}[]</code></b>:
+     *   <li><b>{@link TagRational.Signed TagRational.Signed} or
+     *   <code>{@link TagRational.Signed TagRational.Signed}[]</code></b>:
      *   mapped to
      *       {@link TagType#SRATIONAL} (pairs of signed 32-bit integers).</li>
      *   <li><b>{@code Float} or {@code float[]}</b>: mapped to {@link TagType#FLOAT}
@@ -3281,7 +3142,7 @@ public final class TiffIFD {
             sb.append("[");
             appendIFDArray(sb, tagValue, false, true);
             sb.append("]");
-        } else if (tagValue instanceof Rational rational) {
+        } else if (tagValue instanceof TagRational rational) {
             sb.append("\"").append(rational.mathString()).append("\"");
         } else if (tagValue instanceof Number || tagValue instanceof Boolean) {
             sb.append(tagValue);
@@ -3399,7 +3260,7 @@ public final class TiffIFD {
             if (mask != 0) {
                 o = ((Number) o).intValue() & mask;
             }
-            if (o instanceof Rational rational) {
+            if (o instanceof TagRational rational) {
                 if (jsonMode) {
                     sb.append("\"").append(rational.mathString()).append("\"");
                 } else {

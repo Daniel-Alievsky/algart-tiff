@@ -26,6 +26,7 @@ package net.algart.matrices.tiff.data;
 
 import net.algart.arrays.JArrays;
 import net.algart.arrays.PackedBitArraysPer8;
+import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.UnsupportedTiffFormatException;
@@ -152,8 +153,8 @@ public class TiffUnpacking {
         double lumaGreen = 0.587;
         double lumaBlue = 0.114;
         final int[] declaredReference = ifd.getIntArray(Tags.REFERENCE_BLACK_WHITE);
-        // - getIntArray automatically converts UnsignedRational[] to the nearest int[] values
-        // (because UnsignedRational extends Number)
+        // - getIntArray automatically converts TagRational.Unsigned[] to the nearest int[] values
+        // (because TagRational.Unsigned extends Number)
         final int[] reference = new int[]{0, 255, 128, 255, 128, 255};
         // - original SCIFIO code used here zero-filled array, this is incorrect
         if (declaredReference != null) {
@@ -170,9 +171,8 @@ public class TiffUnpacking {
         final double crScale = crShiftedWhite == crShiftedBlack ? 1.0 : 127.0 / (crShiftedWhite - crShiftedBlack);
         // - avoiding 0.0/0.0
         final int[] subsamplingLog = ifd.getYCbCrSubsamplingLogarithms();
-        final TiffIFD.Rational[] coefficients = ifd.getValue(
-                Tags.Y_CB_CR_COEFFICIENTS, TiffIFD.UnsignedRational[].class)
-                .orElse(new TiffIFD.UnsignedRational[0]);
+        final TagRational[] coefficients = ifd.getValue(Tags.Y_CB_CR_COEFFICIENTS, TagRational.Unsigned[].class)
+                .orElse(new TagRational.Unsigned[0]);
         if (coefficients.length >= 3) {
             lumaRed = coefficients[0].doubleValue();
             lumaGreen = coefficients[1].doubleValue();

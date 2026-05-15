@@ -26,6 +26,7 @@ package net.algart.matrices.tiff;
 
 import net.algart.arrays.JArrays;
 import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.matrices.tiff.tags.TagType;
 import net.algart.matrices.tiff.tags.Tags;
 import org.scijava.io.handle.BytesHandle;
@@ -545,22 +546,22 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             case RATIONAL -> {
                 // Two LONGs or SLONGs: the first represents the numerator of a fraction; the second, the denominator
                 if (count == 1) {
-                    return TiffIFD.UnsignedRational.ofRaw(stream.readInt(), stream.readInt());
+                    return TagRational.Unsigned.ofRaw(stream.readInt(), stream.readInt());
                 }
-                final TiffIFD.UnsignedRational[] rationals = new TiffIFD.UnsignedRational[count];
+                final TagRational.Unsigned[] rationals = new TagRational.Unsigned[count];
                 for (int j = 0; j < count; j++) {
-                    rationals[j] = TiffIFD.UnsignedRational.ofRaw(stream.readInt(), stream.readInt());
+                    rationals[j] = TagRational.Unsigned.ofRaw(stream.readInt(), stream.readInt());
                 }
                 return rationals;
             }
             case SRATIONAL -> {
                 // Two LONGs or SLONGs: the first represents the numerator of a fraction; the second, the denominator
                 if (count == 1) {
-                    return TiffIFD.SignedRational.of(stream.readInt(), stream.readInt());
+                    return TagRational.Signed.of(stream.readInt(), stream.readInt());
                 }
-                final TiffIFD.SignedRational[] rationals = new TiffIFD.SignedRational[count];
+                final TagRational.Signed[] rationals = new TagRational.Signed[count];
                 for (int j = 0; j < count; j++) {
-                    rationals[j] = TiffIFD.SignedRational.of(stream.readInt(), stream.readInt());
+                    rationals[j] = TagRational.Signed.of(stream.readInt(), stream.readInt());
                 }
                 return rationals;
             }
@@ -683,10 +684,10 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             value = new int[]{v};
         } else if (value instanceof Long v) {
             value = new long[]{v};
-        } else if (value instanceof TiffIFD.UnsignedRational v) {
-            value = new TiffIFD.UnsignedRational[]{v};
-        } else if (value instanceof TiffIFD.SignedRational v) {
-            value = new TiffIFD.SignedRational[]{v};
+        } else if (value instanceof TagRational.Unsigned v) {
+            value = new TagRational.Unsigned[]{v};
+        } else if (value instanceof TagRational.Signed v) {
+            value = new TagRational.Signed[]{v};
         } else if (value instanceof Float v) {
             value = new float[]{v};
         } else if (value instanceof Double v) {
@@ -868,11 +869,11 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 //                }
                 }
             }
-            case TiffIFD.UnsignedRational[] v -> {
+            case TagRational.Unsigned[] v -> {
                 ifdStream.writeShort(TagType.RATIONAL.type());
                 writeRationals(ifdStream, extraBuffer, bigTiff, additionToExtraBufferOffset, v);
             }
-            case TiffIFD.SignedRational[] v -> {
+            case TagRational.Signed[] v -> {
                 ifdStream.writeShort(TagType.SRATIONAL.type());
                 writeRationals(ifdStream, extraBuffer, bigTiff, additionToExtraBufferOffset, v);
             }
@@ -1133,7 +1134,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             DataHandle<?> extraBuffer,
             boolean bigTiff,
             long additionToExtraBufferOffset,
-            TiffIFD.Rational[] v) throws IOException {
+            TagRational[] v) throws IOException {
         writeIntOrLong(ifdStream, bigTiff, v.length);
         if (bigTiff && v.length == 1) {
             ifdStream.writeInt(v[0].rawNumerator());
@@ -1141,7 +1142,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         } else {
             appendUntilEvenOffset(extraBuffer);
             writeOffsetWithAddition(ifdStream, bigTiff, additionToExtraBufferOffset, extraBuffer.offset());
-            for (TiffIFD.Rational rational : v) {
+            for (TagRational rational : v) {
                 extraBuffer.writeInt(rational.rawNumerator());
                 extraBuffer.writeInt(rational.rawDenominator());
             }
