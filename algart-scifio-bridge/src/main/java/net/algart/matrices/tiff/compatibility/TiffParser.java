@@ -35,7 +35,6 @@ import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.codecs.TiffCodec;
-import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffTileIndex;
@@ -666,10 +665,10 @@ public class TiffParser extends TiffReader {
         } else if (type == IFDType.RATIONAL || type == IFDType.SRATIONAL) {
             // Two LONGs or SLONGs: the first represents the numerator
             // of a fraction; the second, the denominator
-            if (count == 1) return new TagRational(in.readInt(), in.readInt());
-            final TagRational[] rationals = new TagRational[count];
+            if (count == 1) return TiffIFD.Rational.of(in.readInt(), in.readInt());
+            final TiffIFD.Rational[] rationals = new TiffIFD.Rational[count];
             for (int j = 0; j < count; j++) {
-                rationals[j] = new TagRational(in.readInt(), in.readInt());
+                rationals[j] = TiffIFD.Rational.of(in.readInt(), in.readInt());
             }
             return rationals;
         } else if (type == IFDType.SBYTE || type == IFDType.UNDEFINED) {

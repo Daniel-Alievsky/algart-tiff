@@ -33,7 +33,6 @@ import io.scif.util.FormatTools;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.codecs.TiffCodec;
-import net.algart.matrices.tiff.tags.TagRational;
 import org.scijava.Context;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.DataHandleService;
@@ -238,8 +237,8 @@ public class TiffSaver extends TiffWriter {
             value = new int[]{((Integer) value).intValue()};
         } else if (value instanceof Long) {
             value = new long[]{((Long) value).longValue()};
-        } else if (value instanceof TagRational) {
-            value = new TagRational[]{(TagRational) value};
+        } else if (value instanceof TiffIFD.Rational) {
+            value = new TiffIFD.Rational[]{(TiffIFD.Rational) value};
         } else if (value instanceof Float) {
             value = new float[]{((Float) value).floatValue()};
         } else if (value instanceof Double) {
@@ -315,18 +314,18 @@ public class TiffSaver extends TiffWriter {
                     writeIntValue(extraOut, l);
                 }
             }
-        } else if (value instanceof TagRational[]) { // RATIONAL
-            final TagRational[] q = (TagRational[]) value;
+        } else if (value instanceof TiffIFD.Rational[]) { // RATIONAL
+            final TiffIFD.Rational[] q = (TiffIFD.Rational[]) value;
             out.writeShort(IFDType.RATIONAL.getCode()); // type
             writeIntValue(out, q.length);
             if (bigTiff && q.length == 1) {
-                out.writeInt((int) q[0].getNumerator());
-                out.writeInt((int) q[0].getDenominator());
+                out.writeInt((int) q[0].numerator());
+                out.writeInt((int) q[0].denominator());
             } else {
                 writeIntValue(out, offset + extraOut.length());
-                for (TagRational tagRational : q) {
-                    extraOut.writeInt((int) tagRational.getNumerator());
-                    extraOut.writeInt((int) tagRational.getDenominator());
+                for (TiffIFD.Rational rational : q) {
+                    extraOut.writeInt((int) rational.numerator());
+                    extraOut.writeInt((int) rational.denominator());
                 }
             }
         } else if (value instanceof float[]) { // FLOAT
@@ -854,10 +853,10 @@ public class TiffSaver extends TiffWriter {
         ifd.putIFDValue(IFD.SAMPLES_PER_PIXEL, nChannels);
 
         if (ifd.get(IFD.X_RESOLUTION) == null) {
-            ifd.putIFDValue(IFD.X_RESOLUTION, new TagRational(1, 1));
+            ifd.putIFDValue(IFD.X_RESOLUTION, TiffIFD.Rational.of(1, 1));
         }
         if (ifd.get(IFD.Y_RESOLUTION) == null) {
-            ifd.putIFDValue(IFD.Y_RESOLUTION, new TagRational(1, 1));
+            ifd.putIFDValue(IFD.Y_RESOLUTION, TiffIFD.Rational.of(1, 1));
         }
         if (ifd.get(IFD.SOFTWARE) == null) {
             ifd.putIFDValue(IFD.SOFTWARE, "SCIFIO");

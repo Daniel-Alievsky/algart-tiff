@@ -40,7 +40,139 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 public final class TiffIFD {
-    /**
+    public enum UpdateResult {
+        UNCHANGED,
+        /**
+         * <b>Warning:</b> this variant can be used <b>only</b> if this IFD was written by {@link TiffWriter}!
+         */
+        OVERWRITE_IN_PLACE,
+        CHANGED;
+
+        public boolean isUnchanged() {
+            return this == UNCHANGED;
+        }
+
+        public boolean isRelocationNecessary() {
+            return this == CHANGED;
+        }
+    }
+
+    public enum StringFormat {
+        BRIEF(true, false),
+        NORMAL(true, false),
+        /**
+         * Note that the tags should be always sorted according TIFF 6.0 standard,
+         * but some TIFF files do not comply this rule.
+         * Besides this, unsorted IFD is possible during its construction via
+         * {@link TiffIFD#put(int, Object)} or similar methods.
+         *
+         * @see TiffIFD#isCorrectlySorted()
+         */
+        NORMAL_SORTED(true, true),
+        DETAILED(false, false),
+        JSON(false, false);
+
+        private final boolean compactArrays;
+        private final boolean sorted;
+
+        StringFormat(boolean compactArrays, boolean sorted) {
+            this.compactArrays = compactArrays;
+            this.sorted = sorted;
+        }
+
+        public boolean isBrief() {
+            return this == BRIEF;
+        }
+
+        public boolean isJson() {
+            return this == JSON;
+        }
+
+        public boolean isStrict() {
+            return this == JSON;
+        }
+    }
+
+    public static class SRational {
+        private final int numerator;
+        private final int denominator;
+
+        private SRational(int numerator, int denominator) {
+            this.numerator = numerator;
+            this.denominator = denominator;
+        }
+
+        public static SRational of(int numerator, int denominator) {
+            return new SRational(numerator, denominator);
+        }
+
+        public double doubleValue() {
+            return denominator == 0 ? Double.MAX_VALUE : ((double) numerator() / (double) denominator());
+        }
+
+        @Override
+        public String toString() {
+            return numerator() + "/" + denominator() + " (signed)";
+        }
+
+        public long numerator() {
+            return numerator;
+        }
+
+        public long denominator() {
+            return denominator;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == this) {
+                return true;
+            }
+            if (obj == null || obj.getClass() != this.getClass()) {
+                return false;
+            }
+            var that = (SRational) obj;
+            return this.numerator == that.numerator &&
+                    this.denominator == that.denominator;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(numerator, denominator);
+        }
+    }
+
+    public static class Rational extends SRational {
+        private Rational(int numerator, int denominator) {
+            super(numerator, denominator);
+        }
+
+        public static Rational of(int numerator, int denominator) {
+            return new Rational(numerator, denominator);
+        }
+
+        @Override
+        public long numerator() {
+            return super.numerator() & 0xFFFFFFFFL;
+        }
+
+        @Override
+        public long denominator() {
+            return super.denominator()  & 0xFFFFFFFFL;
+        }
+
+        @Override
+        public String toString() {
+            return numerator() + "/" + denominator();
+        }
+
+        @Override
+        public int hashCode() {
+            return super.hashCode() ^ 'U';
+        }
+    }
+
+        /**
      * An IFD with the number of entries, greater than this limit, is not allowed even in Big-TIFF:
      * it is mostly probable that it is a corrupted file.
      * Note that in regular files (not Big-TIFF) the limit is 65536 (2^16).
@@ -108,59 +240,6 @@ public final class TiffIFD {
 
     private static final long MAX_LONG_DIV_MAX_BITS_PER_PIXEL = Long.MAX_VALUE /
             (MAX_NUMBER_OF_CHANNELS * MAX_BITS_PER_SAMPLE);
-
-    public enum UpdateResult {
-        UNCHANGED,
-        /**
-         * <b>Warning:</b> this variant can be used <b>only</b> if this IFD was written by {@link TiffWriter}!
-         */
-        OVERWRITE_IN_PLACE,
-        CHANGED;
-
-        public boolean isUnchanged() {
-            return this == UNCHANGED;
-        }
-
-        public boolean isRelocationNecessary() {
-            return this == CHANGED;
-        }
-    }
-
-    public enum StringFormat {
-        BRIEF(true, false),
-        NORMAL(true, false),
-        /**
-         * Note that the tags should be always sorted according TIFF 6.0 standard,
-         * but some TIFF files do not comply this rule.
-         * Besides this, unsorted IFD is possible during its construction via
-         * {@link TiffIFD#put(int, Object)} or similar methods.
-         *
-         * @see TiffIFD#isCorrectlySorted()
-         */
-        NORMAL_SORTED(true, true),
-        DETAILED(false, false),
-        JSON(false, false);
-
-        private final boolean compactArrays;
-        private final boolean sorted;
-
-        StringFormat(boolean compactArrays, boolean sorted) {
-            this.compactArrays = compactArrays;
-            this.sorted = sorted;
-        }
-
-        public boolean isBrief() {
-            return this == BRIEF;
-        }
-
-        public boolean isJson() {
-            return this == JSON;
-        }
-
-        public boolean isStrict() {
-            return this == JSON;
-        }
-    }
 
     public record UnsupportedTypeValue(int type, int count, long valueOrOffset) {
         public UnsupportedTypeValue {
@@ -3137,7 +3216,7 @@ public final class TiffIFD {
             sb.append("[");
             appendIFDArray(sb, tagValue, false, true);
             sb.append("]");
-        } else if (tagValue instanceof TagRational) {
+        } else if (tagValue instanceof Rational) {
             sb.append("\"").append(tagValue).append("\"");
         } else if (tagValue instanceof Number || tagValue instanceof Boolean) {
             sb.append(tagValue);
@@ -3254,7 +3333,7 @@ public final class TiffIFD {
             if (mask != 0) {
                 o = ((Number) o).intValue() & mask;
             }
-            if (o instanceof String || (jsonMode && o instanceof TagRational)) {
+            if (o instanceof String || (jsonMode && o instanceof Rational)) {
                 sb.append("\"").append(o).append("\"");
             } else {
                 sb.append(o);

@@ -26,7 +26,6 @@ package net.algart.matrices.tiff;
 
 import net.algart.arrays.JArrays;
 import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tags.TagRational;
 import net.algart.matrices.tiff.tags.TagType;
 import net.algart.matrices.tiff.tags.Tags;
 import org.scijava.io.handle.BytesHandle;
@@ -546,11 +545,11 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             case RATIONAL, SRATIONAL -> {
                 // Two LONGs or SLONGs: the first represents the numerator of a fraction; the second, the denominator
                 if (count == 1) {
-                    return new TagRational(stream.readInt(), stream.readInt());
+                    return TiffIFD.Rational.of(stream.readInt(), stream.readInt());
                 }
-                final TagRational[] rationals = new TagRational[count];
+                final TiffIFD.Rational[] rationals = new TiffIFD.Rational[count];
                 for (int j = 0; j < count; j++) {
-                    rationals[j] = new TagRational(stream.readInt(), stream.readInt());
+                    rationals[j] = TiffIFD.Rational.of(stream.readInt(), stream.readInt());
                 }
                 return rationals;
             }
@@ -673,8 +672,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             value = new int[]{v};
         } else if (value instanceof Long v) {
             value = new long[]{v};
-        } else if (value instanceof TagRational v) {
-            value = new TagRational[]{v};
+        } else if (value instanceof TiffIFD.Rational v) {
+            value = new TiffIFD.Rational[]{v};
         } else if (value instanceof Float v) {
             value = new float[]{v};
         } else if (value instanceof Double v) {
@@ -856,18 +855,18 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 //                }
                 }
             }
-            case TagRational[] v -> {
+            case TiffIFD.Rational[] v -> {
                 ifdStream.writeShort(TagType.RATIONAL.type());
                 writeIntOrLong(ifdStream, bigTiff, v.length);
                 if (bigTiff && v.length == 1) {
-                    ifdStream.writeInt((int) v[0].getNumerator());
-                    ifdStream.writeInt((int) v[0].getDenominator());
+                    ifdStream.writeInt((int) v[0].numerator());
+                    ifdStream.writeInt((int) v[0].denominator());
                 } else {
                     appendUntilEvenOffset(extraBuffer);
                     writeOffsetWithAddition(ifdStream, bigTiff, additionToExtraBufferOffset, extraBuffer.offset());
-                    for (TagRational tagRational : v) {
-                        extraBuffer.writeInt((int) tagRational.getNumerator());
-                        extraBuffer.writeInt((int) tagRational.getDenominator());
+                    for (TiffIFD.Rational rational : v) {
+                        extraBuffer.writeInt((int) rational.numerator());
+                        extraBuffer.writeInt((int) rational.denominator());
                     }
                 }
             }

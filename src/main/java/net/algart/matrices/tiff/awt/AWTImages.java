@@ -36,7 +36,7 @@ import java.util.Objects;
  * A utility class with convenience methods for manipulating images in
  * {@link BufferedImage} form.
  *
- * <p>This is a reduced version of the original class <code>AWTImageTools</code>, written by Curtis Rueden.
+ * <p>This is a reworked version of the original class <code>AWTImageTools</code>, written by Curtis Rueden.
  * - Daniel Alievsky
  *
  * @author Curtis Rueden

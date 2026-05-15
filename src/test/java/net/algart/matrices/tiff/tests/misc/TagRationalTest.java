@@ -22,26 +22,29 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.codecs;
+package net.algart.matrices.tiff.tests.misc;
 
-import java.util.Objects;
+import net.algart.matrices.tiff.TiffException;
+import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.tags.Tags;
 
-/**
- * A codec which just returns the exact data it was given, performing no
- * compression or decompression.
- */
-public class UncompressedCodec implements TiffCodec {
-    @Override
-    public byte[] decompress(byte[] data, Options options) {
-        Objects.requireNonNull(data, "Null data");
-        Objects.requireNonNull(options, "Null codec options");
-        return data;
+public class TagRationalTest {
+    private static void printDescription(TiffIFD ifd) {
+        System.out.println(ifd.toString(TiffIFD.StringFormat.NORMAL));
+        System.out.println(ifd.jsonString());
+        System.out.println();
     }
 
-    @Override
-    public byte[] compress(byte[] data, Options options) {
-        Objects.requireNonNull(data, "Null data");
-        Objects.requireNonNull(options, "Null codec options");
-        return data;
+    public static void main(String[] args) throws TiffException {
+        TiffIFD ifd = new TiffIFD();
+        printDescription(ifd);
+        ifd.put(Tags.X_RESOLUTION, TiffIFD.Rational.of(72, 1));
+        ifd.put(Tags.Y_RESOLUTION, TiffIFD.Rational.of(200, 3));
+        printDescription(ifd);
+
+        ifd.put(Tags.X_POSITION, TiffIFD.SRational.of(-1, 1000));
+        ifd.put(Tags.Y_POSITION, TiffIFD.SRational.of(0, 0));
+        printDescription(ifd);
+
     }
 }
