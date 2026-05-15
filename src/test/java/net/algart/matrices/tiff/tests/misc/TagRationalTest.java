@@ -32,18 +32,22 @@ public class TagRationalTest {
     private static void printDescription(TiffIFD ifd) {
         System.out.println(ifd.toString(TiffIFD.StringFormat.NORMAL));
         System.out.println(ifd.jsonString());
+
         System.out.println();
     }
 
     public static void main(String[] args) throws TiffException {
         TiffIFD ifd = new TiffIFD();
         printDescription(ifd);
-        ifd.put(Tags.X_RESOLUTION, TiffIFD.Rational.of(72, 1));
-        ifd.put(Tags.Y_RESOLUTION, TiffIFD.Rational.of(200, 3));
+        ifd.put(Tags.X_RESOLUTION, TiffIFD.UnsignedRational.of(72, 1));
+        ifd.put(Tags.Y_RESOLUTION, TiffIFD.UnsignedRational.of(200, 3));
         printDescription(ifd);
 
-        ifd.put(Tags.X_POSITION, TiffIFD.SRational.of(-1, 1000));
-        ifd.put(Tags.Y_POSITION, TiffIFD.SRational.of(0, 0));
+        ifd.put(Tags.X_POSITION, TiffIFD.SignedRational.of(-1, 1000));
+        ifd.put(Tags.Y_POSITION, TiffIFD.SignedRational.of(-10, -10));
+        ifd.put(28157, new TiffIFD.SignedRational[] {
+                TiffIFD.SignedRational.of(0, 0),
+                TiffIFD.SignedRational.of(-1111111111, -222222222)});
         printDescription(ifd);
 
     }

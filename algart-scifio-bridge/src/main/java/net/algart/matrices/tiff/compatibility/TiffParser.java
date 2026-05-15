@@ -665,10 +665,10 @@ public class TiffParser extends TiffReader {
         } else if (type == IFDType.RATIONAL || type == IFDType.SRATIONAL) {
             // Two LONGs or SLONGs: the first represents the numerator
             // of a fraction; the second, the denominator
-            if (count == 1) return TiffIFD.Rational.of(in.readInt(), in.readInt());
-            final TiffIFD.Rational[] rationals = new TiffIFD.Rational[count];
+            if (count == 1) return TiffIFD.UnsignedRational.of(in.readInt(), in.readInt());
+            final TiffIFD.UnsignedRational[] rationals = new TiffIFD.UnsignedRational[count];
             for (int j = 0; j < count; j++) {
-                rationals[j] = TiffIFD.Rational.of(in.readInt(), in.readInt());
+                rationals[j] = TiffIFD.UnsignedRational.of(in.readInt(), in.readInt());
             }
             return rationals;
         } else if (type == IFDType.SBYTE || type == IFDType.UNDEFINED) {

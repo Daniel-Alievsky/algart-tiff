@@ -148,12 +148,12 @@ public class TiffUnpacking {
 
         final byte[] unpacked = new byte[3 * numberOfPixels];
 
-        // unpack pixels
-        // set up YCbCr-specific values
         double lumaRed = 0.299;
         double lumaGreen = 0.587;
         double lumaBlue = 0.114;
         final int[] declaredReference = ifd.getIntArray(Tags.REFERENCE_BLACK_WHITE);
+        // - getIntArray automatically converts UnsignedRational[] to the nearest int[] values
+        // (because UnsignedRational extends Number)
         final int[] reference = new int[]{0, 255, 128, 255, 128, 255};
         // - original SCIFIO code used here zero-filled array, this is incorrect
         if (declaredReference != null) {
@@ -170,8 +170,9 @@ public class TiffUnpacking {
         final double crScale = crShiftedWhite == crShiftedBlack ? 1.0 : 127.0 / (crShiftedWhite - crShiftedBlack);
         // - avoiding 0.0/0.0
         final int[] subsamplingLog = ifd.getYCbCrSubsamplingLogarithms();
-        final TiffIFD.Rational[] coefficients = ifd.getValue(Tags.Y_CB_CR_COEFFICIENTS, TiffIFD.Rational[].class)
-                .orElse(new TiffIFD.Rational[0]);
+        final TiffIFD.Rational[] coefficients = ifd.getValue(
+                Tags.Y_CB_CR_COEFFICIENTS, TiffIFD.UnsignedRational[].class)
+                .orElse(new TiffIFD.UnsignedRational[0]);
         if (coefficients.length >= 3) {
             lumaRed = coefficients[0].doubleValue();
             lumaGreen = coefficients[1].doubleValue();

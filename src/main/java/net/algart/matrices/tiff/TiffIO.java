@@ -392,7 +392,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         if (embeddedInEntry) {
             valueOffset = ifdStreamOffsetInTiffFile + ifdStream.offset();
             embedded = bigTiff ? ifdStream.readLong() : ((long) ifdStream.readInt()) & 0xFFFFFFFFL;
-        }  else {
+        } else {
             valueOffset = readOffset(ifdStream, bigTiff, ifdStreamOffsetInTiffFile, tiffFileLength, fileNameSupplier);
             embedded = valueOffset;
         }
@@ -542,14 +542,25 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     return longs;
                 }
             }
-            case RATIONAL, SRATIONAL -> {
+            case RATIONAL -> {
                 // Two LONGs or SLONGs: the first represents the numerator of a fraction; the second, the denominator
                 if (count == 1) {
-                    return TiffIFD.Rational.of(stream.readInt(), stream.readInt());
+                    return TiffIFD.UnsignedRational.ofRaw(stream.readInt(), stream.readInt());
                 }
-                final TiffIFD.Rational[] rationals = new TiffIFD.Rational[count];
+                final TiffIFD.UnsignedRational[] rationals = new TiffIFD.UnsignedRational[count];
                 for (int j = 0; j < count; j++) {
-                    rationals[j] = TiffIFD.Rational.of(stream.readInt(), stream.readInt());
+                    rationals[j] = TiffIFD.UnsignedRational.ofRaw(stream.readInt(), stream.readInt());
+                }
+                return rationals;
+            }
+            case SRATIONAL -> {
+                // Two LONGs or SLONGs: the first represents the numerator of a fraction; the second, the denominator
+                if (count == 1) {
+                    return TiffIFD.SignedRational.of(stream.readInt(), stream.readInt());
+                }
+                final TiffIFD.SignedRational[] rationals = new TiffIFD.SignedRational[count];
+                for (int j = 0; j < count; j++) {
+                    rationals[j] = TiffIFD.SignedRational.of(stream.readInt(), stream.readInt());
                 }
                 return rationals;
             }
@@ -642,7 +653,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * <p>Note: the current version <b>does not</b> use {@link TagType} information;
      * instead, the type is recognized on the base of Java type of {@code entry.getValue()}.
      * As a result, we cannot write {@link TagType#SBYTE}, {@link TagType#SSHORT},
-     * {@link TagType#SLONG}, {@link TagType#SLONG8}, {@link TagType#SRATIONAL},
+     * {@link TagType#SLONG}, {@link TagType#SLONG8},
      * {@link TagType#IFD}, {@link TagType#IFD8} types.</p>
      *
      * @param ifdStream                   the main stream where IFD entries should be written.
@@ -672,8 +683,10 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             value = new int[]{v};
         } else if (value instanceof Long v) {
             value = new long[]{v};
-        } else if (value instanceof TiffIFD.Rational v) {
-            value = new TiffIFD.Rational[]{v};
+        } else if (value instanceof TiffIFD.UnsignedRational v) {
+            value = new TiffIFD.UnsignedRational[]{v};
+        } else if (value instanceof TiffIFD.SignedRational v) {
+            value = new TiffIFD.SignedRational[]{v};
         } else if (value instanceof Float v) {
             value = new float[]{v};
         } else if (value instanceof Double v) {
@@ -855,20 +868,13 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 //                }
                 }
             }
-            case TiffIFD.Rational[] v -> {
+            case TiffIFD.UnsignedRational[] v -> {
                 ifdStream.writeShort(TagType.RATIONAL.type());
-                writeIntOrLong(ifdStream, bigTiff, v.length);
-                if (bigTiff && v.length == 1) {
-                    ifdStream.writeInt((int) v[0].numerator());
-                    ifdStream.writeInt((int) v[0].denominator());
-                } else {
-                    appendUntilEvenOffset(extraBuffer);
-                    writeOffsetWithAddition(ifdStream, bigTiff, additionToExtraBufferOffset, extraBuffer.offset());
-                    for (TiffIFD.Rational rational : v) {
-                        extraBuffer.writeInt((int) rational.numerator());
-                        extraBuffer.writeInt((int) rational.denominator());
-                    }
-                }
+                writeRationals(ifdStream, extraBuffer, bigTiff, additionToExtraBufferOffset, v);
+            }
+            case TiffIFD.SignedRational[] v -> {
+                ifdStream.writeShort(TagType.SRATIONAL.type());
+                writeRationals(ifdStream, extraBuffer, bigTiff, additionToExtraBufferOffset, v);
             }
             case float[] v -> {
                 ifdStream.writeShort(TagType.FLOAT.type());
@@ -960,7 +966,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return offset;
     }
 
-  static void skipOffset(DataHandle<?> handle, boolean bigTiff) throws IOException {
+    static void skipOffset(DataHandle<?> handle, boolean bigTiff) throws IOException {
         if (bigTiff) {
             handle.skip(8);
         } else {
@@ -1120,6 +1126,26 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     private static void writeUnsignedByte(DataHandle<?> handle, int value) throws IOException {
         checkUnsignedByte(value);
         handle.writeByte(value);
+    }
+
+    private static void writeRationals(
+            DataHandle<?> ifdStream,
+            DataHandle<?> extraBuffer,
+            boolean bigTiff,
+            long additionToExtraBufferOffset,
+            TiffIFD.Rational[] v) throws IOException {
+        writeIntOrLong(ifdStream, bigTiff, v.length);
+        if (bigTiff && v.length == 1) {
+            ifdStream.writeInt(v[0].rawNumerator());
+            ifdStream.writeInt(v[0].rawDenominator());
+        } else {
+            appendUntilEvenOffset(extraBuffer);
+            writeOffsetWithAddition(ifdStream, bigTiff, additionToExtraBufferOffset, extraBuffer.offset());
+            for (TiffIFD.Rational rational : v) {
+                extraBuffer.writeInt(rational.rawNumerator());
+                extraBuffer.writeInt(rational.rawDenominator());
+            }
+        }
     }
 
     private static byte checkUnsignedByte(int value) throws TiffException {

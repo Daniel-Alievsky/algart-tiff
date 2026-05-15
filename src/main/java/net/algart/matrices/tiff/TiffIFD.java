@@ -93,34 +93,53 @@ public final class TiffIFD {
         }
     }
 
-    public static class SRational {
-        private final int numerator;
-        private final int denominator;
+    /**
+     * Base class for representing types {@link TagType#RATIONAL} and {@link TagType#RATIONAL}.
+     *
+     * <p>Note: it extends {@link Number} class to provide correct reading some tags as
+     * {@link Tags#REFERENCE_BLACK_WHITE} as numeric values
+     * (this is used in {@link net.algart.matrices.tiff.data.TiffUnpacking#separateYCbCrToRGB}).
+     *
+     */
+    public static abstract class Rational extends Number {
+        private final int rawNumerator;
+        private final int rawDenominator;
 
-        private SRational(int numerator, int denominator) {
-            this.numerator = numerator;
-            this.denominator = denominator;
+        private Rational(int rawNumerator, int rawDenominator) {
+            this.rawNumerator = rawNumerator;
+            this.rawDenominator = rawDenominator;
         }
 
-        public static SRational of(int numerator, int denominator) {
-            return new SRational(numerator, denominator);
+        public int intValue() {
+            return rawDenominator == 0 ? Integer.MAX_VALUE : (int) doubleValue();
+        }
+
+        public long longValue() {
+            return rawDenominator == 0 ? Long.MAX_VALUE : (long) doubleValue();
+        }
+
+        public float floatValue() {
+            return (float) doubleValue();
         }
 
         public double doubleValue() {
-            return denominator == 0 ? Double.MAX_VALUE : ((double) numerator() / (double) denominator());
+            return rawDenominator == 0 ? Double.MAX_VALUE : ((double) numerator() / (double) denominator());
         }
 
-        @Override
-        public String toString() {
-            return numerator() + "/" + denominator() + " (signed)";
+        public int rawNumerator() {
+            return rawNumerator;
         }
 
-        public long numerator() {
-            return numerator;
+        public int rawDenominator() {
+            return rawDenominator;
         }
 
-        public long denominator() {
-            return denominator;
+        public abstract long numerator();
+
+        public abstract long denominator();
+
+        public String mathString() {
+            return numerator() + "/" + denominator();
         }
 
         @Override
@@ -131,39 +150,80 @@ public final class TiffIFD {
             if (obj == null || obj.getClass() != this.getClass()) {
                 return false;
             }
-            var that = (SRational) obj;
-            return this.numerator == that.numerator &&
-                    this.denominator == that.denominator;
+            final Rational that = (Rational) obj;
+            return this.rawNumerator == that.rawNumerator && this.rawDenominator == that.rawDenominator;
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(numerator, denominator);
+            return Objects.hash(rawNumerator, rawDenominator);
         }
     }
 
-    public static class Rational extends SRational {
-        private Rational(int numerator, int denominator) {
-            super(numerator, denominator);
+    public static class SignedRational extends Rational {
+        private SignedRational(int signedNumerator, int signedDenominator) {
+            super(signedNumerator, signedDenominator);
         }
 
-        public static Rational of(int numerator, int denominator) {
-            return new Rational(numerator, denominator);
+        public static SignedRational of(int signedNumerator, int signedDenominator) {
+            return new SignedRational(signedNumerator, signedDenominator);
         }
 
         @Override
         public long numerator() {
-            return super.numerator() & 0xFFFFFFFFL;
+            return rawNumerator();
         }
 
         @Override
         public long denominator() {
-            return super.denominator()  & 0xFFFFFFFFL;
+            return rawDenominator();
         }
 
         @Override
         public String toString() {
-            return numerator() + "/" + denominator();
+            return numerator() + "/" + denominator() + " (signed " + doubleValue() + ")";
+        }
+
+        @Override
+        public int hashCode() {
+            return super.hashCode() ^ 'S';
+        }
+    }
+
+    public static class UnsignedRational extends Rational {
+        private UnsignedRational(int unsignedNumerator, int unsignedDenominator) {
+            super(unsignedNumerator, unsignedDenominator);
+        }
+
+        public static UnsignedRational ofRaw(int unsignedNumerator, int unsignedDenominator) {
+            return new UnsignedRational(unsignedNumerator, unsignedDenominator);
+        }
+
+        public static UnsignedRational of(long unsignedNumerator, long unsignedDenominator) {
+            if (unsignedNumerator < 0 || unsignedNumerator > 0xFFFFFFFFL) {
+                throw new IllegalArgumentException("Unsigned 32-bit numerator = " + unsignedNumerator +
+                        " is out of range 0..2^32-1");
+            }
+            if (unsignedDenominator < 0 || unsignedDenominator > 0xFFFFFFFFL) {
+                throw new IllegalArgumentException("Unsigned 32-bit denominator = " + unsignedDenominator +
+                        " is out of range 0..2^32-1");
+            }
+            return new UnsignedRational((int) unsignedNumerator, (int) unsignedDenominator);
+        }
+
+        @Override
+        public long numerator() {
+            return rawNumerator() & 0xFFFFFFFFL;
+        }
+
+        @Override
+        public long denominator() {
+            return rawDenominator() & 0xFFFFFFFFL;
+        }
+
+        @Override
+        public String toString() {
+            return numerator() + "/" + denominator() + " (unsigned " + doubleValue() + ")";
         }
 
         @Override
@@ -172,7 +232,7 @@ public final class TiffIFD {
         }
     }
 
-        /**
+    /**
      * An IFD with the number of entries, greater than this limit, is not allowed even in Big-TIFF:
      * it is mostly probable that it is a corrupted file.
      * Note that in regular files (not Big-TIFF) the limit is 65536 (2^16).
@@ -2480,8 +2540,13 @@ public final class TiffIFD {
      *       exceeding 0xFFFF is automatically promoted to {@link TagType#LONG}.</li>
      *   <li><b>{@code Long} or {@code long[]}</b>: mapped to {@link TagType#LONG}
      *       (unsigned 32-bit) or {@link TagType#LONG8} for BigTIFF files.</li>
-     *   <li><b>{@code TagRational} or {@code TagRational[]}</b>: mapped to
+     *   <li><b>{@link UnsignedRational UnsignedRational} or
+     *   <code>{@link UnsignedRational UnsignedRational}[]</code></b>: mapped to
      *       {@link TagType#RATIONAL} (pairs of unsigned 32-bit integers).</li>
+     *   <li><b>{@link SignedRational SignedRational} or
+     *   <code>{@link SignedRational SignedRational}[]</code></b>:
+     *   mapped to
+     *       {@link TagType#SRATIONAL} (pairs of signed 32-bit integers).</li>
      *   <li><b>{@code Float} or {@code float[]}</b>: mapped to {@link TagType#FLOAT}
      *       (32-bit IEEE floating point).</li>
      *   <li><b>{@code Double} or {@code double[]}</b>: mapped to {@link TagType#DOUBLE}
@@ -2501,7 +2566,7 @@ public final class TiffIFD {
      *
      * <p>Note that the current version of {@link TiffWriter} <b>never writes</b>
      * the following (very rare) tag types: {@link TagType#SBYTE}, {@link TagType#SSHORT},
-     * {@link TagType#SLONG}, {@link TagType#SLONG8}, {@link TagType#SRATIONAL},
+     * {@link TagType#SLONG}, {@link TagType#SLONG8},
      * {@link TagType#IFD}, {@link TagType#IFD8}. While they are successfully
      * recognized by {@link TiffReader}, an attempt to write them to a new TIFF file
      * will probably result in their conversion to one of the types mentioned above
@@ -3216,8 +3281,8 @@ public final class TiffIFD {
             sb.append("[");
             appendIFDArray(sb, tagValue, false, true);
             sb.append("]");
-        } else if (tagValue instanceof Rational) {
-            sb.append("\"").append(tagValue).append("\"");
+        } else if (tagValue instanceof Rational rational) {
+            sb.append("\"").append(rational.mathString()).append("\"");
         } else if (tagValue instanceof Number || tagValue instanceof Boolean) {
             sb.append(tagValue);
         } else {
@@ -3308,6 +3373,7 @@ public final class TiffIFD {
                 v instanceof int[] || v instanceof long[] ||
                 v instanceof float[] || v instanceof double[] ||
                 v instanceof Number[];
+        // - in particular, Rational[]
         if (!numeric && jsonMode) {
             // Note: we don't try to correctly include into JSON strings and other complex values
             return;
@@ -3333,7 +3399,13 @@ public final class TiffIFD {
             if (mask != 0) {
                 o = ((Number) o).intValue() & mask;
             }
-            if (o instanceof String || (jsonMode && o instanceof Rational)) {
+            if (o instanceof Rational rational) {
+                if (jsonMode) {
+                    sb.append("\"").append(rational.mathString()).append("\"");
+                } else {
+                    sb.append(rational.mathString());
+                }
+            } else if (o instanceof String) {
                 sb.append("\"").append(o).append("\"");
             } else {
                 sb.append(o);

@@ -95,6 +95,17 @@ public class TiffWriteMixedTest {
 //            ifd.putPhotometricInterpretation(TagPhotometricInterpretation.WHITE_IS_ZERO);
             ifd.put(Tags.BITS_PER_SAMPLE, bitsPerSample);
             ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_UINT);
+            ifd.put(Tags.X_RESOLUTION, TiffIFD.UnsignedRational.of(72, 1));
+            ifd.put(Tags.Y_RESOLUTION, TiffIFD.UnsignedRational.of(72, 1));
+            ifd.put(15701, TiffIFD.SignedRational.of(-1, 1000));
+            ifd.put(15702, TiffIFD.SignedRational.of(-100, -10));
+            ifd.put(15703, TiffIFD.UnsignedRational.of(1, 0xFFFFFFFEL));
+            ifd.put(15728, new TiffIFD.SignedRational[] {
+                    TiffIFD.SignedRational.of(0, 0),
+                    TiffIFD.SignedRational.of(-1111111111, -222222222)});
+            ifd.put(15729, new TiffIFD.UnsignedRational[] {
+                    TiffIFD.UnsignedRational.of(0, 0),
+                    TiffIFD.UnsignedRational.of(0xFFFFFFFEL, 12)});
             ifd.putDescription("  ");
             // - you can comment or change the options above for thorough testing
 //            ifd.put(Tags.PHOTOMETRIC_INTERPRETATION, 8);
@@ -140,6 +151,9 @@ public class TiffWriteMixedTest {
             n = writer.completeWriting(map);
             System.out.printf("2nd: %d tiles written while the final completion%n", n);
             // - we can call complete twice, it will spend little time for rewriting IFD, but has no effect
+
+            // Note: the result will contain a lot of identical "empty" files;
+            // after an attempt to "compact" this file will really increase the size!
 
             // writer.writeJavaArray(map, samples, 0, 0, sizeX, sizeY);
             // - equivalent to previous 3 TiffWriter methods
