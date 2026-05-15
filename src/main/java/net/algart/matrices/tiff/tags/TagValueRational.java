@@ -34,11 +34,11 @@ import java.util.Objects;
  * (this is used in {@link net.algart.matrices.tiff.data.TiffUnpacking#separateYCbCrToRGB}).
  *
  */
-public abstract class TagRational extends Number {
+public abstract class TagValueRational extends Number {
     private final int rawNumerator;
     private final int rawDenominator;
 
-    private TagRational(int rawNumerator, int rawDenominator) {
+    private TagValueRational(int rawNumerator, int rawDenominator) {
         this.rawNumerator = rawNumerator;
         this.rawDenominator = rawDenominator;
     }
@@ -71,6 +71,8 @@ public abstract class TagRational extends Number {
 
     public abstract long denominator();
 
+    public abstract TagType type();
+
     public String mathString() {
         return numerator() + "/" + denominator();
     }
@@ -83,7 +85,7 @@ public abstract class TagRational extends Number {
         if (obj == null || obj.getClass() != this.getClass()) {
             return false;
         }
-        final TagRational that = (TagRational) obj;
+        final TagValueRational that = (TagValueRational) obj;
         return this.rawNumerator == that.rawNumerator && this.rawDenominator == that.rawDenominator;
     }
 
@@ -92,7 +94,7 @@ public abstract class TagRational extends Number {
         return Objects.hash(rawNumerator, rawDenominator);
     }
 
-    public static class Unsigned extends TagRational {
+    public static class Unsigned extends TagValueRational {
         private Unsigned(int unsignedNumerator, int unsignedDenominator) {
             super(unsignedNumerator, unsignedDenominator);
         }
@@ -124,6 +126,11 @@ public abstract class TagRational extends Number {
         }
 
         @Override
+        public TagType type() {
+            return TagType.RATIONAL;
+        }
+
+        @Override
         public String toString() {
             return numerator() + "/" + denominator() + " (unsigned " + doubleValue() + ")";
         }
@@ -134,7 +141,7 @@ public abstract class TagRational extends Number {
         }
     }
 
-    public static class Signed extends TagRational {
+    public static class Signed extends TagValueRational {
         private Signed(int signedNumerator, int signedDenominator) {
             super(signedNumerator, signedDenominator);
         }
@@ -151,6 +158,11 @@ public abstract class TagRational extends Number {
         @Override
         public long denominator() {
             return rawDenominator();
+        }
+
+        @Override
+        public TagType type() {
+            return TagType.SRATIONAL;
         }
 
         @Override

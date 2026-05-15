@@ -24,7 +24,7 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
-import net.algart.matrices.tiff.tags.TagRational;
+import net.algart.matrices.tiff.tags.TagValueRational;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.tags.Tags;
@@ -40,15 +40,15 @@ public class TagRationalTest {
     public static void main(String[] args) throws TiffException {
         TiffIFD ifd = new TiffIFD();
         printDescription(ifd);
-        ifd.put(Tags.X_RESOLUTION, TagRational.Unsigned.of(72, 1));
-        ifd.put(Tags.Y_RESOLUTION, TagRational.Unsigned.of(200, 3));
+        ifd.put(Tags.X_RESOLUTION, TagValueRational.Unsigned.of(72, 1));
+        ifd.put(Tags.Y_RESOLUTION, TagValueRational.Unsigned.of(200, 3));
         printDescription(ifd);
 
-        ifd.put(Tags.X_POSITION, TagRational.Signed.of(-1, 1000));
-        ifd.put(Tags.Y_POSITION, TagRational.Signed.of(-10, -10));
-        ifd.put(28157, new TagRational.Signed[] {
-                TagRational.Signed.of(0, 0),
-                TagRational.Signed.of(-1111111111, -222222222)});
+        ifd.put(Tags.X_POSITION, TagValueRational.Signed.of(-1, 1000));
+        ifd.put(Tags.Y_POSITION, TagValueRational.Signed.of(-10, -10));
+        ifd.put(28157, new TagValueRational.Signed[] {
+                TagValueRational.Signed.of(0, 0),
+                TagValueRational.Signed.of(-1111111111, -222222222)});
         printDescription(ifd);
 
     }

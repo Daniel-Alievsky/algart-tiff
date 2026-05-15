@@ -2401,11 +2401,11 @@ public final class TiffIFD {
      *       exceeding 0xFFFF is automatically promoted to {@link TagType#LONG}.</li>
      *   <li><b>{@code Long} or {@code long[]}</b>: mapped to {@link TagType#LONG}
      *       (unsigned 32-bit) or {@link TagType#LONG8} for BigTIFF files.</li>
-     *   <li><b>{@link TagRational.Unsigned TagRational.Unsigned} or
-     *   <code>{@link TagRational.Unsigned TagRational.Unsigned}[]</code></b>: mapped to
+     *   <li><b>{@link TagValueRational.Unsigned TagValueRational.Unsigned} or
+     *   <code>{@link TagValueRational.Unsigned TagValueRational.Unsigned}[]</code></b>: mapped to
      *       {@link TagType#RATIONAL} (pairs of unsigned 32-bit integers).</li>
-     *   <li><b>{@link TagRational.Signed TagRational.Signed} or
-     *   <code>{@link TagRational.Signed TagRational.Signed}[]</code></b>:
+     *   <li><b>{@link TagValueRational.Signed TagValueRational.Signed} or
+     *   <code>{@link TagValueRational.Signed TagValueRational.Signed}[]</code></b>:
      *   mapped to
      *       {@link TagType#SRATIONAL} (pairs of signed 32-bit integers).</li>
      *   <li><b>{@code Float} or {@code float[]}</b>: mapped to {@link TagType#FLOAT}
@@ -3142,7 +3142,7 @@ public final class TiffIFD {
             sb.append("[");
             appendIFDArray(sb, tagValue, false, true);
             sb.append("]");
-        } else if (tagValue instanceof TagRational rational) {
+        } else if (tagValue instanceof TagValueRational rational) {
             sb.append("\"").append(rational.mathString()).append("\"");
         } else if (tagValue instanceof Number || tagValue instanceof Boolean) {
             sb.append(tagValue);
@@ -3260,7 +3260,7 @@ public final class TiffIFD {
             if (mask != 0) {
                 o = ((Number) o).intValue() & mask;
             }
-            if (o instanceof TagRational rational) {
+            if (o instanceof TagValueRational rational) {
                 if (jsonMode) {
                     sb.append("\"").append(rational.mathString()).append("\"");
                 } else {
