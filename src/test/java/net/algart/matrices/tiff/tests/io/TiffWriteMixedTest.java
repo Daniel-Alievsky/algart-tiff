@@ -89,7 +89,7 @@ public class TiffWriteMixedTest {
             ifd.putImageDimensions(IMAGE_WIDTH, IMAGE_HEIGHT);
             ifd.putNumberOfChannels(numberOfChannels);
             ifd.putTileSizes(256, 256);
-            ifd.putCompression(TagCompression.DEFLATE);
+            ifd.putCompression(TagCompression.NONE);
 //            ifd.putPhotometricInterpretation(TagPhotometricInterpretation.WHITE_IS_ZERO);
             ifd.put(Tags.BITS_PER_SAMPLE, bitsPerSample);
             ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_UINT);
