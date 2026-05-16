@@ -26,13 +26,10 @@ package net.algart.matrices.tiff.data;
 
 import net.algart.arrays.JArrays;
 import net.algart.arrays.PackedBitArraysPer8;
-import net.algart.matrices.tiff.tags.TagValueRational;
+import net.algart.matrices.tiff.tags.*;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.UnsupportedTiffFormatException;
-import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tags.TagPhotometric;
-import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 
@@ -171,9 +168,9 @@ public class TiffUnpacking {
         final double crScale = crShiftedWhite == crShiftedBlack ? 1.0 : 127.0 / (crShiftedWhite - crShiftedBlack);
         // - avoiding 0.0/0.0
         final int[] subsamplingLog = ifd.getYCbCrSubsamplingLogarithms();
-        final TagValueRational[] coefficients = ifd.getValue(
-                Tags.Y_CB_CR_COEFFICIENTS, TagValueRational.Unsigned[].class)
-                .orElse(new TagValueRational.Unsigned[0]);
+        final TagValue.Rational[] coefficients = ifd.getValue(
+                Tags.Y_CB_CR_COEFFICIENTS, TagValue.Rational.Unsigned[].class)
+                .orElse(new TagValue.Rational.Unsigned[0]);
         if (coefficients.length >= 3) {
             lumaRed = coefficients[0].doubleValue();
             lumaGreen = coefficients[1].doubleValue();

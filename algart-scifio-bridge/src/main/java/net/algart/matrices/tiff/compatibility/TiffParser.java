@@ -31,7 +31,7 @@ import io.scif.common.Constants;
 import io.scif.enumeration.EnumException;
 import io.scif.formats.tiff.*;
 import net.algart.arrays.PackedBitArraysPer8;
-import net.algart.matrices.tiff.tags.TagValueRational;
+import net.algart.matrices.tiff.tags.TagValue;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
@@ -666,10 +666,10 @@ public class TiffParser extends TiffReader {
         } else if (type == IFDType.RATIONAL || type == IFDType.SRATIONAL) {
             // Two LONGs or SLONGs: the first represents the numerator
             // of a fraction; the second, the denominator
-            if (count == 1) return TagValueRational.Unsigned.of(in.readInt(), in.readInt());
-            final TagValueRational.Unsigned[] rationals = new TagValueRational.Unsigned[count];
+            if (count == 1) return TagValue.Rational.Unsigned.of(in.readInt(), in.readInt());
+            final TagValue.Rational.Unsigned[] rationals = new TagValue.Rational.Unsigned[count];
             for (int j = 0; j < count; j++) {
-                rationals[j] = TagValueRational.Unsigned.of(in.readInt(), in.readInt());
+                rationals[j] = TagValue.Rational.Unsigned.of(in.readInt(), in.readInt());
             }
             return rationals;
         } else if (type == IFDType.SBYTE || type == IFDType.UNDEFINED) {

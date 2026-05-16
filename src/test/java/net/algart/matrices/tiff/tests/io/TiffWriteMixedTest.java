@@ -26,7 +26,7 @@ package net.algart.matrices.tiff.tests.io;
 
 import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tags.TagValueRational;
+import net.algart.matrices.tiff.tags.TagValue;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
@@ -93,17 +93,17 @@ public class TiffWriteMixedTest {
 //            ifd.putPhotometricInterpretation(TagPhotometricInterpretation.WHITE_IS_ZERO);
             ifd.put(Tags.BITS_PER_SAMPLE, bitsPerSample);
             ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_UINT);
-            ifd.put(Tags.X_RESOLUTION, TagValueRational.Unsigned.of(72, 1));
-            ifd.put(Tags.Y_RESOLUTION, TagValueRational.Unsigned.of(72, 1));
-            ifd.put(15701, TagValueRational.Signed.of(-1, 1000));
-            ifd.put(15702, TagValueRational.Signed.of(-100, -10));
-            ifd.put(15703, TagValueRational.Unsigned.of(1, 0xFFFFFFFEL));
-            ifd.put(15728, new TagValueRational.Signed[] {
-                    TagValueRational.Signed.of(0, 0),
-                    TagValueRational.Signed.of(-1111111111, -222222222)});
-            ifd.put(15729, new TagValueRational.Unsigned[] {
-                    TagValueRational.Unsigned.of(0, 0),
-                    TagValueRational.Unsigned.of(0xFFFFFFFEL, 12)});
+            ifd.put(Tags.X_RESOLUTION, TagValue.Rational.Unsigned.of(72, 1));
+            ifd.put(Tags.Y_RESOLUTION, TagValue.Rational.Unsigned.of(72, 1));
+            ifd.put(15701, TagValue.Rational.Signed.of(-1, 1000));
+            ifd.put(15702, TagValue.Rational.Signed.of(-100, -10));
+            ifd.put(15703, TagValue.Rational.Unsigned.of(1, 0xFFFFFFFEL));
+            ifd.put(15728, new TagValue.Rational.Signed[] {
+                    TagValue.Rational.Signed.of(0, 0),
+                    TagValue.Rational.Signed.of(-1111111111, -222222222)});
+            ifd.put(15729, new TagValue.Rational.Unsigned[] {
+                    TagValue.Rational.Unsigned.of(0, 0),
+                    TagValue.Rational.Unsigned.of(0xFFFFFFFEL, 12)});
             ifd.putDescription("  ");
             // - you can comment or change the options above for thorough testing
 //            ifd.put(Tags.PHOTOMETRIC_INTERPRETATION, 8);

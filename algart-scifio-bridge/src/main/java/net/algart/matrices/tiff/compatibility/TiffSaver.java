@@ -30,7 +30,7 @@ import io.scif.codec.CodecOptions;
 import io.scif.formats.tiff.*;
 import io.scif.formats.tiff.TiffParser;
 import io.scif.util.FormatTools;
-import net.algart.matrices.tiff.tags.TagValueRational;
+import net.algart.matrices.tiff.tags.TagValue;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.codecs.TiffCodec;
@@ -238,8 +238,8 @@ public class TiffSaver extends TiffWriter {
             value = new int[]{((Integer) value).intValue()};
         } else if (value instanceof Long) {
             value = new long[]{((Long) value).longValue()};
-        } else if (value instanceof TagValueRational.Unsigned) {
-            value = new TagValueRational.Unsigned[]{(TagValueRational.Unsigned) value};
+        } else if (value instanceof TagValue.Rational.Unsigned) {
+            value = new TagValue.Rational.Unsigned[]{(TagValue.Rational.Unsigned) value};
         } else if (value instanceof Float) {
             value = new float[]{((Float) value).floatValue()};
         } else if (value instanceof Double) {
@@ -315,8 +315,8 @@ public class TiffSaver extends TiffWriter {
                     writeIntValue(extraOut, l);
                 }
             }
-        } else if (value instanceof TagValueRational.Unsigned[]) { // RATIONAL
-            final TagValueRational.Unsigned[] q = (TagValueRational.Unsigned[]) value;
+        } else if (value instanceof TagValue.Rational.Unsigned[]) { // RATIONAL
+            final TagValue.Rational.Unsigned[] q = (TagValue.Rational.Unsigned[]) value;
             out.writeShort(IFDType.RATIONAL.getCode()); // type
             writeIntValue(out, q.length);
             if (bigTiff && q.length == 1) {
@@ -324,7 +324,7 @@ public class TiffSaver extends TiffWriter {
                 out.writeInt((int) q[0].denominator());
             } else {
                 writeIntValue(out, offset + extraOut.length());
-                for (TagValueRational.Unsigned rational : q) {
+                for (TagValue.Rational.Unsigned rational : q) {
                     extraOut.writeInt((int) rational.numerator());
                     extraOut.writeInt((int) rational.denominator());
                 }
@@ -854,10 +854,10 @@ public class TiffSaver extends TiffWriter {
         ifd.putIFDValue(IFD.SAMPLES_PER_PIXEL, nChannels);
 
         if (ifd.get(IFD.X_RESOLUTION) == null) {
-            ifd.putIFDValue(IFD.X_RESOLUTION, TagValueRational.Unsigned.of(1, 1));
+            ifd.putIFDValue(IFD.X_RESOLUTION, TagValue.Rational.Unsigned.of(1, 1));
         }
         if (ifd.get(IFD.Y_RESOLUTION) == null) {
-            ifd.putIFDValue(IFD.Y_RESOLUTION, TagValueRational.Unsigned.of(1, 1));
+            ifd.putIFDValue(IFD.Y_RESOLUTION, TagValue.Rational.Unsigned.of(1, 1));
         }
         if (ifd.get(IFD.SOFTWARE) == null) {
             ifd.putIFDValue(IFD.SOFTWARE, "SCIFIO");
