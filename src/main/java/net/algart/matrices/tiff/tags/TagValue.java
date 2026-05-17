@@ -193,10 +193,8 @@ public interface TagValue {
         }
 
         public String toString() {
-            return mathString()
-                    + " (IFD 32-bit offset)";
+            return mathString() + " (32-bit IFD offset)";
         }
-
     }
 
     class IFD8 extends RawInteger {
@@ -211,6 +209,10 @@ public interface TagValue {
         @Override
         public String mathString() {
             return Long.toUnsignedString(longValue());
+        }
+
+        public String toString() {
+            return mathString() + " (64-bit IFD offset)";
         }
     }
 
@@ -306,7 +308,7 @@ public interface TagValue {
 
         @Override
         public final String toString() {
-            return numerator() + "/" + denominator() + (signed ? "( signed" : " (unsigned ") + doubleValue() + ")";
+            return numerator() + "/" + denominator() + (signed ? " (signed " : " (unsigned ") + doubleValue() + ")";
         }
     }
 

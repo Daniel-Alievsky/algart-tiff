@@ -3373,7 +3373,7 @@ public final class TiffIFD {
             if (valueOffset < 0) {
                 throw new IllegalArgumentException("Negative valueOffset = " + valueOffset);
             }
-            if (type != null && type.type() != rawType) {
+            if (type != null && type.typeCode() != rawType) {
                 throw new IllegalArgumentException("Type mismatch: type = " + type +
                         ", rawType = " + TagType.toString(rawType));
             }

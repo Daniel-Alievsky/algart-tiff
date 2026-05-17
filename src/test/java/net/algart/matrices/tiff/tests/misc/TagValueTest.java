@@ -24,9 +24,10 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
-import net.algart.matrices.tiff.tags.TagValue;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.tags.TagType;
+import net.algart.matrices.tiff.tags.TagValue;
 import net.algart.matrices.tiff.tags.Tags;
 
 public class TagValueTest {
@@ -37,31 +38,40 @@ public class TagValueTest {
         System.out.println();
     }
 
+    private static TagValue check(TagValue value, TagType type) {
+        if (value.type() != type) {
+            throw new AssertionError("Invalid type: " + type);
+        }
+        return value;
+    }
+
     public static void main(String[] args) throws TiffException {
         TiffIFD ifd = new TiffIFD();
         printDescription(ifd);
-        ifd.put(Tags.X_RESOLUTION, TagValue.Rational.of(72, 1));
+        ifd.put(Tags.X_RESOLUTION,
+                check(TagValue.Rational.of(72, 1), TagType.RATIONAL));
         ifd.put(Tags.Y_RESOLUTION, TagValue.Rational.of(200, 3));
         printDescription(ifd);
 
-        ifd.put(Tags.X_POSITION, TagValue.SRational.of(-1, 1000));
+        ifd.put(Tags.X_POSITION,
+                check(TagValue.SRational.of(-1, 1000), TagType.SRATIONAL));
         ifd.put(Tags.Y_POSITION, TagValue.SRational.of(-10, -10));
         ifd.put(28157, new TagValue.SRational[] {
                 TagValue.SRational.of(0, 0),
                 TagValue.SRational.of(-1111111111, -222222222)});
         printDescription(ifd);
 
-        ifd.put(10001, TagValue.SByte.of(-1));
+        ifd.put(10001, check(TagValue.SByte.of(-1), TagType.SBYTE));
         ifd.put(10002, new TagValue.SByte[] {TagValue.SByte.of(-1), TagValue.SByte.of(124)});
-        ifd.put(10011, TagValue.SShort.of(-1));
+        ifd.put(10011, check(TagValue.SShort.of(-1), TagType.SSHORT));
         ifd.put(10012, new TagValue.SShort[] {TagValue.SShort.of(-1), TagValue.SShort.of(14444)});
-        ifd.put(10021, TagValue.SLong.of(-100000000));
+        ifd.put(10021, check(TagValue.SLong.of(-100000000), TagType.SLONG));
         ifd.put(10022, new TagValue.SLong[] {TagValue.SLong.of(-1), TagValue.SLong.of(14444)});
-        ifd.put(10031, TagValue.SLong8.of(-100000000000L));
+        ifd.put(10031, check(TagValue.SLong8.of(-100000000000L), TagType.SLONG8));
         ifd.put(10032, new TagValue.SLong8[] {TagValue.SLong8.of(10000000000L), TagValue.SLong8.of(-1)});
-        ifd.put(10041, TagValue.IFD.of(0xFFFFFFFEL));
+        ifd.put(10041, check(TagValue.IFD.of(0xFFFFFFFEL), TagType.IFD));
         ifd.put(10042, new TagValue.IFD[] {TagValue.IFD.of(100000000), TagValue.IFD.of(0)});
-        ifd.put(10051, TagValue.IFD8.of(-100000000000L));
+        ifd.put(10051, check(TagValue.IFD8.of(-100000000000L), TagType.IFD8));
         ifd.put(10052, new TagValue.IFD8[] {TagValue.IFD8.of(10000000000L), TagValue.IFD8.of(-1)});
         printDescription(ifd);
     }
