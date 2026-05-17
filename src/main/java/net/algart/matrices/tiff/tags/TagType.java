@@ -198,13 +198,14 @@ public enum TagType {
         return fromTypeCode(type).map(Enum::name).orElseGet(() -> "Unknown type (" + type + ")");
     }
 
-    public static Optional<TagType> fromJavaType(Class<?> javaType, boolean replaceWithBigTiffVersionForPrimitive) {
+    public static Optional<TagType> fromJavaType(Class<?> javaType, boolean smartReplaceWithBigTiffVersion) {
         Objects.requireNonNull(javaType, "Null javaType");
         TagType tagType = CLASS_LOOKUP.get(javaType);
-        if (tagType != null && replaceWithBigTiffVersionForPrimitive) {
-            if (!TagValue.class.isAssignableFrom(javaType) && !TagValue[].class.isAssignableFrom(javaType)) {
-                tagType = tagType.bigTiffVersion();
-            }
+        if (smartReplaceWithBigTiffVersion && tagType == LONG) {
+            // LONG (unsigned int32), represented by Java long[], should be replaced with LONG8 in BigTIFF
+            // IFD (unsigned int32), represented by Java TagValue.IFD[], should be replaced with IFD8 in BigTIFF
+            //TODO!! also IFD
+            tagType = tagType.bigTiffVersion();
         }
         return Optional.ofNullable(tagType);
     }
