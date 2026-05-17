@@ -137,11 +137,11 @@ public interface TagValue {
      * {@link Tags#REFERENCE_BLACK_WHITE} as numeric values
      * (this is used in {@link net.algart.matrices.tiff.data.TiffUnpacking#separateYCbCrToRGB}).
      */
-    abstract class Rational extends Number implements TagValue {
+    abstract class RawRational extends Number implements TagValue {
         private final int rawNumerator;
         private final int rawDenominator;
 
-        private Rational(int rawNumerator, int rawDenominator) {
+        private RawRational(int rawNumerator, int rawDenominator) {
             this.rawNumerator = rawNumerator;
             this.rawDenominator = rawDenominator;
         }
@@ -188,7 +188,7 @@ public interface TagValue {
             if (obj == null || obj.getClass() != this.getClass()) {
                 return false;
             }
-            final Rational that = (Rational) obj;
+            final RawRational that = (RawRational) obj;
             return this.rawNumerator == that.rawNumerator && this.rawDenominator == that.rawDenominator;
         }
 
@@ -197,86 +197,87 @@ public interface TagValue {
             return Objects.hash(rawNumerator, rawDenominator);
         }
 
-        public static class Unsigned extends Rational {
-            private Unsigned(int unsignedNumerator, int unsignedDenominator) {
-                super(unsignedNumerator, unsignedDenominator);
-            }
+    }
 
-            public static Unsigned ofRaw(int unsignedNumerator, int unsignedDenominator) {
-                return new Unsigned(unsignedNumerator, unsignedDenominator);
-            }
-
-            public static Unsigned of(long unsignedNumerator, long unsignedDenominator) {
-                if (unsignedNumerator < 0 || unsignedNumerator > 0xFFFFFFFFL) {
-                    throw new IllegalArgumentException("Unsigned 32-bit numerator = " + unsignedNumerator +
-                            " is out of range 0..2^32-1");
-                }
-                if (unsignedDenominator < 0 || unsignedDenominator > 0xFFFFFFFFL) {
-                    throw new IllegalArgumentException("Unsigned 32-bit denominator = " + unsignedDenominator +
-                            " is out of range 0..2^32-1");
-                }
-                return new Unsigned((int) unsignedNumerator, (int) unsignedDenominator);
-            }
-
-            @Override
-            public long numerator() {
-                return rawNumerator() & 0xFFFFFFFFL;
-            }
-
-            @Override
-            public long denominator() {
-                return rawDenominator() & 0xFFFFFFFFL;
-            }
-
-            @Override
-            public TagType type() {
-                return TagType.RATIONAL;
-            }
-
-            @Override
-            public String toString() {
-                return numerator() + "/" + denominator() + " (unsigned " + doubleValue() + ")";
-            }
-
-            @Override
-            public int hashCode() {
-                return super.hashCode() ^ 'U';
-            }
+    class Rational extends RawRational {
+        private Rational(int unsignedNumerator, int unsignedDenominator) {
+            super(unsignedNumerator, unsignedDenominator);
         }
 
-        public static class Signed extends Rational {
-            private Signed(int signedNumerator, int signedDenominator) {
-                super(signedNumerator, signedDenominator);
-            }
+        public static Rational ofRaw(int unsignedNumerator, int unsignedDenominator) {
+            return new Rational(unsignedNumerator, unsignedDenominator);
+        }
 
-            public static Signed of(int signedNumerator, int signedDenominator) {
-                return new Signed(signedNumerator, signedDenominator);
+        public static Rational of(long unsignedNumerator, long unsignedDenominator) {
+            if (unsignedNumerator < 0 || unsignedNumerator > 0xFFFFFFFFL) {
+                throw new IllegalArgumentException("Unsigned 32-bit numerator = " + unsignedNumerator +
+                        " is out of range 0..2^32-1");
             }
+            if (unsignedDenominator < 0 || unsignedDenominator > 0xFFFFFFFFL) {
+                throw new IllegalArgumentException("Unsigned 32-bit denominator = " + unsignedDenominator +
+                        " is out of range 0..2^32-1");
+            }
+            return new Rational((int) unsignedNumerator, (int) unsignedDenominator);
+        }
 
-            @Override
-            public long numerator() {
-                return rawNumerator();
-            }
+        @Override
+        public long numerator() {
+            return rawNumerator() & 0xFFFFFFFFL;
+        }
 
-            @Override
-            public long denominator() {
-                return rawDenominator();
-            }
+        @Override
+        public long denominator() {
+            return rawDenominator() & 0xFFFFFFFFL;
+        }
 
-            @Override
-            public TagType type() {
-                return TagType.SRATIONAL;
-            }
+        @Override
+        public TagType type() {
+            return TagType.RATIONAL;
+        }
 
-            @Override
-            public String toString() {
-                return numerator() + "/" + denominator() + " (signed " + doubleValue() + ")";
-            }
+        @Override
+        public String toString() {
+            return numerator() + "/" + denominator() + " (unsigned " + doubleValue() + ")";
+        }
 
-            @Override
-            public int hashCode() {
-                return super.hashCode() ^ 'S';
-            }
+        @Override
+        public int hashCode() {
+            return super.hashCode() ^ 'U';
+        }
+    }
+
+    class SRational extends RawRational {
+        private SRational(int signedNumerator, int signedDenominator) {
+            super(signedNumerator, signedDenominator);
+        }
+
+        public static SRational of(int signedNumerator, int signedDenominator) {
+            return new SRational(signedNumerator, signedDenominator);
+        }
+
+        @Override
+        public long numerator() {
+            return rawNumerator();
+        }
+
+        @Override
+        public long denominator() {
+            return rawDenominator();
+        }
+
+        @Override
+        public TagType type() {
+            return TagType.SRATIONAL;
+        }
+
+        @Override
+        public String toString() {
+            return numerator() + "/" + denominator() + " (signed " + doubleValue() + ")";
+        }
+
+        @Override
+        public int hashCode() {
+            return super.hashCode() ^ 'S';
         }
     }
 }

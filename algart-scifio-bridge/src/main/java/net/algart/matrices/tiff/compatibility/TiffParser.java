@@ -666,10 +666,10 @@ public class TiffParser extends TiffReader {
         } else if (type == IFDType.RATIONAL || type == IFDType.SRATIONAL) {
             // Two LONGs or SLONGs: the first represents the numerator
             // of a fraction; the second, the denominator
-            if (count == 1) return TagValue.Rational.Unsigned.of(in.readInt(), in.readInt());
-            final TagValue.Rational.Unsigned[] rationals = new TagValue.Rational.Unsigned[count];
+            if (count == 1) return TagValue.Rational.of(in.readInt(), in.readInt());
+            final TagValue.Rational[] rationals = new TagValue.Rational[count];
             for (int j = 0; j < count; j++) {
-                rationals[j] = TagValue.Rational.Unsigned.of(in.readInt(), in.readInt());
+                rationals[j] = TagValue.Rational.of(in.readInt(), in.readInt());
             }
             return rationals;
         } else if (type == IFDType.SBYTE || type == IFDType.UNDEFINED) {

@@ -169,8 +169,8 @@ public class TiffUnpacking {
         // - avoiding 0.0/0.0
         final int[] subsamplingLog = ifd.getYCbCrSubsamplingLogarithms();
         final TagValue.Rational[] coefficients = ifd.getValue(
-                Tags.Y_CB_CR_COEFFICIENTS, TagValue.Rational.Unsigned[].class)
-                .orElse(new TagValue.Rational.Unsigned[0]);
+                Tags.Y_CB_CR_COEFFICIENTS, TagValue.Rational[].class)
+                .orElse(new TagValue.Rational[0]);
         if (coefficients.length >= 3) {
             lumaRed = coefficients[0].doubleValue();
             lumaGreen = coefficients[1].doubleValue();

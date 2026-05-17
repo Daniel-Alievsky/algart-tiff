@@ -93,17 +93,17 @@ public class TiffWriteMixedTest {
 //            ifd.putPhotometricInterpretation(TagPhotometricInterpretation.WHITE_IS_ZERO);
             ifd.put(Tags.BITS_PER_SAMPLE, bitsPerSample);
             ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_UINT);
-            ifd.put(Tags.X_RESOLUTION, TagValue.Rational.Unsigned.of(72, 1));
-            ifd.put(Tags.Y_RESOLUTION, TagValue.Rational.Unsigned.of(72, 1));
-            ifd.put(15701, TagValue.Rational.Signed.of(-1, 1000));
-            ifd.put(15702, TagValue.Rational.Signed.of(-100, -10));
-            ifd.put(15703, TagValue.Rational.Unsigned.of(1, 0xFFFFFFFEL));
-            ifd.put(15728, new TagValue.Rational.Signed[] {
-                    TagValue.Rational.Signed.of(0, 0),
-                    TagValue.Rational.Signed.of(-1111111111, -222222222)});
-            ifd.put(15729, new TagValue.Rational.Unsigned[] {
-                    TagValue.Rational.Unsigned.of(0, 0),
-                    TagValue.Rational.Unsigned.of(0xFFFFFFFEL, 12)});
+            ifd.put(Tags.X_RESOLUTION, TagValue.Rational.of(72, 1));
+            ifd.put(Tags.Y_RESOLUTION, TagValue.Rational.of(72, 1));
+            ifd.put(15701, TagValue.SRational.of(-1, 1000));
+            ifd.put(15702, TagValue.SRational.of(-100, -10));
+            ifd.put(15703, TagValue.Rational.of(1, 0xFFFFFFFEL));
+            ifd.put(15728, new TagValue.SRational[] {
+                    TagValue.SRational.of(0, 0),
+                    TagValue.SRational.of(-1111111111, -222222222)});
+            ifd.put(15729, new TagValue.Rational[] {
+                    TagValue.Rational.of(0, 0),
+                    TagValue.Rational.of(0xFFFFFFFEL, 12)});
             ifd.putDescription("  ");
             // - you can comment or change the options above for thorough testing
 //            ifd.put(Tags.PHOTOMETRIC_INTERPRETATION, 8);

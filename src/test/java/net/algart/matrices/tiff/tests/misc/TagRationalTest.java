@@ -40,15 +40,15 @@ public class TagRationalTest {
     public static void main(String[] args) throws TiffException {
         TiffIFD ifd = new TiffIFD();
         printDescription(ifd);
-        ifd.put(Tags.X_RESOLUTION, TagValue.Rational.Unsigned.of(72, 1));
-        ifd.put(Tags.Y_RESOLUTION, TagValue.Rational.Unsigned.of(200, 3));
+        ifd.put(Tags.X_RESOLUTION, TagValue.Rational.of(72, 1));
+        ifd.put(Tags.Y_RESOLUTION, TagValue.Rational.of(200, 3));
         printDescription(ifd);
 
-        ifd.put(Tags.X_POSITION, TagValue.Rational.Signed.of(-1, 1000));
-        ifd.put(Tags.Y_POSITION, TagValue.Rational.Signed.of(-10, -10));
-        ifd.put(28157, new TagValue.Rational.Signed[] {
-                TagValue.Rational.Signed.of(0, 0),
-                TagValue.Rational.Signed.of(-1111111111, -222222222)});
+        ifd.put(Tags.X_POSITION, TagValue.SRational.of(-1, 1000));
+        ifd.put(Tags.Y_POSITION, TagValue.SRational.of(-10, -10));
+        ifd.put(28157, new TagValue.SRational[] {
+                TagValue.SRational.of(0, 0),
+                TagValue.SRational.of(-1111111111, -222222222)});
         printDescription(ifd);
 
     }

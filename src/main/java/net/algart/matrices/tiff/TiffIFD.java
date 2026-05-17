@@ -2401,11 +2401,11 @@ public final class TiffIFD {
      *       exceeding 0xFFFF is automatically promoted to {@link TagType#LONG}.</li>
      *   <li><b>{@code Long} or {@code long[]}</b>: mapped to {@link TagType#LONG}
      *       (unsigned 32-bit) or {@link TagType#LONG8} for BigTIFF files.</li>
-     *   <li><b>{@link TagValue.Rational.Unsigned TagValue.Rational.Unsigned} or
-     *   <code>{@link TagValue.Rational.Unsigned TagValue.Rational.Unsigned}[]</code></b>: mapped to
+     *   <li><b>{@link TagValue.Rational TagValue.Rational} or
+     *   <code>{@link TagValue.Rational TagValue.Rational}[]</code></b>: mapped to
      *       {@link TagType#RATIONAL} (pairs of unsigned 32-bit integers).</li>
-     *   <li><b>{@link TagValue.Rational.Signed TagValue.Rational.Signed} or
-     *   <code>{@link TagValue.Rational.Signed TagValue.Rational.Signed}[]</code></b>:
+     *   <li><b>{@link TagValue.SRational TagValue.SRational} or
+     *   <code>{@link TagValue.SRational TagValue.SRational}[]</code></b>:
      *   mapped to
      *       {@link TagType#SRATIONAL} (pairs of signed 32-bit integers).</li>
      *   <li><b>{@code Float} or {@code float[]}</b>: mapped to {@link TagType#FLOAT}
@@ -3142,8 +3142,8 @@ public final class TiffIFD {
             sb.append("[");
             appendIFDArray(sb, tagValue, false, true);
             sb.append("]");
-        } else if (tagValue instanceof TagValue.Rational rational) {
-            sb.append("\"").append(rational.mathString()).append("\"");
+        } else if (tagValue instanceof TagValue.RawRational rawRational) {
+            sb.append("\"").append(rawRational.mathString()).append("\"");
         } else if (tagValue instanceof Number || tagValue instanceof Boolean) {
             sb.append(tagValue);
         } else {
@@ -3260,11 +3260,11 @@ public final class TiffIFD {
             if (mask != 0) {
                 o = ((Number) o).intValue() & mask;
             }
-            if (o instanceof TagValue.Rational rational) {
+            if (o instanceof TagValue.RawRational rawRational) {
                 if (jsonMode) {
-                    sb.append("\"").append(rational.mathString()).append("\"");
+                    sb.append("\"").append(rawRational.mathString()).append("\"");
                 } else {
-                    sb.append(rational.mathString());
+                    sb.append(rawRational.mathString());
                 }
             } else if (o instanceof String) {
                 sb.append("\"").append(o).append("\"");
