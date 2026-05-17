@@ -872,7 +872,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     for (TagValue.SShort shortValue : v) {
                         ifdStream.writeShort(shortValue.shortValue());
                     }
-                    for (int i = v.length; i < dataLength; i++) {
+                    for (int i = v.length; i < dataLengthDiv2; i++) {
                         ifdStream.writeShort(0);
                     }
                 } else {
@@ -942,7 +942,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     for (TagValue.SLong intValue : v) {
                         ifdStream.writeInt(intValue.intValue());
                     }
-                    for (int i = v.length; i < dataLength; i++) {
+                    for (int i = v.length; i < dataLengthDiv4; i++) {
                         ifdStream.writeInt(0);
                     }
                 } else {
@@ -965,11 +965,11 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 writeIntOrLong(ifdStream, bigTiff, v.length);
                 if (v.length <= dataLengthDiv4) {
                     for (float floatValue : v) {
-                        ifdStream.writeFloat(floatValue); // value
+                        ifdStream.writeFloat(floatValue);
                         // - in old SCIFIO code, here was a bug (for a case bigTiff): v[0] was always written
                     }
                     for (int i = v.length; i < dataLengthDiv4; i++) {
-                        ifdStream.writeInt(0); // padding
+                        ifdStream.writeFloat(0.0f);
                     }
                 } else {
                     appendUntilEvenOffset(extraBuffer);
@@ -982,10 +982,20 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             case double[] v -> {
                 writeTagType(ifdStream, tagType, TagType.DOUBLE);
                 writeIntOrLong(ifdStream, bigTiff, v.length);
-                appendUntilEvenOffset(extraBuffer);
-                writeOffsetWithAddition(ifdStream, bigTiff, additionToExtraBufferOffset, extraBuffer.offset());
-                for (final double doubleValue : v) {
-                    extraBuffer.writeDouble(doubleValue);
+                if (v.length <= dataLengthDiv8) {
+                    for (double doubleValue : v) {
+                        ifdStream.writeDouble(doubleValue);
+                    }
+                    for (int i = v.length; i < dataLengthDiv8; i++) {
+                        ifdStream.writeDouble(0.0);
+                        // - actually this is possible only when v.length==0
+                    }
+                } else {
+                    appendUntilEvenOffset(extraBuffer);
+                    writeOffsetWithAddition(ifdStream, bigTiff, additionToExtraBufferOffset, extraBuffer.offset());
+                    for (final double doubleValue : v) {
+                        extraBuffer.writeDouble(doubleValue);
+                    }
                 }
             }
             case TagValue.SLong8[] v -> {
@@ -999,6 +1009,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     }
                     for (int i = v.length; i < dataLengthDiv8; i++) {
                         ifdStream.writeLong(0);
+                        // - actually this is possible only when v.length==0
                     }
                 } else {
                     appendUntilEvenOffset(extraBuffer);
@@ -1019,8 +1030,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     ifdStream.writeByte(0);
                 }
             }
-            default -> throw new UnsupportedOperationException("Unknown value type of IFD tag " + tag +
-                    ": " + value.getClass().getSimpleName() + " (" + value + ")");
+            default -> throw new UnsupportedOperationException("Writing value type of IFD tag " + tag +
+                    " is not supported: " + value.getClass().getSimpleName() + " (" + value + ")");
         }
     }
 

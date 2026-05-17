@@ -75,7 +75,7 @@ public class TiffWriteMixedTest {
 
         System.out.println("Writing TIFF " + targetFile + "...");
         try (final TiffWriter writer = new TiffWriter(targetFile)) {
-//            writer.setBigTiff(true);
+            writer.setBigTiff(true);
             writer.setByteFiller((byte) 0);
             writer.setByteOrder(ByteOrder.LITTLE_ENDIAN);
 //            writer.setSmartCorrection(true);
@@ -105,12 +105,19 @@ public class TiffWriteMixedTest {
                     TagValue.Rational.of(0, 0),
                     TagValue.Rational.of(0xFFFFFFFEL, 12)});
             ifd.put(15721, TagValue.SByte.of(123));
-            ifd.put(15722, new TagValue.SByte[] {
-                    TagValue.SByte.of(0),
-                    TagValue.SByte.of(-1)});
-            ifd.put(16001, new double[0]);
-            ifd.put(16002, new double[] {0.11});
-            ifd.put(16003, new double[] {0.11, 0.12});
+            ifd.put(15722, new TagValue.SByte[] {TagValue.SByte.of(0), TagValue.SByte.of(-1)});
+            ifd.put(15731, TagValue.SShort.of(123));
+            ifd.put(15732, new TagValue.SShort[] {TagValue.SShort.of(220), TagValue.SShort.of(-1)});
+//            ifd.put(15741, TagValue.SLong.of(123));
+//            ifd.put(15742, new TagValue.SLong[] {TagValue.SLong.of(220), TagValue.SLong.of(-1)});
+//            ifd.put(15751, TagValue.SLong8.of(123));
+//            ifd.put(15752, new TagValue.SLong8[] {TagValue.SLong8.of(220), TagValue.SLong8.of(-1)});
+            ifd.put(16001, new long[0]);
+            ifd.put(16002, new long[] {111});
+            ifd.put(16003, new long[] {111, 112});
+//            ifd.put(16011, new double[0]);
+//            ifd.put(16012, new double[] {0.11});
+//            ifd.put(16013, new double[] {0.11, 0.12});
             ifd.putDescription("  ");
             ifd.put(33333, new TiffIFD.UnsupportedTypeValue(3333, 110, 0));
             // - count should be ignored! we don't know how to write it
