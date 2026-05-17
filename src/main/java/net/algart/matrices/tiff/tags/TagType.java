@@ -36,91 +36,92 @@ public enum TagType {
     /**
      * 8-bit unsigned integer.
      */
-    BYTE(1, 1),
+    BYTE(1, 1, false),
 
     /**
      * 8-bit byte that contains a 7-bit ASCII code; the last byte must be NUL (binary zero).
      */
-    ASCII(2, 1),
+    ASCII(2, 1, false),
 
     /**
      * 16-bit (2-byte) unsigned integer.
      */
-    SHORT(3, 2),
+    SHORT(3, 2, false),
 
     /**
      * 32-bit (4-byte) unsigned integer.
      */
-    LONG(4, 4),
+    LONG(4, 4, false),
 
     /**
      * Two LONGs: the first represents the numerator of a fraction; the second, the denominator.
      */
-    RATIONAL(5, 8),
+    RATIONAL(5, 8, false),
 
     /**
      * An 8-bit signed (2's complement) integer.
      */
-    SBYTE(6, 1),
+    SBYTE(6, 1, true),
 
     /**
      * An 8-bit byte that may contain anything, depending on the definition of the field.
      */
-    UNDEFINED(7, 1),
+    UNDEFINED(7, 1, false),
 
     /**
      * A 16-bit (2-byte) signed (2's complement) integer.
      */
-    SSHORT(8, 2),
+    SSHORT(8, 2, true),
 
     /**
      * A 32-bit (4-byte) signed (2's complement) integer.
      */
-    SLONG(9, 4),
+    SLONG(9, 4, true),
 
     /**
      * Two SLONGs: the first represents the numerator; the second, the denominator.
      */
-    SRATIONAL(10, 8),
+    SRATIONAL(10, 8, true),
 
     /**
      * Single precision (4-byte) IEEE format floating point value.
      */
-    FLOAT(11, 4),
+    FLOAT(11, 4, true),
 
     /**
      * Double precision (8-byte) IEEE format floating point value.
      */
-    DOUBLE(12, 8),
+    DOUBLE(12, 8, true),
     /**
      * 32-bit unsigned integer, used for storing IFD offsets.
      * Semantically equivalent to {@link #LONG}.
      */
-    IFD(13, 4),
+    IFD(13, 4, false),
 
     /**
      * 64-bit unsigned integer (BigTIFF only).
      */
-    LONG8(16, 8),
+    LONG8(16, 8, false),
 
     /**
      * 64-bit signed integer (BigTIFF only).
      */
-    SLONG8(17, 8),
+    SLONG8(17, 8, true),
 
     /**
      * 64-bit unsigned integer, used for storing IFD offsets (BigTIFF only).
      * Semantically equivalent to {@link #LONG8}.
      */
-    IFD8(18, 8);
+    IFD8(18, 8, false);
 
     private static final Map<Integer, TagType> LOOKUP =
             Arrays.stream(values()).collect(Collectors.toMap(TagType::type, v -> v));
 
     private final int type;
     private final int sizeOf;
+    private final boolean signed;
 
-    TagType(int id, int sizeOf) {
+    TagType(int id, int sizeOf, boolean signed) {
         if (id <= 0) {
             throw new IllegalArgumentException("id must be positive");
         }
@@ -129,6 +130,7 @@ public enum TagType {
         }
         this.type = id;
         this.sizeOf = sizeOf;
+        this.signed = signed;
     }
 
     public int type() {
@@ -137,6 +139,20 @@ public enum TagType {
 
     public int sizeOf() {
         return sizeOf;
+    }
+
+    public int bitsPerElement() {
+        return 8 * sizeOf;
+    }
+
+    /**
+     * Returns {@code true} for signed types: {@link #SBYTE}, {@link #SSHORT},
+     * {@link #SLONG}, {@link #SLONG8}, and also for floating-point types {@link #FLOAT} and {@link #DOUBLE}.
+     *
+     * @return whether this type is signed.
+     */
+    public boolean isSigned() {
+        return signed;
     }
 
     public static String toString(int type) {

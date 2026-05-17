@@ -3142,8 +3142,8 @@ public final class TiffIFD {
             sb.append("[");
             appendIFDArray(sb, tagValue, false, true);
             sb.append("]");
-        } else if (tagValue instanceof TagValue.RawRational rawRational) {
-            sb.append("\"").append(rawRational.mathString()).append("\"");
+        } else if (tagValue instanceof TagValue value) {
+            sb.append("\"").append(value.mathString()).append("\"");
         } else if (tagValue instanceof Number || tagValue instanceof Boolean) {
             sb.append(tagValue);
         } else {
@@ -3260,11 +3260,11 @@ public final class TiffIFD {
             if (mask != 0) {
                 o = ((Number) o).intValue() & mask;
             }
-            if (o instanceof TagValue.RawRational rawRational) {
+            if (o instanceof TagValue value) {
                 if (jsonMode) {
-                    sb.append("\"").append(rawRational.mathString()).append("\"");
+                    sb.append("\"").append(value.mathString()).append("\"");
                 } else {
-                    sb.append(rawRational.mathString());
+                    sb.append(value.mathString());
                 }
             } else if (o instanceof String) {
                 sb.append("\"").append(o).append("\"");

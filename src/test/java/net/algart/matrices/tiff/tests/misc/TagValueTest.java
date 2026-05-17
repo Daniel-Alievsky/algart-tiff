@@ -29,7 +29,7 @@ import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.tags.Tags;
 
-public class TagRationalTest {
+public class TagValueTest {
     private static void printDescription(TiffIFD ifd) {
         System.out.println(ifd.toString(TiffIFD.StringFormat.NORMAL));
         System.out.println(ifd.jsonString());
@@ -51,5 +51,18 @@ public class TagRationalTest {
                 TagValue.SRational.of(-1111111111, -222222222)});
         printDescription(ifd);
 
+        ifd.put(10001, TagValue.SByte.of(-1));
+        ifd.put(10002, new TagValue.SByte[] {TagValue.SByte.of(-1), TagValue.SByte.of(124)});
+        ifd.put(10011, TagValue.SShort.of(-1));
+        ifd.put(10012, new TagValue.SShort[] {TagValue.SShort.of(-1), TagValue.SShort.of(14444)});
+        ifd.put(10021, TagValue.SLong.of(-100000000));
+        ifd.put(10022, new TagValue.SLong[] {TagValue.SLong.of(-1), TagValue.SLong.of(14444)});
+        ifd.put(10031, TagValue.SLong8.of(-100000000000L));
+        ifd.put(10032, new TagValue.SLong8[] {TagValue.SLong8.of(10000000000L), TagValue.SLong8.of(-1)});
+        ifd.put(10041, TagValue.IFD.of(0xFFFFFFFEL));
+        ifd.put(10042, new TagValue.IFD[] {TagValue.IFD.of(100000000), TagValue.IFD.of(0)});
+        ifd.put(10051, TagValue.IFD8.of(-100000000000L));
+        ifd.put(10052, new TagValue.IFD8[] {TagValue.IFD8.of(10000000000L), TagValue.IFD8.of(-1)});
+        printDescription(ifd);
     }
 }

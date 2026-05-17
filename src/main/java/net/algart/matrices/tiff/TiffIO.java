@@ -37,6 +37,7 @@ import java.io.Closeable;
 import java.io.EOFException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.net.URI;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -507,7 +508,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     return ints;
                 }
             }
-            case LONG, IFD -> {
+            case LONG -> {
                 // 32-bit (4-byte) unsigned integer
                 if (count == 1) {
                     return stream.readInt() & 0xFFFFFFFFL;
@@ -525,75 +526,56 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     return longs;
                 }
             }
-            case LONG8, SLONG8, IFD8 -> {
-                if (count == 1) {
-                    return stream.readLong();
-                }
-                if (OPTIMIZE_READING_IFD_ARRAYS) {
-                    final byte[] bytes = readBytes(stream, 8 * (long) count);
-                    return JArrays.bytesToLongArray(bytes, byteOrder);
-                } else {
-                    long[] longs = new long[count];
-                    for (int j = 0; j < count; j++) {
-                        longs[j] = stream.readLong();
-                    }
-                    return longs;
-                }
-            }
-            case RATIONAL -> {
+            case RATIONAL, SRATIONAL -> {
                 // Two LONGs or SLONGs: the first represents the numerator of a fraction; the second, the denominator
                 if (count == 1) {
-                    return TagValue.Rational.ofRaw(stream.readInt(), stream.readInt());
+                    return TagValue.RawRational.of(type, stream.readInt(), stream.readInt());
                 }
-                final TagValue.Rational[] rationals = new TagValue.Rational[count];
+                final TagValue.RawRational[] rationals = TagValue.RawRational.newArray(type, count);
                 for (int j = 0; j < count; j++) {
-                    rationals[j] = TagValue.Rational.ofRaw(stream.readInt(), stream.readInt());
+                    rationals[j] = TagValue.RawRational.of(type, stream.readInt(), stream.readInt());
                 }
                 return rationals;
             }
-            case SRATIONAL -> {
-                // Two LONGs or SLONGs: the first represents the numerator of a fraction; the second, the denominator
+            case SBYTE -> {
                 if (count == 1) {
-                    return TagValue.SRational.of(stream.readInt(), stream.readInt());
+                    return TagValue.SByte.of(stream.readByte());
                 }
-                final TagValue.SRational[] rationals = new TagValue.SRational[count];
+                final TagValue.SByte[] values = new TagValue.SByte[count];
                 for (int j = 0; j < count; j++) {
-                    rationals[j] = TagValue.SRational.of(stream.readInt(), stream.readInt());
+                    values[j] = TagValue.SByte.of(stream.readByte());
                 }
-                return rationals;
+                return values;
             }
-            case SBYTE, UNDEFINED -> {
-                // SBYTE: An 8-bit signed (twos-complement) integer
+            case UNDEFINED -> {
                 // UNDEFINED: An 8-bit byte that may contain anything,
                 // depending on the definition of the field
                 if (count == 1) {
                     return stream.readByte();
                 }
-                final byte[] sbytes = new byte[count];
-                stream.read(sbytes);
-                return sbytes;
+                final byte[] bytes = new byte[count];
+                stream.read(bytes);
+                return bytes;
             }
             case SSHORT -> {
-                // A 16-bit (2-byte) signed (twos-complement) integer
                 if (count == 1) {
-                    return stream.readShort();
+                    return TagValue.SShort.of(stream.readShort());
                 }
-                final short[] sshorts = new short[count];
+                final TagValue.SShort[] values = new TagValue.SShort[count];
                 for (int j = 0; j < count; j++) {
-                    sshorts[j] = stream.readShort();
+                    values[j] = TagValue.SShort.of(stream.readShort());
                 }
-                return sshorts;
+                return values;
             }
             case SLONG -> {
-                // A 32-bit (4-byte) signed (twos-complement) integer
                 if (count == 1) {
-                    return stream.readInt();
+                    return TagValue.SLong.of(stream.readInt());
                 }
-                final int[] slongs = new int[count];
+                final TagValue.SLong[] values = new TagValue.SLong[count];
                 for (int j = 0; j < count; j++) {
-                    slongs[j] = stream.readInt();
+                    values[j] = TagValue.SLong.of(stream.readInt());
                 }
-                return slongs;
+                return values;
             }
             case FLOAT -> {
                 // Single precision (4-byte) IEEE format
@@ -616,6 +598,51 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     doubles[j] = stream.readDouble();
                 }
                 return doubles;
+            }
+            case IFD -> {
+                if (count == 1) {
+                    return TagValue.IFD.of(stream.readInt() & 0xFFFFFFFFL);
+                }
+                final TagValue.IFD[] ifdOiffsets = new TagValue.IFD[count];
+                for (int j = 0; j < count; j++) {
+                    ifdOiffsets[j] = TagValue.IFD.of(stream.readInt() & 0xFFFFFFFFL);
+                }
+                return ifdOiffsets;
+            }
+            case LONG8 -> {
+                if (count == 1) {
+                    return stream.readLong();
+                }
+                if (OPTIMIZE_READING_IFD_ARRAYS) {
+                    final byte[] bytes = readBytes(stream, 8 * (long) count);
+                    return JArrays.bytesToLongArray(bytes, byteOrder);
+                } else {
+                    long[] longs = new long[count];
+                    for (int j = 0; j < count; j++) {
+                        longs[j] = stream.readLong();
+                    }
+                    return longs;
+                }
+            }
+            case SLONG8 -> {
+                if (count == 1) {
+                    return TagValue.SLong8.of(stream.readLong());
+                }
+                final TagValue.SLong8[] values = new TagValue.SLong8[count];
+                for (int j = 0; j < count; j++) {
+                    values[j] = TagValue.SLong8.of(stream.readLong());
+                }
+                return values;
+            }
+            case IFD8 -> {
+                if (count == 1) {
+                    return TagValue.IFD8.of(stream.readLong());
+                }
+                final TagValue.IFD8[] ifdOiffsets = new TagValue.IFD8[count];
+                for (int j = 0; j < count; j++) {
+                    ifdOiffsets[j] = TagValue.IFD8.of(stream.readLong());
+                }
+                return ifdOiffsets;
             }
             case null, default -> {
                 final long valueOrOffset = stream.readLong();
@@ -681,10 +708,9 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             value = new int[]{v};
         } else if (value instanceof Long v) {
             value = new long[]{v};
-        } else if (value instanceof TagValue.Rational v) {
-            value = new TagValue.Rational[]{v};
-        } else if (value instanceof TagValue.SRational v) {
-            value = new TagValue.SRational[]{v};
+        } else if (value instanceof TagValue v) {
+            value = Array.newInstance(v.getClass(), 1);
+            Array.set(value, 0, v);
         } else if (value instanceof Float v) {
             value = new float[]{v};
         } else if (value instanceof Double v) {

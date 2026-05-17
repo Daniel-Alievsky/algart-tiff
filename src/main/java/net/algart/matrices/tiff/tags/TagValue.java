@@ -37,14 +37,46 @@ import java.util.Objects;
 public interface TagValue {
     TagType type();
 
-    //TODO!! add other types and use it; add TagValueIFD
-    abstract class Integer extends Number implements TagValue {
+    String mathString();
+
+    abstract class RawInteger extends Number implements TagValue {
+        private final TagType type;
         private final long raw;
         private final boolean signed;
 
-        private Integer(long raw, boolean signed) {
+        private RawInteger(TagType type, long raw, boolean signed) {
+            this.type = Objects.requireNonNull(type);
             this.raw = raw;
             this.signed = signed;
+        }
+
+        public static RawInteger of(TagType type, long raw) {
+            Objects.requireNonNull(type, "Null tag type");
+            return switch (type) {
+                case SBYTE -> SByte.of(raw);
+                case SSHORT -> SShort.of(raw);
+                case SLONG -> SLong.of(raw);
+                case SLONG8 -> SLong8.of(raw);
+                case IFD -> IFD.of(raw);
+                case IFD8 -> IFD8.of(raw);
+                default -> throw new IllegalArgumentException("RawInteger cannot be " + type);
+            };
+        }
+
+        public static RawInteger[] newArray(TagType type, int length) {
+            Objects.requireNonNull(type, "Null tag type");
+            if (length < 0) {
+                throw new IllegalArgumentException("Negative array length: " + length);
+            }
+            return switch (type) {
+                case SBYTE -> new SByte[length];
+                case SSHORT -> new SShort[length];
+                case SLONG -> new SLong[length];
+                case SLONG8 -> new SLong8[length];
+                case IFD -> new IFD[length];
+                case IFD8 -> new IFD8[length];
+                default -> throw new IllegalArgumentException("RawInteger cannot be " + type);
+            };
         }
 
         public int intValue() {
@@ -63,7 +95,9 @@ public interface TagValue {
             return (double) raw;
         }
 
-        public abstract TagType type();
+        public final TagType type() {
+            return type;
+        }
 
         public String mathString() {
             return String.valueOf(raw);
@@ -71,62 +105,112 @@ public interface TagValue {
 
         @Override
         public String toString() {
-            return mathString() + " (" + (signed? "signed" : "unsigned") + ")";
+            return mathString()
+                    + (signed ? " (signed " : " (unsigned ") + type.bitsPerElement() + "-bits)";
         }
 
         @Override
-        public boolean equals(Object obj) {
+        public final boolean equals(Object obj) {
             if (obj == this) {
                 return true;
             }
             if (obj == null || obj.getClass() != this.getClass()) {
                 return false;
             }
-            final Integer that = (Integer) obj;
+            final RawInteger that = (RawInteger) obj;
             return raw == that.raw && signed == that.signed;
         }
 
         @Override
-        public int hashCode() {
-            return Objects.hash(raw, signed, getClass().getName());
+        public final int hashCode() {
+            return Objects.hash(raw, signed, type);
         }
     }
 
-    class Unsigned8Bit extends Integer {
-        private Unsigned8Bit(long raw) {
-            super(raw, false);
+    class SByte extends RawInteger {
+        private SByte(long raw) {
+            super(TagType.SBYTE, raw, true);
         }
 
-        public static Unsigned8Bit of(int value) {
-            if (value < 0 || value > 0xFF) {
-                throw new IllegalArgumentException("Unsigned 8-bit value = " + value +
-                        " is out of range 0..255");
-            }
-            return new Unsigned8Bit(value);
-        }
-
-        @Override
-        public TagType type() {
-            return TagType.BYTE;
-        }
-    }
-
-    class Signed8Bit extends Integer {
-        private Signed8Bit(long raw) {
-            super(raw, false);
-        }
-
-        public static Signed8Bit of(int value) {
+        public static SByte of(long value) {
             if (value < Byte.MIN_VALUE || value > Byte.MAX_VALUE) {
-                throw new IllegalArgumentException("Signed 8-bit value = " + value +
+                throw new IllegalArgumentException("Signed 8-bit value (SBYTE) = " + value +
                         " is out of range " + Byte.MIN_VALUE + " to " + Byte.MAX_VALUE);
             }
-            return new Signed8Bit(value);
+            return new SByte(value);
+        }
+    }
+
+    class SShort extends RawInteger {
+        private SShort(long raw) {
+            super(TagType.SSHORT, raw, true);
+        }
+
+        public static SShort of(long value) {
+            if (value < Short.MIN_VALUE || value > Short.MAX_VALUE) {
+                throw new IllegalArgumentException("Signed 16-bit value (SSHORT) = " + value +
+                        " is out of range " + Short.MIN_VALUE + " to " + Short.MAX_VALUE);
+            }
+            return new SShort(value);
+        }
+    }
+
+    class SLong extends RawInteger {
+        private SLong(long raw) {
+            super(TagType.SLONG, raw, true);
+        }
+
+        public static SLong of(long value) {
+            if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
+                throw new IllegalArgumentException("Signed 32-bit value (SLONG) = " + value +
+                        " is out of range " + Integer.MIN_VALUE + " to " + Integer.MAX_VALUE);
+            }
+            return new SLong(value);
+        }
+    }
+
+    class SLong8 extends RawInteger {
+        private SLong8(long raw) {
+            super(TagType.SLONG8, raw, true);
+        }
+
+        public static SLong8 of(long value) {
+            return new SLong8(value);
+        }
+    }
+
+    class IFD extends RawInteger {
+        private IFD(long raw) {
+            super(TagType.IFD, raw, false);
+        }
+
+        public static IFD of(long value) {
+            if (value < 0 || value > 0xFFFFFFFFL) {
+                throw new IllegalArgumentException("Unsigned 32-bit IFD offset = " + value +
+                        " is out of range 0..2^32-1");
+            }
+            return new IFD(value);
+        }
+
+        public String toString() {
+            return mathString()
+                    + " (IFD 32-bit offset)";
+        }
+
+    }
+
+    class IFD8 extends RawInteger {
+        private IFD8(long raw) {
+            super(TagType.IFD8, raw, false);
+        }
+
+        public static IFD8 of(long value) {
+            return new IFD8(value);
         }
 
         @Override
-        public TagType type() {
-            return TagType.SBYTE;
+        public String mathString() {
+            return Long.toUnsignedString(longValue());
         }
     }
 
@@ -140,14 +224,37 @@ public interface TagValue {
     abstract class RawRational extends Number implements TagValue {
         private final int rawNumerator;
         private final int rawDenominator;
+        private final boolean signed;
 
-        private RawRational(int rawNumerator, int rawDenominator) {
+        private RawRational(int rawNumerator, int rawDenominator, boolean signed) {
             this.rawNumerator = rawNumerator;
             this.rawDenominator = rawDenominator;
+            this.signed = signed;
+        }
+
+        public static RawRational of(TagType type, int rawNumerator, int rawDenominator) {
+            Objects.requireNonNull(type, "Null tag type");
+            return switch (type) {
+                case SRATIONAL -> new SRational(rawNumerator, rawDenominator);
+                case RATIONAL -> new Rational(rawNumerator, rawDenominator);
+                default -> throw new IllegalArgumentException("RawRational cannot be " + type);
+            };
+        }
+
+        public static RawRational[] newArray(TagType type, int length) {
+            Objects.requireNonNull(type, "Null tag type");
+            if (length < 0) {
+                throw new IllegalArgumentException("Negative array length: " + length);
+            }
+            return switch (type) {
+                case SRATIONAL -> new SRational[length];
+                case RATIONAL -> new Rational[length];
+                default -> throw new IllegalArgumentException("RawRational cannot be " + type);
+            };
         }
 
         public int intValue() {
-            return rawDenominator == 0 ? java.lang.Integer.MAX_VALUE : (int) doubleValue();
+            return rawDenominator == 0 ? Integer.MAX_VALUE : (int) doubleValue();
         }
 
         public long longValue() {
@@ -181,7 +288,7 @@ public interface TagValue {
         }
 
         @Override
-        public boolean equals(Object obj) {
+        public final boolean equals(Object obj) {
             if (obj == this) {
                 return true;
             }
@@ -193,15 +300,19 @@ public interface TagValue {
         }
 
         @Override
-        public int hashCode() {
-            return Objects.hash(rawNumerator, rawDenominator);
+        public final int hashCode() {
+            return Objects.hash(rawNumerator, rawDenominator, signed);
         }
 
+        @Override
+        public final String toString() {
+            return numerator() + "/" + denominator() + (signed ? "( signed" : " (unsigned ") + doubleValue() + ")";
+        }
     }
 
     class Rational extends RawRational {
         private Rational(int unsignedNumerator, int unsignedDenominator) {
-            super(unsignedNumerator, unsignedDenominator);
+            super(unsignedNumerator, unsignedDenominator, false);
         }
 
         public static Rational ofRaw(int unsignedNumerator, int unsignedDenominator) {
@@ -234,21 +345,11 @@ public interface TagValue {
         public TagType type() {
             return TagType.RATIONAL;
         }
-
-        @Override
-        public String toString() {
-            return numerator() + "/" + denominator() + " (unsigned " + doubleValue() + ")";
-        }
-
-        @Override
-        public int hashCode() {
-            return super.hashCode() ^ 'U';
-        }
     }
 
     class SRational extends RawRational {
         private SRational(int signedNumerator, int signedDenominator) {
-            super(signedNumerator, signedDenominator);
+            super(signedNumerator, signedDenominator, true);
         }
 
         public static SRational of(int signedNumerator, int signedDenominator) {
@@ -268,16 +369,6 @@ public interface TagValue {
         @Override
         public TagType type() {
             return TagType.SRATIONAL;
-        }
-
-        @Override
-        public String toString() {
-            return numerator() + "/" + denominator() + " (signed " + doubleValue() + ")";
-        }
-
-        @Override
-        public int hashCode() {
-            return super.hashCode() ^ 'S';
         }
     }
 }
