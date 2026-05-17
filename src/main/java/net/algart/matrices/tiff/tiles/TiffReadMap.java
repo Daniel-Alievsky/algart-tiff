@@ -56,8 +56,8 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
         return true;
     }
 
-    public int numberOfImages() {
-        return reader.numberOfImages();
+    public int numberOfImagesUnchecked() {
+        return reader.numberOfImagesUnchecked();
     }
 
     public TiffReader.UnpackBits getAutoUnpackBits() {

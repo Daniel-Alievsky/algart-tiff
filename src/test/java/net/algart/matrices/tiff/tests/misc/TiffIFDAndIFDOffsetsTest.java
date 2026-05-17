@@ -94,7 +94,7 @@ public class TiffIFDAndIFDOffsetsTest {
             System.out.printf("  Position of last IFD offset: %d%n", reader.fileOffsetOfLastIFDOffset());
 
             t1 = System.nanoTime();
-            int n = reader.numberOfImages();
+            int n = reader.numberOfImagesUnchecked();
             t2 = System.nanoTime();
             if (n != m) {
                 throw new AssertionError();

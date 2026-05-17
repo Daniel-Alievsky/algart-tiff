@@ -67,7 +67,7 @@ public class TiffWriterTest {
             throw new AssertionError("Impossible in NO_CHECKS mode", e);
         }
         try {
-            final int n = reader.numberOfImages();
+            final int n = reader.numberOfImagesUnchecked();
             System.out.printf("%s, %d bytes, %s%n",
                     reader.isValidTiff() ? "valid" : "INVALID: \"" + reader.openingException() + "\"",
                     reader.fileLength(),

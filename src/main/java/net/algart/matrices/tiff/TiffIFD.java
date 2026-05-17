@@ -3362,11 +3362,18 @@ public final class TiffIFD {
         private final int valueCount;
         private final long valueLength;
         private final long valueOffset;
-        private final long embedded;
+        private final long embeddedValueOrOffset;
         private final boolean bigTiff;
         private final boolean dataEmbeddedInEntry;
 
-        Entry(int tag, TagType type, int rawType, int valueCount, long valueOffset, long embedded, boolean bigTiff) {
+        Entry(
+                int tag,
+                TagType type,
+                int rawType,
+                int valueCount,
+                long valueOffset,
+                long embeddedValueOrOffset,
+                boolean bigTiff) {
             if (valueCount < 0) {
                 throw new IllegalArgumentException("Negative valueCount = " + valueCount);
             }
@@ -3383,11 +3390,11 @@ public final class TiffIFD {
             this.valueCount = valueCount;
             this.valueLength = this.type == null ? 0 : (long) valueCount * type.sizeOf();
             this.valueOffset = valueOffset;
-            this.embedded = embedded;
+            this.embeddedValueOrOffset = embeddedValueOrOffset;
             this.bigTiff = bigTiff;
             this.dataEmbeddedInEntry = isDataEmbeddedInEntry(valueLength, bigTiff);
-            if (!dataEmbeddedInEntry && embedded != valueOffset) {
-                throw new IllegalArgumentException("Embedded value=" + embedded +
+            if (!dataEmbeddedInEntry && embeddedValueOrOffset != valueOffset) {
+                throw new IllegalArgumentException("Embedded value=" + embeddedValueOrOffset +
                         " must be equal to valueOffset=" + valueOffset + " for external (non-embedded) data");
             }
         }
@@ -3407,7 +3414,7 @@ public final class TiffIFD {
                     ", type " + TagType.toString(rawType) +
                     ", valueCount " + valueCount +
                     ", valueOffset " + valueOffset +
-                    (dataEmbeddedInEntry ? ", embedded 0x%X".formatted(embedded) : ", external") +
+                    (dataEmbeddedInEntry ? ", embedded 0x%X".formatted(embeddedValueOrOffset) : ", external") +
                     (bigTiff ? ", bigTiff" : "");
         }
 
@@ -3449,6 +3456,10 @@ public final class TiffIFD {
 
         public long valueOffset() {
             return valueOffset;
+        }
+
+        public long embeddedValueOrOffset() {
+            return embeddedValueOrOffset;
         }
 
         public boolean isBigTiff() {

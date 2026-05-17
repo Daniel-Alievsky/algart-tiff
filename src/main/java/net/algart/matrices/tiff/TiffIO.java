@@ -431,7 +431,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         final DataHandle<?> stream = readEmbeddedData ? ifdStream : fileStream;
 
         LOG.log(System.Logger.Level.TRACE, () ->
-                "Reading entry " + entry.tag() + " from " + offset + "; type=" + type + ", count=" + count);
+                "Reading entry " + entry.tag() + " from " + offset + "; type=" + type +
+                        ", count=" + count + ", embedded=" + readEmbeddedData);
 
         stream.seek(readEmbeddedData ? offset - ifdStreamOffsetInTiffFile : offset);
         switch (type) {
@@ -645,8 +646,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 return ifdOiffsets;
             }
             case null, default -> {
-                final long valueOrOffset = stream.readLong();
-                return new TiffIFD.UnsupportedTypeValue(entry.rawType(), count, valueOrOffset);
+                return new TiffIFD.UnsupportedTypeValue(entry.rawType(), count, entry.embeddedValueOrOffset());
             }
         }
     }
@@ -1019,9 +1019,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     ifdStream.writeByte(0);
                 }
             }
-            default ->
-                    throw new UnsupportedOperationException("Unknown value type of IFD tag " + tag + ": "
-                            + value.getClass().getSimpleName() + " (" + value + ")");
+            default -> throw new UnsupportedOperationException("Unknown value type of IFD tag " + tag +
+                    ": " + value.getClass().getSimpleName() + " (" + value + ")");
         }
     }
 

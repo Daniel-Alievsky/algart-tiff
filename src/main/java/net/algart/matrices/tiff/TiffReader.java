@@ -885,6 +885,14 @@ public non-sealed class TiffReader extends TiffIO {
     /**
      * Returns <code>{@link #allIFDs()}.size()</code>.
      *
+     * @return number of existing IFDs.
+     */
+    public int numberOfImages() throws IOException {
+        return allIFDs().size();
+    }
+    /**
+     * Returns <code>{@link #allIFDs()}.size()</code>.
+     *
      * <p>Note: for maximum usability, this method returns 0 instead of throwing an exception
      * if there are any problems with the input file.
      * But you will get the same exception when any
@@ -892,7 +900,7 @@ public non-sealed class TiffReader extends TiffIO {
      *
      * @return number of existing IFDs.
      */
-    public int numberOfImages() {
+    public int numberOfImagesUnchecked() {
         try {
             return allIFDs().size();
         } catch (IOException e) {

@@ -53,7 +53,7 @@ public class TiffWriteMixedTest {
             throw new AssertionError("Impossible in NO_CHECKS mode", e);
         }
         try {
-            final int n = reader.numberOfImages();
+            final int n = reader.numberOfImagesUnchecked();
             System.out.printf("%s, %d bytes, %s%n",
                     reader.isValidTiff() ? "valid" : "INVALID: \"" + reader.openingException() + "\"",
                     reader.fileLength(),
@@ -93,27 +93,27 @@ public class TiffWriteMixedTest {
 //            ifd.putPhotometricInterpretation(TagPhotometricInterpretation.WHITE_IS_ZERO);
             ifd.put(Tags.BITS_PER_SAMPLE, bitsPerSample);
             ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_UINT);
-//            ifd.put(Tags.X_RESOLUTION, TagValue.Rational.of(72, 1));
-//            ifd.put(Tags.Y_RESOLUTION, TagValue.Rational.of(72, 1));
-//            ifd.put(15701, TagValue.SRational.of(-1, 1000));
-//            ifd.put(15702, TagValue.SRational.of(-100, -10));
-//            ifd.put(15703, TagValue.Rational.of(1, 0xFFFFFFFEL));
-//            ifd.put(15710, new TagValue.SRational[] {
-//                    TagValue.SRational.of(0, 0),
-//                    TagValue.SRational.of(-1111111111, -222222222)});
-//            ifd.put(15711, new TagValue.Rational[] {
-//                    TagValue.Rational.of(0, 0),
-//                    TagValue.Rational.of(0xFFFFFFFEL, 12)});
-//            ifd.put(15721, TagValue.SByte.of(123));
-//            ifd.put(15722, new TagValue.SByte[] {
-//                    TagValue.SByte.of(0),
-//                    TagValue.SByte.of(-1)});
-//            ifd.put(15711, new TagValue.Rational[] {
-//                    TagValue.Rational.of(0, 0),
-//                    TagValue.Rational.of(0xFFFFFFFEL, 12)});
+            ifd.put(Tags.X_RESOLUTION, TagValue.Rational.of(72, 1));
+            ifd.put(Tags.Y_RESOLUTION, TagValue.Rational.of(72, 1));
+            ifd.put(15701, TagValue.SRational.of(-1, 1000));
+            ifd.put(15702, TagValue.SRational.of(-100, -10));
+            ifd.put(15703, TagValue.Rational.of(1, 0xFFFFFFFEL));
+            ifd.put(15710, new TagValue.SRational[] {
+                    TagValue.SRational.of(0, 0),
+                    TagValue.SRational.of(-1111111111, -222222222)});
+            ifd.put(15711, new TagValue.Rational[] {
+                    TagValue.Rational.of(0, 0),
+                    TagValue.Rational.of(0xFFFFFFFEL, 12)});
+            ifd.put(15721, TagValue.SByte.of(123));
+            ifd.put(15722, new TagValue.SByte[] {
+                    TagValue.SByte.of(0),
+                    TagValue.SByte.of(-1)});
+            ifd.put(16001, new double[0]);
+            ifd.put(16002, new double[] {0.11});
+            ifd.put(16003, new double[] {0.11, 0.12});
             ifd.putDescription("  ");
-            ifd.put(33333, new TiffIFD.UnsupportedTypeValue(3333, 0, 0));
-//             - you can comment or change the options above for thorough testing
+            ifd.put(33333, new TiffIFD.UnsupportedTypeValue(3333, 110, 0));
+            // - count should be ignored! we don't know how to write it
 //            ifd.put(Tags.PHOTOMETRIC_INTERPRETATION, 8);
             ifd.put(15700, new String[] {});
 

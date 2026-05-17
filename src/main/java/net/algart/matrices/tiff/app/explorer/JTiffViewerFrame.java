@@ -125,7 +125,7 @@ class JTiffViewerFrame extends JFrame {
                 ? "  %s%% (%d:1)".formatted(zoom100, (int) zoom)
                 : "  %s%% (1:%d)".formatted(zoom100, (int) Math.round(1.0 / zoom));
         setTitle("TIFF Image #%d from %d in the file (%dx%d, %d channel%s, %s bits/channel)  %s%s  [%s]".formatted(
-                viewer.ifdIndex(), map.numberOfImages(),
+                viewer.ifdIndex(), map.numberOfImagesUnchecked(),
                 map.dimX(), map.dimY(),
                 map.numberOfChannels(), map.numberOfChannels() == 1 ? "" : "s",
                 bitDepth.isPresent() ? bitDepth.getAsInt() : Arrays.toString(map.bitsPerSample()),
