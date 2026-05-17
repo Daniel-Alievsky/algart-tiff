@@ -1030,8 +1030,9 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     ifdStream.writeByte(0);
                 }
             }
-            default -> throw new UnsupportedOperationException("Writing value type of IFD tag " + tag +
-                    " is not supported: " + value.getClass().getSimpleName() + " (" + value + ")");
+            default -> throw new UnsupportedOperationException("Cannot write IFD tag " +
+                    Tags.prettyName(tag) + ": its value type \"" +
+                    value.getClass().getSimpleName() + "\" is not supported");
         }
     }
 

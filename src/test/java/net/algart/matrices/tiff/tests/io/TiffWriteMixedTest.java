@@ -112,6 +112,7 @@ public class TiffWriteMixedTest {
             ifd.put(15742, new TagValue.SLong[] {TagValue.SLong.of(220), TagValue.SLong.of(-1)});
             ifd.put(15751, TagValue.SLong8.of(123));
             ifd.put(15752, new TagValue.SLong8[] {TagValue.SLong8.of(220), TagValue.SLong8.of(-1)});
+//            ifd.put(15761, TagValue.IFD.of(123));
             ifd.put(16001, new long[0]);
             ifd.put(16002, new long[] {111});
             ifd.put(16003, new long[] {111, 112});
