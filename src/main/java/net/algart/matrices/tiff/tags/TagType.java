@@ -198,11 +198,13 @@ public enum TagType {
         return fromTypeCode(type).map(Enum::name).orElseGet(() -> "Unknown type (" + type + ")");
     }
 
-    public static Optional<TagType> fromJavaType(Class<?> javaType, boolean replaceWithBigTiffVersion) {
+    public static Optional<TagType> fromJavaType(Class<?> javaType, boolean replaceWithBigTiffVersionForPrimitive) {
         Objects.requireNonNull(javaType, "Null javaType");
         TagType tagType = CLASS_LOOKUP.get(javaType);
-        if (tagType != null && replaceWithBigTiffVersion) {
-            tagType = tagType.bigTiffVersion();
+        if (tagType != null && replaceWithBigTiffVersionForPrimitive) {
+            if (!TagValue.class.isAssignableFrom(javaType) && !TagValue[].class.isAssignableFrom(javaType)) {
+                tagType = tagType.bigTiffVersion();
+            }
         }
         return Optional.ofNullable(tagType);
     }
