@@ -71,7 +71,7 @@ public class TagValueTest {
         ifd.put(10032, new TagValue.SLong8[] {TagValue.SLong8.of(10000000000L), TagValue.SLong8.of(-1)});
         ifd.put(10041, check(TagValue.IFD.ofUnsigned32(0xFFFFFFFEL), TagType.IFD));
         ifd.put(10042, new TagValue.IFD[] {TagValue.IFD.ofUnsigned32(100000000), TagValue.IFD.of(0)});
-        ifd.put(10051, check(TagValue.IFD.of(-100000000000L), TagType.IFD8));
+        ifd.put(10051, check(TagValue.IFD.of(-100000000000L), TagType.IFD));
         ifd.put(10052, new TagValue.IFD[] {TagValue.IFD.of(10000000000L), TagValue.IFD.of(-1)});
         printDescription(ifd);
     }
