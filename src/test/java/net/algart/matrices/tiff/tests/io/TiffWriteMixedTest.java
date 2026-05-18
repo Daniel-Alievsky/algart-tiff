@@ -26,7 +26,6 @@ package net.algart.matrices.tiff.tests.io;
 
 import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tags.TagValue;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
@@ -41,8 +40,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class TiffWriteMixedTest {
-    private final static int IMAGE_WIDTH = 2000;
-    private final static int IMAGE_HEIGHT = 2000;
+    private final static int SIZE_X = 2000;
+    private final static int SIZE_Y = 2000;
 
     private static void printReaderInfo(TiffWriter writer) {
         System.out.print("Checking file by the reader: ");
@@ -75,7 +74,7 @@ public class TiffWriteMixedTest {
 
         System.out.println("Writing TIFF " + targetFile + "...");
         try (final TiffWriter writer = new TiffWriter(targetFile)) {
-            writer.setBigTiff(true);
+//            writer.setBigTiff(true);
             writer.setByteFiller((byte) 0);
             writer.setByteOrder(ByteOrder.LITTLE_ENDIAN);
 //            writer.setSmartCorrection(true);
@@ -86,45 +85,13 @@ public class TiffWriteMixedTest {
             TiffIFD ifd = new TiffIFD();
             final int[] bitsPerSample = {8, 8, 8};
             int numberOfChannels = bitsPerSample.length;
-            ifd.putImageDimensions(IMAGE_WIDTH, IMAGE_HEIGHT);
+            ifd.putImageDimensions(SIZE_X, SIZE_Y);
             ifd.putNumberOfChannels(numberOfChannels);
             ifd.putTileSizes(256, 256);
             ifd.putCompression(TagCompression.NONE);
 //            ifd.putPhotometricInterpretation(TagPhotometricInterpretation.WHITE_IS_ZERO);
             ifd.put(Tags.BITS_PER_SAMPLE, bitsPerSample);
             ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_UINT);
-            ifd.put(Tags.X_RESOLUTION, TagValue.Rational.of(72, 1));
-            ifd.put(Tags.Y_RESOLUTION, TagValue.Rational.of(72, 1));
-            ifd.put(15701, TagValue.SRational.of(-1, 1000));
-            ifd.put(15702, TagValue.SRational.of(-100, -10));
-            ifd.put(15703, TagValue.Rational.of(1, 0xFFFFFFFEL));
-            ifd.put(15710, new TagValue.SRational[] {
-                    TagValue.SRational.of(0, 0),
-                    TagValue.SRational.of(-1111111111, -222222222)});
-            ifd.put(15711, new TagValue.Rational[] {
-                    TagValue.Rational.of(0, 0),
-                    TagValue.Rational.of(0xFFFFFFFEL, 12)});
-            ifd.put(15721, TagValue.SByte.of(123));
-            ifd.put(15722, new TagValue.SByte[] {TagValue.SByte.of(0), TagValue.SByte.of(-1)});
-            ifd.put(15731, TagValue.SShort.of(123));
-            ifd.put(15732, new TagValue.SShort[] {TagValue.SShort.of(220), TagValue.SShort.of(-1)});
-            ifd.put(15741, TagValue.SLong.of(123));
-            ifd.put(15742, new TagValue.SLong[] {TagValue.SLong.of(220), TagValue.SLong.of(-1)});
-            ifd.put(15751, TagValue.SLong8.of(123));
-            ifd.put(15752, new TagValue.SLong8[] {TagValue.SLong8.of(220), TagValue.SLong8.of(-1)});
-//            ifd.put(15761, TagValue.IFD.of(123));
-            ifd.put(16001, new long[0]);
-            ifd.put(16002, new long[] {111});
-            ifd.put(16003, new long[] {111, 112});
-            ifd.put(16011, new double[0]);
-            ifd.put(16012, new double[] {0.11});
-            ifd.put(16013, new double[] {0.11, 0.12});
-            ifd.putDescription("  ");
-            ifd.put(33333, new TiffIFD.UnsupportedTypeValue(3333, 110, 0));
-            // - count should be ignored! we don't know how to write it
-//            ifd.put(Tags.PHOTOMETRIC_INTERPRETATION, 8);
-            ifd.put(15700, new String[] {});
-
             System.out.printf("Desired IFD:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.NORMAL));
 
             final TiffWriteMap map = writer.newFixedMap(ifd);

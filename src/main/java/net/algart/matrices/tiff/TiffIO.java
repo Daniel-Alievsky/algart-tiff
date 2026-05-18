@@ -532,7 +532,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 if (count == 1) {
                     return TagValue.RawRational.of(type, stream.readInt(), stream.readInt());
                 }
-                final TagValue.RawRational[] rationals = TagValue.RawRational.newArray(type, count);
+                final var rationals = (TagValue.RawRational[]) Array.newInstance(type.javaType(), count);
                 for (int j = 0; j < count; j++) {
                     rationals[j] = TagValue.RawRational.of(type, stream.readInt(), stream.readInt());
                 }
@@ -602,11 +602,11 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             }
             case IFD -> {
                 if (count == 1) {
-                    return TagValue.IFD.of(stream.readInt() & 0xFFFFFFFFL);
+                    return TagValue.IFD.ofUnsigned32(stream.readInt() & 0xFFFFFFFFL);
                 }
                 final TagValue.IFD[] ifdOiffsets = new TagValue.IFD[count];
                 for (int j = 0; j < count; j++) {
-                    ifdOiffsets[j] = TagValue.IFD.of(stream.readInt() & 0xFFFFFFFFL);
+                    ifdOiffsets[j] = TagValue.IFD.ofUnsigned32(stream.readInt() & 0xFFFFFFFFL);
                 }
                 return ifdOiffsets;
             }
@@ -637,11 +637,11 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             }
             case IFD8 -> {
                 if (count == 1) {
-                    return TagValue.IFD8.of(stream.readLong());
+                    return TagValue.IFD.of(stream.readLong());
                 }
-                final TagValue.IFD8[] ifdOiffsets = new TagValue.IFD8[count];
+                final TagValue.IFD[] ifdOiffsets = new TagValue.IFD[count];
                 for (int j = 0; j < count; j++) {
-                    ifdOiffsets[j] = TagValue.IFD8.of(stream.readLong());
+                    ifdOiffsets[j] = TagValue.IFD.of(stream.readLong());
                 }
                 return ifdOiffsets;
             }
@@ -699,22 +699,20 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             final long additionToExtraBufferOffset,
             final int tag,
             Object value) throws IOException {
-        // Convert singleton objects into arrays, for simplicity:
-        if (value instanceof Byte v) {
-            value = new byte[]{v};
-        } else if (value instanceof Short v) {
-            value = new short[]{v};
-        } else if (value instanceof Integer v) {
-            value = new int[]{v};
-        } else if (value instanceof Long v) {
-            value = new long[]{v};
-        } else if (value instanceof TagValue v) {
-            value = Array.newInstance(v.getClass(), 1);
-            Array.set(value, 0, v);
-        } else if (value instanceof Float v) {
-            value = new float[]{v};
-        } else if (value instanceof Double v) {
-            value = new double[]{v};
+        switch (value) {
+            case null -> throw new UnsupportedOperationException("IFD tag " + tag + " contains null value");
+            case Byte v -> value = new byte[]{v};
+            case Short v -> value = new short[]{v};
+            case Integer v -> value = new int[]{v};
+            case Long v -> value = new long[]{v};
+            case Float v -> value = new float[]{v};
+            case Double v -> value = new double[]{v};
+            case TagValue v -> {
+                value = Array.newInstance(v.getClass(), 1);
+                Array.set(value, 0, v);
+            }
+            default -> {
+            }
         }
 
         boolean emptyStringList = false;
@@ -725,14 +723,12 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             emptyStringList = list.isEmpty();
             value = list.stream().map(String::valueOf).collect(Collectors.joining("\0"));
         }
-        if (value == null) {
-            throw new UnsupportedOperationException("IFD tag " + tag + " contains null value");
-        }
         final TagType tagType = TagType.fromJavaType(value.getClass(), bigTiff).orElse(null);
-        final int dataLength = bigTiff ? 8 : 4;
-        final int dataLengthDiv2 = dataLength >> 1;
-        final int dataLengthDiv4 = dataLength >> 2;
-        final int dataLengthDiv8 = dataLength >> 3;
+        final int embeddedDataLength = bigTiff ? 8 : 4;
+        final int embeddedDataLengthDiv2 = embeddedDataLength >> 1;
+        final int embeddedDataLengthDiv4 = embeddedDataLength >> 2;
+        final int embeddedDataLengthDiv8 = embeddedDataLength >> 3;
+        // assert embeddedDataLengthDiv8 == (bigTiff ? 1 : 0);
         final ByteOrder byteOrder = extraBuffer.isLittleEndian() ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
 
         writeUnsignedShort(ifdStream, tag);
@@ -742,12 +738,12 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 writeTagType(ifdStream, tagType, TagType.UNDEFINED);
                 // - Most probable type. Maybe in future we will support here some algorithm,
                 // determining the necessary type on the base of the tag value.
-                writeIntOrLong(ifdStream, bigTiff, v.length);
-                if (v.length <= dataLength) {
+                TagValue.writeUnsigned(ifdStream, bigTiff, v.length);
+                if (v.length <= embeddedDataLength) {
                     for (byte byteValue : v) {
                         ifdStream.writeByte(byteValue);
                     }
-                    for (int i = v.length; i < dataLength; i++) {
+                    for (int i = v.length; i < embeddedDataLength; i++) {
                         ifdStream.writeByte(0);
                     }
                 } else {
@@ -758,12 +754,12 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             }
             case short[] v -> {
                 writeTagType(ifdStream, tagType, TagType.BYTE);
-                writeIntOrLong(ifdStream, bigTiff, v.length);
-                if (v.length <= dataLength) {
+                TagValue.writeUnsigned(ifdStream, bigTiff, v.length);
+                if (v.length <= embeddedDataLength) {
                     for (short s : v) {
                         writeUnsignedByte(ifdStream, s);
                     }
-                    for (int i = v.length; i < dataLength; i++) {
+                    for (int i = v.length; i < embeddedDataLength; i++) {
                         ifdStream.writeByte(0);
                     }
                 } else {
@@ -776,26 +772,6 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     extraBuffer.write(bytes);
                 }
             }
-            case TagValue.SByte[] v -> {
-                writeTagType(ifdStream, tagType, TagType.SBYTE);
-                // - Most probable type. Maybe in future we will support here some algorithm,
-                // determining the necessary type on the base of the tag value.
-                writeIntOrLong(ifdStream, bigTiff, v.length);
-                if (v.length <= dataLength) {
-                    for (TagValue.SByte byteValue : v) {
-                        ifdStream.writeByte(byteValue.byteValue());
-                    }
-                    for (int i = v.length; i < dataLength; i++) {
-                        ifdStream.writeByte(0);
-                    }
-                } else {
-                    appendUntilEvenOffset(extraBuffer);
-                    writeOffsetWithAddition(ifdStream, bigTiff, additionToExtraBufferOffset, extraBuffer.offset());
-                    for (TagValue.SByte byteValue : v) {
-                        extraBuffer.writeByte(byteValue.byteValue());
-                    }
-                }
-            }
             case String stringValue -> {
                 writeTagType(ifdStream, tagType, TagType.ASCII);
                 final byte[] v = emptyStringList ? new byte[0] : stringValue.getBytes(StandardCharsets.UTF_8);
@@ -805,15 +781,15 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     throw new TiffException("Cannot write TIFF IFD: string value is too large (2^31-1 bytes)");
                 }
                 final int actualValueLength = emptyStringList ? 0 : v.length + 1;
-                writeIntOrLong(ifdStream, bigTiff, actualValueLength);
+                TagValue.writeUnsigned(ifdStream, bigTiff, actualValueLength);
                 // - with concluding zero bytes, excepting an empty string list (produced by ASCII byte[0])
-                if (actualValueLength <= dataLength) {
+                if (actualValueLength <= embeddedDataLength) {
                     // - this branch is the same for an empty string list (byte[0])
                     // and for an empty string (byte[1] which contains 0)
                     for (byte c : v) {
                         writeUnsignedByte(ifdStream, c & 0xFF);
                     }
-                    for (int i = v.length; i < dataLength; i++) {
+                    for (int i = v.length; i < embeddedDataLength; i++) {
                         ifdStream.writeByte(0);
                     }
                 } else {
@@ -839,18 +815,18 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                         // - for example, if ImageWidth/ImageLength is stored as int:
                         // see TiffIFD.USE_LONG_IMAGE_DIMENSIONS
                         ifdStream.writeShort(TagType.LONG.typeCode());
-                        writeIntOrLong(ifdStream, bigTiff, v.length);
-                        writeIntOrLong(ifdStream, bigTiff, v0);
+                        TagValue.writeUnsigned(ifdStream, bigTiff, v.length);
+                        TagValue.writeUnsigned(ifdStream, bigTiff, v0);
                         return;
                     }
                 }
                 writeTagType(ifdStream, tagType, TagType.SHORT);
-                writeIntOrLong(ifdStream, bigTiff, v.length);
-                if (v.length <= dataLengthDiv2) {
+                TagValue.writeUnsigned(ifdStream, bigTiff, v.length);
+                if (v.length <= embeddedDataLengthDiv2) {
                     for (int intValue : v) {
                         writeUnsignedShort(ifdStream, intValue);
                     }
-                    for (int i = v.length; i < dataLengthDiv2; i++) {
+                    for (int i = v.length; i < embeddedDataLengthDiv2; i++) {
                         ifdStream.writeShort(0);
                     }
                 } else {
@@ -861,26 +837,6 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                         shorts[i] = checkUnsignedShort(v[i]);
                     }
                     extraBuffer.write(JArrays.shortArrayToBytes(shorts, byteOrder));
-                }
-            }
-            case TagValue.SShort[] v -> {
-                writeTagType(ifdStream, tagType, TagType.SSHORT);
-                // - Most probable type. Maybe in future we will support here some algorithm,
-                // determining the necessary type on the base of the tag value.
-                writeIntOrLong(ifdStream, bigTiff, v.length);
-                if (v.length <= dataLengthDiv2) {
-                    for (TagValue.SShort shortValue : v) {
-                        ifdStream.writeShort(shortValue.shortValue());
-                    }
-                    for (int i = v.length; i < dataLengthDiv2; i++) {
-                        ifdStream.writeShort(0);
-                    }
-                } else {
-                    appendUntilEvenOffset(extraBuffer);
-                    writeOffsetWithAddition(ifdStream, bigTiff, additionToExtraBufferOffset, extraBuffer.offset());
-                    for (TagValue.SShort shortValue : v) {
-                        extraBuffer.writeShort(shortValue.shortValue());
-                    }
                 }
             }
             case long[] v -> {
@@ -903,7 +859,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                                  Tags.ROWS_PER_STRIP,
                                  Tags.NEW_SUBFILE_TYPE -> {
                                 ifdStream.writeShort(TagType.LONG.typeCode());
-                                writeIntOrLong(ifdStream, bigTiff, v.length);
+                                TagValue.writeUnsigned(ifdStream, bigTiff, v.length);
                                 ifdStream.writeInt((int) v0);
                                 ifdStream.writeInt(0);
                                 // - 4 bytes of padding until full length 20 bytes
@@ -913,15 +869,15 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     }
                 }
                 writeTagType(ifdStream, tagType, bigTiff ? TagType.LONG8 : TagType.LONG);
-                writeIntOrLong(ifdStream, bigTiff, v.length);
+                TagValue.writeUnsigned(ifdStream, bigTiff, v.length);
 
                 if (v.length <= 1) {
-                    for (int i = 0; i < v.length; i++) {
-                        writeIntOrLong(ifdStream, bigTiff, v[0]);
-                        // - v[0]: it is actually performed 0 or 1 times
+                    // - for both types, bigTiff and !bigTiff, we have 1 LONG8/LONG element in the embedded area
+                    for (long longValue : v) {
+                        TagValue.writeUnsigned(ifdStream, bigTiff, longValue);
                     }
                     for (int i = v.length; i < 1; i++) {
-                        writeIntOrLong(ifdStream, bigTiff, 0);
+                        TagValue.writeUnsigned(ifdStream, bigTiff, 0);
                     }
                 } else {
                     appendUntilEvenOffset(extraBuffer);
@@ -933,42 +889,15 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 //                }
                 }
             }
-            case TagValue.SLong[] v -> {
-                writeTagType(ifdStream, tagType, TagType.SLONG);
-                // - Most probable type. Maybe in future we will support here some algorithm,
-                // determining the necessary type on the base of the tag value.
-                writeIntOrLong(ifdStream, bigTiff, v.length);
-                if (v.length <= dataLengthDiv4) {
-                    for (TagValue.SLong intValue : v) {
-                        ifdStream.writeInt(intValue.intValue());
-                    }
-                    for (int i = v.length; i < dataLengthDiv4; i++) {
-                        ifdStream.writeInt(0);
-                    }
-                } else {
-                    appendUntilEvenOffset(extraBuffer);
-                    writeOffsetWithAddition(ifdStream, bigTiff, additionToExtraBufferOffset, extraBuffer.offset());
-                    for (TagValue.SLong intValue : v) {
-                        extraBuffer.writeInt(intValue.intValue());
-                    }
-                }
-            }
-            case TagValue.RawRational[] v -> {
-                writeTagType(ifdStream, tagType, null);
-                if (tagType != TagType.RATIONAL && tagType != TagType.SRATIONAL) {
-                    throw new AssertionError("Invalid tag type: " + tagType);
-                }
-                writeRawRationals(ifdStream, extraBuffer, bigTiff, additionToExtraBufferOffset, v);
-            }
             case float[] v -> {
                 writeTagType(ifdStream, tagType, TagType.FLOAT);
-                writeIntOrLong(ifdStream, bigTiff, v.length);
-                if (v.length <= dataLengthDiv4) {
+                TagValue.writeUnsigned(ifdStream, bigTiff, v.length);
+                if (v.length <= embeddedDataLengthDiv4) {
                     for (float floatValue : v) {
                         ifdStream.writeFloat(floatValue);
                         // - in old SCIFIO code, here was a bug (for a case bigTiff): v[0] was always written
                     }
-                    for (int i = v.length; i < dataLengthDiv4; i++) {
+                    for (int i = v.length; i < embeddedDataLengthDiv4; i++) {
                         ifdStream.writeFloat(0.0f);
                     }
                 } else {
@@ -981,12 +910,12 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             }
             case double[] v -> {
                 writeTagType(ifdStream, tagType, TagType.DOUBLE);
-                writeIntOrLong(ifdStream, bigTiff, v.length);
-                if (v.length <= dataLengthDiv8) {
+                TagValue.writeUnsigned(ifdStream, bigTiff, v.length);
+                if (v.length <= embeddedDataLengthDiv8) {
                     for (double doubleValue : v) {
                         ifdStream.writeDouble(doubleValue);
                     }
-                    for (int i = v.length; i < dataLengthDiv8; i++) {
+                    for (int i = v.length; i < embeddedDataLengthDiv8; i++) {
                         ifdStream.writeDouble(0.0);
                         // - actually this is possible only when v.length==0
                     }
@@ -998,24 +927,26 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     }
                 }
             }
-            case TagValue.SLong8[] v -> {
-                writeTagType(ifdStream, tagType, TagType.SLONG8);
-                // - Most probable type. Maybe in future we will support here some algorithm,
-                // determining the necessary type on the base of the tag value.
-                writeIntOrLong(ifdStream, bigTiff, v.length);
-                if (v.length <= dataLengthDiv8) {
-                    for (TagValue.SLong8 longValue : v) {
-                        ifdStream.writeLong(longValue.longValue());
+            case TagValue[] v -> {
+                if (tagType == null) {
+                    throw new AssertionError("tagType must be correctly detected for TagValue[]");
+                }
+                //TODO!! check bigTiff for IFD
+                writeTagType(ifdStream, tagType, null);
+                TagValue.writeUnsigned(ifdStream, bigTiff, v.length);
+                final long dataBytes = (long) v.length * (long) tagType.sizeOf();
+                if (dataBytes <= embeddedDataLength) {
+                    for (TagValue tagValue : v) {
+                        tagValue.write(ifdStream, bigTiff);
                     }
-                    for (int i = v.length; i < dataLengthDiv8; i++) {
-                        ifdStream.writeLong(0);
-                        // - actually this is possible only when v.length==0
+                    for (int i = (int) dataBytes; i < embeddedDataLength; i++) {
+                        ifdStream.writeByte(0);
                     }
                 } else {
                     appendUntilEvenOffset(extraBuffer);
                     writeOffsetWithAddition(ifdStream, bigTiff, additionToExtraBufferOffset, extraBuffer.offset());
-                    for (TagValue.SLong8 longValue : v) {
-                        extraBuffer.writeLong(longValue.longValue());
+                    for (TagValue tagValue : v) {
+                        tagValue.write(extraBuffer, bigTiff);
                     }
                 }
             }
@@ -1025,8 +956,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 }
                 ifdStream.writeShort(unsupported.type());
                 // - but we don't know the sense of its valueOrOffset field; it is better to write "0 elements"
-                writeIntOrLong(ifdStream, bigTiff, 0);
-                for (int i = 0; i < dataLength; i++) {
+                TagValue.writeUnsigned(ifdStream, bigTiff, 0);
+                for (int i = 0; i < embeddedDataLength; i++) {
                     ifdStream.writeByte(0);
                 }
             }
@@ -1084,26 +1015,18 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return offset;
     }
 
-    static void skipOffset(DataHandle<?> handle, boolean bigTiff) throws IOException {
-        if (bigTiff) {
-            handle.skip(8);
-        } else {
-            handle.skip(4);
-        }
-    }
-
-    static void writeOffset(DataHandle<?> handle, boolean bigTiff, long offsetValueToWrite) throws IOException {
+    static void writeOffset(DataHandle<?> stream, boolean bigTiff, long offsetValueToWrite) throws IOException {
         if (offsetValueToWrite < 0) {
             throw new IllegalArgumentException("Illegal usage of writeOffset: negative offset " + offsetValueToWrite);
         }
         if (bigTiff) {
-            handle.writeLong(offsetValueToWrite);
+            stream.writeLong(offsetValueToWrite);
         } else {
             if (offsetValueToWrite > 0xFFFFFFF0L) {
                 throw new TiffException("Attempt to write too large 64-bit offset as unsigned 32-bit: " +
                         offsetValueToWrite + " > 2^32-16; such large files should be written in BigTIFF mode");
             }
-            handle.writeInt((int) offsetValueToWrite);
+            stream.writeInt((int) offsetValueToWrite);
             // - masking by 0xFFFFFFFF is unnecessary: cast to (int) works properly also for 32-bit unsigned values
         }
     }
@@ -1118,10 +1041,10 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return getFileHandle(file);
     }
 
-    static void appendUntilEvenOffset(DataHandle<?> handle) throws IOException {
-        if ((handle.offset() & 0x1) != 0) {
-//            System.out.println("Correction " + handle.offset());
-            handle.writeByte(0);
+    static void appendUntilEvenOffset(DataHandle<?> stream) throws IOException {
+        if ((stream.offset() & 0x1) != 0) {
+//            System.out.println("Correction " + stream.offset());
+            stream.writeByte(0);
             // - Well-formed IFD requires even offsets
         }
     }
@@ -1171,12 +1094,12 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         }
     }
 
-    private static byte[] readBytes(DataHandle<?> handle, long length) throws IOException {
+    private static byte[] readBytes(DataHandle<?> stream, long length) throws IOException {
         if (length > Integer.MAX_VALUE) {
             throw new TiffException("Too large IFD value: " + length + " >= 2^31 bytes");
         }
         byte[] bytes = new byte[(int) length];
-        handle.readFully(bytes);
+        stream.readFully(bytes);
         return bytes;
     }
 
@@ -1186,21 +1109,15 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         } else {
             int[] ints = new int[values.length];
             for (int i = 0; i < values.length; i++) {
-                long value = values[i];
-                if (value < Integer.MIN_VALUE || value > 0xFFFFFFFFL) {
-                    // - note: positive values in range 0x80000000..0xFFFFFFFF are mostly probably unsigned integers,
-                    // not signed values with overflow
-                    throw new TiffException("Attempt to write 64-bit value as 32-bit: " + value);
-                }
-                ints[i] = (int) value;
+                ints[i] = checkUnsignedInt(values[i]);
             }
             return JArrays.intArrayToBytes(ints, byteOrder);
         }
     }
 
-    private static void writeOffsetWithAddition(DataHandle<?> handle, boolean bigTiff, long addition, long offset)
+    private static void writeOffsetWithAddition(DataHandle<?> stream, boolean bigTiff, long addition, long offset)
             throws IOException {
-        writeOffset(handle, bigTiff, addition + offset);
+        writeOffset(stream, bigTiff, addition + offset);
     }
 
     private static void writeTagType(DataHandle<?> ifdStream, TagType tagType, TagType expected)
@@ -1211,73 +1128,35 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         ifdStream.writeShort(tagType.typeCode());
     }
 
-    /**
-     * Write the given value to the given RandomAccessOutputStream. If the
-     * 'bigTiff' flag is set, then the value will be written as an 8-byte long;
-     * otherwise, it will be written as a 4-byte integer.
-     */
-    private static void writeIntOrLong(DataHandle<?> handle, boolean bigTiff, long value) throws IOException {
-        if (bigTiff) {
-            handle.writeLong(value);
-        } else {
-            if (value < Integer.MIN_VALUE || value > 0xFFFFFFFFL) {
-                // - note: positive values in range 0x80000000..0xFFFFFFFF are mostly probably unsigned integers,
-                // not signed values with overflow
-                throw new TiffException("Attempt to write 64-bit value as 32-bit: " + value);
-            }
-            handle.writeInt((int) value);
-        }
-    }
-
-    private static void writeIntOrLong(DataHandle<?> handle, boolean bigTiff, int value) throws IOException {
-        if (bigTiff) {
-            handle.writeLong(value);
-        } else {
-            handle.writeInt(value);
-        }
-    }
-
-    private static void writeUnsignedShort(DataHandle<?> handle, int value) throws IOException {
+    private static void writeUnsignedShort(DataHandle<?> stream, int value) throws IOException {
         checkUnsignedShort(value);
-        handle.writeShort(value);
+        stream.writeShort(value);
     }
 
-    private static short checkUnsignedShort(int value) throws TiffException {
-        if (value < 0 || value > 0xFFFF) {
-            throw new TiffException("Attempt to write 32-bit value as 16-bit: " + value);
-        }
-        return (short) value;
-    }
-
-    private static void writeUnsignedByte(DataHandle<?> handle, int value) throws IOException {
+    private static void writeUnsignedByte(DataHandle<?> stream, int value) throws IOException {
         checkUnsignedByte(value);
-        handle.writeByte(value);
-    }
-
-    private static void writeRawRationals(
-            DataHandle<?> ifdStream,
-            DataHandle<?> extraBuffer,
-            boolean bigTiff,
-            long additionToExtraBufferOffset,
-            TagValue.RawRational[] v) throws IOException {
-        writeIntOrLong(ifdStream, bigTiff, v.length);
-        if (bigTiff && v.length == 1) {
-            ifdStream.writeInt(v[0].rawNumerator());
-            ifdStream.writeInt(v[0].rawDenominator());
-        } else {
-            appendUntilEvenOffset(extraBuffer);
-            writeOffsetWithAddition(ifdStream, bigTiff, additionToExtraBufferOffset, extraBuffer.offset());
-            for (TagValue.RawRational rawRational : v) {
-                extraBuffer.writeInt(rawRational.rawNumerator());
-                extraBuffer.writeInt(rawRational.rawDenominator());
-            }
-        }
+        stream.writeByte(value);
     }
 
     private static byte checkUnsignedByte(int value) throws TiffException {
         if (value < 0 || value > 0xFF) {
-            throw new TiffException("Attempt to write 16/32-bit value as 8-bit: " + value);
+            throw new TiffException("Attempt to write too large 16/32-bit value as 8-bit: " + value);
         }
         return (byte) value;
     }
+
+    private static short checkUnsignedShort(int value) throws TiffException {
+        if (value < 0 || value > 0xFFFF) {
+            throw new TiffException("Attempt to write too large 32-bit value as 16-bit: " + value);
+        }
+        return (short) value;
+    }
+
+    private static int checkUnsignedInt(long value) throws TiffException {
+        if (value < 0 || value > 0xFFFFFFFFL) {
+            throw new TiffException("Attempt to write too large 64-bit value as 32-bit: " + value);
+        }
+        return (int) value;
+    }
+
 }

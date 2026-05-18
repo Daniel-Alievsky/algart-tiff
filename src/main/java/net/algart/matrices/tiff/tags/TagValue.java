@@ -24,6 +24,10 @@
 
 package net.algart.matrices.tiff.tags;
 
+import net.algart.matrices.tiff.TiffException;
+import org.scijava.io.handle.DataHandle;
+
+import java.io.IOException;
 import java.util.Objects;
 
 /**
@@ -35,9 +39,31 @@ import java.util.Objects;
  * which do not directly map to built-in Java types.
  */
 public interface TagValue {
+    /**
+     * Write the given value to the given stream.
+     * If the {@code bigTiff} flag is set, then the value will be written as an 8-byte long
+     * by {@link DataHandle#writeLong(long)} method;
+     * otherwise, it will be written as a 4-byte unsigned integer
+     * by {@link DataHandle#writeInt(int)} method.
+     *
+     * @throws TiffException if {@code bigTiff} is set and the value is outside {@code 0..0xFFFFFFFFL} range.
+     */
+    static void writeUnsigned(DataHandle<?> stream, boolean bigTiff, long value) throws IOException {
+        if (bigTiff) {
+            stream.writeLong(value);
+        } else {
+            if (value < 0 || value > 0xFFFFFFFFL) {
+                throw new TiffException("Attempt to write too large 64-bit value as 32-bit: " + value);
+            }
+            stream.writeInt((int) value);
+        }
+    }
+
     TagType type();
 
     String mathString();
+
+    void write(DataHandle<?> stream, boolean bigTiff) throws IOException;
 
     abstract class RawInteger extends Number implements TagValue {
         private final TagType type;
@@ -58,40 +84,24 @@ public interface TagValue {
                 case SLONG -> SLong.of(raw);
                 case SLONG8 -> SLong8.of(raw);
                 case IFD -> IFD.of(raw);
-                case IFD8 -> IFD8.of(raw);
+                case IFD8 -> IFD.ofUnsigned32(raw);
                 default -> throw new IllegalArgumentException("RawInteger cannot be " + type);
             };
         }
 
-        public static RawInteger[] newArray(TagType type, int length) {
-            Objects.requireNonNull(type, "Null tag type");
-            if (length < 0) {
-                throw new IllegalArgumentException("Negative array length: " + length);
-            }
-            return switch (type) {
-                case SBYTE -> new SByte[length];
-                case SSHORT -> new SShort[length];
-                case SLONG -> new SLong[length];
-                case SLONG8 -> new SLong8[length];
-                case IFD -> new IFD[length];
-                case IFD8 -> new IFD8[length];
-                default -> throw new IllegalArgumentException("RawInteger cannot be " + type);
-            };
-        }
-
-        public int intValue() {
+        public final int intValue() {
             return (int) raw;
         }
 
-        public long longValue() {
+        public final long longValue() {
             return raw;
         }
 
-        public float floatValue() {
+        public final float floatValue() {
             return (float) raw;
         }
 
-        public double doubleValue() {
+        public final double doubleValue() {
             return (double) raw;
         }
 
@@ -139,6 +149,11 @@ public interface TagValue {
             }
             return new SByte(value);
         }
+
+        @Override
+        public void write(DataHandle<?> stream, boolean bigTiff) throws IOException {
+            stream.writeByte(byteValue());
+        }
     }
 
     class SShort extends RawInteger {
@@ -152,6 +167,11 @@ public interface TagValue {
                         " is out of range " + Short.MIN_VALUE + " to " + Short.MAX_VALUE);
             }
             return new SShort(value);
+        }
+
+        @Override
+        public void write(DataHandle<?> stream, boolean bigTiff) throws IOException {
+            stream.writeShort(shortValue());
         }
     }
 
@@ -167,6 +187,11 @@ public interface TagValue {
             }
             return new SLong(value);
         }
+
+        @Override
+        public void write(DataHandle<?> stream, boolean bigTiff) throws IOException {
+            stream.writeInt(intValue());
+        }
     }
 
     class SLong8 extends RawInteger {
@@ -177,6 +202,11 @@ public interface TagValue {
         public static SLong8 of(long value) {
             return new SLong8(value);
         }
+
+        @Override
+        public void write(DataHandle<?> stream, boolean bigTiff) throws IOException {
+            stream.writeLong(longValue());
+        }
     }
 
     class IFD extends RawInteger {
@@ -184,7 +214,7 @@ public interface TagValue {
             super(TagType.IFD, raw, false);
         }
 
-        public static IFD of(long value) {
+        public static IFD ofUnsigned32(long value) {
             if (value < 0 || value > 0xFFFFFFFFL) {
                 throw new IllegalArgumentException("Unsigned 32-bit IFD offset = " + value +
                         " is out of range 0..2^32-1");
@@ -192,18 +222,12 @@ public interface TagValue {
             return new IFD(value);
         }
 
-        public String toString() {
-            return mathString() + " (32-bit IFD offset)";
-        }
-    }
-
-    class IFD8 extends RawInteger {
-        private IFD8(long raw) {
-            super(TagType.IFD8, raw, false);
-        }
-
-        public static IFD8 of(long value) {
-            return new IFD8(value);
+        public static IFD of(long value) {
+            // - note: attempt to throw an exception if value < 0 is not a good idea!
+            // This just means that some IFD8 tag is used probably incorrectly,
+            // but this is not a bug of the programmer;
+            // we could throw TiffException here, but it is not the purpose of this class
+            return new IFD(value);
         }
 
         @Override
@@ -211,8 +235,13 @@ public interface TagValue {
             return Long.toUnsignedString(longValue());
         }
 
+        @Override
+        public void write(DataHandle<?> stream, boolean bigTiff) throws IOException {
+            writeUnsigned(stream, bigTiff, longValue());
+        }
+
         public String toString() {
-            return mathString() + " (64-bit IFD offset)";
+            return mathString() + " (IFD offset)";
         }
     }
 
@@ -239,18 +268,6 @@ public interface TagValue {
             return switch (type) {
                 case SRATIONAL -> new SRational(rawNumerator, rawDenominator);
                 case RATIONAL -> new Rational(rawNumerator, rawDenominator);
-                default -> throw new IllegalArgumentException("RawRational cannot be " + type);
-            };
-        }
-
-        public static RawRational[] newArray(TagType type, int length) {
-            Objects.requireNonNull(type, "Null tag type");
-            if (length < 0) {
-                throw new IllegalArgumentException("Negative array length: " + length);
-            }
-            return switch (type) {
-                case SRATIONAL -> new SRational[length];
-                case RATIONAL -> new Rational[length];
                 default -> throw new IllegalArgumentException("RawRational cannot be " + type);
             };
         }
@@ -287,6 +304,12 @@ public interface TagValue {
 
         public String mathString() {
             return numerator() + "/" + denominator();
+        }
+
+        @Override
+        public void write(DataHandle<?> stream, boolean bigTiff) throws IOException {
+            stream.writeInt(rawNumerator);
+            stream.writeInt(rawDenominator);
         }
 
         @Override

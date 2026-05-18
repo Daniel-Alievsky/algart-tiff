@@ -108,7 +108,7 @@ public enum TagType {
     /**
      * 64-bit unsigned integer, used for storing IFD offsets (BigTIFF only).
      */
-    IFD8(18, 8, false, TagValue.IFD8.class, TagValue.IFD8[].class);
+    IFD8(18, 8, false, TagValue.IFD.class, TagValue.IFD[].class);
     // Important: in the list above, Big-TIFF types MUST be after non-Big-TIFF analogs!
 
     private static final Map<Class<?>, TagType> CLASS_LOOKUP = new HashMap<>();
@@ -206,8 +206,9 @@ public enum TagType {
         Objects.requireNonNull(javaType, "Null javaType");
         TagType tagType = CLASS_LOOKUP.get(javaType);
         if (smartSelectForBigTiff && tagType == LONG) {
-            // LONG (unsigned int32), represented by Java long[], should be replaced with LONG8 in BigTIFF
-            // IFD (unsigned int32), represented by Java TagValue.IFD[], should be replaced with IFD8 in BigTIFF
+            // LONG (unsigned int32), represented by Java long[], should be replaced with LONG8 in BigTIFF;
+            // IFD (unsigned int32), represented by Java TagValue.IFD[], should be replaced with IFD8 in BigTIFF;
+            // but for SLONG (signed int32) it is not necessary
             //TODO!! also IFD
             tagType = tagType.bigTiffVersion();
         }

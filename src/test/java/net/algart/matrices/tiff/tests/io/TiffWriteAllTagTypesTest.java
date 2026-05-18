@@ -1,0 +1,123 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2023-2026 Daniel Alievsky, AlgART Laboratory (http://algart.net)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+package net.algart.matrices.tiff.tests.io;
+
+import net.algart.arrays.Matrix;
+import net.algart.arrays.PArray;
+import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.TiffWriter;
+import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tags.TagValue;
+import net.algart.matrices.tiff.tags.Tags;
+import net.algart.matrices.tiff.tiles.TiffTile;
+import net.algart.matrices.tiff.tiles.TiffWriteMap;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class TiffWriteAllTagTypesTest {
+    private final static int SIZE_X = 2000;
+    private final static int SIZE_Y = 2000;
+
+    public static void main(String[] args) throws IOException {
+        int startArgIndex = 0;
+        boolean bigTiff = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-bigTiff")) {
+            bigTiff = true;
+            startArgIndex++;
+        }
+        if (args.length < startArgIndex + 1) {
+            System.out.println("Usage:");
+            System.out.println("    " + TiffWriteAllTagTypesTest.class.getName() + " [-bigTiff] target.tiff");
+            return;
+        }
+        final Path targetFile = Paths.get(args[startArgIndex]);
+
+        System.out.println("Writing TIFF " + targetFile + "...");
+        try (final TiffWriter writer = new TiffWriter(targetFile)) {
+            writer.setBigTiff(bigTiff);
+            writer.create();
+            writer.create(); // - not a problem to call twice
+            // writer.reader().input().setLength(0); // - throws an exception (read-only
+            TiffIFD ifd = TiffIFD.newIFD(true);
+            Matrix<? extends PArray> image = makeBytes(SIZE_X, SIZE_Y, 3);
+            ifd.putMatrixInformation(image);
+            ifd.putCompression(TagCompression.NONE);
+            ifd.put(Tags.X_RESOLUTION, TagValue.Rational.of(72, 1));
+            ifd.put(Tags.Y_RESOLUTION, TagValue.Rational.of(72, 1));
+            ifd.put(15701, TagValue.SRational.of(-1, 1000));
+            ifd.put(15702, TagValue.SRational.of(-100, -10));
+            ifd.put(15703, TagValue.Rational.of(1, 0xFFFFFFFEL));
+            ifd.put(15710, new TagValue.SRational[] {
+                    TagValue.SRational.of(0, 0),
+                    TagValue.SRational.of(-1111111111, -222222222)});
+            ifd.put(15711, new TagValue.Rational[] {
+                    TagValue.Rational.of(0, 0),
+                    TagValue.Rational.of(0xFFFFFFFEL, 12)});
+            ifd.put(15721, TagValue.SByte.of(123));
+            ifd.put(15722, new TagValue.SByte[] {TagValue.SByte.of(0), TagValue.SByte.of(-1)});
+            ifd.put(15731, TagValue.SShort.of(123));
+            ifd.put(15732, new TagValue.SShort[] {TagValue.SShort.of(220), TagValue.SShort.of(-1)});
+            ifd.put(15741, TagValue.SLong.of(123));
+            ifd.put(15742, new TagValue.SLong[] {TagValue.SLong.of(220), TagValue.SLong.of(-1)});
+            ifd.put(15751, TagValue.SLong8.of(123));
+            ifd.put(15752, new TagValue.SLong8[] {TagValue.SLong8.of(220), TagValue.SLong8.of(-1)});
+//            ifd.put(15761, TagValue.IFD.of(123));
+            ifd.put(16001, new long[0]);
+            ifd.put(16002, new long[] {111});
+            ifd.put(16003, new long[] {111, 112});
+            ifd.put(16011, new double[0]);
+            ifd.put(16012, new double[] {0.11});
+            ifd.put(16013, new double[] {0.11, 0.12});
+            ifd.putDescription("Hello, world!");
+            ifd.put(33333, new TiffIFD.UnsupportedTypeValue(3333, 110, 0));
+            // - count should be ignored! we don't know how to write it
+//            ifd.put(Tags.PHOTOMETRIC_INTERPRETATION, 8);
+            ifd.put(15700, new String[] {});
+            System.out.printf("Desired IFD:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.NORMAL));
+
+            final TiffWriteMap map = writer.newFixedMap(ifd);
+            map.writeMatrix(image);
+            System.out.printf("Actually saved IFD:%n%s%n", ifd.toString(TiffIFD.StringFormat.DETAILED));
+        }
+        System.out.println("Done");
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    private static Matrix<? extends PArray> makeBytes(int sizeX, int sizeY, int numberOfChannels) {
+        byte[] bytes = new byte[sizeX * sizeY * numberOfChannels];
+        for (int channel = 0, disp = 0; channel < numberOfChannels; channel++) {
+            for (long y = 0; y < sizeY; y++) {
+                for (long x = 0; x < sizeX; x++, disp++) {
+                    bytes[disp] = (byte) (Math.sqrt(x * x + y * y) * channel);
+                }
+            }
+        }
+        return Matrix.as(bytes, sizeX, sizeY, numberOfChannels);
+    }
+}

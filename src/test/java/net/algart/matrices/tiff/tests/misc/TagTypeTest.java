@@ -45,6 +45,8 @@ public class TagTypeTest {
             throw new AssertionError("Error in fromTypeCode");
         }
         TagType backType = TagType.fromJavaType(javaType, type.isBigTiffOnly()).orElseThrow();
+        // For SLONG8, the second parameter is not necessary;
+        // but for LONG8, without it backType will be LONG
         if (backType != type) {
             throw new AssertionError("Error in fromJavaType: " + backType);
         }
