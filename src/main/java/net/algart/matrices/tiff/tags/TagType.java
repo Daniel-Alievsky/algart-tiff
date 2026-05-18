@@ -236,7 +236,8 @@ public enum TagType {
     public static Optional<TagType> fromJavaType(Class<?> javaType, boolean smartSelectDependingOnBigTiffMode) {
         Objects.requireNonNull(javaType, "Null javaType");
         TagType tagType = CLASS_LOOKUP.get(javaType);
-        if (smartSelectDependingOnBigTiffMode && tagType != null && tagType.isAutomaticallyAdjustedDependingOnBigTiffMode()) {
+        if (smartSelectDependingOnBigTiffMode && tagType != null &&
+                tagType.isAutomaticallyAdjustedDependingOnBigTiffMode()) {
             // LONG (unsigned int32), represented by Java long[], should be replaced with LONG8 in BigTIFF;
             // IFD (unsigned int32), represented by Java TagValue.IFD[], should be replaced with IFD8 in BigTIFF;
             // but for SLONG (signed int32) it is not necessary

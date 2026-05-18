@@ -814,7 +814,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 if (v.length == 1) {
                     // - we should allow using usual int values for 32-bit tags to avoid a lot of obvious bugs
                     final int v0 = v[0];
-                    if (v0 >= 0xFFFF) {
+                    if (v0 > 0xFFFF) {
                         // - for example, if ImageWidth/ImageLength is stored as int:
                         // see TiffIFD.USE_LONG_IMAGE_DIMENSIONS
                         if (writeSpecialTag(ifdStream, bigTiff, tag, v0)) {
@@ -910,7 +910,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             }
             case TagValue[] v -> {
                 if (tagType == null) {
-                    throw new AssertionError("tagType must be correctly detected for TagValue[]");
+                    throw writingUnsupportedTagException(tag, value);
                 }
                 writeTagType(ifdStream, tagType, null);
                 TagValue.writeUnsigned(ifdStream, bigTiff, v.length);
@@ -936,9 +936,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 TagValue.writeUnsigned(ifdStream, bigTiff, 0);
                 writeZeroPadding(ifdStream, embeddedDataSize);
             }
-            default -> throw new UnsupportedOperationException("Cannot write IFD tag " +
-                    Tags.prettyName(tag) + ": its value type \"" +
-                    value.getClass().getSimpleName() + "\" is not supported");
+            default -> throw writingUnsupportedTagException(tag, value);
         }
     }
 
@@ -1170,5 +1168,11 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     " 64-bit value as unsigned 32-bit: " + value);
         }
         return (int) value;
+    }
+
+    private static TiffException writingUnsupportedTagException(int tag, Object value) {
+        return new TiffException("Cannot write IFD tag " +
+                Tags.prettyName(tag) + ": its value type \"" +
+                value.getClass().getSimpleName() + "\" is not supported");
     }
 }
