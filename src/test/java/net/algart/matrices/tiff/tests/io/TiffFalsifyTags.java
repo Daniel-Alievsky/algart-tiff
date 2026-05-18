@@ -25,7 +25,6 @@
 package net.algart.matrices.tiff.tests.io;
 
 import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagPhotometric;
 import net.algart.matrices.tiff.tags.Tags;
@@ -64,7 +63,7 @@ public class TiffFalsifyTags {
             writer.openExisting();
 
             System.out.printf("Transforming %s...%n", targetFile);
-            final TiffIFD ifd = writer.existingIFD(ifdIndex);
+            final TiffIFD ifd = writer.existingIFD(ifdIndex, true);
             if (newDimX > 0 && newDimY > 0) {
                 ifd.putImageDimensions(newDimX, newDimY);
             }

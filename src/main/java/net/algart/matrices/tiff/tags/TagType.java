@@ -24,6 +24,8 @@
 
 package net.algart.matrices.tiff.tags;
 
+import net.algart.matrices.tiff.TiffWriter;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -126,22 +128,22 @@ public enum TagType {
             Arrays.stream(values()).collect(Collectors.toMap(TagType::typeCode, v -> v));
 
     private final int typeCode;
-    private final int sizeOf;
+    private final int bytesPerElement;
     private final boolean signed;
     private final Class<?>[] javaTypes;
 
-    TagType(int id, int sizeOf, boolean signed, Class<?>... javaTypes) {
+    TagType(int id, int bytesPerElement, boolean signed, Class<?>... javaTypes) {
         Objects.requireNonNull(javaTypes);
         assert javaTypes.length >= 2;
         assert javaTypes[1].getComponentType() == javaTypes[0];
         if (id <= 0) {
             throw new IllegalArgumentException("id must be positive");
         }
-        if (sizeOf <= 0) {
+        if (bytesPerElement <= 0) {
             throw new IllegalArgumentException("sizeOf must be positive");
         }
         this.typeCode = id;
-        this.sizeOf = sizeOf;
+        this.bytesPerElement = bytesPerElement;
         this.signed = signed;
         this.javaTypes = javaTypes;
     }
@@ -150,12 +152,12 @@ public enum TagType {
         return typeCode;
     }
 
-    public int sizeOf() {
-        return sizeOf;
+    public int bytesPerElement() {
+        return bytesPerElement;
     }
 
     public int bitsPerElement() {
-        return 8 * sizeOf;
+        return 8 * bytesPerElement;
     }
 
     /**
@@ -166,6 +168,30 @@ public enum TagType {
      */
     public boolean isSigned() {
         return signed;
+    }
+
+    /**
+     * Returns {@code true} for {@link #LONG}, {@link #LONG8}, {@link #IFD}, {@link #IFD8}.
+     * <p>When {@link net.algart.matrices.tiff.TiffWriter} writes an IFD value of these types,
+     * it always selects between
+     * 4-byte and 8-byte versions ({@link #LONG} or {@link #LONG8}, {@link #IFD} or {@link #IFD8})
+     * based on the TIFF file type: is it {@link TiffWriter#isBigTiff() Big-TIFF} or no,
+     * and (sometimes) based on the specific tag code and value (for example, it usually writes
+     * {@code ImageWidth} / {@code ImageLength} as 32-bit {@link #LONG} type).
+     * The actual type of the value in the IFD, returned by the method
+     * {@link net.algart.matrices.tiff.TiffIFD#get(int)}, does not affect this selection.</p>
+     *
+     * <p>In comparison, the selection between {@link #SLONG} and {@link #SLONG8} types is based
+     * on the value type: is it {@link TagValue.SLong} or {@link TagValue.SLong8}.</p>
+     *
+     * <p>For types, where this method returns {@code true},
+     * {@link #fromJavaType} method performs automatic correction to {@link #bigTiffVersion()}
+     * when its second argument is {@code true}.</p>
+     *
+     * @return {@code true} for {@link #LONG}, {@link #LONG8}, {@link #IFD}, {@link #IFD8}.
+     */
+    public boolean isAutomaticallyChosenDependingOnBigTiff() {
+        return this == LONG || this == LONG8 || this == IFD || this == IFD8;
     }
 
     public TagType bigTiffVersion() {
@@ -205,11 +231,10 @@ public enum TagType {
     public static Optional<TagType> fromJavaType(Class<?> javaType, boolean smartSelectForBigTiff) {
         Objects.requireNonNull(javaType, "Null javaType");
         TagType tagType = CLASS_LOOKUP.get(javaType);
-        if (smartSelectForBigTiff && tagType == LONG) {
+        if (smartSelectForBigTiff && tagType != null && tagType.isAutomaticallyChosenDependingOnBigTiff()) {
             // LONG (unsigned int32), represented by Java long[], should be replaced with LONG8 in BigTIFF;
             // IFD (unsigned int32), represented by Java TagValue.IFD[], should be replaced with IFD8 in BigTIFF;
             // but for SLONG (signed int32) it is not necessary
-            //TODO!! also IFD
             tagType = tagType.bigTiffVersion();
         }
         return Optional.ofNullable(tagType);
@@ -225,5 +250,4 @@ public enum TagType {
     public static Optional<TagType> fromTypeCode(int type) {
         return Optional.ofNullable(CODE_LOOKUP.get(type));
     }
-
 }

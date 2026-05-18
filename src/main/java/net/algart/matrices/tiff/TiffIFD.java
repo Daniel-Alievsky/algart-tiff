@@ -62,7 +62,7 @@ public final class TiffIFD {
         NORMAL(true, false),
         /**
          * Note that the tags should be always sorted according TIFF 6.0 standard,
-         * but some TIFF files do not comply this rule.
+         * but some TIFF files do not comply with this rule.
          * Besides this, unsorted IFD is possible during its construction via
          * {@link TiffIFD#put(int, Object)} or similar methods.
          *
@@ -342,23 +342,8 @@ public final class TiffIFD {
         this(new LinkedHashMap<>());
     }
 
-    @SuppressWarnings("CopyConstructorMissesField")
     public TiffIFD(TiffIFD ifd) {
-        map = new LinkedHashMap<>(ifd.map);
-        detailedCompression = ifd.detailedCompression;
-        detailedEntries = ifd.detailedEntries == null ? null : new LinkedHashMap<>(ifd.detailedEntries);
-        loadedFromFile = ifd.loadedFromFile;
-        // skipping copying littleEndian, bigTiff: they are attributes of the file, not of the IFD
-        // skipping copying indexInIFDList: the copy will be probably placed into another list at another position
-        fileOffsetOfIFD = ifd.fileOffsetOfIFD;
-        fileOffsetOfNextIFDOffset = ifd.fileOffsetOfNextIFDOffset;
-        fileOffsetOfIFDForWriting = ifd.fileOffsetOfIFDForWriting;
-        nextIFDOffset = ifd.nextIFDOffset;
-        subIFDType = ifd.subIFDType;
-        description = ifd.description;
-        frozen = false;
-        // - Important: a copy is not frozen!
-        // And it is the only way to clear this flag.
+        this(ifd, false);
     }
 
     public TiffIFD(Map<Integer, Object> ifdEntries) {
@@ -375,6 +360,26 @@ public final class TiffIFD {
             // - without a guarantee that keys are not null, "new TreeSet" call in toString() can throw an exception
         }
         this.detailedEntries = detailedEntries;
+    }
+
+    private TiffIFD(TiffIFD ifd, boolean sortEntries) {
+        map = new LinkedHashMap<>(sortEntries ? new TreeMap<>(ifd.map) : ifd.map);
+        detailedCompression = ifd.detailedCompression;
+        detailedEntries = ifd.detailedEntries == null ? null : new LinkedHashMap<>(ifd.detailedEntries);
+        loadedFromFile = ifd.loadedFromFile;
+        // skipping copying:
+        //    littleEndian, bigTiff - they are attributes of the file, not of the IFD
+        //    globalIndex, globalMainIndex - the copy will be probably placed into another list at another position
+        //    cache... - they may be cached again in a new copy
+        fileOffsetOfIFD = ifd.fileOffsetOfIFD;
+        fileOffsetOfNextIFDOffset = ifd.fileOffsetOfNextIFDOffset;
+        fileOffsetOfIFDForWriting = ifd.fileOffsetOfIFDForWriting;
+        nextIFDOffset = ifd.nextIFDOffset;
+        subIFDType = ifd.subIFDType;
+        description = ifd.description;
+        frozen = false;
+        // - Important: a copy is not frozen!
+        // And it is the only way to clear this flag.
     }
 
     /**
@@ -623,7 +628,8 @@ public final class TiffIFD {
      * assignFileOffsetOfIFDForWriting}(ifd.{@link #getFileOffsetOfIFD()});
      * </pre>
      *
-     * <p>Such a correction is performed automatically by the {@link TiffWriter#existingIFD(int)} method.</p>
+     * <p>Such a correction is performed automatically
+     * by the {@link TiffWriter#existingIFD(int, boolean)} method.</p>
      *
      * @param fileOffsetOfIFDForWriting the target file offset (must be even).
      * @return a reference to this IFD object.
@@ -2554,6 +2560,20 @@ public final class TiffIFD {
         map.clear();
     }
 
+    /**
+     * Returns a newly constructed copy of this IFD, where all entries are sorted by their tag codes.
+     *
+     * <p>Note that such sorting is automatically performed when {@link TiffWriter} writes an IFD into a file.
+     * This is a requirement of the TIFF 6.0 standard, section "Sort Order":</p>
+     *
+     * <blockquote>The entries in an IFD must be sorted in ascending order by Tag</blockquote>
+     *
+     * @return a new copy of this IFD with sorted entries.
+     */
+    public TiffIFD sortedCopy() {
+        return new TiffIFD(this, true);
+    }
+
     public String jsonString() {
         return toString(StringFormat.JSON);
     }
@@ -3108,8 +3128,8 @@ public final class TiffIFD {
                 }
                 TagType type = entry.type();
                 if (type != null) {
-                    sb.append(", ").append(type.sizeOf()).append(" byte");
-                    if (type.sizeOf() > 1) {
+                    sb.append(", ").append(type.bytesPerElement()).append(" byte");
+                    if (type.bytesPerElement() > 1) {
                         sb.append("s");
                     }
                     if (valueCount != 1) {
@@ -3388,7 +3408,7 @@ public final class TiffIFD {
             this.type = type;
             this.rawType = rawType;
             this.valueCount = valueCount;
-            this.valueLength = this.type == null ? 0 : (long) valueCount * type.sizeOf();
+            this.valueLength = this.type == null ? 0 : (long) valueCount * type.bytesPerElement();
             this.valueOffset = valueOffset;
             this.embeddedValueOrOffset = embeddedValueOrOffset;
             this.bigTiff = bigTiff;

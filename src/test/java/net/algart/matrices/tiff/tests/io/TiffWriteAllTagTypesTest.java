@@ -31,14 +31,10 @@ import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagValue;
 import net.algart.matrices.tiff.tags.Tags;
-import net.algart.matrices.tiff.tiles.TiffTile;
-import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class TiffWriteAllTagTypesTest {
     private final static int SIZE_X = 2000;
@@ -62,14 +58,16 @@ public class TiffWriteAllTagTypesTest {
         try (final TiffWriter writer = new TiffWriter(targetFile)) {
             writer.setBigTiff(bigTiff);
             writer.create();
-            writer.create(); // - not a problem to call twice
-            // writer.reader().input().setLength(0); // - throws an exception (read-only
-            TiffIFD ifd = TiffIFD.newIFD(true);
+            final TiffIFD ifd = TiffIFD.newIFD(true);
             Matrix<? extends PArray> image = makeBytes(SIZE_X, SIZE_Y, 3);
             ifd.putMatrixInformation(image);
             ifd.putCompression(TagCompression.NONE);
             ifd.put(Tags.X_RESOLUTION, TagValue.Rational.of(72, 1));
             ifd.put(Tags.Y_RESOLUTION, TagValue.Rational.of(72, 1));
+            ifd.put(14301, 123456789);
+            ifd.put(14302, new int[] {123, 234});
+            ifd.put(14311, bigTiff ? 123456789123L : 12345);
+            ifd.put(14312, new long[] {bigTiff ? 10000000123L: 100000, bigTiff ? -256 : 2222222});
             ifd.put(15701, TagValue.SRational.of(-1, 1000));
             ifd.put(15702, TagValue.SRational.of(-100, -10));
             ifd.put(15703, TagValue.Rational.of(1, 0xFFFFFFFEL));
@@ -87,7 +85,7 @@ public class TiffWriteAllTagTypesTest {
             ifd.put(15742, new TagValue.SLong[] {TagValue.SLong.of(220), TagValue.SLong.of(-1)});
             ifd.put(15751, TagValue.SLong8.of(123));
             ifd.put(15752, new TagValue.SLong8[] {TagValue.SLong8.of(220), TagValue.SLong8.of(-1)});
-//            ifd.put(15761, TagValue.IFD.of(123));
+            ifd.put(15761, TagValue.IFD.of(123));
             ifd.put(16001, new long[0]);
             ifd.put(16002, new long[] {111});
             ifd.put(16003, new long[] {111, 112});
@@ -96,14 +94,17 @@ public class TiffWriteAllTagTypesTest {
             ifd.put(16013, new double[] {0.11, 0.12});
             ifd.putDescription("Hello, world!");
             ifd.put(33333, new TiffIFD.UnsupportedTypeValue(3333, 110, 0));
-            // - count should be ignored! we don't know how to write it
-//            ifd.put(Tags.PHOTOMETRIC_INTERPRETATION, 8);
+            // - "count" in UnsupportedTypeValue should be ignored! we don't know how to write it
             ifd.put(15700, new String[] {});
-            System.out.printf("Desired IFD:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.NORMAL));
 
-            final TiffWriteMap map = writer.newFixedMap(ifd);
-            map.writeMatrix(image);
-            System.out.printf("Actually saved IFD:%n%s%n", ifd.toString(TiffIFD.StringFormat.DETAILED));
+            System.out.printf("Desired IFD:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.DETAILED));
+            writer.newFixedMap(ifd).writeMatrix(image);
+
+            System.out.printf("Actually saved IFD (sorted):%n%s%n%n",
+                    ifd.sortedCopy().toString(TiffIFD.StringFormat.DETAILED));
+            final TiffIFD back = writer.existingIFD(0, false);
+            String backString = back.toString(TiffIFD.StringFormat.DETAILED);
+            System.out.printf("IFD loaded back from the file:%n%s%n", backString);
         }
         System.out.println("Done");
     }
@@ -114,7 +115,7 @@ public class TiffWriteAllTagTypesTest {
         for (int channel = 0, disp = 0; channel < numberOfChannels; channel++) {
             for (long y = 0; y < sizeY; y++) {
                 for (long x = 0; x < sizeX; x++, disp++) {
-                    bytes[disp] = (byte) (Math.sqrt(x * x + y * y) * channel);
+                    bytes[disp] = (byte) (Math.sqrt(x * x + y * y) * (channel + 1));
                 }
             }
         }

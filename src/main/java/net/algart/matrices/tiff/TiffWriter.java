@@ -685,7 +685,7 @@ public non-sealed class TiffWriter extends TiffIO {
 
     /**
      * Returns <code>{@link #companionReader()}.{@link TiffReader#numberOfMainIFDs() numberOfMainIFDs()}</code>.
-     * This is the number of existing regular IFDs that can be read by {@link #existingIFD(int)} method.
+     * This is the number of existing regular IFDs that can be read by {@link #existingIFD(int, boolean)} method.
      *
      * @return the number of existing main IFDs (not sub-IFDs).
      */
@@ -1229,10 +1229,6 @@ public non-sealed class TiffWriter extends TiffIO {
         correctForEntireTiff(ifd, false);
     }
 
-    public TiffIFD existingIFD(int mainIFDIndex) throws IOException {
-        return existingIFD(mainIFDIndex, true);
-    }
-
     /**
      * Reads IFD by
      * <code>{@link #companionReader()}.{@link TiffReader#readMainIFD(int) readMainIFD(mainIFDIndex)}</code>,
@@ -1334,7 +1330,7 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     public TiffWriteMap existingMap(int ifdIndex) throws IOException {
-        return existingMap(existingIFD(ifdIndex));
+        return existingMap(existingIFD(ifdIndex, true));
     }
 
     /**
@@ -1619,7 +1615,7 @@ public non-sealed class TiffWriter extends TiffIO {
 
     public TiffIFD updateIFD(int mainIFDIndex, Function<TiffIFD, TiffIFD.UpdateResult> updater) throws IOException {
         Objects.requireNonNull(updater, "Null updater");
-        final TiffIFD ifd = this.existingIFD(mainIFDIndex);
+        final TiffIFD ifd = existingIFD(mainIFDIndex, true);
         final TiffIFD changedIFD = new TiffIFD(ifd);
         final TiffIFD.UpdateResult placement = updater.apply(changedIFD);
         updateIFD(mainIFDIndex, changedIFD, placement);
@@ -1827,12 +1823,23 @@ public non-sealed class TiffWriter extends TiffIO {
         final long fileOffsetOfNextOffset;
         try (final BytesHandle ifdStream = newBytesHandle(stream.isLittleEndian());
              final BytesHandle extraBuffer = newBytesHandle(stream.isLittleEndian())) {
-//            System.out.println("!!!" + stream.offset());
+            long offset = 0;
             for (final Map.Entry<Integer, Object> e : ifdMap.entrySet()) {
-//                System.out.println(">> " + e.getKey() + ": " + ifdStream.offset());
-                writeIFDValueAtCurrentOffsets(ifdStream, extraBuffer, bigTiff, afterMain, e.getKey(), e.getValue());
+                final Integer tagKey = e.getKey();
+                final Object value = e.getValue();
+//                System.out.println(">> " + tagKey +
+//                        " (value type: " + (value == null ? null : value.getClass().getTypeName()) +
+//                        "): " + ifdStream.offset() + ", " + extraBuffer.offset());
+                writeIFDValueAtCurrentOffsets(ifdStream, extraBuffer, bigTiff, afterMain, tagKey, value);
+                offset += sizeOfIFDEntry();
+                if (ifdStream.offset() != offset) {
+                    throw new AssertionError("Invalid IFD-stream offset after writing " +
+                            Tags.prettyName(tagKey) +
+                            " (value type: " + (value == null ? null : value.getClass().getTypeName()) +
+                            "): "  + ifdStream.offset() + " instead of " + offset);
+                }
             }
-//            System.out.println(">>>: " + ifdStream.offset());
+//            System.out.println(">>>: " + ifdStream.offset() + ", " + extraBuffer.offset());
             copyData(ifdStream, stream);
 
 //            System.out.println(">>>" + stream.offset());

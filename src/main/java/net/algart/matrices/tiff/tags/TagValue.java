@@ -83,8 +83,8 @@ public interface TagValue {
                 case SSHORT -> SShort.of(raw);
                 case SLONG -> SLong.of(raw);
                 case SLONG8 -> SLong8.of(raw);
-                case IFD -> IFD.of(raw);
-                case IFD8 -> IFD.ofUnsigned32(raw);
+                case IFD -> IFD.ofUnsigned32(raw);
+                case IFD8 -> IFD.of(raw);
                 default -> throw new IllegalArgumentException("RawInteger cannot be " + type);
             };
         }

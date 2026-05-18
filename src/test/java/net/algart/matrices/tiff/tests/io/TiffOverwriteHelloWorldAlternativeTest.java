@@ -59,7 +59,7 @@ public class TiffOverwriteHelloWorldAlternativeTest {
         final int sizeY = 50;
         // - estimated sizes sufficient for "Hello, world!"
         try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
-            TiffIFD ifd = writer.existingIFD(ifdIndex);
+            TiffIFD ifd = writer.existingIFD(ifdIndex, true);
             TiffWriteMap writeMap = writer.existingMap(ifd);
             TiffReadMap readMap = writer.companionReader().map(ifd, false);
             overwriteUsingReadMap(writeMap, readMap, x, y, sizeX, sizeY);
