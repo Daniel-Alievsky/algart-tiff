@@ -171,26 +171,31 @@ public enum TagType {
     }
 
     /**
-     * Returns {@code true} for {@link #LONG}, {@link #LONG8}, {@link #IFD}, {@link #IFD8}.
+     * Returns {@code true} if this type is automatically adjusted
+     * depending on the BigTIFF mode (whether the target file is BigTIFF or not).
+     *
      * <p>When {@link net.algart.matrices.tiff.TiffWriter} writes an IFD value of these types,
-     * it always selects between
-     * 4-byte and 8-byte versions ({@link #LONG} or {@link #LONG8}, {@link #IFD} or {@link #IFD8})
-     * based on the TIFF file type: is it {@link TiffWriter#isBigTiff() Big-TIFF} or no,
-     * and (sometimes) based on the specific tag code and value (for example, it usually writes
-     * {@code ImageWidth} / {@code ImageLength} as 32-bit {@link #LONG} type).
-     * The actual type of the value in the IFD, returned by the method
-     * {@link net.algart.matrices.tiff.TiffIFD#get(int)}, does not affect this selection.</p>
+     * it automatically selects between the 32-bit and 64-bit representations
+     * ({@link #LONG} vs {@link #LONG8}, or {@link #IFD} vs {@link #IFD8}).
+     * This selection is strictly driven by the Big-TIFF state: a standard Classic TIFF
+     * forces 32-bit types, while BigTIFF mode switches them to 64-bit variants.
+     * There are exceptions for some the specific tags, for example,
+     * {@code ImageWidth} / {@code ImageLength} are usually written as 32-bit {@link #LONG} type
+     * even for Big-TIFF files.
+     * In any case, the actual type of the value returned by {@link net.algart.matrices.tiff.TiffIFD#get(int)}
+     * does not influence this selection.</p>
      *
-     * <p>In comparison, the selection between {@link #SLONG} and {@link #SLONG8} types is based
-     * on the value type: is it {@link TagValue.SLong} or {@link TagValue.SLong8}.</p>
+     * <p>In contrast, the types {@link #SLONG} and {@link #SLONG8} are never
+     * automatically adjusted based on the BigTIFF mode; their bit-width is strictly determined
+     * by the explicit Java class used ({@link TagValue.SLong} vs {@link TagValue.SLong8}).</p>
      *
-     * <p>For types, where this method returns {@code true},
-     * {@link #fromJavaType} method performs automatic correction to {@link #bigTiffVersion()}
-     * when its second argument is {@code true}.</p>
+     * <p>For types that depend on the BigTIFF mode, the {@link #fromJavaType} method performs
+     * automatic resolution to the appropriate version when the second
+     * parameter is {@code true}.</p>
      *
-     * @return {@code true} for {@link #LONG}, {@link #LONG8}, {@link #IFD}, {@link #IFD8}.
+     * @return {@code true} for {@link #LONG}, {@link #LONG8}, {@link #IFD}, and {@link #IFD8}.
      */
-    public boolean isAutomaticallyChosenDependingOnBigTiff() {
+    public boolean isAutomaticallyAdjustedDependingOnBigTiffMode() {
         return this == LONG || this == LONG8 || this == IFD || this == IFD8;
     }
 
@@ -228,10 +233,10 @@ public enum TagType {
         return fromJavaType(javaType, false);
     }
 
-    public static Optional<TagType> fromJavaType(Class<?> javaType, boolean smartSelectForBigTiff) {
+    public static Optional<TagType> fromJavaType(Class<?> javaType, boolean smartSelectDependingOnBigTiffMode) {
         Objects.requireNonNull(javaType, "Null javaType");
         TagType tagType = CLASS_LOOKUP.get(javaType);
-        if (smartSelectForBigTiff && tagType != null && tagType.isAutomaticallyChosenDependingOnBigTiff()) {
+        if (smartSelectDependingOnBigTiffMode && tagType != null && tagType.isAutomaticallyAdjustedDependingOnBigTiffMode()) {
             // LONG (unsigned int32), represented by Java long[], should be replaced with LONG8 in BigTIFF;
             // IFD (unsigned int32), represented by Java TagValue.IFD[], should be replaced with IFD8 in BigTIFF;
             // but for SLONG (signed int32) it is not necessary

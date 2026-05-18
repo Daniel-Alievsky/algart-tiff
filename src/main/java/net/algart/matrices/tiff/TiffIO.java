@@ -817,7 +817,12 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     if (v0 >= 0xFFFF) {
                         // - for example, if ImageWidth/ImageLength is stored as int:
                         // see TiffIFD.USE_LONG_IMAGE_DIMENSIONS
-                        ifdStream.writeShort(TagType.LONG.typeCode());
+                        if (writeSpecialTag(ifdStream, bigTiff, tag, v0)) {
+                            return;
+                        }
+                        // - for other (non "special") tags we use standard selection:
+                        // LONG8 for Big-Tiff, LONG for non-Big-TIFF
+                        writeTagType(ifdStream, bigTiff ? TagType.LONG8 : TagType.LONG, null);
                         TagValue.writeUnsigned(ifdStream, bigTiff, v.length);
                         TagValue.writeUnsigned(ifdStream, bigTiff, v0);
                         return;
@@ -845,33 +850,11 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 // IFD/IFD8 also decoded as long, but we MUST NOT write them back:
                 // these types are OFFSETS and surely will not be written correctly,
                 // because TiffWriter does not support any forms of Sub-IFD
-                if (AVOID_LONG8_FOR_ACTUAL_32_BITS && v.length == 1 && bigTiff) {
-                    // - note: inside TIFF, long[1] is saved in the same way as Long; we have a difference in Java only
-                    final long v0 = v[0];
-                    if (v0 == (int) v0) {
-                        // - it is probable for the following tags if they are added
-                        // manually via TiffIFD.put with "long" argument
-                        switch (tag) {
-                            case Tags.IMAGE_WIDTH,
-                                 Tags.IMAGE_LENGTH,
-                                 Tags.TILE_WIDTH,
-                                 Tags.TILE_LENGTH,
-                                 Tags.IMAGE_DEPTH,
-                                 Tags.ROWS_PER_STRIP,
-                                 Tags.NEW_SUBFILE_TYPE -> {
-                                ifdStream.writeShort(TagType.LONG.typeCode());
-                                TagValue.writeUnsigned(ifdStream, bigTiff, v.length);
-                                ifdStream.writeInt((int) v0);
-                                writeZeroPadding(ifdStream, 4);
-                                // - 4 bytes of padding until full length 20 bytes
-                                return;
-                            }
-                        }
-                    }
+                if (v.length == 1 && writeSpecialTag(ifdStream, bigTiff, tag, v[0])) {
+                    return;
                 }
                 writeTagType(ifdStream, tagType, bigTiff ? TagType.LONG8 : TagType.LONG);
                 TagValue.writeUnsigned(ifdStream, bigTiff, v.length);
-
                 if (v.length <= 1) {
                     // - for both types, bigTiff and !bigTiff, we have 1 LONG8/LONG element in the embedded area
                     for (long longValue : v) {
@@ -1105,6 +1088,33 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             }
             return JArrays.intArrayToBytes(ints, byteOrder);
         }
+    }
+
+    private static boolean writeSpecialTag(DataHandle<?> ifdStream, boolean bigTiff, int tag, long value)
+            throws IOException {
+        if (AVOID_LONG8_FOR_ACTUAL_32_BITS && bigTiff) {
+            // - note: inside TIFF, long[1] is saved in the same way as Long; we have a difference in Java only
+            if (value == (int) value) {
+                switch (tag) {
+                    case Tags.IMAGE_WIDTH,
+                         Tags.IMAGE_LENGTH,
+                         Tags.TILE_WIDTH,
+                         Tags.TILE_LENGTH,
+                         Tags.IMAGE_DEPTH,
+                         Tags.ROWS_PER_STRIP,
+                         Tags.NEW_SUBFILE_TYPE -> {
+                        ifdStream.writeShort(TagType.LONG.typeCode());
+                        TagValue.writeUnsigned(ifdStream, bigTiff, 1);
+                        // - the length
+                        ifdStream.writeInt((int) value);
+                        writeZeroPadding(ifdStream, 4);
+                        // - 4 bytes of padding until full length 20 bytes
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     private static void writeOffsetWithAddition(DataHandle<?> stream, boolean bigTiff, long addition, long offset)

@@ -53,7 +53,8 @@ public interface TagValue {
             stream.writeLong(value);
         } else {
             if (value < 0 || value > 0xFFFFFFFFL) {
-                throw new TiffException("Attempt to write too large 64-bit value as 32-bit: " + value);
+                throw new TiffException("Attempt to write too large 64-bit value as 32-bit: " +
+                        Long.toUnsignedString(value));
             }
             stream.writeInt((int) value);
         }
