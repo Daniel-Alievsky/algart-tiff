@@ -38,7 +38,7 @@ import java.util.Objects;
  * This interface is implemented by additional data types like {@link Rational},
  * which do not directly map to built-in Java types.
  */
-public interface TagValue {
+public sealed interface TagValue permits TagValue.RawInteger, TagValue.RawRational {
     /**
      * Write the given value to the given stream.
      * If the {@code bigTiff} flag is set, then the value will be written as an 8-byte long
@@ -66,7 +66,7 @@ public interface TagValue {
 
     void write(DataHandle<?> stream, boolean bigTiff) throws IOException;
 
-    abstract class RawInteger extends Number implements TagValue {
+    abstract sealed class RawInteger extends Number implements TagValue {
         private final TagType type;
         private final long raw;
         private final boolean signed;
@@ -138,7 +138,7 @@ public interface TagValue {
         }
     }
 
-    class SByte extends RawInteger {
+    final class SByte extends RawInteger {
         private SByte(long raw) {
             super(TagType.SBYTE, raw, true);
         }
@@ -157,7 +157,7 @@ public interface TagValue {
         }
     }
 
-    class SShort extends RawInteger {
+    final class SShort extends RawInteger {
         private SShort(long raw) {
             super(TagType.SSHORT, raw, true);
         }
@@ -176,7 +176,7 @@ public interface TagValue {
         }
     }
 
-    class SLong extends RawInteger {
+    final class SLong extends RawInteger {
         private SLong(long raw) {
             super(TagType.SLONG, raw, true);
         }
@@ -195,7 +195,7 @@ public interface TagValue {
         }
     }
 
-    class SLong8 extends RawInteger {
+    final class SLong8 extends RawInteger {
         private SLong8(long raw) {
             super(TagType.SLONG8, raw, true);
         }
@@ -210,7 +210,12 @@ public interface TagValue {
         }
     }
 
-    class IFD extends RawInteger {
+    /**
+     * Class for representing both {@link TagType#IFD} and {@link TagType#IFD8} types.
+     *
+     * @see TagType#isAutomaticallyAdjustedDependingOnBigTiffMode()
+     */
+    final class IFD extends RawInteger {
         private IFD(long raw) {
             super(TagType.IFD, raw, false);
         }
@@ -253,7 +258,7 @@ public interface TagValue {
      * {@link Tags#REFERENCE_BLACK_WHITE} as numeric values
      * (this is used in {@link net.algart.matrices.tiff.data.TiffUnpacking#separateYCbCrToRGB}).
      */
-    abstract class RawRational extends Number implements TagValue {
+    abstract sealed class RawRational extends Number implements TagValue {
         private final int rawNumerator;
         private final int rawDenominator;
         private final boolean signed;
@@ -336,7 +341,7 @@ public interface TagValue {
         }
     }
 
-    class Rational extends RawRational {
+    final class Rational extends RawRational {
         private Rational(int unsignedNumerator, int unsignedDenominator) {
             super(unsignedNumerator, unsignedDenominator, false);
         }
@@ -373,7 +378,7 @@ public interface TagValue {
         }
     }
 
-    class SRational extends RawRational {
+    final class SRational extends RawRational {
         private SRational(int signedNumerator, int signedDenominator) {
             super(signedNumerator, signedDenominator, true);
         }

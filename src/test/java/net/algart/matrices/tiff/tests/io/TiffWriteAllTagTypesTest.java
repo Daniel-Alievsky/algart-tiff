@@ -29,12 +29,15 @@ import net.algart.arrays.PArray;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tags.TagType;
 import net.algart.matrices.tiff.tags.TagValue;
 import net.algart.matrices.tiff.tags.Tags;
+import org.scijava.io.handle.DataHandle;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 public class TiffWriteAllTagTypesTest {
     private final static int SIZE_X = 2000;
@@ -91,6 +94,26 @@ public class TiffWriteAllTagTypesTest {
             ifd.put(16011, new double[0]);
             ifd.put(16012, new double[] {0.11});
             ifd.put(16013, new double[] {0.11, 0.12});
+            ifd.put(16020, new float[0]);
+            ifd.put(16021, 1.0f);
+            ifd.put(16022, new float[] {1.11f, 1.12f});
+            ifd.put(16023, new float[] {1.11f, 1.12f, 3});
+            ifd.put(16030, new byte[0]);
+            ifd.put(16031, (byte) 12);
+            ifd.put(16031, new byte[] {12, 32});
+            ifd.put(16031, new byte[] {12, 32, -44});
+            ifd.put(16040, new short[0]);
+            ifd.put(16041, (short) 255);
+            ifd.put(16042, new short[] {12, 32});
+            ifd.put(16043, new short[] {12, 32, 44});
+            ifd.put(16050, new int[0]);
+            ifd.put(16051, new int[] {1000000});
+            ifd.put(16052, new int[] {60000, 60001});
+            ifd.put(16053, new int[] {10000, 10001, 10002});
+            ifd.put(16060, new long[0]);
+            ifd.put(16061, new long[] {1000000});
+            ifd.put(16062, new long[] {bigTiff ? -1000000 : 0, 1000001});
+            ifd.put(16063, new long[] {1000000, 1000001, 1000002});
             ifd.put(17001, TagValue.IFD.of(123));
             ifd.put(17002, TagValue.IFD.ofUnsigned32(1200000000));
             ifd.put(17003, TagValue.IFD.of(0xFFFFFFFFL));
@@ -98,8 +121,8 @@ public class TiffWriteAllTagTypesTest {
             ifd.put(33333, new TiffIFD.UnsupportedTypeValue(3333, 110, 0));
             // - "count" in UnsupportedTypeValue should be ignored! we don't know how to write it
             ifd.put(15700, new String[] {});
+            ifd.put(15701, List.of(true, false));
             // ifd.put(15555, false); // - will lead to TiffException
-
             System.out.printf("Desired IFD:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.DETAILED));
             writer.newFixedMap(ifd).writeMatrix(image);
 
