@@ -293,11 +293,11 @@ public sealed interface TagValue permits TagValue.RawInteger, TagValue.RawRation
             return rawDenominator == 0 ? Double.MAX_VALUE : ((double) numerator() / (double) denominator());
         }
 
-        public int rawNumerator() {
+        int rawNumerator() {
             return rawNumerator;
         }
 
-        public int rawDenominator() {
+        int rawDenominator() {
             return rawDenominator;
         }
 
