@@ -150,8 +150,8 @@ public class TiffUnpacking {
         double lumaGreen = 0.587;
         double lumaBlue = 0.114;
         final int[] declaredReference = ifd.getIntArray(Tags.REFERENCE_BLACK_WHITE);
-        // - getIntArray automatically converts TagRational.Unsigned[] to the nearest int[] values
-        // (because TagRational.Unsigned extends Number)
+        // - getIntArray automatically converts TagValue.RationaL[] to the nearest int[] values
+        // (because TagValue.RationaL extends Number)
         final int[] reference = new int[]{0, 255, 128, 255, 128, 255};
         // - original SCIFIO code used here zero-filled array, this is incorrect
         if (declaredReference != null) {

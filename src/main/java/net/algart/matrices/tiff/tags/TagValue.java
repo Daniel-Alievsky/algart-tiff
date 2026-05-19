@@ -25,20 +25,28 @@
 package net.algart.matrices.tiff.tags;
 
 import net.algart.matrices.tiff.TiffException;
+import net.algart.matrices.tiff.TiffReader;
 import org.scijava.io.handle.DataHandle;
 
 import java.io.IOException;
 import java.util.Objects;
 
+
 /**
  * Data value in IFD entries.
  *
  * <p>Note: most value types are represented by built-in Java types, such as
- * {@code long}, {@code float}, {@code String}.
+ * {@code long}, {@code float}, or {@code String}.
  * This interface is implemented by additional data types like {@link Rational},
- * which do not directly map to built-in Java types.
+ * which do not directly map to built-in Java types.</p>
+ *
+ * <p>Note: all classes implementing this interface extend {@link Number}.
+ * This is useful to ensure correct reading of certain tags as numeric values.
+ * Examples: {@link Tags#REFERENCE_BLACK_WHITE} is read as a {@code int[]} array in the
+ * {@link net.algart.matrices.tiff.data.TiffUnpacking#separateYCbCrToRGB} method,
+ * and {@link Tags#SUB_IFD} is read as a {@code long[]} array in the {@link TiffReader#allIFDs()} method.</p>
  */
-public sealed interface TagValue permits TagValue.RawInteger, TagValue.RawRational {
+public sealed interface TagValue permits RawInteger, RawRational {
     /**
      * Write the given value to the given stream.
      * If the {@code bigTiff} flag is set, then the value will be written as an 8-byte long
@@ -60,7 +68,7 @@ public sealed interface TagValue permits TagValue.RawInteger, TagValue.RawRation
         }
     }
 
-    static RawInteger ofInteger(TagType type, long raw) {
+    static TagValue ofInteger(TagType type, long raw) {
         Objects.requireNonNull(type, "Null tag type");
         return switch (type) {
             case SBYTE -> SByte.of(raw);
@@ -72,7 +80,7 @@ public sealed interface TagValue permits TagValue.RawInteger, TagValue.RawRation
             default -> throw new IllegalArgumentException("Integer tag type cannot be " + type);
         };
     }
-    static RawRational ofRational(TagType type, int rawNumerator, int rawDenominator) {
+    static TagValue ofRational(TagType type, int rawNumerator, int rawDenominator) {
         Objects.requireNonNull(type, "Null tag type");
         return switch (type) {
             case SRATIONAL -> new SRational(rawNumerator, rawDenominator);
@@ -86,65 +94,6 @@ public sealed interface TagValue permits TagValue.RawInteger, TagValue.RawRation
     String mathString();
 
     void write(DataHandle<?> stream, boolean bigTiff) throws IOException;
-
-    abstract sealed class RawInteger extends Number implements TagValue {
-        private final TagType type;
-        private final long raw;
-        private final boolean signed;
-
-        private RawInteger(TagType type, long raw, boolean signed) {
-            this.type = Objects.requireNonNull(type);
-            this.raw = raw;
-            this.signed = signed;
-        }
-
-        public final int intValue() {
-            return (int) raw;
-        }
-
-        public final long longValue() {
-            return raw;
-        }
-
-        public final float floatValue() {
-            return (float) raw;
-        }
-
-        public final double doubleValue() {
-            return (double) raw;
-        }
-
-        public final TagType type() {
-            return type;
-        }
-
-        public String mathString() {
-            return String.valueOf(raw);
-        }
-
-        @Override
-        public String toString() {
-            return mathString()
-                    + (signed ? " (signed " : " (unsigned ") + type.bitsPerElement() + "-bits)";
-        }
-
-        @Override
-        public final boolean equals(Object obj) {
-            if (obj == this) {
-                return true;
-            }
-            if (obj == null || obj.getClass() != this.getClass()) {
-                return false;
-            }
-            final RawInteger that = (RawInteger) obj;
-            return raw == that.raw && signed == that.signed;
-        }
-
-        @Override
-        public final int hashCode() {
-            return Objects.hash(raw, signed, type);
-        }
-    }
 
     final class SByte extends RawInteger {
         private SByte(long raw) {
@@ -256,87 +205,6 @@ public sealed interface TagValue permits TagValue.RawInteger, TagValue.RawRation
 
         public String toString() {
             return mathString() + " (IFD offset)";
-        }
-    }
-
-    /**
-     * Base class for representing types {@link TagType#RATIONAL} and {@link TagType#SRATIONAL}.
-     *
-     * <p>Note: it extends {@link Number} class to provide correct reading some tags as
-     * {@link Tags#REFERENCE_BLACK_WHITE} as numeric values
-     * (this is used in {@link net.algart.matrices.tiff.data.TiffUnpacking#separateYCbCrToRGB}).
-     */
-    abstract sealed class RawRational extends Number implements TagValue {
-        private final int rawNumerator;
-        private final int rawDenominator;
-        private final boolean signed;
-
-        private RawRational(int rawNumerator, int rawDenominator, boolean signed) {
-            this.rawNumerator = rawNumerator;
-            this.rawDenominator = rawDenominator;
-            this.signed = signed;
-        }
-
-        public int intValue() {
-            return rawDenominator == 0 ? Integer.MAX_VALUE : (int) doubleValue();
-        }
-
-        public long longValue() {
-            return rawDenominator == 0 ? Long.MAX_VALUE : (long) doubleValue();
-        }
-
-        public float floatValue() {
-            return (float) doubleValue();
-        }
-
-        public double doubleValue() {
-            return rawDenominator == 0 ? Double.MAX_VALUE : ((double) numerator() / (double) denominator());
-        }
-
-        int rawNumerator() {
-            return rawNumerator;
-        }
-
-        int rawDenominator() {
-            return rawDenominator;
-        }
-
-        public abstract long numerator();
-
-        public abstract long denominator();
-
-        public abstract TagType type();
-
-        public String mathString() {
-            return numerator() + "/" + denominator();
-        }
-
-        @Override
-        public void write(DataHandle<?> stream, boolean bigTiff) throws IOException {
-            stream.writeInt(rawNumerator);
-            stream.writeInt(rawDenominator);
-        }
-
-        @Override
-        public final boolean equals(Object obj) {
-            if (obj == this) {
-                return true;
-            }
-            if (obj == null || obj.getClass() != this.getClass()) {
-                return false;
-            }
-            final RawRational that = (RawRational) obj;
-            return this.rawNumerator == that.rawNumerator && this.rawDenominator == that.rawDenominator;
-        }
-
-        @Override
-        public final int hashCode() {
-            return Objects.hash(rawNumerator, rawDenominator, signed);
-        }
-
-        @Override
-        public final String toString() {
-            return numerator() + "/" + denominator() + (signed ? " (signed " : " (unsigned ") + doubleValue() + ")";
         }
     }
 

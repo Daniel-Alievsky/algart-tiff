@@ -531,7 +531,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 if (count == 1) {
                     return TagValue.ofRational(type, stream.readInt(), stream.readInt());
                 }
-                final var rationals = (TagValue.RawRational[]) Array.newInstance(type.javaType(), count);
+                final var rationals = (TagValue[]) Array.newInstance(type.javaType(), count);
                 for (int j = 0; j < count; j++) {
                     rationals[j] = TagValue.ofRational(type, stream.readInt(), stream.readInt());
                 }
