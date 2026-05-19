@@ -45,7 +45,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 public sealed abstract class TiffIO implements Closeable permits TiffReader, TiffWriter {
     /**
@@ -530,11 +529,11 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             case RATIONAL, SRATIONAL -> {
                 // Two LONGs or SLONGs: the first represents the numerator of a fraction; the second, the denominator
                 if (count == 1) {
-                    return TagValue.RawRational.of(type, stream.readInt(), stream.readInt());
+                    return TagValue.ofRational(type, stream.readInt(), stream.readInt());
                 }
                 final var rationals = (TagValue.RawRational[]) Array.newInstance(type.javaType(), count);
                 for (int j = 0; j < count; j++) {
-                    rationals[j] = TagValue.RawRational.of(type, stream.readInt(), stream.readInt());
+                    rationals[j] = TagValue.ofRational(type, stream.readInt(), stream.readInt());
                 }
                 return rationals;
             }

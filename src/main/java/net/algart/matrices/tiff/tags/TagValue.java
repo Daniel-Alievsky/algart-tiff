@@ -60,6 +60,27 @@ public sealed interface TagValue permits TagValue.RawInteger, TagValue.RawRation
         }
     }
 
+    static RawInteger ofInteger(TagType type, long raw) {
+        Objects.requireNonNull(type, "Null tag type");
+        return switch (type) {
+            case SBYTE -> SByte.of(raw);
+            case SSHORT -> SShort.of(raw);
+            case SLONG -> SLong.of(raw);
+            case SLONG8 -> SLong8.of(raw);
+            case IFD -> IFD.ofUnsigned32(raw);
+            case IFD8 -> IFD.of(raw);
+            default -> throw new IllegalArgumentException("Integer tag type cannot be " + type);
+        };
+    }
+    static RawRational ofRational(TagType type, int rawNumerator, int rawDenominator) {
+        Objects.requireNonNull(type, "Null tag type");
+        return switch (type) {
+            case SRATIONAL -> new SRational(rawNumerator, rawDenominator);
+            case RATIONAL -> new Rational(rawNumerator, rawDenominator);
+            default -> throw new IllegalArgumentException("Rational tag type cannot be " + type);
+        };
+    }
+
     TagType type();
 
     String mathString();
@@ -75,19 +96,6 @@ public sealed interface TagValue permits TagValue.RawInteger, TagValue.RawRation
             this.type = Objects.requireNonNull(type);
             this.raw = raw;
             this.signed = signed;
-        }
-
-        public static RawInteger of(TagType type, long raw) {
-            Objects.requireNonNull(type, "Null tag type");
-            return switch (type) {
-                case SBYTE -> SByte.of(raw);
-                case SSHORT -> SShort.of(raw);
-                case SLONG -> SLong.of(raw);
-                case SLONG8 -> SLong8.of(raw);
-                case IFD -> IFD.ofUnsigned32(raw);
-                case IFD8 -> IFD.of(raw);
-                default -> throw new IllegalArgumentException("RawInteger cannot be " + type);
-            };
         }
 
         public final int intValue() {
@@ -267,15 +275,6 @@ public sealed interface TagValue permits TagValue.RawInteger, TagValue.RawRation
             this.rawNumerator = rawNumerator;
             this.rawDenominator = rawDenominator;
             this.signed = signed;
-        }
-
-        public static RawRational of(TagType type, int rawNumerator, int rawDenominator) {
-            Objects.requireNonNull(type, "Null tag type");
-            return switch (type) {
-                case SRATIONAL -> new SRational(rawNumerator, rawDenominator);
-                case RATIONAL -> new Rational(rawNumerator, rawDenominator);
-                default -> throw new IllegalArgumentException("RawRational cannot be " + type);
-            };
         }
 
         public int intValue() {
