@@ -2326,7 +2326,7 @@ public final class TiffIFD {
             checkImmutable("Image dimensions cannot be updated in non-tiled TIFF");
         }
         clearCache();
-        removeEntries(Tags.IMAGE_WIDTH, Tags.IMAGE_LENGTH);
+        removeDetailedEntries(Tags.IMAGE_WIDTH, Tags.IMAGE_LENGTH);
         // - to avoid illegal detection of the type; we do this always for more stable behavior
         assert dimX == (int) dimX;
         assert dimY == (int) dimY;
@@ -2386,7 +2386,7 @@ public final class TiffIFD {
                     (numberOfSeparatedPlanes == 1 ? "" : " x " + numberOfSeparatedPlanes + " separated channels"));
         }
         clearCache();
-        removeEntries(Tags.TILE_OFFSETS, Tags.STRIP_OFFSETS, Tags.TILE_BYTE_COUNTS, Tags.STRIP_BYTE_COUNTS);
+        removeDetailedEntries(Tags.TILE_OFFSETS, Tags.STRIP_OFFSETS, Tags.TILE_BYTE_COUNTS, Tags.STRIP_BYTE_COUNTS);
         // - to avoid illegal detection of the type
         map.put(tiled ? Tags.TILE_OFFSETS : Tags.STRIP_OFFSETS, offsets);
         map.put(tiled ? Tags.TILE_BYTE_COUNTS : Tags.STRIP_BYTE_COUNTS, byteCounts);
@@ -2402,7 +2402,7 @@ public final class TiffIFD {
     }
 
     /**
-     * Sets the value for the specified tag key in this IFD.
+     * Sets the value for the specified tag in this IFD.
      *
      * <p>When writing the IFD using
      * {@link TiffWriter}, the TIFF {@link TagType} is automatically determined based on
@@ -2453,26 +2453,31 @@ public final class TiffIFD {
      * an attempt to write them back will trigger an exception if any value
      * falls outside the unsigned {@code BYTE} (0..255) or {@code SHORT} (0..65535) range.</p>
      *
-     * @param key   the tag identifier (typically from {@link Tags}).
+     * @param tag   the tag identifier (typically from {@link Tags}).
      * @param value the tag value (a singleton wrapper or an array of primitives).
      * @return the previous value associated with the tag, or {@code null} if there was none.
      * @throws IllegalStateException if this IFD is in immutable mode.
      */
-    public Object put(int key, Object value) {
+    public void put(int tag, Object value) {
         checkImmutable();
-        removeEntries(key);
+        removeDetailedEntries(tag);
         // - necessary to avoid possible bugs with detection of the type
-        clearSpecificCache(key);
+        clearSpecificCache(tag);
         clearCache();
-        return map.put(key, value);
+        map.put(tag, value);
     }
 
-    public Object remove(int key) {
+    /**
+     * Removes the specified tag and the corresponding entry information (if it is present).
+     *
+     * @param  tag tag whose mapping is to be removed from the map.
+     */
+    public void remove(int tag) {
         checkImmutable();
-        removeEntries(key);
-        clearSpecificCache(key);
+        removeDetailedEntries(tag);
+        clearSpecificCache(tag);
         clearCache();
-        return map.remove(key);
+        map.remove(tag);
     }
 
     /**
@@ -2918,7 +2923,7 @@ public final class TiffIFD {
         }
     }
 
-    private void removeEntries(int... tags) {
+    private void removeDetailedEntries(int... tags) {
         if (detailedEntries != null) {
             for (int tag : tags) {
                 detailedEntries.remove(tag);

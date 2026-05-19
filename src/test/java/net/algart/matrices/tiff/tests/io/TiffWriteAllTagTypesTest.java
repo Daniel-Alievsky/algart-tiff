@@ -39,6 +39,7 @@ import java.nio.file.Paths;
 public class TiffWriteAllTagTypesTest {
     private final static int SIZE_X = 2000;
     private final static int SIZE_Y = 2000;
+    public static final int TAG_WITH_UNKNOWN_TYPE = 33333;
 
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
@@ -85,11 +86,8 @@ public class TiffWriteAllTagTypesTest {
             ifd.put(15742, new TagValue.SLong[] {TagValue.SLong.of(220), TagValue.SLong.of(-1)});
             ifd.put(15751, TagValue.SLong8.of(123));
             ifd.put(15752, new TagValue.SLong8[] {TagValue.SLong8.of(220), TagValue.SLong8.of(-1)});
-            ifd.put(16001, new long[0]);
-            ifd.put(16002, new long[] {111});
-            ifd.put(16003, new long[] {111, 112});
             ifd.put(16011, new double[0]);
-            ifd.put(16012, new double[] {0.11});
+            ifd.put(16012, 0.11);
             ifd.put(16013, new double[] {0.11, 0.12});
             ifd.put(16020, new float[0]);
             ifd.put(16021, 1.0f);
@@ -101,14 +99,16 @@ public class TiffWriteAllTagTypesTest {
             ifd.put(16031, new byte[] {12, 32, -44});
             ifd.put(16040, new short[0]);
             ifd.put(16041, (short) 255);
-            ifd.put(16042, new short[] {12, 32});
-            ifd.put(16043, new short[] {12, 32, 44});
+            ifd.put(16042, new short[] {12, 132});
+            ifd.put(16043, new short[] {12, 32, 144});
             ifd.put(16050, new int[0]);
-            ifd.put(16051, new int[] {1000000});
+            ifd.put(16051, 1000000);
+            // - note: new int[1] here will be transformed to Integer while reading
             ifd.put(16052, new int[] {60000, 60001});
             ifd.put(16053, new int[] {10000, 10001, 10002});
             ifd.put(16060, new long[0]);
-            ifd.put(16061, new long[] {1000000});
+            ifd.put(16061, 1000000L);
+            // - note: new long[1] here will be transformed to Long while reading
             ifd.put(16062, new long[] {bigTiff ? -1000000 : 0, 1000001});
             ifd.put(16063, new long[] {1000000, 1000001, 1000002});
             ifd.put(17001, TagValue.IFD.of(123));
@@ -116,25 +116,32 @@ public class TiffWriteAllTagTypesTest {
             ifd.put(17003, TagValue.IFD.of(0xFFFFFFFFL));
             ifd.putMultilineDescription("Hello, world!", "", "Second line");
             // - note: null value here will be transformed into "null" string
-            ifd.put(33333, new TiffIFD.UnsupportedTypeValue(3333, 110, 0));
+            ifd.put(TAG_WITH_UNKNOWN_TYPE, new TiffIFD.UnsupportedTypeValue(3333, 110, 0));
             // - "count" in UnsupportedTypeValue should be ignored! we don't know how to write it
             ifd.put(15700, new String[] {});
             // ifd.put(15555, false); // - will lead to TiffException
             System.out.printf("Desired IFD:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.DETAILED));
             writer.newFixedMap(ifd).writeMatrix(image);
 
-            final String savedString = ifd.sorted().toString(TiffIFD.StringFormat.DETAILED);
+            final String savedString = stripExtra(ifd).toString(TiffIFD.StringFormat.DETAILED);
             System.out.printf("Actually saved IFD (sorted):%n%s%n%n", savedString);
             final TiffIFD back = writer.existingIFD(0, false);
             String backString = back.toString(TiffIFD.StringFormat.DETAILED);
             System.out.printf("IFD loaded back from the file:%n%s%n", backString);
-            backString = back.cleanedOfExtraReadingDetails().toString(TiffIFD.StringFormat.DETAILED);
+            backString = stripExtra(back).toString(TiffIFD.StringFormat.DETAILED);
             System.out.printf("Without extra metadata:%n%s%n", backString);
             if (!savedString.equals(backString)) {
                 throw new AssertionError("Saved/loaded IFD mismatch!");
             }
         }
         System.out.println("Done");
+    }
+
+    private static TiffIFD stripExtra(TiffIFD ifd) {
+        TiffIFD result = ifd.sorted().cleanedOfExtraReadingDetails();
+        result.remove(TAG_WITH_UNKNOWN_TYPE);
+        // TAG_WITH_UNKNOWN_TYPE will be changed after reading: count=0 is always written
+        return result;
     }
 
     @SuppressWarnings("SameParameterValue")
