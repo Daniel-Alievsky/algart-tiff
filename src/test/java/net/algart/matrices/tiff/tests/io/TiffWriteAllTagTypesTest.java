@@ -29,15 +29,12 @@ import net.algart.arrays.PArray;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tags.TagType;
 import net.algart.matrices.tiff.tags.TagValue;
 import net.algart.matrices.tiff.tags.Tags;
-import org.scijava.io.handle.DataHandle;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 
 public class TiffWriteAllTagTypesTest {
     private final static int SIZE_X = 2000;
@@ -117,20 +114,25 @@ public class TiffWriteAllTagTypesTest {
             ifd.put(17001, TagValue.IFD.of(123));
             ifd.put(17002, TagValue.IFD.ofUnsigned32(1200000000));
             ifd.put(17003, TagValue.IFD.of(0xFFFFFFFFL));
-            ifd.putDescription("Hello, world!");
+            ifd.putMultilineDescription("Hello, world!", "", "Second line");
+            // - note: null value here will be transformed into "null" string
             ifd.put(33333, new TiffIFD.UnsupportedTypeValue(3333, 110, 0));
             // - "count" in UnsupportedTypeValue should be ignored! we don't know how to write it
             ifd.put(15700, new String[] {});
-            ifd.put(15701, List.of(true, false));
             // ifd.put(15555, false); // - will lead to TiffException
             System.out.printf("Desired IFD:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.DETAILED));
             writer.newFixedMap(ifd).writeMatrix(image);
 
-            System.out.printf("Actually saved IFD (sorted):%n%s%n%n",
-                    ifd.sortedCopy().toString(TiffIFD.StringFormat.DETAILED));
+            final String savedString = ifd.sorted().toString(TiffIFD.StringFormat.DETAILED);
+            System.out.printf("Actually saved IFD (sorted):%n%s%n%n", savedString);
             final TiffIFD back = writer.existingIFD(0, false);
             String backString = back.toString(TiffIFD.StringFormat.DETAILED);
             System.out.printf("IFD loaded back from the file:%n%s%n", backString);
+            backString = back.cleanedOfExtraReadingDetails().toString(TiffIFD.StringFormat.DETAILED);
+            System.out.printf("Without extra metadata:%n%s%n", backString);
+            if (!savedString.equals(backString)) {
+                throw new AssertionError("Saved/loaded IFD mismatch!");
+            }
         }
         System.out.println("Done");
     }

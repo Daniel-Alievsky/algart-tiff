@@ -342,9 +342,9 @@ public class TiffWriterTest {
                         // - above we have non-ASCII string (Russian and Hebrew): should be written as UTF-8
                         // ifd.putDescription("Д");
                         // - testing little another writing algorithm (inside a TIFF entry)
-                        case 2 -> ifd.put(Tags.IMAGE_DESCRIPTION, List.of(
+                        case 2 -> ifd.putMultilineDescription(
                                 "String 1", "", "String 2"
-                        ));
+                        );
                         case 3 -> ifd.put(Tags.IMAGE_DESCRIPTION,
                                 "String1AsBytes\0\0String2AsBytes\rString3AsBytes".getBytes(StandardCharsets.UTF_8));
                         case 4 -> {

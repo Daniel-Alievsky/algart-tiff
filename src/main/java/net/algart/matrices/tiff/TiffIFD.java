@@ -343,7 +343,7 @@ public final class TiffIFD {
     }
 
     public TiffIFD(TiffIFD ifd) {
-        this(ifd, false);
+        this(ifd, false, false);
     }
 
     public TiffIFD(Map<Integer, Object> ifdEntries) {
@@ -362,19 +362,23 @@ public final class TiffIFD {
         this.detailedEntries = detailedEntries;
     }
 
-    private TiffIFD(TiffIFD ifd, boolean sortEntries) {
+    private TiffIFD(TiffIFD ifd, boolean sortEntries, boolean noReadingDetails) {
         map = new LinkedHashMap<>(sortEntries ? new TreeMap<>(ifd.map) : ifd.map);
         detailedCompression = ifd.detailedCompression;
-        detailedEntries = ifd.detailedEntries == null ? null : new LinkedHashMap<>(ifd.detailedEntries);
+        detailedEntries = noReadingDetails || ifd.detailedEntries == null ?
+                null :
+                new LinkedHashMap<>(ifd.detailedEntries);
         loadedFromFile = ifd.loadedFromFile;
         // skipping copying:
         //    littleEndian, bigTiff - they are attributes of the file, not of the IFD
         //    globalIndex, globalMainIndex - the copy will be probably placed into another list at another position
+        //    fileOffsetOfIFDForWriting - the copy will be probably written into another position
         //    cache... - they may be cached again in a new copy
-        fileOffsetOfIFD = ifd.fileOffsetOfIFD;
-        fileOffsetOfNextIFDOffset = ifd.fileOffsetOfNextIFDOffset;
-        fileOffsetOfIFDForWriting = ifd.fileOffsetOfIFDForWriting;
-        nextIFDOffset = ifd.nextIFDOffset;
+        if (!noReadingDetails) {
+            fileOffsetOfIFD = ifd.fileOffsetOfIFD;
+            fileOffsetOfNextIFDOffset = ifd.fileOffsetOfNextIFDOffset;
+            nextIFDOffset = ifd.nextIFDOffset;
+        }
         subIFDType = ifd.subIFDType;
         description = ifd.description;
         frozen = false;
@@ -2250,6 +2254,13 @@ public final class TiffIFD {
         return this;
     }
 
+    public TiffIFD putMultilineDescription(String... imageDescriptionLines) {
+        Objects.requireNonNull(imageDescriptionLines, "Null imageDescriptionLines");
+        put(Tags.IMAGE_DESCRIPTION, imageDescriptionLines);
+        // - note: storing String[] here!
+        return this;
+    }
+
     public TiffIFD putDescription(String imageDescription) {
         if (imageDescription == null) {
             remove(Tags.IMAGE_DESCRIPTION);
@@ -2418,7 +2429,7 @@ public final class TiffIFD {
      *       (32-bit IEEE floating point).</li>
      *   <li><b>{@code Double} or {@code double[]}</b>: mapped to {@link TagType#DOUBLE}
      *       (64-bit IEEE floating point).</li>
-     *   <li><b>{@code String}, {@code String[]}, or {@code List<String>}</b>:
+     *   <li><b>{@code String} or {@code String[]}</b>:
      *       mapped to {@link TagType#ASCII}. Strings are encoded using UTF-8
      *       (compatible with ASCII 0..127) and are zero-terminated. Note: an empty
      *       array or list results in a zero-length tag (the value count = 0),
@@ -2570,8 +2581,25 @@ public final class TiffIFD {
      *
      * @return a new copy of this IFD with sorted entries.
      */
-    public TiffIFD sortedCopy() {
-        return new TiffIFD(this, true);
+    public TiffIFD sorted() {
+        return new TiffIFD(this, true, false);
+    }
+
+    /**
+     * Returns a newly constructed copy of this {@code TiffIFD} without the additional structural
+     * information added during the file reading process.
+     *
+     * <p>When {@link TiffReader} reads a TIFF IFD from a file, it stores all parsing
+     * details about each IFD entry (raw {@link TagType} code, offsets in the file, etc.)
+     * in internal hidden structures. This detailed metadata is
+     * used in the {@link #toString(StringFormat)} method.
+     *
+     * <p>This method strips away those details, returning a "pure" logical copy.
+     *
+     * @return a new copy of this IFD, cleared of extra reading metadata.
+     */
+    public TiffIFD cleanedOfExtraReadingDetails() {
+        return new TiffIFD(this, false, true);
     }
 
     public String jsonString() {

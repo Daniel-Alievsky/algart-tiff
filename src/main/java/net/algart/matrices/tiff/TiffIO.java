@@ -725,9 +725,6 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         if (value instanceof String[] list) {
             emptyStringList = list.length == 0;
             value = String.join("\0", list);
-        } else if (value instanceof List<?> list) {
-            emptyStringList = list.isEmpty();
-            value = list.stream().map(String::valueOf).collect(Collectors.joining("\0"));
         }
         final TagType tagType = TagType.fromJavaType(value.getClass(), bigTiff).orElse(null);
         final int embeddedDataSize = bigTiff ? 8 : 4;
@@ -1173,6 +1170,6 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     private static TiffException writingUnsupportedTagException(int tag, Object value) {
         return new TiffException("Cannot write IFD tag " +
                 Tags.prettyName(tag) + ": its value type \"" +
-                value.getClass().getSimpleName() + "\" is not supported");
+                value.getClass().getTypeName() + "\" is not supported");
     }
 }
