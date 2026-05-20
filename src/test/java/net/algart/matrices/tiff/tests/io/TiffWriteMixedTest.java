@@ -82,7 +82,7 @@ public class TiffWriteMixedTest {
             writer.create();
             writer.create(); // - not a problem to call twice
             // writer.reader().input().setLength(0); // - throws an exception (read-only
-            TiffIFD ifd = new TiffIFD();
+            TiffIFD ifd = TiffIFD.newInstance();
             final int[] bitsPerSample = {8, 8, 8};
             int numberOfChannels = bitsPerSample.length;
             ifd.putImageDimensions(SIZE_X, SIZE_Y);

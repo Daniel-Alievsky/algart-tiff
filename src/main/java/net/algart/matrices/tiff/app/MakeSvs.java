@@ -183,7 +183,7 @@ public class MakeSvs {
             TiffIFD firstIFD,
             int index,
             TiffImageKind kind) throws IOException {
-        final TiffIFD ifd = TiffIFD.newIFD(true)
+        final TiffIFD ifd = TiffIFD.newTiledIFD()
                 .putChannelsInformation(image)
                 .putCompression(this.compression)
                 .setGlobalIndex(index);

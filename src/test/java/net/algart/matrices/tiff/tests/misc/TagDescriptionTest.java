@@ -60,7 +60,7 @@ public class TagDescriptionTest {
     }
 
     public static void main(String[] args) throws TiffException {
-        TiffIFD ifd = new TiffIFD();
+        TiffIFD ifd = TiffIFD.newInstance();
         printDescription(ifd);
         System.out.printf("--- \"Hello\" ---%n");
         ifd.putDescription("Hello");

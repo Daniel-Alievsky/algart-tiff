@@ -57,7 +57,7 @@ public class TagCompressionTest {
     }
 
     public static void main(String[] args) throws TiffException {
-        TiffIFD ifd = new TiffIFD();
+        TiffIFD ifd = TiffIFD.newInstance();
         check(ifd, null, TiffIFD.COMPRESSION_NONE, false);
         System.out.println();
 

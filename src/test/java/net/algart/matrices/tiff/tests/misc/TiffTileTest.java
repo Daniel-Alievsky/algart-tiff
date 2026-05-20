@@ -33,7 +33,7 @@ import net.algart.matrices.tiff.tiles.TiffTile;
 public class TiffTileTest {
     private static void testMap(int numberOfChannels, TiffSampleType sampleType, int testDataLength)
             throws TiffException {
-        TiffIFD ifd = new TiffIFD();
+        TiffIFD ifd = TiffIFD.newInstance();
         ifd.defaultTileSizes();
         ifd.putPixelInformation(numberOfChannels, sampleType);
         System.out.printf("%s%n", ifd.toString(TiffIFD.StringFormat.NORMAL));

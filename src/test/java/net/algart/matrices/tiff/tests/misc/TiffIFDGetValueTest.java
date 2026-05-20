@@ -56,7 +56,7 @@ public class TiffIFDGetValueTest {
     }
 
     public static void main(String[] args) {
-        TiffIFD ifd = new TiffIFD();
+        TiffIFD ifd = TiffIFD.newInstance();
         ifd.putPixelInformation(3, byte.class);
         showTag(ifd, Tags.SAMPLES_PER_PIXEL, Integer.class);
         showTag(ifd, Tags.BITS_PER_SAMPLE, Integer.class);

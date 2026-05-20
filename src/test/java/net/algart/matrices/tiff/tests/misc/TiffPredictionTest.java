@@ -94,7 +94,7 @@ public class TiffPredictionTest {
             for (TiffSampleType sampleType : TiffSampleType.values()) {
                 System.out.printf("Sample type: %s%n", sampleType);
 
-                TiffIFD ifd = new TiffIFD()
+                TiffIFD ifd = TiffIFD.newInstance()
                         .putTileSizes(tileSizeX, tileSizeY)
                         .putPixelInformation(numberOfChannels, sampleType);
                 TiffTile tile = new TiffMap(ifd, true).getOrNew(0, 0);

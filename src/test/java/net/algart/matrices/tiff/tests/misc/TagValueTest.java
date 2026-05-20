@@ -46,7 +46,7 @@ public class TagValueTest {
     }
 
     public static void main(String[] args) throws TiffException {
-        TiffIFD ifd = new TiffIFD();
+        TiffIFD ifd = TiffIFD.newInstance();
         printDescription(ifd);
         ifd.put(Tags.X_RESOLUTION,
                 check(TagValue.Rational.of(72, 1), TagType.RATIONAL));

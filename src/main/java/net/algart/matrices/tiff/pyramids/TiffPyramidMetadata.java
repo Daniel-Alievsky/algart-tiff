@@ -687,10 +687,10 @@ public final class TiffPyramidMetadata {
     }
 
     public static void main(String[] args) throws IOException {
-        System.out.println(containsLabelMarker(new TiffIFD().putDescription("My Label is")));
-        System.out.println(containsLabelMarker(new TiffIFD().putDescription("Label")));
-        System.out.println(containsLabelMarker(new TiffIFD().putDescription("Labelling")));
-        System.out.println(containsLabelMarker(new TiffIFD().putDescription("Label\n1")));
-        System.out.println(containsLabelMarker(new TiffIFD().putDescription("Labe\n1")));
+        System.out.println(containsLabelMarker(TiffIFD.newIFD().putDescription("My Label is")));
+        System.out.println(containsLabelMarker(TiffIFD.newIFD().putDescription("Label")));
+        System.out.println(containsLabelMarker(TiffIFD.newIFD().putDescription("Labelling")));
+        System.out.println(containsLabelMarker(TiffIFD.newIFD().putDescription("Label\n1")));
+        System.out.println(containsLabelMarker(TiffIFD.newIFD().putDescription("Labe\n1")));
     }
 }

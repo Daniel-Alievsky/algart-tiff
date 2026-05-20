@@ -39,7 +39,7 @@ public class SvsDescriptionTest {
     }
 
     public static void main(String[] args) throws TiffException {
-        TiffIFD ifd = new TiffIFD();
+        TiffIFD ifd = TiffIFD.newInstance();
         ifd.putImageDimensions(10000, 10000);
         ifd.defaultTileSizes();
         SvsDescription.Builder builder = new SvsDescription.Builder();

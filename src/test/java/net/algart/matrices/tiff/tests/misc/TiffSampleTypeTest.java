@@ -56,7 +56,7 @@ public class TiffSampleTypeTest {
     }
 
     public static void main(String[] args) throws TiffException {
-        TiffIFD ifd = new TiffIFD();
+        TiffIFD ifd = TiffIFD.newInstance();
         showTag(ifd, 1, TiffSampleType.BIT);
         ifd.put(Tags.BITS_PER_SAMPLE, 2);
         showTag(ifd, 8, TiffSampleType.UINT8);

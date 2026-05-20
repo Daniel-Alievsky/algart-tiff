@@ -338,11 +338,7 @@ public final class TiffIFD {
     private volatile long[] cachedTileOrStripOffsets = null;
     private volatile TagDescription description = null;
 
-    public TiffIFD() {
-        this(new LinkedHashMap<>());
-    }
-
-    public TiffIFD(Map<Integer, Object> ifdEntries) {
+    private TiffIFD(Map<Integer, Object> ifdEntries) {
         this(ifdEntries, null);
     }
 
@@ -383,12 +379,44 @@ public final class TiffIFD {
     }
 
     /**
+     * Creates a new empty IFD without any tags.
+     *
+     * @return a new empty {@code TiffIFD} instance.
+     */
+    public static TiffIFD newInstance() {
+        return new TiffIFD(new LinkedHashMap<>());
+    }
+
+    /**
+     * Creates a new IFD filled with the tag values from the specified map.
+     *
+     * <p>This method copies the given entries into an internal map, stored in this object
+     * (an immutable copy of which is available via the {@link #map()} method)
+     * using the standard copy constructor {@link LinkedHashMap#LinkedHashMap(Map)}.</p>
+     *
+     * @param ifdEntries the entries to be copied into a new IFD.
+     * @return a new IFD with the specified tags and values.
+     */
+    public static TiffIFD of(Map<Integer, Object> ifdEntries) {
+        return new TiffIFD(ifdEntries);
+    }
+
+    /**
      * Equivalent to <code>{@link #newIFD(boolean) newIFD}(false)</code>.
      *
      * @return a new {@code TiffIFD} instance with basic mandatory tags for stripped (not tiled) image.
      */
     public static TiffIFD newIFD() {
         return newIFD(false);
+    }
+
+    /**
+     * Equivalent to <code>{@link #newIFD(boolean) newIFD}(true)</code>.
+     *
+     * @return a new {@code TiffIFD} instance with basic mandatory tags for tiled image.
+     */
+    public static TiffIFD newTiledIFD() {
+        return newIFD(true);
     }
 
     /**
@@ -406,7 +434,7 @@ public final class TiffIFD {
      * @return a new {@code TiffIFD} instance with basic mandatory tags.
      */
     public static TiffIFD newIFD(boolean tiled) {
-        final TiffIFD ifd = new TiffIFD();
+        final TiffIFD ifd = newInstance();
         ifd.putCompression(TagCompression.NONE);
         if (tiled) {
             ifd.defaultTileSizes();
@@ -424,7 +452,7 @@ public final class TiffIFD {
      * {@link LinkedHashMap#LinkedHashMap(Map)} and does not try to perform deep copying
      * of the values (such as Java arrays).</p>
      *
-     * <p>Also note, that the information returned by the following methods is <b>not copied</b>:</p>
+     * <p>Also note that the information returned by the following methods is <b>not copied</b>:</p>
      *
      * <ul>
      *     <li>{@link #getByteOrder()}</li>
@@ -451,7 +479,7 @@ public final class TiffIFD {
      * </p>
      * <p>This method may return {@code false} if:
      * <ul>
-     *   <li>the source TIFF file does not comply the standard;</li>
+     *   <li>the source TIFF file does not comply with the TIFF specification;</li>
      *   <li>during constructing a new IFD via {@link #put(int, Object)} or similar methods.</li>
      * </ul>
      *
@@ -496,7 +524,7 @@ public final class TiffIFD {
      * details about each IFD entry (raw {@link TagType} code, offsets in the file, etc.)
      * in internal hidden structures. This detailed metadata is
      * used in the {@link #toString(StringFormat)} method.
-     * This method strips away those details, returning a "pure" logical copy.
+     * This method strips away those details.
      *
      * <p>Additionally, this method removes the information about placement of the IFD within the file,
      * returned by the following methods:</p>
@@ -506,7 +534,7 @@ public final class TiffIFD {
      *     <li>{@link #getNextIFDOffset()}</li>
      * </ul>
      *
-     * <p>Also, this method removes (does not copy) the information that is not copied by {@link #copy()} method.</p>
+     * <p>Also, this method omits all information that is excluded by the {@link #copy()} method.</p>
      *
      * @return a new copy of this IFD, cleared of some additional information, usually unnecessary for typical usage.
      * @see #copy()

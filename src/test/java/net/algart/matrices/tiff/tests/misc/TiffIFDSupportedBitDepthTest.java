@@ -60,7 +60,7 @@ public class TiffIFDSupportedBitDepthTest {
     }
 
     public static void main(String[] args) throws TiffException {
-        TiffIFD ifd = new TiffIFD();
+        TiffIFD ifd = TiffIFD.newInstance();
         showBitDepth(ifd, true);
         ifd.put(Tags.BITS_PER_SAMPLE, 2);
         showBitDepth(ifd, false);

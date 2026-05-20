@@ -31,7 +31,7 @@ import java.util.Arrays;
 
 public class TiffIFDGetArrayTest {
     public static void main(String[] args) throws TiffException {
-        TiffIFD ifd = new TiffIFD();
+        TiffIFD ifd = TiffIFD.newInstance();
         ifd.put(1, new long[]{1, 2, 3});
         ifd.put(2, new int[]{1, 2, 3});
         ifd.put(3, new Number[]{1L, -2L, 23});

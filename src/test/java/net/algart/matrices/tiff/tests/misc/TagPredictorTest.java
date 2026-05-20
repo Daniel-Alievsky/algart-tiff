@@ -57,7 +57,7 @@ public class TagPredictorTest {
     }
 
     public static void main(String[] args) {
-        TiffIFD ifd = new TiffIFD().defaultTileSizes();
+        TiffIFD ifd = TiffIFD.newInstance().defaultTileSizes();
         check(ifd, TagPredictor.NONE, 1, false);
 
         ifd.putPredictor(TagPredictor.HORIZONTAL);

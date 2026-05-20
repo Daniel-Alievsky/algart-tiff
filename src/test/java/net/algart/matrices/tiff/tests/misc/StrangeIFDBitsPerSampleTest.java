@@ -62,7 +62,7 @@ public class StrangeIFDBitsPerSampleTest {
     }
 
     public static void main(String[] args) throws TiffException {
-        TiffIFD ifd = new TiffIFD();
+        TiffIFD ifd = TiffIFD.newInstance();
         showIFD(ifd, "Empty", false);
 
 //        ifd.put(Tags.SAMPLES_PER_PIXEL, 3); // - should not be necessary for exception on -1

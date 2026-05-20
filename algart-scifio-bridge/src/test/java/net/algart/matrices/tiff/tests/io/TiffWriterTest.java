@@ -292,7 +292,7 @@ public class TiffWriterTest {
                 for (int k = 0; k < numberOfImages; k++) {
                     printReaderInfo(writer); // - may show an invalid file
                     final int ifdIndex = firstIfdIndex + k;
-                    TiffIFD ifd = new TiffIFD();
+                    TiffIFD ifd = TiffIFD.newInstance();
                     if (!resizable) {
                         ifd.putImageDimensions(IMAGE_WIDTH, IMAGE_HEIGHT);
                     }
