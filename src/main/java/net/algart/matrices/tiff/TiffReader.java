@@ -1042,7 +1042,7 @@ public non-sealed class TiffReader extends TiffIO {
      * @throws TiffException if the file is not a correct TIFF file, but this was not detected while opening it.
      * @throws IOException   in the case of any problems with the input file.
      * @see #mainIFDs()
-     * @see #exifIFDs()
+     * @see #exifIFD(TiffIFD) ()
      */
     public List<TiffIFD> allIFDs() throws IOException {
         long t1 = debugTime();
@@ -1127,21 +1127,11 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
 
-    /**
-     * Reads and returns all EXIF IFDs.
-     */
-    public List<TiffIFD> exifIFDs() throws IOException {
-        final List<TiffIFD> ifds = allIFDs();
-        final List<TiffIFD> result = new ArrayList<>();
-        for (TiffIFD ifd : ifds) {
-            final long offset = ifd.getLong(Tags.EXIF, 0);
-            if (offset != 0) {
-                final TiffIFD exifIFD = readIFD(offset, false);
-                exifIFD.setSubIFDType(Tags.EXIF);
-                result.add(exifIFD);
-            }
-        }
-        return result;
+    public Optional<TiffIFD> exifIFD(TiffIFD ifd) throws IOException {
+        Objects.requireNonNull(ifd, "Null IFD");
+        return ifd.hasTag(Tags.EXIF) ?
+                Optional.of(readIFD(ifd.reqLong(Tags.EXIF), false).setSubIFDType(Tags.EXIF)) :
+                Optional.empty();
     }
 
     /**
@@ -1290,6 +1280,10 @@ public non-sealed class TiffReader extends TiffIO {
 
             final int sizeOfEntry = sizeOfIFDEntry();
             final int sizeOfAllEntries = sizeOfEntry * numberOfEntries;
+            if (ifdStreamOffset > tiffFileLength - sizeOfAllEntries) {
+                throw new TiffException("%d IFD entries at the offset %d exceeds the file length %d".formatted(
+                        numberOfEntries, ifdStreamOffset, tiffFileLength));
+            }
             final DataHandle<?> ifdStream;
             if (READ_IFD_WITH_BUFFERING) {
                 final byte[] ifdBytes = new byte[sizeOfAllEntries];

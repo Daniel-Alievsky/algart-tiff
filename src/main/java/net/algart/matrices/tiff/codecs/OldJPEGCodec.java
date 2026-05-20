@@ -185,10 +185,10 @@ public class OldJPEGCodec implements TiffCodec {
             // individual table tags to avoid duplicating markers in the resulting JPEG stream,
             // which could lead to decoding errors.
 
-            final boolean hasInterchange = ifd.containsKey(Tags.OLD_JPEG_INTERCHANGE_FORMAT);
-            final boolean hasTables = ifd.containsKey(Tags.OLD_JPEG_Q_TABLES) &&
-                    ifd.containsKey(Tags.OLD_JPEG_DC_TABLES) &&
-                    ifd.containsKey(Tags.OLD_JPEG_AC_TABLES);
+            final boolean hasInterchange = ifd.hasTag(Tags.OLD_JPEG_INTERCHANGE_FORMAT);
+            final boolean hasTables = ifd.hasTag(Tags.OLD_JPEG_Q_TABLES) &&
+                    ifd.hasTag(Tags.OLD_JPEG_DC_TABLES) &&
+                    ifd.hasTag(Tags.OLD_JPEG_AC_TABLES);
             byte[] interchange = hasInterchange ? readJpegInterchange(ifd, stream) : null;
             if (hasInterchange) {
                 if (interchange == null || !isStartingWithMarker(interchange)) {

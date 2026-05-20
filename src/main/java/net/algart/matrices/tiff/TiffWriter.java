@@ -1999,7 +1999,7 @@ public non-sealed class TiffWriter extends TiffIO {
     private void correctForEncoding(TiffIFD ifd, boolean smartCorrection, boolean enableOldJpeg) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         final int samplesPerPixel = ifd.getSamplesPerPixel();
-        if (!ifd.containsKey(Tags.BITS_PER_SAMPLE)) {
+        if (!ifd.hasTag(Tags.BITS_PER_SAMPLE)) {
             ifd.put(Tags.BITS_PER_SAMPLE, new int[]{1});
             // - Default value of BitsPerSample is 1 bit/pixel!
             // This is a rare case, however, we CANNOT set here another value:
@@ -2026,7 +2026,7 @@ public non-sealed class TiffWriter extends TiffIO {
             }
         }
 
-        if (!ifd.containsKey(Tags.COMPRESSION)) {
+        if (!ifd.hasTag(Tags.COMPRESSION)) {
             ifd.put(Tags.COMPRESSION, TiffIFD.COMPRESSION_NONE);
             // - We prefer to explicitly specify this case
         }
@@ -2068,7 +2068,7 @@ public non-sealed class TiffWriter extends TiffIO {
                         "JPEG " + samplesPerPixel + "-channel image");
             }
         } else if (samplesPerPixel == 1) {
-            final boolean hasColorMap = ifd.containsKey(Tags.COLOR_MAP);
+            final boolean hasColorMap = ifd.hasTag(Tags.COLOR_MAP);
             if (newPhotometric == null) {
                 newPhotometric = hasColorMap ?
                         TagPhotometric.RGB_PALETTE :

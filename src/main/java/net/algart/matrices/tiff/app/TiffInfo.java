@@ -226,11 +226,11 @@ public class TiffInfo {
                 for (int k = firstIndex; k <= lastIndex; k++) {
                     final TiffIFD ifd = allIFDs.get(k);
                     ifdInfo.add(ifdInformation(reader, ifd, k, totalSize));
-                    if (!(ifd.containsKey(Tags.STRIP_BYTE_COUNTS) || ifd.containsKey(Tags.TILE_BYTE_COUNTS))) {
+                    if (!(ifd.hasTag(Tags.STRIP_BYTE_COUNTS) || ifd.hasTag(Tags.TILE_BYTE_COUNTS))) {
                         System.err.printf("WARNING! Invalid IFD #%d in %s: no StripByteCounts/TileByteCounts tag%n",
                                 k, tiffFile);
                     }
-                    if (!(ifd.containsKey(Tags.STRIP_OFFSETS) || ifd.containsKey(Tags.TILE_OFFSETS))) {
+                    if (!(ifd.hasTag(Tags.STRIP_OFFSETS) || ifd.hasTag(Tags.TILE_OFFSETS))) {
                         System.err.printf("WARNING! Invalid IFD #%d in %s: no StripOffsets/TileOffsets tag%n",
                                 k, tiffFile);
                     }
@@ -273,9 +273,18 @@ public class TiffInfo {
                 ifdCount,
                 stringFormat.isJson() ? "%n".formatted() : " ",
                 ifd.toString(stringFormat)));
-        if (!ifd.isSorted()) {
-            sb.append("INVALID tags order: they are not sorted in ascending order ")
-                    .append("(requirement of TIFF 6.0 standard)!%n".formatted());
+        sb.append(unsortedWarning(ifd));
+        TiffIFD exifIFD = null;
+        try {
+            exifIFD = reader.exifIFD(ifd).orElse(null);
+        } catch (IOException e) {
+            sb.append("    Built-in EXIF IFD cannot be loaded correctly: %s%n".formatted(e));
+        }
+        if (exifIFD != null) {
+            sb.append("    Built-in EXIF:%s%s%n".formatted(
+                    stringFormat.isJson() ? "%n".formatted() : " ",
+                    TiffIFD.addLeftIndent(exifIFD.toString(stringFormat), 4, false)));
+            sb.append(unsortedWarning(exifIFD));
         }
         final long tiffFileLength = reader.fileLength();
         final OptionalLong sizeOfIFDOptional = ifd.sizeOfIFD(tiffFileLength);
@@ -309,6 +318,13 @@ public class TiffInfo {
             }
         }
         return sb.toString();
+    }
+
+    private static String unsortedWarning(TiffIFD ifd) {
+        return ifd.isSorted() ?
+                "" :
+                "INVALID tags order: they are not sorted in ascending order (requirement of TIFF 6.0 standard)!%n"
+                .formatted();
     }
 
     private void showTiffInfoAndPrintException(Path tiffFile) {

@@ -39,8 +39,8 @@ public class TagPredictorTest {
         if (ifd.optPredictorCode() != requiredCode) {
             throw new AssertionError("Invalid code " + ifd.optPredictorCode());
         }
-        if (ifd.containsKey(Tags.PREDICTOR) != requiredContains) {
-            throw new AssertionError("Invalid containsKey() = " + ifd.containsKey(Tags.PREDICTOR));
+        if (ifd.hasTag(Tags.PREDICTOR) != requiredContains) {
+            throw new AssertionError("Invalid containsKey() = " + ifd.hasTag(Tags.PREDICTOR));
         }
         String diagnostic = "O'k";
         try {
@@ -52,7 +52,7 @@ public class TagPredictorTest {
         System.out.printf("%s: %s%s; subtractPredictionIfRequested: %s%n",
                 ifd.optPredictorCode(),
                 ifd.getPredictor(),
-                ifd.containsKey(Tags.PREDICTOR) ? "" : " (no tag)",
+                ifd.hasTag(Tags.PREDICTOR) ? "" : " (no tag)",
                 diagnostic);
     }
 

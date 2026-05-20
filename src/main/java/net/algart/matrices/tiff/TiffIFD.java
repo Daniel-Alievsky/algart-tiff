@@ -598,7 +598,7 @@ public final class TiffIFD {
      * <p>Note: this index is set automatically by the {@link TiffReader} class, but is not set
      * after creating this object.
      *
-     * <p>Note that this index is never set for EXIF sub-IFDs loaded by {@link TiffReader#exifIFDs()} method,
+     * <p>Note that this index is never set for EXIF sub-IFDs loaded by {@link TiffReader#exifIFD} method,
      * so an attempt to use this method for EXIF IFD will throw an exception.
      *
      * @return the index of this IFD in the list of all IFDs.
@@ -1033,7 +1033,7 @@ public final class TiffIFD {
         return map.size();
     }
 
-    public boolean containsKey(int key) {
+    public boolean hasTag(int key) {
         return map.containsKey(key);
     }
 
@@ -1491,7 +1491,7 @@ public final class TiffIFD {
     }
 
     public boolean hasCompression() {
-        return containsKey(Tags.COMPRESSION);
+        return hasTag(Tags.COMPRESSION);
     }
 
     public int optCompressionCode(int defaultValue) {
@@ -1592,7 +1592,7 @@ public final class TiffIFD {
     }
 
     public boolean hasPhotometric() {
-        return containsKey(Tags.PHOTOMETRIC_INTERPRETATION);
+        return hasTag(Tags.PHOTOMETRIC_INTERPRETATION);
     }
 
     public Optional<TagPhotometric> optPhotometric() {
@@ -1643,7 +1643,7 @@ public final class TiffIFD {
     }
 
     public boolean hasYCbCrSubsampling() {
-        return containsKey(Tags.Y_CB_CR_SUB_SAMPLING);
+        return hasTag(Tags.Y_CB_CR_SUB_SAMPLING);
     }
 
     public int[] getYCbCrSubsamplingLogarithms() throws TiffException {
@@ -1683,7 +1683,7 @@ public final class TiffIFD {
     }
 
     public boolean hasImageDimensions() {
-        return containsKey(Tags.IMAGE_WIDTH) && containsKey(Tags.IMAGE_LENGTH);
+        return hasTag(Tags.IMAGE_WIDTH) && hasTag(Tags.IMAGE_LENGTH);
     }
 
     public int getImageDimX() throws TiffException {
@@ -2302,8 +2302,8 @@ public final class TiffIFD {
      *                       but the second is absent.
      */
     public boolean hasTileInformation() throws TiffException {
-        final boolean hasWidth = containsKey(Tags.TILE_WIDTH);
-        final boolean hasLength = containsKey(Tags.TILE_LENGTH);
+        final boolean hasWidth = hasTag(Tags.TILE_WIDTH);
+        final boolean hasLength = hasTag(Tags.TILE_LENGTH);
         if (hasWidth != hasLength) {
             throw new TiffException("Inconsistent tiling information: tile width (TileWidth tag) is " +
                     (hasWidth ? "" : "NOT ") + "specified, but tile height (TileLength tag) is " +
@@ -2348,7 +2348,7 @@ public final class TiffIFD {
     }
 
     public boolean hasStripInformation() {
-        return containsKey(Tags.ROWS_PER_STRIP);
+        return hasTag(Tags.ROWS_PER_STRIP);
     }
 
     public TiffIFD putOrRemoveStripSize(Integer stripSizeY) {
@@ -2444,7 +2444,7 @@ public final class TiffIFD {
         if (dimY > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("Too large image height = " + dimY + " (>2^31-1)");
         }
-        if (!containsKey(Tags.TILE_WIDTH) || !containsKey(Tags.TILE_LENGTH)) {
+        if (!hasTag(Tags.TILE_WIDTH) || !hasTag(Tags.TILE_LENGTH)) {
             // - we prefer not to throw an exception here, like in hasTileInformation method
             checkImmutable("Image dimensions cannot be updated in non-tiled TIFF");
         }
@@ -2547,7 +2547,7 @@ public final class TiffIFD {
     /**
      * Removes the specified tag and the corresponding entry information (if it is present).
      *
-     * @param  tag tag whose mapping is to be removed from the map.
+     * @param tag tag whose mapping is to be removed from the map.
      */
     public void remove(int tag) {
         checkImmutable();
@@ -2986,6 +2986,7 @@ public final class TiffIFD {
         int channels;
         int tileSizeX = 1;
         int tileSizeY = 1;
+        final boolean hasImageDimensions = hasImageDimensions();
         try {
             final TiffSampleType sampleType = sampleType(false);
             sb.append((json ?
@@ -2994,7 +2995,7 @@ public final class TiffIFD {
                     sampleType == null ? "???" : sampleType.isBinary() ? "bit" :
                             sampleType.elementType().getSimpleName()));
             channels = getSamplesPerPixel();
-            if (hasImageDimensions()) {
+            if (hasImageDimensions) {
                 dimX = getImageDimX();
                 dimY = getImageDimY();
                 tileSizeX = getTileSizeX();
@@ -3023,15 +3024,17 @@ public final class TiffIFD {
                               "bigTiff": %s,
                               "tiled": %s,
                             """).formatted(
-                            sampleType == null ? "???" : sampleType.prettyName(),
+                            sampleType != null ?
+                                    sampleType.prettyName() : "???",
                             getByteOrder(),
                             isBigTiff(),
                             hasTileInformation()) :
-                    "%s, precision %s%s, %s, ".formatted(
+                    "%s, precision %s%s%s".formatted(
                             isLittleEndian() ? "little-endian" : "big-endian",
-                            sampleType == null ? "???" : sampleType.prettyName(),
+                            sampleType != null &&  (hasImageDimensions || hasTag(Tags.BITS_PER_SAMPLE)) ?
+                                    sampleType.prettyName() : "???",
                             isBigTiff() ? " [BigTIFF]" : "",
-                            compressionPrettyName()));
+                            hasImageDimensions ? ", " + compressionPrettyName() : ""));
             if (hasTileInformation()) {
                 sb.append(
                         json ?
@@ -3063,17 +3066,20 @@ public final class TiffIFD {
                                             "countY": %d
                                           },
                                         """).formatted(tileSizeY, tileCountY) :
-                                "%d strips per %d lines (last strip %s, virtual \"tiles\" %dx%d)".formatted(
-                                        tileCountY,
-                                        tileSizeY,
-                                        dimY == tileCountY * tileSizeY ?
-                                        "full" :
-                                        remainderToString(dimY, tileSizeY) + " lines",
-                                        tileSizeX,
-                                        tileSizeY));
+                                hasImageDimensions ?
+                                        ", %d strips per %d lines (last strip %s, virtual \"tiles\" %dx%d)".formatted(
+                                                tileCountY,
+                                                tileSizeY,
+                                                dimY == tileCountY * tileSizeY ?
+                                                "full" :
+                                                remainderToString(dimY, tileSizeY) + " lines",
+                                                tileSizeX,
+                                                tileSizeY) :
+                                "");
             }
             sb.append(json ?
                     "  \"chunked\": %s,\n".formatted(isChunked()) :
+                    !hasImageDimensions ? "" :
                     isChunked() ? ", chunked (interleaved)" : ", planar (separated)");
         } catch (Exception e) {
             sb.append(json ?

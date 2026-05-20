@@ -42,8 +42,8 @@ public class TagCompressionTest {
         if (ifd.getCompressionCode() != requiredCode) {
             throw new AssertionError("Invalid code = " + ifd.optPredictorCode());
         }
-        if (ifd.containsKey(Tags.COMPRESSION) != requiredContains) {
-            throw new AssertionError("Invalid containsKey() = " + ifd.containsKey(Tags.COMPRESSION));
+        if (ifd.hasTag(Tags.COMPRESSION) != requiredContains) {
+            throw new AssertionError("Invalid containsKey() = " + ifd.hasTag(Tags.COMPRESSION));
         }
         //noinspection OptionalIsPresent
         System.out.printf("Compression:%n    %s%n    code: %d%n    \"%s\"%n    writing: %s%n",

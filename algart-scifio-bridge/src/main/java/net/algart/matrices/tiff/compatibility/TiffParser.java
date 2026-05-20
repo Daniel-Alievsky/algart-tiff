@@ -322,7 +322,7 @@ public class TiffParser extends TiffReader {
     }
 
     /**
-     * Use {@link #exifIFDs()} instead.
+     * Use {@link #exifIFD(TiffIFD)} instead.
      */
     @Deprecated
     public IFDList getExifIFDs() throws IOException, FormatException {
