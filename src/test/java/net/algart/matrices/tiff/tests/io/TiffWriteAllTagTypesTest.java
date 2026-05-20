@@ -33,6 +33,7 @@ import net.algart.matrices.tiff.tags.TagValue;
 import net.algart.matrices.tiff.tags.Tags;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -131,7 +132,12 @@ public class TiffWriteAllTagTypesTest {
             backString = stripExtra(back).toString(TiffIFD.StringFormat.DETAILED);
             System.out.printf("Without extra metadata:%n%s%n", backString);
             if (!savedString.equals(backString)) {
-                throw new AssertionError("Saved/loaded IFD mismatch!");
+                final Path savedPath = Path.of(targetFile + ".saved.txt");
+                final Path loadedPath = Path.of(targetFile + ".loaded.txt");
+                Files.writeString(savedPath, savedString);
+                Files.writeString(loadedPath, backString);
+                throw new AssertionError("Saved/loaded IFD mismatch! See " +
+                        savedPath + " and " + loadedPath);
             }
         }
         System.out.println("Done");
