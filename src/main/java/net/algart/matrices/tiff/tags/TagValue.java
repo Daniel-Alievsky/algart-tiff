@@ -30,7 +30,6 @@ import org.scijava.io.handle.DataHandle;
 import java.io.IOException;
 import java.util.Objects;
 
-
 /**
  * Represents a data value within IFD entries, which can be accessed via
  * {@link TiffIFD#get(int)}, {@link TiffIFD#put(int, Object)}, and other {@link TiffIFD} methods.
@@ -52,7 +51,7 @@ import java.util.Objects;
  *       (unsigned 16-bit, 0..65535). Note: a single {@code Integer} value
  *       exceeding 0xFFFF is automatically promoted to {@link TagType#LONG}.</li>
  *   <li><b>{@code Long} or {@code long[]}</b>: mapped to {@link TagType#LONG}
- *       (unsigned 32-bit) or {@link TagType#LONG8} for BigTIFF files.</li>
+ *       (unsigned 32-bit) or {@link TagType#LONG8} for Big-TIFF files.</li>
  *   <li><b>{@link TagValue.Rational TagValue.Rational} or
  *   <code>{@link TagValue.Rational TagValue.Rational}[]</code></b>: mapped to
  *       {@link TagType#RATIONAL} (pairs of unsigned 32-bit integers).</li>
@@ -66,8 +65,8 @@ import java.util.Objects;
  *   <li><b>{@code String} or {@code String[]}</b>:
  *       mapped to {@link TagType#ASCII}. Strings are encoded using UTF-8
  *       (compatible with ASCII 0..127) and are zero-terminated. Note: an empty
- *       array or list results in a zero-length tag (value count = 0),
- *       while an empty string (or a list containing one empty string) results in a single
+ *       array ({@code String[0]}) results in a zero-length tag (value count = 0),
+ *       while an empty string (or {@code String[1]} array containing one empty string) results in a single
  *       zero-terminator byte (value count = 1).</li>
  * </ul>
  *
@@ -78,6 +77,16 @@ import java.util.Objects;
  * You can use both options in the {@link TiffIFD#put(int, Object)} method
  * when writing an IFD entry that contains a single element;
  * both {@link Float} and {@code float[1]} (an array with one float) will work fine.</p>
+ *
+ * <p>This mapping is symmetric: {@link TiffWriter} and {@link TiffReader} use the same logic
+ * to write and restore Java objects from TIFF tags.
+ * For example, {@link TiffWriter} writes a {@code Float} or {@code float[]} value into a TIFF file
+ * using the {@link TagType#FLOAT} type, and {@link TiffReader} reads it back as a
+ * {@code Float} or {@code float[]} value (stored in the map represented by the {@link TiffIFD} class).
+ * There is an obvious exception: an array consisting of 1 element ({@code float[1]}) is stored
+ * as a single value (there is no difference inside a TIFF file),
+ * and {@link TiffReader} always restores a single value as a single Java object &mdash;
+ * {@link Float} in this case.</p>
  *
  * <p><b>Be careful:</b> {@link TagType#BYTE} corresponds to the Java <b>{@code short}</b> type,
  * {@link TagType#SHORT} corresponds to the Java <b>{@code int}</b> type, and
@@ -100,7 +109,7 @@ import java.util.Objects;
  *     <li>For Big-TIFF files, all {@code long} values are mapped to {@link TagType#LONG8}.</li>
  *     <li>A <b>single</b> {@code int} value ({@code Integer} or {@code int[1]})
  *     that is greater than 0xFFFF is automatically promoted to {@link TagType#LONG}
- *     (or {@link TagType#LONG8} for Big-TIFF) instead of {@link TagType#SHORT}.</li>
+ *     (or {@link TagType#LONG8} for Big-TIFF files) instead of {@link TagType#SHORT}.</li>
  * </ul>
  *
  * <p>Note: all classes implementing this interface extend {@link Number}.
@@ -108,6 +117,9 @@ import java.util.Objects;
  * Examples: {@link Tags#REFERENCE_BLACK_WHITE} is read as an {@code int[]} array in the
  * {@link net.algart.matrices.tiff.data.TiffUnpacking#separateYCbCrToRGB} method,
  * and {@link Tags#SUB_IFD} is read as a {@code long[]} array in the {@link TiffReader#allIFDs()} method.</p>
+ *
+ * @see TagType#javaType()
+ * @see TagType#fromJavaType(Class, boolean)
  */
 public sealed interface TagValue permits RawInteger, RawRational {
     /**

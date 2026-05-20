@@ -24,8 +24,6 @@
 
 package net.algart.matrices.tiff.tags;
 
-import net.algart.matrices.tiff.TiffWriter;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -221,6 +219,42 @@ public enum TagType {
         return this == LONG8 || this == SLONG8 || this == IFD8;
     }
 
+    /**
+     * Returns the preferred Java class used to represent a single element of this TIFF type.
+     *
+     * <p>The returned class corresponds to the primary value type used in
+     * {@link net.algart.matrices.tiff.TiffIFD},
+     * as specified in the {@link TagValue} interface documentation.
+     * Complete mapping of return values:</p>
+     *
+     * <table border="1" cellpadding="4">
+     *   <tr><th>{@link TagType}</th><th>Returned Java Class</th></tr>
+     *   <tr><td>{@link #BYTE}</td><td>{@code short.class} (promoted to avoid unsigned overflow)</td></tr>
+     *   <tr><td>{@link #ASCII}</td><td>{@code String.class}</td></tr>
+     *   <tr><td>{@link #SHORT}</td><td>{@code int.class} (promoted to avoid unsigned overflow)</td></tr>
+     *   <tr><td>{@link #LONG}</td><td>{@code long.class} (promoted to avoid unsigned overflow)</td></tr>
+     *   <tr><td>{@link #RATIONAL}</td><td>{@link TagValue.Rational} class</td></tr>
+     *   <tr><td>{@link #SBYTE}</td><td>{@link TagValue.SByte} class</td></tr>
+     *   <tr><td>{@link #UNDEFINED}</td><td>{@code byte.class}</td></tr>
+     *   <tr><td>{@link #SSHORT}</td><td>{@link TagValue.SShort} class</td></tr>
+     *   <tr><td>{@link #SLONG}</td><td>{@link TagValue.SLong} class</td></tr>
+     *   <tr><td>{@link #SRATIONAL}</td><td>{@link TagValue.SRational} class</td></tr>
+     *   <tr><td>{@link #FLOAT}</td><td>{@code float.class}</td></tr>
+     *   <tr><td>{@link #DOUBLE}</td><td>{@code double.class}</td></tr>
+     *   <tr><td>{@link #IFD}</td><td>{@link TagValue.IFD} class</td></tr>
+     *   <tr><td>{@link #LONG8}</td><td>{@code long.class}</td></tr>
+     *   <tr><td>{@link #SLONG8}</td><td>{@link TagValue.SLong8} class</td></tr>
+     *   <tr><td>{@link #IFD8}</td><td>{@code TagValue.IFD} class</td></tr>
+     * </table>
+     *
+     * <p>Note that {@link #LONG} and {@link #LONG8} map to the same type {@code long},
+     * and {@link #IFD} and {@link #IFD8} map to the same class {@link TagValue.IFD} &mdash;
+     * see {@link #isAutomaticallyAdjustedDependingOnBigTiffMode()}.
+     *
+     * @return the base Java class for this type.
+     * @see #fromJavaType
+     * @see TagValue
+     */
     public Class<?> javaType() {
         return javaTypes[0];
     }
@@ -229,10 +263,59 @@ public enum TagType {
         return fromTypeCode(type).map(Enum::name).orElseGet(() -> "Unknown type (" + type + ")");
     }
 
-    public static Optional<TagType> fromJavaType(Class<?> javaType) {
-        return fromJavaType(javaType, false);
-    }
-
+    /**
+     * Finds the corresponding {@link TagType} for the given Java class.
+     * The second argument should be {@code false} for Classic TIFF or {@code true} for Big-TIFF files.
+     *
+     * <p>This method performs the reverse lookup of the mapping provided by {@link #javaType()} method,
+     * as specified in the {@link TagValue} interface documentation.
+     * It accepts primitive types, wrapper classes, and array types. Complete resolution table:</p>
+     *
+     * <table border="1" cellpadding="4">
+     *   <tr>
+     *     <th>Supported Java Input Classes ({@code javaType})</th>
+     *     <th>Classic TIFF</th>
+     *     <th>Big-TIFF</th>
+     *   </tr>
+     *   <tr><td>{@code short.class}, {@code short[].class}, {@code Short.class}</td><td>{@link #BYTE}</td><td
+     *   >{@link #BYTE}</td></tr>
+     *   <tr><td>{@code String.class}, {@code String[].class}</td><td>{@link #ASCII}</td><td>{@link #ASCII}</td></tr>
+     *   <tr><td>{@code int.class}, {@code int[].class}, {@code Integer.class}</td><td>{@link #SHORT}</td><td
+     *   >{@link #SHORT}</td></tr>
+     *   <tr><td>{@code long.class}, {@code long[].class}, {@code Long.class}</td><td>{@link #LONG}</td><td
+     *   >{@link #LONG8} <i>(auto-promoted)</i></td></tr>
+     *   <tr><td>{@code TagValue.Rational.class}, {@code TagValue.Rational[].class}</td><td>{@link #RATIONAL}</td><td
+     *   >{@link #RATIONAL}</td></tr>
+     *   <tr><td>{@code TagValue.SByte.class}, {@code TagValue.SByte[].class}</td><td>{@link #SBYTE}</td><td
+     *   >{@link #SBYTE}</td></tr>
+     *   <tr><td>{@code byte.class}, {@code byte[].class}, {@code Byte.class}</td><td>{@link #UNDEFINED}</td><td
+     *   >{@link #UNDEFINED}</td></tr>
+     *   <tr><td>{@code TagValue.SShort.class}, {@code TagValue.SShort[].class}</td><td>{@link #SSHORT}</td><td
+     *   >{@link #SSHORT}</td></tr>
+     *   <tr><td>{@code TagValue.SLong.class}, {@code TagValue.SLong[].class}</td><td>{@link #SLONG}</td><td
+     *   >{@link #SLONG}</td></tr>
+     *   <tr><td>{@code TagValue.SRational.class}, {@code TagValue.SRational[].class}</td><td>{@link #SRATIONAL}</td
+     *   ><td>{@link #SRATIONAL}</td></tr>
+     *   <tr><td>{@code float.class}, {@code float[].class}, {@code Float.class}</td><td>{@link #FLOAT}</td><td
+     *   >{@link #FLOAT}</td></tr>
+     *   <tr><td>{@code double.class}, {@code double[].class}, {@code Double.class}</td><td>{@link #DOUBLE}</td><td
+     *   >{@link #DOUBLE}</td></tr>
+     *   <tr><td>{@code TagValue.IFD.class}, {@code TagValue.IFD[].class}</td><td>{@link #IFD}</td><td>{@link #IFD8}
+     *   <i>(auto-promoted)</i></td></tr>
+     *   <tr><td>{@code TagValue.SLong8.class}, {@code TagValue.SLong8[].class}</td><td>{@link #SLONG8}</td><td
+     *   >{@link #SLONG8}</td></tr>
+     * </table>
+     *
+     * <p>Note: the result for {@code TagValue.SLong8} class yields
+     * {@link #SLONG8} regardless of the second argument.</p>
+     *
+     * @param javaType                          the Java class to lookup (scalar, wrapper, or array).
+     * @param smartSelectDependingOnBigTiffMode if {@code true}, automatically upgrades {@link #LONG}
+     *                                          and {@link #IFD} to their 64-bit Big-TIFF variants.
+     * @return an {@link Optional} containing the matching tag type, or empty if the class is not supported.
+     * @see #javaType()
+     * @see TagValue
+     */
     public static Optional<TagType> fromJavaType(Class<?> javaType, boolean smartSelectDependingOnBigTiffMode) {
         Objects.requireNonNull(javaType, "Null javaType");
         TagType tagType = CLASS_LOOKUP.get(javaType);
@@ -248,7 +331,7 @@ public enum TagType {
 
     /**
      * Returns an {@link Optional} containing the {@link TagType} with the given {@link #typeCode()}.
-     * <p>If no data kind with the specified name exists, an empty optional is returned.
+     * <p>If no tag type with the specified code exists, an empty optional is returned.
      *
      * @param type the type code.
      * @return optional tag type.
