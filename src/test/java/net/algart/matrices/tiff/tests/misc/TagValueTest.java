@@ -39,7 +39,7 @@ public class TagValueTest {
     }
 
     private static TagValue check(TagValue value, TagType type) {
-        if (value.type() != type) {
+        if (value.type(false) != type) {
             throw new AssertionError("Invalid type: " + type);
         }
         return value;

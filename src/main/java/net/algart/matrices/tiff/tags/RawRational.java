@@ -80,7 +80,7 @@ abstract sealed class RawRational extends Number implements TagValue permits Tag
     public abstract long denominator();
 
     @Override
-    public abstract TagType type();
+    public abstract TagType type(boolean bigTiff);
 
     @Override
     public String mathString() {

@@ -33,7 +33,7 @@ abstract sealed class RawInteger extends Number implements TagValue
     private final boolean signed;
 
     RawInteger(TagType type, long raw, boolean signed) {
-        this.type = Objects.requireNonNull(type);
+        this.type = type;
         this.raw = raw;
         this.signed = signed;
     }
@@ -59,7 +59,7 @@ abstract sealed class RawInteger extends Number implements TagValue
     }
 
     @Override
-    public final TagType type() {
+    public TagType type(boolean bigTiff) {
         return type;
     }
 
@@ -70,6 +70,7 @@ abstract sealed class RawInteger extends Number implements TagValue
 
     @Override
     public String toString() {
+        assert type != null : "toString is not overridden when type=null!";
         return mathString()
                 + (signed ? " (signed " : " (unsigned ") + type.bitsPerElement() + "-bits)";
     }

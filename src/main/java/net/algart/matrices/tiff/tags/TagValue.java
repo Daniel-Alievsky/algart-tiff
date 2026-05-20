@@ -24,8 +24,7 @@
 
 package net.algart.matrices.tiff.tags;
 
-import net.algart.matrices.tiff.TiffException;
-import net.algart.matrices.tiff.TiffReader;
+import net.algart.matrices.tiff.*;
 import org.scijava.io.handle.DataHandle;
 
 import java.io.IOException;
@@ -33,12 +32,77 @@ import java.util.Objects;
 
 
 /**
- * Data value in IFD entries.
+ * Data value in IFD entries, that can be accessed via
+ * {@link TiffIFD#get(int)},
+ * {@link TiffIFD#put(int, Object)} and other {@link TiffIFD} methods.
  *
  * <p>Note: most value types are represented by built-in Java types, such as
  * {@code long}, {@code float}, or {@code String}.
- * This interface is implemented by additional data types like {@link Rational},
+ * This interface is intended for additional data types like {@link Rational},
  * which do not directly map to built-in Java types.</p>
+ *
+ * <p>More precisely, the correspondence between {@link TagType} and tag values, stored
+ * in {@link TiffIFD}, is the following. </p>
+ *
+ * <ul>
+ *   <li><b>{@code Byte} or {@code byte[]}</b>: mapped to {@link TagType#UNDEFINED}.
+ *       Written as raw bytes without any interpretation.</li>
+ *   <li><b>{@code Short} or {@code short[]}</b>: mapped to {@link TagType#BYTE}.
+ *       Expected to be unsigned 8-bit values in the range 0..255.</li>
+ *   <li><b>{@code Integer} or {@code int[]}</b>: mapped to {@link TagType#SHORT}
+ *       (unsigned 16-bit, 0..65535). Note: a single {@code Integer} value
+ *       exceeding 0xFFFF is automatically promoted to {@link TagType#LONG}.</li>
+ *   <li><b>{@code Long} or {@code long[]}</b>: mapped to {@link TagType#LONG}
+ *       (unsigned 32-bit) or {@link TagType#LONG8} for BigTIFF files.</li>
+ *   <li><b>{@link TagValue.Rational TagValue.Rational} or
+ *   <code>{@link TagValue.Rational TagValue.Rational}[]</code></b>: mapped to
+ *       {@link TagType#RATIONAL} (pairs of unsigned 32-bit integers).</li>
+ *   <li><b>{@link TagValue.SRational TagValue.SRational} or
+ *   <code>{@link TagValue.SRational TagValue.SRational}[]</code></b>:
+ *   mapped to
+ *       {@link TagType#SRATIONAL} (pairs of signed 32-bit integers).</li>
+ *   <li><b>{@code Float} or {@code float[]}</b>: mapped to {@link TagType#FLOAT}
+ *       (32-bit IEEE floating point).</li>
+ *   <li><b>{@code Double} or {@code double[]}</b>: mapped to {@link TagType#DOUBLE}
+ *       (64-bit IEEE floating point).</li>
+ *   <li><b>{@code String} or {@code String[]}</b>:
+ *       mapped to {@link TagType#ASCII}. Strings are encoded using UTF-8
+ *       (compatible with ASCII 0..127) and are zero-terminated. Note: an empty
+ *       array or list results in a zero-length tag (the value count = 0),
+ *       while an empty string (or a list containing one empty string) results in a single
+ *       zero-terminator byte (the value count = 1).</li>
+ * </ul>
+ *
+ * <p>In the list above, the 1st option (e.g., {@code Float}) is used for representing a single
+ * IFD value, and the 2nd option (e.g., {@code float[]} &mdash; for an array of values.
+ * The only exception is {@link TagType#ASCII}: in this case, {@code String[]} array is used for representing
+ * several strings separated by zero character.
+ * You can use both options in {@link TiffIFD#put(int, Object)} method
+ * for writing IFD entry containing a single element:
+ * both {@link Float} and {@code float[1]} (array with 1 float) will work fine.</p>
+ *
+ * <p><b>Be careful:</b> {@link TagType#BYTE} corresponds to <b>{@code short}</b> Java type,
+ * {@link TagType#SHORT} &mdash; to <b>{@code int}</b> Java type, and
+ * {@link TagType#LONG} &mdash; to <b>{@code long}</b> Java type!
+ * This helps to provide correct processing unsigned values:</p>
+ * <ul>
+ *     <li>any unsigned {@link TagType#BYTE} (8 bits) can be easily represented by
+ *     {@code short} value (signed 16 bits),</li>
+ *     <li>any unsigned {@link TagType#SHORT} (16 bits) can be easily represented by
+ *     {@code int} value (signed 32 bits),</li>
+ *     <li>any unsigned {@link TagType#LONG} (32 bits) can be easily represented by
+ *     {@code long} value (signed 64 bits).</li>
+ * </ul>
+ * <p>If you try to put into {@link TiffIFD} primitive values, exceeding the corresponding limit
+ * ({@code short} value out of the range 0..255, {@code int value} out of the range 0..0xFFFF,
+ * {@code long} value out of the range 0..0xFFFFFFFF}) will throw an exception while an attempt to
+ * write the IFD to a TIFF file by {@link TiffWriter}.
+ * But there are exceptions to the last rule:</p>
+ * <ul>
+ *     <li>for Big-TIFF files, all {@code long} values are mapped to {@link TagType#LONG8};</li>
+ *     <li>for not Big-TIFF files, a <b>single</b> {@code int} value ({@code Integer} or {@code int[1]}),
+ *     which is greater than 0xFFFF, is mapped to {@link TagType#LONG} instead of {@link TagType#SHORT}.</li>
+ * </ul>
  *
  * <p>Note: all classes implementing this interface extend {@link Number}.
  * This is useful to ensure correct reading of certain tags as numeric values.
@@ -80,6 +144,7 @@ public sealed interface TagValue permits RawInteger, RawRational {
             default -> throw new IllegalArgumentException("Integer tag type cannot be " + type);
         };
     }
+
     static TagValue ofRational(TagType type, int rawNumerator, int rawDenominator) {
         Objects.requireNonNull(type, "Null tag type");
         return switch (type) {
@@ -89,7 +154,7 @@ public sealed interface TagValue permits RawInteger, RawRational {
         };
     }
 
-    TagType type();
+    TagType type(boolean bigTiff);
 
     String mathString();
 
@@ -174,7 +239,7 @@ public sealed interface TagValue permits RawInteger, RawRational {
      */
     final class IFD extends RawInteger {
         private IFD(long raw) {
-            super(TagType.IFD, raw, false);
+            super(null, raw, false);
         }
 
         public static IFD ofUnsigned32(long value) {
@@ -191,6 +256,11 @@ public sealed interface TagValue permits RawInteger, RawRational {
             // but this is not a bug of the programmer;
             // we could throw TiffException here, but it is not the purpose of this class
             return new IFD(value);
+        }
+
+        @Override
+        public TagType type(boolean bigTiff) {
+            return bigTiff ? TagType.IFD8 : TagType.IFD;
         }
 
         @Override
@@ -240,7 +310,7 @@ public sealed interface TagValue permits RawInteger, RawRational {
         }
 
         @Override
-        public TagType type() {
+        public TagType type(boolean bigTiff) {
             return TagType.RATIONAL;
         }
     }
@@ -265,7 +335,7 @@ public sealed interface TagValue permits RawInteger, RawRational {
         }
 
         @Override
-        public TagType type() {
+        public TagType type(boolean bigTiff) {
             return TagType.SRATIONAL;
         }
     }
