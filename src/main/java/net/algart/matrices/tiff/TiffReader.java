@@ -890,6 +890,7 @@ public non-sealed class TiffReader extends TiffIO {
     public int numberOfImages() throws IOException {
         return allIFDs().size();
     }
+
     /**
      * Returns <code>{@link #allIFDs()}.size()</code>.
      *
@@ -1025,19 +1026,24 @@ public non-sealed class TiffReader extends TiffIO {
 
     /**
      * Returns all IFDs in the file in an unmodifiable list.
-     * On the first call, this method reads all IFD from the file,
+     * On the first call, this method reads all IFDs from the file,
      * then the result is cached and quickly returned by all further calls.
-     * (But caching can be disabled using {@link #setCachingIFDs(boolean)} method).
+     * (But caching can be disabled using the {@link #setCachingIFDs(boolean)} method).
      *
-     * <p>Note: this method returns also the child sub-IFDs of a regular IFD (they are added directly after it).
-     * To retrieve only main IFDs without the child ones, please use {@link #mainIFDs()}</p>.
+     * <p>Note: this method also returns the child sub-IFDs of a regular IFD (they are added directly after it).
+     * To retrieve only main IFDs without the child ones, please use {@link #mainIFDs()}.</p>
      *
      * <p>Note: this method does not work recursively and does not read nested sub-IFDs of other sub-IFDs
-     * (an extremely rare situation in typical TIFF).</p>
+     * (an extremely rare situation in typical TIFF files).</p>
+     *
+     * <p>Note: this method <i>does not</i> read associated EXIF IFDs (if they exist).
+     * This design provides better robustness: even if a TIFF file contains malformed or corrupted EXIF data,
+     * it will not prevent you from accessing the standard IFDs / sub-IFDs.
+     * You can retrieve EXIF data explicitly using the {@link #exifIFD(TiffIFD)} method.</p>
      *
      * <p>Note: if this TIFF file is not valid ({@link #isValidTiff()} returns <code>false</code>), this method
      * returns an empty list and does not throw an exception.
-     * For a valid TIFF, the result cannot be empty.
+     * For a valid TIFF, the result is never empty.</p>
      *
      * @throws TiffException if the file is not a correct TIFF file, but this was not detected while opening it.
      * @throws IOException   in the case of any problems with the input file.
