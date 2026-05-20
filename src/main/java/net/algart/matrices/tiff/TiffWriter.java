@@ -1616,7 +1616,7 @@ public non-sealed class TiffWriter extends TiffIO {
     public TiffIFD updateIFD(int mainIFDIndex, Function<TiffIFD, TiffIFD.UpdateResult> updater) throws IOException {
         Objects.requireNonNull(updater, "Null updater");
         final TiffIFD ifd = existingIFD(mainIFDIndex, true);
-        final TiffIFD changedIFD = new TiffIFD(ifd);
+        final TiffIFD changedIFD = ifd.copy();
         final TiffIFD.UpdateResult placement = updater.apply(changedIFD);
         updateIFD(mainIFDIndex, changedIFD, placement);
         return changedIFD;
@@ -1678,7 +1678,7 @@ public non-sealed class TiffWriter extends TiffIO {
             long nextIFDOffset = ifds.get(mainIFDIndex + 1).getFileOffsetOfIFD();
             writeIFDOffsetAt(nextIFDOffset, fileOffsetOfFirstIFDOffset(), false);
         } else {
-            final TiffIFD ifd = new TiffIFD(ifds.get(mainIFDIndex - 1));
+            final TiffIFD ifd = ifds.get(mainIFDIndex - 1).copy();
             ifd.assignFileOffsetOfIFDForWriting(ifd.getFileOffsetOfIFD());
             if (mainIFDIndex == numberOfImages - 1) {
                 ifd.removeNextIFDOffset();

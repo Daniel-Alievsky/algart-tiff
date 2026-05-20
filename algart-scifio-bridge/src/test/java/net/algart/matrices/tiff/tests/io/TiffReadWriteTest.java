@@ -153,7 +153,7 @@ public class TiffReadWriteTest {
                     long t1 = System.nanoTime();
                     byte[] bytes = reader.readSampleBytes(reader.map(readerIFD), START_X, START_Y, w, h);
                     long t2 = System.nanoTime();
-                    TiffIFD writerIFD = new TiffIFD(readerIFD);
+                    TiffIFD writerIFD = readerIFD.copy();
                     if (singleStrip) {
                         writerIFD.put(IFD.ROWS_PER_STRIP, h);
                         // - not remove! Removing means default value!

@@ -522,7 +522,7 @@ public final class TiffCopier {
         Objects.requireNonNull(readMap, "Null TIFF read map");
         long t1 = TiffIO.debugTime();
         resetImageCounters();
-        final TiffIFD writeIFD = new TiffIFD(readMap.ifd());
+        final TiffIFD writeIFD = readMap.ifd().copy();
         // - creating a clone of IFD: we must not modify the reader IFD
         correctIFD(writeIFD);
         final boolean actuallyDirectCopy = canCopyImageDirectly(writeIFD, writer.getByteOrder(), readMap);
@@ -633,7 +633,7 @@ public final class TiffCopier {
         }
         long t1 = TiffIO.debugTime();
         resetImageCounters();
-        final TiffIFD writeIFD = new TiffIFD(readMap.ifd());
+        final TiffIFD writeIFD = readMap.ifd().copy();
         // - creating a clone of IFD: we must not modify the reader IFD
         writeIFD.putImageDimensions(sizeX, sizeY, false);
         correctIFD(writeIFD);

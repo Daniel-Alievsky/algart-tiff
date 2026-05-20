@@ -138,7 +138,7 @@ public class TiffWriteAllTagTypesTest {
     }
 
     private static TiffIFD stripExtra(TiffIFD ifd) {
-        TiffIFD result = ifd.sorted().cleanedOfExtraReadingDetails();
+        TiffIFD result = ifd.sorted().cleanedOfAdditionalMetadata();
         result.remove(TAG_WITH_UNKNOWN_TYPE);
         // TAG_WITH_UNKNOWN_TYPE will be changed after reading: count=0 is always written
         return result;

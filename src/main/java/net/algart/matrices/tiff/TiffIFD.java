@@ -66,7 +66,7 @@ public final class TiffIFD {
          * Besides this, unsorted IFD is possible during its construction via
          * {@link TiffIFD#put(int, Object)} or similar methods.
          *
-         * @see TiffIFD#isCorrectlySorted()
+         * @see TiffIFD#isSorted()
          */
         NORMAL_SORTED(true, true),
         DETAILED(false, false),
@@ -342,10 +342,6 @@ public final class TiffIFD {
         this(new LinkedHashMap<>());
     }
 
-    public TiffIFD(TiffIFD ifd) {
-        this(ifd, false, false);
-    }
-
     public TiffIFD(Map<Integer, Object> ifdEntries) {
         this(ifdEntries, null);
     }
@@ -418,6 +414,105 @@ public final class TiffIFD {
             ifd.defaultStripSize();
         }
         return ifd;
+    }
+
+    /**
+     * Returns a newly constructed copy of this IFD.
+     *
+     * <p>Note that IFD values from the {@link #map()} are shallow-copied.
+     * This method copies the underlying map using the standard copy constructor
+     * {@link LinkedHashMap#LinkedHashMap(Map)} and does not try to perform deep copying
+     * of the values (such as Java arrays).</p>
+     *
+     * <p>Also note, that the information returned by the following methods is <b>not copied</b>:</p>
+     *
+     * <ul>
+     *     <li>{@link #getByteOrder()}</li>
+     *     <li>{@link #isBigTiff()}</li>
+     *     <li>{@link #getGlobalIndex()} </li>
+     *     <li>{@link #getGlobalMainIndex()}</li>
+     *     <li>{@link #assignedFileOffsetOfIFDForWriting()}</li>
+     *     <li>{@link #isFrozen()} (the copy is always "unfrozen" for possible modifications)</li>
+     * </ul>
+     *
+     * @return a new copy of this IFD.
+     * @see #sorted()
+     * @see #cleanedOfAdditionalMetadata()
+     */
+    public TiffIFD copy() {
+        return new TiffIFD(this, false, false);
+    }
+
+    /**
+     * Returns {@code true} if the tags in this IFD are sorted in ascending order.
+     *
+     * <p>According to the TIFF 6.0 Specification, entries in an IFD must be sorted
+     * in ascending order by Tag ID to allow for binary search by readers.
+     * </p>
+     * <p>This method may return {@code false} if:
+     * <ul>
+     *   <li>the source TIFF file does not comply the standard;</li>
+     *   <li>during constructing a new IFD via {@link #put(int, Object)} or similar methods.</li>
+     * </ul>
+     *
+     * @return {@code true} if tags are correctly sorted; {@code false} otherwise.
+     * @see #sorted()
+     */
+    public boolean isSorted() {
+        Integer previous = null;
+        for (Integer tag : map.keySet()) {
+            if (tag != null) {
+                // - should not occur
+                if (previous != null && tag < previous) {
+                    return false;
+                }
+                previous = tag;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Returns a newly constructed copy of this IFD, equivalent to the result of the {@link #copy()} method,
+     * with the only difference that all entries are sorted by their tag codes.
+     *
+     * <p>Note that such sorting is automatically performed when {@link TiffWriter} writes an IFD into a file.
+     * This is a requirement of the TIFF 6.0 standard, section "Sort Order":</p>
+     *
+     * <blockquote>The entries in an IFD must be sorted in ascending order by Tag</blockquote>
+     *
+     * @return a new copy of this IFD with sorted entries.
+     * @see #isSorted()
+     */
+    public TiffIFD sorted() {
+        return new TiffIFD(this, true, false);
+    }
+
+    /**
+     * Returns a newly constructed copy of this {@code TiffIFD} without the additional structural
+     * information added during the file reading process.
+     *
+     * <p>When {@link TiffReader} reads a TIFF IFD from a file, it stores all parsing
+     * details about each IFD entry (raw {@link TagType} code, offsets in the file, etc.)
+     * in internal hidden structures. This detailed metadata is
+     * used in the {@link #toString(StringFormat)} method.
+     * This method strips away those details, returning a "pure" logical copy.
+     *
+     * <p>Additionally, this method removes the information about placement of the IFD within the file,
+     * returned by the following methods:</p>
+     * <ul>
+     *     <li>{@link #getFileOffsetOfIFD()}</li>
+     *     <li>{@link #getFileOffsetOfNextIFDOffset()}</li>
+     *     <li>{@link #getNextIFDOffset()}</li>
+     * </ul>
+     *
+     * <p>Also, this method removes (does not copy) the information that is not copied by {@link #copy()} method.</p>
+     *
+     * @return a new copy of this IFD, cleared of some additional information, usually unnecessary for typical usage.
+     * @see #copy()
+     */
+    public TiffIFD cleanedOfAdditionalMetadata() {
+        return new TiffIFD(this, false, true);
     }
 
     public boolean isLoadedFromFile() {
@@ -2481,34 +2576,6 @@ public final class TiffIFD {
     }
 
     /**
-     * Returns {@code true} if the tags in this IFD are sorted in ascending order.
-     *
-     * <p>According to the TIFF 6.0 Specification, entries in an IFD must be sorted
-     * in ascending order by Tag ID to allow for binary search by readers.
-     * </p>
-     * <p>This method may return {@code false} if:
-     * <ul>
-     *   <li>the source TIFF file does not comply the standard;</li>
-     *   <li>during constructing a new IFD via {@link #put(int, Object)} or similar methods.</li>
-     * </ul>
-     *
-     * @return {@code true} if tags are correctly sorted; {@code false} otherwise.
-     */
-    public boolean isCorrectlySorted() {
-        Integer previous = null;
-        for (Integer tag : map.keySet()) {
-            if (tag != null) {
-                // - should not occur
-                if (previous != null && tag < previous) {
-                    return false;
-                }
-                previous = tag;
-            }
-        }
-        return true;
-    }
-
-    /**
      * Equivalent to
      * <code>{@link #updateDescription(String, boolean) updateDescription}(newDescription, false)</code>.</p>
      *
@@ -2574,37 +2641,6 @@ public final class TiffIFD {
             detailedEntries.clear();
         }
         map.clear();
-    }
-
-    /**
-     * Returns a newly constructed copy of this IFD, where all entries are sorted by their tag codes.
-     *
-     * <p>Note that such sorting is automatically performed when {@link TiffWriter} writes an IFD into a file.
-     * This is a requirement of the TIFF 6.0 standard, section "Sort Order":</p>
-     *
-     * <blockquote>The entries in an IFD must be sorted in ascending order by Tag</blockquote>
-     *
-     * @return a new copy of this IFD with sorted entries.
-     */
-    public TiffIFD sorted() {
-        return new TiffIFD(this, true, false);
-    }
-
-    /**
-     * Returns a newly constructed copy of this {@code TiffIFD} without the additional structural
-     * information added during the file reading process.
-     *
-     * <p>When {@link TiffReader} reads a TIFF IFD from a file, it stores all parsing
-     * details about each IFD entry (raw {@link TagType} code, offsets in the file, etc.)
-     * in internal hidden structures. This detailed metadata is
-     * used in the {@link #toString(StringFormat)} method.
-     *
-     * <p>This method strips away those details, returning a "pure" logical copy.
-     *
-     * @return a new copy of this IFD, cleared of extra reading metadata.
-     */
-    public TiffIFD cleanedOfExtraReadingDetails() {
-        return new TiffIFD(this, false, true);
     }
 
     public String jsonString() {

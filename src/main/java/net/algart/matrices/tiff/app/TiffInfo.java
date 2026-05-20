@@ -273,7 +273,7 @@ public class TiffInfo {
                 ifdCount,
                 stringFormat.isJson() ? "%n".formatted() : " ",
                 ifd.toString(stringFormat)));
-        if (!ifd.isCorrectlySorted()) {
+        if (!ifd.isSorted()) {
             sb.append("INVALID tags order: they are not sorted in ascending order ")
                     .append("(requirement of TIFF 6.0 standard)!%n".formatted());
         }
