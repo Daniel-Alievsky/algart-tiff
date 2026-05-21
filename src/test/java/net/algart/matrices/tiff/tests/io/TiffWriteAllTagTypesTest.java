@@ -103,10 +103,12 @@ public class TiffWriteAllTagTypesTest {
             ifd.put(16042, new short[] {12, 132});
             ifd.put(16043, new short[] {12, 32, 144});
             ifd.put(16050, new int[0]);
-            ifd.put(16051, 1000000);
+            ifd.put(16051, 10000);
             // - note: new int[1] here will be transformed to Integer while reading
-            ifd.put(16052, new int[] {60000, 60001});
-            ifd.put(16053, new int[] {10000, 10001, 10002});
+            ifd.put(16052, 1000000);
+            // - unusual case: int (mapped to SHORT) contains a value >65535
+            ifd.put(16053, new int[] {60000, 60001});
+            ifd.put(16054, new int[] {10000, 10001, 10002});
             ifd.put(16060, new long[0]);
             ifd.put(16061, 1000000L);
             // - note: new long[1] here will be transformed to Long while reading
@@ -115,7 +117,7 @@ public class TiffWriteAllTagTypesTest {
             ifd.put(17001, TagValue.IFD.of(123));
             ifd.put(17002, TagValue.IFD.ofUnsigned32(1200000000));
             ifd.put(17003, TagValue.IFD.of(0xFFFFFFFFL));
-            ifd.putMultilineDescription("Hello, world!", "", "Second line");
+            ifd.putMultilineDescription("Hello, world!", null, "Second line");
             // - note: null value here will be transformed into "null" string
             ifd.put(TAG_WITH_UNKNOWN_TYPE, new TiffIFD.UnsupportedTypeValue(3333, 110, 0));
             // - "count" in UnsupportedTypeValue should be ignored! we don't know how to write it

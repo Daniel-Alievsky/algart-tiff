@@ -1143,7 +1143,11 @@ public final class TiffIFD {
         if (value instanceof String s) {
             result = s;
         } else if (value instanceof String[] stringArray) {
-            result = String.join("\n", stringArray);
+            result = java.util.Arrays.stream(stringArray)
+                    .map(s -> s != null ? s : "")
+                    // - null string is equivalent to ""
+                    .collect(java.util.stream.Collectors.joining("\n"));
+
         } else if (value instanceof byte[] bytes) {
             if (entry != null && entry.type == TagType.UNDEFINED) {
                 result = String.join("\n", asciiToText(bytes));
@@ -3049,7 +3053,7 @@ public final class TiffIFD {
                                         """).formatted(
                                         tileSizeX, tileSizeY, tileCountX, tileCountY,
                                         tileCountX * tileCountY) :
-                                "%dx%d=%d tiles %dx%d (last tile %sx%s)".formatted(
+                                ", %dx%d=%d tiles %dx%d (last tile %sx%s)".formatted(
                                         tileCountX,
                                         tileCountY,
                                         tileCountX * tileCountY,
@@ -3343,8 +3347,9 @@ public final class TiffIFD {
                 } else {
                     sb.append(value.mathString());
                 }
-            } else if (o instanceof String) {
-                sb.append("\"").append(o).append("\"");
+            } else if (v instanceof String[]) {
+                sb.append("\"").append(o != null ? o : "").append("\"");
+                // - null string is equivalent to "" while reading or writing
             } else {
                 sb.append(o);
             }

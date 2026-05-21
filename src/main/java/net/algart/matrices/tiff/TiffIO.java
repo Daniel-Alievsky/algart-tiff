@@ -723,7 +723,10 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         boolean emptyStringList = false;
         if (value instanceof String[] list) {
             emptyStringList = list.length == 0;
-            value = String.join("\0", list);
+            value = java.util.Arrays.stream(list)
+                    .map(s -> s != null ? s : "")
+                    // - null string is equivalent to ""
+                    .collect(java.util.stream.Collectors.joining("\0"));
         }
         final TagType tagType = TagType.fromJavaType(value.getClass(), bigTiff).orElse(null);
         final int embeddedDataSize = bigTiff ? 8 : 4;

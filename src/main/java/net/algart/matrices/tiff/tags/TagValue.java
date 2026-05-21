@@ -136,8 +136,8 @@ public sealed interface TagValue permits RawInteger, RawRational {
             stream.writeLong(value);
         } else {
             if (value < 0 || value > 0xFFFFFFFFL) {
-                throw new TiffException("Attempt to write too large 64-bit value as 32-bit: " +
-                        Long.toUnsignedString(value));
+                throw new TiffException("Attempt to write " + (value < 0 ? "negative" : "too large") +
+                        " 64-bit value as 32-bit: " + value);
             }
             stream.writeInt((int) value);
         }
