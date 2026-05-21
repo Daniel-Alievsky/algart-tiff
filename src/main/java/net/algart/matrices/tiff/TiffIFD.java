@@ -2645,17 +2645,17 @@ public final class TiffIFD {
     /**
      * Returns a string description of this IFD according to the specified {@link StringFormat format}.
      *
-     * <p>If the {@code extendedInformation} map is not {@code null} and is not empty, its elements are added
+     * <p>If the {@code extendedInformation} map is not {@code null} and not empty, its elements are appended
      * to the end of the resulting string.
-     * In {@link StringFormat#JSON JSON} format, they are appended as the last elements of the JSON object,
-     * using the keys from this map; if a value does not start with "{" and ends with "}",
-     * it is considered as a usual string and is escaped to become a correct JSON value.
+     * In {@link StringFormat#JSON JSON} format, they are added as the last elements of the JSON object,
+     * using the keys from the map; if a value does not start with "{" and end with "}",
+     * it is treated as a regular string and escaped to form a valid JSON value.
      *
-     * <p>The resulting string is usually multiline, excepting the case of {@link StringFormat#BRIEF BRIEF} format.
-     * In {@link StringFormat#JSON JSON} format, the lines are separated by "\n",
-     * in other formats &mdash; by the system-dependent line separator ({@code "%n".formatted()}).
-     * Note that the returned string is trimmed: it does not contain leading or trailing space/line separator
-     * characters.
+     * <p>The resulting string is generally multiline, except for the {@link StringFormat#BRIEF BRIEF} format.
+     * In {@link StringFormat#JSON JSON} format, lines are separated by "\n"; in other formats,
+     * they are separated by the system-dependent line separator ({@code "%n".formatted()}).
+     * Note that the returned string is trimmed: it does not contain leading or trailing whitespace
+     * or line separator characters.
      *
      * @param format style of formatting the returned string.
      * @param extendedInformation additional information, for example, from
@@ -3266,7 +3266,7 @@ public final class TiffIFD {
             Objects.requireNonNull(value, "Null \"" + key + "\" value in the additional information map");
             if (json) {
                 value = value.trim();
-                if (!(value.startsWith("{") && value.endsWith("}")) {
+                if (!(value.startsWith("{") && value.endsWith("}"))) {
                     // - probably a usual string
                     value = "\"" + escapeJsonString(value) + "\"";
                 }
