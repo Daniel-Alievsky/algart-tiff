@@ -263,8 +263,18 @@ public class TiffInfo {
 
     private String ifdInformation(TiffReader reader, TiffIFD ifd, int ifdIndex, AtomicLong totalSize)
             throws IOException {
+        TiffIFD exifIFD = null;
+        Map<String, String> extendedInformation = null;
+        try {
+            exifIFD = reader.exifIFD(ifd).orElse(null);
+        } catch (IOException e) {
+            extendedInformation = Map.of("Built-in EXIF IFD cannot be loaded", e.toString());
+        }
+        if (exifIFD != null) {
+            extendedInformation = Map.of("Built-in EXIF", exifIFD.toString(stringFormat));
+        }
         if (disableAppendingForStrictFormats && stringFormat.isStrict()) {
-            return ifd.toString(stringFormat);
+            return ifd.toString(stringFormat, extendedInformation);
         }
         int ifdCount = reader.numberOfImages();
         StringBuilder sb = new StringBuilder();
@@ -272,20 +282,7 @@ public class TiffInfo {
                 ifdIndex,
                 ifdCount,
                 stringFormat.isJson() ? "%n".formatted() : " ",
-                ifd.toString(stringFormat)));
-        sb.append(unsortedWarning(ifd));
-        TiffIFD exifIFD = null;
-        try {
-            exifIFD = reader.exifIFD(ifd).orElse(null);
-        } catch (IOException e) {
-            sb.append("    Built-in EXIF IFD cannot be loaded correctly: %s%n".formatted(e));
-        }
-        if (exifIFD != null) {
-            sb.append("    Built-in EXIF:%s%s%n".formatted(
-                    stringFormat.isJson() ? "%n".formatted() : " ",
-                    TiffIFD.addLeftIndent(exifIFD.toString(stringFormat), 4, false)));
-            sb.append(unsortedWarning(exifIFD));
-        }
+                ifd.toString(stringFormat, extendedInformation)));
         final long tiffFileLength = reader.fileLength();
         final OptionalLong sizeOfIFDOptional = ifd.sizeOfIFD(tiffFileLength);
         AtomicBoolean imageDataAligned = new AtomicBoolean(false);
@@ -318,13 +315,6 @@ public class TiffInfo {
             }
         }
         return sb.toString();
-    }
-
-    private static String unsortedWarning(TiffIFD ifd) {
-        return ifd.isSorted() ?
-                "" :
-                "INVALID tags order: they are not sorted in ascending order (requirement of TIFF 6.0 standard)!%n"
-                .formatted();
     }
 
     private void showTiffInfoAndPrintException(Path tiffFile) {

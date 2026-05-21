@@ -118,7 +118,7 @@ public class TiffWriteAllTagTypesTest {
             ifd.put(17002, TagValue.IFD.ofUnsigned32(1200000000));
             ifd.put(17003, TagValue.IFD.of(0xFFFFFFFFL));
             ifd.putMultilineDescription("Hello, world!", null, "Second line");
-            // - note: null value here will be transformed into "null" string
+            // - note: null value here will be transformed into "" string
             ifd.put(TAG_WITH_UNKNOWN_TYPE, new TiffIFD.UnsupportedTypeValue(3333, 110, 0));
             // - "count" in UnsupportedTypeValue should be ignored! we don't know how to write it
             ifd.put(15700, new String[] {});

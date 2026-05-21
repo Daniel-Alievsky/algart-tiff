@@ -2638,8 +2638,18 @@ public final class TiffIFD {
         return toString(StringFormat.BRIEF);
     }
 
+    public String toString(StringFormat format) {
+        return toString(format, Collections.emptyMap());
+    }
+
     /**
      * Returns a string description of this IFD according to the specified {@link StringFormat format}.
+     *
+     * <p>If the {@code extendedInformation} map is not {@code null} and is not empty, its elements are added
+     * to the end of the resulting string.
+     * In {@link StringFormat#JSON JSON} format, they are appended as the last elements of the JSON object,
+     * using the keys from this map; if a value does not start with "{" and ends with "}",
+     * it is considered as a usual string and is escaped to become a correct JSON value.
      *
      * <p>The resulting string is usually multiline, excepting the case of {@link StringFormat#BRIEF BRIEF} format.
      * In {@link StringFormat#JSON JSON} format, the lines are separated by "\n",
@@ -2648,10 +2658,12 @@ public final class TiffIFD {
      * characters.
      *
      * @param format style of formatting the returned string.
+     * @param extendedInformation additional information, for example, from
+     * {@link TiffReader#exifIFD(TiffIFD) EXIF IFD}.
      * @return a string description of this object.
-     * @throws NullPointerException if one of the arguments is {@code null}.
+     * @throws NullPointerException if {@code format} is {@code null}.
      */
-    public String toString(StringFormat format) {
+    public String toString(StringFormat format, Map<String, String> extendedInformation) {
         Objects.requireNonNull(format, "Null format");
         final boolean json = format.isJson();
         final StringBuilder sb = new StringBuilder();
@@ -2666,18 +2678,26 @@ public final class TiffIFD {
             sb.append("; ").append(numberOfEntries()).append(" entries:");
         }
         final Collection<Integer> keySequence = format.sorted ? new TreeSet<>(map.keySet()) : map.keySet();
-        boolean firstEntry = true;
+        Integer previous = null;
+        boolean sorted = true;
         for (Integer tag : keySequence) {
             if (tag != null) {
-                // - should not occur, but toString must work even in this case
-                addTagInfo(sb, format, tag, firstEntry);
+                // - tag should not be null, but toString must work even in this case
+                if (previous != null && tag < previous) {
+                    sorted = false;
+                }
+                addTagInfo(sb, format, tag, previous == null);
                 // - note: this method adds line separator BEFORE the content
-                firstEntry = false;
+                previous = tag;
             }
         }
         if (json) {
-            sb.append(firstEntry ? "" : "\n").append("  }");
+            sb.append(previous == null ? "" : "\n").append("  }");
+        } else  if (!sorted) {
+            sb.append("%n  ".formatted()).append(
+                    "INVALID tags order: they are not sorted in ascending order (requirement of TIFF 6.0 standard)!");
         }
+
         TagDescription description = getDescription();
         assert description != null;
         if (json) {
@@ -2688,6 +2708,10 @@ public final class TiffIFD {
             sb.append("%n  %s:%n%s".formatted(
                     description.formatName(true),
                     addLeftIndent(description.toString(format), 4, true)));
+        }
+        if (extendedInformation != null) {
+            addExtendedInfo(sb, json, extendedInformation);
+            // - note: for non-JSON, this method also adds line separator BEFORE the content
         }
         if (json) {
             sb.append("\n}");
@@ -3234,7 +3258,6 @@ public final class TiffIFD {
         }
     }
 
-    // Deprecated idea
     private static void addExtendedInfo(StringBuilder sb, boolean json, Map<String, String> extendedInformation) {
         for (Map.Entry<String, String> entry : extendedInformation.entrySet()) {
             String key = entry.getKey();
@@ -3242,6 +3265,11 @@ public final class TiffIFD {
             Objects.requireNonNull(key, "Null key in the additional information map");
             Objects.requireNonNull(value, "Null \"" + key + "\" value in the additional information map");
             if (json) {
+                value = value.trim();
+                if (!(value.startsWith("{") && value.endsWith("}")) {
+                    // - probably a usual string
+                    value = "\"" + escapeJsonString(value) + "\"";
+                }
                 sb.append(",\n  \"%s\": %s".formatted(
                         escapeJsonString(key),
                         addLeftIndent(value, 2, false)));
