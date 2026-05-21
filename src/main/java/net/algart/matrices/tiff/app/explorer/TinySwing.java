@@ -176,6 +176,10 @@ public class TinySwing {
         }
         LOG.log(System.Logger.Level.ERROR, title + ": " + e.getMessage(), e);
         String message = e.getMessage();
+        if (message == null) {
+            message = e.toString();
+            // - necessary for cases as "throw new EOFException()"
+        }
 //        if (e instanceof IOException && e.getCause() instanceof IOException) {
             // It is probably a wrapper: no sense to show it to the end user
 //            message += "\n" + e.getCause().getMessage();
