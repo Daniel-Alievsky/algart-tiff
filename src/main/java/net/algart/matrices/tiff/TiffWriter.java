@@ -870,7 +870,7 @@ public non-sealed class TiffWriter extends TiffIO {
             // -  TIFF 6.0 standard, Sort Order:
             // "The entries in an IFD must be sorted in ascending order by Tag"
             final int numberOfEntries = sortedIFD.size();
-            final int mainIFDLength = TiffIFD.sizeOfIFDTable(numberOfEntries, bigTiff, true);
+            final int mainIFDLength = TiffIFD.sizeOfIFDTable(numberOfEntries, bigTiff);
             stream.seek(ifdOffset);
             writeIFDNumberOfEntries(numberOfEntries);
 

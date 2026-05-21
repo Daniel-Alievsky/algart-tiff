@@ -863,7 +863,7 @@ public final class TiffIFD {
     }
 
     public OptionalLong sizeOfAll(long tiffFileLength) throws IOException {
-        final OptionalLong sizeOfIFD = sizeOfIFD(tiffFileLength);
+        final OptionalLong sizeOfIFD = sizeOfIFD();
         return sizeOfIFD.isEmpty() ?
                 OptionalLong.empty() :
                 OptionalLong.of(Math.addExact(sizeOfIFD.getAsLong(), sizeOfImageData(tiffFileLength)));
@@ -876,14 +876,14 @@ public final class TiffIFD {
      * 6+12*n for non-BigTIFF or 16+20*n bytes for BigTIFF, where n={@link #numberOfEntries()}.
      *
      * <p>Note that some IFD entries in this table are stored separately in other positions in the file.
-     * The total number of bytes occupied by all IFD entries is returned by {@link #sizeOfIFD(long)};
+     * The total number of bytes occupied by all IFD entries is returned by {@link #sizeOfIFD()};
      * usually it is greater than the result of this method.</p>
      *
      * @return the length of the IFD table in bytes, including the following offset of the next IFD.
      * @throws TiffException in the case of incorrect TIFF.
      */
     public long sizeOfIFDTable() throws TiffException {
-        return sizeOfIFDTable(numberOfEntries(), bigTiff, isMainIFD());
+        return sizeOfIFDTable(numberOfEntries(), bigTiff);
     }
 
     /**
@@ -891,24 +891,21 @@ public final class TiffIFD {
      * This method works well only if this object was read from a TIFF file by {@link TiffReader} class;
      * if you constructed this object yourself, this object will return {@code OptionalLong.empty()} .
      *
-     * @param tiffFileLength must contain the total length of the TIFF file.
      * @return the summary size of all IFD entries or {@code OptionalLong.empty()}
      * if this object has no such information (it was not read by {@link TiffReader}).
      */
-    public OptionalLong sizeOfIFD(long tiffFileLength) {
-        if (tiffFileLength < 0) {
-            throw new IllegalArgumentException("Negative TIFF file length");
-        }
+    public OptionalLong sizeOfIFD() {
         if (detailedEntries == null) {
             return OptionalLong.empty();
         }
-        long result = sizeOfIFDTableExcludingEntries(bigTiff, isMainIFD());
+        long result = sizeOfIFDTableExcludingEntries(bigTiff);
         final List<Entry> entries = new ArrayList<>(detailedEntries.values());
         entries.sort(Comparator.comparingLong(Entry::valueOffset));
         long lastOffsetAfter = -Long.MAX_VALUE;
         long lastOffset = 0;
         for (Entry entry : entries) {
-            if (((lastOffset | entry.valueOffset) & 1) == 0 && lastOffsetAfter + 1 == entry.valueOffset) {
+            boolean bothOffsetsEven = ((lastOffset | entry.valueOffset) & 1) == 0;
+            if (bothOffsetsEven && lastOffsetAfter + 1 == entry.valueOffset) {
                 // - we have 1 "extra" byte because of aligning entry offset
                 // (this is impossible for built-in data)
                 result++;
@@ -2719,20 +2716,18 @@ public final class TiffIFD {
         return sb.toString();
     }
 
-    public static int sizeOfIFDTableExcludingEntries(boolean bigTiff, boolean mainIFD) {
-        int result = (bigTiff ? 8 : 2);
+    public static int sizeOfIFDTableExcludingEntries(boolean bigTiff) {
+        return (bigTiff ? 8 : 2) +
         // - includes starting number of entries (2 or 8 bytes)
-        if (mainIFD) {
-            result += bigTiff ? 8 : 4;
-            // - includes the next offset (4 or 8 bytes)
-        }
-        return result;
+                (bigTiff ? 8 : 4);
+        // - includes the next offset (4 or 8 bytes);
+        // this field is usually added EVEN to Sub-IFD to EXIF IFD (although it is not used there)
     }
 
-    public static int sizeOfIFDTable(long numberOfEntries, boolean bigTiff, boolean mainIFD) throws TiffException {
+    public static int sizeOfIFDTable(long numberOfEntries, boolean bigTiff) throws TiffException {
         final int bytesPerEntry = Entry.sizeOfEntry(bigTiff);
         final int n = checkNumberOfEntries(numberOfEntries, bigTiff);
-        return sizeOfIFDTableExcludingEntries(bigTiff, mainIFD) + bytesPerEntry * n;
+        return sizeOfIFDTableExcludingEntries(bigTiff) + bytesPerEntry * n;
     }
 
     /**
@@ -3279,65 +3274,6 @@ public final class TiffIFD {
         }
     }
 
-    private static boolean isSupportedPrecisionWithCheckingEquality(int[] bitsPerSample)
-            throws UnsupportedTiffFormatException {
-        final int bits = bitsPerSample[0];
-        for (int i = 1; i < bitsPerSample.length; i++) {
-            if (bitsPerSample[i] != bits) {
-                throw new UnsupportedTiffFormatException("The number of " +
-                        "bits per samples is unequal for different channels: " +
-                        Arrays.toString(bitsPerSample) +
-                        " (this variant is not supported, in particular for writing)");
-            }
-        }
-        final boolean binary = bitsPerSample.length == 1 && bits == 1;
-        // - see alignedBitDepth()
-        // Note: while writing, bits == 1 is possible also for more than 1 channel,
-        // which is recognized as non-binary UINT8
-        return binary || bits == 8 || bits == 16 || bits == 32 || bits == 64;
-    }
-
-    private static int truncatedIntValue(Number value) {
-        Objects.requireNonNull(value);
-        long result = value.longValue();
-        if (result > Integer.MAX_VALUE) {
-            return Integer.MAX_VALUE;
-        }
-        if (result < Integer.MIN_VALUE) {
-            return Integer.MIN_VALUE;
-        }
-        return (int) result;
-    }
-
-    private static int checkedIntValue(Number value, int tag) throws TiffException {
-        Objects.requireNonNull(value);
-        long result = value.longValue();
-        if (result > Integer.MAX_VALUE) {
-            throw new TiffException("Very large " + Tags.prettyName(tag) +
-                    " = " + value + " >= 2^31 is not supported");
-        }
-        if (result < Integer.MIN_VALUE) {
-            throw new TiffException("Very large (by absolute value) negative " + Tags.prettyName(tag) +
-                    " = " + value + " < -2^31 is not supported");
-        }
-        return (int) result;
-    }
-
-    private static int[] nInts(int count, int filler) {
-        final int[] result = new int[count];
-        Arrays.fill(result, filler);
-        return result;
-    }
-
-    private static String remainderToString(long a, long b) {
-        long r = a / b;
-        if (r * b == a) {
-            return String.valueOf(b);
-        } else {
-            return String.valueOf(a - r * b);
-        }
-    }
-
     private static void appendIFDArray(StringBuilder sb, Object v, boolean compact, boolean jsonMode) {
         final boolean numeric = v instanceof byte[] || v instanceof short[] ||
                 v instanceof int[] || v instanceof long[] ||
@@ -3376,10 +3312,12 @@ public final class TiffIFD {
                     sb.append(value.mathString());
                 }
             } else if (v instanceof String[]) {
-                sb.append("\"").append(o != null ? o : "").append("\"");
+                sb.append("\"");
+                escapeJsonString(sb, o != null ? o.toString() : "");
+                sb.append("\"");
                 // - null string is equivalent to "" while reading or writing
             } else {
-                sb.append(o);
+                appendJsonWithRelacingInfiniteNumber(sb, o);
             }
         }
     }
@@ -3396,6 +3334,26 @@ public final class TiffIFD {
                 sb.append(", ");
             }
             appendHexByte(sb, v[k] & 0xFF);
+        }
+    }
+
+    private static void appendJsonWithRelacingInfiniteNumber(StringBuilder sb, Object o) {
+        if (o instanceof Double d) {
+            if (Double.isFinite(d)) {
+                sb.append(d);
+            } else {
+                // JSON does not support NaN/Infinity; replace them with 0.0
+                sb.append("0");
+            }
+        } else if (o instanceof Float f) {
+            if (Float.isFinite(f)) {
+                sb.append(f);
+            } else {
+                // JSON does not support NaN/Infinity; replace them with 0.0
+                sb.append("0");
+            }
+        } else {
+            sb.append(o);
         }
     }
 
@@ -3462,6 +3420,65 @@ public final class TiffIFD {
                     String hex = "000" + Integer.toHexString(c);
                     result.append("\\u").append(hex.substring(hex.length() - 4));
             }
+        }
+    }
+
+    private static boolean isSupportedPrecisionWithCheckingEquality(int[] bitsPerSample)
+            throws UnsupportedTiffFormatException {
+        final int bits = bitsPerSample[0];
+        for (int i = 1; i < bitsPerSample.length; i++) {
+            if (bitsPerSample[i] != bits) {
+                throw new UnsupportedTiffFormatException("The number of " +
+                        "bits per samples is unequal for different channels: " +
+                        Arrays.toString(bitsPerSample) +
+                        " (this variant is not supported, in particular for writing)");
+            }
+        }
+        final boolean binary = bitsPerSample.length == 1 && bits == 1;
+        // - see alignedBitDepth()
+        // Note: while writing, bits == 1 is possible also for more than 1 channel,
+        // which is recognized as non-binary UINT8
+        return binary || bits == 8 || bits == 16 || bits == 32 || bits == 64;
+    }
+
+    private static int truncatedIntValue(Number value) {
+        Objects.requireNonNull(value);
+        long result = value.longValue();
+        if (result > Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE;
+        }
+        if (result < Integer.MIN_VALUE) {
+            return Integer.MIN_VALUE;
+        }
+        return (int) result;
+    }
+
+    private static int checkedIntValue(Number value, int tag) throws TiffException {
+        Objects.requireNonNull(value);
+        long result = value.longValue();
+        if (result > Integer.MAX_VALUE) {
+            throw new TiffException("Very large " + Tags.prettyName(tag) +
+                    " = " + value + " >= 2^31 is not supported");
+        }
+        if (result < Integer.MIN_VALUE) {
+            throw new TiffException("Very large (by absolute value) negative " + Tags.prettyName(tag) +
+                    " = " + value + " < -2^31 is not supported");
+        }
+        return (int) result;
+    }
+
+    private static int[] nInts(int count, int filler) {
+        final int[] result = new int[count];
+        Arrays.fill(result, filler);
+        return result;
+    }
+
+    private static String remainderToString(long a, long b) {
+        long r = a / b;
+        if (r * b == a) {
+            return String.valueOf(b);
+        } else {
+            return String.valueOf(a - r * b);
         }
     }
 

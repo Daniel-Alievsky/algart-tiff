@@ -284,12 +284,16 @@ public class TiffInfo {
                 stringFormat.isJson() ? "%n".formatted() : " ",
                 ifd.toString(stringFormat, extendedInformation)));
         final long tiffFileLength = reader.fileLength();
-        final OptionalLong sizeOfIFDOptional = ifd.sizeOfIFD(tiffFileLength);
+        final OptionalLong sizeOfIFDOptional = ifd.sizeOfIFD();
         AtomicBoolean imageDataAligned = new AtomicBoolean(false);
         if (sizeOfIFDOptional.isPresent()) {
             final long sizeOfIFD = sizeOfIFDOptional.getAsLong();
+            final long sizeOfExifIFD = exifIFD == null ? -1 : exifIFD.sizeOfIFD().orElse(-1);
             if (totalSize != null) {
                 totalSize.addAndGet(sizeOfIFD);
+                if (sizeOfExifIFD >= 0) {
+                    totalSize.addAndGet(sizeOfExifIFD);
+                }
             }
             long sizeOfData = -1;
             try {
@@ -300,10 +304,11 @@ public class TiffInfo {
                         6L + 12L * ifd.numberOfEntries())) {
                     throw new AssertionError("Invalid sizeOfIFDTable");
                 }
-                sb.append("%d bytes in the file occupied: %d metadata (%d table + %d external) + %d image data%s"
+                sb.append("%d bytes in the file occupied: %d metadata (%d table + %d external%s) + %d image data%s"
                         .formatted(
                                 sizeOfIFD + sizeOfData,
                                 sizeOfIFD, sizeOfIFDTable, sizeOfIFD - sizeOfIFDTable,
+                                sizeOfExifIFD == -1 ? "" : " + %d EXIF table".formatted(sizeOfExifIFD),
                                 sizeOfData,
                                 imageDataAligned.get() ? " (" + (sizeOfData - 1) + " unaligned)" : ""));
                 if (totalSize != null) {
