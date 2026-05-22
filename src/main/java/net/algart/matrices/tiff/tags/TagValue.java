@@ -43,31 +43,43 @@ import java.util.Objects;
  * in {@link TiffIFD} is defined as follows:</p>
  *
  * <ul>
- *   <li><b>{@code Byte} or {@code byte[]}</b>: mapped to {@link TagType#UNDEFINED}.
- *       Written as raw bytes without any interpretation.</li>
- *   <li><b>{@code Short} or {@code short[]}</b>: mapped to {@link TagType#BYTE}.
- *       Expected to be unsigned 8-bit values in the range 0..255.</li>
- *   <li><b>{@code Integer} or {@code int[]}</b>: mapped to {@link TagType#SHORT}
- *       (unsigned 16-bit, 0..65535). Note: a single {@code Integer} value
- *       exceeding 0xFFFF is automatically promoted to {@link TagType#LONG}.</li>
- *   <li><b>{@code Long} or {@code long[]}</b>: mapped to {@link TagType#LONG}
- *       (unsigned 32-bit) or {@link TagType#LONG8} for Big-TIFF files.</li>
- *   <li><b>{@link TagValue.Rational TagValue.Rational} or
- *   <code>{@link TagValue.Rational TagValue.Rational}[]</code></b>: mapped to
- *       {@link TagType#RATIONAL} (pairs of unsigned 32-bit integers).</li>
- *   <li><b>{@link TagValue.SRational TagValue.SRational} or
- *   <code>{@link TagValue.SRational TagValue.SRational}[]</code></b>: mapped to
- *       {@link TagType#SRATIONAL} (pairs of signed 32-bit integers).</li>
- *   <li><b>{@code Float} or {@code float[]}</b>: mapped to {@link TagType#FLOAT}
- *       (32-bit IEEE floating point).</li>
- *   <li><b>{@code Double} or {@code double[]}</b>: mapped to {@link TagType#DOUBLE}
- *       (64-bit IEEE floating point).</li>
- *   <li><b>{@code String} or {@code String[]}</b>:
- *       mapped to {@link TagType#ASCII}. Strings are encoded using UTF-8
- *       (compatible with ASCII 0..127) and are zero-terminated. Note: an empty
- *       array ({@code String[0]}) results in a zero-length tag (value count = 0),
- *       while an empty string (or {@code String[1]} array containing one empty string) results in a single
- *       zero-terminator byte (value count = 1).</li>
+ * <li><b>{@code Byte} or {@code byte[]}</b>: mapped to {@link TagType#UNDEFINED}.
+ * Written as raw bytes without any interpretation.</li>
+ * <li><b>{@code Short} or {@code short[]}</b>: mapped to {@link TagType#BYTE}
+ * (unsigned 8-bit values in the range 0..255).</li>
+ * <li><b>{@code Integer} or {@code int[]}</b>: mapped to {@link TagType#SHORT}
+ * (unsigned 16-bit, 0..65535). Note: a single {@code Integer} value
+ * greater than 0xFFFF is written as {@link TagType#LONG} / {@link TagType#LONG8}.</li>
+ * <li><b>{@code Long} or {@code long[]}</b>: mapped to {@link TagType#LONG}
+ * (unsigned 32-bit) or {@link TagType#LONG8} (unsigned 64-bit) for Big-TIFF files.</li>
+ * <li><b>{@link TagValue.SByte TagValue.SByte} or <code>{@link TagValue.SByte}[]</code></b>:
+ * mapped to {@link TagType#SBYTE} (signed 8-bit integers, -128..127).</li>
+ * <li><b>{@link TagValue.SShort TagValue.SShort} or <code>{@link TagValue.SShort}[]</code></b>:
+ * mapped to {@link TagType#SSHORT} (signed 16-bit integers, -32768..32767).</li>
+ * <li><b>{@link TagValue.SLong TagValue.SLong} or <code>{@link TagValue.SLong}[]</code></b>:
+ * mapped to {@link TagType#SLONG} (signed 32-bit integers).</li>
+ * <li><b>{@link TagValue.SLong8 TagValue.SLong8} or <code>{@link TagValue.SLong8}[]</code></b>:
+ * mapped to {@link TagType#SLONG8} (signed 64-bit integers). Supported only in
+ * Big-TIFF mode; attempting to write it into a classic TIFF file causes an exception.</li>
+ * <li><b>{@link TagValue.IFD TagValue.IFD} or <code>{@link TagValue.IFD}[]</code></b>:
+ * mapped to {@link TagType#IFD} (32-bit unsigned offset) or {@link TagType#IFD8}
+ * (64-bit unsigned offset) for Big-TIFF files.</li>
+ * <li><b>{@link TagValue.Rational TagValue.Rational} or
+ * <code>{@link TagValue.Rational TagValue.Rational}[]</code></b>: mapped to
+ * {@link TagType#RATIONAL} (pairs of unsigned 32-bit integers).</li>
+ * <li><b>{@link TagValue.SRational TagValue.SRational} or
+ * <code>{@link TagValue.SRational TagValue.SRational}[]</code></b>: mapped to
+ * {@link TagType#SRATIONAL} (pairs of signed 32-bit integers).</li>
+ * <li><b>{@code Float} or {@code float[]}</b>: mapped to {@link TagType#FLOAT}
+ * (32-bit IEEE floating point).</li>
+ * <li><b>{@code Double} or {@code double[]}</b>: mapped to {@link TagType#DOUBLE}
+ * (64-bit IEEE floating point).</li>
+ * <li><b>{@code String} or {@code String[]}</b>:
+ * mapped to {@link TagType#ASCII}. Strings are encoded using UTF-8
+ * (compatible with ASCII 0..127) and are zero-terminated. Note: an empty
+ * array ({@code String[0]}) results in a zero-length tag (value count = 0),
+ * while an empty string (or {@code String[1]} array containing one empty string) results in a single
+ * zero-terminator byte (value count = 1).</li>
  * </ul>
  *
  * <p>In the list above, the first option (e.g., {@code Float}) is used to represent a single
@@ -114,7 +126,7 @@ import java.util.Objects;
  *
  * <p>Note: all classes implementing this interface extend {@link Number}.
  * This ensures that the values can be correctly read as numeric values.
- * Examples: {@link Tags#REFERENCE_BLACK_WHITE} is read as an {@code int[]} array in the
+ * Examples: {@link Tags#REFERENCE_BLACK_WHITE} is read as an array of integers in the
  * {@link net.algart.matrices.tiff.data.TiffUnpacking#separateYCbCrToRGB} method,
  * and {@link Tags#SUB_IFD} is read as a {@code long[]} array in the {@link TiffReader#allIFDs()} method.</p>
  *
@@ -222,6 +234,10 @@ public sealed interface TagValue permits RawInteger, RawRational {
             return new SLong(value);
         }
 
+        public static TagValue of(long value, boolean bigTiff) {
+            return bigTiff ? SLong8.of(value) : SLong.of(value);
+        }
+
         @Override
         public void write(DataHandle<?> stream, boolean bigTiff) throws IOException {
             stream.writeInt(intValue());
@@ -239,7 +255,12 @@ public sealed interface TagValue permits RawInteger, RawRational {
 
         @Override
         public void write(DataHandle<?> stream, boolean bigTiff) throws IOException {
-            stream.writeLong(longValue());
+            if (bigTiff) {
+                stream.writeLong(longValue());
+            } else {
+                throw new TiffException("Cannot write 64-bit signed integer (SLONG8) = " + longValue() +
+                        " to a classic (not Big-TIFF) file: this type is supported only in Big-TIFF");
+            }
         }
     }
 

@@ -67,53 +67,59 @@ public class TiffWriteAllTagTypesTest {
             ifd.put(Tags.X_RESOLUTION, TagValue.Rational.of(72, 1));
             ifd.put(Tags.Y_RESOLUTION, TagValue.Rational.of(72, 1));
             ifd.put(14301, 123456789);
-            ifd.put(14302, new int[] {123, 234});
+            ifd.put(14302, new int[]{123, 234});
             ifd.put(14311, bigTiff ? 123456789123L : 12345);
-            ifd.put(14312, new long[] {bigTiff ? 10000000123L: 100000, bigTiff ? -256 : 2222222});
+            ifd.put(14312, new long[]{bigTiff ? 10000000123L : 100000, bigTiff ? -256 : 2222222});
             ifd.put(15701, TagValue.SRational.of(-1, 1000));
             ifd.put(15702, TagValue.SRational.of(-100, -10));
             ifd.put(15703, TagValue.Rational.of(1, 0xFFFFFFFEL));
-            ifd.put(15710, new TagValue.SRational[] {
+            ifd.put(15710, new TagValue.SRational[]{
                     TagValue.SRational.of(0, 0),
                     TagValue.SRational.of(-1111111111, -222222222)});
-            ifd.put(15711, new TagValue.Rational[] {
+            ifd.put(15711, new TagValue.Rational[]{
                     TagValue.Rational.of(0, 0),
                     TagValue.Rational.of(0xFFFFFFFEL, 12)});
             ifd.put(15721, TagValue.SByte.of(123));
-            ifd.put(15722, new TagValue.SByte[] {TagValue.SByte.of(0), TagValue.SByte.of(-1)});
+            ifd.put(15722, new TagValue.SByte[]{TagValue.SByte.of(0), TagValue.SByte.of(-1)});
             ifd.put(15731, TagValue.SShort.of(123));
-            ifd.put(15732, new TagValue.SShort[] {TagValue.SShort.of(220), TagValue.SShort.of(-1)});
+            ifd.put(15732, new TagValue.SShort[]{TagValue.SShort.of(220), TagValue.SShort.of(-1)});
             ifd.put(15741, TagValue.SLong.of(123));
-            ifd.put(15742, new TagValue.SLong[] {TagValue.SLong.of(220), TagValue.SLong.of(-1)});
-            ifd.put(15751, TagValue.SLong8.of(123));
-            ifd.put(15752, new TagValue.SLong8[] {TagValue.SLong8.of(220), TagValue.SLong8.of(-1)});
+            ifd.put(15742, new TagValue.SLong[]{TagValue.SLong.of(220), TagValue.SLong.of(-1)});
+            ifd.put(15751, TagValue.SLong.of(123, bigTiff));
+            if (bigTiff) {
+                ifd.put(15752, new TagValue.SLong8[]{
+                        TagValue.SLong8.of(220),
+                        TagValue.SLong8.of(Long.MAX_VALUE),
+                        TagValue.SLong8.of(Long.MIN_VALUE),
+                        TagValue.SLong8.of(-1)});
+            }
             ifd.put(16011, new double[0]);
             ifd.put(16012, 0.11);
-            ifd.put(16013, new double[] {0.11, 0.12});
+            ifd.put(16013, new double[]{0.11, 0.12});
             ifd.put(16020, new float[0]);
             ifd.put(16021, 1.0f);
-            ifd.put(16022, new float[] {1.11f, 1.12f});
-            ifd.put(16023, new float[] {1.11f, 1.12f, 3});
+            ifd.put(16022, new float[]{1.11f, 1.12f});
+            ifd.put(16023, new float[]{1.11f, 1.12f, 3});
             ifd.put(16030, new byte[0]);
             ifd.put(16031, (byte) 12);
-            ifd.put(16031, new byte[] {12, 32});
-            ifd.put(16031, new byte[] {12, 32, -44});
+            ifd.put(16031, new byte[]{12, 32});
+            ifd.put(16031, new byte[]{12, 32, -44});
             ifd.put(16040, new short[0]);
             ifd.put(16041, (short) 255);
-            ifd.put(16042, new short[] {12, 132});
-            ifd.put(16043, new short[] {12, 32, 144});
+            ifd.put(16042, new short[]{12, 132});
+            ifd.put(16043, new short[]{12, 32, 144});
             ifd.put(16050, new int[0]);
             ifd.put(16051, 10000);
             // - note: new int[1] here will be transformed to Integer while reading
             ifd.put(16052, 1000000);
             // - unusual case: int (mapped to SHORT) contains a value >65535
-            ifd.put(16053, new int[] {60000, 60001});
-            ifd.put(16054, new int[] {10000, 10001, 10002});
+            ifd.put(16053, new int[]{60000, 60001});
+            ifd.put(16054, new int[]{10000, 10001, 10002});
             ifd.put(16060, new long[0]);
             ifd.put(16061, 1000000L);
             // - note: new long[1] here will be transformed to Long while reading
-            ifd.put(16062, new long[] {bigTiff ? -1000000 : 0, 1000001});
-            ifd.put(16063, new long[] {1000000, 1000001, 1000002});
+            ifd.put(16062, new long[]{bigTiff ? -1000000 : 0, 1000001});
+            ifd.put(16063, new long[]{1000000, 1000001, 1000002});
             ifd.put(17001, TagValue.IFD.of(123));
             ifd.put(17002, TagValue.IFD.ofUnsigned32(1200000000));
             ifd.put(17003, TagValue.IFD.of(0xFFFFFFFFL));
@@ -121,7 +127,7 @@ public class TiffWriteAllTagTypesTest {
             // - note: null value here will be transformed into "" string
             ifd.put(TAG_WITH_UNKNOWN_TYPE, new TiffIFD.UnsupportedTypeValue(3333, 110, 0));
             // - "count" in UnsupportedTypeValue should be ignored! we don't know how to write it
-            ifd.put(15700, new String[] {});
+            ifd.put(15700, new String[]{});
             // ifd.put(15555, false); // - will lead to TiffException
             System.out.printf("Desired IFD:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.DETAILED));
             writer.newFixedMap(ifd).writeMatrix(image);
