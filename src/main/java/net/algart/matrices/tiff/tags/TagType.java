@@ -229,15 +229,15 @@ public enum TagType {
      *
      * <table border="1" cellpadding="4">
      *   <tr><th>{@link TagType}</th><th>Returned Java Class</th></tr>
-     *   <tr><td>{@link #BYTE}</td><td>{@code short.class} (promoted to avoid unsigned overflow)</td></tr>
+     *   <tr><td>{@link #UNDEFINED}</td><td>{@code byte.class}</td></tr>
      *   <tr><td>{@link #ASCII}</td><td>{@code String.class}</td></tr>
+     *   <tr><td>{@link #BYTE}</td><td>{@code short.class} (promoted to avoid unsigned overflow)</td></tr>
      *   <tr><td>{@link #SHORT}</td><td>{@code int.class} (promoted to avoid unsigned overflow)</td></tr>
      *   <tr><td>{@link #LONG}</td><td>{@code long.class} (promoted to avoid unsigned overflow)</td></tr>
-     *   <tr><td>{@link #RATIONAL}</td><td>{@link TagValue.Rational} class</td></tr>
      *   <tr><td>{@link #SBYTE}</td><td>{@link TagValue.SByte} class</td></tr>
-     *   <tr><td>{@link #UNDEFINED}</td><td>{@code byte.class}</td></tr>
      *   <tr><td>{@link #SSHORT}</td><td>{@link TagValue.SShort} class</td></tr>
      *   <tr><td>{@link #SLONG}</td><td>{@link TagValue.SLong} class</td></tr>
+     *   <tr><td>{@link #RATIONAL}</td><td>{@link TagValue.Rational} class</td></tr>
      *   <tr><td>{@link #SRATIONAL}</td><td>{@link TagValue.SRational} class</td></tr>
      *   <tr><td>{@link #FLOAT}</td><td>{@code float.class}</td></tr>
      *   <tr><td>{@link #DOUBLE}</td><td>{@code double.class}</td></tr>
@@ -277,23 +277,25 @@ public enum TagType {
      *     <th>Classic TIFF</th>
      *     <th>Big-TIFF</th>
      *   </tr>
+     *   <tr><td>{@code byte.class}, {@code byte[].class}, {@code Byte.class}</td><td>{@link #UNDEFINED}</td><td
+     *   >{@link #UNDEFINED}</td></tr>
+     *   <tr><td>{@code String.class}, {@code String[].class}</td><td>{@link #ASCII}</td><td>{@link #ASCII}</td></tr>
      *   <tr><td>{@code short.class}, {@code short[].class}, {@code Short.class}</td><td>{@link #BYTE}</td><td
      *   >{@link #BYTE}</td></tr>
-     *   <tr><td>{@code String.class}, {@code String[].class}</td><td>{@link #ASCII}</td><td>{@link #ASCII}</td></tr>
      *   <tr><td>{@code int.class}, {@code int[].class}, {@code Integer.class}</td><td>{@link #SHORT}</td><td
      *   >{@link #SHORT}</td></tr>
      *   <tr><td>{@code long.class}, {@code long[].class}, {@code Long.class}</td><td>{@link #LONG}</td><td
      *   >{@link #LONG8} <i>(auto-promoted)</i></td></tr>
-     *   <tr><td>{@code TagValue.Rational.class}, {@code TagValue.Rational[].class}</td><td>{@link #RATIONAL}</td><td
-     *   >{@link #RATIONAL}</td></tr>
      *   <tr><td>{@code TagValue.SByte.class}, {@code TagValue.SByte[].class}</td><td>{@link #SBYTE}</td><td
      *   >{@link #SBYTE}</td></tr>
-     *   <tr><td>{@code byte.class}, {@code byte[].class}, {@code Byte.class}</td><td>{@link #UNDEFINED}</td><td
-     *   >{@link #UNDEFINED}</td></tr>
      *   <tr><td>{@code TagValue.SShort.class}, {@code TagValue.SShort[].class}</td><td>{@link #SSHORT}</td><td
      *   >{@link #SSHORT}</td></tr>
      *   <tr><td>{@code TagValue.SLong.class}, {@code TagValue.SLong[].class}</td><td>{@link #SLONG}</td><td
      *   >{@link #SLONG}</td></tr>
+     *   <tr><td>{@code TagValue.SLong8.class}, {@code TagValue.SLong8[].class}</td><td><i>(not allowed)</i></td><td
+     *   >{@link #SLONG8}</td></tr>
+     *   <tr><td>{@code TagValue.Rational.class}, {@code TagValue.Rational[].class}</td><td>{@link #RATIONAL}</td><td
+     *   >{@link #RATIONAL}</td></tr>
      *   <tr><td>{@code TagValue.SRational.class}, {@code TagValue.SRational[].class}</td><td>{@link #SRATIONAL}</td
      *   ><td>{@link #SRATIONAL}</td></tr>
      *   <tr><td>{@code float.class}, {@code float[].class}, {@code Float.class}</td><td>{@link #FLOAT}</td><td
@@ -302,8 +304,6 @@ public enum TagType {
      *   >{@link #DOUBLE}</td></tr>
      *   <tr><td>{@code TagValue.IFD.class}, {@code TagValue.IFD[].class}</td><td>{@link #IFD}</td><td>{@link #IFD8}
      *   <i>(auto-promoted)</i></td></tr>
-     *   <tr><td>{@code TagValue.SLong8.class}, {@code TagValue.SLong8[].class}</td><td>{@link #SLONG8}</td><td
-     *   >{@link #SLONG8}</td></tr>
      * </table>
      *
      * <p>Note: the result for {@code TagValue.SLong8} class yields
