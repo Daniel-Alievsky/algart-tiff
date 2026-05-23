@@ -85,7 +85,7 @@ public class TiffWriteAllTagTypesTest {
             ifd.put(15732, new TagValue.SShort[]{TagValue.SShort.of(220), TagValue.SShort.of(-1)});
             ifd.put(15741, TagValue.SLong.of(123));
             ifd.put(15742, new TagValue.SLong[]{TagValue.SLong.of(220), TagValue.SLong.of(-1)});
-            ifd.put(15751, TagValue.SLong.of(123, bigTiff));
+            ifd.put(15751, bigTiff ? TagValue.SLong8.of(123) : TagValue.SLong.of(123));
             if (bigTiff) {
                 ifd.put(15752, new TagValue.SLong8[]{
                         TagValue.SLong8.of(220),

@@ -38,12 +38,20 @@ import java.util.*;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import java.util.function.IntPredicate;
 
 public final class TiffIFD {
+    /**
+     * Possible result of an updater passed to {@link TiffWriter#updateIFD(int, Function)} method.
+     */
     public enum UpdateResult {
         UNCHANGED,
         /**
          * <b>Warning:</b> this variant can be used <b>only</b> if this IFD was written by {@link TiffWriter}!
+         *
+         * <p>Note: if you need to accurately update an IFD inside a TIFF that was not created by your software,
+         * and you are sure that the size of the updated IFD entries has not changed,
+         * you may use the {@link TiffWriter#rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate)} method.</p>
          */
         OVERWRITE_IN_PLACE,
         CHANGED;

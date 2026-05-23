@@ -234,10 +234,6 @@ public sealed interface TagValue permits RawInteger, RawRational {
             return new SLong(value);
         }
 
-        public static TagValue of(long value, boolean bigTiff) {
-            return bigTiff ? SLong8.of(value) : SLong.of(value);
-        }
-
         @Override
         public void write(DataHandle<?> stream, boolean bigTiff) throws IOException {
             stream.writeInt(intValue());
