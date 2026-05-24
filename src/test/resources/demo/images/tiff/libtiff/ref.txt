@@ -1,2 +1,2 @@
 These images are downloaded from:
-https://download.osgeo.org/libtiff/, tiff-4.5.1.zip, subfolder test/images
+https://download.osgeo.org/libtiff/, tiff-4.7.1.zip, subfolder test/images

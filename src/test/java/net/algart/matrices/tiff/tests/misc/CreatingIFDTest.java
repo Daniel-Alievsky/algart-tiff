@@ -70,7 +70,7 @@ public class CreatingIFDTest {
 
         ifd.put(Tags.BITS_PER_SAMPLE, new int[] {4, 8, 16});
         // - unallowed bits (different bytes/sample)
-        ifd.put(Tags.GPS_TAG, 111111);
+        ifd.put(Tags.GPS_IFD, 111111);
         ifd.put(1577, true);
         ifd.put(1578, 56.0);
         ifd.put(1579, 'c');

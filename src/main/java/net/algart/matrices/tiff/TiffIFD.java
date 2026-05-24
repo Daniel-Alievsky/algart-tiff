@@ -606,8 +606,9 @@ public final class TiffIFD {
      * <p>Note: this index is set automatically by the {@link TiffReader} class, but is not set
      * after creating this object.
      *
-     * <p>Note that this index is never set for EXIF sub-IFDs loaded by {@link TiffReader#exifIFD} method,
-     * so an attempt to use this method for EXIF IFD will throw an exception.
+     * <p>Note that this index is never set for linked IFDs returned by
+     * {@link TiffReader#linkedIFD(TiffIFD, int)} method (EXIF IFD, GPS IFD, etc.),
+     * so an attempt to use this method for such IFDs will throw an exception.
      *
      * @return the index of this IFD in the list of all IFDs.
      * @throws IllegalStateException if this index is not set.
@@ -854,11 +855,12 @@ public final class TiffIFD {
      *
      * <p>This field is set automatically by the {@link TiffReader} class.
      *
-     * <p>Note that {@link TiffWriter} cannot write sub-IFD or EXIF IFD: the corresponding tags
+     * <p>Note that {@link TiffWriter} cannot write sub-IFD or linked IFD (such as EXIF): the corresponding tags
      * are automatically removed by {@link TiffWriter#newMap(TiffIFD, boolean, boolean)} method.
      *
-     * @param subIFDType new IFD type, probably <code>null</code> for regular IFD
-     *                   or {@link Tags#SUB_IFD} / {@link Tags#EXIF} for sub-IFD.
+     * @param subIFDType new IFD type, probably <code>null</code> for regular IFD,
+     *                   {@link Tags#SUB_IFD} for sub-IFD,
+     *                   {@link Tags#EXIF_IFD} / {@link Tags#GPS_IFD} / ... for linked IFDs.
      * @return a reference to this object.
      */
     public TiffIFD setSubIFDType(Integer subIFDType) {

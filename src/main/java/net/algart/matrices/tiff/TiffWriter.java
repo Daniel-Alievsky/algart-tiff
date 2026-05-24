@@ -1268,13 +1268,17 @@ public non-sealed class TiffWriter extends TiffIO {
      * While typical usage, this argument should be <code>true</code>.
      * But you may set it to <code>false</code> if you want to control all IFD settings yourself,
      * in particular if you prefer to call the method {@link #correctForEncoding(TiffIFD, boolean)}
-     * with non-standard {@link #setSmartCorrection smartCorrection}</code> flag.
+     * with non-standard {@link #setSmartCorrection smartCorrection} flag.
      *
      * <p>Note: this method calls {@link TiffMap#buildTileGrid()} and {@link TiffIFD#freeze() freeze}
      * the passed <code>ifd</code>. So you should use this method after completely building IFD.</p>
      *
-     * <p>Note: this method <b>removes</b> tags {@link Tags#SUB_IFD SubIFD}, {@link Tags#EXIF Exif IFD}
-     * and {@link Tags#GPS_TAG GPS information}, because this class does not support writing sub-IFDs.
+     * <p>Note: this method forcibly <b>removes</b> tags
+     * {@link Tags#SUB_IFD SubIFD} = {@value Tags#SUB_IFD},
+     * {@link Tags#EXIF_IFD Exif IFD} = {@value Tags#EXIF_IFD},
+     * {@link Tags#GPS_IFD GPS information} = {@value Tags#GPS_IFD GPS} and
+     * {@link Tags#INTEROPERABILITY_IFD interoperability IFD} = {@value Tags#INTEROPERABILITY_IFD},
+     * because this class does not support writing sub-IFDs or linked IFDs.
      * If you still need to construct TIFF with such tags, you should use more low-level call of
      * {@link TiffWriteMap} constructor.
      *
@@ -2149,10 +2153,12 @@ public non-sealed class TiffWriter extends TiffIO {
             }
         }
         ifd.remove(Tags.SUB_IFD);
-        ifd.remove(Tags.EXIF);
-        ifd.remove(Tags.GPS_TAG);
-        // - These are also pointers (offsets) inside a file, but this class does not provide
-        // control over writing such IFDs, so the corresponding offsets will usually have no sense
+        ifd.remove(Tags.EXIF_IFD);
+        ifd.remove(Tags.GPS_IFD);
+        ifd.remove(Tags.INTEROPERABILITY_IFD);
+        // - These tags contain offsets to other IFD structures inside the file,
+        // but this class does not manage writing such linked/sub IFDs,
+        // so the referenced offsets would become invalid.
 
         ifd.setLittleEndian(stream.isLittleEndian());
         // - will be used, for example, in getCompressionCodecOptions

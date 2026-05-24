@@ -263,18 +263,17 @@ public class TiffInfo {
 
     private String ifdInformation(TiffReader reader, TiffIFD ifd, int ifdIndex, AtomicLong totalSize)
             throws IOException {
-        TiffIFD exifIFD = null;
-        Map<String, String> extendedInformation = null;
-        try {
-            exifIFD = reader.exifIFD(ifd).orElse(null);
-        } catch (IOException e) {
-            extendedInformation = Map.of("Built-in EXIF IFD cannot be loaded", e.toString());
-        }
-        if (exifIFD != null) {
-            extendedInformation = Map.of("Built-in EXIF", exifIFD.toString(stringFormat));
-        }
+        Map<String, String> linkedInfo = new LinkedHashMap<>();
+        StringBuilder linkedReport = new StringBuilder();
+        long sizeOfLinkedIFDs =
+                addLinkedIFD(reader, ifd, Tags.EXIF_IFD, "EXIF",
+                        linkedInfo, linkedReport) +
+                addLinkedIFD(reader, ifd, Tags.GPS_IFD, "GPS",
+                        linkedInfo, linkedReport) +
+                addLinkedIFD(reader, ifd, Tags.INTEROPERABILITY_IFD, "Interoperability ",
+                        linkedInfo, linkedReport);
         if (disableAppendingForStrictFormats && stringFormat.isStrict()) {
-            return ifd.toString(stringFormat, extendedInformation);
+            return ifd.toString(stringFormat, linkedInfo);
         }
         int ifdCount = reader.numberOfImages();
         StringBuilder sb = new StringBuilder();
@@ -282,18 +281,15 @@ public class TiffInfo {
                 ifdIndex,
                 ifdCount,
                 stringFormat.isJson() ? "%n".formatted() : " ",
-                ifd.toString(stringFormat, extendedInformation)));
+                ifd.toString(stringFormat, linkedInfo)));
         final long tiffFileLength = reader.fileLength();
         final OptionalLong sizeOfIFDOptional = ifd.sizeOfIFD();
         AtomicBoolean imageDataAligned = new AtomicBoolean(false);
         if (sizeOfIFDOptional.isPresent()) {
             final long sizeOfIFD = sizeOfIFDOptional.getAsLong();
-            final long sizeOfExifIFD = exifIFD == null ? -1 : exifIFD.sizeOfIFD().orElse(-1);
             if (totalSize != null) {
                 totalSize.addAndGet(sizeOfIFD);
-                if (sizeOfExifIFD >= 0) {
-                    totalSize.addAndGet(sizeOfExifIFD);
-                }
+                totalSize.addAndGet(sizeOfLinkedIFDs);
             }
             long sizeOfData = -1;
             try {
@@ -304,11 +300,11 @@ public class TiffInfo {
                         6L + 12L * ifd.numberOfEntries())) {
                     throw new AssertionError("Invalid sizeOfIFDTable");
                 }
-                sb.append("%d bytes in the file occupied: %d metadata (%d table + %d external%s) + %d image data%s"
+                sb.append("%d bytes in the file occupied: %d metadata (%d table + %d arrays%s) + %d image data%s"
                         .formatted(
                                 sizeOfIFD + sizeOfData,
                                 sizeOfIFD, sizeOfIFDTable, sizeOfIFD - sizeOfIFDTable,
-                                sizeOfExifIFD == -1 ? "" : " + %d EXIF table".formatted(sizeOfExifIFD),
+                                linkedReport,
                                 sizeOfData,
                                 imageDataAligned.get() ? " (" + (sizeOfData - 1) + " unaligned)" : ""));
                 if (totalSize != null) {
@@ -320,6 +316,32 @@ public class TiffInfo {
             }
         }
         return sb.toString();
+    }
+
+    private long addLinkedIFD(
+            TiffReader reader,
+            TiffIFD ifd,
+            int linkedIFDTag,
+            String name,
+            Map<String, String> extendedInformation,
+            StringBuilder sizeInformation) {
+        TiffIFD linkedIFD = null;
+        long result = 0;
+        try {
+            linkedIFD = reader.linkedIFD(ifd, linkedIFDTag).orElse(null);
+            if (linkedIFD != null) {
+                result = linkedIFD.sizeOfIFD().orElse(0);
+            }
+        } catch (IOException e) {
+            extendedInformation.put("Built-in " + name + " IFD cannot be loaded", e.toString());
+        }
+        if (linkedIFD != null) {
+            extendedInformation.put("Built-in " + name, linkedIFD.toString(stringFormat));
+        }
+        if (result > 0) {
+            sizeInformation.append(" + %d %s table".formatted(result, name));
+        }
+        return result;
     }
 
     private void showTiffInfoAndPrintException(Path tiffFile) {

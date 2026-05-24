@@ -111,12 +111,12 @@ public class Tags {
     /*
      * EXIF tags.
      */
-    public static final int EXIF = 34665;
+    public static final int EXIF_IFD = 34665;
     public static final int EXPOSURE_TIME = 33434;
     public static final int F_NUMBER = 33437;
     public static final int EXPOSURE_PROGRAM = 34850;
     public static final int SPECTRAL_SENSITIVITY = 34852;
-    public static final int GPS_TAG = 34853;
+    public static final int GPS_IFD = 34853;
     public static final int ISO_SPEED_RATINGS = 34855;
     public static final int OECF = 34856;
     public static final int EXIF_VERSION = 36864;
@@ -144,6 +144,7 @@ public class Tags {
     public static final int PIXEL_X_DIMENSION = 40962;
     public static final int PIXEL_Y_DIMENSION = 40963;
     public static final int RELATED_SOUND_FILE = 40964;
+    public static final int INTEROPERABILITY_IFD = 40965;
     public static final int FLASH_ENERGY = 41483;
     public static final int SPATIAL_FREQUENCY_RESPONSE = 41484;
     public static final int FOCAL_PLANE_X_RESOLUTION = 41486;

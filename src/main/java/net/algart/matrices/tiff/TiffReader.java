@@ -1030,16 +1030,18 @@ public non-sealed class TiffReader extends TiffIO {
      * then the result is cached and quickly returned by all further calls.
      * (But caching can be disabled using the {@link #setCachingIFDs(boolean)} method).
      *
-     * <p>Note: this method also returns the child sub-IFDs of a regular IFD (they are added directly after it).
+     * <p>Note: this method also returns the child sub-IFDs of a regular IFD
+     * (they are inserted into the resulting list immediately after the parent IFD).
      * To retrieve only main IFDs without the child ones, please use {@link #mainIFDs()}.</p>
      *
-     * <p>Note: this method does not work recursively and does not read nested sub-IFDs of other sub-IFDs
-     * (an extremely rare situation in typical TIFF files).</p>
+     * <p>Note: this method does not process sub-IFDs recursively
+     * (nested sub-IFDs of sub-IFDs are extremely rare in typical TIFF files).</p>
      *
-     * <p>Note: this method <i>does not</i> read associated EXIF IFDs (if they exist).
-     * This design provides better robustness: even if a TIFF file contains malformed or corrupted EXIF data,
-     * it will not prevent you from accessing the standard IFDs / sub-IFDs.
-     * You can retrieve EXIF data explicitly using the {@link #exifIFD(TiffIFD)} method.</p>
+     * <p>Note: this method <i>does not</i> read associated EXIF, GPS, and other possible linked IFDs (if they exist).
+     * Thus, even if a TIFF file contains malformed or corrupted EXIF data,
+     * it will not throw any exceptions in this method.
+     * You can retrieve linked data explicitly using the {@link #exifIFD(TiffIFD)}, {@link #gpsIFD(TiffIFD)},
+     * {@link #interoperabilityIFD(TiffIFD)} or common {@link #linkedIFD(TiffIFD, int)} method.</p>
      *
      * <p>Note: if this TIFF file is not valid ({@link #isValidTiff()} returns <code>false</code>), this method
      * returns an empty list and does not throw an exception.
@@ -1048,7 +1050,6 @@ public non-sealed class TiffReader extends TiffIO {
      * @throws TiffException if the file is not a correct TIFF file, but this was not detected while opening it.
      * @throws IOException   in the case of any problems with the input file.
      * @see #mainIFDs()
-     * @see #exifIFD(TiffIFD) ()
      */
     public List<TiffIFD> allIFDs() throws IOException {
         long t1 = debugTime();
@@ -1134,9 +1135,21 @@ public non-sealed class TiffReader extends TiffIO {
 
 
     public Optional<TiffIFD> exifIFD(TiffIFD ifd) throws IOException {
+        return linkedIFD(ifd, Tags.EXIF_IFD);
+    }
+
+    public Optional<TiffIFD> gpsIFD(TiffIFD ifd) throws IOException {
+        return linkedIFD(ifd, Tags.GPS_IFD);
+    }
+
+    public Optional<TiffIFD> interoperabilityIFD(TiffIFD ifd) throws IOException {
+        return linkedIFD(ifd, Tags.INTEROPERABILITY_IFD);
+    }
+
+    public Optional<TiffIFD> linkedIFD(TiffIFD ifd, int linkedIFDTag) throws IOException {
         Objects.requireNonNull(ifd, "Null IFD");
-        return ifd.hasTag(Tags.EXIF) ?
-                Optional.of(readIFD(ifd.reqLong(Tags.EXIF), false).setSubIFDType(Tags.EXIF)) :
+        return ifd.hasTag(linkedIFDTag) ?
+                Optional.of(readIFD(ifd.reqLong(linkedIFDTag), false).setSubIFDType(linkedIFDTag)) :
                 Optional.empty();
     }
 
