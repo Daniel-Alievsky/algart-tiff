@@ -2664,9 +2664,9 @@ public final class TiffIFD {
      * Note that the returned string is trimmed: it does not contain leading or trailing whitespace
      * or line separator characters.
      *
-     * @param format style of formatting the returned string.
+     * @param format              style of formatting the returned string.
      * @param extendedInformation additional information, for example, from
-     * {@link TiffReader#exifIFD(TiffIFD) EXIF IFD}.
+     *                            {@link TiffReader#exifIFD(TiffIFD) EXIF IFD}.
      * @return a string description of this object.
      * @throws NullPointerException if {@code format} is {@code null}.
      */
@@ -2700,7 +2700,7 @@ public final class TiffIFD {
         }
         if (json) {
             sb.append(previous == null ? "" : "\n").append("  }");
-        } else  if (!sorted) {
+        } else if (!sorted) {
             sb.append("%n  ".formatted()).append(
                     "INVALID tags order: they are not sorted in ascending order (requirement of TIFF 6.0 standard)!");
         }
@@ -2728,10 +2728,11 @@ public final class TiffIFD {
 
     public static int sizeOfIFDTableExcludingEntries(boolean bigTiff) {
         return (bigTiff ? 8 : 2) +
-        // - includes starting number of entries (2 or 8 bytes)
-                (bigTiff ? 8 : 4);
-        // - includes the next offset (4 or 8 bytes);
-        // this field is usually added EVEN to Sub-IFD to EXIF IFD (although it is not used there)
+                // - includes starting number of entries (2 or 8 bytes)
+                (bigTiff ? 8 : 4)
+                // - includes the next offset (4 or 8 bytes);
+                // this field is usually added EVEN to Sub-IFD to EXIF IFD (although it is not used there)
+                ;
     }
 
     public static int sizeOfIFDTable(long numberOfEntries, boolean bigTiff) throws TiffException {
@@ -3022,13 +3023,13 @@ public final class TiffIFD {
         final boolean hasImageDimensions = hasImageDimensions();
         try {
             final TiffSampleType sampleType = sampleType(false);
-            sb.append((json ?
-                    "  \"elementType\": \"%s\",\n" :
-                    " %s").formatted(
-                    sampleType == null ? "???" : sampleType.isBinary() ? "bit" :
-                            sampleType.elementType().getSimpleName()));
-            channels = getSamplesPerPixel();
             if (hasImageDimensions) {
+                sb.append((json ?
+                        "  \"elementType\": \"%s\",\n" :
+                        " %s").formatted(
+                        sampleType == null ? "???" : sampleType.isBinary() ? "bit" :
+                                sampleType.elementType().getSimpleName()));
+                channels = getSamplesPerPixel();
                 dimX = getImageDimX();
                 dimY = getImageDimY();
                 tileSizeX = getTileSizeX();
@@ -3036,10 +3037,6 @@ public final class TiffIFD {
                 sb.append((json ?
                         "  \"dimX\": %d,\n  \"dimY\": %d,\n  \"channels\": %d,\n" :
                         "[%dx%dx%d], ").formatted(dimX, dimY, channels));
-            } else {
-                sb.append((json ?
-                        "  \"channels\": %d,\n" :
-                        "[?x?x%d], ").formatted(channels));
             }
         } catch (Exception e) {
             sb.append(json ?
@@ -3051,21 +3048,28 @@ public final class TiffIFD {
             final long tileCountX = (dimX + (long) tileSizeX - 1) / tileSizeX;
             final long tileCountY = (dimY + (long) tileSizeY - 1) / tileSizeY;
             sb.append(json ?
-                    ("""
+                    (hasImageDimensions ? """
                               "precision": "%s",
                               "byteOrder": "%s",
                               "bigTiff": %s,
                               "tiled": %s,
-                            """).formatted(
+                            """.formatted(
                             sampleType != null ?
                                     sampleType.prettyName() : "???",
                             getByteOrder(),
                             isBigTiff(),
-                            hasTileInformation()) :
-                    "%s, precision %s%s%s".formatted(
+                            hasTileInformation()) : """
+                              "byteOrder": "%s",
+                              "bigTiff": %s,
+                            """.formatted(
+                            getByteOrder(),
+                            isBigTiff()))
+                    :
+                    "%s, %s%s%s".formatted(
                             isLittleEndian() ? "little-endian" : "big-endian",
-                            sampleType != null &&  (hasImageDimensions || hasTag(Tags.BITS_PER_SAMPLE)) ?
-                                    sampleType.prettyName() : "???",
+                            sampleType != null && (hasImageDimensions || hasTag(Tags.BITS_PER_SAMPLE)) ?
+                            "precision " + sampleType.prettyName() :
+                            hasImageDimensions ? "precision ???" : "no samples",
                             isBigTiff() ? " [BigTIFF]" : "",
                             hasImageDimensions ? ", " + compressionPrettyName() : ""));
             if (hasTileInformation()) {
@@ -3090,25 +3094,23 @@ public final class TiffIFD {
                                         tileSizeY,
                                         remainderToString(dimX, tileSizeX),
                                         remainderToString(dimY, tileSizeY)));
-            } else {
+            } else if (hasImageDimensions) {
                 sb.append(
                         json ?
-                                ("""
+                                """
                                           "strips": {
                                             "sizeY": %d,
                                             "countY": %d
                                           },
-                                        """).formatted(tileSizeY, tileCountY) :
-                                hasImageDimensions ?
-                                        ", %d strips per %d lines (last strip %s, virtual \"tiles\" %dx%d)".formatted(
-                                                tileCountY,
-                                                tileSizeY,
-                                                dimY == tileCountY * tileSizeY ?
-                                                "full" :
-                                                remainderToString(dimY, tileSizeY) + " lines",
-                                                tileSizeX,
-                                                tileSizeY) :
-                                "");
+                                        """.formatted(tileSizeY, tileCountY) :
+                                ", %d strips per %d lines (last strip %s, virtual \"tiles\" %dx%d)".formatted(
+                                        tileCountY,
+                                        tileSizeY,
+                                        dimY == tileCountY * tileSizeY ?
+                                        "full" :
+                                        remainderToString(dimY, tileSizeY) + " lines",
+                                        tileSizeX,
+                                        tileSizeY));
             }
             sb.append(json ?
                     "  \"chunked\": %s,\n".formatted(isChunked()) :

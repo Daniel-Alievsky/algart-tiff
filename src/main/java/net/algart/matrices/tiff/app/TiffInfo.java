@@ -333,10 +333,10 @@ public class TiffInfo {
                 result = linkedIFD.sizeOfIFD().orElse(0);
             }
         } catch (IOException e) {
-            extendedInformation.put("Built-in " + name + " IFD cannot be loaded", e.toString());
+            extendedInformation.put("Linked " + name + " IFD cannot be loaded", e.toString());
         }
         if (linkedIFD != null) {
-            extendedInformation.put("Built-in " + name, linkedIFD.toString(stringFormat));
+            extendedInformation.put("Linked " + name, linkedIFD.toString(stringFormat));
         }
         if (result > 0) {
             sizeInformation.append(" + %d %s table".formatted(result, name));
