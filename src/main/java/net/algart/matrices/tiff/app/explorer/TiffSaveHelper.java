@@ -145,11 +145,15 @@ class TiffSaveHelper {
                 &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
                 &nbsp;<br>
                 This operation copies all IFD structures and all images of this TIFF file &mdash;
-                image by image,<br>
-                tile by tile (for tiled images) &mdash; into a new file.<br>
-                <b>Note:</b> if the TIFF contains non-standard or vendor-specific IFD tags used
-                by third-party software,<br>
-                some metadata may theoretically become incompatible with the new file structure after copying.<br>
+                image by image, tile by tile<br>
+                (for tiled images) &mdash; into a new file.<br>
+                Warning:<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&bull;&nbsp;Sub-IFDs (if present) are converted to ordinary IFDs;
+                Sub-IFD hierarchy is not preserved.<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&bull;&nbsp;Non-standard linked IFD structures (such as Exif or GPS)
+                are <b>not</b> copied.<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&bull;&nbsp;Structural changes may render specific vendor-dependent
+                metadata inaccessible.<br>
                 &nbsp;<br>
                 The copying helps to eliminate unused space and fragmentation, similarly to:<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;File \u25B8 Compact TIFF...<br>
@@ -242,14 +246,17 @@ class TiffSaveHelper {
                 &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
                 &nbsp;<br>
                 This operation copies all IFD structures and all images of this TIFF file &mdash;
-                image by image,<br>
-                tile by tile (for tiled images) &mdash; into a temporary file<br>
+                image by image, tile by tile<br>
+                (for tiled images) &mdash; into a temporary file
                 and then rewrite the original file with this copy.<br>
-                <b>Note:</b> if the TIFF contains non-standard or vendor-specific IFD tags used
-                by third-party software,<br>
-                some metadata may theoretically become incompatible with the new file structure after copying.<br>
+                Warning:<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&bull;&nbsp;Sub-IFDs (if present) are converted to ordinary IFDs;
+                Sub-IFD hierarchy is not preserved.<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&bull;&nbsp;Non-standard linked IFD structures (such as Exif or GPS)
+                are <b>not</b> copied.<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&bull;&nbsp;Structural changes may render specific vendor-dependent
+                metadata inaccessible.<br>
                 &nbsp;<br>
-                
                 The compacting helps to eliminate unused space and fragmentation,
                 providing more efficient access.<br>
                 You may create a backup copy if the file is important.
@@ -377,8 +384,8 @@ class TiffSaveHelper {
                                 p.imageIndex() + 1, p.imageCount(),
                                 p.tileIndex() + 1, p.tileCount()) :
                         p.isCompactingInMemory() ?
-                                "Rewriting the TIFF file..." :
-                                "Copying temporary file..."));
+                        "Rewriting the TIFF file..." :
+                        "Copying temporary file..."));
 //        if (p.isCopyingTemporaryFile()) {
 //            try {
 //                Thread.currentThread().sleep(1000);
