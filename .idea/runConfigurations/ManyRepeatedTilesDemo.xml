@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="ManyRepeatedTilesDemo" type="Application" factoryName="Application" nameIsGenerated="true">
+    <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.demo.io.ManyRepeatedTilesDemo" />
+    <module name="algart-tiff" />
+    <option name="PROGRAM_PARAMETERS" value="-color -gradient /tmp/repeated_tiles.tiff 20 20 #C0C000 uint8 NONE" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="net.algart.matrices.tiff.demo.io.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

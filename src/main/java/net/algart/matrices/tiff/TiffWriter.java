@@ -1377,7 +1377,7 @@ public non-sealed class TiffWriter extends TiffIO {
         // - actually not necessary, but helps to avoid possible bugs
         int k = 0;
         for (TiffTile tile : map.tiles()) {
-            tile.setStoredInFileDataRange(offsets[k], (int) byteCounts[k], true);
+            tile.setStoredInFileDataRange(offsets[k], byteCounts[k], true);
             // - we "tell" that all tiles already exist in the file;
             // note we can use index k, because buildGrid() method, called above for an empty map,
             //  provided the correct tiles order

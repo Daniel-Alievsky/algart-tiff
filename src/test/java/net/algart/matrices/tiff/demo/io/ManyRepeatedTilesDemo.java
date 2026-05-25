@@ -110,9 +110,8 @@ public class ManyRepeatedTilesDemo {
             final TiffTile first = tiffTiles.getFirst();
             for (TiffTile tile : map.tiles()) {
                 if (tile.linearIndex() > 0) {
-                    tile.setStoredInFileDataRange(
-                            first.getStoredInFileDataOffset(),
-                            first.getStoredInFileDataLength());
+                    tile.copyStoredInFileDataRange(first);
+                    //TODO!! use reference instead
                 }
             }
             t1 = System.nanoTime();

@@ -886,7 +886,7 @@ public final class TiffTile {
 
     public TiffTile setStoredInFileDataRange(
             long storedInFileDataOffset,
-            int storedInFileDataLength,
+            long storedInFileDataLength,
             boolean resetCapacity) {
         if (storedInFileDataOffset < 0) {
             throw new IllegalArgumentException("Negative storedInFileDataOffset = " + storedInFileDataOffset);
@@ -894,8 +894,12 @@ public final class TiffTile {
         if (storedInFileDataLength < 0) {
             throw new IllegalArgumentException("Negative storedInFileDataLength = " + storedInFileDataLength);
         }
+        if (storedInFileDataLength > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Too large storedInFileDataLength = " +
+                    storedInFileDataLength + " (>2^31-1)");
+        }
         this.storedInFileDataOffset = storedInFileDataOffset;
-        this.storedInFileDataLength = storedInFileDataLength;
+        this.storedInFileDataLength = (int) storedInFileDataLength;
         if (resetCapacity) {
             resetStoredInFileDataCapacity();
         }
