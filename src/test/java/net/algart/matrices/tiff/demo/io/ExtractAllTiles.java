@@ -38,7 +38,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
 
-public class TiffExtractAllTiles {
+public class ExtractAllTiles {
     private static final int MAX_IMAGE_DIM = 8000;
 
     public static void main(String[] args) throws IOException {
@@ -50,7 +50,7 @@ public class TiffExtractAllTiles {
         }
         if (args.length < startArgIndex + 3) {
             System.out.println("Usage:");
-            System.out.println("    " + TiffExtractAllTiles.class.getName() +
+            System.out.println("    " + ExtractAllTiles.class.getName() +
                     " some_tiff_file result_folder ifdIndex " +
                     "[x y width height [number_of_tests]");
             return;

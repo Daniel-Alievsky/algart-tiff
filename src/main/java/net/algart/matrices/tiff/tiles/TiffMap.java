@@ -489,7 +489,7 @@ public sealed class TiffMap permits TiffIOMap {
         // - but overflow here should be impossible due to the check in setDimensions
     }
 
-    public void setDimensions(int dimX, int dimY) {
+    public void setDimensions(long dimX, long dimY) {
         setDimensions(dimX, dimY, true);
     }
 
@@ -519,11 +519,21 @@ public sealed class TiffMap permits TiffIOMap {
      *
      * <p>Also note: negative arguments are allowed but have no effect (as if they would be zero).</p>
      *
-     * @param newMinimalDimX new minimal value for {@link #dimX() sizeX}.
-     * @param newMinimalDimY new minimal value for {@link #dimY() sizeY}.
+     * @param newMinimalDimX new minimal value for {@link #dimX() sizeX};
+     *                       must not be grater than <code>Integer.MAX_VALUE</code>.
+     * @param newMinimalDimY new minimal value for {@link #dimY() sizeY};
+     *                       must not be grater than <code>Integer.MAX_VALUE</code>.
      */
-    public void expandDimensions(int newMinimalDimX, int newMinimalDimY) {
-        if (needToExpandDimensions(newMinimalDimX, newMinimalDimY)) {
+    public void expandDimensions(long newMinimalDimX, long newMinimalDimY) {
+        if (newMinimalDimX > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Too large image new minimal x-dimension = " +
+                    newMinimalDimX + " (>2^31-1)");
+        }
+        if (newMinimalDimY > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Too large image new minimal y-dimension = " +
+                    newMinimalDimY + " (>2^31-1)");
+        }
+        if (needToExpandDimensions((int) newMinimalDimX, (int) newMinimalDimY)) {
             setDimensions(Math.max(dimX, newMinimalDimX), Math.max(dimY, newMinimalDimY));
         }
     }
@@ -953,7 +963,7 @@ public sealed class TiffMap permits TiffIOMap {
         return (int) size;
     }
 
-    private void setDimensions(int dimX, int dimY, boolean checkResizable) {
+    private void setDimensions(long dimX, long dimY, boolean checkResizable) {
         if (checkResizable && !resizable) {
             throw new IllegalArgumentException("Cannot change dimensions of a non-resizable tile map");
         }
@@ -963,17 +973,23 @@ public sealed class TiffMap permits TiffIOMap {
         if (dimY < 0) {
             throw new IllegalArgumentException("Negative y-dimension: " + dimY);
         }
-        if ((long) dimX * (long) dimY > Long.MAX_VALUE / totalAlignedBitsPerPixel) {
+        if (dimX > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Too large image x-dimension = " + dimX + " (>2^31-1)");
+        }
+        if (dimY > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Too large image y-dimension = " + dimY + " (>2^31-1)");
+        }
+        if (dimX * dimY > Long.MAX_VALUE / totalAlignedBitsPerPixel) {
             // - Very improbable! But we would like to be sure that 63-bit arithmetic
             // is enough to calculate the total size of the map in BYTES.
             throw new TooLargeArrayException("Extremely large image sizes " + dimX + "x" + dimY +
                     ", " + totalAlignedBitsPerPixel + " bits/pixel: total number of bits is greater than 2^63-1 (!)");
         }
-        final int gridCountX = (int) ((long) dimX + (long) tileSizeX - 1) / tileSizeX;
-        final int gridCountY = (int) ((long) dimY + (long) tileSizeY - 1) / tileSizeY;
+        final int gridCountX = (int) (dimX + (long) tileSizeX - 1) / tileSizeX;
+        final int gridCountY = (int) (dimY + (long) tileSizeY - 1) / tileSizeY;
         expandGrid(gridCountX, gridCountY, checkResizable);
-        this.dimX = dimX;
-        this.dimY = dimY;
+        this.dimX = (int) dimX;
+        this.dimY = (int) dimY;
     }
 
     private void expandGrid(int newMinimalGridCountX, int newMinimalGridCountY, boolean checkResizable) {

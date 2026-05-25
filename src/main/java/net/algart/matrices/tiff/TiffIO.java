@@ -816,8 +816,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     // - we should allow using usual int values for 32-bit tags to avoid a lot of obvious bugs
                     final int v0 = v[0];
                     if (v0 > 0xFFFF) {
-                        // - for example, if ImageWidth/ImageLength is stored as int:
-                        // see TiffIFD.USE_LONG_IMAGE_DIMENSIONS
+                        // - for example, TileWidth/TileLength are stored as int in TiffIFD.putTileSizes;
+                        // see also TiffIFD.USE_LONG_IMAGE_DIMENSIONS
                         if (writeSpecialTag(ifdStream, bigTiff, tag, v0)) {
                             return;
                         }

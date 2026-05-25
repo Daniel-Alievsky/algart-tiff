@@ -58,7 +58,7 @@ public class TiffTileIO {
                     ": loaded " + result + " bytes instead of " + data.length +
                     " (" + inputStream.get() + ")");
         }
-        tile.setStoredInFileDataRange(fileOffset, data.length, true);
+        tile.setStoredInFileDataRange(fileOffset, data.length);
         tile.setEncodedData(data, true);
         tile.markWholeTileAsSet();
     }

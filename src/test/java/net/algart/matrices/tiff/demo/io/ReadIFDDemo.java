@@ -32,7 +32,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class TiffReadIFDDemo {
+public class ReadIFDDemo {
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         boolean json = false;
@@ -42,7 +42,7 @@ public class TiffReadIFDDemo {
         }
         if (args.length < startArgIndex + 1) {
             System.out.println("Usage:");
-            System.out.printf("    %s [-json] source.tiff%n", TiffReadIFDDemo.class.getName());
+            System.out.printf("    %s [-json] source.tiff%n", ReadIFDDemo.class.getName());
             return;
         }
         final Path sourceFile = Paths.get(args[startArgIndex]);

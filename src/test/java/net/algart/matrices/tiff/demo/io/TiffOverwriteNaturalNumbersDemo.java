@@ -121,7 +121,7 @@ public class TiffOverwriteNaturalNumbersDemo {
         drawNumberOnImage(bufferedImage, value);
         final List<TiffTile> tiles = writeMap.updateBufferedImage(bufferedImage, x, y);
         if (WRITE_IMMEDIATELY) {
-            return writeMap.writeCompletedTiles(tiles);
+            return writeMap.flushCompletedTiles(tiles);
         } else {
             return -1;
         }

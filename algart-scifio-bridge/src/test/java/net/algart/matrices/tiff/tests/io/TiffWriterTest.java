@@ -296,10 +296,8 @@ public class TiffWriterTest {
                     if (!resizable) {
                         ifd.putImageDimensions(IMAGE_WIDTH, IMAGE_HEIGHT);
                     }
-                    if (longTags) {
-                        ifd.put(Tags.IMAGE_WIDTH, (long) IMAGE_WIDTH);
-                        ifd.put(Tags.IMAGE_LENGTH, (long) IMAGE_HEIGHT);
-                    }
+                    ifd.put(Tags.IMAGE_WIDTH, (long) IMAGE_WIDTH);
+                    ifd.put(Tags.IMAGE_LENGTH, (long) IMAGE_HEIGHT);
                     // ifd.put(TiffIFD.JPEG_TABLES, new byte[]{1, 2, 3, 4, 5});
                     // - some invalid field: must not affect non-JPEG formats
                     if (tiled) {

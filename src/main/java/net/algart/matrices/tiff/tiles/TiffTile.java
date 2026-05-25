@@ -102,6 +102,10 @@ public final class TiffTile {
         return index;
     }
 
+    public long linearIndex() {
+        return index.linearIndex();
+    }
+
     public boolean isPlanarSeparated() {
         return map.isPlanarSeparated();
     }
@@ -874,6 +878,10 @@ public final class TiffTile {
     public TiffTile clearStoredInFile() {
         storedInFileDataOffset = -1;
         return this;
+    }
+
+    public TiffTile setStoredInFileDataRange(long storedInFileDataOffset, int storedInFileDataLength) {
+        return setStoredInFileDataRange(storedInFileDataOffset, storedInFileDataLength, true);
     }
 
     public TiffTile setStoredInFileDataRange(

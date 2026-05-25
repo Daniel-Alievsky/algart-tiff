@@ -468,11 +468,11 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
         return writeTiles(tiles, tile -> true, true);
     }
 
-    public int writeCompletedTiles(Collection<TiffTile> tiles) throws IOException {
-        return writeCompletedTiles(tiles, true);
+    public int flushCompletedTiles(Collection<TiffTile> tiles) throws IOException {
+        return flushCompletedTiles(tiles, true);
     }
 
-    public int writeCompletedTiles(Collection<TiffTile> tiles, boolean freeAndFreezeAfterWriting) throws IOException {
+    public int flushCompletedTiles(Collection<TiffTile> tiles, boolean freeAndFreezeAfterWriting) throws IOException {
         return writeTiles(tiles, TiffTile::isCompleted, freeAndFreezeAfterWriting);
     }
 

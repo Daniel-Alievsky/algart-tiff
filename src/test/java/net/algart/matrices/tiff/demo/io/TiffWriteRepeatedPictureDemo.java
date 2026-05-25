@@ -53,7 +53,7 @@ public class TiffWriteRepeatedPictureDemo {
         }
         if (args.length < startArgIndex + 4) {
             System.out.println("Usage:");
-            System.out.printf("    %s image-to-repeat.jpg/png/bmp target.tiff " +
+            System.out.printf("    %s [-append] [-bigTiff] image-to-repeat.jpg/png/bmp target.tiff " +
                             "x-repetitions y-repetitions [compression]%n",
                     TiffWriteRepeatedPictureDemo.class.getName());
             return;
@@ -88,7 +88,7 @@ public class TiffWriteRepeatedPictureDemo {
                 for (int x = 0; x < xCount; x++) {
                     final List<TiffTile> updated = map.updateChannels(
                             pattern, x * (int) patternSizeX, y * (int) patternSizeY);
-                    final int written = map.writeCompletedTiles(updated);
+                    final int written = map.flushCompletedTiles(updated);
                     // - if you comment this operator, OutOfMemoryError will be possible for a very large TIFF
                     System.out.printf("\rBlock (%d,%d) from (%d,%d) ready (%d written, %s memory used)        \r",
                             x + 1, y + 1, xCount, yCount, written, memory());

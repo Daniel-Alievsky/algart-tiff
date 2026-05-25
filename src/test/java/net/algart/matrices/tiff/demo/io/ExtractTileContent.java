@@ -36,7 +36,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class TiffExtractTileContent {
+public class ExtractTileContent {
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
         boolean unpack = false;
@@ -46,7 +46,7 @@ public class TiffExtractTileContent {
         }
         if (args.length < startArgIndex + 5) {
             System.out.println("Usage:");
-            System.out.println("    " + TiffExtractTileContent.class.getName() +
+            System.out.println("    " + ExtractTileContent.class.getName() +
                     " [-unpack] some_tiff_file.tiff tile.jpg/png/dat ifdIndex tileCol tileRow [separatedPlaneIndex]");
             System.out.println("Note: if you do not use -unpack key, you should choose file extension " +
                     "corresponding to IFD compression format.");

@@ -109,7 +109,7 @@ public class TiffOverwritePictureDemo {
         System.out.printf("  Overwriting %d..%dx%d..%d in %s...%n", x, x + sizeX - 1, y, y + sizeY - 1, writeMap);
         writeMap.preloadAndStore(x, y, sizeX, sizeY, false);
         List<TiffTile> tiles = writeMap.updateChannels(imageToDraw, x, y);
-        int n = writeMap.writeCompletedTiles(tiles);
+        int n = writeMap.flushCompletedTiles(tiles);
         System.out.printf("  Written %d completed tiles, file length %d%n", n, writeMap.fileLength());
     }
 

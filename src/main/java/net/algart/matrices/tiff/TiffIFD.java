@@ -2336,6 +2336,7 @@ public final class TiffIFD {
         }
         put(Tags.TILE_WIDTH, tileSizeX);
         put(Tags.TILE_LENGTH, tileSizeY);
+        // - Note: they will be stored as 32-bit LONG in TiffIO when they are >0xFFFF
         return this;
     }
 
@@ -2475,8 +2476,7 @@ public final class TiffIFD {
             map.put(Tags.IMAGE_WIDTH, dimX);
             map.put(Tags.IMAGE_LENGTH, dimY);
         } else {
-            // - but int values are also possible: they will be stored as 32-bit LONG
-            // in TiffIO.writeIFDValueAtCurrentOffsets when they are >0xFFFF
+            // - but int values are also possible: they will be stored as 32-bit LONG in TiffIO when they are >0xFFFF
             map.put(Tags.IMAGE_WIDTH, (int) dimX);
             map.put(Tags.IMAGE_LENGTH, (int) dimY);
         }

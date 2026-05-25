@@ -31,7 +31,7 @@ import io.scif.formats.tiff.IFDList;
 import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.awt.AWTImages;
 import net.algart.matrices.tiff.compatibility.TiffParser;
-import net.algart.matrices.tiff.demo.io.TiffExtractTileContent;
+import net.algart.matrices.tiff.demo.io.ExtractTileContent;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -49,7 +49,7 @@ public class TiffParserEqualStripsTest {
         }
         if (args.length < startArgIndex + 4) {
             System.out.println("Usage:");
-            System.out.println("    " + TiffExtractTileContent.class.getName() +
+            System.out.println("    " + ExtractTileContent.class.getName() +
                     " [-equalStrips] tiff_file.tiff result.jpg/png ifdIndex tileCol tileRow");
             System.out.println("Note: the results will be correct only for 1st tile or " +
                     "if the encoded tiles have identical length.");
