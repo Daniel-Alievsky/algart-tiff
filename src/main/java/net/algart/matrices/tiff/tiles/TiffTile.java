@@ -63,6 +63,7 @@ public final class TiffTile {
     private long storedInFileDataOffset = -1;
     private int storedInFileDataLength = 0;
     private int storedInFileDataCapacity = 0;
+    private int referenceToOriginalOfDuplicate = -1;
     private int estimatedNumberOfPixels = 0;
     private Queue<IRectangularArea> unsetArea = null;
     // - null value marks that all is empty;
@@ -102,7 +103,7 @@ public final class TiffTile {
         return index;
     }
 
-    public long linearIndex() {
+    public int linearIndex() {
         return index.linearIndex();
     }
 
@@ -924,11 +925,52 @@ public final class TiffTile {
         return this;
     }
 
+
+    public OptionalInt optReferenceToOriginalOfDuplicate() {
+        return referenceToOriginalOfDuplicate < 0 ?
+                OptionalInt.empty() :
+                OptionalInt.of(referenceToOriginalOfDuplicate);
+    }
+
+    public int getReferenceToOriginalOfDuplicate() {
+        if (referenceToOriginalOfDuplicate < 0) {
+            throw new IllegalStateException("The TIFF tile is not a duplicate: " + this);
+        }
+        return referenceToOriginalOfDuplicate;
+    }
+
+    public TiffTile setReferenceToOriginalOfDuplicate(int referenceToOriginalOfDuplicate) {
+        if (referenceToOriginalOfDuplicate < 0) {
+            throw new IllegalArgumentException("Negative referenceToDuplicatedData = " + referenceToOriginalOfDuplicate);
+        }
+        this.referenceToOriginalOfDuplicate = referenceToOriginalOfDuplicate;
+        return this;
+    }
+
+    public boolean isDuplicate() {
+        return referenceToOriginalOfDuplicate >= 0;
+    }
+
+    public TiffTile clearDuplicate() {
+        referenceToOriginalOfDuplicate = -1;
+        return this;
+    }
+
     public TiffTile copyStoredInFileDataRange(TiffTile other) {
         Objects.requireNonNull(other, "Null other tile");
         this.storedInFileDataOffset = other.storedInFileDataOffset;
         this.storedInFileDataLength = other.storedInFileDataLength;
         this.storedInFileDataCapacity = other.storedInFileDataCapacity;
+        return this;
+    }
+
+    public TiffTile markAsDuplicateOf(TiffTile other) {
+        Objects.requireNonNull(other, "Null other tile");
+        if (!isEmpty()) {
+            throw new IllegalStateException("Cannot mark a tile as a duplicate when it contains data: " + this);
+        }
+        setReferenceToOriginalOfDuplicate(other.linearIndex());
+        copyStoredInFileDataRange(other);
         return this;
     }
 

@@ -612,6 +612,18 @@ public sealed class TiffMap permits TiffIOMap {
         // - overflow impossible: setDimensions checks that gridCountX * gridCountY * numberOfSeparatedPlanes < 2^31
     }
 
+    public TiffTileIndex fromLinearIndex(int linearIndex) {
+        if (linearIndex < 0 || linearIndex >= numberOfGridTiles) {
+            throw new IndexOutOfBoundsException("Linear index " + linearIndex +
+                    " is out of range 0.." + (numberOfGridTiles - 1));
+        }
+        int b = linearIndex / gridCountX;
+        int x = linearIndex - b * gridCountX;
+        int separatedPlaneIndex = b / gridCountY;
+        int y = b - separatedPlaneIndex * gridCountY;
+        return new TiffTileIndex(this, x, y, separatedPlaneIndex);
+    }
+
     public TiffTileIndex index(int x, int y) {
         return new TiffTileIndex(this, x, y, 0);
     }

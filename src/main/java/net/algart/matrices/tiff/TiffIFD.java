@@ -344,6 +344,7 @@ public final class TiffIFD {
 
     private volatile long[] cachedTileOrStripByteCounts = null;
     private volatile long[] cachedTileOrStripOffsets = null;
+    private volatile int[] cachedIndexesOfFirstSameOffset = null;
     private volatile TagDescription description = null;
 
     private TiffIFD(Map<Integer, Object> ifdEntries) {
@@ -1365,6 +1366,16 @@ public final class TiffIFD {
             throw new TiffException("StripByteCounts/TileByteCounts length (" + counts.length +
                     ") does not match expected number of strips/tiles (" + numberOfTiles + ")");
         }
+        for (int i = 0; i < counts.length; i++) {
+            if (counts[i] < 0) {
+                throw new TiffException("Invalid IFD: negative byte count #" + i + "=" + counts[i] + " in " +
+                        (tiled ? "TileByteCounts" : "StripByteCounts") + " array");
+            }
+            if (counts[i] > Integer.MAX_VALUE) {
+                throw new TiffException("Invalid IFD: too large tile/strip #" + i + " contains " +
+                        counts[i] + " bytes > 2^31-1");
+            }
+        }
         return counts;
     }
 
@@ -1398,7 +1409,7 @@ public final class TiffIFD {
                             (hasTileInformation() ? "TileByteCounts" : "StripByteCounts") + " array");
         }
         if (result > Integer.MAX_VALUE) {
-            throw new TiffException("Too large tile/strip #" + index + ": " + result + " bytes > 2^31-1");
+            throw new TiffException("Too large tile/strip #" + index + " contains " + result + " bytes > 2^31-1");
         }
         return (int) result;
     }
@@ -1419,6 +1430,13 @@ public final class TiffIFD {
             throw new TiffException("StripByteCounts/TileByteCounts length (" + offsets.length +
                     ") does not match expected number of strips/tiles (" + numberOfTiles + ")");
         }
+        for (int i = 0; i < offsets.length; i++) {
+            if (offsets[i] < 0) {
+                throw new TiffException("Invalid IFD: negative offset #" + i + "=" + offsets[i] + " in " +
+                        (tiled ? "TileOffsets" : "StripOffsets") + " array");
+            }
+        }
+
         // Note: old getStripOffsets method also performed correction:
         // if (offsets[i] < 0) {
         //     offsets[i] += 0x100000000L;
@@ -1449,11 +1467,33 @@ public final class TiffIFD {
         }
         final long result = offsets[index];
         if (result < 0) {
-            throw new TiffException(
-                    "Negative value " + result + " in " +
-                            (hasTileInformation() ? "TileOffsets" : "StripOffsets") + " array");
+            throw new TiffException("Negative value " + result + " in " +
+                    (hasTileInformation() ? "TileOffsets" : "StripOffsets") + " array");
         }
         return result;
+    }
+
+    public int[] cachedIndexesOfFirstSameOffset() throws TiffException {
+        int[] result = this.cachedIndexesOfFirstSameOffset;
+        if (result == null) {
+            final long[] tileOrStripOffsets = cachedTileOrStripOffsets();
+            this.cachedIndexesOfFirstSameOffset = result = findIndexesOfFirstSameOffset(tileOrStripOffsets);
+        }
+        return result;
+    }
+
+    public int cachedIndexOfFirstSameOffset(int index) throws TiffException {
+        int[] indexesOfFirst = cachedIndexesOfFirstSameOffset();
+        if (index < 0) {
+            throw new IllegalArgumentException("Negative index = " + index);
+        }
+        if (index >= indexesOfFirst.length) {
+            throw new TiffException((hasTileInformation() ?
+                    "Tile index is too big for TileOffsets" :
+                    "Strip index is too big for StripOffsets") +
+                    "array: it contains only " + indexesOfFirst.length + " elements");
+        }
+        return indexesOfFirst[index];
     }
 
     public Optional<String> optDescription() {
@@ -2726,6 +2766,18 @@ public final class TiffIFD {
         return sb.toString();
     }
 
+    public static int[] findIndexesOfFirstSameOffset(long[] tileOrStripOffsets) {
+        Objects.requireNonNull(tileOrStripOffsets, "Null tileOrStripOffsets");
+        final HashMap<Long, Integer> firstIndexes = new HashMap<>();
+        final int[] result = new int[tileOrStripOffsets.length];
+        for (int k = 0; k < result.length; k++) {
+            final long offset = tileOrStripOffsets[k];
+            Integer previous = firstIndexes.putIfAbsent(offset, k);
+            result[k] = previous == null ? -1 : previous;
+        }
+        return result;
+    }
+
     public static int sizeOfIFDTableExcludingEntries(boolean bigTiff) {
         return (bigTiff ? 8 : 2) +
                 // - includes starting number of entries (2 or 8 bytes)
@@ -2948,6 +3000,7 @@ public final class TiffIFD {
     private void clearCache() {
         cachedTileOrStripByteCounts = null;
         cachedTileOrStripOffsets = null;
+        cachedIndexesOfFirstSameOffset = null;
     }
 
     private void clearSpecificCache(int key) {

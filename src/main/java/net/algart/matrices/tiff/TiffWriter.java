@@ -1364,12 +1364,17 @@ public non-sealed class TiffWriter extends TiffIO {
         final TiffWriteMap map = new TiffWriteMap(this, ifd, false, true);
         final long[] offsets = ifd.cachedTileOrStripOffsets();
         final long[] byteCounts = ifd.cachedTileOrStripByteCounts();
+        final int[] indexesOfFirst = ifd.cachedIndexesOfFirstSameOffset();
         assert offsets != null;
         assert byteCounts != null;
+        assert indexesOfFirst != null;
         map.buildTileGrid();
-        if (offsets.length < map.numberOfTiles() || byteCounts.length < map.numberOfTiles()) {
+        final int numberOfTiles = map.numberOfTiles();
+        if (offsets.length < numberOfTiles || byteCounts.length < numberOfTiles ||
+                indexesOfFirst.length < numberOfTiles) {
             throw new ConcurrentModificationException("Strange length of tile offsets " + offsets.length +
-                    " or byte counts " + byteCounts.length);
+                    ", or byte counts " + byteCounts.length +
+                    ", or indexes of first same offset " + indexesOfFirst.length);
             // - should not occur: it is checked in getTileOrStripOffsets/getTileOrStripByteCounts methods
             // (the only possible way is modification from parallel thread)
         }
@@ -1381,6 +1386,9 @@ public non-sealed class TiffWriter extends TiffIO {
             // - we "tell" that all tiles already exist in the file;
             // note we can use index k, because buildGrid() method, called above for an empty map,
             //  provided the correct tiles order
+            if (indexesOfFirst[k] >= 0) {
+                tile.setReferenceToOriginalOfDuplicate(indexesOfFirst[k]);
+            }
             tile.markWholeTileAsSet();
             // - we "tell" that each tile has no unset areas
             k++;

@@ -550,9 +550,19 @@ public final class TiffCopier {
             // - important to copy index: targetTile.index() refer to the writeIFD instead of some source IFD
             long t1Tile = TiffIO.debugTime(), t2Tile;
             if (this.actuallyDirectCopy) {
-                final TiffTile sourceTile = readMap.readEncodedTile(readIndex);
+                final TiffTile sourceTile = readMap.readEncodedTile(readIndex, false);
                 t2Tile = TiffIO.debugTime();
-                targetTile.copyData(sourceTile, false);
+                if (sourceTile.isDuplicate()) {
+                    TiffTileIndex reference = writeMap.fromLinearIndex(sourceTile.getReferenceToOriginalOfDuplicate());
+                    TiffTile original = writeMap.get(reference);
+                    if (original == null) {
+                        throw new AssertionError("Original of " + sourceTile.index() +
+                                " has not been written yet!");
+                    }
+                    targetTile.markAsDuplicateOf(original);
+                } else {
+                    targetTile.copyData(sourceTile, false);
+                }
             } else {
                 final TiffTile sourceTile = readMap.readCachedTile(readIndex);
                 t2Tile = TiffIO.debugTime();

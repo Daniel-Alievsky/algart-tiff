@@ -1403,6 +1403,10 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     public TiffTile readEncodedTile(TiffTileIndex tileIndex) throws IOException {
+        return readEncodedTile(tileIndex, true);
+    }
+
+    public TiffTile readEncodedTile(TiffTileIndex tileIndex, boolean resolveDuplicates) throws IOException {
         Objects.requireNonNull(tileIndex, "Null tileIndex");
         long t1 = debugTime();
         final TiffIFD ifd = tileIndex.ifd();
@@ -1410,6 +1414,7 @@ public non-sealed class TiffReader extends TiffIO {
         // - also checks that the tile index is not out of image bounds
         long offset;
         int byteCount;
+        int referenceToSource;
         final TiffTile existingTile = tileIndex.existingTile();
         final boolean alreadyStored = existingTile != null && existingTile.isStoredInFile();
         if (alreadyStored) {
@@ -1417,12 +1422,14 @@ public non-sealed class TiffReader extends TiffIO {
             // without this, we'll read the previously written tile instead of the actual data!
             offset = existingTile.getStoredInFileDataOffset();
             byteCount = existingTile.getStoredInFileDataLength();
+            referenceToSource = existingTile.optReferenceToOriginalOfDuplicate().orElse(-1);
             assert offset >= 0 && byteCount >= 0;
         } else {
             offset = ifd.cachedTileOrStripOffset(index);
             assert offset >= 0 : "offset " + offset + " was not checked in TiffIFD";
             byteCount = cachedByteCountWithCompatibilityTrick(ifd, index);
             byteCount = correctZeroByteCount(tileIndex, byteCount, offset);
+            referenceToSource = ifd.cachedIndexOfFirstSameOffset(index);
         }
 
         final TiffTile result = new TiffTile(tileIndex);
@@ -1446,9 +1453,14 @@ public non-sealed class TiffReader extends TiffIO {
                         tileIndex + ")");
                 // - note: old SCIFIO code allowed such offsets and returned zero-filled tile
             }
-            TiffTileIO.readAt(result, stream, offset, byteCount);
-            if (alreadyStored) {
-                result.expandStoredInFileDataCapacity(existingTile.getStoredInFileDataCapacity());
+            if (!resolveDuplicates && referenceToSource != -1) {
+                result.freeData();
+                result.setReferenceToOriginalOfDuplicate(referenceToSource);
+            } else {
+                TiffTileIO.readAt(result, stream, offset, byteCount);
+                if (alreadyStored) {
+                    result.expandStoredInFileDataCapacity(existingTile.getStoredInFileDataCapacity());
+                }
             }
         }
         long t2 = debugTime();

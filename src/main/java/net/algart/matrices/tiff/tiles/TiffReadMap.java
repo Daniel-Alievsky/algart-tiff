@@ -153,6 +153,10 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
         return reader.readEncodedTile(tileIndex);
     }
 
+    public TiffTile readEncodedTile(TiffTileIndex tileIndex, boolean resolveDuplicates) throws IOException {
+        return reader.readEncodedTile(tileIndex, resolveDuplicates);
+    }
+
     @Override
     public int hashCode() {
         return super.hashCode() ^ 'r';
