@@ -24,19 +24,18 @@
 
 package net.algart.matrices.tiff.demo.io;
 
-import net.algart.arrays.PackedBitArrays;
+import net.algart.arrays.Matrix;
+import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffSampleType;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
 import java.awt.*;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 import java.util.Locale;
 
 public class ManyRepeatedTilesDemo {
@@ -95,41 +94,29 @@ public class ManyRepeatedTilesDemo {
                     (long) xCount * (long) yCount, tileSizeX, tileSizeY);
 
             long t1 = System.nanoTime();
-            Object samples = makeSamples(numberOfChannels, sampleType, tileSizeX, tileSizeY, colorValue, gradient);
-            List<TiffTile> tiffTiles = map.updateJavaArray(samples, 0, 0, tileSizeX, tileSizeY);
-            // - filling the 1st tile
-            if (tiffTiles.size() != 1) {
-                throw new AssertionError("Invalid number of tiles: " + tiffTiles.size());
+            if (gradient) {
+                map.writeBlankRepeatingTile(m ->
+                        makeSamples(m, sampleType, colorValue, true));
+            } else {
+                map.writeBlank(colorValue);
             }
             long t2 = System.nanoTime();
-            map.flushCompletedTiles(tiffTiles);
-            long t3 = System.nanoTime();
-            System.out.printf(Locale.US, "First tile prepared in %.3f ms and written in %.3f ms%n",
-                    (t2 - t1) * 1e-6, (t3 - t2) * 1e-6);
-            // - writing 1st tile: now it has the offset in the file
-            final TiffTile first = tiffTiles.getFirst();
-            for (TiffTile tile : map.tiles()) {
-                if (tile.linearIndex() > 0) {
-                    tile.markAsDuplicateOf(first);
-                }
-            }
-            t1 = System.nanoTime();
-            map.completeWriting();
-            t2 = System.nanoTime();
-            System.out.printf(Locale.US, "All other tiles (duplicates) written in %.3f ms%n",
+            System.out.printf(Locale.US, "All tiles (duplicates) written in %.3f ms%n",
                     (t2 - t1) * 1e-6);
         }
         System.out.println("Done");
     }
 
-    private static Object makeSamples(
-            int numberOfChannels,
+    private static void makeSamples(
+            Matrix<UpdatablePArray> matrix,
             TiffSampleType sampleType,
-            int dimX,
-            int dimY,
             Color color,
             boolean gradient) {
+        int numberOfChannels = matrix.dim32(2);
+        int dimX = matrix.dimX32();
+        int dimY = matrix.dimY32();
         final int matrixSize = dimX * dimY;
+        final Object array;
         switch (sampleType) {
             case BIT -> {
                 boolean[] channels = new boolean[matrixSize * numberOfChannels];
@@ -140,7 +127,7 @@ public class ManyRepeatedTilesDemo {
                         }
                     }
                 }
-                return PackedBitArrays.packBits(channels, 0, channels.length);
+                matrix.array().setData(0, channels);
             }
             case UINT8, INT8 -> {
                 byte[] channels = new byte[matrixSize * numberOfChannels];
@@ -151,7 +138,7 @@ public class ManyRepeatedTilesDemo {
                         }
                     }
                 }
-                return channels;
+                matrix.array().setData(0, channels);
             }
             case UINT16, INT16 -> {
                 short[] channels = new short[matrixSize * numberOfChannels];
@@ -162,7 +149,7 @@ public class ManyRepeatedTilesDemo {
                         }
                     }
                 }
-                return channels;
+                matrix.array().setData(0, channels);
             }
             case INT32, UINT32 -> {
                 int[] channels = new int[matrixSize * numberOfChannels];
@@ -173,7 +160,7 @@ public class ManyRepeatedTilesDemo {
                         }
                     }
                 }
-                return channels;
+                matrix.array().setData(0, channels);
             }
             case FLOAT -> {
                 float[] channels = new float[matrixSize * numberOfChannels];
@@ -184,7 +171,7 @@ public class ManyRepeatedTilesDemo {
                         }
                     }
                 }
-                return channels;
+                matrix.array().setData(0, channels);
             }
             case DOUBLE -> {
                 double[] channels = new double[matrixSize * numberOfChannels];
@@ -195,10 +182,10 @@ public class ManyRepeatedTilesDemo {
                         }
                     }
                 }
-                return channels;
+                matrix.array().setData(0, channels);
             }
+            default -> throw new UnsupportedOperationException("Unsupported sampleType = " + sampleType);
         }
-        throw new UnsupportedOperationException("Unsupported sampleType = " + sampleType);
     }
 
     private static double value(int channel, long x, long y, long dimX, long dimY, Color color, boolean gradient) {

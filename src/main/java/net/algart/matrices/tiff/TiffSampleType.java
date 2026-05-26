@@ -31,33 +31,41 @@ import java.util.Objects;
 import java.util.OptionalInt;
 
 public enum TiffSampleType {
-    BIT(0, "bit", 1, boolean.class, false) {
+    BIT(0, "bit", 1, boolean.class, false, 1.0) {
         @Override
         public Object javaArray(byte[] bytes, ByteOrder byteOrder) {
             return PackedBitArraysPer8.toLongArray(bytes);
         }
     },
-    INT8(0, "int8", 8, byte.class, true),
-    UINT8(1, "uint8", 8, byte.class, false),
-    INT16(2, "int16", 16, short.class, true),
-    UINT16(3, "uint16", 16, short.class, false),
-    INT32(4, "int32", 32, int.class, true),
-    UINT32(5, "uint32", 32, int.class, false),
-    FLOAT(6, "float", 32, float.class, true),
-    DOUBLE(7, "double", 64, double.class, true);
+    INT8(0, "int8", 8, byte.class, true, 127),
+    UINT8(1, "uint8", 8, byte.class, false, 255),
+    INT16(2, "int16", 16, short.class, true, 0x7FFF),
+    UINT16(3, "uint16", 16, short.class, false, 0xFFFF),
+    INT32(4, "int32", 32, int.class, true, 0x7FFFFFFFL),
+    UINT32(5, "uint32", 32, int.class, false, 0xFFFFFFFFL),
+    FLOAT(6, "float", 32, float.class, true, 1.0),
+    DOUBLE(7, "double", 64, double.class, true, 1.0);
 
     private final int code;
     private final String prettyName;
     private final int bitsPerSample;
     private final Class<?> elementType;
     private final boolean signed;
+    private final double maxValue;
 
-    TiffSampleType(int code, String prettyName, int bitsPerSample, Class<?> elementType, boolean signed) {
+    TiffSampleType(
+            int code,
+            String prettyName,
+            int bitsPerSample,
+            Class<?> elementType,
+            boolean signed,
+            double maxValue) {
         this.code = code;
         this.prettyName = prettyName;
         this.bitsPerSample = bitsPerSample;
         this.elementType = elementType;
         this.signed = signed;
+        this.maxValue = maxValue;
     }
 
     /**
@@ -104,6 +112,10 @@ public enum TiffSampleType {
 
     public boolean isFloatingPoint() {
         return this == FLOAT || this == DOUBLE;
+    }
+
+    public double maxValue() {
+        return maxValue;
     }
 
     public Object javaArray(byte[] bytes, ByteOrder byteOrder) {

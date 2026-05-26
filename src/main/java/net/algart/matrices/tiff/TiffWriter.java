@@ -66,7 +66,7 @@ public non-sealed class TiffWriter extends TiffIO {
     public static final long MAXIMAL_ALLOWED_32BIT_IFD_OFFSET = 4_000_000_000L;
 
     private static final boolean AUTO_INTERLEAVE_SOURCE = true;
-    // - Should be true. The alternative mode (false), where the source data may already be interleaved,
+    // - Must be true. The alternative mode (false), where the source data may already be interleaved,
     // was implemented in the past for compatibility with TiffSaver class.
     // It is no longer supported since the version 1.4.0, because this makes the behavior
     // of TiffWriter nonpredictable without analyzing this mode; but it still can be enabled by this flag.

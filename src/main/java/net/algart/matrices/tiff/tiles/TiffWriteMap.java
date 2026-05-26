@@ -31,14 +31,17 @@ import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.tags.Tags;
 
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.*;
+import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
     private static final boolean AUTO_INTERLEAVE_SOURCE = true;
-    // - See TiffWriter.AUTO_INTERLEAVE_SOURCE.
+    // - Must be true. See TiffWriter.AUTO_INTERLEAVE_SOURCE.
     // IF YOU CHANGE IT, YOU MUST CORRECT ALSO TiffWriter.AUTO_INTERLEAVE_SOURCE.
     private static final boolean IGNORE_WRITING_OUTSIDE_MAP = true;
     // - Should be true. The false value simulates the early versions, but this is inconvenient for using.
@@ -380,6 +383,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
     public List<TiffTile> updateMatrix(Matrix<? extends PArray> matrix, int fromX, int fromY) {
         Objects.requireNonNull(matrix, "Null matrix");
         final boolean sourceInterleaved = !isPlanarSeparated() && !AUTO_INTERLEAVE_SOURCE;
+        // - always false in the standard implementation
         final Class<?> elementType = matrix.elementType();
         if (elementType != elementType()) {
             throw new IllegalArgumentException("Invalid element type of the matrix: \"" + elementType +
@@ -549,6 +553,38 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
     public void writeBufferedImage(BufferedImage bufferedImage) throws IOException {
         Objects.requireNonNull(bufferedImage, "Null bufferedImage");
         writeChannels(ImageToMatrix.toChannels(bufferedImage));
+    }
+
+    public void writeBlank(Color fillColor) throws IOException {
+        Objects.requireNonNull(fillColor, "Null fillColor");
+        writeBlank(rgbComponents(fillColor, sampleType().maxValue()));
+    }
+
+    public void writeBlank(double[] filler) throws IOException {
+        Objects.requireNonNull(filler, "Null filler");
+        writeBlankRepeatingTile(m -> fillByColor(m, filler));
+    }
+
+    public void writeBlankRepeatingTile(Consumer<Matrix<UpdatablePArray>> tileFiller) throws IOException {
+        Objects.requireNonNull(tileFiller, "Null tileFiller");
+        buildTileGrid();
+        // - just in case: should be already called in TiffWriter.newMap
+        final Matrix<UpdatablePArray> matrix = Matrix.newMatrix(
+                elementType(), tileSizeX(), tileSizeY(), numberOfChannels());
+        tileFiller.accept(matrix);
+        List<TiffTile> tiffTiles = updateMatrix(matrix, 0, 0);
+        if (tiffTiles.size() != 1) {
+            throw new AssertionError("Invalid tile count after updating 1 tile: " + tiffTiles.size());
+        }
+        flushCompletedTiles(tiffTiles);
+        // - writing 1st tile: now it has the offset in the file
+        final TiffTile first = tiffTiles.getFirst();
+        for (TiffTile tile : tiles()) {
+            if (tile.linearIndex() > 0) {
+                tile.markAsDuplicateOf(first);
+            }
+        }
+        completeWriting();
     }
 
     public void writeTile(TiffTile tile, boolean freeAndFreezeAfterWriting) throws IOException {
@@ -726,6 +762,39 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
         if (sizeX * sizeY > arrayBits || sizeX * sizeY * (long) bitsPerPixel > arrayBits) {
             throw new IllegalArgumentException("Requested area " + sizeX + "x" + sizeY +
                     " is too large for array of " + array.length + " bytes, " + bitsPerPixel + " per pixel");
+        }
+    }
+
+    private static void fillByColor(Matrix<UpdatablePArray> matrix, double[] values) {
+        final List<Matrix<UpdatablePArray>> layers = matrix.asLayers();
+        for (int i = 0; i < layers.size(); i++) {
+            final Matrix<UpdatablePArray> layer = layers.get(i);
+            if (i < values.length) {
+                if (layer.isFloatingPoint()) {
+                    layer.array().fill(values[i]);
+                } else {
+                    layer.array().fill((long) values[i]);
+                    // - override standard AlgART behavior: using long instead of (int) cast (important for 0xFFFFFFFF)
+                }
+            }
+        }
+    }
+
+    private double[] rgbComponents(Color fillColor, double scale) {
+        float[] components = fillColor.getRGBComponents(null);
+        final double[] filler = new double[components.length];
+        for  (int i = 0; i < components.length; i++) {
+            filler[i] = components[i] * scale;
+        }
+        return numberOfChannels() == 1 ? new double[]{intensity(filler[0], filler[1], filler[2])} : filler;
+    }
+
+    private static double intensity(double r, double g, double b) {
+        if (r == g && r == b) {
+            // the formula below may lead to little error here
+            return r;
+        } else {
+            return 0.299 * r + 0.587 * g + 0.114 * b;
         }
     }
 }
