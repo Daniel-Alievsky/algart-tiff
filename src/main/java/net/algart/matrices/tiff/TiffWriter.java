@@ -567,7 +567,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @throws IOException in the case of any I/O errors.
      */
-    public final void openExisting() throws IOException {
+    public void openExisting() throws IOException {
         open(false);
     }
 
@@ -586,7 +586,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @throws IOException in the case of any I/O errors.
      */
-    public final void openForAppend() throws IOException {
+    public void openForAppend() throws IOException {
         open(true);
     }
 
@@ -597,7 +597,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param createIfNotExists whether you need to create a new TIFF file when there is no existing file.
      * @throws IOException in the case of any I/O errors.
      */
-    public final void open(boolean createIfNotExists) throws IOException {
+    public void open(boolean createIfNotExists) throws IOException {
         synchronized (fileLock()) {
             resetCompanionReader();
             if (!stream.exists() || stream.length() == 0L) {
@@ -641,7 +641,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @throws IOException in the case of any I/O errors.
      */
-    public final void create(boolean appendToExistingFile) throws IOException {
+    public void create(boolean appendToExistingFile) throws IOException {
         if (appendToExistingFile) {
             openForAppend();
         } else {
@@ -656,7 +656,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @throws IOException in the case of any I/O errors.
      */
-    public final void create() throws IOException {
+    public void create() throws IOException {
         synchronized (fileLock()) {
             resetCompanionReader();
             allUsedIFDOffsets.clear();

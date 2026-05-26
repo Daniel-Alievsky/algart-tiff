@@ -543,7 +543,7 @@ public non-sealed class TiffReader extends TiffIO {
      * method after all tiles have been read.
      * This is just the default value of <code>unusualPrecisions</code>
      * argument of the more verbose method
-     * {@link #readSampleBytes(TiffIOMap, int, int, int, int, UnusualPrecisions, boolean, TiffIOMap.TileSupplier)}.
+     * {@link TiffIOMap#readSampleBytes(int, int, int, int, UnusualPrecisions, boolean, TiffIOMap.TileSupplier)}.
      * </p>
      *
      * <p>Note that the decoded data in {@link TiffTile} in case of unusual precisions is not unpacked
@@ -1599,7 +1599,7 @@ public non-sealed class TiffReader extends TiffIO {
      * bytes: 1..7 bits are transformed to 8 bits/sample, 9..15 to 16 bits/sample, 17..23 to 24 bits/sample etc.
      * Thus, this method <b>does not unpack 3-byte samples</b> (to 4-byte) and
      * <b>does not unpack 16- or 24-bit</b> floating-point formats. These cases
-     * are processed after reading all tiles inside {@link #readSampleBytes}
+     * are processed after reading all tiles inside {@link TiffIOMap#readSampleBytes}
      * method, if {@link #getUnusualPrecisions()} mode is {@link UnusualPrecisions#UNPACK},
      * or may be performed by external
      * code with help of {@link TiffUnusualPrecisions#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)}
@@ -1719,70 +1719,6 @@ public non-sealed class TiffReader extends TiffIO {
         return map(ifdIndex).readSampleBytes();
     }
 
-    public byte[] readSampleBytes(
-            TiffIOMap<?> map,
-            int fromX,
-            int fromY,
-            int sizeX,
-            int sizeY,
-            UnusualPrecisions unusualPrecisions,
-            boolean storeTilesInMap,
-            TiffIOMap.TileSupplier tileSupplier)
-            throws IOException {
-        // Note: this method is implemented here, not in TiffIOMap, to provide additional logging information
-        Objects.requireNonNull(map, "Null TIFF map");
-        Objects.requireNonNull(unusualPrecisions, "Null unusualPrecisions");
-        Objects.requireNonNull(tileSupplier, "Null tileSupplier");
-        long t1 = debugTime();
-        resetTiming();
-        TiffMap.checkRequestedArea(fromX, fromY, sizeX, sizeY);
-        // - note: we allow this area to be outside the image
-
-        byte[] samples = map.loadSampleBytes(
-                fromX, fromY, sizeX, sizeY, unusualPrecisions, storeTilesInMap, tileSupplier);
-        final int sizeInBytes = samples.length;
-        final long sizeInPixels = (long) sizeX * (long) sizeY;
-        // - can be >2^31 for bits
-
-        long t2 = debugTime();
-        // Deprecated since 1.4.0: use readInterleavedMatrix instead of this flag
-        // boolean interleave = false;
-        // if (interleaveResults) {
-        //     byte[] newSamples = map.toInterleavedSamples(samples, numberOfChannels, sizeInPixels);
-        //     interleave = newSamples != samples;
-        //     samples = newSamples;
-        // }
-        boolean unpackingBits = false;
-        if (autoUnpackBits.isEnabled() && map.isBinary()) {
-            unpackingBits = true;
-            samples = PackedBitArraysPer8.unpackBitsToBytes(
-                    samples,
-                    0,
-                    sizeInPixels,
-                    (byte) 0,
-                    autoUnpackBits.bit1Value());
-        }
-        if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
-            long t3 = debugTime();
-            LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
-                    "%s read %dx%dx%d samples (%.3f MB) in %.3f ms = " +
-                            "%.3f read/decode " +
-                            "(%s) %s, %.3f MB/s",
-                    getClass().getSimpleName(),
-                    sizeX, sizeY, map.numberOfChannels(), sizeInBytes / 1048576.0,
-                    (t3 - t1) * 1e-6,
-                    (t2 - t1) * 1e-6,
-                    internalTimingReport(),
-                    unpackingBits ?
-                            String.format(Locale.US, " + %.3f unpacking %d-bit",
-                                    (t3 - t2) * 1e-6,
-                                    map.alignedBitDepth()) :
-                            "",
-                    sizeInBytes / 1048576.0 / ((t3 - t1) * 1e-9)));
-        }
-        return samples;
-    }
-
     public Object readJavaArray(int ifdIndex) throws IOException {
         return map(ifdIndex).readJavaArray();
     }
@@ -1803,7 +1739,7 @@ public non-sealed class TiffReader extends TiffIO {
         return map(ifdIndex).readBufferedImage();
     }
 
-    public final byte[] decompressBySCIFIOCodec(TiffIFD ifd, byte[] encodedData, Object scifioCodecOptions)
+    public byte[] decompressBySCIFIOCodec(TiffIFD ifd, byte[] encodedData, Object scifioCodecOptions)
             throws TiffException {
         final Object scifio = requireScifio(ifd);
         final int compressionCode = ifd.getCompressionCode();

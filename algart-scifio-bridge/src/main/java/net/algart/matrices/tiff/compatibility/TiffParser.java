@@ -786,7 +786,7 @@ public class TiffParser extends TiffReader {
 
     /**
      * This function is deprecated, because almost identical behavior is implemented by
-     * {@link #readSampleBytes}.
+     * {@link net.algart.matrices.tiff.tiles.TiffIOMap#readSampleBytes}.
      */
     @Deprecated
     public byte[] getSamples(final IFD ifd, final byte[] buf, final int x,
@@ -794,8 +794,7 @@ public class TiffParser extends TiffReader {
             IOException {
         TiffMap.checkRequestedArea(x, y, width, height);
         final var map = map(toTiffIFD(ifd));
-        final byte[] result = readSampleBytes(
-                map,
+        final byte[] result = map.readSampleBytes(
                 x, y, (int) width, (int) height,
                 UnusualPrecisions.NONE,
                 false,
