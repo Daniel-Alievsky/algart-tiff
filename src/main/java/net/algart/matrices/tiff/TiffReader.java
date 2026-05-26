@@ -1764,31 +1764,15 @@ public non-sealed class TiffReader extends TiffIO {
         }
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t3 = debugTime();
-            long timeNonClassified = t2 - t1 - (timeReading + timeDecoding);
             LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
                     "%s read %dx%dx%d samples (%.3f MB) in %.3f ms = " +
                             "%.3f read/decode " +
-                            "(%.3f read; %.3f customize/bit-order, %.3f decode%s, " +
-                            "%.3f complete; %.3f tiles->array and other)" +
-                            "%s, %.3f MB/s",
+                            "(%s) %s, %.3f MB/s",
                     getClass().getSimpleName(),
                     sizeX, sizeY, map.numberOfChannels(), sizeInBytes / 1048576.0,
                     (t3 - t1) * 1e-6,
                     (t2 - t1) * 1e-6,
-                    timeReading * 1e-6,
-                    timeCustomizingDecoding * 1e-6,
-                    timeDecoding * 1e-6,
-                    timeDecoding != timeDecodingMain || timeDecodingBridge + timeDecodingAdditional > 0 ?
-                            String.format(Locale.US, " [= %.3f main%s]",
-                                    timeDecodingMain * 1e-6,
-                                    timeDecodingBridge + timeDecodingAdditional > 0 ?
-                                            String.format(Locale.US,
-                                                    " + %.3f decode-bridge + %.3f decode-additional",
-                                                    timeDecodingBridge * 1e-6,
-                                                    timeDecodingAdditional * 1e-6) :
-                                    "") : "",
-                    timeCompleteDecoding * 1e-6,
-                    timeNonClassified * 1e-6,
+                    internalTimingReport(),
                     unpackingBits ?
                             String.format(Locale.US, " + %.3f unpacking %d-bit",
                                     (t3 - t2) * 1e-6,
@@ -1848,6 +1832,42 @@ public non-sealed class TiffReader extends TiffIO {
         return "TIFF reader";
     }
 
+    /**
+     * Resets all accumulated internal timing statistics used for the
+     * {@link #internalTimingReport() timing report}.
+     */
+    public void resetTiming() {
+        timeReading = 0;
+        timeCustomizingDecoding = 0;
+        timeDecoding = 0;
+        timeDecodingMain = 0;
+        timeDecodingBridge = 0;
+        timeDecodingAdditional = 0;
+        timeCompleteDecoding = 0;
+    }
+
+    /**
+     * Returns detailed internal timing statistics for TIFF decoding and reading.
+     */
+    public String internalTimingReport() {
+        return String.format(Locale.US,
+                "%.3f read; %.3f customize/bit-order, %.3f decode%s, " +
+                        "%.3f completing)",
+                timeReading * 1e-6,
+                timeCustomizingDecoding * 1e-6,
+                timeDecoding * 1e-6,
+                timeDecoding != timeDecodingMain || timeDecodingBridge + timeDecodingAdditional > 0 ?
+                        String.format(Locale.US, " [= %.3f main%s]",
+                                timeDecodingMain * 1e-6,
+                                timeDecodingBridge + timeDecodingAdditional > 0 ?
+                                        String.format(Locale.US,
+                                                " + %.3f decode-bridge + %.3f decode-additional",
+                                                timeDecodingBridge * 1e-6,
+                                                timeDecodingAdditional * 1e-6) :
+                                "") : "",
+                timeCompleteDecoding * 1e-6);
+    }
+
     protected Optional<byte[]> decodeByExternalCodec(TiffTile tile, byte[] encodedData, TiffCodec.Options options)
             throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
@@ -1859,16 +1879,6 @@ public non-sealed class TiffReader extends TiffIO {
         final Object scifioCodecOptions = options.toSCIFIOStyleOptions(SCIFIOBridge.codecOptionsClass());
         final byte[] decodedData = decompressBySCIFIOCodec(tile.ifd(), encodedData, scifioCodecOptions);
         return Optional.of(decodedData);
-    }
-
-    private void resetTiming() {
-        timeReading = 0;
-        timeCustomizingDecoding = 0;
-        timeDecoding = 0;
-        timeDecodingMain = 0;
-        timeDecodingBridge = 0;
-        timeDecodingAdditional = 0;
-        timeCompleteDecoding = 0;
     }
 
     private IOException startReading() {
