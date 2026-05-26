@@ -1478,7 +1478,8 @@ public non-sealed class TiffWriter extends TiffIO {
         long t4 = debugTime();
         completeWriting(map);
         long t5 = debugTime();
-        logWritingMatrix(map, "byte samples", map.dimX(), map.dimY(), t1, t2, t3, t4, t5);
+        logWritingMatrix(map, "byte samples",
+                t2 - t1, t3 - t2, t4 - t3, t5 - t4);
     }
 
     public void writeJavaArray(TiffWriteMap map, Object samplesArray) throws IOException {
@@ -1495,7 +1496,8 @@ public non-sealed class TiffWriter extends TiffIO {
         long t4 = debugTime();
         completeWriting(map);
         long t5 = debugTime();
-        logWritingMatrix(map, "pixel array", map.dimX(), map.dimY(), t1, t2, t3, t4, t5);
+        logWritingMatrix(map, "pixel array",
+                t2 - t1, t3 - t2, t4 - t3, t5 - t4);
     }
 
     /**
@@ -1525,7 +1527,8 @@ public non-sealed class TiffWriter extends TiffIO {
         long t4 = debugTime();
         map.completeWriting();
         long t5 = debugTime();
-        logWritingMatrix(map, matrix, t1, t2, t3, t4, t5);
+        logWritingMatrix(map, "matrix",
+                t2 - t1, t3 - t2, t4 - t3, t5 - t4);
     }
 
     public int completeWriting(final TiffWriteMap map) throws IOException {
@@ -1658,14 +1661,23 @@ public non-sealed class TiffWriter extends TiffIO {
     private void logWritingMatrix(
             TiffWriteMap map,
             String name,
-            long dimX,
-            long dimY,
             long t1,
             long t2,
             long t3,
             long t4,
             long t5) {
+        logWritingMatrix(map, name,  t2 - t1, t3 - t2, t4 - t3, t5 - t4);
+    }
+
+    private void logWritingMatrix(
+            TiffWriteMap map,
+            String name,
+            long updatingTime,
+            long prewriteTime,
+            long encodingTime,
+            long completingTime) {
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+            final long totalTime = updatingTime + prewriteTime + encodingTime + completingTime;
             final long sizeInBytes = map.totalSizeInBytes();
             LOG.log(System.Logger.Level.DEBUG, () -> String.format(Locale.US,
                     "%s wrote %dx%dx%d %s (%.3f MB) in %.3f ms = " +
@@ -1676,15 +1688,15 @@ public non-sealed class TiffWriter extends TiffIO {
                             "%.3f encode [%.3f main%s], " +
                             "%.3f write), %.3f MB/s",
                     getClass().getSimpleName(),
-                    dimX, dimY, map.numberOfChannels(),
+                    map.dimX(), map.dimY(), map.numberOfChannels(),
                     name,
                     sizeInBytes / 1048576.0,
-                    (t5 - t1) * 1e-6,
-                    (t2 - t1) * 1e-6,
+                    totalTime * 1e-6,
+                    updatingTime * 1e-6,
                     (isLastMapPrewritten() ?
-                            String.format(Locale.US, " + %.4f prewriting IFD", (t3 - t2) * 1e-6) :
+                            String.format(Locale.US, " + %.4f prewriting IFD", prewriteTime * 1e-6) :
                             ""),
-                    (t4 - t3) * 1e-6, (t5 - t4) * 1e-6,
+                    encodingTime * 1e-6, completingTime * 1e-6,
                     timePreparingEncoding * 1e-6,
                     timeCustomizingEncoding * 1e-6,
                     timeEncoding * 1e-6,
@@ -1695,7 +1707,7 @@ public non-sealed class TiffWriter extends TiffIO {
                                     timeEncodingAdditional * 1e-6) :
                             "",
                     timeWriting * 1e-6,
-                    sizeInBytes / 1048576.0 / ((t5 - t1) * 1e-9)));
+                    sizeInBytes / 1048576.0 / (totalTime * 1e-9)));
         }
     }
 
@@ -2241,17 +2253,6 @@ public non-sealed class TiffWriter extends TiffIO {
             options.setLosslessCompressionLevel(this.losslessCompressionLevel);
         }
         return options;
-    }
-
-    private void logWritingMatrix(
-            TiffWriteMap map, Matrix<?> matrix, long t1, long t2, long t3, long t4, long t5) {
-        if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
-            final boolean sourceInterleaved = !map.isPlanarSeparated() && !AUTO_INTERLEAVE_SOURCE;
-            final long dimX = matrix.dim(sourceInterleaved ? 1 : 0);
-            final long dimY = matrix.dim(sourceInterleaved ? 2 : 1);
-            // - already checked that they are actually "int"
-            logWritingMatrix(map, "matrix", dimX, dimY, t1, t2, t3, t4, t5);
-        }
     }
 
     private void logTiles(
