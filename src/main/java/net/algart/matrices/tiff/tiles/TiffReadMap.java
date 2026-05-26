@@ -133,12 +133,12 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
     }
 
     public Matrix<UpdatablePArray> readInterleavedMatrix() throws IOException {
-        return reader.readInterleavedMatrix(this);
+        return readInterleavedMatrix(0, 0, dimX(), dimY());
     }
 
     public Matrix<UpdatablePArray> readInterleavedMatrix(int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        return reader.readInterleavedMatrix(this, fromX, fromY, sizeX, sizeY);
+        return readInterleavedMatrix(fromX, fromY, sizeX, sizeY, false, reader::readCachedTile);
     }
 
     public List<Matrix<UpdatablePArray>> readChannels() throws IOException {

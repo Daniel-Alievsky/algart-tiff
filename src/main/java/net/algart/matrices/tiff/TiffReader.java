@@ -510,7 +510,7 @@ public non-sealed class TiffReader extends TiffIO {
      * into <code>byte</code> matrices: black pixels to value 0, white pixels to value depending on the mode.
      *
      * <p>By default, this mode is {@link UnpackBits#NONE}.
-     * In this case, {@link #readMatrix(TiffIOMap)} and similar methods return binary AlgART matrices.</p>
+     * In this case, {@link TiffReadMap#readMatrix()} and similar methods return binary AlgART matrices.</p>
      *
      * <p>Note that some TIFF images use <i>m</i>&gt;1 bit per pixel, where <i>m</i> is not divisible by 8,
      * such as 4-bit indexed images with a palette or 15-bit RGB image, 5+5+5 bits/channel.
@@ -1797,31 +1797,7 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     public Matrix<UpdatablePArray> readInterleavedMatrix(int ifdIndex) throws IOException {
-        return readInterleavedMatrix(map(ifdIndex));
-    }
-
-    public Matrix<UpdatablePArray> readInterleavedMatrix(TiffIOMap<?> map) throws IOException {
-        Objects.requireNonNull(map, "Null TIFF map");
-        return readInterleavedMatrix(map, 0, 0, map.dimX(), map.dimY());
-    }
-
-    public Matrix<UpdatablePArray> readInterleavedMatrix(TiffIOMap<?> map, int fromX, int fromY, int sizeX, int sizeY)
-            throws IOException {
-        return readInterleavedMatrix(map, fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
-    }
-
-    public Matrix<UpdatablePArray> readInterleavedMatrix(
-            TiffIOMap<?> map,
-            int fromX,
-            int fromY,
-            int sizeX,
-            int sizeY,
-            boolean storeTilesInMap,
-            TiffIOMap.TileSupplier tileSupplier)
-            throws IOException {
-        final Matrix<UpdatablePArray> mergedChannels =
-                map.readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
-        return Matrices.interleave(mergedChannels.asLayers());
+        return map(ifdIndex).readInterleavedMatrix();
     }
 
     public List<Matrix<UpdatablePArray>> readChannels(int ifdIndex) throws IOException {

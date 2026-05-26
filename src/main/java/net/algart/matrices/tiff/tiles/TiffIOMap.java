@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff.tiles;
 
+import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PackedBitArraysPer8;
 import net.algart.arrays.UpdatablePArray;
@@ -289,9 +290,9 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             boolean storeTilesInMap,
             TileSupplier tileSupplier)
             throws IOException {
-        @SuppressWarnings("resource") final TiffReader reader = reader();
-        return reader.readInterleavedMatrix(
-                this, fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
+        final Matrix<UpdatablePArray> mergedChannels =
+                readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
+        return Matrices.interleave(mergedChannels.asLayers());
     }
 
     public List<Matrix<UpdatablePArray>> readChannels(
