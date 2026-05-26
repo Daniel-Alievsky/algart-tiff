@@ -38,8 +38,8 @@ import net.algart.matrices.tiff.compatibility.TiffSaver;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagPredictor;
 import net.algart.matrices.tiff.tags.Tags;
-import net.algart.matrices.tiff.tiles.TiffWriteMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
+import net.algart.matrices.tiff.tiles.TiffWriteMap;
 import org.scijava.Context;
 
 import java.io.IOException;
@@ -407,8 +407,14 @@ public class TiffWriterTest {
                         tiffSaver.writeImage(bytes, TiffParser.toScifioIFD(map.ifd(), null),
                                 ifdIndex, FormatTools.UINT8,
                                 x, y, w, h, k == numberOfImages - 1);
+                    } else if (x == 0 && y == 0) {
+                        map.writeMatrix(matrix);
+                        // - this call shows detailed logging
                     } else {
-                        writer.writeMatrix(map, matrix, x, y);
+                        map.writeForward();
+                        map.updateMatrix(matrix, x, y);
+                        map.completeWriting();
+                        // - equivalent operations without logging
                     }
 //                    writer.writeJavaArray(map, samplesArray, x, y, w, h); // - alternate way to write this matrix
                     printReaderInfo(writer);

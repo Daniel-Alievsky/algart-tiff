@@ -1084,7 +1084,7 @@ public non-sealed class TiffWriter extends TiffIO {
             }
         }
         long t2 = debugTime();
-        logTiles(tiles, "middle", "encoded/wrote", count, sizeInBytes, t1, t2);
+        logTiles(tiles, count, sizeInBytes, t1, t2);
         return count;
     }
 
@@ -1451,54 +1451,40 @@ public non-sealed class TiffWriter extends TiffIO {
      * @throws IOException   in the case of any I/O errors.
      */
     public void writeSampleBytes(final TiffWriteMap map, byte[] samples) throws IOException {
-        Objects.requireNonNull(map, "Null TIFF map");
-        map.checkZeroDimensions();
-        writeSampleBytes(map, samples, 0, 0, map.dimX(), map.dimY());
-    }
-
-    public void writeSampleBytes(TiffWriteMap map, byte[] samples, int fromX, int fromY, int sizeX, int sizeY)
-            throws IOException {
+        // Note: this method is implemented here, not in TiffWriteMap, to provide additional logging information
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(samples, "Null samples");
-
+        map.checkZeroDimensions();
         clearTime();
         long t1 = debugTime();
-        map.updateSampleBytes(samples, fromX, fromY, sizeX, sizeY);
+        map.updateSampleBytes(samples, 0, 0, map.dimX(), map.dimY());
         long t2 = debugTime();
         timeForward = writeForward(map);
         long t3 = debugTime();
         map.encode();
         long t4 = debugTime();
         completeWriting(map);
-        logWritingMatrix(map, "byte samples", sizeX, sizeY, t1, t2, t3, t4);
-
+        logWritingMatrix(map, "byte samples", map.dimX(), map.dimY(), t1, t2, t3, t4);
     }
 
     public void writeJavaArray(TiffWriteMap map, Object samplesArray) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
-        map.checkZeroDimensions();
-        writeJavaArray(map, samplesArray, 0, 0, map.dimX(), map.dimY());
-    }
-
-    public void writeJavaArray(TiffWriteMap map, Object samplesArray, int fromX, int fromY, int sizeX, int sizeY)
-            throws IOException {
-        Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(samplesArray, "Null samplesArray");
+        map.checkZeroDimensions();
         clearTime();
         long t1 = debugTime();
-        map.updateJavaArray(samplesArray, fromX, fromY, sizeX, sizeY);
+        map.updateJavaArray(samplesArray, 0, 0, map.dimX(), map.dimY());
         long t2 = debugTime();
         timeForward = writeForward(map);
         long t3 = debugTime();
         map.encode();
         long t4 = debugTime();
         completeWriting(map);
-        logWritingMatrix(map, "pixel array", sizeX, sizeY, t1, t2, t3, t4);
-
+        logWritingMatrix(map, "pixel array", map.dimX(), map.dimY(), t1, t2, t3, t4);
     }
 
     /**
-     * Writes the matrix at the position (0,0).
+     * Writes the matrix.
      *
      * <p>Note: unlike {@link #writeJavaArray(TiffWriteMap, Object)} and
      * {@link #writeSampleBytes(TiffWriteMap, byte[])},
@@ -1509,88 +1495,27 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param matrix 3D-matrix of pixels.
      * @throws TiffException in the case of invalid TIFF IFD.
      * @throws IOException   in the case of any I/O errors.
-     */
+     * @see TiffWriteMap#writeMatrix(Matrix)
+    */
     public void writeMatrix(TiffWriteMap map, Matrix<? extends PArray> matrix) throws IOException {
-        Objects.requireNonNull(map, "Null TIFF map");
-        writeMatrix(map, matrix, 0, 0);
-    }
-
-    public void writeMatrix(TiffWriteMap map, Matrix<? extends PArray> matrix, int fromX, int fromY) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(matrix, "Null matrix");
         clearTime();
         long t1 = debugTime();
-        map.updateMatrix(matrix, fromX, fromY);
+        map.updateMatrix(matrix, 0, 0);
         long t2 = debugTime();
         timeForward = writeForward(map);
         long t3 = debugTime();
         map.encode();
         long t4 = debugTime();
-        completeWriting(map);
+        map.completeWriting();
         logWritingMatrix(map, matrix, t1, t2, t3, t4);
-    }
-
-    /**
-     * Equivalent to
-     * <code>{@link #writeMatrix(TiffWriteMap, Matrix)
-     * writeMatrix}(Matrices.mergeLayers(channels))</code>.
-     *
-     * @param map      TIFF map.
-     * @param channels color channels of the image (2-dimensional matrices).
-     * @throws TiffException in the case of invalid TIFF IFD.
-     * @throws IOException   in the case of any I/O errors.
-     */
-    public void writeChannels(TiffWriteMap map, List<? extends Matrix<? extends PArray>> channels)
-            throws IOException {
-        Objects.requireNonNull(map, "Null TIFF map");
-        writeChannels(map, channels, 0, 0);
-    }
-
-    public void writeChannels(
-            TiffWriteMap map,
-            List<? extends Matrix<? extends PArray>> channels,
-            int fromX,
-            int fromY) throws IOException {
-        Objects.requireNonNull(map, "Null TIFF map");
-        Objects.requireNonNull(channels, "Null channels");
-        if (!AUTO_INTERLEAVE_SOURCE) {
-            throw new IllegalStateException("Cannot write image channels: autoInterleaveSource mode is not set");
-        }
-        writeMatrix(map, Matrices.mergeLayers(channels), fromX, fromY);
-    }
-
-    /**
-     * Equivalent to
-     * <code>{@link #writeChannels(TiffWriteMap, List)
-     * writeChannels}({@link ImageToMatrix#toChannels
-     * ImageToMatrix.toChannels}(bufferedImage))</code>.
-     *
-     * @param map           TIFF map.
-     * @param bufferedImage the image.
-     * @throws TiffException in the case of invalid TIFF IFD.
-     * @throws IOException   in the case of any I/O errors.
-     */
-    public void writeBufferedImage(TiffWriteMap map, BufferedImage bufferedImage)
-            throws IOException {
-        Objects.requireNonNull(map, "Null TIFF map");
-        writeBufferedImage(map, bufferedImage, 0, 0);
-    }
-
-    public void writeBufferedImage(
-            TiffWriteMap map,
-            BufferedImage bufferedImage,
-            int fromX,
-            int fromY) throws IOException {
-        Objects.requireNonNull(map, "Null TIFF map");
-        Objects.requireNonNull(bufferedImage, "Null bufferedImage");
-        writeChannels(map, ImageToMatrix.toChannels(bufferedImage), fromX, fromY);
     }
 
     public int completeWriting(final TiffWriteMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         final boolean resizable = map.isResizable();
         map.checkTooSmallDimensionsForCurrentGrid();
-
         map.encode();
         // - encode tiles, which are not encoded yet
 
@@ -1988,22 +1913,6 @@ public non-sealed class TiffWriter extends TiffIO {
                 updateFileOffsetOfLastIFDOffset);
     }
 
-    private void encode(TiffWriteMap map, String stage) throws TiffException {
-        Objects.requireNonNull(map, "Null TIFF map");
-        long t1 = debugTime();
-        int count = 0;
-        long sizeInBytes = 0;
-        for (TiffTile tile : map.tiles()) {
-            final boolean wasNotEncodedYet = encode(tile);
-            if (wasNotEncodedYet) {
-                count++;
-                sizeInBytes += tile.getSizeInBytes();
-            }
-        }
-        long t2 = debugTime();
-        logTiles(map, stage, "encoded", count, sizeInBytes, t1, t2);
-    }
-
     private void correctForEncoding(TiffIFD ifd, boolean smartCorrection, boolean enableOldJpeg) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         final int samplesPerPixel = ifd.getSamplesPerPixel();
@@ -2287,13 +2196,12 @@ public non-sealed class TiffWriter extends TiffIO {
 
     private void logTiles(
             Collection<TiffTile> tiles,
-            String stage,
-            String action,
             int count,
             long sizeInBytes,
             long t1,
             long t2) {
-        logTiles(tiles.isEmpty() ? null : tiles.iterator().next().map(), stage, action, count, sizeInBytes, t1, t2);
+        logTiles(tiles.isEmpty() ? null : tiles.iterator().next().map(),
+                "middle", "encoded/wrote", count, sizeInBytes, t1, t2);
     }
 
     // See also the analogous private method in TiffWriteMap

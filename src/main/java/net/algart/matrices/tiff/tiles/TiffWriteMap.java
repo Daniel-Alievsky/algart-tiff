@@ -450,12 +450,35 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
         owner.writeMatrix(this, matrix);
     }
 
+    /**
+     * Equivalent to
+     * <code>{@link #writeMatrix(Matrix) writeMatrix}(Matrices.mergeLayers(channels))</code>.
+     *
+     * @param channels color channels of the image (2-dimensional matrices).
+     * @throws TiffException in the case of invalid TIFF IFD.
+     * @throws IOException   in the case of any I/O errors.
+     */
     public void writeChannels(List<? extends Matrix<? extends PArray>> channels) throws IOException {
-        owner.writeChannels(this, channels);
+        Objects.requireNonNull(channels, "Null channels");
+        if (!AUTO_INTERLEAVE_SOURCE) {
+            throw new IllegalStateException("Cannot write image channels: autoInterleaveSource mode is not set");
+        }
+        writeMatrix(Matrices.mergeLayers(channels));
     }
 
+    /**
+     * Equivalent to
+     * <code>{@link #writeChannels(List)
+     * writeChannels}({@link ImageToMatrix#toChannels
+     * ImageToMatrix.toChannels}(bufferedImage))</code>.
+     *
+     * @param bufferedImage the image.
+     * @throws TiffException in the case of invalid TIFF IFD.
+     * @throws IOException   in the case of any I/O errors.
+     */
     public void writeBufferedImage(BufferedImage bufferedImage) throws IOException {
-        owner.writeBufferedImage(this, bufferedImage);
+        Objects.requireNonNull(bufferedImage, "Null bufferedImage");
+        writeChannels(ImageToMatrix.toChannels(bufferedImage));
     }
 
     public void writeTile(TiffTile tile, boolean freeAndFreezeAfterWriting) throws IOException {

@@ -2740,7 +2740,8 @@ public final class TiffIFD {
         }
         if (json) {
             sb.append(previous == null ? "" : "\n").append("  }");
-        } else if (!sorted) {
+        } else if (!sorted && detailedEntries != null) {
+            // - this IFD was probably loaded from file: we should warn about unsorted tags
             sb.append("%n  ".formatted()).append(
                     "INVALID tags order: they are not sorted in ascending order (requirement of TIFF 6.0 standard)!");
         }

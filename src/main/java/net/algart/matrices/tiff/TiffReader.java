@@ -1729,6 +1729,7 @@ public non-sealed class TiffReader extends TiffIO {
             boolean storeTilesInMap,
             TiffIOMap.TileSupplier tileSupplier)
             throws IOException {
+        // Note: this method is implemented here, not in TiffIOMap, to provide additional logging information
         Objects.requireNonNull(map, "Null TIFF map");
         Objects.requireNonNull(unusualPrecisions, "Null unusualPrecisions");
         Objects.requireNonNull(tileSupplier, "Null tileSupplier");

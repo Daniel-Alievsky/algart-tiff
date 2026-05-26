@@ -158,7 +158,7 @@ public class TiffReadWriteTest {
                     }
                     writerIFD.putImageDimensions(w, h);
                     final var map = writer.newMap(writerIFD, false);
-                    writer.writeSampleBytes(map, bytes, START_X, START_Y, w, h);
+                    writeSampleBytes(map, bytes, START_X, START_Y, w, h);
                     long t3 = System.nanoTime();
                     System.out.printf("Effective IFD:%n%s%n", writerIFD);
                     System.out.printf(Locale.US,
@@ -244,10 +244,12 @@ public class TiffReadWriteTest {
         System.out.println("Done");
     }
 
-    private static void writeSampleBytes(TiffWriteMap map, byte[] samples, int fromX, int fromY, int sizeX, int sizeY)
+    // A similar method existed in older versions of TiffWriter, although it does not make sense
+    // (updating a part of the map, writing the entire map)
+    private static void writeSampleBytes(
+            TiffWriteMap map, byte[] samples, int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
         map.updateSampleBytes(samples, fromX, fromY, sizeX, sizeY);
-        map.encode();
         map.completeWriting();
     }
 
