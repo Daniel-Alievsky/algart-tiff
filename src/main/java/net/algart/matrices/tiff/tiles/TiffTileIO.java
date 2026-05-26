@@ -41,15 +41,7 @@ public class TiffTileIO {
             throws IOException {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(inputStream, "Null input stream");
-        if (fileOffset < 0) {
-            throw new IllegalArgumentException("Negative file position to read data: " + fileOffset);
-        }
-        if (fileOffset == 0) {
-            throw new IllegalArgumentException("Zero file position to read data is not allowed for TIFF format");
-        }
-        if (dataLength < 0) {
-            throw new IllegalArgumentException("Negative length of data to read: " + dataLength);
-        }
+        tile.setStoredInFileDataRange(fileOffset, dataLength);
         final byte[] data = new byte[dataLength];
         inputStream.seek(fileOffset);
         final int result = inputStream.read(data);
@@ -58,7 +50,6 @@ public class TiffTileIO {
                     ": loaded " + result + " bytes instead of " + data.length +
                     " (" + inputStream.get() + ")");
         }
-        tile.setStoredInFileDataRange(fileOffset, data.length);
         tile.setEncodedData(data, true);
         tile.markWholeTileAsSet();
     }
@@ -87,16 +78,10 @@ public class TiffTileIO {
             throws IOException {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(outputStream, "Null output stream");
-        if (fileOffset < 0) {
-            throw new IllegalArgumentException("Negative file position to write data: " + fileOffset);
-        }
-        if (fileOffset == 0) {
-            throw new IllegalArgumentException("Zero file position to write data is not allowed in TIFF format");
-        }
         final byte[] encodedData = tile.getEncodedData();
+        tile.setStoredInFileDataRange(fileOffset, encodedData.length, resetCapacity);
         outputStream.seek(fileOffset);
         outputStream.write(encodedData);
-        tile.setStoredInFileDataRange(fileOffset, encodedData.length, resetCapacity);
     }
 
     private static boolean tryToWriteInPlace(TiffTile tile, DataHandle<?> outputStream) throws IOException {

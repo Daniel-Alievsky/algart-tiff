@@ -890,10 +890,13 @@ public final class TiffTile {
             long storedInFileDataLength,
             boolean resetCapacity) {
         if (storedInFileDataOffset < 0) {
-            throw new IllegalArgumentException("Negative storedInFileDataOffset = " + storedInFileDataOffset);
+            throw new IllegalArgumentException("Negative data offset in the file: " + storedInFileDataOffset);
+        }
+        if (storedInFileDataOffset == 0) {
+            throw new IllegalArgumentException("Zero data offset in the file is not allowed for TIFF format");
         }
         if (storedInFileDataLength < 0) {
-            throw new IllegalArgumentException("Negative storedInFileDataLength = " + storedInFileDataLength);
+            throw new IllegalArgumentException("Negative length of data in the file: " + storedInFileDataLength);
         }
         if (storedInFileDataLength > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("Too large storedInFileDataLength = " +
