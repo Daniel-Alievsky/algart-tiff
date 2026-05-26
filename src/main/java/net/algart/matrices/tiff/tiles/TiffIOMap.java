@@ -277,8 +277,8 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             boolean storeTilesInMap,
             TileSupplier tileSupplier)
             throws IOException {
-        @SuppressWarnings("resource") final TiffReader reader = reader();
-        return reader.readMatrix(this, fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
+        final Object samplesArray = readJavaArray(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
+        return TiffSampleType.asMatrix(samplesArray, sizeX, sizeY, numberOfChannels(), false);
     }
 
     public Matrix<UpdatablePArray> readInterleavedMatrix(

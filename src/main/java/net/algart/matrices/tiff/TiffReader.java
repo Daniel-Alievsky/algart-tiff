@@ -1793,47 +1793,7 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     public Matrix<UpdatablePArray> readMatrix(int ifdIndex) throws IOException {
-        return readMatrix(map(ifdIndex));
-    }
-
-    /**
-     * Reads the full image with the specified TIFF map.
-     * The result is a 3-dimensional matrix, where each 2-dimensional {@link Matrices#asLayers(Matrix) layer}
-     * contains one of color channels.
-     * In other words, the samples are returned in a separated form: RRR...GGG...BBB...
-     *
-     * <p>The necessary TIFF map can be obtained, for example, by calling
-     * <code>{@link #map(int) reader.map}(ifdIndex)</code>.</p>
-     *
-     * @param map TIFF map, constructed from one of the IFDs of this TIFF file.
-     * @return content of the IFD image.
-     * @throws TiffException            if <code>ifdIndex</code> is too large,
-     *                                  or if the file is not a correct TIFF file,
-     *                                  and this was not detected while opening it.
-     * @throws IOException              in the case of any problems with the input file.
-     * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
-     */
-    public Matrix<UpdatablePArray> readMatrix(TiffIOMap<?> map) throws IOException {
-        Objects.requireNonNull(map, "Null TIFF map");
-        return readMatrix(map, 0, 0, map.dimX(), map.dimY());
-    }
-
-    public Matrix<UpdatablePArray> readMatrix(TiffIOMap<?> map, int fromX, int fromY, int sizeX, int sizeY)
-            throws IOException {
-        return readMatrix(map, fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
-    }
-
-    public Matrix<UpdatablePArray> readMatrix(
-            TiffIOMap<?> map,
-            int fromX,
-            int fromY,
-            int sizeX,
-            int sizeY,
-            boolean storeTilesInMap,
-            TiffIOMap.TileSupplier tileSupplier)
-            throws IOException {
-        final Object samplesArray = map.readJavaArray(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
-        return TiffSampleType.asMatrix(samplesArray, sizeX, sizeY, map.numberOfChannels(), false);
+        return map(ifdIndex).readMatrix();
     }
 
     public Matrix<UpdatablePArray> readInterleavedMatrix(int ifdIndex) throws IOException {
@@ -1860,7 +1820,7 @@ public non-sealed class TiffReader extends TiffIO {
             TiffIOMap.TileSupplier tileSupplier)
             throws IOException {
         final Matrix<UpdatablePArray> mergedChannels =
-                readMatrix(map, fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
+                map.readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
         return Matrices.interleave(mergedChannels.asLayers());
     }
 
@@ -1901,7 +1861,7 @@ public non-sealed class TiffReader extends TiffIO {
             TiffIOMap.TileSupplier tileSupplier)
             throws IOException {
         final Matrix<UpdatablePArray> mergedChannels =
-                readMatrix(map, fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
+                map.readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
         return Matrices.asLayers(mergedChannels, TiffIFD.MAX_NUMBER_OF_CHANNELS);
     }
 
@@ -1942,7 +1902,7 @@ public non-sealed class TiffReader extends TiffIO {
             TiffIOMap.TileSupplier tileSupplier)
             throws IOException {
         final Matrix<UpdatablePArray> mergedChannels =
-                readMatrix(map, fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
+                map.readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
         final Matrix<? extends PArray> interleaved =
                 Matrices.interleave(extractFirst4(mergedChannels.asLayers()));
         // Note: we do not use MatrixToImage.toBufferedImage, because we need to call setUnsignedInt32

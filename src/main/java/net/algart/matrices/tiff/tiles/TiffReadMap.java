@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff.tiles;
 
+import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.TiffException;
@@ -109,13 +110,26 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
         return readJavaArray(fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
     }
 
+    /**
+     * Reads the full image with the specified TIFF map.
+     * The result is a 3-dimensional matrix, where each 2-dimensional {@link Matrices#asLayers(Matrix) layer}
+     * contains one of color channels.
+     * In other words, the samples are returned in a separated form: RRR...GGG...BBB...
+     *
+     * @return content of the IFD image.
+     * @throws TiffException            if <code>ifdIndex</code> is too large,
+     *                                  or if the file is not a correct TIFF file,
+     *                                  and this was not detected while opening it.
+     * @throws IOException              in the case of any problems with the input file.
+     * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
+     */
     public Matrix<UpdatablePArray> readMatrix() throws IOException {
-        return reader.readMatrix(this);
+        return readMatrix(0, 0, dimX(), dimY());
     }
 
     public Matrix<UpdatablePArray> readMatrix(int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        return reader.readMatrix(this, fromX, fromY, sizeX, sizeY);
+        return readMatrix(fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
     }
 
     public Matrix<UpdatablePArray> readInterleavedMatrix() throws IOException {
