@@ -1139,7 +1139,7 @@ public non-sealed class TiffWriter extends TiffIO {
             options = compression.customizeWriting(tile, options);
             if (codec instanceof TiffCodec.Timing timing) {
                 timing.setTiming(BUILT_IN_TIMING && LOGGABLE_DEBUG);
-                timing.clearTiming();
+                timing.resetTiming();
             }
             final byte[] encodedData = codec.compress(data, options);
             setLastCodecReport(options.getReport());
@@ -1448,89 +1448,6 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    /**
-     * Writes the matrix.
-     *
-     * <p>Note that then the samples array in all <code>write...</code> methods is always supposed to be separated.
-     * For multichannel images it means the samples order like RRR..GGG..BBB...: standard form,
-     * returned by {@link TiffReader}. If the desired IFD format is
-     * chunked, i.e. {@link Tags#PLANAR_CONFIGURATION} is {@link TiffIFD#PLANAR_CONFIGURATION_CHUNKED}
-     * (that is the typical usage), then the passes samples are automatically re-packed into chunked (interleaved)
-     * form RGBRGBRGB...
-     *
-     * @param map     TIFF map.
-     * @param samples the samples in a raw form.
-     * @throws TiffException in the case of invalid TIFF IFD.
-     * @throws IOException   in the case of any I/O errors.
-     */
-    public void writeSampleBytes(final TiffWriteMap map, byte[] samples) throws IOException {
-        // Note: this method is implemented here, not in TiffWriteMap, to provide additional logging information
-        Objects.requireNonNull(map, "Null TIFF map");
-        Objects.requireNonNull(samples, "Null samples");
-        map.checkZeroDimensions();
-        clearTime();
-        long t1 = debugTime();
-        map.updateSampleBytes(samples, 0, 0, map.dimX(), map.dimY());
-        long t2 = debugTime();
-        prewrite(map);
-        long t3 = debugTime();
-        map.encode();
-        long t4 = debugTime();
-        completeWriting(map);
-        long t5 = debugTime();
-        logWritingMatrix(map, "byte samples",
-                t2 - t1, t3 - t2, t4 - t3, t5 - t4);
-    }
-
-    public void writeJavaArray(TiffWriteMap map, Object samplesArray) throws IOException {
-        Objects.requireNonNull(map, "Null TIFF map");
-        Objects.requireNonNull(samplesArray, "Null samplesArray");
-        map.checkZeroDimensions();
-        clearTime();
-        long t1 = debugTime();
-        map.updateJavaArray(samplesArray, 0, 0, map.dimX(), map.dimY());
-        long t2 = debugTime();
-        prewrite(map);
-        long t3 = debugTime();
-        map.encode();
-        long t4 = debugTime();
-        completeWriting(map);
-        long t5 = debugTime();
-        logWritingMatrix(map, "pixel array",
-                t2 - t1, t3 - t2, t4 - t3, t5 - t4);
-    }
-
-    /**
-     * Writes the matrix.
-     *
-     * <p>Note: unlike {@link #writeJavaArray(TiffWriteMap, Object)} and
-     * {@link #writeSampleBytes(TiffWriteMap, byte[])},
-     * this method always uses the actual sizes of the passed matrix and, so, <i>does not require</i>
-     * the map to have correct non-zero dimensions (a situation, possible for resizable maps).</p>
-     *
-     * @param map    TIFF map.
-     * @param matrix 3D-matrix of pixels.
-     * @throws TiffException in the case of invalid TIFF IFD.
-     * @throws IOException   in the case of any I/O errors.
-     * @see TiffWriteMap#writeMatrix(Matrix)
-    */
-    public void writeMatrix(TiffWriteMap map, Matrix<? extends PArray> matrix) throws IOException {
-        Objects.requireNonNull(map, "Null TIFF map");
-        Objects.requireNonNull(matrix, "Null matrix");
-        clearTime();
-        long t1 = debugTime();
-        map.updateMatrix(matrix, 0, 0);
-        long t2 = debugTime();
-        prewrite(map);
-        long t3 = debugTime();
-        map.encode();
-        long t4 = debugTime();
-        map.completeWriting();
-        long t5 = debugTime();
-        logWritingMatrix(map, "matrix",
-                t2 - t1, t3 - t2, t4 - t3, t5 - t4);
-    }
-
     public int completeWriting(final TiffWriteMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         final boolean resizable = map.isResizable();
@@ -1658,57 +1575,39 @@ public non-sealed class TiffWriter extends TiffIO {
         return "TIFF writer";
     }
 
-    private void logWritingMatrix(
-            TiffWriteMap map,
-            String name,
-            long t1,
-            long t2,
-            long t3,
-            long t4,
-            long t5) {
-        logWritingMatrix(map, name,  t2 - t1, t3 - t2, t4 - t3, t5 - t4);
+    /**
+     * Resets all accumulated internal timing statistics used for the
+     * {@link #internalTimingReport() timing report}.
+     */
+    public void resetTiming() {
+        timeWriting = 0;
+        timeCustomizingEncoding = 0;
+        timePreparingEncoding = 0;
+        timeEncoding = 0;
+        timeEncodingMain = 0;
+        timeEncodingBridge = 0;
+        timeEncodingAdditional = 0;
     }
 
-    private void logWritingMatrix(
-            TiffWriteMap map,
-            String name,
-            long updatingTime,
-            long prewriteTime,
-            long encodingTime,
-            long completingTime) {
-        if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
-            final long totalTime = updatingTime + prewriteTime + encodingTime + completingTime;
-            final long sizeInBytes = map.totalSizeInBytes();
-            LOG.log(System.Logger.Level.DEBUG, () -> String.format(Locale.US,
-                    "%s wrote %dx%dx%d %s (%.3f MB) in %.3f ms = " +
-                            "%.3f conversion/copying data%s" +
-                            " + %.3f/%.3f encoding/writing " +
-                            "(%.3f prepare, " +
-                            "%.3f customize, " +
-                            "%.3f encode [%.3f main%s], " +
-                            "%.3f write), %.3f MB/s",
-                    getClass().getSimpleName(),
-                    map.dimX(), map.dimY(), map.numberOfChannels(),
-                    name,
-                    sizeInBytes / 1048576.0,
-                    totalTime * 1e-6,
-                    updatingTime * 1e-6,
-                    (isLastMapPrewritten() ?
-                            String.format(Locale.US, " + %.4f prewriting IFD", prewriteTime * 1e-6) :
-                            ""),
-                    encodingTime * 1e-6, completingTime * 1e-6,
-                    timePreparingEncoding * 1e-6,
-                    timeCustomizingEncoding * 1e-6,
-                    timeEncoding * 1e-6,
-                    timeEncodingMain * 1e-6,
-                    timeEncodingBridge + timeEncodingAdditional > 0 ?
-                            String.format(Locale.US, " + %.3f encode-bridge + %.3f encode-additional",
-                                    timeEncodingBridge * 1e-6,
-                                    timeEncodingAdditional * 1e-6) :
-                            "",
-                    timeWriting * 1e-6,
-                    sizeInBytes / 1048576.0 / (totalTime * 1e-9)));
-        }
+    /**
+     * Returns detailed internal timing statistics for TIFF encoding and writing.
+     */
+    public String internalTimingReport() {
+        return String.format(Locale.US,
+                        "%.3f prepare, " +
+                        "%.3f customize, " +
+                        "%.3f encode [%.3f main%s], " +
+                        "%.3f write",
+                timePreparingEncoding * 1e-6,
+                timeCustomizingEncoding * 1e-6,
+                timeEncoding * 1e-6,
+                timeEncodingMain * 1e-6,
+                timeEncodingBridge + timeEncodingAdditional > 0 ?
+                        String.format(Locale.US, " + %.3f encode-bridge + %.3f encode-additional",
+                                timeEncodingBridge * 1e-6,
+                                timeEncodingAdditional * 1e-6) :
+                        "",
+                timeWriting * 1e-6);
     }
 
     protected Optional<byte[]> encodeByExternalCodec(TiffTile tile, byte[] decodedData, TiffCodec.Options options)
@@ -1781,16 +1680,6 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    private void clearTime() {
-        timeWriting = 0;
-        timeCustomizingEncoding = 0;
-        timePreparingEncoding = 0;
-        timeEncoding = 0;
-        timeEncodingMain = 0;
-        timeEncodingBridge = 0;
-        timeEncodingAdditional = 0;
-    }
-
     private void checkVirginFile() throws IOException {
         if (fileOffsetOfLastIFDOffset < 0) {
             throw new IllegalStateException("TIFF file is not yet created / opened for writing");
@@ -1821,7 +1710,6 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-
     private long writeIFDEntries(Map<Integer, Object> ifdMap, long startOffset, int mainIFDLength) throws IOException {
         final long afterMain = startOffset + mainIFDLength;
         final long fileOffsetOfNextOffset;
@@ -1840,7 +1728,7 @@ public non-sealed class TiffWriter extends TiffIO {
                     throw new AssertionError("Invalid IFD-stream offset after writing " +
                             Tags.prettyName(tagKey) +
                             " (value type: " + (value == null ? null : value.getClass().getTypeName()) +
-                            "): "  + ifdStream.offset() + " instead of " + offset);
+                            "): " + ifdStream.offset() + " instead of " + offset);
                 }
             }
 //            System.out.println(">>>: " + ifdStream.offset() + ", " + extraBuffer.offset());
@@ -2264,6 +2152,40 @@ public non-sealed class TiffWriter extends TiffIO {
         logTiles(tiles.isEmpty() ? null : tiles.iterator().next().map(),
                 "middle", "encoded/wrote", count, sizeInBytes, t1, t2);
     }
+
+    private void logMatrix(
+            TiffWriteMap map,
+            String whatIsWritten,
+            long updatingTime,
+            long prewriteTime,
+            long encodingTime,
+            long completingTime) {
+        Objects.requireNonNull(map, "Null TIFF map");
+        if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+            LOG.log(System.Logger.Level.DEBUG, () -> {
+                final long totalTime = updatingTime + prewriteTime + encodingTime + completingTime;
+                final long sizeInBytes = map.totalSizeInBytes();
+                return String.format(Locale.US,
+                        "%s wrote %s %dx%dx%d (%.3f MB) in %.3f ms = " +
+                                "%.3f conversion/copying data%s" +
+                                " + %.3f/%.3f encoding/completing " +
+                                "(%s), %.3f MB/s",
+                        getClass().getSimpleName(),
+                        whatIsWritten,
+                        map.dimX(), map.dimY(), map.numberOfChannels(),
+                        sizeInBytes / 1048576.0,
+                        totalTime * 1e-6,
+                        updatingTime * 1e-6,
+                        (isLastMapPrewritten() ?
+                                String.format(Locale.US, " + %.4f prewriting IFD", prewriteTime * 1e-6) :
+                                ""),
+                        encodingTime * 1e-6, completingTime * 1e-6,
+                        internalTimingReport(),
+                        sizeInBytes / 1048576.0 / (totalTime * 1e-9));
+            });
+        }
+    }
+
 
     // See also the analogous private method in TiffWriteMap
     private static void logTiles(

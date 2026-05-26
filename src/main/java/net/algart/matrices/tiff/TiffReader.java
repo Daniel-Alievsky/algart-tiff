@@ -1497,7 +1497,7 @@ public non-sealed class TiffReader extends TiffIO {
             }
             if (codec instanceof TiffCodec.Timing timing) {
                 timing.setTiming(BUILT_IN_TIMING && LOGGABLE_DEBUG);
-                timing.clearTiming();
+                timing.resetTiming();
             }
             final byte[] decodedData = codec.decompress(encodedData, options);
             setLastCodecReport(options.getReport());
@@ -1734,7 +1734,7 @@ public non-sealed class TiffReader extends TiffIO {
         Objects.requireNonNull(unusualPrecisions, "Null unusualPrecisions");
         Objects.requireNonNull(tileSupplier, "Null tileSupplier");
         long t1 = debugTime();
-        clearTiming();
+        resetTiming();
         TiffMap.checkRequestedArea(fromX, fromY, sizeX, sizeY);
         // - note: we allow this area to be outside the image
 
@@ -1861,7 +1861,7 @@ public non-sealed class TiffReader extends TiffIO {
         return Optional.of(decodedData);
     }
 
-    private void clearTiming() {
+    private void resetTiming() {
         timeReading = 0;
         timeCustomizingDecoding = 0;
         timeDecoding = 0;

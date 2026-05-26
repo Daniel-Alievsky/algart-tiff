@@ -29,6 +29,7 @@ import net.algart.arrays.Arrays;
 import net.algart.io.awt.ImageToMatrix;
 import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
+import net.algart.matrices.tiff.tags.Tags;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -442,16 +443,81 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
         owner.prewrite(this);
     }
 
+    /**
+     * Writes the matrix.
+     *
+     * <p>Note that then the samples array in all <code>write...</code> methods is always supposed to be separated.
+     * For multichannel images it means the samples order like RRR..GGG..BBB...: standard form,
+     * returned by {@link TiffReader}. If the desired IFD format is
+     * chunked, i.e. {@link Tags#PLANAR_CONFIGURATION} is {@link TiffIFD#PLANAR_CONFIGURATION_CHUNKED}
+     * (that is the typical usage), then the passes samples are automatically re-packed into chunked (interleaved)
+     * form RGBRGBRGB...
+     *
+     * @param samples the samples in a raw form.
+     * @throws TiffException in the case of invalid TIFF IFD.
+     * @throws IOException   in the case of any I/O errors.
+     */
     public void writeSampleBytes(byte[] samples) throws IOException {
-        owner.writeSampleBytes(this, samples);
+        Objects.requireNonNull(samples, "Null samples");
+        checkZeroDimensions();
+        owner.resetTiming();
+        long t1 = debugTime();
+        updateSampleBytes(samples, 0, 0, dimX(), dimY());
+        long t2 = debugTime();
+        prewrite();
+        long t3 = debugTime();
+        encode();
+        long t4 = debugTime();
+        completeWriting();
+        long t5 = debugTime();
+        logMatrix(this, "byte samples",
+                t2 - t1, t3 - t2, t4 - t3, t5 - t4);
     }
 
     public void writeJavaArray(Object samplesArray) throws IOException {
-        owner.writeJavaArray(this, samplesArray);
+        Objects.requireNonNull(samplesArray, "Null samplesArray");
+        checkZeroDimensions();
+        owner.resetTiming();
+        long t1 = debugTime();
+        updateJavaArray(samplesArray, 0, 0, dimX(), dimY());
+        long t2 = debugTime();
+        prewrite();
+        long t3 = debugTime();
+        encode();
+        long t4 = debugTime();
+        completeWriting();
+        long t5 = debugTime();
+        logMatrix(this, "pixel array",
+                t2 - t1, t3 - t2, t4 - t3, t5 - t4);
     }
 
+    /**
+     * Writes the matrix.
+     *
+     * <p>Note: unlike {@link #writeJavaArray(Object)} and
+     * {@link #writeSampleBytes(byte[])},
+     * this method always uses the actual sizes of the passed matrix and, so, <i>does not require</i>
+     * the map to have correct non-zero dimensions (a situation, possible for resizable maps).</p>
+     *
+     * @param matrix 3D-matrix of pixels.
+     * @throws TiffException in the case of invalid TIFF IFD.
+     * @throws IOException   in the case of any I/O errors.
+     * @see TiffWriteMap#writeMatrix(Matrix)
+     */
     public void writeMatrix(Matrix<? extends PArray> matrix) throws IOException {
-        owner.writeMatrix(this, matrix);
+        Objects.requireNonNull(matrix, "Null matrix");
+        owner.resetTiming();
+        long t1 = debugTime();
+        updateMatrix(matrix, 0, 0);
+        long t2 = debugTime();
+        owner.prewrite(this);
+        long t3 = debugTime();
+        encode();
+        long t4 = debugTime();
+        completeWriting();
+        long t5 = debugTime();
+        logMatrix(this, "matrix",
+                t2 - t1, t3 - t2, t4 - t3, t5 - t4);
     }
 
     /**
@@ -598,21 +664,6 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
         return "map-for-writing" + (existing ? " (existing)" : " (new)");
     }
 
-    private void encode(String stage) throws TiffException {
-        long t1 = debugTime();
-        int count = 0;
-        long sizeInBytes = 0;
-        for (TiffTile tile : tiles()) {
-            final boolean wasNotEncodedYet = owner.encode(tile);
-            if (wasNotEncodedYet) {
-                count++;
-                sizeInBytes += tile.getSizeInBytes();
-            }
-        }
-        long t2 = debugTime();
-        logTiles(stage, count, sizeInBytes, t1, t2);
-    }
-
     // See also the analogous private method in TiffWriter
     private void logTiles(String stage, int count, long sizeInBytes, long t1, long t2) {
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
@@ -629,6 +680,39 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                                     sizeInBytes / 1048576.0,
                                     (t2 - t1) * 1e-6,
                                     sizeInBytes / 1048576.0 / ((t2 - t1) * 1e-9)));
+        }
+    }
+
+    private void logMatrix(
+            TiffWriteMap map,
+            String whatIsWritten,
+            long updatingTime,
+            long prewriteTime,
+            long encodingTime,
+            long completingTime) {
+        Objects.requireNonNull(map, "Null TIFF map");
+        if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+            LOG.log(System.Logger.Level.DEBUG, () -> {
+                final long totalTime = updatingTime + prewriteTime + encodingTime + completingTime;
+                final long sizeInBytes = map.totalSizeInBytes();
+                return String.format(Locale.US,
+                        "%s wrote %s %dx%dx%d (%.3f MB) in %.3f ms = " +
+                                "%.3f conversion/copying data%s" +
+                                " + %.3f/%.3f encoding/completing " +
+                                "(%s), %.3f MB/s",
+                        getClass().getSimpleName(),
+                        whatIsWritten,
+                        map.dimX(), map.dimY(), map.numberOfChannels(),
+                        sizeInBytes / 1048576.0,
+                        totalTime * 1e-6,
+                        updatingTime * 1e-6,
+                        (owner.isLastMapPrewritten() ?
+                                String.format(Locale.US, " + %.4f prewriting IFD", prewriteTime * 1e-6) :
+                                ""),
+                        encodingTime * 1e-6, completingTime * 1e-6,
+                        owner.internalTimingReport(),
+                        sizeInBytes / 1048576.0 / (totalTime * 1e-9));
+            });
         }
     }
 

@@ -43,7 +43,7 @@ public interface TiffCodec {
     interface Timing {
         void setTiming(boolean timing);
 
-        void clearTiming();
+        void resetTiming();
 
         long timeMain();
 

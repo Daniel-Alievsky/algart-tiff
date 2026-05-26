@@ -242,7 +242,7 @@ public class JPEGCodec implements TiffCodec, TiffCodec.Timing {
         this.timing = timing;
     }
 
-    public void clearTiming() {
+    public void resetTiming() {
         timeMain = 0;
         timeBridge = 0;
         timeAdditional = 0;
