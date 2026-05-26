@@ -90,19 +90,23 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
     }
 
     public byte[] readSampleBytes() throws IOException {
-        return reader.readSampleBytes(this);
+        return readSampleBytes(0, 0, dimX(), dimY());
     }
 
     public byte[] readSampleBytes(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
-        return reader.readSampleBytes(this, fromX, fromY, sizeX, sizeY);
+        return readSampleBytes(
+                fromX, fromY, sizeX, sizeY,
+                reader.getUnusualPrecisions(),
+                false,
+                this::readCachedTile);
     }
 
     public Object readJavaArray() throws IOException {
-        return reader.readJavaArray(this);
+        return readJavaArray(0, 0, dimX(), dimY());
     }
 
     public Object readJavaArray(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
-        return reader.readJavaArray(this, fromX, fromY, sizeX, sizeY);
+        return readJavaArray(fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
     }
 
     public Matrix<UpdatablePArray> readMatrix() throws IOException {

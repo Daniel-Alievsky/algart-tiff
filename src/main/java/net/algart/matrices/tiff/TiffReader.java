@@ -94,7 +94,7 @@ public non-sealed class TiffReader extends TiffIO {
         DISABLE,
         UNPACK;
 
-        UnusualPrecisions unpackIfEnabled() {
+        public UnusualPrecisions unpackIfEnabled() {
             return this == NONE ? UNPACK : this;
         }
 
@@ -540,7 +540,7 @@ public non-sealed class TiffReader extends TiffIO {
      * or they will lead to an exception when it is {@link UnusualPrecisions#DISABLE},
      * or they will be loaded as-is if it is {@link UnusualPrecisions#NONE}.
      *
-     * <p>This mode is used inside {@link #readSampleBytes(TiffIOMap, int, int, int, int)}
+     * <p>This mode is used inside {@link TiffReadMap#readSampleBytes(int, int, int, int)}
      * method after all tiles have been read.
      * This is just the default value of <code>unusualPrecisions</code>
      * argument of the more verbose method
@@ -553,7 +553,8 @@ public non-sealed class TiffReader extends TiffIO {
      * are always unpacked to the nearest bit depth divided by 8 when decoding tiles.</p>
      *
      * <p>The {@link UnusualPrecisions#NONE} mode is ignored (as if it was {@link UnusualPrecisions#UNPACK})
-     * when using high-level reading methods like {@link #readMatrix} and {@link #readJavaArray}.</p>
+     * when using high-level reading methods like {@link TiffReadMap#readMatrix} and
+     * {@link TiffReadMap#readJavaArray}.</p>
      *
      * <p>This flag is {@code true} by default. Usually there are no reasons to set it to {@code false},
      * besides compatibility reasons or requirement to maximally save memory while processing 16/24-bit
@@ -1599,7 +1600,7 @@ public non-sealed class TiffReader extends TiffIO {
      * bytes: 1..7 bits are transformed to 8 bits/sample, 9..15 to 16 bits/sample, 17..23 to 24 bits/sample etc.
      * Thus, this method <b>does not unpack 3-byte samples</b> (to 4-byte) and
      * <b>does not unpack 16- or 24-bit</b> floating-point formats. These cases
-     * are processed after reading all tiles inside {@link #readSampleBytes(TiffIOMap, int, int, int, int)}
+     * are processed after reading all tiles inside {@link #readSampleBytes}
      * method, if {@link #getUnusualPrecisions()} mode is {@link UnusualPrecisions#UNPACK},
      * or may be performed by external
      * code with help of {@link TiffUnusualPrecisions#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)}
@@ -1704,22 +1705,8 @@ public non-sealed class TiffReader extends TiffIO {
         return lastMap;
     }
 
-    public Object readSampleBytes(int ifdIndex) throws IOException {
-        return readJavaArray(map(ifdIndex));
-    }
-
-    public byte[] readSampleBytes(TiffIOMap<?> map) throws IOException {
-        Objects.requireNonNull(map, "Null TIFF map");
-        return readSampleBytes(map, 0, 0, map.dimX(), map.dimY());
-    }
-
-    public byte[] readSampleBytes(TiffIOMap<?> map, int fromX, int fromY, int sizeX, int sizeY) throws IOException {
-        return readSampleBytes(
-                map,
-                fromX, fromY, sizeX, sizeY,
-                unusualPrecisions,
-                false,
-                this::readCachedTile);
+    public byte[] readSampleBytes(int ifdIndex) throws IOException {
+        return map(ifdIndex).readSampleBytes();
     }
 
     public byte[] readSampleBytes(
@@ -1802,51 +1789,7 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     public Object readJavaArray(int ifdIndex) throws IOException {
-        return readJavaArray(map(ifdIndex));
-    }
-
-    public Object readJavaArray(TiffIOMap<?> map) throws IOException {
-        Objects.requireNonNull(map, "Null TIFF map");
-        return readJavaArray(map, 0, 0, map.dimX(), map.dimY());
-    }
-
-    public Object readJavaArray(TiffIOMap<?> map, int fromX, int fromY, int sizeX, int sizeY) throws IOException {
-        return readJavaArray(map, fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
-    }
-
-    public Object readJavaArray(
-            TiffIOMap<?> map,
-            int fromX,
-            int fromY,
-            int sizeX,
-            int sizeY,
-            boolean storeTilesInMap,
-            TiffIOMap.TileSupplier tileSupplier)
-            throws IOException {
-        Objects.requireNonNull(map, "Null TIFF map");
-        Objects.requireNonNull(tileSupplier, "Null tileSupplier");
-        final byte[] samples = readSampleBytes(
-                map, fromX, fromY, sizeX, sizeY,
-                unusualPrecisions.unpackIfEnabled(), storeTilesInMap, tileSupplier);
-        long t1 = debugTime();
-        final TiffSampleType sampleType = map.sampleType();
-        final Object samplesArray = autoUnpackBits.isEnabled() && map.isBinary() ?
-                samples :
-                sampleType.javaArray(samples, getByteOrder());
-        if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
-            long t2 = debugTime();
-            LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
-                    "%s converted %d bytes (%.3f MB) to %s[] in %.3f ms%s",
-                    getClass().getSimpleName(),
-                    samples.length, samples.length / 1048576.0,
-                    samplesArray.getClass().getComponentType().getSimpleName(),
-                    (t2 - t1) * 1e-6,
-                    samples == samplesArray ?
-                            "" :
-                            String.format(Locale.US, " %.3f MB/s",
-                                    samples.length / 1048576.0 / ((t2 - t1) * 1e-9))));
-        }
-        return samplesArray;
+        return map(ifdIndex).readJavaArray();
     }
 
     public Matrix<UpdatablePArray> readMatrix(int ifdIndex) throws IOException {
@@ -1889,7 +1832,7 @@ public non-sealed class TiffReader extends TiffIO {
             boolean storeTilesInMap,
             TiffIOMap.TileSupplier tileSupplier)
             throws IOException {
-        final Object samplesArray = readJavaArray(map, fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
+        final Object samplesArray = map.readJavaArray(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
         return TiffSampleType.asMatrix(samplesArray, sizeX, sizeY, map.numberOfChannels(), false);
     }
 

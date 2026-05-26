@@ -27,15 +27,13 @@ package net.algart.matrices.tiff.tiles;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PackedBitArraysPer8;
 import net.algart.arrays.UpdatablePArray;
-import net.algart.matrices.tiff.TiffException;
-import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.TiffIO;
-import net.algart.matrices.tiff.TiffReader;
+import net.algart.matrices.tiff.*;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits TiffReadMap, TiffWriteMap {
@@ -43,6 +41,10 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
     public interface TileSupplier {
         TiffTile getTile(TiffTileIndex tiffTileIndex) throws IOException;
     }
+
+    static final boolean BUILT_IN_TIMING = TiffIO.BUILT_IN_TIMING;
+    static final System.Logger LOG = System.getLogger(TiffIOMap.class.getName());
+    static final boolean LOGGABLE_DEBUG = LOG.isLoggable(System.Logger.Level.DEBUG);
 
     private final T owner;
 
@@ -243,7 +245,28 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             TileSupplier tileSupplier)
             throws IOException {
         @SuppressWarnings("resource") final TiffReader reader = reader();
-        return reader.readJavaArray(this, fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
+        Objects.requireNonNull(tileSupplier, "Null tileSupplier");
+        final byte[] samples = readSampleBytes(
+                fromX, fromY, sizeX, sizeY,
+                reader.getUnusualPrecisions().unpackIfEnabled(), storeTilesInMap, tileSupplier);
+        long t1 = debugTime();
+        final Object samplesArray = reader.getAutoUnpackBits().isEnabled() && isBinary() ?
+                samples :
+                sampleType().javaArray(samples, reader.getByteOrder());
+        if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+            long t2 = debugTime();
+            LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
+                    "%s converted %d bytes (%.3f MB) to %s[] in %.3f ms%s",
+                    getClass().getSimpleName(),
+                    samples.length, samples.length / 1048576.0,
+                    samplesArray.getClass().getComponentType().getSimpleName(),
+                    (t2 - t1) * 1e-6,
+                    samples == samplesArray ?
+                            "" :
+                            String.format(Locale.US, " %.3f MB/s",
+                                    samples.length / 1048576.0 / ((t2 - t1) * 1e-9))));
+        }
+        return samplesArray;
     }
 
     public Matrix<UpdatablePArray> readMatrix(
@@ -294,6 +317,10 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         @SuppressWarnings("resource") final TiffReader reader = reader();
         return reader.readBufferedImage(
                 this, fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
+    }
+
+    static long debugTime() {
+        return BUILT_IN_TIMING && LOGGABLE_DEBUG ? System.nanoTime() : 0;
     }
 
     static int divFloor(int a, int b) {

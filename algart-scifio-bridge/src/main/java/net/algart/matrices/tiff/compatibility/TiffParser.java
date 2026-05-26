@@ -786,7 +786,7 @@ public class TiffParser extends TiffReader {
 
     /**
      * This function is deprecated, because almost identical behavior is implemented by
-     * {@link #readSampleBytes(net.algart.matrices.tiff.tiles.TiffIOMap, int, int, int, int)}.
+     * {@link #readSampleBytes}.
      */
     @Deprecated
     public byte[] getSamples(final IFD ifd, final byte[] buf, final int x,
