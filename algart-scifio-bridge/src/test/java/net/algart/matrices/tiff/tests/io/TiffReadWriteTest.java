@@ -35,6 +35,7 @@ import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.compatibility.TiffParser;
 import net.algart.matrices.tiff.tags.Tags;
+import net.algart.matrices.tiff.tiles.TiffWriteMap;
 import org.scijava.Context;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.location.FileLocation;
@@ -45,10 +46,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 public class TiffReadWriteTest {
     private static final int MAX_IMAGE_DIM = 8000;
@@ -245,6 +243,14 @@ public class TiffReadWriteTest {
         }
         System.out.println("Done");
     }
+
+    private static void writeSampleBytes(TiffWriteMap map, byte[] samples, int fromX, int fromY, int sizeX, int sizeY)
+            throws IOException {
+        map.updateSampleBytes(samples, fromX, fromY, sizeX, sizeY);
+        map.encode();
+        map.completeWriting();
+    }
+
 
     // A clone of a very old method, helped to use TiffSaver in 2014
     private static void writeSeveralTilesOrStrips(

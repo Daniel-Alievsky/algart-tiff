@@ -24,10 +24,8 @@
 
 package net.algart.matrices.tiff.tiles;
 
-import net.algart.arrays.Matrices;
-import net.algart.arrays.Matrix;
-import net.algart.arrays.PackedBitArraysPer8;
-import net.algart.arrays.UpdatablePArray;
+import net.algart.arrays.*;
+import net.algart.io.awt.MatrixToImage;
 import net.algart.matrices.tiff.*;
 
 import java.awt.image.BufferedImage;
@@ -316,9 +314,21 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             boolean storeTilesInMap,
             TileSupplier tileSupplier)
             throws IOException {
-        @SuppressWarnings("resource") final TiffReader reader = reader();
-        return reader.readBufferedImage(
-                this, fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
+        final Matrix<UpdatablePArray> mergedChannels =
+                readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
+        final Matrix<? extends PArray> interleaved =
+                Matrices.interleave(extractFirst4(mergedChannels.asLayers()));
+        // Note: we do not use MatrixToImage.toBufferedImage, because we need to call setUnsignedInt32
+        return new MatrixToImage.InterleavedRGBToInterleaved()
+                .setUnsignedInt32(true)
+                .toBufferedImage(interleaved);
+    }
+
+    <T> List<T> extractFirst4(List<T> image) {
+        //noinspection resource
+        return reader().isRemoveExtraChannelsIf5OrMoreForBufferedImage() && image.size() > 4 ?
+                image.subList(0, 4) :
+                image;
     }
 
     static long debugTime() {
@@ -329,5 +339,6 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         assert b > 0;
         return a >= 0 ? a / b : (a - b + 1) / b;
     }
+
 }
 

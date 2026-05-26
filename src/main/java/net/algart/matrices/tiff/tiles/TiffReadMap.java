@@ -159,13 +159,22 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
         return readChannels(fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
     }
 
+    /**
+     * Reads the full image with the specified TIFF map as <code>BufferedImage</code>.
+     * For example, for the RGB image, the result will be a list of three matrices R, G, B.
+     *
+     * @return content of the TIFF image.
+     * @throws TiffException if the file is not a correct TIFF file,
+     *                       and this was not detected while opening it.
+     * @throws IOException   in the case of any other problems with the input file.
+     */
     public BufferedImage readBufferedImage() throws IOException {
-        return reader.readBufferedImage(this);
+        return readBufferedImage(0, 0, dimX(), dimY());
     }
 
     public BufferedImage readBufferedImage(int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        return reader.readBufferedImage(this, fromX, fromY, sizeX, sizeY);
+        return readBufferedImage(fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
     }
 
     public TiffTile readCachedTile(TiffTileIndex tileIndex) throws IOException {

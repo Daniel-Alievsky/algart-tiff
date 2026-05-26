@@ -1184,10 +1184,6 @@ public non-sealed class TiffWriter extends TiffIO {
         TiffPrediction.subtractPredictionIfRequested(tile);
     }
 
-    public void encode(TiffWriteMap map) throws TiffException {
-        encode(map, null);
-    }
-
     /**
      * Equivalent to <code>{@link #correctForEncoding(TiffIFD, boolean)
      * correctForEncoding}(ifd, thisObject.{@link #isSmartCorrection() isSmartCorrection()})</code>.
@@ -1420,12 +1416,12 @@ public non-sealed class TiffWriter extends TiffIO {
      * In this case, IFD will be written at the final stage ({@link #completeWriting(TiffWriteMap)} method).
      *
      * @param map map, describing the image.
+     * @return {@code true} if this method has actually written the IFD.
      */
-    public void writeForward(TiffWriteMap map) throws IOException {
+    public boolean writeForward(TiffWriteMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         if (!writingForwardAllowed || map.isResizable()) {
-            timeForward = false;
-            return;
+            return false;
         }
         final long[] offsets = new long[map.numberOfGridTiles()];
         final long[] byteCounts = new long[map.numberOfGridTiles()];
@@ -1436,11 +1432,11 @@ public non-sealed class TiffWriter extends TiffIO {
             // - prevents writing in the case of twice call
             writeIFD(ifd, false);
         }
-        timeForward = true;
+        return true;
     }
 
     /**
-     * Writes the matrix at the position (0,0).
+     * Writes the matrix.
      *
      * <p>Note that then the samples array in all <code>write...</code> methods is always supposed to be separated.
      * For multichannel images it means the samples order like RRR..GGG..BBB...: standard form,
@@ -1450,7 +1446,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * form RGBRGBRGB...
      *
      * @param map     TIFF map.
-     * @param samples the samples in unpacked form.
+     * @param samples the samples in a raw form.
      * @throws TiffException in the case of invalid TIFF IFD.
      * @throws IOException   in the case of any I/O errors.
      */
@@ -1469,9 +1465,9 @@ public non-sealed class TiffWriter extends TiffIO {
         long t1 = debugTime();
         map.updateSampleBytes(samples, fromX, fromY, sizeX, sizeY);
         long t2 = debugTime();
-        writeForward(map);
+        timeForward = writeForward(map);
         long t3 = debugTime();
-        encode(map);
+        map.encode();
         long t4 = debugTime();
         completeWriting(map);
         logWritingMatrix(map, "byte samples", sizeX, sizeY, t1, t2, t3, t4);
@@ -1492,9 +1488,9 @@ public non-sealed class TiffWriter extends TiffIO {
         long t1 = debugTime();
         map.updateJavaArray(samplesArray, fromX, fromY, sizeX, sizeY);
         long t2 = debugTime();
-        writeForward(map);
+        timeForward = writeForward(map);
         long t3 = debugTime();
-        encode(map);
+        map.encode();
         long t4 = debugTime();
         completeWriting(map);
         logWritingMatrix(map, "pixel array", sizeX, sizeY, t1, t2, t3, t4);
@@ -1526,9 +1522,9 @@ public non-sealed class TiffWriter extends TiffIO {
         long t1 = debugTime();
         map.updateMatrix(matrix, fromX, fromY);
         long t2 = debugTime();
-        writeForward(map);
+        timeForward = writeForward(map);
         long t3 = debugTime();
-        encode(map);
+        map.encode();
         long t4 = debugTime();
         completeWriting(map);
         logWritingMatrix(map, matrix, t1, t2, t3, t4);
@@ -1595,7 +1591,7 @@ public non-sealed class TiffWriter extends TiffIO {
         final boolean resizable = map.isResizable();
         map.checkTooSmallDimensionsForCurrentGrid();
 
-        encode(map, "completion");
+        map.encode();
         // - encode tiles, which are not encoded yet
 
         final TiffIFD ifd = map.ifd();
@@ -2300,19 +2296,21 @@ public non-sealed class TiffWriter extends TiffIO {
         logTiles(tiles.isEmpty() ? null : tiles.iterator().next().map(), stage, action, count, sizeInBytes, t1, t2);
     }
 
-    private void logTiles(TiffMap map, String stage, String action, int count, long sizeInBytes, long t1, long t2) {
+    // See also the analogous private method in TiffWriteMap
+    private static void logTiles(
+            TiffMap map, String stage, String action, int count, long sizeInBytes, long t1, long t2) {
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             LOG.log(System.Logger.Level.TRACE, () ->
                     count == 0 ?
                             String.format(Locale.US,
                                     "%s%s %s no tiles in %.3f ms",
-                                    getClass().getSimpleName(),
+                                    TiffWriter.class.getSimpleName(),
                                     stage == null ? "" : " (" + stage + " stage)",
                                     action,
                                     (t2 - t1) * 1e-6) :
                             String.format(Locale.US,
                                     "%s%s %s %d tiles %dx%dx%d (%.3f MB) in %.3f ms, %.3f MB/s",
-                                    getClass().getSimpleName(),
+                                    TiffWriter.class.getSimpleName(),
                                     stage == null ? "" : " (" + stage + " stage)",
                                     action,
                                     count, map.numberOfChannels(), map.tileSizeX(), map.tileSizeY(),

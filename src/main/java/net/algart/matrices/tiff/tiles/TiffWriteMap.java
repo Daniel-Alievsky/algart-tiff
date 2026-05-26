@@ -25,16 +25,14 @@
 package net.algart.matrices.tiff.tiles;
 
 import net.algart.arrays.*;
+import net.algart.arrays.Arrays;
 import net.algart.io.awt.ImageToMatrix;
 import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Predicate;
 
 public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
@@ -476,6 +474,21 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
         return writeTiles(tiles, TiffTile::isCompleted, freeAndFreezeAfterWriting);
     }
 
+    public void encode() throws TiffException {
+        long t1 = debugTime();
+        int count = 0;
+        long sizeInBytes = 0;
+        for (TiffTile tile : tiles()) {
+            final boolean wasNotEncodedYet = owner.encode(tile);
+            if (wasNotEncodedYet) {
+                count++;
+                sizeInBytes += tile.getSizeInBytes();
+            }
+        }
+        long t2 = debugTime();
+        logTiles(null, count, sizeInBytes, t1, t2);
+    }
+
     public int writeTiles(
             Collection<TiffTile> tiles,
             Predicate<TiffTile> needToWrite,
@@ -556,6 +569,40 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
     @Override
     String mapKindName() {
         return "map-for-writing" + (existing ? " (existing)" : " (new)");
+    }
+
+    private void encode(String stage) throws TiffException {
+        long t1 = debugTime();
+        int count = 0;
+        long sizeInBytes = 0;
+        for (TiffTile tile : tiles()) {
+            final boolean wasNotEncodedYet = owner.encode(tile);
+            if (wasNotEncodedYet) {
+                count++;
+                sizeInBytes += tile.getSizeInBytes();
+            }
+        }
+        long t2 = debugTime();
+        logTiles(stage, count, sizeInBytes, t1, t2);
+    }
+
+    // See also the analogous private method in TiffWriter
+    private void logTiles(String stage, int count, long sizeInBytes, long t1, long t2) {
+        if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+            LOG.log(System.Logger.Level.TRACE, () ->
+                    count == 0 ?
+                            String.format(Locale.US,
+                                    "%s encoded no tiles in %.3f ms",
+                                    getClass().getSimpleName(),
+                                    (t2 - t1) * 1e-6) :
+                            String.format(Locale.US,
+                                    "%s encoded %d tiles %dx%dx%d (%.3f MB) in %.3f ms, %.3f MB/s",
+                                    getClass().getSimpleName(),
+                                    count, numberOfChannels(), tileSizeX(), tileSizeY(),
+                                    sizeInBytes / 1048576.0,
+                                    (t2 - t1) * 1e-6,
+                                    sizeInBytes / 1048576.0 / ((t2 - t1) * 1e-9)));
+        }
     }
 
     private static void checkRequestedAreaInArray(byte[] array, long sizeX, long sizeY, int bitsPerPixel) {

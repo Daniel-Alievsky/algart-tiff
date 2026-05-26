@@ -26,7 +26,6 @@ package net.algart.matrices.tiff;
 
 import net.algart.arrays.*;
 import net.algart.io.MatrixIO;
-import net.algart.io.awt.MatrixToImage;
 import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.data.TiffJPEGDecodingHelper;
 import net.algart.matrices.tiff.data.TiffPrediction;
@@ -1705,6 +1704,17 @@ public non-sealed class TiffReader extends TiffIO {
         return lastMap;
     }
 
+    /**
+     * Equivalent to
+     * <code>{@link #map(int) map}(ifdIndex).{@link TiffReadMap#readSampleBytes() readSampleBytes()}</code>.
+     *
+     * @return the samples as a raw byte array.
+     * @throws TiffException            if <code>ifdIndex</code> is too large,
+     *                                  or if the file is not a correct TIFF file,
+     *                                  and this was not detected while opening it.
+     * @throws IOException              in the case of any problems with the input file.
+     * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
+     */
     public byte[] readSampleBytes(int ifdIndex) throws IOException {
         return map(ifdIndex).readSampleBytes();
     }
@@ -1805,49 +1815,7 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     public BufferedImage readBufferedImage(int ifdIndex) throws IOException {
-        return readBufferedImage(map(ifdIndex));
-    }
-
-    /**
-     * Reads the full image with the specified TIFF map as <code>BufferedImage</code>.
-     * For example, for the RGB image, the result will be a list of three matrices R, G, B.
-     *
-     * <p>The necessary TIFF map can be obtained, for example, by calling
-     * <code>{@link #map(int) reader.map}(ifdIndex)</code>.</p>
-     *
-     * @param map TIFF map, constructed from one of the IFDs of this TIFF file.
-     * @return content of the TIFF image.
-     * @throws TiffException if the file is not a correct TIFF file,
-     *                       and this was not detected while opening it.
-     * @throws IOException   in the case of any other problems with the input file.
-     */
-    public BufferedImage readBufferedImage(TiffIOMap<?> map) throws IOException {
-        Objects.requireNonNull(map, "Null TIFF map");
-        return readBufferedImage(map, 0, 0, map.dimX(), map.dimY());
-    }
-
-    public BufferedImage readBufferedImage(TiffIOMap<?> map, int fromX, int fromY, int sizeX, int sizeY)
-            throws IOException {
-        return readBufferedImage(map, fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
-    }
-
-    public BufferedImage readBufferedImage(
-            TiffIOMap<?> map,
-            int fromX,
-            int fromY,
-            int sizeX,
-            int sizeY,
-            boolean storeTilesInMap,
-            TiffIOMap.TileSupplier tileSupplier)
-            throws IOException {
-        final Matrix<UpdatablePArray> mergedChannels =
-                map.readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
-        final Matrix<? extends PArray> interleaved =
-                Matrices.interleave(extractFirst4(mergedChannels.asLayers()));
-        // Note: we do not use MatrixToImage.toBufferedImage, because we need to call setUnsignedInt32
-        return new MatrixToImage.InterleavedRGBToInterleaved()
-                .setUnsignedInt32(true)
-                .toBufferedImage(interleaved);
+        return map(ifdIndex).readBufferedImage();
     }
 
     public final byte[] decompressBySCIFIOCodec(TiffIFD ifd, byte[] encodedData, Object scifioCodecOptions)
@@ -2117,10 +2085,6 @@ public non-sealed class TiffReader extends TiffIO {
         Objects.requireNonNull(inputStream, "Null input stream");
         Objects.requireNonNull(openMode, "Null open mode");
         return inputStream;
-    }
-
-    private <T> List<T> extractFirst4(List<T> image) {
-        return !removeExtraChannelsIf5OrMoreForBufferedImage || image.size() <= 4 ? image : image.subList(0, 4);
     }
 
     class CachedTile {
