@@ -138,16 +138,25 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
 
     public Matrix<UpdatablePArray> readInterleavedMatrix(int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        return readInterleavedMatrix(fromX, fromY, sizeX, sizeY, false, reader::readCachedTile);
+        return readInterleavedMatrix(fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
     }
 
+    /**
+     * Reads the full image with the specified TIFF map as a list of 2-dimensional matrices containing color channels.
+     * For example, for the RGB image, the result will be a list of three matrices R, G, B.
+     *
+     * @return content of the TIFF image.
+     * @throws TiffException if the file is not a correct TIFF file,
+     *                       and this was not detected while opening it.
+     * @throws IOException   in the case of any other problems with the input file.
+     */
     public List<Matrix<UpdatablePArray>> readChannels() throws IOException {
-        return reader.readChannels(this);
+        return readChannels(0, 0, dimX(), dimY());
     }
 
     public List<Matrix<UpdatablePArray>> readChannels(int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        return reader.readChannels(this, fromX, fromY, sizeX, sizeY);
+        return readChannels(fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
     }
 
     public BufferedImage readBufferedImage() throws IOException {

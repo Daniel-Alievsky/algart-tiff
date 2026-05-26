@@ -303,8 +303,9 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             boolean storeTilesInMap,
             TileSupplier tileSupplier)
             throws IOException {
-        @SuppressWarnings("resource") final TiffReader reader = reader();
-        return reader.readChannels(this, fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
+        final Matrix<UpdatablePArray> mergedChannels =
+                readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
+        return Matrices.asLayers(mergedChannels, TiffIFD.MAX_NUMBER_OF_CHANNELS);
     }
 
     public BufferedImage readBufferedImage(

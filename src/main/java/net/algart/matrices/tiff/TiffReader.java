@@ -1801,44 +1801,7 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     public List<Matrix<UpdatablePArray>> readChannels(int ifdIndex) throws IOException {
-        return readChannels(map(ifdIndex));
-    }
-
-    /**
-     * Reads the full image with the specified TIFF map as a list of 2-dimensional matrices containing color channels.
-     * For example, for the RGB image, the result will be a list of three matrices R, G, B.
-     *
-     * <p>The necessary TIFF map can be obtained, for example, by calling
-     * <code>{@link #map(int) reader.map}(ifdIndex)</code>.</p>
-     *
-     * @param map TIFF map, constructed from one of the IFDs of this TIFF file.
-     * @return content of the TIFF image.
-     * @throws TiffException if the file is not a correct TIFF file,
-     *                       and this was not detected while opening it.
-     * @throws IOException   in the case of any other problems with the input file.
-     */
-    public List<Matrix<UpdatablePArray>> readChannels(TiffIOMap<?> map) throws IOException {
-        Objects.requireNonNull(map, "Null TIFF map");
-        return readChannels(map, 0, 0, map.dimX(), map.dimY());
-    }
-
-    public List<Matrix<UpdatablePArray>> readChannels(TiffIOMap<?> map, int fromX, int fromY, int sizeX, int sizeY)
-            throws IOException {
-        return readChannels(map, fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
-    }
-
-    public List<Matrix<UpdatablePArray>> readChannels(
-            TiffIOMap<?> map,
-            int fromX,
-            int fromY,
-            int sizeX,
-            int sizeY,
-            boolean storeTilesInMap,
-            TiffIOMap.TileSupplier tileSupplier)
-            throws IOException {
-        final Matrix<UpdatablePArray> mergedChannels =
-                map.readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
-        return Matrices.asLayers(mergedChannels, TiffIFD.MAX_NUMBER_OF_CHANNELS);
+        return map(ifdIndex).readChannels();
     }
 
     public BufferedImage readBufferedImage(int ifdIndex) throws IOException {
