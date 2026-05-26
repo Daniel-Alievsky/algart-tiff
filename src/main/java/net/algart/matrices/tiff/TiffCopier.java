@@ -537,7 +537,7 @@ public final class TiffCopier {
         final TiffWriteMap writeMap = writer.newMap(writeIFD, false, correctForEncoding);
         checkImageCompatibility(writeMap, readMap);
         this.actuallyDirectCopy = actuallyDirectCopy;
-        writer.writeForward(writeMap);
+        writeMap.prewrite();
         final Collection<TiffTile> targetTiles = writeMap.tiles();
         progressInformation.tileCount = targetTiles.size();
         int tileCount = 0;
@@ -653,7 +653,7 @@ public final class TiffCopier {
         // correctForEncoding(), in particular, corrects PhotometricInterpretation, and this may be necessary
         // if we need to encode tiles.
         checkImageCompatibility(writeMap, readMap);
-        writer.writeForward(writeMap);
+        writeMap.prewrite();
         progressInformation.tileCount = writeMap.numberOfGridTiles();
         final int readDimX = readMap.dimX();
         final int readDimY = readMap.dimY();

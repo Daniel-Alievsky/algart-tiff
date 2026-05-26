@@ -100,8 +100,8 @@ public class TiffWriteMixedTest {
 
             int sizeX = map.dimX() / 2;
             int sizeY = map.dimY() / 2;
-            writer.writeForward(map); // - write IFD BEFORE image
-            map.writeForward(); // - twice call should do nothing
+            writer.prewrite(map); // - write IFD BEFORE image
+            map.prewrite(); // - twice call should do nothing
 
             // First writing a part of image (light)
             Object samples = makeSamples(map, sizeX, sizeY, numberOfChannels, 0.3);

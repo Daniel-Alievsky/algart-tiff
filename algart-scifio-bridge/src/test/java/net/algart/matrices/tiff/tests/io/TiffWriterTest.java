@@ -411,7 +411,7 @@ public class TiffWriterTest {
                         map.writeMatrix(matrix);
                         // - this call shows detailed logging
                     } else {
-                        map.writeForward();
+                        map.prewrite();
                         map.updateMatrix(matrix, x, y);
                         map.completeWriting();
                         // - equivalent operations without logging

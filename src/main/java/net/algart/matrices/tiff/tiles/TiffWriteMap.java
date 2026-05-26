@@ -402,7 +402,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                     " (matrix " + matrix.dim(0) + "*" + matrix.dim(1) + "*" + matrix.dim(2) + "), " +
                     (matrix.dim(2 - dimChannelsIndex) == numberOfChannels() ?
                             "probably because of invalid interleaving mode: TIFF image is " +
-                                    (sourceInterleaved ? "" : "NOT ") + "interleaved" :
+                            (sourceInterleaved ? "" : "NOT ") + "interleaved" :
                             "because the specified TIFF map stores " + numberOfChannels() + " channels"));
         }
         PArray array = matrix.array();
@@ -438,8 +438,12 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
         return updateChannels(ImageToMatrix.toChannels(bufferedImage), fromX, fromY);
     }
 
-    public void writeForward() throws IOException {
-        owner.writeForward(this);
+    public void prewrite() throws IOException {
+        owner.prewrite(this);
+    }
+
+    public void writeSampleBytes(byte[] samples) throws IOException {
+        owner.writeSampleBytes(this, samples);
     }
 
     public void writeJavaArray(Object samplesArray) throws IOException {
@@ -545,7 +549,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
      * a new map based on the same IFD.</p>
      *
      * @throws IllegalStateException if {@link #isExistingInFile()} returns {@code false}.
-     * @throws TiffException if case of problems with accessing the underlying IFD.
+     * @throws TiffException         if case of problems with accessing the underlying IFD.
      */
     public void putDataPlacementInFileToUnderlyingIFD() throws TiffException {
         if (!isExistingInFile()) {
