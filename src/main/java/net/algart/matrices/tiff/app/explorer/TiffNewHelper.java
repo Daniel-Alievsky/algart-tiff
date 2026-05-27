@@ -24,9 +24,14 @@
 
 package net.algart.matrices.tiff.app.explorer;
 
+import net.algart.arrays.Matrix;
+import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffSampleType;
+import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tiles.TiffMap;
+import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
 import javax.swing.*;
 import java.awt.*;
@@ -41,20 +46,34 @@ class TiffNewHelper {
     private final JFrame frame;
     private final TiffExplorer explorer;
 
-    private volatile boolean copyingInProgress = false;
-    private volatile boolean stopRequested = false;
-
-    private JDialog settingsDialog;
+    private JDialog dialog;
     private JComboBox<UserByteOrder> byteOrderComboBox;
     private JCheckBox bigTiffCheckBox;
+    private JTextField dimXField;
+    private JTextField dimYField;
     private JCheckBox tiledCheckBox;
-    private JTextField dimXField, dimYField, tileSizeXField, tileSizeYField;
+    private JTextField tileSizeXField;
+    private JTextField tileSizeYField;
     private JComboBox<UserNumberOfChannels> numberOfChannelsComboBox;
     private JComboBox<TiffSampleType> sampleTypeComboBox;
-    private JComboBox<TagCompression> compressionComboBox;
-    private JCheckBox patternCheckBox;
+    private JComboBox<String> compressionMethodComboBox;
     private JButton colorButton;
-    private Color selectedColor = Color.GRAY;
+    private JTextField colorHexField;
+    private JPanel colorPreviewPanel;
+    private JCheckBox patternCheckBox;
+
+    private UserByteOrder byteOrder = UserByteOrder.BIG_ENDIAN;
+    private boolean bigTiff = false;
+    private long dimX = 1024;
+    private long dimY = 1024;
+    private boolean tiled = true;
+    private int tileSizeX = TiffIFD.DEFAULT_TILE_SIZE;
+    private int tileSizeY = TiffIFD.DEFAULT_TILE_SIZE;
+    private UserNumberOfChannels numberOfChannels = UserNumberOfChannels.RGB;
+    private TiffSampleType sampleType = TiffSampleType.UINT8;
+    private TagCompression compression = TagCompression.DEFLATE;
+    private Color selectedColor = new Color(220, 230, 242);
+    private boolean pattern = false;
 
     public TiffNewHelper(JTiffExplorerFrame frame) {
         this.frame = Objects.requireNonNull(frame);
@@ -82,16 +101,14 @@ class TiffNewHelper {
         return file.toPath();
     }
 
-    private JTextField colorHexField;
-    private JPanel colorPreviewPanel;
-
     public void showNewTiffDialog(Path targetFile) throws IOException {
         Objects.requireNonNull(targetFile, "Null targetFile");
-        settingsDialog = new JDialog(frame, true);
-        settingsDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-        settingsDialog.setTitle("Create new blank TIFF");
-        settingsDialog.setLayout(new BorderLayout(10, 10));
-        settingsDialog.setResizable(false);
+        dialog = new JDialog(frame, true);
+        dialog.setMinimumSize(new Dimension(250, 20));
+        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        dialog.setTitle("Create new blank TIFF");
+        dialog.setLayout(new BorderLayout(10, 10));
+        dialog.setResizable(false);
 
         final JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
@@ -112,34 +129,35 @@ class TiffNewHelper {
         constraints.insets = new Insets(4, 5, 4, 5);
         int row = 0;
         addGridBugRowCaption(gridPanel, constraints, "Dimensions", false, row++);
-        dimXField = new JTextField("1024", 10);
-        dimYField = new JTextField("1024", 10);
+        dimXField = new JTextField(String.valueOf(dimX), 10);
+        dimYField = new JTextField(String.valueOf(dimY), 10);
         addGridBugRowLabelled(gridPanel, constraints, new JLabel("Width (pixels):"), dimXField, row++);
         addGridBugRowLabelled(gridPanel, constraints, new JLabel("Height (pixels):"), dimYField, row++);
 
         tiledCheckBox = new JCheckBox("Tiled TIFF image");
         tiledCheckBox.setAlignmentX(Component.LEFT_ALIGNMENT);
-        tileSizeXField = new JTextField(String.valueOf(TiffIFD.DEFAULT_TILE_SIZE), 10);
-        tileSizeYField = new JTextField(String.valueOf(TiffIFD.DEFAULT_TILE_SIZE), 10);
-        tileSizeXField.setEnabled(false);
-        tileSizeYField.setEnabled(false);
-        tiledCheckBox.addActionListener(e -> {
-            tileSizeXField.setEnabled(tiledCheckBox.isSelected());
-            tileSizeYField.setEnabled(tiledCheckBox.isSelected());
-        });
+        tiledCheckBox.setSelected(tiled);
+        tileSizeXField = new JTextField(String.valueOf(tileSizeX), 10);
+        tileSizeYField = new JTextField(String.valueOf(tileSizeY), 10);
+        updateTileSizesEnabled();
+        tiledCheckBox.addActionListener(e -> updateTileSizesEnabled());
 
         addGridBugRowSingle(gridPanel, constraints, tiledCheckBox, row++);
         addGridBugRowLabelled(gridPanel, constraints, new JLabel("Tile width:"), tileSizeXField, row++);
         addGridBugRowLabelled(gridPanel, constraints, new JLabel("Tile height:"), tileSizeYField, row++);
 
-        addGridBugRowCaption(gridPanel, constraints, "Filling settings", true, row++);
+        addGridBugRowCaption(gridPanel, constraints, "Content settings", true, row++);
         numberOfChannelsComboBox = new JComboBox<>(UserNumberOfChannels.values());
-        numberOfChannelsComboBox.setSelectedItem(3);
+        numberOfChannelsComboBox.setSelectedItem(numberOfChannels);
         sampleTypeComboBox = new JComboBox<>(TiffSampleType.values());
-        sampleTypeComboBox.setSelectedItem(TiffSampleType.UINT8);
+        sampleTypeComboBox.setSelectedItem(sampleType);
 
         addGridBugRowLabelled(gridPanel, constraints, new JLabel("Channels:"), numberOfChannelsComboBox, row++);
         addGridBugRowLabelled(gridPanel, constraints, new JLabel("Sample Type:"), sampleTypeComboBox, row++);
+        compressionMethodComboBox = new JComboBox<>(TiffSaveImageHelper.makeCompressionNames());
+        compressionMethodComboBox.setSelectedItem(compression.prettyName());
+        addGridBugRowLabelled(gridPanel, constraints, new JLabel("Compression method:"),
+                compressionMethodComboBox, row++);
 
         JPanel colorChooserPanel = new JPanel(new BorderLayout(5, 0));
         colorHexField = new JTextField("XXXXXX", 7);
@@ -165,41 +183,54 @@ class TiffNewHelper {
         colorButton.addActionListener(e -> selectColor());
 
         patternCheckBox = new JCheckBox("Repeat some figure in each tile");
+        patternCheckBox.setSelected(pattern);
         patternCheckBox.setAlignmentX(Component.LEFT_ALIGNMENT);
         addGridBugRowSingle(gridPanel, constraints, patternCheckBox, row++);
 
         addGridBugRowCaption(gridPanel, constraints, "TIFF file settings", true, row++);
 
         byteOrderComboBox = new JComboBox<>(UserByteOrder.values());
-        byteOrderComboBox.setSelectedItem(UserByteOrder.BIG_ENDIAN);
+        byteOrderComboBox.setSelectedItem(byteOrder);
         addGridBugRowLabelled(gridPanel, constraints, new JLabel("Byte order:"), byteOrderComboBox, row++);
 
         bigTiffCheckBox = new JCheckBox("Big-TIFF (necessary for large files >4 GB)");
+        bigTiffCheckBox.setSelected(bigTiff);
         bigTiffCheckBox.setAlignmentX(Component.LEFT_ALIGNMENT);
         addGridBugRowSingle(gridPanel, constraints, bigTiffCheckBox, row++);
 
         mainPanel.add(gridPanel);
         mainPanel.add(Box.createVerticalStrut(10));
-
-        settingsDialog.add(mainPanel, BorderLayout.CENTER);
+        dialog.add(mainPanel, BorderLayout.CENTER);
 
         final JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
         final JButton okButton = new JButton("Create");
         final JButton cancelButton = new JButton("Cancel");
         buttonPanel.add(okButton);
         buttonPanel.add(cancelButton);
-        settingsDialog.add(buttonPanel, BorderLayout.SOUTH);
-        settingsDialog.getRootPane().setDefaultButton(okButton);
+        dialog.add(buttonPanel, BorderLayout.SOUTH);
+        dialog.getRootPane().setDefaultButton(okButton);
 
-        cancelButton.addActionListener(e -> settingsDialog.dispose());
-        okButton.addActionListener(e -> {
-                settingsDialog.dispose();
+        cancelButton.addActionListener(event -> dialog.dispose());
+        okButton.addActionListener(event -> {
+            try {
+                createNewTiff(targetFile);
+            } catch (Exception e) {
+                TinySwing.showErrorMessage(frame, e, "Error creating new TIFF");
+                return;
+            }
+            dialog.dispose();
+            explorer.loadTiff(targetFile);
         });
 
-        settingsDialog.pack();
-        TinySwing.addCloseOnEscape(settingsDialog);
-        settingsDialog.setLocationRelativeTo(frame);
-        settingsDialog.setVisible(true);
+        dialog.pack();
+        TinySwing.addCloseOnEscape(dialog);
+        dialog.setLocationRelativeTo(frame);
+        dialog.setVisible(true);
+    }
+
+    private void updateTileSizesEnabled() {
+        tileSizeXField.setEnabled(tiledCheckBox.isSelected());
+        tileSizeYField.setEnabled(tiledCheckBox.isSelected());
     }
 
     private static void addGridBugRowCaption(
@@ -247,7 +278,7 @@ class TiffNewHelper {
     }
 
     private void selectColorSimple() {
-        Color newColor = JColorChooser.showDialog(settingsDialog, "Select Fill Color", selectedColor);
+        Color newColor = JColorChooser.showDialog(dialog, "Select Fill Color", selectedColor);
         if (newColor != null) {
             selectedColor = newColor;
             updateHexFromColor();
@@ -264,7 +295,7 @@ class TiffNewHelper {
         }
 
         JDialog dialog = JColorChooser.createDialog(
-                settingsDialog,
+                this.dialog,
                 "Select Fill Color",
                 true,
                 chooser,
@@ -274,7 +305,8 @@ class TiffNewHelper {
                     selectedColor = newColor;
                     updateHexFromColor();
                 },
-                cancelEvt -> {}
+                cancelEvt -> {
+                }
         );
         dialog.setVisible(true);
     }
@@ -290,19 +322,139 @@ class TiffNewHelper {
     }
 
     private void updateHexFromColor() {
-        colorHexField.setText(String.format("#%06X", (0xFFFFFF & selectedColor.getRGB())));
+        colorHexField.setText(String.format("#%06X", 0xFFFFFF & selectedColor.getRGB()));
     }
 
-    private void startCopy(Path sourceFile, Path targetFile) {
-    }
-
-
-    private void cancelCopy() {
-        if (copyingInProgress) {
-            stopRequested = true;
-        } else {
-            settingsDialog.dispose();
+    private void createNewTiff(Path targetFile) throws IOException {
+        try (TiffWriter writer = new TiffWriter(targetFile)) {
+            final boolean tiled = tiledCheckBox.isSelected();
+            final long dimX = Long.parseLong(dimXField.getText());
+            final long dimY = Long.parseLong(dimYField.getText());
+            int tileSizeX = -1;
+            int tileSizeY = -1;
+            if (tiled) {
+                tileSizeX = Integer.parseInt(tileSizeXField.getText());
+                tileSizeY = Integer.parseInt(tileSizeYField.getText());
+            }
+            this.tiled = tiled;
+            this.dimX = dimX;
+            this.dimY = dimY;
+            if (tiled) {
+                this.tileSizeX = tileSizeX;
+                this.tileSizeY = tileSizeY;
+            }
+            this.bigTiff = bigTiffCheckBox.isSelected();
+            this.byteOrder = TinySwing.selectedValue(byteOrderComboBox);
+            this.numberOfChannels = TinySwing.selectedValue(numberOfChannelsComboBox);
+            this.sampleType = TinySwing.selectedValue(sampleTypeComboBox);
+            final String compressionName = TinySwing.selectedValue(compressionMethodComboBox);
+            this.compression = TagCompression.fromPrettyName(compressionName).orElseThrow();
+            this.pattern = patternCheckBox.isSelected();
+            writer.setBigTiff(bigTiff);
+            writer.setByteOrder(byteOrder.byteOrder());
+            writer.create();
+            final TiffIFD ifd = TiffIFD.newIFD(this.tiled);
+            ifd.putImageDimensions(dimX, dimY);
+            if (this.tiled) {
+                ifd.putTileSizes(tileSizeX, tileSizeY);
+            }
+            ifd.putPixelInformation(numberOfChannels.numberOfChannels(), sampleType);
+            ifd.putCompression(compression);
+            final TiffWriteMap map = writer.newFixedMap(ifd);
+            if (pattern) {
+                map.writeBlankRepeatingTile(m -> makePatternSamples(m, map, selectedColor));
+            } else {
+                map.writeBlank(selectedColor);
+            }
         }
+    }
+
+    private static void makePatternSamples(
+            Matrix<UpdatablePArray> matrix,
+            TiffMap map,
+            Color color) {
+        int numberOfChannels = matrix.dim32(2);
+        int dimX = matrix.dimX32();
+        int dimY = matrix.dimY32();
+        final int matrixSize = dimX * dimY;
+        double[] filler = map.colorToChannelValues(color, false);
+        switch (map.sampleType()) {
+            case BIT -> {
+                boolean[] channels = new boolean[matrixSize * numberOfChannels];
+                for (int c = 0, disp = 0; c < numberOfChannels; c++) {
+                    for (int y = 0; y < dimY; y++) {
+                        for (int x = 0; x < dimX; x++, disp++) {
+                            channels[disp] = patternValue(filler, c, x, y, dimX, dimY) > 0.5;
+                        }
+                    }
+                }
+                matrix.array().setData(0, channels);
+            }
+            case UINT8, INT8 -> {
+                byte[] channels = new byte[matrixSize * numberOfChannels];
+                for (int c = 0, disp = 0; c < numberOfChannels; c++) {
+                    for (int y = 0; y < dimY; y++) {
+                        for (int x = 0; x < dimX; x++, disp++) {
+                            channels[disp] = (byte) (patternValue(filler, c, x, y, dimX, dimY) * 255.0);
+                        }
+                    }
+                }
+                matrix.array().setData(0, channels);
+            }
+            case UINT16, INT16 -> {
+                short[] channels = new short[matrixSize * numberOfChannels];
+                for (int c = 0, disp = 0; c < numberOfChannels; c++) {
+                    for (int y = 0; y < dimY; y++) {
+                        for (int x = 0; x < dimX; x++, disp++) {
+                            channels[disp] = (short) (patternValue(filler, c, x, y, dimX, dimY) * 65535.0);
+                        }
+                    }
+                }
+                matrix.array().setData(0, channels);
+            }
+            case INT32, UINT32 -> {
+                int[] channels = new int[matrixSize * numberOfChannels];
+                for (int c = 0, disp = 0; c < numberOfChannels; c++) {
+                    for (int y = 0; y < dimY; y++) {
+                        for (int x = 0; x < dimX; x++, disp++) {
+                            channels[disp] = (int) (long) (patternValue(filler, c, x, y, dimX, dimY) * 0xFFFFFFFFL);
+                        }
+                    }
+                }
+                matrix.array().setData(0, channels);
+            }
+            case FLOAT -> {
+                float[] channels = new float[matrixSize * numberOfChannels];
+                for (int c = 0, disp = 0; c < numberOfChannels; c++) {
+                    for (int y = 0; y < dimY; y++) {
+                        for (int x = 0; x < dimX; x++, disp++) {
+                            channels[disp] = (float) patternValue(filler, c, x, y, dimX, dimY);
+                        }
+                    }
+                }
+                matrix.array().setData(0, channels);
+            }
+            case DOUBLE -> {
+                double[] channels = new double[matrixSize * numberOfChannels];
+                for (int c = 0, disp = 0; c < numberOfChannels; c++) {
+                    for (int y = 0; y < dimY; y++) {
+                        for (int x = 0; x < dimX; x++, disp++) {
+                            channels[disp] = patternValue(filler, c, x, y, dimX, dimY);
+                        }
+                    }
+                }
+                matrix.array().setData(0, channels);
+            }
+        }
+    }
+
+    private static double patternValue(double[] filler, int channel, int x, int y, int dimX, int dimY) {
+        double value = channel < filler.length ? filler[channel] : 1.0;
+        final long halfX = dimX >> 1;
+        final long halfY = dimY >> 1;
+        final long dx = x - halfX;
+        final long dy = y - halfY;
+        return value + (1.0 - value) * (double) (dx * dx + dy * dy) / (double) (halfX * halfX + halfY * halfY);
     }
 
     enum UserNumberOfChannels {

@@ -515,8 +515,7 @@ class TiffSaveImageHelper {
     }
 
     private TagCompression getSelectedCompression() {
-        final int selectedIndex = compressionMethodComboBox.getSelectedIndex();
-        final String selected = compressionMethodComboBox.getItemAt(selectedIndex);
+        final String selected = TinySwing.selectedValue(compressionMethodComboBox);
         return TagCompression.fromPrettyName(selected).orElseThrow();
     }
 
@@ -538,7 +537,11 @@ class TiffSaveImageHelper {
                 + ":";
     }
 
-    private static String[] makeCompressionNames(TagCompression sourceCompression) {
+    static String[] makeCompressionNames() {
+        return makeCompressionNames(TagCompression.NONE);
+    }
+
+    static String[] makeCompressionNames(TagCompression sourceCompression) {
         List<String> list = new ArrayList<>();
         for (TagCompression tagCompression : TagCompression.values()) {
             if (tagCompression.isOldFormat() && !sourceCompression.isOldFormat()) {

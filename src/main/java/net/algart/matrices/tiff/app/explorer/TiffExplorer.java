@@ -67,6 +67,7 @@ public class TiffExplorer {
     private static final System.Logger LOG = System.getLogger(TiffExplorer.class.getName());
 
     private JTiffExplorerFrame frame;
+    private TiffNewHelper tiffNewHelper;
     private FileFilter lastFileFilter = TIFF_OR_SVS_FILTER;
 
     private TiffInfo info = null;
@@ -134,17 +135,17 @@ public class TiffExplorer {
 
     private void createGUI(String[] args) {
         this.frame = new JTiffExplorerFrame(this);
+        this.tiffNewHelper = new TiffNewHelper(frame);
         if (args.length >= 1) {
             loadTiff(Path.of(args[0]));
         }
     }
 
     void chooseFileAndShowNewTiffDialog() {
-        TiffNewHelper helper = new TiffNewHelper(frame);
-        Path file = helper.chooseTiffFileToCreate();
+        Path file = tiffNewHelper.chooseTiffFileToCreate();
         if (file != null) {
             try {
-                helper.showNewTiffDialog(file);
+                tiffNewHelper.showNewTiffDialog(file);
             } catch (Exception ex) {
                 TinySwing.showErrorMessage(frame, ex, "Error creating TIFF");
             }
@@ -197,7 +198,7 @@ public class TiffExplorer {
         frame.reload();
     }
 
-    private void loadTiff(Path file) {
+    void loadTiff(Path file) {
         this.tiffFile = file;
         reload();
     }
@@ -486,7 +487,7 @@ public class TiffExplorer {
                 }
                 dialog.dispose();
             });
-            cancelButton.addActionListener(e -> dialog.dispose());
+            cancelButton.addActionListener(event -> dialog.dispose());
             buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
             buttonPanel.add(okButton);
             buttonPanel.add(cancelButton);

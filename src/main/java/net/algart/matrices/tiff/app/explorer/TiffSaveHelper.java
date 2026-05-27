@@ -259,7 +259,7 @@ class TiffSaveHelper {
             try (TiffReader reader = new TiffReader(sourceFile);
                  TiffWriter writer = new TiffWriter(targetFile)) {
                 writer.setBigTiff(bigTiffCheckBox.isSelected());
-                final UserByteOrder selected = byteOrderComboBox.getItemAt(byteOrderComboBox.getSelectedIndex());
+                final UserByteOrder selected = TinySwing.selectedValue(byteOrderComboBox);
                 writer.setByteOrder(selected.byteOrder());
                 copier.copyEntireTiff(writer, reader, false);
             }

@@ -96,7 +96,7 @@ public class ManyRepeatedTilesDemo {
             long t1 = System.nanoTime();
             if (gradient) {
                 map.writeBlankRepeatingTile(m ->
-                        makeSamples(m, sampleType, colorValue, true));
+                        makePatternSamples(m, sampleType, colorValue, true));
             } else {
                 map.writeBlank(colorValue);
             }
@@ -107,7 +107,7 @@ public class ManyRepeatedTilesDemo {
         System.out.println("Done");
     }
 
-    private static void makeSamples(
+    private static void makePatternSamples(
             Matrix<UpdatablePArray> matrix,
             TiffSampleType sampleType,
             Color color,
@@ -116,14 +116,13 @@ public class ManyRepeatedTilesDemo {
         int dimX = matrix.dimX32();
         int dimY = matrix.dimY32();
         final int matrixSize = dimX * dimY;
-        final Object array;
         switch (sampleType) {
             case BIT -> {
                 boolean[] channels = new boolean[matrixSize * numberOfChannels];
                 for (int c = 0, disp = 0; c < numberOfChannels; c++) {
                     for (int y = 0; y < dimY; y++) {
                         for (int x = 0; x < dimX; x++, disp++) {
-                            channels[disp] = value(c, x, y, dimX, dimY, color, gradient) > 0.5;
+                            channels[disp] = patternValue(color, c, x, y, dimX, dimY, gradient) > 0.5;
                         }
                     }
                 }
@@ -134,7 +133,7 @@ public class ManyRepeatedTilesDemo {
                 for (int c = 0, disp = 0; c < numberOfChannels; c++) {
                     for (int y = 0; y < dimY; y++) {
                         for (int x = 0; x < dimX; x++, disp++) {
-                            channels[disp] = (byte) (value(c, x, y, dimX, dimY, color, gradient) * 255.0);
+                            channels[disp] = (byte) (patternValue(color, c, x, y, dimX, dimY, gradient) * 255.0);
                         }
                     }
                 }
@@ -145,7 +144,7 @@ public class ManyRepeatedTilesDemo {
                 for (int c = 0, disp = 0; c < numberOfChannels; c++) {
                     for (int y = 0; y < dimY; y++) {
                         for (int x = 0; x < dimX; x++, disp++) {
-                            channels[disp] = (short) (value(c, x, y, dimX, dimY, color, gradient) * 65535.0);
+                            channels[disp] = (short) (patternValue(color, c, x, y, dimX, dimY, gradient) * 65535.0);
                         }
                     }
                 }
@@ -156,7 +155,7 @@ public class ManyRepeatedTilesDemo {
                 for (int c = 0, disp = 0; c < numberOfChannels; c++) {
                     for (int y = 0; y < dimY; y++) {
                         for (int x = 0; x < dimX; x++, disp++) {
-                            channels[disp] = (int) (value(c, x, y, dimX, dimY, color, gradient) * 0xFFFFFFFFL);
+                            channels[disp] = (int) (patternValue(color, c, x, y, dimX, dimY, gradient) * 0xFFFFFFFFL);
                         }
                     }
                 }
@@ -167,7 +166,7 @@ public class ManyRepeatedTilesDemo {
                 for (int c = 0, disp = 0; c < numberOfChannels; c++) {
                     for (int y = 0; y < dimY; y++) {
                         for (int x = 0; x < dimX; x++, disp++) {
-                            channels[disp] = (float) value(c, x, y, dimX, dimY, color, gradient);
+                            channels[disp] = (float) patternValue(color, c, x, y, dimX, dimY, gradient);
                         }
                     }
                 }
@@ -178,7 +177,7 @@ public class ManyRepeatedTilesDemo {
                 for (int c = 0, disp = 0; c < numberOfChannels; c++) {
                     for (int y = 0; y < dimY; y++) {
                         for (int x = 0; x < dimX; x++, disp++) {
-                            channels[disp] = value(c, x, y, dimX, dimY, color, gradient);
+                            channels[disp] = patternValue(color, c, x, y, dimX, dimY, gradient);
                         }
                     }
                 }
@@ -188,7 +187,14 @@ public class ManyRepeatedTilesDemo {
         }
     }
 
-    private static double value(int channel, long x, long y, long dimX, long dimY, Color color, boolean gradient) {
+    private static double patternValue(
+            Color color,
+            int channel,
+            long x,
+            long y,
+            long dimX,
+            long dimY,
+            boolean gradient) {
         double value = switch (channel) {
             case 0 -> color.getRed() / 255.0;
             case 1 -> color.getGreen() / 255.0;
@@ -196,5 +202,4 @@ public class ManyRepeatedTilesDemo {
         };
         return gradient ? value * (double) (x * x + y * y) / (double) (dimX * dimX + dimY * dimY) : value;
     }
-
 }

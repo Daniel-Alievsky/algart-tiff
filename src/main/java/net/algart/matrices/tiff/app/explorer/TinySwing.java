@@ -143,9 +143,8 @@ public class TinySwing {
         return "<html><body>" + sb + "</body></html>";
     }
 
-    static Color getUIColor(String name, Color defaultValue) {
-        final Color color = UIManager.getColor(name);
-        return color != null ? color : defaultValue;
+    static <T> T selectedValue(JComboBox<T> comboBox) {
+        return comboBox.getItemAt(comboBox.getSelectedIndex());
     }
 
     static JFileChooser newFileChooser() {
@@ -176,6 +175,11 @@ public class TinySwing {
             }
         }
         return file;
+    }
+
+    static Color getUIColor(String name, Color defaultValue) {
+        final Color color = UIManager.getColor(name);
+        return color != null ? color : defaultValue;
     }
 
     static void showErrorMessage(JFrame frame, Throwable e, String title) {

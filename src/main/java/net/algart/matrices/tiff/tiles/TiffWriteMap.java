@@ -561,7 +561,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
 
     public void writeBlank(Color fillColor) throws IOException {
         Objects.requireNonNull(fillColor, "Null fillColor");
-        writeBlank(rgbComponents(fillColor, sampleType().maxValue()));
+        writeBlank(colorToChannelValues(fillColor, true));
     }
 
     public void writeBlank(double[] filler) throws IOException {
@@ -781,24 +781,6 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                     // - override standard AlgART behavior: using long instead of (int) cast (important for 0xFFFFFFFF)
                 }
             }
-        }
-    }
-
-    private double[] rgbComponents(Color fillColor, double scale) {
-        float[] components = fillColor.getRGBComponents(null);
-        final double[] filler = new double[components.length];
-        for  (int i = 0; i < components.length; i++) {
-            filler[i] = components[i] * scale;
-        }
-        return numberOfChannels() == 1 ? new double[]{intensity(filler[0], filler[1], filler[2])} : filler;
-    }
-
-    private static double intensity(double r, double g, double b) {
-        if (r == g && r == b) {
-            // the formula below may lead to little error here
-            return r;
-        } else {
-            return 0.299 * r + 0.587 * g + 0.114 * b;
         }
     }
 }

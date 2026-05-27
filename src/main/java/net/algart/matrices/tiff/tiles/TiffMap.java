@@ -33,8 +33,10 @@ import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagDescription;
 import net.algart.matrices.tiff.tags.TagPhotometric;
 
+import java.awt.*;
 import java.nio.ByteOrder;
 import java.util.*;
+import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -801,6 +803,16 @@ public sealed class TiffMap permits TiffIOMap {
         return toInterleaveOrSeparatedSamples(samples, numberOfChannels, numberOfPixels, false);
     }
 
+    public double[] colorToChannelValues(Color color, boolean scaleToMaxValue) {
+        Objects.requireNonNull(color, "Null color");
+        float[] components = color.getRGBComponents(null);
+        final double[] filler = new double[components.length];
+        for  (int i = 0; i < components.length; i++) {
+            filler[i] = scaleToMaxValue ? components[i] * sampleType().maxValue() : components[i];
+        }
+        return numberOfChannels() == 1 ? new double[]{intensity(filler[0], filler[1], filler[2])} : filler;
+    }
+
     @Override
     public String toString() {
         return "%s%s %dx%dx%d (%d bits) of %d TIFF %s %dx%d (grid %dx%d%s) at the image %s".formatted(
@@ -1030,5 +1042,14 @@ public sealed class TiffMap permits TiffIOMap {
         this.gridCountX = gridCountX;
         this.gridCountY = gridCountY;
         this.numberOfGridTiles = gridCountX * gridCountY * numberOfSeparatedPlanes;
+    }
+
+    private static double intensity(double r, double g, double b) {
+        if (r == g && r == b) {
+            // the formula below may lead to little error here
+            return r;
+        } else {
+            return 0.299 * r + 0.587 * g + 0.114 * b;
+        }
     }
 }
