@@ -232,7 +232,7 @@ class TiffSaveImageHelper {
         final TagCompression originalCompression = map.compressionOrNoneForMissing().orElse(TagCompression.NONE);
         final TagCompression compression = originalCompression.nearestWriteable();
 
-        settingsDialog = new JDialog(frame);
+        settingsDialog = new JDialog(frame, true);
         settingsDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         settingsDialog.setTitle(!exists ?
                 "Save " + whatToSave + " as a TIFF file" :

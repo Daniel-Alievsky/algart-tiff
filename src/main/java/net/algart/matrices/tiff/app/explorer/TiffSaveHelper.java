@@ -94,7 +94,7 @@ class TiffSaveHelper {
         }
         TiffCopier.checkDifferentFiles(tiffFile, targetFile);
 
-        settingsDialog = new JDialog(frame);
+        settingsDialog = new JDialog(frame, true);
         settingsDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         settingsDialog.setTitle("Save a copy of the entire TIFF");
         settingsDialog.setLayout(new BorderLayout(10, 10));
@@ -197,7 +197,7 @@ class TiffSaveHelper {
         if (tiffFile == null) {
             return;
         }
-        settingsDialog = new JDialog(frame);
+        settingsDialog = new JDialog(frame, true);
         settingsDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         settingsDialog.setTitle("Compact TIFF file " + tiffFile);
         settingsDialog.setLayout(new BorderLayout(10, 10));
