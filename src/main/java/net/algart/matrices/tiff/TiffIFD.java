@@ -415,7 +415,7 @@ public final class TiffIFD {
      *
      * @return a new {@code TiffIFD} instance with basic mandatory tags for stripped (not tiled) image.
      */
-    public static TiffIFD newIFD() {
+    public static TiffIFD newStrippedIFD() {
         return newIFD(false);
     }
 
@@ -2078,7 +2078,7 @@ public final class TiffIFD {
         return this;
     }
 
-    public TiffIFD putImageInformation(BufferedImage bufferedImage) {
+    public TiffIFD putBufferedImageInformation(BufferedImage bufferedImage) {
         Objects.requireNonNull(bufferedImage, "Null bufferedImage");
         final int numberOfChannels = ImageToMatrix.defaultNumberOfChannels(bufferedImage);
         final Class<?> elementType = ImageToMatrix.defaultElementType(bufferedImage);

@@ -74,7 +74,7 @@ public class TiffWriteSimpleBitTest {
             writer.setLittleEndian(true);
             for (int k = 1; k <= numberOfTests; k++) {
                 writer.create();
-                TiffIFD ifd = TiffIFD.newIFD();
+                final TiffIFD ifd = TiffIFD.newStrippedIFD();
                 ifd.putCompression(TagCompression.PACK_BITS);
                 ifd.putMatrixInformation(m);
                 ifd.put(Tags.IMAGE_WIDTH, (int) m.dimX());

@@ -57,12 +57,8 @@ public class TiffWriteBufferedImageSimpleDemo {
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
         try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.CREATE)) {
-            final TiffIFD ifd = TiffIFD.newIFD()
-                .putImageInformation(image)
-                .putCompression(TagCompression.JPEG);
-            final TiffWriteMap map = writer.newFixedMap(ifd);
-            System.out.printf("Writing image: %s...%n", map);
-            map.writeBufferedImage(image);
+            final TiffWriteMap map = writer.writeNewBufferedImage(image, TagCompression.JPEG);
+            System.out.printf("Image written: %s...%n", map);
         }
         System.out.println("Done");
     }

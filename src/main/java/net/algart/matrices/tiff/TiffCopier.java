@@ -553,13 +553,13 @@ public final class TiffCopier {
                 final TiffTile sourceTile = readMap.readEncodedTile(readIndex, false);
                 t2Tile = TiffIO.debugTime();
                 if (sourceTile.isDuplicate()) {
-                    TiffTileIndex reference = writeMap.fromLinearIndex(sourceTile.getReferenceToOriginalOfDuplicate());
+                    TiffTileIndex reference = writeMap.fromLinearIndex(sourceTile.getLinkToOriginalOfDuplicate());
                     TiffTile original = writeMap.get(reference);
                     if (original == null) {
                         throw new AssertionError("Original of " + sourceTile.index() +
                                 " has not been written yet!");
                     }
-                    targetTile.markAsDuplicateOf(original);
+                    targetTile.linkAsDuplicateOf(original);
                 } else {
                     targetTile.copyData(sourceTile, false);
                 }

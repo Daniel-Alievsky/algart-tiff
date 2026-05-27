@@ -63,7 +63,7 @@ public final class TiffTile {
     private long storedInFileDataOffset = -1;
     private int storedInFileDataLength = 0;
     private int storedInFileDataCapacity = 0;
-    private int referenceToOriginalOfDuplicate = -1;
+    private int linkToOriginalOfDuplicate = -1;
     private int estimatedNumberOfPixels = 0;
     private Queue<IRectangularArea> unsetArea = null;
     // - null value marks that all is empty;
@@ -930,32 +930,32 @@ public final class TiffTile {
 
 
     public OptionalInt optReferenceToOriginalOfDuplicate() {
-        return referenceToOriginalOfDuplicate < 0 ?
+        return linkToOriginalOfDuplicate < 0 ?
                 OptionalInt.empty() :
-                OptionalInt.of(referenceToOriginalOfDuplicate);
+                OptionalInt.of(linkToOriginalOfDuplicate);
     }
 
-    public int getReferenceToOriginalOfDuplicate() {
-        if (referenceToOriginalOfDuplicate < 0) {
+    public int getLinkToOriginalOfDuplicate() {
+        if (linkToOriginalOfDuplicate < 0) {
             throw new IllegalStateException("The TIFF tile is not a duplicate: " + this);
         }
-        return referenceToOriginalOfDuplicate;
+        return linkToOriginalOfDuplicate;
     }
 
-    public TiffTile setReferenceToOriginalOfDuplicate(int referenceToOriginalOfDuplicate) {
-        if (referenceToOriginalOfDuplicate < 0) {
-            throw new IllegalArgumentException("Negative referenceToDuplicatedData = " + referenceToOriginalOfDuplicate);
+    public TiffTile setLinkToOriginalOfDuplicate(int linkToOriginalOfDuplicate) {
+        if (linkToOriginalOfDuplicate < 0) {
+            throw new IllegalArgumentException("Negative linkToOriginalOfDuplicate = " + linkToOriginalOfDuplicate);
         }
-        this.referenceToOriginalOfDuplicate = referenceToOriginalOfDuplicate;
+        this.linkToOriginalOfDuplicate = linkToOriginalOfDuplicate;
         return this;
     }
 
     public boolean isDuplicate() {
-        return referenceToOriginalOfDuplicate >= 0;
+        return linkToOriginalOfDuplicate >= 0;
     }
 
     public TiffTile clearDuplicate() {
-        referenceToOriginalOfDuplicate = -1;
+        linkToOriginalOfDuplicate = -1;
         return this;
     }
 
@@ -967,12 +967,12 @@ public final class TiffTile {
         return this;
     }
 
-    public TiffTile markAsDuplicateOf(TiffTile other) {
+    public TiffTile linkAsDuplicateOf(TiffTile other) {
         Objects.requireNonNull(other, "Null other tile");
         if (!isEmpty()) {
             throw new IllegalStateException("Cannot mark a tile as a duplicate when it contains data: " + this);
         }
-        setReferenceToOriginalOfDuplicate(other.linearIndex());
+        setLinkToOriginalOfDuplicate(other.linearIndex());
         copyStoredInFileDataRange(other);
         return this;
     }

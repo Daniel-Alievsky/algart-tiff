@@ -1455,7 +1455,7 @@ public non-sealed class TiffReader extends TiffIO {
             }
             if (!resolveDuplicates && referenceToSource != -1) {
                 result.freeData();
-                result.setReferenceToOriginalOfDuplicate(referenceToSource);
+                result.setLinkToOriginalOfDuplicate(referenceToSource);
             } else {
                 TiffTileIO.readAt(result, stream, offset, byteCount);
                 if (alreadyStored) {

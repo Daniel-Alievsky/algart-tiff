@@ -803,11 +803,13 @@ public sealed class TiffMap permits TiffIOMap {
 
     @Override
     public String toString() {
-        return "%s%s %dx%dx%d (%d bits) of %d TIFF tiles %dx%d (grid %dx%d%s) at the image %s".formatted(
+        return "%s%s %dx%dx%d (%d bits) of %d TIFF %s %dx%d (grid %dx%d%s) at the image %s".formatted(
                 resizable ? "resizable " : "",
                 mapKindName(),
                 dimX, dimY, numberOfChannels, alignedBitDepth,
-                tileMap.size(), tileSizeX, tileSizeY, gridCountX, gridCountY,
+                tileMap.size(),
+                isTiled() ? "tiles" : "strips",
+                tileSizeX, tileSizeY, gridCountX, gridCountY,
                 numberOfSeparatedPlanes == 1 ? "" : "x" + numberOfSeparatedPlanes,
                 ifd);
     }

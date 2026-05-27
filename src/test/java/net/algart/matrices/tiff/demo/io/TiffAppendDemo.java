@@ -71,12 +71,8 @@ public class TiffAppendDemo {
         System.out.printf("Writing TIFF %s...%n", targetFile);
         try (var writer = new TiffWriter(targetFile, TiffCreateMode.ofAppendOptions(bigTiff, true))) {
             // - for comparison, TiffCreateMode.CREATE always creates a new file
-            final TiffIFD ifd = TiffIFD.newIFD()
-                    .putChannelsInformation(image)
-                    .putCompression(TagCompression.DEFLATE);
-            final TiffWriteMap map = writer.newFixedMap(ifd);
-            System.out.printf("Appending image to %s...%n", map);
-            map.writeChannels(image);
+            final TiffWriteMap map = writer.writeNewChannels(image, TagCompression.DEFLATE);
+            System.out.printf("Image appended to %s...%n", map);
         }
         System.out.println("Done");
     }

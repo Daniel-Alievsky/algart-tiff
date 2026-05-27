@@ -497,6 +497,10 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
 
     /**
      * Writes the matrix.
+     * The image is specified as 3D matrix of pixels:
+     * the first dimension ({@link Matrix#dimX()}) is the width,
+     * the second ({@link Matrix#dimY()}) is the height,
+     * the third ({@link Matrix#dimZ()}) is the number of channels.
      *
      * <p>Note: unlike {@link #writeJavaArray(Object)} and
      * {@link #writeSampleBytes(byte[])},
@@ -581,7 +585,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
         final TiffTile first = tiffTiles.getFirst();
         for (TiffTile tile : tiles()) {
             if (tile.linearIndex() > 0) {
-                tile.markAsDuplicateOf(first);
+                tile.linkAsDuplicateOf(first);
             }
         }
         completeWriting();

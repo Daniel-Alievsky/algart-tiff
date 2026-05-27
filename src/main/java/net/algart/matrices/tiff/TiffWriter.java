@@ -33,6 +33,7 @@ import net.algart.matrices.tiff.tiles.*;
 import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
 
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -1389,7 +1390,7 @@ public non-sealed class TiffWriter extends TiffIO {
             // note we can use index k, because buildGrid() method, called above for an empty map,
             //  provided the correct tiles order
             if (indexesOfFirst[k] >= 0) {
-                tile.setReferenceToOriginalOfDuplicate(indexesOfFirst[k]);
+                tile.setLinkToOriginalOfDuplicate(indexesOfFirst[k]);
             }
             tile.markWholeTileAsSet();
             // - we "tell" that each tile has no unset areas
@@ -1448,7 +1449,7 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    public int completeWriting(final TiffWriteMap map) throws IOException {
+    public int completeWriting(TiffWriteMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         final boolean resizable = map.isResizable();
         map.checkTooSmallDimensionsForCurrentGrid();
@@ -1476,6 +1477,121 @@ public non-sealed class TiffWriter extends TiffIO {
         // (this is much better than keeping file offset in the middle of the last image
         // between IFD and newly written TIFF tiles).
         return count;
+    }
+
+    /**
+     * Writes a new TIFF image with the specified compression to this TIFF file.
+     * For an existing file, the image is appended to the file end.
+     * The image is specified as 3-dimensional matrix of pixels:
+     * the first dimension ({@link Matrix#dimX()}) is the width,
+     * the second ({@link Matrix#dimY()}) is the height,
+     * the third ({@link Matrix#dimZ()}) is the number of channels.
+     *
+     * <p>This is a high-level convenience method intended for the simplest TIFF writing scenario.
+     * It automatically creates a {@link TiffIFD#newStrippedIFD() new stripped IFD},
+     * fills it with image information via {@link TiffIFD#putMatrixInformation(Matrix)},
+     * sets the specified compression via {@link TiffIFD#putCompression(TagCompression)}
+     * and writes the image into the TIFF file by calling:</p>
+     * <pre>
+     *     {@link TiffWriteMap} map = thisWriter.{@link #newFixedMap newFixedMap}(ifd);
+     *     map.{@link TiffWriteMap#writeMatrix(Matrix) writeMatrix}(matrix)</pre>
+     * <p>This method is designed for writing the entire image at once.
+     * For tiled TIFF images, incremental writing, partial updates,
+     * explicit tile flushing or advanced TIFF customization,
+     * consider using {@link #newMap(TiffIFD, boolean)} and the returned {@link TiffWriteMap}.</p>
+     *
+     * @param matrix      3-dimensional matrix of pixels.
+     * @param compression TIFF compression method.
+     * @return the created TIFF map used for writing the image.
+     * @throws IOException in the case of any I/O errors.
+     * @see TiffWriteMap
+     */
+    public TiffWriteMap writeNewMatrix(Matrix<? extends PArray> matrix, TagCompression compression)
+            throws IOException {
+        Objects.requireNonNull(matrix, "Null matrix");
+        Objects.requireNonNull(compression, "Null compression");
+        final TiffIFD ifd = TiffIFD.newStrippedIFD();
+        ifd.putMatrixInformation(matrix);
+        ifd.putCompression(compression);
+        final TiffWriteMap map = newFixedMap(ifd);
+        map.writeMatrix(matrix);
+        return map;
+    }
+
+    /**
+     * Writes a new TIFF image with the specified compression to this TIFF file.
+     * For an existing file, the image is appended to the file end.
+     * The image is specified as a list of 2-dimensional pixel matrices,
+     * where each matrix corresponds to one color channel
+     * (for example, a list of 3 matrices: red, green and blue for standard RGB images).
+     *
+     * <p>This is a high-level convenience method intended for the simplest TIFF writing scenario.
+     * It automatically creates a {@link TiffIFD#newStrippedIFD() new stripped IFD},
+     * fills it with image information via {@link TiffIFD#putChannelsInformation(List)},
+     * sets the specified compression via {@link TiffIFD#putCompression(TagCompression)}
+     * and writes the image into the TIFF file by calling:</p>
+     * <pre>
+     *     {@link TiffWriteMap} map = thisWriter.{@link #newFixedMap newFixedMap}(ifd);
+     *     map.{@link TiffWriteMap#writeChannels(List) writeChannels}(channels)</pre>
+     *
+     * <p>This method is designed for writing the entire image at once.
+     * For tiled TIFF images, incremental writing, partial updates,
+     * explicit tile flushing or advanced TIFF customization,
+     * consider using {@link #newMap(TiffIFD, boolean)} and the returned {@link TiffWriteMap}.</p>
+     *
+     * @param channels    color channels of the image (2-dimensional matrices).
+     * @param compression TIFF compression method.
+     * @return the created TIFF map used for writing the image.
+     * @throws IOException in the case of any I/O errors.
+     * @see TiffWriteMap
+     */
+    public TiffWriteMap writeNewChannels(List<? extends Matrix<? extends PArray>> channels, TagCompression compression)
+            throws IOException {
+        Objects.requireNonNull(channels, "Null channels");
+        Objects.requireNonNull(compression, "Null compression");
+        final TiffIFD ifd = TiffIFD.newStrippedIFD();
+        ifd.putChannelsInformation(channels);
+        ifd.putCompression(compression);
+        final TiffWriteMap map = newFixedMap(ifd);
+        map.writeChannels(channels);
+        return map;
+    }
+
+    /**
+     * Writes a new TIFF image with the specified compression to this TIFF file.
+     * For an existing file, the image is appended to the file end.
+     * The image is specified as a Java {@link BufferedImage}.
+     *
+     * <p>This is a high-level convenience method intended for the simplest TIFF writing scenario.
+     * It automatically creates a {@link TiffIFD#newStrippedIFD() new stripped IFD},
+     * fills it with image information via {@link TiffIFD#putBufferedImageInformation(BufferedImage)},
+     * sets the specified compression via {@link TiffIFD#putCompression(TagCompression)}
+     * and writes the image into the TIFF file by calling:</p>
+     * <pre>
+     *     {@link TiffWriteMap} map = thisWriter.{@link #newFixedMap newFixedMap}(ifd);
+     *     map.{@link TiffWriteMap#writeBufferedImage(BufferedImage) writeBufferedImage}(bufferedImage)</pre>
+     *
+     * <p>This method is designed for writing the entire image at once.
+     * For tiled TIFF images, incremental writing, partial updates,
+     * explicit tile flushing or advanced TIFF customization,
+     * consider using {@link #newMap(TiffIFD, boolean)} and the returned {@link TiffWriteMap}.</p>
+     *
+     * @param bufferedImage the image to be written.
+     * @param compression   TIFF compression method.
+     * @return the created TIFF map used for writing the image.
+     * @throws IOException in the case of any I/O errors.
+     * @see TiffWriteMap
+     */
+    public TiffWriteMap writeNewBufferedImage(BufferedImage bufferedImage, TagCompression compression)
+            throws IOException {
+        Objects.requireNonNull(bufferedImage, "Null bufferedImage");
+        Objects.requireNonNull(compression, "Null compression");
+        final TiffIFD ifd = TiffIFD.newStrippedIFD();
+        ifd.putBufferedImageInformation(bufferedImage);
+        ifd.putCompression(compression);
+        final TiffWriteMap map = newFixedMap(ifd);
+        map.writeBufferedImage(bufferedImage);
+        return map;
     }
 
     public TiffIFD updateDescription(int mainIFDIndex, String description) throws IOException {
@@ -1594,7 +1710,7 @@ public non-sealed class TiffWriter extends TiffIO {
      */
     public String internalTimingReport() {
         return String.format(Locale.US,
-                        "%.3f prepare, " +
+                "%.3f prepare, " +
                         "%.3f customize, " +
                         "%.3f encode [%.3f main%s], " +
                         "%.3f write",
@@ -2084,7 +2200,7 @@ public non-sealed class TiffWriter extends TiffIO {
                             }
                             offsets[k] = filler.getStoredInFileDataOffset();
                             byteCounts[k] = filler.getStoredInFileDataLength();
-                            tile.copyStoredInFileDataRange(filler);
+                            tile.linkAsDuplicateOf(filler);
                         }
                         // else (if missingTilesAllowed) offsets[k]/byteCounts[k] stay to be zero
                     }
