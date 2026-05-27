@@ -100,7 +100,7 @@ class TiffSaveImageHelper {
         chooser.addChoosableFileFilter(ANY_IMAGE_FILTER);
         chooser.setFileFilter(ANY_IMAGE_FILTER);
         chooser.setAcceptAllFileFilterUsed(true);
-        File file = TinySwing.chooseFile(frame, chooser);
+        File file = TinySwing.chooseFileAndConfirmOverwrite(frame, chooser);
         if (file == null) {
             return null;
         }
@@ -122,7 +122,7 @@ class TiffSaveImageHelper {
         chooser.addChoosableFileFilter(TiffExplorer.TIFF_FILTER);
         chooser.setFileFilter(TiffExplorer.TIFF_FILTER);
         chooser.setAcceptAllFileFilterUsed(true);
-        File file = TinySwing.chooseFile(frame, chooser);
+        File file = TinySwing.chooseFileAndConfirmOverwrite(frame, chooser);
         if (file == null) {
             return null;
         }
@@ -301,7 +301,7 @@ class TiffSaveImageHelper {
 
         final JPanel settingsWithCommentsPanel = new JPanel();
         settingsWithCommentsPanel.setLayout(new BoxLayout(settingsWithCommentsPanel, BoxLayout.Y_AXIS));
-        TiffSaveHelper.addTitledBorder(settingsWithCommentsPanel, "Compression settings");
+        TinySwing.addTitledBorder(settingsWithCommentsPanel, "Compression settings");
         final JPanel settingsGrid = new JPanel(new GridLayout(2, 2, 5, 5));
         settingsGrid.setAlignmentX(Component.LEFT_ALIGNMENT);
         compressionQualityLabel = new JLabel(compressionQualityLabel(TagCompression.JPEG_2000));

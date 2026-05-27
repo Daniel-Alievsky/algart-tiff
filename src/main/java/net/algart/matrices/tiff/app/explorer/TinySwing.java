@@ -25,6 +25,8 @@
 package net.algart.matrices.tiff.app.explorer;
 
 import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.border.TitledBorder;
 import javax.swing.text.View;
 import java.awt.*;
 import java.awt.event.KeyEvent;
@@ -79,6 +81,13 @@ public class TinySwing {
         box.add(component);
         box.setAlignmentX(Component.LEFT_ALIGNMENT);
         return box;
+    }
+
+    static void addTitledBorder(JPanel settingsPanel, String title) {
+        final TitledBorder titledBorder = BorderFactory.createTitledBorder(title);
+        final Border padding = BorderFactory.createEmptyBorder(5, 10, 10, 10);
+        titledBorder.setTitleJustification(TitledBorder.CENTER);
+        settingsPanel.setBorder(BorderFactory.createCompoundBorder(titledBorder, padding));
     }
 
     static void setWaitCursor(JFrame frame, boolean wait) {
@@ -145,7 +154,7 @@ public class TinySwing {
         return fileChooser;
     }
 
-    static File chooseFile(JFrame frame, JFileChooser chooser) {
+    static File chooseFileAndConfirmOverwrite(JFrame frame, JFileChooser chooser) {
         int result = chooser.showSaveDialog(frame);
         if (result != JFileChooser.APPROVE_OPTION) {
             return null;

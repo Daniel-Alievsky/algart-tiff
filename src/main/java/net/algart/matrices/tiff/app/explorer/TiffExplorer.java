@@ -139,6 +139,18 @@ public class TiffExplorer {
         }
     }
 
+    void chooseFileAndShowNewTiffDialog() {
+        TiffNewHelper helper = new TiffNewHelper(frame);
+        Path file = helper.chooseTiffFileToCreate();
+        if (file != null) {
+            try {
+                helper.showNewTiffDialog(file);
+            } catch (Exception ex) {
+                TinySwing.showErrorMessage(frame, ex, "Error creating TIFF");
+            }
+        }
+    }
+
     void chooseFileAndOpen() {
         JFileChooser chooser = TinySwing.newFileChooser();
         String last = PREFERENCES.get(PREF_LAST_DIR, null);

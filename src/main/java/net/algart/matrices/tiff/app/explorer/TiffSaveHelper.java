@@ -30,8 +30,6 @@ import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.app.TiffInfo;
 
 import javax.swing.*;
-import javax.swing.border.Border;
-import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
@@ -42,38 +40,6 @@ import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
 class TiffSaveHelper {
-    private enum UserByteOrder {
-        BIG_ENDIAN(ByteOrder.BIG_ENDIAN, "Big-endian"),
-        LITTLE_ENDIAN(ByteOrder.LITTLE_ENDIAN, "Little-endian");
-
-        private final ByteOrder byteOrder;
-        private final String name;
-
-        UserByteOrder(ByteOrder byteOrder, String name) {
-            this.byteOrder = byteOrder;
-            this.name = name;
-        }
-
-        public static UserByteOrder ofByteOrder(ByteOrder byteOrder) {
-            Objects.requireNonNull(byteOrder, "Null byte order");
-            if (byteOrder == ByteOrder.BIG_ENDIAN) {
-                return BIG_ENDIAN;
-            } else if (byteOrder == ByteOrder.LITTLE_ENDIAN) {
-                return LITTLE_ENDIAN;
-            } else {
-                throw new IllegalArgumentException("Unknown byte order: " + byteOrder);
-            }
-        }
-
-        public ByteOrder byteOrder() {
-            return byteOrder;
-        }
-
-        @Override
-        public String toString() {
-            return name;
-        }
-    }
 
     private static final String PREF_LAST_SAVE_TIFF_DIR = "viewer.copier.lastSaveTiffDirectory";
 
@@ -111,7 +77,7 @@ class TiffSaveHelper {
         chooser.addChoosableFileFilter(TiffExplorer.TIFF_FILTER);
         chooser.setFileFilter(TiffExplorer.TIFF_FILTER);
         chooser.setAcceptAllFileFilterUsed(true);
-        File file = TinySwing.chooseFile(frame, chooser);
+        File file = TinySwing.chooseFileAndConfirmOverwrite(frame, chooser);
         if (file == null) {
             return null;
         }
@@ -167,7 +133,7 @@ class TiffSaveHelper {
 
         final JPanel settingsPanel = new JPanel();
         settingsPanel.setLayout(new BoxLayout(settingsPanel, BoxLayout.Y_AXIS));
-        addTitledBorder(settingsPanel, "TIFF file settings");
+        TinySwing.addTitledBorder(settingsPanel, "TIFF file settings");
         settingsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         final JPanel oneRowPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
@@ -368,13 +334,6 @@ class TiffSaveHelper {
         copier.setInterruptionChecker(() -> stopRequested);
         copier.setProgressUpdater(this::updateProgress, 500);
         return copier;
-    }
-
-    static void addTitledBorder(JPanel settingsPanel, String title) {
-        final TitledBorder titledBorder = BorderFactory.createTitledBorder(title);
-        final Border padding = BorderFactory.createEmptyBorder(5, 10, 10, 10);
-        titledBorder.setTitleJustification(TitledBorder.CENTER);
-        settingsPanel.setBorder(BorderFactory.createCompoundBorder(titledBorder, padding));
     }
 
     private void updateProgress(TiffCopier.ProgressInformation p) {
