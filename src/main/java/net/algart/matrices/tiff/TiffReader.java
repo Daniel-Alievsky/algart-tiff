@@ -1305,8 +1305,8 @@ public non-sealed class TiffReader extends TiffIO {
                 long tEntry1 = debugTime();
                 final TiffIFD.Entry entry = readIFDEntry(
                         ifdStream,
-                        READ_IFD_WITH_BUFFERING ? disp : disp + info.ifdStreamOffset(),
-                        READ_IFD_WITH_BUFFERING ? info.ifdStreamOffset() : 0,
+                        READ_IFD_WITH_BUFFERING ? disp : disp + info.offsetOfFirstEntry(),
+                        READ_IFD_WITH_BUFFERING ? info.offsetOfFirstEntry() : 0,
                         info.fileLength());
                 final int tag = entry.tag();
                 long tEntry2 = debugTime();
@@ -1316,7 +1316,7 @@ public non-sealed class TiffReader extends TiffIO {
                         READ_IFD_WITH_BUFFERING ? ifdStream : stream,
                         stream,
                         READ_IFD_WITH_BUFFERING && entry.isDataEmbeddedInEntry(),
-                        info.ifdStreamOffset(),
+                        info.offsetOfFirstEntry(),
                         entry);
                 long tEntry3 = debugTime();
                 timeArrays += tEntry3 - tEntry2;

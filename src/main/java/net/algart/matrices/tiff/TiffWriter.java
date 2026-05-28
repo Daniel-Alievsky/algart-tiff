@@ -1891,7 +1891,7 @@ public non-sealed class TiffWriter extends TiffIO {
         // - null-filled by Java
         final long[] extraOffsets = new long[info.n()];
         for (int i = 0, disp = 0; i < info.n(); i++, disp += info.sizeOfEntry()) {
-            final TiffIFD.Entry oldEntry = readIFDEntry(oldStream, disp, info.ifdStreamOffset(), info.fileLength());
+            final TiffIFD.Entry oldEntry = readIFDEntry(oldStream, disp, info.offsetOfFirstEntry(), info.fileLength());
             final int tag = oldEntry.tag();
             if (!tagsToUpdate.test(tag) || !ifdMap.containsKey(tag)) {
                 continue;
@@ -1904,7 +1904,7 @@ public non-sealed class TiffWriter extends TiffIO {
             final long addition = oldDataEmbedded ? 0 : oldEntry.valueOffset();
             // - addition + extraBuffer.offset() is a correct offset that should be written to new entry
             writeIFDValueAtCurrentOffsets(newStream, extraBuffer, bigTiff, addition, tag, value);
-            final TiffIFD.Entry newEntry = readIFDEntry(newStream, disp, info.ifdStreamOffset(), info.fileLength());
+            final TiffIFD.Entry newEntry = readIFDEntry(newStream, disp, info.offsetOfFirstEntry(), info.fileLength());
             if (newEntry.tag() != oldEntry.tag() || newEntry.isBigTiff() != oldEntry.isBigTiff()) {
                 // assertion, not concurrent modification: we have full control over oldStream and newStream
                 throw new AssertionError("Write/read tag mismatch");
@@ -1946,7 +1946,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 extraBuffers[i] = extraBuffer;
             }
         }
-        stream.seek(info.ifdStreamOffset());
+        stream.seek(info.offsetOfFirstEntry());
         copyData(newStream, stream, true, newIFDBytes.length);
         // stream.write(newIFDBytes);
         // - this call does not work in scijava-common 2.99.2: due to a bug in ByteArrayByteBank,
