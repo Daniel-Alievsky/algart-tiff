@@ -702,6 +702,10 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             throw new UnsupportedOperationException("Cannot write null IFD tag");
         }
         final int tag = tagKey;
+        if (tag < 0 || tag > 0xFFFF) {
+            throw new TiffException("Invalid TIFF IFD tag code %d (0x%04X)".formatted(tag, tag) +
+                ": only unsigned 16-bit values 0..65535 are allowed");
+        }
         switch (value) {
             case null -> throw new UnsupportedOperationException("Cannot write IFD tag " + tag +
                     ": it contains null value");

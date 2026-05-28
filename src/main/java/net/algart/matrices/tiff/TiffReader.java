@@ -1410,7 +1410,7 @@ public non-sealed class TiffReader extends TiffIO {
         Objects.requireNonNull(tileIndex, "Null tileIndex");
         long t1 = debugTime();
         final TiffIFD ifd = tileIndex.ifd();
-        final int index = tileIndex.linearIndex();
+        final int index = tileIndex.linear();
         // - also checks that the tile index is not out of image bounds
         long offset;
         int byteCount;

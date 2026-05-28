@@ -128,7 +128,8 @@ public class TiffWriteAllTagTypesTest {
             ifd.put(TAG_WITH_UNKNOWN_TYPE, new TiffIFD.UnsupportedTypeValue(3333, 110, 0));
             // - "count" in UnsupportedTypeValue should be ignored! we don't know how to write it
             ifd.put(15700, new String[]{});
-            // ifd.put(15555, false); // - will lead to TiffException
+            // ifd.put(1570000, "Some string 1570000"); // - will lead to TiffException "Invalid TIFF IFD tag"
+            // ifd.put(15555, false); // - will lead to TiffException "Cannot write IFD tag"
             System.out.printf("Desired IFD:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.DETAILED));
             writer.newFixedMap(ifd).writeMatrix(image);
 

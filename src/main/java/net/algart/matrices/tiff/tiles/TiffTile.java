@@ -104,7 +104,7 @@ public final class TiffTile {
     }
 
     public int linearIndex() {
-        return index.linearIndex();
+        return index.linear();
     }
 
     public boolean isPlanarSeparated() {
@@ -1190,7 +1190,7 @@ public final class TiffTile {
                 " tile" +
                 ", " + elementType().getSimpleName() + "[" + sizeX + "x" + sizeY + "x" + samplesPerPixel + "]" +
                 (data == null ? "" : " (" + data.length + " bytes)") +
-                (isCompleted() ? ", completed" : isCompletelyUnset() ? ", completely unset " : ", partial") +
+                (isCompleted() ? ", completed" : isCompletelyUnset() ? ", completely unset" : ", partial") +
                 ", " + bitsPerSample + " bits/sample" +
                 ", index " + index +
                 (isStoredInFile() ?

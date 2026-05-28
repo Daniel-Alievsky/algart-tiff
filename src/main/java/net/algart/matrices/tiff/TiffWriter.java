@@ -711,7 +711,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * You <b>don't need</b> to close it: this stream will be closed when closing this writer.
      *
      * <p>The returned reference is stored inside this object, and will be returned by further calls
-     * of this method, unless you set <code>alwaysCreateNew=true</code>.
+     * of this method, unless you set <code>alwaysCreateNew=true</code> while a further call.
      * However, the stored reference is cleared to {@code null} by {@link #resetCompanionReader()} method
      * (so that the following call of this method will re-create the reader) in the following cases:
      *
@@ -734,13 +734,13 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @param alwaysCreateNew whether you need to ignore the previously created reader (it if exists)
      *                        and create a new one.
-     * @return new TIFF reader.
+     * @return new or stored TIFF reader.
      */
     public TiffReader companionReader(boolean alwaysCreateNew) {
         synchronized (fileLock()) {
             if (alwaysCreateNew || this.reader == null) {
                 try {
-                    this.reader = new TiffReader(stream, TiffOpenMode.NO_CHECKS, false);
+                    this.reader = newCompanionReader();
                 } catch (IOException e) {
                     throw new AssertionError("Impossible in NO_CHECKS mode", e);
                 }
@@ -748,6 +748,18 @@ public non-sealed class TiffWriter extends TiffIO {
             }
             return this.reader;
         }
+    }
+
+    /**
+     * Creates a new "companion" TIFF reader for reading the same file stream {@link #stream()} used by this object.
+     * You <b>don't need</b> to close it: this stream will be closed when closing this writer.
+     *
+     * <p>This method is used inside {@link #companionReader(boolean)} for creating a new instance.
+     *
+     * @return new TIFF reader.
+     */
+    public TiffReader newCompanionReader() throws IOException {
+        return new TiffReader(stream, TiffOpenMode.NO_CHECKS, false);
     }
 
     /**
@@ -1027,7 +1039,8 @@ public non-sealed class TiffWriter extends TiffIO {
             if (mainIFDIndex == 0) {
                 fileOffset = fileOffsetOfFirstIFDOffset();
             } else {
-                @SuppressWarnings("resource") final TiffReader reader = companionReader();
+                @SuppressWarnings("resource") final TiffReader reader = newCompanionReader();
+                // - not companionReader(true): there is almost no reasons to reuse an existing reader
                 reader.readMainIFDOffset(mainIFDIndex);
                 // - also checks that mainIFDIndex is not too high
                 fileOffset = reader.fileOffsetOfLastIFDOffset();

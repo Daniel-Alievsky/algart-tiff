@@ -24,36 +24,39 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
-import javax.swing.*;
-import java.util.ArrayList;
-import java.util.List;
+import net.algart.matrices.tiff.TiffException;
+import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.tiles.TiffMap;
+import net.algart.matrices.tiff.tiles.TiffTile;
 
-/**
- * This test is useful for work over {@link net.algart.matrices.tiff.app.explorer.TiffExplorer}.
- */
-public class UIKeyListTest {
-    public static void main(String[] args) throws Exception {
-        showDefaults();
-        UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        showDefaults();
-    }
+import java.util.stream.Collectors;
 
-    private static void showDefaults() {
-        System.out.println(UIManager.getSystemLookAndFeelClassName());
-        UIDefaults defaults = UIManager.getDefaults();
-        List<String> list = new ArrayList<>();
-        for (Object o : defaults.keySet()) {
-            String key = o.toString();
-            String lowerCase = key.toLowerCase();
-            if (lowerCase.contains("color") || lowerCase.contains("foreground") || lowerCase.contains("background")) {
-                list.add(key);
+public class TiffMapTileGridTest {
+    private static boolean isSorted(TiffMap map) {
+        int i = 0;
+        for (TiffTile tile : map.tiles()) {
+            if (tile.linearIndex() != i++) {
+                return false;
             }
         }
-        list.sort(null);
-        for (String key : list) {
-            System.out.println(key + " = " + defaults.get(key));
+        return true;
+    }
+
+    public static void main(String[] args) throws TiffException {
+        TiffIFD ifd = TiffIFD.newTiledIFD();
+        ifd.putImageDimensions(2000, 2000);
+        TiffMap map = new TiffMap(ifd, false);
+        System.out.printf("Empty map: %s%n", map);
+        map.getOrNew(1, 1);
+        map.getOrNew(0, 0);
+        System.out.printf("Sorted? %s%n", isSorted(map));
+        map.buildTileGrid();
+        System.out.printf("With grid: %s%n  %s%n", map, map.tileMap().values().stream().map(Object::toString)
+                .collect(Collectors.joining("%n  ".formatted())));
+        System.out.printf("Sorted? %s%n", isSorted(map));
+        if (!isSorted(map)) {
+            throw new AssertionError();
         }
-        System.out.println("Menu item disabled: " + UIManager.getColor("MenuItem.disabledForeground"));
-        System.out.println();
+
     }
 }

@@ -614,7 +614,7 @@ public sealed class TiffMap permits TiffIOMap {
         // - overflow impossible: setDimensions checks that gridCountX * gridCountY * numberOfSeparatedPlanes < 2^31
     }
 
-    public TiffTileIndex fromLinearIndex(int linearIndex) {
+    public TiffTileIndex indexFromLinear(int linearIndex) {
         if (linearIndex < 0 || linearIndex >= numberOfGridTiles) {
             throw new IndexOutOfBoundsException("Linear index " + linearIndex +
                     " is out of range 0.." + (numberOfGridTiles - 1));
@@ -703,18 +703,32 @@ public sealed class TiffMap permits TiffIOMap {
 
     /**
      * Builds the tile map by calling {@link #getOrNew(int, int, int)} for the regular grid of tiles.
-     * If the map is a {@link net.algart.matrices.tiff.tiles.TiffMap.TilingMode#STRIPS stripped TIFF image},
-     * each created tile (i.e., a strip) is automatically cropped by the grid dimensions using
+     *
+     * <p>If the map is a {@link net.algart.matrices.tiff.tiles.TiffMap.TilingMode#STRIPS stripped TIFF image},
+     * each created or already existing tile (i.e., a strip) is automatically cropped by the grid dimensions using
      * {@link TiffTile#cropStripToMap()}.
+     *
+     * <p>Note: this method guarantees that the {@link #tileMap()} and {@link #tiles()} are sorted by
+     * the tile {@link TiffTileIndex#linear() linear index}.
      */
     public void buildTileGrid() {
-        for (int p = 0; p < numberOfSeparatedPlanes; p++) {
+        final Map<TiffTileIndex, TiffTile> newMap = new LinkedHashMap<>();
+        for (int p = 0, linear = 0; p < numberOfSeparatedPlanes; p++) {
             for (int y = 0; y < gridCountY; y++) {
-                for (int x = 0; x < gridCountX; x++) {
-                    getOrNew(x, y, p).cropStripToMap();
+                for (int x = 0; x < gridCountX; x++, linear++) {
+                    final TiffTileIndex index = index(x, y, p);
+                    if (index.linear() != linear) {
+                        throw new AssertionError("Invalid linear index: " + index.linear() +
+                                " for (" + x + ", " + y + ", " + p + ")");
+                    }
+                    final TiffTile tile = getOrNew(index);
+                    tile.cropStripToMap();
+                    newMap.put(index, tile);
                 }
             }
         }
+        this.tileMap.clear();
+        this.tileMap.putAll(newMap);
     }
 
     public void cropAllStrips() {

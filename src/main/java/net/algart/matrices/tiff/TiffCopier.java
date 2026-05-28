@@ -553,7 +553,7 @@ public final class TiffCopier {
                 final TiffTile sourceTile = readMap.readEncodedTile(readIndex, false);
                 t2Tile = TiffIO.debugTime();
                 if (sourceTile.isDuplicate()) {
-                    TiffTileIndex reference = writeMap.fromLinearIndex(sourceTile.getLinkToOriginalOfDuplicate());
+                    TiffTileIndex reference = writeMap.indexFromLinear(sourceTile.getLinkToOriginalOfDuplicate());
                     TiffTile original = writeMap.get(reference);
                     if (original == null) {
                         throw new AssertionError("Original of " + sourceTile.index() +

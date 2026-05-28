@@ -145,7 +145,7 @@ public final class TiffTileIndex {
         return toY;
     }
 
-    public int linearIndex() {
+    public int linear() {
         return map.linearIndex(xIndex, yIndex, separatedPlaneIndex);
     }
 
