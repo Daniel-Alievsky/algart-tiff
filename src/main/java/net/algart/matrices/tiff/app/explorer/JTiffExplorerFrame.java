@@ -130,6 +130,7 @@ public class JTiffExplorerFrame extends JFrame {
         addIFDComboBox(topToolboxPanel);
         addShowImageButton(topToolboxPanel);
         this.add(topToolboxPanel, BorderLayout.NORTH);
+        this.getRootPane().setDefaultButton(showImageButton);
 
         addBottomInfoTextArea();
         addIFDTextArea();

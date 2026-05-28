@@ -373,11 +373,13 @@ public final class TiffIFD {
         // skipping copying:
         //    littleEndian, bigTiff - they are attributes of the file, not of the IFD
         //    globalIndex, globalMainIndex - the copy will be probably placed into another list at another position
-        //    fileOffsetOfIFDForWriting - the copy will be probably written into another position
         //    cache... - they may be cached again in a new copy
         if (!noReadingDetails) {
             fileOffsetOfIFD = ifd.fileOffsetOfIFD;
             fileOffsetOfNextIFDOffset = ifd.fileOffsetOfNextIFDOffset;
+            fileOffsetOfIFDForWriting = ifd.fileOffsetOfIFDForWriting;
+            // - this is important that copy() has an identical fileOffsetOfIFDForWriting:
+            // usually we create a copy after TiffWriter.existing() call, for example, in TiffWriter.updateIFD()
             nextIFDOffset = ifd.nextIFDOffset;
         }
         subIFDType = ifd.subIFDType;
