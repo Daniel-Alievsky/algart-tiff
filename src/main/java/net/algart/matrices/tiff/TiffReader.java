@@ -1289,35 +1289,25 @@ public non-sealed class TiffReader extends TiffIO {
         long timeEntries = 0;
         long timeArrays = 0;
         final TiffIFD ifd;
+        final Map<Integer, Object> map = new LinkedHashMap<>();
+        final LinkedHashMap<Integer, TiffIFD.Entry> detailedEntries = new LinkedHashMap<>();
         synchronized (fileLock()) {
-            final long tiffFileLength = stream.length();
-            final Map<Integer, Object> map = new LinkedHashMap<>();
-            final LinkedHashMap<Integer, TiffIFD.Entry> detailedEntries = new LinkedHashMap<>();
-
-            final int numberOfEntries = readNumberOfIFDEntriesAt(ifdOffset);
-            final long ifdStreamOffset = ifdOffset + sizeOfNumberOfIFDEntries();
-
-            final int sizeOfEntry = sizeOfIFDEntry();
-            final int sizeOfAllEntries = sizeOfEntry * numberOfEntries;
-            if (ifdStreamOffset > tiffFileLength - sizeOfAllEntries) {
-                throw new TiffException("%d IFD entries at the offset %d exceeds the file length %d".formatted(
-                        numberOfEntries, ifdStreamOffset, tiffFileLength));
-            }
+            final IFDCommonInformation info = prepareReadingIFD(ifdOffset);
             final DataHandle<?> ifdStream;
             if (READ_IFD_WITH_BUFFERING) {
-                final byte[] ifdBytes = new byte[sizeOfAllEntries];
+                final byte[] ifdBytes = new byte[info.sizeOfAllEntries()];
                 stream.readFully(ifdBytes);
                 ifdStream = getBytesHandle(ifdBytes, stream.isLittleEndian());
             } else {
                 ifdStream = stream;
             }
-            for (int i = 0, disp = 0; i < numberOfEntries; i++, disp += sizeOfEntry) {
+            for (int i = 0, disp = 0; i < info.n(); i++, disp += info.sizeOfEntry()) {
                 long tEntry1 = debugTime();
                 final TiffIFD.Entry entry = readIFDEntry(
                         ifdStream,
-                        READ_IFD_WITH_BUFFERING ? disp : disp + ifdStreamOffset,
-                        READ_IFD_WITH_BUFFERING ? ifdStreamOffset : 0,
-                        tiffFileLength);
+                        READ_IFD_WITH_BUFFERING ? disp : disp + info.ifdStreamOffset(),
+                        READ_IFD_WITH_BUFFERING ? info.ifdStreamOffset() : 0,
+                        info.fileLength());
                 final int tag = entry.tag();
                 long tEntry2 = debugTime();
                 timeEntries += tEntry2 - tEntry1;
@@ -1326,7 +1316,7 @@ public non-sealed class TiffReader extends TiffIO {
                         READ_IFD_WITH_BUFFERING ? ifdStream : stream,
                         stream,
                         READ_IFD_WITH_BUFFERING && entry.isDataEmbeddedInEntry(),
-                        ifdStreamOffset,
+                        info.ifdStreamOffset(),
                         entry);
                 long tEntry3 = debugTime();
                 timeArrays += tEntry3 - tEntry2;
@@ -1340,8 +1330,7 @@ public non-sealed class TiffReader extends TiffIO {
                     detailedEntries.put(tag, entry);
                 }
             }
-            final long fileOffsetOfNextIFDOffset = ifdStreamOffset + sizeOfAllEntries;
-            stream.seek(fileOffsetOfNextIFDOffset);
+            stream.seek(info.offsetOfNextIFDOffset());
 
             ifd = new TiffIFD(map, detailedEntries);
             ifd.setLoadedFromFile(true);
@@ -1350,9 +1339,9 @@ public non-sealed class TiffReader extends TiffIO {
             ifd.setFileOffsetOfIFD(ifdOffset);
             if (readNextOffset) {
                 final long nextOffset = readIFDNextOffset(false);
-                ifd.setFileOffsetOfNextIFDOffset(fileOffsetOfNextIFDOffset);
+                ifd.setFileOffsetOfNextIFDOffset(info.offsetOfNextIFDOffset());
                 ifd.setNextIFDOffset(nextOffset);
-                stream.seek(fileOffsetOfNextIFDOffset);
+                stream.seek(info.offsetOfNextIFDOffset());
                 // - this "in.seek" provides maximal compatibility with old code (which did not read next IFD offset)
                 // and also with the behavior of this method, when readNextOffset is not requested
             }

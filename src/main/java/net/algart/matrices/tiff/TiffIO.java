@@ -354,6 +354,27 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return scifio;
     }
 
+    IFDCommonInformation prepareReadingIFD(long ifdOffset) throws IOException {
+        final long tiffFileLength = stream.length();
+        final int n = readNumberOfIFDEntriesAt(ifdOffset);
+        final long ifdStreamOffset = ifdOffset + sizeOfNumberOfIFDEntries();
+
+        final int sizeOfEntry = sizeOfIFDEntry();
+        final int sizeOfAllEntries = sizeOfEntry * n;
+        if (ifdStreamOffset > tiffFileLength - sizeOfAllEntries) {
+            throw new TiffException("%d IFD entries at the offset %d exceeds the file length %d".formatted(
+                    n, ifdStreamOffset, tiffFileLength));
+        }
+        if (stream.offset() != ifdStreamOffset) {
+            throw new ConcurrentModificationException("Strange stream offset " +
+                    stream.offset() + " != " + ifdStreamOffset +
+                    ", probably due to operations in a parallel thread");
+        }
+        final long fileOffsetOfNextIFDOffset = ifdStreamOffset + sizeOfAllEntries;
+        return new IFDCommonInformation(
+                n, sizeOfEntry, sizeOfAllEntries, ifdStreamOffset, fileOffsetOfNextIFDOffset, tiffFileLength);
+    }
+
     TiffIFD.Entry readIFDEntry(
             DataHandle<?> ifdStream,
             long entryOffset,
@@ -1176,5 +1197,14 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return new TiffException("Cannot write IFD tag " +
                 Tags.prettyName(tag) + ": its value type \"" +
                 value.getClass().getTypeName() + "\" is not supported");
+    }
+
+    record IFDCommonInformation(
+            int n,
+            int sizeOfEntry,
+            int sizeOfAllEntries,
+            long ifdStreamOffset,
+            long offsetOfNextIFDOffset,
+            long fileLength) {
     }
 }
