@@ -196,13 +196,13 @@ public sealed class TiffMap permits TiffIOMap {
         this.sampleType = ifd.sampleType();
         this.wholeBytes = sampleType.isWholeBytes();
         if (this.wholeBytes != ((alignedBitDepth & 7) == 0)) {
-            throw new ConcurrentModificationException("Corrupted IFD, probably from a parallel thread" +
+            throw new ConcurrentModificationException("Corrupted IFD, probably by a parallel thread" +
                     " (sample type " + sampleType + " is" +
                     (wholeBytes ? "" : " NOT") +
                     " whole-bytes, but we have " + alignedBitDepth + " bits/sample)");
         }
         if ((totalAlignedBitsPerPixel == 1) != sampleType.isBinary()) {
-            throw new ConcurrentModificationException("Corrupted IFD, probably from a parallel thread" +
+            throw new ConcurrentModificationException("Corrupted IFD, probably by a parallel thread" +
                     " (sample type is " + sampleType +
                     ", but we have " + totalAlignedBitsPerPixel + " bits/pixel)");
         }
@@ -225,7 +225,7 @@ public sealed class TiffMap permits TiffIOMap {
         this.compressionCode = ifd.optCompressionCode(-1);
         this.compression = hasCompression ? ifd.optCompression() : Optional.of(TagCompression.NONE);
         if (!hasCompression && compressionCode != -1) {
-            throw new ConcurrentModificationException("Corrupted IFD, probably from a parallel thread" +
+            throw new ConcurrentModificationException("Corrupted IFD, probably by a parallel thread" +
                     " (hasCompression " + sampleType +
                     ", but we have compressionCode=" + compressionCode + ")");
         }
@@ -713,13 +713,20 @@ public sealed class TiffMap permits TiffIOMap {
      */
     public void buildTileGrid() {
         final Map<TiffTileIndex, TiffTile> newMap = new LinkedHashMap<>();
+        final int numberOfSeparatedPlanes = this.numberOfSeparatedPlanes;
+        final int gridCountY = this.gridCountY;
+        final int gridCountX = this.gridCountX;
+        // - note: the fields above may increase while growing the map
         for (int p = 0, linear = 0; p < numberOfSeparatedPlanes; p++) {
             for (int y = 0; y < gridCountY; y++) {
                 for (int x = 0; x < gridCountX; x++, linear++) {
                     final TiffTileIndex index = index(x, y, p);
                     if (index.linear() != linear) {
-                        throw new AssertionError("Invalid linear index: " + index.linear() +
-                                " for (" + x + ", " + y + ", " + p + ")");
+                        throw new ConcurrentModificationException("Invalid linear index: " + index.linear() +
+                                " for (" + x + ", " + y + ", " + p +
+                                "),%nprobably because of growing the map by a parallel thread:%n%s"
+                                        .formatted(this));
+
                     }
                     final TiffTile tile = getOrNew(index);
                     tile.cropStripToMap();
@@ -821,7 +828,7 @@ public sealed class TiffMap permits TiffIOMap {
         Objects.requireNonNull(color, "Null color");
         float[] components = color.getRGBComponents(null);
         final double[] filler = new double[components.length];
-        for  (int i = 0; i < components.length; i++) {
+        for (int i = 0; i < components.length; i++) {
             filler[i] = scaleToMaxValue ? components[i] * sampleType().unsignedVersion().maxValue() : components[i];
             // - note: for signed types as INT8, the value 255 still corresponds to WHITE;
             // this is not too correct, but it is better than too "smart" solution when 0xFFFFFF

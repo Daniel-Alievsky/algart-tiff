@@ -583,10 +583,16 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
         flushCompletedTiles(tiffTiles);
         // - writing 1st tile: now it has the offset in the file
         final TiffTile first = tiffTiles.getFirst();
+        int index = 0;
         for (TiffTile tile : tiles()) {
-            if (tile.linearIndex() > 0) {
+            if (tile.linearIndex() != index) {
+                throw new ConcurrentModificationException("Invalid linear index of the tile " + tile +
+                        ",%nprobably because of growing the map by a parallel thread:%n%s".formatted(this));
+            }
+            if (index > 0) {
                 tile.linkAsDuplicateOf(first);
             }
+            index++;
         }
         completeWriting();
     }

@@ -540,7 +540,7 @@ public class TiffUnpacking {
         if (byteAligned
                 && !ifd.optPhotometric().orElse(TagPhotometric.RGB).isInvertedBrightness()
                 && OPTIMIZE_SEPARATING_WHOLE_BYTES) {
-            throw new IllegalStateException("Corrupted IFD, probably from a parallel thread " +
+            throw new IllegalStateException("Corrupted IFD, probably by a parallel thread " +
                     "(BitsPerSample tag is byte-aligned and inversion is not necessary, " +
                     "though it was already checked)");
             // - was checked in isSimpleRearrangingBytesEnough; in the other case,
