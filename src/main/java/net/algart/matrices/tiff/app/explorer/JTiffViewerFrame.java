@@ -132,15 +132,19 @@ class JTiffViewerFrame extends JFrame {
                 map.compressionOrNoneForMissing().orElse(TagCompression.NONE).prettyName(),
                 zoomTitle, viewer.path().getFileName()));
         final TagPhotometric photometric = map.photometric().orElse(null);
-        final boolean simplyRenderable = photometric != null && photometric.isSimplyRenderable();
-        if (!simplyRenderable) {
+        final boolean problematicPotometric = photometric == null || !photometric.isSimplyRenderable();
+        final boolean problematicPrecision = map.sampleType().isSignedInteger();
+        if (problematicPotometric) {
             noticeLabel.setText(
                     (photometric == null ? "Note: PhotometricInterpretation tag is not set" :
                             "Note: PhotometricInterpretation %s is not fully supported"
                             .formatted(photometric.prettyName()))
                             + "; colors may be incorrect");
+        } else if (problematicPrecision) {
+                noticeLabel.setText("Note: this image contains signed values (" + map.sampleType().prettyName() +
+                        ") and may be rendered incorrectly");
         }
-        noticePanel.setVisible(!simplyRenderable);
+        noticePanel.setVisible(problematicPotometric || problematicPrecision);
     }
 
     private JMenuBar buildMenuBar() {

@@ -110,12 +110,25 @@ public enum TiffSampleType {
         return signed;
     }
 
+    public boolean isSignedInteger() {
+        return isSigned() && !isFloatingPoint();
+    }
+
     public boolean isFloatingPoint() {
         return this == FLOAT || this == DOUBLE;
     }
 
     public double maxValue() {
         return maxValue;
+    }
+
+    public TiffSampleType unsignedVersion() {
+        return switch (this) {
+            case INT8 -> UINT8;
+            case INT16 -> UINT16;
+            case INT32 -> UINT32;
+            default -> this;
+        };
     }
 
     public Object javaArray(byte[] bytes, ByteOrder byteOrder) {

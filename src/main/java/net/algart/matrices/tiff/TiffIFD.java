@@ -356,9 +356,12 @@ public final class TiffIFD {
     TiffIFD(Map<Integer, Object> ifdEntries, LinkedHashMap<Integer, Entry> detailedEntries) {
         Objects.requireNonNull(ifdEntries, "Null IFD entries map");
         this.map = new LinkedHashMap<>(ifdEntries);
-        for (Integer key : ifdEntries.keySet()) {
-            Objects.requireNonNull(key, "ifdEntries map contains null key");
-            // - without a guarantee that keys are not null, "new TreeSet" call in toString() can throw an exception
+        for (Map.Entry<Integer, Object> entry : this.map.entrySet()) {
+            // - check in the clone (this.map)
+            Objects.requireNonNull(entry.getKey(), "IFD entries map contains null key");
+            Objects.requireNonNull(entry.getValue(), "IFD entries map contains null value");
+            // - without a guarantee that keys are not null, "new TreeSet" call in toString()
+            // or TreeMap in another constructor can throw an exception
         }
         this.detailedEntries = detailedEntries;
     }
@@ -399,13 +402,15 @@ public final class TiffIFD {
     }
 
     /**
-     * Creates a new IFD filled with the tag values from the specified map.
+     * Creates a new IFD filled with the tag values from the specified map
+     * {@code tag} &rarr; {@code value}.
+     * See {@link TagValue} class about possible data values in this map.
      *
      * <p>This method copies the given entries into an internal map, stored in this object
      * (an immutable copy of which is available via the {@link #map()} method)
      * using the standard copy constructor {@link LinkedHashMap#LinkedHashMap(Map)}.</p>
      *
-     * @param ifdEntries the entries to be copied into a new IFD.
+     * @param ifdEntries the map {@code tag} &rarr; {@code value} to be copied into a new IFD.
      * @return a new IFD with the specified tags and values.
      */
     public static TiffIFD of(Map<Integer, Object> ifdEntries) {
@@ -2374,7 +2379,8 @@ public final class TiffIFD {
         }
         if ((tileSizeX & 15) != 0 || (tileSizeY & 15) != 0) {
             throw new IllegalArgumentException("Illegal tile sizes " + tileSizeX + "x" + tileSizeY
-                    + ": they must be multiples of 16");
+                    + ": they must be multiples of 16; nearest valid values (rounded up): " +
+                    (((tileSizeX + 15) & ~15) + "x" + (((tileSizeY + 15) & ~15))));
         }
         put(Tags.TILE_WIDTH, tileSizeX);
         put(Tags.TILE_LENGTH, tileSizeY);
@@ -2587,8 +2593,11 @@ public final class TiffIFD {
      * @param tag   the tag identifier (typically from {@link Tags}).
      * @param value the tag value.
      * @throws IllegalStateException if this IFD is {@link #freeze() frozen}.
+     * @throws NullPointerException if the {@code value} is {@code null}.
+     * @see TagValue
      */
     public void put(int tag, Object value) {
+        Objects.requireNonNull(value, "Null value is not allowed in IFD");
         checkImmutable();
         removeDetailedEntries(tag);
         // - necessary to avoid possible bugs with detection of the type

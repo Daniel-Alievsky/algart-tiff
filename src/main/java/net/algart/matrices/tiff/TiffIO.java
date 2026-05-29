@@ -721,6 +721,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             Object value) throws IOException {
         if (tagKey == null) {
             throw new UnsupportedOperationException("Cannot write null IFD tag");
+            // - should not occur in a correct TiffIFD
         }
         final int tag = tagKey;
         if (tag < 0 || tag > 0xFFFF) {
@@ -730,6 +731,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         switch (value) {
             case null -> throw new UnsupportedOperationException("Cannot write IFD tag " + tag +
                     ": it contains null value");
+            // - should not occur in a correct TiffIFD
             case Byte v -> value = new byte[]{v};
             case Short v -> value = new short[]{v};
             case Integer v -> value = new int[]{v};

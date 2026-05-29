@@ -67,7 +67,7 @@ public class TiffExplorer {
     private static final System.Logger LOG = System.getLogger(TiffExplorer.class.getName());
 
     private JTiffExplorerFrame frame;
-    private TiffNewHelper tiffNewHelper;
+    private TiffNewBlankHelper tiffNewBlankHelper;
     private FileFilter lastFileFilter = TIFF_OR_SVS_FILTER;
 
     private TiffInfo info = null;
@@ -135,17 +135,17 @@ public class TiffExplorer {
 
     private void createGUI(String[] args) {
         this.frame = new JTiffExplorerFrame(this);
-        this.tiffNewHelper = new TiffNewHelper(frame);
+        this.tiffNewBlankHelper = new TiffNewBlankHelper(frame);
         if (args.length >= 1) {
             loadTiff(Path.of(args[0]));
         }
     }
 
-    void chooseFileAndShowNewTiffDialog() {
-        Path file = tiffNewHelper.chooseTiffFileToCreate();
+    void chooseFileAndShowNewBlankDialog() {
+        Path file = tiffNewBlankHelper.chooseTiffFileToCreate();
         if (file != null) {
             try {
-                tiffNewHelper.showNewTiffDialog(file);
+                tiffNewBlankHelper.showNewBlankTiffDialog(file);
             } catch (Exception ex) {
                 TinySwing.showErrorMessage(frame, ex, "Error creating TIFF");
             }

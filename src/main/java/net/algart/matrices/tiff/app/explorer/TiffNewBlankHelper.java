@@ -38,9 +38,10 @@ import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Objects;
 
-class TiffNewHelper {
+class TiffNewBlankHelper {
     private static final String PREF_LAST_NEW_TIFF_DIR = "viewer.copier.lastNewTiffDirectory";
 
     private final JFrame frame;
@@ -75,7 +76,7 @@ class TiffNewHelper {
     private Color selectedColor = new Color(220, 230, 242);
     private boolean pattern = false;
 
-    public TiffNewHelper(JTiffExplorerFrame frame) {
+    public TiffNewBlankHelper(JTiffExplorerFrame frame) {
         this.frame = Objects.requireNonNull(frame);
         this.explorer = frame.explorer();
     }
@@ -101,10 +102,10 @@ class TiffNewHelper {
         return file.toPath();
     }
 
-    public void showNewTiffDialog(Path targetFile) throws IOException {
+    public void showNewBlankTiffDialog(Path targetFile) throws IOException {
         Objects.requireNonNull(targetFile, "Null targetFile");
         dialog = new JDialog(frame, true);
-        dialog.setMinimumSize(new Dimension(250, 20));
+        // dialog.setMinimumSize(new Dimension(500, 20)); // not too good idea
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         dialog.setTitle("Create new blank TIFF");
         dialog.setLayout(new BorderLayout(10, 10));
@@ -299,13 +300,13 @@ class TiffNewHelper {
                 "Select Fill Color",
                 true,
                 chooser,
-                okEvt -> {
+                okEvent -> {
                     Color newColor = chooser.getColor();
                     colorPreviewPanel.setBackground(newColor);
                     selectedColor = newColor;
                     updateHexFromColor();
                 },
-                cancelEvt -> {
+                cancelEvent -> {
                 }
         );
         dialog.setVisible(true);
@@ -317,6 +318,7 @@ class TiffNewHelper {
             selectedColor = Color.decode(text);
             colorPreviewPanel.setBackground(selectedColor);
         } catch (NumberFormatException e) {
+            TinySwing.showErrorMessage(frame, e, "Invalid color: " + text);
             updateHexFromColor();
         }
     }
@@ -328,13 +330,13 @@ class TiffNewHelper {
     private void createNewTiff(Path targetFile) throws IOException {
         try (TiffWriter writer = new TiffWriter(targetFile)) {
             final boolean tiled = tiledCheckBox.isSelected();
-            final long dimX = Long.parseLong(dimXField.getText());
-            final long dimY = Long.parseLong(dimYField.getText());
+            final long dimX = Long.parseLong(dimXField.getText().trim());
+            final long dimY = Long.parseLong(dimYField.getText().trim());
             int tileSizeX = -1;
             int tileSizeY = -1;
             if (tiled) {
-                tileSizeX = Integer.parseInt(tileSizeXField.getText());
-                tileSizeY = Integer.parseInt(tileSizeYField.getText());
+                tileSizeX = Integer.parseInt(tileSizeXField.getText().trim());
+                tileSizeY = Integer.parseInt(tileSizeYField.getText().trim());
             }
             this.tiled = tiled;
             this.dimX = dimX;
@@ -369,98 +371,14 @@ class TiffNewHelper {
         }
     }
 
-    private static void makePatternSamples(
-            Matrix<UpdatablePArray> matrix,
-            TiffMap map,
-            Color color) {
-        int numberOfChannels = matrix.dim32(2);
-        int dimX = matrix.dimX32();
-        int dimY = matrix.dimY32();
-        final int matrixSize = dimX * dimY;
-        double[] filler = map.colorToChannelValues(color, false);
-        switch (map.sampleType()) {
-            case BIT -> {
-                boolean[] channels = new boolean[matrixSize * numberOfChannels];
-                for (int c = 0, disp = 0; c < numberOfChannels; c++) {
-                    for (int y = 0; y < dimY; y++) {
-                        for (int x = 0; x < dimX; x++, disp++) {
-                            channels[disp] = patternValue(filler, c, x, y, dimX, dimY) > 0.5;
-                        }
-                    }
-                }
-                matrix.array().setData(0, channels);
-            }
-            case UINT8, INT8 -> {
-                byte[] channels = new byte[matrixSize * numberOfChannels];
-                for (int c = 0, disp = 0; c < numberOfChannels; c++) {
-                    for (int y = 0; y < dimY; y++) {
-                        for (int x = 0; x < dimX; x++, disp++) {
-                            channels[disp] = (byte) (patternValue(filler, c, x, y, dimX, dimY) * 255.0);
-                        }
-                    }
-                }
-                matrix.array().setData(0, channels);
-            }
-            case UINT16, INT16 -> {
-                short[] channels = new short[matrixSize * numberOfChannels];
-                for (int c = 0, disp = 0; c < numberOfChannels; c++) {
-                    for (int y = 0; y < dimY; y++) {
-                        for (int x = 0; x < dimX; x++, disp++) {
-                            channels[disp] = (short) (patternValue(filler, c, x, y, dimX, dimY) * 65535.0);
-                        }
-                    }
-                }
-                matrix.array().setData(0, channels);
-            }
-            case INT32, UINT32 -> {
-                int[] channels = new int[matrixSize * numberOfChannels];
-                for (int c = 0, disp = 0; c < numberOfChannels; c++) {
-                    for (int y = 0; y < dimY; y++) {
-                        for (int x = 0; x < dimX; x++, disp++) {
-                            channels[disp] = (int) (long) (patternValue(filler, c, x, y, dimX, dimY) * 0xFFFFFFFFL);
-                        }
-                    }
-                }
-                matrix.array().setData(0, channels);
-            }
-            case FLOAT -> {
-                float[] channels = new float[matrixSize * numberOfChannels];
-                for (int c = 0, disp = 0; c < numberOfChannels; c++) {
-                    for (int y = 0; y < dimY; y++) {
-                        for (int x = 0; x < dimX; x++, disp++) {
-                            channels[disp] = (float) patternValue(filler, c, x, y, dimX, dimY);
-                        }
-                    }
-                }
-                matrix.array().setData(0, channels);
-            }
-            case DOUBLE -> {
-                double[] channels = new double[matrixSize * numberOfChannels];
-                for (int c = 0, disp = 0; c < numberOfChannels; c++) {
-                    for (int y = 0; y < dimY; y++) {
-                        for (int x = 0; x < dimX; x++, disp++) {
-                            channels[disp] = patternValue(filler, c, x, y, dimX, dimY);
-                        }
-                    }
-                }
-                matrix.array().setData(0, channels);
-            }
-        }
-    }
-
-    private static double patternValue(double[] filler, int channel, int x, int y, int dimX, int dimY) {
-        double value = channel < filler.length ? filler[channel] : 1.0;
-        final long halfX = dimX >> 1;
-        final long halfY = dimY >> 1;
-        final long dx = x - halfX;
-        final long dy = y - halfY;
-        return value + (1.0 - value) * (double) (dx * dx + dy * dy) / (double) (halfX * halfX + halfY * halfY);
+    private static void makePatternSamples(Matrix<UpdatablePArray> matrix, TiffMap map, Color color) {
+        new PatternImageBuilder(matrix, map,  color).build();
     }
 
     enum UserNumberOfChannels {
         GRAYSCALE(1, "1 (grayscale)"),
         RGB(3, "3 (Color RGB)"),
-        RGBA(4, "3 (Color RGB + Alpha)");
+        RGBA(4, "4 (Color RGB + Alpha)");
 
         private final int numberOfChannels;
         private final String name;
@@ -477,6 +395,132 @@ class TiffNewHelper {
         @Override
         public String toString() {
             return name;
+        }
+    }
+
+    private static class PatternImageBuilder {
+        private final TiffMap map;
+        private final double[] filler;
+        private final Matrix<UpdatablePArray> result;
+        private final int numberOfChannels;
+
+        PatternImageBuilder(Matrix<UpdatablePArray> result, TiffMap map, Color color) {
+            Objects.requireNonNull(result);
+            Objects.requireNonNull(map);
+            Objects.requireNonNull(color);
+            this.map = map;
+            this.result = result;
+            this.numberOfChannels = result.dim32(2);
+            double[] channelValues = map.colorToChannelValues(color, false);
+            this.filler = Arrays.copyOf(channelValues, numberOfChannels);
+            if (numberOfChannels > channelValues.length) {
+                Arrays.fill(filler, channelValues.length, numberOfChannels, 1.0);
+            }
+        }
+
+        void build() {
+            result.array().setData(0, buildData());
+        }
+
+        private Object buildData() {
+            int dimX = result.dimX32();
+            int dimY = result.dimY32();
+            int halfX = dimX / 2;
+            int halfY = dimY / 2;
+            // - note: while using this class, dimX and dimY are 16*k,
+            // so we are able not to worry about odd values
+            double mX = Math.sqrt(0.5) / halfX;
+            double mY = Math.sqrt(0.5) / halfY;
+            return switch (map.sampleType()) {
+                case BIT -> {
+                    boolean[] channels = new boolean[dimX * dimY * numberOfChannels];
+                    for (int c = 0, disp = 0; c < numberOfChannels; c++) {
+                        double filler = this.filler[c];
+                        for (int y = 0; y < dimY; y++) {
+                            double dySqr = sqr((y - halfY) * mY);
+                            for (int x = 0; x < dimX; x++, disp++) {
+                                channels[disp] = value(filler, (x - halfX) * mX, dySqr) > 0.5;
+                            }
+                        }
+                    }
+                    yield channels;
+                }
+                case UINT8, INT8 -> {
+                    byte[] channels = new byte[dimX * dimY * numberOfChannels];
+                    for (int c = 0, disp = 0; c < numberOfChannels; c++) {
+                        double filler = this.filler[c];
+                        for (int y = 0; y < dimY; y++) {
+                            double dySqr = sqr((y - halfY) * mY);
+                            for (int x = 0; x < dimX; x++, disp++) {
+                                channels[disp] = (byte) (value(filler, (x - halfX) * mX, dySqr) * 255.0);
+                            }
+                        }
+                    }
+                    yield channels;
+                }
+                case UINT16, INT16 -> {
+                    short[] channels = new short[dimX * dimY * numberOfChannels];
+                    for (int c = 0, disp = 0; c < numberOfChannels; c++) {
+                        double filler = this.filler[c];
+                        for (int y = 0; y < dimY; y++) {
+                            double dySqr = sqr((y - halfY) * mY);
+                            for (int x = 0; x < dimX; x++, disp++) {
+                                channels[disp] = (short) (value(filler, (x - halfX) * mX, dySqr) * 65535.0);
+                            }
+                        }
+                    }
+                    yield channels;
+                }
+                case INT32, UINT32 -> {
+                    int[] channels = new int[dimX * dimY * numberOfChannels];
+                    for (int c = 0, disp = 0; c < numberOfChannels; c++) {
+                        double filler = this.filler[c];
+                        for (int y = 0; y < dimY; y++) {
+                            double dySqr = sqr((y - halfY) * mY);
+                            for (int x = 0; x < dimX; x++, disp++) {
+                                channels[disp] = (int) (long) (value(filler, (x - halfX) * mX, dySqr) * 0xFFFFFFFFL);
+                            }
+                        }
+                    }
+                    yield channels;
+                }
+                case FLOAT -> {
+                    float[] channels = new float[dimX * dimY * numberOfChannels];
+                    for (int c = 0, disp = 0; c < numberOfChannels; c++) {
+                        double filler = this.filler[c];
+                        for (int y = 0; y < dimY; y++) {
+                            double dySqr = sqr((y - halfY) * mY);
+                            for (int x = 0; x < dimX; x++, disp++) {
+                                channels[disp] = (float) value(filler, (x - halfX) * mX, dySqr);
+                            }
+                        }
+                    }
+                    yield channels;
+                }
+                case DOUBLE -> {
+                    double[] channels = new double[dimX * dimY * numberOfChannels];
+                    for (int c = 0, disp = 0; c < numberOfChannels; c++) {
+                        double filler = this.filler[c];
+                        for (int y = 0; y < dimY; y++) {
+                            double dySqr = sqr((y - halfY) * mY);
+                            for (int x = 0; x < dimX; x++, disp++) {
+                                channels[disp] = value(filler, (x - halfX) * mX, dySqr);
+                            }
+                        }
+                    }
+                    yield channels;
+                }
+            };
+        }
+
+        private double value(double filler, double dx, double dySqr) {
+            return filler + (0.9 - filler) * (dx * dx + dySqr);
+            // - at the tile corners we will have 0.9: almost white;
+            // it is better than white when the user selects white color to fill (we still see a subtle pattern)
+        }
+
+        private static double sqr(double v) {
+            return v * v;
         }
     }
 }
