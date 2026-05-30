@@ -576,6 +576,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
         final Matrix<UpdatablePArray> matrix = Matrix.newMatrix(
                 elementType(), tileSizeX(), tileSizeY(), numberOfChannels());
         tileFiller.accept(matrix);
+        prewrite();
         List<TiffTile> tiffTiles = updateMatrix(matrix, 0, 0);
         if (tiffTiles.size() != 1) {
             throw new AssertionError("Invalid tile count after updating 1 tile: " + tiffTiles.size());
