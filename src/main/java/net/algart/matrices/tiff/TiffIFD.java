@@ -42,13 +42,13 @@ import java.util.function.IntPredicate;
 
 public final class TiffIFD {
     @FunctionalInterface
-    public interface Corrector {
+    public interface Customizer {
         /**
          * Corrects IFD, usually before writing it to the target TIFF.
          *
          * @param ifd IFD to be corrected.
          */
-        void correct(TiffIFD ifd);
+        void customize(TiffIFD ifd);
     }
 
     /**

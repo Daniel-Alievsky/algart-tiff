@@ -100,7 +100,7 @@ public final class TiffCopier {
     private boolean directCopy = true;
     private int maxInMemoryTempFileSize = DEFAULT_MAX_IN_MEMORY_TEMP_FILE_SIZE;
     private TemporaryFileCreator temporaryFileCreator = TemporaryFileCreator.DEFAULT;
-    private TiffIFD.Corrector ifdCorrector = null;
+    private TiffIFD.Customizer ifdCustomizer = null;
     private TagCompression compression = null;
     private ProgressUpdater progressUpdater = null;
     private BooleanSupplier interruptionChecker = null;
@@ -133,7 +133,7 @@ public final class TiffCopier {
      * encoded tiles in the source and target TIFF may differ, for example,
      * due to different byte order, a change of compression as a result of
      * calling {@link #setCompression(TagCompression)}, or other modifications
-     * performed by the {@link #setIfdCorrector(TiffIFD.Corrector) IFD corrector}.</p>
+     * performed by the {@link #setIfdCustomizer(TiffIFD.Customizer) IFD customizer}.</p>
      *
      * @param directCopy whether direct copying of TIFF tiles should be used when possible.
      * @return a reference to this object.
@@ -241,41 +241,41 @@ public final class TiffCopier {
         return this;
     }
 
-    public boolean hasIfdCorrector() {
-        return ifdCorrector != null;
+    public boolean hasIfdCustomizer() {
+        return ifdCustomizer != null;
     }
 
     /**
-     * Returns the IFD corrector: a function that corrects the IFD obtained
+     * Returns the IFD customizer: a function that modifies the IFD obtained
      * from the source TIFF read map before writing it to the target TIFF.
      *
-     * @return the current IFD curretor or <code>null</code> if no IFD corrector is set.
+     * @return the current IFD customizer or <code>null</code> if no IFD customizer is set.
      */
-    public TiffIFD.Corrector getIfdCorrector() {
-        return ifdCorrector;
+    public TiffIFD.Customizer getIfdCustomizer() {
+        return ifdCustomizer;
     }
 
-    public TiffCopier removeIfdCorrector() {
-        this.ifdCorrector = null;
+    public TiffCopier removeIfdCustomizer() {
+        this.ifdCustomizer = null;
         return this;
     }
 
     /**
-     * Sets the IFD corrector: a function that corrects the IFD obtained
+     * Sets the IFD customizer: a function that modifies the IFD obtained
      * from the source TIFF read map before writing it to the target TIFF.
      * Usually this method should not be used when {@link #isDirectCopy() direct copy} mode is enabled.
-     * The default value is <code>null</code>, meaning that no correction
+     * The default value is <code>null</code>, meaning that no adjustment
      * is performed.
      *
      * <p>Note: this function is called <i>after</i> applying the compression
      * change requested by {@link #setCompression(TagCompression)} method
      * (if that method was called with a non-<code>null</code> argument).</p>
      *
-     * @param corrector new IFD corrector; can be {@code null}, in which case no correction is performed.
+     * @param customizer new IFD customizer; can be {@code null}, in which case no adjustment is performed.
      * @return a reference to this object.
      */
-    public TiffCopier setIfdCorrector(TiffIFD.Corrector corrector) {
-        this.ifdCorrector = corrector;
+    public TiffCopier setIfdCustomizer(TiffIFD.Customizer customizer) {
+        this.ifdCustomizer = customizer;
         return this;
     }
 
@@ -529,7 +529,7 @@ public final class TiffCopier {
         // - Note: unlike copying a rectangle in the other method, here we check compatibility
         // BEFORE calling newMap and, so, without correction of writeIFD by correctForEncoding.
         // Thus, most of the checks besides the byte order will usually be unnecessary
-        // (unless they have been changed by ifdCorrector).
+        // (unless they have been changed by ifdCustomizer).
         final boolean correctForEncoding = !actuallyDirectCopy;
         // - There is no sense to call correctForEncoding() method if we use tile-per-tile direct copying.
         // We could use smartCorrection mode always by explicitly calling TiffWriter.correctForEncoding(ifd, true),
@@ -751,7 +751,7 @@ public final class TiffCopier {
     private static void checkImageCompatibility(TiffWriteMap writeMap, TiffReadMap readMap) {
         // Note: this method does not check ANY possible incompatibilities.
         // On the other hand, incompatibilities are improbable here;
-        // they can appear only as a result of using ifdCorrector.
+        // they can appear only as a result of using ifdCustomizer.
         if (writeMap.sampleType() != readMap.sampleType()) {
             throw new IllegalArgumentException("Incompatible sample types: " +
                     writeMap.sampleType() + " in target TIFF, " + readMap.sampleType() + " in source TIFF");
@@ -870,8 +870,8 @@ public final class TiffCopier {
             }
             // - else we still can perform repacking by setDirectCopy(false)
         }
-        if (ifdCorrector != null) {
-            ifdCorrector.correct(writeIFD);
+        if (ifdCustomizer != null) {
+            ifdCustomizer.customize(writeIFD);
             // - theoretically, we can essentially modify IFD here
         }
     }

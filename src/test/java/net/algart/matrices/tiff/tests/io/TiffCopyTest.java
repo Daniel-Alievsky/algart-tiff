@@ -172,7 +172,7 @@ public class TiffCopyTest {
         // copier.setCancellationChecker(() -> copier.copiedTileCount() == 12);
         // - uncomment to cancel copying after 12 tiles
         if (uncompress) {
-            copier.setIfdCorrector(ifd -> ifd.putCompression(TagCompression.NONE));
+            copier.setIfdCustomizer(ifd -> ifd.putCompression(TagCompression.NONE));
         }
         return copier;
     }

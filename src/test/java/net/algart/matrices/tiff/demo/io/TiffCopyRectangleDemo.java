@@ -73,8 +73,8 @@ public class TiffCopyRectangleDemo {
                 sourceFile, targetFile, direct ? "" : " with recompression");
 
         final TiffCopier copier = new TiffCopier().setDirectCopy(direct);
-//         copier.setIfdCorrector(ifd -> ifd.putCompression(net.algart.matrices.tiff.tags.TagCompression.NONE));
-//         copier.setIfdCorrector(ifd -> ifd.putTileSizes(64, 64));
+//         copier.setIfdCustomizer(ifd -> ifd.putCompression(net.algart.matrices.tiff.tags.TagCompression.NONE));
+//         copier.setIfdCustomizer(ifd -> ifd.putTileSizes(64, 64));
         // - possible corrections
         copier.setProgressUpdater(p ->
                 System.out.printf("\r%d/%d (%s)...",

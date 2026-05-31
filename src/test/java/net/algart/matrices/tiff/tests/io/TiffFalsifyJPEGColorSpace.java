@@ -67,7 +67,7 @@ public class TiffFalsifyJPEGColorSpace {
             lastIFDIndex = Math.min(lastIFDIndex, maps.size() - 1);
             final TiffCopier copier = new TiffCopier()
                     .setDirectCopy(false)
-                    .setIfdCorrector(ifd -> {
+                    .setIfdCustomizer(ifd -> {
                         ifd.putPhotometric(before);
                         ifd.put(Tags.Y_CB_CR_SUB_SAMPLING,
                                 before == TagPhotometric.RGB ? new int[]{1, 1} : new int[]{2, 2});
