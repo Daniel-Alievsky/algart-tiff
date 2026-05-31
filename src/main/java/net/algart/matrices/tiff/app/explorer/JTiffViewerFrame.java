@@ -34,9 +34,7 @@ import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Objects;
-import java.util.OptionalInt;
+import java.util.*;
 
 class JTiffViewerFrame extends JFrame {
     private final TiffViewer viewer;
@@ -44,7 +42,9 @@ class JTiffViewerFrame extends JFrame {
     private final JTiffViewerScrollPane viewerScrollPane;
     private final JPanel noticePanel;
     private final JLabel noticeLabel;
-    private final JLabel statusLabel;
+    private final JLabel statusPixelCoordinatesLabel;
+    private final JLabel statusPixelValueLabel;
+    private final JLabel statusSelectionLabel;
 
     public JTiffViewerFrame(TiffViewer viewer) {
         this.viewer = Objects.requireNonNull(viewer);
@@ -68,10 +68,22 @@ class JTiffViewerFrame extends JFrame {
         viewerScrollPane.setBorder(BorderFactory.createEmptyBorder());
         this.add(viewerScrollPane, BorderLayout.CENTER);
 
-        final JPanel statusPanel = new JPanel();
-        statusPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 5, 5));
-        statusLabel = new JLabel(TiffViewer.DEFAULT_STATUS);
-        statusPanel.add(statusLabel);
+        statusPixelCoordinatesLabel = new JLabel(TiffViewer.DEFAULT_PIXEL_COORDINATES);
+        statusPixelValueLabel = new JLabel(TiffViewer.DEFAULT_PIXEL_VALUE);
+        statusSelectionLabel = new JLabel(TiffViewer.DEFAULT_STATUS);
+        statusPixelCoordinatesLabel.setBorder(BorderFactory.createEmptyBorder(2, 5, 2, 5));
+        statusPixelValueLabel.setBorder(BorderFactory.createEmptyBorder(2, 5, 2, 5));
+        statusSelectionLabel.setBorder(BorderFactory.createEmptyBorder(2, 5, 2, 5));
+        // fixMinimalSizes(statusCoordinatesLabel);
+        // fixMinimalSizes(statusChannelsLabel);
+        JPanel statusLeftPanel = new JPanel();
+        statusLeftPanel.setLayout(new BoxLayout(statusLeftPanel, BoxLayout.X_AXIS));
+        statusLeftPanel.add(statusPixelCoordinatesLabel);
+        statusLeftPanel.add(statusPixelValueLabel);
+
+        JPanel statusPanel = new JPanel(new BorderLayout());
+        statusPanel.add(statusLeftPanel, BorderLayout.WEST);
+        statusPanel.add(statusSelectionLabel, BorderLayout.CENTER);
         this.add(statusPanel, BorderLayout.SOUTH);
 
         resetImage();
@@ -81,6 +93,7 @@ class JTiffViewerFrame extends JFrame {
 //                KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0),
 //                JComponent.WHEN_IN_FOCUSED_WINDOW);
         this.pack();
+        statusPixelCoordinatesLabel.setText("0, 0");
 
         final Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         final Dimension frameSize = this.getSize();
@@ -101,8 +114,16 @@ class JTiffViewerFrame extends JFrame {
         return viewerPanel;
     }
 
-    public JLabel statusLabel() {
-        return statusLabel;
+    public JLabel statusPixelCoordinatesLabel() {
+        return statusPixelCoordinatesLabel;
+    }
+
+    public JLabel statusPixelValueLabel() {
+        return statusPixelValueLabel;
+    }
+
+    public JLabel statusSelectionLabel() {
+        return statusSelectionLabel;
     }
 
     @Override
@@ -308,13 +329,13 @@ class JTiffViewerFrame extends JFrame {
         rawItem.setEnabled(false);
         rawItem.addActionListener(e -> setColorCorrection(false));
 
-        JRadioButtonMenuItem correctedItem = new JRadioButtonMenuItem("Color correction (n/a)");
-        correctedItem.setEnabled(false);
-        correctedItem.addActionListener(e -> setColorCorrection(true));
+        JRadioButtonMenuItem correctionItem = new JRadioButtonMenuItem("Color correction (n/a)");
+        correctionItem.setEnabled(false);
+        correctionItem.addActionListener(e -> setColorCorrection(true));
         correctionGroup.add(rawItem);
-        correctionGroup.add(correctedItem);
+        correctionGroup.add(correctionItem);
         colorCorrectionMenu.add(rawItem);
-        colorCorrectionMenu.add(correctedItem);
+        colorCorrectionMenu.add(correctionItem);
         viewMenu.add(colorCorrectionMenu);
         viewMenu.addSeparator();
 
@@ -343,6 +364,26 @@ class JTiffViewerFrame extends JFrame {
         addZoomItem(zoomMenu, zoomGroup, "12.5% (1:8, may be slow)", 0.125, 4);
         viewMenu.addSeparator();
         viewMenu.add(zoomMenu);
+
+        JMenu pixelFormatMenu = new JMenu("Pixel value format");
+        ButtonGroup pixelFormatGroup = new ButtonGroup();
+        final Map<TiffViewer.PixelValueFormat, JRadioButtonMenuItem> pixelFormatItems = new LinkedHashMap<>();
+        for (final TiffViewer.PixelValueFormat format : TiffViewer.PixelValueFormat.values()) {
+            JRadioButtonMenuItem item = new JRadioButtonMenuItem(format.caption());
+            if (format == TiffViewer.PixelValueFormat.NONE) {
+                item.setSelected(true);
+            }
+            item.addActionListener(e -> {
+                viewer.setPixelValueFormat(format);
+                viewer.showLastPixelValue();
+            });
+            pixelFormatGroup.add(item);
+            pixelFormatMenu.add(item);
+            pixelFormatItems.put(format, item);
+        }
+        viewMenu.add(pixelFormatMenu);
+        viewMenu.addSeparator();
+
         JMenuItem showDecodingReportItem = new JMenuItem("Show decoding report");
         showDecodingReportItem.addActionListener(e -> {
             final TiffReadMap map = viewer.map();
@@ -386,9 +427,9 @@ class JTiffViewerFrame extends JFrame {
             rawItem.setText(rawLabel);
             rawItem.setEnabled(colorCorrectionApplicable);
             rawItem.setSelected(!colorCorrection);
-            correctedItem.setText(correctedLabel);
-            correctedItem.setEnabled(colorCorrectionApplicable);
-            correctedItem.setSelected(colorCorrection);
+            correctionItem.setText(correctedLabel);
+            correctionItem.setEnabled(colorCorrectionApplicable);
+            correctionItem.setSelected(colorCorrection);
             Color colorCorrectionForeground = colorCorrectionApplicable ?
                     viewMenu.getForeground() :
                     UIManager.getColor("MenuItem.disabledForeground");
@@ -396,6 +437,9 @@ class JTiffViewerFrame extends JFrame {
                 colorCorrectionMenu.setForeground(new Color(colorCorrectionForeground.getRGB()));
                 // - when possible, emulate the "disabled" menu state without actual disabling;
                 // may not work without explicit new Color(...)
+            }
+            for (TiffViewer.PixelValueFormat format : TiffViewer.PixelValueFormat.values()) {
+                pixelFormatItems.get(format).setEnabled(format.isSuitable(map.sampleType()));
             }
             tileGridItem.setText("Draw %s".formatted(map.isTiled() ? "tile grid" : "strip boundaries"));
             showDecodingReportItem.setEnabled(map.lastCodecReport() != null);
@@ -464,4 +508,12 @@ class JTiffViewerFrame extends JFrame {
     private void showErrorMessage(Throwable e, String title) {
         TinySwing.showErrorMessage(this, e, title);
     }
+
+    private static void fixMinimalSizes(JComponent component) {
+        Dimension preferredSize = component.getPreferredSize();
+        component.setMinimumSize(preferredSize);
+        component.setMaximumSize(preferredSize);
+        component.setPreferredSize(preferredSize);
+    }
+
 }

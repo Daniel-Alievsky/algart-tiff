@@ -24,7 +24,9 @@
 
 package net.algart.matrices.tiff.app.explorer;
 
+import net.algart.arrays.JArrays;
 import net.algart.matrices.tiff.TiffReader;
+import net.algart.matrices.tiff.TiffSampleType;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 import javax.swing.*;
@@ -32,9 +34,39 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Locale;
 import java.util.Objects;
 
 class TiffViewer {
+    enum PixelValueFormat {
+        NONE("None"),
+        DECIMAL("Decimal"),
+        HEXADECIMAL("Hexadecimal"),
+        NORMALIZED("Normalized (0..1)"),;
+
+        private final String caption;
+
+        PixelValueFormat(String caption) {
+            this.caption = caption;
+        }
+
+        public String caption() {
+            return caption;
+        }
+
+        public boolean isSuitable(TiffSampleType sampleType) {
+            if (sampleType == TiffSampleType.BIT) {
+                return this != NORMALIZED;
+            } else if (sampleType.isFloatingPoint()) {
+                return this == NONE || this == DECIMAL;
+            } else {
+                return true;
+            }
+        }
+    }
+
+    static final String DEFAULT_PIXEL_COORDINATES = pixelCoordinatesToString(0, 0);
+    static final String DEFAULT_PIXEL_VALUE = "";;
     static final String DEFAULT_STATUS =
             "Use mouse drag to select a rectangle, or SHIFT-drag to move the image";
     static final boolean DEFAULT_COLOR_CORRECTION = true;
@@ -49,6 +81,8 @@ class TiffViewer {
     private final Path path;
     private final int ifdIndex;
 
+    private PixelValueFormat pixelValueFormat = PixelValueFormat.NONE;
+
     private TiffReadMap map = null;
 
     private double lastImageZoom = 0.0;
@@ -57,6 +91,9 @@ class TiffViewer {
     private Throwable exception = null;
 
     private String lastStatus = DEFAULT_STATUS;
+    private long lastPixelX = 0;
+    private long lastPixelY = 0;
+    private String lastPixelValue = null;
     private boolean lastErrorFlag = false;
 
     private JTiffViewerFrame frame;
@@ -96,6 +133,34 @@ class TiffViewer {
         return ifdIndex;
     }
 
+    public PixelValueFormat getPixelValueFormat() {
+        return pixelValueFormat;
+    }
+
+    public TiffViewer setPixelValueFormat(PixelValueFormat pixelValueFormat) {
+        this.pixelValueFormat = Objects.requireNonNull(pixelValueFormat, "Null pixelValueFormat");
+        return this;
+    }
+
+    public void setColorCorrection(boolean colorCorrection) throws IOException {
+        if (colorCorrection != reader.isColorCorrection()) {
+            reader.setColorCorrection(colorCorrection);
+            invalidateCache();
+        }
+    }
+
+    public void setTileGridVisibility(boolean visible) throws IOException {
+        if (visible != reader.isViewTileGrid()) {
+            reader.setViewTileGrid(visible);
+            invalidateCache();
+        }
+    }
+
+    public void setTileGridThickness(int tileGridThickness) throws IOException {
+        reader.setTileGridThickness(tileGridThickness);
+        invalidateCache();
+    }
+
     public TiffReadMap map() {
         return map;
     }
@@ -109,7 +174,7 @@ class TiffViewer {
         createGUI();
     }
 
-    public void showNormalStatus() {
+    public void showSelection() {
         final Rectangle r = getSelection();
         final String status = r == null ?
                 DEFAULT_STATUS :
@@ -123,6 +188,26 @@ class TiffViewer {
 
     public void showStatus(String status) {
         setStatus(status, false);
+    }
+
+    public void showPixelInformation(long x, long y) {
+        if (x != lastPixelX || y != lastPixelY) {
+            final String pixelCoordinates = pixelCoordinatesToString(x, y);
+            SwingUtilities.invokeLater(() -> {
+                frame.statusPixelCoordinatesLabel().setText(pixelCoordinates);
+                setPixelValue(x, y);
+            });
+            lastPixelX = x;
+            lastPixelY = y;
+        }
+    }
+
+    public void showPixelInformation(int x, int y, double zoom) {
+        showPixelInformation(Math.round(x / zoom), Math.round(y / zoom));
+    }
+
+    public void showLastPixelValue() {
+        SwingUtilities.invokeLater(() -> setPixelValue(lastPixelX, lastPixelY));
     }
 
     public void showError(String status) {
@@ -189,7 +274,7 @@ class TiffViewer {
                 exception = e;
             }
             if (exception != null) {
-                LOG.log(System.Logger.Level.ERROR, "Error while reading " + map.streamName() +
+                LOG.log(System.Logger.Level.WARNING, "Error while reading image from " + map.streamName() +
                         ": " + exception.getMessage(), exception);
                 showError(exception.getMessage());
                 return null;
@@ -217,7 +302,7 @@ class TiffViewer {
                     .formatted(r.width, r.height, r.x, r.y,
                             zoom == 1.0 ? "" : " and scaled it to %dx%d (zoom %s)"
                                                .formatted(zoomedSizeX, zoomedSizeY, zoom)));
-            showNormalStatus();
+            showSelection();
         }
         return lastImage;
     }
@@ -249,23 +334,20 @@ class TiffViewer {
         return reader.isColorCorrection();
     }
 
-    void setColorCorrection(boolean colorCorrection) throws IOException {
-        if (colorCorrection != reader.isColorCorrection()) {
-            reader.setColorCorrection(colorCorrection);
-            invalidateCache();
-        }
+    public static String pixelCoordinatesToString(long x, long y) {
+        return "Pixel %d, %d".formatted(x, y);
     }
 
-    void setTileGridVisibility(boolean visible) throws IOException {
-        if (visible != reader.isViewTileGrid()) {
-            reader.setViewTileGrid(visible);
-            invalidateCache();
+    public String pixelValueToString(Object channelsArray, TiffSampleType sampleType) {
+        if (channelsArray == null) {
+            return "";
         }
-    }
-
-    void setTileGridThickness(int tileGridThickness) throws IOException {
-        reader.setTileGridThickness(tileGridThickness);
-        invalidateCache();
+        String s = switch (channelsArray) {
+            case byte[] values -> JArrays.toString(values, Locale.US, "%d", ", ", 100);
+            case short[] values -> JArrays.toString(values, Locale.US, "%d", ", ", 100);
+            default -> "UNKNOWN TYPE";
+        };
+        return "(" + s + ")";
     }
 
     private void createGUI() {
@@ -276,12 +358,32 @@ class TiffViewer {
         Objects.requireNonNull(status);
         if (error != lastErrorFlag || !status.equals(lastStatus)) {
             SwingUtilities.invokeLater(() -> {
-                final JLabel statusLabel = frame.statusLabel();
-                statusLabel.setForeground(error ? TiffExplorer.ERROR_COLOR : TiffExplorer.COMMON_COLOR);
-                statusLabel.setText(status);
+                final JLabel label = frame.statusSelectionLabel();
+                label.setForeground(error ? TiffExplorer.ERROR_COLOR : TiffExplorer.COMMON_COLOR);
+                label.setText(status);
             });
             lastStatus = status;
             lastErrorFlag = error;
+        }
+    }
+
+    private void setPixelValue(long x, long y) {
+        Object channels = null;
+        boolean error = false;
+        if (pixelValueFormat != PixelValueFormat.NONE && x >= 0 && y >= 0 && x < map.dimX() && y < map.dimY()) {
+            try {
+                channels = map.readJavaArray((int) x, (int) y, 1, 1);
+            } catch (IOException e) {
+                LOG.log(System.Logger.Level.WARNING, "Error while reading a pixel from " + map.streamName() +
+                        ": " + exception.getMessage(), exception);
+                error = true;
+                showError(exception.getMessage());
+            }
+        }
+        final String pixelValue = error ? "ERROR" : pixelValueToString(channels, map.sampleType());
+        if (!pixelValue.equals(lastPixelValue)) {
+            frame.statusPixelValueLabel().setText(pixelValue);
+            lastPixelValue = pixelValue;
         }
     }
 

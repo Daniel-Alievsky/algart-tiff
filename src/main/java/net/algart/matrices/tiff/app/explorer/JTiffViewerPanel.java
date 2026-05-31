@@ -188,7 +188,7 @@ class JTiffViewerPanel extends JComponent {
     public void removeSelection() {
         this.selected = false;
         repaint();
-        viewer.showNormalStatus();
+        viewer.showSelection();
     }
 
     public boolean isSelected() {
@@ -238,7 +238,7 @@ class JTiffViewerPanel extends JComponent {
             this.toY = Math.clamp(toY, 0, canvasDimY);
         }
         repaint();
-        viewer.showNormalStatus();
+        viewer.showSelection();
     }
 
     private void normalizeNegativeSelection() {
@@ -397,7 +397,7 @@ class JTiffViewerPanel extends JComponent {
                     toX = fromX + sizeX;
                     toY = fromY + sizeY;
                 }
-                viewer.showNormalStatus();
+                viewer.showSelection();
                 repaint();
             }
 
@@ -416,6 +416,7 @@ class JTiffViewerPanel extends JComponent {
                 } else {
                     setCursor(Cursor.getDefaultCursor());
                 }
+                viewer.showPixelInformation(mx, my, zoom);
             }
         };
         addMouseListener(adapter);
