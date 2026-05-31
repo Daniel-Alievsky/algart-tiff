@@ -41,6 +41,16 @@ import java.util.function.Function;
 import java.util.function.IntPredicate;
 
 public final class TiffIFD {
+    @FunctionalInterface
+    public interface Corrector {
+        /**
+         * Corrects IFD, usually before writing it to the target TIFF.
+         *
+         * @param ifd IFD to be corrected.
+         */
+        void correct(TiffIFD ifd);
+    }
+
     /**
      * Possible result of an updater passed to {@link TiffWriter#updateIFD(int, Function)} method.
      */

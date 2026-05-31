@@ -100,7 +100,7 @@ public final class TiffCopier {
     private boolean directCopy = true;
     private int maxInMemoryTempFileSize = DEFAULT_MAX_IN_MEMORY_TEMP_FILE_SIZE;
     private TemporaryFileCreator temporaryFileCreator = TemporaryFileCreator.DEFAULT;
-    private TiffIFDCorrector ifdCorrector = null;
+    private TiffIFD.Corrector ifdCorrector = null;
     private TagCompression compression = null;
     private ProgressUpdater progressUpdater = null;
     private BooleanSupplier interruptionChecker = null;
@@ -133,7 +133,7 @@ public final class TiffCopier {
      * encoded tiles in the source and target TIFF may differ, for example,
      * due to different byte order, a change of compression as a result of
      * calling {@link #setCompression(TagCompression)}, or other modifications
-     * performed by the {@link #setIfdCorrector(TiffIFDCorrector) IFD corrector}.</p>
+     * performed by the {@link #setIfdCorrector(TiffIFD.Corrector) IFD corrector}.</p>
      *
      * @param directCopy whether direct copying of TIFF tiles should be used when possible.
      * @return a reference to this object.
@@ -251,7 +251,7 @@ public final class TiffCopier {
      *
      * @return the current IFD curretor or <code>null</code> if no IFD corrector is set.
      */
-    public TiffIFDCorrector getIfdCorrector() {
+    public TiffIFD.Corrector getIfdCorrector() {
         return ifdCorrector;
     }
 
@@ -271,11 +271,11 @@ public final class TiffCopier {
      * change requested by {@link #setCompression(TagCompression)} method
      * (if that method was called with a non-<code>null</code> argument).</p>
      *
-     * @param tiffIfdCorrector new IFD corrector; can be {@code null}, in which case no correction is performed.
+     * @param corrector new IFD corrector; can be {@code null}, in which case no correction is performed.
      * @return a reference to this object.
      */
-    public TiffCopier setIfdCorrector(TiffIFDCorrector tiffIfdCorrector) {
-        this.ifdCorrector = tiffIfdCorrector;
+    public TiffCopier setIfdCorrector(TiffIFD.Corrector corrector) {
+        this.ifdCorrector = corrector;
         return this;
     }
 

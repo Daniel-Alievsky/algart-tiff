@@ -81,8 +81,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     private final Path filePath;
     private final Object fileLock = new Object();
 
-    volatile Object context = null;
     volatile boolean bigTiff = false;
+    private volatile Object context = null;
     volatile long fileOffsetOfLastIFDOffset = -1;
 
     volatile Object scifio = null;
@@ -97,6 +97,13 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         this.filePath = filePath;
     }
 
+    /**
+     * Returns whether we are writing BigTIFF data.
+     */
+    public boolean isBigTiff() {
+        return bigTiff;
+    }
+
     public Object getContext() {
         return context;
     }
@@ -104,13 +111,6 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     public void setContext(Object context) {
         this.scifio = null;
         this.context = context;
-    }
-
-    /**
-     * Returns whether we are writing BigTIFF data.
-     */
-    public boolean isBigTiff() {
-        return bigTiff;
     }
 
     /**
