@@ -53,6 +53,7 @@ public enum TiffSampleType {
         private boolean hexadecimal = false;
         private String floatingPointFormat = "%.1f";
         private String separator = ", ";
+        private int maxStringLength = 10000;
 
         private Formatter() {
         }
@@ -82,6 +83,18 @@ public enum TiffSampleType {
 
         public Formatter setSeparator(String separator) {
             this.separator = Objects.requireNonNull(separator, "Null separator");
+            return this;
+        }
+
+        public int getMaxStringLength() {
+            return maxStringLength;
+        }
+
+        public Formatter setMaxStringLength(int maxStringLength) {
+            if (maxStringLength <= 0) {
+                throw new IllegalArgumentException("maxStringLength argument must be positive");
+            }
+            this.maxStringLength = maxStringLength;
             return this;
         }
 
@@ -118,11 +131,11 @@ public enum TiffSampleType {
             };
         }
 
-        private static String arrayToString(boolean[] array, int length, String separator) {
+        private String arrayToString(boolean[] array, int length, String separator) {
             if (length < array.length) {
                 array = Arrays.copyOf(array, length);
             }
-            return JArrays.toBinaryString(array, separator, 10000);
+            return JArrays.toBinaryString(array, separator, maxStringLength);
         }
 
         private String arrayToString(byte[] array, int length, String format, String separator) {
@@ -149,33 +162,33 @@ public enum TiffSampleType {
             return longArrayToString(values, format, separator);
         }
 
-        private static String longArrayToString(long[] array, String format, String separator) {
+        private String longArrayToString(long[] array, String format, String separator) {
             if (format != null) {
-                return JArrays.toString(array, Locale.US, format, separator, 10000);
+                return JArrays.toString(array, Locale.US, format, separator, maxStringLength);
             } else {
-                return JArrays.toString(array, separator, 10000);
+                return JArrays.toString(array, separator, maxStringLength);
             }
         }
 
-        private static String arrayToString(float[] array, int length, String format, String separator) {
+        private String arrayToString(float[] array, int length, String format, String separator) {
             if (length < array.length) {
                 array = Arrays.copyOf(array, length);
             }
             if (format != null) {
-                return JArrays.toString(array, Locale.US, format, separator, 10000);
+                return JArrays.toString(array, Locale.US, format, separator, maxStringLength);
             } else {
-                return JArrays.toString(array, separator, 10000);
+                return JArrays.toString(array, separator, maxStringLength);
             }
         }
 
-        private static String arrayToString(double[] array, int length, String format, String separator) {
+        private String arrayToString(double[] array, int length, String format, String separator) {
             if (length < array.length) {
                 array = Arrays.copyOf(array, length);
             }
             if (format != null) {
-                return JArrays.toString(array, Locale.US, format, separator, 10000);
+                return JArrays.toString(array, Locale.US, format, separator, maxStringLength);
             } else {
-                return JArrays.toString(array, separator, 10000);
+                return JArrays.toString(array, separator, maxStringLength);
             }
         }
     }
