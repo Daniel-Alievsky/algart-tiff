@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.app.explorer;
 
-import net.algart.arrays.JArrays;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffSampleType;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
@@ -34,7 +33,6 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Locale;
 import java.util.Objects;
 
 class TiffViewer {
@@ -342,12 +340,14 @@ class TiffViewer {
         if (channelsArray == null) {
             return "";
         }
-        //TODO!! process NORMALIZED
+        //TODO!! process NORMALIZED in Formatter
         int n = map.numberOfChannels();
-        String s = sampleType.javaArrayToString(channelsArray, Math.min(n, 8),
-                pixelValueFormat == PixelValueFormat.HEXADECIMAL,
-                "%.1f",
-                pixelValueFormat == PixelValueFormat.HEXADECIMAL ? " " : ", ");
+        TiffSampleType.Formatter formatter = sampleType.newFormatter();
+        formatter.setHexadecimal(pixelValueFormat == PixelValueFormat.HEXADECIMAL);
+        formatter.setFloatingPointFormat("%.1f");
+        formatter.setSeparator(pixelValueFormat == PixelValueFormat.HEXADECIMAL ? " " : ", ");
+        String s = formatter.javaArrayToString(channelsArray, Math.min(n, 8));
+        //TODO!! add Formatter.maxArrayLength
         return "(" + (n <= 8 || s.endsWith("...") ? s : s + "...")  + ")";
     }
 

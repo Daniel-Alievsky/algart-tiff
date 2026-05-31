@@ -49,6 +49,137 @@ public enum TiffSampleType {
     FLOAT(6, "float", 32, float.class, true, 1.0),
     DOUBLE(7, "double", 64, double.class, true, 1.0);
 
+    public class Formatter {
+        private boolean hexadecimal = false;
+        private String floatingPointFormat = "%.1f";
+        private String separator = ", ";
+
+        private Formatter() {
+        }
+
+        public boolean isHexadecimal() {
+            return hexadecimal;
+        }
+
+        public Formatter setHexadecimal(boolean hexadecimal) {
+            this.hexadecimal = hexadecimal;
+            return this;
+        }
+
+        public String getFloatingPointFormat() {
+            return floatingPointFormat;
+        }
+
+        public Formatter setFloatingPointFormat(String floatingPointFormat) {
+            this.floatingPointFormat =
+                    Objects.requireNonNull(floatingPointFormat, "Null floatingPointFormat");
+            return this;
+        }
+
+        public String getSeparator() {
+            return separator;
+        }
+
+        public Formatter setSeparator(String separator) {
+            this.separator = Objects.requireNonNull(separator, "Null separator");
+            return this;
+        }
+
+        public String javaArrayToString(Object javaArray, int arrayLength) {
+            Objects.requireNonNull(javaArray, "Null javaArray");
+            if (arrayLength < 0) {
+                throw new IllegalArgumentException("Negative arrayLength: " + arrayLength);
+            }
+            final Class<?> componentType = javaArray.getClass().getComponentType();
+            if (componentType == null) {
+                throw new IllegalArgumentException("Invalid javaArray: it is not an array");
+            }
+            if (!(componentType == boolean.class && TiffSampleType.this == BIT) &&
+                    componentType != elementTypeOfJavaArray()) {
+                throw new IllegalArgumentException("Invalid javaArray element type: " +
+                        componentType.getTypeName() + " instead of " + elementTypeOfJavaArray());
+            }
+            if (javaArray instanceof long[] longArray) {
+                javaArray = PackedBitArrays.unpackBits(longArray, 0, arrayLength);
+            }
+            if (Array.getLength(javaArray) < arrayLength) {
+                throw new IllegalArgumentException("Too short javaArray: " + Array.getLength(javaArray) +
+                        " elements instead of the specified length " + arrayLength);
+            }
+            return switch (javaArray) {
+                case boolean[] values -> arrayToString(values, arrayLength, separator);
+                case byte[] values -> arrayToString(values, arrayLength, hexadecimal ? "%02X" : null, separator);
+                case short[] values -> arrayToString(values, arrayLength, hexadecimal ? "%04X" : null, separator);
+                case int[] values -> arrayToString(values, arrayLength, hexadecimal ? "%08X" : null, separator);
+                case float[] values -> arrayToString(values, arrayLength, floatingPointFormat, separator);
+                case double[] values -> arrayToString(values, arrayLength, floatingPointFormat, separator);
+                default -> throw new IllegalArgumentException("Invalid javaArray type: " +
+                        javaArray.getClass().getTypeName());
+            };
+        }
+
+        private static String arrayToString(boolean[] array, int length, String separator) {
+            if (length < array.length) {
+                array = Arrays.copyOf(array, length);
+            }
+            return JArrays.toBinaryString(array, separator, 10000);
+        }
+
+        private String arrayToString(byte[] array, int length, String format, String separator) {
+            long[] values = new long[Math.min(length, array.length)];
+            for (int k = 0; k < values.length; k++) {
+                values[k] = signed ? array[k] : array[k] & 0xFF;
+            }
+            return longArrayToString(values, format, separator);
+        }
+
+        private String arrayToString(short[] array, int length, String format, String separator) {
+            long[] values = new long[Math.min(length, array.length)];
+            for (int k = 0; k < values.length; k++) {
+                values[k] = signed ? array[k] : array[k] & 0xFFFF;
+            }
+            return longArrayToString(values, format, separator);
+        }
+
+        private String arrayToString(int[] array, int length, String format, String separator) {
+            long[] values = new long[Math.min(length, array.length)];
+            for (int k = 0; k < values.length; k++) {
+                values[k] = signed ? array[k] : array[k] & 0xFFFFFFFFL;
+            }
+            return longArrayToString(values, format, separator);
+        }
+
+        private static String longArrayToString(long[] array, String format, String separator) {
+            if (format != null) {
+                return JArrays.toString(array, Locale.US, format, separator, 10000);
+            } else {
+                return JArrays.toString(array, separator, 10000);
+            }
+        }
+
+        private static String arrayToString(float[] array, int length, String format, String separator) {
+            if (length < array.length) {
+                array = Arrays.copyOf(array, length);
+            }
+            if (format != null) {
+                return JArrays.toString(array, Locale.US, format, separator, 10000);
+            } else {
+                return JArrays.toString(array, separator, 10000);
+            }
+        }
+
+        private static String arrayToString(double[] array, int length, String format, String separator) {
+            if (length < array.length) {
+                array = Arrays.copyOf(array, length);
+            }
+            if (format != null) {
+                return JArrays.toString(array, Locale.US, format, separator, 10000);
+            } else {
+                return JArrays.toString(array, separator, 10000);
+            }
+        }
+    }
+
     private final int code;
     private final String prettyName;
     private final int bitsPerSample;
@@ -142,46 +273,8 @@ public enum TiffSampleType {
         return elementType == byte.class ? bytes : JArrays.bytesToArray(bytes, elementType, byteOrder);
     }
 
-    public String javaArrayToString(
-            Object javaArray,
-            int arrayLength,
-            boolean hexadecimal,
-            String floatingPointFormat,
-            String separator) {
-        Objects.requireNonNull(javaArray, "Null javaArray");
-        Objects.requireNonNull(separator, "Null separator");
-        if (isFloatingPoint()) {
-            Objects.requireNonNull(floatingPointFormat, "Null floatingPointFormat " +
-                    "(must be specified for " + this + ")");
-        }
-        if (arrayLength < 0) {
-            throw new IllegalArgumentException("Negative arrayLength: " + arrayLength);
-        }
-        final Class<?> componentType = javaArray.getClass().getComponentType();
-        if (componentType == null) {
-            throw new IllegalArgumentException("Invalid javaArray: it is not an array");
-        }
-        if (!(componentType == boolean.class && this == BIT) && componentType != elementTypeOfJavaArray()) {
-            throw new IllegalArgumentException("Invalid javaArray element type: " +
-                    componentType.getTypeName() + " instead of " + elementTypeOfJavaArray());
-        }
-        if (javaArray instanceof long[] longArray) {
-            javaArray = PackedBitArrays.unpackBits(longArray, 0, arrayLength);
-        }
-        if (Array.getLength(javaArray) < arrayLength) {
-            throw new IllegalArgumentException("Too short javaArray: " + Array.getLength(javaArray) +
-                    " elements instead of the specified length " + arrayLength);
-        }
-        return switch (javaArray) {
-            case boolean[] values -> toString(values, arrayLength, separator);
-            case byte[] values -> toString(values, arrayLength, hexadecimal ? "%02X" : null, separator);
-            case short[] values -> toString(values, arrayLength, hexadecimal ? "%04X" : null, separator);
-            case int[] values -> toString(values, arrayLength, hexadecimal ? "%08X" : null, separator);
-            case float[] values -> toString(values, arrayLength, floatingPointFormat, separator);
-            case double[] values -> toString(values, arrayLength, floatingPointFormat, separator);
-            default -> throw new IllegalArgumentException("Invalid javaArray type: " +
-                    javaArray.getClass().getTypeName());
-        };
+    public Formatter newFormatter() {
+        return new Formatter();
     }
 
     public static byte[] bytes(PArray array, ByteOrder byteOrder) {
@@ -272,66 +365,5 @@ public enum TiffSampleType {
         return interleavedSamples ?
                 Matrices.matrix(array, numberOfChannels, sizeX, sizeY) :
                 Matrices.matrix(array, sizeX, sizeY, numberOfChannels);
-    }
-
-    private static String toString(boolean[] array, int length, String separator) {
-        if (length < array.length) {
-            array = Arrays.copyOf(array, length);
-        }
-        return JArrays.toBinaryString(array, separator, 10000);
-    }
-
-    private String toString(byte[] array, int length, String format, String separator) {
-        long[] values = new long[Math.min(length, array.length)];
-        for (int k = 0; k < values.length; k++) {
-            values[k] = signed ? array[k] : array[k] & 0xFF;
-        }
-        return longArrayToString(values, format, separator);
-    }
-
-    private String toString(short[] array, int length, String format, String separator) {
-        long[] values = new long[Math.min(length, array.length)];
-        for (int k = 0; k < values.length; k++) {
-            values[k] = signed ? array[k] : array[k] & 0xFFFF;
-        }
-        return longArrayToString(values, format, separator);
-    }
-
-    private String toString(int[] array, int length, String format, String separator) {
-        long[] values = new long[Math.min(length, array.length)];
-        for (int k = 0; k < values.length; k++) {
-            values[k] = signed ? array[k] : array[k] & 0xFFFFFFFFL;
-        }
-        return longArrayToString(values, format, separator);
-    }
-
-    private static String longArrayToString(long[] array, String format, String separator) {
-        if (format != null) {
-            return JArrays.toString(array, Locale.US, format, separator, 10000);
-        } else {
-            return JArrays.toString(array, separator, 10000);
-        }
-    }
-
-    private static String toString(float[] array, int length, String format, String separator) {
-        if (length < array.length) {
-            array = Arrays.copyOf(array, length);
-        }
-        if (format != null) {
-            return JArrays.toString(array, Locale.US, format, separator, 10000);
-        } else {
-            return JArrays.toString(array, separator, 10000);
-        }
-    }
-
-    private static String toString(double[] array, int length, String format, String separator) {
-        if (length < array.length) {
-            array = Arrays.copyOf(array, length);
-        }
-        if (format != null) {
-            return JArrays.toString(array, Locale.US, format, separator, 10000);
-        } else {
-            return JArrays.toString(array, separator, 10000);
-        }
     }
 }
