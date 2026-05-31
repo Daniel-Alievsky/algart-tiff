@@ -342,12 +342,13 @@ class TiffViewer {
         if (channelsArray == null) {
             return "";
         }
-        String s = switch (channelsArray) {
-            case byte[] values -> JArrays.toString(values, Locale.US, "%d", ", ", 100);
-            case short[] values -> JArrays.toString(values, Locale.US, "%d", ", ", 100);
-            default -> "UNKNOWN TYPE";
-        };
-        return "(" + s + ")";
+        //TODO!! process NORMALIZED
+        int n = map.numberOfChannels();
+        String s = sampleType.javaArrayToString(channelsArray, Math.min(n, 8),
+                pixelValueFormat == PixelValueFormat.HEXADECIMAL,
+                "%.1f",
+                pixelValueFormat == PixelValueFormat.HEXADECIMAL ? " " : ", ");
+        return "(" + (n <= 8 || s.endsWith("...") ? s : s + "...")  + ")";
     }
 
     private void createGUI() {

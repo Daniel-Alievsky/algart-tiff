@@ -26,7 +26,10 @@ package net.algart.matrices.tiff;
 
 import net.algart.arrays.*;
 
+import java.lang.reflect.Array;
 import java.nio.ByteOrder;
+import java.util.Arrays;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.OptionalInt;
 
@@ -94,6 +97,10 @@ public enum TiffSampleType {
         return elementType;
     }
 
+    public Class<?> elementTypeOfJavaArray() {
+        return this == BIT ? long.class : elementType;
+    }
+
     public long maxNumberOfSamplesInArray() {
         return this == BIT ? ((long) Integer.MAX_VALUE) << 3 : Integer.MAX_VALUE;
     }
@@ -133,6 +140,48 @@ public enum TiffSampleType {
 
     public Object javaArray(byte[] bytes, ByteOrder byteOrder) {
         return elementType == byte.class ? bytes : JArrays.bytesToArray(bytes, elementType, byteOrder);
+    }
+
+    public String javaArrayToString(
+            Object javaArray,
+            int arrayLength,
+            boolean hexadecimal,
+            String floatingPointFormat,
+            String separator) {
+        Objects.requireNonNull(javaArray, "Null javaArray");
+        Objects.requireNonNull(separator, "Null separator");
+        if (isFloatingPoint()) {
+            Objects.requireNonNull(floatingPointFormat, "Null floatingPointFormat " +
+                    "(must be specified for " + this + ")");
+        }
+        if (arrayLength < 0) {
+            throw new IllegalArgumentException("Negative arrayLength: " + arrayLength);
+        }
+        final Class<?> componentType = javaArray.getClass().getComponentType();
+        if (componentType == null) {
+            throw new IllegalArgumentException("Invalid javaArray: it is not an array");
+        }
+        if (!(componentType == boolean.class && this == BIT) && componentType != elementTypeOfJavaArray()) {
+            throw new IllegalArgumentException("Invalid javaArray element type: " +
+                    componentType.getTypeName() + " instead of " + elementTypeOfJavaArray());
+        }
+        if (javaArray instanceof long[] longArray) {
+            javaArray = PackedBitArrays.unpackBits(longArray, 0, arrayLength);
+        }
+        if (Array.getLength(javaArray) < arrayLength) {
+            throw new IllegalArgumentException("Too short javaArray: " + Array.getLength(javaArray) +
+                    " elements instead of the specified length " + arrayLength);
+        }
+        return switch (javaArray) {
+            case boolean[] values -> toString(values, arrayLength, separator);
+            case byte[] values -> toString(values, arrayLength, hexadecimal ? "%02X" : null, separator);
+            case short[] values -> toString(values, arrayLength, hexadecimal ? "%04X" : null, separator);
+            case int[] values -> toString(values, arrayLength, hexadecimal ? "%08X" : null, separator);
+            case float[] values -> toString(values, arrayLength, floatingPointFormat, separator);
+            case double[] values -> toString(values, arrayLength, floatingPointFormat, separator);
+            default -> throw new IllegalArgumentException("Invalid javaArray type: " +
+                    javaArray.getClass().getTypeName());
+        };
     }
 
     public static byte[] bytes(PArray array, ByteOrder byteOrder) {
@@ -225,4 +274,64 @@ public enum TiffSampleType {
                 Matrices.matrix(array, sizeX, sizeY, numberOfChannels);
     }
 
+    private static String toString(boolean[] array, int length, String separator) {
+        if (length < array.length) {
+            array = Arrays.copyOf(array, length);
+        }
+        return JArrays.toBinaryString(array, separator, 10000);
+    }
+
+    private String toString(byte[] array, int length, String format, String separator) {
+        long[] values = new long[Math.min(length, array.length)];
+        for (int k = 0; k < values.length; k++) {
+            values[k] = signed ? array[k] : array[k] & 0xFF;
+        }
+        return longArrayToString(values, format, separator);
+    }
+
+    private String toString(short[] array, int length, String format, String separator) {
+        long[] values = new long[Math.min(length, array.length)];
+        for (int k = 0; k < values.length; k++) {
+            values[k] = signed ? array[k] : array[k] & 0xFFFF;
+        }
+        return longArrayToString(values, format, separator);
+    }
+
+    private String toString(int[] array, int length, String format, String separator) {
+        long[] values = new long[Math.min(length, array.length)];
+        for (int k = 0; k < values.length; k++) {
+            values[k] = signed ? array[k] : array[k] & 0xFFFFFFFFL;
+        }
+        return longArrayToString(values, format, separator);
+    }
+
+    private static String longArrayToString(long[] array, String format, String separator) {
+        if (format != null) {
+            return JArrays.toString(array, Locale.US, format, separator, 10000);
+        } else {
+            return JArrays.toString(array, separator, 10000);
+        }
+    }
+
+    private static String toString(float[] array, int length, String format, String separator) {
+        if (length < array.length) {
+            array = Arrays.copyOf(array, length);
+        }
+        if (format != null) {
+            return JArrays.toString(array, Locale.US, format, separator, 10000);
+        } else {
+            return JArrays.toString(array, separator, 10000);
+        }
+    }
+
+    private static String toString(double[] array, int length, String format, String separator) {
+        if (length < array.length) {
+            array = Arrays.copyOf(array, length);
+        }
+        if (format != null) {
+            return JArrays.toString(array, Locale.US, format, separator, 10000);
+        } else {
+            return JArrays.toString(array, separator, 10000);
+        }
+    }
 }
