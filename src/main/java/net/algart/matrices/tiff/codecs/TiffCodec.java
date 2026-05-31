@@ -52,6 +52,16 @@ public interface TiffCodec {
         long timeAdditional();
     }
 
+    @FunctionalInterface
+    interface Customizer {
+        /**
+         * Adjusts the options, usually before reading or writing the tile.
+         *
+         * @param options the options to be customized.
+         */
+        void customize(Options options);
+    }
+
     /**
      * Options for compressing and decompressing data.
      */

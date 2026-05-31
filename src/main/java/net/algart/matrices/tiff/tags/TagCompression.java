@@ -573,13 +573,23 @@ public enum TagCompression {
     }
 
     public TiffCodec.Options customizeReading(TiffTile tile, TiffCodec.Options options) {
+        // Note: this method does not damage customization already performed in the options;
+        // so, it uses clone() or Options.setTo() method
         if (isStandardJpeg()) {
             return customizeReadingJpeg(tile, options);
+        }
+        if (isJpeg2000()) {
+            return customizeReadingJpeg2000(tile, options);
+            // - does nothing in the current implementation, but we MUST provide the correct class JPEG2000Options
+            // for possible future implementations or usage of TiffCodec.Customizer
+            // (this is checked in TiffReaderTest)
         }
         return options;
     }
 
     public TiffCodec.Options customizeWriting(TiffTile tile, TiffCodec.Options options) {
+        // Note: this method does not damage customization already performed in the options;
+        // so, it uses clone() or Options.setTo() method
         if (isJpeg2000()) {
             return customizeWritingJpeg2000(tile, options, !isJpeg2000Lossy(), isWritingSupported());
         }
@@ -604,6 +614,12 @@ public enum TagCompression {
     //        result.setPhotometricInterpretation(TagPhotometricInterpretation.RGB);
     //     }
     // }
+
+    private static JPEG2000Codec.JPEG2000Options customizeReadingJpeg2000(
+            TiffTile tile,
+            TiffCodec.Options defaultOptions) {
+        return new JPEG2000Codec.JPEG2000Options().setTo(defaultOptions);
+    }
 
     private static JPEG2000Codec.JPEG2000Options customizeWritingJpeg2000(
             TiffTile tile,

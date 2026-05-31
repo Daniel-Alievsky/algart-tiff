@@ -31,8 +31,10 @@ import net.algart.arrays.PArray;
 import net.algart.io.MatrixIO;
 import net.algart.io.awt.MatrixToImage;
 import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.compatibility.TiffParser;
 import net.algart.matrices.tiff.app.TiffInfo;
+import net.algart.matrices.tiff.codecs.JPEG2000Codec;
+import net.algart.matrices.tiff.compatibility.TiffParser;
+import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 import org.scijava.Context;
 
@@ -120,7 +122,6 @@ public class TiffReaderTest {
                     final CodecOptions codecOptions = new CodecOptions();
                     codecOptions.maxBytes = 1000;
                     parser.setCodecOptions(codecOptions);
-                    assert reader.getCodecOptions().getMaxSizeInBytes() == 1000;
                 }
 
 //                ((TiffParser) reader).setAssumeEqualStrips(true);
@@ -159,6 +160,16 @@ public class TiffReaderTest {
                     h = Math.min(map.dimY(), MAX_IMAGE_DIM);
                 }
                 final int bandCount = map.numberOfChannels();
+                reader.setCodecCustomizer(options -> {
+                    // System.out.printf("Customizing %s...%n", options.getClass());
+                    if (map.compression().orElse(TagCompression.NONE).isJpeg2000()) {
+                        if (!(options instanceof JPEG2000Codec.JPEG2000Options jpeg2000Options)) {
+                            throw new AssertionError("JPEG-2000 format must use JPEG2000Options");
+                        }
+                            jpeg2000Options.setLossless(false);
+                        // - not important for reading, but can be checked under debugger
+                    }
+                });
 
                 Matrix<? extends PArray> matrix = null;
                 for (int test = 1; test <= Math.max(1, numberOfTests); test++) {

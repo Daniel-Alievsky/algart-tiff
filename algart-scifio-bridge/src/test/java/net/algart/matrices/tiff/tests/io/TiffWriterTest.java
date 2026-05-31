@@ -270,7 +270,11 @@ public class TiffWriterTest {
                 writer.setCompressionQuality(quality);
                 writer.setLosslessCompressionLevel(compressionLevel);
                 if (jp2Metadata) {
-                    writer.setCodecOptions(new JPEG2000Codec.JPEG2000Options().setWriteMetadata(true));
+                    writer.setCodecCustomizer(options -> {
+                        if (options instanceof JPEG2000Codec.JPEG2000Options jpeg2000Options) {
+                            jpeg2000Options.setWriteMetadata(true);
+                        }
+                    });
                 }
 //                writer.setSmartCorrection(true);
 //                writer.setByteFiller((byte) 0xE0);

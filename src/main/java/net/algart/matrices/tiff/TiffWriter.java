@@ -80,7 +80,7 @@ public non-sealed class TiffWriter extends TiffIO {
 
     private boolean prewritingAllowed = true;
     private boolean smartCorrection = false;
-    private TiffCodec.Options codecOptions = new TiffCodec.Options();
+    private TiffCodec.Customizer codecCustomizer = null;
     private boolean enforceUseExternalCodec = false;
     private Double compressionQuality = null;
     private Double losslessCompressionLevel = null;
@@ -322,18 +322,12 @@ public non-sealed class TiffWriter extends TiffIO {
         return this;
     }
 
-    public TiffCodec.Options getCodecOptions() {
-        return codecOptions.clone();
+    public TiffCodec.Customizer getCodecCustomizer() {
+        return codecCustomizer;
     }
 
-    /**
-     * Sets the codec options.
-     *
-     * @param codecOptions The value to set.
-     * @return a reference to this object.
-     */
-    public TiffWriter setCodecOptions(final TiffCodec.Options codecOptions) {
-        this.codecOptions = Objects.requireNonNull(codecOptions, "Null codecOptions").clone();
+    public TiffWriter setCodecCustomizer(TiffCodec.Customizer codecCustomizer) {
+        this.codecCustomizer = codecCustomizer;
         return this;
     }
 
@@ -1151,6 +1145,12 @@ public non-sealed class TiffWriter extends TiffIO {
         byte[] data = tile.getDecodedData();
         if (codec != null) {
             options = compression.customizeWriting(tile, options);
+            if (options.getWidth() != tile.getSizeX() || options.getHeight() != tile.getSizeY()) {
+                throw new AssertionError("Options were damaged after customization! " + options);
+            }
+            if (codecCustomizer != null) {
+                codecCustomizer.customize(options);
+            }
             if (codec instanceof TiffCodec.Timing timing) {
                 timing.setTiming(BUILT_IN_TIMING && LOGGABLE_DEBUG);
                 timing.resetTiming();
@@ -2250,7 +2250,7 @@ public non-sealed class TiffWriter extends TiffIO {
 
     @SuppressWarnings("RedundantThrows")
     private TiffCodec.Options buildOptions(TiffTile tile) throws TiffException {
-        TiffCodec.Options options = this.codecOptions.clone();
+        final TiffCodec.Options options = new TiffCodec.Options();
         options.setMainOptions(tile);
         options.setIo(this);
         if (this.compressionQuality != null) {

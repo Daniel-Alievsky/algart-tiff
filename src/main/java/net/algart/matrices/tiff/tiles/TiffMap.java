@@ -134,6 +134,7 @@ public sealed class TiffMap permits TiffIOMap {
     private final int compressionCode;
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private final Optional<TagCompression> compression;
+    private final Optional<TagCompression> compressionOrNoneIfMissing;
     // - storing Optional value is not a usual way; we do this only for quick replacement of TiffIFD method
     private final int photometricCode;
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -223,7 +224,8 @@ public sealed class TiffMap permits TiffIOMap {
         assert tileSizeX > 0 && tileSizeY > 0 : "non-positive tile sizes are not checked in IFD methods";
         this.hasCompression = ifd.hasCompression();
         this.compressionCode = ifd.optCompressionCode(-1);
-        this.compression = hasCompression ? ifd.optCompression() : Optional.of(TagCompression.NONE);
+        this.compression = ifd.optCompression();
+        this.compressionOrNoneIfMissing = hasCompression ? compression : Optional.of(TagCompression.NONE);
         if (!hasCompression && compressionCode != -1) {
             throw new ConcurrentModificationException("Corrupted IFD, probably by a parallel thread" +
                     " (hasCompression " + sampleType +
@@ -431,6 +433,10 @@ public sealed class TiffMap permits TiffIOMap {
         return compressionCode;
     }
 
+    public Optional<TagCompression> compression() {
+        return compression;
+    }
+
     /**
      * Returns {@link #ifd()}.{@link TiffIFD#optCompression() optCompression()} or
      * <code>Optional.of({@link TagCompression#NONE})</code> if <code>!{@link #hasCompression()}</code>.
@@ -440,7 +446,7 @@ public sealed class TiffMap permits TiffIOMap {
      * @return TIFF compression or <code>Optional.empty()</code> for unknown compression.
      */
     public Optional<TagCompression> compressionOrNoneForMissing() {
-        return compression;
+        return compressionOrNoneIfMissing;
     }
 
     public int photometricCode() {

@@ -230,11 +230,11 @@ public class TiffParser extends TiffReader {
 
     public void setCodecOptions(final CodecOptions codecOptions) {
         this.codecOptions = codecOptions;
-        TiffCodec.Options options = getCodecOptions();
-        options.setToSCIFIOStyleOptions(codecOptions);
-        // - not too important, but also does not create problems
-        //noinspection resource
-        setCodecOptions(options);
+        // TiffCodec.Options newStyleOptions = super.getCodecOptions();
+        // newStyleOptions.setToSCIFIOStyleOptions(codecOptions);
+        // super.setCodecOptions(newStyleOptions);
+        // - This ability was removed since the version 1.5.2.
+        // - This is not too important.
     }
 
 

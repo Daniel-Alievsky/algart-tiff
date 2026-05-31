@@ -44,9 +44,9 @@ public final class TiffIFD {
     @FunctionalInterface
     public interface Customizer {
         /**
-         * Corrects IFD, usually before writing it to the target TIFF.
+         * Adjusts IFD, usually before writing it to the target TIFF.
          *
-         * @param ifd IFD to be corrected.
+         * @param ifd IFD to be customized.
          */
         void customize(TiffIFD ifd);
     }

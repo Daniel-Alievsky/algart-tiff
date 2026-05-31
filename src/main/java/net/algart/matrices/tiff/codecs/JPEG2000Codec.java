@@ -383,6 +383,7 @@ public class JPEG2000Codec implements TiffCodec {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
         JPEG2000Options jpeg2000Options = new JPEG2000Options().setTo(options);
+//        System.out.println("!!!" + jpeg2000Options.lossless); // - allows to test customization in TiffReaderTest
 
         byte[][] single;
         Raster raster;

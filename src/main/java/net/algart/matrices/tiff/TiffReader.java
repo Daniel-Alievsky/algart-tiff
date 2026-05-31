@@ -152,6 +152,7 @@ public non-sealed class TiffReader extends TiffIO {
     private boolean scaleWhenIncreasingBitDepth = true;
     private boolean colorCorrection = false;
     private boolean removeExtraChannelsIf5OrMoreForBufferedImage = false;
+    private TiffCodec.Customizer codecCustomizer = null;
     private boolean enforceUseExternalCodec = false;
     private boolean cropTilesToImageBoundaries = true;
     private boolean cachingIFDs = true;
@@ -173,8 +174,6 @@ public non-sealed class TiffReader extends TiffIO {
      * Cached first IFD in the current file.
      */
     private volatile TiffIFD firstIFD;
-
-    private TiffCodec.Options codecOptions = new TiffCodec.Options();
 
     private final Map<TiffTileIndex, CachedTile> tileCacheMap = new HashMap<>();
     private final Queue<CachedTile> tileCache = new LinkedList<>();
@@ -690,6 +689,15 @@ public non-sealed class TiffReader extends TiffIO {
         return this;
     }
 
+    public TiffCodec.Customizer getCodecCustomizer() {
+        return codecCustomizer;
+    }
+
+    public TiffReader setCodecCustomizer(TiffCodec.Customizer codecCustomizer) {
+        this.codecCustomizer = codecCustomizer;
+        return this;
+    }
+
     public boolean isEnforceUseExternalCodec() {
         return enforceUseExternalCodec;
     }
@@ -705,27 +713,6 @@ public non-sealed class TiffReader extends TiffIO {
 
     public TiffReader setCropTilesToImageBoundaries(boolean cropTilesToImageBoundaries) {
         this.cropTilesToImageBoundaries = cropTilesToImageBoundaries;
-        return this;
-    }
-
-    /**
-     * Retrieves the current set of codec options being used to decompress pixel
-     * data.
-     *
-     * @return See above.
-     */
-    public TiffCodec.Options getCodecOptions() {
-        return codecOptions.clone();
-    }
-
-    /**
-     * Sets the codec options to be used when decompressing pixel data.
-     *
-     * @param codecOptions Codec options to use.
-     * @return a reference to this object.
-     */
-    public TiffReader setCodecOptions(TiffCodec.Options codecOptions) {
-        this.codecOptions = Objects.requireNonNull(codecOptions, "Null codecOptions").clone();
         return this;
     }
 
@@ -1480,6 +1467,12 @@ public non-sealed class TiffReader extends TiffIO {
         if (codec != null) {
             // assert compression != null;
             options = compression.customizeReading(tile, options);
+            if (options.getWidth() != tile.getSizeX() || options.getHeight() != tile.getSizeY()) {
+                throw new AssertionError("Options were damaged after customization! " + options);
+            }
+            if (codecCustomizer != null) {
+                codecCustomizer.customize(options);
+            }
             if (USE_LEGACY_UNPACK_BYTES) {
                 options.setInterleaved(true);
                 // - old-style unpackBytes does not "understand" already-separated tiles
@@ -1887,7 +1880,7 @@ public non-sealed class TiffReader extends TiffIO {
 
     @SuppressWarnings("RedundantThrows")
     private TiffCodec.Options buildOptions(TiffTile tile) throws TiffException {
-        TiffCodec.Options options = this.codecOptions.clone();
+        final TiffCodec.Options options = new TiffCodec.Options();
         options.setMainOptions(tile);
         // - Note: codecs in SCIFIO did not use the options above, but some new codes like CCITTFaxCodec need them
         options.setIo(this);
