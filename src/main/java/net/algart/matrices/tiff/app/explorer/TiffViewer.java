@@ -40,7 +40,7 @@ class TiffViewer {
         NONE("None"),
         DECIMAL("Decimal"),
         HEXADECIMAL("Hexadecimal"),
-        NORMALIZED("Normalized (0..1)"),;
+        NORMALIZED("Normalized (0..1)");
 
         private final String caption;
 
@@ -64,7 +64,7 @@ class TiffViewer {
     }
 
     static final String DEFAULT_PIXEL_COORDINATES = pixelCoordinatesToString(0, 0);
-    static final String DEFAULT_PIXEL_VALUE = "";;
+    static final String DEFAULT_PIXEL_VALUE = "";
     static final String DEFAULT_STATUS =
             "Use mouse drag to select a rectangle, or SHIFT-drag to move the image";
     static final boolean DEFAULT_COLOR_CORRECTION = true;
@@ -190,10 +190,8 @@ class TiffViewer {
     public void showPixelInformation(long x, long y) {
         if (x != lastPixelX || y != lastPixelY) {
             final String pixelCoordinates = pixelCoordinatesToString(x, y);
-            SwingUtilities.invokeLater(() -> {
-                frame.statusPixelCoordinatesLabel().setText(pixelCoordinates);
-                setPixelValue(x, y);
-            });
+            frame.statusPixelCoordinatesLabel().setText(pixelCoordinates);
+            setPixelValue(x, y);
             lastPixelX = x;
             lastPixelY = y;
         }
@@ -349,7 +347,7 @@ class TiffViewer {
         formatter.setSeparator(pixelValueFormat == PixelValueFormat.HEXADECIMAL ? " " : ", ");
         String s = formatter.javaArrayToString(channelsArray, Math.min(n, 8));
         //TODO!! add Formatter.maxArrayLength; now we can add separator + "...", not just "..." as below
-        return "(" + (n <= 8 || s.endsWith("...") ? s : s + "...")  + ")";
+        return "(" + (n <= 8 || s.endsWith("...") ? s : s + "...") + ")";
     }
 
     private void createGUI() {
@@ -359,11 +357,9 @@ class TiffViewer {
     private void setStatus(String status, boolean error) {
         Objects.requireNonNull(status);
         if (error != lastErrorFlag || !status.equals(lastStatus)) {
-            SwingUtilities.invokeLater(() -> {
-                final JLabel label = frame.statusSelectionLabel();
-                label.setForeground(error ? TiffExplorer.ERROR_COLOR : TiffExplorer.COMMON_COLOR);
-                label.setText(status);
-            });
+            final JLabel label = frame.statusSelectionLabel();
+            label.setForeground(error ? TiffExplorer.ERROR_COLOR : TiffExplorer.COMMON_COLOR);
+            label.setText(status);
             lastStatus = status;
             lastErrorFlag = error;
         }
