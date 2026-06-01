@@ -51,6 +51,7 @@ public enum TiffSampleType {
 
     public class Formatter {
         private boolean hexadecimal = false;
+        private String decimalIntegerFormat = null;
         private String floatingPointFormat = "%.1f";
         private String separator = ", ";
         private int maxStringLength = 10000;
@@ -64,6 +65,15 @@ public enum TiffSampleType {
 
         public Formatter setHexadecimal(boolean hexadecimal) {
             this.hexadecimal = hexadecimal;
+            return this;
+        }
+
+        public String getDecimalIntegerFormat() {
+            return decimalIntegerFormat;
+        }
+
+        public Formatter setDecimalIntegerFormat(String decimalIntegerFormat) {
+            this.decimalIntegerFormat = decimalIntegerFormat;
             return this;
         }
 
@@ -122,14 +132,18 @@ public enum TiffSampleType {
             final boolean signedDecimal = signed && !hexadecimal;
             return switch (javaArray) {
                 case boolean[] values -> arrayToString(values, arrayLength);
-                case byte[] values -> arrayToString(values, arrayLength, signedDecimal, hexadecimal ? "%02X" : null);
-                case short[] values -> arrayToString(values, arrayLength, signedDecimal, hexadecimal ? "%04X" : null);
-                case int[] values -> arrayToString(values, arrayLength, signedDecimal, hexadecimal ? "%08X" : null);
+                case byte[] values -> arrayToString(values, arrayLength, signedDecimal, integerFormat(2));
+                case short[] values -> arrayToString(values, arrayLength, signedDecimal, integerFormat(4));
+                case int[] values -> arrayToString(values, arrayLength, signedDecimal, integerFormat(8));
                 case float[] values -> arrayToString(values, arrayLength, floatingPointFormat);
                 case double[] values -> arrayToString(values, arrayLength, floatingPointFormat);
                 default -> throw new IllegalArgumentException("Invalid javaArray type: " +
                         javaArray.getClass().getTypeName());
             };
+        }
+
+        private String integerFormat(int width) {
+            return hexadecimal ? "%0" + width + "X" : decimalIntegerFormat;
         }
 
         private String arrayToString(boolean[] array, int length) {
