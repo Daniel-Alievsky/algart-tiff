@@ -86,7 +86,6 @@ class TiffViewer {
     private double lastImageZoom = 0.0;
     private Rectangle lastImageRectangle = null;
     private BufferedImage lastImage = null;
-    private Throwable exception = null;
 
     private String lastStatus = DEFAULT_STATUS;
     private long lastPixelX = 0;
@@ -205,11 +204,12 @@ class TiffViewer {
     }
 
     public void showLastPixelValue() {
-        SwingUtilities.invokeLater(() -> setPixelValue(lastPixelX, lastPixelY));
+        setPixelValue(lastPixelX, lastPixelY);
     }
 
-    public void showError(String status) {
-        setStatus(status, true);
+    public void showError(Throwable exception) {
+        String message = exception.getMessage();
+        setStatus(message == null ? exception.toString() : message, true);
     }
 
     public String alignSelectionToTileGridCommand() {
@@ -257,8 +257,10 @@ class TiffViewer {
             BufferedImage scaled;
             this.lastImageRectangle = new Rectangle(r);
             this.lastImageZoom = zoom;
+            Throwable exception;
             try {
                 original = readImage(r);
+                // if (true) throw new IOException();
                 scaled = zoom == 1.0 || original == null ?
                         original :
                         new BufferedImage(zoomedSizeX, zoomedSizeY, original.getColorModel().hasAlpha() ?
@@ -274,7 +276,7 @@ class TiffViewer {
             if (exception != null) {
                 LOG.log(System.Logger.Level.WARNING, "Error while reading image from " + map.streamName() +
                         ": " + exception.getMessage(), exception);
-                showError(exception.getMessage());
+                showError(exception);
                 return null;
             }
             if (zoom != 1.0 && scaled != null) {
@@ -325,7 +327,6 @@ class TiffViewer {
         reader.clearCache();
         lastImageRectangle = null;
         lastImage = null;
-        exception = null;
     }
 
     public boolean isColorCorrection() {
@@ -347,7 +348,7 @@ class TiffViewer {
         formatter.setFloatingPointFormat("%.1f");
         formatter.setSeparator(pixelValueFormat == PixelValueFormat.HEXADECIMAL ? " " : ", ");
         String s = formatter.javaArrayToString(channelsArray, Math.min(n, 8));
-        //TODO!! add Formatter.maxArrayLength
+        //TODO!! add Formatter.maxArrayLength; now we can add separator + "...", not just "..." as below
         return "(" + (n <= 8 || s.endsWith("...") ? s : s + "...")  + ")";
     }
 
@@ -374,11 +375,13 @@ class TiffViewer {
         if (pixelValueFormat != PixelValueFormat.NONE && x >= 0 && y >= 0 && x < map.dimX() && y < map.dimY()) {
             try {
                 channels = map.readJavaArray((int) x, (int) y, 1, 1);
+                // Thread.sleep(1000);
+                // if (true) throw new IOException();
             } catch (IOException e) {
                 LOG.log(System.Logger.Level.WARNING, "Error while reading a pixel from " + map.streamName() +
-                        ": " + exception.getMessage(), exception);
+                        ": " + e.getMessage(), e);
                 error = true;
-                showError(exception.getMessage());
+                showError(e);
             }
         }
         final String pixelValue = error ? "ERROR" : pixelValueToString(channels, map.sampleType());

@@ -515,5 +515,4 @@ class JTiffViewerFrame extends JFrame {
         component.setMaximumSize(preferredSize);
         component.setPreferredSize(preferredSize);
     }
-
 }
