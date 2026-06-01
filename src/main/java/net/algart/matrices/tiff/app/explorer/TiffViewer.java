@@ -36,33 +36,6 @@ import java.nio.file.Path;
 import java.util.Objects;
 
 class TiffViewer {
-    enum PixelValueFormat {
-        NONE("None"),
-        DECIMAL("Decimal"),
-        HEXADECIMAL("Hexadecimal"),
-        NORMALIZED("Normalized (0..1)");
-
-        private final String caption;
-
-        PixelValueFormat(String caption) {
-            this.caption = caption;
-        }
-
-        public String caption() {
-            return caption;
-        }
-
-        public boolean isSuitable(TiffSampleType sampleType) {
-            if (sampleType == TiffSampleType.BIT) {
-                return this != NORMALIZED;
-            } else if (sampleType.isFloatingPoint()) {
-                return this == NONE || this == DECIMAL;
-            } else {
-                return true;
-            }
-        }
-    }
-
     static final String DEFAULT_PIXEL_COORDINATES = pixelCoordinatesToString(0, 0);
     static final String DEFAULT_PIXEL_VALUE = "";
     static final String DEFAULT_STATUS =
@@ -79,7 +52,7 @@ class TiffViewer {
     private final Path path;
     private final int ifdIndex;
 
-    private PixelValueFormat pixelValueFormat = PixelValueFormat.NONE;
+    private UserPixelValueFormat pixelValueFormat = UserPixelValueFormat.NONE;
 
     private TiffReadMap map = null;
 
@@ -130,11 +103,11 @@ class TiffViewer {
         return ifdIndex;
     }
 
-    public PixelValueFormat getPixelValueFormat() {
+    public UserPixelValueFormat getPixelValueFormat() {
         return pixelValueFormat;
     }
 
-    public TiffViewer setPixelValueFormat(PixelValueFormat pixelValueFormat) {
+    public TiffViewer setPixelValueFormat(UserPixelValueFormat pixelValueFormat) {
         this.pixelValueFormat = Objects.requireNonNull(pixelValueFormat, "Null pixelValueFormat");
         return this;
     }
@@ -342,9 +315,9 @@ class TiffViewer {
         //TODO!! process NORMALIZED in Formatter
         int n = map.numberOfChannels();
         TiffSampleType.Formatter formatter = sampleType.newFormatter();
-        formatter.setHexadecimal(pixelValueFormat == PixelValueFormat.HEXADECIMAL);
+        formatter.setHexadecimal(pixelValueFormat == UserPixelValueFormat.HEXADECIMAL);
         formatter.setFloatingPointFormat("%.1f");
-        formatter.setSeparator(pixelValueFormat == PixelValueFormat.HEXADECIMAL ? " " : ", ");
+        formatter.setSeparator(pixelValueFormat == UserPixelValueFormat.HEXADECIMAL ? " " : ", ");
         String s = formatter.javaArrayToString(channelsArray, Math.min(n, 8));
         //TODO!! add Formatter.maxArrayLength; now we can add separator + "...", not just "..." as below
         return "(" + (n <= 8 || s.endsWith("...") ? s : s + "...") + ")";
@@ -366,13 +339,13 @@ class TiffViewer {
     }
 
     private String defaultStatusMessage() {
-        return pixelValueFormat == PixelValueFormat.NONE ? DEFAULT_STATUS : "";
+        return pixelValueFormat == UserPixelValueFormat.NONE ? DEFAULT_STATUS : "";
     }
 
     private void setPixelValue(long x, long y) {
         Object channels = null;
         boolean error = false;
-        if (pixelValueFormat != PixelValueFormat.NONE && x >= 0 && y >= 0 && x < map.dimX() && y < map.dimY()) {
+        if (pixelValueFormat != UserPixelValueFormat.NONE && x >= 0 && y >= 0 && x < map.dimX() && y < map.dimY()) {
             try {
                 channels = map.readJavaArray((int) x, (int) y, 1, 1);
                 // Thread.sleep(1000);

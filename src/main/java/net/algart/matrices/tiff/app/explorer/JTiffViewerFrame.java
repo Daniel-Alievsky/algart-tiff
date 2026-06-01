@@ -364,12 +364,12 @@ class JTiffViewerFrame extends JFrame {
         viewMenu.addSeparator();
         viewMenu.add(zoomMenu);
 
-        JMenu pixelFormatMenu = new JMenu("Pixel value format");
+        JMenu pixelValueMenu = new JMenu("Show pixel value as");
         ButtonGroup pixelFormatGroup = new ButtonGroup();
-        final Map<TiffViewer.PixelValueFormat, JRadioButtonMenuItem> pixelFormatItems = new LinkedHashMap<>();
-        for (final TiffViewer.PixelValueFormat format : TiffViewer.PixelValueFormat.values()) {
-            JRadioButtonMenuItem item = new JRadioButtonMenuItem(format.caption());
-            if (format == TiffViewer.PixelValueFormat.NONE) {
+        final Map<UserPixelValueFormat, JRadioButtonMenuItem> pixelFormatItems = new LinkedHashMap<>();
+        for (final UserPixelValueFormat format : UserPixelValueFormat.values()) {
+            JRadioButtonMenuItem item = new JRadioButtonMenuItem(format.caption(false));
+            if (format == UserPixelValueFormat.NONE) {
                 item.setSelected(true);
             }
             item.addActionListener(e -> {
@@ -378,10 +378,10 @@ class JTiffViewerFrame extends JFrame {
                 viewer.resetPixelValueStatus();
             });
             pixelFormatGroup.add(item);
-            pixelFormatMenu.add(item);
+            pixelValueMenu.add(item);
             pixelFormatItems.put(format, item);
         }
-        viewMenu.add(pixelFormatMenu);
+        viewMenu.add(pixelValueMenu);
         viewMenu.addSeparator();
 
         JMenuItem showDecodingReportItem = new JMenuItem("Show decoding report");
@@ -438,8 +438,10 @@ class JTiffViewerFrame extends JFrame {
                 // - when possible, emulate the "disabled" menu state without actual disabling;
                 // may not work without explicit new Color(...)
             }
-            for (TiffViewer.PixelValueFormat format : TiffViewer.PixelValueFormat.values()) {
-                pixelFormatItems.get(format).setEnabled(format.isSuitable(map.sampleType()));
+            for (UserPixelValueFormat format : UserPixelValueFormat.values()) {
+                JRadioButtonMenuItem menuItem = pixelFormatItems.get(format);
+                menuItem.setEnabled(format.isSuitable(map.sampleType()));
+                menuItem.setText(format.caption(map.sampleType().isSigned()));
             }
             tileGridItem.setText("Draw %s".formatted(map.isTiled() ? "tile grid" : "strip boundaries"));
             showDecodingReportItem.setEnabled(map.lastCodecReport() != null);

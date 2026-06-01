@@ -375,29 +375,6 @@ class TiffNewBlankHelper {
         new PatternImageBuilder(matrix, map,  color).build();
     }
 
-    enum UserNumberOfChannels {
-        GRAYSCALE(1, "1 (grayscale)"),
-        RGB(3, "3 (Color RGB)"),
-        RGBA(4, "4 (Color RGB + Alpha)");
-
-        private final int numberOfChannels;
-        private final String name;
-
-        UserNumberOfChannels(int numberOfChannels, String name) {
-            this.numberOfChannels = numberOfChannels;
-            this.name = name;
-        }
-
-        public int numberOfChannels() {
-            return numberOfChannels;
-        }
-
-        @Override
-        public String toString() {
-            return name;
-        }
-    }
-
     private static class PatternImageBuilder {
         private final TiffMap map;
         private final double[] filler;
