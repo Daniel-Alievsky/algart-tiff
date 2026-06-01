@@ -143,7 +143,12 @@ public enum TiffSampleType {
         }
 
         private String integerFormat(int width) {
-            return hexadecimal ? "%0" + width + "X" : decimalIntegerFormat;
+            return !hexadecimal ? decimalIntegerFormat : switch (width) {
+                case 2 -> "%02X";
+                case 4 -> "%04X";
+                case 8 -> "%08X";
+                default -> throw new IllegalArgumentException("Invalid width: " + width);
+            };
         }
 
         private String arrayToString(boolean[] array, int length) {
