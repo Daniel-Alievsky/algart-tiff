@@ -42,8 +42,8 @@ class JTiffViewerFrame extends JFrame {
     private final JTiffViewerScrollPane viewerScrollPane;
     private final JPanel noticePanel;
     private final JLabel noticeLabel;
-    private final JLabel statusPixelCoordinatesLabel;
-    private final JLabel statusPixelValueLabel;
+    private final StableSizeLabel statusPixelCoordinatesLabel;
+    private final StableSizeLabel statusPixelValueLabel;
     private final JLabel statusSelectionLabel;
 
     public JTiffViewerFrame(TiffViewer viewer) {
@@ -68,18 +68,16 @@ class JTiffViewerFrame extends JFrame {
         viewerScrollPane.setBorder(BorderFactory.createEmptyBorder());
         this.add(viewerScrollPane, BorderLayout.CENTER);
 
-        statusPixelCoordinatesLabel = new JLabel(TiffViewer.DEFAULT_PIXEL_COORDINATES);
-        statusPixelValueLabel = new JLabel(TiffViewer.DEFAULT_PIXEL_VALUE);
+        statusPixelCoordinatesLabel = new StableSizeLabel(TiffViewer.pixelCoordinatesToString(9999, 9999));
+        statusPixelValueLabel = new StableSizeLabel(TiffViewer.DEFAULT_PIXEL_VALUE);
+        // - current version does not use stability of statusPixelValueLabel
         statusSelectionLabel = new JLabel(TiffViewer.DEFAULT_STATUS);
         statusPixelCoordinatesLabel.setBorder(BorderFactory.createEmptyBorder(2, 5, 2, 5));
         statusPixelValueLabel.setBorder(BorderFactory.createEmptyBorder(2, 5, 2, 5));
         statusSelectionLabel.setBorder(BorderFactory.createEmptyBorder(2, 5, 2, 5));
-        // fixMinimalSizes(statusCoordinatesLabel);
-        // fixMinimalSizes(statusChannelsLabel);
-        JPanel statusLeftPanel = new JPanel();
-        statusLeftPanel.setLayout(new BoxLayout(statusLeftPanel, BoxLayout.X_AXIS));
-        statusLeftPanel.add(statusPixelCoordinatesLabel);
-        statusLeftPanel.add(statusPixelValueLabel);
+        JPanel statusLeftPanel = new JPanel(new BorderLayout());
+        statusLeftPanel.add(statusPixelCoordinatesLabel, BorderLayout.WEST);
+        statusLeftPanel.add(statusPixelValueLabel, BorderLayout.CENTER);
 
         JPanel statusPanel = new JPanel(new BorderLayout());
         statusPanel.add(statusLeftPanel, BorderLayout.WEST);
@@ -93,7 +91,8 @@ class JTiffViewerFrame extends JFrame {
 //                KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0),
 //                JComponent.WHEN_IN_FOCUSED_WINDOW);
         this.pack();
-        statusPixelCoordinatesLabel.setText("0, 0");
+        statusPixelCoordinatesLabel.reserveCurrentSize();
+        statusPixelCoordinatesLabel.setText(TiffViewer.DEFAULT_PIXEL_COORDINATES);
 
         final Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         final Dimension frameSize = this.getSize();
@@ -375,7 +374,8 @@ class JTiffViewerFrame extends JFrame {
             }
             item.addActionListener(e -> {
                 viewer.setPixelValueFormat(format);
-                viewer.showLastPixelValue();
+                viewer.resetSelectionStatus();
+                viewer.resetPixelValueStatus();
             });
             pixelFormatGroup.add(item);
             pixelFormatMenu.add(item);
@@ -510,9 +510,9 @@ class JTiffViewerFrame extends JFrame {
     }
 
     private static void fixMinimalSizes(JComponent component) {
+        // - such solution does not work: fixing preferred size leads to "..." in JLabel
         Dimension preferredSize = component.getPreferredSize();
         component.setMinimumSize(preferredSize);
-        component.setMaximumSize(preferredSize);
         component.setPreferredSize(preferredSize);
     }
 }

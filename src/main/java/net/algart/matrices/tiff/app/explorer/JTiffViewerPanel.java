@@ -188,7 +188,7 @@ class JTiffViewerPanel extends JComponent {
     public void removeSelection() {
         this.selected = false;
         repaint();
-        viewer.showSelection();
+        viewer.resetSelectionStatus();
     }
 
     public boolean isSelected() {
@@ -238,7 +238,7 @@ class JTiffViewerPanel extends JComponent {
             this.toY = Math.clamp(toY, 0, canvasDimY);
         }
         repaint();
-        viewer.showSelection();
+        viewer.resetSelectionStatus();
     }
 
     private void normalizeNegativeSelection() {
@@ -397,7 +397,7 @@ class JTiffViewerPanel extends JComponent {
                     toX = fromX + sizeX;
                     toY = fromY + sizeY;
                 }
-                viewer.showSelection();
+                viewer.resetSelectionStatus();
                 repaint();
             }
 

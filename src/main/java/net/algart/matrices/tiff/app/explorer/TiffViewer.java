@@ -171,10 +171,10 @@ class TiffViewer {
         createGUI();
     }
 
-    public void showSelection() {
+    public void resetSelectionStatus() {
         final Rectangle r = getSelection();
         final String status = r == null ?
-                DEFAULT_STATUS :
+                defaultStatusMessage() :
                 r.width == 0 || r.height == 0 ?
                         "%d\u00D7%d: top-left (%d,%d)".formatted(
                                 r.width, r.height, r.x, r.y) :
@@ -201,7 +201,7 @@ class TiffViewer {
         showPixelInformation(Math.round(x / zoom), Math.round(y / zoom));
     }
 
-    public void showLastPixelValue() {
+    public void resetPixelValueStatus() {
         setPixelValue(lastPixelX, lastPixelY);
     }
 
@@ -300,7 +300,7 @@ class TiffViewer {
                     .formatted(r.width, r.height, r.x, r.y,
                             zoom == 1.0 ? "" : " and scaled it to %dx%d (zoom %s)"
                                                .formatted(zoomedSizeX, zoomedSizeY, zoom)));
-            showSelection();
+            resetSelectionStatus();
         }
         return lastImage;
     }
@@ -363,6 +363,10 @@ class TiffViewer {
             lastStatus = status;
             lastErrorFlag = error;
         }
+    }
+
+    private String defaultStatusMessage() {
+        return pixelValueFormat == PixelValueFormat.NONE ? DEFAULT_STATUS : "";
     }
 
     private void setPixelValue(long x, long y) {
