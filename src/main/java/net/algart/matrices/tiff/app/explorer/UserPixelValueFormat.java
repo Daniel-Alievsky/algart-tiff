@@ -38,14 +38,12 @@ enum UserPixelValueFormat {
             case NONE -> "None";
             case DECIMAL -> "Decimal";
             case HEXADECIMAL -> "Hexadecimal";
-            case NORMALIZED -> "Normalized " + (signed ? "\u22120.5..+0.5" : "(0..1)");
+            case NORMALIZED -> "Normalized " + (signed ? "\u22121..+1" : "(0..1)");
         };
     }
 
     public boolean isSuitable(TiffSampleType sampleType) {
-        if (sampleType == TiffSampleType.BIT) {
-            return this != NORMALIZED;
-        } else if (sampleType.isFloatingPoint()) {
+        if (sampleType == TiffSampleType.BIT || sampleType.isFloatingPoint()) {
             return this == NONE || this == DECIMAL;
         } else {
             return true;

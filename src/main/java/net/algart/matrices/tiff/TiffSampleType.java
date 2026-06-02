@@ -51,8 +51,10 @@ public enum TiffSampleType {
 
     public class Formatter {
         private boolean hexadecimal = false;
+        private boolean normalized = false;
         private String decimalIntegerFormat = null;
-        private String floatingPointFormat = "%.1f";
+        private String floatingPointFormat = "%.3f";
+        private String normalizedFormat = "%.3f";
         private String separator = ", ";
         private int maxArrayLength = Integer.MAX_VALUE;
         private int maxStringLength = 10000;
@@ -66,6 +68,15 @@ public enum TiffSampleType {
 
         public Formatter setHexadecimal(boolean hexadecimal) {
             this.hexadecimal = hexadecimal;
+            return this;
+        }
+
+        public boolean isNormalized() {
+            return normalized;
+        }
+
+        public Formatter setNormalized(boolean normalized) {
+            this.normalized = normalized;
             return this;
         }
 
@@ -83,8 +94,16 @@ public enum TiffSampleType {
         }
 
         public Formatter setFloatingPointFormat(String floatingPointFormat) {
-            this.floatingPointFormat =
-                    Objects.requireNonNull(floatingPointFormat, "Null floatingPointFormat");
+            this.floatingPointFormat = floatingPointFormat;
+            return this;
+        }
+
+        public String getNormalizedFormat() {
+            return normalizedFormat;
+        }
+
+        public Formatter setNormalizedFormat(String normalizedFormat) {
+            this.normalizedFormat = normalizedFormat;
             return this;
         }
 
@@ -177,7 +196,8 @@ public enum TiffSampleType {
                 offset = 0;
                 // - should be 0 for correct processing boolean[] values below
             }
-            final boolean signedDecimal = signed && !hexadecimal;
+            final boolean signedDecimal = signed && (normalized || !hexadecimal);
+            // - hexadecimal should be treated as unsigned, but the normalized mode overrides hexadecimal
             String result = switch (javaArray) {
                 case boolean[] values -> build(values, offset, count);
                 case byte[] values -> build(values, offset, count, signedDecimal, integerFormat(2));
@@ -240,18 +260,30 @@ public enum TiffSampleType {
 
         private String build(double[] array, int offset, int count, String format) {
             var values = Arrays.copyOfRange(array, offset, offset + count);
-            if (format != null) {
-                return JArrays.toString(values, Locale.US, format, separator, maxStringLength);
-            } else {
-                return JArrays.toString(values, separator, maxStringLength);
-            }
+            return toString(values, format);
         }
 
         private String toString(long[] array, String format) {
+            if (normalized) {
+                double[] values = new double[array.length];
+                double scale = 1.0 / maxValue;
+                for (int i = 0; i < values.length; i++) {
+                    values[i] = array[i] * scale;
+                }
+                return toString(values, normalizedFormat);
+            }
             if (format != null) {
                 return JArrays.toString(array, Locale.US, format, separator, maxStringLength);
             } else {
                 return JArrays.toString(array, separator, maxStringLength);
+            }
+        }
+
+        private String toString(double[] values, String format) {
+            if (format != null) {
+                return JArrays.toString(values, Locale.US, format, separator, maxStringLength);
+            } else {
+                return JArrays.toString(values, separator, maxStringLength);
             }
         }
     }
@@ -363,18 +395,17 @@ public enum TiffSampleType {
     public static byte[] bytes(Object javaArray, long numberOfElements, ByteOrder byteOrder) {
         Objects.requireNonNull(javaArray, "Null javaArray");
         Objects.requireNonNull(byteOrder, "Null byteOrder");
-        if (javaArray instanceof byte[] a) {
-            if (numberOfElements > a.length) {
-                throw new IllegalArgumentException("Too short array: " + a.length + "<" + numberOfElements);
+        return switch (javaArray) {
+            case byte[] a -> {
+                if (numberOfElements > a.length) {
+                    throw new IllegalArgumentException("Too short array: " + a.length + "<" + numberOfElements);
+                }
+                yield a;
             }
-            return a;
-        } else if (javaArray instanceof boolean[] a) {
-            return PackedBitArraysPer8.packBits(a, 0, numberOfElements);
-        } else if (javaArray instanceof long[] a) {
-            return PackedBitArraysPer8.toByteArray(a, numberOfElements);
-        } else {
-            return JArrays.arrayToBytes(javaArray, numberOfElements, byteOrder);
-        }
+            case boolean[] a -> PackedBitArraysPer8.packBits(a, 0, numberOfElements);
+            case long[] a -> PackedBitArraysPer8.toByteArray(a, numberOfElements);
+            default -> JArrays.arrayToBytes(javaArray, numberOfElements, byteOrder);
+        };
     }
 
     public static TiffSampleType ofJavaArray(Object javaArray, boolean signedIntegers) {

@@ -312,10 +312,9 @@ class TiffViewer {
         if (channelsArray == null) {
             return "";
         }
-        //TODO!! process NORMALIZED in Formatter
-        TiffSampleType.Formatter formatter = sampleType.newFormatter();
+        final TiffSampleType.Formatter formatter = sampleType.newFormatter();
         formatter.setHexadecimal(pixelValueFormat == UserPixelValueFormat.HEXADECIMAL);
-        formatter.setFloatingPointFormat("%.1f");
+        formatter.setNormalized(pixelValueFormat == UserPixelValueFormat.NORMALIZED);
         formatter.setSeparator(pixelValueFormat == UserPixelValueFormat.HEXADECIMAL ? " " : ", ");
         formatter.setMaxArrayLength(8);
         return "[" + formatter.arrayToString(channelsArray, 0, map.numberOfChannels()) + "]";

@@ -66,6 +66,8 @@ public class MakeAndPrintTiffPixelsTest {
         System.out.printf("Printed version:%n%s%n%n", format(values, dimX, dimY, formatter));
         formatter.setHexadecimal(true);
         System.out.printf("Hexadecimal:%n%s%n%n", format(values, dimX, dimY, formatter));
+        formatter.setNormalized(true);
+        System.out.printf("Normalized:%n%s%n%n", format(values, dimX, dimY, formatter));
     }
 
     private static Object makeCircleSamples(

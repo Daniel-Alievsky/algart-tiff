@@ -151,11 +151,13 @@ class TiffNewBlankHelper {
         numberOfChannelsComboBox = new JComboBox<>(UserNumberOfChannels.values());
         numberOfChannelsComboBox.setSelectedItem(numberOfChannels);
         sampleTypeComboBox = new JComboBox<>(TiffSampleType.values());
+        sampleTypeComboBox.setMaximumRowCount(64);
         sampleTypeComboBox.setSelectedItem(sampleType);
 
         addGridBugRowLabelled(gridPanel, gbc, new JLabel("Channels:"), numberOfChannelsComboBox, row++);
         addGridBugRowLabelled(gridPanel, gbc, new JLabel("Sample Type:"), sampleTypeComboBox, row++);
         compressionMethodComboBox = new JComboBox<>(TiffSaveImageHelper.makeCompressionNames());
+        compressionMethodComboBox.setMaximumRowCount(64);
         compressionMethodComboBox.setSelectedItem(compression.prettyName());
         addGridBugRowLabelled(gridPanel, gbc, new JLabel("Compression method:"),
                 compressionMethodComboBox, row++);
@@ -189,7 +191,6 @@ class TiffNewBlankHelper {
         addGridBugRowSingle(gridPanel, gbc, patternCheckBox, row++);
 
         addGridBugRowCaption(gridPanel, gbc, "TIFF file settings", true, row++);
-
         byteOrderComboBox = new JComboBox<>(UserByteOrder.values());
         byteOrderComboBox.setSelectedItem(byteOrder);
         addGridBugRowLabelled(gridPanel, gbc, new JLabel("Byte order:"), byteOrderComboBox, row++);
