@@ -2069,7 +2069,7 @@ public final class TiffIFD {
         assert numberOfChannels == (int) numberOfChannels : "must be checked in checkNumberOfChannels";
         final long dimX = matrix.dim(interleaved ? 1 : 0);
         final long dimY = matrix.dim(interleaved ? 2 : 1);
-        TiffSampleType sampleType = TiffSampleType.of(matrix.elementType(), signedIntegers);
+        final TiffSampleType sampleType = TiffSampleType.of(matrix.elementType(), signedIntegers);
         putImageInformation(dimX, dimY, (int) numberOfChannels, sampleType);
         return this;
     }
@@ -2089,21 +2089,19 @@ public final class TiffIFD {
         checkNumberOfChannels(numberOfChannels);
         final long dimX = matrix.dimX();
         final long dimY = matrix.dimY();
-        final Class<?> elementType = matrix.elementType();
-        TiffSampleType sampleType = TiffSampleType.of(elementType, signedIntegers);
+        final TiffSampleType sampleType = TiffSampleType.of(matrix.elementType(), signedIntegers);
         putImageInformation(dimX, dimY, numberOfChannels, sampleType);
         return this;
     }
 
     public TiffIFD putBufferedImageInformation(BufferedImage bufferedImage) {
         Objects.requireNonNull(bufferedImage, "Null bufferedImage");
-        final int numberOfChannels = ImageToMatrix.defaultNumberOfChannels(bufferedImage);
-        final Class<?> elementType = ImageToMatrix.defaultElementType(bufferedImage);
         final int dimX = bufferedImage.getWidth();
         final int dimY = bufferedImage.getHeight();
-        TiffSampleType sampleType = TiffSampleType.of(elementType, false);
-        putImageDimensions(dimX, dimY);
-        putPixelInformation(numberOfChannels, sampleType);
+        final int numberOfChannels = ImageToMatrix.defaultNumberOfChannels(bufferedImage);
+        final Class<?> elementType = ImageToMatrix.defaultElementType(bufferedImage);
+        final TiffSampleType sampleType = TiffSampleType.of(elementType, false);
+        putImageInformation(dimX, dimY, numberOfChannels, sampleType);
         return this;
     }
 

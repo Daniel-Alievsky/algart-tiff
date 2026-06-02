@@ -54,6 +54,7 @@ public enum TiffSampleType {
         private String decimalIntegerFormat = null;
         private String floatingPointFormat = "%.1f";
         private String separator = ", ";
+        private int maxArrayLength = Integer.MAX_VALUE;
         private int maxStringLength = 10000;
 
         private Formatter() {
@@ -96,6 +97,18 @@ public enum TiffSampleType {
             return this;
         }
 
+        public int getMaxArrayLength() {
+            return maxArrayLength;
+        }
+
+        public Formatter setMaxArrayLength(int maxArrayLength) {
+            if (maxArrayLength < 0) {
+                throw new IllegalArgumentException("maxArrayLength cannot be negative");
+            }
+            this.maxArrayLength = maxArrayLength;
+            return this;
+        }
+
         public int getMaxStringLength() {
             return maxStringLength;
         }
@@ -108,38 +121,74 @@ public enum TiffSampleType {
             return this;
         }
 
-        public String javaArrayToString(Object javaArray, int arrayLength) {
+        /**
+         * Formats a specific range of a samples array into a string based on the current formatter settings.
+         *
+         * <p>Note: for {@link TiffSampleType#BIT}, this method handles both unpacked
+         * {@code boolean[]} and packed {@code long[]} arrays (see {@link PackedBitArrays}).
+         * When passing packed bits ({@code long[]}),
+         * the {@code offset} and {@code count} parameters dictate the range in <i>bits</i>, not array elements.</p>
+         *
+         * <p>Note: there is no a version for processing the entire Java array (without {@code offset} and
+         * {@code count} argument), because a <i>packed bit array</i> ({@code long[])}
+         * has no information about its actual length in  <i>bits</i>.</p>
+         *
+         * @param javaArray the primitive array containing sample values.
+         * @param offset    the starting index (or bit-offset for packed {@code long[]}); must be non-negative.
+         * @param count     the number of elements (or bits) to process; must be non-negative.
+         * @return a formatted string of the array slice, appended with "..." if truncated by
+         * {@link #getMaxArrayLength()} or {@link #getMaxStringLength()}.
+         * @throws IndexOutOfBoundsException if the requested range falls outside the actual array size (or available
+         *                                   packed bits).
+         * @throws IllegalArgumentException  if arguments are negative, or the array type is mismatched.
+         * @throws NullPointerException      if {@code javaArray} is null.
+         */
+        public String arrayToString(Object javaArray, int offset, int count) {
             Objects.requireNonNull(javaArray, "Null javaArray");
-            if (arrayLength < 0) {
-                throw new IllegalArgumentException("Negative arrayLength: " + arrayLength);
+            if (offset < 0) {
+                throw new IllegalArgumentException("Negative offset: " + offset);
+            }
+            if (count < 0) {
+                throw new IllegalArgumentException("Negative count: " + count);
             }
             final Class<?> componentType = javaArray.getClass().getComponentType();
             if (componentType == null) {
-                throw new IllegalArgumentException("Invalid javaArray: it is not an array");
+                throw new IllegalArgumentException("Invalid javaArray argument it is not an array");
             }
             if (!(componentType == boolean.class && TiffSampleType.this == BIT) &&
                     componentType != elementTypeOfJavaArray()) {
                 throw new IllegalArgumentException("Invalid javaArray element type: " +
                         componentType.getTypeName() + " instead of " + elementTypeOfJavaArray());
             }
-            if (javaArray instanceof long[] longArray) {
-                javaArray = PackedBitArrays.unpackBits(longArray, 0, arrayLength);
+            final long[] packedBits = javaArray instanceof long[] longs ? longs : null;
+            final long arrayLength = packedBits != null ?
+                    PackedBitArrays.unpackedLength(packedBits) :
+                    Array.getLength(javaArray);
+            if (count > arrayLength - offset) {
+                throw new IndexOutOfBoundsException("End position (last index + 1) = " + (offset + (long) count)
+                        + " > array length = " + arrayLength);
             }
-            if (Array.getLength(javaArray) < arrayLength) {
-                throw new IllegalArgumentException("Too short javaArray: " + Array.getLength(javaArray) +
-                        " elements instead of the specified length " + arrayLength);
+            final boolean tooLarge = count > maxArrayLength;
+            if (tooLarge) {
+                count = maxArrayLength;
+            }
+            if (packedBits != null) {
+                javaArray = PackedBitArrays.unpackBits(packedBits, offset, count);
+                offset = 0;
+                // - should be 0 for correct processing boolean[] values below
             }
             final boolean signedDecimal = signed && !hexadecimal;
-            return switch (javaArray) {
-                case boolean[] values -> build(values, arrayLength);
-                case byte[] values -> build(values, arrayLength, signedDecimal, integerFormat(2));
-                case short[] values -> build(values, arrayLength, signedDecimal, integerFormat(4));
-                case int[] values -> build(values, arrayLength, signedDecimal, integerFormat(8));
-                case float[] values -> build(values, arrayLength, floatingPointFormat);
-                case double[] values -> build(values, arrayLength, floatingPointFormat);
+            String result = switch (javaArray) {
+                case boolean[] values -> build(values, offset, count);
+                case byte[] values -> build(values, offset, count, signedDecimal, integerFormat(2));
+                case short[] values -> build(values, offset, count, signedDecimal, integerFormat(4));
+                case int[] values -> build(values, offset, count, signedDecimal, integerFormat(8));
+                case float[] values -> build(values, offset, count, floatingPointFormat);
+                case double[] values -> build(values, offset, count, floatingPointFormat);
                 default -> throw new IllegalArgumentException("Invalid javaArray type: " +
                         javaArray.getClass().getTypeName());
             };
+            return tooLarge && !result.endsWith("...") ? result + separator + "..." : result;
         }
 
         private String integerFormat(int width) {
@@ -151,60 +200,54 @@ public enum TiffSampleType {
             };
         }
 
-        private String build(boolean[] array, int length) {
-            if (length < array.length) {
-                array = Arrays.copyOf(array, length);
-            }
-            return JArrays.toBinaryString(array, separator, maxStringLength);
+        private String build(boolean[] array, int offset, int count) {
+            var values = Arrays.copyOfRange(array, offset, offset + count);
+            return JArrays.toBinaryString(values, separator, maxStringLength);
         }
 
-        private String build(byte[] array, int length, boolean signed, String format) {
-            long[] values = new long[Math.min(length, array.length)];
-            for (int k = 0; k < values.length; k++) {
-                values[k] = signed ? array[k] : array[k] & 0xFF;
+        private String build(byte[] array, int offset, int count, boolean signed, String format) {
+            long[] values = new long[count];
+            for (int k = 0; k < count; k++, offset++) {
+                values[k] = signed ? array[offset] : array[offset] & 0xFF;
             }
-            return longArrayToString(values, format);
+            return toString(values, format);
         }
 
-        private String build(short[] array, int length, boolean signed, String format) {
-            long[] values = new long[Math.min(length, array.length)];
-            for (int k = 0; k < values.length; k++) {
-                values[k] = signed ? array[k] : array[k] & 0xFFFF;
+        private String build(short[] array, int offset, int count, boolean signed, String format) {
+            long[] values = new long[count];
+            for (int k = 0; k < count; k++, offset++) {
+                values[k] = signed ? array[offset] : array[offset] & 0xFFFF;
             }
-            return longArrayToString(values, format);
+            return toString(values, format);
         }
 
-        private String build(int[] array, int length, boolean signed, String format) {
-            long[] values = new long[Math.min(length, array.length)];
-            for (int k = 0; k < values.length; k++) {
-                values[k] = signed ? array[k] : array[k] & 0xFFFFFFFFL;
+        private String build(int[] array, int offset, int count, boolean signed, String format) {
+            long[] values = new long[count];
+            for (int k = 0; k < count; k++, offset++) {
+                values[k] = signed ? array[offset] : array[offset] & 0xFFFFFFFFL;
             }
-            return longArrayToString(values, format);
+            return toString(values, format);
         }
 
-        private String longArrayToString(long[] array, String format) {
+        private String build(float[] array, int offset, int count, String format) {
+            var values = Arrays.copyOfRange(array, offset, offset + count);
             if (format != null) {
-                return JArrays.toString(array, Locale.US, format, separator, maxStringLength);
+                return JArrays.toString(values, Locale.US, format, separator, maxStringLength);
             } else {
-                return JArrays.toString(array, separator, maxStringLength);
+                return JArrays.toString(values, separator, maxStringLength);
             }
         }
 
-        private String build(float[] array, int length, String format) {
-            if (length < array.length) {
-                array = Arrays.copyOf(array, length);
-            }
+        private String build(double[] array, int offset, int count, String format) {
+            var values = Arrays.copyOfRange(array, offset, offset + count);
             if (format != null) {
-                return JArrays.toString(array, Locale.US, format, separator, maxStringLength);
+                return JArrays.toString(values, Locale.US, format, separator, maxStringLength);
             } else {
-                return JArrays.toString(array, separator, maxStringLength);
+                return JArrays.toString(values, separator, maxStringLength);
             }
         }
 
-        private String build(double[] array, int length, String format) {
-            if (length < array.length) {
-                array = Arrays.copyOf(array, length);
-            }
+        private String toString(long[] array, String format) {
             if (format != null) {
                 return JArrays.toString(array, Locale.US, format, separator, maxStringLength);
             } else {

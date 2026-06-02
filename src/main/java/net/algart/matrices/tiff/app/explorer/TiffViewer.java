@@ -313,14 +313,12 @@ class TiffViewer {
             return "";
         }
         //TODO!! process NORMALIZED in Formatter
-        int n = map.numberOfChannels();
         TiffSampleType.Formatter formatter = sampleType.newFormatter();
         formatter.setHexadecimal(pixelValueFormat == UserPixelValueFormat.HEXADECIMAL);
         formatter.setFloatingPointFormat("%.1f");
         formatter.setSeparator(pixelValueFormat == UserPixelValueFormat.HEXADECIMAL ? " " : ", ");
-        String s = formatter.javaArrayToString(channelsArray, Math.min(n, 8));
-        //TODO!! add Formatter.maxArrayLength; now we can add separator + "...", not just "..." as below
-        return "(" + (n <= 8 || s.endsWith("...") ? s : s + "...") + ")";
+        formatter.setMaxArrayLength(8);
+        return "[" + formatter.arrayToString(channelsArray, 0, map.numberOfChannels()) + "]";
     }
 
     private void createGUI() {

@@ -28,6 +28,7 @@ import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffSampleType;
 import net.algart.matrices.tiff.TiffWriter;
+import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -50,11 +51,13 @@ public class MakeAndPrintTiffPixelsTest {
         final double filler = Double.parseDouble(args[startArgIndex]);
         Object values = makeCircleSamples(sampleType, dimX, dimY, filler);
         try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.CREATE)) {
-            writer.newFixedMap(TiffIFD.newStrippedIFD()
-                    .putImageDimensions(dimX, dimY)
-                    .putPixelInformation(1, sampleType));
-            //TODO!!
+            final TiffWriteMap map = writer.newFixedMap(TiffIFD.newStrippedIFD()
+                    .putImageInformation(dimX, dimY,1, sampleType));
+            map.writeJavaArray(values);
         }
+        System.out.printf("Written %s%n", targetFile);
+        System.out.println();
+        var formatter = sampleType.newFormatter();
 
 
     }
