@@ -49,7 +49,7 @@ public enum TiffSampleType {
     FLOAT(6, "float", 32, float.class, true, 1.0),
     DOUBLE(7, "double", 64, double.class, true, 1.0);
 
-    public class Formatter {
+    public final class Formatter {
         private boolean hexadecimal = false;
         private boolean normalized = false;
         private String decimalIntegerFormat = null;
@@ -172,7 +172,7 @@ public enum TiffSampleType {
             }
             final Class<?> componentType = javaArray.getClass().getComponentType();
             if (componentType == null) {
-                throw new IllegalArgumentException("Invalid javaArray argument it is not an array");
+                throw new IllegalArgumentException("Invalid javaArray argument: it is not an array");
             }
             if (!(componentType == boolean.class && TiffSampleType.this == BIT) &&
                     componentType != elementTypeOfJavaArray()) {
@@ -463,9 +463,9 @@ public enum TiffSampleType {
             throw new IllegalArgumentException("boolean[] array cannot be converted to AlgART matrix; " +
                     "binary matrix should be packed into long[] array");
         }
-        final UpdatablePArray array = javaArray instanceof long[] packedBisArray ?
+        final UpdatablePArray array = javaArray instanceof long[] packedBitArray ?
                 // long[] type in this library is reserved for packed bits (TIFF does not support 64-bit precision)
-                BitArray.as(packedBisArray, (long) sizeX * (long) sizeY * (long) numberOfChannels) :
+                BitArray.as(packedBitArray, (long) sizeX * (long) sizeY * (long) numberOfChannels) :
                 // - but actually numberOfChannels > 1 is not supported by this library for binary matrices;
                 // overflow (very improbable) will be well checked in the following operator
                 PArray.as(javaArray);
