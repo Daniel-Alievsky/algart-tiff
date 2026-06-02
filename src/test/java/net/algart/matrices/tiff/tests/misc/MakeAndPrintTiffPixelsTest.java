@@ -37,7 +37,7 @@ import java.nio.file.Paths;
 public class MakeAndPrintTiffPixelsTest {
     public static void main(String[] args) throws IOException {
         int startArgIndex = 0;
-        if (args.length < startArgIndex + 2) {
+        if (args.length < startArgIndex + 5) {
             System.out.println("Usage:");
             System.out.printf("    %s target.tif bit|unit8|int8|uint16|int16|uint32|int32|float|double " +
                             "width height value-to-fill%n",
@@ -57,9 +57,15 @@ public class MakeAndPrintTiffPixelsTest {
         }
         System.out.printf("Written %s%n", targetFile);
         System.out.println();
+        final int depth = sampleType.bitsPerSample();
         var formatter = sampleType.newFormatter();
-
-
+        formatter.setSeparator(",");
+        formatter.setDecimalIntegerFormat(depth == 32 ? null : depth == 16 ? "%5d" : "%4d");
+        formatter.setMaxArrayLength(100);
+        formatter.setMaxStringLength(1000);
+        System.out.printf("Printed version:%n%s%n%n", format(values, dimX, dimY, formatter));
+        formatter.setHexadecimal(true);
+        System.out.printf("Hexadecimal:%n%s%n%n", format(values, dimX, dimY, formatter));
     }
 
     private static Object makeCircleSamples(
@@ -68,6 +74,7 @@ public class MakeAndPrintTiffPixelsTest {
             int dimY,
             double filler) {
         final int matrixSize = dimX * dimY;
+        final boolean signed = type.isSigned();
         switch (type) {
             case BIT -> {
                 boolean[] samples = new boolean[matrixSize];
@@ -82,7 +89,7 @@ public class MakeAndPrintTiffPixelsTest {
                 byte[] samples = new byte[matrixSize];
                 for (int y = 0, disp = 0; y < dimY; y++) {
                     for (int x = 0; x < dimX; x++, disp++) {
-                            samples[disp] = (byte) (patternValue(x, y, dimX, dimY, filler, type.isSigned()) * 255.0);
+                            samples[disp] = (byte) (patternValue(x, y, dimX, dimY, filler, signed) * 255.0);
                         }
                     }
                 return samples;
@@ -91,7 +98,7 @@ public class MakeAndPrintTiffPixelsTest {
                 short[] samples = new short[matrixSize];
                 for (int y = 0, disp = 0; y < dimY; y++) {
                     for (int x = 0; x < dimX; x++, disp++) {
-                        samples[disp] = (byte) (patternValue(x, y, dimX, dimY, filler, type.isSigned()) * 65535.0);
+                        samples[disp] = (short) (patternValue(x, y, dimX, dimY, filler, signed) * 65535.0);
                     }
                 }
                 return samples;
@@ -100,7 +107,7 @@ public class MakeAndPrintTiffPixelsTest {
                 int[] samples = new int[matrixSize];
                 for (int y = 0, disp = 0; y < dimY; y++) {
                     for (int x = 0; x < dimX; x++, disp++) {
-                        samples[disp] = (byte) (patternValue(x, y, dimX, dimY, filler, type.isSigned()) * 0xFFFFFFFFL);
+                        samples[disp] = (int) (long) (patternValue(x, y, dimX, dimY, filler, signed) * 0xFFFFFFFFL);
                     }
                 }
                 return samples;
@@ -142,5 +149,14 @@ public class MakeAndPrintTiffPixelsTest {
         double max = 0.7 * Math.max(dimX / 2, dimY / 2);
         double result = value * (1.0 - r / max);
         return signed ? result : Math.max(result, 0.0);
+    }
+
+    private static String format(Object array, int dimX, int dimY, TiffSampleType.Formatter formatter) {
+        StringBuilder sb = new StringBuilder();
+        for (int y = 0; y < dimY; y++) {
+            sb.append(formatter.arrayToString(array,  y * dimX, dimX));
+            sb.append("%n".formatted());
+        }
+        return sb.toString();
     }
 }

@@ -129,9 +129,9 @@ public enum TiffSampleType {
          * When passing packed bits ({@code long[]}),
          * the {@code offset} and {@code count} parameters dictate the range in <i>bits</i>, not array elements.</p>
          *
-         * <p>Note: there is no a version for processing the entire Java array (without {@code offset} and
-         * {@code count} argument), because a <i>packed bit array</i> ({@code long[])}
-         * has no information about its actual length in  <i>bits</i>.</p>
+         * <p>Note: there is no overload for processing the entire Java array (without {@code offset} and
+         * {@code count} arguments), because a <i>packed bit array</i> ({@code long[]})
+         * has no information about its actual length in <i>bits</i>.</p>
          *
          * @param javaArray the primitive array containing sample values.
          * @param offset    the starting index (or bit-offset for packed {@code long[]}); must be non-negative.
@@ -139,7 +139,7 @@ public enum TiffSampleType {
          * @return a formatted string of the array slice, appended with "..." if truncated by
          * {@link #getMaxArrayLength()} or {@link #getMaxStringLength()}.
          * @throws IndexOutOfBoundsException if the requested range falls outside the actual array size (or available
-         *                                   packed bits).
+         * packed bits).
          * @throws IllegalArgumentException  if arguments are negative, or the array type is mismatched.
          * @throws NullPointerException      if {@code javaArray} is null.
          */
