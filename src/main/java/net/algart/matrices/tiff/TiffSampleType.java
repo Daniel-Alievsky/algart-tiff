@@ -131,12 +131,12 @@ public enum TiffSampleType {
             }
             final boolean signedDecimal = signed && !hexadecimal;
             return switch (javaArray) {
-                case boolean[] values -> arrayToString(values, arrayLength);
-                case byte[] values -> arrayToString(values, arrayLength, signedDecimal, integerFormat(2));
-                case short[] values -> arrayToString(values, arrayLength, signedDecimal, integerFormat(4));
-                case int[] values -> arrayToString(values, arrayLength, signedDecimal, integerFormat(8));
-                case float[] values -> arrayToString(values, arrayLength, floatingPointFormat);
-                case double[] values -> arrayToString(values, arrayLength, floatingPointFormat);
+                case boolean[] values -> build(values, arrayLength);
+                case byte[] values -> build(values, arrayLength, signedDecimal, integerFormat(2));
+                case short[] values -> build(values, arrayLength, signedDecimal, integerFormat(4));
+                case int[] values -> build(values, arrayLength, signedDecimal, integerFormat(8));
+                case float[] values -> build(values, arrayLength, floatingPointFormat);
+                case double[] values -> build(values, arrayLength, floatingPointFormat);
                 default -> throw new IllegalArgumentException("Invalid javaArray type: " +
                         javaArray.getClass().getTypeName());
             };
@@ -151,14 +151,14 @@ public enum TiffSampleType {
             };
         }
 
-        private String arrayToString(boolean[] array, int length) {
+        private String build(boolean[] array, int length) {
             if (length < array.length) {
                 array = Arrays.copyOf(array, length);
             }
             return JArrays.toBinaryString(array, separator, maxStringLength);
         }
 
-        private String arrayToString(byte[] array, int length, boolean signed, String format) {
+        private String build(byte[] array, int length, boolean signed, String format) {
             long[] values = new long[Math.min(length, array.length)];
             for (int k = 0; k < values.length; k++) {
                 values[k] = signed ? array[k] : array[k] & 0xFF;
@@ -166,7 +166,7 @@ public enum TiffSampleType {
             return longArrayToString(values, format);
         }
 
-        private String arrayToString(short[] array, int length, boolean signed, String format) {
+        private String build(short[] array, int length, boolean signed, String format) {
             long[] values = new long[Math.min(length, array.length)];
             for (int k = 0; k < values.length; k++) {
                 values[k] = signed ? array[k] : array[k] & 0xFFFF;
@@ -174,7 +174,7 @@ public enum TiffSampleType {
             return longArrayToString(values, format);
         }
 
-        private String arrayToString(int[] array, int length, boolean signed, String format) {
+        private String build(int[] array, int length, boolean signed, String format) {
             long[] values = new long[Math.min(length, array.length)];
             for (int k = 0; k < values.length; k++) {
                 values[k] = signed ? array[k] : array[k] & 0xFFFFFFFFL;
@@ -190,7 +190,7 @@ public enum TiffSampleType {
             }
         }
 
-        private String arrayToString(float[] array, int length, String format) {
+        private String build(float[] array, int length, String format) {
             if (length < array.length) {
                 array = Arrays.copyOf(array, length);
             }
@@ -201,7 +201,7 @@ public enum TiffSampleType {
             }
         }
 
-        private String arrayToString(double[] array, int length, String format) {
+        private String build(double[] array, int length, String format) {
             if (length < array.length) {
                 array = Arrays.copyOf(array, length);
             }

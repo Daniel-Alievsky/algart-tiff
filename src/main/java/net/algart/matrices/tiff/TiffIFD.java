@@ -2069,8 +2069,8 @@ public final class TiffIFD {
         assert numberOfChannels == (int) numberOfChannels : "must be checked in checkNumberOfChannels";
         final long dimX = matrix.dim(interleaved ? 1 : 0);
         final long dimY = matrix.dim(interleaved ? 2 : 1);
-        putImageDimensions(dimX, dimY);
-        putPixelInformation((int) numberOfChannels, TiffSampleType.of(matrix.elementType(), signedIntegers));
+        TiffSampleType sampleType = TiffSampleType.of(matrix.elementType(), signedIntegers);
+        putImageInformation(dimX, dimY, (int) numberOfChannels, sampleType);
         return this;
     }
 
@@ -2090,8 +2090,8 @@ public final class TiffIFD {
         final long dimX = matrix.dimX();
         final long dimY = matrix.dimY();
         final Class<?> elementType = matrix.elementType();
-        putImageDimensions(dimX, dimY);
-        putPixelInformation(numberOfChannels, TiffSampleType.of(elementType, signedIntegers));
+        TiffSampleType sampleType = TiffSampleType.of(elementType, signedIntegers);
+        putImageInformation(dimX, dimY, numberOfChannels, sampleType);
         return this;
     }
 
@@ -2101,8 +2101,15 @@ public final class TiffIFD {
         final Class<?> elementType = ImageToMatrix.defaultElementType(bufferedImage);
         final int dimX = bufferedImage.getWidth();
         final int dimY = bufferedImage.getHeight();
+        TiffSampleType sampleType = TiffSampleType.of(elementType, false);
         putImageDimensions(dimX, dimY);
-        putPixelInformation(numberOfChannels, TiffSampleType.of(elementType, false));
+        putPixelInformation(numberOfChannels, sampleType);
+        return this;
+    }
+
+    public TiffIFD putImageInformation(long dimX, long dimY, int numberOfChannels, TiffSampleType sampleType) {
+        putImageDimensions(dimX, dimY);
+        putPixelInformation(numberOfChannels, sampleType);
         return this;
     }
 

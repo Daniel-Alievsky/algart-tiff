@@ -65,7 +65,7 @@ public class ManyRepeatedTilesDemo {
             System.out.println("Usage:");
             System.out.printf("    %s [-append] [-bigTiff] [-color] [-gradient] " +
                             "target.tiff x-repetitions y-repetitions 0xXXXXXX " +
-                            "unit8|int8|uint16|int16|uint32|int32|float|double [compression]%n",
+                            "bit|unit8|int8|uint16|int16|uint32|int32|float|double [compression]%n",
                     ManyRepeatedTilesDemo.class.getName());
             System.out.println("0xXXXXXX is the color to fill the TIFF");
             return;
@@ -109,14 +109,14 @@ public class ManyRepeatedTilesDemo {
 
     private static void makePatternSamples(
             Matrix<UpdatablePArray> matrix,
-            TiffSampleType sampleType,
+            TiffSampleType type,
             Color color,
             boolean gradient) {
         int numberOfChannels = matrix.dim32(2);
         int dimX = matrix.dimX32();
         int dimY = matrix.dimY32();
         final int matrixSize = dimX * dimY;
-        switch (sampleType) {
+        switch (type) {
             case BIT -> {
                 boolean[] channels = new boolean[matrixSize * numberOfChannels];
                 for (int c = 0, disp = 0; c < numberOfChannels; c++) {
@@ -183,7 +183,7 @@ public class ManyRepeatedTilesDemo {
                 }
                 matrix.array().setData(0, channels);
             }
-            default -> throw new UnsupportedOperationException("Unsupported sampleType = " + sampleType);
+            default -> throw new UnsupportedOperationException("Unsupported type = " + type);
         }
     }
 
