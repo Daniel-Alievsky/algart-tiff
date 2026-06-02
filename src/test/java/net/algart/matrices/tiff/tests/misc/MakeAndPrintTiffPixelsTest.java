@@ -156,8 +156,8 @@ public class MakeAndPrintTiffPixelsTest {
     private static String format(Object array, int dimX, int dimY, TiffSampleType.Formatter formatter) {
         StringBuilder sb = new StringBuilder();
         for (int y = 0; y < dimY; y++) {
-            sb.append(formatter.arrayToString(array,  y * dimX, dimX));
-            sb.append("%n".formatted());
+            final String pixels = formatter.arrayToString(array, y * dimX, dimX);
+            sb.append(pixels).append("%n".formatted());
         }
         return sb.toString();
     }
