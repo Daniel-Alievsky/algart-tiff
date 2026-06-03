@@ -610,24 +610,51 @@ public non-sealed class TiffReader extends TiffIO {
         return this;
     }
 
+    /**
+     * Returns <code>true</code> if the combination of bit depth, compression,
+     * and photometric interpretation specified in the IFD allows rescaling when increasing bit depth.
+     *
+     * <p>In the current version, it is equivalent to:
+     * <pre>
+     *     ifd.{@link TiffIFD#isLowLevelBitsProcessing() isLowLevelBitsProcessing()} &&
+     *     !{@link TiffSampleType#isBitsPerSampleSupported TiffSampleType.isBitsPerSampleSupported}(bitDepth) &&
+     *     (photometric == null || photometric.{@link TagPhotometric#isRescalableIntensity() isRescalableIntensity()})
+     * </pre>
+     * where
+     * <pre>
+     *     int bitDepth = ifd.{@link TiffIFD#tryEqualBitDepth() tryEqualBitDepth()}.orElse(-1);
+     *     {@link TagPhotometric} photometric = ifd.{@link TiffIFD#optPhotometric()
+     *     optPhotometric()}.orElse(null);
+     * </pre>
+     * <p>Also this method returns {@code false} in a case of {@link TiffException} while accessing {@code ifd}.</p>
+     *
+     * <p>If this method returns <code>false</code>, the {@link #setRescaleWhenIncreasingBitDepth(boolean)}
+     * flag will have no effect while reading from this image.</p>
+     *
+     * @return <code>true</code> if arithmetic rescaling is applicable to the TIFF image.
+     * @see TiffMap#isRescaleWhenIncreasingBitDepthApplicable()
+     */
     public static boolean isRescaleWhenIncreasingBitDepthApplicable(TiffIFD ifd) {
         Objects.requireNonNull(ifd, "Null IFD");
         // The following checks must match the implementation in the TiffUnpacking class
-        if (!ifd.isLowLevelBitsProcessing()) {
-            return false;
-        }
         try {
-            final int bits = ifd.tryEqualBitDepthAlignedByBytes().orElse(-1);
-            if (!TiffSampleType.isBitsPerSampleSupported(bits)) {
-                // - including 1 bit/pixel (-1: it is not "aligned by bytes")
+            if (!ifd.isLowLevelBitsProcessing()) {
                 return false;
             }
+            int bitDepth = ifd.tryEqualBitDepth().orElse(-1);
+            TagPhotometric photometric = ifd.optPhotometric().orElse(null);
+            if (TiffSampleType.isBitsPerSampleSupported(bitDepth)) {
+                // - including 1 bit/pixel
+                return false;
+            }
+            return photometric == null || photometric.isRescalableIntensity();
+            // - for low-level bit processing YCBCr formats, TiffUnpacking class
+            // should perform necessary repacking itself
+            // (but in the current version it does not support this)
         } catch (TiffException e) {
             // - very improbable, but if it occurs, the best result is false
             return false;
         }
-        //TODO!!
-        return true;
     }
 
     public boolean isColorCorrection() {
@@ -694,7 +721,7 @@ public non-sealed class TiffReader extends TiffIO {
      * </pre>
      *
      * <p>If this method returns <code>false</code>, the {@link #setColorCorrection(boolean)}
-     * flag will have no effect while reading from this map.</p>
+     * flag will have no effect while reading from this image.</p>
      *
      * @return <code>true</code> if color correction is applicable to the TIFF image.
      * @see TiffMap#isColorCorrectionApplicable()

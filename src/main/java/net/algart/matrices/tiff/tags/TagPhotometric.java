@@ -107,7 +107,11 @@ public enum TagPhotometric {
     }
 
     public boolean isIndexed() {
-        return this == RGB_PALETTE || this == CFA_ARRAY;
+        return this == RGB_PALETTE;
+    }
+
+    public boolean isRescalableIntensity() {
+        return !isIndexed() && this != TRANSPARENCY_MASK;
     }
 
     @Override

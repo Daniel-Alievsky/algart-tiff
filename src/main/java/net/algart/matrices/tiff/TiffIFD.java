@@ -1919,7 +1919,11 @@ public final class TiffIFD {
 
     public OptionalInt tryEqualBitDepthAlignedByBytes() throws TiffException {
         OptionalInt result = tryEqualBitDepth();
-        return result.isPresent() && (result.getAsInt() & 7) == 0 ? result : OptionalInt.empty();
+        return result.isPresent() && isBitDepthAlignedByBytes(result.getAsInt()) ? result : OptionalInt.empty();
+    }
+
+    public static boolean isBitDepthAlignedByBytes(int bitDepth) {
+        return bitDepth >= 0 && (bitDepth & 7) == 0;
     }
 
     /**

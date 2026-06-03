@@ -59,7 +59,7 @@ public class TiffUnpacking {
         }
         if (TiffReader.isRescaleWhenIncreasingBitDepthApplicable(ifd)) {
             // - but if !isSimpleRearrangingBytesEnough, rescaling may still not be applicable (YCbCr, CMYK)
-//            throw new AssertionError("Invalid isRescaleWhenIncreasingBitDepthApplicable: must be false");
+            throw new AssertionError("Invalid isRescaleWhenIncreasingBitDepthApplicable: must be false");
         }
         if (!OPTIMIZE_SEPARATING_WHOLE_BYTES && tile.isInterleaved()) {
             // - actually never happens: OPTIMIZE_SEPARATING_WHOLE_BYTES=true
@@ -260,8 +260,8 @@ public class TiffUnpacking {
 
     public static boolean unpackTiffBitsAndInvertValues(
             TiffTile tile,
-            boolean scaleWhenIncreasingBitDepth,
-            boolean correctInvertedBrightness)
+            boolean rescaleWhenIncreasingBitDepth,
+            boolean colorCorrection)
             throws TiffException {
         Objects.requireNonNull(tile);
         tile.checkDecodedData();
@@ -280,8 +280,8 @@ public class TiffUnpacking {
             // - was checked in isSimpleRearrangingBytesEnough
         }
         final TagPhotometric photometric = ifd.optPhotometric().orElse(null);
-        if (photometric != null && photometric.isIndexed() || photometric == TagPhotometric.TRANSPARENCY_MASK) {
-            scaleWhenIncreasingBitDepth = false;
+        if (photometric != null && !photometric.isRescalableIntensity()) {
+            rescaleWhenIncreasingBitDepth = false;
         }
         final boolean invertedBrightness = photometric != null && photometric.isInvertedBrightness();
         if (tile.sampleType().isFloatingPoint() && OPTIMIZE_SEPARATING_WHOLE_BYTES) {
@@ -291,8 +291,6 @@ public class TiffUnpacking {
                     ifd.photometricPrettyName() + "\", " +
                     Arrays.toString(ifd.getBitsPerSample()) + " bits per sample");
         }
-        final boolean invertValues = correctInvertedBrightness && invertedBrightness;
-
         final int sizeX = tile.getSizeX();
         final int sizeY = tile.getSizeY();
         assert tile.getSizeInPixels() == sizeX * sizeY;
@@ -309,12 +307,13 @@ public class TiffUnpacking {
                     sizeY,
                     tile.samplesPerPixel(),
                     bytesPerSample.orElseThrow(),
-                    scaleWhenIncreasingBitDepth,
-                    invertValues);
+                    rescaleWhenIncreasingBitDepth,
+                    colorCorrection,
+                    invertedBrightness);
         } else {
             assert tile.bitsPerSample() == 1 : ">1 bits per sample for non-whole bytes are not supported: " + tile;
             assert tile.samplesPerPixel() == 1 : ">1 samples per pixel for non-whole bytes are not supported: " + tile;
-            extractSingleBitsAndInvertValues(result, source, sizeX, sizeY, invertValues);
+            extractSingleBitsAndInvertValues(result, source, sizeX, sizeY, colorCorrection, invertedBrightness);
         }
         tile.setDecodedData(result);
         tile.setInterleaved(false);
@@ -332,15 +331,15 @@ public class TiffUnpacking {
             // bits unpacking or color corrections (including inverting brightness) themselves
             return true;
         }
-        final int bits = ifd.tryEqualBitDepthAlignedByBytes().orElse(-1);
-        if (bits == -1) {
+        final int bitDepth = ifd.tryEqualBitDepthAlignedByBytes().orElse(-1);
+        if (bitDepth == -1) {
             // - including 1 bit/pixel (it is not "aligned by bytes")
             return false;
         }
-        if (bits == 1 || !TiffSampleType.isBitsPerSampleSupported(bits)) {
+        if (bitDepth == 1 || !TiffSampleType.isBitsPerSampleSupported(bitDepth)) {
             // - should not occur: the same check is performed in TiffIFD.sampleType(), called while creating TiffMap
             throw new UnsupportedTiffFormatException("Not supported TIFF format: compression \"" +
-                    ifd.compressionPrettyName() + "\", " + bits + " bits per every sample");
+                    ifd.compressionPrettyName() + "\", " + bitDepth + " bits per every sample");
         }
         if (ifd.isYCbCr()) {
             // - convertYCbCrToRGB function performs necessary repacking itself
@@ -351,6 +350,171 @@ public class TiffUnpacking {
     }
 
     // Below is an almost exact copy of the old TiffParser.unpackBytes method:
+
+    private static void unpackWholeBytesAndInvertValues(
+            TiffIFD ifd,
+            byte[] unpacked,
+            byte[] source,
+            int sizeX,
+            int sizeY,
+            int samplesPerPixel,
+            int bytesPerSample,
+            boolean scaleWhenIncreasingBitDepth,
+            boolean colorCorrection,
+            boolean actuallyInvertedBrightness) throws TiffException {
+        if (bytesPerSample > 4) {
+            throw new IllegalStateException("Corrupted IFD, probably by direct modifications (" +
+                    bytesPerSample + " bytes/sample in tile, though this was already checked)");
+            // - was checked in isSimpleRearrangingBytesEnough
+        }
+        // The only non-standard bytesPerSample is 3: 17..24-bit integer (but not all bits/sample are 24);
+        // we must complete such samples to 24 bits, and they will be processed later in unpackUnusualPrecisions
+        final int numberOfPixels = sizeX * sizeY;
+        final int[] bitsPerSample = ifd.getBitsPerSample();
+        final boolean byteAligned = Arrays.stream(bitsPerSample).noneMatch(bits -> (bits & 7) != 0);
+        if (byteAligned
+                && !ifd.optPhotometric().orElse(TagPhotometric.RGB).isInvertedBrightness()
+                && OPTIMIZE_SEPARATING_WHOLE_BYTES) {
+            throw new IllegalStateException("Corrupted IFD, probably by a parallel thread " +
+                    "(BitsPerSample tag is byte-aligned and inversion is not necessary, " +
+                    "though it was already checked)");
+            // - was checked in isSimpleRearrangingBytesEnough; in the other case,
+            // when we have DIFFERENT number of bytes, must be checked while creating TiffMap
+        }
+        if (samplesPerPixel > bitsPerSample.length)
+            throw new IllegalStateException("Corrupted IFD, probably by direct modifications (" +
+                    samplesPerPixel + " samples/pixel is greater than the length of BitsPerSample tag; " +
+                    "it is possible only for OLD_JPEG, that was already checked)");
+        // - but samplesPerPixel can be =1 for planar-separated tiles
+
+        if (!actuallyInvertedBrightness && !TiffReader.isRescaleWhenIncreasingBitDepthApplicable(ifd)) {
+            throw new AssertionError("Invalid isRescaleWhenIncreasingBitDepthApplicable: must be true");
+        }
+
+        final ByteOrder byteOrder = ifd.getByteOrder();
+        final long[] multipliers = new long[bitsPerSample.length];
+        for (int k = 0; k < multipliers.length; k++) {
+            multipliers[k] = ((1L << 8 * bytesPerSample) - 1) / ((1L << bitsPerSample[k]) - 1);
+            // - note that 2^n-1 is divisible by 2^m-1 when m < n; actually it is less or about 256
+        }
+        final boolean invertValues = colorCorrection && actuallyInvertedBrightness;
+        long pos = 0;
+        final long length = PackedBitArraysPer8.unpackedLength(source);
+        for (int yIndex = 0, i = 0; yIndex < sizeY; yIndex++) {
+            for (int xIndex = 0; xIndex < sizeX; xIndex++, i++) {
+                for (int s = 0; s < samplesPerPixel; s++) {
+                    final int bits = bitsPerSample[s];
+                    assert bits <= 32 : "the check \"bytesPerSample > 4\" was not performed!";
+                    final long maxValue = (1L << bits) - 1;
+                    // - we need a long type because the maximal number of bits here is 32
+                    // (but if not ALL bits/sample are 32 - such cases do not require this method)
+                    final int outputIndex = (s * numberOfPixels + i) * bytesPerSample;
+
+                    long value;
+                    if (byteAligned) {
+                        final int index = (i * samplesPerPixel + s) * bytesPerSample;
+                        value = JArrays.getBytes8(source, index, bytesPerSample, byteOrder);
+                        // - It is strange, but it is a fact:
+                        //      for byte-aligned pixels (for example, 16 or 24 bits/sample),
+                        // the byte order (little-endian or big-endian) is important;
+                        //      for unaligned samples (for example, 12, 18 or 26 bits/sample),
+                        // the byte order is ignored and actually is always big-endian,
+                        // and also the bit order inside bytes is always big-endian
+                        // (after applying possible bit inversion by invertFillOrderIfRequested,
+                        // but this inversion is performed in the very beginning,
+                        // even before decoding LZW/Deflate etc.)
+                    } else {
+                        if (pos >= length) {
+                            return;
+                        }
+                        value = PackedBitArraysPer8.getBits64InReverseOrder(source, pos, bits) & 0xFFFFFFFFL;
+                        pos += bits;
+                        // - unsigned 32-bit value
+                    }
+                    if (invertValues) {
+                        value = maxValue - value;
+                    }
+                    if (scaleWhenIncreasingBitDepth) {
+                        value *= multipliers[s];
+                    }
+                    if (outputIndex + bytesPerSample > unpacked.length) {
+                        throw new AssertionError("Out of range for unpacked data at (" +
+                                xIndex + ", " + yIndex + ") inside " + sizeX + "x" + sizeY +
+                                ", sample #" + s + ": " + outputIndex + "+" + bytesPerSample + ">" + unpacked.length);
+                    }
+                    JArrays.setBytes8(unpacked, outputIndex, value, bytesPerSample, byteOrder);
+                }
+            }
+            pos = (pos + 7) & ~7;
+            // - skipping bits until the first bit of the next whole byte
+//            bitsUnpacker.skipBitsUntilNextByte();
+        }
+    }
+
+    private static void extractSingleBitsAndInvertValues(
+            byte[] unpacked,
+            byte[] source,
+            int sizeX,
+            int sizeY,
+            boolean colorCorrection,
+            boolean actuallyInvertedBrightness) {
+        final long length = PackedBitArraysPer8.unpackedLength(source);
+        final long alignedLine = ((long) sizeX + 7) & ~7;
+        // - skipping bits until the first bit of the next whole byte;
+        // note that it may be !=sizeX only in non-tiled TIFF (when "tile width" is the width of the whole image)
+        long sOffset = 0;
+        long tOffset = 0;
+        for (int yIndex = 0; yIndex < sizeY; yIndex++, sOffset += alignedLine, tOffset += sizeX) {
+            final long actual = Math.min(sizeX, length - sOffset);
+            if (actual <= 0) {
+                // - source data MAY be too short in the case of invalid/strange TIFF
+                break;
+            }
+            PackedBitArraysPer8.copyBitsFromReverseToNormalOrderNoSync(unpacked, tOffset, source, sOffset, actual);
+        }
+        if (colorCorrection && actuallyInvertedBrightness) {
+            PackedBitArraysPer8.notBits(unpacked, 0, 8L * (long) unpacked.length);
+        }
+    }
+
+    private static void checkInterleaved(TiffTile tile) {
+        if (!tile.isInterleaved()) {
+            throw new IllegalArgumentException("Tile data must be interleaved for correct completing " +
+                    "to decode " + tile.ifd().compressionPrettyName() + " (separated data are allowed for codecs " +
+                    "like JPEG, that must fully decode data themselves, but not for this " +
+                    "compression): " + tile);
+        }
+    }
+
+    private static int toUnsignedByte(double v) {
+        return v < 0.0 ? 0 : v > 255.0 ? 255 : (int) Math.round(v);
+    }
+
+    private static void debugPrintBits(TiffTile tile) throws TiffException {
+        if (tile.index().yIndex() != 0) {
+            return;
+        }
+        final byte[] data = tile.getDecodedData();
+        final int sizeX = tile.getSizeX();
+        final int[] bitsPerSample = tile.ifd().getBitsPerSample();
+        final int samplesPerPixel = tile.samplesPerPixel();
+        System.out.printf("%nPacked bits %s:%n", Arrays.toString(bitsPerSample));
+        for (int i = 0, bit = 0; i < sizeX; i++) {
+            System.out.printf("Pixel #%d: ", i);
+            for (int s = 0; s < samplesPerPixel; s++) {
+                final int bits = bitsPerSample[s];
+                int v = 0;
+                for (int j = 0; j < bits; j++, bit++) {
+                    final int bitIndex = 7 - bit % 8;
+                    int b = (data[bit / 8] >> bitIndex) & 1;
+                    System.out.print(b);
+                    v |= b << (bits - 1 - j);
+                }
+                System.out.printf(" = %-6d ", v);
+            }
+            System.out.println();
+        }
+    }
 
     /*
     static void unpackBytesLegacy(
@@ -517,167 +681,6 @@ public class TiffUnpacking {
         }
     }
     */
-
-    private static void unpackWholeBytesAndInvertValues(
-            TiffIFD ifd,
-            byte[] unpacked,
-            byte[] source,
-            int sizeX,
-            int sizeY,
-            int samplesPerPixel,
-            int bytesPerSample,
-            boolean scaleWhenIncreasingBitDepth,
-            boolean invertValues) throws TiffException {
-        if (bytesPerSample > 4) {
-            throw new IllegalStateException("Corrupted IFD, probably by direct modifications (" +
-                    bytesPerSample + " bytes/sample in tile, though this was already checked)");
-            // - was checked in isSimpleRearrangingBytesEnough
-        }
-        // The only non-standard bytesPerSample is 3: 17..24-bit integer (but not all bits/sample are 24);
-        // we must complete such samples to 24 bits, and they will be processed later in unpackUnusualPrecisions
-        final int numberOfPixels = sizeX * sizeY;
-        final int[] bitsPerSample = ifd.getBitsPerSample();
-        final boolean byteAligned = Arrays.stream(bitsPerSample).noneMatch(bits -> (bits & 7) != 0);
-        if (byteAligned
-                && !ifd.optPhotometric().orElse(TagPhotometric.RGB).isInvertedBrightness()
-                && OPTIMIZE_SEPARATING_WHOLE_BYTES) {
-            throw new IllegalStateException("Corrupted IFD, probably by a parallel thread " +
-                    "(BitsPerSample tag is byte-aligned and inversion is not necessary, " +
-                    "though it was already checked)");
-            // - was checked in isSimpleRearrangingBytesEnough; in the other case,
-            // when we have DIFFERENT number of bytes, must be checked while creating TiffMap
-        }
-        if (samplesPerPixel > bitsPerSample.length)
-            throw new IllegalStateException("Corrupted IFD, probably by direct modifications (" +
-                    samplesPerPixel + " samples/pixel is greater than the length of BitsPerSample tag; " +
-                    "it is possible only for OLD_JPEG, that was already checked)");
-        // - but samplesPerPixel can be =1 for planar-separated tiles
-
-        if (TiffReader.isRescaleWhenIncreasingBitDepthApplicable(ifd) != invertValues) {
-//            throw new AssertionError("Invalid isRescaleWhenIncreasingBitDepthApplicable: " +
-//                    TiffReader.isRescaleWhenIncreasingBitDepthApplicable(ifd) + " instead of " + invertValues);
-        }
-
-        final ByteOrder byteOrder = ifd.getByteOrder();
-        final long[] multipliers = new long[bitsPerSample.length];
-        for (int k = 0; k < multipliers.length; k++) {
-            multipliers[k] = ((1L << 8 * bytesPerSample) - 1) / ((1L << bitsPerSample[k]) - 1);
-            // - note that 2^n-1 is divisible by 2^m-1 when m < n; actually it is less or about 256
-        }
-        long pos = 0;
-        final long length = PackedBitArraysPer8.unpackedLength(source);
-        for (int yIndex = 0, i = 0; yIndex < sizeY; yIndex++) {
-            for (int xIndex = 0; xIndex < sizeX; xIndex++, i++) {
-                for (int s = 0; s < samplesPerPixel; s++) {
-                    final int bits = bitsPerSample[s];
-                    assert bits <= 32 : "the check \"bytesPerSample > 4\" was not performed!";
-                    final long maxValue = (1L << bits) - 1;
-                    // - we need a long type because the maximal number of bits here is 32
-                    // (but if not ALL bits/sample are 32 - such cases do not require this method)
-                    final int outputIndex = (s * numberOfPixels + i) * bytesPerSample;
-
-                    long value;
-                    if (byteAligned) {
-                        final int index = (i * samplesPerPixel + s) * bytesPerSample;
-                        value = JArrays.getBytes8(source, index, bytesPerSample, byteOrder);
-                        // - It is strange, but it is a fact:
-                        //      for byte-aligned pixels (for example, 16 or 24 bits/sample),
-                        // the byte order (little-endian or big-endian) is important;
-                        //      for unaligned samples (for example, 12, 18 or 26 bits/sample),
-                        // the byte order is ignored and actually is always big-endian,
-                        // and also the bit order inside bytes is always big-endian
-                        // (after applying possible bit inversion by invertFillOrderIfRequested,
-                        // but this inversion is performed in the very beginning,
-                        // even before decoding LZW/Deflate etc.)
-                    } else {
-                        if (pos >= length) {
-                            return;
-                        }
-                        value = PackedBitArraysPer8.getBits64InReverseOrder(source, pos, bits) & 0xFFFFFFFFL;
-                        pos += bits;
-                        // - unsigned 32-bit value
-                    }
-                    if (invertValues) {
-                        value = maxValue - value;
-                    }
-                    if (scaleWhenIncreasingBitDepth) {
-                        value *= multipliers[s];
-                    }
-                    if (outputIndex + bytesPerSample > unpacked.length) {
-                        throw new AssertionError("Out of range for unpacked data at (" +
-                                xIndex + ", " + yIndex + ") inside " + sizeX + "x" + sizeY +
-                                ", sample #" + s + ": " + outputIndex + "+" + bytesPerSample + ">" + unpacked.length);
-                    }
-                    JArrays.setBytes8(unpacked, outputIndex, value, bytesPerSample, byteOrder);
-                }
-            }
-            pos = (pos + 7) & ~7;
-            // - skipping bits until the first bit of the next whole byte
-//            bitsUnpacker.skipBitsUntilNextByte();
-        }
-    }
-
-    private static void extractSingleBitsAndInvertValues(
-            byte[] unpacked,
-            byte[] source,
-            int sizeX,
-            int sizeY,
-            boolean invertValues) {
-        final long length = PackedBitArraysPer8.unpackedLength(source);
-        final long alignedLine = ((long) sizeX + 7) & ~7;
-        // - skipping bits until the first bit of the next whole byte;
-        // note that it may be !=sizeX only in non-tiled TIFF (when "tile width" is the width of the whole image)
-        long sOffset = 0;
-        long tOffset = 0;
-        for (int yIndex = 0; yIndex < sizeY; yIndex++, sOffset += alignedLine, tOffset += sizeX) {
-            final long actual = Math.min(sizeX, length - sOffset);
-            if (actual <= 0) {
-                // - source data MAY be too short in the case of invalid/strange TIFF
-                break;
-            }
-            PackedBitArraysPer8.copyBitsFromReverseToNormalOrderNoSync(unpacked, tOffset, source, sOffset, actual);
-        }
-        if (invertValues) {
-            PackedBitArraysPer8.notBits(unpacked, 0, 8L * (long) unpacked.length);
-        }
-    }
-
-    private static void checkInterleaved(TiffTile tile) {
-        if (!tile.isInterleaved()) {
-            throw new IllegalArgumentException("Tile data must be interleaved for correct completing " +
-                    "to decode " + tile.ifd().compressionPrettyName() + " (separated data are allowed for codecs " +
-                    "like JPEG, that must fully decode data themselves, but not for this " +
-                    "compression): " + tile);
-        }
-    }
-
-    private static int toUnsignedByte(double v) {
-        return v < 0.0 ? 0 : v > 255.0 ? 255 : (int) Math.round(v);
-    }
-
-    private static void debugPrintBits(TiffTile tile) throws TiffException {
-        if (tile.index().yIndex() != 0) {
-            return;
-        }
-        final byte[] data = tile.getDecodedData();
-        final int sizeX = tile.getSizeX();
-        final int[] bitsPerSample = tile.ifd().getBitsPerSample();
-        final int samplesPerPixel = tile.samplesPerPixel();
-        System.out.printf("%nPacked bits %s:%n", Arrays.toString(bitsPerSample));
-        for (int i = 0, bit = 0; i < sizeX; i++) {
-            System.out.printf("Pixel #%d: ", i);
-            for (int s = 0; s < samplesPerPixel; s++) {
-                final int bits = bitsPerSample[s];
-                int v = 0;
-                for (int j = 0; j < bits; j++, bit++) {
-                    final int bitIndex = 7 - bit % 8;
-                    int b = (data[bit / 8] >> bitIndex) & 1;
-                    System.out.print(b);
-                    v |= b << (bits - 1 - j);
-                }
-                System.out.printf(" = %-6d ", v);
-            }
-            System.out.println();
-        }
-    }
 }
+
+

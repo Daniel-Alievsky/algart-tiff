@@ -142,6 +142,7 @@ public sealed class TiffMap permits TiffIOMap {
     // - storing Optional value is not a usual way; we do this only for quick replacement of TiffIFD method
     private final int[] yCbCrSubsampling;
 
+    private final boolean rescaleWhenIncreasingBitDepthApplicable;
     private final boolean colorCorrectionApplicable;
     private volatile int dimX = 0;
     private volatile int dimY = 0;
@@ -234,6 +235,7 @@ public sealed class TiffMap permits TiffIOMap {
         this.photometricCode = ifd.getPhotometricCode();
         this.photometric = ifd.optPhotometric();
         this.yCbCrSubsampling = ifd.getYCbCrSubsampling();
+        this.rescaleWhenIncreasingBitDepthApplicable = TiffReader.isRescaleWhenIncreasingBitDepthApplicable(ifd);
         this.colorCorrectionApplicable = TiffReader.isColorCorrectionApplicable(ifd);
         if (hasImageDimensions) {
             setDimensions(ifd.getImageDimX(), ifd.getImageDimY(), false);
@@ -459,6 +461,17 @@ public sealed class TiffMap permits TiffIOMap {
 
     public int[] getYCbCrSubsampling() {
         return yCbCrSubsampling == null ? null : yCbCrSubsampling.clone();
+    }
+
+    /**
+     * Returns <code>{@link TiffReader#isRescaleWhenIncreasingBitDepthApplicable(TiffIFD)
+     * TiffReader.isRescaleWhenIncreasingBitDepthApplicable}({@link #ifd()})</code>.
+     *
+     * @return <code>true</code> if arithmetic rescaling is applicable to the TIFF image.
+     * @see TiffReader#setRescaleWhenIncreasingBitDepth(boolean)
+     */
+    public boolean isRescaleWhenIncreasingBitDepthApplicable() {
+        return rescaleWhenIncreasingBitDepthApplicable;
     }
 
     /**
