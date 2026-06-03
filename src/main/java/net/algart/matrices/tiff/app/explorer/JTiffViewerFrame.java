@@ -35,6 +35,7 @@ import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Consumer;
 
 class JTiffViewerFrame extends JFrame {
     private final TiffViewer viewer;
@@ -322,19 +323,14 @@ class JTiffViewerFrame extends JFrame {
         editMenu.add(copyItem);
 
         JMenu viewMenu = new JMenu("View");
-        JMenu colorCorrectionMenu = new JMenu("Color correction");
-        ButtonGroup correctionGroup = new ButtonGroup();
-        JRadioButtonMenuItem rawItem = new JRadioButtonMenuItem("No color correction");
-        rawItem.setEnabled(false);
-        rawItem.addActionListener(e -> setColorCorrection(false));
 
-        JRadioButtonMenuItem correctionItem = new JRadioButtonMenuItem("Color correction (n/a)");
-        correctionItem.setEnabled(false);
-        correctionItem.addActionListener(e -> setColorCorrection(true));
-        correctionGroup.add(rawItem);
-        correctionGroup.add(correctionItem);
-        colorCorrectionMenu.add(rawItem);
-        colorCorrectionMenu.add(correctionItem);
+        JRadioButtonMenuItem colorCorrectionDisabledItem = new JRadioButtonMenuItem("No color correction");
+        JRadioButtonMenuItem colorCorrectionEnabledItem = new JRadioButtonMenuItem("Color correction (n/a)");
+        JMenu colorCorrectionMenu = enableDisableSubMenu(
+                "Color correction (not applicable)",
+                colorCorrectionDisabledItem,
+                colorCorrectionEnabledItem,
+                this::setColorCorrection);
         viewMenu.add(colorCorrectionMenu);
         viewMenu.addSeparator();
 
@@ -415,21 +411,25 @@ class JTiffViewerFrame extends JFrame {
             saveSelectionAsTiffItem.setEnabled(viewerPanel.hasNonEmptySelection());
             appendSelectionToTiffItem.setEnabled(viewerPanel.hasNonEmptySelection());
 
+            final boolean rescaleApplicable = map.isRescaleWhenIncreasingBitDepthApplicable();
+            final boolean rescale = map.isRescaleWhenIncreasingBitDepth();
             final boolean colorCorrectionApplicable = map.isColorCorrectionApplicable();
-            final boolean colorCorrection = viewer.isColorCorrection();
+            final boolean colorCorrection = map.isColorCorrection();
             String rawLabel = map.numberOfChannels() == 1 ?
                     "No correction (grayscale, 0 is black)" :
                     "No correction (unsupported color models will be displayed as RGB)";
             String correctedLabel = map.numberOfChannels() == 1 ?
                     "Corrected (grayscale, 0 is white)" :
                     "Corrected (CMYK will be converted to RGB)";
-            colorCorrectionMenu.setText(colorCorrectionApplicable ? "Color correction" : "Color correction (n/a)");
-            rawItem.setText(rawLabel);
-            rawItem.setEnabled(colorCorrectionApplicable);
-            rawItem.setSelected(!colorCorrection);
-            correctionItem.setText(correctedLabel);
-            correctionItem.setEnabled(colorCorrectionApplicable);
-            correctionItem.setSelected(colorCorrection);
+            colorCorrectionMenu.setText(colorCorrectionApplicable ?
+                    "Color correction" :
+                    "Color correction (not applicable)");
+            colorCorrectionDisabledItem.setText(rawLabel);
+            colorCorrectionDisabledItem.setEnabled(colorCorrectionApplicable);
+            colorCorrectionDisabledItem.setSelected(!colorCorrection);
+            colorCorrectionEnabledItem.setText(correctedLabel);
+            colorCorrectionEnabledItem.setEnabled(colorCorrectionApplicable);
+            colorCorrectionEnabledItem.setSelected(colorCorrection);
             Color colorCorrectionForeground = colorCorrectionApplicable ?
                     viewMenu.getForeground() :
                     UIManager.getColor("MenuItem.disabledForeground");
@@ -457,6 +457,24 @@ class JTiffViewerFrame extends JFrame {
         menuBar.add(editMenu);
         menuBar.add(viewMenu);
         return menuBar;
+    }
+
+    private JMenu enableDisableSubMenu(
+            String title,
+            JRadioButtonMenuItem disabledItem,
+            JRadioButtonMenuItem enabledItem,
+            Consumer<Boolean> action) {
+        JMenu colorCorrectionMenu = new JMenu(title);
+        ButtonGroup colorCorrectionGroup = new ButtonGroup();
+        disabledItem.setEnabled(false);
+        disabledItem.addActionListener(e -> action.accept(false));
+        enabledItem.setEnabled(false);
+        enabledItem.addActionListener(e -> action.accept(true));
+        colorCorrectionGroup.add(disabledItem);
+        colorCorrectionGroup.add(enabledItem);
+        colorCorrectionMenu.add(disabledItem);
+        colorCorrectionMenu.add(enabledItem);
+        return colorCorrectionMenu;
     }
 
     private void addZoomItem(JMenu menu, ButtonGroup group, String title, double zoomValue) {

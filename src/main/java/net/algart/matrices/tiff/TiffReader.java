@@ -110,7 +110,7 @@ public non-sealed class TiffReader extends TiffIO {
             }
         }
 
-        public byte[] unpackIfNecessary(TiffMap map, byte[] samples, long numberOfPixels, boolean rescaleUnsigned24)
+        public byte[] unpackIfNecessary(TiffMap map, byte[] samples, long numberOfPixels, boolean rescaleInt24)
                 throws TiffException {
             Objects.requireNonNull(map, "Null TIFF map");
             Objects.requireNonNull(samples, "Null samples");
@@ -118,8 +118,7 @@ public non-sealed class TiffReader extends TiffIO {
             return this != TiffReader.UnusualPrecisions.UNPACK ?
                     samples :
                     TiffUnusualPrecisions.unpackUnusualPrecisions(
-                            samples, map.ifd(), map.numberOfChannels(), numberOfPixels,
-                            rescaleUnsigned24);
+                            samples, map.ifd(), map.numberOfChannels(), numberOfPixels, rescaleInt24);
         }
     }
 
@@ -617,12 +616,12 @@ public non-sealed class TiffReader extends TiffIO {
      * <p>In the current version, it is equivalent to:
      * <pre>
      *     ifd.{@link TiffIFD#isLowLevelBitsProcessing() isLowLevelBitsProcessing()} &&
-     *     !{@link TiffSampleType#isBitsPerSampleSupported TiffSampleType.isBitsPerSampleSupported}(bitDepth) &&
+     *     !ifd.{@link TiffIFD#isFloatingPoint() isFloatingPoint()} &&
+     *     !ifd.{@link TiffIFD#isBitsPerSampleDirectlySupported() isBitsPerSampleDirectlySupported()} &&
      *     (photometric == null || photometric.{@link TagPhotometric#isRescalableIntensity() isRescalableIntensity()})
      * </pre>
      * where
      * <pre>
-     *     int bitDepth = ifd.{@link TiffIFD#tryEqualBitDepth() tryEqualBitDepth()}.orElse(-1);
      *     {@link TagPhotometric} photometric = ifd.{@link TiffIFD#optPhotometric()
      *     optPhotometric()}.orElse(null);
      * </pre>
@@ -638,12 +637,7 @@ public non-sealed class TiffReader extends TiffIO {
         Objects.requireNonNull(ifd, "Null IFD");
         // The following checks must match the implementation in the TiffUnpacking class
         try {
-            if (!ifd.isLowLevelBitsProcessing()) {
-                return false;
-            }
-            final int bitDepth = ifd.tryEqualBitDepth().orElse(-1);
-            if (TiffSampleType.isBitsPerSampleSupported(bitDepth)) {
-                // - including 1 bit/pixel
+            if (!ifd.isLowLevelBitsProcessing() || ifd.isBitsPerSampleDirectlySupported() || ifd.isFloatingPoint()) {
                 return false;
             }
             final TagPhotometric photometric = ifd.optPhotometric().orElse(null);

@@ -62,19 +62,19 @@ public class TiffUnusualPrecisions {
      * i.e., before using this method.
      * See also {@link TiffMap#bitsPerUnpackedSample()}.</p>
      *
-     * @param samples           the source pixel samples.
-     * @param ifd               IFD (it is analyzed to detect unusual precision).
-     * @param numberOfChannels  number of samples per pixel; note that this value may differ from
-     *                          {@link TiffIFD#getSamplesPerPixel() ifd.getSamplesPerPixel()} when this
-     *                          method is used for unpacking a single tile, for example, in
-     *                          {@link TiffTile#getUnpackedSampleBytes(boolean)} method
-     *                          (in which case {@code numberOfChannels} can be 1 even for several channels
-     *                          when {@link TiffIFD#isPlanarSeparated()} is {@code true}).
-     * @param numberOfPixels    number of pixels in {@code samples} array.
-     * @param rescaleUnsigned24 if {@code true} and there is the 1st of the cases above (3-byte integer values),
-     *                          this method multiplies all (unsigned) 24-bit integer values by 256
-     *                          ({@code value<<8} operator), so that the source samples bits will be placed
-     *                          in bits 8..31 of the 4-byte result samples.
+     * @param samples          the source pixel samples.
+     * @param ifd              IFD (it is analyzed to detect unusual precision).
+     * @param numberOfChannels number of samples per pixel; note that this value may differ from
+     *                         {@link TiffIFD#getSamplesPerPixel() ifd.getSamplesPerPixel()} when this
+     *                         method is used for unpacking a single tile, for example, in
+     *                         {@link TiffTile#getUnpackedSampleBytes(boolean)} method
+     *                         (in which case {@code numberOfChannels} can be 1 even for several channels
+     *                         when {@link TiffIFD#isPlanarSeparated()} is {@code true}).
+     * @param numberOfPixels   number of pixels in {@code samples} array.
+     * @param rescaleInt24     if {@code true} and there is the 1st of the cases above (3-byte integer values),
+     *                         this method multiplies all (unsigned) 24-bit integer values by 256
+     *                         ({@code value<<8} operator), so that the source samples bits will be placed
+     *                         in bits 8..31 of the 4-byte result samples.
      * @return the unpacked samples.
      * @throws TiffException in the case of incorrect IFD.
      * @see TiffTile#getUnpackedSampleBytes(boolean)
@@ -84,7 +84,7 @@ public class TiffUnusualPrecisions {
             final TiffIFD ifd,
             final int numberOfChannels,
             final long numberOfPixels,
-            boolean rescaleUnsigned24) throws TiffException {
+            boolean rescaleInt24) throws TiffException {
         Objects.requireNonNull(samples, "Null samples");
         Objects.requireNonNull(ifd, "Null IFD");
         TiffIFD.checkNumberOfChannels(numberOfChannels);
@@ -120,7 +120,7 @@ public class TiffUnusualPrecisions {
             for (int i = 0, disp = 0; i < numberOfSamples; i++, disp += info.packedBytesPerSample) {
                 // - very rare case, no sense to optimize
                 final long value = JArrays.getBytes8(samples, disp, info.packedBytesPerSample, byteOrder);
-                final long newValue = rescaleUnsigned24 ? value << 8 : value;
+                final long newValue = rescaleInt24 ? value << 8 : value;
                 JArrays.setBytes8(unpacked, i * 4, newValue, 4, byteOrder);
             }
             return unpacked;

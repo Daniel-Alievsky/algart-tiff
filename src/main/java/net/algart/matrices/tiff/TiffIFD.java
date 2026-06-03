@@ -1865,6 +1865,17 @@ public final class TiffIFD {
         // - including 1 bit/pixel
     }
 
+    public boolean isFloatingPoint() {
+        final Object value = get(Tags.SAMPLE_FORMAT);
+        return switch (value) {
+            case int[] v -> v.length > 0 && v[0] == SAMPLE_FORMAT_IEEEFP;
+            case Number v -> v.longValue() == SAMPLE_FORMAT_IEEEFP;
+            case long[] v -> v.length > 0 && v[0] == SAMPLE_FORMAT_IEEEFP;
+            case Number[] v -> v.length > 0 && v[0].longValue() == SAMPLE_FORMAT_IEEEFP;
+            case null, default -> false;
+        };
+    }
+
     /**
      * Detects the TIFF sample type, allowing to store samples of this TIFF image.
      * Note that {@link TiffSampleType#bitsPerSample()} cannot be less than
