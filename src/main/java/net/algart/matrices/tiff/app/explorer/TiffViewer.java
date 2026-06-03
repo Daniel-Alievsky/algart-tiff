@@ -324,7 +324,8 @@ class TiffViewer {
         formatter.setHexadecimal(pixelValueFormat == UserPixelValueFormat.HEXADECIMAL);
         formatter.setNormalized(pixelValueFormat == UserPixelValueFormat.NORMALIZED);
         formatter.setSeparator(pixelValueFormat == UserPixelValueFormat.HEXADECIMAL ? " " : ", ");
-        formatter.setMaxArrayLength(8);
+        formatter.setMaxArrayLength(10);
+        // - up to 10 channels (very improbable)
         return "[" + formatter.arrayToString(channelsArray, 0, map.numberOfChannels()) + "]";
     }
 
