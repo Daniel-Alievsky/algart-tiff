@@ -114,7 +114,7 @@ public class TiffReaderTest {
 //                reader.setCachingIFDs(false);
 //                reader.setUnusualPrecisions(TiffReader.UnusualPrecisions.NONE);
 //                reader.setAutoUnpackBits(TiffReader.UnpackBits.UNPACK_TO_0_255);
-//                reader.setScaleWhenIncreasingBitDepth(false);
+//                reader.setRescaleWhenIncreasingBitDepth(false);
                 reader.setColorCorrection(true);
 //                reader.setMissingTilesAllowed(true);
                 reader.setByteFiller((byte) 0x80);

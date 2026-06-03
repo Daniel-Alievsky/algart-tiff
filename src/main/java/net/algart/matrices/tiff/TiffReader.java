@@ -110,7 +110,7 @@ public non-sealed class TiffReader extends TiffIO {
             }
         }
 
-        public byte[] unpackIfNecessary(TiffMap map, byte[] samples, long numberOfPixels, boolean scaleUnsignedInt24)
+        public byte[] unpackIfNecessary(TiffMap map, byte[] samples, long numberOfPixels, boolean rescaleUnsigned24)
                 throws TiffException {
             Objects.requireNonNull(map, "Null TIFF map");
             Objects.requireNonNull(samples, "Null samples");
@@ -119,7 +119,7 @@ public non-sealed class TiffReader extends TiffIO {
                     samples :
                     TiffUnusualPrecisions.unpackUnusualPrecisions(
                             samples, map.ifd(), map.numberOfChannels(), numberOfPixels,
-                            scaleUnsignedInt24);
+                            rescaleUnsigned24);
         }
     }
 
@@ -149,7 +149,7 @@ public non-sealed class TiffReader extends TiffIO {
     private volatile long maxCacheMemory = DEFAULT_MAX_CACHING_MEMORY;
     private UnpackBits autoUnpackBits = UnpackBits.NONE;
     private UnusualPrecisions unusualPrecisions = UnusualPrecisions.UNPACK;
-    private boolean scaleWhenIncreasingBitDepth = true;
+    private boolean rescaleWhenIncreasingBitDepth = true;
     private boolean colorCorrection = false;
     private boolean removeExtraChannelsIf5OrMoreForBufferedImage = false;
     private TiffCodec.Customizer codecCustomizer = null;
@@ -568,8 +568,8 @@ public non-sealed class TiffReader extends TiffIO {
         return this;
     }
 
-    public boolean isScaleWhenIncreasingBitDepth() {
-        return scaleWhenIncreasingBitDepth;
+    public boolean isRescaleWhenIncreasingBitDepth() {
+        return rescaleWhenIncreasingBitDepth;
     }
 
     /**
@@ -599,14 +599,14 @@ public non-sealed class TiffReader extends TiffIO {
      * PhotometricInterpretation TIFF tag is "Palette" (3) or "Transparency Mask" (4): in these cases,
      * scaling has no sense.
      *
-     * @param scaleWhenIncreasingBitDepth whether do we need to scale pixel samples, represented with <i>k</i>
-     *                                    bits/sample, <i>k</i>%8&nbsp;&ne;&nbsp;0, when increasing bit depth
-     *                                    to the nearest <i>n</i> bits/sample, where
-     *                                    <i>n</i>&nbsp;&gt;&nbsp;<i>k</i> and <i>n</i> is divided by 8.
+     * @param rescaleWhenIncreasingBitDepth whether do we need to scale pixel samples, represented with <i>k</i>
+     *                                      bits/sample, <i>k</i>%8&nbsp;&ne;&nbsp;0, when increasing bit depth
+     *                                      to the nearest <i>n</i> bits/sample, where
+     *                                      <i>n</i>&nbsp;&gt;&nbsp;<i>k</i> and <i>n</i> is divided by 8.
      * @return a reference to this object.
      */
-    public TiffReader setScaleWhenIncreasingBitDepth(boolean scaleWhenIncreasingBitDepth) {
-        this.scaleWhenIncreasingBitDepth = scaleWhenIncreasingBitDepth;
+    public TiffReader setRescaleWhenIncreasingBitDepth(boolean rescaleWhenIncreasingBitDepth) {
+        this.rescaleWhenIncreasingBitDepth = rescaleWhenIncreasingBitDepth;
         return this;
     }
 
@@ -1609,7 +1609,7 @@ public non-sealed class TiffReader extends TiffIO {
         } else {
             if (!TiffUnpacking.separateUnpackedSamples(tile)) {
                 if (!TiffUnpacking.separateYCbCrToRGB(tile)) {
-                    TiffUnpacking.unpackTiffBitsAndInvertValues(tile, scaleWhenIncreasingBitDepth, colorCorrection);
+                    TiffUnpacking.unpackTiffBitsAndInvertValues(tile, rescaleWhenIncreasingBitDepth, colorCorrection);
                 }
             }
         }

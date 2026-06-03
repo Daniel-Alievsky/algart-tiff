@@ -684,32 +684,32 @@ public final class TiffTile {
      *
      * <p>This method is rarely necessary: {@link #getDecodedData()} is enough for most needs.
      *
-     * <p>The argument <code>autoScaleWhenIncreasingBitDepth</code> specifies how to unpack 3-byte integer data.
-     * Usually it should be equal to {@link TiffReader#setScaleWhenIncreasingBitDepth(boolean)
+     * <p>The argument <code>rescaleWhenIncreasingBitDepth</code> specifies how to unpack 3-byte integer data.
+     * Usually it should be equal to {@link TiffReader#setRescaleWhenIncreasingBitDepth(boolean)
      * the corresponding flag} of {@link TiffReader} class used for reading this tile.
      * The typical value is <code>true</code>.
      *
-     * @param autoScaleWhenIncreasingBitDepth the last argument passed to of
-     *                                        {@link TiffUnusualPrecisions#unpackUnusualPrecisions} method for
-     *                                        unpacking data.
+     * @param rescaleWhenIncreasingBitDepth the last argument passed to of
+     *                                     {@link TiffUnusualPrecisions#unpackUnusualPrecisions} method for
+     *                                     unpacking data.
      * @return unpacked data.
      * @see TiffUnusualPrecisions#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)
      * @see #bitsPerSample()
      * @see TiffMap#bitsPerUnpackedSample()
      */
-    public byte[] getUnpackedSampleBytes(boolean autoScaleWhenIncreasingBitDepth) {
+    public byte[] getUnpackedSampleBytes(boolean rescaleWhenIncreasingBitDepth) {
         byte[] samples = getDecodedData();
         try {
             samples = TiffUnusualPrecisions.unpackUnusualPrecisions(
-                    samples, ifd(), samplesPerPixel, sizeInPixels, autoScaleWhenIncreasingBitDepth);
+                    samples, ifd(), samplesPerPixel, sizeInPixels, rescaleWhenIncreasingBitDepth);
         } catch (TiffException e) {
             throw new IllegalStateException("Illegal IFD inside the tile map", e);
         }
         return samples;
     }
 
-    public Object getUnpackedJavaArray(boolean autoScaleWhenIncreasingBitDepth) {
-        final byte[] samples = getUnpackedSampleBytes(autoScaleWhenIncreasingBitDepth);
+    public Object getUnpackedJavaArray(boolean rescaleWhenIncreasingBitDepth) {
+        final byte[] samples = getUnpackedSampleBytes(rescaleWhenIncreasingBitDepth);
         return sampleType().javaArray(samples, byteOrder());
     }
 
@@ -733,9 +733,9 @@ public final class TiffTile {
         return getUnpackedMatrix(true);
     }
 
-    public Matrix<UpdatablePArray> getUnpackedMatrix(boolean autoScaleWhenIncreasingBitDepth) {
+    public Matrix<UpdatablePArray> getUnpackedMatrix(boolean rescaleWhenIncreasingBitDepth) {
         return TiffSampleType.asMatrix(
-                getUnpackedJavaArray(autoScaleWhenIncreasingBitDepth),
+                getUnpackedJavaArray(rescaleWhenIncreasingBitDepth),
                 sizeX, sizeY, samplesPerPixel, interleaved);
     }
 
@@ -751,7 +751,7 @@ public final class TiffTile {
         return this;
     }
 
-    public TiffTile copyUnpackedSamples(TiffTile source, boolean autoScaleWhenIncreasingBitDepth) {
+    public TiffTile copyUnpackedSamples(TiffTile source, boolean rescaleWhenIncreasingBitDepth) {
         Objects.requireNonNull(source, "Null source tile");
         if (sampleType() != source.sampleType()) {
             throw new IllegalArgumentException("The specified source tile has incompatible " +
@@ -771,12 +771,12 @@ public final class TiffTile {
         }
         source.checkDecodedData();
         if (map.isByteOrderCompatible(source.byteOrder())) {
-            final byte[] decodedData = source.getUnpackedSampleBytes(autoScaleWhenIncreasingBitDepth);
+            final byte[] decodedData = source.getUnpackedSampleBytes(rescaleWhenIncreasingBitDepth);
             setDecodedData(decodedData, true);
         } else {
             assert byteOrder() != source.byteOrder();
             assert elementType() != boolean.class;
-            final byte[] decodedData = source.getUnpackedSampleBytes(autoScaleWhenIncreasingBitDepth);
+            final byte[] decodedData = source.getUnpackedSampleBytes(rescaleWhenIncreasingBitDepth);
             final byte[] swapped = JArrays.copyAndSwapByteOrder(decodedData, elementType());
             setDecodedData(swapped, true);
         }

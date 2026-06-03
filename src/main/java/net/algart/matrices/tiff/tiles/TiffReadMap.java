@@ -65,8 +65,8 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
         return reader.getAutoUnpackBits();
     }
 
-    public boolean isScaleWhenIncreasingBitDepth() {
-        return reader.isScaleWhenIncreasingBitDepth();
+    public boolean isRescaleWhenIncreasingBitDepth() {
+        return reader.isRescaleWhenIncreasingBitDepth();
     }
 
     public boolean isColorCorrection() {

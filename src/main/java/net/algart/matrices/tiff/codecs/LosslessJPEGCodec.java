@@ -104,7 +104,7 @@ public class LosslessJPEGCodec implements TiffCodec {
         private final byte[] stream;
         private int position = 0;
         private final Options options;
-        private final boolean scaleWhenIncreasingBitDepth;
+        private final boolean rescaleWhenIncreasingBitDepth;
 
         private byte[] unpacked = new byte[0];
         private int width = 0;
@@ -122,8 +122,8 @@ public class LosslessJPEGCodec implements TiffCodec {
         private StreamDecoder(byte[] stream, Options options) {
             this.stream = Objects.requireNonNull(stream);
             this.options = Objects.requireNonNull(options);
-            this.scaleWhenIncreasingBitDepth = options.getIo() instanceof TiffReader reader &&
-                    reader.isScaleWhenIncreasingBitDepth();
+            this.rescaleWhenIncreasingBitDepth = options.getIo() instanceof TiffReader reader &&
+                    reader.isRescaleWhenIncreasingBitDepth();
         }
 
         byte[] decode() throws TiffException {
@@ -236,7 +236,7 @@ public class LosslessJPEGCodec implements TiffCodec {
             readUByte(); // least significant 4 bits = pointTransform
 
             byte[] toDecode = readBytes(stream.length - position);
-            final int scalingShift = scaleWhenIncreasingBitDepth ? 8 * bytesPerSample - bitsPerSample : 0;
+            final int scalingShift = rescaleWhenIncreasingBitDepth ? 8 * bytesPerSample - bitsPerSample : 0;
 
             // scrub out byte stuffing
             final SmallHuffmanCodec.ByteVector b = new SmallHuffmanCodec.ByteVector();

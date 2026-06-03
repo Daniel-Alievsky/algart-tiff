@@ -126,7 +126,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         final byte[] samples = new byte[sizeInBytes];
 
         @SuppressWarnings("resource") final TiffReader reader = reader();
-        final boolean scaleUnsignedInt24 = reader.isScaleWhenIncreasingBitDepth();
+        final boolean rescaleUnsigned24 = reader.isRescaleWhenIncreasingBitDepth();
         final byte byteFiller = reader.getByteFiller();
         if (byteFiller != 0) {
             // - Java already zero-fills samples array
@@ -151,13 +151,13 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         final int minXIndex = Math.max(0, divFloor(fromX, mapTileSizeX));
         final int minYIndex = Math.max(0, divFloor(fromY, mapTileSizeY));
         if (minXIndex >= gridCountX() || minYIndex >= gridCountY() || toX < fromX || toY < fromY) {
-            return unusualPrecisions.unpackIfNecessary(this, samples, sizeInPixels, scaleUnsignedInt24);
+            return unusualPrecisions.unpackIfNecessary(this, samples, sizeInPixels, rescaleUnsigned24);
         }
         final int maxXIndex = Math.min(gridCountX() - 1, divFloor(toX - 1, mapTileSizeX));
         final int maxYIndex = Math.min(gridCountY() - 1, divFloor(toY - 1, mapTileSizeY));
         if (minYIndex > maxYIndex || minXIndex > maxXIndex) {
             // - possible when fromX < 0 or fromY < 0
-            return unusualPrecisions.unpackIfNecessary(this, samples, sizeInPixels, scaleUnsignedInt24);
+            return unusualPrecisions.unpackIfNecessary(this, samples, sizeInPixels, rescaleUnsigned24);
         }
         final long tileOneChannelRowSizeInBits = (long) mapTileSizeX * bitsPerSample;
         final long samplesOneChannelRowSizeInBits = (long) sizeX * bitsPerSample;
@@ -212,7 +212,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
                 }
             }
         }
-        return unusualPrecisions.unpackIfNecessary(this, samples, sizeInPixels, scaleUnsignedInt24);
+        return unusualPrecisions.unpackIfNecessary(this, samples, sizeInPixels, rescaleUnsigned24);
     }
 
     public byte[] readSampleBytes(
