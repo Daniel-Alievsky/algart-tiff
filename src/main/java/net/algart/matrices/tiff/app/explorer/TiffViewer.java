@@ -204,8 +204,13 @@ class TiffViewer {
         } finally {
             frame.resetImage();
             frame.tiffPanel().reset();
-            frame.tiffPanel().repaint();
+            repaint();
         }
+    }
+
+    public void repaint() {
+        frame.tiffPanel().repaint();
+        resetPixelValueStatus();
     }
 
     public Rectangle getSelection() {

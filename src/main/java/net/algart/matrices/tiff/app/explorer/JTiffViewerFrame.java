@@ -538,7 +538,7 @@ class JTiffViewerFrame extends JFrame {
             } catch (TooBigZoomException | IOException ex) {
                 showErrorMessage(ex, "Cannot set zoom");
             }
-            viewerPanel.repaint();
+            viewer.repaint();
             item.setSelected(true);
         });
         group.add(item);
@@ -563,7 +563,7 @@ class JTiffViewerFrame extends JFrame {
     private void setRescaleWhenIncreasingBitDepth(boolean rescaleWhenIncreasingBitDepth) {
         try {
             viewer.setRescaleWhenIncreasingBitDepth(rescaleWhenIncreasingBitDepth);
-            viewerPanel.repaint();
+            viewer.repaint();
         } catch (IOException ex) {
             showErrorMessage(ex, "Error reloading image");
         }
@@ -572,7 +572,7 @@ class JTiffViewerFrame extends JFrame {
     private void setColorCorrection(boolean colorCorrection) {
         try {
             viewer.setColorCorrection(colorCorrection);
-            viewerPanel.repaint();
+            viewer.repaint();
         } catch (IOException ex) {
             showErrorMessage(ex, "Error reloading image");
         }
