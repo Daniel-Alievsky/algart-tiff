@@ -24,6 +24,8 @@
 
 package net.algart.matrices.tiff.app.explorer;
 
+import net.algart.arrays.Matrix;
+import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffSampleType;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
@@ -304,7 +306,9 @@ class TiffViewer {
         if (viewport.width <= 0 || viewport.height <= 0) {
             return null;
         }
-        return map.readBufferedImage(viewport.x, viewport.y, viewport.width, viewport.height);
+        final Matrix<UpdatablePArray> mergedChannels =
+                map.readMatrix(viewport.x, viewport.y, viewport.width, viewport.height);
+        return map.channelsToBufferedImage(mergedChannels.asLayers());
     }
 
     public void invalidateCache() throws IOException {

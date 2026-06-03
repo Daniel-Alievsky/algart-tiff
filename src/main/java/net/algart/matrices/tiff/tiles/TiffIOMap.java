@@ -357,15 +357,22 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             throws IOException {
         final Matrix<UpdatablePArray> mergedChannels =
                 readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
-        final Matrix<? extends PArray> interleaved =
-                Matrices.interleave(extractFirst4(mergedChannels.asLayers()));
+        return channelsToBufferedImage(mergedChannels.asLayers());
+    }
+
+    public BufferedImage channelsToBufferedImage(List<? extends Matrix<? extends PArray>> channels) {
+        final Matrix<? extends PArray> interleaved = Matrices.interleave(extractFirst4Channels(channels));
+        return interleavedToBufferedImage(interleaved);
+    }
+
+    public BufferedImage interleavedToBufferedImage(Matrix<? extends PArray> interleaved) {
         // Note: we do not use MatrixToImage.toBufferedImage, because we need to call setUnsignedInt32
         return new MatrixToImage.InterleavedRGBToInterleaved()
                 .setUnsignedInt32(true)
                 .toBufferedImage(interleaved);
     }
 
-    <T> List<T> extractFirst4(List<T> image) {
+    public <T extends Matrix<? extends PArray>> List<T> extractFirst4Channels(List<T> image) {
         //noinspection resource
         return reader().isRemoveExtraChannelsIf5OrMoreForBufferedImage() && image.size() > 4 ?
                 image.subList(0, 4) :
