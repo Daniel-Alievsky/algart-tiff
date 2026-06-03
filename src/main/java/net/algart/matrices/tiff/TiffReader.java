@@ -641,12 +641,12 @@ public non-sealed class TiffReader extends TiffIO {
             if (!ifd.isLowLevelBitsProcessing()) {
                 return false;
             }
-            int bitDepth = ifd.tryEqualBitDepth().orElse(-1);
-            TagPhotometric photometric = ifd.optPhotometric().orElse(null);
+            final int bitDepth = ifd.tryEqualBitDepth().orElse(-1);
             if (TiffSampleType.isBitsPerSampleSupported(bitDepth)) {
                 // - including 1 bit/pixel
                 return false;
             }
+            final TagPhotometric photometric = ifd.optPhotometric().orElse(null);
             return photometric == null || photometric.isRescalableIntensity();
             // - for low-level bit processing YCBCr formats, TiffUnpacking class
             // should perform necessary repacking itself
