@@ -58,6 +58,7 @@ public enum TiffSampleType {
         private String separator = ", ";
         private int maxArrayLength = Integer.MAX_VALUE;
         private int maxStringLength = 10000;
+        private Locale locale = Locale.US;
 
         private Formatter() {
         }
@@ -137,6 +138,15 @@ public enum TiffSampleType {
                 throw new IllegalArgumentException("maxStringLength argument must be positive");
             }
             this.maxStringLength = maxStringLength;
+            return this;
+        }
+
+        public Locale getLocale() {
+            return locale;
+        }
+
+        public Formatter setLocale(Locale locale) {
+            this.locale = Objects.requireNonNull(locale, "Null locale");
             return this;
         }
 
@@ -252,7 +262,7 @@ public enum TiffSampleType {
         private String build(float[] array, int offset, int count, String format) {
             var values = Arrays.copyOfRange(array, offset, offset + count);
             if (format != null) {
-                return JArrays.toString(values, Locale.US, format, separator, maxStringLength);
+                return JArrays.toString(values, locale, format, separator, maxStringLength);
             } else {
                 return JArrays.toString(values, separator, maxStringLength);
             }
@@ -273,7 +283,7 @@ public enum TiffSampleType {
                 return toString(values, normalizedFormat);
             }
             if (format != null) {
-                return JArrays.toString(array, Locale.US, format, separator, maxStringLength);
+                return JArrays.toString(array, locale, format, separator, maxStringLength);
             } else {
                 return JArrays.toString(array, separator, maxStringLength);
             }
@@ -281,7 +291,7 @@ public enum TiffSampleType {
 
         private String toString(double[] values, String format) {
             if (format != null) {
-                return JArrays.toString(values, Locale.US, format, separator, maxStringLength);
+                return JArrays.toString(values, locale, format, separator, maxStringLength);
             } else {
                 return JArrays.toString(values, separator, maxStringLength);
             }

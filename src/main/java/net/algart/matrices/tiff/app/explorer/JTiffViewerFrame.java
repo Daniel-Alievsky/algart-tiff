@@ -324,10 +324,19 @@ class JTiffViewerFrame extends JFrame {
 
         JMenu viewMenu = new JMenu("View");
 
+        JRadioButtonMenuItem rescaleDisabledItem = new JRadioButtonMenuItem("No samples correction");
+        JRadioButtonMenuItem rescaleEnabledItem = new JRadioButtonMenuItem("Rescaling samples (n/a)");
+        JMenu rescaleMenu = buildEnableDisableSubmenu(
+                "Rescaling samples",
+                rescaleDisabledItem,
+                rescaleEnabledItem,
+                this::setRescaleWhenIncreasingBitDepth);
+        viewMenu.add(rescaleMenu);
+
         JRadioButtonMenuItem colorCorrectionDisabledItem = new JRadioButtonMenuItem("No color correction");
         JRadioButtonMenuItem colorCorrectionEnabledItem = new JRadioButtonMenuItem("Color correction (n/a)");
-        JMenu colorCorrectionMenu = enableDisableSubMenu(
-                "Color correction (not applicable)",
+        JMenu colorCorrectionMenu = buildEnableDisableSubmenu(
+                "Color correction",
                 colorCorrectionDisabledItem,
                 colorCorrectionEnabledItem,
                 this::setColorCorrection);
@@ -411,33 +420,36 @@ class JTiffViewerFrame extends JFrame {
             saveSelectionAsTiffItem.setEnabled(viewerPanel.hasNonEmptySelection());
             appendSelectionToTiffItem.setEnabled(viewerPanel.hasNonEmptySelection());
 
-            final boolean rescaleApplicable = map.isRescaleWhenIncreasingBitDepthApplicable();
-            final boolean rescale = map.isRescaleWhenIncreasingBitDepth();
-            final boolean colorCorrectionApplicable = map.isColorCorrectionApplicable();
-            final boolean colorCorrection = map.isColorCorrection();
-            String rawLabel = map.numberOfChannels() == 1 ?
-                    "No correction (grayscale, 0 is black)" :
-                    "No correction (unsupported color models will be displayed as RGB)";
-            String correctedLabel = map.numberOfChannels() == 1 ?
-                    "Corrected (grayscale, 0 is white)" :
-                    "Corrected (CMYK will be converted to RGB)";
-            colorCorrectionMenu.setText(colorCorrectionApplicable ?
-                    "Color correction" :
-                    "Color correction (not applicable)");
-            colorCorrectionDisabledItem.setText(rawLabel);
-            colorCorrectionDisabledItem.setEnabled(colorCorrectionApplicable);
-            colorCorrectionDisabledItem.setSelected(!colorCorrection);
-            colorCorrectionEnabledItem.setText(correctedLabel);
-            colorCorrectionEnabledItem.setEnabled(colorCorrectionApplicable);
-            colorCorrectionEnabledItem.setSelected(colorCorrection);
-            Color colorCorrectionForeground = colorCorrectionApplicable ?
-                    viewMenu.getForeground() :
-                    UIManager.getColor("MenuItem.disabledForeground");
-            if (colorCorrectionForeground != null) {
-                colorCorrectionMenu.setForeground(new Color(colorCorrectionForeground.getRGB()));
-                // - when possible, emulate the "disabled" menu state without actual disabling;
-                // may not work without explicit new Color(...)
-            }
+            final int rawBitDepth = map.tryEqualBitDepth().orElse(-1);
+            final int actualBitDepth = map.sampleType().bitsPerSample();
+            boolean rescaleApplicable = map.isRescaleWhenIncreasingBitDepthApplicable();
+            boolean rescale = map.isRescaleWhenIncreasingBitDepth();
+            updateEnableDisableSubmenu(rescaleMenu,
+                    rescaleApplicable,
+                    rescale,
+                    rescaleDisabledItem,
+                    rescaleEnabledItem,
+                    "Rescaling samples",
+                    "No rescaling (keep raw values)",
+                    rescaleApplicable ?
+                            "Rescaling " + precisionTitle(rawBitDepth) + " to " + precisionTitle(actualBitDepth) :
+                            "Rescaling non-standard depths to 8-, 16- or 32-bit (e.g. 12-bit to 16-bit)",
+                    viewMenu);
+            updateEnableDisableSubmenu(
+                    colorCorrectionMenu,
+                    map.isColorCorrectionApplicable(),
+                    map.isColorCorrection(),
+                    colorCorrectionDisabledItem,
+                    colorCorrectionEnabledItem,
+                    "Color correction",
+                    map.numberOfChannels() == 1 ?
+                            "No correction (grayscale, 0 is black)" :
+                            "No correction (unsupported color models will be displayed as RGB)",
+                    map.numberOfChannels() == 1 ?
+                            "Corrected (grayscale, 0 is white)" :
+                            "Corrected (CMYK will be converted to RGB)",
+                    viewMenu);
+
             for (UserPixelValueFormat format : UserPixelValueFormat.values()) {
                 JRadioButtonMenuItem menuItem = pixelFormatItems.get(format);
                 menuItem.setEnabled(format.isSuitable(map.sampleType()));
@@ -459,7 +471,7 @@ class JTiffViewerFrame extends JFrame {
         return menuBar;
     }
 
-    private JMenu enableDisableSubMenu(
+    private static JMenu buildEnableDisableSubmenu(
             String title,
             JRadioButtonMenuItem disabledItem,
             JRadioButtonMenuItem enabledItem,
@@ -475,6 +487,38 @@ class JTiffViewerFrame extends JFrame {
         colorCorrectionMenu.add(disabledItem);
         colorCorrectionMenu.add(enabledItem);
         return colorCorrectionMenu;
+    }
+
+    private static void updateEnableDisableSubmenu(
+            JMenu subMenu,
+            boolean applicable,
+            boolean enabled,
+            JRadioButtonMenuItem disabledItem,
+            JRadioButtonMenuItem enabledItem,
+            String menuTitle,
+            String disabledTitle,
+            String enabledTitle,
+            JMenu exampleMenu) {
+        subMenu.setText(menuTitle + (applicable ? "  " : " (not applicable)  "));
+        // - adding spaces to avoid Swing bug (probably https://bugs.openjdk.org/browse/JDK-8374506 )
+        disabledItem.setText(disabledTitle);
+        disabledItem.setEnabled(applicable);
+        disabledItem.setSelected(!enabled);
+        enabledItem.setText(enabledTitle);
+        enabledItem.setEnabled(applicable);
+        enabledItem.setSelected(enabled);
+        final Color colorCorrectionForeground = applicable ?
+                exampleMenu.getForeground() :
+                UIManager.getColor("MenuItem.disabledForeground");
+        if (colorCorrectionForeground != null) {
+            subMenu.setForeground(new Color(colorCorrectionForeground.getRGB()));
+            // - when possible, emulate the "disabled" menu state without actual disabling;
+            // may not work without explicit new Color(...)
+        }
+    }
+
+    private static String precisionTitle(int bitDepth) {
+        return bitDepth == -1 ? "" : "%d-bit samples (0..%d)".formatted(bitDepth, (1L << bitDepth) - 1);
     }
 
     private void addZoomItem(JMenu menu, ButtonGroup group, String title, double zoomValue) {
@@ -513,6 +557,15 @@ class JTiffViewerFrame extends JFrame {
             final long toX = ((long) selection.x + (long) selection.width + tileX - 1) / tileX * tileX;
             final long toY = ((long) selection.y + (long) selection.height + tileY - 1) / tileY * tileY;
             viewerPanel.setImageSelection(fromX, fromY, toX, toY);
+        }
+    }
+
+    private void setRescaleWhenIncreasingBitDepth(boolean rescaleWhenIncreasingBitDepth) {
+        try {
+            viewer.setRescaleWhenIncreasingBitDepth(rescaleWhenIncreasingBitDepth);
+            viewerPanel.repaint();
+        } catch (IOException ex) {
+            showErrorMessage(ex, "Error reloading image");
         }
     }
 

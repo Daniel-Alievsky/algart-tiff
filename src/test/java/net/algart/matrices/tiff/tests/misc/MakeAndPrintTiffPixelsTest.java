@@ -33,6 +33,7 @@ import net.algart.matrices.tiff.tiles.TiffWriteMap;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Locale;
 
 public class MakeAndPrintTiffPixelsTest {
     public static void main(String[] args) throws IOException {
@@ -59,7 +60,9 @@ public class MakeAndPrintTiffPixelsTest {
         System.out.println();
         final int depth = sampleType.bitsPerSample();
         var formatter = sampleType.newFormatter();
-        formatter.setSeparator(",");
+        formatter.setSeparator(";");
+        formatter.setLocale(Locale.getDefault(Locale.Category.FORMAT));
+        System.out.printf("Default locale: %s%n", formatter.getLocale());
         formatter.setDecimalIntegerFormat(depth == 32 ? null : depth == 16 ? "%5d" : "%4d");
         formatter.setMaxArrayLength(100);
         formatter.setMaxStringLength(1000);

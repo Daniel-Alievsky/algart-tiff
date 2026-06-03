@@ -122,6 +122,8 @@ public non-sealed class TiffReader extends TiffIO {
         }
     }
 
+    public static final boolean DEFAULT_RESCALE_WHEN_INCREASING_BIT_DEPTH = true;
+    public static final boolean DEFAULT_COLOR_CORRECTION = false;
     public static final long DEFAULT_MAX_CACHING_MEMORY = Math.max(0,
             net.algart.arrays.Arrays.SystemSettings.getLongProperty(
                     "net.algart.matrices.tiff.defaultMaxCachingMemory", 256 * 1048576L));
@@ -148,8 +150,8 @@ public non-sealed class TiffReader extends TiffIO {
     private volatile long maxCacheMemory = DEFAULT_MAX_CACHING_MEMORY;
     private UnpackBits autoUnpackBits = UnpackBits.NONE;
     private UnusualPrecisions unusualPrecisions = UnusualPrecisions.UNPACK;
-    private boolean rescaleWhenIncreasingBitDepth = true;
-    private boolean colorCorrection = false;
+    private boolean rescaleWhenIncreasingBitDepth = DEFAULT_RESCALE_WHEN_INCREASING_BIT_DEPTH;
+    private boolean colorCorrection = DEFAULT_COLOR_CORRECTION;
     private boolean removeExtraChannelsIf5OrMoreForBufferedImage = false;
     private TiffCodec.Customizer codecCustomizer = null;
     private boolean enforceUseExternalCodec = false;
