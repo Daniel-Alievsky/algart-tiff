@@ -1363,7 +1363,10 @@ public final class TiffIFD {
                 }
             }
         }
-        assert result == null || result.bitsPerSample() >= alignedBitDepth;
+        if (result != null) {
+            assert result.bitsPerSample() >= alignedBitDepth;
+            assert TiffSampleType.isBitsPerSampleSupported(result.bitsPerSample());
+        }
         return result;
     }
 
@@ -1984,7 +1987,7 @@ public final class TiffIFD {
         final TagCompression compression = optCompressionOrNone();
         return compression.isStandard() &&
                 !compression.isJpegOrOldJpeg() &&
-                optPhotometricCode(-1) == TiffIFD.PHOTOMETRIC_INTERPRETATION_Y_CB_CR;
+                isYCbCr();
     }
 
     public boolean isLowLevelBitsProcessing() {
@@ -1997,6 +2000,10 @@ public final class TiffIFD {
 
     public boolean isLowLevelInvertedBrightness() {
         return optCompressionOrNone().isLowLevelInvertedBrightness(optPhotometricCode(-1));
+    }
+
+    public boolean isYCbCr() {
+        return optPhotometricCode(-1) == TiffIFD.PHOTOMETRIC_INTERPRETATION_Y_CB_CR;
     }
 
     public boolean isReducedImage() {
@@ -2608,7 +2615,7 @@ public final class TiffIFD {
      * @param tag   the tag identifier (typically from {@link Tags}).
      * @param value the tag value.
      * @throws IllegalStateException if this IFD is {@link #freeze() frozen}.
-     * @throws NullPointerException if the {@code value} is {@code null}.
+     * @throws NullPointerException  if the {@code value} is {@code null}.
      * @see TagValue
      */
     public void put(int tag, Object value) {

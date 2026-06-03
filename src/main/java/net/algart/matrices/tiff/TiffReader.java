@@ -610,6 +610,26 @@ public non-sealed class TiffReader extends TiffIO {
         return this;
     }
 
+    public static boolean isRescaleWhenIncreasingBitDepthApplicable(TiffIFD ifd) {
+        Objects.requireNonNull(ifd, "Null IFD");
+        // The following checks must match the implementation in the TiffUnpacking class
+        if (!ifd.isLowLevelBitsProcessing()) {
+            return false;
+        }
+        try {
+            final int bits = ifd.tryEqualBitDepthAlignedByBytes().orElse(-1);
+            if (!TiffSampleType.isBitsPerSampleSupported(bits)) {
+                // - including 1 bit/pixel (-1: it is not "aligned by bytes")
+                return false;
+            }
+        } catch (TiffException e) {
+            // - very improbable, but if it occurs, the best result is false
+            return false;
+        }
+        //TODO!!
+        return true;
+    }
+
     public boolean isColorCorrection() {
         return colorCorrection;
     }
@@ -663,6 +683,26 @@ public non-sealed class TiffReader extends TiffIO {
         // for professional-grade color visualization in these spaces.
         this.colorCorrection = colorCorrection;
         return this;
+    }
+
+    /**
+     * Returns <code>true</code> if the combination of compression and
+     * photometric interpretation specified in the IFD allows color correction.
+     * In the current version, it is equivalent to:
+     * <pre>
+     * ifd.{@link TiffIFD#isLowLevelInvertedBrightness() isLowLevelInvertedBrightness()}
+     * </pre>
+     *
+     * <p>If this method returns <code>false</code>, the {@link #setColorCorrection(boolean)}
+     * flag will have no effect while reading from this map.</p>
+     *
+     * @return <code>true</code> if color correction is applicable to the TIFF image.
+     * @see TiffMap#isColorCorrectionApplicable()
+     */
+    public static boolean isColorCorrectionApplicable(TiffIFD ifd) {
+        Objects.requireNonNull(ifd, "Null IFD");
+        // The following checks must match the implementation in the TiffUnpacking class
+        return ifd.isLowLevelInvertedBrightness();
     }
 
     public boolean isRemoveExtraChannelsIf5OrMoreForBufferedImage() {

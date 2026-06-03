@@ -26,10 +26,8 @@ package net.algart.matrices.tiff.data;
 
 import net.algart.arrays.JArrays;
 import net.algart.arrays.PackedBitArraysPer8;
+import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.tags.*;
-import net.algart.matrices.tiff.TiffException;
-import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 
@@ -58,6 +56,10 @@ public class TiffUnpacking {
         final AtomicBoolean lowLevelFormat = new AtomicBoolean();
         if (!isSimpleRearrangingBytesEnough(ifd, lowLevelFormat)) {
             return false;
+        }
+        if (TiffReader.isRescaleWhenIncreasingBitDepthApplicable(ifd)) {
+            // - but if !isSimpleRearrangingBytesEnough, rescaling may still not be applicable (YCbCr, CMYK)
+//            throw new AssertionError("Invalid isRescaleWhenIncreasingBitDepthApplicable: must be false");
         }
         if (!OPTIMIZE_SEPARATING_WHOLE_BYTES && tile.isInterleaved()) {
             // - actually never happens: OPTIMIZE_SEPARATING_WHOLE_BYTES=true
@@ -168,8 +170,7 @@ public class TiffUnpacking {
         final double crScale = crShiftedWhite == crShiftedBlack ? 1.0 : 127.0 / (crShiftedWhite - crShiftedBlack);
         // - avoiding 0.0/0.0
         final int[] subsamplingLog = ifd.getYCbCrSubsamplingLogarithms();
-        final TagValue.Rational[] coefficients = ifd.getValue(
-                Tags.Y_CB_CR_COEFFICIENTS, TagValue.Rational[].class)
+        final TagValue.Rational[] coefficients = ifd.getValue(Tags.Y_CB_CR_COEFFICIENTS, TagValue.Rational[].class)
                 .orElse(new TagValue.Rational[0]);
         if (coefficients.length >= 3) {
             lumaRed = coefficients[0].doubleValue();
@@ -322,8 +323,7 @@ public class TiffUnpacking {
 
     private static boolean isSimpleRearrangingBytesEnough(TiffIFD ifd, AtomicBoolean lowLevelFormat)
             throws TiffException {
-        final TagCompression compression = ifd.optCompression().orElse(TagCompression.NONE);
-        final boolean lowLevel = compression.isLowLevelBitsProcessing();
+        final boolean lowLevel = ifd.isLowLevelBitsProcessing();
         if (lowLevelFormat != null) {
             lowLevelFormat.set(lowLevel);
         }
@@ -332,16 +332,17 @@ public class TiffUnpacking {
             // bits unpacking or color corrections (including inverting brightness) themselves
             return true;
         }
-        int bits = ifd.tryEqualBitDepthAlignedByBytes().orElse(-1);
+        final int bits = ifd.tryEqualBitDepthAlignedByBytes().orElse(-1);
         if (bits == -1) {
+            // - including 1 bit/pixel (it is not "aligned by bytes")
             return false;
         }
-        if (bits != 8 && bits != 16 && bits != 24 && bits != 32 && bits != 64) {
+        if (bits == 1 || !TiffSampleType.isBitsPerSampleSupported(bits)) {
             // - should not occur: the same check is performed in TiffIFD.sampleType(), called while creating TiffMap
             throw new UnsupportedTiffFormatException("Not supported TIFF format: compression \"" +
                     ifd.compressionPrettyName() + "\", " + bits + " bits per every sample");
         }
-        if (ifd.optPhotometricCode(-1) == TiffIFD.PHOTOMETRIC_INTERPRETATION_Y_CB_CR) {
+        if (ifd.isYCbCr()) {
             // - convertYCbCrToRGB function performs necessary repacking itself
             return false;
         }
@@ -551,6 +552,11 @@ public class TiffUnpacking {
                     samplesPerPixel + " samples/pixel is greater than the length of BitsPerSample tag; " +
                     "it is possible only for OLD_JPEG, that was already checked)");
         // - but samplesPerPixel can be =1 for planar-separated tiles
+
+        if (TiffReader.isRescaleWhenIncreasingBitDepthApplicable(ifd) != invertValues) {
+//            throw new AssertionError("Invalid isRescaleWhenIncreasingBitDepthApplicable: " +
+//                    TiffReader.isRescaleWhenIncreasingBitDepthApplicable(ifd) + " instead of " + invertValues);
+        }
 
         final ByteOrder byteOrder = ifd.getByteOrder();
         final long[] multipliers = new long[bitsPerSample.length];

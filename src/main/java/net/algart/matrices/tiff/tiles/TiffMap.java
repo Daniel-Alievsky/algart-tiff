@@ -234,7 +234,7 @@ public sealed class TiffMap permits TiffIOMap {
         this.photometricCode = ifd.getPhotometricCode();
         this.photometric = ifd.optPhotometric();
         this.yCbCrSubsampling = ifd.getYCbCrSubsampling();
-        this.colorCorrectionApplicable = ifd.isLowLevelInvertedBrightness();
+        this.colorCorrectionApplicable = TiffReader.isColorCorrectionApplicable(ifd);
         if (hasImageDimensions) {
             setDimensions(ifd.getImageDimX(), ifd.getImageDimY(), false);
         }
@@ -462,19 +462,11 @@ public sealed class TiffMap permits TiffIOMap {
     }
 
     /**
-     * Returns <code>true</code> if the current map's combination of compression and
-     * photometric interpretation allows for color correction.
-     * In the current version, it is equivalent to:
-     * <pre>
-     * {@link #ifd()}.{@link TiffIFD#isLowLevelInvertedBrightness() isLowLevelInvertedBrightness()}
-     * </pre>
-     *
-     * <p>If this method returns <code>false</code>, the {@link TiffReader#setColorCorrection(boolean)}
-     * flag will have no effect while reading from this map.</p>
+     * Returns <code>{@link TiffReader#isColorCorrectionApplicable(TiffIFD)
+     * TiffReader.isColorCorrectionApplicable}({@link #ifd()})</code>.
      *
      * @return <code>true</code> if color correction is applicable to this TIFF image.
      * @see TiffReader#setColorCorrection(boolean)
-     *
      */
     public boolean isColorCorrectionApplicable() {
         return colorCorrectionApplicable;

@@ -473,4 +473,9 @@ public enum TiffSampleType {
                 Matrices.matrix(array, numberOfChannels, sizeX, sizeY) :
                 Matrices.matrix(array, sizeX, sizeY, numberOfChannels);
     }
+
+    public static boolean isBitsPerSampleSupported(int bitsPerSample) {
+        return bitsPerSample == 1 || bitsPerSample == 8 || bitsPerSample == 16 ||
+                bitsPerSample == 32 || bitsPerSample == 64;
+    }
 }
