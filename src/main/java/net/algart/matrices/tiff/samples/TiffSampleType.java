@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff;
+package net.algart.matrices.tiff.samples;
 
 import net.algart.arrays.*;
 
@@ -395,29 +395,6 @@ public enum TiffSampleType {
         return new Formatter();
     }
 
-    public static byte[] bytes(PArray array, ByteOrder byteOrder) {
-        Objects.requireNonNull(array, "Null array");
-        Objects.requireNonNull(byteOrder, "Null byteOrder");
-        final Object javaArray = array instanceof BitArray bitArray ? bitArray.jaBit() : array.ja();
-        return bytes(javaArray, array.length(), byteOrder);
-    }
-
-    public static byte[] bytes(Object javaArray, long numberOfElements, ByteOrder byteOrder) {
-        Objects.requireNonNull(javaArray, "Null javaArray");
-        Objects.requireNonNull(byteOrder, "Null byteOrder");
-        return switch (javaArray) {
-            case byte[] a -> {
-                if (numberOfElements > a.length) {
-                    throw new IllegalArgumentException("Too short array: " + a.length + "<" + numberOfElements);
-                }
-                yield a;
-            }
-            case boolean[] a -> PackedBitArraysPer8.packBits(a, 0, numberOfElements);
-            case long[] a -> PackedBitArraysPer8.toByteArray(a, numberOfElements);
-            default -> JArrays.arrayToBytes(javaArray, numberOfElements, byteOrder);
-        };
-    }
-
     public static TiffSampleType ofJavaArray(Object javaArray, boolean signedIntegers) {
         Objects.requireNonNull(javaArray, "Null Java array");
         Class<?> elementType = javaArray.getClass().getComponentType();
@@ -453,39 +430,5 @@ public enum TiffSampleType {
         } else {
             throw new IllegalArgumentException("Element type " + elementType + " is not a supported TIFF sample type");
         }
-    }
-
-    public static Matrix<UpdatablePArray> asMatrix(
-            Object javaArray,
-            int sizeX,
-            int sizeY,
-            int numberOfChannels,
-            boolean interleavedSamples) {
-        ofJavaArray(javaArray, false);
-        // - checks that javaArray is an array of supported primitive types
-        if (sizeX < 0 || sizeY < 0) {
-            throw new IllegalArgumentException("Negative sizeX = " + sizeX + " or sizeY = " + sizeY);
-        }
-        if (numberOfChannels <= 0) {
-            throw new IllegalArgumentException("Zero or negative numberOfChannels = " + numberOfChannels);
-        }
-        if (javaArray instanceof boolean[]) {
-            throw new IllegalArgumentException("boolean[] array cannot be converted to AlgART matrix; " +
-                    "binary matrix should be packed into long[] array");
-        }
-        final UpdatablePArray array = javaArray instanceof long[] packedBitArray ?
-                // long[] type in this library is reserved for packed bits (TIFF does not support 64-bit precision)
-                BitArray.as(packedBitArray, (long) sizeX * (long) sizeY * (long) numberOfChannels) :
-                // - but actually numberOfChannels > 1 is not supported by this library for binary matrices;
-                // overflow (very improbable) will be well checked in the following operator
-                PArray.as(javaArray);
-        return interleavedSamples ?
-                Matrices.matrix(array, numberOfChannels, sizeX, sizeY) :
-                Matrices.matrix(array, sizeX, sizeY, numberOfChannels);
-    }
-
-    public static boolean isBitsPerSampleSupported(int bitsPerSample) {
-        return bitsPerSample == 1 || bitsPerSample == 8 || bitsPerSample == 16 ||
-                bitsPerSample == 32 || bitsPerSample == 64;
     }
 }

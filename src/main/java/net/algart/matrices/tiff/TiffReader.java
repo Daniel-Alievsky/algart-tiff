@@ -32,6 +32,7 @@ import net.algart.matrices.tiff.bits.TiffPrediction;
 import net.algart.matrices.tiff.bits.TiffUnpacking;
 import net.algart.matrices.tiff.bits.TiffUnusualPrecisions;
 import net.algart.matrices.tiff.io.ReadBufferDataHandle;
+import net.algart.matrices.tiff.samples.TiffSampleType;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagPhotometric;
 import net.algart.matrices.tiff.tags.Tags;

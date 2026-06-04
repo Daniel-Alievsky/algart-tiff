@@ -26,6 +26,8 @@ package net.algart.matrices.tiff;
 
 import net.algart.arrays.*;
 import net.algart.io.awt.ImageToMatrix;
+import net.algart.matrices.tiff.samples.TiffSampleType;
+import net.algart.matrices.tiff.samples.TiffSamples;
 import net.algart.matrices.tiff.tags.*;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
@@ -1861,7 +1863,7 @@ public final class TiffIFD {
 
     public boolean isBitsPerSampleDirectlySupported() throws TiffException {
         final int bitDepth = tryEqualBitDepth().orElse(-1);
-        return TiffSampleType.isBitsPerSampleSupported(bitDepth);
+        return TiffSamples.isBitsPerSampleSupported(bitDepth);
         // - including 1 bit/pixel
     }
 
@@ -1988,7 +1990,7 @@ public final class TiffIFD {
         }
         if (result != null) {
             assert result.bitsPerSample() >= alignedBitDepth;
-            assert TiffSampleType.isBitsPerSampleSupported(result.bitsPerSample());
+            assert TiffSamples.isBitsPerSampleSupported(result.bitsPerSample());
         }
         return result;
     }
@@ -3558,7 +3560,7 @@ public final class TiffIFD {
         // - see alignedBitDepth()
         // Note: while writing, bits == 1 is possible also for more than 1 channel,
         // which is recognized as non-binary UINT8
-        return binary || TiffSampleType.isBitsPerSampleSupported(bits);
+        return binary || TiffSamples.isBitsPerSampleSupported(bits);
     }
 
     private static int truncatedIntValue(Number value) {

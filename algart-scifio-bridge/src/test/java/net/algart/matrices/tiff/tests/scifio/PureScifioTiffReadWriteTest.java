@@ -31,8 +31,8 @@ import io.scif.formats.tiff.IFDList;
 import io.scif.formats.tiff.TiffParser;
 import io.scif.formats.tiff.TiffSaver;
 import io.scif.util.FormatTools;
+import net.algart.matrices.tiff.samples.TiffSamples;
 import net.algart.matrices.tiff.tags.Tags;
-import net.algart.matrices.tiff.tiles.TiffMap;
 import org.scijava.Context;
 import org.scijava.io.location.FileLocation;
 
@@ -78,7 +78,7 @@ public class PureScifioTiffReadWriteTest {
                         * numberOfChannels * FormatTools.getBytesPerPixel(ifd.getPixelType())];
                 bytes = parser.getSamples(ifd, bytes, 0, 0, w, h);
 //                bytes = TiffTools.unpackUnusualPrecisions(bytes, ifd, numberOfChannels, w * h);
-                bytes = TiffMap.toInterleavedBytes(
+                bytes = TiffSamples.toInterleavedBytes(
                         bytes, numberOfChannels, FormatTools.getBytesPerPixel(ifd.getPixelType()),
                         (long) w * (long) h);
                 boolean last = ifdIndex == ifdList.size() - 1;

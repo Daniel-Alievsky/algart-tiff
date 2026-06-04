@@ -24,11 +24,10 @@
 
 package net.algart.matrices.tiff.tiles;
 
-import net.algart.arrays.Matrices;
-import net.algart.arrays.Matrix;
 import net.algart.arrays.TooLargeArrayException;
-import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.*;
+import net.algart.matrices.tiff.samples.TiffSampleType;
+import net.algart.matrices.tiff.samples.TiffSamples;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagDescription;
 import net.algart.matrices.tiff.tags.TagPhotometric;
@@ -909,81 +908,7 @@ public sealed class TiffMap permits TiffIOMap {
         return result;
     }
 
-    public static byte[] toInterleavedBytes(
-            byte[] bytes,
-            int numberOfChannels,
-            int bytesPerSample,
-            long numberOfPixels) {
-        Objects.requireNonNull(bytes, "Null bytes");
-        final int size = checkSizes(numberOfChannels, bytesPerSample, numberOfPixels);
-        // - exception usually should not occur: this function is typically called after analyzing IFD
-        if (bytes.length < size) {
-            throw new IllegalArgumentException("Too short samples array: " + bytes.length + " < " + size);
-        }
-        if (numberOfChannels == 1) {
-            return bytes;
-        }
-        final int bandSize = bytesPerSample * (int) numberOfPixels;
-        final byte[] interleavedBytes = new byte[size];
-        if (bytesPerSample == 1) {
-            Matrix<UpdatablePArray> mI = Matrix.as(interleavedBytes, numberOfChannels, numberOfPixels);
-            Matrix<UpdatablePArray> mS = Matrix.as(bytes, numberOfPixels, numberOfChannels);
-            Matrices.interleave(null, mI, mS.asLayers());
-//            if (numberOfChannels == 3) {
-//                quickInterleave3(interleavedBytes, bytes, bandSize);
-//            } else {
-//                for (int i = 0, disp = 0; i < bandSize; i++) {
-//                    for (int bandDisp = i, j = 0; j < numberOfChannels; j++, bandDisp += bandSize) {
-            // note: we must check j, not bandDisp, because "bandDisp += bandSize" can lead to overflow
-//                        interleavedBytes[disp++] = bytes[bandDisp];
-//                    }
-//                }
-//            }
-        } else {
-            for (int i = 0, disp = 0; i < bandSize; i += bytesPerSample) {
-                for (int bandDisp = i, j = 0; j < numberOfChannels; j++, bandDisp += bandSize) {
-                    for (int k = 0; k < bytesPerSample; k++) {
-                        interleavedBytes[disp++] = bytes[bandDisp + k];
-                    }
-                }
-            }
-        }
-        return interleavedBytes;
-    }
-
-    public static byte[] toSeparatedBytes(
-            byte[] bytes,
-            int numberOfChannels,
-            int bytesPerSample,
-            long numberOfPixels) {
-        Objects.requireNonNull(bytes, "Null bytes");
-        final int size = checkSizes(numberOfChannels, bytesPerSample, numberOfPixels);
-        // - exception usually should not occur: this function is typically called after analyzing IFD
-        if (bytes.length < size) {
-            throw new IllegalArgumentException("Too short samples array: " + bytes.length + " < " + size);
-        }
-        if (numberOfChannels == 1) {
-            return bytes;
-        }
-        final int bandSize = bytesPerSample * (int) numberOfPixels;
-        final byte[] separatedBytes = new byte[size];
-        if (bytesPerSample == 1) {
-            final Matrix<UpdatablePArray> mI = Matrix.as(bytes, numberOfChannels, numberOfPixels);
-            final Matrix<UpdatablePArray> mS = Matrix.as(separatedBytes, numberOfPixels, numberOfChannels);
-            Matrices.separate(null, mS.asLayers(), mI);
-        } else {
-            for (int i = 0, disp = 0; i < bandSize; i += bytesPerSample) {
-                for (int bandDisp = i, j = 0; j < numberOfChannels; j++, bandDisp += bandSize) {
-                    for (int k = 0; k < bytesPerSample; k++) {
-                        separatedBytes[bandDisp + k] = bytes[disp++];
-                    }
-                }
-            }
-        }
-        return separatedBytes;
-    }
-
-    byte[] toInterleaveOrSeparatedSamples(
+    private byte[] toInterleaveOrSeparatedSamples(
             byte[] samples,
             int numberOfChannels,
             long numberOfPixels,
@@ -1001,29 +926,12 @@ public sealed class TiffMap permits TiffIOMap {
         final int bytesPerSample = alignedBitDepth >>> 3;
         assert alignedBitDepth == bytesPerSample * 8 : "unaligned bitsPerSample impossible for whole bytes";
         return interleave ?
-                toInterleavedBytes(samples, numberOfChannels, bytesPerSample, numberOfPixels) :
-                toSeparatedBytes(samples, numberOfChannels, bytesPerSample, numberOfPixels);
+                TiffSamples.toInterleavedBytes(samples, numberOfChannels, bytesPerSample, numberOfPixels) :
+                TiffSamples.toSeparatedBytes(samples, numberOfChannels, bytesPerSample, numberOfPixels);
     }
 
     String mapKindName() {
         return "map";
-    }
-
-    private static int checkSizes(int numberOfChannels, int bytesPerSample, long numberOfPixels) {
-        TiffIFD.checkNumberOfChannels(numberOfChannels);
-        TiffIFD.checkBitsPerSample(8L * (long) bytesPerSample);
-        // - so, numberOfChannels * bytesPerSample is a not-too-large value
-        if (numberOfPixels < 0) {
-            throw new IllegalArgumentException("Negative numberOfPixels = " + numberOfPixels);
-        }
-        long size;
-        if (numberOfPixels > Integer.MAX_VALUE ||
-                (size = numberOfPixels * (long) numberOfChannels * (long) bytesPerSample) > Integer.MAX_VALUE) {
-            throw new TooLargeArrayException("Too large number of pixels " + numberOfPixels +
-                    " (" + numberOfChannels + " samples/pixel, " +
-                    bytesPerSample + " bytes/sample): it requires > 2 GB to store");
-        }
-        return (int) size;
     }
 
     private void setDimensions(long dimX, long dimY, boolean checkResizable) {

@@ -29,6 +29,7 @@ import net.algart.arrays.Arrays;
 import net.algart.io.awt.ImageToMatrix;
 import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
+import net.algart.matrices.tiff.samples.TiffSamples;
 import net.algart.matrices.tiff.tags.Tags;
 
 import java.awt.*;
@@ -376,7 +377,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                     sizeX + "x" + sizeY + "x" + numberOfChannels() + " exceed the limit " +
                     maxNumberOfSamplesInArray());
         }
-        final byte[] samples = TiffSampleType.bytes(samplesArray, numberOfSamples, byteOrder());
+        final byte[] samples = TiffSamples.toBytes(samplesArray, numberOfSamples, byteOrder());
         return updateSampleBytes(samples, fromX, fromY, sizeX, sizeY);
     }
 
@@ -416,7 +417,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                     + " (number of elements " + array.length() + " exceed the limit " +
                     maxNumberOfSamplesInArray() + ")");
         }
-        final byte[] samples = TiffSampleType.bytes(array, byteOrder());
+        final byte[] samples = TiffSamples.toBytes(array, byteOrder());
         return updateSampleBytes(samples, fromX, fromY, sizeX, sizeY);
     }
 

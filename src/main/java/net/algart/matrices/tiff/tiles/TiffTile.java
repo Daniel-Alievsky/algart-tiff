@@ -28,6 +28,8 @@ import net.algart.arrays.*;
 import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.bits.TiffUnusualPrecisions;
+import net.algart.matrices.tiff.samples.TiffSampleType;
+import net.algart.matrices.tiff.samples.TiffSamples;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagPhotometric;
 
@@ -725,7 +727,7 @@ public final class TiffTile {
                     ", but the specified TIFF tile stores " + elementType() + " elements");
         }
         final int length = Array.getLength(samplesArray);
-        final byte[] samples = TiffSampleType.bytes(samplesArray, length, byteOrder());
+        final byte[] samples = TiffSamples.toBytes(samplesArray, length, byteOrder());
         return setDecodedData(samples);
     }
 
@@ -734,7 +736,7 @@ public final class TiffTile {
     }
 
     public Matrix<UpdatablePArray> getUnpackedMatrix(boolean rescaleWhenIncreasingBitDepth) {
-        return TiffSampleType.asMatrix(
+        return TiffSamples.asMatrix(
                 getUnpackedJavaArray(rescaleWhenIncreasingBitDepth),
                 sizeX, sizeY, samplesPerPixel, interleaved);
     }

@@ -28,6 +28,7 @@ import net.algart.arrays.*;
 import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.bits.TiffPacking;
 import net.algart.matrices.tiff.bits.TiffPrediction;
+import net.algart.matrices.tiff.samples.TiffSampleType;
 import net.algart.matrices.tiff.tags.*;
 import net.algart.matrices.tiff.tiles.*;
 import org.scijava.io.handle.BytesHandle;

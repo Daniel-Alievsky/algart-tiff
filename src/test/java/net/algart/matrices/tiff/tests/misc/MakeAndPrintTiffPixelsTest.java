@@ -26,7 +26,7 @@ package net.algart.matrices.tiff.tests.misc;
 
 import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.TiffSampleType;
+import net.algart.matrices.tiff.samples.TiffSampleType;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
 

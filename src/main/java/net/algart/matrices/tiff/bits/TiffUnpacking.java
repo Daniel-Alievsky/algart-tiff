@@ -27,6 +27,7 @@ package net.algart.matrices.tiff.bits;
 import net.algart.arrays.JArrays;
 import net.algart.arrays.PackedBitArraysPer8;
 import net.algart.matrices.tiff.*;
+import net.algart.matrices.tiff.samples.TiffSamples;
 import net.algart.matrices.tiff.tags.*;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
@@ -339,7 +340,7 @@ public class TiffUnpacking {
             return false;
         }
         assert bitDepth != 1;
-        if (bitDepth != 24 && !TiffSampleType.isBitsPerSampleSupported(bitDepth)) {
+        if (bitDepth != 24 && !TiffSamples.isBitsPerSampleSupported(bitDepth)) {
             // - should not occur: the same check is performed in TiffIFD.sampleType(), called while creating TiffMap
             throw new UnsupportedTiffFormatException("Not supported TIFF format: compression \"" +
                     ifd.compressionPrettyName() + "\", " + bitDepth + " bits per every sample");

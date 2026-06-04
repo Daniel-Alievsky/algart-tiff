@@ -27,7 +27,7 @@ package net.algart.matrices.tiff.app.explorer;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.TiffSampleType;
+import net.algart.matrices.tiff.samples.TiffSampleType;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.TiffMap;

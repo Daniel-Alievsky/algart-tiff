@@ -35,6 +35,8 @@ import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.codecs.JPEG2000Codec;
 import net.algart.matrices.tiff.compatibility.TiffParser;
 import net.algart.matrices.tiff.compatibility.TiffSaver;
+import net.algart.matrices.tiff.samples.TiffSampleType;
+import net.algart.matrices.tiff.samples.TiffSamples;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagPredictor;
 import net.algart.matrices.tiff.tags.Tags;
@@ -404,7 +406,7 @@ public class TiffWriterTest {
                         samplesArray = map.toInterleavedSamples(
                                 (byte[]) samplesArray, map.numberOfChannels(), (long) w * (long) h);
                     }
-                    Matrix<UpdatablePArray> matrix = TiffSampleType.asMatrix(
+                    Matrix<UpdatablePArray> matrix = TiffSamples.asMatrix(
                             samplesArray, w, h, map.numberOfChannels(), interleaved);
                     if (writer instanceof TiffSaver tiffSaver && samplesArray instanceof byte[] bytes) {
                         System.out.println("Writing by TiffSaver.writeImage...");

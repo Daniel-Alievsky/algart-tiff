@@ -27,6 +27,7 @@ package net.algart.matrices.tiff.tiles;
 import net.algart.arrays.*;
 import net.algart.io.awt.MatrixToImage;
 import net.algart.matrices.tiff.*;
+import net.algart.matrices.tiff.samples.TiffSamples;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -318,7 +319,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             TileSupplier tileSupplier)
             throws IOException {
         final Object samplesArray = readJavaArray(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
-        return TiffSampleType.asMatrix(samplesArray, sizeX, sizeY, numberOfChannels(), false);
+        return TiffSamples.asMatrix(samplesArray, sizeX, sizeY, numberOfChannels(), false);
     }
 
     public Matrix<UpdatablePArray> readInterleavedMatrix(

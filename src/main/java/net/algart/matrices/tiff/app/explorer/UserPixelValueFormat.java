@@ -24,7 +24,7 @@
 
 package net.algart.matrices.tiff.app.explorer;
 
-import net.algart.matrices.tiff.TiffSampleType;
+import net.algart.matrices.tiff.samples.TiffSampleType;
 
 enum UserPixelValueFormat {
     NONE,
