@@ -363,6 +363,7 @@ class JTiffViewerFrame extends JFrame {
         viewMenu.add(rescaleMenu);
 
         JMenuItem setRescaleFactorItem = new JMenuItem("Rescale with factor...");
+        setRescaleFactorItem.setMnemonic(KeyEvent.VK_R);
         setRescaleFactorItem.addActionListener(e -> {
             TinySwing.doLongOperation(this, () -> {
                 try {

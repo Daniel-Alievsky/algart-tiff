@@ -255,7 +255,6 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
                 // Mask the AIOOBE as an IOException
                 throw new IOException("Malformed CCITT stream", e);
             } catch (EOFException e) {
-                // TODO: Rewrite to avoid throw/catch for normal flow...
                 if (decodedLength != 0) {
                     throw e;
                 }
