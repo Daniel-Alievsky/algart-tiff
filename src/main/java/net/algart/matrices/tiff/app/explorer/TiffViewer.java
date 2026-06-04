@@ -433,16 +433,18 @@ class TiffViewer {
 
         final double contrastRescaleFactor = maxVisibleValue == 0.0 ? 1.0 : maxPossibleValue / maxVisibleValue;
         mainPanel.add(TinySwing.leftLabel(TinySwing.smartHtmlLines(String.format(Locale.US, """
-            Specify the rescale factor: a multiplier for pixel sample values before visualization.<br>
-            &nbsp;<br>
-            This is useful to contrast low-intensity images, for example, for grayscale matrices<br>
-            of 32-bit integers containing indexes of particles, recognized while image analysis,<br>
-            or for floating-point matrices containing gradients or boundaries.<br>
-            &nbsp;<br>
-            For the current visible area, the maximum contrast can be obtained with the factor<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;%.3f = %.1f / %.1f<br>
-            (maximal possible value / maximum in visible area).
-            """, contrastRescaleFactor, maxPossibleValue, maxVisibleValue))));
+                Specify the rescale factor: a multiplier for pixel sample values before visualization.<br>
+                &nbsp;<br>
+                This is useful to contrast low-intensity images. For example, for grayscale matrices<br>
+                of 32-bit integers containing object labels or particle indexes recognized during image analysis,<br>
+                or for floating-point matrices containing gradients or boundaries.<br>
+                &nbsp;<br>
+                For the current visible area, the maximal contrast can be obtained with the factor:<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<b>%.3f</b> = %.1f / %.1f<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;(maximal possible value / maximum in the visible area).<br>
+                &nbsp;<br>
+                You may automatically select this auto contrast value via the "Contrast" button below.
+                """, contrastRescaleFactor, maxPossibleValue, maxVisibleValue))));
         mainPanel.add(Box.createVerticalStrut(15));
 
         final JPanel settingsPanel = new JPanel();
@@ -460,7 +462,7 @@ class TiffViewer {
 
         final JButton recommendedButton = new JButton("Contrast");
         recommendedButton.setToolTipText("Set rescale factor to " +
-                contrastRescaleFactor + " = " + maxPossibleValue + " / " +  maxVisibleValue);
+                contrastRescaleFactor + " = " + maxPossibleValue + " / " + maxVisibleValue);
         recommendedButton.addActionListener(e -> factorField.setText(
                 String.valueOf(contrastRescaleFactor)));
         rowPanel.add(recommendedButton);
