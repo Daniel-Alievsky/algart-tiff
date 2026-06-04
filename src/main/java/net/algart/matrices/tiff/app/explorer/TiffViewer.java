@@ -28,6 +28,7 @@ import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.samples.TiffSampleType;
+import net.algart.matrices.tiff.samples.TiffSamples;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 import javax.swing.*;
@@ -35,6 +36,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Locale;
 import java.util.Objects;
 
 class TiffViewer {
@@ -56,6 +58,9 @@ class TiffViewer {
     private final int ifdIndex;
 
     private UserPixelValueFormat pixelValueFormat = UserPixelValueFormat.NONE;
+    private double maxPossibleValue = 1.0;
+    private double maxVisibleValue = 0.0;
+    private double rescaleFactor = 1.0;
 
     private TiffReadMap map = null;
 
@@ -115,6 +120,15 @@ class TiffViewer {
         return this;
     }
 
+    public double getRescaleFactor() {
+        return rescaleFactor;
+    }
+
+    public TiffViewer setRescaleFactor(double rescaleFactor) {
+        this.rescaleFactor = rescaleFactor;
+        return this;
+    }
+
     public void setRescaleWhenIncreasingBitDepth(boolean rescaleWhenIncreasingBitDepth) throws IOException {
         if (rescaleWhenIncreasingBitDepth != reader.isRescaleWhenIncreasingBitDepth()) {
             reader.setRescaleWhenIncreasingBitDepth(rescaleWhenIncreasingBitDepth);
@@ -155,7 +169,7 @@ class TiffViewer {
     }
 
     public void resetSelectionStatus() {
-        final Rectangle r = getSelection();
+        final Rectangle r = getImageSelection();
         final String status = r == null ?
                 defaultStatusMessage() :
                 r.width == 0 || r.height == 0 ?
@@ -174,7 +188,7 @@ class TiffViewer {
         if (x != lastPixelX || y != lastPixelY) {
             final String pixelCoordinates = pixelCoordinatesToString(x, y);
             frame.statusPixelCoordinatesLabel().setText(pixelCoordinates);
-            setPixelValue(x, y);
+            setPixelValueInformation(x, y);
             lastPixelX = x;
             lastPixelY = y;
         }
@@ -185,7 +199,7 @@ class TiffViewer {
     }
 
     public void resetPixelValueStatus() {
-        setPixelValue(lastPixelX, lastPixelY);
+        setPixelValueInformation(lastPixelX, lastPixelY);
     }
 
     public void showError(Throwable exception) {
@@ -204,7 +218,7 @@ class TiffViewer {
             invalidateCache();
             openMap();
         } finally {
-            frame.resetImage();
+            frame.resetImageInformation();
             frame.tiffPanel().reset();
             repaint();
         }
@@ -215,16 +229,26 @@ class TiffViewer {
         resetPixelValueStatus();
     }
 
-    public Rectangle getSelection() {
+    public Rectangle getImageSelection() {
         return frame.tiffPanel().getImageSelection();
     }
 
-    public void setSelection(int left, int top, int width, int height) {
+    public void setImageSelection(int left, int top, int width, int height) {
         frame.tiffPanel().setImageSelection(
                 left,
                 top,
                 (long) left + (long) width,
                 (long) top + (long) height);
+    }
+
+    public Rectangle getImageVisibleArea() {
+        Rectangle r = frame.getImageVisibleArea();
+        int dimX = map.dimX();
+        int dimY = map.dimY();
+        if (r.x >= dimX || r.y >= dimY) {
+            return null;
+        }
+        return new Rectangle(r.x, r.y, Math.min(r.width, dimX - r.x), Math.min(r.height, dimY - r.y));
     }
 
     public BufferedImage reloadFragment(int zoomedFromX, int zoomedFromY, int zoomedToX, int zoomedToY, double zoom) {
@@ -298,7 +322,7 @@ class TiffViewer {
     }
 
     public BufferedImage readSelectedImage() throws IOException {
-        Rectangle rectangle = getSelection();
+        Rectangle rectangle = getImageSelection();
         return rectangle == null ? null : readImage(rectangle);
     }
 
@@ -357,7 +381,7 @@ class TiffViewer {
         return pixelValueFormat == UserPixelValueFormat.NONE ? DEFAULT_STATUS : "";
     }
 
-    private void setPixelValue(long x, long y) {
+    private void setPixelValueInformation(long x, long y) {
         Object channels = null;
         boolean error = false;
         if (pixelValueFormat != UserPixelValueFormat.NONE && x >= 0 && y >= 0 && x < map.dimX() && y < map.dimY()) {
@@ -386,8 +410,100 @@ class TiffViewer {
         }
     }
 
+    void findMaxVisibleValue() throws IOException {
+        maxPossibleValue = map.sampleType().maxUnsignedValue();
+        maxVisibleValue = maxPossibleValue;
+        Rectangle r = getImageVisibleArea();
+        if (r != null) {
+            Matrix<UpdatablePArray> matrix = map.readMatrix(r.x, r.y, r.width, r.height);
+            maxVisibleValue = TiffSamples.maxOf(matrix);
+        }
+    }
+
+    void showSetRescaleFactorDialog() {
+        final JDialog dialog = new JDialog(frame, true);
+        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        dialog.setTitle("Set pixel intensity rescale factor");
+        dialog.setLayout(new BorderLayout(10, 10));
+        dialog.setResizable(false);
+
+        final JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        final double contrastRescaleFactor = maxVisibleValue == 0.0 ? 1.0 : maxPossibleValue / maxVisibleValue;
+        mainPanel.add(TinySwing.leftLabel(TinySwing.smartHtmlLines(String.format(Locale.US, """
+            Specify the rescale factor: a multiplier for pixel sample values before visualization.<br>
+            &nbsp;<br>
+            This is useful to contrast low-intensity images, for example, for grayscale matrices<br>
+            of 32-bit integers containing indexes of particles, recognized while image analysis,<br>
+            or for floating-point matrices containing gradients or boundaries.<br>
+            &nbsp;<br>
+            For the current visible area, the maximum contrast can be obtained with the factor<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;%.3f = %.1f / %.1f<br>
+            (maximal possible value / maximum in visible area).
+            """, contrastRescaleFactor, maxPossibleValue, maxVisibleValue))));
+        mainPanel.add(Box.createVerticalStrut(15));
+
+        final JPanel settingsPanel = new JPanel();
+        settingsPanel.setLayout(new BoxLayout(settingsPanel, BoxLayout.Y_AXIS));
+        settingsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        final JPanel rowPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        rowPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        rowPanel.add(new JLabel("Rescale factor: "));
+
+        final JTextField factorField = new JTextField(24);
+        factorField.setText(Double.toString(this.rescaleFactor));
+        rowPanel.add(factorField);
+        settingsPanel.add(rowPanel);
+
+        final JButton recommendedButton = new JButton("Contrast");
+        recommendedButton.setToolTipText("Set rescale factor to " +
+                contrastRescaleFactor + " = " + maxPossibleValue + " / " +  maxVisibleValue);
+        recommendedButton.addActionListener(e -> factorField.setText(
+                String.valueOf(contrastRescaleFactor)));
+        rowPanel.add(recommendedButton);
+
+        rowPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, rowPanel.getPreferredSize().height));
+        mainPanel.add(settingsPanel);
+        dialog.add(mainPanel, BorderLayout.CENTER);
+
+        final JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        final JButton okButton = new JButton("OK");
+        final JButton cancelButton = new JButton("Cancel");
+        buttonPanel.add(okButton);
+        buttonPanel.add(cancelButton);
+        dialog.add(buttonPanel, BorderLayout.SOUTH);
+        dialog.getRootPane().setDefaultButton(okButton);
+
+        cancelButton.addActionListener(e -> dialog.dispose());
+
+        okButton.addActionListener(e -> {
+            try {
+                final double factor = Double.parseDouble(factorField.getText().trim());
+                if (factor <= 0.0 || Double.isNaN(factor) || Double.isInfinite(factor)) {
+                    throw new IllegalArgumentException("Rescale factor must be a positive number");
+                }
+                if (factor != this.rescaleFactor) {
+                    setRescaleFactor(factor);
+                    repaint();
+                    frame.resetImageInformation();
+                }
+                dialog.dispose();
+            } catch (Exception ex) {
+                TinySwing.showErrorMessage(frame, ex, "Invalid rescale factor value");
+            }
+        });
+
+        dialog.pack();
+        TinySwing.addCloseOnEscape(dialog);
+        dialog.setLocationRelativeTo(frame);
+        dialog.setVisible(true);
+    }
+
     void showSetSelectionDialog() {
-        final JPanel panel = new JPanel(new GridLayout(4, 2, 5, 5));
+        final JPanel mainPanel = new JPanel(new GridLayout(4, 2, 5, 5));
         final JTextField leftField = new JTextField(8);
         final JTextField topField = new JTextField(8);
         final JTextField widthField = new JTextField(8);
@@ -406,18 +522,18 @@ class TiffViewer {
             heightField.setText(Integer.toString(map.dimY()));
         }
 
-        panel.add(new JLabel("Left:"));
-        panel.add(leftField);
-        panel.add(new JLabel("Top:"));
-        panel.add(topField);
-        panel.add(new JLabel("Width:"));
-        panel.add(widthField);
-        panel.add(new JLabel("Height:"));
-        panel.add(heightField);
+        mainPanel.add(new JLabel("Left:"));
+        mainPanel.add(leftField);
+        mainPanel.add(new JLabel("Top:"));
+        mainPanel.add(topField);
+        mainPanel.add(new JLabel("Width:"));
+        mainPanel.add(widthField);
+        mainPanel.add(new JLabel("Height:"));
+        mainPanel.add(heightField);
 
         final int result = JOptionPane.showConfirmDialog(
                 frame,
-                panel,
+                mainPanel,
                 "Set selection rectangle",
                 JOptionPane.OK_CANCEL_OPTION,
                 JOptionPane.PLAIN_MESSAGE);
@@ -434,7 +550,7 @@ class TiffViewer {
             if (width < 0 || height < 0) {
                 throw new IllegalArgumentException("Width and height must be non-negative");
             }
-            setSelection(left, top, width, height);
+            setImageSelection(left, top, width, height);
         } catch (Exception ex) {
             TinySwing.showErrorMessage(frame, ex, "Invalid selection values");
         }

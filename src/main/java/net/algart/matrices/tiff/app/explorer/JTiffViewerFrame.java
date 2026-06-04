@@ -85,7 +85,7 @@ class JTiffViewerFrame extends JFrame {
         statusPanel.add(statusSelectionLabel, BorderLayout.CENTER);
         this.add(statusPanel, BorderLayout.SOUTH);
 
-        resetImage();
+        resetImageInformation();
         // The following can be used instead of setAccelerator:
 //        frame.getRootPane().registerKeyboardAction(
 //                e -> tiffPanel.removeSelection(),
@@ -133,7 +133,7 @@ class JTiffViewerFrame extends JFrame {
         viewerPanel.disposeResources();
     }
 
-    void resetImage() {
+    void resetImageInformation() {
         final TiffReadMap map = viewer.map();
         final OptionalInt bitDepth = map.tryEqualBitDepth();
         final double zoom = viewerPanel.getZoom();
@@ -145,13 +145,18 @@ class JTiffViewerFrame extends JFrame {
                 zoom > 1.0
                 ? "  %s%% (%d:1)".formatted(zoom100, (int) zoom)
                 : "  %s%% (1:%d)".formatted(zoom100, (int) Math.round(1.0 / zoom));
-        setTitle("TIFF Image #%d from %d in the file (%dx%d, %d channel%s, %s bits/channel)  %s%s  [%s]".formatted(
+        final double rescaleFactor = viewer.getRescaleFactor();
+        final String rescaleTitle = rescaleFactor == 1.0 ? "" :
+                String.format(Locale.US, " scaled by %.3f", rescaleFactor);
+        setTitle("TIFF Image #%d/%d (%dx%d, %d channel%s, %s bits/channel)  %s%s%s  [%s]".formatted(
                 viewer.ifdIndex(), map.numberOfImagesUnchecked(),
                 map.dimX(), map.dimY(),
                 map.numberOfChannels(), map.numberOfChannels() == 1 ? "" : "s",
                 bitDepth.isPresent() ? bitDepth.getAsInt() : Arrays.toString(map.bitsPerSample()),
                 map.compressionOrNoneForMissing().orElse(TagCompression.NONE).prettyName(),
-                zoomTitle, viewer.path().getFileName()));
+                zoomTitle,
+                rescaleTitle,
+                viewer.path().getFileName()));
         final TagPhotometric photometric = map.photometric().orElse(null);
         final boolean problematicPotometric = photometric == null || !photometric.isSimplyRenderable();
         final boolean problematicPrecision = map.sampleType().isSignedInteger();
@@ -162,10 +167,25 @@ class JTiffViewerFrame extends JFrame {
                             .formatted(photometric.prettyName()))
                             + "; colors may be incorrect");
         } else if (problematicPrecision) {
-                noticeLabel.setText("Note: this image contains signed values (" + map.sampleType().prettyName() +
-                        ") and may be rendered incorrectly");
+            noticeLabel.setText("Note: this image contains signed values (" + map.sampleType().prettyName() +
+                    ") and may be rendered incorrectly");
         }
         noticePanel.setVisible(problematicPotometric || problematicPrecision);
+    }
+
+    Rectangle getImageVisibleArea() {
+        return getVisibleArea(viewerPanel.getZoom());
+    }
+
+    private Rectangle getVisibleArea(double zoom) {
+        final JViewport viewport = viewerScrollPane.getViewport();
+        final Point viewPosition = viewport.getViewPosition();
+        final Dimension extentSize = viewport.getExtentSize();
+        int x1 = (int) Math.floor(viewPosition.x / zoom);
+        int y1 = (int) Math.floor(viewPosition.y / zoom);
+        int x2 = (int) Math.ceil((viewPosition.x + extentSize.width) / zoom);
+        int y2 = (int) Math.ceil((viewPosition.y + extentSize.height) / zoom);
+        return new Rectangle(x1, y1, x2 - x1, y2 - y1);
     }
 
     private JMenuBar buildMenuBar() {
@@ -324,15 +344,6 @@ class JTiffViewerFrame extends JFrame {
 
         JMenu viewMenu = new JMenu("View");
 
-        JRadioButtonMenuItem rescaleDisabledItem = new JRadioButtonMenuItem("No samples correction");
-        JRadioButtonMenuItem rescaleEnabledItem = new JRadioButtonMenuItem("Rescaling samples (n/a)");
-        JMenu rescaleMenu = buildEnableDisableSubmenu(
-                "Rescaling samples",
-                rescaleDisabledItem,
-                rescaleEnabledItem,
-                this::setRescaleWhenIncreasingBitDepth);
-        viewMenu.add(rescaleMenu);
-
         JRadioButtonMenuItem colorCorrectionDisabledItem = new JRadioButtonMenuItem("No color correction");
         JRadioButtonMenuItem colorCorrectionEnabledItem = new JRadioButtonMenuItem("Color correction (n/a)");
         JMenu colorCorrectionMenu = buildEnableDisableSubmenu(
@@ -341,6 +352,29 @@ class JTiffViewerFrame extends JFrame {
                 colorCorrectionEnabledItem,
                 this::setColorCorrection);
         viewMenu.add(colorCorrectionMenu);
+
+        JRadioButtonMenuItem rescaleDisabledItem = new JRadioButtonMenuItem("No samples correction");
+        JRadioButtonMenuItem rescaleEnabledItem = new JRadioButtonMenuItem("Rescaling samples (n/a)");
+        JMenu rescaleMenu = buildEnableDisableSubmenu(
+                "Auto rescaling samples",
+                rescaleDisabledItem,
+                rescaleEnabledItem,
+                this::setRescaleWhenIncreasingBitDepth);
+        viewMenu.add(rescaleMenu);
+
+        JMenuItem setRescaleFactorItem = new JMenuItem("Rescale with factor...");
+        setRescaleFactorItem.addActionListener(e -> {
+            TinySwing.doLongOperation(this, () -> {
+                try {
+                    viewer.findMaxVisibleValue();
+                    viewer.showSetRescaleFactorDialog();
+                } catch (Exception ex) {
+                    // - including possible non-I/O exceptions like an empty file extension
+                    showErrorMessage(ex, "Error while analysing the visible area");
+                }
+            });
+        });
+        viewMenu.add(setRescaleFactorItem);
         viewMenu.addSeparator();
 
         JCheckBoxMenuItem tileGridItem = new JCheckBoxMenuItem("Draw grid");
@@ -429,7 +463,7 @@ class JTiffViewerFrame extends JFrame {
                     rescale,
                     rescaleDisabledItem,
                     rescaleEnabledItem,
-                    "Rescaling samples",
+                    "Auto rescaling samples",
                     "No rescaling (keep raw values)",
                     rescaleApplicable ?
                             "Rescaling " + precisionTitle(rawBitDepth) + " to " + precisionTitle(actualBitDepth) :
@@ -533,7 +567,7 @@ class JTiffViewerFrame extends JFrame {
         item.addActionListener(e -> {
             try {
                 viewerScrollPane.setZoomWithCentering(zoomValue);
-                resetImage();
+                resetImageInformation();
                 viewer.setTileGridThickness(tileGridThickness);
             } catch (TooBigZoomException | IOException ex) {
                 showErrorMessage(ex, "Cannot set zoom");
@@ -546,7 +580,7 @@ class JTiffViewerFrame extends JFrame {
     }
 
     private void alignSelection() {
-        final Rectangle selection = viewer.getSelection();
+        final Rectangle selection = viewer.getImageSelection();
         final TiffReadMap map = viewer.map();
         if (map.isTiled() && selection != null) {
             final long tileX = map.tileSizeX();

@@ -839,7 +839,7 @@ public sealed class TiffMap permits TiffIOMap {
         float[] components = color.getRGBComponents(null);
         final double[] filler = new double[components.length];
         for (int i = 0; i < components.length; i++) {
-            filler[i] = scaleToMaxValue ? components[i] * sampleType().unsignedVersion().maxValue() : components[i];
+            filler[i] = scaleToMaxValue ? components[i] * sampleType().maxUnsignedValue() : components[i];
             // - note: for signed types as INT8, the value 255 still corresponds to WHITE;
             // this is not too correct, but it is better than too "smart" solution when 0xFFFFFF
             // will be translated to 0x7F7F7F

@@ -207,7 +207,7 @@ class TiffSaveImageHelper {
         final Rectangle selection;
         final boolean tileAligned;
         if (selectionOnly) {
-            selection = viewer.getSelection();
+            selection = viewer.getImageSelection();
             if (selection == null || selection.width <= 0 || selection.height <= 0) {
                 return;
             }
@@ -447,7 +447,7 @@ class TiffSaveImageHelper {
         final int sizeX;
         final int sizeY;
         if (selectionOnly) {
-            final Rectangle selection = viewer.getSelection();
+            final Rectangle selection = viewer.getImageSelection();
             if (selection == null || selection.width <= 0 || selection.height <= 0) {
                 return false;
             }

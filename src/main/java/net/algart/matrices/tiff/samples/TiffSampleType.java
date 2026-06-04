@@ -374,6 +374,10 @@ public enum TiffSampleType {
         return this == FLOAT || this == DOUBLE;
     }
 
+    public double maxUnsignedValue() {
+        return unsignedVersion().maxValue();
+    }
+
     public double maxValue() {
         return maxValue;
     }

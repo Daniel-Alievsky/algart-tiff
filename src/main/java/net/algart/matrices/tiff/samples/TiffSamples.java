@@ -182,6 +182,11 @@ public class TiffSamples {
                 Matrices.matrix(array, sizeX, sizeY, numberOfChannels);
     }
 
+    public static double maxOf(Matrix<? extends PArray> matrix) {
+        Objects.requireNonNull(matrix, "Null matrix");
+        return maxOf(matrix.array());
+    }
+
     public static double maxOf(PArray array) {
         Objects.requireNonNull(array, "Null array");
         if (array instanceof IntArray intArray) {

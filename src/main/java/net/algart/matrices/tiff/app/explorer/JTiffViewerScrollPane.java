@@ -122,8 +122,8 @@ class JTiffViewerScrollPane extends JScrollPane {
 
                     Dimension viewSize = tiffPanel.getSize();
                     Dimension extentSize = viewport.getExtentSize();
-                    viewPos.x = Math.max(0, Math.min(viewPos.x, viewSize.width - extentSize.width));
-                    viewPos.y = Math.max(0, Math.min(viewPos.y, viewSize.height - extentSize.height));
+                    viewPos.x = Math.clamp(viewPos.x, 0, viewSize.width - extentSize.width);
+                    viewPos.y = Math.clamp(viewPos.y, 0, viewSize.height - extentSize.height);
 
                     viewport.setViewPosition(viewPos);
                 }
