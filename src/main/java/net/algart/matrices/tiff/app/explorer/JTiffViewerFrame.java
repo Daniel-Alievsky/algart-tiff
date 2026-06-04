@@ -148,10 +148,11 @@ class JTiffViewerFrame extends JFrame {
         final double rescaleFactor = viewer.getRescaleFactor();
         final String rescaleTitle = rescaleFactor == 1.0 ? "" :
                 String.format(Locale.US, ", scaled by %.3f", rescaleFactor);
-        setTitle("TIFF Image #%d/%d (%dx%d, %d channel%s, %s bits/channel)  %s%s%s  [%s]".formatted(
+        setTitle("TIFF Image #%d/%d (%dx%d, %d channel%s, %s%s bits/channel)  %s%s%s  [%s]".formatted(
                 viewer.ifdIndex(), map.numberOfImagesUnchecked(),
                 map.dimX(), map.dimY(),
                 map.numberOfChannels(), map.numberOfChannels() == 1 ? "" : "s",
+                map.sampleType().isSignedInteger() ? "signed " : "",
                 bitDepth.isPresent() ? bitDepth.getAsInt() : Arrays.toString(map.bitsPerSample()),
                 map.compressionOrNoneForMissing().orElse(TagCompression.NONE).prettyName(),
                 zoomTitle,

@@ -41,11 +41,11 @@ public enum TiffSampleType {
         }
     },
     UINT8(1, "byte", 8, byte.class, false, 255),
-    INT8(0, "int-8", 8, byte.class, true, 127),
+    INT8(0, "signed int-8", 8, byte.class, true, 127),
     UINT16(3, "uint-16", 16, short.class, false, 0xFFFF),
-    INT16(2, "int-16", 16, short.class, true, 0x7FFF),
+    INT16(2, "signed int-16", 16, short.class, true, 0x7FFF),
     UINT32(5, "uint-32", 32, int.class, false, 0xFFFFFFFFL),
-    INT32(4, "int-32", 32, int.class, true, 0x7FFFFFFFL),
+    INT32(4, "signed int-32", 32, int.class, true, 0x7FFFFFFFL),
     FLOAT(6, "float", 32, float.class, true, 1.0),
     DOUBLE(7, "double", 64, double.class, true, 1.0);
 
