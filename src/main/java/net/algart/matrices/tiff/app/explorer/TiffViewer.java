@@ -34,6 +34,7 @@ import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -353,7 +354,7 @@ class TiffViewer {
         return "Pixel %d, %d".formatted(x, y);
     }
 
-    public String pixelValueToString(Object channelsArray, TiffSampleType sampleType) {
+    public String pixelValueToString(PArray channelsArray, TiffSampleType sampleType) {
         if (channelsArray == null) {
             return "";
         }
@@ -363,7 +364,11 @@ class TiffViewer {
         formatter.setSeparator(pixelValueFormat == UserPixelValueFormat.HEXADECIMAL ? " " : ", ");
         formatter.setMaxArrayLength(10);
         // - up to 10 channels (very improbable)
-        return "[" + formatter.arrayToString(channelsArray, 0, map.numberOfChannels()) + "]";
+        String pixel = "[" + formatter.toString(channelsArray) + "]";
+        String scaled = rescaleFactor == 1.0 ?
+                "" :
+                ", scaled: [" + formatter.toString(TiffSamples.multiplyBy(channelsArray, rescaleFactor)) + "]";
+        return pixel + scaled;
     }
 
     private void createGUI() {
@@ -386,11 +391,11 @@ class TiffViewer {
     }
 
     private void setPixelValueInformation(long x, long y) {
-        Object channels = null;
+        PArray channels = null;
         boolean error = false;
         if (pixelValueFormat != UserPixelValueFormat.NONE && x >= 0 && y >= 0 && x < map.dimX() && y < map.dimY()) {
             try {
-                channels = map.readJavaArray((int) x, (int) y, 1, 1);
+                channels = map.readMatrix((int) x, (int) y, 1, 1).array();
                 // Thread.sleep(1000);
                 // if (true) throw new IOException();
             } catch (IOException e) {
@@ -466,8 +471,11 @@ class TiffViewer {
         final JButton contrastButton = new JButton("Auto contrast");
         contrastButton.setToolTipText("Set rescale factor to " +
                 contrastRescaleFactor + " = " + maxPossibleValue + " / " + maxVisibleValue);
-        contrastButton.addActionListener(e -> factorField.setText(
-                String.valueOf(contrastRescaleFactor)));
+        contrastButton.addActionListener(e -> {
+            factorField.setText(String.valueOf(contrastRescaleFactor));
+            factorField.requestFocusInWindow();
+        });
+        contrastButton.setMnemonic(KeyEvent.VK_A);
         rowPanel.add(contrastButton);
 
         rowPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, rowPanel.getPreferredSize().height));

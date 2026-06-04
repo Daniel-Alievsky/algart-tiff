@@ -27,8 +27,8 @@ package net.algart.matrices.tiff.app.explorer;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.samples.TiffSampleType;
 import net.algart.matrices.tiff.TiffWriter;
+import net.algart.matrices.tiff.samples.TiffSampleType;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
@@ -56,7 +56,7 @@ class TiffNewBlankHelper {
     private JTextField tileSizeXField;
     private JTextField tileSizeYField;
     private JComboBox<UserNumberOfChannels> numberOfChannelsComboBox;
-    private JComboBox<TiffSampleType> sampleTypeComboBox;
+    private JComboBox<String> sampleTypeComboBox;
     private JComboBox<String> compressionMethodComboBox;
     private JButton colorButton;
     private JTextField colorHexField;
@@ -150,9 +150,12 @@ class TiffNewBlankHelper {
         addGridBugRowCaption(gridPanel, gbc, "Content settings", true, row++);
         numberOfChannelsComboBox = new JComboBox<>(UserNumberOfChannels.values());
         numberOfChannelsComboBox.setSelectedItem(numberOfChannels);
-        sampleTypeComboBox = new JComboBox<>(TiffSampleType.values());
+
+        sampleTypeComboBox = new JComboBox<>(Arrays.stream(TiffSampleType.values())
+                .map(TiffSampleType::prettyName)
+                .toArray(String[]::new));
         sampleTypeComboBox.setMaximumRowCount(64);
-        sampleTypeComboBox.setSelectedItem(sampleType);
+        sampleTypeComboBox.setSelectedItem(sampleType.prettyName());
 
         addGridBugRowLabelled(gridPanel, gbc, new JLabel("Channels:"), numberOfChannelsComboBox, row++);
         addGridBugRowLabelled(gridPanel, gbc, new JLabel("Sample Type:"), sampleTypeComboBox, row++);
@@ -349,7 +352,8 @@ class TiffNewBlankHelper {
             this.bigTiff = bigTiffCheckBox.isSelected();
             this.byteOrder = TinySwing.selectedValue(byteOrderComboBox);
             this.numberOfChannels = TinySwing.selectedValue(numberOfChannelsComboBox);
-            this.sampleType = TinySwing.selectedValue(sampleTypeComboBox);
+            final String sampleTypeName = TinySwing.selectedValue(sampleTypeComboBox);
+            this.sampleType = TiffSampleType.fromPrettyName(sampleTypeName).orElseThrow();
             final String compressionName = TinySwing.selectedValue(compressionMethodComboBox);
             this.compression = TagCompression.fromPrettyName(compressionName).orElseThrow();
             this.pattern = patternCheckBox.isSelected();
@@ -492,9 +496,9 @@ class TiffNewBlankHelper {
         }
 
         private double value(double filler, double dx, double dySqr) {
-            return filler + (0.9 - filler) * (dx * dx + dySqr);
-            // - at the tile corners we will have 0.9: almost white;
-            // it is better than white when the user selects white color to fill (we still see a subtle pattern)
+            return filler + (0.1 - filler) * (dx * dx + dySqr);
+            // - at the tile corners we will have 0.1: almost black;
+            // it is better than black when the user selects black color to fill (we still see a subtle pattern)
         }
 
         private static double sqr(double v) {

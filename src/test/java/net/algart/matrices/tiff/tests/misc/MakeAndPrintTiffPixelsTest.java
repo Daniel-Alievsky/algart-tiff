@@ -159,7 +159,7 @@ public class MakeAndPrintTiffPixelsTest {
     private static String format(Object array, int dimX, int dimY, TiffSampleType.Formatter formatter) {
         StringBuilder sb = new StringBuilder();
         for (int y = 0; y < dimY; y++) {
-            final String pixels = formatter.arrayToString(array, y * dimX, dimX);
+            final String pixels = formatter.javaArrayToString(array, y * dimX, dimX);
             sb.append(pixels).append("%n".formatted());
         }
         return sb.toString();

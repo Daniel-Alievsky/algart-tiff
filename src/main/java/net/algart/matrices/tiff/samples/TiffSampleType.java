@@ -24,14 +24,14 @@
 
 package net.algart.matrices.tiff.samples;
 
-import net.algart.arrays.*;
+import net.algart.arrays.JArrays;
+import net.algart.arrays.PArray;
+import net.algart.arrays.PackedBitArrays;
+import net.algart.arrays.PackedBitArraysPer8;
 
 import java.lang.reflect.Array;
 import java.nio.ByteOrder;
-import java.util.Arrays;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.OptionalInt;
+import java.util.*;
 
 public enum TiffSampleType {
     BIT(0, "bit", 1, boolean.class, false, 1.0) {
@@ -40,12 +40,12 @@ public enum TiffSampleType {
             return PackedBitArraysPer8.toLongArray(bytes);
         }
     },
-    INT8(0, "int8", 8, byte.class, true, 127),
-    UINT8(1, "uint8", 8, byte.class, false, 255),
-    INT16(2, "int16", 16, short.class, true, 0x7FFF),
-    UINT16(3, "uint16", 16, short.class, false, 0xFFFF),
-    INT32(4, "int32", 32, int.class, true, 0x7FFFFFFFL),
-    UINT32(5, "uint32", 32, int.class, false, 0xFFFFFFFFL),
+    UINT8(1, "byte", 8, byte.class, false, 255),
+    INT8(0, "int-8", 8, byte.class, true, 127),
+    UINT16(3, "uint-16", 16, short.class, false, 0xFFFF),
+    INT16(2, "int-16", 16, short.class, true, 0x7FFF),
+    UINT32(5, "uint-32", 32, int.class, false, 0xFFFFFFFFL),
+    INT32(4, "int-32", 32, int.class, true, 0x7FFFFFFFL),
     FLOAT(6, "float", 32, float.class, true, 1.0),
     DOUBLE(7, "double", 64, double.class, true, 1.0);
 
@@ -150,6 +150,14 @@ public enum TiffSampleType {
             return this;
         }
 
+        public String toString(PArray array) {
+            return toString(array, 0, array.length32());
+        }
+
+        public String toString(PArray array, int offset, int count) {
+            return javaArrayToString(array.ja(), offset, count);
+        }
+
         /**
          * Formats a specific range of a samples array into a string based on the current formatter settings.
          *
@@ -172,7 +180,7 @@ public enum TiffSampleType {
          * @throws IllegalArgumentException  if arguments are negative, or the array type is mismatched.
          * @throws NullPointerException      if {@code javaArray} is null.
          */
-        public String arrayToString(Object javaArray, int offset, int count) {
+        public String javaArrayToString(Object javaArray, int offset, int count) {
             Objects.requireNonNull(javaArray, "Null javaArray");
             if (offset < 0) {
                 throw new IllegalArgumentException("Negative offset: " + offset);
@@ -298,6 +306,16 @@ public enum TiffSampleType {
         }
     }
 
+    private static final Map<String, TiffSampleType> PRETTY_NAME_LOOKUP = new HashMap<>();
+    static {
+        for (TiffSampleType v : values()) {
+            final String pretty = v.prettyName().toUpperCase();
+            if (PRETTY_NAME_LOOKUP.containsKey(pretty)) {
+                throw new AssertionError("Duplicate pretty name (ignoring case): " + pretty);
+            }
+            PRETTY_NAME_LOOKUP.put(pretty, v);
+        }
+    }
     private final int code;
     private final String prettyName;
     private final int bitsPerSample;
@@ -397,6 +415,19 @@ public enum TiffSampleType {
 
     public Formatter newFormatter() {
         return new Formatter();
+    }
+
+    /**
+     * Returns an {@link Optional} containing the {@link TiffSampleType} with the given {@link #prettyName()}
+     * (case-insensitive).
+     * <p>If no sample type with the specified pretty name exists or if the argument is {@code null},
+     * an empty optional is returned.
+     *
+     * @param name the sample type pretty name; may be {@code null}.
+     * @return optional sample type.
+     */
+    public static Optional<TiffSampleType> fromPrettyName(String name) {
+        return Optional.ofNullable(name == null ? null : PRETTY_NAME_LOOKUP.get(name.toUpperCase()));
     }
 
     public static TiffSampleType ofJavaArray(Object javaArray, boolean signedIntegers) {

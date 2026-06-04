@@ -147,7 +147,7 @@ class JTiffViewerFrame extends JFrame {
                 : "  %s%% (1:%d)".formatted(zoom100, (int) Math.round(1.0 / zoom));
         final double rescaleFactor = viewer.getRescaleFactor();
         final String rescaleTitle = rescaleFactor == 1.0 ? "" :
-                String.format(Locale.US, " scaled by %.3f", rescaleFactor);
+                String.format(Locale.US, ", scaled by %.3f", rescaleFactor);
         setTitle("TIFF Image #%d/%d (%dx%d, %d channel%s, %s bits/channel)  %s%s%s  [%s]".formatted(
                 viewer.ifdIndex(), map.numberOfImagesUnchecked(),
                 map.dimX(), map.dimY(),
@@ -158,9 +158,9 @@ class JTiffViewerFrame extends JFrame {
                 rescaleTitle,
                 viewer.path().getFileName()));
         final TagPhotometric photometric = map.photometric().orElse(null);
-        final boolean problematicPotometric = photometric == null || !photometric.isSimplyRenderable();
+        final boolean problematicPhotometric = photometric == null || !photometric.isSimplyRenderable();
         final boolean problematicPrecision = map.sampleType().isSignedInteger();
-        if (problematicPotometric) {
+        if (problematicPhotometric) {
             noticeLabel.setText(
                     (photometric == null ? "Note: PhotometricInterpretation tag is not set" :
                             "Note: PhotometricInterpretation %s is not fully supported"
@@ -170,7 +170,7 @@ class JTiffViewerFrame extends JFrame {
             noticeLabel.setText("Note: this image contains signed values (" + map.sampleType().prettyName() +
                     ") and may be rendered incorrectly");
         }
-        noticePanel.setVisible(problematicPotometric || problematicPrecision);
+        noticePanel.setVisible(problematicPhotometric || problematicPrecision);
     }
 
     Rectangle getImageVisibleArea() {
@@ -483,6 +483,7 @@ class JTiffViewerFrame extends JFrame {
                             "Corrected (grayscale, 0 is white)" :
                             "Corrected (CMYK will be converted to RGB)",
                     viewMenu);
+            setRescaleFactorItem.setEnabled(!map.isBinary());
 
             for (UserPixelValueFormat format : UserPixelValueFormat.values()) {
                 JRadioButtonMenuItem menuItem = pixelFormatItems.get(format);
