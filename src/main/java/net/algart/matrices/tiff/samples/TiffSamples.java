@@ -25,6 +25,7 @@
 package net.algart.matrices.tiff.samples;
 
 import net.algart.arrays.*;
+import net.algart.math.functions.LinearFunc;
 import net.algart.matrices.tiff.TiffIFD;
 
 import java.nio.ByteOrder;
@@ -198,6 +199,30 @@ public class TiffSamples {
             return max;
         } else {
             return Arrays.rangeOf(array).max();
+        }
+    }
+
+    public static Matrix<? extends PArray> multiplyBy(Matrix<? extends PArray> matrix, double scaleFactor) {
+        Objects.requireNonNull(matrix, "Null matrix");
+        return matrix.matrix(multiplyBy(matrix.array(), scaleFactor));
+    }
+
+    public static PArray multiplyBy(PArray array, double scaleFactor) {
+        Objects.requireNonNull(array, "Null array");
+        if (array instanceof IntArray intArray) {
+            int[] values = intArray.toInt();
+            for (int i = 0; i < values.length; i++) {
+                long value = values[i] & 0xFFFFFFFFL    ;
+                long scaled = Math.round(scaleFactor * value);
+                scaled = Math.clamp(scaled, 0, 0xFFFFFFFFL);
+                values[i] = (int) scaled;
+            }
+            return PArray.as(values);
+        } else {
+            return Arrays.clone(Arrays.asFuncArray(
+                    LinearFunc.getInstance(0.0, scaleFactor),
+                    array.type(),
+                    array));
         }
     }
 }

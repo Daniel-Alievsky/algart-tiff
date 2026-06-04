@@ -25,6 +25,7 @@
 package net.algart.matrices.tiff.app.explorer;
 
 import net.algart.arrays.Matrix;
+import net.algart.arrays.PArray;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.samples.TiffSampleType;
@@ -330,9 +331,12 @@ class TiffViewer {
         if (viewport.width <= 0 || viewport.height <= 0) {
             return null;
         }
-        final Matrix<UpdatablePArray> mergedChannels =
+        final Matrix<? extends PArray> mergedChannels =
                 map.readMatrix(viewport.x, viewport.y, viewport.width, viewport.height);
-        return map.channelsToBufferedImage(mergedChannels.asLayers());
+        final Matrix<? extends PArray> rescaled = rescaleFactor == 1.0 ?
+                mergedChannels :
+                TiffSamples.multiplyBy(mergedChannels, rescaleFactor);
+        return map.channelsToBufferedImage(rescaled.asLayers());
     }
 
     public void invalidateCache() throws IOException {
@@ -433,18 +437,18 @@ class TiffViewer {
 
         final double contrastRescaleFactor = maxVisibleValue == 0.0 ? 1.0 : maxPossibleValue / maxVisibleValue;
         mainPanel.add(TinySwing.leftLabel(TinySwing.smartHtmlLines(String.format(Locale.US, """
-                Specify the rescale factor: a multiplier for pixel sample values before visualization.<br>
-                &nbsp;<br>
-                This is useful to contrast low-intensity images. For example, for grayscale matrices<br>
-                of 32-bit integers containing object labels or particle indexes recognized during image analysis,<br>
-                or for floating-point matrices containing gradients or boundaries.<br>
-                &nbsp;<br>
-                For the current visible area, the maximal contrast can be obtained with the factor:<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<b>%.3f</b> = %.1f / %.1f<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;(maximal possible value / maximum in the visible area).<br>
-                &nbsp;<br>
-                You may automatically select this auto contrast value via the "Contrast" button below.
-                """, contrastRescaleFactor, maxPossibleValue, maxVisibleValue))));
+            Specify the rescale factor: a multiplier for pixel sample values before visualization.<br>
+            &nbsp;<br>
+            This is useful to contrast low-intensity images. For example, for grayscale matrices<br>
+            of 32-bit integers containing object labels or particle indexes recognized during image analysis,<br>
+            or for floating-point matrices containing gradients or boundaries.<br>
+            &nbsp;<br>
+            For the current visible area, we can recommend the factor:<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<b>%.3f</b> = %.1f / %.1f<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;(maximal possible value / maximum in the visible area).<br>
+            &nbsp;<br>
+            You may select this value via the "Auto contrast" button below.
+            """, contrastRescaleFactor, maxPossibleValue, maxVisibleValue))));
         mainPanel.add(Box.createVerticalStrut(15));
 
         final JPanel settingsPanel = new JPanel();
@@ -458,16 +462,17 @@ class TiffViewer {
         final JTextField factorField = new JTextField(24);
         factorField.setText(Double.toString(this.rescaleFactor));
         rowPanel.add(factorField);
-        settingsPanel.add(rowPanel);
 
-        final JButton recommendedButton = new JButton("Contrast");
-        recommendedButton.setToolTipText("Set rescale factor to " +
+        final JButton contrastButton = new JButton("Auto contrast");
+        contrastButton.setToolTipText("Set rescale factor to " +
                 contrastRescaleFactor + " = " + maxPossibleValue + " / " + maxVisibleValue);
-        recommendedButton.addActionListener(e -> factorField.setText(
+        contrastButton.addActionListener(e -> factorField.setText(
                 String.valueOf(contrastRescaleFactor)));
-        rowPanel.add(recommendedButton);
+        rowPanel.add(contrastButton);
 
         rowPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, rowPanel.getPreferredSize().height));
+        settingsPanel.add(rowPanel);
+
         mainPanel.add(settingsPanel);
         dialog.add(mainPanel, BorderLayout.CENTER);
 
@@ -489,6 +494,7 @@ class TiffViewer {
                 }
                 if (factor != this.rescaleFactor) {
                     setRescaleFactor(factor);
+                    invalidateCache();
                     repaint();
                     frame.resetImageInformation();
                 }
