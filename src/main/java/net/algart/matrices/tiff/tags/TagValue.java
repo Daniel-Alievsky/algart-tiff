@@ -127,7 +127,7 @@ import java.util.Objects;
  * <p>Note: all classes implementing this interface extend {@link Number}.
  * This ensures that the values can be correctly read as numeric values.
  * Examples: {@link Tags#REFERENCE_BLACK_WHITE} is read as an array of integers in the
- * {@link net.algart.matrices.tiff.data.TiffUnpacking#separateYCbCrToRGB} method,
+ * {@link net.algart.matrices.tiff.bits.TiffUnpacking#separateYCbCrToRGB} method,
  * and {@link Tags#SUB_IFD} is read as a {@code long[]} array in the {@link TiffReader#allIFDs()} method.</p>
  *
  * @see TagType#javaType()

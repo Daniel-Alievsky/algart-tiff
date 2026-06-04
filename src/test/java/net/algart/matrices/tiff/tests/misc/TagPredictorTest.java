@@ -26,7 +26,7 @@ package net.algart.matrices.tiff.tests.misc;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.data.TiffPrediction;
+import net.algart.matrices.tiff.bits.TiffPrediction;
 import net.algart.matrices.tiff.tags.TagPredictor;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffMap;

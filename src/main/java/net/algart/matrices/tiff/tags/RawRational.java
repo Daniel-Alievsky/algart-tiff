@@ -34,7 +34,7 @@ import java.util.Objects;
  *
  * <p>Note: it extends {@link Number} class to provide correct reading some tags as
  * {@link Tags#REFERENCE_BLACK_WHITE} as numeric values
- * (this is used in {@link net.algart.matrices.tiff.data.TiffUnpacking#separateYCbCrToRGB}).
+ * (this is used in {@link net.algart.matrices.tiff.bits.TiffUnpacking#separateYCbCrToRGB}).
  */
 abstract sealed class RawRational extends Number implements TagValue permits TagValue.Rational, TagValue.SRational {
     private final int rawNumerator;

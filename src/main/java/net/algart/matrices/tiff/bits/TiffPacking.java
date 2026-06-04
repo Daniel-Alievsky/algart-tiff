@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.data;
+package net.algart.matrices.tiff.bits;
 
 import net.algart.arrays.PackedBitArraysPer8;
 import net.algart.arrays.TooLargeArrayException;

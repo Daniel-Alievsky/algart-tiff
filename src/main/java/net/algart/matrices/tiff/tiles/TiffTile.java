@@ -27,7 +27,7 @@ package net.algart.matrices.tiff.tiles;
 import net.algart.arrays.*;
 import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
-import net.algart.matrices.tiff.data.TiffUnusualPrecisions;
+import net.algart.matrices.tiff.bits.TiffUnusualPrecisions;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagPhotometric;
 

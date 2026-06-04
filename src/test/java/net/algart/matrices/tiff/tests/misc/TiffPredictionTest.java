@@ -28,7 +28,7 @@ import net.algart.arrays.JArrays;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffSampleType;
-import net.algart.matrices.tiff.data.TiffPrediction;
+import net.algart.matrices.tiff.bits.TiffPrediction;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 
