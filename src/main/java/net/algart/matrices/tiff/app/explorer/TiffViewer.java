@@ -189,7 +189,7 @@ class TiffViewer {
     public void showPixelInformation(long x, long y) {
         if (x != lastPixelX || y != lastPixelY) {
             final String pixelCoordinates = pixelCoordinatesToString(x, y);
-            frame.statusPixelCoordinatesLabel().setText(pixelCoordinates);
+            frame.setStatusPixelCoordinates(pixelCoordinates);
             setPixelValueInformation(x, y);
             lastPixelX = x;
             lastPixelY = y;
@@ -378,9 +378,7 @@ class TiffViewer {
     private void setStatus(String status, boolean error) {
         Objects.requireNonNull(status);
         if (error != lastErrorFlag || !status.equals(lastStatus)) {
-            final JLabel label = frame.statusSelectionLabel();
-            label.setForeground(error ? TiffExplorer.ERROR_COLOR : TiffExplorer.COMMON_COLOR);
-            label.setText(status);
+            frame.setStatusSelection(status, error);
             lastStatus = status;
             lastErrorFlag = error;
         }
@@ -407,7 +405,7 @@ class TiffViewer {
         }
         final String pixelValue = error ? "ERROR" : pixelValueToString(channels, map.sampleType());
         if (!pixelValue.equals(lastPixelValue)) {
-            frame.statusPixelValueLabel().setText(pixelValue);
+            frame.setStatusPixelValue(pixelValue);
             lastPixelValue = pixelValue;
         }
     }

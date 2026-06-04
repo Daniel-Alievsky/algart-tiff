@@ -114,19 +114,21 @@ class JTiffViewerFrame extends JFrame {
         return viewerPanel;
     }
 
-    public JLabel statusPixelCoordinatesLabel() {
-        return statusPixelCoordinatesLabel;
+    public void setStatusPixelCoordinates(String status) {
+        statusPixelCoordinatesLabel.setText(status);
     }
 
-    public JLabel statusPixelValueLabel() {
-        return statusPixelValueLabel;
+    public void setStatusPixelValue(String status) {
+        statusPixelValueLabel.setText(status);
     }
 
-    public JLabel statusSelectionLabel() {
-        return statusSelectionLabel;
+    public void setStatusSelection(String status, boolean error) {
+        final JLabel label = statusSelectionLabel;
+        label.setForeground(error ? TiffExplorer.ERROR_COLOR : TiffExplorer.COMMON_COLOR);
+        label.setText(status);
     }
 
-    @Override
+        @Override
     public void dispose() {
         super.dispose();
         viewer.disposeResources();
