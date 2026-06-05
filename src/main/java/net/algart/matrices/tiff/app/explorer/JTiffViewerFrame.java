@@ -367,7 +367,7 @@ class JTiffViewerFrame extends JFrame {
                 this::setRescaleWhenIncreasingBitDepth);
         viewMenu.add(rescaleMenu);
 
-        JMenuItem setRescaleFactorItem = new JMenuItem("Rescale with factor...");
+        JMenuItem setRescaleFactorItem = new JMenuItem("Adjust brightness / contrast (custom rescaling)...");
         setRescaleFactorItem.setMnemonic(KeyEvent.VK_R);
         setRescaleFactorItem.addActionListener(e -> {
             TinySwing.doLongOperation(this, () -> {
