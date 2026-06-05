@@ -147,9 +147,11 @@ class JTiffViewerFrame extends JFrame {
                 zoom > 1.0
                 ? "  %s%% (%d:1)".formatted(zoom100, (int) zoom)
                 : "  %s%% (1:%d)".formatted(zoom100, (int) Math.round(1.0 / zoom));
-        final double rescaleFactor = viewer.getRescaleFactor();
-        final String rescaleTitle = rescaleFactor == 1.0 ? "" :
-                String.format(Locale.US, ", scaled by %.3f", rescaleFactor);
+        double rescaleFactor = viewer.getRescaleFactor();
+        double blackOffset = viewer.getBlackOffset();
+        final String rescaleTitle = !viewer.isRescaled() ? "" :
+                String.format(Locale.US, ", scaled by %.3f", rescaleFactor) +
+                (blackOffset == 0.0 ? "" : String.format(Locale.US, " with black=%.1f", blackOffset));
         setTitle("TIFF Image #%d/%d (%dx%d, %d channel%s, %s%s bits/channel)  %s%s%s  [%s]".formatted(
                 viewer.ifdIndex(), map.numberOfImagesUnchecked(),
                 map.dimX(), map.dimY(),

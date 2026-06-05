@@ -132,13 +132,6 @@ class TiffViewer {
         return this;
     }
 
-    public void setRescaleWhenIncreasingBitDepth(boolean rescaleWhenIncreasingBitDepth) throws IOException {
-        if (rescaleWhenIncreasingBitDepth != reader.isRescaleWhenIncreasingBitDepth()) {
-            reader.setRescaleWhenIncreasingBitDepth(rescaleWhenIncreasingBitDepth);
-            invalidateCache();
-        }
-    }
-
     public double getBlackOffset() {
         return blackOffset;
     }
@@ -146,6 +139,17 @@ class TiffViewer {
     public TiffViewer setBlackOffset(double blackOffset) {
         this.blackOffset = blackOffset;
         return this;
+    }
+
+    public boolean isRescaled() {
+        return getRescaleFactor() != 1.0 || getBlackOffset() != 0.0;
+    }
+
+    public void setRescaleWhenIncreasingBitDepth(boolean rescaleWhenIncreasingBitDepth) throws IOException {
+        if (rescaleWhenIncreasingBitDepth != reader.isRescaleWhenIncreasingBitDepth()) {
+            reader.setRescaleWhenIncreasingBitDepth(rescaleWhenIncreasingBitDepth);
+            invalidateCache();
+        }
     }
 
     public void setColorCorrection(boolean colorCorrection) throws IOException {
@@ -344,9 +348,7 @@ class TiffViewer {
         }
         final Matrix<? extends PArray> mergedChannels =
                 map.readMatrix(viewport.x, viewport.y, viewport.width, viewport.height);
-        final Matrix<? extends PArray> rescaled = getRescaleFactor() == 1.0 ?
-                mergedChannels :
-                TiffSamples.multiplyBy(mergedChannels, rescaleFactor);
+        final Matrix<? extends PArray> rescaled = isRescaled() ? applyRescaling(mergedChannels) : mergedChannels;
         return map.channelsToBufferedImage(rescaled.asLayers());
     }
 
@@ -375,9 +377,9 @@ class TiffViewer {
         formatter.setMaxArrayLength(10);
         // - up to 10 channels (very improbable)
         String pixel = "[" + formatter.toString(channelsArray) + "]";
-        String scaled = getRescaleFactor() == 1.0 ?
+        String scaled = !isRescaled() ?
                 "" :
-                ", scaled: [" + formatter.toString(TiffSamples.multiplyBy(channelsArray, getRescaleFactor())) + "]";
+                ", scaled: [" + formatter.toString(applyRescaling(channelsArray)) + "]";
         return pixel + scaled;
     }
 
@@ -440,7 +442,7 @@ class TiffViewer {
     void showSetRescaleFactorDialog() {
         final JDialog dialog = new JDialog(frame, true);
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-        dialog.setTitle("Set pixel intensity rescale factor");
+        dialog.setTitle("Set pixel intensity transformation");
         dialog.setLayout(new BorderLayout(10, 10));
         dialog.setResizable(false);
 
@@ -450,18 +452,22 @@ class TiffViewer {
 
         final double contrastRescaleFactor = maxVisibleValue == 0.0 ? 1.0 : maxPossibleValue / maxVisibleValue;
         mainPanel.add(TinySwing.leftLabel(TinySwing.smartHtmlLines(String.format(Locale.US, """
-            Specify the rescale factor: a multiplier for pixel sample values before visualization.<br>
+            Specify the intensity transformation parameters: the multiplier (<b>k</b>) 
+            and the black offset (<b>b</b>)<br>
+            for pixel sample values before visualization, 
+            according to the formula <b>k</b><i>x</i>&minus;<b>b</b>.<br>
             &nbsp;<br>
             This is useful to contrast low-intensity images. For example, for grayscale matrices<br>
             of 32-bit integers containing object labels or particle indexes recognized during<br>
             image analysis, or for floating-point matrices containing gradients or boundaries.<br>
             &nbsp;<br>
-            For the current visible area, we can recommend the factor:<br>
+            For the current visible area, we can recommend the factor <b>k</b>:<br>
             &nbsp;&nbsp;&nbsp;&nbsp;<b>%.3f</b> = %.1f / %.1f<br>
             &nbsp;&nbsp;&nbsp;&nbsp;(maximal possible value / maximum in the visible area)<br>
             &nbsp;<br>
             You may set this value by the "Auto contrast" button<br>
-            or reset the value to 1.0 by the "Disable" button.
+            or reset the value to 1.0 by the "Disable" button.<br>
+            The black offset (<b>b</b>) can be set manually; its default value is 0.
             """, contrastRescaleFactor, maxPossibleValue, maxVisibleValue))));
         mainPanel.add(Box.createVerticalStrut(15));
 
@@ -476,17 +482,18 @@ class TiffViewer {
         c.insets = new Insets(2, 5, 2, 5);
 
         c.gridx = 0; c.gridy = 0;
-        gridPanel.add(new JLabel("Rescale factor: "), c);
+        gridPanel.add(new JLabel("<html>Rescale factor (<b>k</b>): "), c);
         c.gridx = 1; c.gridy = 0; c.weightx = 1.0;
         final JTextField factorField = new JTextField(24);
         gridPanel.add(factorField, c);
         factorField.setText(Double.toString(rescaleFactor == null ? contrastRescaleFactor : rescaleFactor));
 
-//        c.gridx = 0; c.gridy = 1; c.weightx = 0.0;
-//        gridPanel.add(new JLabel("Black offset (b): "), c);
-//        c.gridx = 1; c.gridy = 1; c.weightx = 1.0;
-//        final JTextField blackOffsetField = new JTextField(24);
-//        gridPanel.add(blackOffsetField, c);
+        c.gridx = 0; c.gridy = 1; c.weightx = 0.0;
+        gridPanel.add(new JLabel("<html>Black offset (<b>b</b>): "), c);
+        c.gridx = 1; c.gridy = 1; c.weightx = 1.0;
+        final JTextField blackOffsetField = new JTextField(24);
+        blackOffsetField.setText(Double.toString(blackOffset));
+        gridPanel.add(blackOffsetField, c);
 
         settingsPanel.add(gridPanel);
         settingsPanel.add(Box.createVerticalStrut(10));
@@ -506,7 +513,6 @@ class TiffViewer {
         disableButton.setToolTipText("Set rescale factor to 1.0 (disable rescaling)");
         disableButton.addActionListener(e -> {
             factorField.setText(String.valueOf(1.0));
-//            blackOffsetField.setText(String.valueOf(0.0));
             factorField.requestFocusInWindow();
         });
         disableButton.setMnemonic(KeyEvent.VK_D);
@@ -529,13 +535,18 @@ class TiffViewer {
 
         okButton.addActionListener(e -> {
             try {
-                final double factor = Double.parseDouble(factorField.getText().trim());
-                if (factor <= 0.0 || Double.isNaN(factor) || Double.isInfinite(factor)) {
+                final double newRescaleFactor = Double.parseDouble(factorField.getText().trim());
+                if (newRescaleFactor <= 0.0 || Double.isNaN(newRescaleFactor) || Double.isInfinite(newRescaleFactor)) {
                     throw new IllegalArgumentException("Rescale factor must be a positive number");
                 }
-                boolean changed = factor != getRescaleFactor();
-                setRescaleFactor(factor);
+                final double newBlackOffset = Double.parseDouble(blackOffsetField.getText().trim());
+                if (Double.isNaN(newBlackOffset) || Double.isInfinite(newBlackOffset)) {
+                    throw new IllegalArgumentException("Black offset must be a finite number");
+                }
+                boolean changed = newRescaleFactor != getRescaleFactor() || newBlackOffset != getBlackOffset();
+                setRescaleFactor(newRescaleFactor);
                 // - always, even if rescaleFactor == null
+                setBlackOffset(newBlackOffset);
                 if (changed) {
                     invalidateCache();
                     repaint();
@@ -605,5 +616,13 @@ class TiffViewer {
         } catch (Exception ex) {
             TinySwing.showErrorMessage(frame, ex, "Invalid selection values");
         }
+    }
+
+    private PArray applyRescaling(PArray array) {
+        return TiffSamples.applyLinearFunction(array, getRescaleFactor(), -getBlackOffset());
+    }
+
+    private Matrix<? extends PArray> applyRescaling(Matrix<? extends PArray> matrix) {
+        return TiffSamples.applyLinearFunction(matrix, getRescaleFactor(), -getBlackOffset());
     }
 }

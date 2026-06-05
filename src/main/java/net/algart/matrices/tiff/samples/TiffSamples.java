@@ -202,27 +202,24 @@ public class TiffSamples {
         }
     }
 
-    public static Matrix<? extends PArray> multiplyBy(Matrix<? extends PArray> matrix, double scaleFactor) {
+    public static Matrix<? extends PArray> applyLinearFunction(Matrix<? extends PArray> matrix, double a, double b) {
         Objects.requireNonNull(matrix, "Null matrix");
-        return matrix.matrix(multiplyBy(matrix.array(), scaleFactor));
+        return matrix.matrix(applyLinearFunction(matrix.array(), a, b));
     }
 
-    public static PArray multiplyBy(PArray array, double scaleFactor) {
+    public static PArray applyLinearFunction(PArray array, double a, double b) {
         Objects.requireNonNull(array, "Null array");
         if (array instanceof IntArray intArray) {
             int[] values = intArray.toInt();
             for (int i = 0; i < values.length; i++) {
                 long value = values[i] & 0xFFFFFFFFL    ;
-                long scaled = Math.round(scaleFactor * value);
+                long scaled = Math.round(a * value + b);
                 scaled = Math.clamp(scaled, 0, 0xFFFFFFFFL);
                 values[i] = (int) scaled;
             }
             return PArray.as(values);
         } else {
-            return Arrays.clone(Arrays.asFuncArray(
-                    LinearFunc.getInstance(0.0, scaleFactor),
-                    array.type(),
-                    array));
+            return Arrays.clone(Arrays.asFuncArray(LinearFunc.getInstance(b, a), array.type(), array));
         }
     }
 }
