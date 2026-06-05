@@ -1,8 +1,8 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="ManyRepeatedTilesDemo" type="Application" factoryName="Application" nameIsGenerated="true">
-    <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.demo.misc.ManyRepeatedTilesDemo" />
+  <configuration default="false" name="LabelSmallObjectsDemo" type="Application" factoryName="Application" nameIsGenerated="true">
+    <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.demo.misc.LabelSmallObjectsDemo" />
     <module name="algart-tiff" />
-    <option name="PROGRAM_PARAMETERS" value="-color -gradient /tmp/repeated_tiles.tiff 20 20 #C0C000 uint8 NONE" />
+    <option name="PROGRAM_PARAMETERS" value="src/test/resources/demo/images/objects_sample.jpg /tmp/objects_labels.tiff 0.3 100" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="net.algart.matrices.tiff.demo.misc.*" />

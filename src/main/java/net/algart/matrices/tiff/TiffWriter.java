@@ -1496,10 +1496,11 @@ public non-sealed class TiffWriter extends TiffIO {
     /**
      * Writes a new TIFF image with the specified compression to this TIFF file.
      * For an existing file, the image is appended to the file end.
-     * The image is specified as 3-dimensional matrix of pixels:
-     * the first dimension ({@link Matrix#dimX()}) is the width,
-     * the second ({@link Matrix#dimY()}) is the height,
+     * The image is specified as a 3D or 2D matrix of pixels.
+     * For a 3D matrix, the first dimension ({@link Matrix#dimX()}) is the width,
+     * the second ({@link Matrix#dimY()}) is the height, and
      * the third ({@link Matrix#dimZ()}) is the number of channels.
+     * If the image has only {@code 1} channel, a 2D matrix (width and height) is also allowed.
      *
      * <p>This is a high-level convenience method intended for the simplest TIFF writing scenario.
      * It automatically creates a {@link TiffIFD#newStrippedIFD() new stripped IFD},
@@ -1514,7 +1515,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * explicit tile flushing or advanced TIFF customization,
      * consider using {@link #newMap(TiffIFD, boolean)} and the returned {@link TiffWriteMap}.</p>
      *
-     * @param matrix      3-dimensional matrix of pixels.
+     * @param matrix      3D-matrix of pixels (or 2D-matrix for 1-channel image).
      * @param compression TIFF compression method.
      * @return the created TIFF map used for writing the image.
      * @throws IOException in the case of any I/O errors.
@@ -1524,9 +1525,7 @@ public non-sealed class TiffWriter extends TiffIO {
             throws IOException {
         Objects.requireNonNull(matrix, "Null matrix");
         Objects.requireNonNull(compression, "Null compression");
-        final TiffIFD ifd = TiffIFD.newStrippedIFD();
-        ifd.putMatrixInformation(matrix);
-        ifd.putCompression(compression);
+        final TiffIFD ifd = TiffIFD.newStrippedIFD(compression, matrix);
         final TiffWriteMap map = newFixedMap(ifd);
         map.writeMatrix(matrix);
         return map;
@@ -1563,9 +1562,7 @@ public non-sealed class TiffWriter extends TiffIO {
             throws IOException {
         Objects.requireNonNull(channels, "Null channels");
         Objects.requireNonNull(compression, "Null compression");
-        final TiffIFD ifd = TiffIFD.newStrippedIFD();
-        ifd.putChannelsInformation(channels);
-        ifd.putCompression(compression);
+        final TiffIFD ifd = TiffIFD.newStrippedIFD(compression, channels);
         final TiffWriteMap map = newFixedMap(ifd);
         map.writeChannels(channels);
         return map;
@@ -1600,9 +1597,7 @@ public non-sealed class TiffWriter extends TiffIO {
             throws IOException {
         Objects.requireNonNull(bufferedImage, "Null bufferedImage");
         Objects.requireNonNull(compression, "Null compression");
-        final TiffIFD ifd = TiffIFD.newStrippedIFD();
-        ifd.putBufferedImageInformation(bufferedImage);
-        ifd.putCompression(compression);
+        final TiffIFD ifd = TiffIFD.newStrippedIFD(compression, bufferedImage);
         final TiffWriteMap map = newFixedMap(ifd);
         map.writeBufferedImage(bufferedImage);
         return map;

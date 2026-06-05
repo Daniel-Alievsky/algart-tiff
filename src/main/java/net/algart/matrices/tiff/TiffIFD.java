@@ -438,6 +438,24 @@ public final class TiffIFD {
         return newIFD(false);
     }
 
+    public static TiffIFD newStrippedIFD(TagCompression compression) {
+        return newStrippedIFD().putCompression(compression);
+    }
+
+    public static TiffIFD newStrippedIFD(TagCompression compression, Matrix<? extends PArray> matrix) {
+        return newStrippedIFD(compression).putMatrixInformation(matrix);
+    }
+
+    public static TiffIFD newStrippedIFD(
+            TagCompression compression,
+            List<? extends Matrix<? extends PArray>> channels) {
+        return newStrippedIFD(compression).putChannelsInformation(channels);
+    }
+
+    public static TiffIFD newStrippedIFD(TagCompression compression, BufferedImage bufferedImage) {
+        return newStrippedIFD(compression).putBufferedImageInformation(bufferedImage);
+    }
+
     /**
      * Equivalent to <code>{@link #newIFD(boolean) newIFD}(true)</code>.
      *
@@ -445,6 +463,22 @@ public final class TiffIFD {
      */
     public static TiffIFD newTiledIFD() {
         return newIFD(true);
+    }
+
+    public static TiffIFD newTiledIFD(TagCompression compression) {
+        return newTiledIFD().putCompression(compression);
+    }
+
+    public static TiffIFD newTiledIFD(TagCompression compression, Matrix<? extends PArray> matrix) {
+        return newTiledIFD(compression).putMatrixInformation(matrix);
+    }
+
+    public static TiffIFD newTiledIFD(TagCompression compression, List<? extends Matrix<? extends PArray>> channels) {
+        return newTiledIFD(compression).putChannelsInformation(channels);
+    }
+
+    public static TiffIFD newTiledIFD(TagCompression compression, BufferedImage bufferedImage) {
+        return newTiledIFD(compression).putBufferedImageInformation(bufferedImage);
     }
 
     /**
@@ -2093,8 +2127,18 @@ public final class TiffIFD {
     // interleaved is usually false but may be used together with TiffWriter.updateMatrix for interleaved matrices
     public TiffIFD putMatrixInformation(Matrix<? extends PArray> matrix, boolean signedIntegers, boolean interleaved) {
         Objects.requireNonNull(matrix, "Null matrix");
-        final int dimChannelsIndex = interleaved ? 0 : 2;
-        final long numberOfChannels = matrix.dim(dimChannelsIndex);
+        final int dimCount = matrix.dimCount();
+        if (dimCount != 2 && dimCount != 3) {
+            throw new IllegalArgumentException("Illegal number of matrix dimensions " + matrix.dimCount() +
+                    ": it must be 3-dimensional " +
+                    (interleaved ? "C*dimX*dimY" : "dimX*dimY*C") +
+                    ", where C is the number of channels, " +
+                    "or 2-dimensional in the case of monochrome TIFF image");
+        }
+        if (dimCount == 2) {
+            interleaved = false;
+        }
+        final long numberOfChannels = dimCount == 2 ? 1 : matrix.dim(interleaved ? 0 : 2);
         checkNumberOfChannels(numberOfChannels);
         assert numberOfChannels == (int) numberOfChannels : "must be checked in checkNumberOfChannels";
         final long dimX = matrix.dim(interleaved ? 1 : 0);

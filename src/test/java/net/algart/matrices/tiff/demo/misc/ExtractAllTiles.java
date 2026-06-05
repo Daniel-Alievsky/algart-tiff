@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package net.algart.matrices.tiff.demo.io;
+package net.algart.matrices.tiff.demo.misc;
 
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;

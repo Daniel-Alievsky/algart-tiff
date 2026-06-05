@@ -397,7 +397,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                     ": it must be 3-dimensional dimX*dimY*C, " +
                     "where C is the number of channels (z-dimension), " +
                     "or 3-dimensional C*dimX*dimY for interleaved case, " +
-                    "or may be 2-dimensional in the case of monochrome TIFF image");
+                    "or 2-dimensional in the case of monochrome TIFF image");
         }
         final int dimChannelsIndex = sourceInterleaved ? 0 : 2;
         final long numberOfChannels = matrix.dim(dimChannelsIndex);
@@ -498,20 +498,20 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
 
     /**
      * Writes the matrix.
-     * The image is specified as 3D matrix of pixels:
-     * the first dimension ({@link Matrix#dimX()}) is the width,
-     * the second ({@link Matrix#dimY()}) is the height,
+     * The image is specified as a 3D or 2D matrix of pixels.
+     * For a 3D matrix, the first dimension ({@link Matrix#dimX()}) is the width,
+     * the second ({@link Matrix#dimY()}) is the height, and
      * the third ({@link Matrix#dimZ()}) is the number of channels.
+     * If the image has only {@code 1} channel, a 2D matrix (width and height) is also allowed.
      *
      * <p>Note: unlike {@link #writeJavaArray(Object)} and
      * {@link #writeSampleBytes(byte[])},
      * this method always uses the actual sizes of the passed matrix and, so, <i>does not require</i>
      * the map to have correct non-zero dimensions (a situation, possible for resizable maps).</p>
      *
-     * @param matrix 3D-matrix of pixels.
+     * @param matrix 3D-matrix of pixels (or 2D-matrix for 1-channel image).
      * @throws TiffException in the case of invalid TIFF IFD.
      * @throws IOException   in the case of any I/O errors.
-     * @see TiffWriteMap#writeMatrix(Matrix)
      */
     public void writeMatrix(Matrix<? extends PArray> matrix) throws IOException {
         Objects.requireNonNull(matrix, "Null matrix");

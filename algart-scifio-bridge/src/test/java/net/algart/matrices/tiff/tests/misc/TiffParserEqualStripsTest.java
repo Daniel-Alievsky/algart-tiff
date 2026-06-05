@@ -31,7 +31,7 @@ import io.scif.formats.tiff.IFDList;
 import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.awt.AWTImages;
 import net.algart.matrices.tiff.compatibility.TiffParser;
-import net.algart.matrices.tiff.demo.io.ExtractTileContent;
+import net.algart.matrices.tiff.demo.misc.ExtractTileContent;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
