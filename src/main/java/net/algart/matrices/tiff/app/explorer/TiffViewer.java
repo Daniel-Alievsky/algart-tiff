@@ -455,7 +455,7 @@ class TiffViewer {
             Specify the intensity transformation parameters: the multiplier (<b>k</b>) 
             and the black offset (<b>b</b>)<br>
             for pixel sample values before visualization, 
-            according to the formula <b>k</b><i>x</i>&minus;<b>b</b>.<br>
+            according to the formula <b>k</b>(<i>x</i>&minus;<b>b</b>).<br>
             &nbsp;<br>
             This is useful to contrast low-intensity images. For example, for grayscale matrices<br>
             of 32-bit integers containing object labels or particle indexes recognized during<br>
@@ -619,10 +619,14 @@ class TiffViewer {
     }
 
     private PArray applyRescaling(PArray array) {
-        return TiffSamples.applyLinearFunction(array, getRescaleFactor(), -getBlackOffset());
+        double k = getRescaleFactor();
+        double b = getBlackOffset();
+        return TiffSamples.applyLinearFunction(array, k, -b * k);
     }
 
     private Matrix<? extends PArray> applyRescaling(Matrix<? extends PArray> matrix) {
-        return TiffSamples.applyLinearFunction(matrix, getRescaleFactor(), -getBlackOffset());
+        double k = getRescaleFactor();
+        double b = getBlackOffset();
+        return TiffSamples.applyLinearFunction(matrix, k, -b * k);
     }
 }
