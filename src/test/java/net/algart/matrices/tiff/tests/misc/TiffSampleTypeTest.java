@@ -24,6 +24,8 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
+import net.algart.arrays.BitArray;
+import net.algart.arrays.PArray;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.samples.TiffSampleType;
@@ -55,6 +57,25 @@ public class TiffSampleTypeTest {
         System.out.printf("  aligned bits: %d, sample type: %s%n", alignedBitDepth, sampleType);
     }
 
+    private static void testFormatter(TiffSampleType sampleType, PArray array, boolean supported) {
+        System.out.printf("Testing %s that formats %s%n", sampleType, array);
+        try {
+            String s = sampleType.newFormatter().toString(array);
+            System.out.printf("  entire array:        %s%n", s);
+            s = sampleType.newFormatter().toString(array, 1,2);
+            System.out.printf("  2 elements #1, #2:   %s%n", s);
+        } catch (Exception e) {
+            if (supported) {
+                throw new AssertionError("Unexpected " + e, e);
+            }
+            System.out.printf("  %s%n", e);
+            return;
+        }
+        if (!supported) {
+            throw new AssertionError("Formatting should not be supported!");
+        }
+    }
+
     public static void main(String[] args) throws TiffException {
         TiffIFD ifd = TiffIFD.newInstance();
         showTag(ifd, 1, TiffSampleType.BIT);
@@ -75,5 +96,18 @@ public class TiffSampleTypeTest {
         showTag(ifd, 1, TiffSampleType.BIT);
         ifd.put(Tags.SAMPLES_PER_PIXEL, 3);
         showTag(ifd, 8, TiffSampleType.UINT8);
+        System.out.println();
+        testFormatter(TiffSampleType.BIT, PArray.as(new long[] {1, 2, 3}), false);
+        testFormatter(TiffSampleType.BIT, PArray.as(new int[] {1, 2, 3}), false);
+        testFormatter(TiffSampleType.BIT, BitArray.newArray(3), true);
+        testFormatter(TiffSampleType.BIT, BitArray.as(new long[] {0x3333}, 5), true);
+        testFormatter(TiffSampleType.UINT8, PArray.as(new byte[] {1, 2, -3}), true);
+        testFormatter(TiffSampleType.INT8, PArray.as(new byte[] {1, 2, -3}), true);
+        testFormatter(TiffSampleType.UINT8, PArray.as(new short[] {1, 2, -3}), false);
+        testFormatter(TiffSampleType.INT32, PArray.as(new byte[] {1, 2, -3}), false);
+        testFormatter(TiffSampleType.INT32, PArray.as(new int[] {1, 2, -3}), true);
+        testFormatter(TiffSampleType.UINT32, PArray.as(new int[] {1, 2, -3}), true);
+        testFormatter(TiffSampleType.FLOAT, PArray.as(new int[] {1, 2, -3}), false);
+        testFormatter(TiffSampleType.FLOAT, PArray.as(new float[] {1, 2, -3}), true);
     }
 }
