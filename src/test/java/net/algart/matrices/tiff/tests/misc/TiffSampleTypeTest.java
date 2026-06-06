@@ -76,7 +76,12 @@ public class TiffSampleTypeTest {
         }
     }
 
-    public static void main(String[] args) throws TiffException {
+    // Automatically called by Maven test (POJO mode). Note: this method must be non-static.
+    public void testAll() throws TiffException {
+        main();
+    }
+
+    public static void main(String... args) throws TiffException {
         TiffIFD ifd = TiffIFD.newInstance();
         showTag(ifd, 1, TiffSampleType.BIT);
         ifd.put(Tags.BITS_PER_SAMPLE, 2);
@@ -109,5 +114,6 @@ public class TiffSampleTypeTest {
         testFormatter(TiffSampleType.UINT32, PArray.as(new int[] {1, 2, -3}), true);
         testFormatter(TiffSampleType.FLOAT, PArray.as(new int[] {1, 2, -3}), false);
         testFormatter(TiffSampleType.FLOAT, PArray.as(new float[] {1, 2, -3}), true);
+        testFormatter(TiffSampleType.DOUBLE, PArray.as(new float[] {1, 2, -3}), false);
     }
 }
