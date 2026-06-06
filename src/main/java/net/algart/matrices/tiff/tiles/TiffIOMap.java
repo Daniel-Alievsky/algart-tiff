@@ -313,8 +313,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             boolean storeTilesInMap,
             TileSupplier tileSupplier)
             throws IOException {
-        final var mergedChannels = readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
-        return Matrices.interleave(asChannels(mergedChannels));
+        return Matrices.interleave(readChannels(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier));
     }
 
     public List<Matrix<UpdatablePArray>> readChannels(
