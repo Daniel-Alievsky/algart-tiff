@@ -155,6 +155,12 @@ public enum TiffSampleType {
         }
 
         public String toString(PArray array, int offset, int count) {
+            Objects.requireNonNull(array, "Null array");
+            if (array.elementType() == long.class) {
+                // - just in case: this message is better than "Invalid javaArray element type"
+                // in the method javaArrayToString()
+                throw new IllegalArgumentException("long[] elements are not supported as TIFF samples");
+            }
             return javaArrayToString(array.ja(), offset, count);
         }
 
