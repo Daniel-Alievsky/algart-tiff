@@ -290,6 +290,59 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         final byte[] samples = readSampleBytes(
                 fromX, fromY, sizeX, sizeY,
                 reader.getUnusualPrecisions().unpackIfEnabled(), storeTilesInMap, tileSupplier);
+        return toJavaArray(samples);
+    }
+
+    public Matrix<UpdatablePArray> readMatrix(
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY,
+            boolean storeTilesInMap,
+            TileSupplier tileSupplier)
+            throws IOException {
+        final Object samplesArray = readJavaArray(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
+        return asMatrix(samplesArray, sizeX, sizeY);
+    }
+
+    public Matrix<UpdatablePArray> readInterleavedMatrix(
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY,
+            boolean storeTilesInMap,
+            TileSupplier tileSupplier)
+            throws IOException {
+        final var mergedChannels = readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
+        return Matrices.interleave(asChannels(mergedChannels));
+    }
+
+    public List<Matrix<UpdatablePArray>> readChannels(
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY,
+            boolean storeTilesInMap,
+            TileSupplier tileSupplier)
+            throws IOException {
+        final var mergedChannels = readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
+        return asChannels(mergedChannels);
+    }
+
+    public BufferedImage readBufferedImage(
+            int fromX,
+            int fromY,
+            int sizeX,
+            int sizeY,
+            boolean storeTilesInMap,
+            TileSupplier tileSupplier)
+            throws IOException {
+        final var mergedChannels = readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
+        return toBufferedImage(asChannels(mergedChannels));
+    }
+
+    public Object toJavaArray(byte[] samples) {
+        @SuppressWarnings("resource") final TiffReader reader = reader();
         long t1 = debugTime();
         final Object samplesArray = reader.getAutoUnpackBits().isEnabled() && isBinary() ?
                 samples :
@@ -310,58 +363,15 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         return samplesArray;
     }
 
-    public Matrix<UpdatablePArray> readMatrix(
-            int fromX,
-            int fromY,
-            int sizeX,
-            int sizeY,
-            boolean storeTilesInMap,
-            TileSupplier tileSupplier)
-            throws IOException {
-        final Object samplesArray = readJavaArray(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
+    public Matrix<UpdatablePArray> asMatrix(Object samplesArray, int sizeX, int sizeY) {
         return TiffSamples.asMatrix(samplesArray, sizeX, sizeY, numberOfChannels(), false);
     }
 
-    public Matrix<UpdatablePArray> readInterleavedMatrix(
-            int fromX,
-            int fromY,
-            int sizeX,
-            int sizeY,
-            boolean storeTilesInMap,
-            TileSupplier tileSupplier)
-            throws IOException {
-        final Matrix<UpdatablePArray> mergedChannels =
-                readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
-        return Matrices.interleave(mergedChannels.asLayers());
-    }
-
-    public List<Matrix<UpdatablePArray>> readChannels(
-            int fromX,
-            int fromY,
-            int sizeX,
-            int sizeY,
-            boolean storeTilesInMap,
-            TileSupplier tileSupplier)
-            throws IOException {
-        final Matrix<UpdatablePArray> mergedChannels =
-                readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
+    public <T extends PArray> List<Matrix<T>> asChannels(Matrix<T> mergedChannels) {
         return Matrices.asLayers(mergedChannels, TiffIFD.MAX_NUMBER_OF_CHANNELS);
     }
 
-    public BufferedImage readBufferedImage(
-            int fromX,
-            int fromY,
-            int sizeX,
-            int sizeY,
-            boolean storeTilesInMap,
-            TileSupplier tileSupplier)
-            throws IOException {
-        final Matrix<UpdatablePArray> mergedChannels =
-                readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
-        return channelsToBufferedImage(mergedChannels.asLayers());
-    }
-
-    public BufferedImage channelsToBufferedImage(List<? extends Matrix<? extends PArray>> channels) {
+    public BufferedImage toBufferedImage(List<? extends Matrix<? extends PArray>> channels) {
         final Matrix<? extends PArray> interleaved = Matrices.interleave(extractFirst4Channels(channels));
         return interleavedToBufferedImage(interleaved);
     }
