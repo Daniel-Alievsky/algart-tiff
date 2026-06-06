@@ -368,7 +368,8 @@ class JTiffViewerFrame extends JFrame {
         viewMenu.add(rescaleMenu);
 
         JMenuItem setRescaleFactorItem = new JMenuItem("Adjust brightness / contrast (custom rescaling)...");
-        setRescaleFactorItem.setMnemonic(KeyEvent.VK_R);
+        setRescaleFactorItem.setMnemonic(KeyEvent.VK_B);
+        setRescaleFactorItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_B, InputEvent.CTRL_DOWN_MASK));
         setRescaleFactorItem.addActionListener(e -> {
             TinySwing.doLongOperation(this, () -> {
                 try {
