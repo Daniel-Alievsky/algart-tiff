@@ -537,7 +537,7 @@ public final class SvsDescription extends TagDescription {
                 Objects.requireNonNull(ifd, "Null IFD");
                 imageDimX(ifd.getImageDimX());
                 imageDimY(ifd.getImageDimY());
-                Integer globalIndex = ifd.getGlobalIndex();
+                Integer globalIndex = ifd.hasGlobalIndex() ? ifd.getGlobalIndex() : null;
                 if (globalIndex != null && globalIndex == 0) {
                     baseImageDimX = imageDimX;
                     baseImageDimY = imageDimY;

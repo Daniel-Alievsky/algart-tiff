@@ -56,6 +56,11 @@ public class TagCompressionTest {
                         "not supported, nearest with support: " + compression.get().nearestWriteable());
     }
 
+    public void test() throws Exception {
+        //noinspection Convert2MethodRef
+        TestPOJOTools.runTest(args -> main(args));
+    }
+
     public static void main(String[] args) throws TiffException {
         TiffIFD ifd = TiffIFD.newInstance();
         check(ifd, null, TiffIFD.COMPRESSION_NONE, false);
