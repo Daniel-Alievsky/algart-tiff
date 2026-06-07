@@ -46,6 +46,11 @@ public class CheckRequestedAreaTest {
         System.out.println();
     }
 
+    public void test() throws Exception {
+        //noinspection Convert2MethodRef
+        TestPOJOTools.runTest(args -> main(args));
+    }
+
     public static void main(String[] args) {
         callCheckRequestedArea(0, 0, 0, -1, true);
         callCheckRequestedArea(-1000, -1000, 10000000, 1000000, false);
