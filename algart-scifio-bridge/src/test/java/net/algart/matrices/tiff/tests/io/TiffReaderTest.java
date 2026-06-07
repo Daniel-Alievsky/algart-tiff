@@ -28,6 +28,7 @@ import io.scif.codec.CodecOptions;
 import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
+import net.algart.arrays.UpdatablePArray;
 import net.algart.io.MatrixIO;
 import net.algart.io.awt.MatrixToImage;
 import net.algart.matrices.tiff.TiffReader;
@@ -186,6 +187,14 @@ public class TiffReaderTest {
                     t2 = System.nanoTime();
                     System.out.printf(Locale.US, "Test #%d: %dx%d loaded in %.3f ms%n",
                             test, w, h, (t2 - t1) * 1e-6);
+                    if (test == 1 && !interleave) {
+                        // - testing alternate way to do the same thing
+                        byte[] samples = map.readSampleBytes(x, y, w, h);
+                        Matrix<UpdatablePArray> other = map.sampleBytesToMatrix(samples, w, h);
+                        if (!other.equals(matrix)) {
+                            throw new AssertionError("Different matrices!");
+                        }
+                    }
                     System.gc();
                 }
 

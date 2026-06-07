@@ -302,7 +302,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             TileSupplier tileSupplier)
             throws IOException {
         final Object samplesArray = readJavaArray(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
-        return asMatrix(samplesArray, sizeX, sizeY);
+        return javaArrayAsMatrix(samplesArray, sizeX, sizeY);
     }
 
     public Matrix<UpdatablePArray> readInterleavedMatrix(
@@ -362,8 +362,13 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         return samplesArray;
     }
 
-    public Matrix<UpdatablePArray> asMatrix(Object samplesArray, int sizeX, int sizeY) {
+    public Matrix<UpdatablePArray> javaArrayAsMatrix(Object samplesArray, int sizeX, int sizeY) {
         return TiffSamples.asMatrix(samplesArray, sizeX, sizeY, numberOfChannels(), false);
+    }
+
+    public Matrix<UpdatablePArray> sampleBytesToMatrix(byte[] samples, int sizeX, int sizeY) {
+        final Object javaArray = toJavaArray(samples);
+        return javaArrayAsMatrix(javaArray, sizeX, sizeY);
     }
 
     public <T extends PArray> List<Matrix<T>> asChannels(Matrix<T> mergedChannels) {
@@ -373,6 +378,10 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
     public BufferedImage toBufferedImage(List<? extends Matrix<? extends PArray>> channels) {
         final Matrix<? extends PArray> interleaved = Matrices.interleave(extractFirst4Channels(channels));
         return interleavedToBufferedImage(interleaved);
+    }
+
+    public BufferedImage toBufferedImage(Matrix<? extends PArray> mergedChannels) {
+        return toBufferedImage(asChannels(mergedChannels));
     }
 
     public BufferedImage interleavedToBufferedImage(Matrix<? extends PArray> interleaved) {
@@ -397,6 +406,5 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         assert b > 0;
         return a >= 0 ? a / b : (a - b + 1) / b;
     }
-
 }
 
