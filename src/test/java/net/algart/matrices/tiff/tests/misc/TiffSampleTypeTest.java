@@ -76,10 +76,11 @@ public class TiffSampleTypeTest {
         }
     }
 
-    // Automatically called by Maven test (POJO mode). Note: this method must be non-static.
-    public void testAll() throws TiffException {
-        main();
+    public void test() throws Exception {
+        //noinspection Convert2MethodRef
+        TestPOJOTools.runTest(args -> main(args));
     }
+
 
     public static void main(String... args) throws TiffException {
         TiffIFD ifd = TiffIFD.newInstance();

@@ -24,28 +24,29 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
-import net.algart.matrices.tiff.TiffException;
-import net.algart.matrices.tiff.TiffIFD;
+import java.io.OutputStream;
+import java.io.PrintStream;
 
-import java.util.Arrays;
-
-public class TiffIFDGetArrayTest {
-    public void test() throws Exception {
-        //noinspection Convert2MethodRef
-        TestPOJOTools.runTest(args -> main(args));
+public class TestPOJOTools {
+    @FunctionalInterface
+    public interface MainMethod {
+        void main(String[] args) throws Exception;
     }
-
-    public static void main(String... args) throws TiffException {
-        TiffIFD ifd = TiffIFD.newInstance();
-        ifd.put(1, new long[]{1, 2, 3});
-        ifd.put(2, new int[]{1, 2, 3});
-        ifd.put(3, new Number[]{1L, -2L, 23});
-        ifd.put(4, new Number[]{1L, 2L, 23});
-        for (int key = 1; key <= 4; key++) {
-            System.out.printf("%d: %s; %s%n",
-                    key,
-                    Arrays.toString(ifd.getIntArray(key)),
-                    Arrays.toString(ifd.getLongArray(key)));
+    /**
+     * Runs the standard {@code main(String[] args)} method with temporary disabling {@code System.out}.
+     * Used in {@code xxxTest()} methods called by Maven test phase (POJO mode).
+     * Please remember that {@code xxxTest()} methods must <b>not</b> be static.
+     *
+     * @param mainMethod standard Java {@code main} method.
+     */
+    public static void runTest(MainMethod mainMethod) throws Exception {
+        System.out.println("Maven-style: calling main...");
+        PrintStream oldOut = System.out;
+        try {
+            System.setOut(new PrintStream(OutputStream.nullOutputStream()));
+            mainMethod.main(new String[0]);
+        } finally {
+            System.setOut(oldOut);
         }
     }
 }

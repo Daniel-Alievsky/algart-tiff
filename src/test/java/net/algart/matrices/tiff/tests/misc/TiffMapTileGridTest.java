@@ -42,7 +42,12 @@ public class TiffMapTileGridTest {
         return true;
     }
 
-    public static void main(String[] args) throws TiffException {
+    public void test() throws Exception {
+        //noinspection Convert2MethodRef
+        TestPOJOTools.runTest(args -> main(args));
+    }
+
+    public static void main(String... args) throws TiffException {
         TiffIFD ifd = TiffIFD.newTiledIFD();
         ifd.putImageDimensions(2000, 2000);
         TiffMap map = new TiffMap(ifd, false);

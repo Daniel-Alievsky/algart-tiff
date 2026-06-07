@@ -1896,9 +1896,10 @@ public final class TiffIFD {
     }
 
     public boolean isBitsPerSampleDirectlySupported() throws TiffException {
-        final int bitDepth = tryEqualBitDepth().orElse(-1);
-        return TiffSamples.isBitsPerSampleSupported(bitDepth);
-        // - including 1 bit/pixel
+        final int[] bitsPerSample = getBitsPerSample();
+        final int bitDepth = tryEqualBitDepth(bitsPerSample).orElse(-1);
+        return TiffSamples.isBitsPerSampleSupported(bitDepth, bitsPerSample.length);
+        // - including 1 bit/pixel, but only for 1 channel!
     }
 
     public boolean isFloatingPoint() {
@@ -2024,14 +2025,14 @@ public final class TiffIFD {
         }
         if (result != null) {
             assert result.bitsPerSample() >= alignedBitDepth;
-            assert TiffSamples.isBitsPerSampleSupported(result.bitsPerSample());
+            assert TiffSamples.isBitsPerSampleSupportedForAnyNumberOfChannels(result.bitsPerSample());
         }
         return result;
     }
 
     public int checkSupportedBitDepth() throws TiffException {
         final int[] bitsPerSample = getBitsPerSample();
-        if (!isSupportedPrecisionWithCheckingEquality(bitsPerSample)) {
+        if (!isSupportedBitDepthWithCheckingEquality(bitsPerSample)) {
             throw new UnsupportedTiffFormatException("The number of bits per sample " +
                     bitsPerSample[0] + " bits per sample for " + bitsPerSample.length +
                     " samples is not supported: " +
@@ -3589,22 +3590,21 @@ public final class TiffIFD {
         }
     }
 
-    private static boolean isSupportedPrecisionWithCheckingEquality(int[] bitsPerSample)
+    private static boolean isSupportedBitDepthWithCheckingEquality(int[] bitsPerSample)
             throws UnsupportedTiffFormatException {
-        final int bits = bitsPerSample[0];
+        final int bitDepth = bitsPerSample[0];
         for (int i = 1; i < bitsPerSample.length; i++) {
-            if (bitsPerSample[i] != bits) {
+            if (bitsPerSample[i] != bitDepth) {
                 throw new UnsupportedTiffFormatException("The number of " +
                         "bits per samples is unequal for different channels: " +
                         Arrays.toString(bitsPerSample) +
                         " (this variant is not supported, in particular for writing)");
             }
         }
-        final boolean binary = bitsPerSample.length == 1 && bits == 1;
         // - see alignedBitDepth()
-        // Note: while writing, bits == 1 is possible also for more than 1 channel,
+        return TiffSamples.isBitsPerSampleSupported(bitDepth, bitsPerSample.length);
+        // Note: while reading, bits == 1 is possible also for more than 1 channel,
         // which is recognized as non-binary UINT8
-        return binary || TiffSamples.isBitsPerSampleSupported(bits);
     }
 
     private static int truncatedIntValue(Number value) {

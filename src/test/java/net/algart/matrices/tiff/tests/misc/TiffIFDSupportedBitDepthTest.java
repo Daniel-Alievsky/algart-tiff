@@ -59,7 +59,12 @@ public class TiffIFDSupportedBitDepthTest {
         System.out.println();
     }
 
-    public static void main(String[] args) throws TiffException {
+    public void test() throws Exception {
+        //noinspection Convert2MethodRef
+        TestPOJOTools.runTest(args -> main(args));
+    }
+
+    public static void main(String... args) throws TiffException {
         TiffIFD ifd = TiffIFD.newInstance();
         showBitDepth(ifd, true);
         ifd.put(Tags.BITS_PER_SAMPLE, 2);

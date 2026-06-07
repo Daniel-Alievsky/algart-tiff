@@ -55,7 +55,12 @@ public class TiffIFDGetValueTest {
         System.out.println();
     }
 
-    public static void main(String[] args) {
+    public void test() throws Exception {
+        //noinspection Convert2MethodRef
+        TestPOJOTools.runTest(args -> main(args));
+    }
+
+    public static void main(String... args) {
         TiffIFD ifd = TiffIFD.newInstance();
         ifd.putPixelInformation(3, byte.class);
         showTag(ifd, Tags.SAMPLES_PER_PIXEL, Integer.class);

@@ -149,9 +149,13 @@ public class TiffSamples {
         };
     }
 
-    public static boolean isBitsPerSampleSupported(int bitsPerSample) {
-        return bitsPerSample == 1 || bitsPerSample == 8 || bitsPerSample == 16 ||
-                bitsPerSample == 32 || bitsPerSample == 64;
+    public static boolean isBitsPerSampleSupported(int bitsPerSample, int numberOfChannels) {
+        return (bitsPerSample == 1 && numberOfChannels == 1) ||
+                isBitsPerSampleSupportedForAnyNumberOfChannels(bitsPerSample);
+    }
+
+    public static boolean isBitsPerSampleSupportedForAnyNumberOfChannels(int bitsPerSample) {
+        return bitsPerSample == 8 || bitsPerSample == 16 || bitsPerSample == 32 || bitsPerSample == 64;
     }
 
     public static Matrix<UpdatablePArray> asMatrix(

@@ -340,7 +340,7 @@ public class TiffUnpacking {
             return false;
         }
         assert bitDepth != 1;
-        if (bitDepth != 24 && !TiffSamples.isBitsPerSampleSupported(bitDepth)) {
+        if (bitDepth != 24 && !TiffSamples.isBitsPerSampleSupportedForAnyNumberOfChannels(bitDepth)) {
             // - should not occur: the same check is performed in TiffIFD.sampleType(), called while creating TiffMap
             throw new UnsupportedTiffFormatException("Not supported TIFF format: compression \"" +
                     ifd.compressionPrettyName() + "\", " + bitDepth + " bits per every sample");
