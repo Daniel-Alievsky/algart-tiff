@@ -74,6 +74,11 @@ public class TiffTileTest {
     }
 
 
+    public void test() throws Exception {
+        //noinspection Convert2MethodRef
+        TestPOJOTools.runTest(args -> main(args));
+    }
+
     public static void main(String[] args) throws TiffException {
         testMap(1, TiffSampleType.BIT, 157);
         testMap(3, TiffSampleType.BIT, 156);

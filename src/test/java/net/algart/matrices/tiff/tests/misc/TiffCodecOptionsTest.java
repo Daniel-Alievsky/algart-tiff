@@ -28,6 +28,11 @@ import net.algart.matrices.tiff.codecs.JPEG2000Codec;
 import net.algart.matrices.tiff.codecs.TiffCodec;
 
 public class TiffCodecOptionsTest {
+    public void test() throws Exception {
+        //noinspection Convert2MethodRef
+        TestPOJOTools.runTest(args -> main(args));
+    }
+
     public static void main(String[] args) {
         TiffCodec.Options options = new JPEG2000Codec.JPEG2000Options()
 //                .setCodeBlockSize(new int[] {16, 16})

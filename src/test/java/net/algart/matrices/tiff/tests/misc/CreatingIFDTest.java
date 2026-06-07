@@ -38,6 +38,11 @@ public class CreatingIFDTest {
         System.out.printf("Json:%n----%n%s%n----%n%n", ifd.toString(TiffIFD.StringFormat.JSON));
     }
 
+    public void test() throws Exception {
+        //noinspection Convert2MethodRef
+        TestPOJOTools.runTest(args -> main(args));
+    }
+
     public static void main(String[] args) {
         TiffIFD ifd = TiffIFD.newInstance();
         showIFD(ifd, "Empty");
