@@ -37,7 +37,7 @@ public class TiffWriteHugeTiledFileTest {
     private final static int IMAGE_WIDTH = 10 * 1024;
     private final static int IMAGE_HEIGHT = 10 * 1024;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         boolean bigTiff = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-bigTiff")) {

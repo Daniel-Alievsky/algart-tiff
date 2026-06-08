@@ -57,7 +57,7 @@ public class TiffIFDGetValueTest {
 
     public void test() throws Exception {
         //noinspection Convert2MethodRef
-        TestPOJOTools.runTest(args -> main(args));
+        TestPOJOTools.runTest(() -> main());
     }
 
     public static void main(String... args) {

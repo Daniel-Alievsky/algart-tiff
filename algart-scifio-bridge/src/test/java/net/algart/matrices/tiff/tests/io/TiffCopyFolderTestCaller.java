@@ -27,7 +27,7 @@ package net.algart.matrices.tiff.tests.io;
 import java.io.IOException;
 
 public class TiffCopyFolderTestCaller {
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         TiffCopyFolderTest.main(args);
     }
 }

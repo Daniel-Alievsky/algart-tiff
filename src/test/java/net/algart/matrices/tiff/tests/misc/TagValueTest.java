@@ -47,10 +47,10 @@ public class TagValueTest {
 
     public void test() throws Exception {
         //noinspection Convert2MethodRef
-        TestPOJOTools.runTest(args -> main(args));
+        TestPOJOTools.runTest(() -> main());
     }
 
-    public static void main(String[] args) throws TiffException {
+    public static void main(String... args) throws TiffException {
         TiffIFD ifd = TiffIFD.newInstance();
         printDescription(ifd);
         ifd.put(Tags.X_RESOLUTION,

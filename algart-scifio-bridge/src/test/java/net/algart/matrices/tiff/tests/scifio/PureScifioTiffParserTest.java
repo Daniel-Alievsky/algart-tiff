@@ -47,7 +47,7 @@ public class PureScifioTiffParserTest {
     // - non-zero value allows to illustrate a bug in original TiffParser.getSamples
     private static final int START_Y = 0;
 
-    public static void main(String[] args) throws IOException, FormatException {
+    public static void main(String... args) throws IOException, FormatException {
         if (args.length < 3) {
             System.out.println("Usage:");
             System.out.println("    " + PureScifioTiffParserTest.class.getName()

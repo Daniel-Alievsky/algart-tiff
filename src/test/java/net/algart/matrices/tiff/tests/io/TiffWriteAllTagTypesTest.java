@@ -42,7 +42,7 @@ public class TiffWriteAllTagTypesTest {
     private final static int SIZE_Y = 2000;
     public static final int TAG_WITH_UNKNOWN_TYPE = 33333;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         boolean bigTiff = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-bigTiff")) {

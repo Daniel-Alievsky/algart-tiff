@@ -34,7 +34,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 
 public class PureScifioIfdOffsets {
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         if (args.length < 1) {
             System.out.println("Usage:");
             System.out.println("    " + PureScifioIfdOffsets.class.getName() + " tiff_file.tiff");

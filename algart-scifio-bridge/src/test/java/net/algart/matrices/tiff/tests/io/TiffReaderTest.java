@@ -49,7 +49,7 @@ import java.util.Locale;
 public class TiffReaderTest {
     private static final int MAX_IMAGE_DIM = 10000;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         boolean useContext = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-useContext")) {

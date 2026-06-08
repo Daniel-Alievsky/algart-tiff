@@ -132,7 +132,7 @@ public class AWTCustomWriteJpegTest {
         writer.write(null, iioImage, writeParam);
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         System.out.printf("All installed image writers: %s%n", Arrays.toString(ImageIO.getWriterFormatNames()));
         int startArgIndex = 0;
         boolean rgb = false;

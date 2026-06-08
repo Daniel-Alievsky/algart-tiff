@@ -124,7 +124,7 @@ public class AWTJpegMetadataBug {
         }
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         if (args.length < 2) {
             System.out.println("Usage:");
             System.out.println("    " + AWTJpegMetadataBug.class.getName()

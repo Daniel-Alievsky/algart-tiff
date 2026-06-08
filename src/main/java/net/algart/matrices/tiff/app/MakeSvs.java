@@ -58,7 +58,7 @@ public class MakeSvs {
     int maxThumbnailSize = 1024;
     double pixelSize = 0.5;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         final MakeSvs make = new MakeSvs();
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-le")) {

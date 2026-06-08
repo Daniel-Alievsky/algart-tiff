@@ -78,7 +78,7 @@ public class TiffSampleTypeTest {
 
     public void test() throws Exception {
         //noinspection Convert2MethodRef
-        TestPOJOTools.runTest(args -> main(args));
+        TestPOJOTools.runTest(() -> main());
     }
 
 

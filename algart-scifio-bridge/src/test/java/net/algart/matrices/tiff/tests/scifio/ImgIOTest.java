@@ -39,7 +39,7 @@ import java.util.List;
 public class ImgIOTest {
     private static final int MAX_IMAGE_SIZE = 6000;
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String... args) throws Exception {
         if (args.length < 2) {
             System.out.println("Usage:");
             System.out.println("    " + ImgIOTest.class.getName()

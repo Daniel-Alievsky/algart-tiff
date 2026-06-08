@@ -28,7 +28,7 @@ import io.scif.formats.tiff.TiffCompression;
 import net.algart.matrices.tiff.tags.TagCompression;
 
 public class TiffCompressionsTest {
-    public static void main(String[] args) {
+    public static void main(String... args) {
         System.out.printf("%s:%n%n", TagCompression.class.getName());
         for (TagCompression v : TagCompression.values()) {
             TiffCompression compression = TiffCompression.get(v.code());

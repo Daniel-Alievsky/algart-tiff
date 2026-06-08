@@ -68,7 +68,7 @@ public class AWTWriteJpegBug {
         return writeParam;
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         if (args.length < 2) {
             System.out.println("Usage:");
             System.out.println("    " + AWTWriteJpegBug.class.getName()

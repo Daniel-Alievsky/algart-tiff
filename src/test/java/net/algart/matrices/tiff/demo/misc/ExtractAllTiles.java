@@ -41,7 +41,7 @@ import java.util.Locale;
 public class ExtractAllTiles {
     private static final int MAX_IMAGE_DIM = 8000;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         boolean crop = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-crop")) {

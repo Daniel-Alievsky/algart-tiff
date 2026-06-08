@@ -74,7 +74,7 @@ public class LabelSmallObjectsDemo {
                 result;
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         if (args.length < startArgIndex + 3) {
             System.out.printf("Usage: %s " +

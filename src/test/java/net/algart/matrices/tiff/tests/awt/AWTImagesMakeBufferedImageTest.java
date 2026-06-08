@@ -42,7 +42,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class AWTImagesMakeBufferedImageTest {
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         boolean packed = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-packed")) {

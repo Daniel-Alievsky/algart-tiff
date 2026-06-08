@@ -35,7 +35,7 @@ import org.scijava.io.location.Location;
 import java.io.File;
 
 public class FileHandleGenericsBug {
-    public static void main(String[] args) {
+    public static void main(String... args) {
         if (args.length < 1) {
             System.out.println("Usage:");
             System.out.println("    " + FileHandleGenericsBug.class.getName() + " some_tiff_file");

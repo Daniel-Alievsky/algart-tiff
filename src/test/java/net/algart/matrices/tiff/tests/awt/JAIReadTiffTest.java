@@ -43,7 +43,7 @@ import java.io.IOException;
 public class JAIReadTiffTest {
     private static final int MAX_IMAGE_DIM = 6000;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         if (args.length < 3) {
             System.out.println("Usage:");
             System.out.println("    " + JAIReadTiffTest.class.getName()

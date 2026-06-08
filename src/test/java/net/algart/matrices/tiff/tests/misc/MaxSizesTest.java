@@ -36,7 +36,7 @@ public class MaxSizesTest {
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(String... args) {
         test(-1, 1000);
         test(10000000000L, 1000);
         test(10000L, 1000000000000000L);

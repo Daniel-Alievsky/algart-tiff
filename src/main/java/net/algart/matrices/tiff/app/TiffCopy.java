@@ -50,7 +50,7 @@ public class TiffCopy {
 
     private long lastProgressTime = Integer.MIN_VALUE;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         boolean callConvertToTiff = false;
         boolean callConvertFromTiff = false;

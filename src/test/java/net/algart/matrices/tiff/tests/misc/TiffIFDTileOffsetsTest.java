@@ -35,7 +35,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class TiffIFDTileOffsetsTest {
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         if (args.length < 2) {
             System.out.println("Usage:");
             System.out.println("    " + TiffIFDTileOffsetsTest.class.getName() + " tiff_file.tiff ifdIndex");

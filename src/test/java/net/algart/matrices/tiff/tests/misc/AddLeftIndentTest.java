@@ -31,7 +31,7 @@ public class AddLeftIndentTest {
         return "\"" + s.replace("\r", "\\r").replace("\n", "\\n") + "\"";
     }
 
-    public static void main(String[] args) {
+    public static void main(String... args) {
         String s = "{\rMy line1\n\nMy line2\r\nMy line3\n}";
         System.out.println(s);
         System.out.println(escape(s));

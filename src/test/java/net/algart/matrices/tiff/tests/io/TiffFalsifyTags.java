@@ -34,7 +34,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class TiffFalsifyTags {
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         boolean addReferenceBlackWhite = false;
         if (args.length > startArgIndex && args[startArgIndex]

@@ -56,7 +56,7 @@ public class TiffInfo {
     private String summaryInfo;
     private String svsInfo;
 
-    public static void main(String[] args) {
+    public static void main(String... args) {
         final TiffInfo info = new TiffInfo();
         int startArgIndex = 0;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-detailed")) {

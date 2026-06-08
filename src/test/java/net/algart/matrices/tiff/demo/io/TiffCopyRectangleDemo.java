@@ -35,7 +35,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class TiffCopyRectangleDemo {
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         boolean direct = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-direct")) {

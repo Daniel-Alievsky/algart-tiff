@@ -41,7 +41,7 @@ import java.util.Locale;
 public class AWTImageConversionsSpeed {
     private static final boolean LITTLE_ENDIAN = false;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         if (args.length < 2) {
             System.out.println("Usage:");
             System.out.println("    " + AWTImageConversionsSpeed.class.getName()

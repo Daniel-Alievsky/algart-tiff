@@ -33,7 +33,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 
 public class DeflateCodecTest {
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         if (args.length < 2) {
             System.out.println("Usage:");
             System.out.printf("    %s source_file packed_file [level] [number_of_tests]%n",

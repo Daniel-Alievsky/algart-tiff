@@ -29,8 +29,8 @@ import java.io.PrintStream;
 
 public class TestPOJOTools {
     @FunctionalInterface
-    public interface MainMethod {
-        void main(String[] args) throws Exception;
+    public interface RunningThrowable {
+        void run() throws Exception;
     }
     /**
      * Runs the standard {@code main(String[] args)} method with temporary disabling {@code System.out}.
@@ -39,12 +39,12 @@ public class TestPOJOTools {
      *
      * @param mainMethod standard Java {@code main} method.
      */
-    public static void runTest(MainMethod mainMethod) throws Exception {
+    public static void runTest(RunningThrowable mainMethod) throws Exception {
         System.out.println("Maven-style: calling main...");
         PrintStream oldOut = System.out;
         try {
             System.setOut(new PrintStream(OutputStream.nullOutputStream()));
-            mainMethod.main(new String[0]);
+            mainMethod.run();
         } finally {
             System.setOut(oldOut);
         }

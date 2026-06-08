@@ -37,7 +37,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class ExtractTileContent {
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         boolean unpack = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-unpack")) {

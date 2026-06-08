@@ -31,7 +31,7 @@ import net.algart.matrices.tiff.codecs.TiffCodec;
 import java.awt.image.ColorModel;
 
 public class CodecOptionsTest {
-    public static void main(String[] args) {
+    public static void main(String... args) {
         TiffCodec.Options options = new JPEG2000Codec.JPEG2000Options()
                 .setColorModel(ColorModel.getRGBdefault())
                 .setLossless(false)

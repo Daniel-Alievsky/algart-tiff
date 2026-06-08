@@ -40,10 +40,10 @@ public class SvsDescriptionTest {
 
     public void test() throws Exception {
         //noinspection Convert2MethodRef
-        TestPOJOTools.runTest(args -> main(args));
+        TestPOJOTools.runTest(() -> main());
     }
 
-    public static void main(String[] args) throws TiffException {
+    public static void main(String... args) throws TiffException {
         TiffIFD ifd = TiffIFD.newInstance();
         ifd.putImageDimensions(10000, 10000);
         ifd.defaultTileSizes();

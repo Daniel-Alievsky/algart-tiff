@@ -29,7 +29,7 @@ import javax.imageio.ImageReader;
 import java.util.Iterator;
 
 public class AWTImageReadersList {
-    public static void main(String[] args) {
+    public static void main(String... args) {
         if (args.length < 1) {
             System.out.printf("Usage: %s format_name%n", AWTImageReadersList.class.getName());
             return;

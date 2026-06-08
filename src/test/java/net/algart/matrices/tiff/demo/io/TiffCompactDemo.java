@@ -34,7 +34,7 @@ import java.util.Locale;
 public class TiffCompactDemo {
     private static final int DEFAULT_MAX_IN_MEMORY_TEMP_FILE_SIZE = 256 * 1024 * 1024; // 256 MB
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         boolean repack = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-repack")) {

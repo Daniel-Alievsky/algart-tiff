@@ -68,7 +68,7 @@ public class PackBitsCodecTest {
         }
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         Random rnd = new Random();
         for (int test = 1; test <= 1000000; test++) {
             if (test % 1000 == 0) {

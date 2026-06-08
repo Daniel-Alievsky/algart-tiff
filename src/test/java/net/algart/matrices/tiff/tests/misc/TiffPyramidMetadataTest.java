@@ -37,7 +37,7 @@ import java.util.List;
 import java.util.Map;
 
 public class TiffPyramidMetadataTest {
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         if (args.length == 0) {
             System.out.println("Usage: " + TiffPyramidMetadataTest.class.getName() + " file1.svs file2.svs ...");
             return;

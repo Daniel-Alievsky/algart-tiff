@@ -36,7 +36,7 @@ import java.util.stream.IntStream;
  * creates the same results as scijava Bytes.makeArray method.
  */
 public class BytesMakeImageTest {
-    public static void main(String[] args) {
+    public static void main(String... args) {
         final Random rnd = new Random(157);
         final byte[] bytes = new byte[1011 * 1011];
         IntStream.range(0, bytes.length).forEach(i -> bytes[i] = (byte) rnd.nextInt());

@@ -34,7 +34,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class TiffCopyCustomDemo {
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         boolean append = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-append")) {

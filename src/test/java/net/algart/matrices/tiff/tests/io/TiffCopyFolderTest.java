@@ -34,7 +34,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class TiffCopyFolderTest {
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         TiffCopyTest copyTest = new TiffCopyTest();
         int startArgIndex = 0;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-useContext")) {

@@ -37,7 +37,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class TiffIFDAndIFDOffsetsTest {
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         boolean cache = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-cache")) {

@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class ConvertToTiff {
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         doMain(args, true);
     }
 

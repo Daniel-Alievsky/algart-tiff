@@ -35,7 +35,7 @@ import java.nio.file.Paths;
 public class TiffEditDescriptionDemo {
     static final System.Logger LOG = System.getLogger(TiffEditDescriptionDemo.class.getName());
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         if (args.length < startArgIndex + 3) {
             System.out.println("Usage:");

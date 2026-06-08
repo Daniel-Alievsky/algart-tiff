@@ -53,7 +53,7 @@ public class TiffReaderWriterScifioTest {
         System.out.printf("TiffWriter.scifio(): %.3f mcs, %.3f mcs: %s%n", (t2 - t1) * 1e-3, (t3 - t2) * 1e-3, scifio);
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         for (int test = 1; test <= 10; test++) {
             System.out.printf("%nTest %d%n", test);
 

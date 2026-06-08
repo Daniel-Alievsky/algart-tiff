@@ -30,7 +30,7 @@ import java.util.Arrays;
 import java.util.Random;
 
 public class InterleaveSeparateTest {
-    public static void main(String[] args) {
+    public static void main(String... args) {
         if (args.length < 2) {
             System.out.println("Usage:");
             System.out.println("    " + InterleaveSeparateTest.class.getName()

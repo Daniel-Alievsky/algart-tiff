@@ -47,7 +47,7 @@ public class TiffCopyTest {
     boolean uncompress = false;
     boolean copyRectangle = false;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         TiffCopyTest copyTest = new TiffCopyTest();
         int startArgIndex = 0;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-repack")) {

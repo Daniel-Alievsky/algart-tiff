@@ -34,7 +34,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class TiffStreamNameTest {
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         if (args.length < 1) {
             System.out.printf("Usage: %s tiff_file.tiff%n", TiffStreamNameTest.class.getName());
             return;

@@ -32,7 +32,7 @@ import java.io.File;
 import java.io.IOException;
 
 public class AWTSimpleReadTest {
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         if (args.length < 2) {
             System.out.println("Usage:");
             System.out.println("    " + AWTSimpleReadTest.class.getName()

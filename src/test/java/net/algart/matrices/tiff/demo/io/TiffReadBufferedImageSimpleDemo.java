@@ -34,7 +34,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class TiffReadBufferedImageSimpleDemo {
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         if (args.length < 3) {
             System.out.println("Usage:");
             System.out.printf("    %s source.tiff target.jpg/png/bmp ifdIndex%n",

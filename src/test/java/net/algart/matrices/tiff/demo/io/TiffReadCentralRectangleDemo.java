@@ -38,7 +38,7 @@ import java.nio.file.Paths;
 import java.util.List;
 
 public class TiffReadCentralRectangleDemo {
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         boolean lowLevel = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-lowLevel")) {

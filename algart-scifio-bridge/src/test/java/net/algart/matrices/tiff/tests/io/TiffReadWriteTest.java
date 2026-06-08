@@ -53,7 +53,7 @@ public class TiffReadWriteTest {
     private static final int START_X = 0;
     private static final int START_Y = 0;
 
-    public static void main(String[] args) throws IOException, FormatException {
+    public static void main(String... args) throws IOException, FormatException {
         int startArgIndex = 0;
         boolean useContext = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-useContext")) {

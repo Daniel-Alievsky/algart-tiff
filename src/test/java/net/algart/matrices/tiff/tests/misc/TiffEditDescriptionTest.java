@@ -34,7 +34,7 @@ import java.util.Collection;
 import java.util.Random;
 
 public class TiffEditDescriptionTest {
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         if (args.length < 2) {
             System.out.println("Usage:");
             System.out.printf("    %s target.tiff number-of-tests%n", TiffEditDescriptionTest.class.getName());

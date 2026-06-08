@@ -75,7 +75,7 @@ public class TiffPredictionTest {
         }
     }
 
-    public static void main(String[] args) throws TiffException {
+    public static void main(String... args) throws TiffException {
         if (args.length < 4) {
             System.out.println("Usage:");
             System.out.println("    " + TiffPredictionTest.class.getName()

@@ -32,7 +32,7 @@ import java.util.List;
  * This test is useful for work over {@link net.algart.matrices.tiff.app.explorer.TiffExplorer}.
  */
 public class UIKeyListTest {
-    public static void main(String[] args) throws Exception {
+    public static void main(String... args) throws Exception {
         showDefaults();
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         showDefaults();

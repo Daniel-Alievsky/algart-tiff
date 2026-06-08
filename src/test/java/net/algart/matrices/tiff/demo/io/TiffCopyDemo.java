@@ -45,7 +45,7 @@ public class TiffCopyDemo {
         }
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         boolean repack = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-repack")) {

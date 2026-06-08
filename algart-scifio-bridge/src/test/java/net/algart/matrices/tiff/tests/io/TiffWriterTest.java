@@ -80,7 +80,7 @@ public class TiffWriterTest {
         }
     }
 
-    public static void main(String[] args) throws IOException, FormatException {
+    public static void main(String... args) throws IOException, FormatException {
         int startArgIndex = 0;
         boolean useContext = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-useContext")) {

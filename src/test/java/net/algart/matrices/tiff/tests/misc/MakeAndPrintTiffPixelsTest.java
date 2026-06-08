@@ -36,7 +36,7 @@ import java.nio.file.Paths;
 import java.util.Locale;
 
 public class MakeAndPrintTiffPixelsTest {
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         if (args.length < startArgIndex + 5) {
             System.out.println("Usage:");

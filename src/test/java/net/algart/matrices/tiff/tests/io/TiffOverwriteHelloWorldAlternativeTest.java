@@ -39,7 +39,7 @@ import java.nio.file.Paths;
 import java.util.List;
 
 public class TiffOverwriteHelloWorldAlternativeTest {
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");

@@ -42,7 +42,7 @@ import java.util.Iterator;
 // namely, cannot set up necessary color space
 public class AWTCustomReadJpegTest {
     private static final boolean PRINT_METADATA = true;
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         boolean enforceAWT = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-enforceAWT")) {

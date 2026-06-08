@@ -36,7 +36,7 @@ import java.io.IOException;
 import java.util.Iterator;
 
 public class AWTSimpleWriteTest {
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         if (args.length < 2) {
             System.out.println("Usage:");
             System.out.println("    " + AWTSimpleWriteTest.class.getName()

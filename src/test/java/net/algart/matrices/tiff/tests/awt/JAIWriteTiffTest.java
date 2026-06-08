@@ -41,7 +41,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 
 public class JAIWriteTiffTest {
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         if (args.length < 2) {
             System.out.println("Usage:");
             System.out.println("    " + JAIWriteTiffTest.class.getName()

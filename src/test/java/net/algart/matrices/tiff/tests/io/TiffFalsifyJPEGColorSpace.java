@@ -36,7 +36,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class TiffFalsifyJPEGColorSpace {
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         if (args.length < startArgIndex + 4) {
             System.out.println("Usage:");

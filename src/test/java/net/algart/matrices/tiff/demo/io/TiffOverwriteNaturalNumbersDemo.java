@@ -41,7 +41,7 @@ public class TiffOverwriteNaturalNumbersDemo {
     private static final boolean WRITE_IMMEDIATELY = true;
     private static final boolean ACCURATE_MEMORY_MEASURING = true;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         if (args.length < startArgIndex + 7) {
             System.out.println("Usage:");

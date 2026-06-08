@@ -39,7 +39,7 @@ import java.nio.file.Paths;
 
 public class TiffParserIFDTileOffsetsTest {
     @SuppressWarnings("deprecation")
-    public static void main(String[] args) throws IOException, FormatException {
+    public static void main(String... args) throws IOException, FormatException {
         int startArgIndex = 0;
         boolean equalStrips = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-equalStrips")) {

@@ -74,7 +74,7 @@ public class TiffExplorer {
     private Path tiffFile = null;
     private TiffIFD.StringFormat stringFormat = TiffIFD.StringFormat.NORMAL;
 
-    public static void main(String[] args) {
+    public static void main(String... args) {
         if (args.length >= 1 && args[0].equals("-h")) {
             System.out.println("Usage:");
             System.out.println("    " + TiffExplorer.class.getSimpleName() + " [some_file.tiff]");

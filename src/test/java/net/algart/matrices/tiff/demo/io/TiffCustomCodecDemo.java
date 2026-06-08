@@ -49,7 +49,7 @@ public class TiffCustomCodecDemo {
     private static final System.Logger LOG = System.getLogger(TiffCustomCodecDemo.class.getName());
     private static final System.Logger.Level LOG_LEVEl = System.Logger.Level.INFO;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         if (args.length < 3) {
             System.out.println("Usage:");
             System.out.printf("    %s source.jpg/png/bmp target.tiff test.jpg/png/bmp%n",

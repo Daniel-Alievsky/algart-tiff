@@ -686,7 +686,7 @@ public final class TiffPyramidMetadata {
         return (double) Math.max(dimX, dimY) / (double) Math.min(dimX, dimY);
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         System.out.println(containsLabelMarker(TiffIFD.newStrippedIFD().putDescription("My Label is")));
         System.out.println(containsLabelMarker(TiffIFD.newStrippedIFD().putDescription("Label")));
         System.out.println(containsLabelMarker(TiffIFD.newStrippedIFD().putDescription("Labelling")));

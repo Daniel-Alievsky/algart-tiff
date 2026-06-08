@@ -39,7 +39,7 @@ import java.nio.file.Paths;
 import java.util.Locale;
 
 public class TiffWriteSimpleBitTest {
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         boolean bigTiff = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-bigTiff")) {
