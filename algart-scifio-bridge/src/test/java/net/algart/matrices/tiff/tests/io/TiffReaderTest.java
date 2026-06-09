@@ -190,7 +190,7 @@ public class TiffReaderTest {
                     if (test == 1 && !interleave) {
                         // - testing alternate way to do the same thing
                         byte[] samples = map.readSampleBytes(x, y, w, h);
-                        Matrix<UpdatablePArray> other = map.sampleBytesToMatrix(samples, w, h);
+                        Matrix<UpdatablePArray> other = map.toMatrix(samples, w, h);
                         if (!other.equals(matrix)) {
                             throw new AssertionError("Different matrices!");
                         }

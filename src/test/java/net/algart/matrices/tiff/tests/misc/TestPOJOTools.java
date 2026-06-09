@@ -40,7 +40,7 @@ public class TestPOJOTools {
      * @param mainMethod standard Java {@code main} method.
      */
     public static void runTest(RunningThrowable mainMethod) throws Exception {
-        System.out.println("Maven-style: calling main...");
+        System.out.printf("Maven-style: calling main method in %s...%n", mainMethod.getClass().getNestHost());
         PrintStream oldOut = System.out;
         try {
             System.setOut(new PrintStream(OutputStream.nullOutputStream()));

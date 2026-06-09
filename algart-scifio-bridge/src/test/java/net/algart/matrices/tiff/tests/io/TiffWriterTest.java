@@ -414,8 +414,10 @@ public class TiffWriterTest {
                                 ifdIndex, FormatTools.UINT8,
                                 x, y, w, h, k == numberOfImages - 1);
                     } else if (x == 0 && y == 0) {
-                        map.writeMatrix(matrix);
-                        // - this call shows detailed logging
+                        map.writeJavaArray(samplesArray);
+                        // - This call shows detailed logging
+                        // Note: we should use writeJavaArray if we want to test AUTO_INTERLEAVE_SOURCE=false:
+                        // writeMatrix does not support this mode
                     } else {
                         map.prewrite();
                         map.updateMatrix(matrix, x, y);

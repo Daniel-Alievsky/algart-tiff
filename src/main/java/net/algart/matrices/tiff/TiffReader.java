@@ -111,15 +111,15 @@ public non-sealed class TiffReader extends TiffIO {
             }
         }
 
-        public byte[] unpackIfNecessary(TiffMap map, byte[] samples, long numberOfPixels, boolean rescaleInt24)
+        public byte[] unpackIfNecessary(TiffMap map, byte[] sampleBytes, long numberOfPixels, boolean rescaleInt24)
                 throws TiffException {
             Objects.requireNonNull(map, "Null TIFF map");
-            Objects.requireNonNull(samples, "Null samples");
+            Objects.requireNonNull(sampleBytes, "Null sampleBytes");
             throwIfDisabled(map);
             return this != TiffReader.UnusualPrecisions.UNPACK ?
-                    samples :
+                    sampleBytes :
                     TiffUnusualPrecisions.unpackUnusualPrecisions(
-                            samples, map.ifd(), map.numberOfChannels(), numberOfPixels, rescaleInt24);
+                            sampleBytes, map.ifd(), map.numberOfChannels(), numberOfPixels, rescaleInt24);
         }
     }
 
@@ -1665,10 +1665,10 @@ public non-sealed class TiffReader extends TiffIO {
         TiffPrediction.unsubtractPredictionIfRequested(tile);
 
         if (USE_LEGACY_UNPACK_BYTES) {
-            byte[] samples = new byte[tile.map().tileSizeInBytes()];
-            // TiffTools.unpackBytesLegacy(samples, 0, tile.getDecodedData(), tile.ifd());
+            final byte[] sampleBytes = new byte[tile.map().tileSizeInBytes()];
+            // TiffTools.unpackBytesLegacy(sampleBytes, 0, tile.getDecodedData(), tile.ifd());
             // - uncomment this to perform debugging
-            tile.setDecodedData(samples);
+            tile.setDecodedData(sampleBytes);
             tile.setInterleaved(false);
         } else {
             if (!TiffUnpacking.separateUnpackedSamples(tile)) {

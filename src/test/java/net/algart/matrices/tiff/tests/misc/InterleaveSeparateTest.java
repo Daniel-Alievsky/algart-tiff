@@ -30,6 +30,11 @@ import java.util.Arrays;
 import java.util.Random;
 
 public class InterleaveSeparateTest {
+    public void test() throws Exception {
+        //noinspection Convert2MethodRef
+        TestPOJOTools.runTest(() -> main("100", "100"));
+    }
+
     public static void main(String... args) {
         if (args.length < 2) {
             System.out.println("Usage:");

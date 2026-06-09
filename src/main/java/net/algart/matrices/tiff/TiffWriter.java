@@ -72,7 +72,8 @@ public non-sealed class TiffWriter extends TiffIO {
     // was implemented in the past for compatibility with TiffSaver class.
     // It is no longer supported since the version 1.4.0, because this makes the behavior
     // of TiffWriter nonpredictable without analyzing this mode; but it still can be enabled by this flag.
-    // Note that the alternate mode (false) was never supported in writeChannels and writeBufferedImage methods.
+    // Note that the alternate mode (false) was never supported in writeChannels and writeBufferedImage methods
+    // and also is not supported in writeMatrix since the version 1.5.2.
     // IF YOU CHANGE IT, YOU MUST CORRECT ALSO TiffWriteMap.AUTO_INTERLEAVE_SOURCE
     // (and, for testing, the AUTO_INTERLEAVE_SOURCE constant in TiffWriterTest)
 

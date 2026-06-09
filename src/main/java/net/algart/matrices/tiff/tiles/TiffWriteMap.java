@@ -41,9 +41,6 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
-    private static final boolean AUTO_INTERLEAVE_SOURCE = true;
-    // - Must be true. See TiffWriter.AUTO_INTERLEAVE_SOURCE.
-    // IF YOU CHANGE IT, YOU MUST CORRECT ALSO TiffWriter.AUTO_INTERLEAVE_SOURCE.
     private static final boolean IGNORE_WRITING_OUTSIDE_MAP = true;
     // - Should be true. The false value simulates the early versions, but this is inconvenient for using.
 
@@ -187,23 +184,22 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
         }
     }
 
-
-    public List<TiffTile> updateSampleBytes(byte[] samples, long fromX, long fromY, long sizeX, long sizeY) {
-        Objects.requireNonNull(samples, "Null samples");
+    public List<TiffTile> updateSampleBytes(byte[] sampleBytes, long fromX, long fromY, long sizeX, long sizeY) {
+        Objects.requireNonNull(sampleBytes, "Null sampleBytes");
         checkRequestedArea(fromX, fromY, sizeX, sizeY);
         assert fromX == (int) fromX && fromY == (int) fromY && sizeX == (int) sizeX && sizeY == (int) sizeY;
-        return updateSampleBytes(samples, (int) fromX, (int) fromY, (int) sizeX, (int) sizeY);
+        return updateSampleBytes(sampleBytes, (int) fromX, (int) fromY, (int) sizeX, (int) sizeY);
     }
 
     public List<TiffTile> updateSampleBytes(
-            final byte[] samples,
+            final byte[] sampleBytes,
             final int fromX,
             final int fromY,
             final int sizeX,
             final int sizeY) {
-        Objects.requireNonNull(samples, "Null samples");
+        Objects.requireNonNull(sampleBytes, "Null sampleBytes");
         checkRequestedArea(fromX, fromY, sizeX, sizeY);
-        checkRequestedAreaInArray(samples, sizeX, sizeY, totalAlignedBitsPerPixel());
+        checkRequestedAreaInArray(sampleBytes, sizeX, sizeY, totalAlignedBitsPerPixel());
         final List<TiffTile> updatedTiles = new ArrayList<>();
         if (sizeX == 0 || sizeY == 0) {
             // - if no pixels are updated, no need to expand the map and to check correct expansion
@@ -222,7 +218,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                 }
                 toX = Math.min(toX, dimX());
                 toY = Math.min(toY, dimY());
-                // Note: we MUST NOT change sizeX/sizeY, they specify the structure of the samples array
+                // Note: we MUST NOT change sizeX/sizeY, they specify the structure of the sampleBytes array
                 if (toX <= fromX || toY <= fromY) {
                     // Note: below we need a guarantee that fromX < toX, fromY < toY
                     return updatedTiles;
@@ -318,7 +314,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                         long sOffset = (yDiff * (long) sizeX + xDiff) * bitsPerPixel;
                         for (int i = 0; i < sizeYInTile; i++) {
                             assert sOffset >= 0 && tOffset >= 0 : "possibly int instead of long";
-                            PackedBitArraysPer8.copyBitsNoSync(data, tOffset, samples, sOffset, partSizeXInBits);
+                            PackedBitArraysPer8.copyBitsNoSync(data, tOffset, sampleBytes, sOffset, partSizeXInBits);
                             tOffset += tileChunkedRowSizeInBits;
                             sOffset += samplesChunkedRowSizeInBits;
                         }
@@ -340,7 +336,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                             // (long) cast is important for processing large bit matrices!
                             for (int i = 0; i < sizeYInTile; i++) {
                                 assert sOffset >= 0 && tOffset >= 0 : "possibly int instead of long";
-                                PackedBitArraysPer8.copyBitsNoSync(data, tOffset, samples, sOffset, partSizeXInBits);
+                                PackedBitArraysPer8.copyBitsNoSync(data, tOffset, sampleBytes, sOffset, partSizeXInBits);
                                 tOffset += tileOneChannelRowSizeInBits;
                                 sOffset += samplesOneChannelRowSizeInBits;
                             }
@@ -359,26 +355,8 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
             int fromY,
             int sizeX,
             int sizeY) {
-        Objects.requireNonNull(samplesArray, "Null samplesArray");
-        final long numberOfPixels = checkRequestedArea(fromX, fromY, sizeX, sizeY);
-        final Class<?> elementType = samplesArray.getClass().getComponentType();
-        if (elementType == null) {
-            throw new IllegalArgumentException("The specified samplesArray is not actual an array: " +
-                    "it is " + samplesArray.getClass());
-        }
-        if (!(elementType == elementType() || isBinary() && elementType == long.class)) {
-            throw new IllegalArgumentException("Invalid element type of samples array: " + elementType +
-                    ", but the specified TIFF map stores " + sampleType().prettyName() + " elements");
-        }
-        final long numberOfSamples = Math.multiplyExact(numberOfPixels, numberOfChannels());
-        // - overflow impossible after checkRequestedArea
-        if (numberOfSamples > maxNumberOfSamplesInArray()) {
-            throw new IllegalArgumentException("Too large area for updating TIFF in a single operation: " +
-                    sizeX + "x" + sizeY + "x" + numberOfChannels() + " exceed the limit " +
-                    maxNumberOfSamplesInArray());
-        }
-        final byte[] samples = TiffSamples.toBytes(samplesArray, numberOfSamples, byteOrder());
-        return updateSampleBytes(samples, fromX, fromY, sizeX, sizeY);
+        final byte[] sampleBytes = javaArrayToBytes(samplesArray, fromX, fromY, sizeX, sizeY);
+        return updateSampleBytes(sampleBytes, fromX, fromY, sizeX, sizeY);
     }
 
     public List<TiffTile> updateMatrix(Matrix<? extends PArray> matrix, int fromX, int fromY) {
@@ -417,8 +395,8 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                     + " (number of elements " + array.length() + " exceed the limit " +
                     maxNumberOfSamplesInArray() + ")");
         }
-        final byte[] samples = TiffSamples.toBytes(array, byteOrder());
-        return updateSampleBytes(samples, fromX, fromY, sizeX, sizeY);
+        final byte[] sampleBytes = TiffSamples.toBytes(array, byteOrder());
+        return updateSampleBytes(sampleBytes, fromX, fromY, sizeX, sizeY);
     }
 
     /**

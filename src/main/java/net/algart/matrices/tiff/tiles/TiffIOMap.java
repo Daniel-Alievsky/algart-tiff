@@ -42,6 +42,10 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         TiffTile getTile(TiffTileIndex tiffTileIndex) throws IOException;
     }
 
+    static final boolean AUTO_INTERLEAVE_SOURCE = true;
+    // - Must be true. See TiffWriter.AUTO_INTERLEAVE_SOURCE.
+    // IF YOU CHANGE IT, YOU MUST CORRECT ALSO TiffWriter.AUTO_INTERLEAVE_SOURCE.
+
     static final boolean BUILT_IN_TIMING = TiffIO.BUILT_IN_TIMING;
     static final System.Logger LOG = System.getLogger(TiffIOMap.class.getName());
     static final boolean LOGGABLE_DEBUG = LOG.isLoggable(System.Logger.Level.DEBUG);
@@ -124,18 +128,18 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         unusualPrecisions.throwIfDisabled(this);
         assert unusualPrecisions == TiffReader.UnusualPrecisions.NONE ||
                 unusualPrecisions == TiffReader.UnusualPrecisions.UNPACK;
-        final byte[] samples = new byte[sizeInBytes];
+        final byte[] sampleBytes = new byte[sizeInBytes];
 
         @SuppressWarnings("resource") final TiffReader reader = reader();
         final boolean rescaleInt24 = reader.isRescaleWhenIncreasingBitDepth();
         final byte byteFiller = reader.getByteFiller();
         if (byteFiller != 0) {
-            // - Java already zero-fills samples array
-            Arrays.fill(samples, 0, sizeInBytes, byteFiller);
+            // - Java already zero-fills sampleBytes array
+            Arrays.fill(sampleBytes, 0, sizeInBytes, byteFiller);
         }
         if (sizeX == 0 || sizeY == 0) {
             // - if no pixels are updated, no need to expand the map and to check correct expansion
-            return samples;
+            return sampleBytes;
         }
 
         final int mapTileSizeX = tileSizeX();
@@ -152,13 +156,13 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         final int minXIndex = Math.max(0, divFloor(fromX, mapTileSizeX));
         final int minYIndex = Math.max(0, divFloor(fromY, mapTileSizeY));
         if (minXIndex >= gridCountX() || minYIndex >= gridCountY() || toX < fromX || toY < fromY) {
-            return unusualPrecisions.unpackIfNecessary(this, samples, sizeInPixels, rescaleInt24);
+            return unusualPrecisions.unpackIfNecessary(this, sampleBytes, sizeInPixels, rescaleInt24);
         }
         final int maxXIndex = Math.min(gridCountX() - 1, divFloor(toX - 1, mapTileSizeX));
         final int maxYIndex = Math.min(gridCountY() - 1, divFloor(toY - 1, mapTileSizeY));
         if (minYIndex > maxYIndex || minXIndex > maxXIndex) {
             // - possible when fromX < 0 or fromY < 0
-            return unusualPrecisions.unpackIfNecessary(this, samples, sizeInPixels, rescaleInt24);
+            return unusualPrecisions.unpackIfNecessary(this, sampleBytes, sizeInPixels, rescaleInt24);
         }
         final long tileOneChannelRowSizeInBits = (long) mapTileSizeX * bitsPerSample;
         final long samplesOneChannelRowSizeInBits = (long) sizeX * bitsPerSample;
@@ -205,7 +209,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
                         // (long) cast is important for processing large bit matrices!
                         for (int i = 0; i < sizeYInTile; i++) {
                             assert sOffset >= 0 && tOffset >= 0 : "possibly int instead of long";
-                            PackedBitArraysPer8.copyBitsNoSync(samples, sOffset, data, tOffset, partSizeXInBits);
+                            PackedBitArraysPer8.copyBitsNoSync(sampleBytes, sOffset, data, tOffset, partSizeXInBits);
                             tOffset += tileOneChannelRowSizeInBits;
                             sOffset += samplesOneChannelRowSizeInBits;
                         }
@@ -213,7 +217,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
                 }
             }
         }
-        return unusualPrecisions.unpackIfNecessary(this, samples, sizeInPixels, rescaleInt24);
+        return unusualPrecisions.unpackIfNecessary(this, sampleBytes, sizeInPixels, rescaleInt24);
     }
 
     public byte[] readSampleBytes(
@@ -232,9 +236,9 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         checkRequestedArea(fromX, fromY, sizeX, sizeY);
         // - note: we allow this area to be outside the image
 
-        byte[] samples = loadSampleBytes(
+        byte[] sampleBytes = loadSampleBytes(
                 fromX, fromY, sizeX, sizeY, unusualPrecisions, storeTilesInMap, tileSupplier);
-        final int sizeInBytes = samples.length;
+        final int sizeInBytes = sampleBytes.length;
         final long sizeInPixels = (long) sizeX * (long) sizeY;
         // - can be >2^31 for bits
 
@@ -242,15 +246,15 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         // Deprecated since 1.4.0: use readInterleavedMatrix instead of this flag
         // boolean interleave = false;
         // if (interleaveResults) {
-        //     byte[] newSamples = map.toInterleavedSamples(samples, numberOfChannels, sizeInPixels);
-        //     interleave = newSamples != samples;
-        //     samples = newSamples;
+        //     byte[] newSamples = map.toInterleavedSamples(sampleBytes, numberOfChannels, sizeInPixels);
+        //     interleave = newSamples != sampleBytes;
+        //     sampleBytes = newSamples;
         // }
         boolean unpackingBits = false;
         if (reader.getAutoUnpackBits().isEnabled() && isBinary()) {
             unpackingBits = true;
-            samples = PackedBitArraysPer8.unpackBitsToBytes(
-                    samples,
+            sampleBytes = PackedBitArraysPer8.unpackBitsToBytes(
+                    sampleBytes,
                     0,
                     sizeInPixels,
                     (byte) 0,
@@ -274,7 +278,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
                             "",
                     sizeInBytes / 1048576.0 / ((t3 - t1) * 1e-9)));
         }
-        return samples;
+        return sampleBytes;
     }
 
     public Object readJavaArray(
@@ -287,10 +291,10 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             throws IOException {
         @SuppressWarnings("resource") final TiffReader reader = reader();
         Objects.requireNonNull(tileSupplier, "Null tileSupplier");
-        final byte[] samples = readSampleBytes(
+        final byte[] sampleBytes = readSampleBytes(
                 fromX, fromY, sizeX, sizeY,
                 reader.getUnusualPrecisions().unpackIfEnabled(), storeTilesInMap, tileSupplier);
-        return toJavaArray(samples);
+        return bytesToJavaArray(sampleBytes);
     }
 
     public Matrix<UpdatablePArray> readMatrix(
@@ -340,34 +344,57 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         return toBufferedImage(asChannels(mergedChannels));
     }
 
-    public Object toJavaArray(byte[] samples) {
+    public Object bytesToJavaArray(byte[] sampleBytes) {
         @SuppressWarnings("resource") final TiffReader reader = reader();
         long t1 = debugTime();
         final Object samplesArray = reader.getAutoUnpackBits().isEnabled() && isBinary() ?
-                samples :
-                sampleType().javaArray(samples, reader.getByteOrder());
+                sampleBytes :
+                sampleType().javaArray(sampleBytes, reader.getByteOrder());
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t2 = debugTime();
             LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
                     "%s converted %d bytes (%.3f MB) to %s[] in %.3f ms%s",
                     getClass().getSimpleName(),
-                    samples.length, samples.length / 1048576.0,
+                    sampleBytes.length, sampleBytes.length / 1048576.0,
                     samplesArray.getClass().getComponentType().getSimpleName(),
                     (t2 - t1) * 1e-6,
-                    samples == samplesArray ?
+                    sampleBytes == samplesArray ?
                             "" :
                             String.format(Locale.US, " %.3f MB/s",
-                                    samples.length / 1048576.0 / ((t2 - t1) * 1e-9))));
+                                    sampleBytes.length / 1048576.0 / ((t2 - t1) * 1e-9))));
         }
         return samplesArray;
     }
+
+    public byte[] javaArrayToBytes(Object samplesArray, int fromX, int fromY, int sizeX, int sizeY) {
+        Objects.requireNonNull(samplesArray, "Null samplesArray");
+        final long numberOfPixels = checkRequestedArea(fromX, fromY, sizeX, sizeY);
+        final Class<?> elementType = samplesArray.getClass().getComponentType();
+        if (elementType == null) {
+            throw new IllegalArgumentException("The specified samplesArray is not actual an array: " +
+                    "it is " + samplesArray.getClass());
+        }
+        if (!(elementType == elementType() || isBinary() && elementType == long.class)) {
+            throw new IllegalArgumentException("Invalid element type of samples array: " + elementType +
+                    ", but the specified TIFF map stores " + sampleType().prettyName() + " elements");
+        }
+        final long numberOfSamples = Math.multiplyExact(numberOfPixels, numberOfChannels());
+        // - overflow impossible after checkRequestedArea
+        if (numberOfSamples > maxNumberOfSamplesInArray()) {
+            throw new IllegalArgumentException("Too large area for updating TIFF in a single operation: " +
+                    sizeX + "x" + sizeY + "x" + numberOfChannels() + " exceed the limit " +
+                    maxNumberOfSamplesInArray());
+        }
+        return TiffSamples.toBytes(samplesArray, numberOfSamples, byteOrder());
+    }
+
 
     public Matrix<UpdatablePArray> javaArrayAsMatrix(Object samplesArray, int sizeX, int sizeY) {
         return TiffSamples.asMatrix(samplesArray, sizeX, sizeY, numberOfChannels(), false);
     }
 
-    public Matrix<UpdatablePArray> sampleBytesToMatrix(byte[] samples, int sizeX, int sizeY) {
-        final Object javaArray = toJavaArray(samples);
+    public Matrix<UpdatablePArray> toMatrix(byte[] sampleBytes, int sizeX, int sizeY) {
+        final Object javaArray = bytesToJavaArray(sampleBytes);
         return javaArrayAsMatrix(javaArray, sizeX, sizeY);
     }
 

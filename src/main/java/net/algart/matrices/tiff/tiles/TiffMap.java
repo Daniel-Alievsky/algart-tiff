@@ -826,12 +826,12 @@ public sealed class TiffMap permits TiffIOMap {
         // - most typical cases; we do not try to optimize "strange" bit numbers like 4-bit samples
     }
 
-    public byte[] toInterleavedSamples(byte[] samples, int numberOfChannels, long numberOfPixels) {
-        return toInterleaveOrSeparatedSamples(samples, numberOfChannels, numberOfPixels, true);
+    public byte[] toInterleavedSamples(byte[] sampleBytes, int numberOfChannels, long numberOfPixels) {
+        return toInterleaveOrSeparatedSamples(sampleBytes, numberOfChannels, numberOfPixels, true);
     }
 
-    public byte[] toSeparatedSamples(byte[] samples, int numberOfChannels, long numberOfPixels) {
-        return toInterleaveOrSeparatedSamples(samples, numberOfChannels, numberOfPixels, false);
+    public byte[] toSeparatedSamples(byte[] sampleBytes, int numberOfChannels, long numberOfPixels) {
+        return toInterleaveOrSeparatedSamples(sampleBytes, numberOfChannels, numberOfPixels, false);
     }
 
     public double[] colorToChannelValues(Color color, boolean scaleToMaxValue) {
@@ -909,16 +909,16 @@ public sealed class TiffMap permits TiffIOMap {
     }
 
     private byte[] toInterleaveOrSeparatedSamples(
-            byte[] samples,
+            byte[] sampleBytes,
             int numberOfChannels,
             long numberOfPixels,
             boolean interleave) {
-        Objects.requireNonNull(samples, "Null samples");
+        Objects.requireNonNull(sampleBytes, "Null sampleBytes");
         if (numberOfPixels < 0) {
             throw new IllegalArgumentException("Negative numberOfPixels = " + numberOfPixels);
         }
         if (numberOfChannels == 1) {
-            return samples;
+            return sampleBytes;
         }
         if (!isWholeBytes()) {
             throw new AssertionError("Non-whole bytes are impossible in valid TiffMap with 1 channel");
@@ -926,8 +926,8 @@ public sealed class TiffMap permits TiffIOMap {
         final int bytesPerSample = alignedBitDepth >>> 3;
         assert alignedBitDepth == bytesPerSample * 8 : "unaligned bitsPerSample impossible for whole bytes";
         return interleave ?
-                TiffSamples.toInterleavedBytes(samples, numberOfChannels, bytesPerSample, numberOfPixels) :
-                TiffSamples.toSeparatedBytes(samples, numberOfChannels, bytesPerSample, numberOfPixels);
+                TiffSamples.toInterleavedBytes(sampleBytes, numberOfChannels, bytesPerSample, numberOfPixels) :
+                TiffSamples.toSeparatedBytes(sampleBytes, numberOfChannels, bytesPerSample, numberOfPixels);
     }
 
     String mapKindName() {
