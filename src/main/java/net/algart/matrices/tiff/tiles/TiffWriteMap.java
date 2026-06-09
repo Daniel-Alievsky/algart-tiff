@@ -414,7 +414,8 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
         if (!AUTO_INTERLEAVE_SOURCE) {
             throw new IllegalStateException("Cannot update image channels: autoInterleaveSource mode is not set");
         }
-        return updateMatrix(Matrices.mergeLayers(net.algart.arrays.Arrays.SMM, channels), fromX, fromY);
+        var mergedChannels = Matrices.mergeLayers(Arrays.SMM, channels);
+        return updateMatrix(mergedChannels, fromX, fromY);
     }
 
     public List<TiffTile> updateBufferedImage(BufferedImage bufferedImage, int fromX, int fromY) {
