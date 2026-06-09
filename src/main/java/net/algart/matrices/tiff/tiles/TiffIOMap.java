@@ -349,7 +349,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         long t1 = debugTime();
         final Object samplesArray = reader.getAutoUnpackBits().isEnabled() && isBinary() ?
                 sampleBytes :
-                sampleType().javaArray(sampleBytes, reader.getByteOrder());
+                sampleType().javaArray(sampleBytes, byteOrder());
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t2 = debugTime();
             LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
