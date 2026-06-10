@@ -46,10 +46,6 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
     // - Must be true. See TiffWriter.AUTO_INTERLEAVE_SOURCE.
     // IF YOU CHANGE IT, YOU MUST CORRECT ALSO TiffWriter.AUTO_INTERLEAVE_SOURCE.
 
-    static final boolean BUILT_IN_TIMING = TiffIO.BUILT_IN_TIMING;
-    static final System.Logger LOG = System.getLogger(TiffIOMap.class.getName());
-    static final boolean LOGGABLE_DEBUG = LOG.isLoggable(System.Logger.Level.DEBUG);
-
     private final T owner;
 
     public TiffIOMap(T owner, TiffIFD ifd, boolean resizable) throws TiffException {
@@ -93,6 +89,12 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
     public long fileLength() {
         //noinspection resource
         return owner().fileLength();
+    }
+
+    @Override
+    public TiffIOMap setAutoUnpackBits(UnpackBits autoUnpackBits) {
+        super.setAutoUnpackBits(autoUnpackBits);
+        return this;
     }
 
     public byte[] loadSampleBytes(
@@ -251,14 +253,14 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         //     sampleBytes = newSamples;
         // }
         boolean unpackingBits = false;
-        if (reader.getAutoUnpackBits().isEnabled() && isBinary()) {
+        if (getAutoUnpackBits().isEnabled() && isBinary()) {
             unpackingBits = true;
             sampleBytes = PackedBitArraysPer8.unpackBitsToBytes(
                     sampleBytes,
                     0,
                     sizeInPixels,
                     (byte) 0,
-                    reader.getAutoUnpackBits().bit1Value());
+                    getAutoUnpackBits().bit1Value());
         }
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t3 = debugTime();
@@ -344,50 +346,6 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         return toBufferedImage(asChannels(mergedChannels));
     }
 
-    public Object bytesToJavaArray(byte[] sampleBytes) {
-        @SuppressWarnings("resource") final TiffReader reader = reader();
-        long t1 = debugTime();
-        final Object samplesArray = reader.getAutoUnpackBits().isEnabled() && isBinary() ?
-                sampleBytes :
-                sampleType().javaArray(sampleBytes, byteOrder());
-        if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
-            long t2 = debugTime();
-            LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
-                    "%s converted %d bytes (%.3f MB) to %s[] in %.3f ms%s",
-                    getClass().getSimpleName(),
-                    sampleBytes.length, sampleBytes.length / 1048576.0,
-                    samplesArray.getClass().getComponentType().getSimpleName(),
-                    (t2 - t1) * 1e-6,
-                    sampleBytes == samplesArray ?
-                            "" :
-                            String.format(Locale.US, " %.3f MB/s",
-                                    sampleBytes.length / 1048576.0 / ((t2 - t1) * 1e-9))));
-        }
-        return samplesArray;
-    }
-
-    public byte[] javaArrayToBytes(Object samplesArray, int fromX, int fromY, int sizeX, int sizeY) {
-        Objects.requireNonNull(samplesArray, "Null samplesArray");
-        final long numberOfPixels = checkRequestedArea(fromX, fromY, sizeX, sizeY);
-        final Class<?> elementType = samplesArray.getClass().getComponentType();
-        if (elementType == null) {
-            throw new IllegalArgumentException("The specified samplesArray is not actual an array: " +
-                    "it is " + samplesArray.getClass());
-        }
-        if (!(elementType == elementType() || isBinary() && elementType == long.class)) {
-            throw new IllegalArgumentException("Invalid element type of samples array: " + elementType +
-                    ", but the specified TIFF map stores " + sampleType().prettyName() + " elements");
-        }
-        final long numberOfSamples = Math.multiplyExact(numberOfPixels, numberOfChannels());
-        // - overflow impossible after checkRequestedArea
-        if (numberOfSamples > maxNumberOfSamplesInArray()) {
-            throw new IllegalArgumentException("Too large area for updating TIFF in a single operation: " +
-                    sizeX + "x" + sizeY + "x" + numberOfChannels() + " exceed the limit " +
-                    maxNumberOfSamplesInArray());
-        }
-        return TiffSamples.toBytes(samplesArray, numberOfSamples, byteOrder());
-    }
-
 
     public Matrix<UpdatablePArray> javaArrayAsMatrix(Object samplesArray, int sizeX, int sizeY) {
         return TiffSamples.asMatrix(samplesArray, sizeX, sizeY, numberOfChannels(), false);
@@ -423,10 +381,6 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         return reader().isRemoveExtraChannelsIf5OrMoreForBufferedImage() && image.size() > 4 ?
                 image.subList(0, 4) :
                 image;
-    }
-
-    static long debugTime() {
-        return BUILT_IN_TIMING && LOGGABLE_DEBUG ? System.nanoTime() : 0;
     }
 
     static int divFloor(int a, int b) {

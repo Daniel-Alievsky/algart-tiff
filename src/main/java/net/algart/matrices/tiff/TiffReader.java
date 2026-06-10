@@ -64,31 +64,6 @@ import java.util.stream.Collectors;
  * The same is true for the result of {@link #stream()} method.</p>
  */
 public non-sealed class TiffReader extends TiffIO {
-    public enum UnpackBits {
-        NONE((byte) 0),
-        UNPACK_TO_0_1((byte) 1),
-        UNPACK_TO_0_255((byte) 255);
-
-        private final byte bit1Value;
-
-        UnpackBits(byte bit1Value) {
-            this.bit1Value = bit1Value;
-        }
-
-        public static UnpackBits of(boolean unpack) {
-            return unpack ? UNPACK_TO_0_255 : NONE;
-        }
-
-
-        public boolean isEnabled() {
-            return this != NONE;
-        }
-
-        public byte bit1Value() {
-            return bit1Value;
-        }
-    }
-
     public enum UnusualPrecisions {
         NONE,
         DISABLE,
@@ -149,7 +124,6 @@ public non-sealed class TiffReader extends TiffIO {
 
     private volatile boolean caching = true;
     private volatile long maxCacheMemory = DEFAULT_MAX_CACHING_MEMORY;
-    private UnpackBits autoUnpackBits = UnpackBits.NONE;
     private UnusualPrecisions unusualPrecisions = UnusualPrecisions.UNPACK;
     private boolean rescaleWhenIncreasingBitDepth = DEFAULT_RESCALE_WHEN_INCREASING_BIT_DEPTH;
     private boolean colorCorrection = DEFAULT_COLOR_CORRECTION;
@@ -499,31 +473,6 @@ public non-sealed class TiffReader extends TiffIO {
                 this.currentCacheMemory = 0;
             }
         }
-    }
-
-    public UnpackBits getAutoUnpackBits() {
-        return autoUnpackBits;
-    }
-
-    /**
-     * Sets the mode, describing whether do we need to unpack binary images (one bit/pixel, black-and-white images)
-     * into <code>byte</code> matrices: black pixels to value 0, white pixels to value depending on the mode.
-     *
-     * <p>By default, this mode is {@link UnpackBits#NONE}.
-     * In this case, {@link TiffReadMap#readMatrix()} and similar methods return binary AlgART matrices.</p>
-     *
-     * <p>Note that some TIFF images use <i>m</i>&gt;1 bit per pixel, where <i>m</i> is not divisible by 8,
-     * such as 4-bit indexed images with a palette or 15-bit RGB image, 5+5+5 bits/channel.
-     * Such images are always unpacked to format with an integer number of bytes per channel (<i>m</i>=8*<i>k</i>).
-     * The only exception is 1-bit monochrome images: in this case, unpacking into bytes
-     * is controlled by this method.</p>
-     *
-     * @param autoUnpackBits whether do we need to unpack bit matrices to byte ones?
-     * @return a reference to this object.
-     */
-    public TiffReader setAutoUnpackBits(UnpackBits autoUnpackBits) {
-        this.autoUnpackBits = Objects.requireNonNull(autoUnpackBits, "Null autoUnpackBits");
-        return this;
     }
 
     public UnusualPrecisions getUnusualPrecisions() {

@@ -114,7 +114,6 @@ public class TiffReaderTest {
 //                reader.setEnforceUseExternalCodec(true);
 //                reader.setCachingIFDs(false);
 //                reader.setUnusualPrecisions(TiffReader.UnusualPrecisions.NONE);
-//                reader.setAutoUnpackBits(TiffReader.UnpackBits.UNPACK_TO_0_255);
 //                reader.setRescaleWhenIncreasingBitDepth(false);
                 reader.setColorCorrection(true);
 //                reader.setMissingTilesAllowed(true);
@@ -154,6 +153,7 @@ public class TiffReaderTest {
                 } else {
                     map = reader.map(ifdIndex);
                 }
+                // map.setAutoUnpackBits(TiffMap.UnpackBits.UNPACK_TO_0_255);
                 if (w < 0) {
                     w = Math.min(map.dimX(), MAX_IMAGE_DIM);
                 }
@@ -185,8 +185,8 @@ public class TiffReaderTest {
                             map.readInterleavedMatrix(x, y, w, h) :
                             map.readMatrix(x, y, w, h);
                     t2 = System.nanoTime();
-                    System.out.printf(Locale.US, "Test #%d: %dx%d loaded in %.3f ms%n",
-                            test, w, h, (t2 - t1) * 1e-6);
+                    System.out.printf(Locale.US, "Test #%d: %dx%d loaded in %.3f ms (%s)%n",
+                            test, w, h, (t2 - t1) * 1e-6, matrix);
                     if (test == 1 && !interleave) {
                         // - testing alternate way to do the same thing
                         byte[] samples = map.readSampleBytes(x, y, w, h);

@@ -96,12 +96,43 @@ public sealed class TiffMap permits TiffIOMap {
         }
     }
 
+    public enum UnpackBits {
+        NONE((byte) 0),
+        UNPACK_TO_0_1((byte) 1),
+        UNPACK_TO_0_255((byte) 255);
+
+        private final byte bit1Value;
+
+        UnpackBits(byte bit1Value) {
+            this.bit1Value = bit1Value;
+        }
+
+        public static UnpackBits of(boolean unpack) {
+            return unpack ? UNPACK_TO_0_255 : NONE;
+        }
+
+
+        public boolean isEnabled() {
+            return this != NONE;
+        }
+
+        public byte bit1Value() {
+            return bit1Value;
+        }
+    }
+
+
+
     /**
      * Maximal value of x/y-index of the tile.
      *
      * <p>This limit helps to avoid arithmetic overflow while operations with indexes.
      */
     public static final int MAX_TILE_INDEX = 1_000_000_000;
+
+    static final boolean BUILT_IN_TIMING = TiffIO.BUILT_IN_TIMING;
+    static final System.Logger LOG = System.getLogger(TiffIOMap.class.getName());
+    static final boolean LOGGABLE_DEBUG = LOG.isLoggable(System.Logger.Level.DEBUG);
 
     private final TiffIFD ifd;
     private final boolean resizable;
@@ -143,6 +174,9 @@ public sealed class TiffMap permits TiffIOMap {
 
     private final boolean rescaleWhenIncreasingBitDepthApplicable;
     private final boolean colorCorrectionApplicable;
+
+    private volatile UnpackBits autoUnpackBits = UnpackBits.NONE;
+
     private volatile int dimX = 0;
     private volatile int dimY = 0;
     private volatile int gridCountX = 0;
@@ -482,6 +516,31 @@ public sealed class TiffMap permits TiffIOMap {
      */
     public boolean isColorCorrectionApplicable() {
         return colorCorrectionApplicable;
+    }
+
+    public final UnpackBits getAutoUnpackBits() {
+        return autoUnpackBits;
+    }
+
+    /**
+     * Sets the mode, describing whether do we need to unpack binary images (one bit/pixel, black-and-white images)
+     * into <code>byte</code> matrices: black pixels to value 0, white pixels to value depending on the mode.
+     *
+     * <p>By default, this mode is {@link UnpackBits#NONE}.
+     * In this case, {@link TiffReadMap#readMatrix()} and similar methods return binary AlgART matrices.</p>
+     *
+     * <p>Note that some TIFF images use <i>m</i>&gt;1 bit per pixel, where <i>m</i> is not divisible by 8,
+     * such as 4-bit indexed images with a palette or 15-bit RGB image, 5+5+5 bits/channel.
+     * Such images are always unpacked to format with an integer number of bytes per channel (<i>m</i>=8*<i>k</i>).
+     * The only exception is 1-bit monochrome images: in this case, unpacking into bytes
+     * is controlled by this method.</p>
+     *
+     * @param autoUnpackBits whether do we need to unpack bit matrices to byte ones?
+     * @return a reference to this object.
+     */
+    public TiffMap setAutoUnpackBits(UnpackBits autoUnpackBits) {
+        this.autoUnpackBits = Objects.requireNonNull(autoUnpackBits, "Null autoUnpackBits");
+        return this;
     }
 
     public int dimX() {
@@ -826,14 +885,6 @@ public sealed class TiffMap permits TiffIOMap {
         // - most typical cases; we do not try to optimize "strange" bit numbers like 4-bit samples
     }
 
-    public byte[] toInterleavedSamples(byte[] sampleBytes, int numberOfChannels, long numberOfPixels) {
-        return toInterleaveOrSeparatedSamples(sampleBytes, numberOfChannels, numberOfPixels, true);
-    }
-
-    public byte[] toSeparatedSamples(byte[] sampleBytes, int numberOfChannels, long numberOfPixels) {
-        return toInterleaveOrSeparatedSamples(sampleBytes, numberOfChannels, numberOfPixels, false);
-    }
-
     public double[] colorToChannelValues(Color color, boolean scaleToMaxValue) {
         Objects.requireNonNull(color, "Null color");
         float[] components = color.getRGBComponents(null);
@@ -847,6 +898,57 @@ public sealed class TiffMap permits TiffIOMap {
         return numberOfChannels == 1 ?
                 new double[]{intensity(filler[0], filler[1], filler[2])} :
                 Arrays.copyOf(filler, numberOfChannels);
+    }
+
+    public byte[] toInterleavedSamples(byte[] sampleBytes, int numberOfChannels, long numberOfPixels) {
+        return toInterleaveOrSeparatedSamples(sampleBytes, numberOfChannels, numberOfPixels, true);
+    }
+
+    public byte[] toSeparatedSamples(byte[] sampleBytes, int numberOfChannels, long numberOfPixels) {
+        return toInterleaveOrSeparatedSamples(sampleBytes, numberOfChannels, numberOfPixels, false);
+    }
+
+    public Object bytesToJavaArray(byte[] sampleBytes) {
+        long t1 = debugTime();
+        final Object samplesArray = autoUnpackBits.isEnabled() && isBinary() ?
+                sampleBytes :
+                sampleType().javaArray(sampleBytes, byteOrder());
+        if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+            long t2 = debugTime();
+            LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
+                    "%s converted %d bytes (%.3f MB) to %s[] in %.3f ms%s",
+                    getClass().getSimpleName(),
+                    sampleBytes.length, sampleBytes.length / 1048576.0,
+                    samplesArray.getClass().getComponentType().getSimpleName(),
+                    (t2 - t1) * 1e-6,
+                    sampleBytes == samplesArray ?
+                            "" :
+                            String.format(Locale.US, " %.3f MB/s",
+                                    sampleBytes.length / 1048576.0 / ((t2 - t1) * 1e-9))));
+        }
+        return samplesArray;
+    }
+
+    public byte[] javaArrayToBytes(Object samplesArray, int fromX, int fromY, int sizeX, int sizeY) {
+        Objects.requireNonNull(samplesArray, "Null samplesArray");
+        final long numberOfPixels = checkRequestedArea(fromX, fromY, sizeX, sizeY);
+        final Class<?> elementType = samplesArray.getClass().getComponentType();
+        if (elementType == null) {
+            throw new IllegalArgumentException("The specified samplesArray is not actual an array: " +
+                    "it is " + samplesArray.getClass());
+        }
+        if (!(elementType == elementType() || isBinary() && elementType == long.class)) {
+            throw new IllegalArgumentException("Invalid element type of samples array: " + elementType +
+                    ", but the specified TIFF map stores " + sampleType().prettyName() + " elements");
+        }
+        final long numberOfSamples = Math.multiplyExact(numberOfPixels, numberOfChannels());
+        // - overflow impossible after checkRequestedArea
+        if (numberOfSamples > maxNumberOfSamplesInArray()) {
+            throw new IllegalArgumentException("Too large area for updating TIFF in a single operation: " +
+                    sizeX + "x" + sizeY + "x" + numberOfChannels() + " exceed the limit " +
+                    maxNumberOfSamplesInArray());
+        }
+        return TiffSamples.toBytes(samplesArray, numberOfSamples, byteOrder());
     }
 
     @Override
@@ -987,6 +1089,10 @@ public sealed class TiffMap permits TiffIOMap {
         this.gridCountX = gridCountX;
         this.gridCountY = gridCountY;
         this.numberOfGridTiles = gridCountX * gridCountY * numberOfSeparatedPlanes;
+    }
+
+    static long debugTime() {
+        return BUILT_IN_TIMING && LOGGABLE_DEBUG ? System.nanoTime() : 0;
     }
 
     private static double intensity(double r, double g, double b) {

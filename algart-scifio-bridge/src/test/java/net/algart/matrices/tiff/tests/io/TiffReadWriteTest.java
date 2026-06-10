@@ -35,6 +35,7 @@ import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.compatibility.TiffParser;
 import net.algart.matrices.tiff.tags.Tags;
+import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
 import org.scijava.Context;
 import org.scijava.io.handle.DataHandle;
@@ -149,7 +150,10 @@ public class TiffReadWriteTest {
 
                     final int bandCount = readerIFD.getSamplesPerPixel();
                     long t1 = System.nanoTime();
-                    byte[] bytes = reader.map(readerIFD).readSampleBytes(START_X, START_Y, w, h);
+                    byte[] bytes = reader.map(readerIFD)
+                            .setAutoUnpackBits(TiffMap.UnpackBits.UNPACK_TO_0_1)
+                            .readSampleBytes(START_X, START_Y, w, h);
+                    // - UNPACK_TO_0_1 emulates behavior of SCIFIO TiffParser
                     long t2 = System.nanoTime();
                     TiffIFD writerIFD = readerIFD.copy();
                     if (singleStrip) {
@@ -176,7 +180,8 @@ public class TiffReadWriteTest {
                         }
                         final IFD scifioIFD = parser.toScifioIFD(readerIFD);
                         final int samplesPerPixel = readerIFD.getSamplesPerPixel();
-                        final int bytesPerSample = readerIFD.sampleType().bytesPerSample().orElseThrow();
+                        final int bytesPerSample = readerIFD.sampleType().bytesPerSample().orElse(1);
+                        // 1 byte/sample for a bit in TiffParser
                         bytes = new byte[paddedW * paddedH * samplesPerPixel * bytesPerSample];
                         @SuppressWarnings("deprecation")
                         byte[] buf1 = parser.getSamples(scifioIFD, bytes, START_X, START_Y, paddedW, paddedH);
@@ -296,22 +301,23 @@ public class TiffReadWriteTest {
         // - this stupid SCIFIO class requires this little help to work correctly
     }
 
-    private static void compareResults(byte[] buf1, byte[] bytes, String message) {
+    private static void compareResults(byte[] bytes1, byte[] bytes2, String message) {
         long sum = 0;
         int count = 0;
         int first = -1;
-        for (int k = 0; k < buf1.length; k++) {
-            if (buf1[k] != bytes[k]) {
+        for (int k = 0; k < bytes1.length; k++) {
+            if (bytes1[k] != bytes2[k]) {
                 count++;
                 if (first < 0) {
                     first = k;
                 }
             }
-            sum += Math.abs((buf1[k] & 0xFF) - (bytes[k] & 0xFF));
+            sum += Math.abs((bytes1[k] & 0xFF) - (bytes2[k] & 0xFF));
         }
         if (count > 0) {
-            System.err.printf("%n%s: different behavior! %d bytes differ since %d, summary difference %d%n",
-                    message, count, first, sum);
+            System.err.printf("%n%s: different behavior! %d bytes differ since %d (%d != %d), " +
+                            "summary difference %d%n",
+                    message, count, first, bytes1[first] & 0xFF, bytes2[first] & 0xFF, sum);
         }
     }
 

@@ -137,7 +137,6 @@ public class TiffParser extends TiffReader {
         this.setContext(context);
         // Disable new features of TiffReader for compatibility:
         this.setCaching(false);
-        this.setAutoUnpackBits(UnpackBits.UNPACK_TO_0_255);
         this.setUnusualPrecisions(UnusualPrecisions.NONE);
         this.setCropTilesToImageBoundaries(false);
         this.setEnforceUseExternalCodec(true);
@@ -176,7 +175,15 @@ public class TiffParser extends TiffReader {
 
     public static IFD toScifioIFD(TiffIFD ifd, LogService log) {
         IFD result = new IFD(log);
-        result.putAll(ifd.map());
+        for (Map.Entry<Integer, Object> entry : ifd.map().entrySet()) {
+            Integer tag = entry.getKey();
+            Object value = entry.getValue();
+            if (value instanceof String[] || value instanceof byte[] || value instanceof TagValue) {
+                continue;
+                // - such types are not supported
+            }
+            result.put(tag, value);
+        }
         result.put(IFD.LITTLE_ENDIAN, ifd.isLittleEndian());
         result.put(IFD.BIG_TIFF, ifd.isBigTiff());
         return result;
@@ -794,6 +801,8 @@ public class TiffParser extends TiffReader {
             IOException {
         TiffMap.checkRequestedArea(x, y, width, height);
         final var map = map(toTiffIFD(ifd));
+        map.setAutoUnpackBits(TiffMap.UnpackBits.UNPACK_TO_0_1);
+
         final byte[] result = map.readSampleBytes(
                 x, y, (int) width, (int) height,
                 UnusualPrecisions.NONE,

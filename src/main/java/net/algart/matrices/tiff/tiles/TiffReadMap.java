@@ -61,16 +61,18 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
         return reader.numberOfImagesUnchecked();
     }
 
-    public TiffReader.UnpackBits getAutoUnpackBits() {
-        return reader.getAutoUnpackBits();
-    }
-
     public boolean isRescaleWhenIncreasingBitDepth() {
         return reader.isRescaleWhenIncreasingBitDepth();
     }
 
     public boolean isColorCorrection() {
         return reader.isColorCorrection();
+    }
+
+    @Override
+    public TiffReadMap setAutoUnpackBits(UnpackBits autoUnpackBits) {
+        super.setAutoUnpackBits(autoUnpackBits);
+        return this;
     }
 
     public byte[] loadSampleBytes() throws IOException {
