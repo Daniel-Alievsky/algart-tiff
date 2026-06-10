@@ -940,53 +940,58 @@ public final class AWTImages {
         }
         byte[][] pixelBytes = null;
         final ByteOrder byteOrder = little ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
-        if (pixels instanceof short[][] s) {
-            pixelBytes = new byte[s.length][s[0].length * 2];
-            for (int i = 0; i < pixelBytes.length; i++) {
-                for (int j = 0; j < s[0].length; j++) {
-                    JArrays.setBytes8(pixelBytes[i], j * 2, s[i][j], 2, byteOrder);
+        switch (pixels) {
+            case short[][] s -> {
+                pixelBytes = new byte[s.length][s[0].length * 2];
+                for (int i = 0; i < pixelBytes.length; i++) {
+                    for (int j = 0; j < s[0].length; j++) {
+                        JArrays.setBytes8(pixelBytes[i], j * 2, s[i][j], 2, byteOrder);
+                    }
                 }
             }
-        } else if (pixels instanceof int[][] in) {
-            if (imageType == BufferedImage.TYPE_INT_RGB ||
-                    imageType == BufferedImage.TYPE_INT_BGR ||
-                    imageType == BufferedImage.TYPE_INT_ARGB) {
-                pixelBytes = new byte[in.length][in[0].length];
-                for (int c = 0; c < in.length; c++) {
-                    for (int i = 0; i < in[0].length; i++) {
-                        if (imageType != BufferedImage.TYPE_INT_BGR) {
-                            pixelBytes[c][i] = (byte) (in[c][i] & 0xff);
-                        } else {
-                            pixelBytes[in.length - c - 1][i] = (byte) (in[c][i] & 0xff);
+            case int[][] in -> {
+                if (imageType == BufferedImage.TYPE_INT_RGB ||
+                        imageType == BufferedImage.TYPE_INT_BGR ||
+                        imageType == BufferedImage.TYPE_INT_ARGB) {
+                    pixelBytes = new byte[in.length][in[0].length];
+                    for (int c = 0; c < in.length; c++) {
+                        for (int i = 0; i < in[0].length; i++) {
+                            if (imageType != BufferedImage.TYPE_INT_BGR) {
+                                pixelBytes[c][i] = (byte) (in[c][i] & 0xff);
+                            } else {
+                                pixelBytes[in.length - c - 1][i] = (byte) (in[c][i] & 0xff);
+                            }
+                        }
+                    }
+                } else {
+                    pixelBytes = new byte[in.length][in[0].length * 4];
+                    for (int i = 0; i < pixelBytes.length; i++) {
+                        for (int j = 0; j < in[0].length; j++) {
+                            JArrays.setBytes8(pixelBytes[i], j * 4, in[i][j], 4, byteOrder);
                         }
                     }
                 }
-            } else {
+            }
+            case float[][] in -> {
                 pixelBytes = new byte[in.length][in[0].length * 4];
                 for (int i = 0; i < pixelBytes.length; i++) {
                     for (int j = 0; j < in[0].length; j++) {
-                        JArrays.setBytes8(pixelBytes[i], j * 4, in[i][j], 4, byteOrder);
+                        final int v = Float.floatToIntBits(in[i][j]);
+                        JArrays.setBytes8(pixelBytes[i], j * 4, v, 4, byteOrder);
                     }
                 }
             }
-        } else if (pixels instanceof float[][] in) {
-            pixelBytes = new byte[in.length][in[0].length * 4];
-            for (int i = 0; i < pixelBytes.length; i++) {
-                for (int j = 0; j < in[0].length; j++) {
-                    final int v = Float.floatToIntBits(in[i][j]);
-                    JArrays.setBytes8(pixelBytes[i], j * 4, v, 4, byteOrder);
+            case double[][] in -> {
+                pixelBytes = new byte[in.length][in[0].length * 8];
+                for (int i = 0; i < pixelBytes.length; i++) {
+                    for (int j = 0; j < in[0].length; j++) {
+                        final long v = Double.doubleToLongBits(in[i][j]);
+                        JArrays.setBytes8(pixelBytes[i], j * 8, v, 8, byteOrder);
+                    }
                 }
             }
-        } else if (pixels instanceof double[][] in) {
-            pixelBytes = new byte[in.length][in[0].length * 8];
-            for (int i = 0; i < pixelBytes.length; i++) {
-                for (int j = 0; j < in[0].length; j++) {
-                    final long v = Double.doubleToLongBits(in[i][j]);
-                    JArrays.setBytes8(pixelBytes[i], j * 8, v, 8, byteOrder);
-                }
-            }
-        } else {
-            throw new IllegalArgumentException("Unsupported pixel type: " + pixels.getClass().getSimpleName());
+            default ->
+                    throw new IllegalArgumentException("Unsupported pixel type: " + pixels.getClass().getSimpleName());
         }
         return pixelBytes;
     }

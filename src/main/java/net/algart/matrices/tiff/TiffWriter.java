@@ -384,10 +384,6 @@ public non-sealed class TiffWriter extends TiffIO {
      * Note that the only difference between lossless JPEG-2000 and the usual JPEG-2000 is these default values:
      * if this method is called, both compressions work identically (but write different TIFF compression tags).
      *
-     * <p>Note: the {@link TiffCodec.Options#setCompressionQuality(Double) quality}, that can be set via
-     * {@link #setCodecOptions(TiffCodec.Options)} method, is ignored,
-     * if this value is set to non-{@code null} value.
-     *
      * <p>Please <b>note</b> that this parameter may be different for different IFDs and
      * even for different tiles inside the same IFD.
      * In this case, you need to call this method every time before updating IFD,
@@ -434,11 +430,6 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * <p>If this method was not called or after {@link #removeLosslessCompressionLevel()},
      * this level is not specified: some default compression level will be used.
-     *
-     * <p>Note: the {@link TiffCodec.Options#setLosslessCompressionLevel(Double) lossless compression level},
-     * that can be set via
-     * {@link #setCodecOptions(TiffCodec.Options)} method, is ignored,
-     * if this value is set to non-{@code null} value.
      *
      * <p>Please <b>note</b> that this parameter may be different for different IFDs and
      * even for different tiles inside the same IFD.

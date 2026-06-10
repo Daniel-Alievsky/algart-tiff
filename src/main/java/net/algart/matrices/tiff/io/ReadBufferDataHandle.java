@@ -328,7 +328,8 @@ public class ReadBufferDataHandle<L extends Location> extends AbstractHigherOrde
 	 * Simple strategy to pick the slot that get's evicted from the cache. This
 	 * strategy always picks the least recently used slot.
 	 */
-	private static class LRUReplacementStrategy {
+	@SuppressWarnings("ClassCanBeRecord")
+    private static class LRUReplacementStrategy {
 
 		private final Deque<Integer> queue;
 

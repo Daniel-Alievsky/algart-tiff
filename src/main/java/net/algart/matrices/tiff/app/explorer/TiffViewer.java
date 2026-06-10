@@ -453,9 +453,9 @@ class TiffViewer {
 
         final double contrastRescaleFactor = maxVisibleValue == 0.0 ? 1.0 : maxPossibleValue / maxVisibleValue;
         mainPanel.add(TinySwing.leftLabel(TinySwing.smartHtmlLines(String.format(Locale.US, """
-            Specify the intensity transformation parameters: the multiplier (<b>k</b>) 
+            Specify the intensity transformation parameters: the multiplier (<b>k</b>)
             and the black offset (<b>b</b>)<br>
-            for pixel sample values before visualization, 
+            for pixel sample values before visualization,
             according to the formula <b>k</b>(<i>x</i>&minus;<b>b</b>).<br>
             &nbsp;<br>
             This is useful to contrast low-intensity images. For example, for grayscale matrices<br>

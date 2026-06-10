@@ -312,9 +312,7 @@ class JTiffViewerFrame extends JFrame {
         JMenuItem selectAllItem = new JMenuItem("Select all");
         selectAllItem.setMnemonic(KeyEvent.VK_A);
         selectAllItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK));
-        selectAllItem.addActionListener(e -> {
-            viewerPanel.setSelectionAll();
-        });
+        selectAllItem.addActionListener(e -> viewerPanel.setSelectionAll());
         editMenu.add(selectAllItem);
         JMenuItem setSelectionItem = new JMenuItem("Set selection...");
         setSelectionItem.addActionListener(e -> viewer.showSetSelectionDialog());
@@ -333,18 +331,16 @@ class JTiffViewerFrame extends JFrame {
 
         JMenuItem copyItem = new JMenuItem("Copy");
         copyItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK));
-        copyItem.addActionListener(e -> {
-            TinySwing.doLongOperation(this, () -> {
-                try {
-                    final var helper = new TiffSaveImageHelper(this);
-                    helper.copySelectedAreaToClipboard(viewer);
-                    // Thread.currentThread().sleep(5000);
-                } catch (Exception ex) {
-                    // - including possible non-I/O exceptions
-                    showErrorMessage(ex, "Error copying the image to the clipboard");
-                }
-            });
-        });
+        copyItem.addActionListener(e -> TinySwing.doLongOperation(this, () -> {
+            try {
+                final var helper = new TiffSaveImageHelper(this);
+                helper.copySelectedAreaToClipboard(viewer);
+                // Thread.currentThread().sleep(5000);
+            } catch (Exception ex) {
+                // - including possible non-I/O exceptions
+                showErrorMessage(ex, "Error copying the image to the clipboard");
+            }
+        }));
         editMenu.add(copyItem);
 
         JMenu viewMenu = new JMenu("View");
@@ -370,17 +366,15 @@ class JTiffViewerFrame extends JFrame {
         JMenuItem setRescaleFactorItem = new JMenuItem("Adjust brightness / contrast (custom rescaling)...");
         setRescaleFactorItem.setMnemonic(KeyEvent.VK_B);
         setRescaleFactorItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_B, InputEvent.CTRL_DOWN_MASK));
-        setRescaleFactorItem.addActionListener(e -> {
-            TinySwing.doLongOperation(this, () -> {
-                try {
-                    viewer.findMaxVisibleValue();
-                    viewer.showSetRescaleFactorDialog();
-                } catch (Exception ex) {
-                    // - including possible non-I/O exceptions like an empty file extension
-                    showErrorMessage(ex, "Error while analysing the visible area");
-                }
-            });
-        });
+        setRescaleFactorItem.addActionListener(e -> TinySwing.doLongOperation(this, () -> {
+            try {
+                viewer.findMaxVisibleValue();
+                viewer.showSetRescaleFactorDialog();
+            } catch (Exception ex) {
+                // - including possible non-I/O exceptions like an empty file extension
+                showErrorMessage(ex, "Error while analysing the visible area");
+            }
+        }));
         viewMenu.add(setRescaleFactorItem);
         viewMenu.addSeparator();
 
