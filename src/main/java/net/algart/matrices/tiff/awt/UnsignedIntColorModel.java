@@ -31,7 +31,7 @@ import java.util.Arrays;
 /**
  * ColorModel that handles unsigned 32 bit data.
  */
-public class UnsignedIntColorModel extends ColorModel {
+class UnsignedIntColorModel extends ColorModel {
     // (It is placed here to avoid autocorrection by IntelliJ IDEA)
     /*
      * #%L

@@ -34,7 +34,7 @@ import java.awt.image.DataBufferShort;
  * a workaround for the fact that java.awt.image.BufferedImage does not support
  * DataBuffers with type DataBuffer.TYPE_SHORT.
  */
-public class SignedShortBuffer extends DataBuffer {
+class SignedShortBuffer extends DataBuffer {
     // (It is placed here to avoid autocorrection by IntelliJ IDEA)
     /*
      * #%L

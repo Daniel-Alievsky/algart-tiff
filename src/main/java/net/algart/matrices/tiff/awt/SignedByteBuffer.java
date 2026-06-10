@@ -31,7 +31,7 @@ import java.awt.image.DataBuffer;
  *
  * @author Melissa Linkert
  */
-public class SignedByteBuffer extends DataBuffer {
+class SignedByteBuffer extends DataBuffer {
     // (It is placed here to avoid autocorrection by IntelliJ IDEA)
     /*
      * #%L

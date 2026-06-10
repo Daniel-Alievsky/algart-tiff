@@ -31,7 +31,7 @@ import java.awt.color.ColorSpace;
  *
  * @author Melissa Linkert
  */
-public class TwoChannelColorSpace extends ColorSpace {
+class TwoChannelColorSpace extends ColorSpace {
     // (It is placed here to avoid autocorrection by IntelliJ IDEA)
     /*
      * #%L
