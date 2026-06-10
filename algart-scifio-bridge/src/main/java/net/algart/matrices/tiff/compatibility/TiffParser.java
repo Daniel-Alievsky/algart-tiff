@@ -137,7 +137,6 @@ public class TiffParser extends TiffReader {
         this.setContext(context);
         // Disable new features of TiffReader for compatibility:
         this.setCaching(false);
-        this.setUnusualPrecisions(UnusualPrecisions.NONE);
         this.setCropTilesToImageBoundaries(false);
         this.setEnforceUseExternalCodec(true);
         this.setMissingTilesAllowed(true);
@@ -801,11 +800,11 @@ public class TiffParser extends TiffReader {
             IOException {
         TiffMap.checkRequestedArea(x, y, width, height);
         final var map = map(toTiffIFD(ifd));
-        map.setAutoUnpackBits(TiffMap.UnpackBits.UNPACK_TO_0_1);
+        map.setBitImageUnpackingMode(TiffMap.BitImageUnpackingMode.UNPACK_TO_0_1);
 
         final byte[] result = map.readSampleBytes(
                 x, y, (int) width, (int) height,
-                UnusualPrecisions.NONE,
+                TiffMap.RarePrecisionMode.KEEP_RAW,
                 false,
                 this::readTile);
         if (result.length > buf.length) {

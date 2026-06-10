@@ -61,7 +61,7 @@ public class TiffUnpacking {
         if (TiffReader.isRescaleWhenIncreasingBitDepthApplicable(ifd) && tile.bitsPerSample() != 24) {
             // - if !isSimpleRearrangingBytesEnough, rescaling may still not be applicable (YCbCr, 8-bit CMYK);
             // the special case 24 bits/sample is processed
-            // in TiffIOMap and TiffUnpackingPrecisions.unpackUnusualPrecisions method
+            // in TiffIOMap and TiffUnpackingPrecisions.unpackRarePrecisions method
             throw new AssertionError("Invalid isRescaleWhenIncreasingBitDepthApplicable: must be false");
         }
         if (!OPTIMIZE_SEPARATING_WHOLE_BYTES && tile.isInterleaved()) {
@@ -75,7 +75,7 @@ public class TiffUnpacking {
         // N % 8 == 0, N / 8 is 1, 2, 3, 4 or 8;
         // for all other cases isSimpleRearrangingBytesEnough returns false.
         // The only unusual case here is 3 bytes/sample: 24-bit float or 24-bit integer;
-        // these cases (as well as 16-bit float) will be processed later in unpackUnusualPrecisions.
+        // these cases (as well as 16-bit float) will be processed later in unpackRarePrecisions.
         if (DISABLE_TOO_LARGE_TILE_OR_STRIP &&
                 decodedDataLength > tile.map().tileSizeInBytes() &&
                 !lowLevelFormat.get()) {
@@ -372,7 +372,7 @@ public class TiffUnpacking {
             // - was checked in isSimpleRearrangingBytesEnough
         }
         // The only non-standard bytesPerSample is 3: 17..24-bit integer (but not all bits/sample are 24);
-        // we must complete such samples to 24 bits, and they will be processed later in unpackUnusualPrecisions
+        // we must complete such samples to 24 bits, and they will be processed later in unpackRarePrecisions
         final int numberOfPixels = sizeX * sizeY;
         final int[] bitsPerSample = ifd.getBitsPerSample();
         final boolean byteAligned = Arrays.stream(bitsPerSample).noneMatch(bits -> (bits & 7) != 0);

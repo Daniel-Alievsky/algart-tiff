@@ -70,8 +70,20 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
     }
 
     @Override
-    public TiffReadMap setAutoUnpackBits(UnpackBits autoUnpackBits) {
-        super.setAutoUnpackBits(autoUnpackBits);
+    public TiffReadMap setBitImageUnpackingMode(BitImageUnpackingMode bitImageUnpackingMode) {
+        super.setBitImageUnpackingMode(bitImageUnpackingMode);
+        return this;
+    }
+
+    @Override
+    public TiffReadMap setRarePrecisionMode(RarePrecisionMode rarePrecisionMode) {
+        super.setRarePrecisionMode(rarePrecisionMode);
+        return this;
+    }
+
+    @Override
+    public TiffReadMap setExtraChannelsMode(ExtraChannelsMode extraChannelsMode) {
+        super.setExtraChannelsMode(extraChannelsMode);
         return this;
     }
 
@@ -80,7 +92,7 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
     }
 
     public byte[] loadSampleBytes(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
-        return loadSampleBytes(fromX, fromY, sizeX, sizeY, reader.getUnusualPrecisions());
+        return loadSampleBytes(fromX, fromY, sizeX, sizeY, getRarePrecisionMode());
     }
 
     public byte[] loadSampleBytes(
@@ -88,8 +100,8 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
             int fromY,
             int sizeX,
             int sizeY,
-            TiffReader.UnusualPrecisions unusualPrecisions) throws IOException {
-        return loadSampleBytes(fromX, fromY, sizeX, sizeY, unusualPrecisions, false);
+            RarePrecisionMode rarePrecisionMode) throws IOException {
+        return loadSampleBytes(fromX, fromY, sizeX, sizeY, rarePrecisionMode, false);
     }
 
     public byte[] readSampleBytes() throws IOException {
@@ -99,7 +111,7 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
     public byte[] readSampleBytes(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
         return readSampleBytes(
                 fromX, fromY, sizeX, sizeY,
-                reader.getUnusualPrecisions(),
+                getRarePrecisionMode(),
                 false,
                 this::readCachedTile);
     }

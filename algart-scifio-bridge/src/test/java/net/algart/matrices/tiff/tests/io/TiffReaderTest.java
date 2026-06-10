@@ -113,7 +113,6 @@ public class TiffReaderTest {
                 long t2 = System.nanoTime();
 //                reader.setEnforceUseExternalCodec(true);
 //                reader.setCachingIFDs(false);
-//                reader.setUnusualPrecisions(TiffReader.UnusualPrecisions.NONE);
 //                reader.setRescaleWhenIncreasingBitDepth(false);
                 reader.setColorCorrection(true);
 //                reader.setMissingTilesAllowed(true);
@@ -154,6 +153,7 @@ public class TiffReaderTest {
                     map = reader.map(ifdIndex);
                 }
                 // map.setAutoUnpackBits(TiffMap.UnpackBits.UNPACK_TO_0_255);
+                // map.setRarePrecisionMode(TiffMap.RarePrecisionMode.KEEP_RAW);
                 if (w < 0) {
                     w = Math.min(map.dimX(), MAX_IMAGE_DIM);
                 }

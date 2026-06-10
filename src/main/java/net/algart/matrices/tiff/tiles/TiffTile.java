@@ -144,7 +144,7 @@ public final class TiffTile {
      *
      * <p><i>Warning:</i> this number can be smaller than the result of the same method of {@link #sampleType()}
      * object! This is possible for unusual precisions, like 24-bit integer or 16/24-bit float samples.
-     * See {@link TiffReader#setUnusualPrecisions(net.algart.matrices.tiff.TiffReader.UnusualPrecisions)} and
+     * See {@link TiffMap#setRarePrecisionMode(TiffMap.RarePrecisionMode)} and
      * {@link TiffReader#completeDecoding(TiffTile)} methods.</p>
      *
      * <p>Note that you can see unpacked data only in two variants:</p>
@@ -157,7 +157,7 @@ public final class TiffTile {
      * <p>Inside this class, you are always dealing with the variant #2 (excepting call of
      * {@link #getUnpackedSampleBytes(boolean)} method). The {@link TiffReader} class
      * usually returns data in the option #1, unless you disable this by
-     * {@link TiffReader#setUnusualPrecisions} method.
+     * {@link TiffMap#setRarePrecisionMode(TiffMap.RarePrecisionMode)} method.
      * The {@link TiffWriter} class always takes the data in the variant #1.</p>
      *
      * @return number of bits per each sample (1 channel for 1 pixel).
@@ -681,8 +681,8 @@ public final class TiffTile {
      * Gets the decoded data with unpacking non-usual precisions: 16/24-bit floating points data
      * and any 3-byte/sample integer data. The same operations are performed by
      * {@link TiffReader} automatically
-     * if the {@link TiffReader#setUnusualPrecisions unusual precision} parameter is set
-     * to {@link net.algart.matrices.tiff.TiffReader.UnusualPrecisions#UNPACK}.
+     * if the {@link TiffMap#setRarePrecisionMode(TiffMap.RarePrecisionMode) rare precision mode} is set
+     * to {@link net.algart.matrices.tiff.tiles.TiffMap.RarePrecisionMode#UNPACK}.
      *
      * <p>This method is rarely necessary: {@link #getDecodedData()} is enough for most needs.
      *
@@ -692,17 +692,17 @@ public final class TiffTile {
      * The typical value is <code>true</code>.
      *
      * @param rescaleWhenIncreasingBitDepth the last argument passed to of
-     *                                     {@link TiffUnpackingPrecisions#unpackUnusualPrecisions} method for
+     *                                     {@link TiffUnpackingPrecisions#unpackRarePrecisions} method for
      *                                     unpacking data.
      * @return unpacked data.
-     * @see TiffUnpackingPrecisions#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)
+     * @see TiffUnpackingPrecisions#unpackRarePrecisions(byte[], TiffIFD, int, long, boolean)
      * @see #bitsPerSample()
      * @see TiffMap#bitsPerUnpackedSample()
      */
     public byte[] getUnpackedSampleBytes(boolean rescaleWhenIncreasingBitDepth) {
         byte[] samples = getDecodedData();
         try {
-            samples = TiffUnpackingPrecisions.unpackUnusualPrecisions(
+            samples = TiffUnpackingPrecisions.unpackRarePrecisions(
                     samples, ifd(), samplesPerPixel, sizeInPixels, rescaleWhenIncreasingBitDepth);
         } catch (TiffException e) {
             throw new IllegalStateException("Illegal IFD inside the tile map", e);

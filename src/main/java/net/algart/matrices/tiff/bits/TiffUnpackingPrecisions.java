@@ -39,18 +39,17 @@ public class TiffUnpackingPrecisions {
     private TiffUnpackingPrecisions() {
     }
 
-    public static boolean isUnusualPrecisions(
-            final TiffIFD ifd) throws TiffException {
+    public static boolean isRarePrecision(final TiffIFD ifd) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
-        return getInfo(ifd).isUnusual();
+        return getInfo(ifd).isRare();
     }
 
     /**
-     * Unpacks pixel samples, stored in unusual precisions (2 or 3 bytes/sample), and returns unpacked data
+     * Unpacks pixel samples, stored in rare precisions (2 or 3 bytes/sample), and returns unpacked data
      * (4 bytes/sample). Returns a reference to the source {@code samples} array if IFD does not
-     * specify unusual precision.
+     * specify rare precision.
      *
-     * <p>We call <b>unusual precisions</b> the following two cases:</p>
+     * <p>We call <b>rare precisions</b> the following two cases:</p>
      * <ol>
      *     <li>every channel is encoded as an N-bit integer value, where 17&le;N&le;24, and, so, requires 3 bytes;
      *     </li>
@@ -63,7 +62,7 @@ public class TiffUnpackingPrecisions {
      * See also {@link TiffMap#bitsPerUnpackedSample()}.</p>
      *
      * @param samples          the source pixel samples.
-     * @param ifd              IFD (it is analyzed to detect unusual precision).
+     * @param ifd              IFD (it is analyzed to detect rare precision).
      * @param numberOfChannels number of samples per pixel; note that this value may differ from
      *                         {@link TiffIFD#getSamplesPerPixel() ifd.getSamplesPerPixel()} when this
      *                         method is used for unpacking a single tile, for example, in
@@ -79,7 +78,7 @@ public class TiffUnpackingPrecisions {
      * @throws TiffException in the case of incorrect IFD.
      * @see TiffTile#getUnpackedSampleBytes(boolean)
      */
-    public static byte[] unpackUnusualPrecisions(
+    public static byte[] unpackRarePrecisions(
             final byte[] samples,
             final TiffIFD ifd,
             final int numberOfChannels,
@@ -96,7 +95,7 @@ public class TiffUnpackingPrecisions {
         // 1) they are aligned by 8-bit (by unpackBitsAndInvertValues method);
         // 2) number of bytes per sample may be only 1..4 or 8: other cases are rejected by unpackBitsAndInvertValues.
         // So, we only need to check a case 3 bytes (17..24 bits before correction) and special cases float16/float24.
-        if (!info.isUnusual()) {
+        if (!info.isRare()) {
             return samples;
         }
         assert info.packedBytesPerSample <= 4;
@@ -162,7 +161,7 @@ public class TiffUnpackingPrecisions {
     }
 
     private record PrecisionsInfo(int packedBytesPerSample, boolean float16, boolean float24, boolean int24) {
-        public boolean isUnusual() {
+        public boolean isRare() {
             return float16 || float24 || int24;
         }
     }

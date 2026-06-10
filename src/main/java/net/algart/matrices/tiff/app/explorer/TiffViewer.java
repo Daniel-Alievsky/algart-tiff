@@ -30,6 +30,7 @@ import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.samples.TiffSampleType;
 import net.algart.matrices.tiff.samples.TiffSamples;
+import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 
 import javax.swing.*;
@@ -83,7 +84,6 @@ class TiffViewer {
         this.path = Objects.requireNonNull(path);
         this.reader = new TiffReaderWithGrid(path);
         this.reader.setColorCorrection(DEFAULT_COLOR_CORRECTION);
-        this.reader.setRemoveExtraChannelsIf5OrMoreForBufferedImage(true);
         this.reader.setMaxCacheMemory(CACHING_MEMORY);
         this.ifdIndex = ifdIndex;
         LOG.log(System.Logger.Level.INFO, "Viewer opened " + reader.streamName());
@@ -424,6 +424,7 @@ class TiffViewer {
 
     private void openMap() throws IOException {
         map = reader.map(ifdIndex);
+        map.setExtraChannelsMode(TiffMap.ExtraChannelsMode.DROP_FOR_BUFFERED_IMAGE);
         if (PRELOAD_LITTLE_AREA_WHILE_OPENING) {
             map.readSampleBytes(0, 0, 64, 64);
         }

@@ -1258,7 +1258,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param assignFileOffsetForWriting whether to assign the <i>for-writing</i> file offset.
      * @return the IFD with the specified index.
      * @throws TiffException if <code>mainIFDIndex</code> is too large
-     *                       (&ge;{@link #numberOfExistingImages()}),
+     *                       ( &ge;{@link #numberOfExistingImages()} ),
      *                       or if the file is not a correct TIFF file,
      *                       and this was not detected while opening it.
      */

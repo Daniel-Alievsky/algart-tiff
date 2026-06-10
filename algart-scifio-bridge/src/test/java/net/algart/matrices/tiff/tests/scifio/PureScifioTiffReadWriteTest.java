@@ -77,7 +77,6 @@ public class PureScifioTiffReadWriteTest {
                 byte[] bytes = new byte[w * h
                         * numberOfChannels * FormatTools.getBytesPerPixel(ifd.getPixelType())];
                 bytes = parser.getSamples(ifd, bytes, 0, 0, w, h);
-//                bytes = TiffTools.unpackUnusualPrecisions(bytes, ifd, numberOfChannels, w * h);
                 bytes = TiffSamples.toInterleavedBytes(
                         bytes, numberOfChannels, FormatTools.getBytesPerPixel(ifd.getPixelType()),
                         (long) w * (long) h);

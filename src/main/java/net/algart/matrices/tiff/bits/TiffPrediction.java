@@ -171,7 +171,6 @@ public class TiffPrediction {
 //            }
     }
 
-    @SuppressWarnings("DuplicatedCode")
     private static void subtractByteMatrix(byte[] a, int xSize, int ySize, int samplesPerPixel) {
         final int xSizeInSamples = xSize * samplesPerPixel;
         for (int y = 0; y < ySize; y++) {
@@ -184,7 +183,6 @@ public class TiffPrediction {
         }
     }
 
-    @SuppressWarnings("DuplicatedCode")
     private static void unsubtractByteMatrix(byte[] a, int xSize, int ySize, int samplesPerPixel) {
         final int xSizeInSamples = xSize * samplesPerPixel;
         for (int y = 0; y < ySize; y++) {
@@ -197,7 +195,6 @@ public class TiffPrediction {
         }
     }
 
-    @SuppressWarnings("DuplicatedCode")
     private static void subtractShortMatrix(short[] a, int xSize, int ySize, int samplesPerPixel) {
         final int xSizeInSamples = xSize * samplesPerPixel;
         for (int y = 0; y < ySize; y++) {
@@ -210,7 +207,6 @@ public class TiffPrediction {
         }
     }
 
-    @SuppressWarnings("DuplicatedCode")
     private static void unsubtractShortMatrix(short[] a, int xSize, int ySize, int samplesPerPixel) {
         final int xSizeInSamples = xSize * samplesPerPixel;
         for (int y = 0; y < ySize; y++) {
@@ -223,7 +219,6 @@ public class TiffPrediction {
         }
     }
 
-    @SuppressWarnings("DuplicatedCode")
     private static void subtractIntMatrix(int[] a, int xSize, int ySize, int samplesPerPixel) {
         final int xSizeInSamples = xSize * samplesPerPixel;
         for (int y = 0; y < ySize; y++) {
@@ -236,7 +231,6 @@ public class TiffPrediction {
         }
     }
 
-    @SuppressWarnings("DuplicatedCode")
     private static void unsubtractIntMatrix(int[] a, int xSize, int ySize, int samplesPerPixel) {
         final int xSizeInSamples = xSize * samplesPerPixel;
         for (int y = 0; y < ySize; y++) {
@@ -249,7 +243,6 @@ public class TiffPrediction {
         }
     }
 
-    @SuppressWarnings("DuplicatedCode")
     private static void subtractLongMatrix(long[] a, int xSize, int ySize, int samplesPerPixel) {
         final int xSizeInSamples = xSize * samplesPerPixel;
         for (int y = 0; y < ySize; y++) {
@@ -262,7 +255,6 @@ public class TiffPrediction {
         }
     }
 
-    @SuppressWarnings("DuplicatedCode")
     private static void unsubtractLongMatrix(long[] a, int xSize, int ySize, int samplesPerPixel) {
         final int xSizeInSamples = xSize * samplesPerPixel;
         for (int y = 0; y < ySize; y++) {

@@ -24,8 +24,11 @@
 
 package net.algart.matrices.tiff.tiles;
 
+import net.algart.arrays.Matrix;
+import net.algart.arrays.PArray;
 import net.algart.arrays.TooLargeArrayException;
 import net.algart.matrices.tiff.*;
+import net.algart.matrices.tiff.bits.TiffUnpackingPrecisions;
 import net.algart.matrices.tiff.samples.TiffSampleType;
 import net.algart.matrices.tiff.samples.TiffSamples;
 import net.algart.matrices.tiff.tags.TagCompression;
@@ -96,18 +99,18 @@ public sealed class TiffMap permits TiffIOMap {
         }
     }
 
-    public enum UnpackBits {
+    public enum BitImageUnpackingMode {
         NONE((byte) 0),
         UNPACK_TO_0_1((byte) 1),
         UNPACK_TO_0_255((byte) 255);
 
         private final byte bit1Value;
 
-        UnpackBits(byte bit1Value) {
+        BitImageUnpackingMode(byte bit1Value) {
             this.bit1Value = bit1Value;
         }
 
-        public static UnpackBits of(boolean unpack) {
+        public static BitImageUnpackingMode of(boolean unpack) {
             return unpack ? UNPACK_TO_0_255 : NONE;
         }
 
@@ -121,7 +124,48 @@ public sealed class TiffMap permits TiffIOMap {
         }
     }
 
+    public enum RarePrecisionMode {
+        UNPACK,
+        KEEP_RAW,
+        FORBID;
 
+        public RarePrecisionMode unpackIfEnabled() {
+            return this == KEEP_RAW ? UNPACK : this;
+        }
+
+        public static RarePrecisionMode of(boolean unpack) {
+            return unpack ? UNPACK : KEEP_RAW;
+        }
+
+        public void throwIfForbidden(TiffMap map) throws TiffException {
+            Objects.requireNonNull(map, "Null TIFF map");
+            if (this == FORBID && TiffUnpackingPrecisions.isRarePrecision(map.ifd())) {
+                throw new UnsupportedTiffFormatException("Support of unusual TIFF bit depth is disabled: " +
+                        Arrays.toString(map.ifd().getBitsPerSample()) + " bits/sample for " +
+                        map.sampleType().prettyName() + " values");
+            }
+        }
+
+        public byte[] unpackIfNecessary(TiffMap map, byte[] sampleBytes, long numberOfPixels, boolean rescaleInt24)
+                throws TiffException {
+            Objects.requireNonNull(map, "Null TIFF map");
+            Objects.requireNonNull(sampleBytes, "Null sampleBytes");
+            throwIfForbidden(map);
+            return this != RarePrecisionMode.UNPACK ?
+                    sampleBytes :
+                    TiffUnpackingPrecisions.unpackRarePrecisions(
+                            sampleBytes, map.ifd(), map.numberOfChannels(), numberOfPixels, rescaleInt24);
+        }
+    }
+
+    public enum ExtraChannelsMode {
+        NONE,
+        DROP_FOR_BUFFERED_IMAGE;
+
+        public boolean isDropping() {
+            return this == DROP_FOR_BUFFERED_IMAGE;
+        }
+    }
 
     /**
      * Maximal value of x/y-index of the tile.
@@ -164,6 +208,7 @@ public sealed class TiffMap permits TiffIOMap {
     private final int compressionCode;
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private final Optional<TagCompression> compression;
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private final Optional<TagCompression> compressionOrNoneIfMissing;
     // - storing Optional value is not a usual way; we do this only for quick replacement of TiffIFD method
     private final int photometricCode;
@@ -175,7 +220,9 @@ public sealed class TiffMap permits TiffIOMap {
     private final boolean rescaleWhenIncreasingBitDepthApplicable;
     private final boolean colorCorrectionApplicable;
 
-    private volatile UnpackBits autoUnpackBits = UnpackBits.NONE;
+    private volatile BitImageUnpackingMode bitImageUnpackingMode = BitImageUnpackingMode.NONE;
+    private volatile RarePrecisionMode rarePrecisionMode = RarePrecisionMode.UNPACK;
+    private volatile ExtraChannelsMode extraChannelsMode = ExtraChannelsMode.NONE;
 
     private volatile int dimX = 0;
     private volatile int dimY = 0;
@@ -402,7 +449,7 @@ public sealed class TiffMap permits TiffIOMap {
      * it is not allowed to write image with precisions listed above.</p>
      *
      * @return number of bytes, used for storing one channel of the pixel in memory.
-     * @see TiffReader#setUnusualPrecisions(net.algart.matrices.tiff.TiffReader.UnusualPrecisions)
+     * @see TiffMap#setRarePrecisionMode(RarePrecisionMode)
      */
     public int bitsPerUnpackedSample() {
         return bitsPerUnpackedSample;
@@ -518,15 +565,15 @@ public sealed class TiffMap permits TiffIOMap {
         return colorCorrectionApplicable;
     }
 
-    public final UnpackBits getAutoUnpackBits() {
-        return autoUnpackBits;
+    public final BitImageUnpackingMode getBitImageUnpackingMode() {
+        return bitImageUnpackingMode;
     }
 
     /**
      * Sets the mode, describing whether do we need to unpack binary images (one bit/pixel, black-and-white images)
      * into <code>byte</code> matrices: black pixels to value 0, white pixels to value depending on the mode.
      *
-     * <p>By default, this mode is {@link UnpackBits#NONE}.
+     * <p>By default, this mode is {@link BitImageUnpackingMode#NONE}.
      * In this case, {@link TiffReadMap#readMatrix()} and similar methods return binary AlgART matrices.</p>
      *
      * <p>Note that some TIFF images use <i>m</i>&gt;1 bit per pixel, where <i>m</i> is not divisible by 8,
@@ -535,11 +582,78 @@ public sealed class TiffMap permits TiffIOMap {
      * The only exception is 1-bit monochrome images: in this case, unpacking into bytes
      * is controlled by this method.</p>
      *
-     * @param autoUnpackBits whether do we need to unpack bit matrices to byte ones?
+     * @param bitImageUnpackingMode whether do we need to unpack bit matrices to byte ones?
      * @return a reference to this object.
      */
-    public TiffMap setAutoUnpackBits(UnpackBits autoUnpackBits) {
-        this.autoUnpackBits = Objects.requireNonNull(autoUnpackBits, "Null autoUnpackBits");
+    public TiffMap setBitImageUnpackingMode(BitImageUnpackingMode bitImageUnpackingMode) {
+        this.bitImageUnpackingMode =
+                Objects.requireNonNull(bitImageUnpackingMode, "Null bitImageUnpackingMode");
+        return this;
+    }
+
+    public RarePrecisionMode getRarePrecisionMode() {
+        return rarePrecisionMode;
+    }
+
+    /**
+     * Sets the mode, what do we need with unusual precisions (bits/sample), differ than all precisions
+     * supported by {@link TiffSampleType} class.
+     * These are 3-byte samples (17..24 bits/sample)
+     * and 16- or 24-bit floating-point formats.
+     * They will be unpacked (to 32-bit integer or floating-point values)
+     * when this mode is {@link RarePrecisionMode#UNPACK},
+     * or they will lead to an exception when it is {@link RarePrecisionMode#FORBID},
+     * or they will be loaded as-is if it is {@link RarePrecisionMode#KEEP_RAW}.
+     *
+     * <p>This mode is used inside {@link TiffReadMap#readSampleBytes(int, int, int, int)}
+     * method after all tiles have been read.
+     * This is just the default value of {@code rarePrecisionMode}
+     * argument of the more verbose method
+     * {@link TiffIOMap#readSampleBytes(int, int, int, int, RarePrecisionMode, boolean, TiffIOMap.TileSupplier)}.
+     * </p>
+     *
+     * <p>Note that the decoded data in {@link TiffTile} in case of unusual precisions is not unpacked
+     * (but you may request unpacking with {@link TiffTile#getUnpackedSampleBytes(boolean)} method).
+     * On the other hand, all other precisions such as 4-bit or 12-bit (but not 1-channel 1-bit case)
+     * are always unpacked to the nearest bit depth divided by 8 when decoding tiles.</p>
+     *
+     * <p>The {@link RarePrecisionMode#KEEP_RAW} mode is ignored (as if it was {@link RarePrecisionMode#UNPACK})
+     * when using high-level reading methods like {@link TiffReadMap#readMatrix} and
+     * {@link TiffReadMap#readJavaArray}.</p>
+     *
+     * <p>This flag is {@code true} by default. Usually there are no reasons to set it to {@code false},
+     * besides compatibility reasons or requirement to maximally save memory while processing 16/24-bit
+     * float values.</p>
+     *
+     * @param rarePrecisionMode whether do we need to unpack unusual precisions?
+     * @return a reference to this object.
+     * @see TiffReader#completeDecoding(TiffTile)
+     * @see TiffMap#bitsPerUnpackedSample()
+     */
+    public TiffMap setRarePrecisionMode(RarePrecisionMode rarePrecisionMode) {
+        this.rarePrecisionMode = Objects.requireNonNull(rarePrecisionMode, "Null rarePrecisionMode");
+        return this;
+    }
+
+    public ExtraChannelsMode getExtraChannelsMode() {
+        return extraChannelsMode;
+    }
+
+    /**
+     * Sets the mode specifying whether {@link TiffIOMap#readBufferedImage} should automatically
+     * drop extra channels if the source TIFF contains 5 or more channels.
+     *
+     * <p>This is a "safety" mode for {@link TiffIOMap#readBufferedImage}. Standard Java images
+     * cannot handle more than 4 channels. If this mode is {@link ExtraChannelsMode#DROP_FOR_BUFFERED_IMAGE},
+     * the reader will simply drop the extra channels to provide a viewable image.
+     * If it is {@link ExtraChannelsMode#NONE}, an exception will be thrown for
+     * such multichannel TIFF images.</p>
+     *
+     * @param extraChannelsMode whether to drop extra channels to stay compatible with {@code BufferedImage}.
+     * @return a reference to this object.
+     */
+    public TiffMap setExtraChannelsMode(ExtraChannelsMode extraChannelsMode) {
+        this.extraChannelsMode = Objects.requireNonNull(extraChannelsMode, "Null extraChannelsMode");
         return this;
     }
 
@@ -910,7 +1024,7 @@ public sealed class TiffMap permits TiffIOMap {
 
     public Object bytesToJavaArray(byte[] sampleBytes) {
         long t1 = debugTime();
-        final Object samplesArray = autoUnpackBits.isEnabled() && isBinary() ?
+        final Object samplesArray = bitImageUnpackingMode.isEnabled() && isBinary() ?
                 sampleBytes :
                 sampleType().javaArray(sampleBytes, byteOrder());
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
@@ -949,6 +1063,13 @@ public sealed class TiffMap permits TiffIOMap {
                     maxNumberOfSamplesInArray());
         }
         return TiffSamples.toBytes(samplesArray, numberOfSamples, byteOrder());
+    }
+
+    public <T extends Matrix<? extends PArray>> List<T> dropExtraChannels(List<T> image) {
+        Objects.requireNonNull(image, "Null image");
+        return getExtraChannelsMode().isDropping() && image.size() > 4 ?
+                image.subList(0, 4) :
+                image;
     }
 
     @Override

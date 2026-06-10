@@ -1967,7 +1967,7 @@ public final class TiffIFD {
                     case 1 -> result = TiffSampleType.UINT8;
                     case 2 -> result = TiffSampleType.UINT16;
                     case 3, 4 -> result = TiffSampleType.UINT32;
-                    // - note: 3-byte format should be converted to 4-byte (TiffTools.unpackUnusualPrecisions)
+                    // - note: 3-byte format should be converted to 4-byte (unpackRarePrecisions)
                 }
                 if (result == null && requireNonNullResult) {
                     throw new UnsupportedTiffFormatException("Unsupported TIFF bit depth: " +
@@ -1982,7 +1982,7 @@ public final class TiffIFD {
                     case 1 -> result = TiffSampleType.INT8;
                     case 2 -> result = TiffSampleType.INT16;
                     case 3, 4 -> result = TiffSampleType.INT32;
-                    // - note: 3-byte format should be converted to 4-byte (TiffTools.unpackUnusualPrecisions)
+                    // - note: 3-byte format should be converted to 4-byte (unpackRarePrecisions)
                 }
                 if (result == null && requireNonNullResult) {
                     throw new UnsupportedTiffFormatException("Unsupported TIFF bit depth: " +
@@ -1995,7 +1995,7 @@ public final class TiffIFD {
                 switch (bytesPerSample) {
                     case 2, 3, 4 -> result = TiffSampleType.FLOAT;
                     case 8 -> result = TiffSampleType.DOUBLE;
-                    // - note: 2/3-byte float format should be converted to 4-byte (TiffTools.unpackUnusualPrecisions)
+                    // - note: 2/3-byte float format should be converted to 4-byte (unpackRarePrecisions)
                 }
                 if (result == null && requireNonNullResult) {
                     throw new UnsupportedTiffFormatException("Unsupported TIFF bit depth: " +

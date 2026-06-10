@@ -32,7 +32,6 @@ import net.algart.matrices.tiff.bits.TiffPrediction;
 import net.algart.matrices.tiff.bits.TiffUnpacking;
 import net.algart.matrices.tiff.bits.TiffUnpackingPrecisions;
 import net.algart.matrices.tiff.io.ReadBufferDataHandle;
-import net.algart.matrices.tiff.samples.TiffSampleType;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagPhotometric;
 import net.algart.matrices.tiff.tags.Tags;
@@ -51,7 +50,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -64,40 +62,6 @@ import java.util.stream.Collectors;
  * The same is true for the result of {@link #stream()} method.</p>
  */
 public non-sealed class TiffReader extends TiffIO {
-    public enum UnusualPrecisions {
-        NONE,
-        DISABLE,
-        UNPACK;
-
-        public UnusualPrecisions unpackIfEnabled() {
-            return this == NONE ? UNPACK : this;
-        }
-
-        public static UnusualPrecisions of(boolean unpack) {
-            return unpack ? UNPACK : NONE;
-        }
-
-        public void throwIfDisabled(TiffMap map) throws TiffException {
-            Objects.requireNonNull(map, "Null TIFF map");
-            if (this == DISABLE && TiffUnpackingPrecisions.isUnusualPrecisions(map.ifd())) {
-                throw new UnsupportedTiffFormatException("Support of unusual TIFF bit depth is disabled: " +
-                        Arrays.toString(map.ifd().getBitsPerSample()) + " bits/sample for " +
-                        map.sampleType().prettyName() + " values");
-            }
-        }
-
-        public byte[] unpackIfNecessary(TiffMap map, byte[] sampleBytes, long numberOfPixels, boolean rescaleInt24)
-                throws TiffException {
-            Objects.requireNonNull(map, "Null TIFF map");
-            Objects.requireNonNull(sampleBytes, "Null sampleBytes");
-            throwIfDisabled(map);
-            return this != TiffReader.UnusualPrecisions.UNPACK ?
-                    sampleBytes :
-                    TiffUnpackingPrecisions.unpackUnusualPrecisions(
-                            sampleBytes, map.ifd(), map.numberOfChannels(), numberOfPixels, rescaleInt24);
-        }
-    }
-
     public static final boolean DEFAULT_RESCALE_WHEN_INCREASING_BIT_DEPTH = true;
     public static final boolean DEFAULT_COLOR_CORRECTION = false;
     public static final long DEFAULT_MAX_CACHING_MEMORY = Math.max(0,
@@ -124,10 +88,8 @@ public non-sealed class TiffReader extends TiffIO {
 
     private volatile boolean caching = true;
     private volatile long maxCacheMemory = DEFAULT_MAX_CACHING_MEMORY;
-    private UnusualPrecisions unusualPrecisions = UnusualPrecisions.UNPACK;
     private boolean rescaleWhenIncreasingBitDepth = DEFAULT_RESCALE_WHEN_INCREASING_BIT_DEPTH;
     private boolean colorCorrection = DEFAULT_COLOR_CORRECTION;
-    private boolean removeExtraChannelsIf5OrMoreForBufferedImage = false;
     private TiffCodec.Customizer codecCustomizer = null;
     private boolean enforceUseExternalCodec = false;
     private boolean cropTilesToImageBoundaries = true;
@@ -475,50 +437,6 @@ public non-sealed class TiffReader extends TiffIO {
         }
     }
 
-    public UnusualPrecisions getUnusualPrecisions() {
-        return unusualPrecisions;
-    }
-
-    /**
-     * Sets the mode, what do we need with unusual precisions (bits/sample), differ than all precisions
-     * supported by {@link TiffSampleType} class.
-     * These are 3-byte samples (17..24 bits/sample)
-     * and 16- or 24-bit floating-point formats.
-     * They will be unpacked (to 32-bit integer or floating-point values)
-     * when this mode is {@link UnusualPrecisions#UNPACK},
-     * or they will lead to an exception when it is {@link UnusualPrecisions#DISABLE},
-     * or they will be loaded as-is if it is {@link UnusualPrecisions#NONE}.
-     *
-     * <p>This mode is used inside {@link TiffReadMap#readSampleBytes(int, int, int, int)}
-     * method after all tiles have been read.
-     * This is just the default value of <code>unusualPrecisions</code>
-     * argument of the more verbose method
-     * {@link TiffIOMap#readSampleBytes(int, int, int, int, UnusualPrecisions, boolean, TiffIOMap.TileSupplier)}.
-     * </p>
-     *
-     * <p>Note that the decoded data in {@link TiffTile} in case of unusual precisions is not unpacked
-     * (but you may request unpacking with {@link TiffTile#getUnpackedSampleBytes(boolean)} method).
-     * On the other hand, all other precisions such as 4-bit or 12-bit (but not 1-channel 1-bit case)
-     * are always unpacked to the nearest bit depth divided by 8 when decoding tiles.</p>
-     *
-     * <p>The {@link UnusualPrecisions#NONE} mode is ignored (as if it was {@link UnusualPrecisions#UNPACK})
-     * when using high-level reading methods like {@link TiffReadMap#readMatrix} and
-     * {@link TiffReadMap#readJavaArray}.</p>
-     *
-     * <p>This flag is {@code true} by default. Usually there are no reasons to set it to {@code false},
-     * besides compatibility reasons or requirement to maximally save memory while processing 16/24-bit
-     * float values.</p>
-     *
-     * @param unusualPrecisions whether do we need to unpack unusual precisions?
-     * @return a reference to this object.
-     * @see #completeDecoding(TiffTile)
-     * @see TiffMap#bitsPerUnpackedSample()
-     */
-    public TiffReader setUnusualPrecisions(UnusualPrecisions unusualPrecisions) {
-        this.unusualPrecisions = Objects.requireNonNull(unusualPrecisions, "Null unusualPrecisions");
-        return this;
-    }
-
     public boolean isRescaleWhenIncreasingBitDepth() {
         return rescaleWhenIncreasingBitDepth;
     }
@@ -676,30 +594,6 @@ public non-sealed class TiffReader extends TiffIO {
         Objects.requireNonNull(ifd, "Null IFD");
         // The following checks must match the implementation in the TiffUnpacking class
         return ifd.isLowLevelInvertedBrightness();
-    }
-
-    public boolean isRemoveExtraChannelsIf5OrMoreForBufferedImage() {
-        return removeExtraChannelsIf5OrMoreForBufferedImage;
-    }
-
-    /**
-     * Sets the flag specifying whether {@link #readBufferedImage} should automatically
-     * remove (discard) extra channels if the source TIFF contains 5 or more channels.
-     *
-     * <p>This is a "safety" flag for {@link #readBufferedImage}. Standard Java images
-     * cannot handle more than 4 channels. If this flag is <code>true</code>, the reader
-     * will simply strip away the extra channels to provide
-     * a viewable image. If <code>false</code>, an exception will be thrown for
-     * such multichannel TIFF images.</p>
-     *
-     * @param removeExtraChannelsIf5OrMoreForBufferedImage whether to remove extrac channels
-     *                                                     to stay compatible with BufferedImage.
-     * @return a reference to this object.
-     */
-    public TiffReader setRemoveExtraChannelsIf5OrMoreForBufferedImage(
-            boolean removeExtraChannelsIf5OrMoreForBufferedImage) {
-        this.removeExtraChannelsIf5OrMoreForBufferedImage = removeExtraChannelsIf5OrMoreForBufferedImage;
-        return this;
     }
 
     public TiffCodec.Customizer getCodecCustomizer() {
@@ -930,7 +824,7 @@ public non-sealed class TiffReader extends TiffIO {
 
     /**
      * Calls {@link #allIFDs()} and returns IFD with the specified index.
-     * If <code>ifdIndex</code> is too big (&ge;{@link #numberOfImages()}), this method throws
+     * If <code>ifdIndex</code> is too big ( &ge;{@link #numberOfImages()} ), this method throws
      * {@link TiffException}.</p>
      *
      * @param ifdIndex index of the TIFF image.
@@ -1560,7 +1454,7 @@ public non-sealed class TiffReader extends TiffIO {
      * </ul>
      *
      * <p>First correction: unpacking. TIFF supports storing pixel samples in any number of bits,
-     * not always divisible by 8; in other words, one pixel sample can occupy a non-integer number of bytes.
+     * not always divisible by 8; in other words, one pixel sample can occupy a noninteger number of bytes.
      * Most useful in these cases is a 1-bit monochrome picture, where 8 pixels are packed into 1 byte.
      * Sometimes the pictures with 4 bits/pixels (monochrome or with palette) or 3*4=12 bits/pixels (RGB) appear.
      * You can also meet old RGB 32-bit images with 5+5+5 or 5+6+5 bits/channel.</p>
@@ -1595,11 +1489,11 @@ public non-sealed class TiffReader extends TiffIO {
      * Thus, this method <b>does not unpack 3-byte samples</b> (to 4-byte) and
      * <b>does not unpack 16- or 24-bit</b> floating-point formats. These cases
      * are processed after reading all tiles inside {@link TiffIOMap#readSampleBytes}
-     * method, if {@link #getUnusualPrecisions()} mode is {@link UnusualPrecisions#UNPACK},
+     * method, if {@link TiffMap#getRarePrecisionMode()} mode is {@link TiffMap.RarePrecisionMode#UNPACK},
      * or may be performed by external
-     * code with help of {@link TiffUnpackingPrecisions#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)}
+     * code with help of {@link TiffUnpackingPrecisions#unpackRarePrecisions(byte[], TiffIFD, int, long, boolean)}
      * method.
-     * See {@link TiffReader#setUnusualPrecisions(UnusualPrecisions)}.
+     * See {@link TiffMap#setRarePrecisionMode(TiffMap.RarePrecisionMode)}.
      *
      * <p>This method does not allow 5, 6, 7 or greater than 8 bytes/sample
      * (but 8 bytes/sample is allowed: it is probably <code>double</code> precision).</p>
@@ -1679,7 +1573,7 @@ public non-sealed class TiffReader extends TiffIO {
     public TiffReadMap map(TiffIFD ifd, boolean builtTileGrid) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         final TiffReadMap map = new TiffReadMap(this, ifd);
-        unusualPrecisions.throwIfDisabled(map);
+        map.getRarePrecisionMode().throwIfForbidden(map);
         if (builtTileGrid) {
             map.buildTileGrid();
         }

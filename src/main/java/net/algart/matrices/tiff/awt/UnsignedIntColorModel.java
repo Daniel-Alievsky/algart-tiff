@@ -134,7 +134,6 @@ public class UnsignedIntColorModel extends ColorModel {
     public int getAlpha(Object data) {
         final int[] i;
         if (data instanceof int[] && (i = (int[]) data).length == 4) {
-            if (i.length == 1) return getAlpha(i[0]);
             return getAlpha(i[0]);
         }
         return Integer.MAX_VALUE;

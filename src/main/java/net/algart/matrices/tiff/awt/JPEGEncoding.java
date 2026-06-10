@@ -24,8 +24,6 @@
 
 package net.algart.matrices.tiff.awt;
 
-import net.algart.matrices.tiff.tags.TagPhotometric;
-
 import javax.imageio.*;
 import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.stream.ImageOutputStream;

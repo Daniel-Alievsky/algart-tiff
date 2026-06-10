@@ -151,7 +151,7 @@ public class TiffReadWriteTest {
                     final int bandCount = readerIFD.getSamplesPerPixel();
                     long t1 = System.nanoTime();
                     byte[] bytes = reader.map(readerIFD)
-                            .setAutoUnpackBits(TiffMap.UnpackBits.UNPACK_TO_0_1)
+                            .setBitImageUnpackingMode(TiffMap.BitImageUnpackingMode.UNPACK_TO_0_1)
                             .readSampleBytes(START_X, START_Y, w, h);
                     // - UNPACK_TO_0_1 emulates behavior of SCIFIO TiffParser
                     long t2 = System.nanoTime();

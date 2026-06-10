@@ -457,7 +457,7 @@ public class JTiffExplorerFrame extends JFrame {
         for (int i = 0; i < info.numberOfImages(); i++) {
             final TiffIFD ifd = metadata.ifd(i);
             if (!ifd.hasGlobalIndex() || ifd.getGlobalIndex() != i) {
-                throw new AssertionError("Invalid global index "+ + ifd.getGlobalIndex());
+                throw new AssertionError("Invalid global index "+ ifd.getGlobalIndex());
             }
             String caption;
             try {

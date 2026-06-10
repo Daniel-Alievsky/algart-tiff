@@ -76,13 +76,13 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
             int fromY,
             int sizeX,
             int sizeY,
-            TiffReader.UnusualPrecisions autoUnpackUnusualPrecisions) throws IOException {
+            RarePrecisionMode rarePrecisionMode) throws IOException {
         return readSampleBytes(
                 fromX,
                 fromY,
                 sizeX,
                 sizeY,
-                autoUnpackUnusualPrecisions,
+                rarePrecisionMode,
                 true,
                 cachedTileSupplier());
     }

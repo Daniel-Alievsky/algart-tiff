@@ -92,8 +92,20 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
     }
 
     @Override
-    public TiffIOMap setAutoUnpackBits(UnpackBits autoUnpackBits) {
-        super.setAutoUnpackBits(autoUnpackBits);
+    public TiffIOMap<T> setBitImageUnpackingMode(BitImageUnpackingMode bitImageUnpackingMode) {
+        super.setBitImageUnpackingMode(bitImageUnpackingMode);
+        return this;
+    }
+
+    @Override
+    public TiffIOMap<T> setRarePrecisionMode(RarePrecisionMode rarePrecisionMode) {
+        super.setRarePrecisionMode(rarePrecisionMode);
+        return this;
+    }
+
+    @Override
+    public TiffIOMap<T> setExtraChannelsMode(ExtraChannelsMode extraChannelsMode) {
+        super.setExtraChannelsMode(extraChannelsMode);
         return this;
     }
 
@@ -102,11 +114,11 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             int fromY,
             int sizeX,
             int sizeY,
-            TiffReader.UnusualPrecisions unusualPrecisions,
+            RarePrecisionMode rarePrecisionMode,
             boolean storeTilesInMap)
             throws IOException {
         return loadSampleBytes(
-                fromX, fromY, sizeX, sizeY, unusualPrecisions, storeTilesInMap, cachedTileSupplier());
+                fromX, fromY, sizeX, sizeY, rarePrecisionMode, storeTilesInMap, cachedTileSupplier());
     }
 
     public byte[] loadSampleBytes(
@@ -114,11 +126,11 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             int fromY,
             int sizeX,
             int sizeY,
-            TiffReader.UnusualPrecisions unusualPrecisions,
+            RarePrecisionMode rarePrecisionMode,
             boolean storeTilesInMap,
             TileSupplier tileSupplier)
             throws IOException {
-        Objects.requireNonNull(unusualPrecisions, "Null unusualPrecisions");
+        Objects.requireNonNull(rarePrecisionMode, "Null rarePrecisionMode");
         Objects.requireNonNull(tileSupplier, "Null tileSupplier");
         checkRequestedArea(fromX, fromY, sizeX, sizeY);
         final int sizeInBytes = sizeOfRegionWithPossibleNonStandardPrecisions(sizeX, sizeY);
@@ -127,9 +139,9 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             throw new IllegalStateException("Image data can only be read from a TIFF map for an existing IFD, " +
                     "not for a newly created map for writing new image");
         }
-        unusualPrecisions.throwIfDisabled(this);
-        assert unusualPrecisions == TiffReader.UnusualPrecisions.NONE ||
-                unusualPrecisions == TiffReader.UnusualPrecisions.UNPACK;
+        rarePrecisionMode.throwIfForbidden(this);
+        assert rarePrecisionMode == RarePrecisionMode.KEEP_RAW ||
+                rarePrecisionMode == RarePrecisionMode.UNPACK;
         final byte[] sampleBytes = new byte[sizeInBytes];
 
         @SuppressWarnings("resource") final TiffReader reader = reader();
@@ -158,13 +170,13 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         final int minXIndex = Math.max(0, divFloor(fromX, mapTileSizeX));
         final int minYIndex = Math.max(0, divFloor(fromY, mapTileSizeY));
         if (minXIndex >= gridCountX() || minYIndex >= gridCountY() || toX < fromX || toY < fromY) {
-            return unusualPrecisions.unpackIfNecessary(this, sampleBytes, sizeInPixels, rescaleInt24);
+            return rarePrecisionMode.unpackIfNecessary(this, sampleBytes, sizeInPixels, rescaleInt24);
         }
         final int maxXIndex = Math.min(gridCountX() - 1, divFloor(toX - 1, mapTileSizeX));
         final int maxYIndex = Math.min(gridCountY() - 1, divFloor(toY - 1, mapTileSizeY));
         if (minYIndex > maxYIndex || minXIndex > maxXIndex) {
             // - possible when fromX < 0 or fromY < 0
-            return unusualPrecisions.unpackIfNecessary(this, sampleBytes, sizeInPixels, rescaleInt24);
+            return rarePrecisionMode.unpackIfNecessary(this, sampleBytes, sizeInPixels, rescaleInt24);
         }
         final long tileOneChannelRowSizeInBits = (long) mapTileSizeX * bitsPerSample;
         final long samplesOneChannelRowSizeInBits = (long) sizeX * bitsPerSample;
@@ -219,7 +231,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
                 }
             }
         }
-        return unusualPrecisions.unpackIfNecessary(this, sampleBytes, sizeInPixels, rescaleInt24);
+        return rarePrecisionMode.unpackIfNecessary(this, sampleBytes, sizeInPixels, rescaleInt24);
     }
 
     public byte[] readSampleBytes(
@@ -227,10 +239,10 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             int fromY,
             int sizeX,
             int sizeY,
-            TiffReader.UnusualPrecisions unusualPrecisions,
+            RarePrecisionMode rarePrecisionMode,
             boolean storeTilesInMap,
             TileSupplier tileSupplier) throws IOException {
-        Objects.requireNonNull(unusualPrecisions, "Null unusualPrecisions");
+        Objects.requireNonNull(rarePrecisionMode, "Null rarePrecisionMode");
         Objects.requireNonNull(tileSupplier, "Null tileSupplier");
         @SuppressWarnings("resource") final TiffReader reader = reader();
         long t1 = debugTime();
@@ -239,7 +251,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         // - note: we allow this area to be outside the image
 
         byte[] sampleBytes = loadSampleBytes(
-                fromX, fromY, sizeX, sizeY, unusualPrecisions, storeTilesInMap, tileSupplier);
+                fromX, fromY, sizeX, sizeY, rarePrecisionMode, storeTilesInMap, tileSupplier);
         final int sizeInBytes = sampleBytes.length;
         final long sizeInPixels = (long) sizeX * (long) sizeY;
         // - can be >2^31 for bits
@@ -253,14 +265,14 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         //     sampleBytes = newSamples;
         // }
         boolean unpackingBits = false;
-        if (getAutoUnpackBits().isEnabled() && isBinary()) {
+        if (getBitImageUnpackingMode().isEnabled() && isBinary()) {
             unpackingBits = true;
             sampleBytes = PackedBitArraysPer8.unpackBitsToBytes(
                     sampleBytes,
                     0,
                     sizeInPixels,
                     (byte) 0,
-                    getAutoUnpackBits().bit1Value());
+                    getBitImageUnpackingMode().bit1Value());
         }
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t3 = debugTime();
@@ -295,7 +307,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         Objects.requireNonNull(tileSupplier, "Null tileSupplier");
         final byte[] sampleBytes = readSampleBytes(
                 fromX, fromY, sizeX, sizeY,
-                reader.getUnusualPrecisions().unpackIfEnabled(), storeTilesInMap, tileSupplier);
+                getRarePrecisionMode().unpackIfEnabled(), storeTilesInMap, tileSupplier);
         return bytesToJavaArray(sampleBytes);
     }
 
@@ -346,7 +358,6 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         return toBufferedImage(asChannels(mergedChannels));
     }
 
-
     public Matrix<UpdatablePArray> javaArrayAsMatrix(Object samplesArray, int sizeX, int sizeY) {
         return TiffSamples.asMatrix(samplesArray, sizeX, sizeY, numberOfChannels(), false);
     }
@@ -361,7 +372,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
     }
 
     public BufferedImage toBufferedImage(List<? extends Matrix<? extends PArray>> channels) {
-        final Matrix<? extends PArray> interleaved = Matrices.interleave(extractFirst4Channels(channels));
+        final Matrix<? extends PArray> interleaved = Matrices.interleave(dropExtraChannels(channels));
         return interleavedToBufferedImage(interleaved);
     }
 
@@ -374,13 +385,6 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         return new MatrixToImage.InterleavedRGBToInterleaved()
                 .setUnsignedInt32(true)
                 .toBufferedImage(interleaved);
-    }
-
-    public <T extends Matrix<? extends PArray>> List<T> extractFirst4Channels(List<T> image) {
-        //noinspection resource
-        return reader().isRemoveExtraChannelsIf5OrMoreForBufferedImage() && image.size() > 4 ?
-                image.subList(0, 4) :
-                image;
     }
 
     static int divFloor(int a, int b) {

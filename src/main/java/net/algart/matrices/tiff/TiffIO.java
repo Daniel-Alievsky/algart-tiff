@@ -1127,7 +1127,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                          Tags.ROWS_PER_STRIP,
                          Tags.NEW_SUBFILE_TYPE -> {
                         ifdStream.writeShort(TagType.LONG.typeCode());
-                        TagValue.writeUnsigned(ifdStream, bigTiff, 1);
+                        TagValue.writeUnsigned(ifdStream, true, 1);
                         // - the length
                         ifdStream.writeInt((int) value);
                         writeZeroPadding(ifdStream, 4);
