@@ -61,7 +61,7 @@ public class TiffUnpacking {
         if (TiffReader.isRescaleWhenIncreasingBitDepthApplicable(ifd) && tile.bitsPerSample() != 24) {
             // - if !isSimpleRearrangingBytesEnough, rescaling may still not be applicable (YCbCr, 8-bit CMYK);
             // the special case 24 bits/sample is processed
-            // in TiffIOMap and TiffUnusualPrecisions.unpackUnusualPrecisions method
+            // in TiffIOMap and TiffUnpackingPrecisions.unpackUnusualPrecisions method
             throw new AssertionError("Invalid isRescaleWhenIncreasingBitDepthApplicable: must be false");
         }
         if (!OPTIMIZE_SEPARATING_WHOLE_BYTES && tile.isInterleaved()) {

@@ -27,7 +27,7 @@ package net.algart.matrices.tiff.tiles;
 import net.algart.arrays.*;
 import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
-import net.algart.matrices.tiff.bits.TiffUnusualPrecisions;
+import net.algart.matrices.tiff.bits.TiffUnpackingPrecisions;
 import net.algart.matrices.tiff.samples.TiffSampleType;
 import net.algart.matrices.tiff.samples.TiffSamples;
 import net.algart.matrices.tiff.tags.TagCompression;
@@ -692,17 +692,17 @@ public final class TiffTile {
      * The typical value is <code>true</code>.
      *
      * @param rescaleWhenIncreasingBitDepth the last argument passed to of
-     *                                     {@link TiffUnusualPrecisions#unpackUnusualPrecisions} method for
+     *                                     {@link TiffUnpackingPrecisions#unpackUnusualPrecisions} method for
      *                                     unpacking data.
      * @return unpacked data.
-     * @see TiffUnusualPrecisions#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)
+     * @see TiffUnpackingPrecisions#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)
      * @see #bitsPerSample()
      * @see TiffMap#bitsPerUnpackedSample()
      */
     public byte[] getUnpackedSampleBytes(boolean rescaleWhenIncreasingBitDepth) {
         byte[] samples = getDecodedData();
         try {
-            samples = TiffUnusualPrecisions.unpackUnusualPrecisions(
+            samples = TiffUnpackingPrecisions.unpackUnusualPrecisions(
                     samples, ifd(), samplesPerPixel, sizeInPixels, rescaleWhenIncreasingBitDepth);
         } catch (TiffException e) {
             throw new IllegalStateException("Illegal IFD inside the tile map", e);

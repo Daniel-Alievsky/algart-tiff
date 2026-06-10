@@ -35,8 +35,8 @@ import net.algart.matrices.tiff.tiles.TiffTile;
 import java.nio.ByteOrder;
 import java.util.Objects;
 
-public class TiffUnusualPrecisions {
-    private TiffUnusualPrecisions() {
+public class TiffUnpackingPrecisions {
+    private TiffUnpackingPrecisions() {
     }
 
     public static boolean isUnusualPrecisions(

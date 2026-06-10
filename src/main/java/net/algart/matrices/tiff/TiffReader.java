@@ -30,7 +30,7 @@ import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.bits.TiffJPEGDecodingHelper;
 import net.algart.matrices.tiff.bits.TiffPrediction;
 import net.algart.matrices.tiff.bits.TiffUnpacking;
-import net.algart.matrices.tiff.bits.TiffUnusualPrecisions;
+import net.algart.matrices.tiff.bits.TiffUnpackingPrecisions;
 import net.algart.matrices.tiff.io.ReadBufferDataHandle;
 import net.algart.matrices.tiff.samples.TiffSampleType;
 import net.algart.matrices.tiff.tags.TagCompression;
@@ -104,7 +104,7 @@ public non-sealed class TiffReader extends TiffIO {
 
         public void throwIfDisabled(TiffMap map) throws TiffException {
             Objects.requireNonNull(map, "Null TIFF map");
-            if (this == DISABLE && TiffUnusualPrecisions.isUnusualPrecisions(map.ifd())) {
+            if (this == DISABLE && TiffUnpackingPrecisions.isUnusualPrecisions(map.ifd())) {
                 throw new UnsupportedTiffFormatException("Support of unusual TIFF bit depth is disabled: " +
                         Arrays.toString(map.ifd().getBitsPerSample()) + " bits/sample for " +
                         map.sampleType().prettyName() + " values");
@@ -118,7 +118,7 @@ public non-sealed class TiffReader extends TiffIO {
             throwIfDisabled(map);
             return this != TiffReader.UnusualPrecisions.UNPACK ?
                     sampleBytes :
-                    TiffUnusualPrecisions.unpackUnusualPrecisions(
+                    TiffUnpackingPrecisions.unpackUnusualPrecisions(
                             sampleBytes, map.ifd(), map.numberOfChannels(), numberOfPixels, rescaleInt24);
         }
     }
@@ -1648,7 +1648,7 @@ public non-sealed class TiffReader extends TiffIO {
      * are processed after reading all tiles inside {@link TiffIOMap#readSampleBytes}
      * method, if {@link #getUnusualPrecisions()} mode is {@link UnusualPrecisions#UNPACK},
      * or may be performed by external
-     * code with help of {@link TiffUnusualPrecisions#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)}
+     * code with help of {@link TiffUnpackingPrecisions#unpackUnusualPrecisions(byte[], TiffIFD, int, long, boolean)}
      * method.
      * See {@link TiffReader#setUnusualPrecisions(UnusualPrecisions)}.
      *
