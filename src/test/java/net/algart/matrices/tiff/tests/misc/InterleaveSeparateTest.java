@@ -31,8 +31,7 @@ import java.util.Random;
 
 public class InterleaveSeparateTest {
     public void test() throws Exception {
-        //noinspection Convert2MethodRef
-        TestPOJOTools.runTest(() -> main("100", "100"));
+        main("100", "100");
     }
 
     public static void main(String... args) {

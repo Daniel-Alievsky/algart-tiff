@@ -39,8 +39,7 @@ public class CreatingIFDTest {
     }
 
     public void test() throws Exception {
-        //noinspection Convert2MethodRef
-        TestPOJOTools.runTest(() -> main());
+        main();
     }
 
     public static void main(String... args) {

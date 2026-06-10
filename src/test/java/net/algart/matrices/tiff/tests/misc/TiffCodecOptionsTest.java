@@ -29,8 +29,7 @@ import net.algart.matrices.tiff.codecs.TiffCodec;
 
 public class TiffCodecOptionsTest {
     public void test() throws Exception {
-        //noinspection Convert2MethodRef
-        TestPOJOTools.runTest(() -> main());
+        main();
     }
 
     public static void main(String... args) {

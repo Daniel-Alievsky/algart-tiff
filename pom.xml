@@ -59,16 +59,16 @@
         <!-- Note: the following TwelveMonkey dependencies MUST NOT affect the correct reading/writing JPEG -->
         <!-- See JPEGDecoding.DISABLE_THIRD_PARTY_IMAGE_READER constant -->
         <!-- You may uncomment them for testing this fact! -->
-<!--                <dependency>-->
-<!--                    <groupId>com.twelvemonkeys.imageio</groupId>-->
-<!--                    <artifactId>imageio-jpeg</artifactId>-->
-<!--                    <version>3.13.1</version>-->
-<!--                </dependency>-->
-<!--                <dependency>-->
-<!--                    <groupId>com.twelvemonkeys.imageio</groupId>-->
-<!--                    <artifactId>imageio-tiff</artifactId>-->
-<!--                    <version>3.13.1</version>-->
-<!--                </dependency>-->
+        <!--                <dependency>-->
+        <!--                    <groupId>com.twelvemonkeys.imageio</groupId>-->
+        <!--                    <artifactId>imageio-jpeg</artifactId>-->
+        <!--                    <version>3.13.1</version>-->
+        <!--                </dependency>-->
+        <!--                <dependency>-->
+        <!--                    <groupId>com.twelvemonkeys.imageio</groupId>-->
+        <!--                    <artifactId>imageio-tiff</artifactId>-->
+        <!--                    <version>3.13.1</version>-->
+        <!--                </dependency>-->
     </dependencies>
 
     <build>
@@ -138,6 +138,14 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.6</version>
+                <configuration>
+                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-antrun-plugin</artifactId>
                 <version>3.1.0</version>
                 <executions>
@@ -174,7 +182,8 @@
                                     </fileset>
                                 </copy>
                                 <zip destfile="${project.build.directory}/build/tiff-explorer-${project.version}.zip">
-                                    <zipfileset dir="${project.build.directory}/build/tiff-explorer" prefix="tiff-explorer"/>
+                                    <zipfileset dir="${project.build.directory}/build/tiff-explorer"
+                                                prefix="tiff-explorer"/>
                                 </zip>
                                 <mkdir dir="${project.build.directory}/build/website/"/>
                                 <copy todir="${project.build.directory}/build/website">
