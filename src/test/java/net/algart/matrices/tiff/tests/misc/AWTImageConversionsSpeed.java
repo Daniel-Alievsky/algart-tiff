@@ -66,11 +66,10 @@ public class AWTImageConversionsSpeed {
         final boolean floatingPoint = tt == DataBuffer.TYPE_FLOAT || tt == DataBuffer.TYPE_DOUBLE;
         int bytesPerSample = -1;
 
-        byte[][] data = null;
         for (int test = 1; test <= numberOfTests; test++) {
             System.out.printf("%nDecoding test %d%n", test);
             long t1 = System.nanoTime();
-            data = AWTImages.getImagePixelBytes(bi, LITTLE_ENDIAN);
+            byte[][] data = AWTImages.getImagePixelBytes(bi, LITTLE_ENDIAN);
             long t2 = System.nanoTime();
             ImageToMatrix converter = new ImageToMatrix.ToInterleavedRGB();
             Matrix<? extends UpdatablePArray> matrix = converter.toMatrix(bi);
@@ -85,34 +84,5 @@ public class AWTImageConversionsSpeed {
                     matrix, (t3 - t2) * 1e-6);
 
         }
-
-        bi = null;
-        for (int test = 1; test <= numberOfTests; test++) {
-            System.out.printf("%nEncoding test %d%n", test);
-            long t1 = System.nanoTime();
-            bi = AWTImages.makeImage(
-                    data, dimX, dimY, bytesPerSample, floatingPoint, LITTLE_ENDIAN, false);
-            long t2 = System.nanoTime();
-            final int size = data.length * data[0].length;
-            System.out.printf(Locale.US,
-                    "Encoding image %dx%dx%d, %d samples per %d bytes: " +
-                            "%.3f ms AWTImages (%.3f MB/sec)%n",
-                    dimX, dimY, data.length, size / bytesPerSample, bytesPerSample,
-                    (t2 - t1) * 1e-6, size / 1048576.0 / ((t2 - t1) * 1e-9));
-        }
-
-        System.out.printf("%nWriting %s...%n", resultFile);
-        resultFile.delete();
-        if (!ImageIO.write(bi, extension(resultFile.getName(), "bmp"), resultFile)) {
-            throw new IOException("No suitable writer");
-        }
-    }
-
-    static String extension(String fileName, String defaultExtension) {
-        int p = fileName.lastIndexOf('.');
-        if (p == -1) {
-            return defaultExtension;
-        }
-        return fileName.substring(p + 1);
     }
 }
