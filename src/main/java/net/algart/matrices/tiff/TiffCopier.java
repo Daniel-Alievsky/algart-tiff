@@ -828,8 +828,7 @@ public final class TiffCopier {
             int sizeY,
             boolean swapOrder) throws IOException {
         List<TiffTile> tiles;
-        byte[] samples = readMap.loadSampleBytes(
-                readX, readY, sizeX, sizeY, TiffMap.RarePrecisionMode.UNPACK);
+        byte[] samples = readMap.loadSampleBytes(readX, readY, sizeX, sizeY, TiffMap.RarePrecisionMode.UNPACK);
         if (swapOrder) {
             samples = JArrays.copyAndSwapByteOrder(samples, readMap.elementType());
         }

@@ -83,17 +83,17 @@ public class TiffCopyRectangleDemo {
                 300);
         try (TiffReader reader = new TiffReader(sourceFile);
              TiffWriter writer = new TiffWriter(targetFile)) {
+            final TiffReadMap readMap = reader.map(ifdIndex);
             // reader.setCaching(false); // - slows down copying when the rectangle does not consist of whole tiles
-            // reader.setAutoUnpackBits(TiffReader.UnpackBits.UNPACK_TO_0_255);
+            // readMap.setBitImageUnpackingMode(TiffMap.BitImageUnpackingMode.UNPACK_TO_0_255);
             // - should not affect the result
-            // reader.setUnusualPrecisions(TiffReader.UnusualPrecisions.DISABLE);
+            // readMap.setRarePrecisionMode(TiffMap.RarePrecisionMode.FORBID);
             // - should block the ability to load non-standard precisions like 16-bit float
 
             if (smart) {
                 writer.setSmartCorrection(true);
             }
 
-            final TiffReadMap readMap = reader.map(ifdIndex);
             if (w < 0) {
                 w = readMap.dimX() - x;
             }
