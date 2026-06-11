@@ -372,43 +372,11 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
     }
 
     public List<TiffTile> updateMatrix(Matrix<? extends PArray> matrix, int fromX, int fromY) {
-        Objects.requireNonNull(matrix, "Null matrix");
-        final boolean sourceInterleaved = !isPlanarSeparated() && !AUTO_INTERLEAVE_SOURCE;
-        // - always false in the standard implementation
-        final Class<?> elementType = matrix.elementType();
-        if (elementType != elementType()) {
-            throw new IllegalArgumentException("Invalid element type of the matrix: \"" + elementType +
-                    "\" (" + Arrays.bitsPerElement(elementType) +
-                    "-bit), although the specified TIFF map stores \"" + elementType() +
-                    "\" (" + bitsPerUnpackedSample() + "-bit) elements");
+        if (!AUTO_INTERLEAVE_SOURCE) {
+            throw new IllegalStateException("Cannot update matrix: AUTO_INTERLEAVE_SOURCE is not set");
         }
-        if (matrix.dimCount() != 3 && !(matrix.dimCount() == 2 && numberOfChannels() == 1)) {
-            throw new IllegalArgumentException("Illegal number of matrix dimensions " + matrix.dimCount() +
-                    ": it must be 3-dimensional dimX*dimY*C, " +
-                    "where C is the number of channels (z-dimension), " +
-                    "or 3-dimensional C*dimX*dimY for interleaved case, " +
-                    "or 2-dimensional in the case of monochrome TIFF image");
-        }
-        final int dimChannelsIndex = sourceInterleaved ? 0 : 2;
-        final long numberOfChannels = matrix.dim(dimChannelsIndex);
-        final long sizeX = matrix.dim(sourceInterleaved ? 1 : 0);
-        final long sizeY = matrix.dim(sourceInterleaved ? 2 : 1);
-        if (numberOfChannels != numberOfChannels()) {
-            throw new IllegalArgumentException("Invalid number of channels in the matrix: " + numberOfChannels +
-                    " (matrix " + matrix.dim(0) + "*" + matrix.dim(1) + "*" + matrix.dim(2) + "), " +
-                    (matrix.dim(2 - dimChannelsIndex) == numberOfChannels() ?
-                            "probably because of invalid interleaving mode: TIFF image is " +
-                            (sourceInterleaved ? "" : "NOT ") + "interleaved" :
-                            "because the specified TIFF map stores " + numberOfChannels() + " channels"));
-        }
-        PArray array = matrix.array();
-        if (array.length() > maxNumberOfSamplesInArray()) {
-            throw new IllegalArgumentException("Too large matrix for updating TIFF in a single operation: " + matrix
-                    + " (number of elements " + array.length() + " exceed the limit " +
-                    maxNumberOfSamplesInArray() + ")");
-        }
-        final byte[] sampleBytes = TiffSamples.toBytes(array, byteOrder());
-        return updateSampleBytes(sampleBytes, fromX, fromY, sizeX, sizeY);
+        final byte[] sampleBytes = toSampleBytes(matrix);
+        return updateSampleBytes(sampleBytes, fromX, fromY, matrix.dimX(), matrix.dimY());
     }
 
     /**
@@ -422,17 +390,16 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
      * @return list of TIFF tiles where were updated as a result of this operation.
      */
     public List<TiffTile> updateChannels(List<? extends Matrix<? extends PArray>> channels, int fromX, int fromY) {
-        Objects.requireNonNull(channels, "Null channels");
         if (!AUTO_INTERLEAVE_SOURCE) {
-            throw new IllegalStateException("Cannot update image channels: autoInterleaveSource mode is not set");
+            throw new IllegalStateException("Cannot update image channels: AUTO_INTERLEAVE_SOURCE is not set");
         }
-        var mergedChannels = Matrices.mergeLayers(Arrays.SMM, channels);
+        final Matrix<PArray> mergedChannels = toMatrix(channels);
         return updateMatrix(mergedChannels, fromX, fromY);
     }
 
     public List<TiffTile> updateBufferedImage(BufferedImage bufferedImage, int fromX, int fromY) {
-        Objects.requireNonNull(bufferedImage, "Null bufferedImage");
-        return updateChannels(ImageToMatrix.toChannels(bufferedImage), fromX, fromY);
+        final List<Matrix<UpdatablePArray>> channels = toChannels(bufferedImage);
+        return updateChannels(channels, fromX, fromY);
     }
 
     public void prewrite() throws IOException {

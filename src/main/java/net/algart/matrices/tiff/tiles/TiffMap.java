@@ -25,6 +25,7 @@
 package net.algart.matrices.tiff.tiles;
 
 import net.algart.arrays.*;
+import net.algart.io.awt.ImageToMatrix;
 import net.algart.io.awt.MatrixToImage;
 import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.bits.TiffUnpackingPrecisions;
@@ -610,7 +611,7 @@ public sealed class TiffMap permits TiffIOMap {
      * method after all tiles have been read.
      * This is just the default value of {@code rarePrecisionMode}
      * argument of the more verbose method
-     * {@link TiffIOMap#readSampleBytes(int, int, int, int, RarePrecisionMode, boolean, TileSupplier)}.
+     * {@link TiffIOMap#readSampleBytes(int, int, int, int, RarePrecisionMode, boolean)}.
      * </p>
      *
      * <p>Note that the decoded data in {@link TiffTile} in case of unusual precisions is not unpacked
@@ -1076,8 +1077,50 @@ public sealed class TiffMap permits TiffIOMap {
         return javaArrayAsMatrix(javaArray, sizeX, sizeY);
     }
 
+    public byte[] toSampleBytes(Matrix<? extends PArray> matrix) {
+        Objects.requireNonNull(matrix, "Null matrix");
+        final Class<?> elementType = matrix.elementType();
+        if (elementType != elementType()) {
+            throw new IllegalArgumentException("Invalid element type of the matrix: \"" + elementType +
+                    "\" (" + net.algart.arrays.Arrays.bitsPerElement(elementType) +
+                    "-bit), although the specified TIFF map stores \"" + elementType() +
+                    "\" (" + bitsPerUnpackedSample() + "-bit) elements");
+        }
+        if (matrix.dimCount() != 3 && !(matrix.dimCount() == 2 && numberOfChannels() == 1)) {
+            throw new IllegalArgumentException("Illegal number of matrix dimensions " + matrix.dimCount() +
+                    ": it must be 3-dimensional dimX*dimY*C, " +
+                    "where C is the number of channels (z-dimension), " +
+                    "or 2-dimensional in the case of monochrome TIFF image");
+        }
+        final long numberOfChannels = matrix.dim(2);
+        // - will be 1 for 2-dimensional matrix
+        if (numberOfChannels != numberOfChannels()) {
+            throw new IllegalArgumentException("Invalid number of channels in the matrix: " + numberOfChannels +
+                    " (matrix " + matrix.dim(0) + "*" + matrix.dim(1) +
+                    (matrix.dimCount() == 3 ? "*" + matrix.dim(2) : "") +
+                    "), " +
+                    (matrix.dim(0) == numberOfChannels() ?
+                            "probably because of incorrect interleaving: the matrix should " +
+                            "NOT be interleaved before updating the TIFF map" :
+                            "because the specified TIFF map stores " + numberOfChannels() + " channels"));
+        }
+        PArray array = matrix.array();
+        if (array.length() > maxNumberOfSamplesInArray()) {
+            throw new IllegalArgumentException("Too large matrix for updating TIFF in a single operation: " + matrix
+                    + " (number of elements " + array.length() + " exceed the limit " +
+                    maxNumberOfSamplesInArray() + ")");
+        }
+        return TiffSamples.toBytes(array, byteOrder());
+    }
+
     public <T extends PArray> List<Matrix<T>> asChannels(Matrix<T> mergedChannels) {
+        Objects.requireNonNull(mergedChannels, "Null mergedChannels");
         return Matrices.asLayers(mergedChannels, TiffIFD.MAX_NUMBER_OF_CHANNELS);
+    }
+
+    public <T extends PArray> Matrix<T> toMatrix(List<? extends Matrix<? extends T>> channels) {
+        Objects.requireNonNull(channels, "Null channels");
+        return Matrices.mergeLayers(net.algart.arrays.Arrays.SMM, channels);
     }
 
     public BufferedImage toBufferedImage(List<? extends Matrix<? extends PArray>> channels) {
@@ -1095,6 +1138,12 @@ public sealed class TiffMap permits TiffIOMap {
                 .setUnsignedInt32(true)
                 .toBufferedImage(interleaved);
     }
+
+    public List<Matrix<UpdatablePArray>> toChannels(BufferedImage bufferedImage) {
+        Objects.requireNonNull(bufferedImage, "Null bufferedImage");
+        return ImageToMatrix.toChannels(bufferedImage);
+    }
+
     public <T extends Matrix<? extends PArray>> List<T> dropExtraChannels(List<T> image) {
         Objects.requireNonNull(image, "Null image");
         return getExtraChannelsMode().isDropping() && image.size() > 4 ?

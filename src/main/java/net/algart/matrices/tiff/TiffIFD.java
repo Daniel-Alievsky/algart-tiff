@@ -2125,7 +2125,7 @@ public final class TiffIFD {
         return putMatrixInformation(matrix, signedIntegers, false);
     }
 
-    // interleaved is usually false but may be used together with TiffWriter.updateMatrix for interleaved matrices
+    // interleaved is usually false
     public TiffIFD putMatrixInformation(Matrix<? extends PArray> matrix, boolean signedIntegers, boolean interleaved) {
         Objects.requireNonNull(matrix, "Null matrix");
         final int dimCount = matrix.dimCount();

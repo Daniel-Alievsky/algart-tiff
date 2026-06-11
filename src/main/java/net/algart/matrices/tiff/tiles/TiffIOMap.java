@@ -169,6 +169,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         final long tileOneChannelRowSizeInBits = (long) mapTileSizeX * bitsPerSample;
         final long samplesOneChannelRowSizeInBits = (long) sizeX * bitsPerSample;
 
+        final TileSupplier tileSupplier = getTileSupplier();
         for (int p = 0; p < numberOfSeparatedPlanes; p++) {
             // - for a rare case PlanarConfiguration=2 (RRR...GGG...BBB...)
             for (int yIndex = minYIndex; yIndex <= maxYIndex; yIndex++) {
@@ -321,7 +322,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             int sizeY,
             boolean storeTilesInMap)
             throws IOException {
-        final var mergedChannels = readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap);
+        final Matrix<UpdatablePArray> mergedChannels = readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap);
         return asChannels(mergedChannels);
     }
 
@@ -332,7 +333,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             int sizeY,
             boolean storeTilesInMap)
             throws IOException {
-        final var mergedChannels = readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap);
+        final Matrix<UpdatablePArray> mergedChannels = readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap);
         return toBufferedImage(asChannels(mergedChannels));
     }
 
