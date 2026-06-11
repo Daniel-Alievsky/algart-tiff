@@ -79,7 +79,7 @@ public class ExtractAllTiles {
             for (int test = 1; test <= numberOfTests; test++) {
                 System.out.printf("Reading image from %s...%n", tiffFile);
                 long t1 = System.nanoTime();
-                matrix = map.readMatrix(x, y, w, h, true, map::readCachedTile);
+                matrix = map.readMatrix(x, y, w, h, true);
                 long t2 = System.nanoTime();
                 System.out.printf(Locale.US, "Test #%d: %dx%d loaded in %.3f ms%n",
                         test, w, h, (t2 - t1) * 1e-6);

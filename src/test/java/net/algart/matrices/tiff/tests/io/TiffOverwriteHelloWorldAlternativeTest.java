@@ -60,6 +60,8 @@ public class TiffOverwriteHelloWorldAlternativeTest {
             TiffIFD ifd = writer.existingIFD(ifdIndex, true);
             TiffWriteMap writeMap = writer.existingMap(ifd);
             TiffReadMap readMap = writer.companionReader().map(ifd, false);
+            readMap.setUncachedTileSupplier();
+            // - disable caching (no sense in this case)
             overwriteUsingReadMap(writeMap, readMap, x, y, sizeX, sizeY);
 
             writeMap.putDataPlacementInFileToUnderlyingIFD();
@@ -89,8 +91,7 @@ public class TiffOverwriteHelloWorldAlternativeTest {
             TiffReadMap readMap,
             int x, int y, int sizeX, int sizeY)
             throws IOException {
-        final BufferedImage bufferedImage = readMap.readBufferedImage(
-                x, y, sizeX, sizeY, true, readMap::readTile);
+        final BufferedImage bufferedImage = readMap.readBufferedImage(x, y, sizeX, sizeY, true);
         // - the last argument "true" leads to preserving all tiles in the map:
         // this is necessary for boundary tiles that are partially covered by the image
         writeMap.copyAllData(readMap, false);

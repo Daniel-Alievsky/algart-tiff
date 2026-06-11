@@ -109,11 +109,7 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
     }
 
     public byte[] readSampleBytes(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
-        return readSampleBytes(
-                fromX, fromY, sizeX, sizeY,
-                getRarePrecisionMode(),
-                false,
-                this::readCachedTile);
+        return readSampleBytes(fromX, fromY, sizeX, sizeY, getRarePrecisionMode(), false);
     }
 
     public Object readJavaArray() throws IOException {
@@ -121,7 +117,7 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
     }
 
     public Object readJavaArray(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
-        return readJavaArray(fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
+        return readJavaArray(fromX, fromY, sizeX, sizeY, false);
     }
 
     /**
@@ -143,7 +139,7 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
 
     public Matrix<UpdatablePArray> readMatrix(int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        return readMatrix(fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
+        return readMatrix(fromX, fromY, sizeX, sizeY, false);
     }
 
     public Matrix<UpdatablePArray> readInterleavedMatrix() throws IOException {
@@ -152,7 +148,7 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
 
     public Matrix<UpdatablePArray> readInterleavedMatrix(int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        return readInterleavedMatrix(fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
+        return readInterleavedMatrix(fromX, fromY, sizeX, sizeY, false);
     }
 
     /**
@@ -168,9 +164,8 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
         return readChannels(0, 0, dimX(), dimY());
     }
 
-    public List<Matrix<UpdatablePArray>> readChannels(int fromX, int fromY, int sizeX, int sizeY)
-            throws IOException {
-        return readChannels(fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
+    public List<Matrix<UpdatablePArray>> readChannels(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
+        return readChannels(fromX, fromY, sizeX, sizeY, false);
     }
 
     /**
@@ -186,9 +181,8 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
         return readBufferedImage(0, 0, dimX(), dimY());
     }
 
-    public BufferedImage readBufferedImage(int fromX, int fromY, int sizeX, int sizeY)
-            throws IOException {
-        return readBufferedImage(fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
+    public BufferedImage readBufferedImage(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
+        return readBufferedImage(fromX, fromY, sizeX, sizeY, false);
     }
 
     @Override

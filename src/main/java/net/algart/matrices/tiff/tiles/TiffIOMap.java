@@ -85,6 +85,14 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         return this;
     }
 
+    public TiffIOMap<T> setDefaultTileSupplier() {
+        return setTileSupplier(this::readCachedTile);
+    }
+
+    public TiffIOMap<T> setUncachedTileSupplier() {
+        return setTileSupplier(this::readTile);
+    }
+
     @Override
     public TiffIOMap<T> setBitImageUnpackingMode(BitImageUnpackingMode bitImageUnpackingMode) {
         super.setBitImageUnpackingMode(bitImageUnpackingMode);
@@ -111,21 +119,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             RarePrecisionMode rarePrecisionMode,
             boolean storeTilesInMap)
             throws IOException {
-        return loadSampleBytes(
-                fromX, fromY, sizeX, sizeY, rarePrecisionMode, storeTilesInMap, this::readCachedTile);
-    }
-
-    public byte[] loadSampleBytes(
-            int fromX,
-            int fromY,
-            int sizeX,
-            int sizeY,
-            RarePrecisionMode rarePrecisionMode,
-            boolean storeTilesInMap,
-            TileSupplier tileSupplier)
-            throws IOException {
         Objects.requireNonNull(rarePrecisionMode, "Null rarePrecisionMode");
-        Objects.requireNonNull(tileSupplier, "Null tileSupplier");
         checkRequestedArea(fromX, fromY, sizeX, sizeY);
         final int sizeInBytes = sizeOfRegionWithPossibleNonStandardPrecisions(sizeX, sizeY);
         final long sizeInPixels = (long) sizeX * (long) sizeY;
@@ -234,8 +228,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             int sizeX,
             int sizeY,
             RarePrecisionMode rarePrecisionMode,
-            boolean storeTilesInMap,
-            TileSupplier tileSupplier) throws IOException {
+            boolean storeTilesInMap) throws IOException {
         Objects.requireNonNull(rarePrecisionMode, "Null rarePrecisionMode");
         Objects.requireNonNull(tileSupplier, "Null tileSupplier");
         @SuppressWarnings("resource") final TiffReader reader = reader();
@@ -244,8 +237,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         checkRequestedArea(fromX, fromY, sizeX, sizeY);
         // - note: we allow this area to be outside the image
 
-        byte[] sampleBytes = loadSampleBytes(
-                fromX, fromY, sizeX, sizeY, rarePrecisionMode, storeTilesInMap, tileSupplier);
+        byte[] sampleBytes = loadSampleBytes(fromX, fromY, sizeX, sizeY, rarePrecisionMode, storeTilesInMap);
         final int sizeInBytes = sampleBytes.length;
         final long sizeInPixels = (long) sizeX * (long) sizeY;
         // - can be >2^31 for bits
@@ -294,13 +286,10 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             int fromY,
             int sizeX,
             int sizeY,
-            boolean storeTilesInMap,
-            TileSupplier tileSupplier)
+            boolean storeTilesInMap)
             throws IOException {
-        Objects.requireNonNull(tileSupplier, "Null tileSupplier");
-        final byte[] sampleBytes = readSampleBytes(
-                fromX, fromY, sizeX, sizeY,
-                getRarePrecisionMode().unpackIfEnabled(), storeTilesInMap, tileSupplier);
+        final RarePrecisionMode rarePrecisionMode = getRarePrecisionMode().unpackIfEnabled();
+        final byte[] sampleBytes = readSampleBytes(fromX, fromY, sizeX, sizeY, rarePrecisionMode, storeTilesInMap);
         return bytesToJavaArray(sampleBytes);
     }
 
@@ -309,10 +298,9 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             int fromY,
             int sizeX,
             int sizeY,
-            boolean storeTilesInMap,
-            TileSupplier tileSupplier)
+            boolean storeTilesInMap)
             throws IOException {
-        final Object samplesArray = readJavaArray(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
+        final Object samplesArray = readJavaArray(fromX, fromY, sizeX, sizeY, storeTilesInMap);
         return javaArrayAsMatrix(samplesArray, sizeX, sizeY);
     }
 
@@ -321,10 +309,9 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             int fromY,
             int sizeX,
             int sizeY,
-            boolean storeTilesInMap,
-            TileSupplier tileSupplier)
+            boolean storeTilesInMap)
             throws IOException {
-        return Matrices.interleave(readChannels(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier));
+        return Matrices.interleave(readChannels(fromX, fromY, sizeX, sizeY, storeTilesInMap));
     }
 
     public List<Matrix<UpdatablePArray>> readChannels(
@@ -332,10 +319,9 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             int fromY,
             int sizeX,
             int sizeY,
-            boolean storeTilesInMap,
-            TileSupplier tileSupplier)
+            boolean storeTilesInMap)
             throws IOException {
-        final var mergedChannels = readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
+        final var mergedChannels = readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap);
         return asChannels(mergedChannels);
     }
 
@@ -344,10 +330,9 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             int fromY,
             int sizeX,
             int sizeY,
-            boolean storeTilesInMap,
-            TileSupplier tileSupplier)
+            boolean storeTilesInMap)
             throws IOException {
-        final var mergedChannels = readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap, tileSupplier);
+        final var mergedChannels = readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap);
         return toBufferedImage(asChannels(mergedChannels));
     }
 

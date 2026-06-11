@@ -96,29 +96,22 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
             int sizeX,
             int sizeY,
             RarePrecisionMode rarePrecisionMode) throws IOException {
-        return readSampleBytes(
-                fromX,
-                fromY,
-                sizeX,
-                sizeY,
-                rarePrecisionMode,
-                true,
-                this::readCachedTile);
+        return readSampleBytes(fromX, fromY, sizeX, sizeY, rarePrecisionMode, true);
     }
 
     public Object readJavaArrayAndStore(int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        return readJavaArray(fromX, fromY, sizeX, sizeY, true, this::readCachedTile);
+        return readJavaArray(fromX, fromY, sizeX, sizeY, true);
     }
 
     public Matrix<UpdatablePArray> readMatrixAndStore(int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        return readMatrix(fromX, fromY, sizeX, sizeY, true, this::readCachedTile);
+        return readMatrix(fromX, fromY, sizeX, sizeY, true);
     }
 
     public Matrix<UpdatablePArray> readInterleavedMatrixAndStore(int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        return readInterleavedMatrix(fromX, fromY, sizeX, sizeY, true, this::readCachedTile);
+        return readInterleavedMatrix(fromX, fromY, sizeX, sizeY, true);
     }
 
     public List<Matrix<UpdatablePArray>> readChannelsAndStore(
@@ -127,12 +120,12 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
             int sizeX,
             int sizeY)
             throws IOException {
-        return readChannels(fromX, fromY, sizeX, sizeY, true, this::readCachedTile);
+        return readChannels(fromX, fromY, sizeX, sizeY, true);
     }
 
     public BufferedImage readBufferedImageAndStore(int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        return readBufferedImage(fromX, fromY, sizeX, sizeY, true, this::readCachedTile);
+        return readBufferedImage(fromX, fromY, sizeX, sizeY, true);
     }
 
     public void preloadAndStore(

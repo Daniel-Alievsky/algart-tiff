@@ -801,12 +801,12 @@ public class TiffParser extends TiffReader {
         TiffMap.checkRequestedArea(x, y, width, height);
         final var map = map(toTiffIFD(ifd));
         map.setBitImageUnpackingMode(TiffMap.BitImageUnpackingMode.UNPACK_TO_0_1);
+        map.setRarePrecisionMode(TiffMap.RarePrecisionMode.KEEP_RAW);
+        // - in SCIFIO, unpacking rare precision is performed not in TiffParser,
+        // but in MinimalTIFFFormat.openPlane; we should not unpack them too early
+        map.setUncachedTileSupplier();
 
-        final byte[] result = map.readSampleBytes(
-                x, y, (int) width, (int) height,
-                TiffMap.RarePrecisionMode.KEEP_RAW,
-                false,
-                this::readTile);
+        final byte[] result = map.readSampleBytes(x, y, (int) width, (int) height);
         if (result.length > buf.length) {
             throw new IllegalArgumentException(
                     "Insufficient length of the result buf array: " +
