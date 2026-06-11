@@ -122,11 +122,9 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
      * In other words, the samples are returned in a separated form: RRR...GGG...BBB...
      *
      * @return content of the IFD image.
-     * @throws TiffException            if <code>ifdIndex</code> is too large,
-     *                                  or if the file is not a correct TIFF file,
+     * @throws TiffException            if the file is not a correct TIFF file,
      *                                  and this was not detected while opening it.
      * @throws IOException              in the case of any problems with the input file.
-     * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
      */
     public Matrix<UpdatablePArray> readMatrix() throws IOException {
         return readMatrix(0, 0, dimX(), dimY());
@@ -165,7 +163,6 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
 
     /**
      * Reads the full image with the specified TIFF map as <code>BufferedImage</code>.
-     * For example, for the RGB image, the result will be a list of three matrices R, G, B.
      *
      * @return content of the TIFF image.
      * @throws TiffException if the file is not a correct TIFF file,

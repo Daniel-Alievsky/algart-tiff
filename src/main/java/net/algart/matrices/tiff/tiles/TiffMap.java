@@ -155,10 +155,11 @@ public sealed class TiffMap permits TiffIOMap {
         void throwIfRaw(TiffMap map, String action) {
             Objects.requireNonNull(map, "Null TIFF map");
             if (this != UNPACK && map.isRarePrecision()) {
-                throw new IllegalArgumentException("The TIFF image samples have a rare pixel precision (" +
-                        Arrays.toString(map.bitsPerSample()) + " bits/sample for " +
-                        map.sampleType().prettyName() + " values) " +
-                        "and were not unpacked (kept raw): " + action + " is impossible");
+                throw new IllegalStateException(
+                        "Cannot " + action + " because the current rare precision mode is " +
+                                this + ": the " + RarePrecisionMode.UNPACK + " mode is required (" +
+                                Arrays.toString(map.bitsPerSample()) + " bits/sample for " +
+                                map.sampleType().prettyName() + " values)");
             }
         }
 
@@ -668,13 +669,7 @@ public sealed class TiffMap permits TiffIOMap {
      * {@link RarePrecisionMode#UNPACK}.
      */
     public void ensureUnpackedRarePrecision() {
-        if (isRarePrecision() && rarePrecisionMode != RarePrecisionMode.UNPACK) {
-            throw new IllegalStateException("Cannot process non-standard TIFF pixel precision " +
-                    "because the current rare precision mode is " +
-                    rarePrecisionMode + ": the " + RarePrecisionMode.UNPACK + " mode is required (" +
-                    Arrays.toString(bitsPerSample()) + " bits/sample for " +
-                    sampleType().prettyName() + " values)");
-        }
+        rarePrecisionMode.throwIfRaw(this,"process non-standard TIFF pixel precision");
     }
 
     public ExtraChannelsMode getExtraChannelsMode() {
@@ -1071,7 +1066,7 @@ public sealed class TiffMap permits TiffIOMap {
         if (bitImageUnpackingMode.isEnabled() && isBinary()) {
             return sampleBytes;
         }
-        rarePrecisionMode.throwIfRaw(this, "conversion to Java array");
+        rarePrecisionMode.throwIfRaw(this, "convert bytes to Java array");
         final Object samplesArray = sampleType().javaArray(sampleBytes, byteOrder());
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t2 = debugTime();
@@ -1116,6 +1111,8 @@ public sealed class TiffMap permits TiffIOMap {
     }
 
     public Matrix<UpdatablePArray> toMatrix(byte[] sampleBytes, int sizeX, int sizeY) {
+        Objects.requireNonNull(sampleBytes, "Null sample bytes");
+        rarePrecisionMode.throwIfRaw(this, "convert bytes 2to matrix");
         final Object javaArray = bytesToJavaArray(sampleBytes);
         return javaArrayAsMatrix(javaArray, sizeX, sizeY);
     }

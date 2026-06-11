@@ -357,7 +357,6 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         return reader().readEncodedTile(tileIndex, resolveDuplicates);
     }
 
-
     static int divFloor(int a, int b) {
         assert b > 0;
         return a >= 0 ? a / b : (a - b + 1) / b;
