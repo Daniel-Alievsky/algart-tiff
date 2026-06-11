@@ -176,7 +176,7 @@ public final class AWTImages {
         } else {
             buffer = new DataBufferByte(data, c * w * h);
         }
-        return constructImage(c, dataType, w, h, interleaved, false, buffer);
+        return makeImage(c, dataType, w, h, interleaved, false, buffer);
     }
 
     /**
@@ -206,7 +206,7 @@ public final class AWTImages {
             dataType = DataBuffer.TYPE_USHORT;
             buffer = new DataBufferUShort(data, c * w * h);
         }
-        return constructImage(c, dataType, w, h, interleaved, false, buffer);
+        return makeImage(c, dataType, w, h, interleaved, false, buffer);
     }
 
     /**
@@ -234,7 +234,7 @@ public final class AWTImages {
         } else {
             buffer = new UnsignedIntBuffer(data, c * w * h);
         }
-        return constructImage(c, dataType, w, h, interleaved, false, buffer);
+        return makeImage(c, dataType, w, h, interleaved, false, buffer);
     }
 
     /**
@@ -255,7 +255,7 @@ public final class AWTImages {
         }
         final int dataType = DataBuffer.TYPE_FLOAT;
         final DataBuffer buffer = new DataBufferFloat(data, c * w * h);
-        return constructImage(c, dataType, w, h, interleaved, false, buffer);
+        return makeImage(c, dataType, w, h, interleaved, false, buffer);
     }
 
     /**
@@ -276,7 +276,7 @@ public final class AWTImages {
         }
         final int dataType = DataBuffer.TYPE_DOUBLE;
         final DataBuffer buffer = new DataBufferDouble(data, c * w * h);
-        return constructImage(c, dataType, w, h, interleaved, false, buffer);
+        return makeImage(c, dataType, w, h, interleaved, false, buffer);
     }
 
     // -- Image construction - from 2D (banded) data arrays --
@@ -304,7 +304,7 @@ public final class AWTImages {
         } else {
             buffer = new DataBufferByte(data, data[0].length);
         }
-        return constructImage(data.length, dataType, w, h, false, true, buffer);
+        return makeImage(data.length, dataType, w, h, false, true, buffer);
     }
 
     /**
@@ -328,7 +328,7 @@ public final class AWTImages {
             dataType = DataBuffer.TYPE_USHORT;
             buffer = new DataBufferUShort(data, data[0].length);
         }
-        return constructImage(data.length, dataType, w, h, false, true, buffer);
+        return makeImage(data.length, dataType, w, h, false, true, buffer);
     }
 
     /**
@@ -350,7 +350,7 @@ public final class AWTImages {
         } else {
             buffer = new UnsignedIntBuffer(data, data[0].length);
         }
-        return constructImage(data.length, dataType, w, h, false, true, buffer);
+        return makeImage(data.length, dataType, w, h, false, true, buffer);
     }
 
     /**
@@ -365,7 +365,7 @@ public final class AWTImages {
     public static BufferedImage makeImage(float[][] data, int w, int h) {
         final int dataType = DataBuffer.TYPE_FLOAT;
         final DataBuffer buffer = new DataBufferFloat(data, data[0].length);
-        return constructImage(data.length, dataType, w, h, false, true, buffer);
+        return makeImage(data.length, dataType, w, h, false, true, buffer);
     }
 
     /**
@@ -380,7 +380,7 @@ public final class AWTImages {
     public static BufferedImage makeImage(double[][] data, int w, int h) {
         final int dataType = DataBuffer.TYPE_DOUBLE;
         final DataBuffer buffer = new DataBufferDouble(data, data[0].length);
-        return constructImage(data.length, dataType, w, h, false, true, buffer);
+        return makeImage(data.length, dataType, w, h, false, true, buffer);
     }
 
     // -- Image construction - with type conversion --
@@ -459,7 +459,7 @@ public final class AWTImages {
         }
 
         final DataBuffer buffer = new DataBufferInt(buf, buf.length);
-        return constructImage(cc, DataBuffer.TYPE_INT, w, h, false, false, buffer);
+        return makeImage(cc, DataBuffer.TYPE_INT, w, h, false, false, buffer);
     }
 
     /**
@@ -480,7 +480,7 @@ public final class AWTImages {
         }
 
         final DataBuffer buffer = new DataBufferInt(buf, buf.length);
-        return constructImage(data.length, DataBuffer.TYPE_INT, w, h, false, false,
+        return makeImage(data.length, DataBuffer.TYPE_INT, w, h, false, false,
                 buffer);
     }
 
@@ -490,7 +490,7 @@ public final class AWTImages {
     /**
      * Creates an image with the given DataBuffer.
      */
-    public static BufferedImage constructImage(
+    public static BufferedImage makeImage(
             int c,
             int type,
             int w,
@@ -498,13 +498,13 @@ public final class AWTImages {
             boolean interleaved,
             boolean banded,
             DataBuffer buffer) {
-        return constructImage(c, type, w, h, interleaved, banded, buffer, null);
+        return makeImage(c, type, w, h, interleaved, banded, buffer, null);
     }
 
     /**
      * Creates an image with the given DataBuffer.
      */
-    public static BufferedImage constructImage(
+    public static BufferedImage makeImage(
             int c,
             int type,
             int w,

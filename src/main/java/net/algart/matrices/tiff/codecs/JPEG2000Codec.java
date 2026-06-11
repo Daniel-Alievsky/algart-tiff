@@ -303,7 +303,7 @@ public class JPEG2000Codec implements TiffCodec {
                 }
             }
             final DataBuffer buffer = new DataBufferByte(b, plane);
-            img = AWTImages.constructImage(b.length, DataBuffer.TYPE_BYTE,
+            img = AWTImages.makeImage(b.length, DataBuffer.TYPE_BYTE,
                     jpeg2000Options.getWidth(), jpeg2000Options.getHeight(), false, true, buffer,
                     jpeg2000Options.colorModel);
         } else {
@@ -328,7 +328,7 @@ public class JPEG2000Codec implements TiffCodec {
                     }
                 }
                 final DataBuffer buffer = new DataBufferUShort(s, plane);
-                img = AWTImages.constructImage(s.length, DataBuffer.TYPE_USHORT,
+                img = AWTImages.makeImage(s.length, DataBuffer.TYPE_USHORT,
                         jpeg2000Options.getWidth(), jpeg2000Options.getHeight(),
                         false, true,
                         buffer,
@@ -354,7 +354,7 @@ public class JPEG2000Codec implements TiffCodec {
                 }
 
                 final DataBuffer buffer = new UnsignedIntBuffer(s, plane);
-                img = AWTImages.constructImage(s.length, DataBuffer.TYPE_INT,
+                img = AWTImages.makeImage(s.length, DataBuffer.TYPE_INT,
                         jpeg2000Options.getWidth(), jpeg2000Options.getHeight(), false, true, buffer,
                         jpeg2000Options.getColorModel());
             } else {
