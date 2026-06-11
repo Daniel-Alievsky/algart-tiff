@@ -68,7 +68,7 @@ public class TiffOverwriteHelloWorldAlternativeTest {
             // 1) necessary to save new tile positions in the IFD (more lightweight call than completeWriting())
 
             readMap = writer.companionReader().map(ifd, false);
-            // 2) re-initialize writeMap: necessary to switch to new reader() without any cached information
+            // 2) re-initialize readMap: necessary to switch to new reader() without any cached information
 
             // - Note: without these 2 calls we will use the previous reader and previous IFD,
             // so we can load tiles from the previous positions!
