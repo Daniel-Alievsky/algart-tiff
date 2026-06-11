@@ -36,6 +36,7 @@ import net.algart.matrices.tiff.app.TiffInfo;
 import net.algart.matrices.tiff.codecs.JPEG2000Codec;
 import net.algart.matrices.tiff.compatibility.TiffParser;
 import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 import org.scijava.Context;
 
@@ -152,7 +153,10 @@ public class TiffReaderTest {
                 } else {
                     map = reader.map(ifdIndex);
                 }
-                // map.setAutoUnpackBits(TiffMap.UnpackBits.UNPACK_TO_0_255);
+                if (compatibility) {
+                    map.setBitImageUnpackingMode(TiffMap.BitImageUnpackingMode.UNPACK_TO_0_1);
+                    // the same logic as in TiffParser.getSamples
+                }
                 // map.setRarePrecisionMode(TiffMap.RarePrecisionMode.KEEP_RAW);
                 if (w < 0) {
                     w = Math.min(map.dimX(), MAX_IMAGE_DIM);

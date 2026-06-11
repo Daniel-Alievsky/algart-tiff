@@ -27,9 +27,7 @@ package net.algart.matrices.tiff.tests.io;
 import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
-import net.algart.matrices.tiff.tiles.TiffReadMap;
-import net.algart.matrices.tiff.tiles.TiffTile;
-import net.algart.matrices.tiff.tiles.TiffWriteMap;
+import net.algart.matrices.tiff.tiles.*;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -92,7 +90,7 @@ public class TiffOverwriteHelloWorldAlternativeTest {
             int x, int y, int sizeX, int sizeY)
             throws IOException {
         final BufferedImage bufferedImage = readMap.readBufferedImage(
-                x, y, sizeX, sizeY, true, readMap.simpleTileSupplier());
+                x, y, sizeX, sizeY, true, readMap::readTile);
         // - the last argument "true" leads to preserving all tiles in the map:
         // this is necessary for boundary tiles that are partially covered by the image
         writeMap.copyAllData(readMap, false);

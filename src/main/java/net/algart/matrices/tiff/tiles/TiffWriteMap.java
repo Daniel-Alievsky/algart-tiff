@@ -71,6 +71,25 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
         return existing;
     }
 
+
+    @Override
+    public TiffWriteMap setBitImageUnpackingMode(BitImageUnpackingMode bitImageUnpackingMode) {
+        super.setBitImageUnpackingMode(bitImageUnpackingMode);
+        return this;
+    }
+
+    @Override
+    public TiffWriteMap setRarePrecisionMode(RarePrecisionMode rarePrecisionMode) {
+        super.setRarePrecisionMode(rarePrecisionMode);
+        return this;
+    }
+
+    @Override
+    public TiffWriteMap setExtraChannelsMode(ExtraChannelsMode extraChannelsMode) {
+        super.setExtraChannelsMode(extraChannelsMode);
+        return this;
+    }
+
     public byte[] readSampleBytesAndStore(
             int fromX,
             int fromY,
@@ -84,22 +103,22 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                 sizeY,
                 rarePrecisionMode,
                 true,
-                cachedTileSupplier());
+                this::readCachedTile);
     }
 
     public Object readJavaArrayAndStore(int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        return readJavaArray(fromX, fromY, sizeX, sizeY, true, cachedTileSupplier());
+        return readJavaArray(fromX, fromY, sizeX, sizeY, true, this::readCachedTile);
     }
 
     public Matrix<UpdatablePArray> readMatrixAndStore(int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        return readMatrix(fromX, fromY, sizeX, sizeY, true, cachedTileSupplier());
+        return readMatrix(fromX, fromY, sizeX, sizeY, true, this::readCachedTile);
     }
 
     public Matrix<UpdatablePArray> readInterleavedMatrixAndStore(int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        return readInterleavedMatrix(fromX, fromY, sizeX, sizeY, true, cachedTileSupplier());
+        return readInterleavedMatrix(fromX, fromY, sizeX, sizeY, true, this::readCachedTile);
     }
 
     public List<Matrix<UpdatablePArray>> readChannelsAndStore(
@@ -108,12 +127,12 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
             int sizeX,
             int sizeY)
             throws IOException {
-        return readChannels(fromX, fromY, sizeX, sizeY, true, cachedTileSupplier());
+        return readChannels(fromX, fromY, sizeX, sizeY, true, this::readCachedTile);
     }
 
     public BufferedImage readBufferedImageAndStore(int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        return readBufferedImage(fromX, fromY, sizeX, sizeY, true, cachedTileSupplier());
+        return readBufferedImage(fromX, fromY, sizeX, sizeY, true, this::readCachedTile);
     }
 
     public void preloadAndStore(
@@ -130,7 +149,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
             int sizeX,
             int sizeY,
             boolean loadTilesFullyInsideRectangle) throws IOException {
-        preloadAndStore(fromX, fromY, sizeX, sizeY, loadTilesFullyInsideRectangle, cachedTileSupplier());
+        preloadAndStore(fromX, fromY, sizeX, sizeY, loadTilesFullyInsideRectangle, this::readCachedTile);
     }
 
     /**

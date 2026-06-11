@@ -191,22 +191,6 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
         return readBufferedImage(fromX, fromY, sizeX, sizeY, false, this::readCachedTile);
     }
 
-    public TiffTile readCachedTile(TiffTileIndex tileIndex) throws IOException {
-        return reader.readCachedTile(tileIndex);
-    }
-
-    public TiffTile readTile(TiffTileIndex tileIndex) throws IOException {
-        return reader.readTile(tileIndex);
-    }
-
-    public TiffTile readEncodedTile(TiffTileIndex tileIndex) throws IOException {
-        return reader.readEncodedTile(tileIndex);
-    }
-
-    public TiffTile readEncodedTile(TiffTileIndex tileIndex, boolean resolveDuplicates) throws IOException {
-        return reader.readEncodedTile(tileIndex, resolveDuplicates);
-    }
-
     @Override
     public int hashCode() {
         return super.hashCode() ^ 'r';

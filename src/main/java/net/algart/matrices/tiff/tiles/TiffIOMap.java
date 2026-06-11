@@ -25,9 +25,7 @@
 package net.algart.matrices.tiff.tiles;
 
 import net.algart.arrays.*;
-import net.algart.io.awt.MatrixToImage;
 import net.algart.matrices.tiff.*;
-import net.algart.matrices.tiff.samples.TiffSamples;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -37,16 +35,13 @@ import java.util.Locale;
 import java.util.Objects;
 
 public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits TiffReadMap, TiffWriteMap {
-    @FunctionalInterface
-    public interface TileSupplier {
-        TiffTile getTile(TiffTileIndex tiffTileIndex) throws IOException;
-    }
-
     static final boolean AUTO_INTERLEAVE_SOURCE = true;
     // - Must be true. See TiffWriter.AUTO_INTERLEAVE_SOURCE.
     // IF YOU CHANGE IT, YOU MUST CORRECT ALSO TiffWriter.AUTO_INTERLEAVE_SOURCE.
 
     private final T owner;
+
+    private volatile TileSupplier tileSupplier = this::readCachedTile;
 
     public TiffIOMap(T owner, TiffIFD ifd, boolean resizable) throws TiffException {
         super(ifd, resizable);
@@ -76,19 +71,18 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         return owner.lastCodecReport();
     }
 
-    @SuppressWarnings("resource")
-    public TileSupplier simpleTileSupplier() {
-        return reader()::readTile;
-    }
-
-    @SuppressWarnings("resource")
-    public TileSupplier cachedTileSupplier() {
-        return reader()::readCachedTile;
-    }
-
     public long fileLength() {
         //noinspection resource
         return owner().fileLength();
+    }
+
+    public TileSupplier getTileSupplier() {
+        return tileSupplier;
+    }
+
+    public TiffIOMap<T> setTileSupplier(TileSupplier tileSupplier) {
+        this.tileSupplier = Objects.requireNonNull(tileSupplier,  "Null tileSupplier");
+        return this;
     }
 
     @Override
@@ -118,7 +112,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             boolean storeTilesInMap)
             throws IOException {
         return loadSampleBytes(
-                fromX, fromY, sizeX, sizeY, rarePrecisionMode, storeTilesInMap, cachedTileSupplier());
+                fromX, fromY, sizeX, sizeY, rarePrecisionMode, storeTilesInMap, this::readCachedTile);
     }
 
     public byte[] loadSampleBytes(
@@ -303,7 +297,6 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             boolean storeTilesInMap,
             TileSupplier tileSupplier)
             throws IOException {
-        @SuppressWarnings("resource") final TiffReader reader = reader();
         Objects.requireNonNull(tileSupplier, "Null tileSupplier");
         final byte[] sampleBytes = readSampleBytes(
                 fromX, fromY, sizeX, sizeY,
@@ -358,34 +351,26 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         return toBufferedImage(asChannels(mergedChannels));
     }
 
-    public Matrix<UpdatablePArray> javaArrayAsMatrix(Object samplesArray, int sizeX, int sizeY) {
-        return TiffSamples.asMatrix(samplesArray, sizeX, sizeY, numberOfChannels(), false);
+    @SuppressWarnings("resource")
+    public TiffTile readCachedTile(TiffTileIndex tileIndex) throws IOException {
+        return reader().readCachedTile(tileIndex);
     }
 
-    public Matrix<UpdatablePArray> toMatrix(byte[] sampleBytes, int sizeX, int sizeY) {
-        final Object javaArray = bytesToJavaArray(sampleBytes);
-        return javaArrayAsMatrix(javaArray, sizeX, sizeY);
+    @SuppressWarnings("resource")
+    public TiffTile readTile(TiffTileIndex tileIndex) throws IOException {
+        return reader().readTile(tileIndex);
     }
 
-    public <T extends PArray> List<Matrix<T>> asChannels(Matrix<T> mergedChannels) {
-        return Matrices.asLayers(mergedChannels, TiffIFD.MAX_NUMBER_OF_CHANNELS);
+    @SuppressWarnings("resource")
+    public TiffTile readEncodedTile(TiffTileIndex tileIndex) throws IOException {
+        return reader().readEncodedTile(tileIndex);
     }
 
-    public BufferedImage toBufferedImage(List<? extends Matrix<? extends PArray>> channels) {
-        final Matrix<? extends PArray> interleaved = Matrices.interleave(dropExtraChannels(channels));
-        return interleavedToBufferedImage(interleaved);
+    @SuppressWarnings("resource")
+    public TiffTile readEncodedTile(TiffTileIndex tileIndex, boolean resolveDuplicates) throws IOException {
+        return reader().readEncodedTile(tileIndex, resolveDuplicates);
     }
 
-    public BufferedImage toBufferedImage(Matrix<? extends PArray> mergedChannels) {
-        return toBufferedImage(asChannels(mergedChannels));
-    }
-
-    public BufferedImage interleavedToBufferedImage(Matrix<? extends PArray> interleaved) {
-        // Note: we do not use MatrixToImage.toBufferedImage, because we need to call setUnsignedInt32
-        return new MatrixToImage.InterleavedRGBToInterleaved()
-                .setUnsignedInt32(true)
-                .toBufferedImage(interleaved);
-    }
 
     static int divFloor(int a, int b) {
         assert b > 0;

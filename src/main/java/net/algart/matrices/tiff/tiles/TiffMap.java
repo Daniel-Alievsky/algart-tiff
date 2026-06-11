@@ -24,9 +24,8 @@
 
 package net.algart.matrices.tiff.tiles;
 
-import net.algart.arrays.Matrix;
-import net.algart.arrays.PArray;
-import net.algart.arrays.TooLargeArrayException;
+import net.algart.arrays.*;
+import net.algart.io.awt.MatrixToImage;
 import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.bits.TiffUnpackingPrecisions;
 import net.algart.matrices.tiff.samples.TiffSampleType;
@@ -36,8 +35,10 @@ import net.algart.matrices.tiff.tags.TagDescription;
 import net.algart.matrices.tiff.tags.TagPhotometric;
 
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.nio.ByteOrder;
 import java.util.*;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -609,7 +610,7 @@ public sealed class TiffMap permits TiffIOMap {
      * method after all tiles have been read.
      * This is just the default value of {@code rarePrecisionMode}
      * argument of the more verbose method
-     * {@link TiffIOMap#readSampleBytes(int, int, int, int, RarePrecisionMode, boolean, TiffIOMap.TileSupplier)}.
+     * {@link TiffIOMap#readSampleBytes(int, int, int, int, RarePrecisionMode, boolean, TileSupplier)}.
      * </p>
      *
      * <p>Note that the decoded data in {@link TiffTile} in case of unusual precisions is not unpacked
@@ -1024,9 +1025,10 @@ public sealed class TiffMap permits TiffIOMap {
 
     public Object bytesToJavaArray(byte[] sampleBytes) {
         long t1 = debugTime();
-        final Object samplesArray = bitImageUnpackingMode.isEnabled() && isBinary() ?
-                sampleBytes :
-                sampleType().javaArray(sampleBytes, byteOrder());
+        if (bitImageUnpackingMode.isEnabled() && isBinary()) {
+            return sampleBytes;
+        }
+        final Object samplesArray = sampleType().javaArray(sampleBytes, byteOrder());
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t2 = debugTime();
             LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
@@ -1065,6 +1067,34 @@ public sealed class TiffMap permits TiffIOMap {
         return TiffSamples.toBytes(samplesArray, numberOfSamples, byteOrder());
     }
 
+    public Matrix<UpdatablePArray> javaArrayAsMatrix(Object samplesArray, int sizeX, int sizeY) {
+        return TiffSamples.asMatrix(samplesArray, sizeX, sizeY, numberOfChannels(), false);
+    }
+
+    public Matrix<UpdatablePArray> toMatrix(byte[] sampleBytes, int sizeX, int sizeY) {
+        final Object javaArray = bytesToJavaArray(sampleBytes);
+        return javaArrayAsMatrix(javaArray, sizeX, sizeY);
+    }
+
+    public <T extends PArray> List<Matrix<T>> asChannels(Matrix<T> mergedChannels) {
+        return Matrices.asLayers(mergedChannels, TiffIFD.MAX_NUMBER_OF_CHANNELS);
+    }
+
+    public BufferedImage toBufferedImage(List<? extends Matrix<? extends PArray>> channels) {
+        final Matrix<? extends PArray> interleaved = Matrices.interleave(dropExtraChannels(channels));
+        return interleavedToBufferedImage(interleaved);
+    }
+
+    public BufferedImage toBufferedImage(Matrix<? extends PArray> mergedChannels) {
+        return toBufferedImage(asChannels(mergedChannels));
+    }
+
+    public BufferedImage interleavedToBufferedImage(Matrix<? extends PArray> interleaved) {
+        // Note: we do not use MatrixToImage.toBufferedImage, because we need to call setUnsignedInt32
+        return new MatrixToImage.InterleavedRGBToInterleaved()
+                .setUnsignedInt32(true)
+                .toBufferedImage(interleaved);
+    }
     public <T extends Matrix<? extends PArray>> List<T> dropExtraChannels(List<T> image) {
         Objects.requireNonNull(image, "Null image");
         return getExtraChannelsMode().isDropping() && image.size() > 4 ?
