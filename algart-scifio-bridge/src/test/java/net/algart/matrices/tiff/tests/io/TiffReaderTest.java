@@ -157,7 +157,7 @@ public class TiffReaderTest {
                     map.setBitImageUnpackingMode(TiffMap.BitImageUnpackingMode.UNPACK_TO_0_1);
                     // the same logic as in TiffParser.getSamples
                 }
-                // map.setRarePrecisionMode(TiffMap.RarePrecisionMode.KEEP_RAW);
+                 map.setRarePrecisionMode(TiffMap.RarePrecisionMode.KEEP_RAW);
                 if (w < 0) {
                     w = Math.min(map.dimX(), MAX_IMAGE_DIM);
                 }
@@ -191,10 +191,12 @@ public class TiffReaderTest {
                     t2 = System.nanoTime();
                     System.out.printf(Locale.US, "Test #%d: %dx%d loaded in %.3f ms (%s)%n",
                             test, w, h, (t2 - t1) * 1e-6, matrix);
-                    if (test == 1 && !interleave) {
+                    if (test == 1 && !interleave &&
+                            !(map.isRarePrecision() && map.getRarePrecisionMode().isKeepRaw())) {
                         // - testing alternate way to do the same thing
                         byte[] samples = map.readSampleBytes(x, y, w, h);
                         Matrix<UpdatablePArray> other = map.toMatrix(samples, w, h);
+                        // - will lead to exception for rare precisions in KEEP_RAW mode
                         if (!other.equals(matrix)) {
                             throw new AssertionError("Different matrices!");
                         }

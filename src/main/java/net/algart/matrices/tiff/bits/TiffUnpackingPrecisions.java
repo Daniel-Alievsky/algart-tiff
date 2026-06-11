@@ -39,7 +39,7 @@ public class TiffUnpackingPrecisions {
     private TiffUnpackingPrecisions() {
     }
 
-    public static boolean isRarePrecision(final TiffIFD ifd) throws TiffException {
+    public static boolean isRarePrecision(TiffIFD ifd) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         return getInfo(ifd).isRare();
     }

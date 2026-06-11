@@ -1573,7 +1573,6 @@ public non-sealed class TiffReader extends TiffIO {
     public TiffReadMap map(TiffIFD ifd, boolean builtTileGrid) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         final TiffReadMap map = new TiffReadMap(this, ifd);
-        map.getRarePrecisionMode().throwIfForbidden(map);
         if (builtTileGrid) {
             map.buildTileGrid();
         }

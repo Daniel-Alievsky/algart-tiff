@@ -128,7 +128,9 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
                     "not for a newly created map for writing new image");
         }
         rarePrecisionMode.throwIfForbidden(this);
-        assert rarePrecisionMode == RarePrecisionMode.KEEP_RAW ||
+        // - the same check will be performed inside unpackIfNecessary
+        assert !isRarePrecision() ||
+                rarePrecisionMode == RarePrecisionMode.KEEP_RAW ||
                 rarePrecisionMode == RarePrecisionMode.UNPACK;
         final byte[] sampleBytes = new byte[sizeInBytes];
 
@@ -291,7 +293,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             throws IOException {
         final RarePrecisionMode rarePrecisionMode = getRarePrecisionMode().unpackIfEnabled();
         final byte[] sampleBytes = readSampleBytes(fromX, fromY, sizeX, sizeY, rarePrecisionMode, storeTilesInMap);
-        return bytesToJavaArray(sampleBytes);
+        return bytesToJavaArray(sampleBytes, rarePrecisionMode);
     }
 
     public Matrix<UpdatablePArray> readMatrix(

@@ -135,20 +135,34 @@ public sealed class TiffMap permits TiffIOMap {
             return this == KEEP_RAW ? UNPACK : this;
         }
 
+        public boolean isKeepRaw() {
+            return this == KEEP_RAW;
+        }
+
         public static RarePrecisionMode of(boolean unpack) {
             return unpack ? UNPACK : KEEP_RAW;
         }
 
-        public void throwIfForbidden(TiffMap map) throws TiffException {
+        void throwIfForbidden(TiffMap map) {
             Objects.requireNonNull(map, "Null TIFF map");
-            if (this == FORBID && TiffUnpackingPrecisions.isRarePrecision(map.ifd())) {
-                throw new UnsupportedTiffFormatException("Support of unusual TIFF bit depth is disabled: " +
-                        Arrays.toString(map.ifd().getBitsPerSample()) + " bits/sample for " +
+            if (this == FORBID && map.isRarePrecision()) {
+                throw new IllegalArgumentException("This TIFF image has a rare precision, it is not allowed: " +
+                        Arrays.toString(map.bitsPerSample()) + " bits/sample for " +
                         map.sampleType().prettyName() + " values");
             }
         }
 
-        public byte[] unpackIfNecessary(TiffMap map, byte[] sampleBytes, long numberOfPixels, boolean rescaleInt24)
+        void throwIfRaw(TiffMap map, String action) {
+            Objects.requireNonNull(map, "Null TIFF map");
+            if (this == KEEP_RAW && map.isRarePrecision()) {
+                throw new IllegalArgumentException("The TIFF image samples have a rare precision (" +
+                        Arrays.toString(map.bitsPerSample()) + " bits/sample for " +
+                        map.sampleType().prettyName() + " values)" +
+                        "and were not unpacked (kept raw): " + action + " is impossible");
+            }
+        }
+
+        byte[] unpackIfNecessary(TiffMap map, byte[] sampleBytes, long numberOfPixels, boolean rescaleInt24)
                 throws TiffException {
             Objects.requireNonNull(map, "Null TIFF map");
             Objects.requireNonNull(sampleBytes, "Null sampleBytes");
@@ -195,6 +209,7 @@ public sealed class TiffMap permits TiffIOMap {
     private final int totalAlignedBitsPerPixel;
     private final TiffSampleType sampleType;
     private final boolean wholeBytes;
+    private final boolean rarePrecision;
     private final Class<?> elementType;
     private final ByteOrder byteOrder;
     private final long maxNumberOfSamplesInArray;
@@ -279,6 +294,7 @@ public sealed class TiffMap permits TiffIOMap {
         this.totalAlignedBitsPerPixel = numberOfChannels * alignedBitDepth;
         this.sampleType = ifd.sampleType();
         this.wholeBytes = sampleType.isWholeBytes();
+        this.rarePrecision = TiffUnpackingPrecisions.isRarePrecision(ifd);
         if (this.wholeBytes != ((alignedBitDepth & 7) == 0)) {
             throw new ConcurrentModificationException("Corrupted IFD, probably by a parallel thread" +
                     " (sample type " + sampleType + " is" +
@@ -393,6 +409,10 @@ public sealed class TiffMap permits TiffIOMap {
 
     public boolean isWholeBytes() {
         return wholeBytes;
+    }
+
+    public boolean isRarePrecision() {
+        return rarePrecision;
     }
 
     public int[] bitsPerSample() {
@@ -621,7 +641,10 @@ public sealed class TiffMap permits TiffIOMap {
      *
      * <p>The {@link RarePrecisionMode#KEEP_RAW} mode is ignored (as if it was {@link RarePrecisionMode#UNPACK})
      * when using high-level reading methods like {@link TiffReadMap#readMatrix} and
-     * {@link TiffReadMap#readJavaArray}.</p>
+     * {@link TiffReadMap#readJavaArray}.
+     * However, if you will use more low-level methods like {@link #toMatrix(byte[], int, int)}
+     * or {@link #bytesToJavaArray(byte[])} in this mode, images with rare precisions will lead
+     * to {@link IllegalStateException}.</p>
      *
      * <p>This flag is {@code true} by default. Usually there are no reasons to set it to {@code false},
      * besides compatibility reasons or requirement to maximally save memory while processing 16/24-bit
@@ -629,11 +652,16 @@ public sealed class TiffMap permits TiffIOMap {
      *
      * @param rarePrecisionMode whether do we need to unpack unusual precisions?
      * @return a reference to this object.
+     * @throws NullPointerException     if the argument is {@code null}.
+     * @throws IllegalArgumentException if the argument is {@link RarePrecisionMode#FORBID} and the current
+     *                                  image has one of {@link #isRarePrecision() rare precisions}.
      * @see TiffReader#completeDecoding(TiffTile)
      * @see TiffMap#bitsPerUnpackedSample()
      */
     public TiffMap setRarePrecisionMode(RarePrecisionMode rarePrecisionMode) {
-        this.rarePrecisionMode = Objects.requireNonNull(rarePrecisionMode, "Null rarePrecisionMode");
+        Objects.requireNonNull(rarePrecisionMode, "Null rarePrecisionMode");
+        rarePrecisionMode.throwIfForbidden(this);
+        this.rarePrecisionMode = rarePrecisionMode;
         return this;
     }
 
@@ -1025,10 +1053,17 @@ public sealed class TiffMap permits TiffIOMap {
     }
 
     public Object bytesToJavaArray(byte[] sampleBytes) {
+        return bytesToJavaArray(sampleBytes, rarePrecisionMode);
+    }
+
+    public Object bytesToJavaArray(byte[] sampleBytes, RarePrecisionMode rarePrecisionMode) {
+        Objects.requireNonNull(sampleBytes, "Null sample bytes");
+        Objects.requireNonNull(rarePrecisionMode, "rarePrecisionMode");
         long t1 = debugTime();
         if (bitImageUnpackingMode.isEnabled() && isBinary()) {
             return sampleBytes;
         }
+        rarePrecisionMode.throwIfRaw(this, "conversion to Java array");
         final Object samplesArray = sampleType().javaArray(sampleBytes, byteOrder());
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t2 = debugTime();
