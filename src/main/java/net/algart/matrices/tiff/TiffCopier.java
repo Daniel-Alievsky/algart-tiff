@@ -641,6 +641,7 @@ public final class TiffCopier {
         if (fromY < 0) {
             throw new IllegalArgumentException("Negative fromY: " + fromY);
         }
+        readMap.ensureUnpackedRarePrecision();
         long t1 = TiffIO.debugTime();
         resetImageCounters();
         final TiffIFD writeIFD = readMap.ifd().copy();
@@ -828,7 +829,7 @@ public final class TiffCopier {
             int sizeY,
             boolean swapOrder) throws IOException {
         List<TiffTile> tiles;
-        byte[] samples = readMap.loadSampleBytes(readX, readY, sizeX, sizeY, TiffMap.RarePrecisionMode.UNPACK);
+        byte[] samples = readMap.loadSampleBytes(readX, readY, sizeX, sizeY);
         if (swapOrder) {
             samples = JArrays.copyAndSwapByteOrder(samples, readMap.elementType());
         }

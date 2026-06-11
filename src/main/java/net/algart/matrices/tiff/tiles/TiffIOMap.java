@@ -116,10 +116,8 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             int fromY,
             int sizeX,
             int sizeY,
-            RarePrecisionMode rarePrecisionMode,
             boolean storeTilesInMap)
             throws IOException {
-        Objects.requireNonNull(rarePrecisionMode, "Null rarePrecisionMode");
         checkRequestedArea(fromX, fromY, sizeX, sizeY);
         final int sizeInBytes = sizeOfRegionWithPossibleNonStandardPrecisions(sizeX, sizeY);
         final long sizeInPixels = (long) sizeX * (long) sizeY;
@@ -127,8 +125,10 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             throw new IllegalStateException("Image data can only be read from a TIFF map for an existing IFD, " +
                     "not for a newly created map for writing new image");
         }
+        final RarePrecisionMode rarePrecisionMode = getRarePrecisionMode();
         rarePrecisionMode.throwIfForbidden(this);
-        // - the same check will be performed inside unpackIfNecessary
+        // - just in case (should not be allowed for getRarePrecisionMode());
+        // the same check will be performed inside unpackIfNecessary
         assert !isRarePrecision() ||
                 rarePrecisionMode == RarePrecisionMode.KEEP_RAW ||
                 rarePrecisionMode == RarePrecisionMode.UNPACK;
@@ -230,9 +230,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             int fromY,
             int sizeX,
             int sizeY,
-            RarePrecisionMode rarePrecisionMode,
             boolean storeTilesInMap) throws IOException {
-        Objects.requireNonNull(rarePrecisionMode, "Null rarePrecisionMode");
         Objects.requireNonNull(tileSupplier, "Null tileSupplier");
         @SuppressWarnings("resource") final TiffReader reader = reader();
         long t1 = debugTime();
@@ -240,7 +238,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         checkRequestedArea(fromX, fromY, sizeX, sizeY);
         // - note: we allow this area to be outside the image
 
-        byte[] sampleBytes = loadSampleBytes(fromX, fromY, sizeX, sizeY, rarePrecisionMode, storeTilesInMap);
+        byte[] sampleBytes = loadSampleBytes(fromX, fromY, sizeX, sizeY, storeTilesInMap);
         final int sizeInBytes = sampleBytes.length;
         final long sizeInPixels = (long) sizeX * (long) sizeY;
         // - can be >2^31 for bits
@@ -291,9 +289,9 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             int sizeY,
             boolean storeTilesInMap)
             throws IOException {
-        final RarePrecisionMode rarePrecisionMode = getRarePrecisionMode().unpackIfEnabled();
-        final byte[] sampleBytes = readSampleBytes(fromX, fromY, sizeX, sizeY, rarePrecisionMode, storeTilesInMap);
-        return bytesToJavaArray(sampleBytes, rarePrecisionMode);
+        ensureUnpackedRarePrecision();
+        final byte[] sampleBytes = readSampleBytes(fromX, fromY, sizeX, sizeY, storeTilesInMap);
+        return bytesToJavaArray(sampleBytes);
     }
 
     public Matrix<UpdatablePArray> readMatrix(

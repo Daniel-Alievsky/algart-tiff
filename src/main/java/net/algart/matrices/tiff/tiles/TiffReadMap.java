@@ -91,17 +91,12 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
         return loadSampleBytes(0, 0, dimX(), dimY());
     }
 
-    public byte[] loadSampleBytes(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
-        return loadSampleBytes(fromX, fromY, sizeX, sizeY, getRarePrecisionMode());
-    }
-
     public byte[] loadSampleBytes(
             int fromX,
             int fromY,
             int sizeX,
-            int sizeY,
-            RarePrecisionMode rarePrecisionMode) throws IOException {
-        return loadSampleBytes(fromX, fromY, sizeX, sizeY, rarePrecisionMode, false);
+            int sizeY) throws IOException {
+        return loadSampleBytes(fromX, fromY, sizeX, sizeY, false);
     }
 
     public byte[] readSampleBytes() throws IOException {
@@ -109,7 +104,7 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
     }
 
     public byte[] readSampleBytes(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
-        return readSampleBytes(fromX, fromY, sizeX, sizeY, getRarePrecisionMode(), false);
+        return readSampleBytes(fromX, fromY, sizeX, sizeY, false);
     }
 
     public Object readJavaArray() throws IOException {

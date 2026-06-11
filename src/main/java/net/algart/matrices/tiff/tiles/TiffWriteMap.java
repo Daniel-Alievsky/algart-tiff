@@ -25,11 +25,9 @@
 package net.algart.matrices.tiff.tiles;
 
 import net.algart.arrays.*;
-import net.algart.arrays.Arrays;
 import net.algart.io.awt.ImageToMatrix;
 import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
-import net.algart.matrices.tiff.samples.TiffSamples;
 import net.algart.matrices.tiff.tags.Tags;
 
 import java.awt.*;
@@ -90,13 +88,8 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
         return this;
     }
 
-    public byte[] readSampleBytesAndStore(
-            int fromX,
-            int fromY,
-            int sizeX,
-            int sizeY,
-            RarePrecisionMode rarePrecisionMode) throws IOException {
-        return readSampleBytes(fromX, fromY, sizeX, sizeY, rarePrecisionMode, true);
+    public byte[] readSampleBytesAndStore(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
+        return readSampleBytes(fromX, fromY, sizeX, sizeY, true);
     }
 
     public Object readJavaArrayAndStore(int fromX, int fromY, int sizeX, int sizeY)

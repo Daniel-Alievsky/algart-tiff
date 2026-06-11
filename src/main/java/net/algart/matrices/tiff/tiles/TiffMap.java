@@ -146,7 +146,7 @@ public sealed class TiffMap permits TiffIOMap {
         void throwIfForbidden(TiffMap map) {
             Objects.requireNonNull(map, "Null TIFF map");
             if (this == FORBID && map.isRarePrecision()) {
-                throw new IllegalArgumentException("This TIFF image has a rare precision, it is not allowed: " +
+                throw new IllegalArgumentException("This TIFF image has a rare pixel precision, it is not allowed: " +
                         Arrays.toString(map.bitsPerSample()) + " bits/sample for " +
                         map.sampleType().prettyName() + " values");
             }
@@ -154,10 +154,10 @@ public sealed class TiffMap permits TiffIOMap {
 
         void throwIfRaw(TiffMap map, String action) {
             Objects.requireNonNull(map, "Null TIFF map");
-            if (this == KEEP_RAW && map.isRarePrecision()) {
-                throw new IllegalArgumentException("The TIFF image samples have a rare precision (" +
+            if (this != UNPACK && map.isRarePrecision()) {
+                throw new IllegalArgumentException("The TIFF image samples have a rare pixel precision (" +
                         Arrays.toString(map.bitsPerSample()) + " bits/sample for " +
-                        map.sampleType().prettyName() + " values)" +
+                        map.sampleType().prettyName() + " values) " +
                         "and were not unpacked (kept raw): " + action + " is impossible");
             }
         }
@@ -618,43 +618,40 @@ public sealed class TiffMap permits TiffIOMap {
     }
 
     /**
-     * Sets the mode, what do we need with unusual precisions (bits/sample), differ than all precisions
-     * supported by {@link TiffSampleType} class.
-     * These are 3-byte samples (17..24 bits/sample)
-     * and 16- or 24-bit floating-point formats.
-     * They will be unpacked (to 32-bit integer or floating-point values)
-     * when this mode is {@link RarePrecisionMode#UNPACK},
-     * or they will lead to an exception when it is {@link RarePrecisionMode#FORBID},
-     * or they will be loaded as-is if it is {@link RarePrecisionMode#KEEP_RAW}.
+     * Sets the mode determining how to handle rare pixel precisions (bits/sample) that differ
+     * from all standard precisions supported by the {@link TiffSampleType} class.
      *
-     * <p>This mode is used inside {@link TiffReadMap#readSampleBytes(int, int, int, int)}
-     * method after all tiles have been read.
-     * This is just the default value of {@code rarePrecisionMode}
-     * argument of the more verbose method
-     * {@link TiffIOMap#readSampleBytes(int, int, int, int, RarePrecisionMode, boolean)}.
-     * </p>
+     * <p>These include 3-byte integer samples (17..24 bits/sample) and 16- or 24-bit floating-point formats.
+     * These formats will be:</p>
+     * <ul>
+     * <li>unpacked to 32-bit integer or floating-point values when this mode is
+     * {@link RarePrecisionMode#UNPACK},</li>
+     * <li>lead to an exception while calling this method when it is {@link RarePrecisionMode#FORBID},</li>
+     * <li>loaded as-is if it is {@link RarePrecisionMode#KEEP_RAW}.</li>
+     * </ul>
      *
-     * <p>Note that the decoded data in {@link TiffTile} in case of unusual precisions is not unpacked
-     * (but you may request unpacking with {@link TiffTile#getUnpackedSampleBytes(boolean)} method).
+     * <p>This mode is used inside the {@link TiffReadMap#readSampleBytes(int, int, int, int)}
+     * method after all tiles have been read.</p>
+     *
+     * <p>Note that the decoded data in {@link TiffTile} in case of rare precisions is not unpacked
+     * (but you may request unpacking with the {@link TiffTile#getUnpackedSampleBytes(boolean)} method).
      * On the other hand, all other precisions such as 4-bit or 12-bit (but not 1-channel 1-bit case)
      * are always unpacked to the nearest bit depth divided by 8 when decoding tiles.</p>
      *
-     * <p>The {@link RarePrecisionMode#KEEP_RAW} mode is ignored (as if it was {@link RarePrecisionMode#UNPACK})
-     * when using high-level reading methods like {@link TiffReadMap#readMatrix} and
-     * {@link TiffReadMap#readJavaArray}.
-     * However, if you will use more low-level methods like {@link #toMatrix(byte[], int, int)}
-     * or {@link #bytesToJavaArray(byte[])} in this mode, images with rare precisions will lead
-     * to {@link IllegalStateException}.</p>
+     * <p>The {@link RarePrecisionMode#KEEP_RAW} mode is incompatible with
+     * high-level reading methods like {@link TiffReadMap#readMatrix} and
+     * {@link TiffReadMap#readJavaArray}: in this mode, these methods throw {@link IllegalStateException}
+     * for images with {@link #isRarePrecision() rare precisions}.</p>
      *
-     * <p>This flag is {@code true} by default. Usually there are no reasons to set it to {@code false},
-     * besides compatibility reasons or requirement to maximally save memory while processing 16/24-bit
-     * float values.</p>
+     * <p>The default mode is {@link RarePrecisionMode#UNPACK}. Usually there are no reasons to change it,
+     * besides compatibility constraints or a strict requirement to maximally save memory while processing
+     * 16/24-bit float values.</p>
      *
-     * @param rarePrecisionMode whether do we need to unpack unusual precisions?
+     * @param rarePrecisionMode the mode for processing unusual pixel precisions.
      * @return a reference to this object.
      * @throws NullPointerException     if the argument is {@code null}.
      * @throws IllegalArgumentException if the argument is {@link RarePrecisionMode#FORBID} and the current
-     *                                  image has one of {@link #isRarePrecision() rare precisions}.
+     * image has one of {@link #isRarePrecision() rare precisions}.
      * @see TiffReader#completeDecoding(TiffTile)
      * @see TiffMap#bitsPerUnpackedSample()
      */
@@ -663,6 +660,21 @@ public sealed class TiffMap permits TiffIOMap {
         rarePrecisionMode.throwIfForbidden(this);
         this.rarePrecisionMode = rarePrecisionMode;
         return this;
+    }
+
+    /**
+     * Throws {@link IllegalStateException} if this image has a {@link #isRarePrecision() rare precision}
+     * and if the current {@link #setRarePrecisionMode(RarePrecisionMode) rare precision mode} is not
+     * {@link RarePrecisionMode#UNPACK}.
+     */
+    public void ensureUnpackedRarePrecision() {
+        if (isRarePrecision() && rarePrecisionMode != RarePrecisionMode.UNPACK) {
+            throw new IllegalStateException("Cannot process non-standard TIFF pixel precision " +
+                    "because the current rare precision mode is " +
+                    rarePrecisionMode + ": the " + RarePrecisionMode.UNPACK + " mode is required (" +
+                    Arrays.toString(bitsPerSample()) + " bits/sample for " +
+                    sampleType().prettyName() + " values)");
+        }
     }
 
     public ExtraChannelsMode getExtraChannelsMode() {
@@ -1053,10 +1065,6 @@ public sealed class TiffMap permits TiffIOMap {
     }
 
     public Object bytesToJavaArray(byte[] sampleBytes) {
-        return bytesToJavaArray(sampleBytes, rarePrecisionMode);
-    }
-
-    public Object bytesToJavaArray(byte[] sampleBytes, RarePrecisionMode rarePrecisionMode) {
         Objects.requireNonNull(sampleBytes, "Null sample bytes");
         Objects.requireNonNull(rarePrecisionMode, "rarePrecisionMode");
         long t1 = debugTime();
