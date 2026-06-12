@@ -67,7 +67,8 @@ public final class TiffTile {
     private int storedInFileDataCapacity = 0;
     private int linkToOriginalOfDuplicate = -1;
     private int estimatedNumberOfPixels = 0;
-
+    private boolean rescaleWhenIncreasingBitDepthRequested = false;
+    private boolean colorCorrectionRequested = false;
     private Queue<IRectangularArea> unsetArea = null;
     // - null value marks that all is empty;
     // it helps to defer actual subtracting until the moment when we know the correct tile sizes
@@ -156,7 +157,7 @@ public final class TiffTile {
      *     16- or 24-bit floating-point formats.</li>
      * </ol>
      * <p>Inside this class, you are always dealing with the variant #2 (excepting call of
-     * {@link #getUnpackedSampleBytes(boolean)} method). The {@link TiffReader} class
+     * {@link #getUnpackedSampleBytes()} method). The {@link TiffReader} class
      * usually returns data in the option #1, unless you disable this by
      * {@link TiffMap#setRarePrecisionMode(TiffMap.RarePrecisionMode)} method.
      * The {@link TiffWriter} class always takes the data in the variant #1.</p>
@@ -611,17 +612,18 @@ public final class TiffTile {
      * they are automatically unpacked into <code>&#8968;K/8&#8969;*8</code> bit integers while decoding.
      *
      * <p>In addition to the standard precisions provided by {@link TiffSampleType}, samples can be represented
-     * in the following unusual precisions:</p>
+     * in the following rare precisions:</p>
      *
      * <ul>
-     *     <li>16-bit floating points values,</li>
-     *     <li>24-bit floating points values,</li>
+     *     <li>16-bit floating-point values,</li>
+     *     <li>24-bit floating-point values,</li>
      *     <li>24-bit integer values (for the case of K-bit samples, 16&le;K&lt;24).</li>
      * </ul>
      *
      * @return unpacked data.
      * @throws IllegalStateException if the tile is {@link #isEmpty() empty} or {@link #isEncoded() encoded}.
-     * @see #getUnpackedSampleBytes(boolean)
+     * @see #getUnpackedSampleBytes()
+     * @see TiffMap#isRarePrecision()
      */
     public byte[] getDecodedData() {
         checkDecodedData();
@@ -679,7 +681,7 @@ public final class TiffTile {
     }
 
     /**
-     * Gets the decoded data with unpacking non-usual precisions: 16/24-bit floating points data
+     * Gets the decoded data while unpacking rare precision data: 16/24-bit floating-point data
      * and any 3-byte/sample integer data. The same operations are performed by
      * {@link TiffReader} automatically
      * if the {@link TiffMap#setRarePrecisionMode(TiffMap.RarePrecisionMode) rare precision mode} is set
@@ -687,32 +689,30 @@ public final class TiffTile {
      *
      * <p>This method is rarely necessary: {@link #getDecodedData()} is enough for most needs.
      *
-     * <p>The argument <code>rescaleWhenIncreasingBitDepth</code> specifies how to unpack 3-byte integer data.
-     * Usually it should be equal to {@link TiffReader#setRescaleWhenIncreasingBitDepth(boolean)
-     * the corresponding flag} of {@link TiffReader} class used for reading this tile.
-     * The typical value is <code>true</code>.
+     * <p>This method uses {@link #wasRescaleWhenIncreasingBitDepthRequested()} to detect
+     * whether this tile was decoded by a {@link TiffReader} with the
+     * {@link TiffReader#setRescaleWhenIncreasingBitDepth(boolean)} flag enabled.
+     * If this flag is {@code true}, 3-byte integer samples will be rescaled as specified
+     * in the documentation for the {@link TiffReader#setRescaleWhenIncreasingBitDepth(boolean)} method.
      *
-     * @param rescaleWhenIncreasingBitDepth the last argument passed to of
-     *                                     {@link TiffUnpackingPrecisions#unpackRarePrecisions} method for
-     *                                     unpacking data.
      * @return unpacked data.
      * @see TiffUnpackingPrecisions#unpackRarePrecisions(byte[], TiffIFD, int, long, boolean)
      * @see #bitsPerSample()
      * @see TiffMap#bitsPerUnpackedSample()
      */
-    public byte[] getUnpackedSampleBytes(boolean rescaleWhenIncreasingBitDepth) {
+    public byte[] getUnpackedSampleBytes() {
         byte[] samples = getDecodedData();
         try {
             samples = TiffUnpackingPrecisions.unpackRarePrecisions(
-                    samples, ifd(), samplesPerPixel, sizeInPixels, rescaleWhenIncreasingBitDepth);
+                    samples, ifd(), samplesPerPixel, sizeInPixels, wasRescaleWhenIncreasingBitDepthRequested());
         } catch (TiffException e) {
             throw new IllegalStateException("Illegal IFD inside the tile map", e);
         }
         return samples;
     }
 
-    public Object getUnpackedJavaArray(boolean rescaleWhenIncreasingBitDepth) {
-        final byte[] samples = getUnpackedSampleBytes(rescaleWhenIncreasingBitDepth);
+    public Object getUnpackedJavaArray() {
+        final byte[] samples = getUnpackedSampleBytes();
         return sampleType().javaArray(samples, byteOrder());
     }
 
@@ -720,7 +720,7 @@ public final class TiffTile {
         Objects.requireNonNull(samplesArray, "Null samplesArray");
         final Class<?> elementType = samplesArray.getClass().getComponentType();
         if (elementType == null) {
-            throw new IllegalArgumentException("The specified samplesArray is not actual an array: " +
+            throw new IllegalArgumentException("The specified samplesArray is not actually an array: " +
                     "it is " + samplesArray.getClass());
         }
         if (elementType != elementType()) {
@@ -733,13 +733,7 @@ public final class TiffTile {
     }
 
     public Matrix<UpdatablePArray> getUnpackedMatrix() {
-        return getUnpackedMatrix(true);
-    }
-
-    public Matrix<UpdatablePArray> getUnpackedMatrix(boolean rescaleWhenIncreasingBitDepth) {
-        return TiffSamples.asMatrix(
-                getUnpackedJavaArray(rescaleWhenIncreasingBitDepth),
-                sizeX, sizeY, samplesPerPixel, interleaved);
+        return TiffSamples.asMatrix(getUnpackedJavaArray(), sizeX, sizeY, samplesPerPixel, interleaved);
     }
 
     public TiffTile copyData(TiffTile source, boolean cloneData) {
@@ -754,7 +748,7 @@ public final class TiffTile {
         return this;
     }
 
-    public TiffTile copyUnpackedSamples(TiffTile source, boolean rescaleWhenIncreasingBitDepth) {
+    public TiffTile copyUnpackedSamples(TiffTile source) {
         Objects.requireNonNull(source, "Null source tile");
         if (sampleType() != source.sampleType()) {
             throw new IllegalArgumentException("The specified source tile has incompatible " +
@@ -774,17 +768,17 @@ public final class TiffTile {
         }
         source.checkDecodedData();
         if (map.isByteOrderCompatible(source.byteOrder())) {
-            final byte[] decodedData = source.getUnpackedSampleBytes(rescaleWhenIncreasingBitDepth);
+            final byte[] decodedData = source.getUnpackedSampleBytes();
             setDecodedData(decodedData, true);
         } else {
             assert byteOrder() != source.byteOrder();
             assert elementType() != boolean.class;
-            final byte[] decodedData = source.getUnpackedSampleBytes(rescaleWhenIncreasingBitDepth);
+            final byte[] decodedData = source.getUnpackedSampleBytes();
             final byte[] swapped = JArrays.copyAndSwapByteOrder(decodedData, elementType());
             setDecodedData(swapped, true);
         }
         frozen = source.frozen;
-        // - actually should be false
+        // - actually is usually false
         return this;
     }
 
@@ -842,7 +836,7 @@ public final class TiffTile {
      * {@link #setDecodedData(byte[], boolean)} and {@link #setEncodedData(byte[], boolean)}
      * with additional {@code boolean} argument "unfreeze".
      * Also, the <i>frozen</i> status is copied from the source tile by
-     * {@link #copyData(TiffTile, boolean)} and {@link #copyUnpackedSamples(TiffTile, boolean)} methods.</p>
+     * {@link #copyData(TiffTile, boolean)} and {@link #copyUnpackedSamples(TiffTile)} methods.</p>
      */
     public void freeAndFreeze() {
         freeData();
@@ -1019,6 +1013,22 @@ public final class TiffTile {
             throw new IllegalStateException("TIFF tile data are not decoded, number of pixels is unknown: " + this);
         }
         return estimatedNumberOfPixels;
+    }
+
+    public boolean wasRescaleWhenIncreasingBitDepthRequested() {
+        return rescaleWhenIncreasingBitDepthRequested;
+    }
+
+    public void storeRescaleWhenIncreasingBitDepthRequested(boolean rescaleWhenIncreasingBitDepthRequested) {
+        this.rescaleWhenIncreasingBitDepthRequested = rescaleWhenIncreasingBitDepthRequested;
+    }
+
+    public boolean wasColorCorrectionRequested() {
+        return colorCorrectionRequested;
+    }
+
+    public void storeColorCorrectionRequested(boolean colorCorrectionRequested) {
+        this.colorCorrectionRequested = colorCorrectionRequested;
     }
 
     /**

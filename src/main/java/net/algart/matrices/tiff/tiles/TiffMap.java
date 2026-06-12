@@ -412,6 +412,18 @@ public sealed class TiffMap permits TiffIOMap {
         return wholeBytes;
     }
 
+    /**
+     * Returns {@code true} for 3 cases of <i>rare precision</i>:
+     *
+     * <ul>
+     *     <li>16-bit floating-point values,</li>
+     *     <li>24-bit floating-point values,</li>
+     *     <li>24-bit integer values (for the case of K-bit samples, 16&le;K&lt;24).</li>
+     * </ul>
+     *
+     * @return if the tiles in this map contain 16/24-bit floating point pixels or 24-bit integer values.
+     * @see TiffUnpackingPrecisions#unpackRarePrecisions(byte[], TiffIFD, int, long, boolean)
+     */
     public boolean isRarePrecision() {
         return rarePrecision;
     }
@@ -635,7 +647,7 @@ public sealed class TiffMap permits TiffIOMap {
      * method after all tiles have been read.</p>
      *
      * <p>Note that the decoded data in {@link TiffTile} in case of rare precisions is not unpacked
-     * (but you may request unpacking with the {@link TiffTile#getUnpackedSampleBytes(boolean)} method).
+     * (but you may request unpacking with the {@link TiffTile#getUnpackedSampleBytes()} method).
      * On the other hand, all other precisions such as 4-bit or 12-bit (but not 1-channel 1-bit case)
      * are always unpacked to the nearest bit depth divided by 8 when decoding tiles.</p>
      *

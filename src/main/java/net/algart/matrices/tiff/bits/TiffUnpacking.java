@@ -286,7 +286,7 @@ public class TiffUnpacking {
         if (photometric != null && !photometric.isRescalableIntensity()) {
             rescaleWhenIncreasingBitDepth = false;
         }
-        final boolean invertedBrightness = photometric != null && photometric.isInvertedBrightness();
+        final boolean actuallyInvertedBrightness = photometric != null && photometric.isInvertedBrightness();
         if (tile.sampleType().isFloatingPoint() && OPTIMIZE_SEPARATING_WHOLE_BYTES) {
             // - TIFF with float/double samples must not require bit unpacking or inverting brightness
             throw new TiffException("Invalid TIFF image: floating-point values, compression \"" +
@@ -312,11 +312,11 @@ public class TiffUnpacking {
                     bytesPerSample.orElseThrow(),
                     rescaleWhenIncreasingBitDepth,
                     colorCorrection,
-                    invertedBrightness);
+                    actuallyInvertedBrightness);
         } else {
             assert tile.bitsPerSample() == 1 : ">1 bits per sample for non-whole bytes are not supported: " + tile;
             assert tile.samplesPerPixel() == 1 : ">1 samples per pixel for non-whole bytes are not supported: " + tile;
-            extractSingleBitsAndInvertValues(result, source, sizeX, sizeY, colorCorrection, invertedBrightness);
+            extractSingleBitsAndInvertValues(result, source, sizeX, sizeY, colorCorrection, actuallyInvertedBrightness);
         }
         tile.setDecodedData(result);
         tile.setInterleaved(false);
@@ -352,8 +352,6 @@ public class TiffUnpacking {
         // System.out.println("ifd.isLowLevelInvertedCompression(): " + ifd.isLowLevelInvertedCompression());
         return !ifd.isLowLevelInvertedBrightness();
     }
-
-    // Below is an almost exact copy of the old TiffParser.unpackBytes method:
 
     private static void unpackWholeBytesAndInvertValues(
             TiffIFD ifd,
@@ -402,6 +400,7 @@ public class TiffUnpacking {
             // - note that 2^n-1 is divisible by 2^m-1 when m < n; actually it is less or about 256
         }
         final boolean invertValues = colorCorrection && actuallyInvertedBrightness;
+        // - in the current version, "colorCorrections" means inversion only
         long pos = 0;
         final long length = PackedBitArraysPer8.unpackedLength(source);
         for (int yIndex = 0, i = 0; yIndex < sizeY; yIndex++) {
@@ -477,6 +476,7 @@ public class TiffUnpacking {
             PackedBitArraysPer8.copyBitsFromReverseToNormalOrderNoSync(unpacked, tOffset, source, sOffset, actual);
         }
         if (colorCorrection && actuallyInvertedBrightness) {
+            // - in the current version, "colorCorrections" means inversion only
             PackedBitArraysPer8.notBits(unpacked, 0, 8L * (long) unpacked.length);
         }
     }

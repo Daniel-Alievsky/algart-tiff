@@ -1514,10 +1514,15 @@ public non-sealed class TiffReader extends TiffIO {
             tile.setDecodedData(sampleBytes);
             tile.setInterleaved(false);
         } else {
+            tile.storeRescaleWhenIncreasingBitDepthRequested(rescaleWhenIncreasingBitDepth);
+            tile.storeColorCorrectionRequested(colorCorrection);
             if (!TiffUnpacking.separateUnpackedSamples(tile)) {
                 if (!TiffUnpacking.separateYCbCrToRGB(tile)) {
                     TiffUnpacking.unpackTiffBitsAndInvertValues(tile, rescaleWhenIncreasingBitDepth, colorCorrection);
                 }
+            }
+            if (!tile.isSeparated()) {
+                throw new AssertionError("Decoded data was be correctly separated");
             }
         }
         tile.checkDataLengthAlignment();
