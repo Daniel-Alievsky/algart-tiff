@@ -617,8 +617,10 @@ public sealed class TiffMap permits TiffIOMap {
      * Such images are always unpacked to a format with an integer number of bytes per channel (<i>m</i>=8*<i>k</i>).
      * The only exception is 1-bit monochrome images: in this case, unpacking into bytes
      * is controlled by this method.</p>
-     * * <p>Note: {@link TiffTile} methods {@link TiffTile#getUnpackedJavaArray()} and
-     * {@link TiffTile#getUnpackedMatrix()} do not support this feature: they always return packed binary data,
+     *
+     * <p>Note: {@link TiffTile} methods {@link TiffTile#getUnpackedSampleBytes()},
+     * {@link TiffTile#getUnpackedJavaArray()} and {@link TiffTile#getUnpackedMatrix()}
+     * do not support this feature: they always return packed binary data,
      * as in the mode {@link BitImageUnpackingMode#NONE}.</p>
      *
      * @param bitImageUnpackingMode the unpacking mode for 1-bit monochrome images.
@@ -635,40 +637,46 @@ public sealed class TiffMap permits TiffIOMap {
     }
 
     /**
-     * Sets the mode determining how to handle rare pixel precisions (bits/sample) that differ
+     * Sets the mode determining how to handle rare pixel precision (bits/sample) that differs
      * from all standard precisions supported by the {@link TiffSampleType} class.
      *
      * <p>These include 3-byte integer samples (17..24 bits/sample) and 16- or 24-bit floating-point formats.
-     * These formats will be:</p>
+     * Depending on the mode, these formats are handled as follows:</p>
      * <ul>
-     * <li>unpacked to 32-bit integer or floating-point values when this mode is
-     * {@link RarePrecisionMode#UNPACK},</li>
-     * <li>lead to an exception while calling this method when it is {@link RarePrecisionMode#FORBID},</li>
-     * <li>loaded as-is if it is {@link RarePrecisionMode#KEEP_RAW}.</li>
+     * <li>{@link RarePrecisionMode#UNPACK}: unpacked to 32-bit integer or floating-point values;</li>
+     * <li>{@link RarePrecisionMode#FORBID}: causes an exception to be thrown
+     * immediately during this method call;</li>
+     * <li>{@link RarePrecisionMode#KEEP_RAW}: loaded as-is.</li>
      * </ul>
      *
      * <p>This mode is used inside the {@link TiffReadMap#readSampleBytes(int, int, int, int)}
      * method after all tiles have been read.</p>
      *
-     * <p>Note that the decoded data in {@link TiffTile} in case of rare precisions is not unpacked
-     * (but you may request unpacking with the {@link TiffTile#getUnpackedSampleBytes()} method).
-     * On the other hand, all other precisions such as 4-bit or 12-bit (but not 1-channel 1-bit case)
-     * are always unpacked to the nearest bit depth divided by 8 when decoding tiles.</p>
-     *
      * <p>The {@link RarePrecisionMode#KEEP_RAW} mode is incompatible with
-     * high-level reading methods like {@link TiffReadMap#readMatrix} and
-     * {@link TiffReadMap#readJavaArray}: in this mode, these methods throw {@link IllegalStateException}
-     * for images with {@link #isRarePrecision() rare precisions}.</p>
+     * high-level reading methods like {@link TiffReadMap#readMatrix()} and
+     * {@link TiffReadMap#readJavaArray()}: in this mode, these methods throw an {@link IllegalStateException}
+     * for images with {@link #isRarePrecision() rare precision}.</p>
      *
-     * <p>The default mode is {@link RarePrecisionMode#UNPACK}. Usually there are no reasons to change it,
-     * besides compatibility constraints or a strict requirement to maximally save memory while processing
-     * 16/24-bit float values.</p>
+     * <p>The default mode is {@link RarePrecisionMode#UNPACK}. Usually, there is no reason to change it,
+     * except for compatibility constraints or a strict requirement to maximize memory savings while processing
+     * 16/24-bit floating-point values.</p>
+     *
+     * <p>Note that the {@link TiffTile#getDecodedData() decoded data} in {@link TiffTile}
+     * is not unpacked in the case of rare precision
+     * On the other hand, all other precisions, such as 4-bit or 12-bit (except for the 1-channel 1-bit case),
+     * are always unpacked to the nearest multiple of 8 bits (byte boundary) when decoding tiles.</p>
+     *
+     * <p>Also note: {@link TiffTile} methods {@link TiffTile#getUnpackedSampleBytes()},
+     * {@link TiffTile#getUnpackedJavaArray()}, and {@link TiffTile#getUnpackedMatrix()}
+     * always unpack rare precision data, behaving as in the {@link RarePrecisionMode#UNPACK} mode.
+     * However, you can access raw (not unpacked) samples via the base method
+     * {@link TiffTile#getDecodedData()}.</p>
      *
      * @param rarePrecisionMode the mode for processing unusual pixel precisions.
      * @return a reference to this object.
      * @throws NullPointerException     if the argument is {@code null}.
      * @throws IllegalArgumentException if the argument is {@link RarePrecisionMode#FORBID} and the current
-     * image has one of {@link #isRarePrecision() rare precisions}.
+     * image has {@link #isRarePrecision() rare precision}.
      * @see TiffReader#completeDecoding(TiffTile)
      * @see TiffMap#bitsPerUnpackedSample()
      */
