@@ -605,19 +605,23 @@ public sealed class TiffMap permits TiffIOMap {
     }
 
     /**
-     * Sets the mode, describing whether do we need to unpack binary images (one bit/pixel, black-and-white images)
-     * into <code>byte</code> matrices: black pixels to value 0, white pixels to value depending on the mode.
+     * Sets the mode describing whether to unpack binary images (one bit per pixel, black-and-white images)
+     * into {@code byte} matrices: black pixels to value 0, white pixels to a value depending on the mode.
      *
      * <p>By default, this mode is {@link BitImageUnpackingMode#NONE}.
-     * In this case, {@link TiffReadMap#readMatrix()} and similar methods return binary AlgART matrices.</p>
+     * In this case, {@link TiffReadMap#readMatrix()} and similar methods return binary AlgART matrices,
+     * where the bits are packed into {@code long[]} values (64 bits per every {@code long}).</p>
      *
-     * <p>Note that some TIFF images use <i>m</i>&gt;1 bit per pixel, where <i>m</i> is not divisible by 8,
-     * such as 4-bit indexed images with a palette or 15-bit RGB image, 5+5+5 bits/channel.
-     * Such images are always unpacked to format with an integer number of bytes per channel (<i>m</i>=8*<i>k</i>).
+     * <p>Note that some TIFF images use <i>m</i>&gt;1 bits per pixel, where <i>m</i> is not divisible by 8,
+     * such as 4-bit indexed images with a palette or 15-bit RGB images (5+5+5 bits/channel).
+     * Such images are always unpacked to a format with an integer number of bytes per channel (<i>m</i>=8*<i>k</i>).
      * The only exception is 1-bit monochrome images: in this case, unpacking into bytes
      * is controlled by this method.</p>
+     * * <p>Note: {@link TiffTile} methods {@link TiffTile#getUnpackedJavaArray()} and
+     * {@link TiffTile#getUnpackedMatrix()} do not support this feature: they always return packed binary data,
+     * as in the mode {@link BitImageUnpackingMode#NONE}.</p>
      *
-     * @param bitImageUnpackingMode whether do we need to unpack bit matrices to byte ones?
+     * @param bitImageUnpackingMode the unpacking mode for 1-bit monochrome images.
      * @return a reference to this object.
      */
     public TiffMap setBitImageUnpackingMode(BitImageUnpackingMode bitImageUnpackingMode) {

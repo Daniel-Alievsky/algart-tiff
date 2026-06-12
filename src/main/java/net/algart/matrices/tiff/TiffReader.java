@@ -1522,7 +1522,7 @@ public non-sealed class TiffReader extends TiffIO {
                 }
             }
             if (!tile.isSeparated()) {
-                throw new AssertionError("Decoded data was be correctly separated");
+                throw new AssertionError("Decoded data was not correctly separated");
             }
         }
         tile.checkDataLengthAlignment();

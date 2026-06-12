@@ -75,9 +75,9 @@ public class ExtractTileContent {
                 if (report != null) {
                     System.out.println(report);
                 }
-                final var image = tile.getUnpackedMatrix().asLayers();
-                MatrixIO.writeImage(resultFile, image);
-                System.out.printf("Writing tile in %s%n", resultFile);
+                final var image = tile.getUnpackedMatrix();
+                MatrixIO.writeImage(resultFile, image.asLayers());
+                System.out.printf("Writing tile in %s (%s)%n", resultFile, image);
             } else {
                 tile = reader.readEncodedTile(tileIndex);
                 reader.prepareDecoding(tile);
