@@ -701,16 +701,22 @@ public sealed class TiffMap permits TiffIOMap {
     }
 
     /**
-     * Sets the mode specifying whether {@link TiffIOMap#readBufferedImage} should automatically
-     * drop extra channels if the source TIFF contains 5 or more channels.
+     * Sets the mode specifying how to handle extra channels if the source TIFF contains 5 or more channels
+     * when reading a {@link BufferedImage}.
      *
-     * <p>This is a "safety" mode for {@link TiffIOMap#readBufferedImage}. Standard Java images
-     * cannot handle more than 4 channels. If this mode is {@link ExtraChannelsMode#DROP_FOR_BUFFERED_IMAGE},
-     * the reader will simply drop the extra channels to provide a viewable image.
-     * If it is {@link ExtraChannelsMode#NONE}, an exception will be thrown for
-     * such multichannel TIFF images.</p>
+     * <p>Standard {@link BufferedImage} configurations (such as RGB or ARGB) support at most 4 channels.
+     * Depending on the mode, extra channels are handled as follows:</p>
+     * <ul>
+     * <li>{@link ExtraChannelsMode#DROP_FOR_BUFFERED_IMAGE}: extra channels are automatically dropped
+     * to provide a viewable image;</li>
+     * <li>{@link ExtraChannelsMode#NONE}: an exception is thrown when attempting to convert such
+     * multichannel images into a {@code BufferedImage}.</li>
+     * </ul>
      *
-     * @param extraChannelsMode whether to drop extra channels to stay compatible with {@code BufferedImage}.
+     * <p>This is a "safety" parameter designed specifically for {@link TiffIOMap#readBufferedImage}.</p>
+     *
+     * @param extraChannelsMode the mode specifying whether to drop extra channels to stay compatible
+     * with {@code BufferedImage}.
      * @return a reference to this object.
      */
     public TiffMap setExtraChannelsMode(ExtraChannelsMode extraChannelsMode) {
