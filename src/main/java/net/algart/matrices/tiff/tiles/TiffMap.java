@@ -662,7 +662,7 @@ public sealed class TiffMap permits TiffIOMap {
      * 16/24-bit floating-point values.</p>
      *
      * <p>Note that the {@link TiffTile#getDecodedData() decoded data} in {@link TiffTile}
-     * is not unpacked in the case of rare precision
+     * is not unpacked in the case of rare precision.
      * On the other hand, all other precisions, such as 4-bit or 12-bit (except for the 1-channel 1-bit case),
      * are always unpacked to the nearest multiple of 8 bits (byte boundary) when decoding tiles.</p>
      *
