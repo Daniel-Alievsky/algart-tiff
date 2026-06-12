@@ -713,7 +713,8 @@ public sealed class TiffMap permits TiffIOMap {
      * multichannel images into a {@code BufferedImage}.</li>
      * </ul>
      *
-     * <p>This is a "safety" parameter designed specifically for {@link TiffIOMap#readBufferedImage}.</p>
+     * <p>This is a "safety" parameter designed specifically for {@link TiffReadMap#readBufferedImage} and
+     * similar methods.</p>
      *
      * @param extraChannelsMode the mode specifying whether to drop extra channels to stay compatible
      * with {@code BufferedImage}.
