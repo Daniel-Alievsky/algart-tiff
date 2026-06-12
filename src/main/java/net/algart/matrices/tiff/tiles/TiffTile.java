@@ -67,6 +67,7 @@ public final class TiffTile {
     private int storedInFileDataCapacity = 0;
     private int linkToOriginalOfDuplicate = -1;
     private int estimatedNumberOfPixels = 0;
+
     private Queue<IRectangularArea> unsetArea = null;
     // - null value marks that all is empty;
     // it helps to defer actual subtracting until the moment when we know the correct tile sizes

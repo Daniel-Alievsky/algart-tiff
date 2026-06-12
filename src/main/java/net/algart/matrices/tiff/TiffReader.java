@@ -1286,10 +1286,10 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     public TiffTile readEncodedTile(TiffTileIndex tileIndex) throws IOException {
-        return readEncodedTile(tileIndex, true);
+        return readEncodedTile(tileIndex, false);
     }
 
-    public TiffTile readEncodedTile(TiffTileIndex tileIndex, boolean resolveDuplicates) throws IOException {
+    public TiffTile readEncodedTile(TiffTileIndex tileIndex, boolean linkAndSkipDataIfDuplicate) throws IOException {
         Objects.requireNonNull(tileIndex, "Null tileIndex");
         long t1 = debugTime();
         final TiffIFD ifd = tileIndex.ifd();
@@ -1336,7 +1336,7 @@ public non-sealed class TiffReader extends TiffIO {
                         tileIndex + ")");
                 // - note: old SCIFIO code allowed such offsets and returned zero-filled tile
             }
-            if (!resolveDuplicates && referenceToSource != -1) {
+            if (linkAndSkipDataIfDuplicate && referenceToSource != -1) {
                 result.freeData();
                 result.setLinkToOriginalOfDuplicate(referenceToSource);
             } else {

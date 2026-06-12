@@ -347,14 +347,13 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         return reader().readTile(tileIndex);
     }
 
-    @SuppressWarnings("resource")
     public TiffTile readEncodedTile(TiffTileIndex tileIndex) throws IOException {
-        return reader().readEncodedTile(tileIndex);
+        return readEncodedTile(tileIndex, false);
     }
 
     @SuppressWarnings("resource")
-    public TiffTile readEncodedTile(TiffTileIndex tileIndex, boolean resolveDuplicates) throws IOException {
-        return reader().readEncodedTile(tileIndex, resolveDuplicates);
+    public TiffTile readEncodedTile(TiffTileIndex tileIndex, boolean linkAndSkipDataIfDuplicate) throws IOException {
+        return reader().readEncodedTile(tileIndex, linkAndSkipDataIfDuplicate);
     }
 
     static int divFloor(int a, int b) {

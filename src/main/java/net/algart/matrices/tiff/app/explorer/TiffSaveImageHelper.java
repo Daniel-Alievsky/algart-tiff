@@ -472,7 +472,10 @@ class TiffSaveImageHelper {
                             <br>
                             Do you want to continue?<br>
                             <br>&nbsp;
-                            """.formatted(actionName, sizeX, sizeY, recommendedAction),
+                            """
+                            .replace("\n","")
+                            .formatted(actionName, sizeX, sizeY, recommendedAction),
+                    // - necessary to remove \n, otherwise showConfirmDialog will use plaintext and show HTML tags
                     "Large Image Warning",
                     JOptionPane.YES_NO_OPTION,
                     JOptionPane.WARNING_MESSAGE
