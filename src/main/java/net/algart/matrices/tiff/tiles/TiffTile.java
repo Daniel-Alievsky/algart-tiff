@@ -1006,7 +1006,8 @@ public final class TiffTile {
      * decoded {@code byte[]} data array as {@code length * 8}.</p>
      *
      * @return the number of pixels in the last non-null data array which was stored in this object.
-     */    @SuppressWarnings("JavadocDeclaration")
+     */
+    @SuppressWarnings("JavadocDeclaration")
     public int getEstimatedNumberOfPixels() {
         if (isEncoded()) {
             throw new IllegalStateException("TIFF tile data are not decoded, number of pixels is unknown: " + this);
