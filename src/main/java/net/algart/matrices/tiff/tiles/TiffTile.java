@@ -689,7 +689,7 @@ public final class TiffTile {
      *
      * <p>This method is rarely necessary: {@link #getDecodedData()} is enough for most needs.
      *
-     * <p>This method uses {@link #wasRescaleWhenIncreasingBitDepthRequested()} to detect
+     * <p>This method uses {@link #isRescaleWhenIncreasingBitDepthRequested()} to detect
      * whether this tile was decoded by a {@link TiffReader} with the
      * {@link TiffReader#setRescaleWhenIncreasingBitDepth(boolean)} flag enabled.
      * If this flag is {@code true}, 3-byte integer samples will be rescaled as specified
@@ -704,7 +704,7 @@ public final class TiffTile {
         byte[] samples = getDecodedData();
         try {
             samples = TiffUnpackingPrecisions.unpackRarePrecisions(
-                    samples, ifd(), samplesPerPixel, sizeInPixels, wasRescaleWhenIncreasingBitDepthRequested());
+                    samples, ifd(), samplesPerPixel, sizeInPixels, isRescaleWhenIncreasingBitDepthRequested());
         } catch (TiffException e) {
             throw new IllegalStateException("Illegal IFD inside the tile map", e);
         }
@@ -975,59 +975,58 @@ public final class TiffTile {
     }
 
     /**
-     * Returns the estimated number of pixels, that can be stored in the {@link #getDecodedData() data array}
+     * Returns the estimated number of pixels that can be stored in the {@link #getDecodedData() data array}
      * in this tile in the decoded form, or 0 after creating this object.
      *
-     * <p>Note: that this method throws <code>IllegalStateException</code> if the data are
-     * {@link #isEncoded() encoded}, for example, immediately after reading tile from the file.
+     * <p>Note that this method throws an {@link IllegalStateException} if the data is
+     * {@link #isEncoded() encoded}, for example, immediately after reading the tile from a file.
      * If the tile is {@link #isEmpty() empty} (no data),
-     * the exception is not thrown, though usually there is no sense to call this method in this situation.</p>
+     * the exception is not thrown, though there is usually no reason to call this method in this situation.</p>
      *
-     * <p>If the data are not {@link #isEncoded() encoded}, the following equality is <i>usually</i> true:</p>
+     * <p>If the data is not {@link #isEncoded() encoded}, the following equality is <i>usually</i> true:</p>
      *
      * <pre>{@link #getDecodedDataLength()} == ({@link #getEstimatedNumberOfPixels()} * {@link
      * #bitsPerPixel()} + 7) / 8</pre>
      *
-     * <p>The only possible exception is when you set the data with help of
-     * {@link #setPartiallyDecodedData(byte[])} (when data are almost decoded, but, maybe, some additional
-     * unpacking is necessary). This condition is always checked inside {@link #setDecodedData(byte[])} method.
-     * You may also check this directly by {@link #checkDataLengthAlignment()} method.</p>
+     * <p>The only possible exception is when you set the data using
+     * {@link #setPartiallyDecodedData(byte[])} (when the data is almost decoded, but perhaps some additional
+     * unpacking is necessary). This condition is always checked inside the {@link #setDecodedData(byte[])} method.
+     * You may also check this directly via the {@link #checkDataLengthAlignment()} method.</p>
      *
-     * <p><b>Warning:</b> the estimated number of pixels, returned by this method, may <b>differ</b> from the tile
-     * size {@link #getSizeX()} * {@link #getSizeY()}! Usually it occurs after decoding encoded tile, when the
+     * <p><b>Warning:</b> the estimated number of pixels returned by this method may <b>differ</b> from the tile
+     * size {@link #getSizeX()} * {@link #getSizeY()}! Usually, it occurs after decoding an encoded tile, when the
      * decoding method returns only a sequence of pixels and does not return information about the size.
-     * In this situation, the external code sets the tile sizes from the a-priory information, but the decoded tile
-     * may be actually less; for example, it takes place for the last strip in non-tiled TIFF format.
-     * You can check, does the actual number of stored pixels equal to tile size, via
-     * {@link #checkStoredNumberOfPixels()} method.
+     * In this situation, the external code sets the tile sizes from a priori information, but the decoded tile
+     * may actually be smaller; for example, this occurs for the last strip in a non-tiled TIFF format.
+     * You can check whether the actual number of stored pixels equals the tile size via the
+     * {@link #checkStoredNumberOfPixels()} method.</p>
      *
-     * @return the number of pixels in the last non-null data array, which was stored in this object.
-     */
-    @SuppressWarnings("JavadocDeclaration")
+     * <p>Also note that for a binary image (1 bit per pixel), this method always returns a number
+     * <i>rounded up</i> to the nearest multiple of 8. This is calculated based on the length of the
+     * decoded {@code byte[]} data array as {@code length * 8}.</p>
+     *
+     * @return the number of pixels in the last non-null data array which was stored in this object.
+     */    @SuppressWarnings("JavadocDeclaration")
     public int getEstimatedNumberOfPixels() {
-        // - This method is private because it does not return the exact number of pixels for 1-bit channels
-        // and should be used carefully.
-        // Maybe in future we will support better field "numberOfPixels", always correct also for 1-bit channels,
-        // then this method will become public.
         if (isEncoded()) {
             throw new IllegalStateException("TIFF tile data are not decoded, number of pixels is unknown: " + this);
         }
         return estimatedNumberOfPixels;
     }
 
-    public boolean wasRescaleWhenIncreasingBitDepthRequested() {
+    public boolean isRescaleWhenIncreasingBitDepthRequested() {
         return rescaleWhenIncreasingBitDepthRequested;
     }
 
-    public void storeRescaleWhenIncreasingBitDepthRequested(boolean rescaleWhenIncreasingBitDepthRequested) {
+    public void setRescaleWhenIncreasingBitDepthRequested(boolean rescaleWhenIncreasingBitDepthRequested) {
         this.rescaleWhenIncreasingBitDepthRequested = rescaleWhenIncreasingBitDepthRequested;
     }
 
-    public boolean wasColorCorrectionRequested() {
+    public boolean isColorCorrectionRequested() {
         return colorCorrectionRequested;
     }
 
-    public void storeColorCorrectionRequested(boolean colorCorrectionRequested) {
+    public void setColorCorrectionRequested(boolean colorCorrectionRequested) {
         this.colorCorrectionRequested = colorCorrectionRequested;
     }
 
@@ -1186,7 +1185,8 @@ public final class TiffTile {
             throw new IllegalStateException("TIFF tile is already separated: " + this);
         }
         data = map.toSeparatedSamples(data, samplesPerPixel, getEstimatedNumberOfPixels());
-        // - getEstimatedNumberOfPixels can return invalid value only for 1 channel, when this argument is not used
+        // - getEstimatedNumberOfPixels can return invalid value only for 1 channel,
+        // when this method does not use the last argument
         setInterleaved(false);
         setDecodedData(data);
         return this;
@@ -1267,6 +1267,9 @@ public final class TiffTile {
             }
         } else {
             assert bitsPerPixel == 1 : "zero or negative bitsPerPixel = " + bitsPerPixel;
+            assert numberOfPixels == numberOfBits : "numberOfBits / 1 != numberOfBits = " + numberOfBits;
+            // - in the case of 1 bit/pixel, we have no information here about EXACT number of pixels:
+            // 10 bytes can contain from 73 to 80 bits
             final long expectedNumberOfBytes = (numberOfPixels + 7) >>> 3;
             assert expectedNumberOfBytes == data.length;
             // - in other words, the condition, required by checkAligned argument, is always fulfilled

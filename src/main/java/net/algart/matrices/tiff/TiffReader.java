@@ -1514,8 +1514,8 @@ public non-sealed class TiffReader extends TiffIO {
             tile.setDecodedData(sampleBytes);
             tile.setInterleaved(false);
         } else {
-            tile.storeRescaleWhenIncreasingBitDepthRequested(rescaleWhenIncreasingBitDepth);
-            tile.storeColorCorrectionRequested(colorCorrection);
+            tile.setRescaleWhenIncreasingBitDepthRequested(rescaleWhenIncreasingBitDepth);
+            tile.setColorCorrectionRequested(colorCorrection);
             if (!TiffUnpacking.separateUnpackedSamples(tile)) {
                 if (!TiffUnpacking.separateYCbCrToRGB(tile)) {
                     TiffUnpacking.unpackTiffBitsAndInvertValues(tile, rescaleWhenIncreasingBitDepth, colorCorrection);
