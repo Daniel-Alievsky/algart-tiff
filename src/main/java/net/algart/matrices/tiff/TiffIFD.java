@@ -3191,7 +3191,7 @@ public final class TiffIFD {
                 tileSizeY = getTileSizeY();
                 sb.append((json ?
                         "  \"dimX\": %d,\n  \"dimY\": %d,\n  \"channels\": %d,\n" :
-                        "[%dx%dx%d], ").formatted(dimX, dimY, channels));
+                        "[%dx%dx%d],").formatted(dimX, dimY, channels));
             }
         } catch (Exception e) {
             sb.append(json ?
@@ -3220,7 +3220,7 @@ public final class TiffIFD {
                             getByteOrder(),
                             isBigTiff()))
                     :
-                    "%s, %s%s%s".formatted(
+                    " %s, %s%s%s".formatted(
                             isLittleEndian() ? "little-endian" : "big-endian",
                             sampleType != null && (hasImageDimensions || hasTag(Tags.BITS_PER_SAMPLE)) ?
                             "precision " + sampleType.prettyName() :

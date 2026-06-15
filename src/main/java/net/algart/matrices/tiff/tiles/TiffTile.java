@@ -66,7 +66,6 @@ public final class TiffTile {
     private int storedInFileDataLength = 0;
     private int storedInFileDataCapacity = 0;
     private int linkToOriginalOfDuplicate = -1;
-    private int estimatedNumberOfPixels = 0;
     private boolean rescaleWhenIncreasingBitDepthRequested = false;
     private boolean colorCorrectionRequested = false;
     private Queue<IRectangularArea> unsetArea = null;
@@ -975,13 +974,11 @@ public final class TiffTile {
     }
 
     /**
-     * Returns the estimated number of pixels that can be stored in the {@link #getDecodedData() data array}
-     * in this tile in the decoded form, or 0 after creating this object.
+     * Returns the estimated number of pixels that can be stored in the {@link #getDecodedData() data array}.
      *
-     * <p>Note that this method throws an {@link IllegalStateException} if the data is
-     * {@link #isEncoded() encoded}, for example, immediately after reading the tile from a file.
-     * If the tile is {@link #isEmpty() empty} (no data),
-     * the exception is not thrown, though there is usually no reason to call this method in this situation.</p>
+     * <p>Note that this method throws an {@link IllegalStateException} if the data is {@link #isEmpty() empty},
+     * for example, immediately after creating this object, or {@link #isEncoded() encoded},
+     * for example, after reading the tile from a file.</p>
      *
      * <p>If the data is not {@link #isEncoded() encoded}, the following equality is <i>usually</i> true:</p>
      *
@@ -1009,10 +1006,16 @@ public final class TiffTile {
      */
     @SuppressWarnings("JavadocDeclaration")
     public int getEstimatedNumberOfPixels() {
+        checkEmpty();
         if (isEncoded()) {
             throw new IllegalStateException("TIFF tile data are not decoded, number of pixels is unknown: " + this);
         }
-        return estimatedNumberOfPixels;
+        final long numberOfPixels = 8L * (long) data.length / bitsPerPixel();
+        if (numberOfPixels > Integer.MAX_VALUE) {
+            throw new AssertionError("Too large numberOfPixels = " + numberOfPixels +
+                    " (must be checked in setData)");
+        }
+        return (int) numberOfPixels;
     }
 
     public boolean isRescaleWhenIncreasingBitDepthRequested() {
@@ -1043,7 +1046,6 @@ public final class TiffTile {
      * <p>This method is called after reading and complete decoding any tile of the TIFF file.
      */
     public void checkDataLengthAlignment() {
-        checkEmpty();
         final int estimatedNumberOfPixels = getEstimatedNumberOfPixels();
         // - IllegalStateException if encoded
         assert !encoded;
@@ -1068,7 +1070,6 @@ public final class TiffTile {
      * <p>This method is called before encoding and writing any tile to the TIFF file.
      */
     public TiffTile checkStoredNumberOfPixels() {
-        checkEmpty();
         final int estimatedNumberOfPixels = getEstimatedNumberOfPixels();
         // - necessary to throw IllegalStateException if encoded
         assert !encoded;
@@ -1280,12 +1281,11 @@ public final class TiffTile {
             throw new IllegalArgumentException("Cannot store " + numberOfPixels +
                     " pixels: very large TIFF tiles >= 2^31 pixels are not supported");
         }
+        this.encoded = encoded;
         this.data = data;
         // this.storedInFileDataLength = data.length;
         // - this is a deprecated solution; now storedInFileDataLength has an independent sense
         // and used to detect whether new data can be overwritten at the same position in the file
-        this.estimatedNumberOfPixels = (int) numberOfPixels;
-        this.encoded = encoded;
         if (unfreeze) {
             this.frozen = false;
         }
