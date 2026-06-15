@@ -111,7 +111,7 @@ public class TiffPredictionTest {
 
                 byte[] simplePredicted = data.clone();
                 long t3 = t1, t4 = t1;
-                if (tile.bitsPerPixel() > 1 && tile.bitsPerSample() <= 32) {
+                if (tile.normalizedBitsPerPixel() > 1 && tile.normalizedBitDepth() <= 32) {
                     tile.setDecodedData(simplePredicted);
                     t3 = System.nanoTime();
                     simpleSubtractPrediction(tile);
@@ -134,7 +134,7 @@ public class TiffPredictionTest {
                     throw new AssertionError("Bug in unsubtractPrediction");
                 }
 
-                if (tile.bitsPerPixel() > 1 && tile.bitsPerSample() <= 32) {
+                if (tile.normalizedBitsPerPixel() > 1 && tile.normalizedBitDepth() <= 32) {
                     tile.setDecodedData(simplePredicted);
                     long t7 = System.nanoTime();
                     simpleUnsubtractPrediction(tile);

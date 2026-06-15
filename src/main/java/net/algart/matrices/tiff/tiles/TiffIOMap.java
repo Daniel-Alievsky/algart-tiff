@@ -148,7 +148,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
 
         final int mapTileSizeX = tileSizeX();
         final int mapTileSizeY = tileSizeY();
-        final long bitsPerSample = alignedBitDepth();
+        final long bitsPerSample = normalizedBitDepth();
         // - "long" here leads to stricter requirements later on
         final int numberOfSeparatedPlanes = numberOfSeparatedPlanes();
         final int samplesPerPixel = tileSamplesPerPixel();
@@ -274,8 +274,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
                     reader.internalTimingReport(),
                     unpackingBits ?
                             String.format(Locale.US, " + %.3f unpacking %d-bit",
-                                    (t3 - t2) * 1e-6,
-                                    alignedBitDepth()) :
+                                    (t3 - t2) * 1e-6, normalizedBitDepth()) :
                             "",
                     sizeInBytes / 1048576.0 / ((t3 - t1) * 1e-9)));
         }

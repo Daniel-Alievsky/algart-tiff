@@ -30,8 +30,8 @@ import net.algart.matrices.tiff.samples.TiffSampleType;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 
-public class TiffTileTest {
-    private static void testMap(int numberOfChannels, TiffSampleType sampleType, int testDataLength)
+public class TiffTileBitDepthTest {
+    private static void testMap(int numberOfChannels, TiffSampleType sampleType, int alignedDataLength)
             throws TiffException {
         TiffIFD ifd = TiffIFD.newInstance();
         ifd.defaultTileSizes();
@@ -39,29 +39,46 @@ public class TiffTileTest {
         System.out.printf("%s%n", ifd.toString(TiffIFD.StringFormat.NORMAL));
         TiffTile tile = new TiffMap(ifd, true).getOrNew(0, 0);
 
-        tile.setPartiallyDecodedData(new byte[testDataLength - 1]);
+        tile.setPartiallyDecodedData(new byte[alignedDataLength - 1]);
         System.out.printf("%s: %s decoded length, %d estimated pixels%n",
                 tile, tile.getDecodedDataLength(), tile.estimatedNumberOfPixels());
+        boolean error = false;
         try {
             tile.checkStoredNumberOfPixels();
         } catch (IllegalStateException e) {
+            error = true;
             System.out.println(e.getMessage());
         }
+        if (!error) {
+            throw new AssertionError("Exception expected!");
+        }
+        error = false;
         try {
             tile.checkDataLengthAlignment();
         } catch (IllegalStateException e) {
+            error = true;
             System.out.println(e.getMessage());
         }
+        boolean exceptionExpected = tile.normalizedBitsPerPixel() > 8;
+        // - data is always aligned for 1 and 8 bits/pixel
+        if (error != exceptionExpected) {
+            throw new AssertionError("Exception " + (exceptionExpected ? "" : "NOT ") + "expected!");
+        }
 
-        tile.setDecodedData(new byte[testDataLength]);
-        System.out.printf("%s: %s decoded length, %d estimated pixels%n",
+        tile.setDecodedData(new byte[alignedDataLength]);
+        System.out.printf("%s: %s decoded length, %d estimated number of pixels%n",
                 tile, tile.getDecodedDataLength(), tile.estimatedNumberOfPixels());
 //         tile.setStoredInFileDataRange(0, 111);
         // - uncomment the previos operator to see another possible exception
+        error = false;
         try {
             tile.checkStoredNumberOfPixels();
         } catch (IllegalStateException e) {
+            error = true;
             System.out.println(e.getMessage());
+        }
+        if (!error) {
+            throw new AssertionError("Exception expected!");
         }
         tile.checkDataLengthAlignment();
 

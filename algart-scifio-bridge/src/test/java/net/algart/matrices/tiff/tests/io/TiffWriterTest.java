@@ -478,7 +478,7 @@ public class TiffWriterTest {
 
     private static void customFillEmptyTile(TiffTile tiffTile) {
         byte[] decoded = tiffTile.getDecodedData();
-        Arrays.fill(decoded, tiffTile.isBinary() ? 0 : tiffTile.bitsPerSample() == 8 ? (byte) 0xE0 : (byte) 0xFF);
+        Arrays.fill(decoded, tiffTile.isBinary() ? 0 : tiffTile.normalizedBitDepth() == 8 ? (byte) 0xE0 : (byte) 0xFF);
         OptionalInt bytesPerPixel = tiffTile.bytesPerPixel();
         if (bytesPerPixel.isEmpty()) {
             return;

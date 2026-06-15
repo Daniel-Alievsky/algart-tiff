@@ -58,7 +58,7 @@ public class TiffUnpacking {
         if (!isSimpleRearrangingBytesEnough(ifd, lowLevelFormat)) {
             return false;
         }
-        if (TiffReader.isRescaleWhenIncreasingBitDepthApplicable(ifd) && tile.bitsPerSample() != 24) {
+        if (TiffReader.isRescaleWhenIncreasingBitDepthApplicable(ifd) && tile.normalizedBitDepth() != 24) {
             // - if !isSimpleRearrangingBytesEnough, rescaling may still not be applicable (YCbCr, 8-bit CMYK);
             // the special case 24 bits/sample is processed
             // in TiffIOMap and TiffUnpackingPrecisions.unpackRarePrecisions method
@@ -314,7 +314,7 @@ public class TiffUnpacking {
                     colorCorrection,
                     actuallyInvertedBrightness);
         } else {
-            assert tile.bitsPerSample() == 1 : ">1 bits per sample for non-whole bytes are not supported: " + tile;
+            assert tile.normalizedBitDepth() == 1 : ">1 bits per sample for non-whole bytes are not supported: " + tile;
             assert tile.samplesPerPixel() == 1 : ">1 samples per pixel for non-whole bytes are not supported: " + tile;
             extractSingleBitsAndInvertValues(result, source, sizeX, sizeY, colorCorrection, actuallyInvertedBrightness);
         }

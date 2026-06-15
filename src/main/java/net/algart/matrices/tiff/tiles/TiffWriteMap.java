@@ -204,7 +204,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
             final int sizeY) {
         Objects.requireNonNull(sampleBytes, "Null sampleBytes");
         checkRequestedArea(fromX, fromY, sizeX, sizeY);
-        checkRequestedAreaInArray(sampleBytes, sizeX, sizeY, totalAlignedBitsPerPixel());
+        checkRequestedAreaInArray(sampleBytes, sizeX, sizeY, combinedNormalizedBitsPerPixel());
         final List<TiffTile> updatedTiles = new ArrayList<>();
         if (sizeX == 0 || sizeY == 0) {
             // - if no pixels are updated, no need to expand the map and to check correct expansion
@@ -235,8 +235,8 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
         final int mapTileSizeY = tileSizeY();
         final int numberOfSeparatedPlanes = numberOfSeparatedPlanes();
         final int samplesPerPixel = tileSamplesPerPixel();
-        final long bitsPerSample = alignedBitDepth();
-        final long bitsPerPixel = tileAlignedBitsPerPixel();
+        final long bitsPerSample = normalizedBitDepth();
+        final long bitsPerPixel = tileNormalizedBitsPerPixel();
         // - "long" here leads to stricter requirements later on
 
         final int minXIndex = Math.max(0, divFloor(fromX, mapTileSizeX));

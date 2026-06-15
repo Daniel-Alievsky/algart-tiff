@@ -36,7 +36,7 @@ public class TiffPacking {
 
     public static boolean packTiffBits(TiffTile tile) {
         Objects.requireNonNull(tile);
-        if (tile.bitsPerPixel() != 1) {
+        if (tile.normalizedBitsPerPixel() != 1) {
             return false;
         }
         assert tile.samplesPerPixel() == 1 : "> 1 channel in " + tile;

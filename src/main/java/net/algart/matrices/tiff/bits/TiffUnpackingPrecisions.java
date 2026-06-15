@@ -143,7 +143,7 @@ public class TiffUnpackingPrecisions {
     }
 
     private static PrecisionsInfo getInfo(TiffIFD ifd) throws TiffException {
-        final int packedBytesPerSample = (ifd.alignedBitDepth() + 7) >>> 3;
+        final int packedBytesPerSample = (ifd.normalizedBitDepth() + 7) >>> 3;
         final TiffSampleType sampleType = ifd.sampleType();
         final boolean floatingPoint = sampleType.isFloatingPoint();
         // - actually DOUBLE is not used below

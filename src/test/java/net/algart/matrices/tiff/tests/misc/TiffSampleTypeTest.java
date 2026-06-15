@@ -34,14 +34,14 @@ import net.algart.matrices.tiff.tags.Tags;
 import java.util.Arrays;
 
 public class TiffSampleTypeTest {
-    static void showTag(TiffIFD ifd, int requiredAlignedBitDepth, TiffSampleType requiredSampleType)
+    static void showTag(TiffIFD ifd, int requiredNormalizedBitDepth, TiffSampleType requiredSampleType)
             throws TiffException {
         System.out.printf("BitsPerSample: %s%n", Arrays.toString(ifd.getBitsPerSample()));
         TiffSampleType sampleType = null;
-        int alignedBitDepth = -1;
+        int normalizedBitDepth = -1;
         try {
             sampleType = ifd.sampleType();
-            alignedBitDepth = ifd.alignedBitDepth();
+            normalizedBitDepth = ifd.normalizedBitDepth();
         } catch (TiffException e) {
             if (requiredSampleType != null) {
                 throw new AssertionError("Unexpected " + e);
@@ -51,10 +51,10 @@ public class TiffSampleTypeTest {
         if (sampleType != requiredSampleType) {
             throw new AssertionError("Invalid sample type");
         }
-        if (alignedBitDepth != requiredAlignedBitDepth) {
+        if (normalizedBitDepth != requiredNormalizedBitDepth) {
             throw new AssertionError("Invalid aligned depth");
         }
-        System.out.printf("  aligned bits: %d, sample type: %s%n", alignedBitDepth, sampleType);
+        System.out.printf("  aligned bits: %d, sample type: %s%n", normalizedBitDepth, sampleType);
     }
 
     private static void testFormatter(TiffSampleType sampleType, PArray array, boolean supported) {

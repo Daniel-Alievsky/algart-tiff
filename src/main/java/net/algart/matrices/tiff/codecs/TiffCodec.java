@@ -327,7 +327,7 @@ public interface TiffCodec {
 
         public Options setMainOptions(TiffTile tile) {
             this.setSizes(tile.getSizeX(), tile.getSizeY());
-            this.setBitsPerSample(tile.bitsPerSample());
+            this.setBitsPerSample(tile.normalizedBitDepth());
             this.setSamplesPerPixel(tile.samplesPerPixel());
             this.setPlanarSeparated(tile.isPlanarSeparated());
             this.setTiled(tile.tilingMode().isTileGrid());

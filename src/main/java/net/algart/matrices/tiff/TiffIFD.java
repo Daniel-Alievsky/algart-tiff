@@ -146,8 +146,8 @@ public final class TiffIFD {
      *
      * <p>This limit helps to avoid "crazy" or corrupted TIFF and also help to avoid arithmetic overflow.
      */
-
     public static final int MAX_NUMBER_OF_CHANNELS = 128;
+
     /**
      * Maximal supported number of bits per sample.
      *
@@ -1256,19 +1256,11 @@ public final class TiffIFD {
             throw new TiffException("Zero length of BitsPerSample array");
         }
         for (int i = 0; i < bitsPerSample.length; i++) {
-            final int bits = bitsPerSample[i];
-            if (bits <= 0) {
-                throw new TiffException("Zero or negative BitsPerSample[" + i + "] = " + bits);
-            }
-            if (bits > MAX_BITS_PER_SAMPLE) {
-                throw new TiffException("Too large BitsPerSample[" + i + "] = " + bits + " > " +
-                        MAX_BITS_PER_SAMPLE);
-            }
+            checkBitsPerSelectedSample(bitsPerSample, i);
         }
         final int samplesPerPixel = getSamplesPerPixel();
         if (bitsPerSample.length < samplesPerPixel) {
             // - Result must contain at least samplesPerPixel elements (SCIFIO agreement)
-            // It is not a bug, because getSamplesPerPixel() MAY return 3 for OLD_JPEG
             int[] newBitsPerSample = new int[samplesPerPixel];
             for (int i = 0; i < newBitsPerSample.length; i++) {
                 newBitsPerSample[i] = bitsPerSample[i < bitsPerSample.length ? i : 0];
@@ -1812,7 +1804,7 @@ public final class TiffIFD {
      * Note that some software does not support the case of unequal bits per sample.
      *
      * <p>Note: {@link TiffReader} class does not strictly require this condition, it requires only
-     * equality of number of <i>bytes</i> per sample: see {@link #alignedBitDepth()}
+     * equality of number of <i>bytes</i> per sample: see {@link #normalizedBitDepth()}
      * (though the complete support of TIFF with different number of bits is not provided).
      * In comparison, {@link TiffWriter} class really <i>does</i> require this condition: it cannot
      * create TIFF files with different number of bits per channel.
@@ -1846,7 +1838,7 @@ public final class TiffIFD {
     }
 
     /**
-     * Returns the number of bits per each sample. It is calculated based on the array
+     * Returns the <i>normalized</i> number of bits per each sample. It is calculated based on the array
      * <code>B&nbsp;=&nbsp;{@link #getBitsPerSample()}</code> (numbers of bits per each channel) as follows:
      * <ol>
      *     <li>if this array consists of the single element <code>B[0]==1</code>, the result is 1;</li>
@@ -1866,25 +1858,31 @@ public final class TiffIFD {
      * of pure binary 1-bit image, where the result is 1.
      * @throws TiffException if &#8968;bitsPerSample/8&#8969; values are different for some channels.
      */
-    public int alignedBitDepth() throws TiffException {
+    public int normalizedBitDepth() throws TiffException {
         final int[] bitsPerSample = getBitsPerSample();
-        return alignedBitDepth(bitsPerSample);
+        return normalizedBitDepth(bitsPerSample);
     }
 
-    public static int alignedBitDepth(int[] bitsPerSample) throws TiffException {
+    public static int normalizedBitDepth(int[] bitsPerSample) throws TiffException {
+        Objects.requireNonNull(bitsPerSample, "Null bitsPerSample");
+        if (bitsPerSample.length == 0) {
+            throw new IllegalArgumentException("Empty bitsPerSample");
+        }
         if (bitsPerSample.length == 1 && bitsPerSample[0] == 1) {
             // - we do not support the BIT format for RGB and other multi-channels TIFF;
             // if this situation occurred, we process this in a common way like any N-bit image, N <= 8
             return 1;
             // - see also ordinaryBitDepth()
         }
-        final int bytes0 = (bitsPerSample[0] + 7) >>> 3;
-        // ">>>" for a case of integer overflow
-        assert bytes0 > 0;
-        // - for example, if we have 5 bits R + 6 bits G + 4 bits B, it will be ceil(6/8) = 1 byte;
-        // usually the same for all components
-        for (int k = 1; k < bitsPerSample.length; k++) {
-            if ((bitsPerSample[k] + 7) >>> 3 != bytes0) {
+        bitsPerSample = bitsPerSample.clone();
+        int bytes0 = -1;
+        for (int i = 0; i < bitsPerSample.length; i++) {
+            final int bits = checkBitsPerSelectedSample(bitsPerSample, i);
+            final int bytes = (bits + 7) >>> 3;
+            // ">>>" for a case of integer overflow
+            if (i == 0) {
+                bytes0 = bytes;
+            } else if (bytes != bytes0) {
                 throw new UnsupportedTiffFormatException("Unsupported TIFF IFD: " +
                         "different number of bytes per samples, based on the following number of bits: " +
                         Arrays.toString(bitsPerSample));
@@ -1916,7 +1914,7 @@ public final class TiffIFD {
     /**
      * Detects the TIFF sample type, allowing to store samples of this TIFF image.
      * Note that {@link TiffSampleType#bitsPerSample()} cannot be less than
-     * {@link #alignedBitDepth()}.
+     * {@link #normalizedBitDepth()}.
      *
      * @return TIFF sample type
      * @throws TiffException in the case of format problems.
@@ -1928,17 +1926,17 @@ public final class TiffIFD {
     }
 
     public TiffSampleType sampleType(boolean requireNonNullResult) throws TiffException {
-        final int alignedBitDepth;
+        final int normalizedBitDepth;
         if (requireNonNullResult) {
-            alignedBitDepth = alignedBitDepth();
+            normalizedBitDepth = normalizedBitDepth();
         } else {
             try {
-                alignedBitDepth = alignedBitDepth();
+                normalizedBitDepth = normalizedBitDepth();
             } catch (TiffException e) {
                 return null;
             }
         }
-        if (alignedBitDepth == 1) {
+        if (normalizedBitDepth == 1) {
             return TiffSampleType.BIT;
         }
         int[] sampleFormats = getIntArray(Tags.SAMPLE_FORMAT);
@@ -1959,7 +1957,7 @@ public final class TiffIFD {
                 }
             }
         }
-        final int bytesPerSample = (alignedBitDepth + 7) >>> 3;
+        final int bytesPerSample = (normalizedBitDepth + 7) >>> 3;
         TiffSampleType result = null;
         switch (sampleFormats[0]) {
             case SAMPLE_FORMAT_UINT -> {
@@ -2024,7 +2022,7 @@ public final class TiffIFD {
             }
         }
         if (result != null) {
-            assert result.bitsPerSample() >= alignedBitDepth;
+            assert result.bitsPerSample() >= normalizedBitDepth;
             assert TiffSamples.isBitsPerSampleSupportedForAnyNumberOfChannels(result.bitsPerSample());
         }
         return result;
@@ -3601,7 +3599,7 @@ public final class TiffIFD {
                         " (this variant is not supported, in particular for writing)");
             }
         }
-        // - see alignedBitDepth()
+        // - see normalizedBitDepth()
         return TiffSamples.isBitsPerSampleSupported(bitDepth, bitsPerSample.length);
         // Note: while reading, bits == 1 is possible also for more than 1 channel,
         // which is recognized as non-binary UINT8
@@ -3617,6 +3615,17 @@ public final class TiffIFD {
             return Integer.MIN_VALUE;
         }
         return (int) result;
+    }
+
+    private static int checkBitsPerSelectedSample(int[] bitsPerSample, int i) throws TiffException {
+        final int bits = bitsPerSample[i];
+        if (bits <= 0) {
+            throw new TiffException("Zero or negative BitsPerSample[" + i + "] = " + bits);
+        }
+        if (bits > MAX_BITS_PER_SAMPLE) {
+            throw new TiffException("Too large BitsPerSample[" + i + "] = " + bits + " > " + MAX_BITS_PER_SAMPLE);
+        }
+        return bits;
     }
 
     private static int checkedIntValue(Number value, int tag) throws TiffException {

@@ -34,10 +34,10 @@ public class TiffIFDSupportedBitDepthTest {
     static void showBitDepth(TiffIFD ifd, boolean supported) throws TiffException {
         System.out.printf("BitsPerSample: %s%n", Arrays.toString(ifd.getBitsPerSample()));
         System.out.print("  aligned bit depth: ");
-        int alignedBitDepth = -1;
+        int normalizedBitDepth = -1;
         try {
-            alignedBitDepth = ifd.alignedBitDepth();
-            System.out.printf("%d%n", alignedBitDepth);
+            normalizedBitDepth = ifd.normalizedBitDepth();
+            System.out.printf("%d%n", normalizedBitDepth);
         } catch (TiffException e) {
             System.out.printf("%s%n", e);
         }

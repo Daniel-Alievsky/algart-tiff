@@ -72,7 +72,7 @@ public class TiffPrediction {
     public static void subtractPrediction(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         final byte[] data = tile.getDecodedData();
-        final int bitsPerSample = tile.bitsPerSample();
+        final int bitsPerSample = tile.normalizedBitDepth();
         checkBitDepthForPrediction(bitsPerSample, "for writing");
         final int samplesPerPixel = tile.samplesPerPixel();
         final int xSize = tile.getSizeX();
@@ -124,7 +124,7 @@ public class TiffPrediction {
     public static void unsubtractPrediction(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         final byte[] data = tile.getDecodedData();
-        final int bitsPerSample = tile.bitsPerSample();
+        final int bitsPerSample = tile.normalizedBitDepth();
         checkBitDepthForPrediction(bitsPerSample, "for reading");
         final int samplesPerPixel = tile.samplesPerPixel();
         final int xSize = tile.getSizeX();

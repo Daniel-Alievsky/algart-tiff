@@ -50,8 +50,8 @@ public final class TiffTile {
 
     private final TiffMap map;
     private final int samplesPerPixel;
-    private final int bitsPerSample;
-    private final int bitsPerPixel;
+    private final int normalizedBitDepth;
+    private final int normalizedBitsPerPixel;
     private final TiffTileIndex index;
     private int sizeX;
     private int sizeY;
@@ -87,9 +87,9 @@ public final class TiffTile {
         this.map = index.map();
         assert this.map != null : "Null map for tile index " + index;
         this.samplesPerPixel = map.tileSamplesPerPixel();
-        this.bitsPerSample = map.alignedBitDepth();
-        this.bitsPerPixel = map.tileAlignedBitsPerPixel();
-        assert this.bitsPerPixel == samplesPerPixel * bitsPerSample;
+        this.normalizedBitDepth = map.normalizedBitDepth();
+        this.normalizedBitsPerPixel = map.tileNormalizedBitsPerPixel();
+        assert this.normalizedBitsPerPixel == samplesPerPixel * normalizedBitDepth;
         assert index.ifd() == map.ifd() : "index retrieved ifd from its tile map!";
         setSizes(map.tileSizeX(), map.tileSizeY());
     }
@@ -139,7 +139,7 @@ public final class TiffTile {
 
     /**
      * Returns the number of bits per each sample of this tile.
-     * Always equal to {@link #map()}.{@link TiffMap#alignedBitDepth() bitsPerSample()}.
+     * Always equal to {@link #map()}.{@link TiffMap#normalizedBitDepth() bitsPerSample()}.
      * Note that this number is always the same for all channels and is always divided by 8,
      * excepting the only case 1-channel 1-bit pixels.
      *
@@ -163,18 +163,18 @@ public final class TiffTile {
      *
      * @return number of bits per each sample (1 channel for 1 pixel).
      * @see TiffMap#bitsPerUnpackedSample()
-     * @see TiffTile#bitsPerSample()
+     * @see TiffTile#normalizedBitDepth()
      */
-    public int bitsPerSample() {
-        return bitsPerSample;
+    public int normalizedBitDepth() {
+        return normalizedBitDepth;
     }
 
     public OptionalInt bytesPerSample() {
         return map.bytesPerSample();
     }
 
-    public int bitsPerPixel() {
-        return bitsPerPixel;
+    public int normalizedBitsPerPixel() {
+        return normalizedBitsPerPixel;
     }
 
     public OptionalInt bytesPerPixel() {
@@ -280,19 +280,19 @@ public final class TiffTile {
             throw new TooLargeArrayException("Very large TIFF tile " + sizeX + "x" + sizeY +
                     " >= 2^31 pixels is not supported" + alignedMsg.get());
         }
-        if (alignedSizeX * (long) sizeY * (long) bitsPerPixel > Integer.MAX_VALUE) {
+        if (alignedSizeX * (long) sizeY * (long) normalizedBitsPerPixel > Integer.MAX_VALUE) {
             throw new TooLargeArrayException("Very large TIFF tile " + sizeX + "x" + sizeY +
-                    ", " + samplesPerPixel + " channels per " + bitsPerSample +
+                    ", " + samplesPerPixel + " channels per " + normalizedBitDepth +
                     " bits >= 2^31 bits (256 MB) is not supported" + alignedMsg.get());
         }
         final int sizeInPixels = sizeX * sizeY;
-        assert alignedSizeX * (long) bitsPerPixel <= Integer.MAX_VALUE : "impossible because " + sizeY + " > 0";
+        assert alignedSizeX * (long) normalizedBitsPerPixel <= Integer.MAX_VALUE : "impossible because " + sizeY + " > 0";
         this.sizeX = sizeX;
         this.sizeY = sizeY;
         this.sizeInPixels = sizeInPixels;
-        this.sizeInBits = sizeInPixels * bitsPerPixel;
+        this.sizeInBits = sizeInPixels * normalizedBitsPerPixel;
         this.sizeInBytes = (sizeInBits + 7) >>> 3;
-        this.lineSizeInBytesInsideTIFF = ((sizeX * bitsPerPixel + 7) >>> 3);
+        this.lineSizeInBytesInsideTIFF = ((sizeX * normalizedBitsPerPixel + 7) >>> 3);
         assert (long) lineSizeInBytesInsideTIFF * (long) sizeY <= Integer.MAX_VALUE :
                 "too large " + lineSizeInBytesInsideTIFF + "*" + sizeY;
         // - impossible because even the number of BITS is not greater than Integer.MAX_VALUE
@@ -319,7 +319,7 @@ public final class TiffTile {
     }
 
     /**
-     * Returns <code>({@link #getSizeInPixels()} * {@link #bitsPerPixel()} + 7) / 8</code>.
+     * Returns <code>({@link #getSizeInPixels()} * {@link #normalizedBitsPerPixel()} + 7) / 8</code>.
      *
      * @return the length of the minimal <code>byte[]</code> data array, enough to store all tile pixels.
      */
@@ -328,7 +328,7 @@ public final class TiffTile {
     }
 
     /**
-     * Returns <code>({@link #getSizeX()} * {@link #bitsPerPixel()} + 7) / 8</code>:
+     * Returns <code>({@link #getSizeX()} * {@link #normalizedBitsPerPixel()} + 7) / 8</code>:
      * size of each line in bytes inside the TIFF file.
      * (According to the TIFF format, lines should be aligned to an integer number of bytes.)
      *
@@ -350,7 +350,7 @@ public final class TiffTile {
     }
 
     /**
-     * Returns {@link #getSizeInPixels()} * {@link #bitsPerPixel()}.
+     * Returns {@link #getSizeInPixels()} * {@link #normalizedBitsPerPixel()}.
      * There is a guarantee that this value is &le;2<sup>31</sup> and, so,
      * can be represented by <code>int</code> value.
      *
@@ -696,7 +696,7 @@ public final class TiffTile {
      *
      * @return unpacked data.
      * @see TiffUnpackingPrecisions#unpackRarePrecisions(byte[], TiffIFD, int, long, boolean)
-     * @see #bitsPerSample()
+     * @see #normalizedBitDepth()
      * @see TiffMap#bitsPerUnpackedSample()
      */
     public byte[] getUnpackedSampleBytes() {
@@ -757,7 +757,7 @@ public final class TiffTile {
             throw new IllegalArgumentException("The specified source tile has incompatible " +
                     "samples per pixel (" + source.samplesPerPixel + ") than this tile: " + this);
         }
-        // Note: map.alignedBitsPerSample() MAY BE != source.map.alignedBitsPerSample()
+        // Note: map.normalizedBitDepth() MAY BE != source.map.normalizedBitDepth()
         // This situation occurs when we need to copy unusual precisions,
         // for example, 16-bit float into 32-bit floats
         if (source.isEmpty()) {
@@ -983,13 +983,13 @@ public final class TiffTile {
      * <p>If the data is not {@link #isEncoded() encoded}, the following equality is <i>usually</i> true:</p>
      *
      * <pre>{@link #getDecodedDataLength()} == ({@link #estimatedNumberOfPixels()} * {@link
-     * #bitsPerPixel()} + 7) / 8</pre>
+     * #normalizedBitsPerPixel()} + 7) / 8</pre>
      *
      * <p>The only possible exception is when you set the data using
      * {@link #setPartiallyDecodedData(byte[])} (when the data is almost decoded, but perhaps some additional
      * unpacking is necessary). In this situation, the length of an internal {@code data} array, returned by
      * {@link #getDecodedDataLength()}, may be non-aligned in cases when each pixel contains {@code k > 1} bytes
-     * (here <code>{@link #bitsPerPixel()}&nbsp;==&nbsp;8&nbsp;*&nbsp;k</code>): it is possible that
+     * (here <code>{@link #normalizedBitsPerPixel()}&nbsp;==&nbsp;8&nbsp;*&nbsp;k</code>): it is possible that
      * <pre>{@code data.length % k != 0}</pre>
      *
      * This condition is always checked inside the {@link #setDecodedData(byte[])} method.
@@ -1015,7 +1015,7 @@ public final class TiffTile {
         if (isEncoded()) {
             throw new IllegalStateException("TIFF tile data are not decoded, number of pixels is unknown: " + this);
         }
-        final long numberOfPixels = 8L * (long) data.length / bitsPerPixel();
+        final long numberOfPixels = 8L * (long) data.length / normalizedBitsPerPixel();
         if (numberOfPixels > Integer.MAX_VALUE) {
             throw new AssertionError("Too large numberOfPixels = " + numberOfPixels +
                     " (must be checked in setData)");
@@ -1054,14 +1054,14 @@ public final class TiffTile {
         final int estimatedNumberOfPixels = estimatedNumberOfPixels();
         // - IllegalStateException if encoded
         assert !encoded;
-        final int expectedNumberOfBytes = (estimatedNumberOfPixels * bitsPerPixel + 7) >>> 3;
+        final int expectedNumberOfBytes = (estimatedNumberOfPixels * normalizedBitsPerPixel + 7) >>> 3;
         if (expectedNumberOfBytes != data.length) {
-            assert bitsPerPixel != 1 : "unaligned estimatedNumberOfPixels cannot appear for 1 bit/pixel";
+            assert normalizedBitsPerPixel != 1 : "unaligned estimatedNumberOfPixels cannot appear for 1 bit/pixel";
             // - in the current version it means that we have whole bytes: bitsPerPixel = 8*K;
             // see assertions in setData for a case of bitsPerPixel == 1
             throw new IllegalStateException("Unaligned length of decoded data " + data.length +
                     ": it is not equal to ceil(number of pixels * bits per pixel / 8) = ceil(" +
-                    estimatedNumberOfPixels + " * " + bitsPerPixel + " / 8) = " + expectedNumberOfBytes +
+                    estimatedNumberOfPixels + " * " + normalizedBitsPerPixel + " / 8) = " + expectedNumberOfBytes +
                     ", as if the last pixel is stored \"partially\"");
         }
     }
@@ -1084,10 +1084,10 @@ public final class TiffTile {
         //             " is set to the value, different from the actual data length " + data.length);
         // }
         if (data.length != sizeInBytes) {
-            throw new IllegalStateException("Number of stored pixels " + estimatedNumberOfPixels +
+            throw new IllegalStateException("Estimated number of pixels " + estimatedNumberOfPixels +
                     " does not match tile sizes " + sizeX + "x" + sizeY + " = " + sizeInPixels);
         }
-        final int dataLength = (estimatedNumberOfPixels * bitsPerPixel + 7) >>> 3;
+        final int dataLength = (estimatedNumberOfPixels * normalizedBitsPerPixel + 7) >>> 3;
         if (dataLength != data.length) {
             // - this check must be AFTER possible throwing IllegalStateException:
             // in another case, we will throw AssertionError instead of correct IllegalStateException
@@ -1108,11 +1108,11 @@ public final class TiffTile {
         if (newNumberOfPixels < 0) {
             throw new IllegalArgumentException("Negative new number of pixels = " + newNumberOfPixels);
         }
-        final long newNumberOfBits = newNumberOfPixels * (long) bitsPerPixel;
+        final long newNumberOfBits = newNumberOfPixels * (long) normalizedBitsPerPixel;
         if (newNumberOfPixels > Integer.MAX_VALUE || newNumberOfBits > Integer.MAX_VALUE) {
             // - first check is necessary for a case of overflow in newNumberOfBits
             throw new IllegalArgumentException("Too large requested number of pixels in tile: " + newNumberOfPixels +
-                    " pixels * " + samplesPerPixel + " samples/pixel * " + bitsPerSample + " bits/sample >= " +
+                    " pixels * " + samplesPerPixel + " samples/pixel * " + normalizedBitDepth + " bits/sample >= " +
                     "2^31 bits (256 MB), such large tiles are not supported");
         }
         final int newLength = (int) ((newNumberOfBits + 7) >>> 3);
@@ -1136,17 +1136,17 @@ public final class TiffTile {
             // but ONLY IF they are always stored interleaved (as for Deflate/LZW and similar "old" formats).
             newData = Arrays.copyOf(data, newLength);
         } else {
-            if ((bitsPerPixel & 7) != 0) {
-                throw new AssertionError("Unsupported bits per pixel " + bitsPerPixel + " for " +
+            if ((normalizedBitsPerPixel & 7) != 0) {
+                throw new AssertionError("Unsupported bits per pixel " + normalizedBitsPerPixel + " for " +
                         samplesPerPixel + " channel (more than one)");
                 // - for example, 1-bit RGB is not supported:
                 // we cannot calculate the number of pixels to separate or interleave them
             }
             newData = new byte[newLength];
             // - zero-filled by Java
-            final long size = (long) estimatedNumberOfPixels() * bitsPerSample;
+            final long size = (long) estimatedNumberOfPixels() * normalizedBitDepth;
             // bitsPerPixels is multiply of 8, so, estimatedNumberOfPixels is the actual number of stored pixels
-            final long newSize = newNumberOfPixels * bitsPerSample;
+            final long newSize = newNumberOfPixels * normalizedBitDepth;
             final long sizeToCopy = Math.min(size, newSize);
             for (long s = 0, disp = 0, newDisp = 0; s < samplesPerPixel; s++, disp += size, newDisp += newSize) {
                 PackedBitArraysPer8.copyBitsNoSync(newData, newDisp, data, disp, sizeToCopy);
@@ -1211,7 +1211,7 @@ public final class TiffTile {
                 ", " + elementType().getSimpleName() + "[" + sizeX + "x" + sizeY + "x" + samplesPerPixel + "]" +
                 (data == null ? "" : " (" + data.length + " bytes)") +
                 (isCompleted() ? ", completed" : isCompletelyUnset() ? ", completely unset" : ", partial") +
-                ", " + bitsPerSample + " bits/sample" +
+                ", " + normalizedBitDepth + " bits/sample" +
                 ", index " + index +
                 (isStoredInFile() ?
                         " at file region " + storedInFileDataOffset + ".." + storedInFileDataOffset +
@@ -1231,7 +1231,7 @@ public final class TiffTile {
         TiffTile tiffTile = (TiffTile) o;
         return sizeX == tiffTile.sizeX && sizeY == tiffTile.sizeY &&
                 interleaved == tiffTile.interleaved && encoded == tiffTile.encoded &&
-                samplesPerPixel == tiffTile.samplesPerPixel && bitsPerSample == tiffTile.bitsPerSample &&
+                samplesPerPixel == tiffTile.samplesPerPixel && normalizedBitDepth == tiffTile.normalizedBitDepth &&
                 storedInFileDataOffset == tiffTile.storedInFileDataOffset &&
                 storedInFileDataLength == tiffTile.storedInFileDataLength &&
                 storedInFileDataCapacity == tiffTile.storedInFileDataCapacity &&
@@ -1255,25 +1255,25 @@ public final class TiffTile {
             checkFrozen();
         }
         final long numberOfBits = 8L * (long) data.length;
-        final long numberOfPixels = numberOfBits / bitsPerPixel;
-        if (bitsPerPixel > 1) {
+        final long numberOfPixels = numberOfBits / normalizedBitsPerPixel;
+        if (normalizedBitsPerPixel > 1) {
             // - if it is 1, data cannot be unaligned (X % 1 == 0 always)
-            if ((bitsPerPixel & 7) != 0) {
-                throw new AssertionError("Unsupported bits per pixel " + bitsPerPixel);
+            if ((normalizedBitsPerPixel & 7) != 0) {
+                throw new AssertionError("Unsupported bits per pixel " + normalizedBitsPerPixel);
                 // - for example, 1-bit RGB is not supported:
                 // we cannot calculate the number of pixels to separate or interleave them
             }
-            final int bytesPerPixel = bitsPerPixel >>> 3;
+            final int bytesPerPixel = normalizedBitsPerPixel >>> 3;
             assert numberOfPixels == data.length / bytesPerPixel;
             if (checkAligned && !encoded && numberOfPixels * bytesPerPixel != data.length) {
                 throw new IllegalArgumentException("Invalid length of decoded data " + data.length +
                         " bytes, or " + numberOfBits + " bits: not a multiple of the bits-per-pixel " +
-                        bitsPerPixel + " = " + samplesPerPixel + " * " + bitsPerSample +
+                        normalizedBitsPerPixel + " = " + samplesPerPixel + " * " + normalizedBitDepth +
                         " (channels per pixel * bits per channel sample), " +
                         "as if the last pixel is stored \"partially\"");
             }
         } else {
-            assert bitsPerPixel == 1 : "zero or negative bitsPerPixel = " + bitsPerPixel;
+            assert normalizedBitsPerPixel == 1 : "zero or negative bitsPerPixel = " + normalizedBitsPerPixel;
             assert numberOfPixels == numberOfBits : "numberOfBits / 1 != numberOfBits = " + numberOfBits;
             // - in the case of 1 bit/pixel, we have no information here about EXACT number of pixels:
             // 10 bytes can contain from 73 to 80 bits

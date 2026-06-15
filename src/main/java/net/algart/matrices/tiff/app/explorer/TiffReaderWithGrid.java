@@ -75,12 +75,12 @@ class TiffReaderWithGrid extends TiffReader {
             throw new AssertionError("Tile is not separated");
         }
         final byte[] data = tile.getDecodedData();
-        final int sample = tile.bitsPerSample();
-        final int sizeX = tile.getSizeX() * sample;
+        final int bitDepth = tile.normalizedBitDepth();
+        final int sizeX = tile.getSizeX() * bitDepth;
         final int sizeY = tile.getSizeY();
         final int sizeInBits = sizeX * sizeY;
         final int gap = Math.min(this.tileGridThickness, Math.min(tile.getSizeX(), tile.getSizeY()) / 2);
-        final int filledSamples = sample * gap;
+        final int filledSamples = bitDepth * gap;
         final int filledLines = sizeX * gap;
         // - just in case
         for (int c = 0; c < tile.samplesPerPixel(); c++) {
