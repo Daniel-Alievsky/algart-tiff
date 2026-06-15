@@ -89,6 +89,10 @@ public final class TiffTile {
         this.samplesPerPixel = map.tileSamplesPerPixel();
         this.normalizedBitDepth = map.normalizedBitDepth();
         this.normalizedBitsPerPixel = map.tileNormalizedBitsPerPixel();
+        if (normalizedBitDepth == 1 && samplesPerPixel > 1) {
+            throw new AssertionError("Binary image for " + samplesPerPixel +
+                    " > 1 channels is not supported: it must be checked in the TiffMap constructor");
+        }
         assert this.normalizedBitsPerPixel == samplesPerPixel * normalizedBitDepth;
         assert index.ifd() == map.ifd() : "index retrieved ifd from its tile map!";
         setSizes(map.tileSizeX(), map.tileSizeY());
@@ -976,11 +980,14 @@ public final class TiffTile {
     /**
      * Returns the estimated number of pixels that can be stored in the {@link #getDecodedData() data array}.
      *
-     * <p>Note that this method throws an {@link IllegalStateException} if the data is {@link #isEmpty() empty},
-     * for example, immediately after creating this object, or {@link #isEncoded() encoded},
-     * for example, after reading the tile from a file.</p>
+     * <p>If the data is {@link #isEmpty() empty}
+     * (e.g., immediately after creating this object), or if the data is {@link #isEncoded() encoded}
+     * (e.g., after reading the tile from a file), this throws an {@link IllegalStateException}.
+     * Otherwise, it returns</p>
      *
-     * <p>If the data is not {@link #isEncoded() encoded}, the following equality is <i>usually</i> true:</p>
+     * <pre>8 * {@link #getDecodedDataLength()} / {@link #normalizedBitsPerPixel()}</pre>
+     *
+     * <p>Note that the following equality is <i>usually</i> true:</p>
      *
      * <pre>{@link #getDecodedDataLength()} == ({@link #estimatedNumberOfPixels()} * {@link
      * #normalizedBitsPerPixel()} + 7) / 8</pre>
@@ -998,10 +1005,13 @@ public final class TiffTile {
      * <p><b>Warning:</b> the estimated number of pixels returned by this method may <b>differ</b> from the tile
      * size {@link #getSizeX()} * {@link #getSizeY()}! Usually, it occurs after decoding an encoded tile, when the
      * decoding method returns only a sequence of pixels and does not return information about the size.
-     * In this situation, the external code sets the tile sizes from a priori information, but the decoded tile
-     * may actually be smaller; for example, this occurs for the last strip in a non-tiled TIFF format.
+     * In this situation, {@link TiffReader} sets the tile sizes from the IFD information, but the decoded tile
+     * may actually be smaller. For example, this occurs for the last strip in a non-tiled TIFF format,
+     * when cropping tiles is disabled by {@link TiffReader#setCropTilesToImageBoundaries(boolean)} method;
+     * however, {@link TiffReader} automatically corrects the data length inside the
+     * {@link TiffReader#completeDecoding(TiffTile)} method even in this case.
      * You can check whether the actual number of stored pixels equals the tile size via the
-     * {@link #checkStoredNumberOfPixels()} method.</p>
+     * {@link #checkDataLengthMatchesTileSize()} method.</p>
      *
      * <p>Also note that for a binary image (1 bit per pixel), this method always returns a number
      * <i>rounded up</i> to the nearest multiple of 8. This is calculated based on the length of the
@@ -1013,7 +1023,8 @@ public final class TiffTile {
     public int estimatedNumberOfPixels() {
         checkEmpty();
         if (isEncoded()) {
-            throw new IllegalStateException("TIFF tile data are not decoded, number of pixels is unknown: " + this);
+            throw new IllegalStateException("TIFF tile data are not decoded, " +
+                    "number of pixels cannot be estimated: " + this);
         }
         final long numberOfPixels = 8L * (long) data.length / normalizedBitsPerPixel();
         if (numberOfPixels > Integer.MAX_VALUE) {
@@ -1067,36 +1078,27 @@ public final class TiffTile {
     }
 
     /**
-     * Checks whether the length of the data array length matches the declared tile sizes {@link #getSizeInBytes()}.
+     * Checks whether the data array length ({@link #getDecodedDataLength()})
+     * matches the declared tile size {@link #getSizeInBytes()}.
      * If it is not so, throws <code>IllegalStateException</code>.
      *
      * <p>This method must not be called for {@link #isEncoded() encoded} tile.
      *
      * <p>This method is called before encoding and writing any tile to the TIFF file.
      */
-    public TiffTile checkStoredNumberOfPixels() {
-        final int estimatedNumberOfPixels = estimatedNumberOfPixels();
-        // - necessary to throw IllegalStateException if encoded
+    public TiffTile checkDataLengthMatchesTileSize() {
+        final int decodedDataLength = getDecodedDataLength();
         assert !encoded;
         // Deprecated check (storedInFileDataLength was set =data.length in old versions)
         // if (data.length != storedInFileDataLength) {
         //     throw new IllegalStateException("Stored data length field " + storedInFileDataLength +
         //             " is set to the value, different from the actual data length " + data.length);
         // }
-        if (data.length != sizeInBytes) {
-            throw new IllegalStateException("Estimated number of pixels " + estimatedNumberOfPixels +
-                    " does not match tile sizes " + sizeX + "x" + sizeY + " = " + sizeInPixels);
+        if (decodedDataLength != sizeInBytes) {
+            throw new IllegalStateException("The data length " + decodedDataLength +
+                    " does not match tile sizes " + sizeX + "x" + sizeY + " = " + sizeInPixels +
+                    ", " + normalizedBitsPerPixel + " bits/pixel");
         }
-        final int dataLength = (estimatedNumberOfPixels * normalizedBitsPerPixel + 7) >>> 3;
-        if (dataLength != data.length) {
-            // - this check must be AFTER possible throwing IllegalStateException:
-            // in another case, we will throw AssertionError instead of correct IllegalStateException
-            throw new AssertionError("Invalid estimatedNumberOfPixels " + estimatedNumberOfPixels +
-                    ": does not match data.length = " + data.length);
-        }
-        // - in other words, checkDataLengthAlignment() must be unnecessary:
-        // if bitsPerPixel = 1, unaligned data is impossible;
-        // if bitsPerPixel = 8*i, dataLength = sizeInBytes is divided by bytesPerPixel
         return this;
     }
 
@@ -1145,7 +1147,7 @@ public final class TiffTile {
             newData = new byte[newLength];
             // - zero-filled by Java
             final long size = (long) estimatedNumberOfPixels() * normalizedBitDepth;
-            // bitsPerPixels is multiply of 8, so, estimatedNumberOfPixels is the actual number of stored pixels
+            // normalizedBitDepth is multiply of 8, so, estimatedNumberOfPixels is the actual number of stored pixels
             final long newSize = newNumberOfPixels * normalizedBitDepth;
             final long sizeToCopy = Math.min(size, newSize);
             for (long s = 0, disp = 0, newDisp = 0; s < samplesPerPixel; s++, disp += size, newDisp += newSize) {
@@ -1179,8 +1181,8 @@ public final class TiffTile {
             throw new IllegalStateException("TIFF tile is already interleaved: " + this);
         }
         data = map.toInterleavedSamples(data, samplesPerPixel, estimatedNumberOfPixels());
-        // - estimatedNumberOfPixels() can return an invalid value only for 1 channel,
-        // when the 3rd argument is not used
+        // - estimatedNumberOfPixels() can return an unexact value only for 1 bit/sample,
+        // but in this case samplesPerPixel==1 (see assertion in the constructor), and the 3rd argument is not used
         setInterleaved(true);
         setDecodedData(data);
         return this;
@@ -1192,8 +1194,8 @@ public final class TiffTile {
             throw new IllegalStateException("TIFF tile is already separated: " + this);
         }
         data = map.toSeparatedSamples(data, samplesPerPixel, estimatedNumberOfPixels());
-        // - estimatedNumberOfPixels() can return invalid value only for 1 channel,
-        // when this method does not use the last argument
+        // - estimatedNumberOfPixels() can return an unexact value only for 1 bit/sample,
+        // but in this case samplesPerPixel==1 (see assertion in the constructor), and the 3rd argument is not used
         setInterleaved(false);
         setDecodedData(data);
         return this;

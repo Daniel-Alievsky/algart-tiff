@@ -1119,7 +1119,7 @@ public non-sealed class TiffWriter extends TiffIO {
             // - note: unlike TiffReader.decode, we do not require that the tile is non-empty
             return false;
         }
-        tile.checkStoredNumberOfPixels();
+        tile.checkDataLengthMatchesTileSize();
         long t1 = debugTime();
         prepareEncoding(tile);
         long t2 = debugTime();

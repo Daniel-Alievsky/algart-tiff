@@ -98,6 +98,8 @@ public class ExtractAllTiles {
                     System.out.printf("Saving tile %s in %s...%n", t, tileFile);
                     Object a = t.sampleType().javaArray(t.getDecodedData(), reader.getByteOrder());
                     writeImageFile(tileFile, Matrix.as(a, t.getSizeX(), t.getSizeY(), t.samplesPerPixel()));
+                    t.checkDataLengthMatchesTileSize();
+                    // - should not lead to exception: TiffReader automatically appends the data in completeDecoding
                 }
             }
         }

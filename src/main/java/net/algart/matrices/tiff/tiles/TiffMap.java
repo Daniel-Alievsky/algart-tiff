@@ -288,6 +288,9 @@ public sealed class TiffMap permits TiffIOMap {
         this.bitsPerSample = ifd.getBitsPerSample().clone();
         this.normalizedBitDepth = TiffIFD.normalizedBitDepth(bitsPerSample);
         // - we allow only EQUAL number of bytes/sample (but the number if bits/sample can be different)
+        if (normalizedBitDepth != 1 && ((normalizedBitDepth & 7) != 0)) {
+            throw new AssertionError("normalizedBitDepth must return either 1 or 8*k, k>0");
+        }
         assert (long) numberOfChannels * (long) normalizedBitDepth <
                 TiffIFD.MAX_NUMBER_OF_CHANNELS * TiffIFD.MAX_BITS_PER_SAMPLE;
         // - actually must be in 8 times less
@@ -302,14 +305,18 @@ public sealed class TiffMap permits TiffIOMap {
                     (wholeBytes ? "" : " NOT") +
                     " whole-bytes, but we have " + normalizedBitDepth + " bits/sample)");
         }
-        if ((combinedNormalizedBitsPerPixel == 1) != sampleType.isBinary()) {
+        if (sampleType.isBinary() != (normalizedBitDepth == 1)) {
             throw new ConcurrentModificationException("Corrupted IFD, probably by a parallel thread" +
                     " (sample type is " + sampleType +
-                    ", but we have " + combinedNormalizedBitsPerPixel + " bits/pixel)");
+                    ", but we have " + normalizedBitDepth + " bits/sample)");
         }
         if (sampleType.isBinary() && numberOfChannels > 1) {
-            throw new AssertionError("Binary IFD for " + numberOfChannels +
-                    " > 1 channels is not supported: invalid TiffIFD class");
+            throw new ConcurrentModificationException("Corrupted IFD, probably by a parallel thread" +
+                    " (binary IFD for " + numberOfChannels + " > 1 channels, it is not supported)");
+        }
+        if (sampleType.isBinary() != (combinedNormalizedBitsPerPixel == 1)) {
+            throw new AssertionError(normalizedBitDepth + " bits/sample, but " +
+                    combinedNormalizedBitsPerPixel + " bits/pixel for " + numberOfChannels + " channels");
         }
         this.bitsPerUnpackedSample = sampleType.bitsPerSample();
         if (bitsPerUnpackedSample < normalizedBitDepth) {

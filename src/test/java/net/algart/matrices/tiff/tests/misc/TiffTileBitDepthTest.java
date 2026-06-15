@@ -44,7 +44,7 @@ public class TiffTileBitDepthTest {
                 tile, tile.getDecodedDataLength(), tile.estimatedNumberOfPixels());
         boolean error = false;
         try {
-            tile.checkStoredNumberOfPixels();
+            tile.checkDataLengthMatchesTileSize();
         } catch (IllegalStateException e) {
             error = true;
             System.out.println(e.getMessage());
@@ -72,7 +72,7 @@ public class TiffTileBitDepthTest {
         // - uncomment the previos operator to see another possible exception
         error = false;
         try {
-            tile.checkStoredNumberOfPixels();
+            tile.checkDataLengthMatchesTileSize();
         } catch (IllegalStateException e) {
             error = true;
             System.out.println(e.getMessage());
@@ -86,7 +86,7 @@ public class TiffTileBitDepthTest {
         System.out.printf("%s: %s decoded length, %d estimated pixels%n",
                 tile, tile.getDecodedDataLength(), tile.estimatedNumberOfPixels());
         tile.checkDataLengthAlignment();
-        tile.checkStoredNumberOfPixels();
+        tile.checkDataLengthMatchesTileSize();
         System.out.println();
     }
 
