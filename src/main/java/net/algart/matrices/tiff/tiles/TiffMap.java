@@ -1099,7 +1099,6 @@ public sealed class TiffMap permits TiffIOMap {
 
     public Object bytesToJavaArray(byte[] sampleBytes) {
         Objects.requireNonNull(sampleBytes, "Null sample bytes");
-        Objects.requireNonNull(rarePrecisionMode, "rarePrecisionMode");
         long t1 = debugTime();
         if (bitImageUnpackingMode.isEnabled() && isBinary()) {
             return sampleBytes;
@@ -1127,7 +1126,7 @@ public sealed class TiffMap permits TiffIOMap {
         final long numberOfPixels = checkRequestedArea(fromX, fromY, sizeX, sizeY);
         final Class<?> elementType = samplesArray.getClass().getComponentType();
         if (elementType == null) {
-            throw new IllegalArgumentException("The specified samplesArray is not actual an array: " +
+            throw new IllegalArgumentException("The specified samplesArray is not actually an array: " +
                     "it is " + samplesArray.getClass());
         }
         if (!(elementType == elementType() || isBinary() && elementType == long.class)) {
@@ -1150,7 +1149,7 @@ public sealed class TiffMap permits TiffIOMap {
 
     public Matrix<UpdatablePArray> bytesToMatrix(byte[] sampleBytes, int sizeX, int sizeY) {
         Objects.requireNonNull(sampleBytes, "Null sample bytes");
-        rarePrecisionMode.throwIfRaw(this, "convert bytes 2to matrix");
+        rarePrecisionMode.throwIfRaw(this, "convert bytes to matrix");
         final Object javaArray = bytesToJavaArray(sampleBytes);
         return javaArrayAsMatrix(javaArray, sizeX, sizeY);
     }
