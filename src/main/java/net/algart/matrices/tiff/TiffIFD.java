@@ -1259,8 +1259,8 @@ public final class TiffIFD {
             checkBitsPerSelectedSample(bitsPerSample, i);
         }
         final int samplesPerPixel = getSamplesPerPixel();
-        if (bitsPerSample.length < samplesPerPixel) {
-            // - Result must contain at least samplesPerPixel elements (SCIFIO agreement)
+        if (bitsPerSample.length != samplesPerPixel) {
+            // - Result must always contain samplesPerPixel elements
             int[] newBitsPerSample = new int[samplesPerPixel];
             for (int i = 0; i < newBitsPerSample.length; i++) {
                 newBitsPerSample[i] = bitsPerSample[i < bitsPerSample.length ? i : 0];
