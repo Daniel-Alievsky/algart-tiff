@@ -1148,14 +1148,14 @@ public sealed class TiffMap permits TiffIOMap {
         return TiffSamples.asMatrix(samplesArray, sizeX, sizeY, numberOfChannels(), false);
     }
 
-    public Matrix<UpdatablePArray> toMatrix(byte[] sampleBytes, int sizeX, int sizeY) {
+    public Matrix<UpdatablePArray> bytesToMatrix(byte[] sampleBytes, int sizeX, int sizeY) {
         Objects.requireNonNull(sampleBytes, "Null sample bytes");
         rarePrecisionMode.throwIfRaw(this, "convert bytes 2to matrix");
         final Object javaArray = bytesToJavaArray(sampleBytes);
         return javaArrayAsMatrix(javaArray, sizeX, sizeY);
     }
 
-    public byte[] toSampleBytes(Matrix<? extends PArray> matrix) {
+    public byte[] matrixToBytes(Matrix<? extends PArray> matrix) {
         Objects.requireNonNull(matrix, "Null matrix");
         final Class<?> elementType = matrix.elementType();
         if (elementType != elementType()) {
@@ -1191,42 +1191,47 @@ public sealed class TiffMap permits TiffIOMap {
         return TiffSamples.toBytes(array, byteOrder());
     }
 
-    public <T extends PArray> List<Matrix<T>> asChannels(Matrix<T> mergedChannels) {
-        Objects.requireNonNull(mergedChannels, "Null mergedChannels");
+    public <T extends PArray> List<Matrix<T>> matrixAsChannels(Matrix<T> mergedChannels) {
+        Objects.requireNonNull(mergedChannels, "Null merged channels");
         return Matrices.asLayers(mergedChannels, TiffIFD.MAX_NUMBER_OF_CHANNELS);
     }
 
-    public <T extends PArray> Matrix<T> toMatrix(List<? extends Matrix<? extends T>> channels) {
+    public <T extends PArray> Matrix<T> channelsToMatrix(List<? extends Matrix<? extends T>> channels) {
         Objects.requireNonNull(channels, "Null channels");
         return Matrices.mergeLayers(net.algart.arrays.Arrays.SMM, channels);
     }
 
-    public BufferedImage toBufferedImage(List<? extends Matrix<? extends PArray>> channels) {
+    public BufferedImage channelsToBufferedImage(List<? extends Matrix<? extends PArray>> channels) {
         final Matrix<? extends PArray> interleaved = Matrices.interleave(dropExtraChannels(channels));
-        return interleavedToBufferedImage(interleaved);
+        return interleavedMatrixToBufferedImage(interleaved);
     }
 
-    public BufferedImage toBufferedImage(Matrix<? extends PArray> mergedChannels) {
-        return toBufferedImage(asChannels(mergedChannels));
+    public BufferedImage matrixToBufferedImage(Matrix<? extends PArray> mergedChannels) {
+        return channelsToBufferedImage(matrixAsChannels(mergedChannels));
     }
 
-    public BufferedImage interleavedToBufferedImage(Matrix<? extends PArray> interleaved) {
+    public BufferedImage interleavedMatrixToBufferedImage(Matrix<? extends PArray> interleavedChannels) {
+        Objects.requireNonNull(interleavedChannels, "Null interleaved channels");
         // Note: we do not use MatrixToImage.toBufferedImage, because we need to call setUnsignedInt32
         return new MatrixToImage.InterleavedRGBToInterleaved()
                 .setUnsignedInt32(true)
-                .toBufferedImage(interleaved);
+                .toBufferedImage(interleavedChannels);
     }
 
-    public List<Matrix<UpdatablePArray>> toChannels(BufferedImage bufferedImage) {
+    public List<Matrix<UpdatablePArray>> bufferedImageToChannels(BufferedImage bufferedImage) {
         Objects.requireNonNull(bufferedImage, "Null bufferedImage");
         return ImageToMatrix.toChannels(bufferedImage);
     }
 
-    public <T extends Matrix<? extends PArray>> List<T> dropExtraChannels(List<T> image) {
-        Objects.requireNonNull(image, "Null image");
-        return getExtraChannelsMode().isDropping() && image.size() > 4 ?
-                image.subList(0, 4) :
-                image;
+    public Matrix<UpdatablePArray> bufferedImageToMatrix(BufferedImage bufferedImage) {
+        return channelsToMatrix(bufferedImageToChannels(bufferedImage));
+    }
+
+    public <T extends Matrix<? extends PArray>> List<T> dropExtraChannels(List<T> channels) {
+        Objects.requireNonNull(channels, "Null channels");
+        return getExtraChannelsMode().isDropping() && channels.size() > 4 ?
+                channels.subList(0, 4) :
+                channels;
     }
 
     @Override

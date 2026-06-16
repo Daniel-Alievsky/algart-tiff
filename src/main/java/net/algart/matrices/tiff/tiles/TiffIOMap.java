@@ -322,7 +322,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             boolean storeTilesInMap)
             throws IOException {
         final Matrix<UpdatablePArray> mergedChannels = readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap);
-        return asChannels(mergedChannels);
+        return matrixAsChannels(mergedChannels);
     }
 
     public BufferedImage readBufferedImage(
@@ -333,7 +333,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             boolean storeTilesInMap)
             throws IOException {
         final Matrix<UpdatablePArray> mergedChannels = readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap);
-        return toBufferedImage(asChannels(mergedChannels));
+        return channelsToBufferedImage(matrixAsChannels(mergedChannels));
     }
 
     @SuppressWarnings("resource")

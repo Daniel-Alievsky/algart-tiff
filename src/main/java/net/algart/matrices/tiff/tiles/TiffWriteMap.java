@@ -368,7 +368,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
         if (!AUTO_INTERLEAVE_SOURCE) {
             throw new IllegalStateException("Cannot update matrix: AUTO_INTERLEAVE_SOURCE is not set");
         }
-        final byte[] sampleBytes = toSampleBytes(matrix);
+        final byte[] sampleBytes = matrixToBytes(matrix);
         return updateSampleBytes(sampleBytes, fromX, fromY, matrix.dimX(), matrix.dimY());
     }
 
@@ -386,12 +386,12 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
         if (!AUTO_INTERLEAVE_SOURCE) {
             throw new IllegalStateException("Cannot update image channels: AUTO_INTERLEAVE_SOURCE is not set");
         }
-        final Matrix<PArray> mergedChannels = toMatrix(channels);
+        final Matrix<PArray> mergedChannels = channelsToMatrix(channels);
         return updateMatrix(mergedChannels, fromX, fromY);
     }
 
     public List<TiffTile> updateBufferedImage(BufferedImage bufferedImage, int fromX, int fromY) {
-        final List<Matrix<UpdatablePArray>> channels = toChannels(bufferedImage);
+        final List<Matrix<UpdatablePArray>> channels = bufferedImageToChannels(bufferedImage);
         return updateChannels(channels, fromX, fromY);
     }
 

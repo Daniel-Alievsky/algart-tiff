@@ -349,7 +349,7 @@ class TiffViewer {
         final Matrix<? extends PArray> mergedChannels =
                 map.readMatrix(viewport.x, viewport.y, viewport.width, viewport.height);
         final Matrix<? extends PArray> rescaled = isRescaled() ? applyRescaling(mergedChannels) : mergedChannels;
-        return map.toBufferedImage(rescaled.asLayers());
+        return map.matrixToBufferedImage(rescaled);
     }
 
     public void invalidateCache() throws IOException {

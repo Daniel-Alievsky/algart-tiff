@@ -195,7 +195,7 @@ public class TiffReaderTest {
                             !(map.isRarePrecision() && map.getRarePrecisionMode().isKeepRaw())) {
                         // - testing alternate way to do the same thing
                         byte[] samples = map.readSampleBytes(x, y, w, h);
-                        Matrix<UpdatablePArray> other = map.toMatrix(samples, w, h);
+                        Matrix<UpdatablePArray> other = map.bytesToMatrix(samples, w, h);
                         // - will lead to exception for rare precisions in KEEP_RAW mode
                         if (!other.equals(matrix)) {
                             throw new AssertionError("Different matrices!");
