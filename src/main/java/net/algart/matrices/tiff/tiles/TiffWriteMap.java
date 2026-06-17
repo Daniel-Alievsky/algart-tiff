@@ -341,7 +341,8 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                             // (long) cast is important for processing large bit matrices!
                             for (int i = 0; i < sizeYInTile; i++) {
                                 assert sOffset >= 0 && tOffset >= 0 : "possibly int instead of long";
-                                PackedBitArraysPer8.copyBitsNoSync(data, tOffset, sampleBytes, sOffset, partSizeXInBits);
+                                PackedBitArraysPer8.copyBitsNoSync(
+                                        data, tOffset, sampleBytes, sOffset, partSizeXInBits);
                                 tOffset += tileOneChannelRowSizeInBits;
                                 sOffset += samplesOneChannelRowSizeInBits;
                             }
@@ -406,21 +407,22 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
      * For multichannel images, this means the samples are ordered like RRR..GGG..BBB... (the standard form
      * returned by {@link TiffReader}). If the desired IFD format is chunked, i.e.,
      * {@link Tags#PLANAR_CONFIGURATION} is {@link TiffIFD#PLANAR_CONFIGURATION_CHUNKED}
-     * (which is the typical usage), then the provided samples are automatically re-packed into the interleaved
+     * (which is the typical usage), then the provided samples are internally re-packed into the interleaved
      * form RGBRGBRGB...</p>
      *
      * <p>Note that a second call to this method with the same map will have no effect. Example:</p>
-     * <pre>{@code
-     * map.writeSampleBytes(samples1);
-     * map.writeSampleBytes(samples2);
-     * }</pre>
+     * <pre>
+     * map.{@link #writeSampleBytes(byte[]) writeSampleBytes}(samples1);
+     * map.{@link #writeSampleBytes(byte[]) writeSampleBytes}(samples2);
+     * </pre>
      *
      * <p>Only {@code samples1} will be written. The reason is that writing a matrix automatically
      * {@link TiffTile#freeAndFreeze() frees and freezes} its underlying tiles. If you want to rewrite
-     * the same map with new data, you must remove all existing tiles by calling the
-     * <code>map.{@link #clear()}</code> method <i>before</i> the next write operation. However, typically
-     * you should not rewrite the matrix several times. For updating specific elements without rewriting
-     * the entire matrix, please use {@link #updateSampleBytes(byte[], int, int, int, int)} and similar methods.</p>
+     * the same map with new data, you need to remove all existing tiles by calling the
+     * <code>map.{@link #clear()}</code> method <i>before</i> the next write operation.
+     * However, typically you should not rewrite the matrix several times.
+     * For updating specific elements without rewriting the entire matrix,
+     * please use {@link #updateSampleBytes(byte[], int, int, int, int)} and similar methods.</p>
      *
      * @param samples the samples in a raw form.
      * @throws TiffException in the case of an invalid TIFF IFD.
@@ -471,8 +473,22 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
      *
      * <p>Note: unlike {@link #writeJavaArray(Object)} and
      * {@link #writeSampleBytes(byte[])},
-     * this method always uses the actual sizes of the passed matrix and, so, <i>does not require</i>
-     * the map to have correct non-zero dimensions (a situation, possible for resizable maps).</p>
+     * this method always uses the actual sizes of the passed matrix and therefore <i>does not require</i>
+     * the map to have correct non-zero dimensions (a situation possible for resizable maps).</p>
+     *
+     * <p>Note that a second call to this method with the same map will have no effect. Example:</p>
+     * <pre>
+     * map.{@link #writeMatrix(Matrix) writeMatrix}(matrix1);
+     * map.{@link #writeMatrix(Matrix) writeMatrix}(matrix2);
+     * </pre>
+     *
+     * <p>Only {@code matrix1} will be written. The reason is that writing a matrix automatically
+     * {@link TiffTile#freeAndFreeze() frees and freezes} its underlying tiles. If you want to rewrite
+     * the same map with new data, you need to remove all existing tiles by calling the
+     * <code>map.{@link #clear()}</code> method <i>before</i> the next write operation.
+     * However, typically you should not rewrite the matrix several times.
+     * For updating specific elements without rewriting the entire matrix,
+     * please use {@link #updateMatrix(Matrix, int, int)} and similar methods.</p>
      *
      * @param matrix 3D-matrix of pixels (or 2D-matrix for 1-channel image).
      * @throws TiffException in the case of an invalid TIFF IFD.
