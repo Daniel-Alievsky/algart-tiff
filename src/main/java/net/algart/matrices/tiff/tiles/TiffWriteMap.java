@@ -409,10 +409,24 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
      * (that is the typical usage), then the passes samples are automatically re-packed into chunked (interleaved)
      * form RGBRGBRGB...
      *
+     * <p>Note that a second call of this method with the same map will have no effect. Example:</p>
+     * <pre>
+     *     map.{@link #writeSampleBytes(byte[]) writeSampleBytes}(samples1);
+     *     map.{@link #writeSampleBytes(byte[]) writeSampleBytes}(samples2);
+     * </pre>
+     *
+     * <p>Only the {@code samples1} will be written! The reason is that writing tiles automatically
+     * {@link TiffTile#freeAndFreeze() frees and freezes} them. If you want to rewrite the same map with another data,
+     * you should remove all existing tiles via calling <code>map.{@link #clear()}</code> method <i>before</i>
+     * the next writing. But typically you should not rewrite the matrix several times.
+     * For updating elements without writing the matrix, please use
+     * {@link #updateSampleBytes(byte[], int, int, int, int)} and similar methods.</p>
+     *
      * @param samples the samples in a raw form.
      * @throws TiffException in the case of invalid TIFF IFD.
      * @throws IOException   in the case of any I/O errors.
      */
+    @SuppressWarnings("JavadocDeclaration")
     public void writeSampleBytes(byte[] samples) throws IOException {
         Objects.requireNonNull(samples, "Null samples");
         checkZeroDimensions();

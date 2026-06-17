@@ -88,6 +88,9 @@ public class TiffWriteSimpleBitTest {
                     // - this branch helps to test the correct processing of the long[] type for binary arrays
                 } else {
                     map.writeMatrix(m);
+//                     map.clear();
+//                     map.writeMatrix(Matrix.newMatrix(boolean.class, m.dimensions()));
+                    // - has no effect without previous map.clear(): map is already written and frozen!
                 }
                 long t2 = System.nanoTime();
                 System.out.printf(Locale.US, "Test #%d/%d: bit matrix %dx%d (%,d elements) " +

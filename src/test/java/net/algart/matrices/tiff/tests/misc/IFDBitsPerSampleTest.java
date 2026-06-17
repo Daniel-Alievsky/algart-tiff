@@ -31,7 +31,7 @@ import net.algart.matrices.tiff.tags.Tags;
 
 import java.util.Arrays;
 
-public class StrangeIFDBitsPerSampleTest {
+public class IFDBitsPerSampleTest {
     private static void showIFD(TiffIFD ifd, String name, boolean exceptionExpected) throws TiffException {
         System.out.printf("%s%nBrief:%n----%n%s%n----%nNormal:%n----%n%s%n----%n%n",
                 name, ifd, ifd.toString(TiffIFD.StringFormat.NORMAL_SORTED));
@@ -55,6 +55,8 @@ public class StrangeIFDBitsPerSampleTest {
             e.printStackTrace(System.out);
             exceptionOccurred = true;
         }
+        System.out.printf("Samples per pixel: %s%n", ifd.getSamplesPerPixel());
+        System.out.printf("Floating point: %s%n", ifd.isFloatingPoint());
         System.out.println();
         if (exceptionExpected && !exceptionOccurred) {
             throw new AssertionError("Exception did not occur!");
@@ -73,26 +75,39 @@ public class StrangeIFDBitsPerSampleTest {
 
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{1, 8});
         ifd.put(Tags.SAMPLES_PER_PIXEL, 2);
-        showIFD(ifd, "Adding {1,8} BitsPerSample", false);
+        showIFD(ifd, "Strange BitsPerSample {1, 8}", false);
 
         ifd.put(Tags.COMPRESSION, TiffIFD.COMPRESSION_OLD_JPEG);
         showIFD(ifd, "Old JPEG", false);
-
         ifd.remove(Tags.COMPRESSION);
+
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[]{8, 8, 8});
+        if (ifd.getSamplesPerPixel() != 2) {
+            throw new AssertionError();
+        }
+        showIFD(ifd, "Normal BitsPerSample {8, 8, 8}, 2 samples/pixel", false);
+
+        ifd.put(Tags.SAMPLES_PER_PIXEL, 5);
+        if (ifd.getSamplesPerPixel() != 5) {
+            throw new AssertionError();
+        }
+        showIFD(ifd, "Normal BitsPerSample {8, 8, 8}, 5 samples/pixel", false);
+
+        ifd.put(Tags.SAMPLES_PER_PIXEL, 4);
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{1, -1, 1, 2});
-        showIFD(ifd, "BitsPerSample (negative)", true);
+        showIFD(ifd, "Negative BitsPerSample", true);
 
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{1, 11, 1, 2});
-        showIFD(ifd, "BitsPerSample (different)", true);
+        showIFD(ifd, "Different BitsPerSample", true);
 
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{11, 11, 12, 15});
-        showIFD(ifd, "BitsPerSample (normal)", false);
+        showIFD(ifd, "Allowed BitsPerSample", false);
 
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{111, 111, 112});
-        showIFD(ifd, "BitsPerSample (large)", true);
+        showIFD(ifd, "Too large BitsPerSample", true);
 
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{40});
-        showIFD(ifd, "BitsPerSample (5 bytes)", true);
+        showIFD(ifd, "5-bytes BitsPerSample", true);
 
 
         ifd.putPixelInformation(1, byte.class);
@@ -106,5 +121,14 @@ public class StrangeIFDBitsPerSampleTest {
 
         ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_VOID);
         showIFD(ifd, "Void", false);
+
+        ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_IEEEFP);
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[]{8, 8, 8});
+        showIFD(ifd, "Invalid BitsPerSample {8, 8, 8}, float", true);
+
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[]{15, 16, 16});
+        showIFD(ifd, "Invalid BitsPerSample {15, 16, 16}, float", false);
+        //TODO!!
+        System.out.println("Ok");
     }
 }

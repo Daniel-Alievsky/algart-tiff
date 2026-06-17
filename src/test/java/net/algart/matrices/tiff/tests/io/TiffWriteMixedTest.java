@@ -85,7 +85,7 @@ public class TiffWriteMixedTest {
             TiffIFD ifd = TiffIFD.newInstance();
             // final int[] bitsPerSample = {1, 1, 1}; // - will lead to UnsupportedTiffFormatException
             final int[] bitsPerSample = {8, 8, 8};
-            int numberOfChannels = bitsPerSample.length; // bitsPerSample.length + 3;
+            int numberOfChannels = bitsPerSample.length;
             ifd.putImageDimensions(SIZE_X, SIZE_Y);
             ifd.putNumberOfChannels(numberOfChannels);
             ifd.putTileSizes(256, 256);
@@ -93,8 +93,6 @@ public class TiffWriteMixedTest {
 //            ifd.putPhotometricInterpretation(TagPhotometricInterpretation.WHITE_IS_ZERO);
             ifd.put(Tags.BITS_PER_SAMPLE, bitsPerSample);
             ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_UINT);
-            assert ifd.getSamplesPerPixel() == numberOfChannels;
-            assert ifd.getBitsPerSample().length == numberOfChannels;
             System.out.printf("Desired IFD:%n%s%n%n", ifd.toString(TiffIFD.StringFormat.NORMAL));
 
             final TiffWriteMap map = writer.newFixedMap(ifd);

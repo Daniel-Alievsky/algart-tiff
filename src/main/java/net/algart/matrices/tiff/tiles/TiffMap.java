@@ -1034,6 +1034,10 @@ public sealed class TiffMap permits TiffIOMap {
         tileMap.values().forEach(TiffTile::freeData);
     }
 
+    public void clear() {
+        clear(false);
+    }
+
     /**
      * Removes all tiles from the map.
      *

@@ -1856,7 +1856,8 @@ public final class TiffIFD {
      *
      * @return number of bits per each sample, aligned to the integer number of bytes, excepting a case
      * of pure binary 1-bit image, where the result is 1.
-     * @throws TiffException if &#8968;bitsPerSample/8&#8969; values are different for some channels.
+     * @throws TiffException if &#8968;bitsPerSample/8&#8969; values are invalid (e.g., &le;0)
+     *                       or if corresponding number of bytes are different for some channels.
      */
     public int normalizedBitDepth() throws TiffException {
         final int[] bitsPerSample = getBitsPerSample();
@@ -1926,12 +1927,15 @@ public final class TiffIFD {
     }
 
     public TiffSampleType sampleType(boolean requireNonNullResult) throws TiffException {
+        final int[] bitsPerSample;
         final int normalizedBitDepth;
         if (requireNonNullResult) {
-            normalizedBitDepth = normalizedBitDepth();
+            bitsPerSample = getBitsPerSample();
+            normalizedBitDepth = normalizedBitDepth(bitsPerSample);
         } else {
             try {
-                normalizedBitDepth = normalizedBitDepth();
+                bitsPerSample = getBitsPerSample();
+                normalizedBitDepth = normalizedBitDepth(bitsPerSample);
             } catch (TiffException e) {
                 return null;
             }
@@ -1944,7 +1948,11 @@ public final class TiffIFD {
             sampleFormats = new int[]{SAMPLE_FORMAT_UINT};
         }
         if (sampleFormats.length == 0) {
-            throw new TiffException("Zero length of SampleFormat array");
+            if (!requireNonNullResult) {
+                throw new TiffException("Zero length of SampleFormat array");
+            } else {
+                return null;
+            }
         }
         for (int v : sampleFormats) {
             if (v != sampleFormats[0]) {
