@@ -1914,126 +1914,13 @@ public final class TiffIFD {
 
     /**
      * Detects the TIFF sample type, allowing to store samples of this TIFF image.
-     * Note that {@link TiffSampleType#bitsPerSample()} cannot be less than
-     * {@link #normalizedBitDepth()}.
+     * Equivalent to {@link TiffSampleType#of(TiffIFD)} applied to this object.
      *
      * @return TIFF sample type
      * @throws TiffException in the case of format problems.
      */
     public TiffSampleType sampleType() throws TiffException {
-        TiffSampleType result = sampleType(true);
-        assert result != null;
-        return result;
-    }
-
-    public TiffSampleType sampleType(boolean requireNonNullResult) throws TiffException {
-        final int[] bitsPerSample;
-        final int normalizedBitDepth;
-        if (requireNonNullResult) {
-            bitsPerSample = getBitsPerSample();
-            normalizedBitDepth = normalizedBitDepth(bitsPerSample);
-        } else {
-            try {
-                bitsPerSample = getBitsPerSample();
-                normalizedBitDepth = normalizedBitDepth(bitsPerSample);
-            } catch (TiffException e) {
-                return null;
-            }
-        }
-        if (normalizedBitDepth == 1) {
-            return TiffSampleType.BIT;
-        }
-        int[] sampleFormats = getIntArray(Tags.SAMPLE_FORMAT);
-        if (sampleFormats == null) {
-            sampleFormats = new int[]{SAMPLE_FORMAT_UINT};
-        }
-        if (sampleFormats.length == 0) {
-            if (!requireNonNullResult) {
-                throw new TiffException("Zero length of SampleFormat array");
-            } else {
-                return null;
-            }
-        }
-        for (int v : sampleFormats) {
-            if (v != sampleFormats[0]) {
-                if (requireNonNullResult) {
-                    throw new UnsupportedTiffFormatException("Unsupported TIFF IFD: " +
-                            "different sample format for different samples (" +
-                            Arrays.toString(sampleFormats) + ")");
-                } else {
-                    return null;
-                }
-            }
-        }
-        final int bytesPerSample = (normalizedBitDepth + 7) >>> 3;
-        TiffSampleType result = null;
-        switch (sampleFormats[0]) {
-            case SAMPLE_FORMAT_UINT -> {
-                switch (bytesPerSample) {
-                    case 1 -> result = TiffSampleType.UINT8;
-                    case 2 -> result = TiffSampleType.UINT16;
-                    case 3, 4 -> result = TiffSampleType.UINT32;
-                    // - note: 3-byte format should be converted to 4-byte (unpackRarePrecisions)
-                }
-                if (result == null && requireNonNullResult) {
-                    throw new UnsupportedTiffFormatException("Unsupported TIFF bit depth: " +
-                            Arrays.toString(getBitsPerSample()) + " bits/sample, or " + bytesPerSample +
-                            " bytes/sample for unsigned integers, " +
-                            "but only 1..4 bytes/sample are supported for integers");
-
-                }
-            }
-            case SAMPLE_FORMAT_INT -> {
-                switch (bytesPerSample) {
-                    case 1 -> result = TiffSampleType.INT8;
-                    case 2 -> result = TiffSampleType.INT16;
-                    case 3, 4 -> result = TiffSampleType.INT32;
-                    // - note: 3-byte format should be converted to 4-byte (unpackRarePrecisions)
-                }
-                if (result == null && requireNonNullResult) {
-                    throw new UnsupportedTiffFormatException("Unsupported TIFF bit depth: " +
-                            Arrays.toString(getBitsPerSample()) + " bits/sample, or " + bytesPerSample +
-                            " bytes/sample for signed integers, " +
-                            "but only 1..4 bytes/sample are supported for integers");
-                }
-            }
-            case SAMPLE_FORMAT_IEEEFP -> {
-                switch (bytesPerSample) {
-                    case 2, 3, 4 -> result = TiffSampleType.FLOAT;
-                    case 8 -> result = TiffSampleType.DOUBLE;
-                    // - note: 2/3-byte float format should be converted to 4-byte (unpackRarePrecisions)
-                }
-                if (result == null && requireNonNullResult) {
-                    throw new UnsupportedTiffFormatException("Unsupported TIFF bit depth: " +
-                            Arrays.toString(getBitsPerSample()) + " bits/sample, or " +
-                            bytesPerSample + " bytes/sample for floating point values, " +
-                            "but only 2, 3, 4 bytes/sample cases are supported");
-                }
-            }
-            case SAMPLE_FORMAT_VOID -> {
-                if (bytesPerSample == 1) {
-                    result = TiffSampleType.UINT8;
-                } else {
-                    if (requireNonNullResult) {
-                        throw new UnsupportedTiffFormatException("Unsupported TIFF bit depth: " +
-                                Arrays.toString(getBitsPerSample()) + " bits/sample, or " +
-                                bytesPerSample + " bytes/sample for void values " +
-                                "(only 1 byte/sample is supported for unknown data type)");
-                    }
-                }
-            }
-            default -> {
-                if (requireNonNullResult) {
-                    throw new UnsupportedTiffFormatException("Unsupported TIFF data type: SampleFormat=" +
-                            Arrays.toString(sampleFormats));
-                }
-            }
-        }
-        if (result != null) {
-            assert result.bitsPerSample() >= normalizedBitDepth;
-            assert TiffSamples.isBitsPerSampleSupportedForAnyNumberOfChannels(result.bitsPerSample());
-        }
-        return result;
+        return TiffSampleType.of(this);
     }
 
     public int checkSupportedBitDepth() throws TiffException {
@@ -3183,7 +3070,7 @@ public final class TiffIFD {
         int tileSizeY = 1;
         final boolean hasImageDimensions = hasImageDimensions();
         try {
-            final TiffSampleType sampleType = sampleType(false);
+            final TiffSampleType sampleType = TiffSampleType.from(this).orElse(null);
             if (hasImageDimensions) {
                 sb.append((json ?
                         "  \"elementType\": \"%s\",\n" :
@@ -3205,7 +3092,7 @@ public final class TiffIFD {
                     " [cannot detect basic information: " + e.getMessage() + "] ");
         }
         try {
-            final TiffSampleType sampleType = sampleType(false);
+            final TiffSampleType sampleType = TiffSampleType.from(this).orElse(null);
             final long tileCountX = (dimX + (long) tileSizeX - 1) / tileSizeX;
             final long tileCountY = (dimY + (long) tileSizeY - 1) / tileSizeY;
             sb.append(json ?
@@ -3215,8 +3102,7 @@ public final class TiffIFD {
                               "bigTiff": %s,
                               "tiled": %s,
                             """.formatted(
-                            sampleType != null ?
-                                    sampleType.prettyName() : "???",
+                            sampleType != null ? sampleType.prettyName() : "???",
                             getByteOrder(),
                             isBigTiff(),
                             hasTileInformation()) : """

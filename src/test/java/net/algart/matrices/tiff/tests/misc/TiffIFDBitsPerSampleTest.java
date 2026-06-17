@@ -31,7 +31,7 @@ import net.algart.matrices.tiff.tags.Tags;
 
 import java.util.Arrays;
 
-public class IFDBitsPerSampleTest {
+public class TiffIFDBitsPerSampleTest {
     private static void showIFD(TiffIFD ifd, String name, boolean exceptionExpected) throws TiffException {
         System.out.printf("%s%nBrief:%n----%n%s%n----%nNormal:%n----%n%s%n----%n%n",
                 name, ifd, ifd.toString(TiffIFD.StringFormat.NORMAL_SORTED));

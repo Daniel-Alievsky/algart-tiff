@@ -46,7 +46,8 @@ public class TiffSampleTypeTest {
             if (requiredSampleType != null) {
                 throw new AssertionError("Unexpected " + e);
             }
-            System.out.println("  " + e);
+            System.out.print("  ");
+            e.printStackTrace(System.out);
         }
         if (sampleType != requiredSampleType) {
             throw new AssertionError("Invalid sample type");
@@ -68,7 +69,8 @@ public class TiffSampleTypeTest {
             if (supported) {
                 throw new AssertionError("Unexpected " + e, e);
             }
-            System.out.printf("  %s%n", e);
+            System.out.print("  ");
+            e.printStackTrace(System.out);
             return;
         }
         if (!supported) {
@@ -88,6 +90,8 @@ public class TiffSampleTypeTest {
         showTag(ifd, 8, TiffSampleType.UINT8);
         ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_INT);
         showTag(ifd, 8, TiffSampleType.INT8);
+
+        ifd.put(Tags.SAMPLES_PER_PIXEL, 3);
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{5, 6, 5});
         showTag(ifd, 8, TiffSampleType.INT8);
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{50, 6, 5});
@@ -97,10 +101,13 @@ public class TiffSampleTypeTest {
         ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_IEEEFP);
         showTag(ifd, 32, TiffSampleType.FLOAT);
         ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_UINT);
+
+        ifd.put(Tags.SAMPLES_PER_PIXEL, 1);
         ifd.put(Tags.BITS_PER_SAMPLE, 1);
         showTag(ifd, 1, TiffSampleType.BIT);
         ifd.put(Tags.SAMPLES_PER_PIXEL, 3);
         showTag(ifd, 8, TiffSampleType.UINT8);
+        System.out.println();
         System.out.println();
         testFormatter(TiffSampleType.BIT, PArray.as(new long[] {1, 2, 3}), false);
         testFormatter(TiffSampleType.BIT, PArray.as(new int[] {1, 2, 3}), false);
@@ -115,5 +122,6 @@ public class TiffSampleTypeTest {
         testFormatter(TiffSampleType.FLOAT, PArray.as(new int[] {1, 2, -3}), false);
         testFormatter(TiffSampleType.FLOAT, PArray.as(new float[] {1, 2, -3}), true);
         testFormatter(TiffSampleType.DOUBLE, PArray.as(new float[] {1, 2, -3}), false);
+        System.out.println("Ok");
     }
 }
