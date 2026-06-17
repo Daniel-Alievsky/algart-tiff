@@ -1916,12 +1916,18 @@ public final class TiffIFD {
      * Returns {@code true} for 3 cases of <i>rare precision</i>
      *
      * <ul>
-     *     <li>16-bit floating-point values,</li>
-     *     <li>24-bit floating-point values,</li>
-     *     <li>24-bit integer values (for the case of K-bit samples, 16&le;K&lt;24).</li>
+     *     <li>16-bit floating-point values ({@link #normalizedBitDepth()} returns 16),</li>
+     *     <li>24-bit floating-point values ({@link #normalizedBitDepth()} returns 24),</li>
+     *     <li>24-bit integer values (for the case of K-bit samples, 17&le;K&le;24;
+     * {@link #normalizedBitDepth()} returns 24).</li>
      * </ul>
      *
-     * @return if the image contain 16/24-bit floating point pixels or 24-bit integer values.
+     * <p>Note that these "rare" cases are the only cases when
+     * <code>{@link #sampleType()}.{@link TiffSampleType#bitsPerSample()
+     * bitsPerSample()}</code> differs from {@link #normalizedBitDepth()}. In other words,
+     * if this method returns {@code false}, you may be sure that both values are equal.</p>
+     *
+     * @return {@code true} if the image contains 16/24-bit floating point pixels or 24-bit integer values.
      * @see net.algart.matrices.tiff.bits.TiffUnpackingPrecisions#unpackRarePrecisions(
      *byte[], TiffIFD, int, long, boolean)
      */
