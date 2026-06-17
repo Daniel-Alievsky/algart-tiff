@@ -66,27 +66,45 @@ public class TiffIFDSupportedBitDepthTest {
     public static void main(String... args) throws TiffException {
         TiffIFD ifd = TiffIFD.newInstance();
         showBitDepth(ifd, true);
+        ifd.put(Tags.SAMPLES_PER_PIXEL, 1);
         ifd.put(Tags.BITS_PER_SAMPLE, 2);
         showBitDepth(ifd, false);
+
+        ifd.put(Tags.SAMPLES_PER_PIXEL, 3);
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{5, 6, 5});
         showBitDepth(ifd, false);
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{8, 8, 8});
         showBitDepth(ifd, true);
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{8, 9, 8});
         showBitDepth(ifd, false);
+
+        ifd.put(Tags.SAMPLES_PER_PIXEL, 2);
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{16, 16});
         showBitDepth(ifd, true);
+
+        ifd.put(Tags.SAMPLES_PER_PIXEL, 1);
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{24});
         showBitDepth(ifd, false);
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{32});
         showBitDepth(ifd, true);
+
+        ifd.put(Tags.SAMPLES_PER_PIXEL, 2);
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{64, 64});
         showBitDepth(ifd, true);
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{8, 16});
         showBitDepth(ifd, false);
+
+        ifd.put(Tags.SAMPLES_PER_PIXEL, 3);
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{1, 1 ,1});
         showBitDepth(ifd, false);
+
+        ifd.put(Tags.SAMPLES_PER_PIXEL, 1);
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{1});
         showBitDepth(ifd, true);
+
+        ifd.put(Tags.SAMPLES_PER_PIXEL, 3);
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[]{1});
+        showBitDepth(ifd, false);
+        // - will be 3 bit channels
     }
 }
