@@ -33,15 +33,11 @@ import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 
 import java.nio.ByteOrder;
+import java.util.ConcurrentModificationException;
 import java.util.Objects;
 
 public class TiffUnpackingPrecisions {
     private TiffUnpackingPrecisions() {
-    }
-
-    public static boolean isRarePrecision(TiffIFD ifd) throws TiffException {
-        Objects.requireNonNull(ifd, "Null IFD");
-        return getInfo(ifd).isRare();
     }
 
     /**
@@ -90,7 +86,7 @@ public class TiffUnpackingPrecisions {
         if (numberOfPixels < 0) {
             throw new IllegalArgumentException("Negative numberOfPixels = " + numberOfPixels);
         }
-        PrecisionsInfo info = getInfo(ifd);
+        final PrecisionsInfo info = getInfo(ifd);
         // If the data were correctly loaded into a tile with usage TiffReader.completeDecoding method, then:
         // 1) they are aligned by 8-bit (by unpackBitsAndInvertValues method);
         // 2) number of bytes per sample may be only 1..4 or 8: other cases are rejected by unpackBitsAndInvertValues.
@@ -151,13 +147,21 @@ public class TiffUnpackingPrecisions {
                 (floatingPoint ?
                         packedBytesPerSample > 4 && packedBytesPerSample != 8 :
                         packedBytesPerSample > 4)) {
-            throw new AssertionError("sampleType() did not check supported bit depth: " + ifd);
+            throw new ConcurrentModificationException("Corrupted IFD, probably by a parallel thread: " +
+                    "sampleType() is " + sampleType + ", but number of bytes per sample = " + packedBytesPerSample);
+            // - sampleType() must check these situations
         }
         final int bitsPerSample = ifd.tryEqualBitDepth().orElse(-1);
         final boolean float16 = bitsPerSample == 16 && floatingPoint;
         final boolean float24 = bitsPerSample == 24 && floatingPoint;
         final boolean int24 = packedBytesPerSample == 3 && !float24;
-        return new PrecisionsInfo(packedBytesPerSample, float16, float24, int24);
+        final PrecisionsInfo result = new PrecisionsInfo(packedBytesPerSample, float16, float24, int24);
+        if (ifd.isRarePrecision() != result.isRare()) {
+            throw new ConcurrentModificationException("Corrupted IFD, probably by a parallel thread: " +
+                    "ifd.isRarePrecision() returned " + ifd.isRarePrecision() + " instead of " +
+                    result.isRare() + " for " + result);
+        }
+        return result;
     }
 
     private record PrecisionsInfo(int packedBytesPerSample, boolean float16, boolean float24, boolean int24) {

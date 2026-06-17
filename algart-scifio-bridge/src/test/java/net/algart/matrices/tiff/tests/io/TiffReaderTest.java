@@ -157,7 +157,7 @@ public class TiffReaderTest {
                     map.setBitImageUnpackingMode(TiffMap.BitImageUnpackingMode.UNPACK_TO_0_1);
                     // the same logic as in TiffParser.getSamples
                 }
-                 map.setRarePrecisionMode(TiffMap.RarePrecisionMode.KEEP_RAW);
+                // map.setRarePrecisionMode(TiffMap.RarePrecisionMode.KEEP_RAW);
                 if (w < 0) {
                     w = Math.min(map.dimX(), MAX_IMAGE_DIM);
                 }

@@ -1913,6 +1913,29 @@ public final class TiffIFD {
     }
 
     /**
+     * Returns {@code true} for 3 cases of <i>rare precision</i>
+     *
+     * <ul>
+     *     <li>16-bit floating-point values,</li>
+     *     <li>24-bit floating-point values,</li>
+     *     <li>24-bit integer values (for the case of K-bit samples, 16&le;K&lt;24).</li>
+     * </ul>
+     *
+     * @return if the image contain 16/24-bit floating point pixels or 24-bit integer values.
+     * @see net.algart.matrices.tiff.bits.TiffUnpackingPrecisions#unpackRarePrecisions(
+     *byte[], TiffIFD, int, long, boolean)
+     */
+    public boolean isRarePrecision() throws TiffException {
+        if (isFloatingPoint()) {
+            final int bitDepth = tryEqualBitDepth().orElse(-1);
+            return bitDepth == 16 || bitDepth == 24;
+        } else {
+            final int bitDepth = normalizedBitDepth();
+            return bitDepth == 24;
+        }
+    }
+
+    /**
      * Detects the TIFF sample type, allowing to store samples of this TIFF image.
      * Equivalent to {@link TiffSampleType#of(TiffIFD)} applied to this object.
      *

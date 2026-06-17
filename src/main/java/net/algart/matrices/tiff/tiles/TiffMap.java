@@ -298,7 +298,7 @@ public sealed class TiffMap permits TiffIOMap {
         this.combinedNormalizedBitsPerPixel = numberOfChannels * normalizedBitDepth;
         this.sampleType = ifd.sampleType();
         this.wholeBytes = sampleType.isWholeBytes();
-        this.rarePrecision = TiffUnpackingPrecisions.isRarePrecision(ifd);
+        this.rarePrecision = ifd.isRarePrecision();
         if (this.wholeBytes != ((normalizedBitDepth & 7) == 0)) {
             throw new ConcurrentModificationException("Corrupted IFD, probably by a parallel thread" +
                     " (sample type " + sampleType + " is" +
@@ -318,10 +318,19 @@ public sealed class TiffMap permits TiffIOMap {
             throw new AssertionError(normalizedBitDepth + " bits/sample, but " +
                     combinedNormalizedBitsPerPixel + " bits/pixel for " + numberOfChannels + " channels");
         }
+        final boolean differentPrecision = sampleType.bitsPerSample() != normalizedBitDepth;
+        if (rarePrecision != differentPrecision) {
+            throw new ConcurrentModificationException("Corrupted IFD, probably by a parallel thread" +
+                    " (sample type is " + sampleType + ", " + sampleType.bitsPerSample() + " bits/sample, " +
+                    "the IFD declares " + normalizedBitDepth + " bits/sample, " +
+                    "this precision is " + (rarePrecision ? "" : "not ") +
+                    "detected as rare, when they are different)");
+        }
         this.bitsPerUnpackedSample = sampleType.bitsPerSample();
         if (bitsPerUnpackedSample < normalizedBitDepth) {
-            throw new AssertionError(sampleType + ".bitsPerSample() = " + bitsPerUnpackedSample +
-                    " is too little: less than ifd.normalizedBitDepth() = " + normalizedBitDepth);
+            throw new ConcurrentModificationException("Corrupted IFD, probably by a parallel thread" +
+                    " (sample type " + sampleType + ", " + bitsPerUnpackedSample + " bits/sample, " +
+                    "the IFD declares a greater value " + normalizedBitDepth + " bits/sample)");
         }
         this.elementType = sampleType.elementType();
         this.byteOrder = ifd.getByteOrder();
@@ -420,13 +429,8 @@ public sealed class TiffMap permits TiffIOMap {
     }
 
     /**
-     * Returns {@code true} for 3 cases of <i>rare precision</i>:
-     *
-     * <ul>
-     *     <li>16-bit floating-point values,</li>
-     *     <li>24-bit floating-point values,</li>
-     *     <li>24-bit integer values (for the case of K-bit samples, 16&le;K&lt;24).</li>
-     * </ul>
+     * Returns {@code true} for 3 cases of <i>rare precision</i>: the result of
+     * <code>{@link #ifd() ifd()}.{@link TiffIFD#isRarePrecision() isRarePrecision()}</code> call.
      *
      * @return if the tiles in this map contain 16/24-bit floating point pixels or 24-bit integer values.
      * @see TiffUnpackingPrecisions#unpackRarePrecisions(byte[], TiffIFD, int, long, boolean)

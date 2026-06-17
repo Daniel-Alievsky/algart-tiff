@@ -32,12 +32,14 @@ import net.algart.matrices.tiff.tags.Tags;
 import java.util.Arrays;
 
 public class TiffIFDBitsPerSampleTest {
-    private static void showIFD(TiffIFD ifd, String name, boolean exceptionExpected) throws TiffException {
+    private static void showIFD(TiffIFD ifd, String name, boolean rarePrecision, boolean exceptionExpected)
+            throws TiffException {
         System.out.printf("%s%nBrief:%n----%n%s%n----%nNormal:%n----%n%s%n----%n%n",
                 name, ifd, ifd.toString(TiffIFD.StringFormat.NORMAL_SORTED));
         boolean exceptionOccurred = false;
+        TiffSampleType sampleType = null;
         try {
-            TiffSampleType sampleType = ifd.sampleType();
+            sampleType = ifd.sampleType();
             System.out.printf("Sample type: %s, %s%n", sampleType, sampleType.prettyName());
         } catch (TiffException e) {
             if (!exceptionExpected) {
@@ -45,6 +47,20 @@ public class TiffIFDBitsPerSampleTest {
             }
             e.printStackTrace(System.out);
             exceptionOccurred = true;
+        }
+        if (!exceptionOccurred) {
+            boolean rare = ifd.isRarePrecision();
+            System.out.printf("Rare precision: %b%n", rare);
+            if (rare != rarePrecision) {
+                throw new AssertionError("Invalid rare precision: " +
+                        rare + " instead of " + rarePrecision);
+            }
+            boolean differentPrecision = sampleType.bitsPerSample() != ifd.normalizedBitDepth();
+            if (rare != differentPrecision) {
+                throw new AssertionError("sampleType.bitsPerSample() = " +
+                        sampleType.bitsPerSample() + ", ifd.normalizedBitDepth() = " + ifd.normalizedBitDepth() +
+                        ", isRarePrecision() = " + rare);
+            }
         }
         try {
             System.out.printf("Bits per sample: %s%n", Arrays.toString(ifd.getBitsPerSample()));
@@ -69,66 +85,83 @@ public class TiffIFDBitsPerSampleTest {
 
     public static void main(String... args) throws TiffException {
         TiffIFD ifd = TiffIFD.newInstance();
-        showIFD(ifd, "Empty", false);
+        showIFD(ifd, "Empty", false, false);
 
-//        ifd.put(Tags.SAMPLES_PER_PIXEL, 3); // - should not be necessary for exception on -1
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[]{1});
+        ifd.put(Tags.SAMPLES_PER_PIXEL, 1);
+        showIFD(ifd, "Simplest BitsPerSample {1}", false, false);
 
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{1, 8});
         ifd.put(Tags.SAMPLES_PER_PIXEL, 2);
-        showIFD(ifd, "Strange BitsPerSample {1, 8}", false);
+        showIFD(ifd, "Strange BitsPerSample {1, 8}", false, false);
 
         ifd.put(Tags.COMPRESSION, TiffIFD.COMPRESSION_OLD_JPEG);
-        showIFD(ifd, "Old JPEG", false);
+        showIFD(ifd, "Old JPEG", false, false);
         ifd.remove(Tags.COMPRESSION);
 
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{8, 8, 8});
         if (ifd.getSamplesPerPixel() != 2) {
             throw new AssertionError();
         }
-        showIFD(ifd, "Normal BitsPerSample {8, 8, 8}, 2 samples/pixel", false);
+        showIFD(ifd, "Normal BitsPerSample {8, 8, 8}, 2 samples/pixel", false, false);
 
         ifd.put(Tags.SAMPLES_PER_PIXEL, 5);
         if (ifd.getSamplesPerPixel() != 5) {
             throw new AssertionError();
         }
-        showIFD(ifd, "Normal BitsPerSample {8, 8, 8}, 5 samples/pixel", false);
+        showIFD(ifd, "Normal BitsPerSample {8, 8, 8}, 5 samples/pixel", false, false);
 
         ifd.put(Tags.SAMPLES_PER_PIXEL, 4);
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{1, -1, 1, 2});
-        showIFD(ifd, "Negative BitsPerSample", true);
+        showIFD(ifd, "Negative BitsPerSample", false, true);
 
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{1, 11, 1, 2});
-        showIFD(ifd, "Different BitsPerSample", true);
+        showIFD(ifd, "Different BitsPerSample", false, true);
 
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{11, 11, 12, 15});
-        showIFD(ifd, "Allowed BitsPerSample", false);
+        showIFD(ifd, "Allowed BitsPerSample", false, false);
+
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[]{20, 23, 24, 22});
+        showIFD(ifd, "Rare BitsPerSample", true, false);
 
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{111, 111, 112});
-        showIFD(ifd, "Too large BitsPerSample", true);
+        showIFD(ifd, "Too large BitsPerSample", false, true);
 
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{40});
-        showIFD(ifd, "5-bytes BitsPerSample", true);
+        showIFD(ifd, "5-bytes BitsPerSample", false, true);
 
 
         ifd.putPixelInformation(1, byte.class);
-        showIFD(ifd, "1-byte", false);
+        showIFD(ifd, "1-byte", false, false);
 
         ifd.put(Tags.SAMPLE_FORMAT, new int[]{1, 3, 1});
-        showIFD(ifd, "Different sample format", true);
+        showIFD(ifd, "Different sample format", false, true);
 
         ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_COMPLEX_INT);
-        showIFD(ifd, "Complex", true);
+        showIFD(ifd, "Complex", false, true);
 
         ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_VOID);
-        showIFD(ifd, "Void", false);
+        showIFD(ifd, "Void", false, false);
 
+        ifd.put(Tags.SAMPLES_PER_PIXEL, 3);
         ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_IEEEFP);
         ifd.put(Tags.BITS_PER_SAMPLE, new int[]{8, 8, 8});
-        showIFD(ifd, "Invalid BitsPerSample {8, 8, 8}, float", true);
+        showIFD(ifd, "Invalid BitsPerSample {8, 8, 8}, float", false, true);
 
-        ifd.put(Tags.BITS_PER_SAMPLE, new int[]{15, 16, 16});
-        showIFD(ifd, "Invalid BitsPerSample {15, 16, 16}, float", false);
-        //TODO!!
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[]{16, 15, 16});
+        showIFD(ifd, "Invalid BitsPerSample {16, 15, 16}, float", false, true);
+
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[]{24, 24, 16});
+        showIFD(ifd, "Different BitsPerSample {24, 24, 16}, float", false, true);
+
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[]{24, 24, 24});
+        showIFD(ifd, "Correct rare 24-bit float", true, false);
+
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[]{64});
+        showIFD(ifd, "Correct 64-bit double", false, false);
+
+        ifd.put(Tags.BITS_PER_SAMPLE, new int[]{16});
+        showIFD(ifd, "Correct rare 16-bit float", true, false);
         System.out.println("Ok");
     }
 }
