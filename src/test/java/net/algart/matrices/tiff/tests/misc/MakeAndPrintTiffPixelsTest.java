@@ -28,6 +28,7 @@ import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.samples.TiffSampleType;
+import net.algart.matrices.tiff.samples.TiffSamplesFormatter;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
 import java.io.IOException;
@@ -156,7 +157,7 @@ public class MakeAndPrintTiffPixelsTest {
         return signed ? result : Math.max(result, 0.0);
     }
 
-    private static String format(Object array, int dimX, int dimY, TiffSampleType.Formatter formatter) {
+    private static String format(Object array, int dimX, int dimY, TiffSamplesFormatter formatter) {
         StringBuilder sb = new StringBuilder();
         for (int y = 0; y < dimY; y++) {
             final String pixels = formatter.javaArrayToString(array, y * dimX, dimX);

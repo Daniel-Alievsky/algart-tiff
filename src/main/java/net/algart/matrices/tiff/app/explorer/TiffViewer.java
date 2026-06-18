@@ -30,6 +30,7 @@ import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.samples.TiffSampleType;
 import net.algart.matrices.tiff.samples.TiffSamples;
+import net.algart.matrices.tiff.samples.TiffSamplesFormatter;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 
@@ -370,7 +371,7 @@ class TiffViewer {
         if (channelsArray == null) {
             return "";
         }
-        final TiffSampleType.Formatter formatter = sampleType.newFormatter();
+        final TiffSamplesFormatter formatter = sampleType.newFormatter();
         formatter.setHexadecimal(pixelValueFormat == UserPixelValueFormat.HEXADECIMAL);
         formatter.setNormalized(pixelValueFormat == UserPixelValueFormat.NORMALIZED);
         formatter.setSeparator(pixelValueFormat == UserPixelValueFormat.HEXADECIMAL ? " " : ", ");
