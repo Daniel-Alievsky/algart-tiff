@@ -361,7 +361,9 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
             int fromY,
             int sizeX,
             int sizeY) {
-        final byte[] sampleBytes = javaArrayToBytes(samplesArray, fromX, fromY, sizeX, sizeY);
+        checkRequestedArea(fromX, fromY, sizeX, sizeY);
+        // - check it before possible conversion in javaArrayToBytes
+        final byte[] sampleBytes = javaArrayToBytes(samplesArray, sizeX, sizeY);
         return updateSampleBytes(sampleBytes, fromX, fromY, sizeX, sizeY);
     }
 

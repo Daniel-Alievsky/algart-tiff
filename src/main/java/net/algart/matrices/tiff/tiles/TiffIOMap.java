@@ -240,8 +240,6 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
 
         byte[] sampleBytes = loadSampleBytes(fromX, fromY, sizeX, sizeY, storeTilesInMap);
         final int sizeInBytes = sampleBytes.length;
-        final long sizeInPixels = (long) sizeX * (long) sizeY;
-        // - can be >2^31 for bits
 
         long t2 = debugTime();
         // Deprecated since 1.4.0: use readInterleavedMatrix instead of this flag
@@ -251,16 +249,10 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         //     interleave = newSamples != sampleBytes;
         //     sampleBytes = newSamples;
         // }
-        boolean unpackingBits = false;
-        if (getBitImageUnpackingMode().isEnabled() && isBinary()) {
-            unpackingBits = true;
-            sampleBytes = PackedBitArraysPer8.unpackBitsToBytes(
-                    sampleBytes,
-                    0,
-                    sizeInPixels,
-                    (byte) 0,
-                    getBitImageUnpackingMode().bit1Value());
-        }
+        final byte[] newSampleBytes = unpackBitsIfRequested(sampleBytes, sizeX, sizeY);
+        final boolean unpackingBits = newSampleBytes != sampleBytes;
+        sampleBytes = newSampleBytes;
+
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t3 = debugTime();
             LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,

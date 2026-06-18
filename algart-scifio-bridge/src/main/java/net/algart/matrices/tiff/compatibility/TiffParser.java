@@ -770,12 +770,16 @@ public class TiffParser extends TiffReader {
             // - in terms of the old TiffParser, "row" index already contains index of the plane
         }
         TiffTileIndex tileIndex = map.index(col, row, planeIndex);
-        if (buf == null) {
-            buf = new byte[map.tileSizeInBytes()];
-        }
         TiffTile tile = readCachedTile(tileIndex);
+        int resultLength = map.isBinary() ? map.tileSamplesPerPixel() : map.tileSizeInBytes();
+        if (buf == null) {
+            buf = new byte[resultLength];
+        }
         if (!tile.isEmpty()) {
             byte[] data = tile.getDecodedData();
+            if (map.isBinary()) {
+                //TODO!!
+            }
             System.arraycopy(data, 0, buf, 0, data.length);
         }
         return buf;

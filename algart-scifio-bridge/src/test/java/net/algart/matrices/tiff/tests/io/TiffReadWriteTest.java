@@ -182,14 +182,16 @@ public class TiffReadWriteTest {
                         final int samplesPerPixel = readerIFD.getSamplesPerPixel();
                         final int bytesPerSample = readerIFD.sampleType().bytesPerSample().orElse(1);
                         // 1 byte/sample for a bit in TiffParser
-                        bytes = new byte[paddedW * paddedH * samplesPerPixel * bytesPerSample];
+                        byte[] bytes1 = new byte[paddedW * paddedH * samplesPerPixel * bytesPerSample];
+                        // - no sense to compare with original bytes:
+                        // padding is necessary to avoid bugs in the legacy code
                         @SuppressWarnings("deprecation")
-                        byte[] buf1 = parser.getSamples(scifioIFD, bytes, START_X, START_Y, paddedW, paddedH);
+                        byte[] buf1 = parser.getSamples(scifioIFD, bytes1, START_X, START_Y, paddedW, paddedH);
                         // - this deprecated method is implemented via new methods
                         // and actually equivalent to TiffReader.readSampleBytes
-                        assert buf1 == bytes;
-                        buf1 = new byte[bytes.length];
-                        byte[] buf2 = new byte[bytes.length];
+                        assert buf1 == bytes1;
+                        buf1 = new byte[bytes1.length];
+                        byte[] buf2 = new byte[bytes1.length];
                         //noinspection deprecation
                         parser.getSamples(scifioIFD, buf1, START_X, START_Y, paddedW, paddedH,
                                 0, 0);
@@ -198,7 +200,7 @@ public class TiffReadWriteTest {
                         // - this is absolute old TiffParser
                         if (!planar) {
                             long numberOfPixels = (long) paddedW * (long) paddedH;
-                            bytes = map.toInterleavedSamples(bytes, samplesPerPixel, numberOfPixels);
+                            bytes1 = map.toInterleavedSamples(bytes1, samplesPerPixel, numberOfPixels);
                             buf1 = map.toInterleavedSamples(buf1, samplesPerPixel, numberOfPixels);
                             buf2 = map.toInterleavedSamples(buf2, samplesPerPixel,  numberOfPixels);
                         }
@@ -214,10 +216,11 @@ public class TiffReadWriteTest {
                         // It is the reason why we should check only first h lines while comparing with the old parser.
                         // It is also the reason why we should perform interleaving before comparison.
                         boolean differ = false;
-                        if (!Arrays.equals(buf1, bytes) ||
-                                !Arrays.equals(buf2, 0, checkedLength, bytes, 0, checkedLength)) {
-                            compareResults(buf1, bytes, "Other parsing matrix");
-                            compareResults(buf2, bytes, "Old parser");
+                        if (!Arrays.equals(buf1, bytes1) ||
+                                !Arrays.equals(buf2, 0, checkedLength,
+                                        bytes1, 0, checkedLength)) {
+                            compareResults(buf1, bytes1, "Other parsing matrix");
+                            compareResults(buf2, bytes1, "Old parser");
                             differ = true;
                         }
                         writerIFD = TiffIFD.of(removeUndesirableTags(scifioIFD));
@@ -305,6 +308,11 @@ public class TiffReadWriteTest {
         long sum = 0;
         int count = 0;
         int first = -1;
+        if (bytes1.length != bytes2.length) {
+            System.err.printf("%n%s: different behavior! Unequal array lengths: %d != %d%n",
+                    message, bytes1.length, bytes2.length);
+            return;
+        }
         for (int k = 0; k < bytes1.length; k++) {
             if (bytes1[k] != bytes2[k]) {
                 count++;

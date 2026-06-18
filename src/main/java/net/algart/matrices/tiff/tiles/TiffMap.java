@@ -1105,6 +1105,21 @@ public sealed class TiffMap permits TiffIOMap {
         return toInterleaveOrSeparatedSamples(sampleBytes, numberOfChannels, numberOfPixels, false);
     }
 
+    public byte[] unpackBitsIfRequested(byte[] sampleBytes, int sizeX, int sizeY) {
+        Objects.requireNonNull(sampleBytes, "Null sampleBytes");
+        final long sizeInPixels = TiffIFD.multiplySizes(sizeX, sizeY);
+        if (bitImageUnpackingMode.isEnabled() && isBinary()) {
+            return PackedBitArraysPer8.unpackBitsToBytes(
+                    sampleBytes,
+                    0,
+                    sizeInPixels,
+                    (byte) 0,
+                    bitImageUnpackingMode.bit1Value());
+        } else {
+            return sampleBytes;
+        }
+    }
+
     public Object bytesToJavaArray(byte[] sampleBytes) {
         Objects.requireNonNull(sampleBytes, "Null sample bytes");
         long t1 = debugTime();
@@ -1129,9 +1144,9 @@ public sealed class TiffMap permits TiffIOMap {
         return samplesArray;
     }
 
-    public byte[] javaArrayToBytes(Object samplesArray, int fromX, int fromY, int sizeX, int sizeY) {
+    public byte[] javaArrayToBytes(Object samplesArray, int sizeX, int sizeY) {
         Objects.requireNonNull(samplesArray, "Null samplesArray");
-        final long numberOfPixels = checkRequestedArea(fromX, fromY, sizeX, sizeY);
+        final long numberOfPixels = TiffIFD.multiplySizes(sizeX, sizeY);
         final Class<?> elementType = samplesArray.getClass().getComponentType();
         if (elementType == null) {
             throw new IllegalArgumentException("The specified samplesArray is not actually an array: " +
@@ -1142,7 +1157,7 @@ public sealed class TiffMap permits TiffIOMap {
                     ", but the specified TIFF map stores " + sampleType().prettyName() + " elements");
         }
         final long numberOfSamples = Math.multiplyExact(numberOfPixels, numberOfChannels());
-        // - overflow impossible after checkRequestedArea
+        // - overflow impossible after TiffIFD.multiplySizes
         if (numberOfSamples > maxNumberOfSamplesInArray()) {
             throw new IllegalArgumentException("Too large area for updating TIFF in a single operation: " +
                     sizeX + "x" + sizeY + "x" + numberOfChannels() + " exceed the limit " +
