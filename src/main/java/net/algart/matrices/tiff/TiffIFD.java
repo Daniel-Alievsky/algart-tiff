@@ -2971,17 +2971,17 @@ public final class TiffIFD {
         long[] results = null;
         if (value instanceof long[] v) {
             results = v.clone();
+        } else if (value instanceof int[] v) {
+            results = new long[v.length];
+            for (int i = 0; i < v.length; i++) {
+                results[i] = v[i];
+            }
         } else if (value instanceof Number v) {
             results = new long[]{v.longValue()};
         } else if (value instanceof Number[] v) {
             results = new long[v.length];
             for (int i = 0; i < results.length; i++) {
                 results[i] = v[i].longValue();
-            }
-        } else if (value instanceof int[] v) {
-            results = new long[v.length];
-            for (int i = 0; i < v.length; i++) {
-                results[i] = v[i];
             }
         } else if (value != null) {
             throw new TiffException("TIFF tag " + Tags.prettyName(tag) +
@@ -3000,13 +3000,19 @@ public final class TiffIFD {
         int[] results = null;
         if (value instanceof int[] v) {
             results = v.clone();
-        } else if (value instanceof Number v) {
-            results = new int[]{checkedIntValue(v, tag)};
+        } else if (value instanceof short[] v) {
+            // - rare, but possible situation: little SHORT are stored as BYTE
+            results = new int[v.length];
+            for (int i = 0; i < v.length; i++) {
+                results[i] = v[i];
+            }
         } else if (value instanceof long[] v) {
             results = new int[v.length];
             for (int i = 0; i < v.length; i++) {
                 results[i] = checkedIntValue(v[i], tag);
             }
+        } else if (value instanceof Number v) {
+            results = new int[]{checkedIntValue(v, tag)};
         } else if (value instanceof Number[] v) {
             results = new int[v.length];
             for (int i = 0; i < results.length; i++) {

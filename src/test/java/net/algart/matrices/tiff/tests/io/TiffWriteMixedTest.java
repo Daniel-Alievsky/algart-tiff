@@ -84,7 +84,8 @@ public class TiffWriteMixedTest {
             // writer.reader().input().setLength(0); // - throws an exception (read-only
             TiffIFD ifd = TiffIFD.newInstance();
             // final int[] bitsPerSample = {1, 1, 1}; // - will lead to UnsupportedTiffFormatException
-            final int[] bitsPerSample = {8, 8, 8};
+            final short[] bitsPerSample = {8, 8, 8};
+            // - mapped to BYTE instead of SHORT
             int numberOfChannels = bitsPerSample.length;
             ifd.putImageDimensions(SIZE_X, SIZE_Y);
             ifd.putNumberOfChannels(numberOfChannels);

@@ -26,38 +26,9 @@ package net.algart.matrices.tiff.tests.misc;
 
 import net.algart.arrays.BitArray;
 import net.algart.arrays.PArray;
-import net.algart.matrices.tiff.TiffException;
-import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.samples.TiffSampleType;
-import net.algart.matrices.tiff.tags.Tags;
 
-import java.util.Arrays;
-
-public class TiffSampleTypeTest {
-    static void showTag(TiffIFD ifd, int requiredNormalizedBitDepth, TiffSampleType requiredSampleType)
-            throws TiffException {
-        System.out.printf("BitsPerSample: %s%n", Arrays.toString(ifd.getBitsPerSample()));
-        TiffSampleType sampleType = null;
-        int normalizedBitDepth = -1;
-        try {
-            sampleType = ifd.sampleType();
-            normalizedBitDepth = ifd.normalizedBitDepth();
-        } catch (TiffException e) {
-            if (requiredSampleType != null) {
-                throw new AssertionError("Unexpected " + e);
-            }
-            System.out.print("  ");
-            e.printStackTrace(System.out);
-        }
-        if (sampleType != requiredSampleType) {
-            throw new AssertionError("Invalid sample type");
-        }
-        if (normalizedBitDepth != requiredNormalizedBitDepth) {
-            throw new AssertionError("Invalid aligned depth");
-        }
-        System.out.printf("  aligned bits: %d, sample type: %s%n", normalizedBitDepth, sampleType);
-    }
-
+public class TiffSamplesFormatterTest {
     private static void testFormatter(TiffSampleType sampleType, PArray array, boolean supported) {
         System.out.printf("Testing %s that formats %s%n", sampleType, array);
         try {
@@ -82,33 +53,7 @@ public class TiffSampleTypeTest {
         main();
     }
 
-
-    public static void main(String... args) throws TiffException {
-        TiffIFD ifd = TiffIFD.newInstance();
-        showTag(ifd, 1, TiffSampleType.BIT);
-        ifd.put(Tags.BITS_PER_SAMPLE, 2);
-        showTag(ifd, 8, TiffSampleType.UINT8);
-        ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_INT);
-        showTag(ifd, 8, TiffSampleType.INT8);
-
-        ifd.put(Tags.SAMPLES_PER_PIXEL, 3);
-        ifd.put(Tags.BITS_PER_SAMPLE, new int[]{5, 6, 5});
-        showTag(ifd, 8, TiffSampleType.INT8);
-        ifd.put(Tags.BITS_PER_SAMPLE, new int[]{50, 6, 5});
-        showTag(ifd, -1, null);
-        ifd.put(Tags.BITS_PER_SAMPLE, new int[]{32, 32, 32});
-        showTag(ifd, 32, TiffSampleType.INT32);
-        ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_IEEEFP);
-        showTag(ifd, 32, TiffSampleType.FLOAT);
-        ifd.put(Tags.SAMPLE_FORMAT, TiffIFD.SAMPLE_FORMAT_UINT);
-
-        ifd.put(Tags.SAMPLES_PER_PIXEL, 1);
-        ifd.put(Tags.BITS_PER_SAMPLE, 1);
-        showTag(ifd, 1, TiffSampleType.BIT);
-        ifd.put(Tags.SAMPLES_PER_PIXEL, 3);
-        showTag(ifd, 8, TiffSampleType.UINT8);
-        System.out.println();
-        System.out.println();
+    public static void main(String... args) {
         testFormatter(TiffSampleType.BIT, PArray.as(new long[] {1, 2, 3}), false);
         testFormatter(TiffSampleType.BIT, PArray.as(new int[] {1, 2, 3}), false);
         testFormatter(TiffSampleType.BIT, BitArray.newArray(3), true);
