@@ -763,6 +763,7 @@ public class TiffParser extends TiffReader {
     public byte[] getTile(final IFD ifd, byte[] buf, int row, final int col)
             throws IOException, FormatException {
         TiffMap map = new TiffMap(toTiffIFD(ifd), false);
+        map.setBitImageUnpackingMode(TiffMap.BitImageUnpackingMode.UNPACK_TO_0_1);
         int planeIndex = 0;
         if (map.isPlanarSeparated()) {
             planeIndex = row / map.gridCountY();
@@ -778,7 +779,7 @@ public class TiffParser extends TiffReader {
         if (!tile.isEmpty()) {
             byte[] data = tile.getDecodedData();
             if (map.isBinary()) {
-                //TODO!!
+                data = map.unpackBitsIfRequested(data, tile.getSizeX(), tile.getSizeY());
             }
             System.arraycopy(data, 0, buf, 0, data.length);
         }
