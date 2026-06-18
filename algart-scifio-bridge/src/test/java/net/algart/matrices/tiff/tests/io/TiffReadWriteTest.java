@@ -222,7 +222,7 @@ public class TiffReadWriteTest {
                             compareResults(buf1, bytes1, "Other parsing matrix");
                             compareResults(buf2, bytes1, "Original SCIFIO parser");
                             // - the second check shows difference for binary matrix (1 bit/pixel)
-                            // due to bugs in SCIFIO TiffParser
+                            // when its width is not 8*k due to bugs in SCIFIO TiffParser
                             differ = true;
                         }
                         writerIFD = TiffIFD.of(removeUndesirableTags(scifioIFD));
