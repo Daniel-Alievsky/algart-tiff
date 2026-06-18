@@ -38,6 +38,7 @@ import net.algart.matrices.tiff.compatibility.TiffSaver;
 import net.algart.matrices.tiff.samples.TiffSampleType;
 import net.algart.matrices.tiff.samples.TiffSamples;
 import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tags.TagPhotometric;
 import net.algart.matrices.tiff.tags.TagPredictor;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.TiffMap;
@@ -46,6 +47,7 @@ import net.algart.matrices.tiff.tiles.TiffWriteMap;
 import org.scijava.Context;
 
 import java.io.IOException;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -420,9 +422,8 @@ public class TiffWriterTest {
                     } else {
                         map = writer.newMap(ifd, resizable);
                     }
-                    ifd.setGlobalIndex(ifdIndex);
 
-                    Object samplesArray = makeSamples(map, customBitsPerSample, w, h);
+                    Object samplesArray = makeSamples(ifdIndex, map, customBitsPerSample, w, h);
                     final boolean interleaved = !AUTO_INTERLEAVE_SOURCE
                             || (writer instanceof TiffSaver && samplesArray instanceof byte[] && !planarSeparated);
                     if (interleaved) {
@@ -465,6 +466,7 @@ public class TiffWriterTest {
                         writer.updateIFD(ifdIndex, falsified -> {
                             falsified.put(Tags.SAMPLES_PER_PIXEL, customBitsPerSample.length);
                             falsified.put(Tags.BITS_PER_SAMPLE, customBitsPerSample);
+                            falsified.putPhotometric(TagPhotometric.RGB);
                             return TiffIFD.UpdateResult.CHANGED;
                         });
                     }
@@ -526,8 +528,7 @@ public class TiffWriterTest {
         tiffTile.separateSamples();
     }
 
-    private static Object makeSamples(TiffMap map, int[] bitsPerSample, int dimX, int dimY) {
-        final int ifdIndex = map.ifd().getGlobalIndex();
+    private static Object makeSamples(int ifdIndex, TiffMap map, int[] bitsPerSample, int dimX, int dimY) {
         final TiffSampleType sampleType = map.sampleType();
         final int matrixSize = dimX * dimY;
         final int samplesPerPixel = bitsPerSample == null ? map.numberOfChannels() : bitsPerSample.length;
@@ -576,11 +577,11 @@ public class TiffWriterTest {
                     byte[] packed = new byte[matrixSize];
                     for (int i = 0; i < matrixSize; i++) {
                         int v = 0;
-                        int shift = 0;
+                        int shift = 8; // - in TIFF, we have a reverse bit order 76543210
                         for (int c = 0, disp = i; c < samplesPerPixel; c++, disp += matrixSize) {
                             final int bits = bitsPerSample[c];
+                            shift -= bits;
                             v |= ((channels[disp] & 0xFF) >> (8 - bits)) << shift;
-                            shift += bits;
                         }
                         packed[i] = (byte) v;
                     }
@@ -615,11 +616,14 @@ public class TiffWriterTest {
                     short[] packed = new short[matrixSize];
                     for (int i = 0; i < matrixSize; i++) {
                         int v = 0;
-                        int shift = 0;
+                        int shift = 16; // - in TIFF, we have a reverse bit order 76543210
                         for (int c = 0, disp = i; c < samplesPerPixel; c++, disp += matrixSize) {
                             final int bits = bitsPerSample[c];
+                            shift -= bits;
                             v |= ((channels[disp] & 0xFFFF) >> (16 - bits)) << shift;
-                            shift += bits;
+                        }
+                        if (map.byteOrder() == ByteOrder.LITTLE_ENDIAN) {
+                            v = ((v & 0xFF) << 8) | ((v >> 8) & 0xFF);
                         }
                         packed[i] = (short) v;
                     }

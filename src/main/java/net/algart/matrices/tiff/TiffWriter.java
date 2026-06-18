@@ -809,8 +809,12 @@ public non-sealed class TiffWriter extends TiffIO {
      * @throws IOException in the case of any I/O errors.
      */
     public long writeIFDAtFileEnd(TiffIFD ifd) throws IOException {
+        boolean updateLinkageForNewIFD = false;
+        if (ifd.hasFileOffsetOfNextIFDOffset() && ifd.getFileOffsetOfNextIFDOffset() == fileOffsetOfLastIFDOffset) {
+            updateLinkageForNewIFD = true;
+        }
         ifd.removeFileOffsetOfIFDForWriting();
-        return writeIFD(ifd, false);
+        return writeIFD(ifd, updateLinkageForNewIFD);
     }
 
     /**

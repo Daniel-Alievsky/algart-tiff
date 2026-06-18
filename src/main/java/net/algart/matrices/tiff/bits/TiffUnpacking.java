@@ -686,5 +686,3 @@ public class TiffUnpacking {
     }
     */
 }
-
-
