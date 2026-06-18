@@ -802,17 +802,28 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * <p>This method simply removes the <i>for-writing</i> file offset via
      * <code>ifd.{@link TiffIFD#removeFileOffsetOfIFDForWriting() removeFileOffsetOfIFDForWriting()}</code>,
-     * and then calls <code>{@link #writeIFD(TiffIFD, boolean) writeIFD}(ifd, false)}</code>.
+     * and then calls <code>{@link #writeIFD(TiffIFD, boolean) writeIFD}(ifd, updateLinkageForNewIFD)}</code>.
+     * The argument {@code updateLinkageForNewIFD} is calculated according the following:</p>
+     *
+     * <pre>
+     *     ifd.{@link TiffIFD#hasFileOffsetOfNextIFDOffset()
+     *     hasFileOffsetOfNextIFDOffset()} &&
+     *     ifd.{@link TiffIFD#getFileOffsetOfNextIFDOffset()
+     *     getFileOffsetOfNextIFDOffset()} == {@link TiffWriter#fileOffsetOfLastIFDOffset()
+     *     fileOffsetOfLastIFDOffset()}
+     * </pre>
+     *
+     * <p>In other words, if this method is used for updating the last IFD, it automatically corrects
+     * the link inside TIFF file and updates the internal field returned by {@link #fileOffsetOfLastIFDOffset()},
+     * that allows to continue appending new images to the file via {@link #newMap(TiffIFD, boolean)}.</p>
      *
      * @param ifd IFD to write in the output stream.
      * @return the offset where this IFD was actually written.
      * @throws IOException in the case of any I/O errors.
      */
     public long writeIFDAtFileEnd(TiffIFD ifd) throws IOException {
-        boolean updateLinkageForNewIFD = false;
-        if (ifd.hasFileOffsetOfNextIFDOffset() && ifd.getFileOffsetOfNextIFDOffset() == fileOffsetOfLastIFDOffset) {
-            updateLinkageForNewIFD = true;
-        }
+        final boolean updateLinkageForNewIFD =
+                ifd.hasFileOffsetOfNextIFDOffset() && ifd.getFileOffsetOfNextIFDOffset() == fileOffsetOfLastIFDOffset;
         ifd.removeFileOffsetOfIFDForWriting();
         return writeIFD(ifd, updateLinkageForNewIFD);
     }
@@ -832,8 +843,9 @@ public non-sealed class TiffWriter extends TiffIO {
      * the following two actions:</p>
      *
      * <ol>
-     *     <li>It updates the offset stored in the file at {@link #fileOffsetOfLastIFDOffset()} with the start offset
-     *     of this IFD. This action is performed <b>only</b> if this start offset is truly new for this file,
+     *     <li>It rewrites the offset stored in the file at the position {@link #fileOffsetOfLastIFDOffset()}
+     *     with the start offset of this IFD.
+     *     This action is performed <b>only</b> if this start offset is truly new for this file,
      *     i.e., if it was not present in an existing file when opened via the {@link #openExisting()} method
      *     and if no IFD has already been written at this position by other methods.
      *     (All offsets of IFDs written by the methods of this object are stored
