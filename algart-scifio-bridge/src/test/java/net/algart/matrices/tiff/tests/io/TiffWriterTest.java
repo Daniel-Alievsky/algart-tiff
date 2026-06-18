@@ -238,6 +238,10 @@ public class TiffWriterTest {
                 sampleType = TiffSampleType.UINT16;
                 customBitsPerSample = new int[] {5, 6, 5};
             }
+            case "754" -> {
+                sampleType = TiffSampleType.UINT16;
+                customBitsPerSample = new int[] {7, 5, 4};
+            }
             case "242" -> {
                 sampleType = TiffSampleType.UINT8;
                 customBitsPerSample = new int[] {2, 4, 2};
