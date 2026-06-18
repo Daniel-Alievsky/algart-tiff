@@ -175,7 +175,7 @@ public non-sealed class TiffReader extends TiffIO {
      * TiffReader}(file, {@link TiffOpenMode#VALID_TIFF})</code>.
      *
      * @param file input TIFF file.
-     * @throws IOException in the case of any I/O errors, including a non-TIFF file or non-existing file.
+     * @throws IOException if an I/O error occurs, including a non-TIFF file or non-existing file.
      */
     public TiffReader(Path file) throws IOException {
         this(file, TiffOpenMode.VALID_TIFF);
@@ -190,7 +190,7 @@ public non-sealed class TiffReader extends TiffIO {
      *
      * @param file     input TIFF file.
      * @param openMode what should be checked while opening?
-     * @throws IOException in the case of any I/O errors, including a non-TIFF file or non-existing file.
+     * @throws IOException if an I/O error occurs, including a non-TIFF file or non-existing file.
      */
     public TiffReader(Path file, TiffOpenMode openMode) throws IOException {
         // We should not use getExistingFileHandle() here: if the file does not exist,

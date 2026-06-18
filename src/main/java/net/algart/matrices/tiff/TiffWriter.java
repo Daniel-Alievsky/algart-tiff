@@ -174,7 +174,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @param file       output TIFF file.
      * @param createMode what do you need to do with this file?
-     * @throws IOException in the case of any I/O errors.
+     * @throws IOException if an I/O error occurs.
      */
     public TiffWriter(Path file, TiffCreateMode createMode) throws IOException {
         this(openWithDeletingPreviousFileIfRequested(file, createMode), file);
@@ -553,7 +553,7 @@ public non-sealed class TiffWriter extends TiffIO {
     /**
      * Opens an existing TIFF file for appending new images.
      *
-     * @throws IOException in the case of any I/O errors.
+     * @throws IOException if an I/O error occurs.
      */
     public void openExisting() throws IOException {
         open(false);
@@ -572,7 +572,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * there is a chance that some other process will create the same temporary file
      * between removing and re-creating by this class.</p>
      *
-     * @throws IOException in the case of any I/O errors.
+     * @throws IOException if an I/O error occurs.
      */
     public void openForAppend() throws IOException {
         open(true);
@@ -583,7 +583,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * or to {@link #openForAppend()} if the argument is {@code true}.
      *
      * @param createIfNotExists whether you need to create a new TIFF file when there is no existing file.
-     * @throws IOException in the case of any I/O errors.
+     * @throws IOException if an I/O error occurs.
      */
     public void open(boolean createIfNotExists) throws IOException {
         synchronized (fileLock()) {
@@ -627,7 +627,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * when <code>appendToExistingFile</code> is <code>true</code>,
      * or truncates it to a zero length and writes the TIFF header otherwise.
      *
-     * @throws IOException in the case of any I/O errors.
+     * @throws IOException if an I/O error occurs.
      */
     public void create(boolean appendToExistingFile) throws IOException {
         if (appendToExistingFile) {
@@ -642,7 +642,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * If the file already exists before creating this object,
      * this method truncates it to a zero length before writing the header.
      *
-     * @throws IOException in the case of any I/O errors.
+     * @throws IOException if an I/O error occurs.
      */
     public void create() throws IOException {
         synchronized (fileLock()) {
@@ -798,12 +798,12 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Writes the IFD to the file end.
+     * Writes the IFD to the end of the file.
      *
      * <p>This method simply removes the <i>for-writing</i> file offset via
      * <code>ifd.{@link TiffIFD#removeFileOffsetOfIFDForWriting() removeFileOffsetOfIFDForWriting()}</code>,
      * and then calls <code>{@link #writeIFD(TiffIFD, boolean) writeIFD}(ifd, updateLinkageForNewIFD)}</code>.
-     * The argument {@code updateLinkageForNewIFD} is calculated according the following:</p>
+     * The argument {@code updateLinkageForNewIFD} is calculated as follows:</p>
      *
      * <pre>
      *     ifd.{@link TiffIFD#hasFileOffsetOfNextIFDOffset()
@@ -814,18 +814,24 @@ public non-sealed class TiffWriter extends TiffIO {
      * </pre>
      *
      * <p>In other words, if this method is used for updating the last IFD, it automatically corrects
-     * the link inside TIFF file and updates the internal field returned by {@link #fileOffsetOfLastIFDOffset()},
-     * that allows to continue appending new images to the file via {@link #newMap(TiffIFD, boolean)}.</p>
+     * the link inside the TIFF file and updates the internal field returned by {@link #fileOffsetOfLastIFDOffset()},
+     * which allows you to continue appending new images to the file via {@link #newMap(TiffIFD, boolean)}.</p>
      *
-     * @param ifd IFD to write in the output stream.
+     * @param ifd the IFD to write to the output stream.
      * @return the offset where this IFD was actually written.
-     * @throws IOException in the case of any I/O errors.
+     * @throws IOException if an I/O error occurs.
      */
     public long writeIFDAtFileEnd(TiffIFD ifd) throws IOException {
-        final boolean updateLinkageForNewIFD =
+        final boolean lastIFDInFile =
                 ifd.hasFileOffsetOfNextIFDOffset() && ifd.getFileOffsetOfNextIFDOffset() == fileOffsetOfLastIFDOffset;
         ifd.removeFileOffsetOfIFDForWriting();
-        return writeIFD(ifd, updateLinkageForNewIFD);
+        return writeIFD(ifd, lastIFDInFile);
+        // Note: if this IFD was actually the last one, writeIFD(...) will update the "fileOffsetOfLastIFDOffset"
+        // field and will also rewrite the offset in the file, linking the previously written copy of this IFD
+        // to the newly written one.
+        // The latter action is usually redundant (we will have to overwrite this obsolete
+        // chain link from the outside, for example, in the updateIFD() method, to exclude an extra chain element),
+        // but it is completely harmless.
     }
 
     /**
@@ -1526,7 +1532,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param matrix      3D-matrix of pixels (or 2D-matrix for 1-channel image).
      * @param compression TIFF compression method.
      * @return the created TIFF map used for writing the image.
-     * @throws IOException in the case of any I/O errors.
+     * @throws IOException if an I/O error occurs.
      * @see TiffWriteMap
      */
     public TiffWriteMap writeNewMatrix(Matrix<? extends PArray> matrix, TagCompression compression)
@@ -1563,7 +1569,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param channels    color channels of the image (2-dimensional matrices).
      * @param compression TIFF compression method.
      * @return the created TIFF map used for writing the image.
-     * @throws IOException in the case of any I/O errors.
+     * @throws IOException if an I/O error occurs.
      * @see TiffWriteMap
      */
     public TiffWriteMap writeNewChannels(List<? extends Matrix<? extends PArray>> channels, TagCompression compression)
@@ -1598,7 +1604,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param bufferedImage the image to be written.
      * @param compression   TIFF compression method.
      * @return the created TIFF map used for writing the image.
-     * @throws IOException in the case of any I/O errors.
+     * @throws IOException if an I/O error occurs.
      * @see TiffWriteMap
      */
     public TiffWriteMap writeNewBufferedImage(BufferedImage bufferedImage, TagCompression compression)

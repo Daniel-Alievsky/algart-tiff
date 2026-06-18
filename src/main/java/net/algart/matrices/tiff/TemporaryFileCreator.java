@@ -39,7 +39,7 @@ public interface TemporaryFileCreator {
      * Usually calls {@link Files#createTempFile(String, String, FileAttribute[])} or a similar function.
      *
      * @return the path to the newly created file that did not exist before this method was invoked.
-     * @throws IOException in the case of any I/O errors.
+     * @throws IOException if an I/O error occurs.
      */
     Path createTemporaryFile() throws IOException;
 

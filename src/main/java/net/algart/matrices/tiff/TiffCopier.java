@@ -433,7 +433,7 @@ public final class TiffCopier {
      * This operation helps to reorder all IFD headers, eliminate possible fragmentation (unused space), etc.
      *
      * @param tiffFile file to be compacted.
-     * @throws IOException in the case of any I/O errors.
+     * @throws IOException if an I/O error occurs.
      */
     public void compact(Path tiffFile) throws IOException {
         Objects.requireNonNull(tiffFile, "Null TIFF file");
