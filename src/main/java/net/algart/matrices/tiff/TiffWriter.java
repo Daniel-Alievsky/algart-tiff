@@ -541,6 +541,21 @@ public non-sealed class TiffWriter extends TiffIO {
         return Collections.unmodifiableSet(allUsedIFDOffsets);
     }
 
+    public void reviveIFDOffsets(boolean alwaysReload) throws IOException {
+        synchronized (fileLock()) {
+            if (fileOffsetOfLastIFDOffset == -1 || alwaysReload) {
+                @SuppressWarnings("resource") final TiffReader reader = companionReader();
+                final long[] offsets = reader.readIFDOffsets();
+                final long readerFileOffsetOfLastOffset = reader.fileOffsetOfLastIFDOffset();
+                allUsedIFDOffsets.clear();
+                allUsedIFDOffsets.addAll(Arrays.stream(offsets).boxed().toList());
+                fileOffsetOfLastIFDOffset = readerFileOffsetOfLastOffset < 0 ?
+                        fileOffsetOfFirstIFDOffset() :
+                        readerFileOffsetOfLastOffset;
+            }
+        }
+    }
+
     public boolean isLastMapPrewritten() {
         return lastMapPrewritten;
     }
@@ -606,11 +621,9 @@ public non-sealed class TiffWriter extends TiffIO {
                 // because it uses the same stream with this writer
                 this.reader.setCaching(false);
                 // - MUST be compatible with reader() method contract
-                final long[] offsets = reader.readIFDOffsets();
-                final long readerFileOffsetOfLastOffset = reader.fileOffsetOfLastIFDOffset();
                 this.setCompatibleFileFormat(reader);
-                allUsedIFDOffsets.addAll(Arrays.stream(offsets).boxed().toList());
-                fileOffsetOfLastIFDOffset = readerFileOffsetOfLastOffset;
+                reviveIFDOffsets(true);
+                // - will use this.reader created above
                 seekToEnd();
                 // - ready to write after the end of the file
                 // (not necessary, but can help to avoid accidental bugs)
@@ -669,7 +682,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 stream.writeShort(0);
             }
             // Writing the "last offset" marker:
-            fileOffsetOfLastIFDOffset = stream.offset();
+            fileOffsetOfLastIFDOffset = fileOffsetOfFirstIFDOffset();
             writeOffset(stream, bigTiff, TiffIFD.LAST_IFD_OFFSET);
             // Truncating the file if it already existed:
             // it is necessary because this class writes all new information

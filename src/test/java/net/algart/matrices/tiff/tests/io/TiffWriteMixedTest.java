@@ -78,9 +78,15 @@ public class TiffWriteMixedTest {
             writer.setByteFiller((byte) 0);
             writer.setByteOrder(ByteOrder.LITTLE_ENDIAN);
 //            writer.setSmartCorrection(true);
+            assert writer.fileOffsetOfLastIFDOffset() == -1 : "constructor should not set fileOffsetOfLastIFDOffset";
+
 
             writer.create();
             writer.create(); // - not a problem to call twice
+            System.out.printf("fileOffsetOfLastIFDOffset after creating: %d%n", writer.fileOffsetOfLastIFDOffset());
+            writer.reviveIFDOffsets(true);
+            System.out.printf("fileOffsetOfLastIFDOffset after reloading: %d%n", writer.fileOffsetOfLastIFDOffset());
+
             // writer.reader().input().setLength(0); // - throws an exception (read-only
             TiffIFD ifd = TiffIFD.newInstance();
             // final int[] bitsPerSample = {1, 1, 1}; // - will lead to UnsupportedTiffFormatException
