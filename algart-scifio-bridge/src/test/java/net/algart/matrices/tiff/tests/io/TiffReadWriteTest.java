@@ -34,8 +34,9 @@ import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.compatibility.TiffParser;
+import net.algart.matrices.tiff.samples.TiffSamples;
 import net.algart.matrices.tiff.tags.Tags;
-import net.algart.matrices.tiff.tiles.TiffMap;
+import net.algart.matrices.tiff.tiles.TiffReadMap;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
 import org.scijava.Context;
 import org.scijava.io.handle.DataHandle;
@@ -47,7 +48,10 @@ import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public class TiffReadWriteTest {
     private static final int MAX_IMAGE_DIM = 8000;
@@ -142,7 +146,7 @@ public class TiffReadWriteTest {
                 lastIFDIndex = Math.min(lastIFDIndex, ifds.size() - 1);
                 for (int ifdIndex = firstIFDIndex; ifdIndex <= lastIFDIndex; ifdIndex++) {
                     final TiffIFD readerIFD = ifds.get(ifdIndex);
-                    System.out.printf("Copying #%d/%d:%n%s%n", ifdIndex, ifds.size(), readerIFD);
+                    System.out.printf("%nCopying #%d/%d:%n%s%n", ifdIndex, ifds.size(), readerIFD);
                     final int w = Math.min(readerIFD.getImageDimX(), MAX_IMAGE_DIM);
                     final int h = Math.min(readerIFD.getImageDimY(), MAX_IMAGE_DIM);
                     final int tileSizeX = readerIFD.getTileSizeX();
@@ -150,59 +154,53 @@ public class TiffReadWriteTest {
 
                     final int bandCount = readerIFD.getSamplesPerPixel();
                     long t1 = System.nanoTime();
-                    byte[] bytes = reader.map(readerIFD)
-                            .setBitImageUnpackingMode(TiffMap.BitImageUnpackingMode.UNPACK_TO_0_1)
-                            .readSampleBytes(START_X, START_Y, w, h);
-                    // - UNPACK_TO_0_1 emulates behavior of SCIFIO TiffParser
+                    final TiffReadMap map = reader.map(readerIFD);
+                    final byte[] bytes = map.readSampleBytes(START_X, START_Y, w, h);
                     long t2 = System.nanoTime();
+                    System.out.printf(Locale.US,
+                            "%dx%d (%.3f MB) read in %.3f ms (%.3f MB/s) %n",
+                            w, h, bytes.length / 1048576.0,
+                            (t2 - t1) * 1e-6, bytes.length / 1048576.0 / ((t2 - t1) * 1e-9));
                     TiffIFD writerIFD = readerIFD.copy();
                     if (singleStrip) {
                         writerIFD.put(IFD.ROWS_PER_STRIP, h);
                         // - not remove! Removing means default value!
                     }
-                    writerIFD.putImageDimensions(w, h);
-                    final var map = writer.newMap(writerIFD, false);
-                    writeSampleBytes(map, bytes, START_X, START_Y, w, h);
-                    long t3 = System.nanoTime();
-                    System.out.printf("Effective IFD:%n%s%n", writerIFD);
-                    System.out.printf(Locale.US,
-                            "%dx%d (%.3f MB) read in %.3f ms (%.3f MB/s) and written in %.3f ms (%.3f MB/s)%n",
-                            w, h, bytes.length / 1048576.0,
-                            (t2 - t1) * 1e-6, bytes.length / 1048576.0 / ((t2 - t1) * 1e-9),
-                            (t3 - t2) * 1e-6, bytes.length / 1048576.0 / ((t3 - t2) * 1e-9));
 
+                    final int paddedW = ((w + tileSizeX - 1) / tileSizeX) * tileSizeX;
+                    final int paddedH = singleStrip ? h : ((h + tileSizeY - 1) / tileSizeY) * tileSizeY;
+                    assert paddedW >= w;
+                    assert paddedH >= h;
+                    boolean differ = false;
+                    byte[] b3 = null;
+                    IFD scifioIFD = null;
                     if (compatibility) {
-                        System.out.println();
-                        final int paddedW = ((w + tileSizeX - 1) / tileSizeX) * tileSizeX;
-                        int paddedH = ((h + tileSizeY - 1) / tileSizeY) * tileSizeY;
-                        if (singleStrip) {
-                            paddedH = h;
-                        }
-                        final IFD scifioIFD = parser.toScifioIFD(readerIFD);
+                        scifioIFD = parser.toScifioIFD(readerIFD);
                         final int samplesPerPixel = readerIFD.getSamplesPerPixel();
                         final int bytesPerSample = readerIFD.sampleType().bytesPerSample().orElse(1);
                         // 1 byte/sample for a bit in TiffParser
-                        byte[] bytes1 = new byte[paddedW * paddedH * samplesPerPixel * bytesPerSample];
+                        byte[] b1 = new byte[paddedW * paddedH * samplesPerPixel * bytesPerSample];
                         // - no sense to compare with original bytes:
                         // padding is necessary to avoid bugs in the legacy code
                         @SuppressWarnings("deprecation")
-                        byte[] buf1 = parser.getSamples(scifioIFD, bytes1, START_X, START_Y, paddedW, paddedH);
+                        byte[] b2 = parser.getSamples(scifioIFD, b1, START_X, START_Y, paddedW, paddedH);
                         // - this deprecated method is implemented via new methods
                         // and actually equivalent to TiffReader.readSampleBytes
-                        assert buf1 == bytes1;
-                        buf1 = new byte[bytes1.length];
-                        byte[] buf2 = new byte[bytes1.length];
+                        assert b2 == b1;
+                        b2 = new byte[b1.length];
+                        b3 = new byte[b1.length];
                         //noinspection deprecation
-                        parser.getSamples(scifioIFD, buf1, START_X, START_Y, paddedW, paddedH,
+                        parser.getSamples(scifioIFD, b2, START_X, START_Y, paddedW, paddedH,
                                 0, 0);
                         // - this deprecated method is a legacy code from old class
-                        originalParser.getSamples(scifioIFD, buf2, START_X, START_Y, paddedW, paddedH);
+                        originalParser.getSamples(scifioIFD, b3, START_X, START_Y, paddedW, paddedH);
                         // - this is absolute old TiffParser
                         if (!planar) {
                             long numberOfPixels = (long) paddedW * (long) paddedH;
-                            bytes1 = map.toInterleavedSamples(bytes1, samplesPerPixel, numberOfPixels);
-                            buf1 = map.toInterleavedSamples(buf1, samplesPerPixel, numberOfPixels);
-                            buf2 = map.toInterleavedSamples(buf2, samplesPerPixel,  numberOfPixels);
+                            b1 = TiffSamples.toInterleavedBytes(b1, samplesPerPixel, bytesPerSample, numberOfPixels);
+                            b2 = TiffSamples.toInterleavedBytes(b2, samplesPerPixel, bytesPerSample, numberOfPixels);
+                            b3 = TiffSamples.toInterleavedBytes(b3, samplesPerPixel, bytesPerSample, numberOfPixels);
+                            // - necessary for TiffSaver (it writes interleaved samples instead of separated)
                         }
                         final int checkedLength = paddedW * h * samplesPerPixel * bytesPerSample;
                         // - In the case of stripped image (but not tiled!), the last strip is usually stored
@@ -215,16 +213,31 @@ public class TiffReadWriteTest {
                         // is copied completely into getSamples byte[] argument.
                         // It is the reason why we should check only first h lines while comparing with the old parser.
                         // It is also the reason why we should perform interleaving before comparison.
-                        boolean differ = false;
-                        if (!Arrays.equals(buf1, bytes1) ||
-                                !Arrays.equals(buf2, 0, checkedLength,
-                                        bytes1, 0, checkedLength)) {
-                            compareResults(buf1, bytes1, "Other parsing matrix");
-                            compareResults(buf2, bytes1, "Original SCIFIO parser");
+                        assert b1.length >= checkedLength;
+                        assert b2.length >= checkedLength;
+                        assert b3.length >= checkedLength;
+                        if (!Arrays.equals(b1, b2) ||
+                                !Arrays.equals(b1, 0, checkedLength,
+                                        b3, 0, checkedLength)) {
+                            compareResults(b1, b2, "Other parsing matrix");
+                            compareResults(b1, b3, "Original SCIFIO parser");
                             // - the second check shows difference for binary matrix (1 bit/pixel)
-                            // when its width is not 8*k due to bugs in SCIFIO TiffParser
+                            // when its width is not 8*k due to bugs in SCIFIO TiffParser (unpackBytes)
                             differ = true;
                         }
+                    }
+                    t1 = System.nanoTime();
+                    writerIFD.putImageDimensions(w, h);
+                    final var writeMap = writer.newMap(writerIFD, false);
+                    writeSampleBytes(writeMap, bytes, START_X, START_Y, w, h);
+                    t2 = System.nanoTime();
+                    System.out.printf(Locale.US,
+                            "%dx%d (%.3f MB) written in %.3f ms (%.3f MB/s)%n",
+                            w, h, bytes.length / 1048576.0,
+                            (t2 - t1) * 1e-6, bytes.length / 1048576.0 / ((t2 - t1) * 1e-9));
+                    System.out.printf("Effective IFD:%n%s%n", writerIFD);
+
+                    if (compatibility) {
                         writerIFD = TiffIFD.of(removeUndesirableTags(scifioIFD));
                         if (singleStrip) {
                             writerIFD.putStripSize(h);
@@ -234,7 +247,7 @@ public class TiffReadWriteTest {
                         // Note: as a result, the last strip in this file will be too large!
                         // It is a minor inconsistency, but detected by GIMP and other programs.
                         System.out.printf("Writing %s%s...%n", targetExperimentalFile, bigTiff ? " (big TIFF)" : "");
-                        writeSeveralTilesOrStrips(tiffSaver, buf2,
+                        writeSeveralTilesOrStrips(tiffSaver, b3,
                                 parser.toScifioIFD(writerIFD), readerIFD.sampleType().code(), bandCount,
                                 START_X, START_Y, paddedW, paddedH, ifdIndex == lastIFDIndex);
                         System.out.printf("Effective IFD (compatibility):%n%s%n", writerIFD);
