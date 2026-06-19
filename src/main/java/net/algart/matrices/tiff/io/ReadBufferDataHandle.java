@@ -67,8 +67,9 @@ public class ReadBufferDataHandle<L extends Location> extends AbstractHigherOrde
 	 */
 
 
-	private static final int DEFAULT_PAGE_SIZE = 16384;
-	private static final int DEFAULT_NUM_PAGES = 16;
+	private static final int DEFAULT_PAGE_SIZE = 8192;
+	// - too large page slow down simple reading a sequence of offsets
+	private static final int DEFAULT_NUM_PAGES = 32;
 
 	private final int pageSize;
 	private final List<byte[]> pages;
