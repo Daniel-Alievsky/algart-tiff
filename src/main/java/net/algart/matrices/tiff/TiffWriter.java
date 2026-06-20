@@ -541,9 +541,13 @@ public non-sealed class TiffWriter extends TiffIO {
         return Collections.unmodifiableSet(allUsedIFDOffsets);
     }
 
-    public void reviveIFDOffsets(boolean alwaysReload) throws IOException {
+    public void invalidateLinkage() {
+        this.fileOffsetOfLastIFDOffset = -1;
+    }
+
+    public void refreshLinkage(boolean forceReload) throws IOException {
         synchronized (fileLock()) {
-            if (fileOffsetOfLastIFDOffset == -1 || alwaysReload) {
+            if (fileOffsetOfLastIFDOffset == -1 || forceReload) {
                 @SuppressWarnings("resource") final TiffReader reader = companionReader();
                 final long[] offsets = reader.readIFDOffsets();
                 final long readerFileOffsetOfLastOffset = reader.fileOffsetOfLastIFDOffset();
@@ -602,7 +606,7 @@ public non-sealed class TiffWriter extends TiffIO {
      */
     public void open(boolean createIfNotExists) throws IOException {
         synchronized (fileLock()) {
-            resetCompanionReader();
+            invalidateCompanionReader();
             if (!stream.exists() || stream.length() == 0L) {
                 // - Important: we ALLOW appending to zero-length files.
                 // It is necessary when creating temporary zero-length files: we should never remove/recreate it!
@@ -622,7 +626,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 this.reader.setCaching(false);
                 // - MUST be compatible with reader() method contract
                 this.setCompatibleFileFormat(reader);
-                reviveIFDOffsets(true);
+                refreshLinkage(true);
                 // - will use this.reader created above
                 seekToEnd();
                 // - ready to write after the end of the file
@@ -659,7 +663,7 @@ public non-sealed class TiffWriter extends TiffIO {
      */
     public void create() throws IOException {
         synchronized (fileLock()) {
-            resetCompanionReader();
+            invalidateCompanionReader();
             allUsedIFDOffsets.clear();
             stream.seek(0);
             // - this call actually creates and opens the file if it was not opened before
@@ -712,7 +716,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * <p>The returned reference is stored inside this object, and will be returned by further calls
      * of this method, unless you set <code>alwaysCreateNew=true</code> while a further call.
-     * However, the stored reference is cleared to {@code null} by {@link #resetCompanionReader()} method
+     * However, the stored reference is cleared to {@code null} by {@link #invalidateCompanionReader()} method
      * (so that the following call of this method will re-create the reader) in the following cases:
      *
      * <ul>
@@ -772,7 +776,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * These offsets are used only for automatic IFD linkage by {@link #writeIFD(TiffIFD, boolean)}
      * method and are not important if you perform the linkage manually.</p>
      */
-    public void resetCompanionReader() {
+    public void invalidateCompanionReader() {
         synchronized (fileLock()) {
             this.reader = null;
             // - No sense to clear usedIFDOffsets:
@@ -896,7 +900,7 @@ public non-sealed class TiffWriter extends TiffIO {
         Objects.requireNonNull(ifd, "Null IFD");
         synchronized (fileLock()) {
             checkVirginFile();
-            resetCompanionReader();
+            invalidateCompanionReader();
             final long ifdOffset;
             if (ifd.isFileOffsetOfIFDForWritingAssigned()) {
                 ifdOffset = ifd.assignedFileOffsetOfIFDForWriting();
@@ -1005,7 +1009,7 @@ public non-sealed class TiffWriter extends TiffIO {
         }
         synchronized (fileLock()) {
             checkVirginFile();
-            resetCompanionReader();
+            invalidateCompanionReader();
 //            System.out.println("Using accurate rewriting");
             final long ifdOffset = ifd.assignedFileOffsetOfIFDForWriting();
             // - note: unlike writeIFD(), here we DO NOT NEED to call checkFileOffsetForWriting(ifdOffset)
@@ -1138,7 +1142,7 @@ public non-sealed class TiffWriter extends TiffIO {
         long t1 = debugTime();
         synchronized (fileLock()) {
             checkVirginFile();
-            resetCompanionReader();
+            invalidateCompanionReader();
             TiffTileIO.write(tile, stream, alwaysWriteToFileEnd, !bigTiff);
             if (freeAndFreezeAfterWriting) {
                 tile.freeAndFreeze();
@@ -1715,7 +1719,7 @@ public non-sealed class TiffWriter extends TiffIO {
     public void close() throws IOException {
         lastMap = null;
         super.close();
-        resetCompanionReader();
+        invalidateCompanionReader();
     }
 
     public int sizeOfTiffHeader() {
@@ -2243,7 +2247,7 @@ public non-sealed class TiffWriter extends TiffIO {
             throws IOException {
         synchronized (fileLock()) {
             // - to be on the safe side (this synchronization is not necessary)
-            resetCompanionReader();
+            invalidateCompanionReader();
             final long savedFileOffset = stream.offset();
             try {
                 stream.seek(fileOffsetToWrite);

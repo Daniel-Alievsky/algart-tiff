@@ -84,7 +84,7 @@ public class TiffWriteMixedTest {
             writer.create();
             writer.create(); // - not a problem to call twice
             System.out.printf("fileOffsetOfLastIFDOffset after creating: %d%n", writer.fileOffsetOfLastIFDOffset());
-            writer.reviveIFDOffsets(true);
+            writer.refreshLinkage(true);
             System.out.printf("fileOffsetOfLastIFDOffset after reloading: %d%n", writer.fileOffsetOfLastIFDOffset());
 
             // writer.reader().input().setLength(0); // - throws an exception (read-only
