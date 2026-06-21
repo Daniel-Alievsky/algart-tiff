@@ -203,26 +203,28 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     }
 
     /**
-     * Returns position in the file of the last IFD offset, loaded by {@link #readIFDOffsets()},
-     * {@link #readMainIFDOffset(int)} or {@link #readFirstIFDOffset()} methods.
+     * Returns the offset (position) in the file of the last scanned IFD offset.
      *
-     * <p>For {@link TiffReader}, usually it is just a position of the last IFD offset, because
-     * popular {@link TiffReader#allIFDs()} method calls {@link #readIFDOffsets()} inside.
+     * <p>For {@link TiffReader}, this is the position of the last IFD offset
+     * read by the {@link #readIFDOffsets()}, {@link #readMainIFDOffset(int)}, or
+     * {@link #readFirstIFDOffset()} methods.
+     * The commonly used {@link TiffReader#allIFDs()} method calls {@link #readIFDOffsets()} internally,
+     * thus, this value will be equal to the offset of the actual last IFD present in the TIFF file.</p>
      *
-     * <p>Immediately after creating a new {@link TiffReader} object this position is <code>-1</code>.
+     * <p>Immediately after creating a new {@link TiffReader} object, this method returns {@code -1}.</p>
      *
      * <p>For {@link TiffWriter}, the position returned by this method is updated by
      * {@link TiffWriter#writeIFD(TiffIFD, boolean)} and
      * {@link TiffWriter#rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, boolean)}
-     * when the last argument is {@code true}.
+     * when the corresponding {@code boolean} argument is {@code true}.</p>
      *
      * <p>Immediately after creating a new {@link TiffWriter} object without opening a file
-     * ({@link TiffCreateMode#NO_ACTIONS} mode) this position is <code>-1</code>.
-     * Immediately after opening an existing TIFF file, for example, by {@link TiffWriter#openExisting()}
-     * or {@link TiffWriter#openForAppend()} method, this position will be equal to
-     * the same value for a reader created for that file.
+     * ({@link TiffCreateMode#NO_ACTIONS} mode), this method returns {@code -1}.
+     * Immediately after opening an existing TIFF file (for example, via {@link TiffWriter#openExisting()}
+     * or {@link TiffWriter#openForAppend()}), this position will be equal to
+     * the value returned by a reader created for the same file.</p>
      *
-     * @return file position of the last IFD offset.
+     * @return file offset of the last IFD offset, or {@code -1} if it has not been read or updated yet.
      */
     public long fileOffsetOfLastIFDOffset() {
         return fileOffsetOfLastIFDOffset;
