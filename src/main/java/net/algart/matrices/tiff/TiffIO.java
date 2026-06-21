@@ -206,9 +206,9 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * Returns the offset (position) in the file of the last scanned IFD offset.
      *
      * <p>For {@link TiffReader}, this is the position of the last IFD offset
-     * read by the {@link #readIFDOffsets()}, {@link #readMainIFDOffset(int)}, or
+     * read by the {@link #readMainIFDOffsets()}, {@link #readMainIFDOffset(int)}, or
      * {@link #readFirstIFDOffset()} methods.
-     * The commonly used {@link TiffReader#allIFDs()} method calls {@link #readIFDOffsets()} internally,
+     * The commonly used {@link TiffReader#allIFDs()} method calls {@link #readMainIFDOffsets()} internally,
      * thus, this value will be equal to the offset of the actual last IFD present in the TIFF file.</p>
      *
      * <p>Immediately after creating a new {@link TiffReader} object, this method returns {@code -1}.</p>
@@ -375,18 +375,18 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     }
 
     /**
-     * Equivalent to {@link #readIFDOffsets(boolean) readIFDOffsets(false)}.
+     * Equivalent to {@link #readMainIFDOffsets(boolean) readMainIFDOffsets(false)}.
      *
      * @return array of IFD offsets.
      * @throws TiffException if the TIFF file is empty or if a corrupted structure or infinite loop is detected.
      * @throws IOException   if an I/O error occurs.
      */
-    public long[] readIFDOffsets() throws IOException {
-        return readIFDOffsets(false);
+    public long[] readMainIFDOffsets() throws IOException {
+        return readMainIFDOffsets(false);
     }
 
     /**
-     * Reads the offsets to every IFD in the file (without child sub-IFDs).
+     * Reads the offsets to all IFDs in the file (without child sub-IFDs).
      * For a non-empty valid TIFF file, the length of the returned array is equal
      * to {@link TiffReader#numberOfMainIFDs()}.
      *
@@ -399,7 +399,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *                       or if a corrupted structure or infinite loop is detected.
      * @throws IOException   if an I/O error occurs.
      */
-    public long[] readIFDOffsets(boolean allowNoIFDs) throws IOException {
+    public long[] readMainIFDOffsets(boolean allowNoIFDs) throws IOException {
         synchronized (fileLock()) {
             final long fileLength = stream.length();
             long offset = allowNoIFDs ?

@@ -51,7 +51,6 @@ import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 /**
  * Reads TIFF format.
@@ -791,7 +790,7 @@ public non-sealed class TiffReader extends TiffIO {
 
     /**
      * Returns <code>{@link #mainIFDs()}.size()</code>.
-     * Note that this is the length of the array returned by {@link #readIFDOffsets()} method.
+     * Note that this is the length of the array returned by {@link #readMainIFDOffsets()} method.
      *
      * <p>Note: for maximum usability, this method returns 0 instead of throwing an exception
      * if there are any problems with the input file.
@@ -943,7 +942,7 @@ public non-sealed class TiffReader extends TiffIO {
                 return allIFDs;
             }
 
-            final long[] offsets = validTiff ? readIFDOffsets() : new long[0];
+            final long[] offsets = validTiff ? readMainIFDOffsets() : new long[0];
             // - even if !validTiff, we MUST correctly fill allIFDs/mainIFDs fields
             allIFDs = new ArrayList<>();
             final ArrayList<TiffIFD> mainIFDs = new ArrayList<>();
@@ -1680,12 +1679,12 @@ public non-sealed class TiffReader extends TiffIO {
             //
             // As a result, an exception was thrown for an empty TIFF file (no IFDs), and the
             // validTiff flag was set to false.
-            // After that, the readIFDOffsets() and allIFDs() methods did not throw exceptions
+            // After that, the readMainIFDOffsets() and allIFDs() methods did not throw exceptions
             // and returned empty results.
             // In the current version, the validTiff flag remains true in this situation
-            // (if the file is not too short), but readIFDOffsets() will throw an exception.
+            // (if the file is not too short), but readMainIFDOffsets() will throw an exception.
             // Instead, you can now process a TIFF file with an unset (zero) first IFD offset
-            // via explicit calls: readFirstIFDOffsetIfPresent() or readIFDOffsets(true).
+            // via explicit calls: readFirstIFDOffsetIfPresent() or readMainIFDOffsets(true).
         } finally {
             stream.seek(savedOffset);
             // - for maximal compatibility: in old versions, the constructor of this class

@@ -55,7 +55,7 @@ public class TiffIFDAndIFDOffsetsTest {
         System.out.printf("Reading IFD #%d from %s...%n", ifdIndex, file);
 
         TiffReader reader = new TiffReader(file, TiffOpenMode.NO_CHECKS).setCachingIFDs(cache);
-        final int n1 = reader.readIFDOffsets(true).length;
+        final int n1 = reader.readMainIFDOffsets(true).length;
         final int m = reader.allMaps().size();
         final int n2 = reader.mainIFDs().size();
         // - should not throw exception for an invalid file, for example, too short
@@ -82,10 +82,10 @@ public class TiffIFDAndIFDOffsetsTest {
             System.out.printf("%nTest %d:%n", test);
 
             long t1 = System.nanoTime();
-            long[] offsets = reader.readIFDOffsets(true);
+            long[] offsets = reader.readMainIFDOffsets(true);
             long t2 = System.nanoTime();
             System.out.printf(Locale.US,
-                    "readIFDOffsets(): %s (%.6f mcs)%n", Arrays.toString(offsets), (t2 - t1) * 1e-3);
+                    "readMainIFDOffsets(): %s (%.6f mcs)%n", Arrays.toString(offsets), (t2 - t1) * 1e-3);
             System.out.printf("  Position of last IFD offset: %d%n", reader.fileOffsetOfLastIFDOffset());
 
             t1 = System.nanoTime();

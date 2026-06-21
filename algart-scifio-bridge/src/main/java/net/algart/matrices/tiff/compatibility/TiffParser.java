@@ -394,7 +394,7 @@ public class TiffParser extends TiffReader {
 
 
     /**
-     * Use {@link #readIFDOffsets()} instead.
+     * Use {@link #readMainIFDOffsets()} instead.
      */
     @Deprecated
     public long[] getIFDOffsets() throws IOException {
