@@ -1048,8 +1048,12 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     /**
-     * Gets offset to the first IFD.
-     * Updates {@link #fileOffsetOfLastIFDOffset()} to the position of first offset (4, for Bit-TIFF 8).
+     * Reads the offset to the first IFD.
+     * Updates {@link #fileOffsetOfLastIFDOffset()} to position of the first offset (4, for Bit-TIFF 8).
+     *
+     * @return offset of the first IFD in the file.
+     * @throws TiffException            if the TIFF file is empty,
+     *                                  or if a corrupted structure or infinite loop is detected.
      */
     public long readFirstIFDOffset() throws IOException {
         synchronized (fileLock()) {
@@ -1058,47 +1062,77 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     /**
-     * Returns the file offset of the regular IFD with given index
+     * Analog of {@link #readFirstIFDOffset()} returning {@code OptionalLong.empty()}
+     * instead of throwing exception when the TIFF file is empty (contains no images).
+     *
+     * <p>Note that an empty TIFF file is an error: a correct TIFF file always contains at least 1 image,
+     * thus, you may use {@link #readFirstIFDOffset()} method instead.
+     * But this method can be used at the stage of building a new TIFF file.
+
+     * @return offset of the first IFD in the file, or an empty value for an empty TIFF file.
+     * @throws TiffException            if the TIFF file is empty,
+     *                                  or if a corrupted structure or infinite loop is detected.
+     */
+    public OptionalLong readFirstIFDOffsetIfPresent() throws IOException {
+        synchronized (fileLock()) {
+            return readFirstIFDOffsetIfPresent(true);
+        }
+    }
+
+    /**
+     * Reads the file offset of the regular IFD with given index
      * or throws an exception if the index is too high.
      * Updates {@link #fileOffsetOfLastIFDOffset()} to position of this offset.
      *
      * <p>This method works only with {@link TiffIFD#isMainIFD() regular IFDs} (main, not sub-IFDs).
      * So, this index must be in the range <code>0..{@link #numberOfMainIFDs()}-1</code>.</p>
      *
-     * @param mainIFDIndex index of regular IFD (0, 1, ...).
-     * @return offset of this IFD in the file.
-     * @throws IllegalArgumentException if the index is negative.
-     * @throws TiffException            if the index is too high.
-     */
-    public long readMainIFDOffset(final int mainIFDIndex) throws IOException {
-        long result = tryToReadMainIFDOffset(mainIFDIndex);
-        if (result == -1) {
-            throw new TiffException("No main IFD #" + mainIFDIndex + " in TIFF" + spacedStreamName()
-                    + ": too large index");
-        }
-        return result;
-    }
-
-    /**
-     * Equivalent to {@link #readMainIFDOffset(int)} besides that this method returns {@code -1}
-     * instead of throwing exception when the IFD index is too high.
+     * <p>Note: if {@code mainIFDIndex==0}, this method is equivalent to {@link #readFirstIFDOffset()},
+     * besides an exception message in the case of an empty TIFF file.</p>э
      *
      * @param mainIFDIndex index of regular IFD (0, 1, ...).
      * @return offset of this IFD in the file.
      * @throws IllegalArgumentException if the index is negative.
+     * @throws TiffException            if the index is too high or if the TIFF file is empty,
+     *                                  or if a corrupted structure or infinite loop is detected.
      */
-    public long tryToReadMainIFDOffset(final int mainIFDIndex) throws IOException {
+    public long readMainIFDOffset(int mainIFDIndex) throws IOException {
+        if (mainIFDIndex == 0) {
+            return readFirstIFDOffset();
+            // - another error message when the TIFF file is empty
+        }
+        return readMainIFDOffsetIfPresent(mainIFDIndex)
+                .orElseThrow(() -> new TiffException("No main IFD #" +
+                        mainIFDIndex + " in TIFF" + spacedStreamName() + ": too large index"));
+    }
+
+    /**
+     * Analog of {@link #readMainIFDOffset(int)} returning {@code OptionalLong.empty()}
+     * instead of throwing exception when the IFD index is too high or the file contains no images.
+     *
+     * <p>Note: if {@code mainIFDIndex==0}, this method is equivalent to {@link #readFirstIFDOffsetIfPresent()}.</p>
+     *
+     * @param mainIFDIndex index of regular IFD (0, 1, ...).
+     * @return offset of this IFD in the file, wrapped in {@link OptionalLong}, or an empty value for too high index.
+     * @throws IllegalArgumentException if the index is negative.
+     * @throws TiffException            if a corrupted structure or infinite loop is detected.
+     */
+    public OptionalLong readMainIFDOffsetIfPresent(int mainIFDIndex) throws IOException {
         if (mainIFDIndex < 0) {
             throw new IllegalArgumentException("Negative IFD index = " + mainIFDIndex);
         }
         synchronized (fileLock()) {
             final long fileLength = stream.length();
-            long offset = readFirstIFDOffset();
-
+            final OptionalLong first = readFirstIFDOffsetIfPresent(true);
+            if (first.isEmpty()) {
+                return OptionalLong.empty();
+            }
+            long offset = first.getAsLong();
             int index = mainIFDIndex;
-            while (offset > 0 && offset < fileLength) {
+            while (offset != 0) {
+                // - negative and too high offsets are checked inside low-level readOffset() method
                 if (index-- <= 0) {
-                    return offset;
+                    return OptionalLong.of(offset);
                 }
                 skipIFDEntries(offset, fileLength);
                 final long newOffset = readIFDNextOffset(true);
@@ -1108,7 +1142,7 @@ public non-sealed class TiffReader extends TiffIO {
                 }
                 offset = newOffset;
             }
-            return -1;
+            return OptionalLong.empty();
         }
     }
 
@@ -1129,7 +1163,8 @@ public non-sealed class TiffReader extends TiffIO {
             final LinkedHashSet<Long> ifdOffsets = new LinkedHashSet<>();
             long offset = readFirstIFDOffset();
 
-            while (offset > 0 && offset < fileLength) {
+            while (offset != 0) {
+                // - negative and too high offsets are checked inside low-level readOffset() method
                 final boolean wasNotPresent = ifdOffsets.add(offset);
                 if (!wasNotPresent) {
                     throw new TiffException("TIFF file is broken - infinite loop of IFD offsets is detected " +
@@ -1781,6 +1816,19 @@ public non-sealed class TiffReader extends TiffIO {
                         " bytes (a valid TIFF must contain at least " + MINIMAL_ALLOWED_TIFF_FILE_LENGTH +
                         " bytes); probably the TIFF writing process was not completed normally");
             }
+
+            // Note: in the old version, before 13.Nov.2025, there ware the following operators here:
+            //
+            // readFirstOffsetFromCurrentPosition(false, bigTiff);
+            // - additional check of zero offset, filling positionOfLastOffset
+            //
+            // As a result, an exception was thrown for an empty TIFF file (no IFDs), and the flag
+            // validTiff was cleared.
+            // After this, readIFDOffsets() and allIFDs() methods did not throw exceptions and returned empty results.
+            // In the current version, in this situation we will have validTiff=true
+            // (if the file is not really very short), but readIFDOffsets() will throw an exception.
+            // Instead, now you may process a TIFF file with unset (zero) first IFD offset via the explicit method
+            // readFirstIFDOffsetIfPresent().
         } finally {
             stream.seek(savedOffset);
             // - for maximal compatibility: in old versions, the constructor of this class
@@ -1884,14 +1932,16 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     private long readFirstIFDOffset(boolean updateFileOffsetOfLastOffset) throws IOException {
+        return readFirstIFDOffsetIfPresent(updateFileOffsetOfLastOffset)
+                .orElseThrow(() -> new TiffException("Uncompleted TIFF" + spacedStreamName() +
+                        ": the file does not contain any images; " +
+                        "probably the TIFF writing process was not completed normally"));
+    }
+
+    private OptionalLong readFirstIFDOffsetIfPresent(boolean updateFileOffsetOfLastOffset) throws IOException {
         stream.seek(fileOffsetOfFirstIFDOffset());
         final long offset = readIFDNextOffset(updateFileOffsetOfLastOffset);
-        if (offset == 0) {
-            throw new TiffException("Uncompleted TIFF" + spacedStreamName() +
-                    ": the file does not contain any images; " +
-                    "probably the TIFF writing process was not completed normally");
-        }
-        return offset;
+        return offset == 0 ? OptionalLong.empty() : OptionalLong.of(offset);
     }
 
     /**

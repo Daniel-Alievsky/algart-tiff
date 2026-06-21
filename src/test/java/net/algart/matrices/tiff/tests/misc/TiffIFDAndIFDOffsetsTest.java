@@ -35,6 +35,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.OptionalLong;
 
 public class TiffIFDAndIFDOffsetsTest {
     public static void main(String... args) throws IOException {
@@ -65,7 +66,7 @@ public class TiffIFDAndIFDOffsetsTest {
         // reader.allMaps().set(0, null); // - should not be possible (result must be immutable)
         // reader.allIFDs().clear(); // - should not be possible (result must be immutable)
         reader.close();
-        reader = new TiffReader(file, TiffOpenMode.ALLOW_NON_TIFF).setCachingIFDs(cache);
+        reader = new TiffReader(file, TiffOpenMode.NO_CHECKS).setCachingIFDs(cache);
 
         System.out.println("Analysing...");
         try {
@@ -87,10 +88,10 @@ public class TiffIFDAndIFDOffsetsTest {
             System.out.printf("  Position of last IFD offset: %d%n", reader.fileOffsetOfLastIFDOffset());
 
             t1 = System.nanoTime();
-            long offset = reader.tryToReadMainIFDOffset(ifdIndex);
+            OptionalLong offset = reader.readMainIFDOffsetIfPresent(ifdIndex);
             t2 = System.nanoTime();
             System.out.printf(Locale.US,
-                    "tryToReadMainIFDOffset(%d): %d (%.6f mcs)%n", ifdIndex, offset, (t2 - t1) * 1e-3);
+                    "tryToReadMainIFDOffset(%d): %s (%.6f mcs)%n", ifdIndex, offset, (t2 - t1) * 1e-3);
             System.out.printf("  Position of last IFD offset: %d%n", reader.fileOffsetOfLastIFDOffset());
 
             t1 = System.nanoTime();
