@@ -530,7 +530,7 @@ public non-sealed class TiffWriter extends TiffIO {
         synchronized (fileLock()) {
             if (fileOffsetOfLastIFDOffset == -1 || forceReload) {
                 @SuppressWarnings("resource") final TiffReader reader = companionReader();
-                final long[] offsets = reader.readIFDOffsets();
+                final long[] offsets = reader.readIFDOffsets(true);
                 final long readerFileOffsetOfLastOffset = reader.fileOffsetOfLastIFDOffset();
                 allUsedIFDOffsets.clear();
                 allUsedIFDOffsets.addAll(Arrays.stream(offsets).boxed().toList());

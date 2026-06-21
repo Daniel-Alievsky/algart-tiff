@@ -943,7 +943,8 @@ public non-sealed class TiffReader extends TiffIO {
                 return allIFDs;
             }
 
-            final long[] offsets = readIFDOffsets();
+            final long[] offsets = validTiff ? readIFDOffsets() : new long[0];
+            // - even if !validTiff, we MUST correctly fill allIFDs/mainIFDs fields
             allIFDs = new ArrayList<>();
             final ArrayList<TiffIFD> mainIFDs = new ArrayList<>();
 
@@ -1033,21 +1034,6 @@ public non-sealed class TiffReader extends TiffIO {
                 Optional.empty();
     }
 
-
-    /**
-     * Gets the offsets to every IFD in the file (without child sub-IFDs).
-     * The length of the returned array is equal to {@link #numberOfMainIFDs()}.
-     *
-     * <p>Note: if this TIFF file is not valid ({@link #isValidTiff()} returns <code>false</code>), this method
-     * returns an empty array and does not throw an exception.
-     * For a valid TIFF, the result cannot be empty.
-     */
-    public long[] readIFDOffsets() throws IOException {
-        if (!validTiff) {
-            return new long[0];
-        }
-        return super.readIFDOffsets();
-    }
 
     /**
      * Returns the IFD with given index or throws an exception if the index is too high.
