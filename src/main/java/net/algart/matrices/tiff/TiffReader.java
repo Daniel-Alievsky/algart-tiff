@@ -1687,18 +1687,19 @@ public non-sealed class TiffReader extends TiffIO {
                         " bytes); probably the TIFF writing process was not completed normally");
             }
 
-            // Note: in the old version, before 13.Nov.2025, there ware the following operators here:
+            // Note: in old versions, before 13.Nov.2025, the following code was executed here:
             //
             // readFirstOffsetFromCurrentPosition(false, bigTiff);
-            // - additional check of zero offset, filling positionOfLastOffset
+            // - an additional check for a zero offset, updating fileOffsetOfLastIFDOffset
             //
-            // As a result, an exception was thrown for an empty TIFF file (no IFDs), and the flag
-            // validTiff was cleared.
-            // After this, readIFDOffsets() and allIFDs() methods did not throw exceptions and returned empty results.
-            // In the current version, in this situation we will have validTiff=true
-            // (if the file is not really very short), but readIFDOffsets() will throw an exception.
-            // Instead, now you may process a TIFF file with unset (zero) first IFD offset via the explicit method
-            // readFirstIFDOffsetIfPresent().
+            // As a result, an exception was thrown for an empty TIFF file (no IFDs), and the
+            // validTiff flag was set to false.
+            // After that, the readIFDOffsets() and allIFDs() methods did not throw exceptions
+            // and returned empty results.
+            // In the current version, the validTiff flag remains true in this situation
+            // (if the file is not too short), but readIFDOffsets() will throw an exception.
+            // Instead, you can now process a TIFF file with an unset (zero) first IFD offset
+            // via explicit calls: readFirstIFDOffsetIfPresent() or readIFDOffsets(true).
         } finally {
             stream.seek(savedOffset);
             // - for maximal compatibility: in old versions, the constructor of this class
