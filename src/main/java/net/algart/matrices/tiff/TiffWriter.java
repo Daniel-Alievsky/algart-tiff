@@ -518,25 +518,6 @@ public non-sealed class TiffWriter extends TiffIO {
         return this;
     }
 
-    /**
-     * Returns position in the file of the last IFD offset, written by methods of this object.
-     * It is updated by {@link #writeIFD(TiffIFD, boolean)} and
-     * {@link #rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, boolean)}
-     * when the last argument is {@code true}.
-     *
-     * <p>Immediately after creating this object without opening a file
-     * ({@link TiffCreateMode#NO_ACTIONS} mode)
-     * this position is <code>-1</code>.
-     * Immediately after opening an existing TIFF file, for example, by {@link #openExisting()}
-     * or {@link #openForAppend()} method, this position will be equal to
-     * {@link TiffReader#fileOffsetOfLastIFDOffset()} for a reader created for that file.
-     *
-     * @return file position of the last IFD offset.
-     */
-    public long fileOffsetOfLastIFDOffset() {
-        return fileOffsetOfLastIFDOffset;
-    }
-
     public Set<Long> allUsedIFDOffsets() {
         return Collections.unmodifiableSet(allUsedIFDOffsets);
     }
