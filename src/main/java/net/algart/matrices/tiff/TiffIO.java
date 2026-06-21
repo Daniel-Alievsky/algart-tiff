@@ -376,8 +376,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * Equivalent to {@link #readIFDOffsets(boolean) readIFDOffsets(false)}.
      *
      * @return array of IFD offsets.
-     * @throws TiffException if the TIFF file is empty, or if a corrupted structure or infinite loop is detected.
-     * @throws IOException if an I/O error occurs.
+     * @throws TiffException if the TIFF file is empty or if a corrupted structure or infinite loop is detected.
+     * @throws IOException   if an I/O error occurs.
      */
     public long[] readIFDOffsets() throws IOException {
         return readIFDOffsets(false);
@@ -395,7 +395,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @return array of IFD offsets.
      * @throws TiffException if the TIFF file is empty and the argument is {@code false},
      *                       or if a corrupted structure or infinite loop is detected.
-     * @throws IOException if an I/O error occurs.
+     * @throws IOException   if an I/O error occurs.
      */
     public long[] readIFDOffsets(boolean allowNoIFDs) throws IOException {
         synchronized (fileLock()) {
