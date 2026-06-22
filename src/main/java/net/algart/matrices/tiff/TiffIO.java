@@ -267,23 +267,29 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     }
 
     /**
-     * Returns the offset (position) in the file of the last scanned IFD offset.
+     * Returns the offset (position) in the file of the offset last scanned IFD offset.
      *
      * <p>For {@link TiffReader}, this is the position of the last IFD offset
      * read by the {@link #readMainIFDOffsets(LinkageUpdateMode)},
      * {@link #readMainIFDOffset(int, LinkageUpdateMode)}, or
      * {@link #readFirstIFDOffset(LinkageUpdateMode)} methods
      * when using {@link LinkageUpdateMode#UPDATE}.
-     * The commonly used {@link TiffReader#allIFDs()} method calls
-     * {@link #readMainIFDOffsets(LinkageUpdateMode)} in this mode internally,
-     * thus, this value will be equal to the offset of the actual last IFD present in the TIFF file.</p>
+     * The commonly used {@link TiffReader#allIFDs()},
+     * {@link TiffReader#mainIFDs()}, {@link TiffReader#numberOfImages()}
+     * and other methods call</p>
+     * <pre>
+     *     {@link #readMainIFDOffsets(LinkageUpdateMode)
+     * readMainIFDOffsets}({@link LinkageUpdateMode#UPDATE})</pre>
+     * <p>internally, thus, this value will be equal to the file offset of the offset
+     * of the actual last IFD present in the TIFF file.</p>
      *
      * <p>Immediately after creating a new {@link TiffReader} object, this method returns {@code -1}.</p>
      *
      * <p>For {@link TiffWriter}, the position returned by this method is updated by
      * {@link TiffWriter#writeIFD(TiffIFD, LinkageUpdateMode)} and
      * {@link TiffWriter#rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, LinkageUpdateMode)}
-     * when the corresponding {@code boolean} argument is {@code true}.</p>
+     * when the corresponding {@link LinkageUpdateMode} argument is
+     * {@link LinkageUpdateMode#UPDATE}.</p>
      *
      * <p>Immediately after creating a new {@link TiffWriter} object without opening a file
      * ({@link TiffCreateMode#NO_ACTIONS} mode), this method returns {@code -1}.
