@@ -529,14 +529,10 @@ public non-sealed class TiffWriter extends TiffIO {
     public void refreshLinkage(boolean forceReload) throws IOException {
         synchronized (fileLock()) {
             if (fileOffsetOfLastIFDOffset == -1 || forceReload) {
-                @SuppressWarnings("resource") final TiffReader reader = companionReader();
-                final long[] offsets = reader.readMainIFDOffsets(true);
-                final long readerFileOffsetOfLastOffset = reader.fileOffsetOfLastIFDOffset();
+                final long[] offsets = readMainIFDOffsets(true);
+                //TODO!! log; check the situation when the file is empty
                 allUsedIFDOffsets.clear();
                 allUsedIFDOffsets.addAll(Arrays.stream(offsets).boxed().toList());
-                fileOffsetOfLastIFDOffset = readerFileOffsetOfLastOffset < 0 ?
-                        fileOffsetOfFirstIFDOffset() :
-                        readerFileOffsetOfLastOffset;
             }
         }
     }
@@ -1274,9 +1270,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *                       and this was not detected while opening it.
      */
     public TiffIFD existingIFD(int mainIFDIndex, boolean assignFileOffsetForWriting) throws IOException {
-        @SuppressWarnings("resource") final TiffReader reader = companionReader();
-        final TiffIFD ifd = reader.readMainIFD(mainIFDIndex);
-        // - no sense to read and cache all IFD: this reader will probably be cleared after TIFF changes
+        final TiffIFD ifd = readMainIFD(mainIFDIndex);
         if (assignFileOffsetForWriting) {
             ifd.assignFileOffsetOfIFDForWriting(ifd.getFileOffsetOfIFD());
         }
