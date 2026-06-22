@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.tests.io;
 
-import io.scif.codec.CodecOptions;
 import net.algart.arrays.Matrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
@@ -34,9 +33,7 @@ import net.algart.io.awt.MatrixToImage;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.app.TiffInfo;
 import net.algart.matrices.tiff.codecs.JPEG2000Codec;
-import net.algart.matrices.tiff.compatibility.TiffParser;
 import net.algart.matrices.tiff.tags.TagCompression;
-import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 import org.scijava.Context;
 
@@ -53,10 +50,6 @@ public class TiffReaderTest {
     public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         boolean useContext = false;
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-useContext")) {
-            useContext = true;
-            startArgIndex++;
-        }
         boolean interleave = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-interleave")) {
             interleave = true;
@@ -70,12 +63,6 @@ public class TiffReaderTest {
         boolean tiny = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-tiny")) {
             tiny = true;
-            startArgIndex++;
-        }
-        boolean compatibility = false;
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-compatibility")) {
-            compatibility = true;
-            useContext = true;
             startArgIndex++;
         }
 
@@ -101,9 +88,7 @@ public class TiffReaderTest {
         for (int repeat = 1; repeat <= numberOfCompleteRepeats; repeat++) {
             try (final Context context = !useContext ? null : (Context) TiffReader.newSCIFIOContext()) {
                 long t1 = System.nanoTime();
-                final TiffReader reader = compatibility ?
-                        new TiffParser(context, tiffFile) :
-                        new TiffReader(tiffFile);
+                final TiffReader reader = new TiffReader(tiffFile);
                 if (cache) {
                     reader.setCaching(true)
                             .setMaxCacheMemory(tiny ? 1000000 : TiffReader.DEFAULT_MAX_CACHING_MEMORY);
@@ -112,17 +97,12 @@ public class TiffReaderTest {
                 }
                 reader.setContext(context);
                 long t2 = System.nanoTime();
-//                reader.setEnforceUseExternalCodec(true);
-//                reader.setCachingIFDs(false);
-//                reader.setRescaleWhenIncreasingBitDepth(false);
+                // reader.setEnforceUseExternalCodec(true);
+                // reader.setCachingIFDs(false);
+                // reader.setRescaleWhenIncreasingBitDepth(false);
                 reader.setColorCorrection(true);
-//                reader.setMissingTilesAllowed(true);
+                // reader.setMissingTilesAllowed(true);
                 reader.setByteFiller((byte) 0x80);
-                if (reader instanceof TiffParser parser) {
-                    final CodecOptions codecOptions = new CodecOptions();
-                    codecOptions.maxBytes = 1000;
-                    parser.setCodecOptions(codecOptions);
-                }
 
 //                ((TiffParser) reader).setAssumeEqualStrips(true);
 //                reader.setCropTilesToImageBoundaries(false);
@@ -132,12 +112,11 @@ public class TiffReaderTest {
                 long t3 = System.nanoTime();
                 System.out.printf(
                         "Reading %s by %s: %.3f ms opening, %.3f ms reading IFDs " +
-                                "(position of first IFD offset: %d%s)%n",
+                                "(position of first IFD offset: %d)%n",
                         tiffFile, reader,
                         (t2 - t1) * 1e-6,
                         (t3 - t2) * 1e-6,
-                        fileOffsetOfLastIFDOffset,
-                        context == null ? "" : "; SCIFIO context " + context);
+                        fileOffsetOfLastIFDOffset);
                 if (numberOfIFDS == 0) {
                     System.out.println("No IFDs");
                     return;
@@ -147,16 +126,7 @@ public class TiffReaderTest {
                     ifdIndex = numberOfIFDS - 1;
                 }
                 final TiffReadMap map;
-                if (compatibility) {
-                    //noinspection deprecation
-                    map = reader.map(TiffParser.toTiffIFD(((TiffParser) reader).getIFDs().get(ifdIndex)));
-                } else {
-                    map = reader.map(ifdIndex);
-                }
-                if (compatibility) {
-                    map.setBitImageUnpackingMode(TiffMap.BitImageUnpackingMode.UNPACK_TO_0_1);
-                    // the same logic as in TiffParser.getSamples
-                }
+                map = reader.map(ifdIndex);
                 // map.setRarePrecisionMode(TiffMap.RarePrecisionMode.KEEP_RAW);
                 if (w < 0) {
                     w = Math.min(map.dimX(), MAX_IMAGE_DIM);
