@@ -26,7 +26,6 @@ package net.algart.matrices.tiff.demo.io;
 
 import net.algart.io.UnsupportedImageFormatException;
 import net.algart.matrices.tiff.TiffCreateMode;
-import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;

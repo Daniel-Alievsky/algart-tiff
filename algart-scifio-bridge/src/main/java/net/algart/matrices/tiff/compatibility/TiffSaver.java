@@ -33,7 +33,6 @@ import io.scif.util.FormatTools;
 import net.algart.matrices.tiff.tags.TagValue;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
-import net.algart.matrices.tiff.codecs.TiffCodec;
 import org.scijava.Context;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.DataHandleService;
@@ -490,7 +489,7 @@ public class TiffSaver extends TiffWriter {
                 writeIntValue(out, newOffset);
                 if (extraHandle.length() > 0) {
                     out.seek(newOffset);
-                    extraHandle.seek(0l);
+                    extraHandle.seek(0L);
                     DataHandles.copy(extraHandle, out, newCount);
                 }
                 return;
@@ -554,8 +553,6 @@ public class TiffSaver extends TiffWriter {
      * @param h          The height of the rectangle.
      * @param last       Pass {@code true} if it is the last image, {@code false}
      *                   otherwise.
-     * @throws FormatException
-     * @throws IOException
      */
     public void writeImage(final byte[] buf, final IFD ifd, final long planeIndex,
                            final int pixelType, final int x, final int y, final int w, final int h,

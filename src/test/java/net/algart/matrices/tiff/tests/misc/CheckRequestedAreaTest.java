@@ -25,7 +25,6 @@
 package net.algart.matrices.tiff.tests.misc;
 
 import net.algart.arrays.TooLargeArrayException;
-import net.algart.matrices.tiff.TooLargeTiffImageException;
 import net.algart.matrices.tiff.tiles.TiffMap;
 
 public class CheckRequestedAreaTest {

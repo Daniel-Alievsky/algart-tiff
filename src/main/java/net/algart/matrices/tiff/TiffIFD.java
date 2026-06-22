@@ -827,6 +827,7 @@ public final class TiffIFD {
      * @see TiffWriter#writeIFD(TiffIFD, boolean)
      * @see TiffWriter#completeWriting(TiffWriteMap)
      */
+    @SuppressWarnings("JavadocDeclaration")
     public TiffIFD assignFileOffsetOfIFDForWriting(long fileOffsetOfIFDForWriting) {
         if (fileOffsetOfIFDForWriting < 0) {
             throw new IllegalArgumentException("Negative IFD file offset: " + fileOffsetOfIFDForWriting);

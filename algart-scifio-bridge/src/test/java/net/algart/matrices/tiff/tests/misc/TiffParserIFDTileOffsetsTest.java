@@ -27,10 +27,7 @@ package net.algart.matrices.tiff.tests.misc;
 import io.scif.FormatException;
 import io.scif.formats.tiff.IFD;
 import net.algart.arrays.JArrays;
-import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.compatibility.TiffParser;
-import net.algart.matrices.tiff.tags.Tags;
 import org.scijava.Context;
 
 import java.io.IOException;

@@ -74,9 +74,6 @@ public non-sealed class TiffReader extends TiffIO {
     // (together with uncommenting unpackBytesLegacy call)
     private static final boolean AUTO_BUFFERING_INPUT_STREAM = true;
     // - should be true for good performance
-    private static final boolean READ_IFD_WITH_BUFFERING = true;
-    // - should be true for good performance when the stream is not ReadBufferDataHandle,
-    // for example, if the previous flag is false
 
 
     private static final int MINIMAL_ALLOWED_TIFF_FILE_LENGTH =
@@ -948,7 +945,7 @@ public non-sealed class TiffReader extends TiffIO {
             final ArrayList<TiffIFD> mainIFDs = new ArrayList<>();
 
             for (int i = 0; i < offsets.length; i++) {
-                final TiffIFD ifd = readIFD(offsets[i]);
+                final TiffIFD ifd = readIFDAt(offsets[i]);
                 assert ifd != null;
                 ifd.setGlobalIndexes(allIFDs.size(), i);
                 allIFDs.add(ifd);
@@ -964,7 +961,7 @@ public non-sealed class TiffReader extends TiffIO {
                 }
                 if (subOffsets != null) {
                     for (long subOffset : subOffsets) {
-                        final TiffIFD subIFD = readIFD(subOffset, false);
+                        final TiffIFD subIFD = readIFDAt(subOffset, false);
                         subIFD.setSubIFDType(Tags.SUB_IFD);
                         subIFD.setGlobalIndexes(allIFDs.size(), null);
                         allIFDs.add(subIFD);
@@ -1005,7 +1002,7 @@ public non-sealed class TiffReader extends TiffIO {
             return this.firstIFD;
         }
         final long offset = readFirstIFDOffset();
-        firstIFD = readIFD(offset);
+        firstIFD = readIFDAt(offset);
         firstIFD.setGlobalIndex(0);
         if (cachingIFDs) {
             this.firstIFD = firstIFD;
@@ -1029,117 +1026,10 @@ public non-sealed class TiffReader extends TiffIO {
     public Optional<TiffIFD> linkedIFD(TiffIFD ifd, int linkedIFDTag) throws IOException {
         Objects.requireNonNull(ifd, "Null IFD");
         return ifd.hasTag(linkedIFDTag) ?
-                Optional.of(readIFD(ifd.reqLong(linkedIFDTag), false).setSubIFDType(linkedIFDTag)) :
+                Optional.of(readIFDAt(ifd.reqLong(linkedIFDTag), false).setSubIFDType(linkedIFDTag)) :
                 Optional.empty();
     }
 
-
-    /**
-     * Returns the IFD with given index or throws an exception if the index is too high.
-     * Updates {@link #fileOffsetOfLastIFDOffset()} to position of this offset.
-     *
-     * <p>This method works only with {@link TiffIFD#isMainIFD() regular IFDs} (not sub-IFDs).
-     * So, this index must be in the range <code>0..{@link #numberOfMainIFDs()}-1</code>.</p>
-     *
-     * @param mainIFDIndex index of regular IFD (0, 1, ...).
-     * @return the selected IFD.
-     * @throws IllegalArgumentException if the index is negative.
-     * @throws TiffException            if the index is too high.
-     */
-    public TiffIFD readMainIFD(int mainIFDIndex) throws IOException {
-        long startOffset = readMainIFDOffset(mainIFDIndex);
-        assert startOffset >= 0;
-        // - note: we do not call setIndexInList(mainIFDIndex),
-        // becase this index will DIFFER from the index inside the allIFDs() list
-        return readIFD(startOffset);
-    }
-
-    /**
-     * Reads the IFD stored at the given offset.
-     * Never returns {@code null}.
-     */
-    public TiffIFD readIFD(long ifdOffset) throws IOException {
-        return readIFD(ifdOffset, true);
-    }
-
-    public TiffIFD readIFD(long ifdOffset, boolean readNextOffset) throws IOException {
-        if (ifdOffset < 0) {
-            throw new IllegalArgumentException("Negative IFD file offset = " + ifdOffset);
-        }
-        if (ifdOffset < sizeOfTiffHeader()) {
-            throw new IllegalArgumentException("Attempt to read IFD from too small start offset " + ifdOffset);
-        }
-        long t1 = debugTime();
-        long timeEntries = 0;
-        long timeArrays = 0;
-        final TiffIFD ifd;
-        final Map<Integer, Object> map = new LinkedHashMap<>();
-        final LinkedHashMap<Integer, TiffIFD.Entry> detailedEntries = new LinkedHashMap<>();
-        synchronized (fileLock()) {
-            final IFDCommonInformation info = prepareReadingIFD(ifdOffset);
-            final DataHandle<?> ifdStream;
-            if (READ_IFD_WITH_BUFFERING) {
-                final byte[] ifdBytes = new byte[info.sizeOfAllEntries()];
-                stream.readFully(ifdBytes);
-                ifdStream = getBytesHandle(ifdBytes, stream.isLittleEndian());
-            } else {
-                ifdStream = stream;
-            }
-            for (int i = 0, disp = 0; i < info.n(); i++, disp += info.sizeOfEntry()) {
-                long tEntry1 = debugTime();
-                final TiffIFD.Entry entry = readIFDEntry(
-                        ifdStream,
-                        READ_IFD_WITH_BUFFERING ? disp : disp + info.offsetOfFirstEntry(),
-                        READ_IFD_WITH_BUFFERING ? info.offsetOfFirstEntry() : 0,
-                        info.fileLength());
-                final int tag = entry.tag();
-                long tEntry2 = debugTime();
-                timeEntries += tEntry2 - tEntry1;
-
-                final Object value = readIFDValueAtEntryOffset(
-                        READ_IFD_WITH_BUFFERING ? ifdStream : stream,
-                        stream,
-                        READ_IFD_WITH_BUFFERING && entry.isDataEmbeddedInEntry(),
-                        info.offsetOfFirstEntry(),
-                        entry);
-                long tEntry3 = debugTime();
-                timeArrays += tEntry3 - tEntry2;
-//            System.err.printf("%d values from %d: %.6f ms%n", valueCount, valueOffset, (tEntry3 - tEntry2) * 1e-6);
-
-                if (value != null && !map.containsKey(tag)) {
-                    // - null value should not occur in the current version;
-                    // if this tag is present twice (strange mistake in a TIFF file),
-                    // we do not throw exception and just use the 1st entry
-                    map.put(tag, value);
-                    detailedEntries.put(tag, entry);
-                }
-            }
-            stream.seek(info.offsetOfNextIFDOffset());
-
-            ifd = new TiffIFD(map, detailedEntries);
-            ifd.setLoadedFromFile(true);
-            ifd.setLittleEndian(stream.isLittleEndian());
-            ifd.setBigTiff(bigTiff);
-            ifd.setFileOffsetOfIFD(ifdOffset);
-            if (readNextOffset) {
-                final long nextOffset = readIFDNextOffset(false);
-                ifd.setFileOffsetOfNextIFDOffset(info.offsetOfNextIFDOffset());
-                ifd.setNextIFDOffset(nextOffset);
-                stream.seek(info.offsetOfNextIFDOffset());
-                // - this "in.seek" provides maximal compatibility with old code (which did not read next IFD offset)
-                // and also with the behavior of this method, when readNextOffset is not requested
-            }
-        }
-
-        if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
-            long t2 = debugTime();
-            LOG.log(System.Logger.Level.TRACE, String.format(Locale.US,
-                    "%s read IFD at offset %d: %.3f ms, including %.6f entries + %.6f arrays",
-                    getClass().getSimpleName(), ifdOffset,
-                    (t2 - t1) * 1e-6, timeEntries * 1e-6, timeArrays * 1e-6));
-        }
-        return ifd;
-    }
 
     /**
      * Calls {@link #readTile(TiffTileIndex)} with the same argument with caching, if this was enabled

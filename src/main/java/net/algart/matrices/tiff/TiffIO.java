@@ -79,6 +79,10 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     // did not understand LONG8 values for some popular tags like image sizes.
     // In any case, real BigTIFF files usually store most tags in standard LONG type (32 bits), not in LONG8.
 
+    private static final boolean READ_IFD_WITH_BUFFERING = true;
+    // - should be true for good performance when the stream is not ReadBufferDataHandle,
+    // for example, if the previous flag is false
+
     final DataHandle<?> stream;
     private final Path filePath;
     private final Object fileLock = new Object();
@@ -203,6 +207,45 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     }
 
     /**
+     * Returns the byte length of the field containing the number of IFD entries.
+     * This corresponds to the size of the value read by {@link #readNumberOfIFDEntriesAt(long)}.
+     *
+     * @return 8 for Big-TIFF (long), 2 for standard TIFF (unsigned short).
+     */
+    public int sizeOfNumberOfIFDEntries() {
+        return bigTiff ? 8 : 2;
+    }
+
+    /**
+     * Returns the byte length of a single IFD entry based on the TIFF format version,
+     * depending on {@link #isBigTiff()} flag.
+     *
+     * @return 12 for standard TIFF, 20 for Big-TIFF.
+     */
+    public int sizeOfIFDEntry() {
+        return TiffIFD.Entry.sizeOfEntry(bigTiff);
+    }
+
+    /**
+     * Returns the total size in bytes of the IFD entries table (excluding the entry count
+     * and the next IFD offset fields).
+     *
+     * @param numberOfEntries the number of entries in the IFD.
+     * @return the total size of all IFD entries in bytes.
+     * @throws IllegalArgumentException if {@code numberOfEntries} is invalid or too large.
+     */
+    public int sizeOfAllIFDEntries(int numberOfEntries) {
+        if (numberOfEntries < 0) {
+            throw new IllegalArgumentException("Negative number of IFD entries: " + numberOfEntries);
+        }
+        if (numberOfEntries > TiffIFD.MAX_NUMBER_OF_IFD_ENTRIES) {
+            throw new IllegalArgumentException("Too many IFD entries: " + numberOfEntries);
+        }
+        return numberOfEntries * sizeOfIFDEntry();
+    }
+
+
+    /**
      * Returns the offset (position) in the file of the last scanned IFD offset.
      *
      * <p>For {@link TiffReader}, this is the position of the last IFD offset
@@ -232,6 +275,113 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
     public TiffReader newReader(TiffOpenMode openMode) throws IOException {
         return new TiffReader(stream, openMode, false);
+    }
+
+    /**
+     * Returns the IFD with given index or throws an exception if the index is too high.
+     * Updates {@link #fileOffsetOfLastIFDOffset()} to position of this offset.
+     *
+     * <p>This method works only with {@link TiffIFD#isMainIFD() regular IFDs} (not sub-IFDs).
+     * So, this index must be in the range <code>0..{@link TiffReader#numberOfMainIFDs()}-1</code>.</p>
+     *
+     * @param mainIFDIndex index of regular IFD (0, 1, ...).
+     * @return the selected IFD.
+     * @throws IllegalArgumentException if the index is negative.
+     * @throws TiffException            if the index is too high.
+     */
+    public TiffIFD readMainIFD(int mainIFDIndex) throws IOException {
+        long startOffset = readMainIFDOffset(mainIFDIndex);
+        assert startOffset >= 0;
+        // - note: we do not call setIndexInList(mainIFDIndex),
+        // becase this index will DIFFER from the index inside the allIFDs() list
+        return readIFDAt(startOffset);
+    }
+
+    /**
+     * Reads the IFD stored at the given offset.
+     * Never returns {@code null}.
+     */
+    public TiffIFD readIFDAt(long ifdOffset) throws IOException {
+        return readIFDAt(ifdOffset, true);
+    }
+
+    public TiffIFD readIFDAt(long ifdOffset, boolean readNextOffset) throws IOException {
+        if (ifdOffset < 0) {
+            throw new IllegalArgumentException("Negative IFD file offset = " + ifdOffset);
+        }
+        if (ifdOffset < sizeOfTiffHeader()) {
+            throw new IllegalArgumentException("Attempt to read IFD from too small start offset " + ifdOffset);
+        }
+        long t1 = debugTime();
+        long timeEntries = 0;
+        long timeArrays = 0;
+        final TiffIFD ifd;
+        final Map<Integer, Object> map = new LinkedHashMap<>();
+        final LinkedHashMap<Integer, TiffIFD.Entry> detailedEntries = new LinkedHashMap<>();
+        synchronized (fileLock()) {
+            final IFDCommonInformation info = prepareReadingIFD(ifdOffset);
+            final DataHandle<?> ifdStream;
+            if (READ_IFD_WITH_BUFFERING) {
+                final byte[] ifdBytes = new byte[info.sizeOfAllEntries()];
+                stream.readFully(ifdBytes);
+                ifdStream = getBytesHandle(ifdBytes, stream.isLittleEndian());
+            } else {
+                ifdStream = stream;
+            }
+            for (int i = 0, disp = 0; i < info.n(); i++, disp += info.sizeOfEntry()) {
+                long tEntry1 = debugTime();
+                final TiffIFD.Entry entry = readIFDEntry(
+                        ifdStream,
+                        READ_IFD_WITH_BUFFERING ? disp : disp + info.offsetOfFirstEntry(),
+                        READ_IFD_WITH_BUFFERING ? info.offsetOfFirstEntry() : 0,
+                        info.fileLength());
+                final int tag = entry.tag();
+                long tEntry2 = debugTime();
+                timeEntries += tEntry2 - tEntry1;
+
+                final Object value = readIFDValueAtEntryOffset(
+                        READ_IFD_WITH_BUFFERING ? ifdStream : stream,
+                        stream,
+                        READ_IFD_WITH_BUFFERING && entry.isDataEmbeddedInEntry(),
+                        info.offsetOfFirstEntry(),
+                        entry);
+                long tEntry3 = debugTime();
+                timeArrays += tEntry3 - tEntry2;
+//            System.err.printf("%d values from %d: %.6f ms%n", valueCount, valueOffset, (tEntry3 - tEntry2) * 1e-6);
+
+                if (value != null && !map.containsKey(tag)) {
+                    // - null value should not occur in the current version;
+                    // if this tag is present twice (strange mistake in a TIFF file),
+                    // we do not throw exception and just use the 1st entry
+                    map.put(tag, value);
+                    detailedEntries.put(tag, entry);
+                }
+            }
+            stream.seek(info.offsetOfNextIFDOffset());
+
+            ifd = new TiffIFD(map, detailedEntries);
+            ifd.setLoadedFromFile(true);
+            ifd.setLittleEndian(stream.isLittleEndian());
+            ifd.setBigTiff(bigTiff);
+            ifd.setFileOffsetOfIFD(ifdOffset);
+            if (readNextOffset) {
+                final long nextOffset = readIFDNextOffset(false);
+                ifd.setFileOffsetOfNextIFDOffset(info.offsetOfNextIFDOffset());
+                ifd.setNextIFDOffset(nextOffset);
+                stream.seek(info.offsetOfNextIFDOffset());
+                // - this "in.seek" provides maximal compatibility with old code (which did not read next IFD offset)
+                // and also with the behavior of this method, when readNextOffset is not requested
+            }
+        }
+
+        if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+            long t2 = debugTime();
+            LOG.log(System.Logger.Level.TRACE, String.format(Locale.US,
+                    "%s read IFD at offset %d: %.3f ms, including %.6f entries + %.6f arrays",
+                    getClass().getSimpleName(), ifdOffset,
+                    (t2 - t1) * 1e-6, timeEntries * 1e-6, timeArrays * 1e-6));
+        }
+        return ifd;
     }
 
     /**
@@ -424,49 +574,6 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             return ifdOffsets.stream().mapToLong(v -> v).toArray();
         }
     }
-
-    /**
-     * Returns the byte length of the field containing the number of IFD entries.
-     * This corresponds to the size of the value read by {@link #readNumberOfIFDEntriesAt(long)}.
-     *
-     * @return 8 for Big-TIFF (long), 2 for standard TIFF (unsigned short).
-     */
-    public int sizeOfNumberOfIFDEntries() {
-        return bigTiff ? 8 : 2;
-    }
-
-    /**
-     * Returns the byte length of a single IFD entry based on the TIFF format version,
-     * depending on {@link #isBigTiff()} flag.
-     *
-     * @return 12 for standard TIFF, 20 for Big-TIFF.
-     */
-    public int sizeOfIFDEntry() {
-        return TiffIFD.Entry.sizeOfEntry(bigTiff);
-    }
-
-    /**
-     * Returns the total size in bytes of the IFD entries table (excluding the entry count
-     * and the next IFD offset fields).
-     *
-     * @param numberOfEntries the number of entries in the IFD.
-     * @return the total size of all IFD entries in bytes.
-     * @throws IllegalArgumentException if {@code numberOfEntries} is invalid or too large.
-     */
-    public int sizeOfAllIFDEntries(int numberOfEntries) {
-        if (numberOfEntries < 0) {
-            throw new IllegalArgumentException("Negative number of IFD entries: " + numberOfEntries);
-        }
-        if (numberOfEntries > TiffIFD.MAX_NUMBER_OF_IFD_ENTRIES) {
-            throw new IllegalArgumentException("Too many IFD entries: " + numberOfEntries);
-        }
-        return numberOfEntries * sizeOfIFDEntry();
-    }
-
-    void setLastCodecReport(CodecReport lastCodecReport) {
-        this.lastCodecReport = lastCodecReport;
-    }
-
     public CodecReport lastCodecReport() {
         return lastCodecReport;
     }
@@ -523,6 +630,10 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             result += actuallyRead;
         }
         return result;
+    }
+
+    void setLastCodecReport(CodecReport lastCodecReport) {
+        this.lastCodecReport = lastCodecReport;
     }
 
     String spacedStreamName() {

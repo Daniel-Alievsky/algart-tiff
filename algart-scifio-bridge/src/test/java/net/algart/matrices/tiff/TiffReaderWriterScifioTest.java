@@ -24,9 +24,7 @@
 
 package net.algart.matrices.tiff;
 
-import org.scijava.Context;
 import org.scijava.io.handle.DataHandle;
-import org.scijava.io.location.BytesLocation;
 
 import java.io.IOException;
 

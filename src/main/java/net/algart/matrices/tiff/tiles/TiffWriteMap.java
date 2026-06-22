@@ -496,6 +496,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
      * @throws TiffException in the case of an invalid TIFF IFD.
      * @throws IOException   in the case of any I/O errors.
      */
+    @SuppressWarnings("JavadocDeclaration")
     public void writeMatrix(Matrix<? extends PArray> matrix) throws IOException {
         Objects.requireNonNull(matrix, "Null matrix");
         owner.resetTiming();
