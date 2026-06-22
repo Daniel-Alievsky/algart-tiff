@@ -52,7 +52,7 @@ public class TiffIFDAndIFDOffsetsTest {
         System.out.printf("Reading IFD #%d from %s...%n", ifdIndex, file);
 
         TiffReader reader = new TiffReader(file, TiffOpenMode.NO_CHECKS).setCachingIFDs(cache);
-        final int n1 = reader.readMainIFDOffsets(TiffIO.UpdatingLinkage.UPDATE, true).length;
+        final int n1 = reader.readMainIFDOffsets(TiffIO.LinkageUpdateMode.UPDATE, true).length;
         final int m = reader.allMaps().size();
         final int n2 = reader.mainIFDs().size();
         // - should not throw exception for an invalid file, for example, too short
@@ -68,7 +68,7 @@ public class TiffIFDAndIFDOffsetsTest {
 
         System.out.println("Analysing...");
         try {
-            reader.readFirstIFDOffset(TiffIO.UpdatingLinkage.UPDATE);
+            reader.readFirstIFDOffset(TiffIO.LinkageUpdateMode.UPDATE);
             // - should throw exception for an invalid file
             if (!reader.isValidTiff()) {
                 throw new AssertionError();
@@ -79,14 +79,14 @@ public class TiffIFDAndIFDOffsetsTest {
             System.out.printf("%nTest %d:%n", test);
 
             long t1 = System.nanoTime();
-            long[] offsets = reader.readMainIFDOffsets(TiffIO.UpdatingLinkage.UPDATE, true);
+            long[] offsets = reader.readMainIFDOffsets(TiffIO.LinkageUpdateMode.UPDATE, true);
             long t2 = System.nanoTime();
             System.out.printf(Locale.US,
                     "readMainIFDOffsets(): %s (%.6f mcs)%n", Arrays.toString(offsets), (t2 - t1) * 1e-3);
             System.out.printf("  Position of last IFD offset: %d%n", reader.fileOffsetOfLastIFDOffset());
 
             t1 = System.nanoTime();
-            OptionalLong offset = reader.readMainIFDOffsetIfPresent(ifdIndex, TiffIO.UpdatingLinkage.UPDATE);
+            OptionalLong offset = reader.readMainIFDOffsetIfPresent(ifdIndex, TiffIO.LinkageUpdateMode.UPDATE);
             t2 = System.nanoTime();
             System.out.printf(Locale.US,
                     "tryToReadMainIFDOffset(%d): %s (%.6f mcs)%n", ifdIndex, offset, (t2 - t1) * 1e-3);

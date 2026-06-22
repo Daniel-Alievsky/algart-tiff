@@ -788,7 +788,7 @@ public non-sealed class TiffReader extends TiffIO {
     /**
      * Returns <code>{@link #mainIFDs()}.size()</code>.
      * Note that this is the length of the array returned by
-     * {@link #readMainIFDOffsets(UpdatingLinkage)} method.
+     * {@link #readMainIFDOffsets(LinkageUpdateMode)} method.
      *
      * <p>Note: for maximum usability, this method returns 0 instead of throwing an exception
      * if there are any problems with the input file.
@@ -940,7 +940,7 @@ public non-sealed class TiffReader extends TiffIO {
                 return allIFDs;
             }
 
-            final long[] offsets = validTiff ? readMainIFDOffsets(UpdatingLinkage.UPDATE) : new long[0];
+            final long[] offsets = validTiff ? readMainIFDOffsets(LinkageUpdateMode.UPDATE) : new long[0];
             // - even if !validTiff, we MUST correctly fill allIFDs/mainIFDs fields
             allIFDs = new ArrayList<>();
             final ArrayList<TiffIFD> mainIFDs = new ArrayList<>();
@@ -1002,7 +1002,7 @@ public non-sealed class TiffReader extends TiffIO {
         if (cachingIFDs && firstIFD != null) {
             return this.firstIFD;
         }
-        final long offset = readFirstIFDOffset(UpdatingLinkage.NONE);
+        final long offset = readFirstIFDOffset(LinkageUpdateMode.NONE);
         firstIFD = readIFDAt(offset);
         firstIFD.setGlobalIndex(0);
         if (cachingIFDs) {
