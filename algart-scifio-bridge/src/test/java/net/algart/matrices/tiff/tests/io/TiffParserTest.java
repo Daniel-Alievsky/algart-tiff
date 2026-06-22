@@ -83,9 +83,6 @@ public class TiffParserTest {
             }
             //noinspection deprecation
             final TiffReadMap map = parser.map(TiffParser.toTiffIFD(parser.getIFDs().get(ifdIndex)));
-            map.setBitImageUnpackingMode(TiffMap.BitImageUnpackingMode.UNPACK_TO_0_1);
-            // the same logic as in TiffParser.getSamples
-            // map.setRarePrecisionMode(TiffMap.RarePrecisionMode.KEEP_RAW);
             if (w < 0) {
                 w = Math.min(map.dimX(), MAX_IMAGE_DIM);
             }
