@@ -50,6 +50,15 @@ public class TiffReaderTest {
     public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         boolean useContext = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-useContext")) {
+            useContext = true;
+            startArgIndex++;
+        }
+        boolean external = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-external")) {
+            external = true;
+            startArgIndex++;
+        }
         boolean interleave = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-interleave")) {
             interleave = true;
@@ -96,6 +105,9 @@ public class TiffReaderTest {
                     reader.setCaching(false);
                 }
                 reader.setContext(context);
+                if (external) {
+                    reader.setEnforceUseExternalCodec(true);
+                }
                 long t2 = System.nanoTime();
                 // reader.setEnforceUseExternalCodec(true);
                 // reader.setCachingIFDs(false);
