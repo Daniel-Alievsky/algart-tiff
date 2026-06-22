@@ -244,8 +244,10 @@ public class TiffParser extends TiffReader {
     }
 
 
+    /**
+     * Use {@link #allIFDs()} instead.
+     */
     @Deprecated
-    /** Use {@link #allIFDs()} instead. */
     public IFDList getIFDs() throws IOException {
         if (ifdList != null) return ifdList;
         final boolean doCaching = isCachingIFDs();
@@ -394,7 +396,7 @@ public class TiffParser extends TiffReader {
 
 
     /**
-     * Use {@link #readMainIFDOffsets()} instead.
+     * Use {@link #readMainIFDOffsets(UpdatingLinkage)} instead.
      */
     @Deprecated
     public long[] getIFDOffsets() throws IOException {
@@ -424,7 +426,8 @@ public class TiffParser extends TiffReader {
     }
 
     /**
-     * Use {@link #readFirstIFDOffset()} instead, together with {@link #isValidTiff()} check.
+     * Use {@link #readFirstIFDOffset(UpdatingLinkage)} instead,
+     * together with {@link #isValidTiff()} check.
      */
     @Deprecated
     public long getFirstOffset() throws IOException {

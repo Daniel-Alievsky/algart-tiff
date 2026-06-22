@@ -535,7 +535,7 @@ public non-sealed class TiffWriter extends TiffIO {
             if (fileOffsetOfLastIFDOffset == -1 || forceReload) {
                 long[] offsets = null;
                 try {
-                    offsets = readMainIFDOffsets(true);
+                    offsets = readMainIFDOffsets(UpdatingLinkage.UPDATE, true);
                     allUsedIFDOffsets.clear();
                     for (long offset : offsets) {
                         allUsedIFDOffsets.add(offset);
@@ -1061,7 +1061,7 @@ public non-sealed class TiffWriter extends TiffIO {
             } else {
                 @SuppressWarnings("resource") final TiffReader reader = newCompanionReader();
                 // - not companionReader(true): there is almost no reasons to reuse an existing reader
-                reader.readMainIFDOffset(mainIFDIndex);
+                reader.readMainIFDOffset(mainIFDIndex, UpdatingLinkage.UPDATE);
                 // - also checks that mainIFDIndex is not too high
                 fileOffset = reader.fileOffsetOfLastIFDOffset();
             }
@@ -1287,7 +1287,8 @@ public non-sealed class TiffWriter extends TiffIO {
      *                       and this was not detected while opening it.
      */
     public TiffIFD existingIFD(int mainIFDIndex, boolean assignFileOffsetForWriting) throws IOException {
-        final TiffIFD ifd = companionReader().readMainIFD(mainIFDIndex);
+        final TiffIFD ifd = readMainIFD(mainIFDIndex, UpdatingLinkage.NONE);
+        // - important: we MUST NOT update linkage here
         if (assignFileOffsetForWriting) {
             ifd.assignFileOffsetOfIFDForWriting(ifd.getFileOffsetOfIFD());
         }

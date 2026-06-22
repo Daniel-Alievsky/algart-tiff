@@ -116,50 +116,56 @@ public class TiffAnalyseMeanSimpleDemo {
     }
 
     private static double sumLowLevel(Object javaArray, int from, int to) {
-        if (javaArray instanceof byte[] a) {
-            long sum = 0;
-            for (int i = from; i < to; i++) {
-                byte v = a[i];
-                sum += v & 0xFF;
+        switch (javaArray) {
+            case byte[] a -> {
+                long sum = 0;
+                for (int i = from; i < to; i++) {
+                    byte v = a[i];
+                    sum += v & 0xFF;
+                }
+                return sum;
             }
-            return sum;
-        } else if (javaArray instanceof short[] a) {
-            long sum = 0;
-            for (int i = from; i < to; i++) {
-                short v = a[i];
-                sum += v & 0xFFFF;
+            case short[] a -> {
+                long sum = 0;
+                for (int i = from; i < to; i++) {
+                    short v = a[i];
+                    sum += v & 0xFFFF;
+                }
+                return sum;
             }
-            return sum;
-        } else if (javaArray instanceof int[] a) {
-            long sum = 0;
-            for (int i = from; i < to; i++) {
-                int v = a[i];
-                sum += v;
+            case int[] a -> {
+                long sum = 0;
+                for (int i = from; i < to; i++) {
+                    int v = a[i];
+                    sum += v;
+                }
+                return sum;
             }
-            return sum;
-        } else if (javaArray instanceof long[] a) {
-            double sum = 0;
-            for (int i = from; i < to; i++) {
-                long v = a[i];
-                sum += v;
+            case long[] a -> {
+                double sum = 0;
+                for (int i = from; i < to; i++) {
+                    long v = a[i];
+                    sum += v;
+                }
+                return sum;
             }
-            return sum;
-        } else if (javaArray instanceof float[] a) {
-            double sum = 0;
-            for (int i = from; i < to; i++) {
-                float v = a[i];
-                sum += v;
+            case float[] a -> {
+                double sum = 0;
+                for (int i = from; i < to; i++) {
+                    float v = a[i];
+                    sum += v;
+                }
+                return sum;
             }
-            return sum;
-        } else if (javaArray instanceof double[] a) {
-            double sum = 0;
-            for (int i = from; i < to; i++) {
-                double v = a[i];
-                sum += v;
+            case double[] a -> {
+                double sum = 0;
+                for (int i = from; i < to; i++) {
+                    double v = a[i];
+                    sum += v;
+                }
+                return sum;
             }
-            return sum;
-        } else {
-            throw new IllegalArgumentException("Unsupported array type: " + javaArray.getClass().getName());
+            default -> throw new IllegalArgumentException("Unsupported array type: " + javaArray.getClass().getName());
         }
     }
 }

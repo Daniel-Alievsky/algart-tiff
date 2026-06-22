@@ -167,19 +167,23 @@ public class TiffWriteMixedTest {
 //                    String.class, // - invalid type here should lead to exception
                 map.elementType(),
                 numberOfPixels * numberOfChannels);
-        if (samples instanceof byte[] a) {
-            int v = (int) (value * 255.0);
-            for (int i = 0; i < a.length; i++) {
-                a[i] = (byte) (i < numberOfPixels ? v : 3 * v);
-                // - by default, source data are always separated
+        switch (samples) {
+            case byte[] a -> {
+                int v = (int) (value * 255.0);
+                for (int i = 0; i < a.length; i++) {
+                    a[i] = (byte) (i < numberOfPixels ? v : 3 * v);
+                    // - by default, source data are always separated
+                }
             }
-        } else if (samples instanceof short[] a) {
-            int v = (int) (value * 65535.0);
-            for (int i = 0; i < a.length; i++) {
-                a[i] = (short) (i < numberOfPixels ? v : 3 * v);
+            case short[] a -> {
+                int v = (int) (value * 65535.0);
+                for (int i = 0; i < a.length; i++) {
+                    a[i] = (short) (i < numberOfPixels ? v : 3 * v);
+                }
             }
-        } else if (samples instanceof boolean[] booleans) {
-            Arrays.fill(booleans, value != 0.0);
+            case boolean[] booleans -> Arrays.fill(booleans, value != 0.0);
+            default -> {
+            }
         }
         return samples;
     }

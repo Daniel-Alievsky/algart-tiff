@@ -24,10 +24,7 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
-import net.algart.matrices.tiff.TiffException;
-import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.TiffOpenMode;
-import net.algart.matrices.tiff.TiffReader;
+import net.algart.matrices.tiff.*;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -55,7 +52,7 @@ public class TiffIFDAndIFDOffsetsTest {
         System.out.printf("Reading IFD #%d from %s...%n", ifdIndex, file);
 
         TiffReader reader = new TiffReader(file, TiffOpenMode.NO_CHECKS).setCachingIFDs(cache);
-        final int n1 = reader.readMainIFDOffsets(true).length;
+        final int n1 = reader.readMainIFDOffsets(TiffIO.UpdatingLinkage.UPDATE, true).length;
         final int m = reader.allMaps().size();
         final int n2 = reader.mainIFDs().size();
         // - should not throw exception for an invalid file, for example, too short
@@ -71,7 +68,7 @@ public class TiffIFDAndIFDOffsetsTest {
 
         System.out.println("Analysing...");
         try {
-            reader.readFirstIFDOffset();
+            reader.readFirstIFDOffset(TiffIO.UpdatingLinkage.UPDATE);
             // - should throw exception for an invalid file
             if (!reader.isValidTiff()) {
                 throw new AssertionError();
@@ -82,14 +79,14 @@ public class TiffIFDAndIFDOffsetsTest {
             System.out.printf("%nTest %d:%n", test);
 
             long t1 = System.nanoTime();
-            long[] offsets = reader.readMainIFDOffsets(true);
+            long[] offsets = reader.readMainIFDOffsets(TiffIO.UpdatingLinkage.UPDATE, true);
             long t2 = System.nanoTime();
             System.out.printf(Locale.US,
                     "readMainIFDOffsets(): %s (%.6f mcs)%n", Arrays.toString(offsets), (t2 - t1) * 1e-3);
             System.out.printf("  Position of last IFD offset: %d%n", reader.fileOffsetOfLastIFDOffset());
 
             t1 = System.nanoTime();
-            OptionalLong offset = reader.readMainIFDOffsetIfPresent(ifdIndex);
+            OptionalLong offset = reader.readMainIFDOffsetIfPresent(ifdIndex, TiffIO.UpdatingLinkage.UPDATE);
             t2 = System.nanoTime();
             System.out.printf(Locale.US,
                     "tryToReadMainIFDOffset(%d): %s (%.6f mcs)%n", ifdIndex, offset, (t2 - t1) * 1e-3);
