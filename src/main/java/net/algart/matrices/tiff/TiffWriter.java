@@ -526,6 +526,10 @@ public non-sealed class TiffWriter extends TiffIO {
         this.fileOffsetOfLastIFDOffset = -1;
     }
 
+    public void refreshLinkage() throws IOException {
+        refreshLinkage(false);
+    }
+
     public void refreshLinkage(boolean forceReload) throws IOException {
         synchronized (fileLock) {
             if (fileOffsetOfLastIFDOffset == -1 || forceReload) {
@@ -536,13 +540,16 @@ public non-sealed class TiffWriter extends TiffIO {
                     for (long offset : offsets) {
                         allUsedIFDOffsets.add(offset);
                     }
+                    LOG.log(System.Logger.Level.DEBUG, "Refreshing linkage: " +
+                            offsets.length + " IFDs found at offsets [" +
+                            JArrays.toString(offsets, ", ", 10000) +
+                            "], offset of the last IFD offset: " + fileOffsetOfLastIFDOffset);
                 } finally {
                     if (offsets == null) {
-                        // - the next call of this method will try to refresh linkage again
                         fileOffsetOfLastIFDOffset = -1;
+                        // - the next call to this method will try to refresh the linkage again
                     }
                 }
-                //TODO!! log; check the situation when the file is empty
             }
         }
     }

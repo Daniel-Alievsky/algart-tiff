@@ -147,6 +147,9 @@ public class TiffWriteMixedTest {
             // writer.writeJavaArray(map, samples, 0, 0, sizeX, sizeY);
             // - equivalent to previous 3 TiffWriter methods
             printReaderInfo(writer);
+            writer.invalidateLinkage();
+            writer.refreshLinkage();
+            // - should print log
 
             System.out.printf("Actually saved IFD:%n%s%n", ifd.toString(TiffIFD.StringFormat.DETAILED));
         }
