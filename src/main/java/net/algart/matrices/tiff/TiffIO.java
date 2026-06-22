@@ -55,7 +55,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
          */
         NONE,
         /**
-         * Automatically updates the field returned by {@link #fileOffsetOfLastIFDOffset()} method.
+         * Automatically updates the field tracked by the {@link #fileOffsetOfLastIFDOffset()} method.
          */
         UPDATE;
 
@@ -266,7 +266,6 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return numberOfEntries * sizeOfIFDEntry();
     }
 
-
     /**
      * Returns the offset (position) in the file of the last scanned IFD offset.
      *
@@ -274,9 +273,9 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * read by the {@link #readMainIFDOffsets(UpdatingLinkage)},
      * {@link #readMainIFDOffset(int, UpdatingLinkage)}, or
      * {@link #readFirstIFDOffset(UpdatingLinkage)} methods
-     * for the updating mode {@link UpdatingLinkage#UPDATE}.
+     * when using {@link UpdatingLinkage#UPDATE}.
      * The commonly used {@link TiffReader#allIFDs()} method calls
-     * {@link #readMainIFDOffsets(UpdatingLinkage)} internally,
+     * {@link #readMainIFDOffsets(UpdatingLinkage)} in this mode internally,
      * thus, this value will be equal to the offset of the actual last IFD present in the TIFF file.</p>
      *
      * <p>Immediately after creating a new {@link TiffReader} object, this method returns {@code -1}.</p>
@@ -302,7 +301,6 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return new TiffReader(stream, openMode, false);
     }
 
-
     /**
      * Returns the IFD with given index or throws an exception if the index is too high.
      * <i>Does not</i> update {@link #fileOffsetOfLastIFDOffset()}.
@@ -323,7 +321,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         long startOffset = readMainIFDOffset(mainIFDIndex, updatingLinkage);
         assert startOffset >= 0;
         // - note: we do not call setIndexInList(mainIFDIndex),
-        // becase this index will DIFFER from the index inside the allIFDs() list
+        // because this index will DIFFER from the index inside the allIFDs() list
         return readIFDAt(startOffset);
     }
 
@@ -519,14 +517,14 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * <p>Note: If {@code mainIFDIndex == 0}, this method is equivalent to
      * {@link #readFirstIFDOffset(UpdatingLinkage)},
-     * besides a different exception message if the TIFF file is empty.</p>
+     * apart from a different exception message if the TIFF file is empty.</p>
      *
      * @param mainIFDIndex index of the regular IFD (0, 1, ...).
      * @param updatingLinkage whether we need to update the field returned by {@link #fileOffsetOfLastIFDOffset()}.
      * @return the offset of this IFD in the file.
      * @throws IllegalArgumentException if the index is negative.
      * @throws TiffException            if the index is too high, the TIFF file is empty,
-     *                                  or if a corrupted structure or infinite loop is detected.
+     * or if a corrupted structure or infinite loop is detected.
      */
     public long readMainIFDOffset(int mainIFDIndex, UpdatingLinkage updatingLinkage) throws IOException {
         if (mainIFDIndex == 0) {
@@ -1367,7 +1365,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 skipIFDEntries(offset, fileLength);
                 offset = readIFDNextOffset(updatingLinkage);
                 // - for example, if count==1, and we have only 1 IFD, we still MUST call readIFDNextOffset
-                // to provide a correct fileOffsetOfLastIFDOffset
+                // to provide a valid fileOffsetOfLastIFDOffset
             }
             return resultIFDSet.stream().mapToLong(v -> v).toArray();
         }
