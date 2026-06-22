@@ -1287,7 +1287,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *                       and this was not detected while opening it.
      */
     public TiffIFD existingIFD(int mainIFDIndex, boolean assignFileOffsetForWriting) throws IOException {
-        final TiffIFD ifd = readMainIFD(mainIFDIndex);
+        final TiffIFD ifd = companionReader().readMainIFD(mainIFDIndex);
         if (assignFileOffsetForWriting) {
             ifd.assignFileOffsetOfIFDForWriting(ifd.getFileOffsetOfIFD());
         }

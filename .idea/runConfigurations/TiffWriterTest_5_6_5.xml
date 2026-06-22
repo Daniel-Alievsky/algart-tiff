@@ -2,7 +2,7 @@
   <configuration default="false" name="TiffWriterTest 5-6-5" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.tests.io.TiffWriterTest" />
     <module name="algart-tiff" />
-    <option name="PROGRAM_PARAMETERS" value="-resizable -color -quality=null -tiled /tmp/test.tiff 565 5 DEFLATE 0 0 -1 -1 5" />
+    <option name="PROGRAM_PARAMETERS" value="-resizable -color -quality=null -tiled /tmp/test.tiff 565 5 DEFLATE 0 0 -1 -1 1" />
     <option name="VM_PARAMETERS" value="-ea -esa -Dnet.algart.matrices.tiff.timing=true -Djava.util.logging.config.file=additional/logging.properties" />
     <method v="2">
       <option name="Make" enabled="true" />

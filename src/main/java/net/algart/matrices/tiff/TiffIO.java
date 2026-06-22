@@ -457,6 +457,23 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * or throws an exception if the index is too high.
      * Updates {@link #fileOffsetOfLastIFDOffset()} to the position of this offset.
      *
+     * <p><b>Important:</b> unlike {@link #readMainIFDOffsets()}, this method actually reads from the TIFF file
+     * <b>only</b> the first {@code mainIFDIndex+1} IFD offsets. For example, if {@code mainIFDIndex=1},
+     * it reads the offset O1 of IFD #0 at the file position P1=4
+     * and the "next IFD offset" field O2 inside this IFD at the file position<br>
+     * &nbsp;&nbsp;&nbsp;&nbsp;P2 = O1 + 2 + <i>n1</i> * 12<br>
+     * (where <i>n1</i> is the number of entries in the first IFD #0; we suppose that this file is not a Big-TIFF).
+     * The field returned by {@link #fileOffsetOfLastIFDOffset()} will be set to P2.
+     * In comparison, if this TIFF contains only these 2 IFDs, and we call {@link #readMainIFDOffsets()},
+     * we <b>will</b> read also the IFD offset O3 at the file position<br>
+     * &nbsp;&nbsp;&nbsp;&nbsp;P3 = O2 + 2 + <i>n2</i> * 12<br>
+     * (where <i>n1</i> is the number of entries in the second IFD #1).
+     * Although this offset O3=0 (because the latter IFD #1 is the last: zero offset indicates
+     * the last IFD in the file),
+     * we will actually read it, and the field returned by {@link #fileOffsetOfLastIFDOffset()} will be set to P3.
+     * Note that an attempt to call this method with {@code mainIFDIndex=number-of-IFDs} will throw
+     * an exception instead of returning the last zero offset.</p>
+     *
      * <p>This method works only with {@link TiffIFD#isMainIFD() regular IFDs} (main, not sub-IFDs).
      * So, this index must be in the range <code>0..{@link TiffReader#numberOfMainIFDs()}-1</code>.</p>
      *
@@ -498,6 +515,36 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         long[] ifdOffsets = readMainIFDOffsets(true, (long) mainIFDIndex + 1L);
         return mainIFDIndex < ifdOffsets.length ? OptionalLong.of(ifdOffsets[mainIFDIndex]) : OptionalLong.empty();
     }
+
+    private OptionalLong readMainIFDOffsetIfPresentDeprecated(int mainIFDIndex) throws IOException {
+        if (mainIFDIndex < 0) {
+            throw new IllegalArgumentException("Negative IFD index = " + mainIFDIndex);
+        }
+        synchronized (fileLock) {
+            final long fileLength = stream.length();
+            final OptionalLong first = readFirstIFDOffsetIfPresent(true);
+            if (first.isEmpty()) {
+                return OptionalLong.empty();
+            }
+            long offset = first.getAsLong();
+            int index = mainIFDIndex;
+            while (offset != 0) {
+                // - negative and too high offsets are checked inside low-level readOffset() method
+                if (index-- <= 0) {
+                    return OptionalLong.of(offset);
+                }
+                skipIFDEntries(offset, fileLength);
+                final long newOffset = readIFDNextOffset(true);
+                if (newOffset == offset) {
+                    throw new TiffException("TIFF file is broken - infinite loop of IFD offsets is detected " +
+                            "for offset " + offset);
+                }
+                offset = newOffset;
+            }
+            return OptionalLong.empty();
+        }
+    }
+
 
     /**
      * Equivalent to {@link #readMainIFDOffsets(boolean) readMainIFDOffsets(false)}.
@@ -1256,10 +1303,6 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                             resultIFDSet.stream().map(Object::toString).collect(Collectors.joining(", ")) +
                             ", " + offset + ", ...)");
                 }
-                skipIFDEntries(offset, fileLength);
-                offset = readIFDNextOffset(true);
-                // - for example, if count==1, and we have only 1 IFD, we still MUST call readIFDNextOffset
-                // to provide a correct fileOffsetOfLastIFDOffset
                 ++count;
                 if (count > MAX_NUMBER_OF_IFDS) {
                     throw new TiffException("Too many IFDs: more than " + MAX_NUMBER_OF_IFDS +
@@ -1268,6 +1311,10 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 if (count >= maxNumberOfIFDs) {
                     break;
                 }
+                skipIFDEntries(offset, fileLength);
+                offset = readIFDNextOffset(true);
+                // - for example, if count==1, and we have only 1 IFD, we still MUST call readIFDNextOffset
+                // to provide a correct fileOffsetOfLastIFDOffset
             }
             return resultIFDSet.stream().mapToLong(v -> v).toArray();
         }
@@ -1282,8 +1329,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
     private OptionalLong readFirstIFDOffsetIfPresent(boolean updateFileOffsetOfLastOffset) throws IOException {
         stream.seek(fileOffsetOfFirstIFDOffset());
-        final long offset = readIFDNextOffset(updateFileOffsetOfLastOffset);
-        return offset == 0 ? OptionalLong.empty() : OptionalLong.of(offset);
+        final long result = readIFDNextOffset(updateFileOffsetOfLastOffset);
+        return result == 0 ? OptionalLong.empty() : OptionalLong.of(result);
     }
 
     /**
@@ -1294,11 +1341,11 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      */
     long readIFDNextOffset(boolean updateFileOffsetOfLastOffset) throws IOException {
         final long fileOffsetOfNextOffset = stream.offset();
-        long offset = readOffset(stream, bigTiff, 0, stream.length(), this::streamName);
+        long result = readOffset(stream, bigTiff, 0, stream.length(), this::streamName);
         if (updateFileOffsetOfLastOffset) {
             this.fileOffsetOfLastIFDOffset = fileOffsetOfNextOffset;
         }
-        return offset;
+        return result;
     }
 
     private void skipIFDEntries(long ifdOffset, long fileLength) throws IOException {
