@@ -783,7 +783,7 @@ public final class TiffIFD {
      * {@link #assignFileOffsetOfIFDForWriting(long)},
      * in other words, if the <i>for-writing</i> position is set.
      *
-     * @return the <i>for-writing</i> position is set.
+     * @return {@code true} if the <i>for-writing</i> position is set; {@code false} otherwise.
      */
     public boolean isFileOffsetOfIFDForWritingAssigned() {
         return fileOffsetOfIFDForWriting >= 0;
@@ -824,7 +824,7 @@ public final class TiffIFD {
      * @param fileOffsetOfIFDForWriting the target file offset (must be even).
      * @return a reference to this IFD object.
      * @throws IllegalArgumentException if the offset is negative or odd.
-     * @see TiffWriter#writeIFD(TiffIFD, boolean)
+     * @see TiffWriter#writeIFD(TiffIFD, TiffIO.LinkageUpdateMode)
      * @see TiffWriter#completeWriting(TiffWriteMap)
      */
     @SuppressWarnings("JavadocDeclaration")

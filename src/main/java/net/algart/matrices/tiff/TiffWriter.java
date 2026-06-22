@@ -1283,7 +1283,8 @@ public non-sealed class TiffWriter extends TiffIO {
 
     /**
      * Reads IFD by
-     * <code>{@link #companionReader()}.{@link TiffReader#readMainIFD(int) readMainIFD(mainIFDIndex)}</code>,
+     * <code>{@link TiffReader#readMainIFD(int, LinkageUpdateMode)
+     * readMainIFD}(mainIFDIndex, {@link LinkageUpdateMode#NONE})</code>,
      * and, if the second argument is {@code true},
      * assigns its {@link TiffIFD#assignFileOffsetOfIFDForWriting(long) offset-for-writing}
      * to be equal to the {@link TiffIFD#getFileOffsetOfIFD()}.
@@ -1709,7 +1710,7 @@ public non-sealed class TiffWriter extends TiffIO {
             final TiffIFD ifd = ifds.get(mainIFDIndex - 1).copy();
             ifd.assignFileOffsetOfIFDForWriting(ifd.getFileOffsetOfIFD());
             if (mainIFDIndex == numberOfImages - 1) {
-                ifd.removeNextIFDOffset();
+                ifd.setLastIFD();
             } else {
                 ifd.setNextIFDOffset(ifds.get(mainIFDIndex + 1).getFileOffsetOfIFD());
             }
