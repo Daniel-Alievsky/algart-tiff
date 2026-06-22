@@ -56,6 +56,12 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     public static class CodecReport {
     }
 
+    /**
+     * If the number of IFDs in a TIFF file is greater than this limit, an exception will be thrown:
+     * it is mostly probable that it is a corrupted file.
+     */
+    public static final int MAX_NUMBER_OF_IFDS = 100_000_000;
+
     public static final int FILE_USUAL_MAGIC_NUMBER = 0x2a;
     public static final int FILE_BIG_TIFF_MAGIC_NUMBER = 0x2b;
     public static final int FILE_PREFIX_LITTLE_ENDIAN = 0x49;
@@ -446,17 +452,6 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         }
     }
 
-    public void checkFirstOffset() throws IOException {
-        synchronized (fileLock) {
-            final long savedOffset = stream.offset();
-            try {
-                readFirstIFDOffset(false);
-            } finally {
-                stream.seek(savedOffset);
-            }
-        }
-    }
-
     /**
      * Reads the file offset of the regular IFD with the given index
      * or throws an exception if the index is too high.
@@ -500,29 +495,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         if (mainIFDIndex < 0) {
             throw new IllegalArgumentException("Negative IFD index = " + mainIFDIndex);
         }
-        synchronized (fileLock) {
-            final long fileLength = stream.length();
-            final OptionalLong first = readFirstIFDOffsetIfPresent(true);
-            if (first.isEmpty()) {
-                return OptionalLong.empty();
-            }
-            long offset = first.getAsLong();
-            int index = mainIFDIndex;
-            while (offset != 0) {
-                // - negative and too high offsets are checked inside low-level readOffset() method
-                if (index-- <= 0) {
-                    return OptionalLong.of(offset);
-                }
-                skipIFDEntries(offset, fileLength);
-                final long newOffset = readIFDNextOffset(true);
-                if (newOffset == offset) {
-                    throw new TiffException("TIFF file is broken - infinite loop of IFD offsets is detected " +
-                            "for offset " + offset);
-                }
-                offset = newOffset;
-            }
-            return OptionalLong.empty();
-        }
+        long[] ifdOffsets = readMainIFDOffsets(true, (long) mainIFDIndex + 1L);
+        return mainIFDIndex < ifdOffsets.length ? OptionalLong.of(ifdOffsets[mainIFDIndex]) : OptionalLong.empty();
     }
 
     /**
@@ -551,30 +525,20 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @throws IOException   if an I/O error occurs.
      */
     public long[] readMainIFDOffsets(boolean allowNoIFDs) throws IOException {
+        return readMainIFDOffsets(allowNoIFDs, Long.MAX_VALUE);
+    }
+
+    public void checkFirstOffset() throws IOException {
         synchronized (fileLock) {
-            final long fileLength = stream.length();
-            long offset = allowNoIFDs ?
-                    readFirstIFDOffsetIfPresent(true).orElse(0L) :
-                    readFirstIFDOffset(true);
-            if (offset == 0) {
-                return new long[0];
+            final long savedOffset = stream.offset();
+            try {
+                readFirstIFDOffset(false);
+            } finally {
+                stream.seek(savedOffset);
             }
-            final LinkedHashSet<Long> ifdOffsets = new LinkedHashSet<>();
-            while (offset != 0) {
-                // - negative and too high offsets are checked inside low-level readOffset() method
-                final boolean wasNotPresent = ifdOffsets.add(offset);
-                if (!wasNotPresent) {
-                    throw new TiffException("TIFF file is broken - infinite loop of IFD offsets is detected " +
-                            "for offset " + offset + " (the stored ifdOffsets sequence is " +
-                            ifdOffsets.stream().map(Object::toString).collect(Collectors.joining(", ")) +
-                            ", " + offset + ", ...)");
-                }
-                skipIFDEntries(offset, fileLength);
-                offset = readIFDNextOffset(true);
-            }
-            return ifdOffsets.stream().mapToLong(v -> v).toArray();
         }
     }
+
     public CodecReport lastCodecReport() {
         return lastCodecReport;
     }
@@ -1268,6 +1232,44 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 writeZeroPadding(ifdStream, embeddedDataSize);
             }
             default -> throw writingUnsupportedTagException(tag, value);
+        }
+    }
+
+    private long[] readMainIFDOffsets(boolean allowNoIFDs, long maxNumberOfIFDs) throws IOException {
+        if (maxNumberOfIFDs <= 0) {
+            throw new IllegalArgumentException("maxNumberOfIFDs must be > 0");
+        }
+        synchronized (fileLock) {
+            final long fileLength = stream.length();
+            long offset = allowNoIFDs ?
+                    readFirstIFDOffsetIfPresent(true).orElse(0L) :
+                    readFirstIFDOffset(true);
+            final Set<Long> resultIFDSet = new LinkedHashSet<>();
+            // - LinkedHashSet provides a correct order for a possible error message about an infinite loop
+            long count = 0;
+            while (offset != 0) {
+                // - negative and too high offsets are checked inside low-level readOffset() method
+                final boolean wasNotPresent = resultIFDSet.add(offset);
+                if (!wasNotPresent) {
+                    throw new TiffException("TIFF file is broken - infinite loop of IFD offsets is detected " +
+                            "for offset " + offset + " (the stored ifdOffsets sequence is " +
+                            resultIFDSet.stream().map(Object::toString).collect(Collectors.joining(", ")) +
+                            ", " + offset + ", ...)");
+                }
+                skipIFDEntries(offset, fileLength);
+                offset = readIFDNextOffset(true);
+                // - for example, if count==1, and we have only 1 IFD, we still MUST call readIFDNextOffset
+                // to provide a correct fileOffsetOfLastIFDOffset
+                ++count;
+                if (count > MAX_NUMBER_OF_IFDS) {
+                    throw new TiffException("Too many IFDs: more than " + MAX_NUMBER_OF_IFDS +
+                            "; probably it is a corrupted file");
+                }
+                if (count >= maxNumberOfIFDs) {
+                    break;
+                }
+            }
+            return resultIFDSet.stream().mapToLong(v -> v).toArray();
         }
     }
 

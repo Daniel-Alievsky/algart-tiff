@@ -529,10 +529,20 @@ public non-sealed class TiffWriter extends TiffIO {
     public void refreshLinkage(boolean forceReload) throws IOException {
         synchronized (fileLock) {
             if (fileOffsetOfLastIFDOffset == -1 || forceReload) {
-                final long[] offsets = readMainIFDOffsets(true);
+                long[] offsets = null;
+                try {
+                    offsets = readMainIFDOffsets(true);
+                    allUsedIFDOffsets.clear();
+                    for (long offset : offsets) {
+                        allUsedIFDOffsets.add(offset);
+                    }
+                } finally {
+                    if (offsets == null) {
+                        // - the next call of this method will try to refresh linkage again
+                        fileOffsetOfLastIFDOffset = -1;
+                    }
+                }
                 //TODO!! log; check the situation when the file is empty
-                allUsedIFDOffsets.clear();
-                allUsedIFDOffsets.addAll(Arrays.stream(offsets).boxed().toList());
             }
         }
     }
