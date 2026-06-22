@@ -403,7 +403,7 @@ public non-sealed class TiffReader extends TiffIO {
      */
     public TiffReader clearCache() throws IOException {
         synchronized (tileCacheLock) {
-            synchronized (fileLock()) {
+            synchronized (fileLock) {
                 // Lock order: tileCacheLock -> fileLock; we should use the same order in all places!
                 clearTileCache();
                 this.allIFDs = null;
@@ -425,7 +425,7 @@ public non-sealed class TiffReader extends TiffIO {
 
     private void clearTileCache() {
         synchronized (tileCacheLock) {
-            synchronized (fileLock()) {
+            synchronized (fileLock) {
                 this.tileCacheMap.clear();
                 this.tileCache.clear();
                 this.currentCacheMemory = 0;
@@ -930,7 +930,7 @@ public non-sealed class TiffReader extends TiffIO {
     public List<TiffIFD> allIFDs() throws IOException {
         long t1 = debugTime();
         List<TiffIFD> allIFDs;
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             // - this synchronization is necessary for correct work of resetCache(),
             // and also it helps to be sure that the client will not try to read TIFF images
             // when all IFD are not fully loaded and checked
@@ -983,7 +983,7 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     public List<TiffIFD> mainIFDs() throws IOException {
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             allIFDs();
             return Collections.unmodifiableList(mainIFDs);
         }
@@ -1110,7 +1110,7 @@ public non-sealed class TiffReader extends TiffIO {
             return result;
         }
 
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             if (offset >= stream.length()) {
                 throw new TiffException("Offset of TIFF tile/strip " + offset + " is out of file length (tile " +
                         tileIndex + ")");
@@ -1491,7 +1491,7 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     private IOException startReading() {
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             try {
                 this.tiff = false;
                 this.bigTiff = false;

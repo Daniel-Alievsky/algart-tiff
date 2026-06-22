@@ -85,7 +85,6 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
     final DataHandle<?> stream;
     private final Path filePath;
-    private final Object fileLock = new Object();
 
     volatile boolean bigTiff = false;
     private volatile Object context = null;
@@ -93,6 +92,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
     volatile Object scifio = null;
     private volatile CodecReport lastCodecReport = null;
+
+    final Object fileLock = new Object();
 
     public TiffIO(DataHandle<?> stream) {
         this(stream, null);
@@ -121,7 +122,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
     /**
      * Returns the object used to synchronize access to the underlying file {@link #stream() stream}.
-     * Clients must synchronize on this object when performing manual IO operations to ensure thread safety.
+     * Clients must synchronize on this object when performing manual I/O operations to ensure thread safety.
      *
      * @return the lock object for synchronizing access to the stream.
      */
@@ -318,7 +319,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         final TiffIFD ifd;
         final Map<Integer, Object> map = new LinkedHashMap<>();
         final LinkedHashMap<Integer, TiffIFD.Entry> detailedEntries = new LinkedHashMap<>();
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             final IFDCommonInformation info = prepareReadingIFD(ifdOffset);
             final DataHandle<?> ifdStream;
             if (READ_IFD_WITH_BUFFERING) {
@@ -397,7 +398,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @throws TiffException if the number of entries is invalid or exceeds limits.
      */
     public int readNumberOfIFDEntriesAt(long ifdOffset) throws IOException {
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             if (ifdOffset < 0) {
                 throw new IllegalArgumentException("Negative IFD file offset = " + ifdOffset);
             }
@@ -423,7 +424,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *                       or if a corrupted structure or infinite loop is detected.
      */
     public long readFirstIFDOffset() throws IOException {
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             return readFirstIFDOffset(true);
         }
     }
@@ -440,13 +441,13 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @throws TiffException if a corrupted structure or infinite loop is detected.
      */
     public OptionalLong readFirstIFDOffsetIfPresent() throws IOException {
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             return readFirstIFDOffsetIfPresent(true);
         }
     }
 
     public void checkFirstOffset() throws IOException {
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             final long savedOffset = stream.offset();
             try {
                 readFirstIFDOffset(false);
@@ -499,7 +500,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         if (mainIFDIndex < 0) {
             throw new IllegalArgumentException("Negative IFD index = " + mainIFDIndex);
         }
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             final long fileLength = stream.length();
             final OptionalLong first = readFirstIFDOffsetIfPresent(true);
             if (first.isEmpty()) {
@@ -550,7 +551,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @throws IOException   if an I/O error occurs.
      */
     public long[] readMainIFDOffsets(boolean allowNoIFDs) throws IOException {
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             final long fileLength = stream.length();
             long offset = allowNoIFDs ?
                     readFirstIFDOffsetIfPresent(true).orElse(0L) :

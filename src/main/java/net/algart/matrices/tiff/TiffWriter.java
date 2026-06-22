@@ -214,7 +214,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * Returns whether we are writing little-endian data.
      */
     public boolean isLittleEndian() {
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             return stream.isLittleEndian();
         }
     }
@@ -228,7 +228,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *                     little-endian (<code>true</code>); default is <code>false</code>.
      */
     public TiffWriter setLittleEndian(final boolean littleEndian) {
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             stream.setLittleEndian(littleEndian);
         }
         return this;
@@ -527,7 +527,7 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     public void refreshLinkage(boolean forceReload) throws IOException {
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             if (fileOffsetOfLastIFDOffset == -1 || forceReload) {
                 final long[] offsets = readMainIFDOffsets(true);
                 //TODO!! log; check the situation when the file is empty
@@ -582,7 +582,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @throws IOException if an I/O error occurs.
      */
     public void open(boolean createIfNotExists) throws IOException {
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             invalidateCompanionReader();
             if (!stream.exists() || stream.length() == 0L) {
                 // - Important: we ALLOW appending to zero-length files.
@@ -639,7 +639,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @throws IOException if an I/O error occurs.
      */
     public void create() throws IOException {
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             invalidateCompanionReader();
             allUsedIFDOffsets.clear();
             stream.seek(0);
@@ -718,7 +718,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @return new or stored TIFF reader.
      */
     public TiffReader companionReader(boolean alwaysCreateNew) {
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             if (alwaysCreateNew || this.reader == null) {
                 try {
                     this.reader = newCompanionReader();
@@ -754,7 +754,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * method and are not important if you perform the linkage manually.</p>
      */
     public void invalidateCompanionReader() {
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             this.reader = null;
             // - No sense to clear usedIFDOffsets:
             // there are no reasons to remove previously saved elements from the set
@@ -875,7 +875,7 @@ public non-sealed class TiffWriter extends TiffIO {
      */
     public long writeIFD(TiffIFD ifd, boolean updateLinkageForNewIFD) throws IOException {
         Objects.requireNonNull(ifd, "Null IFD");
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             checkVirginFile();
             invalidateCompanionReader();
             final long ifdOffset;
@@ -984,7 +984,7 @@ public non-sealed class TiffWriter extends TiffIO {
         if (!ifd.isFileOffsetOfIFDForWritingAssigned()) {
             throw new IllegalArgumentException("Offset for writing IFD is not specified");
         }
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             checkVirginFile();
             invalidateCompanionReader();
 //            System.out.println("Using accurate rewriting");
@@ -1028,7 +1028,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *                               (<code>{@link #fileOffsetOfLastIFDOffset()}==-1</code>).
      */
     public void rewriteIFDOffset(int mainIFDIndex, long mainIFDOffset) throws IOException {
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             if (mainIFDIndex < 0) {
                 throw new IllegalArgumentException("Negative IFD index: " + mainIFDIndex);
             }
@@ -1065,7 +1065,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *                               (<code>{@link #fileOffsetOfLastIFDOffset()}==-1</code>).
      */
     public void rewriteLastIFDOffset(long newLastIFDOffset) throws IOException {
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             if (newLastIFDOffset < 0) {
                 throw new IllegalArgumentException("Negative new last IFD offset " + newLastIFDOffset);
             }
@@ -1117,7 +1117,7 @@ public non-sealed class TiffWriter extends TiffIO {
             return;
         }
         long t1 = debugTime();
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             checkVirginFile();
             invalidateCompanionReader();
             TiffTileIO.write(tile, stream, alwaysWriteToFileEnd, !bigTiff);
@@ -2220,7 +2220,7 @@ public non-sealed class TiffWriter extends TiffIO {
 
     private void writeIFDOffsetAt(long offsetValue, long fileOffsetToWrite, boolean updateFileOffsetOfLastIFDOffset)
             throws IOException {
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             // - to be on the safe side (this synchronization is not necessary)
             invalidateCompanionReader();
             final long savedFileOffset = stream.offset();
@@ -2238,13 +2238,13 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     private void seekToEnd() throws IOException {
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             stream.seek(stream.length());
         }
     }
 
     private void appendFileUntilEvenLength() throws IOException {
-        synchronized (fileLock()) {
+        synchronized (fileLock) {
             seekToEnd();
             appendUntilEvenOffset(stream);
         }
