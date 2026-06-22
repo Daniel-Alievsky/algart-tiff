@@ -303,10 +303,10 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * Never returns {@code null}.
      */
     public TiffIFD readIFDAt(long ifdOffset) throws IOException {
-        return readIFDAt(ifdOffset, true);
+        return readIFDAt(ifdOffset, false);
     }
 
-    public TiffIFD readIFDAt(long ifdOffset, boolean readNextOffset) throws IOException {
+    public TiffIFD readIFDAt(long ifdOffset, boolean skipReadingNextOffset) throws IOException {
         if (ifdOffset < 0) {
             throw new IllegalArgumentException("Negative IFD file offset = " + ifdOffset);
         }
@@ -365,7 +365,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             ifd.setLittleEndian(stream.isLittleEndian());
             ifd.setBigTiff(bigTiff);
             ifd.setFileOffsetOfIFD(ifdOffset);
-            if (readNextOffset) {
+            if (!skipReadingNextOffset) {
                 final long nextOffset = readIFDNextOffset(false);
                 ifd.setFileOffsetOfNextIFDOffset(info.offsetOfNextIFDOffset());
                 ifd.setNextIFDOffset(nextOffset);
