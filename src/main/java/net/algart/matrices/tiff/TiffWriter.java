@@ -1791,7 +1791,7 @@ public non-sealed class TiffWriter extends TiffIO {
             // - in other words, this.context is not set
             throw new UnsupportedTiffFormatException("Writing with TIFF compression " +
                     TagCompression.toPrettyString(ifd.optCompressionCode(TiffIFD.COMPRESSION_NONE)) +
-                    " is not supported without external codecs");
+                    " requires external codecs");
         }
         final Object compression;
         try {

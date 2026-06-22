@@ -24,17 +24,12 @@
 
 package net.algart.matrices.tiff.tests.io;
 
-import io.scif.FormatException;
-import io.scif.codec.CodecOptions;
-import io.scif.util.FormatTools;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PackedBitArrays;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
 import net.algart.matrices.tiff.codecs.JPEG2000Codec;
-import net.algart.matrices.tiff.compatibility.TiffParser;
-import net.algart.matrices.tiff.compatibility.TiffSaver;
 import net.algart.matrices.tiff.samples.TiffSampleType;
 import net.algart.matrices.tiff.samples.TiffSamples;
 import net.algart.matrices.tiff.tags.TagCompression;
@@ -83,11 +78,16 @@ public class TiffWriterTest {
         }
     }
 
-    public static void main(String... args) throws IOException, FormatException {
+    public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         boolean useContext = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-useContext")) {
             useContext = true;
+            startArgIndex++;
+        }
+        boolean external = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-external")) {
+            external = true;
             startArgIndex++;
         }
         boolean resizable = false;
@@ -197,23 +197,14 @@ public class TiffWriterTest {
             reverseBits = true;
             startArgIndex++;
         }
+        boolean noPrewrite = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-noPrewrite")) {
+            noPrewrite = true;
+            startArgIndex++;
+        }
         boolean thoroughTesting = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-thoroughTesting")) {
             thoroughTesting = true;
-            startArgIndex++;
-        }
-        boolean compatibility = false;
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-compatibility")) {
-            resizable = false;
-            // - TiffSaver does not support these features
-            compatibility = true;
-            useContext = true;
-            startArgIndex++;
-        }
-        boolean enforceExternal = false;
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-enforceExternal")) {
-            enforceExternal = true;
-            useContext = true;
             startArgIndex++;
         }
         if (args.length < startArgIndex + 2) {
@@ -276,25 +267,17 @@ public class TiffWriterTest {
                 numberOfTests);
 
         for (int test = 1; test <= numberOfTests; test++) {
-            if (compatibility && !existingFile) {
-                Files.deleteIfExists(targetFile);
-            }
             try (final Context context = !useContext ? null : (Context) TiffReader.newSCIFIOContext();
-                 final TiffWriter writer = compatibility ?
-                         new TiffSaver(context, targetFile.toString()) :
-                         new TiffWriter(targetFile)) {
-                if (!compatibility) {
-                    writer.setContext(context);
-                    // - if compatibility, context should be set by the constructor
+                 final TiffWriter writer = new TiffWriter(targetFile)) {
+                writer.setContext(context);
+                if (noPrewrite) {
+                    writer.setPrewritingAllowed(false);
                 }
-//                 TiffWriter writer = new TiffSaver(context, targetFile.toString())) {
-//                writer.setEnforceUseExternalCodec(true);
-//                writer.setWritingForwardAllowed(false);
                 writer.setBigTiff(bigTiff);
                 if (littleEndian) {
                     writer.setLittleEndian(true);
                 }
-                if (enforceExternal) {
+                if (external) {
                     writer.setEnforceUseExternalCodec(true);
                 }
                 writer.setCompressionQuality(quality);
@@ -311,12 +294,6 @@ public class TiffWriterTest {
                 writer.setTileInitializer(TiffWriterTest::customFillEmptyTile);
                 writer.setAlwaysWriteToFileEnd(alwaysToEnd);
                 writer.setMissingTilesAllowed(allowMissing);
-                if (writer instanceof TiffSaver saver) {
-                    CodecOptions codecOptions = new CodecOptions();
-                    codecOptions.bitsPerSample = 16;
-                    saver.setCodecOptions(codecOptions);
-                    // - should not have effect
-                }
                 System.out.printf("%nTest #%d/%d: %s %s%s by %s...%n",
                         test, numberOfTests,
                         existingFile ? "writing to" : "creating",
@@ -428,20 +405,14 @@ public class TiffWriterTest {
                     }
 
                     Object samplesArray = makeSamples(ifdIndex, map, customBitsPerSample, w, h);
-                    final boolean interleaved = !AUTO_INTERLEAVE_SOURCE
-                            || (writer instanceof TiffSaver && samplesArray instanceof byte[] && !planarSeparated);
+                    final boolean interleaved = !AUTO_INTERLEAVE_SOURCE;
                     if (interleaved) {
                         samplesArray = map.toInterleavedSamples(
                                 (byte[]) samplesArray, map.numberOfChannels(), (long) w * (long) h);
                     }
                     Matrix<UpdatablePArray> matrix = TiffSamples.asMatrix(
                             samplesArray, w, h, map.numberOfChannels(), interleaved);
-                    if (writer instanceof TiffSaver tiffSaver && samplesArray instanceof byte[] bytes) {
-                        System.out.println("Writing by TiffSaver.writeImage...");
-                        tiffSaver.writeImage(bytes, TiffParser.toScifioIFD(map.ifd(), null),
-                                ifdIndex, FormatTools.UINT8,
-                                x, y, w, h, k == numberOfImages - 1);
-                    } else if (x == 0 && y == 0) {
+                    if (x == 0 && y == 0) {
                         map.writeJavaArray(samplesArray);
                         // - This call shows detailed logging
                         // Note: we should use writeJavaArray if we want to test AUTO_INTERLEAVE_SOURCE=false:
