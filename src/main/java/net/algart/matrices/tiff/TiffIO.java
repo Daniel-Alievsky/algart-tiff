@@ -453,38 +453,40 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     }
 
     /**
-     * Reads the file offset of the regular IFD with the given index
-     * or throws an exception if the index is too high.
-     * Updates {@link #fileOffsetOfLastIFDOffset()} to the position of this offset.
+     * Reads the file offset of the regular IFD with the given index,
+     * or throws an exception if the index is out of bounds.
+     * Updates the position tracked by {@link #fileOffsetOfLastIFDOffset()} to the file position of this offset field.
      *
-     * <p><b>Important:</b> unlike {@link #readMainIFDOffsets()}, this method actually reads from the TIFF file
-     * <b>only</b> the first {@code mainIFDIndex+1} IFD offsets. For example, if {@code mainIFDIndex=1},
-     * it reads the offset O1 of IFD #0 at the file position P1=4
-     * and the "next IFD offset" field O2 inside this IFD at the file position<br>
+     * <p><b>Important:</b> unlike {@link #readMainIFDOffsets()}, this method reads <b>only</b>
+     * the first {@code mainIFDIndex+1} IFD offsets from the TIFF file. For example, if {@code mainIFDIndex=1},
+     * it reads the offset O1 of IFD #0 at file position P1&nbsp;=&nbsp;4,
+     * and the "next IFD offset" field O2 inside this IFD at file position:<br>
      * &nbsp;&nbsp;&nbsp;&nbsp;P2 = O1 + 2 + <i>n1</i> * 12<br>
-     * (where <i>n1</i> is the number of entries in the first IFD #0; we suppose that this file is not a Big-TIFF).
-     * The field returned by {@link #fileOffsetOfLastIFDOffset()} will be set to P2.
-     * In comparison, if this TIFF contains only these 2 IFDs, and we call {@link #readMainIFDOffsets()},
-     * we <b>will</b> read also the IFD offset O3 at the file position<br>
+     * (where <i>n1</i> is the number of entries in the first IFD #0; assuming this is
+     * a standard TIFF, not a Big-TIFF).
+     * The value returned by {@link #fileOffsetOfLastIFDOffset()} will be set to P2.</p>
+     *
+     * <p>In comparison, if the TIFF contains only these 2 IFDs, and we call {@link #readMainIFDOffsets()},
+     * we <b>will also</b> read the IFD offset O3 at file position:<br>
      * &nbsp;&nbsp;&nbsp;&nbsp;P3 = O2 + 2 + <i>n2</i> * 12<br>
-     * (where <i>n1</i> is the number of entries in the second IFD #1).
-     * Although this offset O3=0 (because the latter IFD #1 is the last: zero offset indicates
-     * the last IFD in the file),
-     * we will actually read it, and the field returned by {@link #fileOffsetOfLastIFDOffset()} will be set to P3.
-     * Note that an attempt to call this method with {@code mainIFDIndex=number-of-IFDs} will throw
-     * an exception instead of returning the last zero offset.</p>
+     * (where <i>n2</i> is the number of entries in the second IFD #1).
+     * Although this offset O3 is zero (since IFD #1 is the last one, and a zero offset indicates
+     * the end of the chain), it will still be read, and the value returned by
+     * {@link #fileOffsetOfLastIFDOffset()} will be set to P3.
+     * Note that calling this method with a {@code mainIFDIndex} equal to the total number of IFDs will throw
+     * an exception instead of returning this trailing zero offset.</p>
      *
      * <p>This method works only with {@link TiffIFD#isMainIFD() regular IFDs} (main, not sub-IFDs).
-     * So, this index must be in the range <code>0..{@link TiffReader#numberOfMainIFDs()}-1</code>.</p>
+     * Therefore, the index must be in the range <code>0..{@link TiffReader#numberOfMainIFDs()}-1</code>.</p>
      *
-     * <p>Note: if {@code mainIFDIndex==0}, this method is equivalent to {@link #readFirstIFDOffset()},
-     * besides another exception message in the case of an empty TIFF file.</p>
+     * <p>Note: If {@code mainIFDIndex == 0}, this method is equivalent to {@link #readFirstIFDOffset()},
+     * except for a different exception message if the TIFF file is empty.</p>
      *
-     * @param mainIFDIndex index of regular IFD (0, 1, ...).
-     * @return offset of this IFD in the file.
+     * @param mainIFDIndex index of the regular IFD (0, 1, ...).
+     * @return the offset of this IFD in the file.
      * @throws IllegalArgumentException if the index is negative.
-     * @throws TiffException            if the index is too high or if the TIFF file is empty,
-     *                                  or if a corrupted structure or infinite loop is detected.
+     * @throws TiffException            if the index is too high, the TIFF file is empty,
+     * or if a corrupted structure or infinite loop is detected.
      */
     public long readMainIFDOffset(int mainIFDIndex) throws IOException {
         if (mainIFDIndex == 0) {
