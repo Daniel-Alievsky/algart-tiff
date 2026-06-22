@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="TiffReadWriteTest" type="Application" factoryName="Application">
-    <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.tests.io.TiffReadWriteTest" />
+  <configuration default="false" name="TiffReadWriteCompatibilityTest" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.tests.io.TiffReadWriteCompatibilityTest" />
     <module name="algart-scifio-bridge" />
     <option name="PROGRAM_PARAMETERS" value="-useContext -compatibility /tmp/test.tiff /tmp/copy.tiff" />
     <option name="VM_PARAMETERS" value="-ea -esa -Dnet.algart.matrices.tiff.timing=true -Djava.util.logging.config.file=additional/logging.properties" />

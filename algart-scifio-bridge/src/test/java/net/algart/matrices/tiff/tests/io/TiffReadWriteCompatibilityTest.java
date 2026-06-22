@@ -53,7 +53,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class TiffReadWriteTest {
+public class TiffReadWriteCompatibilityTest {
     private static final int MAX_IMAGE_DIM = 8000;
     private static final int START_X = 0;
     private static final int START_Y = 0;
@@ -87,7 +87,7 @@ public class TiffReadWriteTest {
         }
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
-            System.out.println("    " + TiffReadWriteTest.class.getName()
+            System.out.println("    " + TiffReadWriteCompatibilityTest.class.getName()
                     + " source.tif target.tif [firstIFDIndex lastIFDIndex [numberOfTests]]");
             return;
         }
