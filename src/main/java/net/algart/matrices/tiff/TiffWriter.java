@@ -520,7 +520,7 @@ public non-sealed class TiffWriter extends TiffIO {
 
     public void invalidateLinkage() {
         synchronized (fileLock) {
-            LOG.log(System.Logger.Level.TRACE, () -> "Invalidating linkage: " + allUsedIFDOffsetToString());
+            LOG.log(System.Logger.Level.DEBUG, () -> "Invalidating linkage: " + allUsedIFDOffsetToString());
             this.fileOffsetOfLastIFDOffset = -1;
             this.allUsedIFDOffsets.clear();
         }
@@ -1990,6 +1990,10 @@ public non-sealed class TiffWriter extends TiffIO {
         final long previousFileOffsetOfLastIFDOffset = fileOffsetOfLastIFDOffset;
         // - save it, because it will be updated in writeIFDNextOffsetAt
         final boolean probablyVirginIFDForAppendingNewImages = !ifd.hasNextIFDOffset();
+        // - Optimization for writing sequential images.
+        // If this IFD is "virgin" (newly created for appending and not yet linked to anything),
+        // we can safely append it to the end of the file without invalidateLinkage():
+        // the correction of fileOffsetOfLastIFDOffset field inside writeIFDOffsetAt() will be enough.
         writeIFDOffsetAt(
                 ifd.getNextIFDOffsetOrTerminatorIfAbsent(),
                 fileOffsetOfNextOffset,
