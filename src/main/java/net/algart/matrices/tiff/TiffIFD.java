@@ -195,7 +195,10 @@ public final class TiffIFD {
         }
     }
 
-    public static final int LAST_IFD_OFFSET = 0;
+    /**
+     * This value in the {@link #getNextIFDOffset()} fields marks that this IFD is the last in the TIFF file.
+     */
+    public static final int IFD_CHAIN_TERMINATOR = 0;
 
     /**
      * Compression code for {@link TagCompression#NONE}.
@@ -862,8 +865,8 @@ public final class TiffIFD {
      *
      * @return whether this IFD is the last one in the TIFF file.
      */
-    public boolean isLastIFD() {
-        return nextIFDOffset == LAST_IFD_OFFSET;
+    public boolean isTerminatorIFD() {
+        return nextIFDOffset == IFD_CHAIN_TERMINATOR;
     }
 
     public long getNextIFDOffset() {
@@ -873,6 +876,11 @@ public final class TiffIFD {
         return nextIFDOffset;
     }
 
+    public long getNextIFDOffsetOrTerminatorIfAbsent() {
+        return nextIFDOffset < 0 ? IFD_CHAIN_TERMINATOR : nextIFDOffset;
+    }
+
+
     public TiffIFD setNextIFDOffset(long nextIFDOffset) {
         if (nextIFDOffset < 0) {
             throw new IllegalArgumentException("Negative next IFD offset: " + nextIFDOffset);
@@ -881,8 +889,8 @@ public final class TiffIFD {
         return this;
     }
 
-    public TiffIFD setLastIFD() {
-        return setNextIFDOffset(LAST_IFD_OFFSET);
+    public TiffIFD markAsTerminatorIFD() {
+        return setNextIFDOffset(IFD_CHAIN_TERMINATOR);
     }
 
     public TiffIFD removeNextIFDOffset() {
@@ -3212,7 +3220,7 @@ public final class TiffIFD {
                         fileOffsetOfIFDForWriting, fileOffsetOfIFDForWriting));
             }
             if (hasNextIFDOffset()) {
-                sb.append(isLastIFD() ? " END" : " @%d=0x%X".formatted(
+                sb.append(isTerminatorIFD() ? " END" : " @%d=0x%X".formatted(
                         nextIFDOffset, nextIFDOffset));
             }
         }

@@ -392,7 +392,7 @@ public class TiffWriterTest {
                         // (not necessary, it is just a choice for this demo)
                         if (breakOldChain) {
                             // - note: in this case the space in the previous file will be lost!
-                            ifd.setLastIFD();
+                            ifd.markAsTerminatorIFD();
                         }
                         map = writer.existingMap(ifd);
                         if (preserveOldAccurately) {

@@ -1565,6 +1565,7 @@ public non-sealed class TiffReader extends TiffIO {
                         " bytes (a valid TIFF must contain at least " + MINIMAL_ALLOWED_TIFF_FILE_LENGTH +
                         " bytes); probably the TIFF writing process was not completed normally");
             }
+            this.fileOpen = true;
 
             // Note: in old versions, before 13.Nov.2025, the following code was executed here:
             //
@@ -1650,7 +1651,7 @@ public non-sealed class TiffReader extends TiffIO {
                 return -1;
             }
             final TiffIFD ifd = tileIndex.ifd();
-            if (offset > 0 && ifd.cachedTileOrStripByteCountLength() == 1 && ifd.isLastIFD()) {
+            if (offset > 0 && ifd.cachedTileOrStripByteCountLength() == 1 && ifd.isTerminatorIFD()) {
                 // (so, byteCount == 0): a rare case:
                 // some TIFF files have only one IFD with one tile with zero StripByteCounts,
                 // that means that we must use all space in the file

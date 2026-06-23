@@ -110,6 +110,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     volatile boolean bigTiff = false;
     private volatile Object context = null;
     volatile long fileOffsetOfLastIFDOffset = -1;
+    volatile boolean fileOpen = false;
 
     volatile Object scifio = null;
     private volatile CodecReport lastCodecReport = null;
@@ -301,6 +302,14 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      */
     public long fileOffsetOfLastIFDOffset() {
         return fileOffsetOfLastIFDOffset;
+    }
+
+    public void checkFileOpen() {
+        if (!fileOpen) {
+            throw new IllegalStateException(getClass().getSimpleName() + " is " +
+                    (this instanceof TiffWriter ? "not yet created / opened for writing, or it is " : "") +
+                    "already closed: " + streamName());
+        }
     }
 
     public TiffReader newReader(TiffOpenMode openMode) throws IOException {
@@ -665,6 +674,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     public void close() throws IOException {
         synchronized (fileLock) {
             stream.close();
+            fileOpen = false;
         }
     }
 
