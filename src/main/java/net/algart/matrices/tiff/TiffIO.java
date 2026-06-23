@@ -308,20 +308,21 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     }
 
     /**
-     * Returns the IFD with given index or throws an exception if the index is out of bounds.
+     * Returns the IFD with the given index or throws an exception if the index is out of bounds.
      *
-     * <p>If the 2nd argument is {@link LinkageUpdateMode#UPDATE}, this method
+     * <p>If the {@code linkageUpdateMode} argument is {@link LinkageUpdateMode#UPDATE}, this method
      * updates the position tracked by {@link #fileOffsetOfLastIFDOffset()}
-     * to the stored file offset of the offset of this IFD. It is performed inside the call</p>
+     * to the stored file offset of the offset of this IFD. This update is performed inside the call:</p>
      * <pre>
      *     long ifdOffset = {@link #readMainIFDOffset(int, LinkageUpdateMode)
-     *     readMainIFDOffset}(mainIFDIndex, linkageUpdateMode)</pre>
-     * <p>After this call, the {@link #readIFDAt(long) readIFDAt(ifdOffset)} is used to read the IFD.</p>
+     *     readMainIFDOffset}(mainIFDIndex, linkageUpdateMode);</pre>
+     *
+     * <p>After this call, the {@link #readIFDAt(long)} method is used to read the IFD.</p>
      *
      * <p>This method works only with {@link TiffIFD#isMainIFD() regular IFDs} (not sub-IFDs).
-     * So, this index must be in the range <code>0..{@link TiffReader#numberOfMainIFDs()}-1</code>.</p>
+     * Therefore, this index must be in the range {@code 0..}{@link TiffReader#numberOfMainIFDs()}{@code -1}.</p>
      *
-     * @param mainIFDIndex      index of regular IFD (0, 1, ...).
+     * @param mainIFDIndex      index of the regular IFD (0, 1, ...).
      * @param linkageUpdateMode specifies whether to update the value tracked by {@link #fileOffsetOfLastIFDOffset()}.
      * @return the selected IFD.
      * @throws IllegalArgumentException if the index is negative.
@@ -569,7 +570,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * or an empty value if the index is too high or the file contains no images.
      * @throws IllegalArgumentException if the index is negative.
      * @throws TiffException            if a corrupted structure or infinite loop is detected.
-     * @throws IOException if an I/O error occurs.
+     * @throws IOException              if an I/O error occurs.
      */
     public OptionalLong readMainIFDOffsetIfPresent(int mainIFDIndex, LinkageUpdateMode linkageUpdateMode)
             throws IOException {
