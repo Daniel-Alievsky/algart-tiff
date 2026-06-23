@@ -318,6 +318,26 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
     /**
      * Returns the IFD with the given index or throws an exception if the index is out of bounds.
+     * Equivalent to
+     * <pre>
+     *     {@link #readMainIFD(int, LinkageUpdateMode)
+     * readMainIFD}(mainIFDIndex, {@link LinkageUpdateMode#NONE})</pre>
+     *
+     * <p>This method works only with {@link TiffIFD#isMainIFD() regular IFDs} (not sub-IFDs).
+     * Therefore, this index must be in the range {@code 0..}{@link TiffReader#numberOfMainIFDs()}{@code -1}.</p>
+     *
+     * @param mainIFDIndex index of the regular IFD (0, 1, ...).
+     * @return the selected IFD.
+     * @throws IllegalArgumentException if the index is negative.
+     * @throws TiffException            if the index is too high.
+     * @throws IOException              if an I/O error occurs.
+     */
+    public TiffIFD readMainIFD(int mainIFDIndex) throws IOException {
+        return readMainIFD(mainIFDIndex, LinkageUpdateMode.NONE);
+    }
+
+    /**
+     * Returns the IFD with the given index or throws an exception if the index is out of bounds.
      *
      * <p>If the {@code linkageUpdateMode} argument is {@link LinkageUpdateMode#UPDATE}, this method
      * updates the position tracked by {@link #fileOffsetOfLastIFDOffset()}
@@ -653,17 +673,6 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      */
     public long[] readMainIFDOffsets(LinkageUpdateMode linkageUpdateMode, boolean allowNoIFDs) throws IOException {
         return readMainIFDOffsets(linkageUpdateMode, allowNoIFDs, Long.MAX_VALUE);
-    }
-
-    public void checkFirstOffset() throws IOException {
-        synchronized (fileLock) {
-            final long savedOffset = stream.offset();
-            try {
-                readFirstIFDOffset(LinkageUpdateMode.NONE);
-            } finally {
-                stream.seek(savedOffset);
-            }
-        }
     }
 
     public CodecReport lastCodecReport() {
@@ -1416,6 +1425,22 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             this.fileOffsetOfLastIFDOffset = fileOffsetOfNextOffset;
         }
         return result;
+    }
+
+    void checkFirstOffset() throws IOException {
+        synchronized (fileLock) {
+            final long savedOffset = stream.offset();
+            try {
+                readFirstIFDOffset(LinkageUpdateMode.NONE);
+            } finally {
+                try {
+                    stream.seek(savedOffset);
+                    // - usually cannot throw an exception;
+                    // in the worst case, we will stay at the position after the first IFD offset
+                } catch (IOException ignored) {
+                }
+            }
+        }
     }
 
     private void skipIFDEntries(long ifdOffset, long fileLength) throws IOException {

@@ -1267,8 +1267,7 @@ public non-sealed class TiffWriter extends TiffIO {
 
     /**
      * Reads IFD by
-     * <code>{@link TiffReader#readMainIFD(int, LinkageUpdateMode)
-     * readMainIFD}(mainIFDIndex, {@link LinkageUpdateMode#NONE})</code>,
+     * <code>{@link TiffReader#readMainIFD(int) readMainIFD}(mainIFDIndex)</code>,
      * and, if the second argument is {@code true},
      * assigns its {@link TiffIFD#assignFileOffsetOfIFDForWriting(long) offset-for-writing}
      * to be equal to the {@link TiffIFD#getFileOffsetOfIFD()}.
@@ -1282,7 +1281,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *                       and this was not detected while opening it.
      */
     public TiffIFD existingIFD(int mainIFDIndex, boolean assignFileOffsetForWriting) throws IOException {
-        final TiffIFD ifd = readMainIFD(mainIFDIndex, LinkageUpdateMode.NONE);
+        final TiffIFD ifd = readMainIFD(mainIFDIndex);
         // - important: we MUST NOT update linkage here
         if (assignFileOffsetForWriting) {
             ifd.assignFileOffsetOfIFDForWriting(ifd.getFileOffsetOfIFD());

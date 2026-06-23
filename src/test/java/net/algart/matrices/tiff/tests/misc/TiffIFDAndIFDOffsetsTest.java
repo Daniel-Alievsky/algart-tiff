@@ -119,14 +119,14 @@ public class TiffIFDAndIFDOffsetsTest {
             System.out.printf("  Position of last IFD offset: %d%n", reader.fileOffsetOfLastIFDOffset());
 
             t1 = System.nanoTime();
-            TiffIFD firstIFD = reader.firstIFD();
+            TiffIFD firstIFD = reader.readMainIFD(0);
             t2 = System.nanoTime();
 //        IFD firstIFD = new TiffParser(new SCIFIO().getContext(), new FileLocation(file.toFile())).getFirstIFD();
-            System.out.printf(Locale.US, "firstIFD(): %s (%.6f mcs)%n", firstIFD, (t2 - t1) * 1e-3);
+            System.out.printf(Locale.US, "readMainIFD(0): %s (%.6f mcs)%n", firstIFD, (t2 - t1) * 1e-3);
             System.out.printf("  Position of last IFD offset: %d%n", reader.fileOffsetOfLastIFDOffset());
 
             t1 = System.nanoTime();
-            TiffIFD ifd = reader.readMainIFD(ifdIndex, TiffIO.LinkageUpdateMode.NONE);
+            TiffIFD ifd = reader.readMainIFD(ifdIndex);
             t2 = System.nanoTime();
             System.out.printf(Locale.US,
                     "readMainIFD(%d): %s (%.6f mcs)%n", ifdIndex, ifd, (t2 - t1) * 1e-3);

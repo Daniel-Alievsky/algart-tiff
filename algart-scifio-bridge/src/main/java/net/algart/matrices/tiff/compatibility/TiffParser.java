@@ -441,7 +441,7 @@ public class TiffParser extends TiffReader {
     }
 
     /**
-     * Use {@link #firstIFD()} instead, together with {@link #isValidTiff()} check.
+     * Use {@link #allIFDs()} or {@link #readMainIFD(int)} instead, together with {@link #isValidTiff()} check.
      */
     @Deprecated
     public IFD getFirstIFD() throws IOException {

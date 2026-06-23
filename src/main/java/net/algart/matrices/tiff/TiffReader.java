@@ -990,28 +990,6 @@ public non-sealed class TiffReader extends TiffIO {
         }
     }
 
-    /**
-     * Reads 1st IFD (#0).
-     *
-     * <p>Note: this method <i>does not</i> use {@link #allIFDs()} method.
-     * If you really need access only to the first IFD,
-     * this method may work faster than {@link #ifd(int)}.
-     */
-    public TiffIFD firstIFD() throws IOException {
-        TiffIFD firstIFD = this.firstIFD;
-        if (cachingIFDs && firstIFD != null) {
-            return this.firstIFD;
-        }
-        final long offset = readFirstIFDOffset(LinkageUpdateMode.NONE);
-        firstIFD = readIFDAt(offset);
-        firstIFD.setGlobalIndex(0);
-        if (cachingIFDs) {
-            this.firstIFD = firstIFD;
-        }
-        return firstIFD;
-    }
-
-
     public Optional<TiffIFD> exifIFD(TiffIFD ifd) throws IOException {
         return linkedIFD(ifd, Tags.EXIF_IFD);
     }
