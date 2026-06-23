@@ -84,8 +84,9 @@ public class TiffWriteMixedTest {
             writer.create();
             writer.create(); // - not a problem to call twice
             System.out.printf("fileOffsetOfLastIFDOffset after creating: %d%n", writer.fileOffsetOfLastIFDOffset());
-            writer.refreshLinkage(true);
-            System.out.printf("fileOffsetOfLastIFDOffset after reloading: %d%n", writer.fileOffsetOfLastIFDOffset());
+            writer.invalidateLinkage();
+            writer.refreshLinkage();
+            System.out.printf("fileOffsetOfLastIFDOffset after refresh: %d%n", writer.fileOffsetOfLastIFDOffset());
 
             // writer.reader().input().setLength(0); // - throws an exception (read-only
             TiffIFD ifd = TiffIFD.newInstance();
@@ -135,6 +136,8 @@ public class TiffWriteMixedTest {
             System.out.printf("%d completed tiles written%n", n);
             // - frees the memory (almost do not affect results)
             printReaderInfo(writer);
+            writer.invalidateLinkage();
+            writer.refreshLinkage();
             n = map.completeWriting();
             System.out.printf("1st: %d tiles written while the final completion%n", n);
             n = writer.completeWriting(map);

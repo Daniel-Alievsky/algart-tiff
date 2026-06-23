@@ -518,49 +518,120 @@ public non-sealed class TiffWriter extends TiffIO {
         return this;
     }
 
-    public Set<Long> allUsedIFDOffsets() {
-        return Collections.unmodifiableSet(allUsedIFDOffsets);
-    }
-
     public void invalidateLinkage() {
-        this.fileOffsetOfLastIFDOffset = -1;
+        synchronized (fileLock) {
+            LOG.log(System.Logger.Level.DEBUG, () -> "Invalidating linkage: " + allUsedIFDOffsetToString());
+            this.fileOffsetOfLastIFDOffset = -1;
+            this.allUsedIFDOffsets.clear();
+        }
     }
 
     public void refreshLinkage() throws IOException {
-        refreshLinkage(false);
-    }
-
-    public void refreshLinkage(boolean forceReload) throws IOException {
         synchronized (fileLock) {
-            if (fileOffsetOfLastIFDOffset == -1 || forceReload) {
-                long[] offsets = null;
+            if (fileOffsetOfLastIFDOffset == -1) {
+                boolean success = false;
+                final long savedOffset = stream.offset();
                 try {
-                    offsets = readMainIFDOffsets(LinkageUpdateMode.UPDATE, true);
+                    final long[] offsets = readMainIFDOffsets(LinkageUpdateMode.UPDATE, true);
                     allUsedIFDOffsets.clear();
                     for (long offset : offsets) {
                         allUsedIFDOffsets.add(offset);
                     }
-                    LOG.log(System.Logger.Level.DEBUG, "Refreshing linkage: " +
-                            offsets.length + " IFDs found at offsets [" +
-                            JArrays.toString(offsets, ", ", 10000) +
-                            "], offset of the last IFD offset: " + fileOffsetOfLastIFDOffset);
+                    LOG.log(System.Logger.Level.DEBUG, () -> "Refreshing linkage: " + allUsedIFDOffsetToString());
+                    stream.seek(savedOffset);
+                    success = true;
                 } finally {
-                    if (offsets == null) {
+                    if (!success) {
                         fileOffsetOfLastIFDOffset = -1;
                         // - the next call to this method will try to refresh the linkage again
+                        try {
+                            stream.seek(savedOffset);
+                        } catch (Exception ignored) {
+                        }
                     }
                 }
             }
         }
     }
 
-    public boolean isLastMapPrewritten() {
-        return lastMapPrewritten;
+    public Set<Long> allUsedIFDOffsets() {
+        return Collections.unmodifiableSet(allUsedIFDOffsets);
     }
 
-    public TiffWriter resetLastMapPrewritten() {
-        this.lastMapPrewritten = false;
-        return this;
+    /**
+     * Clears the reference to the "companion" TIFF reader stored inside this object
+     * and returned by {@link #companionReader()} method.
+     * Ensures that the next call of {@link #companionReader()} will create a new reader.
+     * Usually you don't need to call this method because it is called automatically.
+     *
+     * <p>Note: this method <i>does not</i> clear the offsets, stored in {@link #allUsedIFDOffsets()}.
+     * These offsets are used only for automatic IFD linkage by {@link #writeIFD(TiffIFD, LinkageUpdateMode)}
+     * method and are not important if you perform the linkage manually.</p>
+     */
+    public void invalidateCompanionReader() {
+        synchronized (fileLock) {
+            this.reader = null;
+        }
+    }
+
+    public TiffReader companionReader() {
+        return companionReader(false);
+    }
+
+    /**
+     * Returns the "companion" TIFF reader for reading the same file stream {@link #stream()} used by this object.
+     * You <b>don't need</b> to close it: this stream will be closed when closing this writer.
+     *
+     * <p>The returned reference is stored inside this object, and will be returned by further calls
+     * of this method, unless you set <code>alwaysCreateNew=true</code> while a further call.
+     * However, the stored reference is cleared to {@code null} by {@link #invalidateCompanionReader()} method
+     * (so that the following call of this method will re-create the reader) in the following cases:
+     *
+     * <ul>
+     *     <li>opening/creating the TIFF file via {@link #create()}, {@link #open(boolean)}
+     *     and equivalent methods;</li>
+     *     <li>writing IFD into the file;</li>
+     *     <li>writing a tile into the file ({@link #writeEncodedTile(TiffTile, boolean)} method);</li>
+     *     <li>correction of the IFD offset by {@link #rewriteIFDOffset(int, long)} or
+     *     {@link #rewriteLastIFDOffset(long)} method.</li>
+     * </ul>
+     *
+     * <p>This reader is created in {@link TiffOpenMode#NO_CHECKS} mode.
+     * Caching in the reader is disabled by
+     * {@link TiffReader#setCaching(boolean) setCaching(false)}: usually this reader
+     * should be used while you are modifying the TIFF, so the caching has no sense.
+     * (As noted above, any writing to the TIFF will destroy the stored reader together with
+     * all cached tiles.)
+     * But you can enable caching when you finish the writing.
+     *
+     * @param alwaysCreateNew whether you need to ignore the previously created reader (it if exists)
+     *                        and create a new one.
+     * @return new or stored TIFF reader.
+     */
+    public TiffReader companionReader(boolean alwaysCreateNew) {
+        synchronized (fileLock) {
+            if (alwaysCreateNew || this.reader == null) {
+                try {
+                    this.reader = newCompanionReader();
+                } catch (IOException e) {
+                    throw new AssertionError("Impossible in NO_CHECKS mode", e);
+                }
+                this.reader.setCaching(false);
+            }
+            return this.reader;
+        }
+    }
+
+    /**
+     * Creates a new "companion" TIFF reader for reading the same file stream {@link #stream()} used by this object.
+     * You <b>don't need</b> to close it: this stream will be closed when closing this writer.
+     *
+     * <p>This method is used inside {@link #companionReader(boolean)} for creating a new instance.
+     *
+     * @return new TIFF reader.
+     */
+    public TiffReader newCompanionReader() throws IOException {
+        return new TiffReader(stream, TiffOpenMode.NO_CHECKS, false);
     }
 
     /**
@@ -620,8 +691,9 @@ public non-sealed class TiffWriter extends TiffIO {
                 this.reader.setCaching(false);
                 // - MUST be compatible with reader() method contract
                 this.setCompatibleFileFormat(reader);
-                refreshLinkage(true);
-                // - will use this.reader created above
+                invalidateLinkage();
+                // - forcing the following refresh (just in case)
+                refreshLinkage();
                 seekToEnd();
                 // - ready to write after the end of the file
                 // (not necessary, but can help to avoid accidental bugs)
@@ -698,84 +770,6 @@ public non-sealed class TiffWriter extends TiffIO {
     public int numberOfExistingImages() {
         //noinspection resource
         return companionReader().numberOfMainIFDs();
-    }
-
-    public TiffReader companionReader() {
-        return companionReader(false);
-    }
-
-    /**
-     * Returns the "companion" TIFF reader for reading the same file stream {@link #stream()} used by this object.
-     * You <b>don't need</b> to close it: this stream will be closed when closing this writer.
-     *
-     * <p>The returned reference is stored inside this object, and will be returned by further calls
-     * of this method, unless you set <code>alwaysCreateNew=true</code> while a further call.
-     * However, the stored reference is cleared to {@code null} by {@link #invalidateCompanionReader()} method
-     * (so that the following call of this method will re-create the reader) in the following cases:
-     *
-     * <ul>
-     *     <li>opening/creating the TIFF file via {@link #create()}, {@link #open(boolean)}
-     *     and equivalent methods;</li>
-     *     <li>writing IFD into the file;</li>
-     *     <li>writing a tile into the file ({@link #writeEncodedTile(TiffTile, boolean)} method);</li>
-     *     <li>correction of the IFD offset by {@link #rewriteIFDOffset(int, long)} or
-     *     {@link #rewriteLastIFDOffset(long)} method.</li>
-     * </ul>
-     *
-     * <p>This reader is created in {@link TiffOpenMode#NO_CHECKS} mode.
-     * Caching in the reader is disabled by
-     * {@link TiffReader#setCaching(boolean) setCaching(false)}: usually this reader
-     * should be used while you are modifying the TIFF, so the caching has no sense.
-     * (As noted above, any writing to the TIFF will destroy the stored reader together with
-     * all cached tiles.)
-     * But you can enable caching when you finish the writing.
-     *
-     * @param alwaysCreateNew whether you need to ignore the previously created reader (it if exists)
-     *                        and create a new one.
-     * @return new or stored TIFF reader.
-     */
-    public TiffReader companionReader(boolean alwaysCreateNew) {
-        synchronized (fileLock) {
-            if (alwaysCreateNew || this.reader == null) {
-                try {
-                    this.reader = newCompanionReader();
-                } catch (IOException e) {
-                    throw new AssertionError("Impossible in NO_CHECKS mode", e);
-                }
-                this.reader.setCaching(false);
-            }
-            return this.reader;
-        }
-    }
-
-    /**
-     * Creates a new "companion" TIFF reader for reading the same file stream {@link #stream()} used by this object.
-     * You <b>don't need</b> to close it: this stream will be closed when closing this writer.
-     *
-     * <p>This method is used inside {@link #companionReader(boolean)} for creating a new instance.
-     *
-     * @return new TIFF reader.
-     */
-    public TiffReader newCompanionReader() throws IOException {
-        return new TiffReader(stream, TiffOpenMode.NO_CHECKS, false);
-    }
-
-    /**
-     * Clears the reference to the "companion" TIFF reader stored inside this object
-     * and returned by {@link #companionReader()} method.
-     * Ensures that the next call of {@link #companionReader()} will create a new reader.
-     * Usually you don't need to call this method because it is called automatically.
-     *
-     * <p>Note: this method <i>does not</i> clear the offsets, stored in {@link #allUsedIFDOffsets()}.
-     * These offsets are used only for automatic IFD linkage by {@link #writeIFD(TiffIFD, LinkageUpdateMode)}
-     * method and are not important if you perform the linkage manually.</p>
-     */
-    public void invalidateCompanionReader() {
-        synchronized (fileLock) {
-            this.reader = null;
-            // - No sense to clear usedIFDOffsets:
-            // there are no reasons to remove previously saved elements from the set
-        }
     }
 
     /**
@@ -1458,6 +1452,10 @@ public non-sealed class TiffWriter extends TiffIO {
      */
     public TiffWriteMap lastMap() {
         return lastMap;
+    }
+
+    public boolean isLastMapPrewritten() {
+        return lastMapPrewritten;
     }
 
     /**
@@ -2256,8 +2254,10 @@ public non-sealed class TiffWriter extends TiffIO {
             try {
                 stream.seek(fileOffsetToWrite);
                 writeOffset(stream, bigTiff, offsetValue);
-                allUsedIFDOffsets.add(offsetValue);
-                if (linkageUpdateMode.isUpdate() && offsetValue == TiffIFD.LAST_IFD_OFFSET) {
+                if (offsetValue != TiffIFD.LAST_IFD_OFFSET) {
+                    // - no sense to store LAST_IFD_OFFSET=0 in the set
+                    allUsedIFDOffsets.add(offsetValue);
+                } else if (linkageUpdateMode.isUpdate()) {
                     fileOffsetOfLastIFDOffset = fileOffsetToWrite;
                 }
             } finally {
@@ -2336,6 +2336,12 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
+    private String allUsedIFDOffsetToString() {
+        long[] offsets = allUsedIFDOffsets.stream().mapToLong(Long::longValue).toArray();
+        return offsets.length + " IFDs found at offsets [" +
+                JArrays.toString(offsets, ", ", 1000) +
+                "], offset of the last IFD offset: " + fileOffsetOfLastIFDOffset;
+    }
 
     // See also the analogous private method in TiffWriteMap
     private static void logTiles(
