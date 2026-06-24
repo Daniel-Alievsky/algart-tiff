@@ -519,33 +519,33 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Removes the file offset of the last scanned IFD offset returned by {@link #fileOffsetOfLastIFDOffset()}
-     * method, and clears the set of written IFD offsets returned by {@link #allUsedIFDOffsets()} method.
-     * After the invalidation, {@link #fileOffsetOfLastIFDOffset()} will return {@code OptionalLong.empty()}.
+     * Removes the file offset of the last scanned IFD offset returned by the {@link #fileOffsetOfLastIFDOffset()}
+     * method, and clears the set of written IFD offsets returned by the {@link #allUsedIFDOffsets()} method.
+     * After invalidation, {@link #fileOffsetOfLastIFDOffset()} will return {@code OptionalLong.empty()}.
      *
-     * <p>Usually you do not need to use this method: it is called automatically by {@link TiffWriter}
-     * method every time when there is a risk that this linkage information may become incorrect.
+     * <p>Usually, you do not need to use this method directly: it is called automatically by {@link TiffWriter}
+     * every time there is a risk that this linkage information may become incorrect.
      * More precisely, it is called:</p>
      *
      * <ol>
-     *     <li>in the {@link #rewriteIFDOffset(int, long)} and {@link #rewriteLastIFDOffset(long)} methods;</li>
-     *     <li>in the {@link #writeIFD(TiffIFD, LinkageUpdateMode)},
-     *     {@link #rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, LinkageUpdateMode)} methods,
-     *     when {@link TiffIFD#hasNextIFDOffset()} method returns {@code true} for the specified IFD;</li>
-     *     <li>while {@link #close() closing} the writer.</li>
+     *      <li>in the {@link #rewriteIFDOffset(int, long)} and {@link #rewriteLastIFDOffset(long)} methods;</li>
+     *      <li>in the {@link #writeIFD(TiffIFD, LinkageUpdateMode)} and
+     * {@link #rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, LinkageUpdateMode)} methods,
+     * when the {@link TiffIFD#hasNextIFDOffset()} method returns {@code true} for the specified IFD;</li>
+     *       <li>while {@link #close() closing} the writer.</li>
      * </ol>
      *
-     * <p>Usually this is quite enough: every time when {@link TiffWriter} writes or modifies any IFD in the file
-     * it uses the methods specified in the options 1 and 2. The only situation when you probably will need
-     * to call this method {@link #invalidateLinkage()} manually is when you work with an IFD, where
-     * {@link TiffIFD#hasNextIFDOffset()} method returns {@code false}, i.e. it will become a terminator IFD
-     * in the file, <b>but</b> you write it not to the file end
-     * (as while the typical usage inside this class).
-     * For example, you are overwriting a series of existing images at their exact previous file offsets,
-     * and every IFD has unset {@link TiffIFD#hasNextIFDOffset() next-IFD-offset} field.
-     * Then, without an explicit call of the {@link #invalidateLinkage()} method, you will have an invalid
-     * {@link #allUsedIFDOffsets()}, that can lead to incorrect linkage.
-     * However, this is a very exotic usage.
+     * <p>Usually, this is quite enough: whenever {@link TiffWriter} writes or modifies any IFD in the file,
+     * it calls the methods specified in items 1 and 2 above. The only situation where you might need
+     * to call {@link #invalidateLinkage()} manually is when you work with an IFD where the
+     * {@link TiffIFD#hasNextIFDOffset()} method returns {@code false} (i.e., it will become a terminator IFD
+     * in the file), <b>but</b> you are writing it somewhere other than the end of the file
+     * (unlike the typical usage inside this class).</p>
+     *
+     * <p>For example, if you are overwriting a series of existing images at their exact previous file offsets,
+     * and every IFD has an unset {@link TiffIFD#hasNextIFDOffset() next-IFD-offset} field, then without an explicit
+     * call to {@link #invalidateLinkage()}, the {@link #allUsedIFDOffsets()} set will become incorrect.
+     * As a result, it can lead to incorrect linkage. However, this is a very exotic use case.</p>
      *
      * @see #writeIFD(TiffIFD, LinkageUpdateMode)
      */
@@ -555,14 +555,14 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Reloads the linkage information returned by {@link #fileOffsetOfFirstIFDOffset()} and
+     * Reloads the linkage information returned by the {@link #fileOffsetOfLastIFDOffset()} and
      * {@link #allUsedIFDOffsets()} methods.
      *
-     * <p>You do not need to use this method: it is called automatically by {@link TiffWriter}
-     * every time when it needs the linkage information. The only situation when you may use it &mdash;
-     * if you want to know this information for your own needs, for example, to for logging.</p>
+     * <p>You do not need to use this method manually: it is called automatically by {@link TiffWriter}
+     * whenever it requires up-to-date linkage information. The only situation when you might use it
+     * is if you want to inspect this information for your own purposes, for example, for logging.</p>
      *
-     * @throws IOException
+     * @throws IOException if an I/O error occurs.
      */
     public void refreshLinkage() throws IOException {
         refreshLinkage(true, "");
