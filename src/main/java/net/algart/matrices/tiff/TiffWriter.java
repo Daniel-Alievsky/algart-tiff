@@ -2052,8 +2052,8 @@ public non-sealed class TiffWriter extends TiffIO {
         // - necessary before access to fileOffsetOfLastIFDOffset and allUsedIFDOffsets
         final long previousFileOffsetOfLastIFDOffset = fileOffsetOfLastIFDOffset;
         // - save it, because it will be updated in writeIFDNextOffsetAt
-        final boolean notVirginOrTerminatorIFDForAppendingNewImages = ifd.hasNextIFDOffset();
-        final long nextIFDOffset = !notVirginOrTerminatorIFDForAppendingNewImages ? -1 : ifd.getNextIFDOffset();
+        final boolean virginOrTerminatorIFDForAppendingNewImages = !ifd.hasNextIFDOffset();
+        final long nextIFDOffset = virginOrTerminatorIFDForAppendingNewImages ? -1 : ifd.getNextIFDOffset();
         // - Optimization for writing sequential images.
         // If this IFD is a terminator (either newly created for appending or explicitly marked),
         // we can safely skip invalidateLinkage(): correcting the fileOffsetOfLastIFDOffset
@@ -2061,7 +2061,8 @@ public non-sealed class TiffWriter extends TiffIO {
         // THE ONLY EXCEPTION: this optimization assumes we are not overwriting a series of existing images
         // at their exact previous file offsets while repeatedly truncating the chain. In that
         // rare scenario, allUsedIFDOffsets will not be reloaded and will block proper relinking.
-        // In this only case an explicit external invalidate() call from the outside is necessary.
+        // In this only case an explicit external explicit invalidateLinkage() call
+        // from the outside is necessary.
         writeIFDOffsetAt(
                 ifd.getNextIFDOffsetOrTerminatorIfAbsent(),
                 fileOffsetOfNextOffset,
@@ -2081,7 +2082,7 @@ public non-sealed class TiffWriter extends TiffIO {
                     false);
             // - this method adds ifdOffset to allUsedIFDOffsets
         }
-        if (notVirginOrTerminatorIFDForAppendingNewImages) {
+        if (!virginOrTerminatorIFDForAppendingNewImages) {
             invalidateLinkage(true, " for IFD with specified next-IFD-offset=" + nextIFDOffset);
         }
     }
