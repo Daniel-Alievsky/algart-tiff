@@ -268,29 +268,36 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     }
 
     /**
-     * Returns the offset (position) in the file of the offset last scanned IFD offset
-     * or {@code OptionalLong.empty()} if this offset is unknown yet or
-     * {@link TiffWriter#invalidateLinkage() invalidated} (in {@link TiffWriter}).
+     * Returns the file offset of the last scanned IFD offset, or {@code OptionalLong.empty()}
+     * if this offset is unknown yet or has been {@link TiffWriter#invalidateLinkage() invalidated}.
      *
-     * <p>For {@link TiffReader}, this is the position of the last IFD offset
-     * read by the {@link #readMainIFDOffsets(LinkageUpdateMode)},
-     * {@link #readMainIFDOffset(int, LinkageUpdateMode)}, or
-     * {@link #readFirstIFDOffset(LinkageUpdateMode)} methods
-     * when using {@link LinkageUpdateMode#UPDATE}.
-     * The commonly used {@link TiffReader#allIFDs()},
-     * {@link TiffReader#mainIFDs()}, {@link TiffReader#numberOfImages()}
-     * and other methods call</p>
-     * <pre>
-     *     {@link #readMainIFDOffsets(LinkageUpdateMode)
-     * readMainIFDOffsets}({@link LinkageUpdateMode#UPDATE})</pre>
-     * <p>internally, thus, this value will be equal to the file offset of the offset
-     * of the actual last IFD present in the TIFF file.</p>
+     * <p>This value is initialized by the methods
+     * <ul>
+     *     <li>{@link #readMainIFDOffsets(LinkageUpdateMode)},</li>
+     *     <li>{@link #readMainIFDOffsets(LinkageUpdateMode, boolean)},</li>
+     *     <li>{@link #readMainIFDOffset(int, LinkageUpdateMode)},</li>
+     *     <li>{@link #readMainIFDOffsetIfPresent(int, LinkageUpdateMode)},</li>
+     *     <li>{@link #readFirstIFDOffset(LinkageUpdateMode)},</li>
+     *     <li>{@link #readFirstIFDOffsetIfPresent(LinkageUpdateMode)},</li>
+     *     <li>{@link #readMainIFD(int, LinkageUpdateMode)}</li>
+     * </ul>
+     * <p>when using the argument {@link LinkageUpdateMode#UPDATE}.</p>
      *
-     * <p>For {@link TiffWriter}, the position returned by this method is updated by
-     * {@link TiffWriter#writeIFD(TiffIFD, LinkageUpdateMode)} and
-     * {@link TiffWriter#rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, LinkageUpdateMode)}
-     * when the corresponding {@link LinkageUpdateMode} argument is
-     * {@link LinkageUpdateMode#UPDATE}.</p>
+     * <p>The {@link TiffReader} class calls these methods internally in the high-level methods
+     * like {@link TiffReader#allIFDs()} or {@link TiffReader#numberOfImages()}, so,
+     * the value returned by this class is usually correctly initialized to
+     * the file offset of the offset of the <b>actual last IFD</b> present in the file.</p>
+     *
+     * <p>The {@link TiffWriter} class automatically initializes and updates this value.
+     * Usually it is performed by the
+     * {@link TiffWriter#writeIFD(TiffIFD, LinkageUpdateMode) writeIFD} and
+     * {@link TiffWriter#rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, LinkageUpdateMode)
+     * rewriteIFDStrictlyInPlace} methods internally when they are called using
+     * {@link LinkageUpdateMode#UPDATE} mode.
+     * The {@link TiffWriter} class also allows to invalidate
+     * this value via an explicit call to {@link TiffWriter#invalidateLinkage()} method
+     * and then reinitialize it via the {@link TiffWriter#refreshLinkage()} method,
+     * but usually you should not worry about this: all is performed automatically.</p>
      *
      * <p>Immediately after creating a new {@link TiffReader} object, as well as
      * immediately after creating a new {@link TiffWriter} object without opening a file
@@ -300,11 +307,10 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * this position will be set to the offset of the last IFD offset in the TIFF file.</p>
      *
      * @return file offset of the last IFD offset, wrapped in {@link OptionalLong},
-     * or {@code OptionalLong.empty()} if it has not been read or if it was
-     * {@link TiffWriter#invalidateLinkage() invalidated}.
+     * or {@code OptionalLong.empty()} if it has not been read or if it was invalidated.
      */
     public OptionalLong fileOffsetOfLastIFDOffset() {
-        return fileOffsetOfLastIFDOffset < 0 ? OptionalLong.empty() :  OptionalLong.of(fileOffsetOfLastIFDOffset);
+        return fileOffsetOfLastIFDOffset < 0 ? OptionalLong.empty() : OptionalLong.of(fileOffsetOfLastIFDOffset);
     }
 
     public void checkFileOpen() {
