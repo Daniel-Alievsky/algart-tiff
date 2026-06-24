@@ -525,15 +525,17 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * <p>Usually, you do not need to use this method directly: it is called automatically by {@link TiffWriter}
      * every time there is a risk that this linkage information may become incorrect.
-     * More precisely, it is called:</p>
+     * More precisely, it is called in the following scenarios:</p>
      *
      * <ol>
      *      <li>in the {@link #rewriteIFDOffset(int, long)} and {@link #rewriteLastIFDOffset(long)} methods;</li>
      *      <li>in the {@link #writeIFD(TiffIFD, LinkageUpdateMode)} and
      * {@link #rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, LinkageUpdateMode)} methods,
      * when the {@link TiffIFD#hasNextIFDOffset()} method returns {@code true} for the specified IFD;</li>
-     *       <li>while {@link #close() closing} the writer.</li>
+     *      <li>while {@link #close() closing} the writer.</li>
      * </ol>
+     *
+     * <p>(Exact behavior may change in future versions, if it will not create any risk of incorrect linkage.)</p>
      *
      * <p>Usually, this is quite enough: whenever {@link TiffWriter} writes or modifies any IFD in the file,
      * it calls the methods specified in items 1 and 2 above. The only situation where you might need
