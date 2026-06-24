@@ -436,7 +436,7 @@ public class TiffWriterTest {
                         }
                     }
                     if (customBitsPerSample != null) {
-                        writer.updateIFD(ifdIndex, falsified -> {
+                        writer.updateIFD(writer.readMainIFDOffsets().length - 1, falsified -> {
                             falsified.put(Tags.SAMPLES_PER_PIXEL, customBitsPerSample.length);
                             falsified.put(Tags.BITS_PER_SAMPLE, customBitsPerSample);
                             falsified.putPhotometric(TagPhotometric.RGB);

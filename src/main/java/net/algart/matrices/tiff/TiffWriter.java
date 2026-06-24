@@ -518,43 +518,12 @@ public non-sealed class TiffWriter extends TiffIO {
         return this;
     }
 
-    /**
-     * Resets the value
-     */
     public void invalidateLinkage() {
-        synchronized (fileLock) {
-            LOG.log(System.Logger.Level.DEBUG, () -> "Invalidating linkage: " + allUsedIFDOffsetToString());
-            this.fileOffsetOfLastIFDOffset = -1;
-            this.allUsedIFDOffsets.clear();
-        }
+        invalidateLinkage(true, "");
     }
 
     public void refreshLinkage() throws IOException {
-        synchronized (fileLock) {
-            if (fileOffsetOfLastIFDOffset == -1) {
-                boolean success = false;
-                final long savedOffset = stream.offset();
-                try {
-                    final long[] offsets = readMainIFDOffsets(LinkageUpdateMode.UPDATE, true);
-                    allUsedIFDOffsets.clear();
-                    for (long offset : offsets) {
-                        allUsedIFDOffsets.add(offset);
-                    }
-                    LOG.log(System.Logger.Level.DEBUG, () -> "Refreshing linkage: " + allUsedIFDOffsetToString());
-                    stream.seek(savedOffset);
-                    success = true;
-                } finally {
-                    if (!success) {
-                        fileOffsetOfLastIFDOffset = -1;
-                        // - the next call to this method will try to refresh the linkage again
-                        try {
-                            stream.seek(savedOffset);
-                        } catch (Exception ignored) {
-                        }
-                    }
-                }
-            }
-        }
+        refreshLinkage(true, "");
     }
 
     public Set<Long> allUsedIFDOffsets() {
@@ -694,9 +663,9 @@ public non-sealed class TiffWriter extends TiffIO {
                 // - disable caching: this.reader MUST be compatible with the companionReader() method contract
                 this.setCompatibleFileFormat(reader);
                 fileOpen = true;
-                invalidateLinkage();
+                invalidateLinkage(false, null);
                 // - forcing the following refresh (just in case)
-                refreshLinkage();
+                refreshLinkage(true, " for existing file");
                 seekToEnd();
                 // - ready to write after the end of the file
                 // (not necessary, but can help to avoid accidental bugs)
@@ -733,7 +702,7 @@ public non-sealed class TiffWriter extends TiffIO {
     public void create() throws IOException {
         synchronized (fileLock) {
             invalidateCompanionReader();
-            allUsedIFDOffsets.clear();
+            invalidateLinkage(false, null);
             stream.seek(0);
             // - this call actually creates and opens the file if it was not opened before
             if (isLittleEndian()) {
@@ -756,6 +725,7 @@ public non-sealed class TiffWriter extends TiffIO {
             }
             // Writing the "last offset" marker:
             fileOffsetOfLastIFDOffset = fileOffsetOfFirstIFDOffset();
+            // - silently set fileOffsetOfLastIFDOffset to a correct value
             writeOffset(stream, bigTiff, TiffIFD.IFD_CHAIN_TERMINATOR);
             // Truncating the file if it already existed:
             // it is necessary because this class writes all new information
@@ -1714,11 +1684,9 @@ public non-sealed class TiffWriter extends TiffIO {
     public void close() throws IOException {
         synchronized (fileLock) {
             lastMap = null;
+            invalidateLinkage(false, null);
+            invalidateCompanionReader();
             super.close();
-            this.fileOffsetOfLastIFDOffset = -1;
-            this.allUsedIFDOffsets.clear();
-            this.reader = null;
-            // - do not call invalidateLinkage: logging is not suitable here
         }
     }
 
@@ -1775,6 +1743,48 @@ public non-sealed class TiffWriter extends TiffIO {
         final int height = tile.getSizeY();
         final byte[] encodedData = compressByScifioCodec(tile.ifd(), decodedData, width, height, scifioCodecOptions);
         return Optional.of(encodedData);
+    }
+
+    private void invalidateLinkage(boolean logging, String comment) {
+        synchronized (fileLock) {
+            if (logging) {
+                LOG.log(System.Logger.Level.DEBUG, () ->
+                        "Invalidating linkage%s: %s".formatted(comment, allUsedIFDOffsetToString()));
+            }
+            this.fileOffsetOfLastIFDOffset = -1;
+            this.allUsedIFDOffsets.clear();
+        }
+    }
+
+    private void refreshLinkage(boolean logging, String comment) throws IOException {
+        synchronized (fileLock) {
+            if (fileOffsetOfLastIFDOffset == -1) {
+                boolean success = false;
+                final long savedOffset = stream.offset();
+                try {
+                    final long[] offsets = readMainIFDOffsets(LinkageUpdateMode.UPDATE, true);
+                    allUsedIFDOffsets.clear();
+                    for (long offset : offsets) {
+                        allUsedIFDOffsets.add(offset);
+                    }
+                    if (logging) {
+                        LOG.log(System.Logger.Level.DEBUG, () ->
+                                "Refreshing linkage%s: %s".formatted(comment, allUsedIFDOffsetToString()));
+                    }
+                    stream.seek(savedOffset);
+                    success = true;
+                } finally {
+                    if (!success) {
+                        fileOffsetOfLastIFDOffset = -1;
+                        // - the next call to this method will try to refresh the linkage again
+                        try {
+                            stream.seek(savedOffset);
+                        } catch (Exception ignored) {
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private void prepareNewMap(TiffWriteMap map) {
@@ -2339,7 +2349,7 @@ public non-sealed class TiffWriter extends TiffIO {
     private String allUsedIFDOffsetToString() {
         long[] offsets = allUsedIFDOffsets.stream().mapToLong(Long::longValue).toArray();
         return offsets.length + " IFDs found at offsets [" +
-                JArrays.toString(offsets, ", ", 1000) +
+                JArrays.toString(offsets, ", ", 60) +
                 "], offset of the last IFD offset: " + fileOffsetOfLastIFDOffset;
     }
 
