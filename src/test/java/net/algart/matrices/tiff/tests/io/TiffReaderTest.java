@@ -118,7 +118,7 @@ public class TiffReaderTest {
 
 //                ((TiffParser) reader).setAssumeEqualStrips(true);
 //                reader.setCropTilesToImageBoundaries(false);
-                final long fileOffsetOfLastIFDOffset = reader.fileOffsetOfLastIFDOffset();
+                final long fileOffsetOfLastIFDOffset = reader.fileOffsetOfLastIFDOffset().orElse(-1);
                 assert fileOffsetOfLastIFDOffset == -1 : "constructor should not set fileOffsetOfLastIFDOffset";
                 final int numberOfIFDS = reader.numberOfImages();
                 long t3 = System.nanoTime();

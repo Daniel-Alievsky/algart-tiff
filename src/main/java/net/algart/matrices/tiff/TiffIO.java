@@ -268,7 +268,9 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     }
 
     /**
-     * Returns the offset (position) in the file of the offset last scanned IFD offset.
+     * Returns the offset (position) in the file of the offset last scanned IFD offset
+     * or {@code OptionalLong.empty()} if this offset is unknown yet or
+     * {@link TiffWriter#invalidateLinkage() invalidated} (in {@link TiffWriter}).
      *
      * <p>For {@link TiffReader}, this is the position of the last IFD offset
      * read by the {@link #readMainIFDOffsets(LinkageUpdateMode)},
@@ -284,24 +286,25 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * <p>internally, thus, this value will be equal to the file offset of the offset
      * of the actual last IFD present in the TIFF file.</p>
      *
-     * <p>Immediately after creating a new {@link TiffReader} object, this method returns {@code -1}.</p>
-     *
      * <p>For {@link TiffWriter}, the position returned by this method is updated by
      * {@link TiffWriter#writeIFD(TiffIFD, LinkageUpdateMode)} and
      * {@link TiffWriter#rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, LinkageUpdateMode)}
      * when the corresponding {@link LinkageUpdateMode} argument is
      * {@link LinkageUpdateMode#UPDATE}.</p>
      *
-     * <p>Immediately after creating a new {@link TiffWriter} object without opening a file
-     * ({@link TiffCreateMode#NO_ACTIONS} mode), this method returns {@code -1}.
-     * Immediately after opening an existing TIFF file (for example, via {@link TiffWriter#openExisting()}
-     * or {@link TiffWriter#openForAppend()}), this position will be equal to
-     * the value returned by a reader created for the same file.</p>
+     * <p>Immediately after creating a new {@link TiffReader} object, as well as
+     * immediately after creating a new {@link TiffWriter} object without opening a file
+     * ({@link TiffCreateMode#NO_ACTIONS} mode), this method returns {@code OptionalLong.empty()}.
+     * Immediately after opening an existing TIFF file by {@link TiffWriter}
+     * (for example, via {@link TiffWriter#openExisting()} or {@link TiffWriter#openForAppend()}),
+     * this position will be set to the offset of the last IFD offset in the TIFF file.</p>
      *
-     * @return file offset of the last IFD offset, or {@code -1} if it has not been read or updated yet.
+     * @return file offset of the last IFD offset, wrapped in {@link OptionalLong},
+     * or {@code OptionalLong.empty()} if it has not been read or if it was
+     * {@link TiffWriter#invalidateLinkage() invalidated}.
      */
-    public long fileOffsetOfLastIFDOffset() {
-        return fileOffsetOfLastIFDOffset;
+    public OptionalLong fileOffsetOfLastIFDOffset() {
+        return fileOffsetOfLastIFDOffset < 0 ? OptionalLong.empty() :  OptionalLong.of(fileOffsetOfLastIFDOffset);
     }
 
     public void checkFileOpen() {
@@ -612,36 +615,6 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 (long) mainIFDIndex + 1L);
         return mainIFDIndex < ifdOffsets.length ? OptionalLong.of(ifdOffsets[mainIFDIndex]) : OptionalLong.empty();
     }
-
-    private OptionalLong readMainIFDOffsetIfPresentDeprecated(int mainIFDIndex) throws IOException {
-        if (mainIFDIndex < 0) {
-            throw new IllegalArgumentException("Negative IFD index = " + mainIFDIndex);
-        }
-        synchronized (fileLock) {
-            final long fileLength = stream.length();
-            final OptionalLong first = readFirstIFDOffsetIfPresent(LinkageUpdateMode.UPDATE);
-            if (first.isEmpty()) {
-                return OptionalLong.empty();
-            }
-            long offset = first.getAsLong();
-            int index = mainIFDIndex;
-            while (offset != 0) {
-                // - negative and too high offsets are checked inside low-level readOffset() method
-                if (index-- <= 0) {
-                    return OptionalLong.of(offset);
-                }
-                skipIFDEntries(offset, fileLength);
-                final long newOffset = readIFDNextOffset(LinkageUpdateMode.UPDATE);
-                if (newOffset == offset) {
-                    throw new TiffException("TIFF file is broken - infinite loop of IFD offsets is detected " +
-                            "for offset " + offset);
-                }
-                offset = newOffset;
-            }
-            return OptionalLong.empty();
-        }
-    }
-
 
     /**
      * Equivalent to {@link #readMainIFDOffsets(LinkageUpdateMode, boolean)
@@ -1453,6 +1426,35 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                             " entries is outside the file (probably file is broken)");
         }
         stream.skipBytes(skippedIFDBytes);
+    }
+
+    private OptionalLong readMainIFDOffsetIfPresentDeprecated(int mainIFDIndex) throws IOException {
+        if (mainIFDIndex < 0) {
+            throw new IllegalArgumentException("Negative IFD index = " + mainIFDIndex);
+        }
+        synchronized (fileLock) {
+            final long fileLength = stream.length();
+            final OptionalLong first = readFirstIFDOffsetIfPresent(LinkageUpdateMode.UPDATE);
+            if (first.isEmpty()) {
+                return OptionalLong.empty();
+            }
+            long offset = first.getAsLong();
+            int index = mainIFDIndex;
+            while (offset != 0) {
+                // - negative and too high offsets are checked inside low-level readOffset() method
+                if (index-- <= 0) {
+                    return OptionalLong.of(offset);
+                }
+                skipIFDEntries(offset, fileLength);
+                final long newOffset = readIFDNextOffset(LinkageUpdateMode.UPDATE);
+                if (newOffset == offset) {
+                    throw new TiffException("TIFF file is broken - infinite loop of IFD offsets is detected " +
+                            "for offset " + offset);
+                }
+                offset = newOffset;
+            }
+            return OptionalLong.empty();
+        }
     }
 
     static long readOffset(

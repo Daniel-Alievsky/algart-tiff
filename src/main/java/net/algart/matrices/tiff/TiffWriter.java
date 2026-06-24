@@ -518,6 +518,9 @@ public non-sealed class TiffWriter extends TiffIO {
         return this;
     }
 
+    /**
+     * Resets the value
+     */
     public void invalidateLinkage() {
         synchronized (fileLock) {
             LOG.log(System.Logger.Level.DEBUG, () -> "Invalidating linkage: " + allUsedIFDOffsetToString());
