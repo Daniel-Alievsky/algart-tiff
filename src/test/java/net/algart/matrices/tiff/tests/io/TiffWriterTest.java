@@ -99,9 +99,9 @@ public class TiffWriterTest {
             append = true;
             startArgIndex++;
         }
-        boolean randomAccess = false;
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-randomAccess")) {
-            randomAccess = true;
+        boolean overwrite = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-overwrite")) {
+            overwrite = true;
             startArgIndex++;
         }
         boolean preserveOld = false;
@@ -260,14 +260,14 @@ public class TiffWriterTest {
         }
         final int numberOfTests = ++startArgIndex < args.length ? Integer.parseInt(args[startArgIndex]) : 1;
         final int firstIfdIndex = ++startArgIndex < args.length ? Integer.parseInt(args[startArgIndex]) : 0;
-        // - firstIfdIndex is used in overwrite mode (randomAccess)
+        // - firstIfdIndex is used in overwrite mode (overwrite)
         final int numberOfChannels = customBitsPerSample != null ? 1 : (color ? 3 : 1) + (alpha ? 1 : 0);
         // - we will write only 1 channel for custom bits
-        final boolean existingFile = append || randomAccess;
+        final boolean existingFile = append || overwrite;
 
         System.out.printf("%d images %s, %d total test%n",
                 numberOfImages,
-                randomAccess ? "from " + firstIfdIndex : "sequentially",
+                overwrite ? "from " + firstIfdIndex : "sequentially",
                 numberOfTests);
 
         for (int test = 1; test <= numberOfTests; test++) {
@@ -371,10 +371,10 @@ public class TiffWriterTest {
                         }
                     }
 
-                    final boolean overwriteExisting = randomAccess && k == 0;
+                    final boolean overwriteExisting = overwrite && (!breakChain || k == 0);
                     if (k == 0) {
                         if (existingFile) {
-                            writer.open(!randomAccess);
+                            writer.open(!overwrite);
                         } else {
                             writer.create();
                         }
@@ -403,6 +403,9 @@ public class TiffWriterTest {
                         }
                     } else {
                         map = writer.newMap(ifd, resizable);
+                        breakChain = true;
+                        // - newMap will break the chain always, so we need to prevent
+                        // overwriteExisting mode in the following iterations
                     }
 
                     Object samplesArray = makeSamples(ifdIndex, map, customBitsPerSample, w, h);

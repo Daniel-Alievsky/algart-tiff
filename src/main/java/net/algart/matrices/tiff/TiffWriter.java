@@ -2002,9 +2002,9 @@ public non-sealed class TiffWriter extends TiffIO {
         // - necessary before access to fileOffsetOfLastIFDOffset and allUsedIFDOffsets
         final long previousFileOffsetOfLastIFDOffset = fileOffsetOfLastIFDOffset;
         // - save it, because it will be updated in writeIFDNextOffsetAt
-        final boolean probablyVirginIFDForAppendingNewImages = !ifd.hasNextIFDOffset();
+        final boolean virginOrTerminatorIFDForAppendingNewImages = !ifd.hasNextIFDOffset();
         // - Optimization for writing sequential images.
-        // If this IFD is "virgin" (newly created for appending and not yet linked to anything),
+        // If this IFD is terminator (usually newly created for appending and not yet linked to anything),
         // we can safely append it to the end of the file without invalidateLinkage():
         // the correction of fileOffsetOfLastIFDOffset field inside writeIFDOffsetAt() will be enough.
         writeIFDOffsetAt(
@@ -2026,7 +2026,7 @@ public non-sealed class TiffWriter extends TiffIO {
                     false);
             // - this method adds ifdOffset to allUsedIFDOffsets
         }
-        if (!probablyVirginIFDForAppendingNewImages) {
+        if (!virginOrTerminatorIFDForAppendingNewImages) {
             invalidateLinkage();
         }
     }
