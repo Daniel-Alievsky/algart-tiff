@@ -289,7 +289,7 @@ public non-sealed class TiffReader extends TiffIO {
      */
     public TiffReader(DataHandle<?> inputStream, Consumer<Exception> exceptionHandler) {
         //noinspection RedundantCast
-        this(inputStream, (Path) null, exceptionHandler);
+        this(inputStream, (Path) null, TiffOpenMode.NO_CHECKS, exceptionHandler);
     }
 
     private TiffReader(
@@ -297,7 +297,7 @@ public non-sealed class TiffReader extends TiffIO {
             Path file,
             TiffOpenMode openMode,
             boolean closeStreamOnException) throws IOException {
-        this(checkNonNull(inputStream, openMode), file, (Consumer<Exception>) null);
+        this(checkNonNull(inputStream, openMode), file, openMode, (Consumer<Exception>) null);
         assert this.tiff || !this.validTiff;
         // - in other words, if validTiff, then tiff
         if (!openMode.isAnythingChecked()) {
@@ -326,20 +326,20 @@ public non-sealed class TiffReader extends TiffIO {
         if (this.tiff != this.validTiff) {
             throw new AssertionError("tiff != validTiff is possible for NO_CHECKS only");
         }
-        if (openMode.isTiffRequired()) {
-            checkFirstOffset();
-            // - additional check of zero or extremely large offset
-        }
     }
 
-    private TiffReader(DataHandle<?> inputStream, Path file, Consumer<Exception> exceptionHandler) {
+    private TiffReader(
+            DataHandle<?> inputStream,
+            Path file,
+            TiffOpenMode openMode,
+            Consumer<Exception> exceptionHandler) {
         super(inputStream instanceof ReadBufferDataHandle || !AUTO_BUFFERING_INPUT_STREAM ?
                         inputStream :
                         new ReadBufferDataHandle<>(inputStream),
                 file);
         // - Note: the argument inputStream cannot be ReadBufferDataHandle if we use TiffWriter.newReader method.
         // ReadBufferDataHandle is read-only (cannot write anything), so it cannot be used in TiffWriter.
-        this.openingException = startReading();
+        this.openingException = startReading(openMode);
         // - in the current version, a TIFF but invalid can be detected when
         // its length < MINIMAL_ALLOWED_TIFF_FILE_LENGTH (see testHeader())
         assert !(this.validTiff && !this.tiff);
@@ -387,7 +387,8 @@ public non-sealed class TiffReader extends TiffIO {
      * and then reads the TIFF header again by calling
      * the same initialization logic that is used in the constructor.</p>
      *
-     * <p>Unlike the constructor, this method is stricter: if the underlying stream does
+     * <p>Unlike the constructor, this method is stricter, as when using
+     * {@link TiffOpenMode#VALID_TIFF} mode. If the underlying stream does
      * not represent a valid TIFF file or if any I/O error occurs while re-reading the
      * header, an {@link IOException} is thrown.</p>
      *
@@ -414,7 +415,7 @@ public non-sealed class TiffReader extends TiffIO {
                             "Input stream was not correctly replaced in the constructor");
                 }
                 ((ReadBufferDataHandle<?>) stream).clearCache();
-                final IOException exception = startReading();
+                final IOException exception = startReading(TiffOpenMode.VALID_TIFF);
                 if (exception != null) {
                     throw exception;
                 }
@@ -1472,7 +1473,7 @@ public non-sealed class TiffReader extends TiffIO {
         return Optional.of(decodedData);
     }
 
-    private IOException startReading() {
+    private IOException startReading(TiffOpenMode openMode) {
         synchronized (fileLock) {
             try {
                 this.tiff = false;
@@ -1482,7 +1483,7 @@ public non-sealed class TiffReader extends TiffIO {
                 if (!existingFile) {
                     return new FileNotFoundException("File not found:" + spacedStreamName());
                 }
-                testHeader();
+                testHeader(openMode);
                 assert this.tiff;
                 this.validTiff = true;
                 return null;
@@ -1492,7 +1493,7 @@ public non-sealed class TiffReader extends TiffIO {
         }
     }
 
-    private void testHeader() throws IOException {
+    private void testHeader(TiffOpenMode openMode) throws IOException {
         // TIFF file header:
         //  16 bits - TIFF byte-order identifier:
         //                  4949h ("II", little-endian, Intel format)
@@ -1544,8 +1545,12 @@ public non-sealed class TiffReader extends TiffIO {
                         " bytes); probably the TIFF writing process was not completed normally");
             }
             this.fileOpen = true;
+            if (openMode.isTiffRequired()) {
+                checkFirstOffset();
+                // - additional check of zero or extremely large offset
+            }
 
-            // Note: in old versions, before 13.Nov.2025, the following code was executed here:
+            // Note: in old versions, before 13.Nov.2025, the following code was executed here always:
             //
             // readFirstOffsetFromCurrentPosition(false, bigTiff);
             // - an additional check for a zero offset, updating fileOffsetOfLastIFDOffset
