@@ -2007,9 +2007,13 @@ public non-sealed class TiffWriter extends TiffIO {
         // - save it, because it will be updated in writeIFDNextOffsetAt
         final boolean virginOrTerminatorIFDForAppendingNewImages = !ifd.hasNextIFDOffset();
         // - Optimization for writing sequential images.
-        // If this IFD is terminator (usually newly created for appending and not yet linked to anything),
-        // we can safely append it to the end of the file without invalidateLinkage():
-        // the correction of fileOffsetOfLastIFDOffset field inside writeIFDOffsetAt() will be enough.
+        // If this IFD is a terminator (either newly created for appending or explicitly marked),
+        // we can safely skip invalidateLinkage(): correcting the fileOffsetOfLastIFDOffset
+        // field inside writeIFDOffsetAt() is sufficient to maintain a valid chain state.
+        // THE ONLY EXCEPTION: this optimization assumes we are not overwriting a series of existing images
+        // at their exact previous file offsets while repeatedly truncating the chain. In that
+        // rare scenario, allUsedIFDOffsets will not be reloaded and will block proper relinking.
+        // In this only case an explicit external invalidate() call from the outside is necessary.
         writeIFDOffsetAt(
                 ifd.getNextIFDOffsetOrTerminatorIfAbsent(),
                 fileOffsetOfNextOffset,
