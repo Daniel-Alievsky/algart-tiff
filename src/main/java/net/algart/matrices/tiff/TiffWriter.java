@@ -968,8 +968,8 @@ public non-sealed class TiffWriter extends TiffIO {
             final long ifdOffset = ifd.assignedFileOffsetOfIFDForWriting();
             // - note: unlike writeIFD(), here we DO NOT NEED to call checkFileOffsetForWriting(ifdOffset)
             // for (int k = 0; k < 500; k++) rewriteTagsAt(ifd.map(), tagsToUpdate, ifdOffset); // - timing
-            final long fileOffsetOfNextOffset = rewriteSelectedTagsAt(ifd.map(), tagsToUpdate, ifdOffset);
-            updateNextOffsetAndIFDLinkageAt(ifd, fileOffsetOfNextOffset, linkageUpdateModeForNewIFD, ifdOffset);
+            final IFDCommonInformation info = rewriteSelectedTagsAt(ifd.map(), tagsToUpdate, ifdOffset);
+            updateNextOffsetAndIFDLinkageAt(ifd, info.offsetOfNextIFDOffset(), linkageUpdateModeForNewIFD, ifdOffset);
             // - note: usually there is no sense to write the next offset
             // when linkageUpdateModeForNewIFD=LinkageUpdateMode.NONE,
             // but it is not a problem (usually it will be the same)
@@ -1906,7 +1906,10 @@ public non-sealed class TiffWriter extends TiffIO {
         return fileOffsetOfNextOffset;
     }
 
-    private long rewriteSelectedTagsAt(Map<Integer, Object> ifdMap, IntPredicate tagsToUpdate, long ifdOffset)
+    private IFDCommonInformation rewriteSelectedTagsAt
+            (Map<Integer, Object> ifdMap,
+             IntPredicate tagsToUpdate,
+             long ifdOffset)
             throws IOException {
         Objects.requireNonNull(ifdMap, "Null ifdMap");
         Objects.requireNonNull(tagsToUpdate, "Null tagsToUpdate");
@@ -1990,7 +1993,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 copyData(extraBuffer, stream, true, extraBuffer.length());
             }
         }
-        return info.offsetOfNextIFDOffset();
+        return info;
     }
 
     private void updateNextOffsetAndIFDLinkageAt(
