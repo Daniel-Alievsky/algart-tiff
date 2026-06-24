@@ -322,6 +322,9 @@ public non-sealed class TiffReader extends TiffIO {
                 throw new AssertionError("Should not occur!");
             }
         }
+        // Note: here, after "stream.close()" above, we MUST NOT access file and check anything:
+        // an exception here can lead to a bug while using TiffReader(Path) constructor,
+        // because the stream will not be closed!
         assert !tiffButInvalid : "exception was not thrown";
         if (this.tiff != this.validTiff) {
             throw new AssertionError("tiff != validTiff is possible for NO_CHECKS only");

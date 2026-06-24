@@ -115,6 +115,11 @@ public class TiffWriterTest {
             preserveOldAccurately = preserveOld = true;
             startArgIndex++;
         }
+        boolean breakChain = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-breakChain")) {
+            breakChain = true;
+            startArgIndex++;
+        }
         boolean littleEndian = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-littleEndian")) {
             littleEndian = true;
@@ -387,11 +392,9 @@ public class TiffWriterTest {
                         ifd.assignFileOffsetOfIFDForWriting(ifd.getFileOffsetOfIFD());
                     }
                     if (overwriteExisting && preserveOld) {
-                        boolean breakOldChain = numberOfImages > 1;
-                        // - if we add more than 1 image, they break the existing chain
-                        // (not necessary, it is just a choice for this demo)
-                        if (breakOldChain) {
-                            // - note: in this case the space in the previous file will be lost!
+                        if (breakChain && numberOfImages > 1) {
+                            // - if we add more than 1 image, they break the existing chain
+                            // (not necessary, it is just a choice for this demo)
                             ifd.markAsTerminatorIFD();
                         }
                         map = writer.existingMap(ifd);
