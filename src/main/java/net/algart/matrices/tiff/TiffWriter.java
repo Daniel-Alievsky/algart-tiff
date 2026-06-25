@@ -1074,7 +1074,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 // a separate call of refreshLinkage() is not necessary
                 fileOffset = fileOffsetOfLastIFDOffset;
             }
-            writeIFDOffsetAt(newIFDOffset, fileOffset, false);
+            writeOffsetAt(newIFDOffset, fileOffset, LinkageUpdateMode.NONE);
             // - last argument is not important: the fileOffsetOfLastIFDOffset will not change in any case
             // (because fileOffset == fileOffsetOfLastIFDOffset now)
             invalidateLinkage();
@@ -1101,7 +1101,7 @@ public non-sealed class TiffWriter extends TiffIO {
             checkFileOpen();
             refreshLinkage();
             // - necessary for using fileOffsetOfLastIFDOffset
-            writeIFDOffsetAt(newLastIFDOffset, fileOffsetOfLastIFDOffset, false);
+            writeOffsetAt(newLastIFDOffset, fileOffsetOfLastIFDOffset, LinkageUpdateMode.NONE);
             // - last argument is not important: the fileOffsetOfLastIFDOffset will not change in any case
             invalidateLinkage();
             // - this is low-level correction, we cannot be sure that the IFD chain is still correct
@@ -1714,7 +1714,7 @@ public non-sealed class TiffWriter extends TiffIO {
             // so, mainIFDIndex + 1 <= numberOfImages
             long nextIFDOffset = ifds.get(mainIFDIndex + 1).getFileOffsetOfIFD();
             long fileOffsetToWrite = fileOffsetOfFirstIFDOffset();
-            writeIFDOffsetAt(nextIFDOffset, fileOffsetToWrite, false);
+            writeOffsetAt(nextIFDOffset, fileOffsetToWrite, LinkageUpdateMode.NONE);
         } else {
             final TiffIFD ifd = ifds.get(mainIFDIndex - 1).copy();
             ifd.assignFileOffsetOfIFDForWriting(ifd.getFileOffsetOfIFD());
@@ -2063,10 +2063,10 @@ public non-sealed class TiffWriter extends TiffIO {
         // rare scenario, allUsedIFDOffsets will not be reloaded and will block proper relinking.
         // In this only case an explicit external explicit invalidateLinkage() call
         // from the outside is necessary.
-        writeIFDOffsetAt(
+        writeOffsetAt(
                 ifd.getNextIFDOffsetOrTerminatorIfAbsent(),
                 fileOffsetOfNextOffset,
-                linkageUpdateModeForNewIFD.isUpdate());
+                linkageUpdateModeForNewIFD);
         // - writes (or rewrites) TiffIFD.IFD_CHAIN_TERMINATOR (or ifd.getNextIFDOffset()
         // to the file at fileOffsetOfNextOffset;
         // - this call updates fileOffsetOfLastIFDOffset when updateLinkageForNewIFD=true
@@ -2076,10 +2076,10 @@ public non-sealed class TiffWriter extends TiffIO {
             // will probably lead to an infinite loop of IFDs.
             // This check is necessary, for example, for overwriting an existing image:
             // without it, the completeWriting method will create an infinite loop.
-            writeIFDOffsetAt(
+            writeOffsetAt(
                     ifdOffset,
                     previousFileOffsetOfLastIFDOffset,
-                    false);
+                    LinkageUpdateMode.NONE);
             // - this method adds ifdOffset to allUsedIFDOffsets
         }
         if (!virginOrTerminatorIFDForAppendingNewImages) {
@@ -2312,8 +2312,9 @@ public non-sealed class TiffWriter extends TiffIO {
         return count;
     }
 
-    private void writeIFDOffsetAt(long offsetValue, long fileOffsetToWrite, boolean updateFileOffsetOfTerminator)
+    private void writeOffsetAt(long offsetValue, long fileOffsetToWrite, LinkageUpdateMode linkageUpdateMode)
             throws IOException {
+        Objects.requireNonNull(linkageUpdateMode, "Null linkageUpdateMode");
         synchronized (fileLock) {
             // - to be on the safe side (this synchronization is not necessary)
             invalidateCompanionReader();
@@ -2324,7 +2325,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 if (offsetValue != TiffIFD.IFD_CHAIN_TERMINATOR) {
                     // - no sense to store IFD_CHAIN_TERMINATOR=0 in the set
                     allUsedIFDOffsets.add(offsetValue);
-                } else if (updateFileOffsetOfTerminator) {
+                } else if (linkageUpdateMode.isUpdate()) {
                     fileOffsetOfLastIFDOffset = fileOffsetToWrite;
                 }
             } finally {
