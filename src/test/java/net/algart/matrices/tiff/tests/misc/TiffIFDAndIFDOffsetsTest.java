@@ -56,7 +56,7 @@ public class TiffIFDAndIFDOffsetsTest {
         System.out.printf("Reading IFD #%d from %s...%n", ifdIndex, file);
 
         TiffReader reader = new TiffReader(file, TiffOpenMode.ALLOW_EXISTING_NON_TIFF).setCachingIFDs(cache);
-        final int n1 = reader.readMainIFDOffsets(TiffIO.LinkageUpdateMode.UPDATE, true).length;
+        final int n1 = reader.readMainIFDOffsets( true).length;
         final int m = reader.allMaps().size();
         final int n2 = reader.mainIFDs().size();
         // - should not throw exception for an invalid file, for example, too short
@@ -72,7 +72,7 @@ public class TiffIFDAndIFDOffsetsTest {
 
         System.out.println("Analysing...");
         try {
-            reader.readFirstIFDOffset(TiffIO.LinkageUpdateMode.UPDATE);
+            reader.readFirstIFDOffset();
             // - should throw exception for an invalid file
             if (!reader.isValidTiff()) {
                 throw new AssertionError();
@@ -83,14 +83,14 @@ public class TiffIFDAndIFDOffsetsTest {
             System.out.printf("%nTest %d:%n", test);
 
             long t1 = System.nanoTime();
-            OptionalLong offset = reader.readMainIFDOffsetIfPresent(ifdIndex, TiffIO.LinkageUpdateMode.UPDATE);
+            OptionalLong offset = reader.readMainIFDOffsetIfPresent(ifdIndex);
             long t2 = System.nanoTime();
             System.out.printf(Locale.US,
                     "readMainIFDOffsetIfPresent(%d): %s (%.6f mcs)%n", ifdIndex, offset, (t2 - t1) * 1e-3);
             printLinkage(reader);
 
             t1 = System.nanoTime();
-            long[] offsets = reader.readMainIFDOffsets(TiffIO.LinkageUpdateMode.UPDATE, true);
+            long[] offsets = reader.readMainIFDOffsets( true);
             t2 = System.nanoTime();
             System.out.printf(Locale.US,
                     "readMainIFDOffsets(): %s (%.6f mcs)%n", Arrays.toString(offsets), (t2 - t1) * 1e-3);

@@ -943,7 +943,7 @@ public non-sealed class TiffReader extends TiffIO {
                 return allIFDs;
             }
 
-            final long[] offsets = validTiff ? readMainIFDOffsets(LinkageUpdateMode.UPDATE) : new long[0];
+            final long[] offsets = validTiff ? readMainIFDOffsets() : new long[0];
             // - even if !validTiff, we MUST correctly fill allIFDs/mainIFDs fields
             allIFDs = new ArrayList<>();
             final ArrayList<TiffIFD> mainIFDs = new ArrayList<>();

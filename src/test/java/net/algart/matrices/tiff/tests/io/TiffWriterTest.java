@@ -388,7 +388,7 @@ public class TiffWriterTest {
                         // but the following images will be written with new properties.
                         // Note: it seems that we need to "flush" current writer.getStream(),
                         // but DataHandle has not any analogs of flush() method.
-                        ifd = writer.readMainIFD(ifdIndex, TiffIO.LinkageUpdateMode.NONE);
+                        ifd = writer.readMainIFD(ifdIndex);
                         ifd.assignFileOffsetOfIFDForWriting(ifd.getFileOffsetOfIFD());
                     }
                     if (overwriteExisting && preserveOld) {
