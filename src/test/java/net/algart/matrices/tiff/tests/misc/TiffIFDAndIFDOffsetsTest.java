@@ -37,7 +37,6 @@ import java.util.OptionalLong;
 public class TiffIFDAndIFDOffsetsTest {
     private static void printLinkage(TiffReader reader) {
         System.out.printf("  Position of last scanned IFD offset: %s%n", reader.offsetOfLastScannedIFDOffset());
-        System.out.printf("  Position of IFD chain terminator: %s%n", reader.offsetOfIFDChainTerminator());
     }
 
     public static void main(String... args) throws IOException {

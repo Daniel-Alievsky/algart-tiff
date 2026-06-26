@@ -412,7 +412,6 @@ public non-sealed class TiffReader extends TiffIO {
                 clearTileCache();
                 this.allIFDs = null;
                 this.mainIFDs = null;
-                this.offsetOfIFDChainTerminator = -1;
                 if (!(stream instanceof ReadBufferDataHandle<?>)) {
                     throw new AssertionError(
                             "Input stream was not correctly replaced in the constructor");

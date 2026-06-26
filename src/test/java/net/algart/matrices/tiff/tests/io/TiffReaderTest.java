@@ -118,17 +118,18 @@ public class TiffReaderTest {
 
 //                ((TiffParser) reader).setAssumeEqualStrips(true);
 //                reader.setCropTilesToImageBoundaries(false);
-                final long offsetOfIFDChainTerminator = reader.offsetOfIFDChainTerminator().orElse(-1);
-                assert offsetOfIFDChainTerminator == -1 : "constructor should not set offsetOfIFDChainTerminator";
+                final var offsetOfLastScannedIFDOffset = reader.offsetOfLastScannedIFDOffset();
+                assert offsetOfLastScannedIFDOffset.isEmpty() :
+                        "constructor should not set offsetOfLastScannedIFDOffset";
                 final int numberOfIFDS = reader.numberOfImages();
                 long t3 = System.nanoTime();
                 System.out.printf(
                         "Reading %s by %s: %.3f ms opening, %.3f ms reading IFDs " +
-                                "(position of first IFD offset: %d)%n",
+                                "(position of last scanned IFD offset: %s)%n",
                         tiffFile, reader,
                         (t2 - t1) * 1e-6,
                         (t3 - t2) * 1e-6,
-                        offsetOfIFDChainTerminator);
+                        offsetOfLastScannedIFDOffset);
                 if (numberOfIFDS == 0) {
                     System.out.println("No IFDs");
                     return;
