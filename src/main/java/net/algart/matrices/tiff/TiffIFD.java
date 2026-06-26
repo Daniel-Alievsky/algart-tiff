@@ -196,7 +196,7 @@ public final class TiffIFD {
     }
 
     /**
-     * This value in the {@link #getNextIFDOffset()} fields marks that this IFD is the last in the TIFF file.
+     * This value (0) in the {@link #getNextIFDOffset()} fields marks that this IFD is the last in the TIFF file.
      */
     public static final int IFD_CHAIN_TERMINATOR = 0;
 
@@ -864,8 +864,9 @@ public final class TiffIFD {
      * Returns <code>true</code> if this IFD is marked as the last ({@link #getNextIFDOffset()} returns 0).
      *
      * @return whether this IFD is the last one in the TIFF file.
+     * @see #IFD_CHAIN_TERMINATOR
      */
-    public boolean isTerminatorIFD() {
+    public boolean isLastInChain() {
         return nextIFDOffset == IFD_CHAIN_TERMINATOR;
     }
 
@@ -889,7 +890,7 @@ public final class TiffIFD {
         return this;
     }
 
-    public TiffIFD markAsTerminatorIFD() {
+    public TiffIFD markAsLastInChain() {
         return setNextIFDOffset(IFD_CHAIN_TERMINATOR);
     }
 
@@ -3220,7 +3221,7 @@ public final class TiffIFD {
                         fileOffsetOfIFDForWriting, fileOffsetOfIFDForWriting));
             }
             if (hasNextIFDOffset()) {
-                sb.append(isTerminatorIFD() ? " END" : " @%d=0x%X".formatted(
+                sb.append(isLastInChain() ? " END" : " @%d=0x%X".formatted(
                         nextIFDOffset, nextIFDOffset));
             }
         }

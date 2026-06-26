@@ -78,16 +78,17 @@ public class TiffWriteMixedTest {
             writer.setByteFiller((byte) 0);
             writer.setByteOrder(ByteOrder.LITTLE_ENDIAN);
 //            writer.setSmartCorrection(true);
-            assert writer.fileOffsetOfLastIFDOffset().isEmpty() :
-                    "constructor should not set fileOffsetOfLastIFDOffset";
-
+            assert writer.offsetOfIFDChainTerminator().isEmpty() :
+                    "constructor should not set offsetOfIFDChainTerminator";
+            assert writer.offsetOfLastScannedIFDOffset().isEmpty() :
+                    "constructor should not set offsetOfIFDChainTerminator";
 
             writer.create();
             writer.create(); // - not a problem to call twice
-            System.out.printf("fileOffsetOfLastIFDOffset after creating: %s%n", writer.fileOffsetOfLastIFDOffset());
+            System.out.printf("offsetOfIFDChainTerminator after creating: %s%n", writer.offsetOfIFDChainTerminator());
             writer.invalidateLinkage();
             writer.refreshLinkage();
-            System.out.printf("fileOffsetOfLastIFDOffset after refresh: %s%n", writer.fileOffsetOfLastIFDOffset());
+            System.out.printf("offsetOfIFDChainTerminator after refresh: %s%n", writer.offsetOfIFDChainTerminator());
 
             // writer.reader().input().setLength(0); // - throws an exception (read-only
             TiffIFD ifd = TiffIFD.newInstance();

@@ -395,7 +395,7 @@ public class TiffWriterTest {
                         if (breakChain && numberOfImages > 1) {
                             // - if we add more than 1 image, they break the existing chain
                             // (not necessary, it is just a choice for this demo)
-                            ifd.markAsTerminatorIFD();
+                            ifd.markAsLastInChain();
                         }
                         map = writer.existingMap(ifd);
                         if (preserveOldAccurately) {
@@ -464,7 +464,7 @@ public class TiffWriterTest {
                             System.out.printf("All %d tiles are completely filled%n", map.numberOfTiles());
                         }
                     }
-                    System.out.printf("%d used IFD offsets%n", writer.allUsedIFDOffsets().size());
+                    System.out.printf("%d used IFD offsets%n", writer.allIFDOffsets().size());
                 }
             }
         }

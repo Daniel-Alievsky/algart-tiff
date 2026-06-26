@@ -35,6 +35,11 @@ import java.util.Locale;
 import java.util.OptionalLong;
 
 public class TiffIFDAndIFDOffsetsTest {
+    private static void printLinkage(TiffReader reader) {
+        System.out.printf("  Position of last scanned IFD offset: %s%n", reader.offsetOfLastScannedIFDOffset());
+        System.out.printf("  Position of IFD chain terminator: %s%n", reader.offsetOfIFDChainTerminator());
+    }
+
     public static void main(String... args) throws IOException {
         int startArgIndex = 0;
         boolean cache = false;
@@ -51,7 +56,7 @@ public class TiffIFDAndIFDOffsetsTest {
         final int ifdIndex = Integer.parseInt(args[startArgIndex + 1]);
         System.out.printf("Reading IFD #%d from %s...%n", ifdIndex, file);
 
-        TiffReader reader = new TiffReader(file, TiffOpenMode.NO_CHECKS).setCachingIFDs(cache);
+        TiffReader reader = new TiffReader(file, TiffOpenMode.ALLOW_EXISTING_NON_TIFF).setCachingIFDs(cache);
         final int n1 = reader.readMainIFDOffsets(TiffIO.LinkageUpdateMode.UPDATE, true).length;
         final int m = reader.allMaps().size();
         final int n2 = reader.mainIFDs().size();
@@ -79,18 +84,18 @@ public class TiffIFDAndIFDOffsetsTest {
             System.out.printf("%nTest %d:%n", test);
 
             long t1 = System.nanoTime();
-            long[] offsets = reader.readMainIFDOffsets(TiffIO.LinkageUpdateMode.UPDATE, true);
+            OptionalLong offset = reader.readMainIFDOffsetIfPresent(ifdIndex, TiffIO.LinkageUpdateMode.UPDATE);
             long t2 = System.nanoTime();
             System.out.printf(Locale.US,
-                    "readMainIFDOffsets(): %s (%.6f mcs)%n", Arrays.toString(offsets), (t2 - t1) * 1e-3);
-            System.out.printf("  Position of last IFD offset: %s%n", reader.fileOffsetOfLastIFDOffset());
+                    "readMainIFDOffsetIfPresent(%d): %s (%.6f mcs)%n", ifdIndex, offset, (t2 - t1) * 1e-3);
+            printLinkage(reader);
 
             t1 = System.nanoTime();
-            OptionalLong offset = reader.readMainIFDOffsetIfPresent(ifdIndex, TiffIO.LinkageUpdateMode.UPDATE);
+            long[] offsets = reader.readMainIFDOffsets(TiffIO.LinkageUpdateMode.UPDATE, true);
             t2 = System.nanoTime();
             System.out.printf(Locale.US,
-                    "tryToReadMainIFDOffset(%d): %s (%.6f mcs)%n", ifdIndex, offset, (t2 - t1) * 1e-3);
-            System.out.printf("  Position of last IFD offset: %s%n", reader.fileOffsetOfLastIFDOffset());
+                    "readMainIFDOffsets(): %s (%.6f mcs)%n", Arrays.toString(offsets), (t2 - t1) * 1e-3);
+            printLinkage(reader);
 
             t1 = System.nanoTime();
             int n = reader.numberOfImagesUnchecked();
@@ -107,7 +112,7 @@ public class TiffIFDAndIFDOffsetsTest {
                 throw new AssertionError();
             }
             System.out.printf(Locale.US, "allIFDs(): %d (%.6f mcs)%n", ifds.size(), (t2 - t1) * 1e-3);
-            System.out.printf("  Position of last IFD offset: %s%n", reader.fileOffsetOfLastIFDOffset());
+            printLinkage(reader);
 
             t1 = System.nanoTime();
             ifds = reader.mainIFDs();
@@ -116,30 +121,31 @@ public class TiffIFDAndIFDOffsetsTest {
                 throw new AssertionError();
             }
             System.out.printf(Locale.US, "mainIFDs(): %d (%.6f mcs)%n", ifds.size(), (t2 - t1) * 1e-3);
-            System.out.printf("  Position of last IFD offset: %s%n", reader.fileOffsetOfLastIFDOffset());
+            printLinkage(reader);
 
             t1 = System.nanoTime();
             TiffIFD firstIFD = reader.readMainIFD(0);
             t2 = System.nanoTime();
 //        IFD firstIFD = new TiffParser(new SCIFIO().getContext(), new FileLocation(file.toFile())).getFirstIFD();
             System.out.printf(Locale.US, "readMainIFD(0): %s (%.6f mcs)%n", firstIFD, (t2 - t1) * 1e-3);
-            System.out.printf("  Position of last IFD offset: %s%n", reader.fileOffsetOfLastIFDOffset());
+            printLinkage(reader);
 
             t1 = System.nanoTime();
             TiffIFD ifd = reader.readMainIFD(ifdIndex);
             t2 = System.nanoTime();
             System.out.printf(Locale.US,
                     "readMainIFD(%d): %s (%.6f mcs)%n", ifdIndex, ifd, (t2 - t1) * 1e-3);
-            System.out.printf("  Position of last IFD offset: %s%n", reader.fileOffsetOfLastIFDOffset());
+            printLinkage(reader);
 
             t1 = System.nanoTime();
             TiffIFD lastIfd = reader.readLastIFD();
             t2 = System.nanoTime();
             System.out.printf(Locale.US,
                     "readLastIFD(): %s (%.6f mcs)%n", lastIfd, (t2 - t1) * 1e-3);
-            System.out.printf("  Position of last IFD offset: %s%n", reader.fileOffsetOfLastIFDOffset());
+            printLinkage(reader);
         }
 
         reader.close();
     }
+
 }

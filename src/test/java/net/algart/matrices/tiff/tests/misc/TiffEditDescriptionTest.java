@@ -53,7 +53,7 @@ public class TiffEditDescriptionTest {
                 }
                 final int ifdIndex = rnd.nextInt(n);
                 final boolean enforceRelocateIFD = rnd.nextBoolean();
-                Collection<Long> alreadyUsed = writer.allUsedIFDOffsets();
+                Collection<Long> alreadyUsed = writer.allIFDOffsets();
                 System.out.printf("Test #%d/%d: modifying IFD #%d, %d used offsets...%n",
                         test, numberOfTests, ifdIndex, alreadyUsed.size());
                 final String s = "Description #" + test + " in IFD #" + ifdIndex;

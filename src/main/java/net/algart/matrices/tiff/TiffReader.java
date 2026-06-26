@@ -412,7 +412,7 @@ public non-sealed class TiffReader extends TiffIO {
                 clearTileCache();
                 this.allIFDs = null;
                 this.mainIFDs = null;
-                this.fileOffsetOfLastIFDOffset = -1;
+                this.offsetOfIFDChainTerminator = -1;
                 if (!(stream instanceof ReadBufferDataHandle<?>)) {
                     throw new AssertionError(
                             "Input stream was not correctly replaced in the constructor");
@@ -1637,7 +1637,7 @@ public non-sealed class TiffReader extends TiffIO {
                 return -1;
             }
             final TiffIFD ifd = tileIndex.ifd();
-            if (offset > 0 && ifd.cachedTileOrStripByteCountLength() == 1 && ifd.isTerminatorIFD()) {
+            if (offset > 0 && ifd.cachedTileOrStripByteCountLength() == 1 && ifd.isLastInChain()) {
                 // (so, byteCount == 0): a rare case:
                 // some TIFF files have only one IFD with one tile with zero StripByteCounts,
                 // that means that we must use all space in the file
