@@ -61,32 +61,34 @@ public class TiffRewriteSeveralIFDTest {
                 writer.newResizableMap(ifd).writeBlank(randomColor(random));
                 System.out.printf("Linkage after write image: %s%n", writer.currentIFDLinkage());
                 if (DAMAGE_AFTER_WRITE) {
-                    long previous = damage(ifd, writer);
-                    long previous0 = k == 0 ? previous : damage(ifds[0], writer);
+                    long previous0 = k == 0 ?
+                            TiffIFD.IFD_CHAIN_TERMINATOR :
+                            writer.readMainIFDOffset(1);
+                    damage(writer, ifd);
+                    damage(writer, ifds[0]);
                     // writer.refreshIFDLinkage();
-                    restore(ifds[0], writer, previous0);
+                    restore(writer, ifds[0], previous0);
                     // writer.refreshIFDLinkage();
-                    restore(ifd, writer, previous);
+                    restore(writer, ifd, TiffIFD.IFD_CHAIN_TERMINATOR);
+                    writer.invalidateIFDLinkage();
                 }
             }
         }
         System.out.println("Done");
     }
 
-    private static void restore(TiffIFD ifd, TiffWriter writer, long previous) throws IOException {
-        ifd.setNextIFDOffset(previous);
-        writer.writeIFD(ifd, TiffIO.IFDLinkage.UpdateMode.UPDATE);
-        System.out.printf("Linkage after restoring this IFD: %s%n", writer.currentIFDLinkage());
-    }
-
-    private static long damage(TiffIFD ifd, TiffWriter writer) throws IOException {
-        final long previous = ifd.getNextIFDOffsetOrTerminatorIfAbsent();
+    private static void damage(TiffWriter writer, TiffIFD ifd) throws IOException {
         ifd.setNextIFDOffset(0x27777777);
         // - something wrong
         writer.writeIFD(ifd, TiffIO.IFDLinkage.UpdateMode.NONE);
         System.out.printf("Linkage after damaging IFD at %d: %s%n",
                 ifd.assignedFileOffsetOfIFDForWriting(), writer.currentIFDLinkage());
-        return previous;
+    }
+
+    private static void restore(TiffWriter writer, TiffIFD ifd, long previous) throws IOException {
+        ifd.setNextIFDOffset(previous);
+        writer.writeIFD(ifd, TiffIO.IFDLinkage.UpdateMode.UPDATE);
+        System.out.printf("Linkage after restoring this IFD: %s%n", writer.currentIFDLinkage());
     }
 
     private static Color randomColor(Random rnd) {
