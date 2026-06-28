@@ -84,7 +84,6 @@ public class TiffRewriteSeveralIFDTest {
                 writer.writeIFD(ifd, TiffIO.IFDLinkage.UpdateMode.UPDATE);
                 System.out.printf("Linkage after rewriting this IFD: %s%n", writer.currentIFDLinkage());
                 // writer.invalidateIFDLinkage(); // - should not be necessary!
-                //TODO!! necessary to fix this
             }
         }
         System.out.println("Done");

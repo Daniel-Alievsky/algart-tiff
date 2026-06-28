@@ -54,7 +54,7 @@ public class MakeAndPrintTiffPixelsTest {
         Object values = makeCircleSamples(sampleType, dimX, dimY, filler);
         try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.CREATE)) {
             final TiffWriteMap map = writer.newFixedMap(TiffIFD.newStrippedIFD()
-                    .putImageInformation(dimX, dimY,1, sampleType));
+                    .putImageInformation(dimX, dimY, 1, sampleType));
             map.writeJavaArray(values);
         }
         System.out.printf("Written %s%n", targetFile);
@@ -84,20 +84,20 @@ public class MakeAndPrintTiffPixelsTest {
         switch (type) {
             case BIT -> {
                 boolean[] samples = new boolean[matrixSize];
-                    for (int y = 0, disp = 0; y < dimY; y++) {
-                        for (int x = 0; x < dimX; x++, disp++) {
-                            samples[disp] = patternValue(x, y, dimX, dimY, filler, false) > 0.5;
-                        }
+                for (int y = 0, disp = 0; y < dimY; y++) {
+                    for (int x = 0; x < dimX; x++, disp++) {
+                        samples[disp] = patternValue(x, y, dimX, dimY, filler, false) > 0.5;
                     }
+                }
                 return samples;
             }
             case UINT8, INT8 -> {
                 byte[] samples = new byte[matrixSize];
                 for (int y = 0, disp = 0; y < dimY; y++) {
                     for (int x = 0; x < dimX; x++, disp++) {
-                            samples[disp] = (byte) (patternValue(x, y, dimX, dimY, filler, signed) * 255.0);
-                        }
+                        samples[disp] = (byte) (patternValue(x, y, dimX, dimY, filler, signed) * 255.0);
                     }
+                }
                 return samples;
             }
             case UINT16, INT16 -> {
