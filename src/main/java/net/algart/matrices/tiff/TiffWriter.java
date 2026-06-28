@@ -1987,6 +1987,7 @@ public non-sealed class TiffWriter extends TiffIO {
             fileOffsetOfNextOffset = stream.offset();
             writeOffset(stream, bigTiff, TiffIFD.IFD_CHAIN_TERMINATOR);
             // - not too important: will be rewritten in writeIFDNextOffset
+            // (but this operator provides a correct TIFF at this stage)
             final long extraLength = extraBuffer.length();
             assert extraBuffer.offset() == extraLength;
             copyData(extraBuffer, stream, true, extraLength);
@@ -2089,13 +2090,17 @@ public non-sealed class TiffWriter extends TiffIO {
             long fileOffsetOfNextOffset,
             IFDLinkage.UpdateMode updateModeForNewIFD,
             long ifdOffset) throws IOException {
-        refreshIFDLinkage();
-        // - necessary before access to ifdLinkage
-        //TODO!! remove if updateModeForNewIFD is NONE
-        IFDLinkage ifdLinkage = currentIFDLinkage().orElse(null);
-        final long previousOffsetOfIFDChainTerminator =
-                ifdLinkage == null ? -1 : ifdLinkage.offsetOfIFDChainTerminator();
-        // - save it, because it will be updated in writeIFDNextOffsetAt
+        final boolean update = updateModeForNewIFD.isUpdate();
+        final long previousOffsetOfIFDChainTerminator;
+        final IFDLinkage ifdLinkage;
+        if (update) {
+            ifdLinkage = refreshIFDLinkage();
+            previousOffsetOfIFDChainTerminator = ifdLinkage.offsetOfIFDChainTerminator();
+        } else {
+            ifdLinkage = null;
+            previousOffsetOfIFDChainTerminator = -1;
+        }
+        // - save it, because it will be updated in writeIFDOffsetAt
         final boolean virginOrTerminatorIFDForAppendingNewImages = !ifd.hasNextIFDOffset();
         final long nextIFDOffset = virginOrTerminatorIFDForAppendingNewImages ? -1 : ifd.getNextIFDOffset();
         // - Optimization for writing sequential images.
@@ -2108,7 +2113,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 updateModeForNewIFD);
         // - writes (or rewrites) TiffIFD.IFD_CHAIN_TERMINATOR (or ifd.getNextIFDOffset()
         // to the file at fileOffsetOfNextOffset;
-        if (updateModeForNewIFD.isUpdate() && !this.ifdLinkage.containsIFDOffset(ifdOffset)) {
+        if (update && !ifdLinkage.containsIFDOffset(ifdOffset)) {
             // - Only if it is an absolutely newly added IFD!
             // If this offset is already contained in the list, an attempt to link to it
             // will probably lead to an infinite loop of IFDs.

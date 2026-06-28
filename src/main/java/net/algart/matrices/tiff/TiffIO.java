@@ -1580,15 +1580,16 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 //        } else throw new AssertionError();
         if (offset < 0 || offset >= tiffFileLength) {
             // offset < 0 is possible in BigTIFF only
-            String fileName = fileNameSupplier.get();
+            final String fileName = fileNameSupplier.get();
+            final long offsetOfOffset = stream.offset() - (bigTiff ? 8 : 4) + positionStartIncrement;
             throw new TiffException((
-                    (offset < 0 ? "Invalid TIFF%s: negative 64-bit IFD offset %d (0x%X) at file offset %d, " :
-                            "Invalid TIFF%s: IFD offset %d (0x%X) at file offset %d is outside the file length " +
-                            tiffFileLength + ", ") +
+                    (offset < 0 ? "Invalid TIFF%s: negative 64-bit IFD offset %d (0x%X) at file offset %d (0x%X), " :
+                            "Invalid TIFF%s: IFD offset %d (0x%X) at file offset %d (0x%X) " +
+                            "is outside the file length " + tiffFileLength + ", ") +
                             "probably the file is corrupted").formatted(
                     fileName.isEmpty() ? "" : " " + fileName,
                     offset, offset,
-                    stream.offset() - (bigTiff ? 8 : 4) + positionStartIncrement));
+                    offsetOfOffset, offsetOfOffset));
         }
         return offset;
     }

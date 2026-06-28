@@ -74,10 +74,10 @@ public class TiffWriteMixedTest {
 
         System.out.println("Writing TIFF " + targetFile + "...");
         try (final TiffWriter writer = new TiffWriter(targetFile)) {
-            writer.setBigTiff(true);
+            // writer.setBigTiff(true);
             writer.setByteFiller((byte) 0);
             writer.setByteOrder(ByteOrder.LITTLE_ENDIAN);
-//            writer.setSmartCorrection(true);
+            // writer.setSmartCorrection(true);
             assert writer.currentIFDLinkage().isEmpty() :
                     "constructor should not set currentIFDLinkage";
             assert writer.offsetOfLastScannedIFDOffset().isEmpty() :

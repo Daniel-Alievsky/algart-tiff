@@ -881,7 +881,6 @@ public final class TiffIFD {
         return nextIFDOffset < 0 ? IFD_CHAIN_TERMINATOR : nextIFDOffset;
     }
 
-
     public TiffIFD setNextIFDOffset(long nextIFDOffset) {
         if (nextIFDOffset < 0) {
             throw new IllegalArgumentException("Negative next IFD offset: " + nextIFDOffset);

@@ -95,8 +95,7 @@ public class ManyRepeatedTilesDemo {
 
             long t1 = System.nanoTime();
             if (gradient) {
-                map.writeBlankRepeatingTile(m ->
-                        makePatternSamples(m, sampleType, colorValue, true));
+                map.writeBlankRepeatingTile(m -> makePatternSamples(m, sampleType, colorValue));
             } else {
                 map.writeBlank(colorValue);
             }
@@ -110,8 +109,7 @@ public class ManyRepeatedTilesDemo {
     private static void makePatternSamples(
             Matrix<UpdatablePArray> matrix,
             TiffSampleType type,
-            Color color,
-            boolean gradient) {
+            Color color) {
         int numberOfChannels = matrix.dim32(2);
         int dimX = matrix.dimX32();
         int dimY = matrix.dimY32();
@@ -122,7 +120,7 @@ public class ManyRepeatedTilesDemo {
                 for (int c = 0, disp = 0; c < numberOfChannels; c++) {
                     for (int y = 0; y < dimY; y++) {
                         for (int x = 0; x < dimX; x++, disp++) {
-                            channels[disp] = patternValue(color, c, x, y, dimX, dimY, gradient) > 0.5;
+                            channels[disp] = patternValue(color, c, x, y, dimX, dimY) > 0.5;
                         }
                     }
                 }
@@ -133,7 +131,7 @@ public class ManyRepeatedTilesDemo {
                 for (int c = 0, disp = 0; c < numberOfChannels; c++) {
                     for (int y = 0; y < dimY; y++) {
                         for (int x = 0; x < dimX; x++, disp++) {
-                            channels[disp] = (byte) (patternValue(color, c, x, y, dimX, dimY, gradient) * 255.0);
+                            channels[disp] = (byte) (patternValue(color, c, x, y, dimX, dimY) * 255.0);
                         }
                     }
                 }
@@ -144,7 +142,7 @@ public class ManyRepeatedTilesDemo {
                 for (int c = 0, disp = 0; c < numberOfChannels; c++) {
                     for (int y = 0; y < dimY; y++) {
                         for (int x = 0; x < dimX; x++, disp++) {
-                            channels[disp] = (short) (patternValue(color, c, x, y, dimX, dimY, gradient) * 65535.0);
+                            channels[disp] = (short) (patternValue(color, c, x, y, dimX, dimY) * 65535.0);
                         }
                     }
                 }
@@ -155,7 +153,7 @@ public class ManyRepeatedTilesDemo {
                 for (int c = 0, disp = 0; c < numberOfChannels; c++) {
                     for (int y = 0; y < dimY; y++) {
                         for (int x = 0; x < dimX; x++, disp++) {
-                            channels[disp] = (int) (patternValue(color, c, x, y, dimX, dimY, gradient) * 0xFFFFFFFFL);
+                            channels[disp] = (int) (patternValue(color, c, x, y, dimX, dimY) * 0xFFFFFFFFL);
                         }
                     }
                 }
@@ -166,7 +164,7 @@ public class ManyRepeatedTilesDemo {
                 for (int c = 0, disp = 0; c < numberOfChannels; c++) {
                     for (int y = 0; y < dimY; y++) {
                         for (int x = 0; x < dimX; x++, disp++) {
-                            channels[disp] = (float) patternValue(color, c, x, y, dimX, dimY, gradient);
+                            channels[disp] = (float) patternValue(color, c, x, y, dimX, dimY);
                         }
                     }
                 }
@@ -177,7 +175,7 @@ public class ManyRepeatedTilesDemo {
                 for (int c = 0, disp = 0; c < numberOfChannels; c++) {
                     for (int y = 0; y < dimY; y++) {
                         for (int x = 0; x < dimX; x++, disp++) {
-                            channels[disp] = patternValue(color, c, x, y, dimX, dimY, gradient);
+                            channels[disp] = patternValue(color, c, x, y, dimX, dimY);
                         }
                     }
                 }
@@ -193,13 +191,12 @@ public class ManyRepeatedTilesDemo {
             long x,
             long y,
             long dimX,
-            long dimY,
-            boolean gradient) {
+            long dimY) {
         double value = switch (channel) {
             case 0 -> color.getRed() / 255.0;
             case 1 -> color.getGreen() / 255.0;
             default -> color.getBlue() / 255.0;
         };
-        return gradient ? value * (double) (x * x + y * y) / (double) (dimX * dimX + dimY * dimY) : value;
+        return value * (double) (x * x + y * y) / (double) (dimX * dimX + dimY * dimY);
     }
 }
