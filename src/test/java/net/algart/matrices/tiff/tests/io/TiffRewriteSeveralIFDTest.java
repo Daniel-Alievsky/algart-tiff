@@ -66,12 +66,25 @@ public class TiffRewriteSeveralIFDTest {
                             writer.readMainIFDOffset(1);
                     damage(writer, ifd);
                     damage(writer, ifds[0]);
-                    // writer.refreshIFDLinkage();
+                    // writer.refreshIFDLinkage(); // - will throw an exception
                     restore(writer, ifds[0], previous0);
-                    // writer.refreshIFDLinkage();
+                    // writer.refreshIFDLinkage(); // - will throw an exception
                     restore(writer, ifd, TiffIFD.IFD_CHAIN_TERMINATOR);
-                    writer.invalidateIFDLinkage();
                 }
+            }
+            System.out.println();
+            writer.refreshIFDLinkage();
+            System.out.printf("Linkage after refresh: %s%n", writer.currentIFDLinkage());
+
+            for (int k = 0; k < numberOfImages; k++) {
+                TiffIFD ifd = ifds[k];
+                ifd.removeNextIFDOffset();
+                // - restoring to a "virgin" stage
+                System.out.printf("Rewriting IFD #%d...%n%s%n", k, ifd);
+                writer.writeIFD(ifd, TiffIO.IFDLinkage.UpdateMode.UPDATE);
+                System.out.printf("Linkage after rewriting this IFD: %s%n", writer.currentIFDLinkage());
+                // writer.invalidateIFDLinkage(); // - should not be necessary!
+                //TODO!! necessary to fix this
             }
         }
         System.out.println("Done");
