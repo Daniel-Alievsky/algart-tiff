@@ -25,7 +25,10 @@
 package net.algart.matrices.tiff;
 
 import net.algart.arrays.JArrays;
-import net.algart.matrices.tiff.tags.*;
+import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tags.TagType;
+import net.algart.matrices.tiff.tags.TagValue;
+import net.algart.matrices.tiff.tags.Tags;
 import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.FileHandle;
@@ -44,20 +47,19 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.function.IntPredicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public sealed abstract class TiffIO implements Closeable permits TiffReader, TiffWriter {
-    public class Linkage {
+    public static class IFDLinkage {
         public enum UpdateMode {
             /**
              * "Silent" mode: no internal fields are modified.
              */
             NONE,
             /**
-             * Automatically updates the fields tracked by the
-             * {@link TiffWriter#offsetOfIFDChainTerminator()} and {@link TiffWriter#allIFDOffsets()} methods.
+             * Automatically updates the linkage tracked by the
+             * {@link TiffWriter#currentIFDLinkage()} method.
              */
             UPDATE;
 
@@ -66,159 +68,69 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             }
         }
 
-        private volatile boolean initialized = false;
         private long offsetOfIFDChainTerminator = -1;
-        private final LinkedHashSet<Long> allIFDOffsets = new LinkedHashSet<>();
+        private final LinkedHashSet<Long> mainIFDOffsets = new LinkedHashSet<>();
 
-        /**
-         * Returns the file offset of the last scanned IFD offset, or {@code OptionalLong.empty()}
-         * if this offset is still unknown or has been {@link TiffWriter#invalidateLinkage() invalidated}.
-         *
-         * <p>This value is initialized by the method {@link #refresh()}.
-         *
-         * <p>The {@link TiffReader} class calls these methods internally from high-level methods
-         * like {@link TiffReader#allIFDs()} or {@link TiffReader#numberOfImages()}, so the value
-         * returned by this class is usually correctly initialized to the file offset of the offset
-         * of the <b>actual last IFD</b> present in the file.</p>
-         *
-         * <p>The {@link TiffWriter} class automatically initializes and updates this value.
-         * Usually this is performed internally by the {@link TiffWriter#writeIFD(TiffIFD, Linkage.UpdateMode) writeIFD}
-         * and {@link TiffWriter#rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, Linkage.UpdateMode)
-         * rewriteIFDStrictlyInPlace} methods when they are called using {@link Linkage.UpdateMode#UPDATE} mode.
-         * The {@link TiffWriter} class also allows invalidating this value via an explicit call
-         * to the {@link TiffWriter#invalidateLinkage()} method and then reinitializing it via
-         * the {@link TiffWriter#refreshLinkage()} method, but usually you should not worry about this:
-         * everything is handled automatically.</p>
-         *
-         * <p>Immediately after creating a new {@link TiffReader} object, as well as
-         * immediately after creating a new {@link TiffWriter} object without opening a file
-         * ({@link TiffCreateMode#NO_ACTIONS} mode), this method returns {@code OptionalLong.empty()}.
-         * Immediately after opening an existing TIFF file via {@link TiffWriter}
-         * (for example, via {@link TiffWriter#openExisting()} or {@link TiffWriter#openForAppend()}),
-         * this position will be set to the offset of the last IFD offset in the TIFF file.</p>
-         *
-         * @return the file offset of the last IFD offset, wrapped in {@link OptionalLong},
-         * or {@code OptionalLong.empty()} if it has not been read or if it was invalidated.
-         */
-        public OptionalLong offsetOfIFDChainTerminator() {
-            return offsetOfIFDChainTerminator < 0 ? OptionalLong.empty() : OptionalLong.of(offsetOfIFDChainTerminator);
+        public IFDLinkage(boolean bigTiff) {
+            this(offsetOfFirstIFDOffset(bigTiff), new long[0]);
         }
 
-        public Set<Long> allIFDOffsets() {
-            return Collections.unmodifiableSet(allIFDOffsets);
-        }
-
-        /**
-         * Removes the file offset of the last scanned IFD offset returned by the {@link #offsetOfIFDChainTerminator()}
-         * method, and clears the set of written IFD offsets returned by the {@link #allIFDOffsets()} method.
-         * After invalidation, {@link #offsetOfIFDChainTerminator()} will return {@code OptionalLong.empty()}.
-         *
-         * <p>Usually, you do not need to use this method directly: it is called automatically by {@link TiffWriter}
-         * every time there is a risk that this linkage information may become incorrect.
-         * More precisely, it is called in the following scenarios:</p>
-         *
-         * <ol>
-         *      <li>in the {@link TiffWriter#rewriteIFDOffset(int, long)} and
-         *      {@link TiffWriter#rewriteLastIFDOffset(long)} methods;</li>
-         *      <li>in the {@link TiffWriter#writeIFD(TiffIFD, Linkage.UpdateMode)} and
-         * {@link TiffWriter#rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, Linkage.UpdateMode)} methods,
-         * when the {@link TiffIFD#hasNextIFDOffset()} method returns {@code true} for the specified IFD;</li>
-         *      <li>while {@link #close() closing} the writer.</li>
-         * </ol>
-         *
-         * <p>(Exact behavior may change in future versions, if it will not create any risk of incorrect linkage.)</p>
-         *
-         * <p>Usually, this is quite enough: whenever {@link TiffWriter} writes or modifies any IFD in the file,
-         * it calls the methods specified in items 1 and 2 above. The only situation where you might need
-         * to call {@link #invalidate()} manually is when you work with an IFD where the
-         * {@link TiffIFD#hasNextIFDOffset()} method returns {@code false} (i.e., it will become a terminator IFD
-         * in the file), <b>but</b> you are writing it somewhere other than the end of the file
-         * (unlike the typical usage inside this class).</p>
-         *
-         * <p>For example, if you are overwriting a series of existing images at their exact previous file offsets,
-         * and every IFD has an unset {@link TiffIFD#hasNextIFDOffset() next-IFD-offset} field,
-         * then without an explicit
-         * call to {@link #invalidate()}, the {@link #allIFDOffsets()} set will become incorrect.
-         * As a result, it can lead to incorrect linkage. However, this is a very exotic use case.</p>
-         *
-         * @see TiffWriter#writeIFD(TiffIFD, Linkage.UpdateMode)
-         */
-        @SuppressWarnings("JavadocDeclaration")
-        public void invalidate() {
-            invalidate(true, "");
-        }
-
-        /**
-         * Reloads the linkage information returned by the {@link #offsetOfIFDChainTerminator()} and
-         * {@link #allIFDOffsets()} methods.
-         *
-         * <p>You do not need to use this method manually: it is called automatically by {@link TiffWriter}
-         * whenever it requires up-to-date linkage information. The only situation when you might use it
-         * is if you want to inspect this information for your own purposes, for example, for logging.</p>
-         *
-         * @throws IOException if an I/O error occurs.
-         */
-        public void refresh() throws IOException {
-            refresh(true, "");
-        }
-
-        private void invalidate(boolean logging, String comment) {
-            synchronized (fileLock) {
-                if (logging) {
-                    LOG.log(System.Logger.Level.DEBUG, () ->
-                            "Invalidating linkage%s: %s".formatted(comment, toString()));
-                }
-                this.offsetOfIFDChainTerminator = -1;
-                this.allIFDOffsets.clear();
+        private IFDLinkage(long offsetOfIFDChainTerminator, long[] mainIFDOffsets) {
+            Objects.requireNonNull(mainIFDOffsets, "Null mainIFDOffsets");
+            if (offsetOfIFDChainTerminator < 0) {
+                throw new IllegalArgumentException("Negative offsetOfIFDChainTerminator = " +
+                        offsetOfIFDChainTerminator);
+            }
+            this.offsetOfIFDChainTerminator = offsetOfIFDChainTerminator;
+            for (long offset : mainIFDOffsets) {
+                addIFDOffset(offset);
             }
         }
 
-        private void refresh(boolean logging, String comment) throws IOException {
-            synchronized (fileLock) {
-                if (offsetOfIFDChainTerminator == -1) {
-                    boolean success = false;
-                    final long savedOffset = stream.offset();
-                    try {
-                        final long[] offsets = readMainIFDOffsets( true);
-                        this.offsetOfIFDChainTerminator = offsetOfLastScannedIFDOffset().orElseThrow(
-                                () -> new AssertionError(
-                                        "readMainIFDOffsets did not read IFD chain terminator"));
-                        // - this cannot occur from a parallel thread inside the synchronized block
-                        allIFDOffsets.clear();
-                        for (long offset : offsets) {
-                            allIFDOffsets.add(offset);
-                        }
-                        if (logging) {
-                            LOG.log(System.Logger.Level.DEBUG, () ->
-                                    "Refreshing linkage%s: %s".formatted(comment, toString()));
-                        }
-                        stream.seek(savedOffset);
-                        success = true;
-                    } finally {
-                        if (!success) {
-                            offsetOfIFDChainTerminator = -1;
-                            // - the next call to this method will try to refresh the linkage again
-                            try {
-                                stream.seek(savedOffset);
-                            } catch (Exception ignored) {
-                            }
-                        }
-                    }
-                }
+        public long offsetOfIFDChainTerminator() {
+            assert offsetOfIFDChainTerminator >= 0;
+            return offsetOfIFDChainTerminator;
+        }
+
+        public int numberOfMainIFDOffsets() {
+            return mainIFDOffsets.size();
+        }
+
+        public Set<Long> mainIFDOffsets() {
+            return Collections.unmodifiableSet(mainIFDOffsets);
+        }
+
+        public boolean containsIFDOffset(long ifdOffset) {
+            return mainIFDOffsets.contains(ifdOffset);
+        }
+
+        public void addIFDOffset(long ifdOffset) {
+            if (ifdOffset < 0) {
+                throw new IllegalArgumentException("Negative IFD offset = " + ifdOffset);
             }
+            mainIFDOffsets.add(ifdOffset);
+        }
+
+        public void updateOffsetOfIFDChainTerminator(long offsetOfIFDChainTerminator) {
+            if (offsetOfIFDChainTerminator < 0) {
+                throw new IllegalArgumentException("Negative offsetOfIFDChainTerminator = " +
+                        offsetOfIFDChainTerminator);
+            }
+            this.offsetOfIFDChainTerminator = offsetOfIFDChainTerminator;
         }
 
         public String toString() {
-            final long[] offsets = allIFDOffsets.stream().mapToLong(Long::longValue).toArray();
+            final long[] offsets = mainIFDOffsets.stream().mapToLong(Long::longValue).toArray();
             return offsets.length + " IFDs found at offsets [" +
                     JArrays.toString(offsets, ", ", 500) +
-                    "], offset of the last IFD offset: " + offsetOfIFDChainTerminator;
+                    "], offset of the IFD terminator: " + offsetOfIFDChainTerminator;
         }
     }
 
     /**
      * Subclasses of this class can be used for storing additional information about encoding or decoding tiles,
      * for example, in some specific TIFF codecs.
+     * This additional information is provided via override {@link #toString()} method in the subclasses.
      */
     public static class CodecReport {
     }
@@ -378,6 +290,10 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @return position in the file of the first IFD offset.
      */
     public long offsetOfFirstIFDOffset() {
+        return offsetOfFirstIFDOffset(this.bigTiff);
+    }
+
+    public static long offsetOfFirstIFDOffset(boolean bigTiff) {
         return bigTiff ? 8L : 4L;
     }
 
@@ -798,6 +714,22 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return readMainIFDOffsets(allowNoIFDs, Long.MAX_VALUE);
     }
 
+    public IFDLinkage newEmptyIFDLinkage() {
+        return new IFDLinkage(this.bigTiff);
+    }
+
+    public IFDLinkage readIFDLinkage() throws IOException {
+        synchronized (fileLock) {
+            final long[] offsets = readMainIFDOffsets(true);
+            final long terminatorOffset = offsetOfLastScannedIFDOffset().orElseThrow(
+                    () -> new AssertionError(
+                            "readMainIFDOffsets did not read IFD chain terminator"));
+            // - this cannot occur from a parallel thread inside the synchronized block
+            assert terminatorOffset >= 0;
+            return new IFDLinkage(terminatorOffset, offsets);
+        }
+    }
+
     public CodecReport lastCodecReport() {
         return lastCodecReport;
     }
@@ -1210,7 +1142,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * After calling this method, you
      * should copy full content of {@code extraBuffer} into the main stream at the position
      * specified by the second argument;
-     * {@link TiffWriter#writeIFD(TiffIFD, Linkage.UpdateMode)} method does it automatically.
+     * {@link TiffWriter#writeIFD(TiffIFD, IFDLinkage.UpdateMode)} method does it automatically.
      *
      * <p>Here "extra" data means all data, for which IFD contains their offsets instead of data itself,
      * like arrays or text strings. The "main" data is a 12-byte IFD record (20-byte for BigTIFF),
@@ -1528,7 +1460,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 }
                 // - Note: we must break the loop BEFORE reading the next offset and correcting
                 // offsetOfLastScannedIFDOffset! See the comments to
-                // readMainIFDOffset(int mainIFDIndex, LinkageUpdateMode linkageUpdateMode)
+                // readMainIFDOffset(int mainIFDIndex)
                 // This is important in TiffWriter.rewriteIFDOffset method
                 skipIFDEntries(offset, fileLength);
                 offset = readIFDOffset(true);

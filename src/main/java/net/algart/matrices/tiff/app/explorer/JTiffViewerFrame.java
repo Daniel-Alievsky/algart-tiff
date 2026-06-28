@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff.app.explorer;
 
+import net.algart.matrices.tiff.TiffIO;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagPhotometric;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
@@ -427,7 +428,7 @@ class JTiffViewerFrame extends JFrame {
         JMenuItem showDecodingReportItem = new JMenuItem("Show decoding report");
         showDecodingReportItem.addActionListener(e -> {
             final TiffReadMap map = viewer.map();
-            final var report = map.lastCodecReport();
+            final TiffIO.CodecReport report = map.lastCodecReport();
             if (report != null) {
                 JOptionPane.showMessageDialog(
                         this,

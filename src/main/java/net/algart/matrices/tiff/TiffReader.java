@@ -791,7 +791,7 @@ public non-sealed class TiffReader extends TiffIO {
     /**
      * Returns <code>{@link #mainIFDs()}.size()</code>.
      * Note that this is the length of the array returned by
-     * {@link #readMainIFDOffsets(LinkageUpdateMode)} method.
+     * {@link #readMainIFDOffsets()} method.
      *
      * <p>Note: for maximum usability, this method returns 0 instead of throwing an exception
      * if there are any problems with the input file.

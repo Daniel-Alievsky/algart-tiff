@@ -74,21 +74,21 @@ public class TiffWriteMixedTest {
 
         System.out.println("Writing TIFF " + targetFile + "...");
         try (final TiffWriter writer = new TiffWriter(targetFile)) {
-//            writer.setBigTiff(true);
+            writer.setBigTiff(true);
             writer.setByteFiller((byte) 0);
             writer.setByteOrder(ByteOrder.LITTLE_ENDIAN);
 //            writer.setSmartCorrection(true);
-            assert writer.offsetOfIFDChainTerminator().isEmpty() :
-                    "constructor should not set offsetOfIFDChainTerminator";
+            assert writer.currentIFDLinkage().isEmpty() :
+                    "constructor should not set currentIFDLinkage";
             assert writer.offsetOfLastScannedIFDOffset().isEmpty() :
                     "constructor should not set offsetOfIFDChainTerminator";
 
             writer.create();
             writer.create(); // - not a problem to call twice
-            System.out.printf("offsetOfIFDChainTerminator after creating: %s%n", writer.offsetOfIFDChainTerminator());
-            writer.invalidateLinkage();
-            writer.refreshLinkage();
-            System.out.printf("offsetOfIFDChainTerminator after refresh: %s%n", writer.offsetOfIFDChainTerminator());
+            System.out.printf("Linkage after creating: %s%n", writer.currentIFDLinkage());
+            writer.invalidateIFDLinkage();
+            writer.refreshIFDLinkage();
+            System.out.printf("Linkage after refresh: %s%n", writer.currentIFDLinkage());
 
             // writer.reader().input().setLength(0); // - throws an exception (read-only
             TiffIFD ifd = TiffIFD.newInstance();
@@ -138,8 +138,8 @@ public class TiffWriteMixedTest {
             System.out.printf("%d completed tiles written%n", n);
             // - frees the memory (almost do not affect results)
             printReaderInfo(writer);
-            writer.invalidateLinkage();
-            writer.refreshLinkage();
+            writer.invalidateIFDLinkage();
+            writer.refreshIFDLinkage();
             n = map.completeWriting();
             System.out.printf("1st: %d tiles written while the final completion%n", n);
             n = writer.completeWriting(map);
@@ -152,8 +152,8 @@ public class TiffWriteMixedTest {
             // writer.writeJavaArray(map, samples, 0, 0, sizeX, sizeY);
             // - equivalent to previous 3 TiffWriter methods
             printReaderInfo(writer);
-            writer.invalidateLinkage();
-            writer.refreshLinkage();
+            writer.invalidateIFDLinkage();
+            writer.refreshIFDLinkage();
             // - should print log
 
             System.out.printf("Actually saved IFD:%n%s%n", ifd.toString(TiffIFD.StringFormat.DETAILED));

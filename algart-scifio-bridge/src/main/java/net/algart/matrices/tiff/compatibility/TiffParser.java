@@ -396,7 +396,7 @@ public class TiffParser extends TiffReader {
 
 
     /**
-     * Use {@link #readMainIFDOffsets(LinkageUpdateMode)} instead.
+     * Use {@link #readMainIFDOffsets()} instead.
      */
     @Deprecated
     public long[] getIFDOffsets() throws IOException {
@@ -426,7 +426,7 @@ public class TiffParser extends TiffReader {
     }
 
     /**
-     * Use {@link #readFirstIFDOffset(LinkageUpdateMode)} instead,
+     * Use {@link #readMainIFDOffset(int)} instead,
      * together with {@link #isValidTiff()} check.
      */
     @Deprecated

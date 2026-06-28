@@ -827,7 +827,7 @@ public final class TiffIFD {
      * @param fileOffsetOfIFDForWriting the target file offset (must be even).
      * @return a reference to this IFD object.
      * @throws IllegalArgumentException if the offset is negative or odd.
-     * @see TiffWriter#writeIFD(TiffIFD, TiffIO.LinkageUpdateMode)
+     * @see TiffWriter#writeIFD(TiffIFD, TiffIO.IFDLinkage.UpdateMode)
      * @see TiffWriter#completeWriting(TiffWriteMap)
      */
     @SuppressWarnings("JavadocDeclaration")

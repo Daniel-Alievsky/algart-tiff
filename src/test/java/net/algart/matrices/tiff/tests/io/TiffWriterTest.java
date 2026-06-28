@@ -464,7 +464,8 @@ public class TiffWriterTest {
                             System.out.printf("All %d tiles are completely filled%n", map.numberOfTiles());
                         }
                     }
-                    System.out.printf("%d used IFD offsets%n", writer.allIFDOffsets().size());
+                    System.out.printf("IFD linkage: %s%n",
+                            writer.currentIFDLinkage().map(Object::toString).orElse("no linkage"));
                 }
             }
         }
