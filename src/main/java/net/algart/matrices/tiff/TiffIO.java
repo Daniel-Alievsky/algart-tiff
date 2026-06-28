@@ -104,6 +104,14 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             return mainIFDOffsets.contains(ifdOffset);
         }
 
+        public void updateForNewIFDOffset(long fileOffsetOfNewIFDOffset, long newIFDOffsetValue) {
+            if (newIFDOffsetValue != TiffIFD.IFD_CHAIN_TERMINATOR) {
+                addIFDOffset(newIFDOffsetValue);
+            } else {
+                updateOffsetOfIFDChainTerminator(fileOffsetOfNewIFDOffset);
+            }
+        }
+
         public void addIFDOffset(long ifdOffset) {
             if (ifdOffset < 0) {
                 throw new IllegalArgumentException("Negative IFD offset = " + ifdOffset);

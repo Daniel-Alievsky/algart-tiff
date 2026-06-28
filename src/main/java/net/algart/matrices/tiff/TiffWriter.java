@@ -2364,12 +2364,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 stream.seek(fileOffsetToWrite);
                 writeOffset(stream, bigTiff, offsetValue);
                 if (updateMode.isUpdate()) {
-                    if (offsetValue != TiffIFD.IFD_CHAIN_TERMINATOR) {
-                        // - no sense to store IFD_CHAIN_TERMINATOR=0 in the set
-                        ifdLinkage.addIFDOffset(offsetValue);
-                    } else {
-                        ifdLinkage.updateOffsetOfIFDChainTerminator(fileOffsetToWrite);
-                    }
+                    ifdLinkage.updateForNewIFDOffset(fileOffsetToWrite, offsetValue);
                 }
             } finally {
                 stream.seek(savedFileOffset);
