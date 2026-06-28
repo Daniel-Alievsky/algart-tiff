@@ -66,6 +66,10 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             public boolean isUpdate() {
                 return this == UPDATE;
             }
+
+            public static UpdateMode ofUpdate(boolean update) {
+                return update ? UpdateMode.UPDATE : UpdateMode.NONE;
+            }
         }
 
         private long offsetOfIFDChainTerminator = -1;

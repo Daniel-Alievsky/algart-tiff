@@ -72,19 +72,37 @@ public class TiffRewriteSeveralIFDTest {
                     restore(writer, ifd, TiffIFD.IFD_CHAIN_TERMINATOR);
                 }
             }
-            System.out.println();
             writer.refreshIFDLinkage();
             System.out.printf("Linkage after refresh: %s%n", writer.currentIFDLinkage());
+            System.out.println();
+
+            for (TiffIFD tiffIFD : ifds) {
+                tiffIFD.removeNextIFDOffset();
+            }
 
             for (int k = 0; k < numberOfImages; k++) {
                 TiffIFD ifd = ifds[k];
-                ifd.removeNextIFDOffset();
                 // - restoring to a "virgin" stage
-                System.out.printf("Rewriting IFD #%d...%n%s%n", k, ifd);
-                writer.writeIFD(ifd, TiffIO.IFDLinkage.UpdateMode.UPDATE);
+                TiffIO.IFDLinkage.UpdateMode updateMode = TiffIO.IFDLinkage.UpdateMode.UPDATE;
+                System.out.printf("Rewriting IFD #%d (%s)...%n%s%n", k, updateMode, ifd);
+                System.out.printf("Linkage before rewriting this IFD: %s%n", writer.currentIFDLinkage());
+                writer.writeIFD(ifd, updateMode);
                 System.out.printf("Linkage after rewriting this IFD: %s%n", writer.currentIFDLinkage());
                 // writer.invalidateIFDLinkage(); // - should not be necessary!
             }
+            System.out.printf("Linkage after refresh: %s%n", writer.currentIFDLinkage());
+            System.out.println();
+            for (int k = 0; k < numberOfImages; k++) {
+                TiffIFD ifd = ifds[k];
+                // - restoring to a "virgin" stage
+                TiffIO.IFDLinkage.UpdateMode updateMode = TiffIO.IFDLinkage.UpdateMode.ofUpdate(k > 0);
+                System.out.printf("Rewriting IFD #%d (%s)...%n%s%n", k, updateMode, ifd);
+                System.out.printf("Linkage before rewriting this IFD: %s%n", writer.currentIFDLinkage());
+                writer.writeIFD(ifd, updateMode);
+                System.out.printf("Linkage after rewriting this IFD: %s%n", writer.currentIFDLinkage());
+                // writer.invalidateIFDLinkage(); // - should not be necessary!
+            }
+            System.out.println();
         }
         System.out.println("Done");
     }

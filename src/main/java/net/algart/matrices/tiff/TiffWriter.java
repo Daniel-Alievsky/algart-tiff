@@ -2097,40 +2097,41 @@ public non-sealed class TiffWriter extends TiffIO {
             ifdLinkage = refreshIFDLinkage();
             previousOffsetOfIFDChainTerminator = ifdLinkage.offsetOfIFDChainTerminator();
         } else {
-            ifdLinkage = null;
+            ifdLinkage = currentIFDLinkage().orElse(null);
             previousOffsetOfIFDChainTerminator = -1;
         }
         // - save it, because it will be updated in writeIFDOffsetAt
+        final boolean knownIFDOffset = ifdLinkage != null && ifdLinkage.containsIFDOffset(ifdOffset);
         boolean virginIFDForAppendingNewImages = !ifd.hasNextIFDOffset();
-        final long nextIFDOffset = virginIFDForAppendingNewImages ? -1 : ifd.getNextIFDOffset();
         // - Optimization for writing sequential images.
         // If this IFD is a terminator (either newly created for appending or explicitly marked),
         // we can safely skip invalidateIFDLinkage(): correcting the offsetOfIFDChainTerminator
         // field inside writeIFDOffsetAt() is sufficient to maintain a valid chain state.
+        final long nextIFDOffset = virginIFDForAppendingNewImages ? -1 : ifd.getNextIFDOffset();
+        // - Used for logging only
+        if (knownIFDOffset) {
+            virginIFDForAppendingNewImages = false;
+        }
         writeIFDOffsetAt(
                 ifd.getNextIFDOffsetOrTerminatorIfAbsent(),
                 fileOffsetOfNextOffset,
                 updateModeForNewIFD);
         // - writes (or rewrites) TiffIFD.IFD_CHAIN_TERMINATOR (or ifd.getNextIFDOffset()
         // to the file at fileOffsetOfNextOffset;
-        if (update) {
-            if (ifdLinkage.containsIFDOffset(ifdOffset)) {
-                virginIFDForAppendingNewImages = false;
-            } else {
-                // - Only if it is an absolutely newly added IFD!
-                // If this offset is already contained in the list, an attempt to link to it
-                // will probably lead to an infinite loop of IFDs.
-                // This check is necessary, for example, for overwriting an existing image:
-                // without it, the completeWriting method will create an infinite loop.
-                writeIFDOffsetAt(
-                        ifdOffset,
-                        previousOffsetOfIFDChainTerminator,
-                        updateModeForNewIFD);
-                // - This method adds ifdOffset to allIFDOffsets in UPDATE mode.
-                // (In old versions, we passed here an equivalent of the NONE mode, but now
-                // UPDATE is necessary for correcting allIFDOffsets and, vice versa,
-                // offsetOfIFDChainTerminator will not be changed for offset other than the terminator.)
-            }
+        if (update && !knownIFDOffset) {
+            // - Only if it is an absolutely newly added IFD!
+            // If this offset is already contained in the list, an attempt to link to it
+            // will probably lead to an infinite loop of IFDs.
+            // This check is necessary, for example, for overwriting an existing image:
+            // without it, the completeWriting method will create an infinite loop.
+            writeIFDOffsetAt(
+                    ifdOffset,
+                    previousOffsetOfIFDChainTerminator,
+                    updateModeForNewIFD);
+            // - This method adds ifdOffset to allIFDOffsets in UPDATE mode.
+            // (In old versions, we passed here an equivalent of the NONE mode, but now
+            // UPDATE is necessary for correcting allIFDOffsets and, vice versa,
+            // offsetOfIFDChainTerminator will not be changed for offset other than the terminator.)
         }
         if (!virginIFDForAppendingNewImages) {
             invalidateIFDLinkage(true, " for IFD with specified next-IFD-offset=" + nextIFDOffset);
