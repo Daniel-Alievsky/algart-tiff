@@ -24,12 +24,18 @@
 
 package net.algart.matrices.tiff;
 
-import net.algart.arrays.*;
-import net.algart.matrices.tiff.codecs.TiffCodec;
+import net.algart.arrays.Matrix;
+import net.algart.arrays.PArray;
+import net.algart.arrays.PackedBitArraysPer8;
+import net.algart.matrices.tiff.TiffIFD.Linkage;
 import net.algart.matrices.tiff.bits.TiffPacking;
 import net.algart.matrices.tiff.bits.TiffPrediction;
+import net.algart.matrices.tiff.codecs.TiffCodec;
 import net.algart.matrices.tiff.samples.TiffSampleType;
-import net.algart.matrices.tiff.tags.*;
+import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tags.TagPhotometric;
+import net.algart.matrices.tiff.tags.TagType;
+import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.*;
 import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
@@ -43,7 +49,6 @@ import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
@@ -92,7 +97,7 @@ public non-sealed class TiffWriter extends TiffIO {
     private Consumer<TiffTile> tileInitializer = this::fillEmptyTile;
 
     private volatile TiffReader reader = null;
-    private volatile TiffIFD.Linkage linkage = null;
+    private volatile Linkage linkage = null;
 
     private volatile TiffWriteMap lastMap = null;
     private volatile boolean lastMapPrewritten = false;
@@ -528,8 +533,8 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * <ol>
      *      <li>in the {@link #rewriteIFDOffset(int, long)} and {@link #rewriteLastIFDOffset(long)} methods;</li>
-     *      <li>in the {@link #writeIFD(TiffIFD, TiffIFD.Linkage.UpdateMode)} and
-     * {@link #rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, TiffIFD.Linkage.UpdateMode)} methods,
+     *      <li>in the {@link #writeIFD(TiffIFD, Linkage.UpdateMode)} and
+     * {@link #rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, Linkage.UpdateMode)} methods,
      * when the {@link TiffIFD#hasNextIFDOffset()} method returns {@code true} for the specified IFD;</li>
      *      <li>while {@link #close() closing} the writer.</li>
      * </ol>
@@ -548,7 +553,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * call to {@link #invalidateLinkage()}, the {@link #linkageIfPresent()} set will become incorrect.
      * As a result, it can lead to incorrect linkage. However, this is a very exotic use case.</p>
      *
-     * @see #writeIFD(TiffIFD, TiffIFD.Linkage.UpdateMode)
+     * @see #writeIFD(TiffIFD, Linkage.UpdateMode)
      */
     @SuppressWarnings("JavadocDeclaration")
     public void invalidateLinkage() {
@@ -564,7 +569,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @throws IOException if an I/O error occurs.
      */
-    public TiffIFD.Linkage linkage() throws IOException {
+    public Linkage linkage() throws IOException {
         return linkage("");
     }
 
@@ -580,9 +585,9 @@ public non-sealed class TiffWriter extends TiffIO {
      * of the <b>actual last IFD</b> present in the file.</p>
      *
      * <p>The {@link TiffWriter} class automatically initializes and updates this value.
-     * Usually this is performed internally by the {@link TiffWriter#writeIFD(TiffIFD, TiffIFD.Linkage.UpdateMode) writeIFD}
-     * and {@link TiffWriter#rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, TiffIFD.Linkage.UpdateMode)
-     * rewriteIFDStrictlyInPlace} methods when they are called using {@link TiffIFD.Linkage.UpdateMode#UPDATE} mode.
+     * Usually this is performed internally by the {@link TiffWriter#writeIFD(TiffIFD, Linkage.UpdateMode) writeIFD}
+     * and {@link TiffWriter#rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, Linkage.UpdateMode)
+     * rewriteIFDStrictlyInPlace} methods when they are called using {@link Linkage.UpdateMode#UPDATE} mode.
      * The {@link TiffWriter} class also allows invalidating this value via an explicit call
      * to the {@link TiffWriter#invalidateLinkage()} method and then reinitializing it via
      * the {@link TiffWriter#linkage()} method, but usually you should not worry about this:
@@ -598,7 +603,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @return the file offset of the last IFD offset, wrapped in {@link OptionalLong},
      * or {@code OptionalLong.empty()} if it has not been read or if it was invalidated.
      */
-    public Optional<TiffIFD.Linkage> linkageIfPresent() {
+    public Optional<Linkage> linkageIfPresent() {
         return Optional.ofNullable(linkage);
     }
 
@@ -609,7 +614,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * Usually you don't need to call this method because it is called automatically.
      *
      * <p>Note: this method <i>does not</i> clear the information, returned by {@link #readLinkage()}.
-     * These offsets are used only for automatic IFD linkage by {@link #writeIFD(TiffIFD, TiffIFD.Linkage.UpdateMode)}
+     * These offsets are used only for automatic IFD linkage by {@link #writeIFD(TiffIFD, Linkage.UpdateMode)}
      * method and are not important if you perform the linkage manually.</p>
      */
     public void invalidateCompanionReader() {
@@ -824,8 +829,8 @@ public non-sealed class TiffWriter extends TiffIO {
      * <p>This method simply checks whether the offset was assigned via
      * <code>ifd.{@link TiffIFD#isFileOffsetOfIFDForWritingAssigned() isFileOffsetOfIFDForWritingAssigned()}</code>,
      * throws {@code IllegalStateException} if not,
-     * and then calls <code>{@link #writeIFD(TiffIFD, TiffIFD.Linkage.UpdateMode)
-     * writeIFD}(ifd, {@link TiffIFD.Linkage.UpdateMode#NONE})}</code>.
+     * and then calls <code>{@link #writeIFD(TiffIFD, Linkage.UpdateMode)
+     * writeIFD}(ifd, {@link Linkage.UpdateMode#NONE})}</code>.
      *
      * <p><b>Be accurate</b>: this method can destroy an existing IFD or other data.
      * We recommend using it <b>only</b> in the case when you are sure that the TIFF was created by {@link TiffWriter}
@@ -845,7 +850,7 @@ public non-sealed class TiffWriter extends TiffIO {
         if (!ifd.isFileOffsetOfIFDForWritingAssigned()) {
             throw new IllegalStateException("Offset for writing IFD has not been assigned");
         }
-        return writeIFD(ifd, TiffIFD.Linkage.UpdateMode.NONE);
+        return writeIFD(ifd, Linkage.UpdateMode.NONE);
     }
 
     /**
@@ -853,12 +858,12 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * <p>This method simply removes the <i>for-writing</i> file offset via
      * <code>ifd.{@link TiffIFD#removeFileOffsetOfIFDForWriting() removeFileOffsetOfIFDForWriting()}</code>,
-     * and then calls <code>{@link #writeIFD(TiffIFD, TiffIFD.Linkage.UpdateMode)
-     * writeIFD}(ifd, {@link TiffIFD.Linkage.UpdateMode#NONE})}</code>.
+     * and then calls <code>{@link #writeIFD(TiffIFD, Linkage.UpdateMode)
+     * writeIFD}(ifd, {@link Linkage.UpdateMode#NONE})}</code>.
      *
      * <p>Note: if this method is used for updating the last IFD, which was read from the TIFF file,
      * it will automatically {@link #invalidateLinkage() invalidate linkages}
-     * (an internal field returned by {@link TiffIFD.Linkage#offsetOfIFDChainTerminator()}).
+     * (an internal field returned by {@link Linkage#offsetOfIFDChainTerminator()}).
      * So you will be able to continue appending new images to the file via {@link #newMap(TiffIFD, boolean)}:
      * the necessary linkage information will be refreshed automatically.</p>
      *
@@ -868,7 +873,7 @@ public non-sealed class TiffWriter extends TiffIO {
      */
     public long writeIFDAtFileEnd(TiffIFD ifd) throws IOException {
         ifd.removeFileOffsetOfIFDForWriting();
-        return writeIFD(ifd, TiffIFD.Linkage.UpdateMode.NONE);
+        return writeIFD(ifd, Linkage.UpdateMode.NONE);
         // Note: writeIFD will call invalidateLinkage() if this IFD is not actually virgin
     }
 
@@ -884,24 +889,24 @@ public non-sealed class TiffWriter extends TiffIO {
      * You may also call {@link #rewriteLastIFDOffset(long)} to correct
      * this mark inside the file in a previously written IFD, but usually there is no necessity to do this.</p>
      *
-     * <p>If {@code updateModeForNewIFD} is {@link TiffIFD.Linkage.UpdateMode#UPDATE}, this method also performs
+     * <p>If {@code updateModeForNewIFD} is {@link Linkage.UpdateMode#UPDATE}, this method also performs
      * the following two actions:</p>
      *
      * <ol>
      *     <li>It rewrites the offset stored in the file at the position
-     *     {@link TiffIFD.Linkage#offsetOfIFDChainTerminator()}
+     *     {@link Linkage#offsetOfIFDChainTerminator()}
      *     (you can access it via {@link #linkageIfPresent() method}
      *     with the start offset of this IFD.
      *     This action is performed <b>only</b> if this start offset is truly new for this file,
      *     i.e., if it was not present in an existing file when opened via the {@link #openExisting()} method
      *     and if no IFD has already been written at this position by other methods.
      *     (All offsets of IFDs written by the methods of this object are stored
-     *     in the linkage object in the set returned by {@link TiffIFD.Linkage#mainIFDOffsets()} method.)
+     *     in the linkage object in the set returned by {@link Linkage#mainIFDOffsets()} method.)
      *     <br>Note: this operation is <b>senseless</b> if the previously written IFD is not actually
      *     the predecessor of this one!
      *     </li>
      *     <li>It replaces the internal field returned by
-     *     {@link TiffIFD.Linkage#offsetOfIFDChainTerminator()} with
+     *     {@link Linkage#offsetOfIFDChainTerminator()} with
      *      the position of the {@link TiffIFD#getNextIFDOffset() next IFD offset} written as a part of this IFD.
      *     This action is performed <b>only</b> when this IFD is marked as the last one (see the previous note).</li>
      * </ol>
@@ -919,10 +924,10 @@ public non-sealed class TiffWriter extends TiffIO {
      * (it will be equal to the result of the {@link TiffIFD#assignedFileOffsetOfIFDForWriting()} method
      * called on the {@code ifd} after this method completes).
      * @throws IOException in case of any I/O errors.
-     * @see #rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, TiffIFD.Linkage.UpdateMode)
+     * @see #rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, Linkage.UpdateMode)
      * @see #invalidateLinkage()
      */
-    public long writeIFD(TiffIFD ifd, TiffIFD.Linkage.UpdateMode updateModeForNewIFD) throws IOException {
+    public long writeIFD(TiffIFD ifd, Linkage.UpdateMode updateModeForNewIFD) throws IOException {
         Objects.requireNonNull(ifd, "Null IFD");
         synchronized (fileLock) {
             checkVirginFile();
@@ -957,8 +962,8 @@ public non-sealed class TiffWriter extends TiffIO {
 
     /**
      * Equivalent to
-     * <code>{@link #rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, TiffIFD.Linkage.UpdateMode)
-     * rewriteIFDStrictlyInPlace}(ifd, tagsToUpdate, {@link TiffIFD.Linkage.UpdateMode#NONE})</code>.
+     * <code>{@link #rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, Linkage.UpdateMode)
+     * rewriteIFDStrictlyInPlace}(ifd, tagsToUpdate, {@link Linkage.UpdateMode#NONE})</code>.
      *
      * @param ifd          the IFD containing the new values to be written.
      * @param tagsToUpdate a predicate to select which tags should be updated in the file.
@@ -973,14 +978,14 @@ public non-sealed class TiffWriter extends TiffIO {
      * @throws IllegalArgumentException if the IFD does not have the <i>for-writing</i> file offset.
      */
     public long rewriteIFDStrictlyInPlace(TiffIFD ifd, IntPredicate tagsToUpdate) throws IOException {
-        return rewriteIFDStrictlyInPlace(ifd, tagsToUpdate, TiffIFD.Linkage.UpdateMode.NONE);
+        return rewriteIFDStrictlyInPlace(ifd, tagsToUpdate, Linkage.UpdateMode.NONE);
     }
 
     /**
-     * An analog of the {@link #writeIFD(TiffIFD, TiffIFD.Linkage.UpdateMode)} method which performs a "surgical"
+     * An analog of the {@link #writeIFD(TiffIFD, Linkage.UpdateMode)} method which performs a "surgical"
      * update of specific tags directly at their current positions in the file.
      *
-     * <p>Unlike {@link #writeIFD(TiffIFD, TiffIFD.Linkage.UpdateMode)}, this method requires a valid IFD to be
+     * <p>Unlike {@link #writeIFD(TiffIFD, Linkage.UpdateMode)}, this method requires a valid IFD to be
      * already present in the file at the position
      * <code>ifd.{@link TiffIFD#assignedFileOffsetOfIFDForWriting() assignedFileOffsetOfIFDForWriting()}</code>.
      * This method rewrites the IFD while strictly preserving the existing
@@ -993,12 +998,12 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * <p>In addition, this method writes the {@link TiffIFD#getNextIFDOffset() offset of the next IFD}
      * (in particular, a zero marker for the last IFD) and performs correction of the IFD linkage
-     * when <code>updateModeForNewIFD={@link TiffIFD.Linkage.UpdateMode#UPDATE}</code>,
-     * in the same manner as the {@link #writeIFD(TiffIFD, TiffIFD.Linkage.UpdateMode)} method
+     * when <code>updateModeForNewIFD={@link Linkage.UpdateMode#UPDATE}</code>,
+     * in the same manner as the {@link #writeIFD(TiffIFD, Linkage.UpdateMode)} method
      * .</p>
      *
      * <p>This method is used, for example, by
-     * {@link #rewriteImageLayoutStrictlyInPlace(TiffIFD, TiffIFD.Linkage.UpdateMode)}
+     * {@link #rewriteImageLayoutStrictlyInPlace(TiffIFD, Linkage.UpdateMode)}
      * method for updating metadata that describes the image layout (such as offsets and byte counts)
      * after the actual pixel data has been written to the stream.</p>
      *
@@ -1014,9 +1019,9 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @param ifd                 the IFD containing the new values to be written.
      * @param tagsToUpdate        a predicate to select which tags should be updated in the file.
-     * @param updateModeForNewIFD if {@link TiffIFD.Linkage.UpdateMode#UPDATE}, the method also updates the
+     * @param updateModeForNewIFD if {@link Linkage.UpdateMode#UPDATE}, the method also updates the
      *                            "next IFD" pointer and internal linkage state,
-     *                            similar to {@link #writeIFD(TiffIFD, TiffIFD.Linkage.UpdateMode)}.
+     *                            similar to {@link #writeIFD(TiffIFD, Linkage.UpdateMode)}.
      * @return the file offset where the IFD is located (equal to
      * <code>ifd.{@link TiffIFD#assignedFileOffsetOfIFDForWriting() assignedFileOffsetOfIFDForWriting()}</code>).
      * @throws IOException              if any I/O error occurs.
@@ -1026,13 +1031,13 @@ public non-sealed class TiffWriter extends TiffIO {
      *                                  and write it at the end of the file using
      *                                  the {@link #writeIFDAtFileEnd(TiffIFD)} method.
      * @throws IllegalArgumentException if the IFD does not have the <i>for-writing</i> file offset.
-     * @see #writeIFD(TiffIFD, TiffIFD.Linkage.UpdateMode)
+     * @see #writeIFD(TiffIFD, Linkage.UpdateMode)
      * @see #invalidateLinkage()
      */
     public long rewriteIFDStrictlyInPlace(
             TiffIFD ifd,
             IntPredicate tagsToUpdate,
-            TiffIFD.Linkage.UpdateMode updateModeForNewIFD)
+            Linkage.UpdateMode updateModeForNewIFD)
             throws IOException {
         Objects.requireNonNull(ifd, "Null IFD");
         Objects.requireNonNull(tagsToUpdate, "Null tagsToUpdate");
@@ -1057,17 +1062,17 @@ public non-sealed class TiffWriter extends TiffIO {
 
     /**
      * Equivalent to
-     * <code>{@link #rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, TiffIFD.Linkage.UpdateMode)
+     * <code>{@link #rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, Linkage.UpdateMode)
      * rewriteIFDStrictlyInPlace}(ifd, TiffIFD::{@link TiffIFD#isImageLayoutTag
      * isImageLayoutTag}, updateModeForNewIFD)</code>.
      *
      * @param ifd                 the IFD containing updated layout information.
-     * @param updateModeForNewIFD see {@link #writeIFD(TiffIFD, TiffIFD.Linkage.UpdateMode)}.
+     * @param updateModeForNewIFD see {@link #writeIFD(TiffIFD, Linkage.UpdateMode)}.
      * @throws IOException              in case of I/O errors.
      * @throws TiffIFDMismatchException if the layout tag structure has changed.
      * @throws IllegalArgumentException if the IFD does not have the <i>for-writing</i> file offset.
      */
-    public void rewriteImageLayoutStrictlyInPlace(TiffIFD ifd, TiffIFD.Linkage.UpdateMode updateModeForNewIFD)
+    public void rewriteImageLayoutStrictlyInPlace(TiffIFD ifd, Linkage.UpdateMode updateModeForNewIFD)
             throws IOException {
         rewriteIFDStrictlyInPlace(ifd, TiffIFD::isImageLayoutTag, updateModeForNewIFD);
     }
@@ -1104,7 +1109,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 // a separate call of linkage() is not necessary
                 fileOffset = offsetOfLastScannedIFDOffset().orElseThrow(AssertionError::new);
             }
-            writeIFDOffsetAt(newIFDOffset, fileOffset, TiffIFD.Linkage.UpdateMode.NONE);
+            writeIFDOffsetAt(newIFDOffset, fileOffset, Linkage.UpdateMode.NONE);
             // - last argument is not important: the offsetOfLastScannedIFDOffset will not change in any case
             // (because fileOffset == offsetOfLastScannedIFDOffset now)
             invalidateLinkage();
@@ -1113,7 +1118,7 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Rewrites the offset, stored in the file at the {@link TiffIFD.Linkage#offsetOfIFDChainTerminator()},
+     * Rewrites the offset, stored in the file at the {@link Linkage#offsetOfIFDChainTerminator()},
      * with the specified value.
      * This method is useful if you want to organize the sequence of IFD inside the file manually,
      * without automatically updating IFD linkage.
@@ -1128,9 +1133,9 @@ public non-sealed class TiffWriter extends TiffIO {
                 throw new IllegalArgumentException("Negative new last IFD offset " + newLastIFDOffset);
             }
             checkFileOpen();
-            final TiffIFD.Linkage linkage = linkage();
+            final Linkage linkage = linkage();
             // - necessary for using offsetOfIFDChainTerminator
-            writeIFDOffsetAt(newLastIFDOffset, linkage.offsetOfIFDChainTerminator(), TiffIFD.Linkage.UpdateMode.NONE);
+            writeIFDOffsetAt(newLastIFDOffset, linkage.offsetOfIFDChainTerminator(), Linkage.UpdateMode.NONE);
             // - last argument is not important: the offsetOfLastScannedIFDOffset will not change in any case
             invalidateLinkage();
             // - this is low-level correction, we cannot be sure that the IFD chain is still correct
@@ -1528,7 +1533,7 @@ public non-sealed class TiffWriter extends TiffIO {
         ifd.putDataPlacementInFileIgnoringFreeze(offsets, byteCounts);
         if (!ifd.isFileOffsetOfIFDForWritingAssigned()) {
             // - prevents writing in case of a duplicate call
-            writeIFD(ifd, TiffIFD.Linkage.UpdateMode.NONE);
+            writeIFD(ifd, Linkage.UpdateMode.NONE);
             lastMapPrewritten = true;
         }
     }
@@ -1552,9 +1557,9 @@ public non-sealed class TiffWriter extends TiffIO {
         // (in this case we will need to "teach" TiffIFD.sizeOfImage method to consider this)
         if (ifd.isFileOffsetOfIFDForWritingAssigned() && ACCURATE_REWRITING_IMAGE_LAYOUT_ON_COMPLETE) {
             // - usually it means that we did call prewrite
-            rewriteImageLayoutStrictlyInPlace(ifd, TiffIFD.Linkage.UpdateMode.UPDATE);
+            rewriteImageLayoutStrictlyInPlace(ifd, Linkage.UpdateMode.UPDATE);
         } else {
-            writeIFD(ifd, TiffIFD.Linkage.UpdateMode.UPDATE);
+            writeIFD(ifd, Linkage.UpdateMode.UPDATE);
         }
         seekToEnd();
         // - This seeking to the file end is not necessary, but can help to avoid accidental bugs
@@ -1742,7 +1747,7 @@ public non-sealed class TiffWriter extends TiffIO {
             // so, mainIFDIndex + 1 <= numberOfImages
             long nextIFDOffset = ifds.get(mainIFDIndex + 1).getFileOffsetOfIFD();
             long fileOffsetToWrite = offsetOfFirstIFDOffset();
-            writeIFDOffsetAt(nextIFDOffset, fileOffsetToWrite, TiffIFD.Linkage.UpdateMode.NONE);
+            writeIFDOffsetAt(nextIFDOffset, fileOffsetToWrite, Linkage.UpdateMode.NONE);
         } else {
             final TiffIFD ifd = ifds.get(mainIFDIndex - 1).copy();
             ifd.assignFileOffsetOfIFDForWriting(ifd.getFileOffsetOfIFD());
@@ -1823,7 +1828,7 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     private void invalidateLinkage(boolean logging, String comment) {
-        final TiffIFD.Linkage linkage = this.linkage;
+        final Linkage linkage = this.linkage;
         this.linkage = null;
         if (logging) {
             LOG.log(System.Logger.Level.DEBUG, () -> "Invalidating linkage" + comment +
@@ -1831,8 +1836,8 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    private TiffIFD.Linkage linkage(String comment) throws IOException {
-        TiffIFD.Linkage currentLinkage = this.linkage;
+    private Linkage linkage(String comment) throws IOException {
+        Linkage currentLinkage = this.linkage;
         boolean needToRefresh = currentLinkage == null;
         if (needToRefresh) {
             synchronized (fileLock) {
@@ -2080,11 +2085,11 @@ public non-sealed class TiffWriter extends TiffIO {
     private void updateNextOffsetAndLinkageAt(
             TiffIFD ifd,
             long fileOffsetOfNextOffset,
-            TiffIFD.Linkage.UpdateMode updateModeForNewIFD,
+            Linkage.UpdateMode updateModeForNewIFD,
             long ifdOffset) throws IOException {
         final boolean update = updateModeForNewIFD.isUpdate();
         final long previousOffsetOfIFDChainTerminator;
-        final TiffIFD.Linkage linkage;
+        final Linkage linkage;
         if (update) {
             linkage = linkage();
             previousOffsetOfIFDChainTerminator = linkage.offsetOfIFDChainTerminator();
@@ -2355,7 +2360,7 @@ public non-sealed class TiffWriter extends TiffIO {
         return count;
     }
 
-    private void writeIFDOffsetAt(long offsetValue, long fileOffsetToWrite, TiffIFD.Linkage.UpdateMode updateMode)
+    private void writeIFDOffsetAt(long offsetValue, long fileOffsetToWrite, Linkage.UpdateMode updateMode)
             throws IOException {
         Objects.requireNonNull(updateMode, "Null updateMode");
         synchronized (fileLock) {
