@@ -51,94 +51,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public sealed abstract class TiffIO implements Closeable permits TiffReader, TiffWriter {
-    public static class IFDLinkage {
-        public enum UpdateMode {
-            /**
-             * "Silent" mode: no internal fields are modified.
-             */
-            NONE,
-            /**
-             * Automatically updates the linkage tracked by the
-             * {@link TiffWriter#currentIFDLinkage()} method.
-             */
-            UPDATE;
-
-            public boolean isUpdate() {
-                return this == UPDATE;
-            }
-
-            public static UpdateMode ofUpdate(boolean update) {
-                return update ? UpdateMode.UPDATE : UpdateMode.NONE;
-            }
-        }
-
-        private long offsetOfIFDChainTerminator = -1;
-        private final LinkedHashSet<Long> mainIFDOffsets = new LinkedHashSet<>();
-
-        public IFDLinkage(boolean bigTiff) {
-            this(offsetOfFirstIFDOffset(bigTiff), new long[0]);
-        }
-
-        private IFDLinkage(long offsetOfIFDChainTerminator, long[] mainIFDOffsets) {
-            Objects.requireNonNull(mainIFDOffsets, "Null mainIFDOffsets");
-            if (offsetOfIFDChainTerminator < 0) {
-                throw new IllegalArgumentException("Negative offsetOfIFDChainTerminator = " +
-                        offsetOfIFDChainTerminator);
-            }
-            this.offsetOfIFDChainTerminator = offsetOfIFDChainTerminator;
-            for (long offset : mainIFDOffsets) {
-                addIFDOffset(offset);
-            }
-        }
-
-        public long offsetOfIFDChainTerminator() {
-            assert offsetOfIFDChainTerminator >= 0;
-            return offsetOfIFDChainTerminator;
-        }
-
-        public int numberOfMainIFDOffsets() {
-            return mainIFDOffsets.size();
-        }
-
-        public Set<Long> mainIFDOffsets() {
-            return Collections.unmodifiableSet(mainIFDOffsets);
-        }
-
-        public boolean containsIFDOffset(long ifdOffset) {
-            return mainIFDOffsets.contains(ifdOffset);
-        }
-
-        public void updateForNewIFDOffset(long fileOffsetOfNewIFDOffset, long newIFDOffsetValue) {
-            if (newIFDOffsetValue != TiffIFD.IFD_CHAIN_TERMINATOR) {
-                addIFDOffset(newIFDOffsetValue);
-            } else {
-                updateOffsetOfIFDChainTerminator(fileOffsetOfNewIFDOffset);
-            }
-        }
-
-        public void addIFDOffset(long ifdOffset) {
-            if (ifdOffset < 0) {
-                throw new IllegalArgumentException("Negative IFD offset = " + ifdOffset);
-            }
-            mainIFDOffsets.add(ifdOffset);
-        }
-
-        public void updateOffsetOfIFDChainTerminator(long offsetOfIFDChainTerminator) {
-            if (offsetOfIFDChainTerminator < 0) {
-                throw new IllegalArgumentException("Negative offsetOfIFDChainTerminator = " +
-                        offsetOfIFDChainTerminator);
-            }
-            this.offsetOfIFDChainTerminator = offsetOfIFDChainTerminator;
-        }
-
-        public String toString() {
-            final long[] offsets = mainIFDOffsets.stream().mapToLong(Long::longValue).toArray();
-            return offsets.length + " IFDs found at offsets [" +
-                    JArrays.toString(offsets, ", ", 500) +
-                    "], offset of the IFD terminator: " + offsetOfIFDChainTerminator;
-        }
-    }
-
     /**
      * Subclasses of this class can be used for storing additional information about encoding or decoding tiles,
      * for example, in some specific TIFF codecs.
@@ -726,11 +638,11 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return readMainIFDOffsets(allowNoIFDs, Long.MAX_VALUE);
     }
 
-    public IFDLinkage newEmptyIFDLinkage() {
-        return new IFDLinkage(this.bigTiff);
+    public TiffIFD.Linkage newEmptyLinkage() {
+        return new TiffIFD.Linkage(this.bigTiff);
     }
 
-    public IFDLinkage readIFDLinkage() throws IOException {
+    public TiffIFD.Linkage readLinkage() throws IOException {
         synchronized (fileLock) {
             final long[] offsets = readMainIFDOffsets(true);
             final long terminatorOffset = offsetOfLastScannedIFDOffset().orElseThrow(
@@ -738,7 +650,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                             "readMainIFDOffsets did not read IFD chain terminator"));
             // - this cannot occur from a parallel thread inside the synchronized block
             assert terminatorOffset >= 0;
-            return new IFDLinkage(terminatorOffset, offsets);
+            return new TiffIFD.Linkage(terminatorOffset, offsets);
         }
     }
 
@@ -1154,7 +1066,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * After calling this method, you
      * should copy full content of {@code extraBuffer} into the main stream at the position
      * specified by the second argument;
-     * {@link TiffWriter#writeIFD(TiffIFD, IFDLinkage.UpdateMode)} method does it automatically.
+     * {@link TiffWriter#writeIFD(TiffIFD, TiffIFD.Linkage.UpdateMode)} method does it automatically.
      *
      * <p>Here "extra" data means all data, for which IFD contains their offsets instead of data itself,
      * like arrays or text strings. The "main" data is a 12-byte IFD record (20-byte for BigTIFF),

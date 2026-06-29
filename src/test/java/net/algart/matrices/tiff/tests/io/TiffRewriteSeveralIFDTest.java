@@ -49,7 +49,7 @@ public class TiffRewriteSeveralIFDTest {
 
         System.out.println("Writing TIFF " + targetFile + "...");
         try (final TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.CREATE)) {
-            System.out.printf("Linkage after creating: %s%n", writer.currentIFDLinkage());
+            System.out.printf("Linkage after creating: %s%n", writer.linkageIfPresent());
 
             TiffIFD[] ifds = new TiffIFD[numberOfImages];
             Random random = new Random(157);
@@ -59,21 +59,21 @@ public class TiffRewriteSeveralIFDTest {
                         .putPixelInformation(k % 2 == 0 ? 3 : 1, TiffSampleType.UINT8);
                 ifds[k] = ifd;
                 writer.newResizableMap(ifd).writeBlank(randomColor(random));
-                System.out.printf("Linkage after write image: %s%n", writer.currentIFDLinkage());
+                System.out.printf("Linkage after write image: %s%n", writer.linkageIfPresent());
                 if (DAMAGE_AFTER_WRITE) {
                     long previous0 = k == 0 ?
                             TiffIFD.IFD_CHAIN_TERMINATOR :
                             writer.readMainIFDOffset(1);
                     damage(writer, ifd);
                     damage(writer, ifds[0]);
-                    // writer.refreshIFDLinkage(); // - will throw an exception
+                    // writer.linkage(); // - will throw an exception
                     restore(writer, ifds[0], previous0);
-                    // writer.refreshIFDLinkage(); // - will throw an exception
+                    // writer.linkage(); // - will throw an exception
                     restore(writer, ifd, TiffIFD.IFD_CHAIN_TERMINATOR);
                 }
             }
-            writer.refreshIFDLinkage();
-            System.out.printf("Linkage after refresh: %s%n", writer.currentIFDLinkage());
+            writer.linkage();
+            System.out.printf("Linkage after refresh: %s%n", writer.linkageIfPresent());
             System.out.println();
 
             for (TiffIFD tiffIFD : ifds) {
@@ -83,24 +83,24 @@ public class TiffRewriteSeveralIFDTest {
             for (int k = 0; k < numberOfImages; k++) {
                 TiffIFD ifd = ifds[k];
                 // - restoring to a "virgin" stage
-                TiffIO.IFDLinkage.UpdateMode updateMode = TiffIO.IFDLinkage.UpdateMode.UPDATE;
+                TiffIFD.Linkage.UpdateMode updateMode = TiffIFD.Linkage.UpdateMode.UPDATE;
                 System.out.printf("Rewriting IFD #%d (%s)...%n%s%n", k, updateMode, ifd);
-                System.out.printf("Linkage before rewriting this IFD: %s%n", writer.currentIFDLinkage());
+                System.out.printf("Linkage before rewriting this IFD: %s%n", writer.linkageIfPresent());
                 writer.writeIFD(ifd, updateMode);
-                System.out.printf("Linkage after rewriting this IFD: %s%n", writer.currentIFDLinkage());
-                // writer.invalidateIFDLinkage(); // - should not be necessary!
+                System.out.printf("Linkage after rewriting this IFD: %s%n", writer.linkageIfPresent());
+                // writer.invalidateLinkage(); // - should not be necessary!
             }
-            System.out.printf("Linkage after refresh: %s%n", writer.currentIFDLinkage());
+            System.out.printf("Linkage after refresh: %s%n", writer.linkageIfPresent());
             System.out.println();
             for (int k = 0; k < numberOfImages; k++) {
                 TiffIFD ifd = ifds[k];
                 // - restoring to a "virgin" stage
-                TiffIO.IFDLinkage.UpdateMode updateMode = TiffIO.IFDLinkage.UpdateMode.ofUpdate(k > 0);
+                TiffIFD.Linkage.UpdateMode updateMode = TiffIFD.Linkage.UpdateMode.ofUpdate(k > 0);
                 System.out.printf("Rewriting IFD #%d (%s)...%n%s%n", k, updateMode, ifd);
-                System.out.printf("Linkage before rewriting this IFD: %s%n", writer.currentIFDLinkage());
+                System.out.printf("Linkage before rewriting this IFD: %s%n", writer.linkageIfPresent());
                 writer.writeIFD(ifd, updateMode);
-                System.out.printf("Linkage after rewriting this IFD: %s%n", writer.currentIFDLinkage());
-                // writer.invalidateIFDLinkage(); // - should not be necessary!
+                System.out.printf("Linkage after rewriting this IFD: %s%n", writer.linkageIfPresent());
+                // writer.invalidateLinkage(); // - should not be necessary!
             }
             System.out.println();
         }
@@ -110,15 +110,15 @@ public class TiffRewriteSeveralIFDTest {
     private static void damage(TiffWriter writer, TiffIFD ifd) throws IOException {
         ifd.setNextIFDOffset(0x27777777);
         // - something wrong
-        writer.writeIFD(ifd, TiffIO.IFDLinkage.UpdateMode.NONE);
+        writer.writeIFD(ifd, TiffIFD.Linkage.UpdateMode.NONE);
         System.out.printf("Linkage after damaging IFD at %d: %s%n",
-                ifd.assignedFileOffsetOfIFDForWriting(), writer.currentIFDLinkage());
+                ifd.assignedFileOffsetOfIFDForWriting(), writer.linkageIfPresent());
     }
 
     private static void restore(TiffWriter writer, TiffIFD ifd, long previous) throws IOException {
         ifd.setNextIFDOffset(previous);
-        writer.writeIFD(ifd, TiffIO.IFDLinkage.UpdateMode.UPDATE);
-        System.out.printf("Linkage after restoring this IFD: %s%n", writer.currentIFDLinkage());
+        writer.writeIFD(ifd, TiffIFD.Linkage.UpdateMode.UPDATE);
+        System.out.printf("Linkage after restoring this IFD: %s%n", writer.linkageIfPresent());
     }
 
     private static Color randomColor(Random rnd) {

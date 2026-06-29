@@ -113,6 +113,94 @@ public final class TiffIFD {
         }
     }
 
+    public static class Linkage {
+        public enum UpdateMode {
+            /**
+             * "Silent" mode: no any attempts to correct file structure or {@link Linkage} object.
+             * But invalidating {@link Linkage} object, for example,
+             * via the {@link TiffWriter#invalidateLinkage()} method, is still possible.
+             */
+            NONE,
+            /**
+             * Automatically updates the linkage inside the file and the current {@link Linkage} object.
+             */
+            UPDATE;
+
+            public boolean isUpdate() {
+                return this == UPDATE;
+            }
+
+            public static UpdateMode ofUpdate(boolean update) {
+                return update ? UpdateMode.UPDATE : UpdateMode.NONE;
+            }
+        }
+
+        private long offsetOfIFDChainTerminator = -1;
+        private final LinkedHashSet<Long> mainIFDOffsets = new LinkedHashSet<>();
+
+        public Linkage(boolean bigTiff) {
+            this(TiffIO.offsetOfFirstIFDOffset(bigTiff), new long[0]);
+        }
+
+        Linkage(long offsetOfIFDChainTerminator, long[] mainIFDOffsets) {
+            Objects.requireNonNull(mainIFDOffsets, "Null mainIFDOffsets");
+            if (offsetOfIFDChainTerminator < 0) {
+                throw new IllegalArgumentException("Negative offsetOfIFDChainTerminator = " +
+                        offsetOfIFDChainTerminator);
+            }
+            this.offsetOfIFDChainTerminator = offsetOfIFDChainTerminator;
+            for (long offset : mainIFDOffsets) {
+                addIFDOffset(offset);
+            }
+        }
+
+        public long offsetOfIFDChainTerminator() {
+            assert offsetOfIFDChainTerminator >= 0;
+            return offsetOfIFDChainTerminator;
+        }
+
+        public int numberOfMainIFDOffsets() {
+            return mainIFDOffsets.size();
+        }
+
+        public Set<Long> mainIFDOffsets() {
+            return Collections.unmodifiableSet(mainIFDOffsets);
+        }
+
+        public boolean containsIFDOffset(long ifdOffset) {
+            return mainIFDOffsets.contains(ifdOffset);
+        }
+
+        public void updateForNewIFDOffset(long fileOffsetOfNewIFDOffset, long newIFDOffsetValue) {
+            if (newIFDOffsetValue != IFD_CHAIN_TERMINATOR) {
+                addIFDOffset(newIFDOffsetValue);
+            } else {
+                updateOffsetOfIFDChainTerminator(fileOffsetOfNewIFDOffset);
+            }
+        }
+
+        public void addIFDOffset(long ifdOffset) {
+            if (ifdOffset < 0) {
+                throw new IllegalArgumentException("Negative IFD offset = " + ifdOffset);
+            }
+            mainIFDOffsets.add(ifdOffset);
+        }
+
+        public void updateOffsetOfIFDChainTerminator(long offsetOfIFDChainTerminator) {
+            if (offsetOfIFDChainTerminator < 0) {
+                throw new IllegalArgumentException("Negative offsetOfIFDChainTerminator = " +
+                        offsetOfIFDChainTerminator);
+            }
+            this.offsetOfIFDChainTerminator = offsetOfIFDChainTerminator;
+        }
+
+        public String toString() {
+            final long[] offsets = mainIFDOffsets.stream().mapToLong(Long::longValue).toArray();
+            return offsets.length + " IFDs found at offsets [" +
+                    JArrays.toString(offsets, ", ", 500) +
+                    "], offset of the IFD terminator: " + offsetOfIFDChainTerminator;
+        }
+    }
     /**
      * An IFD with the number of entries, greater than this limit, is not allowed even in Big-TIFF:
      * it is mostly probable that it is a corrupted file.
@@ -827,7 +915,7 @@ public final class TiffIFD {
      * @param fileOffsetOfIFDForWriting the target file offset (must be even).
      * @return a reference to this IFD object.
      * @throws IllegalArgumentException if the offset is negative or odd.
-     * @see TiffWriter#writeIFD(TiffIFD, TiffIO.IFDLinkage.UpdateMode)
+     * @see TiffWriter#writeIFD(TiffIFD, Linkage.UpdateMode)
      * @see TiffWriter#completeWriting(TiffWriteMap)
      */
     @SuppressWarnings("JavadocDeclaration")

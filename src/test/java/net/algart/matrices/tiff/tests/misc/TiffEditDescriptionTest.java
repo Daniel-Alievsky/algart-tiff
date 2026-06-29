@@ -25,13 +25,12 @@
 package net.algart.matrices.tiff.tests.misc;
 
 import net.algart.matrices.tiff.TiffCreateMode;
-import net.algart.matrices.tiff.TiffIO;
+import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collection;
 import java.util.Random;
 
 public class TiffEditDescriptionTest {
@@ -54,7 +53,7 @@ public class TiffEditDescriptionTest {
                 }
                 final int ifdIndex = rnd.nextInt(n);
                 final boolean enforceRelocateIFD = rnd.nextBoolean();
-                var offsets = writer.currentIFDLinkage().map(TiffIO.IFDLinkage::mainIFDOffsets).orElse(null);
+                var offsets = writer.linkageIfPresent().map(TiffIFD.Linkage::mainIFDOffsets).orElse(null);
                 System.out.printf("Test #%d/%d: modifying IFD #%d, %s...%n",
                         test, numberOfTests, ifdIndex,
                         offsets == null ? "no linkage" : offsets.size() + " IFD offsets");

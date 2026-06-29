@@ -465,7 +465,7 @@ public class TiffWriterTest {
                         }
                     }
                     System.out.printf("IFD linkage: %s%n",
-                            writer.currentIFDLinkage().map(Object::toString).orElse("no linkage"));
+                            writer.linkageIfPresent().map(Object::toString).orElse("no linkage"));
                 }
             }
         }
