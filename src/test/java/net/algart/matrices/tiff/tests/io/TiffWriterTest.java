@@ -416,7 +416,7 @@ public class TiffWriterTest {
                     }
                     Matrix<UpdatablePArray> matrix = TiffSamples.asMatrix(
                             samplesArray, w, h, map.numberOfChannels(), interleaved);
-                    if (x == 0 && y == 0) {
+                    if (x == 0 && y == 0 && w == map.dimX() && h == map.dimY()) {
                         map.writeJavaArray(samplesArray);
                         // - This call shows detailed logging
                         // Note: we should use writeJavaArray if we want to test AUTO_INTERLEAVE_SOURCE=false:

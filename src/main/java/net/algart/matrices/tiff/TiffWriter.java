@@ -94,7 +94,7 @@ public non-sealed class TiffWriter extends TiffIO {
     private boolean alwaysWriteToFileEnd = false;
     private boolean missingTilesAllowed = false;
     private byte byteFiller = 0;
-    private Consumer<TiffTile> tileInitializer = this::fillEmptyTile;
+    private Consumer<TiffTile> tileInitializer = null;
 
     private volatile TiffReader reader = null;
     private volatile Linkage linkage = null;
@@ -517,8 +517,21 @@ public non-sealed class TiffWriter extends TiffIO {
         return tileInitializer;
     }
 
+    /**
+     * Sets the function to initialize an empty tile before it is filled with data by
+     * {@link TiffWriteMap#updateMatrix} or similar methods.
+     * This function is also invoked before writing a TIFF tile to the file if the tile
+     * has not been filled with any data.
+     *
+     * <p>By default, the tile initializer is {@code null}. In this case, a newly created
+     * data array in the tile is filled with zeros (the default Java array initialization),
+     * which typically represents the black color.</p>
+     *
+     * @param tileInitializer the tile initializer; may be {@code null}
+     * @return a reference to this object.
+     */
     public TiffWriter setTileInitializer(Consumer<TiffTile> tileInitializer) {
-        this.tileInitializer = Objects.requireNonNull(tileInitializer, "Null tileInitializer");
+        this.tileInitializer = tileInitializer;
         return this;
     }
 
@@ -1139,13 +1152,6 @@ public non-sealed class TiffWriter extends TiffIO {
             // - last argument is not important: the offsetOfLastScannedIFDOffset will not change in any case
             invalidateLinkage();
             // - this is low-level correction, we cannot be sure that the IFD chain is still correct
-        }
-    }
-
-    public void fillEmptyTile(TiffTile tiffTile) {
-        if (byteFiller != 0) {
-            // - Java arrays are automatically filled by zero
-            Arrays.fill(tiffTile.getDecodedData(), byteFiller);
         }
     }
 
