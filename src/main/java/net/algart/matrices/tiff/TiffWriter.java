@@ -2110,15 +2110,20 @@ public non-sealed class TiffWriter extends TiffIO {
         // If this IFD is a terminator (either newly created for appending or explicitly marked),
         // we can safely skip invalidateLinkage(): correcting the offsetOfIFDChainTerminator
         // field inside writeIFDOffsetAt() is sufficient to maintain a valid chain state.
-        final long nextIFDOffset = virginIFDForAppendingNewImages ? -1 : ifd.getNextIFDOffset();
+        final long nextIFDOffsetIfPresent = virginIFDForAppendingNewImages ? -1 : ifd.getNextIFDOffset();
         // - Used for logging only
         if (knownIFDOffset) {
             virginIFDForAppendingNewImages = false;
         }
+        final long nextIFDOffset = ifd.getNextIFDOffsetOrTerminatorIfAbsent();
         writeIFDOffsetAt(
-                ifd.getNextIFDOffsetOrTerminatorIfAbsent(),
+                nextIFDOffset,
                 fileOffsetOfNextOffset,
-                updateModeForNewIFD);
+                Linkage.UpdateMode.NONE);
+        if (update) {
+            linkage.updateForNewIFDOffset(fileOffsetOfNextOffset, nextIFDOffset);
+        }
+
         // - writes (or rewrites) TiffIFD.IFD_CHAIN_TERMINATOR (or ifd.getNextIFDOffset()
         // to the file at fileOffsetOfNextOffset;
         if (update && !knownIFDOffset) {
@@ -2130,14 +2135,15 @@ public non-sealed class TiffWriter extends TiffIO {
             writeIFDOffsetAt(
                     ifdOffset,
                     previousOffsetOfIFDChainTerminator,
-                    updateModeForNewIFD);
+                    Linkage.UpdateMode.NONE);
+            linkage.updateForNewIFDOffset(previousOffsetOfIFDChainTerminator, ifdOffset);
             // - This method adds ifdOffset to allIFDOffsets in UPDATE mode.
             // (In old versions, we passed here an equivalent of the NONE mode, but now
             // UPDATE is necessary for correcting allIFDOffsets and, vice versa,
             // offsetOfIFDChainTerminator will not be changed for offset other than the terminator.)
         }
         if (!virginIFDForAppendingNewImages) {
-            invalidateLinkage(true, " for IFD with specified next-IFD-offset=" + nextIFDOffset);
+            invalidateLinkage(true, " for IFD with specified next-IFD-offset=" + nextIFDOffsetIfPresent);
         }
     }
 
@@ -2366,7 +2372,7 @@ public non-sealed class TiffWriter extends TiffIO {
         return count;
     }
 
-    private void writeIFDOffsetAt(long offsetValue, long fileOffsetToWrite, Linkage.UpdateMode updateMode)
+    private void writeIFDOffsetAt(long ifdOffset, long fileOffsetToWrite, Linkage.UpdateMode updateMode)
             throws IOException {
         Objects.requireNonNull(updateMode, "Null updateMode");
         synchronized (fileLock) {
@@ -2375,9 +2381,9 @@ public non-sealed class TiffWriter extends TiffIO {
             final long savedFileOffset = stream.offset();
             try {
                 stream.seek(fileOffsetToWrite);
-                writeOffset(stream, bigTiff, offsetValue);
+                writeOffset(stream, bigTiff, ifdOffset);
                 if (updateMode.isUpdate()) {
-                    linkage.updateForNewIFDOffset(fileOffsetToWrite, offsetValue);
+                    linkage.updateForNewIFDOffset(fileOffsetToWrite, ifdOffset);
                 }
             } finally {
                 stream.seek(savedFileOffset);
