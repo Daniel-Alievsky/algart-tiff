@@ -221,7 +221,7 @@ public class TiffSaver extends TiffWriter {
         TiffIFD tiffIFD = net.algart.matrices.tiff.compatibility.TiffParser.toTiffIFD(ifd);
         tiffIFD.assignFileOffsetOfIFDForWriting(getStream().offset());
         tiffIFD.setNextIFDOffset(nextOffset);
-        writeIFD(tiffIFD, TiffIFD.Linkage.UpdateMode.UPDATE);
+        writeIFD(tiffIFD, TiffIFD.Linkage.UpdateMode.AUTO_APPEND);
     }
 
     @Deprecated

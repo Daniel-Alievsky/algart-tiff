@@ -122,16 +122,17 @@ public final class TiffIFD {
              */
             NONE,
             /**
-             * Automatically updates the linkage inside the file and the current {@link Linkage} object.
+             * Automatically updates the linkage inside the file and the current {@link Linkage} object
+             * in the case of appending a new image to the file end.
              */
-            UPDATE;
+            AUTO_APPEND;
 
-            public boolean isUpdate() {
-                return this == UPDATE;
+            public boolean isAppend() {
+                return this == AUTO_APPEND;
             }
 
-            public static UpdateMode ofUpdate(boolean update) {
-                return update ? UpdateMode.UPDATE : UpdateMode.NONE;
+            public static UpdateMode of(boolean append) {
+                return append ? UpdateMode.AUTO_APPEND : UpdateMode.NONE;
             }
         }
 
@@ -850,7 +851,7 @@ public final class TiffIFD {
 
     public long getFileOffsetOfNextIFDOffset() {
         if (fileOffsetOfNextIFDOffset < 0) {
-            throw new IllegalStateException("File offset of the next IFD offset is not set while reading");
+            throw new IllegalStateException("File offset of the next IFD offset is not set");
         }
         return fileOffsetOfNextIFDOffset;
     }
@@ -3299,18 +3300,16 @@ public final class TiffIFD {
             if (hasFileOffsetOfIFD()) {
                 sb.append(", IFD starts at @%d=0x%X".formatted(fileOffsetOfIFD, fileOffsetOfIFD));
             }
-            if (hasFileOffsetOfNextIFDOffset()) {
-                sb.append(", next link is at @%d=0x%X ->".formatted(
-                        fileOffsetOfNextIFDOffset, fileOffsetOfNextIFDOffset));
-            }
             if (isFileOffsetOfIFDForWritingAssigned()) {
                 sb.append(", writing offset @%d=0x%X".formatted(
                         fileOffsetOfIFDForWriting, fileOffsetOfIFDForWriting));
             }
-            if (hasNextIFDOffset()) {
-                sb.append(isLastInChain() ? " END" : " @%d=0x%X".formatted(
-                        nextIFDOffset, nextIFDOffset));
+            if (hasFileOffsetOfNextIFDOffset()) {
+                sb.append(", next link at @%d=0x%X ->".formatted(
+                        fileOffsetOfNextIFDOffset, fileOffsetOfNextIFDOffset));
             }
+            sb.append(!hasNextIFDOffset() ? " N/A" : isLastInChain() ? " END" : " @%d=0x%X".formatted(
+                    nextIFDOffset, nextIFDOffset));
         }
     }
 

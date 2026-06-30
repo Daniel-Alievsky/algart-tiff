@@ -428,6 +428,7 @@ public class TiffWriterTest {
                         // - equivalent operations without logging
                     }
 //                    writer.writeJavaArray(map, samplesArray, x, y, w, h); // - alternate way to write this matrix
+                    System.out.printf("Written IFD: %s%n", map.ifd());
                     printReaderInfo(writer);
                     if (thoroughTesting) {
                         long length = writer.fileLength();

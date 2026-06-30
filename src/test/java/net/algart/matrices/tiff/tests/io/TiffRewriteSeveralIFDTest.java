@@ -83,7 +83,7 @@ public class TiffRewriteSeveralIFDTest {
             for (int k = 0; k < numberOfImages; k++) {
                 TiffIFD ifd = ifds[k];
                 // - restoring to a "virgin" stage
-                TiffIFD.Linkage.UpdateMode updateMode = TiffIFD.Linkage.UpdateMode.UPDATE;
+                TiffIFD.Linkage.UpdateMode updateMode = TiffIFD.Linkage.UpdateMode.AUTO_APPEND;
                 System.out.printf("Rewriting IFD #%d (%s)...%n%s%n", k, updateMode, ifd);
                 System.out.printf("Linkage before rewriting this IFD: %s%n", writer.linkageIfPresent());
                 writer.writeIFD(ifd, updateMode);
@@ -95,7 +95,7 @@ public class TiffRewriteSeveralIFDTest {
             for (int k = 0; k < numberOfImages; k++) {
                 TiffIFD ifd = ifds[k];
                 // - restoring to a "virgin" stage
-                TiffIFD.Linkage.UpdateMode updateMode = TiffIFD.Linkage.UpdateMode.ofUpdate(k > 0);
+                TiffIFD.Linkage.UpdateMode updateMode = TiffIFD.Linkage.UpdateMode.of(k > 0);
                 System.out.printf("Rewriting IFD #%d (%s)...%n%s%n", k, updateMode, ifd);
                 System.out.printf("Linkage before rewriting this IFD: %s%n", writer.linkageIfPresent());
                 writer.writeIFD(ifd, updateMode);
@@ -117,7 +117,7 @@ public class TiffRewriteSeveralIFDTest {
 
     private static void restore(TiffWriter writer, TiffIFD ifd, long previous) throws IOException {
         ifd.setNextIFDOffset(previous);
-        writer.writeIFD(ifd, TiffIFD.Linkage.UpdateMode.UPDATE);
+        writer.writeIFD(ifd, TiffIFD.Linkage.UpdateMode.AUTO_APPEND);
         System.out.printf("Linkage after restoring this IFD: %s%n", writer.linkageIfPresent());
     }
 
