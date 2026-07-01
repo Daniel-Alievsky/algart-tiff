@@ -180,17 +180,6 @@ public final class TiffIFD {
             updateOffsetOfIFDChainTerminator(fileOffsetOfNextIFDOffset);
         }
 
-        void updateAfterAppendingNewIFDLegacy(long newIFDOffsetValue, long fileOffsetOfNewIFDOffset) {
-            if (newIFDOffsetValue < 0) {
-                throw new  IllegalArgumentException("Negative newIFDOffsetValue = " + newIFDOffsetValue);
-            }
-            if (newIFDOffsetValue != IFD_CHAIN_TERMINATOR) {
-                addIFDOffset(newIFDOffsetValue);
-            } else {
-                updateOffsetOfIFDChainTerminator(fileOffsetOfNewIFDOffset);
-            }
-        }
-
         public void addIFDOffset(long ifdOffset) {
             if (ifdOffset < 0) {
                 throw new IllegalArgumentException("Negative IFD offset = " + ifdOffset);
