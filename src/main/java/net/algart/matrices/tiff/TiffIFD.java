@@ -947,10 +947,9 @@ public final class TiffIFD {
     }
 
     /**
-     * Returns {@code true} if the <i>next IFD offset</i> was set by {@link #setNextIFDOffset(long)} or
-     * {@link #markAsLastInChain()} method.
-     * By default, this method returns {@code false}, because the internal field containing the next IFD offset
-     * is cleared to "unset" state.
+     * Returns {@code true} if the <i>next IFD offset</i> was explicitly set via {@link #setNextIFDOffset(long)}
+     * or {@link #markAsLastInChain()}.
+     * By default, this method returns {@code false}, as the internal field is in its default "unset" state.
      *
      * @return {@code true} if the <i>next IFD offset</i> is set; {@code false} otherwise.
      */
@@ -970,13 +969,11 @@ public final class TiffIFD {
 
     /**
      * Returns {@code true} if this IFD is {@link #isMarkedAsChainTerminator() marked as the last}
-     * or if it is not set ({@link #hasNextIFDOffset()} returns {@code false}).
-     * When writing to a TIFF file by {@link TiffWriter}, both cases a recognized as a last IFD
-     * that should become an end of the written IFD chain.
+     * or if the offset is unset ({@link #hasNextIFDOffset()} returns {@code false}).
+     * When writing to a TIFF file, both cases are treated as the end of the IFD chain.
      *
-     * @return whether this IFD is effectively last: <code>!{@link #hasNextIFDOffset()} ||
+     * @return {@code true} if this IFD is effectively last: <code>!{@link #hasNextIFDOffset()} ||
      * {@link #isMarkedAsChainTerminator()}</code>.
-     * @see #IFD_CHAIN_TERMINATOR
      */
     public boolean isEffectivelyChainTerminator() {
         return nextIFDOffset < 0 || nextIFDOffset == IFD_CHAIN_TERMINATOR;
@@ -997,14 +994,23 @@ public final class TiffIFD {
         return nextIFDOffset;
     }
 
-    public long effectiveNextIFDOffsetOrTerminatorIfAbsent() {
+    /**
+     * Returns the effective <i>next IFD offset</i> to be written into the file:
+     * actual value of this offset when it is set or {@link #IFD_CHAIN_TERMINATOR} when it is unset.
+     *
+     * <p>More precisely, if {@link #hasNextIFDOffset()}, this method returns {@link #getNextIFDOffset()};
+     * otherwise (if the offset is unset), it returns {@link #IFD_CHAIN_TERMINATOR}.</p>
+     *
+     * @return the offset to be written to the file.
+     */
+    public long effectiveNextIFDOffset() {
         return nextIFDOffset < 0 ? IFD_CHAIN_TERMINATOR : nextIFDOffset;
     }
 
     /**
      * Sets the <i>next IFD offset</i> field of this IFD. Usually this method is called while
      * reading the IFD from the file by {@link TiffReader} or while writing it by {@link TiffWriter}.
-     * By default, the internal field for storing this value is "unset": an attempt to read this
+     * By default, the internal field for storing this value is unset: an attempt to read this
      * via {@link #getNextIFDOffset()} throws {@link IllegalStateException}.
      *
      * @param nextIFDOffset new <i>next IFD offset</i>.

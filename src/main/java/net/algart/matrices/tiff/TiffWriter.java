@@ -2091,7 +2091,7 @@ public non-sealed class TiffWriter extends TiffIO {
             throws IOException {
         final long ifdOffset = ifd.assignedFileOffsetOfIFDForWriting();
         final long fileOffsetOfNextOffset = ifd.getFileOffsetOfNextIFDOffset();
-        final long nextIFDOffset = ifd.effectiveNextIFDOffsetOrTerminatorIfAbsent();
+        final long nextIFDOffset = ifd.effectiveNextIFDOffset();
         final boolean appendRequested = updateModeForNewIFD.isAppend();
         if (appendRequested && ifd.isMarkedAsChainTerminator()) {
             final Linkage linkage = linkage();
@@ -2174,7 +2174,7 @@ public non-sealed class TiffWriter extends TiffIO {
         if (knownIFDOffset) {
             virginIFDForAppendingNewImages = false;
         }
-        final long nextIFDOffset = ifd.effectiveNextIFDOffsetOrTerminatorIfAbsent();
+        final long nextIFDOffset = ifd.effectiveNextIFDOffset();
         writeIFDOffsetAt(nextIFDOffset,fileOffsetOfNextOffset);
         if (update) {
             linkage.updateForNewIFDOffset(fileOffsetOfNextOffset, nextIFDOffset);
