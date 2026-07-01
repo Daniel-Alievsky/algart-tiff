@@ -1106,9 +1106,8 @@ public non-sealed class TiffWriter extends TiffIO {
             if (newIFDOffset <= 0) {
                 throw new IllegalArgumentException("Zero or negative IFD offset " + newIFDOffset);
             }
-            if (!fileOpen) {
-                throw new IllegalStateException("The TIFF file is not yet open");
-            }
+            checkFileOpen();
+            invalidateCompanionReader();
             long fileOffset;
             if (mainIFDIndex == 0) {
                 fileOffset = offsetOfFirstIFDOffset();
@@ -1143,6 +1142,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 throw new IllegalArgumentException("Negative new last IFD offset " + newLastIFDOffset);
             }
             checkFileOpen();
+            invalidateCompanionReader();
             final Linkage linkage = linkage();
             // - necessary for using offsetOfIFDChainTerminator
             writeIFDOffsetAt(newLastIFDOffset, linkage.offsetOfIFDChainTerminator());
@@ -1733,6 +1733,7 @@ public non-sealed class TiffWriter extends TiffIO {
         if (mainIFDIndex < 0) {
             throw new IllegalArgumentException("Negative IFD index: " + mainIFDIndex);
         }
+        checkFileOpen();
         //noinspection resource
         List<TiffIFD> ifds = companionReader().mainIFDs();
         int numberOfImages = ifds.size();
@@ -1762,6 +1763,7 @@ public non-sealed class TiffWriter extends TiffIO {
             this.writeIFDToAssignedOffset(ifd);
             //TODO!! bad idea! cannot overwrite in place in a foreign file
         }
+        invalidateCompanionReader();
         invalidateLinkage();
     }
 
@@ -2372,7 +2374,6 @@ public non-sealed class TiffWriter extends TiffIO {
         Objects.requireNonNull(Linkage.UpdateMode.NONE, "Null updateMode");
         synchronized (fileLock) {
             // - to be on the safe side (this synchronization is not necessary)
-            invalidateCompanionReader();
             final long savedFileOffset = stream.offset();
             try {
                 stream.seek(fileOffsetToWrite);
