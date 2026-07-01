@@ -202,6 +202,7 @@ public final class TiffIFD {
                     "], offset of the IFD terminator: " + offsetOfIFDChainTerminator;
         }
     }
+
     /**
      * An IFD with the number of entries, greater than this limit, is not allowed even in Big-TIFF:
      * it is mostly probable that it is a corrupted file.
@@ -945,20 +946,50 @@ public final class TiffIFD {
         return this;
     }
 
+    /**
+     * Returns {@code true} if the <i>next IFD offset</i> was set by {@link #setNextIFDOffset(long)} or
+     * {@link #markAsLastInChain()} method.
+     * By default, this method returns {@code false}, because the internal field containing the next IFD offset
+     * is cleared to "unset" state.
+     *
+     * @return {@code true} if the <i>next IFD offset</i> is set; {@code false} otherwise.
+     */
     public boolean hasNextIFDOffset() {
         return nextIFDOffset >= 0;
     }
 
     /**
-     * Returns <code>true</code> if this IFD is marked as the last ({@link #getNextIFDOffset()} returns 0).
+     * Returns {@code true} if this IFD is explicitly marked as the last ({@link #getNextIFDOffset()} returns 0).
      *
      * @return whether this IFD is the last one in the TIFF file.
      * @see #IFD_CHAIN_TERMINATOR
      */
-    public boolean isLastInChain() {
+    public boolean isMarkedAsChainTerminator() {
         return nextIFDOffset == IFD_CHAIN_TERMINATOR;
     }
 
+    /**
+     * Returns {@code true} if this IFD is {@link #isMarkedAsChainTerminator() marked as the last}
+     * or if it is not set ({@link #hasNextIFDOffset()} returns {@code false}).
+     * When writing to a TIFF file by {@link TiffWriter}, both cases a recognized as a last IFD
+     * that should become an end of the written IFD chain.
+     *
+     * @return whether this IFD is effectively last: <code>!{@link #hasNextIFDOffset()} ||
+     * {@link #isMarkedAsChainTerminator()}</code>.
+     * @see #IFD_CHAIN_TERMINATOR
+     */
+    public boolean isEffectivelyChainTerminator() {
+        return nextIFDOffset < 0 || nextIFDOffset == IFD_CHAIN_TERMINATOR;
+    }
+
+    /**
+     * Returns the <i>next IFD offset</i> field of this IFD, usually read from the file by {@link TiffReader}
+     * or written by {@link TiffWriter}.
+     *
+     * @return the assigned <i>next IFD offset</i>.
+     * @throws IllegalStateException if no <i>next IFD offset</i> has been assigned yet
+     * ({@link #hasNextIFDOffset()} returns {@code false}).
+     */
     public long getNextIFDOffset() {
         if (nextIFDOffset < 0) {
             throw new IllegalStateException("Next IFD offset is not set");
@@ -966,10 +997,20 @@ public final class TiffIFD {
         return nextIFDOffset;
     }
 
-    public long getNextIFDOffsetOrTerminatorIfAbsent() {
+    public long effectiveNextIFDOffsetOrTerminatorIfAbsent() {
         return nextIFDOffset < 0 ? IFD_CHAIN_TERMINATOR : nextIFDOffset;
     }
 
+    /**
+     * Sets the <i>next IFD offset</i> field of this IFD. Usually this method is called while
+     * reading the IFD from the file by {@link TiffReader} or while writing it by {@link TiffWriter}.
+     * By default, the internal field for storing this value is "unset": an attempt to read this
+     * via {@link #getNextIFDOffset()} throws {@link IllegalStateException}.
+     *
+     * @param nextIFDOffset new <i>next IFD offset</i>.
+     * @return a reference to this IFD object.
+     * @throws IllegalArgumentException if the offset is negative.
+     */
     public TiffIFD setNextIFDOffset(long nextIFDOffset) {
         if (nextIFDOffset < 0) {
             throw new IllegalArgumentException("Negative next IFD offset: " + nextIFDOffset);
@@ -978,10 +1019,21 @@ public final class TiffIFD {
         return this;
     }
 
+    /**
+     * Equivalent to <code>{@link #setNextIFDOffset(long)} setNextIFDOffset}({@link #IFD_CHAIN_TERMINATOR})</code>.
+     *
+     * @return a reference to this IFD object.
+     */
     public TiffIFD markAsLastInChain() {
         return setNextIFDOffset(IFD_CHAIN_TERMINATOR);
     }
 
+    /**
+     * Removes the <i>next IFD offset</i>. The internal field storing this value becomes "unset":
+     * an attempt to read this via {@link #getNextIFDOffset()} will throw {@link IllegalStateException}.
+     *
+     * @return a reference to this IFD object.
+     */
     public TiffIFD removeNextIFDOffset() {
         this.nextIFDOffset = -1;
         return this;
@@ -2435,14 +2487,14 @@ public final class TiffIFD {
     }
 
     /**
-     * Returns <code>true</code> if IFD contains tags <code>TileWidth</code> and <code>TileLength</code>.
+     * Returns {@code true} if IFD contains tags <code>TileWidth</code> and <code>TileLength</code>.
      * We call such a TIFF image <b>tiled</b>.
      * This means that the image is stored in tiled form (2D grid of rectangular tiles),
      * but not separated by strips.
      *
      * <p>If IFD contains <b>only one</b> from these tags &mdash; there is <code>TileWidth</code>,
      * but <code>TileLength</code> is not specified, or vice versa &mdash; this method throws
-     * <code>FormatException</code>. It allows guaranteeing: if this method returns <code>true</code>,
+     * <code>FormatException</code>. It allows guaranteeing: if this method returns {@code true},
      * than the tile sizes are completely specified by these two tags and do not depend on the
      * actual image sizes. Note: when this method returns <code>false</code>, the tiles sizes,
      * returned by {@link #getTileSizeY()} methods, are determined by
@@ -2633,7 +2685,7 @@ public final class TiffIFD {
     /**
      * Puts new values for <code>TileOffsets</code> / <code>TileByteCounts</code> tags or
      * <code>StripOffsets</code> / <code>StripByteCounts</code> tag, depending on the result of
-     * {@link #hasTileInformation()} methods (<code>true</code> or <code>false</code> correspondingly).
+     * {@link #hasTileInformation()} methods ({@code true} or <code>false</code> correspondingly).
      *
      * <p>Note: this method works even when IFD is frozen by {@link #freeze()} method,
      * bypassing immutability checks.
@@ -3308,7 +3360,7 @@ public final class TiffIFD {
                 sb.append(", next link at @%d=0x%X ->".formatted(
                         fileOffsetOfNextIFDOffset, fileOffsetOfNextIFDOffset));
             }
-            sb.append(!hasNextIFDOffset() ? " N/A" : isLastInChain() ? " END" : " @%d=0x%X".formatted(
+            sb.append(!hasNextIFDOffset() ? " N/A" : isMarkedAsChainTerminator() ? " END" : " @%d=0x%X".formatted(
                     nextIFDOffset, nextIFDOffset));
         }
     }

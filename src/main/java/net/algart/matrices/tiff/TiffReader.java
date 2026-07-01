@@ -1636,7 +1636,7 @@ public non-sealed class TiffReader extends TiffIO {
                 return -1;
             }
             final TiffIFD ifd = tileIndex.ifd();
-            if (offset > 0 && ifd.cachedTileOrStripByteCountLength() == 1 && ifd.isLastInChain()) {
+            if (offset > 0 && ifd.cachedTileOrStripByteCountLength() == 1 && ifd.isMarkedAsChainTerminator()) {
                 // (so, byteCount == 0): a rare case:
                 // some TIFF files have only one IFD with one tile with zero StripByteCounts,
                 // that means that we must use all space in the file
