@@ -2087,26 +2087,28 @@ public non-sealed class TiffWriter extends TiffIO {
         return info;
     }
 
-    private void updateNextOffsetAndLinkageAt(TiffIFD ifd, Linkage.UpdateMode updateModeForNewIFD)
+    private void updateNextOffsetAndLinkageAtNew(TiffIFD ifd, Linkage.UpdateMode updateModeForNewIFD)
             throws IOException {
         final long ifdOffset = ifd.assignedFileOffsetOfIFDForWriting();
-        final long fileOffsetOfNextOffset = ifd.getFileOffsetOfNextIFDOffset();
+        final long fileOffsetOfNextIFDOffset = ifd.getFileOffsetOfNextIFDOffset();
         final long nextIFDOffset = ifd.effectiveNextIFDOffset();
         final boolean appendRequested = updateModeForNewIFD.isAppend();
-        writeIFDOffsetAt(nextIFDOffset, fileOffsetOfNextOffset);
+        writeIFDOffsetAt(nextIFDOffset, fileOffsetOfNextIFDOffset);
         if (appendRequested && ifd.isEffectivelyChainTerminator()) {
             final Linkage linkage = linkage();
             final boolean newIndependentTrailingIFD = !linkage().containsIFDOffset(ifdOffset);
             if (newIndependentTrailingIFD) {
-                writeIFDOffsetAt(ifdOffset, linkage.offsetOfIFDChainTerminator());
-                linkage.updateForNewIFDOffset(fileOffsetOfNextOffset, nextIFDOffset);
+                // - The only case when we can
+                final long previousOffsetOfIFDChainTerminator = linkage.offsetOfIFDChainTerminator();
+                writeIFDOffsetAt(ifdOffset, previousOffsetOfIFDChainTerminator);
+                linkage.updateAfterAppendingNewIFD(ifdOffset, fileOffsetOfNextIFDOffset);
                 return;
             }
         }
         invalidateLinkage(true, " for IFD with next-IFD-offset=" + ifd.optNextIFDOffset());
     }
 
-    private void updateNextOffsetAndLinkageAtLegacy(TiffIFD ifd, Linkage.UpdateMode updateModeForNewIFD)
+    private void updateNextOffsetAndLinkageAt(TiffIFD ifd, Linkage.UpdateMode updateModeForNewIFD)
             throws IOException {
         final long ifdOffset = ifd.assignedFileOffsetOfIFDForWriting();
         final long fileOffsetOfNextOffset = ifd.getFileOffsetOfNextIFDOffset();
@@ -2135,7 +2137,7 @@ public non-sealed class TiffWriter extends TiffIO {
         final long nextIFDOffset = ifd.effectiveNextIFDOffset();
         writeIFDOffsetAt(nextIFDOffset,fileOffsetOfNextOffset);
         if (update) {
-            linkage.updateForNewIFDOffset(fileOffsetOfNextOffset, nextIFDOffset);
+            linkage.updateAfterAppendingNewIFDLegacy(nextIFDOffset, fileOffsetOfNextOffset);
         }
 
         // - writes (or rewrites) TiffIFD.IFD_CHAIN_TERMINATOR (or ifd.getNextIFDOffset()
@@ -2147,7 +2149,7 @@ public non-sealed class TiffWriter extends TiffIO {
             // This check is necessary, for example, for overwriting an existing image:
             // without it, the completeWriting method will create an infinite loop.
             writeIFDOffsetAt(ifdOffset, previousOffsetOfIFDChainTerminator);
-            linkage.updateForNewIFDOffset(previousOffsetOfIFDChainTerminator, ifdOffset);
+            linkage.updateAfterAppendingNewIFDLegacy(ifdOffset, previousOffsetOfIFDChainTerminator);
             // - This method adds ifdOffset to allIFDOffsets in UPDATE mode.
             // (In old versions, we passed here an equivalent of the NONE mode, but now
             // UPDATE is necessary for correcting allIFDOffsets and, vice versa,

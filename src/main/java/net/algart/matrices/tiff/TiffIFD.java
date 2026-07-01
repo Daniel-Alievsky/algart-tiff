@@ -172,7 +172,15 @@ public final class TiffIFD {
             return mainIFDOffsets.contains(ifdOffset);
         }
 
-        public void updateForNewIFDOffset(long fileOffsetOfNewIFDOffset, long newIFDOffsetValue) {
+        public void updateAfterAppendingNewIFD(long ifdOffset, long fileOffsetOfNextIFDOffset) {
+            if (ifdOffset <= 0) {
+                throw new  IllegalArgumentException("Zero or negative ifdOffset = " + ifdOffset);
+            }
+            addIFDOffset(ifdOffset);
+            updateOffsetOfIFDChainTerminator(fileOffsetOfNextIFDOffset);
+        }
+
+        void updateAfterAppendingNewIFDLegacy(long newIFDOffsetValue, long fileOffsetOfNewIFDOffset) {
             if (newIFDOffsetValue < 0) {
                 throw new  IllegalArgumentException("Negative newIFDOffsetValue = " + newIFDOffsetValue);
             }
