@@ -2087,7 +2087,7 @@ public non-sealed class TiffWriter extends TiffIO {
         return info;
     }
 
-    private void updateNextOffsetAndLinkageAtNew(TiffIFD ifd, Linkage.UpdateMode updateModeForNewIFD)
+    private void updateNextOffsetAndLinkageAt(TiffIFD ifd, Linkage.UpdateMode updateModeForNewIFD)
             throws IOException {
         final long ifdOffset = ifd.assignedFileOffsetOfIFDForWriting();
         final long fileOffsetOfNextIFDOffset = ifd.getFileOffsetOfNextIFDOffset();
@@ -2108,7 +2108,7 @@ public non-sealed class TiffWriter extends TiffIO {
         invalidateLinkage(true, " for IFD with next-IFD-offset=" + ifd.optNextIFDOffset());
     }
 
-    private void updateNextOffsetAndLinkageAt(TiffIFD ifd, Linkage.UpdateMode updateModeForNewIFD)
+    private void updateNextOffsetAndLinkageAtLegacy(TiffIFD ifd, Linkage.UpdateMode updateModeForNewIFD)
             throws IOException {
         final long ifdOffset = ifd.assignedFileOffsetOfIFDForWriting();
         final long fileOffsetOfNextOffset = ifd.getFileOffsetOfNextIFDOffset();
