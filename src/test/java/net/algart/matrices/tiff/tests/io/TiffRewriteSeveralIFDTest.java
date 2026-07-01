@@ -35,17 +35,31 @@ import java.nio.file.Paths;
 import java.util.Random;
 
 public class TiffRewriteSeveralIFDTest {
-    private final static boolean DAMAGE_AFTER_WRITE = true;
-
     public static void main(String... args) throws IOException {
-        if (args.length < 1) {
+        int startArgIndex = 0;
+        boolean damageAfterWrite = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-damage")) {
+            damageAfterWrite = true;
+            startArgIndex++;
+        }
+        boolean rewriteSequential = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-rewriteSequential")) {
+            rewriteSequential = true;
+            startArgIndex++;
+        }
+        boolean rewriteRandom = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-rewriteRandom")) {
+            rewriteRandom = true;
+            startArgIndex++;
+        }
+        if (args.length < startArgIndex + 1) {
             System.out.println("Usage:");
             System.out.println("    " + TiffRewriteSeveralIFDTest.class.getName() +
-                    " target.tiff [number_of_images]");
+                    " [-damage] [-rewriteSequential] [--rewriteRandom] target.tiff [number_of_images]");
             return;
         }
-        final Path targetFile = Paths.get(args[0]);
-        final int numberOfImages = args.length < 2 ? 5 : Integer.parseInt(args[1]);
+        final Path targetFile = Paths.get(args[startArgIndex]);
+        final int numberOfImages = args.length < startArgIndex + 2 ? 5 : Integer.parseInt(args[startArgIndex + 1]);
 
         System.out.println("Writing TIFF " + targetFile + "...");
         try (final TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.CREATE)) {
@@ -60,7 +74,7 @@ public class TiffRewriteSeveralIFDTest {
                 ifds[k] = ifd;
                 writer.newResizableMap(ifd).writeBlank(randomColor(random));
                 System.out.printf("Linkage after write image: %s%n", writer.linkageIfPresent());
-                if (DAMAGE_AFTER_WRITE) {
+                if (damageAfterWrite) {
                     long previous0 = k == 0 ?
                             TiffIFD.IFD_CHAIN_TERMINATOR :
                             writer.readMainIFDOffset(1);
@@ -76,33 +90,53 @@ public class TiffRewriteSeveralIFDTest {
             System.out.printf("Linkage after refresh: %s%n", writer.linkageIfPresent());
             System.out.println();
 
-            for (TiffIFD tiffIFD : ifds) {
-                tiffIFD.removeNextIFDOffset();
+            if (rewriteSequential) {
+                for (TiffIFD tiffIFD : ifds) {
+                    tiffIFD.removeNextIFDOffset();
+                    // - restoring to a "virgin" state
+                }
+                for (int k = 0; k < numberOfImages; k++) {
+                    TiffIFD ifd = ifds[k];
+                    TiffIFD.Linkage.UpdateMode updateMode = TiffIFD.Linkage.UpdateMode.AUTO_APPEND;
+                    System.out.printf("Rewriting IFD #%d (%s)...%n%s%n", k, updateMode, ifd);
+                    System.out.printf("Linkage before rewriting this IFD: %s%n", writer.linkageIfPresent());
+                    writer.writeIFD(ifd, updateMode);
+                    System.out.printf("Linkage after rewriting this IFD: %s%n", writer.linkageIfPresent());
+                    // writer.invalidateLinkage(); // - should not be necessary!
+                }
+                System.out.printf("Linkage after refresh: %s%n", writer.linkageIfPresent());
+                System.out.println();
+                for (int k = 0; k < numberOfImages; k++) {
+                    TiffIFD ifd = ifds[k];
+                    TiffIFD.Linkage.UpdateMode updateMode = TiffIFD.Linkage.UpdateMode.of(k > 0);
+                    System.out.printf("Rewriting IFD #%d (%s)...%n%s%n", k, updateMode, ifd);
+                    System.out.printf("Linkage before rewriting this IFD: %s%n", writer.linkageIfPresent());
+                    writer.writeIFD(ifd, updateMode);
+                    System.out.printf("Linkage after rewriting this IFD: %s%n", writer.linkageIfPresent());
+                    // writer.invalidateLinkage(); // - should not be necessary!
+                }
+                System.out.println();
             }
-
-            for (int k = 0; k < numberOfImages; k++) {
-                TiffIFD ifd = ifds[k];
-                // - restoring to a "virgin" stage
-                TiffIFD.Linkage.UpdateMode updateMode = TiffIFD.Linkage.UpdateMode.AUTO_APPEND;
-                System.out.printf("Rewriting IFD #%d (%s)...%n%s%n", k, updateMode, ifd);
-                System.out.printf("Linkage before rewriting this IFD: %s%n", writer.linkageIfPresent());
-                writer.writeIFD(ifd, updateMode);
-                System.out.printf("Linkage after rewriting this IFD: %s%n", writer.linkageIfPresent());
-                // writer.invalidateLinkage(); // - should not be necessary!
+            for (int k = 0; k < ifds.length; k++) {
+                TiffIFD tiffIFD = ifds[k];
+                tiffIFD.setNextIFDOffset(k < ifds.length - 1 ?
+                        ifds[k + 1].assignedFileOffsetOfIFDForWriting() :
+                        TiffIFD.IFD_CHAIN_TERMINATOR);
+                // - we should manually link IFDs or (alternate way) to read them from a file
             }
-            System.out.printf("Linkage after refresh: %s%n", writer.linkageIfPresent());
-            System.out.println();
-            for (int k = 0; k < numberOfImages; k++) {
-                TiffIFD ifd = ifds[k];
-                // - restoring to a "virgin" stage
-                TiffIFD.Linkage.UpdateMode updateMode = TiffIFD.Linkage.UpdateMode.of(k > 0);
-                System.out.printf("Rewriting IFD #%d (%s)...%n%s%n", k, updateMode, ifd);
-                System.out.printf("Linkage before rewriting this IFD: %s%n", writer.linkageIfPresent());
-                writer.writeIFD(ifd, updateMode);
-                System.out.printf("Linkage after rewriting this IFD: %s%n", writer.linkageIfPresent());
-                // writer.invalidateLinkage(); // - should not be necessary!
+            if (rewriteRandom)  {
+                for (int k = 0; k < 100; k++) {
+                    int ifdIndex = random.nextInt(numberOfImages);
+                    TiffIFD ifd = ifds[ifdIndex];
+                    TiffIFD.Linkage.UpdateMode updateMode = TiffIFD.Linkage.UpdateMode.of(random.nextBoolean());
+                    System.out.printf("Rewriting #%d, IFD #%d (%s)...%n%s%n", k, ifdIndex, updateMode, ifd);
+                    System.out.printf("Linkage before rewriting this IFD: %s%n", writer.linkageIfPresent());
+                    writer.writeIFD(ifd, updateMode);
+                }
+                System.out.println();
             }
-            System.out.println();
+            System.out.printf("Linkage an the end: %s%n", writer.linkageIfPresent());
+            System.out.printf("Linkage after refresh: %s%n", writer.linkage());
         }
         System.out.println("Done");
     }

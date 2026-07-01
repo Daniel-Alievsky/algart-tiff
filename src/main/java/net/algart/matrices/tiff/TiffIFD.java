@@ -173,6 +173,9 @@ public final class TiffIFD {
         }
 
         public void updateForNewIFDOffset(long fileOffsetOfNewIFDOffset, long newIFDOffsetValue) {
+            if (newIFDOffsetValue < 0) {
+                throw new  IllegalArgumentException("Negative newIFDOffsetValue = " + newIFDOffsetValue);
+            }
             if (newIFDOffsetValue != IFD_CHAIN_TERMINATOR) {
                 addIFDOffset(newIFDOffsetValue);
             } else {
@@ -992,6 +995,17 @@ public final class TiffIFD {
             throw new IllegalStateException("Next IFD offset is not set");
         }
         return nextIFDOffset;
+    }
+
+    /**
+     * Returns the <i>next IFD offset</i> field if it is set, or {@link OptionalLong#empty()} if it is not.
+     * This is an analog of {@link #getNextIFDOffset()}, which returns an empty value instead of
+     * throwing {@link IllegalStateException}.
+     *
+     * @return the assigned <i>next IFD offset</i>, or an empty value if it is not set.
+     */
+    public OptionalLong optNextIFDOffset() {
+        return nextIFDOffset < 0 ? OptionalLong.empty() : OptionalLong.of(nextIFDOffset);
     }
 
     /**
