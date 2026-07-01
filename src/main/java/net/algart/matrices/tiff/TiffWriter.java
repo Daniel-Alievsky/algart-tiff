@@ -533,47 +533,28 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Removes the file offset of the last scanned IFD offset returned by the {@link #linkageIfPresent()}
-     * method, and clears the set of written IFD offsets returned by the {@link #linkageIfPresent()} method.
-     * After invalidation, {@link #linkageIfPresent()} will return {@code OptionalLong.empty()}.
+     * Clears the reference to the IFD linkage information stored inside this object
+     * and returned by {@link #linkage()} method.
+     * Ensures that the next call of {@link #linkage()} will reload this information from the file.
      *
      * <p>Usually, you do not need to use this method directly: it is called automatically by {@link TiffWriter}
      * every time there is a risk that this linkage information may become incorrect.
-     * More precisely, it is called in the following scenarios:</p>
-     *
-     * <ol>
-     *      <li>in the {@link #rewriteIFDOffset(int, long)} and {@link #rewriteLastIFDOffset(long)} methods;</li>
-     *      <li>in the {@link #writeIFD(TiffIFD, Linkage.UpdateMode)} and
-     * {@link #rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, Linkage.UpdateMode)} methods,
-     * when the {@link TiffIFD#hasNextIFDOffset()} method returns {@code true} for the specified IFD;</li>
-     *      <li>while {@link #close() closing} the writer.</li>
-     * </ol>
-     *
-     * <p>(Exact behavior may change in future versions, if it will not create any risk of incorrect linkage.)</p>
-     *
-     * <p>Usually, this is quite enough: whenever {@link TiffWriter} writes or modifies any IFD in the file,
-     * it calls the methods specified in items 1 and 2 above. The only situation where you might need
-     * to call {@link #invalidateLinkage()}  manually is when you work with an IFD where the
-     * {@link TiffIFD#hasNextIFDOffset()} method returns {@code false} (i.e., it will become a terminator IFD
-     * in the file), <b>but</b> you are writing it somewhere other than the end of the file
-     * (unlike the typical usage inside this class).</p>
-     *
-     * <p>For example, if you are overwriting a series of existing images at their exact previous file offsets,
-     * and every IFD has an unset {@link TiffIFD#hasNextIFDOffset() next-IFD-offset} field, then without an explicit
-     * call to {@link #invalidateLinkage()}, the {@link #linkageIfPresent()} set will become incorrect.
-     * As a result, it can lead to incorrect linkage. However, this is a very exotic use case.</p>
+     * The only situation when you should use this method is call to a low-level
+     * {@link #writeOffsetAt(long, long)} method or direct modifications in the file
+     * via {@link #stream()} object or some external means.
      *
      * @see #writeIFD(TiffIFD, Linkage.UpdateMode)
      */
-    @SuppressWarnings("JavadocDeclaration")
     public void invalidateLinkage() {
         invalidateLinkage(true, null);
     }
 
     /**
-     * Reloads the linkage information returned by the {@link #linkageIfPresent()} method.
+     * Returns the linkage information stored in the TIFF file.
+     * If it is not ready or {@link #invalidateLinkage() invalidated}, this method automatically reloads it
+     * from the file.
      *
-     * <p>You do not need to use this method manually: it is called automatically by {@link TiffWriter}
+     * <p>Usually you do not need to use this method manually: it is called automatically by {@link TiffWriter}
      * whenever it requires up-to-date linkage information. The only situation when you might use it
      * is if you want to inspect this information for your own purposes, for example, for logging.</p>
      *
