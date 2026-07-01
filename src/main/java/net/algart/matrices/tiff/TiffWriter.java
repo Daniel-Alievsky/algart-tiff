@@ -1152,28 +1152,28 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Writes the specified offset value into the TIFF file at the file position {@code fileOffsetToWrite}.
+     * Writes the specified offset value into the TIFF file at the given {@code fileOffsetToWrite}.
      *
-     * <p>For {@link #isBigTiff() Big-TIFF} file, this method writes 8-byte value via
-     * {@link DataHandle#writeLong(long)}.
-     * For a usual TIFF file, it writes 4-byte value via {@link DataHandle#writeInt(int)};
-     * in this case, the offset value must be actually 32-bit (not greater than 0xFFFFFFF0L = 2^32&minus;16).
-     * Note that this method <i>does not change</i> the current file position ({@link DataHandle#offset()}.</p>
+     * <p>For {@link #isBigTiff() Big-TIFF} files, this method writes an 8-byte value via
+     * {@link DataHandle#writeLong(long)}. For standard TIFF files, it writes a 4-byte value via
+     * {@link DataHandle#writeInt(int)}; in this case, the offset must be a valid 32-bit unsigned value
+     * (more exactly, not exceeding {@code 0xFFFFFFF0L = 2^32-16}).
+     * Note that this method <i>does not change</i> the current file position ({@link DataHandle#offset()}).</p>
      *
-     * <p>This is a low-level method, used by this class for writing offsets of IFD. Typically, you should
-     * not use this method. If you still decided to call if for low-level file correction,
-     * you need to call {@link #invalidateLinkage()} and {@link #invalidateCompanionReader()}:
-     * this method does not call these invalidating methods (though they are called automatically
+     * <p>This is a low-level method, used internally for writing IFD offsets. Typically, you should
+     * not use this method directly. If you choose to call it for low-level file correction,
+     * you <i>should</i> call {@link #invalidateLinkage()} and {@link #invalidateCompanionReader()},
+     * as this method does not call these invalidations automatically  (though they are called automatically
      * in all other cases).</p>
      *
      * @param offsetValue       value to write; must be non-negative.
-     * @param fileOffsetToWrite position in the file where this value should be written.
-     * @throws IOException in the case of any I/O errors.
+     * @param fileOffsetToWrite the position in the file where the value should be written.
+     * @throws IOException if an I/O error occurs.
      * @see #rewriteIFDOffset(int, long)
      * @see #writeIFD(TiffIFD, Linkage.UpdateMode)
      * @see #rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, Linkage.UpdateMode)
      */
-    public void writeOffsetAt(long offsetValue, long fileOffsetToWrite) throws IOException {
+     public void writeOffsetAt(long offsetValue, long fileOffsetToWrite) throws IOException {
         synchronized (fileLock) {
             final long savedFileOffset = stream.offset();
             try {
