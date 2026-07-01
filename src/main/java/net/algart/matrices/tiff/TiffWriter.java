@@ -1163,7 +1163,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * <p>This is a low-level method, used internally for writing IFD offsets. Typically, you should
      * not use this method directly. If you choose to call it for low-level file correction,
      * you <i>should</i> call {@link #invalidateLinkage()} and {@link #invalidateCompanionReader()},
-     * as this method does not call these invalidations automatically  (though they are called automatically
+     * as this method does not call these invalidations automatically (though they are called automatically
      * in all other cases).</p>
      *
      * @param offsetValue       value to write; must be non-negative.
