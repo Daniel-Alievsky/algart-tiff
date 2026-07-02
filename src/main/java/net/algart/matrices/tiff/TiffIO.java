@@ -282,7 +282,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * <p>But the following method does not change this value:</p>
      * <ul>
-     *     <li>{@link #readLinkage(boolean)}</li>
+     *     <li>{@link #readLinkage()}</li>
      * </ul>
      *
      * <p>Immediately after creating a new {@link TiffReader} object, as well as
@@ -619,7 +619,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * is written.</p>
      *
      * <p>This method works like</p>
-     * <pre>{@link #readLinkage(boolean)
+     * <pre>{@link #readLinkage()
      * readLinkage(allowNoIFDs)}.{@link TiffIFD.Linkage#mainIFDOffsetsArray() mainIFDOffsetsArray()}</pre>
      *
      * <p>with the only difference that it updates the position tracked by {@link #offsetOfLastScannedIFDOffset()}.</p>
@@ -655,14 +655,13 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * <p>
      * {@link #offsetOfLastScannedIFDOffset()}.
      *
-     * @param allowNoIFDs {@code true} to allow an empty TIFF file without throwing an exception.
      * @return the linkage information.
      * @throws TiffException if the TIFF file is empty and the argument is {@code false},
      *                       or if a corrupted structure or infinite loop is detected.
      * @throws IOException   if an I/O error occurs.
      */
-    public TiffIFD.Linkage readLinkage(boolean allowNoIFDs) throws IOException {
-        return readLinkage(allowNoIFDs, Long.MAX_VALUE, false);
+    public TiffIFD.Linkage readLinkage() throws IOException {
+        return readLinkage(true, Long.MAX_VALUE, false);
     }
 
     public CodecReport lastCodecReport() {
@@ -1431,7 +1430,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             throw new IllegalArgumentException("maxNumberOfIFDs must be > 0");
         }
         synchronized (fileLock) {
-            final TiffIFD.Linkage result = new TiffIFD.Linkage(offsetOfFirstIFDOffset());
+            final TiffIFD.Linkage result = new TiffIFD.Linkage(bigTiff);
             final long fileLength = stream.length();
             long offset = allowNoIFDs ?
                     readFirstIFDOffsetIfPresent(false).orElse(0L) :

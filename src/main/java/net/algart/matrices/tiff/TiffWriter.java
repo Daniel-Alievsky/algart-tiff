@@ -1865,7 +1865,7 @@ public non-sealed class TiffWriter extends TiffIO {
                     boolean success = false;
                     final long savedOffset = stream.offset();
                     try {
-                        this.linkage = currentLinkage = readLinkage(true);
+                        this.linkage = currentLinkage = readLinkage();
                         assert currentLinkage != null;
                         stream.seek(savedOffset);
                         success = true;

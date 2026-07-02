@@ -137,29 +137,21 @@ public final class TiffIFD {
         }
 
         private long offsetOfIFDChainTerminator = -1;
-        private final LinkedHashSet<Long> mainIFDOffsets = new LinkedHashSet<>();
-        // - LinkedHashSet provides a correct order for getting array of offsets
+        private final LinkedHashSet<Long> mainIFDOffsets;
         private long lastAddedOffset = -1;
 
         public Linkage(boolean bigTiff) {
             this(TiffIO.offsetOfFirstIFDOffset(bigTiff));
         }
 
-        Linkage(long initialOffsetOfIFDChainTerminator) {
-            Objects.requireNonNull(mainIFDOffsets, "Null mainIFDOffsets");
+        private Linkage(long initialOffsetOfIFDChainTerminator) {
             if (initialOffsetOfIFDChainTerminator < 0) {
                 throw new IllegalArgumentException("Negative initialOffsetOfIFDChainTerminator = " +
                         initialOffsetOfIFDChainTerminator);
             }
             this.offsetOfIFDChainTerminator = initialOffsetOfIFDChainTerminator;
-        }
-
-        Linkage(long offsetOfIFDChainTerminator, long[] mainIFDOffsets) {
-            this(offsetOfIFDChainTerminator);
-            Objects.requireNonNull(mainIFDOffsets, "Null mainIFDOffsets");
-            for (long offset : mainIFDOffsets) {
-                addIFDOffset(offset);
-            }
+            this.mainIFDOffsets = new LinkedHashSet<>();
+            // - LinkedHashSet provides a correct order for getting array of offsets
         }
 
         public long offsetOfIFDChainTerminator() {
@@ -199,16 +191,16 @@ public final class TiffIFD {
             return mainIFDOffsets.add(ifdOffset);
         }
 
+        public OptionalLong lastIFDOffset() {
+            return lastAddedOffset == -1 ? OptionalLong.empty() : OptionalLong.of(lastAddedOffset);
+        }
+
         public void setOffsetOfIFDChainTerminator(long offsetOfIFDChainTerminator) {
             if (offsetOfIFDChainTerminator < 0) {
                 throw new IllegalArgumentException("Negative offsetOfIFDChainTerminator = " +
                         offsetOfIFDChainTerminator);
             }
             this.offsetOfIFDChainTerminator = offsetOfIFDChainTerminator;
-        }
-
-        public OptionalLong lastAddedOffset() {
-            return lastAddedOffset == -1 ? OptionalLong.empty() : OptionalLong.of(lastAddedOffset);
         }
 
         public String toString() {
