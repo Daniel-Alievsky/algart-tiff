@@ -1865,7 +1865,7 @@ public non-sealed class TiffWriter extends TiffIO {
                     boolean success = false;
                     final long savedOffset = stream.offset();
                     try {
-                        this.linkage = currentLinkage = readLinkage();
+                        this.linkage = currentLinkage = readLinkage(true);
                         assert currentLinkage != null;
                         stream.seek(savedOffset);
                         success = true;
@@ -2189,7 +2189,7 @@ public non-sealed class TiffWriter extends TiffIO {
         if (newIFDOffsetValue != TiffIFD.IFD_CHAIN_TERMINATOR) {
             linkage.addIFDOffset(newIFDOffsetValue);
         } else {
-            linkage.updateOffsetOfIFDChainTerminator(fileOffsetOfNewIFDOffset);
+            linkage.setOffsetOfIFDChainTerminator(fileOffsetOfNewIFDOffset);
         }
     }
 

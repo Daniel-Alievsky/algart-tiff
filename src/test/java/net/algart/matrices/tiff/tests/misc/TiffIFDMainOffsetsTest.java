@@ -34,9 +34,17 @@ import java.util.List;
 import java.util.Locale;
 import java.util.OptionalLong;
 
-public class TiffIFDAndIFDOffsetsTest {
+public class TiffIFDMainOffsetsTest {
     private static void printLinkage(TiffReader reader) {
         System.out.printf("  Position of last scanned IFD offset: %s%n", reader.offsetOfLastScannedIFDOffset());
+    }
+
+    private static void checkEqual(TiffIFD ifd1, TiffIFD ifd2) {
+        final String detailed1 = ifd1.toString(TiffIFD.StringFormat.DETAILED);
+        final String detailed2 = ifd2.toString(TiffIFD.StringFormat.DETAILED);
+        if (!detailed1.equals(detailed2)) {
+            throw new AssertionError("Not equal:\n\n" + detailed1 + "\n\n" + detailed2);
+        }
     }
 
     public static void main(String... args) throws IOException {
@@ -47,7 +55,7 @@ public class TiffIFDAndIFDOffsetsTest {
             startArgIndex++;
         }
         if (args.length < startArgIndex + 2) {
-            System.out.printf("Usage: %s tiff_file.tiff ifdIndex%n", TiffIFDAndIFDOffsetsTest.class.getName());
+            System.out.printf("Usage: %s tiff_file.tiff ifdIndex%n", TiffIFDMainOffsetsTest.class.getName());
             return;
         }
 
@@ -56,15 +64,15 @@ public class TiffIFDAndIFDOffsetsTest {
         System.out.printf("Reading IFD #%d from %s...%n", ifdIndex, file);
 
         TiffReader reader = new TiffReader(file, TiffOpenMode.ALLOW_EXISTING_NON_TIFF).setCachingIFDs(cache);
-        final int n1 = reader.readMainIFDOffsets( true).length;
+        final int numberOfMain = reader.readMainIFDOffsets( true).length;
         final int m = reader.allMaps().size();
         final int n2 = reader.mainIFDs().size();
         // - should not throw exception for an invalid file, for example, too short
         // (but error for not long non-completed file with zero first IFD offset)
-        if (n1 != n2 || n1 > m) {
-            throw new AssertionError(n1 + ", " + n2 + ", " + m);
+        if (numberOfMain != n2 || numberOfMain > m) {
+            throw new AssertionError(numberOfMain + ", " + n2 + ", " + m);
         }
-        System.out.printf("Number of IFDs: %d%n", n1);
+        System.out.printf("Number of IFDs: %d%n", numberOfMain);
         // reader.allMaps().set(0, null); // - should not be possible (result must be immutable)
         // reader.allIFDs().clear(); // - should not be possible (result must be immutable)
         reader.close();
@@ -116,7 +124,7 @@ public class TiffIFDAndIFDOffsetsTest {
             t1 = System.nanoTime();
             ifds = reader.mainIFDs();
             t2 = System.nanoTime();
-            if (ifds.size() != n1) {
+            if (ifds.size() != numberOfMain) {
                 throw new AssertionError();
             }
             System.out.printf(Locale.US, "mainIFDs(): %d (%.6f mcs)%n", ifds.size(), (t2 - t1) * 1e-3);
@@ -137,13 +145,21 @@ public class TiffIFDAndIFDOffsetsTest {
             printLinkage(reader);
 
             t1 = System.nanoTime();
+            ifd = reader.readMainIFD(numberOfMain - 1);
+            t2 = System.nanoTime();
+            System.out.printf(Locale.US,
+                    "readMainIFD(%d): %s (%.6f mcs)%n", numberOfMain - 1, ifd, (t2 - t1) * 1e-3);
+            printLinkage(reader);
+            checkEqual(ifd, ifds.get(numberOfMain - 1));
+
+            t1 = System.nanoTime();
             TiffIFD lastIfd = reader.readLastIFD();
             t2 = System.nanoTime();
             System.out.printf(Locale.US,
                     "readLastIFD(): %s (%.6f mcs)%n", lastIfd, (t2 - t1) * 1e-3);
             printLinkage(reader);
+            checkEqual(ifd, lastIfd);
         }
-
         reader.close();
     }
 

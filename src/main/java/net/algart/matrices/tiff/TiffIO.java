@@ -263,22 +263,27 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * Returns the file offset of the last scanned IFD offset, or {@code OptionalLong.empty()}
      * if this offset is still unknown.
      *
-     * <p>This value is initialized by the methods:</p>
+     * <p>This value is updated by the methods:</p>
      * <ul>
-     *     <li>{@link #readMainIFDOffsets()},</li>
-     *     <li>{@link #readMainIFDOffsets(boolean)},</li>
      *     <li>{@link #readMainIFDOffset(int)},</li>
      *     <li>{@link #readMainIFDOffsetIfPresent(int)},</li>
      *     <li>{@link #readFirstIFDOffset()},</li>
      *     <li>{@link #readFirstIFDOffsetIfPresent()},</li>
-     *     <li>{@link #readMainIFD(int)},</li>
-     *     <li>{@link #readLastIFD()}.</li>
+     *     <li>{@link #readMainIFD(int)}m</li>
+     *     <li>{@link #readLastIFD()},</li>
+     *     <li>{@link #readMainIFDOffsets()},</li>
+     *     <li>{@link #readMainIFDOffsets(boolean)}.</li>
      * </ul>
      *
      * <p>The {@link TiffReader} class calls these methods internally from high-level methods
      * like {@link TiffReader#allIFDs()} or {@link TiffReader#numberOfImages()}, so the value
      * returned by this class is usually correctly initialized to the file offset of the offset
      * of the <b>actual last IFD</b> present in the file.</p>
+     *
+     * <p>But the following method does not change this value:</p>
+     * <ul>
+     *     <li>{@link #readLinkage(boolean)}</li>
+     * </ul>
      *
      * <p>Immediately after creating a new {@link TiffReader} object, as well as
      * immediately after creating a new {@link TiffWriter} object without opening a file
@@ -431,7 +436,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             ifd.setBigTiff(bigTiff);
             ifd.setFileOffsetOfIFD(ifdOffset);
             if (!skipReadingNextOffset) {
-                final long nextOffset = readIFDOffset(false);
+                final long nextOffset = readIFDOffset(null, false);
                 ifd.setFileOffsetOfNextIFDOffset(info.offsetOfNextIFDOffset());
                 ifd.setNextIFDOffset(nextOffset);
                 stream.seek(info.offsetOfNextIFDOffset());
@@ -492,12 +497,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @throws IOException   if an I/O error occurs.
      */
     public long readFirstIFDOffset() throws IOException {
-        synchronized (fileLock) {
-            return readFirstIFDOffsetIfPresent()
-                    .orElseThrow(() -> new TiffException("Uncompleted TIFF" + spacedStreamName() +
-                            ": the file does not contain any images; " +
-                            "probably the TIFF writing process was not completed normally"));
-        }
+        return readFirstIFDOffset(true);
     }
 
     /**
@@ -515,11 +515,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @throws IOException   if an I/O error occurs.
      */
     public OptionalLong readFirstIFDOffsetIfPresent() throws IOException {
-        synchronized (fileLock) {
-            stream.seek(offsetOfFirstIFDOffset());
-            final long result = readIFDOffset(true);
-            return result == 0 ? OptionalLong.empty() : OptionalLong.of(result);
-        }
+        return readFirstIFDOffsetIfPresent(true);
     }
 
     /**
@@ -597,7 +593,9 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         if (mainIFDIndex < 0) {
             throw new IllegalArgumentException("Negative IFD index = " + mainIFDIndex);
         }
-        long[] ifdOffsets = readMainIFDOffsets(true, (long) mainIFDIndex + 1L);
+        long[] ifdOffsets = readLinkage(
+                true, (long) mainIFDIndex + 1L, true)
+                .mainIFDOffsetsArray();
         return mainIFDIndex < ifdOffsets.length ? OptionalLong.of(ifdOffsets[mainIFDIndex]) : OptionalLong.empty();
     }
 
@@ -614,11 +612,40 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
     /**
      * Reads the offsets to all IFDs in the file (without child sub-IFDs).
-     * For a non-empty valid TIFF file, the length of the returned array is equal
-     * to {@link TiffReader#numberOfMainIFDs()}.
+     *
+     <p>Note that this method
+     * updates the position tracked by {@link #offsetOfLastScannedIFDOffset()}
+     * to the file offset where the last IFD offset (the {@link TiffIFD#IFD_CHAIN_TERMINATOR IFD terminator})
+     * is written.</p>
+     *
+     * <p>This method works like</p>
+     * <pre>{@link #readLinkage(boolean)
+     * readLinkage(allowNoIFDs)}.{@link TiffIFD.Linkage#mainIFDOffsetsArray() mainIFDOffsetsArray()}</pre>
+     *
+     * <p>with the only difference that it updates the position tracked by {@link #offsetOfLastScannedIFDOffset()}.</p>
+     *
+     * @param allowNoIFDs {@code true} to allow an empty TIFF file without throwing an exception.
+     * @return array of IFD offsets.
+     * @throws TiffException if the TIFF file is empty and the argument is {@code false},
+     *                       or if a corrupted structure or infinite loop is detected.
+     * @throws IOException   if an I/O error occurs.
+     */
+    public long[] readMainIFDOffsets(boolean allowNoIFDs) throws IOException {
+        return readLinkage(allowNoIFDs, Long.MAX_VALUE, true).mainIFDOffsetsArray();
+    }
+
+    public TiffIFD.Linkage newEmptyLinkage() {
+        return new TiffIFD.Linkage(this.bigTiff);
+    }
+
+    /**
+     * Reads the linkage information: the offsets of all IFDs in the file (without child sub-IFDs)
+     * and the offset of the chain terminator (zero value inside the last IFD structure in the file).
+     * For a non-empty valid TIFF file, the size of {@link TiffIFD.Linkage#mainIFDOffsets()} set
+     * in the result is equal to {@link TiffReader#numberOfMainIFDs()}.
      *
      * <p>Note that this method
-     * updates the position tracked by {@link #offsetOfLastScannedIFDOffset()}
+     * <b>does not</b> update the position tracked by {@link #offsetOfLastScannedIFDOffset()}
      * to the file offset where the last IFD offset (the {@link TiffIFD#IFD_CHAIN_TERMINATOR IFD terminator})
      * is written.</p>
      *
@@ -629,29 +656,13 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * {@link #offsetOfLastScannedIFDOffset()}.
      *
      * @param allowNoIFDs {@code true} to allow an empty TIFF file without throwing an exception.
-     * @return array of IFD offsets.
+     * @return the linkage information.
      * @throws TiffException if the TIFF file is empty and the argument is {@code false},
      *                       or if a corrupted structure or infinite loop is detected.
      * @throws IOException   if an I/O error occurs.
      */
-    public long[] readMainIFDOffsets(boolean allowNoIFDs) throws IOException {
-        return readMainIFDOffsets(allowNoIFDs, Long.MAX_VALUE);
-    }
-
-    public TiffIFD.Linkage newEmptyLinkage() {
-        return new TiffIFD.Linkage(this.bigTiff);
-    }
-
-    public TiffIFD.Linkage readLinkage() throws IOException {
-        synchronized (fileLock) {
-            final long[] offsets = readMainIFDOffsets(true);
-            final long terminatorOffset = offsetOfLastScannedIFDOffset().orElseThrow(
-                    () -> new AssertionError(
-                            "readMainIFDOffsets did not read IFD chain terminator"));
-            // - this cannot occur from a parallel thread inside the synchronized block
-            assert terminatorOffset >= 0;
-            return new TiffIFD.Linkage(terminatorOffset, offsets);
-        }
+    public TiffIFD.Linkage readLinkage(boolean allowNoIFDs) throws IOException {
+        return readLinkage(allowNoIFDs, Long.MAX_VALUE, false);
     }
 
     public CodecReport lastCodecReport() {
@@ -1351,7 +1362,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         }
     }
 
-    private long[] readMainIFDOffsets(boolean allowNoIFDs, long maxNumberOfIFDs)
+    private long[] readMainIFDOffsetsLegacy(boolean allowNoIFDs, long maxNumberOfIFDs)
             throws IOException {
         if (maxNumberOfIFDs <= 0) {
             throw new IllegalArgumentException("maxNumberOfIFDs must be > 0");
@@ -1387,7 +1398,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 // readMainIFDOffset(int mainIFDIndex)
                 // This is important in TiffWriter.rewriteIFDOffset method
                 skipIFDEntries(offset, fileLength);
-                offset = readIFDOffset(true);
+                offset = readIFDOffset( true);
                 // - for example, if count==1, and we have only 1 IFD, we still MUST call readIFDNextOffset
                 // to provide a valid offsetOfLastScannedIFDOffset
             }
@@ -1395,14 +1406,90 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         }
     }
 
+    private long readFirstIFDOffset(boolean updateOffsetOfLastScannedIFDOffset) throws IOException {
+        synchronized (fileLock) {
+            return readFirstIFDOffsetIfPresent(updateOffsetOfLastScannedIFDOffset)
+                    .orElseThrow(() -> new TiffException("Uncompleted TIFF" + spacedStreamName() +
+                            ": the file does not contain any images; " +
+                            "probably the TIFF writing process was not completed normally"));
+        }
+    }
+
+    private OptionalLong readFirstIFDOffsetIfPresent(boolean updateOffsetOfLastScannedIFDOffset) throws IOException {
+        synchronized (fileLock) {
+            stream.seek(offsetOfFirstIFDOffset());
+            final long result = readIFDOffset(null, updateOffsetOfLastScannedIFDOffset);
+            return result == 0 ? OptionalLong.empty() : OptionalLong.of(result);
+        }
+    }
+
+    private TiffIFD.Linkage readLinkage(
+            boolean allowNoIFDs,
+            long maxNumberOfIFDs,
+            boolean updateOffsetOfLastScannedIFDOffset) throws IOException {
+        if (maxNumberOfIFDs <= 0) {
+            throw new IllegalArgumentException("maxNumberOfIFDs must be > 0");
+        }
+        synchronized (fileLock) {
+            final TiffIFD.Linkage result = new TiffIFD.Linkage(offsetOfFirstIFDOffset());
+            final long fileLength = stream.length();
+            long offset = allowNoIFDs ?
+                    readFirstIFDOffsetIfPresent(false).orElse(0L) :
+                    readFirstIFDOffset(false);
+            assert allowNoIFDs || offset != 0 : "readFirstIFDOffset returned 0";
+            long count = 0;
+            while (offset != 0) {
+                // - negative and too high offsets are checked inside low-level readOffset() method
+                final boolean wasNotPresent = result.addIFDOffset(offset);
+                if (!wasNotPresent) {
+                    throw new TiffException("TIFF file is broken - infinite loop of IFD offsets is detected " +
+                            "for offset " + offset + " (the stored ifdOffsets sequence is " +
+                            result.mainIFDOffsets().stream().map(Object::toString)
+                                    .collect(Collectors.joining(", ")) +
+                            ", " + offset + ", ...)");
+                }
+                ++count;
+                if (count > MAX_NUMBER_OF_IFDS) {
+                    throw new TiffException("Too many IFDs: more than " + MAX_NUMBER_OF_IFDS +
+                            "; probably it is a corrupted file");
+                }
+                if (count >= maxNumberOfIFDs) {
+                    break;
+                }
+                // - Note: we must break the loop BEFORE reading the next offset and correcting
+                // offsetOfLastScannedIFDOffset! See the comments to
+                // readMainIFDOffset(int mainIFDIndex)
+                // This is important in TiffWriter.rewriteIFDOffset method
+                skipIFDEntries(offset, fileLength);
+                offset = readIFDOffset(result, false);
+                // - for example, if count==1, and we have only 1 IFD, we still MUST call readIFDNextOffset
+                // to provide a valid offsetOfLastScannedIFDOffset
+            }
+            if (updateOffsetOfLastScannedIFDOffset) {
+                this.offsetOfLastScannedIFDOffset = result.offsetOfIFDChainTerminator();
+            }
+            return result;
+        }
+    }
+
     private long readIFDOffset(boolean updateOffsetOfLastScannedIFDOffset) throws IOException {
+        return readIFDOffset(null, updateOffsetOfLastScannedIFDOffset);
+    }
+
+    private long readIFDOffset(TiffIFD.Linkage linkage, boolean updateOffsetOfLastScannedIFDOffset)
+            throws IOException {
         final long fileOffsetOfNextOffset = stream.offset();
         final long result = readOffset(stream, bigTiff, 0, stream.length(), this::streamName);
+        if (linkage != null) {
+            linkage.setOffsetOfIFDChainTerminator(fileOffsetOfNextOffset);
+        }
         if (updateOffsetOfLastScannedIFDOffset) {
             this.offsetOfLastScannedIFDOffset = fileOffsetOfNextOffset;
         }
         return result;
     }
+
+
 
     void checkFirstOffset() throws IOException {
         synchronized (fileLock) {
