@@ -550,9 +550,12 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Returns the linkage information stored in the TIFF file.
-     * If it is not ready or {@link #invalidateLinkage() invalidated}, this method automatically reloads it
-     * from the file.
+     * Returns the linkage information in the TIFF file.
+     *
+     * <p>The returned reference is stored inside this object and will be returned by further calls
+     * of this method while a further call.
+     * However, the stored reference is cleared to {@code null} by {@link #invalidateLinkage()} method
+     * (so that the following call of this method will re-create the reader).
      *
      * <p>Usually you do not need to use this method manually: it is called automatically by {@link TiffWriter}
      * whenever it requires up-to-date linkage information. The only situation when you might use it
@@ -614,16 +617,12 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    public TiffReader companionReader() {
-        return companionReader(false);
-    }
-
     /**
      * Returns the "companion" TIFF reader for reading the same file stream {@link #stream()} used by this object.
      * You <b>don't need</b> to close it: this stream will be closed when closing this writer.
      *
-     * <p>The returned reference is stored inside this object, and will be returned by further calls
-     * of this method, unless you set <code>alwaysCreateNew=true</code> while a further call.
+     * <p>The returned reference is stored inside this object and will be returned by further calls
+     * of this method while a further call.
      * However, the stored reference is cleared to {@code null} by {@link #invalidateCompanionReader()} method
      * (so that the following call of this method will re-create the reader) in the following cases:
      *
@@ -644,13 +643,11 @@ public non-sealed class TiffWriter extends TiffIO {
      * all cached tiles.)
      * But you can enable caching when you finish the writing.
      *
-     * @param alwaysCreateNew whether you need to ignore the previously created reader (it if exists)
-     *                        and create a new one.
      * @return new or stored TIFF reader.
      */
-    public TiffReader companionReader(boolean alwaysCreateNew) {
+    public TiffReader companionReader() {
         synchronized (fileLock) {
-            if (alwaysCreateNew || this.reader == null) {
+            if (this.reader == null) {
                 try {
                     this.reader = newCompanionReader();
                 } catch (IOException e) {
@@ -666,7 +663,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * Creates a new "companion" TIFF reader for reading the same file stream {@link #stream()} used by this object.
      * You <b>don't need</b> to close it: this stream will be closed when closing this writer.
      *
-     * <p>This method is used inside {@link #companionReader(boolean)} for creating a new instance.
+     * <p>This method is used inside {@link #companionReader()} for creating a new instance.
      *
      * @return new TIFF reader.
      */
