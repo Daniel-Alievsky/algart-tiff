@@ -204,11 +204,11 @@ public final class TiffIFD {
         }
 
         // Note: there are no public ways to change the state of an existing Linkage object
-        void updateAfterAppendingNewIFD(long ifdOffset, long fileOffsetOfNextIFDOffset) {
-            if (ifdOffset <= 0) {
-                throw new  IllegalArgumentException("Zero or negative ifdOffset = " + ifdOffset);
+        void updateAfterAppendingNewIFD(long fileOffsetOfThisIFDStart, long fileOffsetOfNextIFDOffset) {
+            if (fileOffsetOfThisIFDStart < 0) {
+                throw new  IllegalArgumentException("Negative fileOffsetOfThisIFDStart = " + fileOffsetOfThisIFDStart);
             }
-            addOffset(ifdOffset);
+            addOffset(fileOffsetOfThisIFDStart);
             setIfdChainTerminatorOffset(fileOffsetOfNextIFDOffset);
         }
 
