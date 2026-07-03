@@ -53,7 +53,7 @@ public class TiffEditDescriptionTest {
                 }
                 final int ifdIndex = rnd.nextInt(n);
                 final boolean enforceRelocateIFD = rnd.nextBoolean();
-                var offsets = writer.linkageIfPresent().map(TiffIFD.Linkage::mainIFDOffsets).orElse(null);
+                var offsets = writer.linkageIfPresent().map(TiffIFD.Linkage::ifdOffsets).orElse(null);
                 System.out.printf("Test #%d/%d: modifying IFD #%d, %s...%n",
                         test, numberOfTests, ifdIndex,
                         offsets == null ? "no linkage" : offsets.size() + " IFD offsets");

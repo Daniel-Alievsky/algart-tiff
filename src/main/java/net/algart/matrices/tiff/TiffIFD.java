@@ -113,12 +113,10 @@ public final class TiffIFD {
         }
     }
 
-    public static class Linkage {
+    public static final class Linkage {
         public enum UpdateMode {
             /**
-             * "Silent" mode: no any attempts to correct file structure or {@link Linkage} object.
-             * But invalidating {@link Linkage} object, for example,
-             * via the {@link TiffWriter#invalidateLinkage()} method, is still possible.
+             * "Silent" mode: no any attempts to correct file structure or update an existing {@link Linkage} object.
              */
             NONE,
             /**
@@ -136,78 +134,97 @@ public final class TiffIFD {
             }
         }
 
-        private long offsetOfIFDChainTerminator = -1;
-        private final LinkedHashSet<Long> mainIFDOffsets;
+        private long ifdChainTerminatorOffset = -1;
+        private final LinkedHashSet<Long> ifdOffsets;
         private long lastAddedOffset = -1;
 
         public Linkage(boolean bigTiff) {
-            this(TiffIO.offsetOfFirstIFDOffset(bigTiff));
+            this(TiffIO.offsetOfFirstIFDOffset(bigTiff), null);
         }
 
-        private Linkage(long initialOffsetOfIFDChainTerminator) {
-            if (initialOffsetOfIFDChainTerminator < 0) {
-                throw new IllegalArgumentException("Negative initialOffsetOfIFDChainTerminator = " +
-                        initialOffsetOfIFDChainTerminator);
+        public Linkage(long ifdChainTerminatorOffset, Collection<Long> ifdOffsets) {
+            if (ifdChainTerminatorOffset < 0) {
+                throw new IllegalArgumentException("Negative ifdChainTerminatorOffset = " + ifdChainTerminatorOffset);
             }
-            this.offsetOfIFDChainTerminator = initialOffsetOfIFDChainTerminator;
-            this.mainIFDOffsets = new LinkedHashSet<>();
+            this.ifdChainTerminatorOffset = ifdChainTerminatorOffset;
+            this.ifdOffsets = new LinkedHashSet<>();
             // - LinkedHashSet provides a correct order for getting array of offsets
+            if (ifdOffsets != null) {
+                for (long ifdOffset : ifdOffsets) {
+                    addOffset(ifdOffset);
+                }
+            }
         }
 
-        public long offsetOfIFDChainTerminator() {
-            assert offsetOfIFDChainTerminator >= 0;
-            return offsetOfIFDChainTerminator;
+        public long ifdChainTerminatorOffset() {
+            assert ifdChainTerminatorOffset >= 0;
+            return ifdChainTerminatorOffset;
         }
 
-        public int numberOfMainIFDOffsets() {
-            return mainIFDOffsets.size();
+        public int chainLength() {
+            return ifdOffsets.size();
         }
 
-        public Set<Long> mainIFDOffsets() {
-            return Collections.unmodifiableSet(mainIFDOffsets);
+        public Set<Long> ifdOffsets() {
+            return Collections.unmodifiableSet(ifdOffsets);
         }
 
-        public long[] mainIFDOffsetsArray() {
-            return mainIFDOffsets.stream().mapToLong(v -> v).toArray();
+        public long[] ifdOffsetsArray() {
+            return ifdOffsets.stream().mapToLong(v -> v).toArray();
         }
 
-        public boolean containsIFDOffset(long ifdOffset) {
-            return mainIFDOffsets.contains(ifdOffset);
+        public OptionalLong ifdLastOffset() {
+            return lastAddedOffset == -1 ? OptionalLong.empty() : OptionalLong.of(lastAddedOffset);
         }
 
-        public void updateAfterAppendingNewIFD(long ifdOffset, long fileOffsetOfNextIFDOffset) {
+        public boolean containsOffset(long ifdOffset) {
+            return ifdOffsets.contains(ifdOffset);
+        }
+
+        public String toString() {
+            final long[] offsets = ifdOffsets.stream().mapToLong(Long::longValue).toArray();
+            return offsets.length + " IFDs found at offsets [" +
+                    JArrays.toString(offsets, ", ", 500) +
+                    "], offset of the IFD terminator: " + ifdChainTerminatorOffset;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            Linkage linkage = (Linkage) o;
+            return ifdChainTerminatorOffset == linkage.ifdChainTerminatorOffset &&
+                    Objects.equals(ifdOffsets, linkage.ifdOffsets);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(ifdChainTerminatorOffset, ifdOffsets);
+        }
+
+        void updateAfterAppendingNewIFD(long ifdOffset, long fileOffsetOfNextIFDOffset) {
             if (ifdOffset <= 0) {
                 throw new  IllegalArgumentException("Zero or negative ifdOffset = " + ifdOffset);
             }
-            addIFDOffset(ifdOffset);
-            setOffsetOfIFDChainTerminator(fileOffsetOfNextIFDOffset);
+            addOffset(ifdOffset);
+            setIfdChainTerminatorOffset(fileOffsetOfNextIFDOffset);
         }
 
-        public boolean addIFDOffset(long ifdOffset) {
+        boolean addOffset(long ifdOffset) {
             if (ifdOffset < 0) {
                 throw new IllegalArgumentException("Negative IFD offset = " + ifdOffset);
             }
             lastAddedOffset = ifdOffset;
-            return mainIFDOffsets.add(ifdOffset);
+            return ifdOffsets.add(ifdOffset);
         }
 
-        public OptionalLong lastIFDOffset() {
-            return lastAddedOffset == -1 ? OptionalLong.empty() : OptionalLong.of(lastAddedOffset);
-        }
-
-        public void setOffsetOfIFDChainTerminator(long offsetOfIFDChainTerminator) {
-            if (offsetOfIFDChainTerminator < 0) {
+        void setIfdChainTerminatorOffset(long ifdChainTerminatorOffset) {
+            if (ifdChainTerminatorOffset < 0) {
                 throw new IllegalArgumentException("Negative offsetOfIFDChainTerminator = " +
-                        offsetOfIFDChainTerminator);
+                        ifdChainTerminatorOffset);
             }
-            this.offsetOfIFDChainTerminator = offsetOfIFDChainTerminator;
-        }
-
-        public String toString() {
-            final long[] offsets = mainIFDOffsets.stream().mapToLong(Long::longValue).toArray();
-            return offsets.length + " IFDs found at offsets [" +
-                    JArrays.toString(offsets, ", ", 500) +
-                    "], offset of the IFD terminator: " + offsetOfIFDChainTerminator;
+            this.ifdChainTerminatorOffset = ifdChainTerminatorOffset;
         }
     }
 

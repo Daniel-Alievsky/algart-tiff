@@ -85,10 +85,10 @@ public class TiffWriteMixedTest {
 
             writer.create();
             writer.create(); // - not a problem to call twice
-            System.out.printf("Linkage after creating: %s%n", writer.linkageIfPresent());
+            System.out.printf("Linkage after creating: %s%n", writer.linkageIfPresent().orElseThrow());
             writer.invalidateLinkage();
             writer.linkage();
-            System.out.printf("Linkage after refresh: %s%n", writer.linkageIfPresent());
+            System.out.printf("Linkage after refresh: %s%n", writer.linkageIfPresent().orElseThrow());
 
             // writer.reader().input().setLength(0); // - throws an exception (read-only
             TiffIFD ifd = TiffIFD.newInstance();

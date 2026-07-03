@@ -136,6 +136,21 @@ public class TiffIFDMainOffsetsTest {
 //        IFD firstIFD = new TiffParser(new SCIFIO().getContext(), new FileLocation(file.toFile())).getFirstIFD();
             System.out.printf(Locale.US, "readMainIFD(0): %s (%.6f mcs)%n", firstIFD, (t2 - t1) * 1e-3);
             printLinkage(reader);
+            final long lastScannedOffset = reader.offsetOfLastScannedIFDOffset().orElseThrow();
+
+            t1 = System.nanoTime();
+            TiffIFD.Linkage linkage = reader.readLinkage();
+            t2 = System.nanoTime();
+            System.out.printf(Locale.US, "readLinkage(): %s (%.6f mcs)%n", linkage, (t2 - t1) * 1e-3);
+            printLinkage(reader);
+            if (lastScannedOffset != reader.offsetOfLastScannedIFDOffset().orElseThrow()) {
+                throw new AssertionError("offsetOfLastScannedIFDOffset must no change in readLinkage");
+            }
+
+            var linkageCopy = new TiffIFD.Linkage(linkage.ifdChainTerminatorOffset(), linkage.ifdOffsets());
+            if (!linkageCopy.equals(linkage)) {
+                throw new AssertionError("linkageCopy must equal linkage");
+            }
 
             t1 = System.nanoTime();
             TiffIFD ifd = reader.readMainIFD(ifdIndex);
