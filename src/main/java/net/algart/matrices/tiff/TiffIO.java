@@ -593,21 +593,23 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         if (mainIFDIndex < 0) {
             throw new IllegalArgumentException("Negative IFD index = " + mainIFDIndex);
         }
-        long[] ifdOffsets = readLinkage(
-                true, (long) mainIFDIndex + 1L, true)
-                .ifdOffsetsArray();
-        return mainIFDIndex < ifdOffsets.length ? OptionalLong.of(ifdOffsets[mainIFDIndex]) : OptionalLong.empty();
+        final TiffIFD.Linkage linkage = readLinkage(
+                true, (long) mainIFDIndex + 1L, true);
+        final int chainLength = linkage.chainLength();
+        final OptionalLong lastOffset = linkage.ifdLastOffset();
+        assert chainLength == 0 || lastOffset.isPresent() : "Unset ifdLastOffset";
+        return mainIFDIndex < chainLength ? lastOffset : OptionalLong.empty();
     }
 
     /**
      * Equivalent to {@link #readMainIFDOffsets(boolean) readMainIFDOffsets(false)}.
      *
-     * <p>Note: unlike {@link #readLinkage()} method, an empty TIFF file is not allowed.
-     * You may use {@link #readMainIFDOffsets(boolean)} method with {@code true} argument
+     * <p>Note: unlike the {@link #readLinkage()} method, an empty TIFF file is not allowed.
+     * You may use the {@link #readMainIFDOffsets(boolean)} method with the {@code true} argument
      * to process such TIFF files.</p>
      *
      * @return an array of all main IFD offsets.
-     * @throws TiffException if the TIFF file is empty or if a corrupted structure or infinite loop is detected.
+     * @throws TiffException if the TIFF file is empty, or if a corrupted structure or infinite loop is detected.
      * @throws IOException   if an I/O error occurs.
      */
     public long[] readMainIFDOffsets() throws IOException {
@@ -1493,8 +1495,6 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         }
         return result;
     }
-
-
 
     void checkFirstOffset() throws IOException {
         synchronized (fileLock) {
