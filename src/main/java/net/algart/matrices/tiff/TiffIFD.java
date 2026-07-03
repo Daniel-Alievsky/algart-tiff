@@ -173,7 +173,7 @@ public final class TiffIFD {
             return ifdOffsets.stream().mapToLong(v -> v).toArray();
         }
 
-        public OptionalLong ifdLastOffset() {
+        public OptionalLong lastOffset() {
             return lastAddedOffset == -1 ? OptionalLong.empty() : OptionalLong.of(lastAddedOffset);
         }
 
