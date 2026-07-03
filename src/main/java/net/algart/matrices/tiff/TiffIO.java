@@ -641,34 +641,28 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     }
 
     /**
-     * Creates a new empty {@link TiffIFD.Linkage} object describing an empty TIFF file (no images).
-     * Equivalent to
-     * <pre>new {@link TiffIFD.Linkage#Linkage(boolean) TiffIFD.Linkage}({@link #isBigTiff()})</pre>.
+     * Creates a new {@link TiffIFD.Linkage} instance initialized for an empty TIFF file.
      *
-     * @return new linkage for a newly created empty TIFF file.
+     * <p>This is equivalent to:</p>
+     * <pre>new {@link TiffIFD.Linkage#Linkage(boolean) TiffIFD.Linkage}({@link #isBigTiff()})</pre>
+     *
+     * @return a new linkage instance for an empty TIFF file.
      */
     public TiffIFD.Linkage newEmptyLinkage() {
         return new TiffIFD.Linkage(isBigTiff());
     }
 
     /**
-     * Reads the linkage information: the offsets of all IFDs in the file (without child sub-IFDs)
-     * and the offset of the chain terminator (zero value inside the last IFD structure in the file).
-     * For a non-empty valid TIFF file, the size of {@link TiffIFD.Linkage#ifdOffsets()} set
+     * Reads the linkage information: the offsets of all main IFDs in the file (excluding child sub-IFDs)
+     * and the offset of the chain terminator (the zero value stored within the last IFD structure in the file).
+     * For a non-empty valid TIFF file, the size of the {@link TiffIFD.Linkage#ifdOffsets()} set
      * in the result is equal to {@link TiffReader#numberOfMainIFDs()}.
      *
      * <p>Note that this method
-     * <b>does not</b> update the position tracked by {@link #offsetOfLastScannedIFDOffset()}
-     * to the file offset where the last IFD offset (the {@link TiffIFD#IFD_CHAIN_TERMINATOR IFD terminator})
-     * is written.</p>
-     *
-     * <p>If {@code allowNoIFDs} is {@code true}, an empty TIFF file (containing no images) is allowed,
-     * and this method returns an empty array. If this argument is {@code false}, an empty file
-     * throws a {@link TiffException}; in this case, the returned array always contains at least one element.</p>
+     * <b>does not</b> update the position tracked by {@link #offsetOfLastScannedIFDOffset()}.</p>
      *
      * @return the linkage information.
-     * @throws TiffException if the TIFF file is empty and the argument is {@code false},
-     *                       or if a corrupted structure or infinite loop is detected.
+     * @throws TiffException if a corrupted structure or infinite loop is detected.
      * @throws IOException   if an I/O error occurs.
      */
     public TiffIFD.Linkage readLinkage() throws IOException {
