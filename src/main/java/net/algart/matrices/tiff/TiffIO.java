@@ -602,7 +602,11 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     /**
      * Equivalent to {@link #readMainIFDOffsets(boolean) readMainIFDOffsets(false)}.
      *
-     * @return array of IFD offsets.
+     * <p>Note: unlike {@link #readLinkage()} method, an empty TIFF file is not allowed.
+     * You may use {@link #readMainIFDOffsets(boolean)} method with {@code true} argument
+     * to process such TIFF files.</p>
+     *
+     * @return an array of all main IFD offsets.
      * @throws TiffException if the TIFF file is empty or if a corrupted structure or infinite loop is detected.
      * @throws IOException   if an I/O error occurs.
      */
@@ -631,7 +635,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * </ul>
      *
      * @param allowNoIFDs {@code true} to allow an empty TIFF file without throwing an exception.
-     * @return an array of IFD offsets.
+     * @return an array of all main IFD offsets.
      * @throws TiffException if the TIFF file is empty and {@code allowNoIFDs} is {@code false},
      *                       or if a corrupted structure or infinite loop is detected.
      * @throws IOException   if an I/O error occurs.
@@ -664,6 +668,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @return the linkage information.
      * @throws TiffException if a corrupted structure or infinite loop is detected.
      * @throws IOException   if an I/O error occurs.
+     * @see #readMainIFDOffsets(boolean)
      */
     public TiffIFD.Linkage readLinkage() throws IOException {
         return readLinkage(true, Long.MAX_VALUE, false);
