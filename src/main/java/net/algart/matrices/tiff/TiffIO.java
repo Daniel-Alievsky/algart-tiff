@@ -595,10 +595,10 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         }
         final TiffIFD.Linkage linkage = readLinkage(
                 true, (long) mainIFDIndex + 1L, true);
-        final int chainLength = linkage.chainLength();
+        final int subchainLength = linkage.chainLength();
         final OptionalLong lastOffset = linkage.ifdLastOffset();
-        assert chainLength == 0 || lastOffset.isPresent() : "Unset ifdLastOffset";
-        return mainIFDIndex < chainLength ? lastOffset : OptionalLong.empty();
+        assert subchainLength == 0 || lastOffset.isPresent() : "Unset ifdLastOffset";
+        return mainIFDIndex < subchainLength ? lastOffset : OptionalLong.empty();
     }
 
     /**
