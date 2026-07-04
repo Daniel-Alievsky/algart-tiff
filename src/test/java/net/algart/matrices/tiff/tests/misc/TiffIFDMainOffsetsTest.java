@@ -50,7 +50,9 @@ public class TiffIFDMainOffsetsTest {
     public void test() throws Exception {
         main("src/test/resources/demo/images/tiff/openslide/CMU-1-Small-Region.svs", "3");
         main("src/test/resources/demo/images/tiff/openslide/CMU-1-Small-Region.svs", "1");
+        main("src/test/resources/demo/images/tiff/openslide/CMU-1-Small-Region.svs", "0");
         main("src/test/resources/demo/images/tiff/libtiff/test/images/tiff_with_subifd_chain.tif", "1");
+        main("src/test/resources/demo/images/tiff/libtiff/test/images/tiff_with_subifd_chain.tif", "0");
     }
 
     public static void main(String... args) throws IOException {
