@@ -134,58 +134,89 @@ public final class TiffIFD {
             }
         }
 
-        private long ifdChainTerminatorOffset = -1;
-        private final LinkedHashSet<Long> ifdOffsets;
-        private long lastAddedOffset = -1;
+        public record OffsetPair(long offsetOfIFDStart, long offsetOfNextIFDOffset) {
+            public OffsetPair {
+                if (offsetOfIFDStart < 0) {
+                    throw new IllegalArgumentException("Negative offsetOfIFDStart = " + offsetOfIFDStart);
+                }
+                if (offsetOfNextIFDOffset < 0) {
+                    throw new IllegalArgumentException("Negative offsetOfNextIFDOffset = " + offsetOfNextIFDOffset);
+                }
+            }
+
+            @Override
+            public String toString() {
+                return "starts at @%d, next link at @%d ->".formatted(offsetOfIFDStart, offsetOfNextIFDOffset);
+            }
+        }
+
+        private long offsetOfIFDChainTerminator = -1;
+        private final Set<Long> offsetSet;
+        private final List<OffsetPair> offsetPairs;
 
         public Linkage(boolean bigTiff) {
             this(TiffIO.offsetOfFirstIFDOffset(bigTiff), null);
         }
 
-        public Linkage(long ifdChainTerminatorOffset, Collection<Long> ifdOffsets) {
-            if (ifdChainTerminatorOffset < 0) {
-                throw new IllegalArgumentException("Negative ifdChainTerminatorOffset = " + ifdChainTerminatorOffset);
+        public Linkage(long offsetOfIFDChainTerminator, Collection<OffsetPair> offsetPairs) {
+            if (offsetOfIFDChainTerminator < 0) {
+                throw new IllegalArgumentException("Negative offsetOfIFDChainTerminator = " +
+                        offsetOfIFDChainTerminator);
             }
-            this.ifdChainTerminatorOffset = ifdChainTerminatorOffset;
-            this.ifdOffsets = new LinkedHashSet<>();
-            // - LinkedHashSet provides a correct order for getting array of offsets
-            if (ifdOffsets != null) {
-                for (long ifdOffset : ifdOffsets) {
-                    addOffset(ifdOffset);
+            this.offsetOfIFDChainTerminator = offsetOfIFDChainTerminator;
+            this.offsetSet = new HashSet<>();
+            // - order is not important: there is no public access to this set
+            this.offsetPairs = new ArrayList<>();
+            if (offsetPairs != null) {
+                for (OffsetPair offsetPair : offsetPairs) {
+                    addOffsetPair(offsetPair);
                 }
             }
         }
 
-        public long ifdChainTerminatorOffset() {
-            assert ifdChainTerminatorOffset >= 0;
-            return ifdChainTerminatorOffset;
+        public long offsetOfIFDChainTerminator() {
+            assert offsetOfIFDChainTerminator >= 0;
+            // - note: when using the second constructor, ifdChainTerminatorOffset can have any value
+            return offsetOfIFDChainTerminator;
         }
 
-        public int chainLength() {
-            return ifdOffsets.size();
+        public int numberOfMainIFDs() {
+            final int result = offsetPairs.size();
+            assert result == offsetSet.size();
+            return result;
         }
 
-        public Set<Long> ifdOffsets() {
-            return Collections.unmodifiableSet(ifdOffsets);
+        public Collection<OffsetPair> mainIFDOffsetPairs() {
+            return Collections.unmodifiableList(offsetPairs);
         }
 
-        public long[] ifdOffsetsArray() {
-            return ifdOffsets.stream().mapToLong(v -> v).toArray();
+        public long[] mainIFDOffsetsArray() {
+            return offsetPairs.stream().mapToLong(v -> v.offsetOfIFDStart).toArray();
         }
 
-        public OptionalLong lastOffset() {
-            return lastAddedOffset == -1 ? OptionalLong.empty() : OptionalLong.of(lastAddedOffset);
+        public long mainIFDOffset(int ifdIndex) {
+            return offsetPairs.get(ifdIndex).offsetOfIFDStart;
         }
 
-        public boolean containsOffset(long ifdOffset) {
-            return ifdOffsets.contains(ifdOffset);
+        public long offsetOfNextIFDOffset(int ifdIndex) {
+            return offsetPairs.get(ifdIndex).offsetOfNextIFDOffset;
+        }
+
+        public OptionalLong lastIFDOffset() {
+            return offsetPairs.isEmpty() ?
+                    OptionalLong.empty() :
+                    OptionalLong.of(offsetPairs.getLast().offsetOfIFDStart());
+        }
+
+        public boolean containsIFDOffset(long ifdOffset) {
+            return offsetSet.contains(ifdOffset);
         }
 
         public String toString() {
-            final long[] offsets = ifdOffsets.stream().mapToLong(Long::longValue).toArray();
-            return offsets.length + " IFDs found at offsets [" +
-                    JArrays.toString(offsets, ", ", 500) +
-                    "], offset of the IFD terminator: " + ifdChainTerminatorOffset;
+            return numberOfMainIFDs() + " main IFDs found at [" +
+                    JArrays.toString(offsetPairs, " ", 500) +
+                    "], offset of the IFD terminator: " + offsetOfIFDChainTerminator;
+            // " " instead of more typical ", ": OffsetPair.toString has an ending "->"
         }
 
         @Override
@@ -194,38 +225,38 @@ public final class TiffIFD {
                 return false;
             }
             Linkage linkage = (Linkage) o;
-            return ifdChainTerminatorOffset == linkage.ifdChainTerminatorOffset &&
-                    Objects.equals(ifdOffsets, linkage.ifdOffsets);
+            return offsetOfIFDChainTerminator == linkage.offsetOfIFDChainTerminator &&
+                    Objects.equals(offsetPairs, linkage.offsetPairs);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(ifdChainTerminatorOffset, ifdOffsets);
+            return Objects.hash(offsetOfIFDChainTerminator, offsetPairs);
         }
 
         // Note: there are no public ways to change the state of an existing Linkage object
         void updateAfterAppendingNewIFD(long fileOffsetOfThisIFDStart, long fileOffsetOfNextIFDOffset) {
             if (fileOffsetOfThisIFDStart < 0) {
-                throw new  IllegalArgumentException("Negative fileOffsetOfThisIFDStart = " + fileOffsetOfThisIFDStart);
+                throw new IllegalArgumentException("Negative fileOffsetOfThisIFDStart = " + fileOffsetOfThisIFDStart);
             }
-            addOffset(fileOffsetOfThisIFDStart);
-            setIfdChainTerminatorOffset(fileOffsetOfNextIFDOffset);
+            addOffsetPair(new OffsetPair(fileOffsetOfThisIFDStart, fileOffsetOfNextIFDOffset));
+            setOffsetOfIFDChainTerminator(fileOffsetOfNextIFDOffset);
         }
 
-        boolean addOffset(long ifdOffset) {
-            if (ifdOffset < 0) {
-                throw new IllegalArgumentException("Negative IFD offset = " + ifdOffset);
+        void addOffsetPair(OffsetPair offsetPair) {
+            Objects.requireNonNull(offsetPair, "Null offsetPair");
+            if (!offsetSet.add(offsetPair.offsetOfIFDStart)) {
+                throw new IllegalArgumentException("Duplicate offsetPair: " + offsetPair);
             }
-            lastAddedOffset = ifdOffset;
-            return ifdOffsets.add(ifdOffset);
+            offsetPairs.add(offsetPair);
         }
 
-        void setIfdChainTerminatorOffset(long ifdChainTerminatorOffset) {
-            if (ifdChainTerminatorOffset < 0) {
+        void setOffsetOfIFDChainTerminator(long offsetOfIFDChainTerminator) {
+            if (offsetOfIFDChainTerminator < 0) {
                 throw new IllegalArgumentException("Negative offsetOfIFDChainTerminator = " +
-                        ifdChainTerminatorOffset);
+                        offsetOfIFDChainTerminator);
             }
-            this.ifdChainTerminatorOffset = ifdChainTerminatorOffset;
+            this.offsetOfIFDChainTerminator = offsetOfIFDChainTerminator;
         }
     }
 
@@ -1011,7 +1042,7 @@ public final class TiffIFD {
      *
      * @return the assigned <i>next IFD offset</i>.
      * @throws IllegalStateException if no <i>next IFD offset</i> has been assigned yet
-     * ({@link #hasNextIFDOffset()} returns {@code false}).
+     *                               ({@link #hasNextIFDOffset()} returns {@code false}).
      */
     public long getNextIFDOffset() {
         if (nextIFDOffset < 0) {

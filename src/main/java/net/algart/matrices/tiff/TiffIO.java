@@ -595,8 +595,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         }
         final TiffIFD.Linkage linkage = readLinkage(
                 true, (long) mainIFDIndex + 1L, true);
-        final int subchainLength = linkage.chainLength();
-        final OptionalLong lastOffset = linkage.lastOffset();
+        final int subchainLength = linkage.numberOfMainIFDs();
+        final OptionalLong lastOffset = linkage.lastIFDOffset();
         assert subchainLength == 0 || lastOffset.isPresent() : "Unset ifdLastOffset";
         return mainIFDIndex < subchainLength ? lastOffset : OptionalLong.empty();
     }
@@ -624,7 +624,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * the last IFD offset (the {@link TiffIFD#IFD_CHAIN_TERMINATOR IFD terminator}) is written.</p>
      *
      * <p>This method is almost equivalent to the following call:</p>
-     * <pre>{@link #readLinkage() readLinkage()}.{@link TiffIFD.Linkage#ifdOffsetsArray() ifdOffsetsArray()}</pre>
+     * <pre>{@link #readLinkage() readLinkage()}.{@link TiffIFD.Linkage#mainIFDOffsetsArray()
+     * mainIFDOffsetsArray()}</pre>
      *
      * <p>There are two key differences:</p>
      * <ul>
@@ -643,7 +644,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @throws IOException   if an I/O error occurs.
      */
     public long[] readMainIFDOffsets(boolean allowNoIFDs) throws IOException {
-        return readLinkage(allowNoIFDs, Long.MAX_VALUE, true).ifdOffsetsArray();
+        return readLinkage(allowNoIFDs, Long.MAX_VALUE, true).mainIFDOffsetsArray();
     }
 
     /**
@@ -661,7 +662,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     /**
      * Reads the linkage information: the offsets of all main IFDs in the file (excluding child sub-IFDs)
      * and the offset of the chain terminator (the zero value stored within the last IFD structure in the file).
-     * For a non-empty valid TIFF file, the size of the {@link TiffIFD.Linkage#ifdOffsets()} set
+     * For a non-empty valid TIFF file, the size of the {@link TiffIFD.Linkage#mainIFDOffsetPairs()} set
      * in the result is equal to {@link TiffReader#numberOfMainIFDs()}.
      *
      * <p>Note that this method
@@ -1449,49 +1450,54 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             final TiffIFD.Linkage result = new TiffIFD.Linkage(bigTiff);
             final long fileLength = stream.length();
             long offset = allowNoIFDs ?
-                    readFirstIFDOffsetIfPresent(false).orElse(0L) :
-                    readFirstIFDOffset(false);
+                    readFirstIFDOffsetIfPresent(true).orElse(0L) :
+                    readFirstIFDOffset(true);
             assert allowNoIFDs || offset != 0 : "readFirstIFDOffset returned 0";
             long count = 0;
             while (offset != 0) {
                 // - negative and too high offsets are checked inside low-level readOffset() method
-                final boolean wasNotPresent = result.addOffset(offset);
-                if (!wasNotPresent) {
+                final boolean wasPresent = result.containsIFDOffset(offset);
+                if (wasPresent) {
                     throw new TiffException("TIFF file is broken - infinite loop of IFD offsets is detected " +
-                            "for offset " + offset + " (the stored ifdOffsets sequence is " +
-                            result.ifdOffsets().stream().map(Object::toString)
-                                    .collect(Collectors.joining(", ")) +
-                            ", " + offset + ", ...)");
+                            "for offset " + offset + " (the stored offset pairs are: " + result + ")");
                 }
                 ++count;
                 if (count > MAX_NUMBER_OF_IFDS) {
                     throw new TiffException("Too many IFDs: more than " + MAX_NUMBER_OF_IFDS +
                             "; probably it is a corrupted file");
                 }
+                skipIFDEntries(offset, fileLength);
+                final long offsetOfNextOffset = stream.offset();
+                final long nextOffset = readIFDOffset();
+                result.addOffsetPair(new TiffIFD.Linkage.OffsetPair(offset, offsetOfNextOffset));
+                result.setOffsetOfIFDChainTerminator(offsetOfNextOffset);
                 if (count >= maxNumberOfIFDs) {
                     break;
                 }
+                offset = nextOffset;
                 // - Note: we must break the loop BEFORE reading the next offset and correcting
                 // offsetOfLastScannedIFDOffset! See the comments to
                 // readMainIFDOffset(int mainIFDIndex)
                 // This is important in TiffWriter.rewriteIFDOffset method
-                skipIFDEntries(offset, fileLength);
-                offset = readIFDOffset(result);
-                // - for example, if count==1, and we have only 1 IFD, we still MUST call readIFDNextOffset
+                // - for example, if count==1, and we have only 1 IFD, we still MUST call readIFDOffset
                 // to provide a valid offsetOfLastScannedIFDOffset
-            }
-            if (updateOffsetOfLastScannedIFDOffset) {
-                this.offsetOfLastScannedIFDOffset = result.ifdChainTerminatorOffset();
+                if (updateOffsetOfLastScannedIFDOffset) {
+                    this.offsetOfLastScannedIFDOffset = offsetOfNextOffset;
+                }
             }
             return result;
         }
     }
 
+    private long readIFDOffset() throws IOException {
+        return readOffset(stream, bigTiff, 0, stream.length(), this::streamName);
+    }
+
     private long readIFDOffset(TiffIFD.Linkage linkage) throws IOException {
         final long fileOffsetOfNextOffset = linkage != null ? stream.offset() : -1;
-        final long result = readOffset(stream, bigTiff, 0, stream.length(), this::streamName);
+        final long result = readIFDOffset();
         if (linkage != null) {
-            linkage.setIfdChainTerminatorOffset(fileOffsetOfNextOffset);
+            linkage.setOffsetOfIFDChainTerminator(fileOffsetOfNextOffset);
         }
         return result;
     }

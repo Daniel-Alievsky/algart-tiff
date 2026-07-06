@@ -53,6 +53,8 @@ public class TiffIFDMainOffsetsTest {
         main("src/test/resources/demo/images/tiff/openslide/CMU-1-Small-Region.svs", "0", "2");
         main("src/test/resources/demo/images/tiff/libtiff/test/images/tiff_with_subifd_chain.tif", "1", "2");
         main("src/test/resources/demo/images/tiff/libtiff/test/images/tiff_with_subifd_chain.tif", "0", "2");
+        main("-checkIsValid", "src/test/resources/demo/images/tiff/invalid/error_non_completed.tiff", "0", "2");
+        main("-checkIsValid", "src/test/resources/demo/images/tiff/invalid/error_only_header.tiff", "0", "2");
         main("src/test/resources/demo/images/tiff/invalid/error_non_completed.tiff", "0", "2");
         main("src/test/resources/demo/images/tiff/invalid/error_only_header.tiff", "0", "2");
     }
@@ -62,6 +64,11 @@ public class TiffIFDMainOffsetsTest {
         boolean cache = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-cache")) {
             cache = true;
+            startArgIndex++;
+        }
+        boolean checkIsValid = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-checkIsValid")) {
+            checkIsValid = true;
             startArgIndex++;
         }
         if (args.length < startArgIndex + 2) {
@@ -91,13 +98,15 @@ public class TiffIFDMainOffsetsTest {
         reader = new TiffReader(file, TiffOpenMode.NO_CHECKS).setCachingIFDs(cache);
 
         System.out.println("Analysing...");
-        try {
-            reader.readFirstIFDOffset();
-            // - should throw exception for an invalid file
-            if (!reader.isValidTiff()) {
-                throw new AssertionError();
+        if (checkIsValid) {
+            try {
+                reader.readFirstIFDOffset();
+                // - should throw exception for an invalid file
+                if (!reader.isValidTiff()) {
+                    throw new AssertionError();
+                }
+            } catch (TiffException ignored) {
             }
-        } catch (TiffException ignored) {
         }
         for (int test = 1; test <= numberOfTests; test++) {
             System.out.printf("%nTest %d/%d:%n", test, numberOfTests);
@@ -108,6 +117,9 @@ public class TiffIFDMainOffsetsTest {
             System.out.printf(Locale.US,
                     "readMainIFDOffsetIfPresent(%d): %s (%.6f mcs)%n",
                     ifdIndex, offset, (t2 - t1) * 1e-3);
+            if (reader.offsetOfLastScannedIFDOffset().isEmpty()) {
+                throw new AssertionError("offsetOfLastScannedIFDOffset is not initialized");
+            }
             printLinkage(reader);
 
             t1 = System.nanoTime();
@@ -186,7 +198,7 @@ public class TiffIFDMainOffsetsTest {
                     throw new AssertionError("offsetOfLastScannedIFDOffset must no change in readLinkage");
                 }
 
-                var linkageCopy = new TiffIFD.Linkage(linkage.ifdChainTerminatorOffset(), linkage.ifdOffsets());
+                var linkageCopy = new TiffIFD.Linkage(linkage.offsetOfIFDChainTerminator(), linkage.mainIFDOffsetPairs());
                 if (!linkageCopy.equals(linkage)) {
                     throw new AssertionError("linkageCopy must equal linkage");
                 }
