@@ -1723,20 +1723,22 @@ public non-sealed class TiffWriter extends TiffIO {
         if (placement.isUnchanged()) {
             return;
         }
-        if (placement.isRelocationNecessary()) {
-            // We must relocate IFD: overwriting in the same place will damage the further image
-            // or other embedded data (like Huffman tables in Old-style JPEG).
-            // Theoretically, we could provide additional special branch for a case when we REDUCE
-            // the size of IFD and DO NOT write anything else (for example, removing a tag);
-            // in this case, we could overwrite IFD WITHOUT rewriting any arrays references from IFD tags.
-            // But there is no sense to optimize this exotic situation.
-            final long p = this.writeIFDAtFileEnd(changedIFD);
-            // Note: we ignore sub-IFDs here. So, this method is not absolutely universal.
-            this.rewriteIFDOffset(mainIFDIndex, p);
-            // - restoring IFD sequence
-        } else {
-            // System.out.println("In place!");
-            this.writeIFDToAssignedOffset(changedIFD);
+        synchronized (fileLock) {
+            if (placement.isRelocationNecessary()) {
+                // We must relocate IFD: overwriting in the same place will damage the further image
+                // or other embedded data (like Huffman tables in Old-style JPEG).
+                // Theoretically, we could provide additional special branch for a case when we REDUCE
+                // the size of IFD and DO NOT write anything else (for example, removing a tag);
+                // in this case, we could overwrite IFD WITHOUT rewriting any arrays references from IFD tags.
+                // But there is no sense to optimize this exotic situation.
+                final long p = this.writeIFDAtFileEnd(changedIFD);
+                // Note: we ignore sub-IFDs here. So, this method is not absolutely universal.
+                this.rewriteIFDOffset(mainIFDIndex, p);
+                // - restoring IFD sequence
+            } else {
+                // System.out.println("In place!");
+                this.writeIFDToAssignedOffset(changedIFD);
+            }
         }
     }
 
@@ -1744,38 +1746,27 @@ public non-sealed class TiffWriter extends TiffIO {
         if (mainIFDIndex < 0) {
             throw new IllegalArgumentException("Negative IFD index: " + mainIFDIndex);
         }
-        checkFileOpen();
-        //noinspection resource
-        List<TiffIFD> ifds = companionReader().mainIFDs();
-        int numberOfImages = ifds.size();
-        if (mainIFDIndex >= numberOfImages) {
-            throw new TiffException("No main IFD #" + mainIFDIndex + " in TIFF" + spacedStreamName()
-                    + ": too large index");
-        }
-        if (numberOfImages == 1) {
-            throw new TiffException("Cannot delete the only existing TIFF image");
-        }
-        LOG.log(System.Logger.Level.DEBUG,
-                () -> "IFD #%d/%d deleted".formatted(mainIFDIndex, numberOfImages));
-        linkage();
-        if (mainIFDIndex == 0) {
-            // so, mainIFDIndex + 1 <= numberOfImages
-            long nextIFDOffset = ifds.get(mainIFDIndex + 1).getFileOffsetOfIFD();
-            long fileOffsetToWrite = offsetOfFirstIFDOffset();
-            writeOffsetAt(nextIFDOffset, fileOffsetToWrite);
-        } else {
-            final TiffIFD ifd = ifds.get(mainIFDIndex - 1).copy();
-            ifd.assignFileOffsetOfIFDForWriting(ifd.getFileOffsetOfIFD());
-            if (mainIFDIndex == numberOfImages - 1) {
-                ifd.markAsLastInChain();
-            } else {
-                ifd.setNextIFDOffset(ifds.get(mainIFDIndex + 1).getFileOffsetOfIFD());
+        synchronized (fileLock) {
+            checkFileOpen();
+            Linkage linkage = linkage();
+            final int numberOfImages = linkage.numberOfMainIFDs();
+            if (mainIFDIndex >= numberOfImages) {
+                throw new TiffException("No main IFD #" + mainIFDIndex + " in TIFF" + spacedStreamName()
+                        + ": index > " + (numberOfImages - 1));
             }
-            this.writeIFDToAssignedOffset(ifd);
-            //TODO!! bad idea! cannot overwrite in place in a foreign file
+            if (numberOfImages == 1) {
+                throw new TiffException("Cannot delete the only existing TIFF image");
+            }
+            final long nextIFDOffset = mainIFDIndex == numberOfImages - 1 ?
+                    TiffIFD.IFD_CHAIN_TERMINATOR :
+                    linkage.mainIFDOffset(mainIFDIndex + 1);
+            long fileOffsetToWrite = mainIFDIndex == 0 ?
+                    offsetOfFirstIFDOffset() :
+                    linkage.offsetOfNextIFDOffset(mainIFDIndex - 1);
+            invalidateCompanionReader();
+            invalidateLinkage();
+            writeOffsetAt(nextIFDOffset, fileOffsetToWrite);
         }
-        invalidateCompanionReader();
-        invalidateLinkage();
     }
 
     @Override
