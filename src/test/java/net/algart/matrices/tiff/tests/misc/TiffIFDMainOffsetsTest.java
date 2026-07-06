@@ -222,14 +222,6 @@ public class TiffIFDMainOffsetsTest {
                         "readMainIFD(%d): %s (%.6f mcs)%n", numberOfMain - 1, ifd, (t2 - t1) * 1e-3);
                 printLinkage(reader);
                 checkEqual(ifd, mainIFDS.get(numberOfMain - 1));
-
-                t1 = System.nanoTime();
-                TiffIFD lastIfd = reader.readLastIFD();
-                t2 = System.nanoTime();
-                System.out.printf(Locale.US,
-                        "readLastIFD(): %s (%.6f mcs)%n", lastIfd, (t2 - t1) * 1e-3);
-                printLinkage(reader);
-                checkEqual(ifd, lastIfd);
             }
         }
         reader.close();
