@@ -816,7 +816,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @param ifd the IFD with an assigned <i>for-writing</i> file offset.
      * @return the offset where the IFD was written.
-     * @throws IOException           in the case of any I/O errors.
+     * @throws IOException           if an I/O error occurs.
      * @throws IllegalStateException if no offset was assigned to the IFD.
      * @see TiffIFD#assignFileOffsetOfIFDForWriting(long)
      */
@@ -913,7 +913,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @return the offset where this IFD was actually written
      * (it will be equal to the result of the {@link TiffIFD#assignedFileOffsetOfIFDForWriting()} method
      * called on the {@code ifd} after this method completes).
-     * @throws IOException in case of any I/O errors.
+     * @throws IOException if an I/O error occurs.
      * @see #rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, Linkage.UpdateMode)
      * @see #invalidateLinkage()
      */
@@ -959,7 +959,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @param ifd          the IFD containing the new values to be written.
      * @param tagsToUpdate a predicate to select which tags should be updated in the file.
-     * @throws IOException              if any I/O error occurs.
+     * @throws IOException              if an I/O error occurs.
      * @throws TiffIFDMismatchException if the new value for a tag does not match
      *                                  the existing value's type or count;
      *                                  if you still need to write the IFD, you may catch this exception
@@ -992,7 +992,8 @@ public non-sealed class TiffWriter extends TiffIO {
      * <p>If {@code updateModeForNewIFD} is {@link Linkage.UpdateMode#AUTO_APPEND}, this method attempts to
      * update the linkage using the same logic
      * as {@link #writeIFD(TiffIFD, Linkage.UpdateMode)}.
-     * Specifically, it checks the same conditional rules (<b>A</b> and <b>B</b>) and performs the same corrections as described in that method. If conditions are not met, or if
+     * Specifically, it checks the same conditional rules (<b>A</b> and <b>B</b>) and performs the same corrections
+     * as described in that method. If conditions are not met, or if
      * <code>updateModeForNewIFD={@link Linkage.UpdateMode#NONE}</code>,
      * this method calls {@link #invalidateLinkage()} and does not attempt to modify anything in the file
      * besides this IFD itself.</p>
@@ -1016,7 +1017,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param tagsToUpdate        a predicate to select which tags should be updated in the file.
      * @param updateModeForNewIFD if {@link Linkage.UpdateMode#AUTO_APPEND}, the method attempts to
      *                            update the linkage, similar to {@link #writeIFD(TiffIFD, Linkage.UpdateMode)}.
-     * @throws IOException              if any I/O error occurs.
+     * @throws IOException              if an I/O error occurs.
      * @throws TiffIFDMismatchException if the new value for a tag does not match
      *                                  the existing value's type or count;
      *                                  if you still need to write the IFD, you may catch this exception
@@ -1061,7 +1062,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @param ifd                 the IFD containing updated layout information.
      * @param updateModeForNewIFD see {@link #writeIFD(TiffIFD, Linkage.UpdateMode)}.
-     * @throws IOException              in case of I/O errors.
+     * @throws IOException              if an I/O error occurs.
      * @throws TiffIFDMismatchException if the layout tag structure has changed.
      * @throws IllegalArgumentException if the IFD does not have the <i>for-writing</i> file offset.
      */
@@ -1071,14 +1072,15 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Rewrites the offset, stored in the file for the given main IFD,
-     * with the specified value.
-     * This method is useful if you want to organize the sequence of IFD inside the file manually,
-     * without automatically updating IFD linkage.
+     * Rewrites the 'next IFD offset' field in the file, pointing to the IFD with the given index,
+     * with the given value.
      *
-     * @param mainIFDIndex the index of the main IFD (sub-IFDs are ignored here).
+     * <p>This is a low-level operation for manual adjustment of the IFD chain sequence
+     * inside the file. Note that this method always calls {@link #invalidateLinkage()}.</p>
+     *
+     * @param mainIFDIndex the index of the main IFD (sub-IFDs are ignored).
      * @param newIFDOffset new IFD offset; must be positive.
-     * @throws IOException           in the case of any I/O errors.
+     * @throws IOException           if an I/O error occurs.
      * @throws IllegalStateException if this file is not yet opened.
      * @see #rewriteLastIFDOffset(long)
      */
@@ -1113,11 +1115,12 @@ public non-sealed class TiffWriter extends TiffIO {
     /**
      * Rewrites the offset, stored in the file at the {@link Linkage#offsetOfIFDChainTerminator()},
      * with the specified value.
-     * This method is useful if you want to organize the sequence of IFD inside the file manually,
-     * without automatically updating IFD linkage.
+     *
+     * <p>This is a low-level operation for manual adjustment of the IFD chain sequence
+     * inside the file. Note that this method always calls {@link #invalidateLinkage()}.</p>
      *
      * @param newLastIFDOffset new last IFD offset.
-     * @throws IOException           in the case of any I/O errors.
+     * @throws IOException           if an I/O error occurs.
      * @throws IllegalStateException if this file is not yet opened.
      * @see #rewriteIFDOffset(int, long)
      */
