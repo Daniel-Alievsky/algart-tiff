@@ -884,7 +884,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * <ol>
      *     <li>writes the new IFD file offset into the file position
      *     {@link Linkage#offsetOfIFDChainTerminator()}, so that this IFD is appended to the
-     *     end if the IFDs chain;</li>
+     *     end of the IFDs chain;</li>
      *     <li>performs the necessary corrections in the existing {@link #linkage()} object
      *     ({@link #invalidateLinkage() invalidation} is not necessary).</li>
      * </ol>
@@ -981,12 +981,14 @@ public non-sealed class TiffWriter extends TiffIO {
      * For these selected tags, it overwrites the values in the file, ensuring that no data is
      * moved and no "gaps" or "holes" are created in the file layout.</p>
      *
-     * <p>In addition, this method writes the {@link TiffIFD#getNextIFDOffset() offset of the next IFD}
-     * (in particular, a zero marker for the last IFD) and performs correction of the
-     * current {@link #linkage() IFD linkage} object
-     * when <code>updateModeForNewIFD={@link Linkage.UpdateMode#AUTO_APPEND}</code>,
-     * in the same manner as the {@link #writeIFD(TiffIFD, Linkage.UpdateMode)} method
-     * .</p>
+     * <p>This method also rewrites the {@link TiffIFD#getNextIFDOffset() next IFD offset} field
+     * at the end of the IFD (as required by the TIFF specification).</p>
+     *
+     * <p>If {@code updateModeForNewIFD} is {@link Linkage.UpdateMode#AUTO_APPEND},
+     * it attempts to update the file linkage using the same logic as {@link #writeIFD(TiffIFD, Linkage.UpdateMode)}:
+     * if conditions for a safe appending a new IFD are met, the linkage in the file and
+     * in the {@link #linkage()} object is updated; otherwise, the current linkage object
+     * is {@link #invalidateLinkage() invalidated}.</p>
      *
      * <p>This method is used, for example, by
      * {@link #rewriteImageLayoutStrictlyInPlace(TiffIFD, Linkage.UpdateMode)}
