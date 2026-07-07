@@ -867,8 +867,9 @@ public non-sealed class TiffWriter extends TiffIO {
      * this mark inside the file in a previously written IFD, but usually there is no necessity to do this.</p>
      *
      * <p>If {@code updateModeForNewIFD} is {@link Linkage.UpdateMode#AUTO_APPEND}, this method attempts to
-     * correct the current {@link #linkage() IFD linkage} information when it is possible without the risk
-     * of creating incorrect linkage. Specifically:</p>
+     * correct the linkage information in the file to append the current IFD to the end of the IFDs chain,
+     * if it is possible without the risk of creating incorrect linkage. Specifically, this method
+     * gets the current linkage information via {@link #linkage()} method, and then:</p>
      *
      * <ul>
      *     <li>if the <i>for-writing</i> IFD offset is absolutely new for this file
@@ -878,17 +879,27 @@ public non-sealed class TiffWriter extends TiffIO {
      *      ({@link TiffIFD#isEffectivelyChainTerminator()} returns {@code true}, see above),</li>
      * </ul>
      *
-     * <p>then this method updates the existing {@link Linkage} object so that this IFD becomes
-     * the new last IFD in the chain &mdash; assuming it is actually appended to the IFDs chain.
-     * This is the typical situation when writing a new TIFF image to the end of the file.
-     * In all other cases, this method calls {@link #invalidateLinkage()}
-     * to invalidate the existing linkage information.</p>
+     * <p>then this method performs the following two actions:</p>
+     *
+     * <ol>
+     *     <li>writes the new IFD file offset into the file position
+     *     {@link Linkage#offsetOfIFDChainTerminator()}, so that this IFD is appended to the
+     *     end if the IFDs chain;</li>
+     *     <li>performs the necessary corrections in the existing {@link #linkage()} object
+     *     ({@link #invalidateLinkage() invalidation} is not necessary).</li>
+     * </ol>
+     *
+     * <p>Note that this is the typical situation when writing a new TIFF image to the end of the file.
+     * In all other cases, including the case when <code>updateModeForNewIFD={@link Linkage.UpdateMode#NONE}</code>,
+     * this method calls {@link #invalidateLinkage()} and does not try
+     * to modify anything in the file besides writing this IFD.</p>
      *
      * <p>Note: this method changes the position in the output stream.
      * (Actually, the position will be after the IFD information, including all additional data
      * like arrays of offsets; but you should not rely on this fact.)</p>
      *
-     * <p>Also note: this method always writes the 'next IFD offset' field at the end of the IFD structure,
+     * <p>Also note: this method always writes the {@link TiffIFD#getNextIFDOffset() next IFD offset}
+     * at the end of the IFD structure,
      * as required by the TIFF specification, even if this field is logically unused
      * (as for sub-IFDs or EXIF IFDs).</p>
      *
@@ -994,9 +1005,8 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @param ifd                 the IFD containing the new values to be written.
      * @param tagsToUpdate        a predicate to select which tags should be updated in the file.
-     * @param updateModeForNewIFD if {@link Linkage.UpdateMode#AUTO_APPEND}, the method also updates the
-     *                            "next IFD" pointer and internal linkage state,
-     *                            similar to {@link #writeIFD(TiffIFD, Linkage.UpdateMode)}.
+     * @param updateModeForNewIFD if {@link Linkage.UpdateMode#AUTO_APPEND}, the method attempts to
+     *                            update the file linkage, similar to {@link #writeIFD(TiffIFD, Linkage.UpdateMode)}.
      * @throws IOException              if any I/O error occurs.
      * @throws TiffIFDMismatchException if the new value for a tag does not match
      *                                  the existing value's type or count;
