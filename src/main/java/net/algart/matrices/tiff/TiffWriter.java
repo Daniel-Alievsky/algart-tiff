@@ -884,17 +884,17 @@ public non-sealed class TiffWriter extends TiffIO {
      * <ol>
      *     <li>rewrites 'next IFD offset' stored in the file at the position
      *     {@link Linkage#offsetOfIFDChainTerminator()} with the offset of this newly written IFD;
-     *     actually this means that this IFD is appended to the end of the IFDs chain;</li>
+     *     actually, this means that this IFD is appended to the end of the IFDs chain;</li>
      *     <li>performs the necessary corrections in the existing {@link #linkage()} object
      *     ({@link #invalidateLinkage() invalidation} is not necessary).</li>
      * </ol>
      *
-     * <p>Note: this is the typical situation when writing a new TIFF image to the end of the file.
+     * <p>Note that this is the typical situation when writing a new TIFF image to the end of the file.
      * However, this operation is absolutely <b>senseless</b> if the previously written IFD is not actually
-     * the predecessor of this one! If you are not going to add a new image into the TIFF,
-     * you use the mode {@link Linkage.UpdateMode#NONE}.</p>
+     * the predecessor of this one! If you are not going to add a new image to the TIFF,
+     * use the {@link Linkage.UpdateMode#NONE} mode.</p>
      *
-     * <p>In at least one of the conditions <b>A</b> and <b>B</b> is not met, or if
+     * <p>If at least one of the conditions <b>A</b> or <b>B</b> is not met, or if
      * <code>updateModeForNewIFD={@link Linkage.UpdateMode#NONE}</code>,
      * this method calls {@link #invalidateLinkage()} and does not try
      * to modify anything in the file besides writing this IFD.</p>
@@ -1013,7 +1013,8 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param ifd                 the IFD containing the new values to be written.
      * @param tagsToUpdate        a predicate to select which tags should be updated in the file.
      * @param updateModeForNewIFD if {@link Linkage.UpdateMode#AUTO_APPEND}, the method attempts to
-     *                            update the file linkage, similar to {@link #writeIFD(TiffIFD, Linkage.UpdateMode)}.
+     *                            update the linkage in the same logic as the
+     *                            {@link #writeIFD(TiffIFD, Linkage.UpdateMode)} method.
      * @throws IOException              if any I/O error occurs.
      * @throws TiffIFDMismatchException if the new value for a tag does not match
      *                                  the existing value's type or count;
