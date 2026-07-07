@@ -531,17 +531,16 @@ public non-sealed class TiffWriter extends TiffIO {
         this.tileInitializer = tileInitializer;
         return this;
     }
-
     /**
      * Clears the reference to the IFD linkage information stored inside this object
-     * and returned by {@link #linkage()} method.
-     * Ensures that the next call of {@link #linkage()} will reload this information from the file.
+     * and returned by the {@link #linkage()} method.
+     * Ensures that the next call to {@link #linkage()} will reload this information from the file.
      *
      * <p>Usually, you do not need to use this method directly: it is called automatically by {@link TiffWriter}
-     * every time there is a risk that this linkage information may become incorrect.
-     * <b>The exception</b>: you should use this method if you call to a low-level
+     * whenever there is a risk that this linkage information may become incorrect.
+     * <b>The exception</b>: you should use this method if you call the low-level
      * {@link #writeOffsetAt(long, long)} method or perform direct modifications in the file
-     * via {@link #stream()} object or some external means.
+     * via the {@link #stream()} object or other external means.</p>
      *
      * @see #writeIFD(TiffIFD, Linkage.UpdateMode)
      */
@@ -550,22 +549,22 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Returns the linkage information in the TIFF file.
+     * Returns the linkage information for the TIFF file.
      *
-     * <p>This method reads this information via the {@link #readLinkage()} method while the first call,
-     * stores the reference inside this object and will be returned by further calls.
-     * However, the stored reference is cleared to {@code null} by {@link #invalidateLinkage()} method
-     * (so that the following call of this method will re-create the reader).
+     * <p>This method reads the information via {@link #readLinkage()} on the first call,
+     * stores the reference inside this object, and returns it for subsequent calls.
+     * However, the stored reference is cleared to {@code null} by the {@link #invalidateLinkage()} method
+     * (triggering a reload on the next call).</p>
      *
-     * <p>Note: this method does not change anything in the environment, even the current position in the
-     * file {@link #stream() stream}. (It saves the current position before calling {@link #readLinkage()}
-     * and restores it after that call with accurate processing all possible exceptions.)</p>
+     * <p>Note: this method does not modify the environment, including the current file position in the
+     * {@link #stream()}. (It saves the current position before calling {@link #readLinkage()}
+     * and restores it after the call, ensuring all exceptions are handled correctly.)</p>
      *
-     * <p>Usually you do not need to use this method manually: it is called automatically by {@link TiffWriter}
+     * <p>Usually, you do not need to use this method manually: it is called automatically by {@link TiffWriter}
      * whenever it requires up-to-date linkage information. The only situation when you might use it
      * is if you want to inspect this information for your own purposes, for example, for logging.</p>
      *
-     * @return the linkage information
+     * @return the linkage information.
      * @throws IOException if an I/O error occurs while reading the linkage.
      */
     public Linkage linkage() throws IOException {
@@ -573,12 +572,14 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Returns the same linkage information as the {@link #linkage()} method, but does not attempt
-     * to reload it when the stored reference is {@code null}: in the latter case, this method
-     * simply returns {@code Optional.empty()}.
+     * Returns the linkage information (see {@link #linkage()}) if it has already been loaded,
+     * or {@link Optional#empty()} otherwise.
+     *
+     * <p>Unlike {@link #linkage()}, this method does not attempt to reload the linkage
+     * information from the file if the stored reference is {@code null}.</p>
      *
      * @return the linkage information, wrapped in {@link Optional},
-     * or {@code Optional.empty()} if it has not been read or if it was invalidated.
+     * or {@link Optional#empty()} if it has not been read or if it was invalidated.
      */
     public Optional<Linkage> linkageIfPresent() {
         return Optional.ofNullable(linkage);
