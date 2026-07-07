@@ -539,8 +539,8 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * <p>Usually, you do not need to use this method directly: it is called automatically by {@link TiffWriter}
      * every time there is a risk that this linkage information may become incorrect.
-     * The only situation when you should use this method is call to a low-level
-     * {@link #writeOffsetAt(long, long)} method or direct modifications in the file
+     * <b>The exception</b>: you should use this method if you call to a low-level
+     * {@link #writeOffsetAt(long, long)} method or perform direct modifications in the file
      * via {@link #stream()} object or some external means.
      *
      * @see #writeIFD(TiffIFD, Linkage.UpdateMode)
@@ -552,18 +552,21 @@ public non-sealed class TiffWriter extends TiffIO {
     /**
      * Returns the linkage information in the TIFF file.
      *
-     * <p>This method reads this information via the {@link #readLinkage()} method while the first call
-     * and stores the reference inside this object and will be returned by further calls
-     * of this method.
+     * <p>This method reads this information via the {@link #readLinkage()} method while the first call,
+     * stores the reference inside this object and will be returned by further calls.
      * However, the stored reference is cleared to {@code null} by {@link #invalidateLinkage()} method
      * (so that the following call of this method will re-create the reader).
+     *
+     * <p>Note: this method does not change anything in the environment, even the current position in the
+     * file {@link #stream() stream}. (It saves the current position before calling {@link #readLinkage()}
+     * and restores it after that call with accurate processing all possible exceptions.)</p>
      *
      * <p>Usually you do not need to use this method manually: it is called automatically by {@link TiffWriter}
      * whenever it requires up-to-date linkage information. The only situation when you might use it
      * is if you want to inspect this information for your own purposes, for example, for logging.</p>
      *
      * @return the linkage information
-     * @throws IOException if an I/O error occurs.
+     * @throws IOException if an I/O error occurs while reading the linkage.
      */
     public Linkage linkage() throws IOException {
         return linkage("");
@@ -574,8 +577,8 @@ public non-sealed class TiffWriter extends TiffIO {
      * to reload it when the stored reference is {@code null}: in the latter case, this method
      * simply returns {@code Optional.empty()}.
      *
-     * @return the file offset of the last IFD offset, wrapped in {@link OptionalLong},
-     * or {@code OptionalLong.empty()} if it has not been read or if it was invalidated.
+     * @return the linkage information, wrapped in {@link Optional},
+     * or {@code Optional.empty()} if it has not been read or if it was invalidated.
      */
     public Optional<Linkage> linkageIfPresent() {
         return Optional.ofNullable(linkage);
@@ -598,8 +601,9 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Returns the "companion" TIFF reader for reading the same file stream {@link #stream()}
+     * Returns the "companion" TIFF reader for reading the same file {@link #stream() stream}
      * used by this object.
+     *
      * <p><b>Do not close</b> this reader independently: the shared stream will be closed
      * automatically when closing this writer.</p>
      *
@@ -639,8 +643,9 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
     /**
-     * Creates a new "companion" TIFF reader for reading the same file stream {@link #stream()}
+     * Creates a new "companion" TIFF reader for reading the same file {@link #stream() stream}
      * used by this object.
+     *
      * <p><b>Do not close</b> this reader independently: the shared stream will be closed
      * automatically when closing this writer.</p>
      *
