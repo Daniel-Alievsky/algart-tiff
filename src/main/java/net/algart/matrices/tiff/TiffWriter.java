@@ -866,30 +866,31 @@ public non-sealed class TiffWriter extends TiffIO {
      * You may also call {@link #rewriteLastIFDOffset(long)} to correct
      * this mark inside the file in a previously written IFD, but usually there is no necessity to do this.</p>
      *
-     * <p>If {@code updateModeForNewIFD} is {@link Linkage.UpdateMode#AUTO_APPEND}, and
-     * if this method also correct the current {@link #linkage() IFD linkage} information
-     * when it is possible without a risk to get an incorrect linkage.
-     * Namely:</p>
+     * <p>If {@code updateModeForNewIFD} is {@link Linkage.UpdateMode#AUTO_APPEND}, this method attempts to
+     * correct the current {@link #linkage() IFD linkage} information when it is possible without the risk
+     * of creating incorrect linkage. Specifically:</p>
      *
      * <ul>
      *     <li>if the <i>for-writing</i> IFD offset is absolutely new for this file
      *     ({@link Linkage#containsIFDOffset(long)} returns {@code false}), in particular, when
-     *      it is not assigned (writing tho the file end),</li>
-     *      <li>and if the next IFD offset is marked as the last IFD
+     *      it is not assigned (writing to the file end),</li>
+     *      <li>and if the next IFD offset will be marked as the last IFD
      *      ({@link TiffIFD#isEffectivelyChainTerminator()} returns {@code true}, see above),</li>
      * </ul>
      *
-     * <p>then this method updates an existing {@link Linkage} object so that this IFD becomes
-     * the new last IFD in the chain &mdash; if is actually appended to the IFDs chain.
-     * This is mostly typical situation when you write a new TIFF image to the file end.
-     * In all other cases, this method just calls {@link #invalidateLinkage()} to invalidate the existing
-     * linkage information.</p>
+     * <p>then this method updates the existing {@link Linkage} object so that this IFD becomes
+     * the new last IFD in the chain &mdash; assuming it is actually appended to the IFDs chain.
+     * This is the typical situation when writing a new TIFF image to the end of the file.
+     * In all other cases, this method calls {@link #invalidateLinkage()}
+     * to invalidate the existing linkage information.</p>
      *
      * <p>Note: this method changes the position in the output stream.
      * (Actually, the position will be after the IFD information, including all additional data
      * like arrays of offsets; but you should not rely on this fact.)</p>
      *
-     * <p>Also note: this method always writes the next offset field.</p>
+     * <p>Also note: this method always writes the 'next IFD offset' field at the end of the IFD structure,
+     * as required by the TIFF specification, even if this field is logically unused
+     * (as for sub-IFDs or EXIF IFDs).</p>
      *
      * @param ifd                 the IFD to write to the {@link #stream() output stream}.
      * @param updateModeForNewIFD see comments above.
