@@ -265,17 +265,23 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * <p>This value is updated by the methods:</p>
      * <ul>
+     *     <li>{@link #readMainIFD(int)},</li>
      *     <li>{@link #readMainIFDOffset(int)},</li>
      *     <li>{@link #readMainIFDOffsetIfPresent(int)},</li>
      *     <li>{@link #readMainIFDOffsets()},</li>
      *     <li>{@link #readMainIFDOffsets(boolean)}.</li>
      * </ul>
      *
+     * <p>Note that the {@link #readLinkage()} method does not change this value.</p>
+     *
      * <p>The {@link TiffReader} class calls the {@link #readMainIFDOffsets()} method internally
      * from high-level operations like {@link TiffReader#allIFDs()} or {@link TiffReader#numberOfImages()}.
      * Thus, the value returned by this method is typically initialized to the file offset
      * of the last IFD offset in the TIFF file,
-     * i.e. to the offset of the terminating zero marker {@link TiffIFD#IFD_CHAIN_TERMINATOR}.</p>
+     * i.e. to the offset of the terminating zero marker {@link TiffIFD#IFD_CHAIN_TERMINATOR}.
+     * However, after {@link #readMainIFD(int)}, {@link #readMainIFDOffset(int)},
+     * {@link #readMainIFDOffsetIfPresent(int)} method the value tracked by this method will be another:
+     * see comments to {@link #readMainIFDOffset(int)}.</p>
      *
      * <p>Immediately after creating a new {@link TiffReader} object, as well as
      * immediately after creating a new {@link TiffWriter} object without opening a file

@@ -183,6 +183,8 @@ public class TiffIFDMainOffsetsTest {
             System.out.printf(Locale.US, "numberOfIFDs(): %d (%.6f mcs)%n", n, (t2 - t1) * 1e-3);
 
             if (numberOfMain > 0) {
+                // - necessary: allIFDs() can lead to an exception even when reader.isValidTiff(),
+                // for example, for error_non_completed.tiff
                 t1 = System.nanoTime();
                 List<TiffIFD> allIFDs = reader.allIFDs();
                 t2 = System.nanoTime();
