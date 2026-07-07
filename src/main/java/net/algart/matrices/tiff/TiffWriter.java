@@ -531,6 +531,7 @@ public non-sealed class TiffWriter extends TiffIO {
         this.tileInitializer = tileInitializer;
         return this;
     }
+
     /**
      * Clears the reference to the IFD linkage information stored inside this object
      * and returned by the {@link #linkage()} method.
@@ -643,6 +644,7 @@ public non-sealed class TiffWriter extends TiffIO {
             return this.reader;
         }
     }
+
     /**
      * Creates a new "companion" TIFF reader for reading the same file {@link #stream() stream}
      * used by this object.
@@ -864,34 +866,30 @@ public non-sealed class TiffWriter extends TiffIO {
      * You may also call {@link #rewriteLastIFDOffset(long)} to correct
      * this mark inside the file in a previously written IFD, but usually there is no necessity to do this.</p>
      *
-     * <p>If {@code updateModeForNewIFD} is {@link Linkage.UpdateMode#AUTO_APPEND}, this method also performs
-     * the following two actions:</p>
+     * <p>If {@code updateModeForNewIFD} is {@link Linkage.UpdateMode#AUTO_APPEND}, and
+     * if this method also correct the current {@link #linkage() IFD linkage} information
+     * when it is possible without a risk to get an incorrect linkage.
+     * Namely:</p>
      *
-     * <ol>
-     *     <li>It rewrites the offset stored in the file at the position
-     *     {@link Linkage#offsetOfIFDChainTerminator()}
-     *     (you can access it via {@link #linkageIfPresent() method}
-     *     with the start offset of this IFD.
-     *     This action is performed <b>only</b> if this start offset is truly new for this file,
-     *     i.e., if it was not present in an existing file when opened via the {@link #openExisting()} method
-     *     and if no IFD has already been written at this position by other methods.
-     *     (All offsets of IFDs written by the methods of this object are stored
-     *     in the linkage object in the set returned by {@link Linkage#mainIFDOffsetPairs()} method.)
-     *     <br>Note: this operation is <b>senseless</b> if the previously written IFD is not actually
-     *     the predecessor of this one!
-     *     </li>
-     *     <li>It replaces the internal field returned by
-     *     {@link Linkage#offsetOfIFDChainTerminator()} with
-     *      the position of the {@link TiffIFD#getNextIFDOffset() next IFD offset} written as a part of this IFD.
-     *     This action is performed <b>only</b> when this IFD is marked as the last one (see the previous note).</li>
-     * </ol>
+     * <ul>
+     *     <li>if the <i>for-writing</i> IFD offset is absolutely new for this file
+     *     ({@link Linkage#containsIFDOffset(long)} returns {@code false}), in particular, when
+     *      it is not assigned (writing tho the file end),</li>
+     *      <li>and if the next IFD offset is marked as the last IFD
+     *      ({@link TiffIFD#isEffectivelyChainTerminator()} returns {@code true}, see above),</li>
+     * </ul>
      *
-     * <p>Also note: this method changes the position in the output stream.
+     * <p>then this method updates an existing {@link Linkage} object so that this IFD becomes
+     * the new last IFD in the chain &mdash; if is actually appended to the IFDs chain.
+     * This is mostly typical situation when you write a new TIFF image to the file end.
+     * In all other cases, this method just calls {@link #invalidateLinkage()} to invalidate the existing
+     * linkage information.</p>
+     *
+     * <p>Note: this method changes the position in the output stream.
      * (Actually, the position will be after the IFD information, including all additional data
      * like arrays of offsets; but you should not rely on this fact.)</p>
      *
-     * <p>Also note: this method always reserves space for storing the next offset, even for IFD types
-     * where it is not necessary (like sub-IFD or EXIF IFD).</p>
+     * <p>Also note: this method always writes the next offset field.</p>
      *
      * @param ifd                 the IFD to write to the {@link #stream() output stream}.
      * @param updateModeForNewIFD see comments above.
@@ -904,6 +902,7 @@ public non-sealed class TiffWriter extends TiffIO {
      */
     public long writeIFD(TiffIFD ifd, Linkage.UpdateMode updateModeForNewIFD) throws IOException {
         Objects.requireNonNull(ifd, "Null IFD");
+        Objects.requireNonNull(updateModeForNewIFD, "Null updateModeForNewIFD");
         synchronized (fileLock) {
             checkVirginFile();
             invalidateCompanionReader();
@@ -971,7 +970,8 @@ public non-sealed class TiffWriter extends TiffIO {
      * moved and no "gaps" or "holes" are created in the file layout.</p>
      *
      * <p>In addition, this method writes the {@link TiffIFD#getNextIFDOffset() offset of the next IFD}
-     * (in particular, a zero marker for the last IFD) and performs correction of the IFD linkage
+     * (in particular, a zero marker for the last IFD) and performs correction of the
+     * current {@link #linkage() IFD linkage} object
      * when <code>updateModeForNewIFD={@link Linkage.UpdateMode#AUTO_APPEND}</code>,
      * in the same manner as the {@link #writeIFD(TiffIFD, Linkage.UpdateMode)} method
      * .</p>
@@ -1013,6 +1013,7 @@ public non-sealed class TiffWriter extends TiffIO {
             throws IOException {
         Objects.requireNonNull(ifd, "Null IFD");
         Objects.requireNonNull(tagsToUpdate, "Null tagsToUpdate");
+        Objects.requireNonNull(updateModeForNewIFD, "Null updateModeForNewIFD");
         if (!ifd.isFileOffsetOfIFDForWritingAssigned()) {
             throw new IllegalArgumentException("Offset for writing IFD is not specified");
         }
@@ -1138,7 +1139,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @see #writeIFD(TiffIFD, Linkage.UpdateMode)
      * @see #rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, Linkage.UpdateMode)
      */
-     public void writeOffsetAt(long offsetValue, long fileOffsetToWrite) throws IOException {
+    public void writeOffsetAt(long offsetValue, long fileOffsetToWrite) throws IOException {
         synchronized (fileLock) {
             final long savedFileOffset = stream.offset();
             try {
