@@ -871,26 +871,31 @@ public non-sealed class TiffWriter extends TiffIO {
      * if it is possible without the risk of creating incorrect linkage. Specifically, this method
      * gets the current linkage information via {@link #linkage()} method, and then:</p>
      *
-     * <ul>
+     * <ol type="A">
      *     <li>if the <i>for-writing</i> IFD offset is absolutely new for this file
      *     ({@link Linkage#containsIFDOffset(long)} returns {@code false}), in particular, when
      *      it is not assigned (writing to the file end),</li>
      *      <li>and if the next IFD offset will be marked as the last IFD
      *      ({@link TiffIFD#isEffectivelyChainTerminator()} returns {@code true}, see above),</li>
-     * </ul>
+     * </ol>
      *
      * <p>then this method performs the following two actions:</p>
      *
      * <ol>
-     *     <li>writes the new IFD file offset into the file position
-     *     {@link Linkage#offsetOfIFDChainTerminator()}, so that this IFD is appended to the
-     *     end of the IFDs chain;</li>
+     *     <li>rewrites 'next IFD offset' stored in the file at the position
+     *     {@link Linkage#offsetOfIFDChainTerminator()} with the offset of this newly written IFD;
+     *     actually this means that this IFD is appended to the end of the IFDs chain;</li>
      *     <li>performs the necessary corrections in the existing {@link #linkage()} object
      *     ({@link #invalidateLinkage() invalidation} is not necessary).</li>
      * </ol>
      *
-     * <p>Note that this is the typical situation when writing a new TIFF image to the end of the file.
-     * In all other cases, including the case when <code>updateModeForNewIFD={@link Linkage.UpdateMode#NONE}</code>,
+     * <p>Note: this is the typical situation when writing a new TIFF image to the end of the file.
+     * However, this operation is absolutely <b>senseless</b> if the previously written IFD is not actually
+     * the predecessor of this one! If you are not going to add a new image into the TIFF,
+     * you use the mode {@link Linkage.UpdateMode#NONE}.</p>
+     *
+     * <p>In at least one of the conditions <b>A</b> and <b>B</b> is not met, or if
+     * <code>updateModeForNewIFD={@link Linkage.UpdateMode#NONE}</code>,
      * this method calls {@link #invalidateLinkage()} and does not try
      * to modify anything in the file besides writing this IFD.</p>
      *
