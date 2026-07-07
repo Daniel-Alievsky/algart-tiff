@@ -989,11 +989,13 @@ public non-sealed class TiffWriter extends TiffIO {
      * <p>This method also rewrites the {@link TiffIFD#getNextIFDOffset() next IFD offset} field
      * at the end of the IFD (as required by the TIFF specification).</p>
      *
-     * <p>If {@code updateModeForNewIFD} is {@link Linkage.UpdateMode#AUTO_APPEND},
-     * it attempts to update the file linkage using the same logic as {@link #writeIFD(TiffIFD, Linkage.UpdateMode)}:
-     * if conditions for a safe appending a new IFD are met, the linkage in the file and
-     * in the {@link #linkage()} object is updated; otherwise, the current linkage object
-     * is {@link #invalidateLinkage() invalidated}.</p>
+     * <p>If {@code updateModeForNewIFD} is {@link Linkage.UpdateMode#AUTO_APPEND}, this method attempts to
+     * update the linkage using the same logic
+     * as {@link #writeIFD(TiffIFD, Linkage.UpdateMode)}.
+     * Specifically, it checks the same conditional rules (<b>A</b> and <b>B</b>) and performs the same corrections as described in that method. If conditions are not met, or if
+     * <code>updateModeForNewIFD={@link Linkage.UpdateMode#NONE}</code>,
+     * this method calls {@link #invalidateLinkage()} and does not attempt to modify anything in the file
+     * besides this IFD itself.</p>
      *
      * <p>This method is used, for example, by
      * {@link #rewriteImageLayoutStrictlyInPlace(TiffIFD, Linkage.UpdateMode)}
@@ -1013,8 +1015,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param ifd                 the IFD containing the new values to be written.
      * @param tagsToUpdate        a predicate to select which tags should be updated in the file.
      * @param updateModeForNewIFD if {@link Linkage.UpdateMode#AUTO_APPEND}, the method attempts to
-     *                            update the linkage in the same logic as the
-     *                            {@link #writeIFD(TiffIFD, Linkage.UpdateMode)} method.
+     *                            update the linkage, similar to {@link #writeIFD(TiffIFD, Linkage.UpdateMode)}.
      * @throws IOException              if any I/O error occurs.
      * @throws TiffIFDMismatchException if the new value for a tag does not match
      *                                  the existing value's type or count;
