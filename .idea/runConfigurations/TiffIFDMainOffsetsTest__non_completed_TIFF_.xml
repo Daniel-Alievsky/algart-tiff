@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="TiffIFDMainOffsetsTest (non_completed TIFF)" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.tests.misc.TiffIFDMainOffsetsTest" />
+    <module name="algart-tiff" />
+    <option name="PROGRAM_PARAMETERS" value="-checkIsValid src/test/resources/demo/images/tiff/invalid/error_non_completed.tiff  0 1" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="net.algart.matrices.tiff.tests.misc.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

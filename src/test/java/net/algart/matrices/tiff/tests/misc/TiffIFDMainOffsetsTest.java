@@ -53,6 +53,8 @@ public class TiffIFDMainOffsetsTest {
         main("src/test/resources/demo/images/tiff/openslide/CMU-1-Small-Region.svs", "0", "2");
         main("src/test/resources/demo/images/tiff/libtiff/test/images/tiff_with_subifd_chain.tif", "1", "2");
         main("src/test/resources/demo/images/tiff/libtiff/test/images/tiff_with_subifd_chain.tif", "0", "2");
+        main("src/test/resources/demo/images/tiff/algart/bigtiff/jpeg_rgb_tiled_big_with_16bit_sizes.tiff",
+                "0", "2");
         main("-checkIsValid", "src/test/resources/demo/images/tiff/invalid/error_non_completed.tiff", "0", "2");
         main("-checkIsValid", "src/test/resources/demo/images/tiff/invalid/error_only_header.tiff", "0", "2");
         main("src/test/resources/demo/images/tiff/invalid/error_non_completed.tiff", "0", "2");
@@ -98,9 +100,12 @@ public class TiffIFDMainOffsetsTest {
         reader = new TiffReader(file, TiffOpenMode.NO_CHECKS).setCachingIFDs(cache);
 
         System.out.println("Analysing...");
+        System.out.printf("isTiff: %s%n", reader.isTiff());
+        System.out.printf("isValidTiff: %s%n", reader.isValidTiff());
+        System.out.printf("isBigTiff: %s%n", reader.isBigTiff());
         if (checkIsValid) {
             try {
-                reader.readFirstIFDOffset();
+                reader.readMainIFDOffset(0);
                 // - should throw exception for an invalid file
                 if (!reader.isValidTiff()) {
                     throw new AssertionError();
@@ -130,7 +135,7 @@ public class TiffIFDMainOffsetsTest {
             printLinkage(reader);
 
             t1 = System.nanoTime();
-            OptionalLong offset0 = reader.readFirstIFDOffsetIfPresent();
+            OptionalLong offset0 = reader.readMainIFDOffsetIfPresent(0);
             t2 = System.nanoTime();
             System.out.printf(Locale.US,
                     "readFirstIFDOffsetIfPresent(): %s (%.6f mcs)%n", offset0, (t2 - t1) * 1e-3);
@@ -150,6 +155,24 @@ public class TiffIFDMainOffsetsTest {
                         reader.offsetOfFirstIFDOffset());
             }
             printLinkage(reader);
+            final long lastScannedOffset = reader.offsetOfLastScannedIFDOffset().orElseThrow();
+            if (lastScannedOffset != (reader.isBigTiff() ? 8 : 4)) {
+                throw new AssertionError();
+            }
+
+            t1 = System.nanoTime();
+            TiffIFD.Linkage linkage = reader.readLinkage();
+            t2 = System.nanoTime();
+            System.out.printf(Locale.US, "readLinkage(): %s (%.6f mcs)%n", linkage, (t2 - t1) * 1e-3);
+            printLinkage(reader);
+            if (lastScannedOffset != reader.offsetOfLastScannedIFDOffset().orElseThrow()) {
+                throw new AssertionError("offsetOfLastScannedIFDOffset must not change by readLinkage");
+            }
+
+            var linkageCopy = new TiffIFD.Linkage(linkage.offsetOfIFDChainTerminator(), linkage.mainIFDOffsetPairs());
+            if (!linkageCopy.equals(linkage)) {
+                throw new AssertionError("linkageCopy must equal linkage");
+            }
 
             t1 = System.nanoTime();
             int n = reader.numberOfImagesUnchecked();
@@ -179,6 +202,10 @@ public class TiffIFDMainOffsetsTest {
                 System.out.printf(Locale.US, "mainIFDs(): %d (%.6f mcs)%n",
                         mainIFDS.size(), (t2 - t1) * 1e-3);
                 printLinkage(reader);
+                if (reader.offsetOfLastScannedIFDOffset().getAsLong() != linkage.offsetOfIFDChainTerminator()) {
+                    throw new AssertionError(reader.offsetOfLastScannedIFDOffset() + ", " +
+                            linkage.offsetOfIFDChainTerminator());
+                }
 
                 t1 = System.nanoTime();
                 TiffIFD firstIFD = reader.readMainIFD(0);
@@ -187,21 +214,6 @@ public class TiffIFDMainOffsetsTest {
                 System.out.printf(Locale.US, "readMainIFD(0): %s (%.6f mcs)%n",
                         firstIFD, (t2 - t1) * 1e-3);
                 printLinkage(reader);
-                final long lastScannedOffset = reader.offsetOfLastScannedIFDOffset().orElseThrow();
-
-                t1 = System.nanoTime();
-                TiffIFD.Linkage linkage = reader.readLinkage();
-                t2 = System.nanoTime();
-                System.out.printf(Locale.US, "readLinkage(): %s (%.6f mcs)%n", linkage, (t2 - t1) * 1e-3);
-                printLinkage(reader);
-                if (lastScannedOffset != reader.offsetOfLastScannedIFDOffset().orElseThrow()) {
-                    throw new AssertionError("offsetOfLastScannedIFDOffset must no change in readLinkage");
-                }
-
-                var linkageCopy = new TiffIFD.Linkage(linkage.offsetOfIFDChainTerminator(), linkage.mainIFDOffsetPairs());
-                if (!linkageCopy.equals(linkage)) {
-                    throw new AssertionError("linkageCopy must equal linkage");
-                }
 
                 t1 = System.nanoTime();
                 TiffIFD ifd = reader.readMainIFD(ifdIndex);

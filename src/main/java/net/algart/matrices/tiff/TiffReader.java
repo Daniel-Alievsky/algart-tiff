@@ -1563,8 +1563,8 @@ public non-sealed class TiffReader extends TiffIO {
             // and returned empty results.
             // In the current version, the validTiff flag remains true in this situation
             // (if the file is not too short), but readMainIFDOffsets() will throw an exception.
-            // Instead, you can now process a TIFF file with an unset (zero) first IFD offset
-            // via explicit calls: readFirstIFDOffsetIfPresent() or readMainIFDOffsets(true).
+            // However, you can now process a TIFF file with an unset (zero) first IFD offset
+            // via explicit calls: readMainIFDOffsetIfPresent(0) or readMainIFDOffsets(true).
         } finally {
             stream.seek(savedOffset);
             // - for maximal compatibility: in old versions, the constructor of this class
