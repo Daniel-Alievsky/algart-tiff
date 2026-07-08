@@ -2095,7 +2095,7 @@ public non-sealed class TiffWriter extends TiffIO {
         copyData(newStream, stream, true, newIFDBytes.length);
         // stream.write(newIFDBytes);
         // - this call does not work in scijava-common 2.99.2: due to a bug in ByteArrayByteBank,
-        // writing bytes there ALWAYS reallocates the built-in Java array
+        // writing bytes to BytesHandle ALWAYS reallocates the built-in Java array
         for (int i = 0; i < info.n(); i++) {
             final BytesHandle extraBuffer = extraBuffers[i];
             if (extraBuffer != null) {

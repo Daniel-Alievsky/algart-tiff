@@ -209,6 +209,7 @@ public class TiffWriterTest {
         boolean forceReloadLinkage = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-forceReloadLinkage")) {
             forceReloadLinkage = true;
+            // - helps to test necessity of reloading linkage reloading in the overwrite mode
             startArgIndex++;
         }
         boolean thoroughTesting = false;
