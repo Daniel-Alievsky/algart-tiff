@@ -206,6 +206,11 @@ public class TiffWriterTest {
             noPrewrite = true;
             startArgIndex++;
         }
+        boolean forceReloadLinkage = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-forceReloadLinkage")) {
+            forceReloadLinkage = true;
+            startArgIndex++;
+        }
         boolean thoroughTesting = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-thoroughTesting")) {
             thoroughTesting = true;
@@ -227,19 +232,19 @@ public class TiffWriterTest {
         switch (sampleTypeName) {
             case "4444" -> {
                 sampleType = TiffSampleType.UINT16;
-                customBitsPerSample = new int[] {4, 4, 4, 4};
+                customBitsPerSample = new int[]{4, 4, 4, 4};
             }
             case "565" -> {
                 sampleType = TiffSampleType.UINT16;
-                customBitsPerSample = new int[] {5, 6, 5};
+                customBitsPerSample = new int[]{5, 6, 5};
             }
             case "754" -> {
                 sampleType = TiffSampleType.UINT16;
-                customBitsPerSample = new int[] {7, 5, 4};
+                customBitsPerSample = new int[]{7, 5, 4};
             }
             case "242" -> {
                 sampleType = TiffSampleType.UINT8;
-                customBitsPerSample = new int[] {2, 4, 2};
+                customBitsPerSample = new int[]{2, 4, 2};
             }
             default -> {
                 sampleType = TiffSampleType.valueOf(sampleTypeName);
@@ -466,7 +471,9 @@ public class TiffWriterTest {
                         }
                     }
                     System.out.printf("IFD linkage: %s%n",
-                            writer.linkageIfPresent().map(Object::toString).orElse("no linkage"));
+                            forceReloadLinkage ?
+                                    writer.linkage() :
+                                    writer.linkageIfPresent().map(Object::toString).orElse("no linkage"));
                 }
             }
         }
@@ -551,7 +558,7 @@ public class TiffWriterTest {
                     if (c1 != c2 && samplesPerPixel == 4) {
                         // alpha
                         int disp = y * dimX + 3 * matrixSize;
-                        Arrays.fill(channels,disp, disp + dimX, (byte) 0xFF);
+                        Arrays.fill(channels, disp, disp + dimX, (byte) 0xFF);
                     }
                 }
                 if (bitsPerSample != null) {

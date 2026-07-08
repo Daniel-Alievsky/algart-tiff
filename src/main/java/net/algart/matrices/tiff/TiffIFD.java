@@ -1117,6 +1117,10 @@ public final class TiffIFD {
         return this;
     }
 
+    public String nextIFDOffsetToString() {
+        return nextIFDOffset < 0 ? "n/a" :  "@%d=0x%X".formatted(nextIFDOffset, nextIFDOffset);
+    }
+
     /**
      * Returns {@code true} if this is a regular IFD (not sub-IFD).
      * Equivalent to <code>{@link #getSubIFDType()}&nbsp;==&nbsp;null</code>.

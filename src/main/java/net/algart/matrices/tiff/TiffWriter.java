@@ -569,7 +569,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @throws IOException if an I/O error occurs while reading the linkage.
      */
     public Linkage linkage() throws IOException {
-        return linkage("");
+        return linkage("Reloading linkage");
     }
 
     /**
@@ -719,7 +719,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 fileOpen = true;
                 invalidateLinkage(false, null);
                 // - forcing the following refresh (just in case)
-                linkage(" for existing file");
+                linkage("Initial loaging linkage for existing file");
                 seekToEnd();
                 // - ready to write after the end of the file
                 // (not necessary, but can help to avoid accidental bugs)
@@ -838,12 +838,6 @@ public non-sealed class TiffWriter extends TiffIO {
      * and then calls <code>{@link #writeIFD(TiffIFD, Linkage.UpdateMode)
      * writeIFD}(ifd, {@link Linkage.UpdateMode#NONE})}</code>.
      *
-     * <p>Note: if this method is used for updating the last IFD, which was read from the TIFF file,
-     * it will automatically {@link #invalidateLinkage() invalidate linkages}
-     * (an internal field returned by {@link Linkage#offsetOfIFDChainTerminator()}).
-     * So you will be able to continue appending new images to the file via {@link #newMap(TiffIFD, boolean)}:
-     * the necessary linkage information will be refreshed automatically.</p>
-     *
      * @param ifd the IFD to write to the output stream.
      * @return the offset where this IFD was actually written.
      * @throws IOException if an I/O error occurs.
@@ -851,7 +845,7 @@ public non-sealed class TiffWriter extends TiffIO {
     public long writeIFDAtFileEnd(TiffIFD ifd) throws IOException {
         ifd.removeFileOffsetOfIFDForWriting();
         return writeIFD(ifd, Linkage.UpdateMode.NONE);
-        // Note: writeIFD will call invalidateLinkage() if this IFD is not actually virgin
+        // Note: writeIFD will call invalidateLinkage() if this IFD is not actually "virgin"
     }
 
     /**
@@ -902,7 +896,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * <code>updateModeForNewIFD={@link Linkage.UpdateMode#NONE}</code>,
      * this method does not try to modify anything in the file besides writing this IFD.
      * Also in this case, if condition <b>A</b> is not fulfilled,
-     * i.e., if the start offset if the newly written IFD
+     * i.e., if the start offset of the newly written IFD
      * is already {@link Linkage#containsIFDOffset(long) contained} in the existing {@link #linkage()},
      * this method also calls {@link #invalidateLinkage()}.
      * It is necessary because it rewrites 'next IFD offset' field in an existing IFD:
@@ -1898,7 +1892,7 @@ public non-sealed class TiffWriter extends TiffIO {
         }
         if (needToReload) {
             final var newLinkage = currentLinkage;
-            LOG.log(System.Logger.Level.DEBUG, () -> "Reloading linkage" + comment + ": " + newLinkage);
+            LOG.log(System.Logger.Level.DEBUG, () -> comment + ": " + newLinkage);
         }
         return currentLinkage;
     }
@@ -2139,13 +2133,15 @@ public non-sealed class TiffWriter extends TiffIO {
             // as the linkage() method does. However, the only goal of the code below is possible INVALIDATION,
             // i.e., clearing to null.
             // So, it makes no sense to use linkage(): if linkage is null, let it stay to be null.
+            LOG.log(System.Logger.Level.DEBUG, () ->
+                    "Invalidating linkage skipped for IFD with next-IFD-offset " + ifd.nextIFDOffsetToString());
             return;
         }
         if (linkage.containsIFDOffset(ifdOffset)) {
             // - This IFD already exists in the linkage. Rewriting its effectiveNextIFDOffset() above
             // could probably change the chain structure, so the cached linkage cannot be trusted anymore.
-            invalidateLinkage(true, () -> " for IFD with next-IFD-offset=" +
-                    ifd.optNextIFDOffset().stream().mapToObj(String::valueOf).findFirst().orElse("n/a"));
+            invalidateLinkage(true, () ->
+                    " for IFD with next-IFD-offset " + ifd.nextIFDOffsetToString());
         }
         // - If the condition is false, we have a new independent IFD:
         // there are no links to it within the existing linkage in the file.
