@@ -743,25 +743,7 @@ public non-sealed class TiffReader extends TiffIO {
         return existingFile;
     }
 
-    /**
-     * Returns whether we are reading little-endian data.
-     *
-     * @return whether this is a little-endian TIFF.
-     */
-    public boolean isLittleEndian() {
-        return stream.isLittleEndian();
-    }
-
-    /**
-     * Returns <code>{@link #isLittleEndian()} ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN</code>.
-     *
-     * @return byte order in the TIFF file.
-     */
-    public ByteOrder getByteOrder() {
-        return isLittleEndian() ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
-    }
-
-    /**
+     /**
      * Returns <code>{@link #allIFDs()}.size()</code>.
      *
      * @return number of existing IFDs.

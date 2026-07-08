@@ -116,6 +116,26 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return bigTiff;
     }
 
+    /**
+     * Returns whether we are reading or writing little-endian data.
+     *
+     * @return whether this is a little-endian TIFF.
+     */
+    public boolean isLittleEndian() {
+        synchronized (fileLock) {
+            return stream.isLittleEndian();
+        }
+    }
+
+    /**
+     * Returns <code>{@link #isLittleEndian()} ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN</code>.
+     *
+     * @return byte order in the TIFF file.
+     */
+    public ByteOrder getByteOrder() {
+        return isLittleEndian() ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
+    }
+
     public Object getContext() {
         return context;
     }
@@ -630,25 +650,43 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return scifio;
     }
 
-    IFDCommonInformation prepareReadingIFD(long ifdOffset) throws IOException {
+    IFDCommonInformation prepareReadingIFD(long ifdOffset, boolean includeNextOffset) throws IOException {
+        final boolean littleEndian = stream.isLittleEndian();
         final long tiffFileLength = stream.length();
         final int n = readNumberOfIFDEntriesAt(ifdOffset);
         final long offsetOfFirstEntry = ifdOffset + sizeOfNumberOfIFDEntries();
 
         final int sizeOfEntry = sizeOfIFDEntry();
         final int sizeOfAllEntries = sizeOfEntry * n;
-        if (offsetOfFirstEntry > tiffFileLength - sizeOfAllEntries) {
-            throw new TiffException("%d IFD entries at the offset %d exceeds the file length %d".formatted(
-                    n, offsetOfFirstEntry, tiffFileLength));
+        final int sizeOfNextOffset = includeNextOffset ? sizeOfOffset() : 0;
+        if (offsetOfFirstEntry > tiffFileLength - (sizeOfAllEntries + sizeOfNextOffset)) {
+            throw new TiffException("%d IFD entries at the offset %d exceeds the file length %d%s".formatted(
+                    n, offsetOfFirstEntry, tiffFileLength,
+                    includeNextOffset ? " (including " + sizeOfNextOffset + "-byte next-IFD-offset field)" : ""));
         }
         if (stream.offset() != offsetOfFirstEntry) {
             throw new ConcurrentModificationException("Strange stream offset " +
                     stream.offset() + " != " + offsetOfFirstEntry +
                     ", probably due to operations in a parallel thread");
         }
+        final byte[] ifdBytes = new byte[sizeOfAllEntries + sizeOfNextOffset];
+        stream.readFully(ifdBytes);
+        final Long nextIFDOffset = includeNextOffset ?
+                JArrays.getBytes8(
+                        ifdBytes, sizeOfAllEntries, sizeOfNextOffset,
+                        littleEndian ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN) :
+                null;
         final long fileOffsetOfNextIFDOffset = offsetOfFirstEntry + sizeOfAllEntries;
         return new IFDCommonInformation(
-                n, sizeOfEntry, sizeOfAllEntries, offsetOfFirstEntry, fileOffsetOfNextIFDOffset, tiffFileLength);
+                littleEndian,
+                n,
+                sizeOfEntry,
+                sizeOfAllEntries,
+                ifdBytes,
+                offsetOfFirstEntry,
+                fileOffsetOfNextIFDOffset,
+                nextIFDOffset,
+                tiffFileLength);
     }
 
     // Note: TIFF standard allows reading next offset in any case,
@@ -670,11 +708,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         final Map<Integer, Object> map = new LinkedHashMap<>();
         final LinkedHashMap<Integer, TiffIFD.Entry> detailedEntries = new LinkedHashMap<>();
         synchronized (fileLock) {
-            final IFDCommonInformation info = prepareReadingIFD(ifdOffset);
-            final DataHandle<?> ifdStream;
-            final byte[] ifdBytes = new byte[info.sizeOfAllEntries()];
-            stream.readFully(ifdBytes);
-            ifdStream = getBytesHandle(ifdBytes, stream.isLittleEndian());
+            final IFDCommonInformation info = prepareReadingIFD(ifdOffset, !skipReadingNextOffset);
+            final DataHandle<?> ifdStream = getBytesHandle(info.ifdBytes(), info.littleEndian());
             for (int i = 0, disp = 0; i < info.n(); i++, disp += info.sizeOfEntry()) {
                 long tEntry1 = debugTime();
                 final TiffIFD.Entry entry = readIFDEntry(
@@ -705,19 +740,19 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 }
             }
             stream.seek(info.offsetOfNextIFDOffset());
+            // - this "in.seek" provides maximal compatibility with old code (which did not read next IFD offset)
+            // and also with the behavior of this method when skipReadingNextOffset==true
 
             ifd = new TiffIFD(map, detailedEntries);
             ifd.setLoadedFromFile(true);
-            ifd.setLittleEndian(stream.isLittleEndian());
+            ifd.setLittleEndian(info.littleEndian());
             ifd.setBigTiff(bigTiff);
             ifd.setFileOffsetOfIFD(ifdOffset);
             if (!skipReadingNextOffset) {
-                final long nextOffset = readIFDOffset();
+                assert info.nextIFDOffset() != null;
+                final long nextOffset = info.nextIFDOffset();
                 ifd.setFileOffsetOfNextIFDOffset(info.offsetOfNextIFDOffset());
                 ifd.setNextIFDOffset(nextOffset);
-                stream.seek(info.offsetOfNextIFDOffset());
-                // - this "in.seek" provides maximal compatibility with old code (which did not read next IFD offset)
-                // and also with the behavior of this method, when readNextOffset is not requested
             }
         }
 
@@ -1698,11 +1733,14 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     }
 
     record IFDCommonInformation(
+            boolean littleEndian,
             int n,
             int sizeOfEntry,
             int sizeOfAllEntries,
+            byte[] ifdBytes,
             long offsetOfFirstEntry,
             long offsetOfNextIFDOffset,
+            Long nextIFDOffset,
             long fileLength) {
     }
 }

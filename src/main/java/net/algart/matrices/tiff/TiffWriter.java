@@ -212,15 +212,6 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Returns whether we are writing little-endian data.
-     */
-    public boolean isLittleEndian() {
-        synchronized (fileLock) {
-            return stream.isLittleEndian();
-        }
-    }
-
-    /**
      * Sets whether little-endian data should be written.
      * This flag must be set before creating the file by {@link #create()} method.
      * The default order is <b>big-endian</b>.
@@ -233,13 +224,6 @@ public non-sealed class TiffWriter extends TiffIO {
             stream.setLittleEndian(littleEndian);
         }
         return this;
-    }
-
-    /**
-     * Returns <code>{@link #isLittleEndian()} ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN</code>.
-     */
-    public ByteOrder getByteOrder() {
-        return isLittleEndian() ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
     }
 
     /**
@@ -2023,15 +2007,20 @@ public non-sealed class TiffWriter extends TiffIO {
             throws IOException {
         Objects.requireNonNull(ifdMap, "Null ifdMap");
         Objects.requireNonNull(tagsToUpdate, "Null tagsToUpdate");
-        final boolean littleEndian = stream.isLittleEndian();
         // You may compare the following code with TiffReader.readIFD
-        final IFDCommonInformation info = prepareReadingIFD(ifdOffset);
+        final IFDCommonInformation info = prepareReadingIFD(ifdOffset, true);
 
-        final byte[] oldIFDBytes = new byte[info.sizeOfAllEntries()];
-        stream.readFully(oldIFDBytes);
+        final byte[] oldIFDBytes = info.ifdBytes();
         final byte[] newIFDBytes = oldIFDBytes.clone();
-        final DataHandle<?> oldStream = getBytesHandle(oldIFDBytes, littleEndian);
-        final DataHandle<?> newStream = getBytesHandle(newIFDBytes, littleEndian);
+        // setBigTiff(!isBigTiff()); // - leads to ConcurrentModificationException
+        if (oldIFDBytes.length != info.sizeOfAllEntries() + sizeOfOffset()) {
+            throw new ConcurrentModificationException("Strange Big-TIFF flag change: current size of offsets " +
+                    sizeOfOffset() + ", but it was " +
+                    (oldIFDBytes.length - info.sizeOfAllEntries()) + " before access to this IFD" +
+                    ", probably this occurred due to operations in a parallel thread");
+        }
+        final DataHandle<?> oldStream = getBytesHandle(oldIFDBytes, info.littleEndian());
+        final DataHandle<?> newStream = getBytesHandle(newIFDBytes, info.littleEndian());
         final BytesHandle[] extraBuffers = new BytesHandle[info.n()];
         // - null-filled by Java
         final long[] extraOffsets = new long[info.n()];
@@ -2042,7 +2031,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 continue;
             }
             final Object value = ifdMap.get(tag);
-            final BytesHandle extraBuffer = newBytesHandle(littleEndian);
+            final BytesHandle extraBuffer = newBytesHandle(info.littleEndian());
             newStream.seek(disp);
             assert extraBuffer.offset() == 0;
             final boolean oldDataEmbedded = oldEntry.isDataEmbeddedInEntry();
@@ -2092,7 +2081,7 @@ public non-sealed class TiffWriter extends TiffIO {
             }
         }
         stream.seek(info.offsetOfFirstEntry());
-        copyData(newStream, stream, true, newIFDBytes.length);
+        copyData(newStream, stream, true, info.sizeOfAllEntries());
         // stream.write(newIFDBytes);
         // - this call does not work in scijava-common 2.99.2: due to a bug in ByteArrayByteBank,
         // writing bytes to BytesHandle ALWAYS reallocates the built-in Java array
