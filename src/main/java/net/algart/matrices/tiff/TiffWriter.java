@@ -862,9 +862,8 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * <p>Note: if the next IFD offset is not specified in this IFD ({@link TiffIFD#hasNextIFDOffset()}
      * returns {@code false}), the IFD written to disk is automatically marked as the last IFD
-     * (next IFD offset is 0; but the {@link TiffIFD} object in memory is not modified).
-     * You may also call {@link #rewriteLastIFDOffset(long)} to correct
-     * this mark inside the file in a previously written IFD, but usually there is no necessity to do this.</p>
+     * (next IFD offset is 0; but the {@link TiffIFD#getNextIFDOffset() next IFD offset} field in
+     * the {@code ifd} object is not modified).</p>
      *
      * <p>If {@code updateModeForNewIFD} is {@link Linkage.UpdateMode#AUTO_APPEND}, this method attempts to
      * correct the linkage information in the file to append the current IFD to the end of the IFDs chain,
@@ -872,32 +871,42 @@ public non-sealed class TiffWriter extends TiffIO {
      * gets the current linkage information via {@link #linkage()} method, and then:</p>
      *
      * <ol type="A">
-     *     <li>if the <i>for-writing</i> IFD offset is absolutely new for this file
-     *     ({@link Linkage#containsIFDOffset(long)} returns {@code false}), in particular, when
-     *      it is not assigned (writing to the file end),</li>
-     *      <li>and if the next IFD offset will be marked as the last IFD
-     *      ({@link TiffIFD#isEffectivelyChainTerminator()} returns {@code true}, see above),</li>
+     *     <li>if the {@link TiffIFD#assignFileOffsetOfIFDForWriting(long) <i>for-writing</i> IFD offset}
+     *     is absolutely new for this file<br>
+     *     (that means: <code>{@link #linkage()}.{@link Linkage#containsIFDOffset(long)
+     *     containsIFDOffset(offset)}</code>
+     *     for this offset returns {@code false}),<br>
+     *     in particular, when it is not assigned (writing to the file end),</li>
+     *      <li>and if the next IFD offset will be marked as the last IFD<br>
+     *      (that means: {@link TiffIFD#isEffectivelyChainTerminator()
+     *      ifd.isEffectivelyChainTerminator()} returns {@code true}, see above),</li>
      * </ol>
      *
      * <p>then this method performs the following two actions:</p>
      *
      * <ol>
-     *     <li>rewrites 'next IFD offset' stored in the file at the position
-     *     {@link Linkage#offsetOfIFDChainTerminator()} with the offset of this newly written IFD;
+     *     <li>rewrites 'next IFD offset' stored <b>in the file</b> at the position
+     *     <code>{@link #linkage()}.{@link Linkage#offsetOfIFDChainTerminator()
+     *     offsetOfIFDChainTerminator()}</code> with the offset of this newly written IFD;
      *     actually, this means that this IFD is appended to the end of the IFDs chain;</li>
      *     <li>performs the necessary corrections in the existing {@link #linkage()} object
-     *     ({@link #invalidateLinkage() invalidation} is not necessary).</li>
+     *     (the {@link #invalidateLinkage()} method is not called).</li>
      * </ol>
      *
-     * <p>Note that this is the typical situation when writing a new TIFF image to the end of the file.
+     * <p>Note that this is a typical situation when writing a new TIFF image to the end of the file.
      * However, this operation is absolutely <b>senseless</b> if the previously written IFD is not actually
      * the predecessor of this one! If you are not going to add a new image to the TIFF,
      * use the {@link Linkage.UpdateMode#NONE} mode.</p>
      *
      * <p>If at least one of the conditions <b>A</b> or <b>B</b> is not met, or if
      * <code>updateModeForNewIFD={@link Linkage.UpdateMode#NONE}</code>,
-     * this method calls {@link #invalidateLinkage()} and does not try
-     * to modify anything in the file besides writing this IFD.</p>
+     * this method does not try to modify anything in the file besides writing this IFD.
+     * Also in this case, if condition <b>A</b> is not fulfilled,
+     * i.e., if the start offset if the newly written IFD
+     * is already {@link Linkage#containsIFDOffset(long) contained} in the existing {@link #linkage()},
+     * this method also calls {@link #invalidateLinkage()}.
+     * It is necessary because it rewrites 'next IFD offset' field in an existing IFD:
+     * it can lead to changes in the linkage structure.</p>
      *
      * <p>Note: this method changes the position in the output stream.
      * (Actually, the position will be after the IFD information, including all additional data
@@ -915,6 +924,8 @@ public non-sealed class TiffWriter extends TiffIO {
      * called on the {@code ifd} after this method completes).
      * @throws IOException if an I/O error occurs.
      * @see #rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, Linkage.UpdateMode)
+     * @see #rewriteIFDOffset(int, long)
+     * @see #rewriteLastIFDOffset(long)
      * @see #invalidateLinkage()
      */
     public long writeIFD(TiffIFD ifd, Linkage.UpdateMode updateModeForNewIFD) throws IOException {
@@ -995,8 +1006,8 @@ public non-sealed class TiffWriter extends TiffIO {
      * Specifically, it checks the same conditional rules (<b>A</b> and <b>B</b>) and performs the same corrections
      * as described in that method. If conditions are not met, or if
      * <code>updateModeForNewIFD={@link Linkage.UpdateMode#NONE}</code>,
-     * this method calls {@link #invalidateLinkage()} and does not attempt to modify anything in the file
-     * besides this IFD itself.</p>
+     * this method calls {@link #invalidateLinkage()} in the same situations as
+     * {@link #writeIFD(TiffIFD, Linkage.UpdateMode)}.</p>
      *
      * <p>This method is used, for example, by
      * {@link #rewriteImageLayoutStrictlyInPlace(TiffIFD, Linkage.UpdateMode)}
@@ -2114,8 +2125,8 @@ public non-sealed class TiffWriter extends TiffIO {
             final boolean newIndependentTrailingIFD = !linkage.containsIFDOffset(ifdOffset);
             if (newIndependentTrailingIFD) {
                 // - This is the only case when we can safely add new IFD to the chain end:
-                // 1) isEffectivelyChainTerminator() - it will actually become the chain end;
-                // 2) newIndependentTrailingIFD - its start is not equal to any of existing IFD offsets.
+                // A) newIndependentTrailingIFD - its start is not equal to any of existing IFD offsets;
+                // B) isEffectivelyChainTerminator() - it will actually become the chain end.
                 writeOffsetAt(ifdOffset, linkage.offsetOfIFDChainTerminator());
                 linkage.updateAfterAppendingNewIFD(ifdOffset, fileOffsetOfNextIFDOffset);
                 return;
@@ -2127,7 +2138,7 @@ public non-sealed class TiffWriter extends TiffIO {
             // - Performance trick! Usually, if there is no linkage (after invalidation), we need to reload it,
             // as the linkage() method does. However, the only goal of the code below is possible INVALIDATION,
             // i.e., clearing to null.
-            // So, there is no any sense to use linkage(): if linkage is null, let it stay to be null.
+            // So, it makes no sense to use linkage(): if linkage is null, let it stay to be null.
             return;
         }
         if (linkage.containsIFDOffset(ifdOffset)) {

@@ -207,8 +207,8 @@ public final class TiffIFD {
                     OptionalLong.of(offsetPairs.getLast().offsetOfIFDStart());
         }
 
-        public boolean containsIFDOffset(long ifdOffset) {
-            return offsetSet.contains(ifdOffset);
+        public boolean containsIFDOffset(long offset) {
+            return offsetSet.contains(offset);
         }
 
         public String toString() {
