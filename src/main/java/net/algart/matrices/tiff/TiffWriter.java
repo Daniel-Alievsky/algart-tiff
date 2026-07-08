@@ -527,6 +527,15 @@ public non-sealed class TiffWriter extends TiffIO {
      * {@link #writeOffsetAt(long, long)} method or perform direct modifications in the file
      * via the {@link #stream()} object or other external means.</p>
      *
+     * <p>Performance note: sometimes this library <b>skips</b> call to this method
+     * if we are sure that the IFD linkage structure remains correct,
+     * even if the comments to other methods specify that
+     * &ldquo;they invalidate linkage&rdquo;.
+     * We are free to add such situations in future versions while possible optimization of this library.
+     * In any case, the only way to detect such change of behavior is using
+     * {@link #linkageIfPresent()} method:
+     * probably, it will return a non-empty result more often than the documentation suggests.</p>
+     *
      * @see #writeIFD(TiffIFD, Linkage.UpdateMode)
      */
     public void invalidateLinkage() {
@@ -934,7 +943,7 @@ public non-sealed class TiffWriter extends TiffIO {
             final long fileOffsetOfNextOffset = writeIFDEntries(sortedIFD, ifdOffset, mainIFDLength);
             ifd.setFileOffsetOfNextIFDOffset(fileOffsetOfNextOffset);
 
-            writeNextOffsetAndUpdateLinkage(ifd, updateModeForNewIFD);
+            writeNextOffsetAndUpdateLinkage(ifd, updateModeForNewIFD, null);
             // - note: we write the next offset even if updateModeForNewIFD=Linkage.UpdateMode.NONE;
             // it is useful, for example, in prewrite(TiffWriteMap) method
             return ifdOffset;
@@ -1035,8 +1044,10 @@ public non-sealed class TiffWriter extends TiffIO {
             // - note: unlike writeIFD(), here we DO NOT NEED to call checkFileOffsetForWriting(ifdOffset)
             // for (int k = 0; k < 500; k++) rewriteTagsAt(ifd.map(), tagsToUpdate, ifdOffset); // - timing
             final IFDCommonInformation info = rewriteSelectedTagsAt(ifd.map(), tagsToUpdate, ifdOffset);
+            assert info.nextIFDOffset() != null :
+                    "prepareReadingIFD with includeNextOffset=true has not read nextIFDOffset";
             ifd.setFileOffsetOfNextIFDOffset(info.offsetOfNextIFDOffset());
-            writeNextOffsetAndUpdateLinkage(ifd, updateModeForNewIFD);
+            writeNextOffsetAndUpdateLinkage(ifd, updateModeForNewIFD, info.nextIFDOffset());
             // - note: usually there is no sense to write the next offset
             // when updateModeForNewIFD=Linkage.UpdateMode.NONE,
             // but it is not a problem (usually it will be the same)
@@ -2095,14 +2106,21 @@ public non-sealed class TiffWriter extends TiffIO {
         return info;
     }
 
-    private void writeNextOffsetAndUpdateLinkage(TiffIFD ifd, Linkage.UpdateMode updateModeForNewIFD)
+    private void writeNextOffsetAndUpdateLinkage(
+            TiffIFD ifd,
+            Linkage.UpdateMode updateModeForNewIFD,
+            Long nextIFDOffsetWrittenInFile)
             throws IOException {
         // if (true) { updateNextOffsetAndLinkageAtLegacy(ifd, updateModeForNewIFD); return; }
         final long ifdOffset = ifd.assignedFileOffsetOfIFDForWriting();
         final long fileOffsetOfNextIFDOffset = ifd.getFileOffsetOfNextIFDOffset();
         final long nextIFDOffset = ifd.effectiveNextIFDOffset();
         final boolean appendRequested = updateModeForNewIFD.isAppend();
-        writeOffsetAt(nextIFDOffset, fileOffsetOfNextIFDOffset);
+        final boolean nextIFDOffsetChanged =
+                nextIFDOffsetWrittenInFile == null || nextIFDOffset != nextIFDOffsetWrittenInFile;
+        if (nextIFDOffsetChanged) {
+            writeOffsetAt(nextIFDOffset, fileOffsetOfNextIFDOffset);
+        }
         if (appendRequested && ifd.isEffectivelyChainTerminator()) {
             final Linkage linkage = linkage();
             final boolean newIndependentTrailingIFD = !linkage.containsIFDOffset(ifdOffset);
@@ -2114,6 +2132,10 @@ public non-sealed class TiffWriter extends TiffIO {
                 linkage.updateAfterAppendingNewIFD(ifdOffset, fileOffsetOfNextIFDOffset);
                 return;
             }
+        }
+        if (!nextIFDOffsetChanged) {
+            // - we didn't change anything
+            return;
         }
         final Linkage linkage = this.linkage;
         // - more simple equivalent of: linkageIfPresent().orElse(null);
