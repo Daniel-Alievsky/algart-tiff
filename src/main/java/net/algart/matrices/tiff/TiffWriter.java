@@ -947,7 +947,7 @@ public non-sealed class TiffWriter extends TiffIO {
 
             writeNextOffsetAndUpdateLinkage(ifd, updateModeForNewIFD);
             // - note: we write the next offset even if updateModeForNewIFD=Linkage.UpdateMode.NONE;
-            // it is useful, for example, in prewrite() method
+            // it is useful, for example, in prewrite(TiffWriteMap) method
             return ifdOffset;
         }
     }
@@ -1857,13 +1857,13 @@ public non-sealed class TiffWriter extends TiffIO {
 
     private Linkage linkage(String comment) throws IOException {
         Linkage currentLinkage = this.linkage;
-        boolean needToRefresh = currentLinkage == null;
-        if (needToRefresh) {
+        boolean needToReload = currentLinkage == null;
+        if (needToReload) {
             synchronized (fileLock) {
                 // double-checked locking idiom
                 currentLinkage = this.linkage;
-                needToRefresh = currentLinkage == null;
-                if (needToRefresh) {
+                needToReload = currentLinkage == null;
+                if (needToReload) {
                     boolean success = false;
                     final long savedOffset = stream.offset();
                     try {
@@ -1885,9 +1885,9 @@ public non-sealed class TiffWriter extends TiffIO {
                 }
             }
         }
-        if (needToRefresh) {
+        if (needToReload) {
             final var newLinkage = currentLinkage;
-            LOG.log(System.Logger.Level.DEBUG, () -> "Refreshing linkage" + comment + ": " + newLinkage);
+            LOG.log(System.Logger.Level.DEBUG, () -> "Reloading linkage" + comment + ": " + newLinkage);
         }
         return currentLinkage;
     }
@@ -2121,8 +2121,96 @@ public non-sealed class TiffWriter extends TiffIO {
                 return;
             }
         }
-        invalidateLinkage(true, () -> " for IFD with next-IFD-offset=" +
-                ifd.optNextIFDOffset().stream().mapToObj(String::valueOf).findFirst().orElse("n/a"));
+        final Linkage linkage = this.linkage;
+        // - more simple equivalent of: linkageIfPresent().orElse(null);
+        if (linkage == null) {
+            // - Performance trick! Usually, if there is no linkage (after invalidation), we need to reload it,
+            // as the linkage() method does. However, the only goal of the code below is possible INVALIDATION,
+            // i.e., clearing to null.
+            // So, there is no any sense to use linkage(): if linkage is null, let it stay to be null.
+            return;
+        }
+        if (linkage.containsIFDOffset(ifdOffset)) {
+            // - This IFD already exists in the linkage. Rewriting its effectiveNextIFDOffset() above
+            // could probably change the chain structure, so the cached linkage cannot be trusted anymore.
+            invalidateLinkage(true, () -> " for IFD with next-IFD-offset=" +
+                    ifd.optNextIFDOffset().stream().mapToObj(String::valueOf).findFirst().orElse("n/a"));
+        }
+        // - If the condition is false, we have a new independent IFD:
+        // there are no links to it within the existing linkage in the file.
+        // Thus, invalidating linkage does not make sense:
+        // reloading linkage later would simply reconstruct the same chain (without this IFD).
+        // This situation is typical while using prewrite(TiffWriteMap map) method
+    }
+
+    // The algorithm below was used before 1.07.2026. Note that it does not support all functionality
+    // of Linkage object: it does not correct offsetPairs list.
+    private void updateNextOffsetAndLinkageAtLegacy(TiffIFD ifd, Linkage.UpdateMode updateModeForNewIFD)
+            throws IOException {
+        final long ifdOffset = ifd.assignedFileOffsetOfIFDForWriting();
+        final long fileOffsetOfNextOffset = ifd.getFileOffsetOfNextIFDOffset();
+        final boolean update = updateModeForNewIFD.isAppend();
+        final long previousOffsetOfIFDChainTerminator;
+        final Linkage linkage;
+        if (update) {
+            linkage = linkage();
+            previousOffsetOfIFDChainTerminator = linkage.offsetOfIFDChainTerminator();
+        } else {
+            linkage = linkageIfPresent().orElse(null);
+            previousOffsetOfIFDChainTerminator = -1;
+        }
+        // - save it, because it will be updated in writeIFDOffsetAt
+        final boolean knownIFDOffset = linkage != null && linkage.containsIFDOffset(ifdOffset);
+        boolean virginIFDForAppendingNewImages = !ifd.hasNextIFDOffset();
+        // - Optimization for writing sequential images.
+        // If this IFD is a terminator (either newly created for appending or explicitly marked),
+        // we can safely skip invalidateLinkage(): correcting the offsetOfIFDChainTerminator
+        // field inside writeIFDOffsetAt() is sufficient to maintain a valid chain state.
+        final long nextIFDOffsetIfPresent = virginIFDForAppendingNewImages ? -1 : ifd.getNextIFDOffset();
+        // - Used for logging only
+        if (knownIFDOffset) {
+            virginIFDForAppendingNewImages = false;
+        }
+        final long nextIFDOffset = ifd.effectiveNextIFDOffset();
+        writeOffsetAt(nextIFDOffset, fileOffsetOfNextOffset);
+        if (update) {
+            updateAfterAppendingNewIFDLegacy(linkage, nextIFDOffset, fileOffsetOfNextOffset);
+        }
+
+        // - writes (or rewrites) TiffIFD.IFD_CHAIN_TERMINATOR (or ifd.getNextIFDOffset()
+        // to the file at fileOffsetOfNextOffset;
+        if (update && !knownIFDOffset) {
+            // - Only if it is an absolutely newly added IFD!
+            // If this offset is already contained in the list, an attempt to link to it
+            // will probably lead to an infinite loop of IFDs.
+            // This check is necessary, for example, for overwriting an existing image:
+            // without it, the completeWriting method will create an infinite loop.
+            writeOffsetAt(ifdOffset, previousOffsetOfIFDChainTerminator);
+            // *** However, here is A LITTLE PROBLEM of the old version (before 1.07.2026) ***
+            // We are writing ifdOffset at previousOffsetOfIFDChainTerminator even it the case
+            // when the new IFD is NOT a terminal IFD.
+            // It makes possible to join two series: A1->A2-A3, B1-B2-B3, and we are writing
+            // A4 referring to B1.
+            // In a new version, this is impossible - manual correction of A3 in the file is necessary.
+            updateAfterAppendingNewIFDLegacy(linkage, ifdOffset, previousOffsetOfIFDChainTerminator);
+            // - This method adds ifdOffset to allIFDOffsets in UPDATE mode.
+            // (In old versions, we passed here an equivalent of the NONE mode, but now
+            // UPDATE is necessary for correcting allIFDOffsets and, vice versa,
+            // offsetOfIFDChainTerminator will not be changed for offset other than the terminator.)
+        }
+        if (!virginIFDForAppendingNewImages) {
+            invalidateLinkage(true, () -> " for IFD with specified next-IFD-offset=" +
+                    nextIFDOffsetIfPresent);
+        }
+    }
+
+    private static void updateAfterAppendingNewIFDLegacy(
+            Linkage linkage, long newIFDOffsetValue, long fileOffsetOfNewIFDOffset) {
+        if (newIFDOffsetValue != TiffIFD.IFD_CHAIN_TERMINATOR) {
+            linkage.addOffsetToSet(newIFDOffsetValue);
+        } else {
+            linkage.setOffsetOfIFDChainTerminator(fileOffsetOfNewIFDOffset);
+        }
     }
 
     private void correctForEncoding(TiffIFD ifd, boolean smartCorrection, boolean enableOldJpeg) throws TiffException {

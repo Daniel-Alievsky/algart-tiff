@@ -181,9 +181,8 @@ public final class TiffIFD {
         }
 
         public int numberOfMainIFDs() {
-            final int result = offsetPairs.size();
-            assert result == offsetSet.size();
-            return result;
+            return offsetPairs.size();
+            // Note: while using a legacy code calling addOffsetToSet(), this may differ from offsetSet.size()
         }
 
         public Collection<OffsetPair> mainIFDOffsetPairs() {
@@ -245,7 +244,7 @@ public final class TiffIFD {
 
         void addOffsetPair(OffsetPair offsetPair) {
             Objects.requireNonNull(offsetPair, "Null offsetPair");
-            if (!offsetSet.add(offsetPair.offsetOfIFDStart)) {
+            if (!addOffsetToSet(offsetPair.offsetOfIFDStart)) {
                 throw new IllegalArgumentException("Duplicate offsetPair: " + offsetPair);
             }
             offsetPairs.add(offsetPair);
@@ -257,6 +256,11 @@ public final class TiffIFD {
                         offsetOfIFDChainTerminator);
             }
             this.offsetOfIFDChainTerminator = offsetOfIFDChainTerminator;
+        }
+
+        // Necessary for legacy code
+        boolean addOffsetToSet(long offset) {
+            return offsetSet.add(offset);
         }
     }
 
