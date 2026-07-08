@@ -527,16 +527,16 @@ public non-sealed class TiffWriter extends TiffIO {
      * {@link #writeOffsetAt(long, long)} method or perform direct modifications in the file
      * via the {@link #stream()} object or other external means.</p>
      *
-     * <p>Performance note: sometimes this library <b>skips</b> call to this method
-     * if we are sure that the IFD linkage structure remains correct,
-     * even if the comments to other methods specify that
-     * &ldquo;they invalidate linkage&rdquo;.
-     * We are free to add such situations in future versions while possible optimization of this library.
-     * In any case, the only way to detect such change of behavior is using
-     * {@link #linkageIfPresent()} method:
-     * probably, it will return a non-empty result more often than the documentation suggests.</p>
+     * <p>Performance note: sometimes this library <b>skips</b> calling this method
+     * if we are certain the IFD linkage structure remains correct,
+     * even if other method documentation states that &ldquo;they invalidate linkage&rdquo;.
+     * We are free to add such cases in future versions as part of our ongoing library optimization.
+     * In any case, the only way to detect such changes in behavior is to use the
+     * {@link #linkageIfPresent()} method: it's possible that it will return a non-empty result
+     * more often than the documentation implies.</p>
      *
      * @see #writeIFD(TiffIFD, Linkage.UpdateMode)
+     * @see #rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, Linkage.UpdateMode)
      */
     public void invalidateLinkage() {
         invalidateLinkage(true, null);
