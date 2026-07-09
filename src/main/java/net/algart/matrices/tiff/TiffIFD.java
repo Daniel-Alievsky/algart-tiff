@@ -2961,6 +2961,7 @@ public final class TiffIFD {
         addBriefInfo(sb, json);
         if (format.isBrief()) {
             assert !json;
+            sb.append("; ").append(numberOfEntries()).append(" entries");
             return sb.toString();
         }
         if (json) {

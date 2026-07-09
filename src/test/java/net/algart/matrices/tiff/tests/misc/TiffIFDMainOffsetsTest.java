@@ -244,14 +244,14 @@ public class TiffIFDMainOffsetsTest {
                 ifd = reader.readIFDAt(reader.readMainIFDOffset(ifdIndex), TiffIO.ReadIFDMode.SKIP_IFD_ENTRIES);
                 t2 = System.nanoTime();
                 System.out.printf(Locale.US,
-                        "readIFDAt(%d), no entries: %s (%.6f mcs)%n", ifdIndex, ifd, (t2 - t1) * 1e-3);
+                        "readIFDAt for %d, no entries: %s (%.6f mcs)%n", ifdIndex, ifd, (t2 - t1) * 1e-3);
                 printLinkage(reader);
                 if (ifdIndex > 0 && reader.offsetOfLastScannedIFDOffset().orElseThrow() !=
                         mainIFDS.get(ifdIndex - 1).getFileOffsetOfNextIFDOffset()) {
                     throw new AssertionError("TiffIFD.getFileOffsetOfNextIFDOffset() and " +
                             "offsetOfLastScannedIFDOffset() mismatch");
                 }
-                System.out.printf("Mini-IFD:%n%s%n", ifd.toString(TiffIFD.StringFormat.DETAILED));
+                System.out.printf("Mini-IFD: ''''%s'''%n", ifd.toString(TiffIFD.StringFormat.DETAILED));
                 if (ifd.numberOfEntries() > 0 || !ifd.map().isEmpty()) {
                     throw new AssertionError("Entries map must be empty");
                 }
@@ -261,7 +261,7 @@ public class TiffIFDMainOffsetsTest {
                 ifd = reader.readIFDAt(reader.readMainIFDOffset(ifdIndex), TiffIO.ReadIFDMode.SKIP_NEXT_IFD_OFFSET);
                 t2 = System.nanoTime();
                 System.out.printf(Locale.US,
-                        "readIFDAt(%d), no next IFD: %s (%.6f mcs)%n", ifdIndex, ifd, (t2 - t1) * 1e-3);
+                        "readIFDA for %d, no next IFD: %s (%.6f mcs)%n", ifdIndex, ifd, (t2 - t1) * 1e-3);
                 printLinkage(reader);
                 if (ifdIndex > 0 && reader.offsetOfLastScannedIFDOffset().orElseThrow() !=
                         mainIFDS.get(ifdIndex - 1).getFileOffsetOfNextIFDOffset()) {
@@ -279,6 +279,7 @@ public class TiffIFDMainOffsetsTest {
                         "readMainIFD(%d): %s (%.6f mcs)%n", numberOfMain - 1, ifd, (t2 - t1) * 1e-3);
                 printLinkage(reader);
                 checkEqual(ifd, mainIFDS.get(numberOfMain - 1));
+                checkOffsets(ifd, linkage, numberOfMain - 1);
             }
         }
         reader.close();
