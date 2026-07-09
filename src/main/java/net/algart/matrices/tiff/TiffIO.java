@@ -58,6 +58,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
          * Reading all IFD information: entries and the offset of the next IFD in the IFDs chain.
          */
         NORMAL(true, true),
+
         /**
          * Reading only the next IFD offset and the common information.
          * The properties {@link TiffIFD#getNextIFDOffset() next IFD offset}
@@ -68,6 +69,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
          * The {@link TiffIFD#map() entries map} will remain empty.
          */
         SKIP_IFD_ENTRIES(false, true),
+
         /**
          * Reads the entries and common information, skipping the next IFD offset.
          * The {@link TiffIFD#map() entries map} and common information (such as

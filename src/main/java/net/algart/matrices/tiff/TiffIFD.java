@@ -185,7 +185,7 @@ public final class TiffIFD {
             // Note: while using a legacy code calling addOffsetToSet(), this may differ from offsetSet.size()
         }
 
-        public Collection<OffsetPair> mainIFDOffsetPairs() {
+        public List<OffsetPair> mainIFDOffsetPairs() {
             return Collections.unmodifiableList(offsetPairs);
         }
 
@@ -3442,7 +3442,7 @@ public final class TiffIFD {
                 sb.append(", next link at @%d=0x%X ->".formatted(
                         fileOffsetOfNextIFDOffset, fileOffsetOfNextIFDOffset));
             }
-            sb.append(!hasNextIFDOffset() ? " N/A" : isMarkedAsChainTerminator() ? " END" : " @%d=0x%X".formatted(
+            sb.append(!hasNextIFDOffset() ? "" : isMarkedAsChainTerminator() ? " END" : " @%d=0x%X".formatted(
                     nextIFDOffset, nextIFDOffset));
         }
     }

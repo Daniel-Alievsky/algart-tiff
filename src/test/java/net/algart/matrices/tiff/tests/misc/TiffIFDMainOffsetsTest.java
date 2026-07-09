@@ -47,6 +47,20 @@ public class TiffIFDMainOffsetsTest {
         }
     }
 
+    private static void checkOffsets(TiffIFD ifd, TiffIFD.Linkage linkage, int ifdIndex) {
+        long nextOffset = ifdIndex + 1 < linkage.numberOfMainIFDs() ?
+                linkage.mainIFDOffset(ifdIndex + 1) :
+                TiffIFD.IFD_CHAIN_TERMINATOR;
+        if (ifd.getNextIFDOffset() != nextOffset) {
+            throw new AssertionError("TiffIFD.getNextIFDOffset and Linkage.mainIFDOffset mismatch: " +
+                    ifd.getNextIFDOffset() + ", " + nextOffset);
+        }
+        if (ifd.getFileOffsetOfNextIFDOffset() != linkage.offsetOfNextIFDOffset(ifdIndex)) {
+            throw new AssertionError("TiffIFD.getFileOffsetOfNextIFDOffset and " +
+                    "Linkage.offsetOfNextIFDOffset mismatch");
+        }
+    }
+
     public void test() throws Exception {
         main("src/test/resources/demo/images/tiff/openslide/CMU-1-Small-Region.svs", "3", "2");
         main("src/test/resources/demo/images/tiff/openslide/CMU-1-Small-Region.svs", "1", "2");
@@ -223,10 +237,39 @@ public class TiffIFDMainOffsetsTest {
                 System.out.printf(Locale.US,
                         "readMainIFD(%d): %s (%.6f mcs)%n", ifdIndex, ifd, (t2 - t1) * 1e-3);
                 printLinkage(reader);
+                checkOffsets(ifd, linkage, ifdIndex);
+                checkEqual(ifd, mainIFDS.get(ifdIndex));
+
+                t1 = System.nanoTime();
+                ifd = reader.readIFDAt(reader.readMainIFDOffset(ifdIndex), TiffIO.ReadIFDMode.SKIP_IFD_ENTRIES);
+                t2 = System.nanoTime();
+                System.out.printf(Locale.US,
+                        "readIFDAt(%d), no entries: %s (%.6f mcs)%n", ifdIndex, ifd, (t2 - t1) * 1e-3);
+                printLinkage(reader);
                 if (ifdIndex > 0 && reader.offsetOfLastScannedIFDOffset().orElseThrow() !=
                         mainIFDS.get(ifdIndex - 1).getFileOffsetOfNextIFDOffset()) {
                     throw new AssertionError("TiffIFD.getFileOffsetOfNextIFDOffset() and " +
                             "offsetOfLastScannedIFDOffset() mismatch");
+                }
+                System.out.printf("Mini-IFD:%n%s%n", ifd.toString(TiffIFD.StringFormat.DETAILED));
+                if (ifd.numberOfEntries() > 0 || !ifd.map().isEmpty()) {
+                    throw new AssertionError("Entries map must be empty");
+                }
+                checkOffsets(ifd, linkage, ifdIndex);
+
+                t1 = System.nanoTime();
+                ifd = reader.readIFDAt(reader.readMainIFDOffset(ifdIndex), TiffIO.ReadIFDMode.SKIP_NEXT_IFD_OFFSET);
+                t2 = System.nanoTime();
+                System.out.printf(Locale.US,
+                        "readIFDAt(%d), no next IFD: %s (%.6f mcs)%n", ifdIndex, ifd, (t2 - t1) * 1e-3);
+                printLinkage(reader);
+                if (ifdIndex > 0 && reader.offsetOfLastScannedIFDOffset().orElseThrow() !=
+                        mainIFDS.get(ifdIndex - 1).getFileOffsetOfNextIFDOffset()) {
+                    throw new AssertionError("TiffIFD.getFileOffsetOfNextIFDOffset() and " +
+                            "offsetOfLastScannedIFDOffset() mismatch");
+                }
+                if (ifd.hasNextIFDOffset() || ifd.hasFileOffsetOfNextIFDOffset()) {
+                    throw new AssertionError();
                 }
 
                 t1 = System.nanoTime();
@@ -240,5 +283,4 @@ public class TiffIFDMainOffsetsTest {
         }
         reader.close();
     }
-
 }
