@@ -141,6 +141,10 @@ public final class TiffTile {
         return map.isWholeBytes();
     }
 
+    public boolean isRarePrecision() {
+        return map.isRarePrecision();
+    }
+
     /**
      * Returns the number of bits per each sample of this tile.
      * Always equal to {@link #map()}.{@link TiffMap#normalizedBitDepth() bitsPerSample()}.
@@ -609,7 +613,8 @@ public final class TiffTile {
     }
 
     /**
-     * Returns the decoded data. Every pixel in the unpacked data consists of {@link #samplesPerPixel()}
+     * Returns a reference to the decoded data.
+     * Every pixel in the unpacked data consists of {@link #samplesPerPixel()}
      * <i>samples</i>, and every sample is represented with either 1 bit or 1, 2, 3 or 4 whole bytes.
      * If the samples in the TIFF file are K-bit integers where <code>K%8&nbsp;&ne;&nbsp;0</code>,
      * they are automatically unpacked into <code>&#8968;K/8&#8969;*8</code> bit integers while decoding.
@@ -716,27 +721,25 @@ public final class TiffTile {
 
     public Object getUnpackedJavaArray() {
         final byte[] samples = getUnpackedSampleBytes();
+        // Note: we SHOULD NOT call map.bytesToJavaArray(samples)!
+        // This method checks bitImageUnpackingMode and rarePrecisionMode,
+        // but these settings, according the contract, DO NOT affect TiffTile methods.
         return sampleType().javaArray(samples, byteOrder());
     }
 
     public TiffTile setUnpackedJavaArray(Object samplesArray) {
         Objects.requireNonNull(samplesArray, "Null samplesArray");
-        final Class<?> elementType = samplesArray.getClass().getComponentType();
-        if (elementType == null) {
-            throw new IllegalArgumentException("The specified samplesArray is not actually an array: " +
-                    "it is " + samplesArray.getClass());
-        }
-        if (elementType != elementType()) {
-            throw new IllegalArgumentException("Invalid element type of samples array: " + elementType +
-                    ", but the specified TIFF tile stores " + elementType() + " elements");
-        }
-        final int length = Array.getLength(samplesArray);
-        final byte[] samples = TiffSamples.toBytes(samplesArray, length, byteOrder());
+        final byte[] samples = map.javaArrayToBytes(samplesArray, sizeX, sizeY, samplesPerPixel);
         return setDecodedData(samples);
     }
 
     public Matrix<UpdatablePArray> getUnpackedMatrix() {
         return TiffSamples.asMatrix(getUnpackedJavaArray(), sizeX, sizeY, samplesPerPixel, interleaved);
+    }
+
+    public TiffTile setUnpackedMatrix(Matrix<? extends PArray> matrix) {
+        //TODO!!
+        throw new UnsupportedOperationException();
     }
 
     public TiffTile copyData(TiffTile source, boolean cloneData) {

@@ -1145,6 +1145,10 @@ public sealed class TiffMap permits TiffIOMap {
     }
 
     public byte[] javaArrayToBytes(Object samplesArray, int sizeX, int sizeY) {
+        return javaArrayToBytes(samplesArray, sizeX, sizeY, numberOfChannels());
+    }
+
+    byte[] javaArrayToBytes(Object samplesArray, int sizeX, int sizeY, int numberOfChannels) {
         Objects.requireNonNull(samplesArray, "Null samplesArray");
         final long numberOfPixels = TiffIFD.multiplySizes(sizeX, sizeY);
         final Class<?> elementType = samplesArray.getClass().getComponentType();
@@ -1156,11 +1160,11 @@ public sealed class TiffMap permits TiffIOMap {
             throw new IllegalArgumentException("Invalid element type of samples array: " + elementType +
                     ", but the specified TIFF map stores " + sampleType().prettyName() + " elements");
         }
-        final long numberOfSamples = Math.multiplyExact(numberOfPixels, numberOfChannels());
+        final long numberOfSamples = Math.multiplyExact(numberOfPixels, numberOfChannels);
         // - overflow impossible after TiffIFD.multiplySizes
         if (numberOfSamples > maxNumberOfSamplesInArray()) {
             throw new IllegalArgumentException("Too large area for updating TIFF in a single operation: " +
-                    sizeX + "x" + sizeY + "x" + numberOfChannels() + " exceed the limit " +
+                    sizeX + "x" + sizeY + "x" + numberOfChannels + " exceed the limit " +
                     maxNumberOfSamplesInArray());
         }
         return TiffSamples.toBytes(samplesArray, numberOfSamples, byteOrder());
@@ -1178,6 +1182,10 @@ public sealed class TiffMap permits TiffIOMap {
     }
 
     public byte[] matrixToBytes(Matrix<? extends PArray> matrix) {
+        return matrixToBytes(matrix, numberOfChannels);
+    }
+
+    byte[] matrixToBytes(Matrix<? extends PArray> matrix, int numberOfChannels) {
         Objects.requireNonNull(matrix, "Null matrix");
         final Class<?> elementType = matrix.elementType();
         if (elementType != elementType()) {
@@ -1186,23 +1194,23 @@ public sealed class TiffMap permits TiffIOMap {
                     "-bit), although the specified TIFF map stores \"" + elementType() +
                     "\" (" + bitsPerUnpackedSample() + "-bit) elements");
         }
-        if (matrix.dimCount() != 3 && !(matrix.dimCount() == 2 && numberOfChannels() == 1)) {
+        if (matrix.dimCount() != 3 && !(matrix.dimCount() == 2 && numberOfChannels == 1)) {
             throw new IllegalArgumentException("Illegal number of matrix dimensions " + matrix.dimCount() +
                     ": it must be 3-dimensional dimX*dimY*C, " +
                     "where C is the number of channels (z-dimension), " +
                     "or 2-dimensional in the case of monochrome TIFF image");
         }
-        final long numberOfChannels = matrix.dim(2);
+        final long matrixNumberOfChannels = matrix.dim(2);
         // - will be 1 for 2-dimensional matrix
-        if (numberOfChannels != numberOfChannels()) {
-            throw new IllegalArgumentException("Invalid number of channels in the matrix: " + numberOfChannels +
+        if (matrixNumberOfChannels != numberOfChannels) {
+            throw new IllegalArgumentException("Invalid number of channels in the matrix: " + matrixNumberOfChannels +
                     " (matrix " + matrix.dim(0) + "*" + matrix.dim(1) +
                     (matrix.dimCount() == 3 ? "*" + matrix.dim(2) : "") +
                     "), " +
-                    (matrix.dim(0) == numberOfChannels() ?
+                    (matrix.dim(0) == numberOfChannels ?
                             "probably because of incorrect interleaving: the matrix should " +
                             "NOT be interleaved before updating the TIFF map" :
-                            "because the specified TIFF map stores " + numberOfChannels() + " channels"));
+                            "because the specified TIFF map stores " + numberOfChannels + " channels"));
         }
         PArray array = matrix.array();
         if (array.length() > maxNumberOfSamplesInArray()) {

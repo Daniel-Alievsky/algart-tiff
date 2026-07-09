@@ -1156,6 +1156,7 @@ public non-sealed class TiffReader extends TiffIO {
 
         completeDecoding(tile);
         long t4 = debugTime();
+        assert tile.isSeparated() : "was already checked in the final method completeDecoding";
 
         timeCustomizingDecoding += t2 - t1;
         timeDecoding += t3 - t2;
@@ -1170,7 +1171,7 @@ public non-sealed class TiffReader extends TiffIO {
         return true;
     }
 
-    public void prepareDecoding(TiffTile tile) throws TiffException {
+    public final void prepareDecoding(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         if (tile.isEmpty()) {
             // - unlike full decoding, here it is better not to throw exception for an empty tile
@@ -1247,7 +1248,7 @@ public non-sealed class TiffReader extends TiffIO {
      *
      * @param tile the tile that should be corrected.
      */
-    public void completeDecoding(TiffTile tile) throws TiffException {
+    public final void completeDecoding(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         // scifio.tiff().undifference(tile.getDecodedData(), tile.ifd());
         // - this solution requires using SCIFIO context class; it is better to avoid this

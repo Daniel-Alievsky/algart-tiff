@@ -80,9 +80,9 @@ class TiffReaderWithGrid extends TiffReader {
         final int sizeY = tile.getSizeY();
         final int sizeInBits = sizeX * sizeY;
         final int gap = Math.min(this.tileGridThickness, Math.min(tile.getSizeX(), tile.getSizeY()) / 2);
+        // - just in case
         final int filledSamples = bitDepth * gap;
         final int filledLines = sizeX * gap;
-        // - just in case
         for (int c = 0; c < tile.samplesPerPixel(); c++) {
             int disp = c * sizeInBits;
             PackedBitArraysPer8.fillBits(data, disp, filledLines, false);
