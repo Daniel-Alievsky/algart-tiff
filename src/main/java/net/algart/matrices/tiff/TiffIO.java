@@ -62,27 +62,28 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
          * Reading only the next IFD offset and the common information.
          * The properties {@link TiffIFD#getNextIFDOffset() next IFD offset}
          * and {@link TiffIFD#getFileOffsetOfNextIFDOffset() offset of the next IFD offset} will be filled,
-         * as well as the common information like
-         * {@link TiffIFD#getFileOffsetOfIFD() IFD start offset}, {@link TiffIFD#isBigTiff() Big-TIFF} flag and
-         * {@link TiffIFD#getByteOrder() byte order}
-         * The {@link TiffIFD#map()} entries map} will stay empty.
+         * along with other common information like
+         * {@link TiffIFD#getFileOffsetOfIFD() IFD start offset}, {@link TiffIFD#isBigTiff() Big-TIFF} flag, and
+         * {@link TiffIFD#getByteOrder() byte order}.
+         * The {@link TiffIFD#map() entries map} will remain empty.
          */
         SKIP_IFD_ENTRIES(false, true),
         /**
-         * Reading only the base information.
-         * The {@link TiffIFD#map() entries map} and the common information like
-         * {@link TiffIFD#getFileOffsetOfIFD() IFD start offset}, {@link TiffIFD#isBigTiff() Big-TIFF} flag and
-         * {@link TiffIFD#getByteOrder() byte order} will be filled.
+         * Reads the entries and common information, skipping the next IFD offset.
+         * The {@link TiffIFD#map() entries map} and common information &mdash; such as
+         * {@link TiffIFD#getFileOffsetOfIFD() IFD start offset}, {@link TiffIFD#isBigTiff() Big-TIFF} flag,
+         * and {@link TiffIFD#getByteOrder() byte order}—&mdash; will be parsed.
          * The properties {@link TiffIFD#getNextIFDOffset() next IFD offset}
-         * and {@link TiffIFD#getFileOffsetOfNextIFDOffset() offset of the next IFD offset} will stay empty.
+         * and {@link TiffIFD#getFileOffsetOfNextIFDOffset() offset of the next IFD offset} will remain empty.
          *
-         * <p>This mode is used for reading sub-IFDs,
-         * EXIF, GPS, and other possible {@link TiffReader#linkedIFD(TiffIFD, int) linked IFDs}.
-         * Note: the TIFF standard requires that the next offset field is present in any case,
-         * but it does not make sense to try reading it for such IFD types.
-         * Moreover, some "wild" TIFF files may have no this field and can lead to EOFException
-         * while attempt to read it.
-         * (The standard <code>libtiff</code> library silently fills this field by zero in such a case.)
+         * <p>This mode is intended for sub-IFDs, EXIF, GPS, and other
+         * {@link TiffReader#linkedIFD(TiffIFD, int) linked IFDs}.
+         * Note: the TIFF standard requires the next offset field to be present,
+         * though it is irrelevant for these IFD types.
+         * Moreover, some "wild" TIFF files
+         * may lack this field entirely, and attempting to read it could lead to
+         * {@link java.io.EOFException}.
+         * (Note: the standard <code>libtiff</code> library silently fills this field with zero in such cases.)</p>
          */
         SKIP_NEXT_IFD_OFFSET(true, false);
 
@@ -435,17 +436,17 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     /**
      * Reads the IFD stored at the given offset.
      *
-     * <p>The {@code readIFDMode} argument specifies whether this method should skip reading some information.
-     * This can be useful for better performance or robustness for "wild" TIFF while reading sub-IFDs.
-     * Typically should be {@link ReadIFDMode#NORMAL}, that means reading all information.
+     * <p>The {@code readIFDMode} specifies which parts of the IFD should be parsed.
+     * Typically, {@link ReadIFDMode#NORMAL} is used, which reads all available information.
+     * This can be useful for better performance or robustness for "wild" TIFF while reading sub-IFDs.</p>
      *
      * <p>Note that this method <i>does not</i> update the offset tracked by
      * {@link #offsetOfLastScannedIFDOffset()}.</p>
      *
-     * @param ifdOffset the start offset of the IFD inside the TIFF file.
-     * @param readIFDMode what parts of IFD should be read.
+     * @param ifdOffset   the start offset of the IFD within the TIFF file.
+     * @param readIFDMode defines what parts of the IFD to read.
      * @return the IFD; never {@code null}.
-     * @throws IllegalArgumentException if the offset is negative or too low (less than {@link #sizeOfTiffHeader()}).
+     * @throws IllegalArgumentException if the offset is negative or less than {@link #sizeOfTiffHeader()}.
      * @throws IOException              if an I/O error occurs.
      */
     public TiffIFD readIFDAt(long ifdOffset, ReadIFDMode readIFDMode) throws IOException {
