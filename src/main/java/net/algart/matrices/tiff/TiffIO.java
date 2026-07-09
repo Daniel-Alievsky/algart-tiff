@@ -70,11 +70,11 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         SKIP_IFD_ENTRIES(false, true),
         /**
          * Reads the entries and common information, skipping the next IFD offset.
-         * The {@link TiffIFD#map() entries map} and common information &mdash; such as
+         * The {@link TiffIFD#map() entries map} and common information (such as
          * {@link TiffIFD#getFileOffsetOfIFD() IFD start offset}, {@link TiffIFD#isBigTiff() Big-TIFF} flag,
-         * and {@link TiffIFD#getByteOrder() byte order}—&mdash; will be parsed.
-         * The properties {@link TiffIFD#getNextIFDOffset() next IFD offset}
-         * and {@link TiffIFD#getFileOffsetOfNextIFDOffset() offset of the next IFD offset} will remain empty.
+         * and {@link TiffIFD#getByteOrder() byte order}) will be parsed,
+         * but the properties {@link TiffIFD#getNextIFDOffset() next IFD offset}
+         * and {@link TiffIFD#getFileOffsetOfNextIFDOffset() offset of the next IFD offset} will remain unset.
          *
          * <p>This mode is intended for sub-IFDs, EXIF, GPS, and other
          * {@link TiffReader#linkedIFD(TiffIFD, int) linked IFDs}.
