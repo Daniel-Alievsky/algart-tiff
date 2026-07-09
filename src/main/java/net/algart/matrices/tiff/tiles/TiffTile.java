@@ -738,24 +738,24 @@ public final class TiffTile {
     }
 
     /**
-     * Gets the decoded data in a form of the matrix, similar to {@link TiffReadMap#readMatrix()}.
+     * Gets the decoded data in the form of a matrix, similar to {@link TiffReadMap#readMatrix()}.
      *
-     * <p>If {@code allowInterleaved=false}, this method requires that the tile is
+     * <p>If {@code allowInterleaved} is {@code false}, this method requires that the tile is
      * {@link #isSeparated() separated}; otherwise, it throws an {@link IllegalStateException}.
-     * This is a typical usage, as decoded tiles are usually separated.</p>
+     * This is typical usage, as decoded tiles are usually separated.</p>
      *
-     * <p>If {@code allowInterleaved=true}, this method returns a 3D matrix also for interleaved data,
+     * <p>If {@code allowInterleaved} is {@code true}, this method returns a 3D matrix also for interleaved data,
      * where the first dimension ({@link Matrix#dim(int) dim(0)}) is the number of channels,
      * the second ({@link Matrix#dim(int) dim(1)}) is the width, and
      * the third ({@link Matrix#dim(int) dim(2)}) is the height.</p>
      *
      * @param allowInterleaved if {@code false}, interleaved tiles will cause an exception.
      * @return the unpacked data as a 3D matrix
-     * @throws IllegalStateException if {@code allowInterleaved=false} but the tile is interleaved.
+     * @throws IllegalStateException if {@code allowInterleaved} is {@code false} but the tile is interleaved.
      */
     public Matrix<UpdatablePArray> getUnpackedMatrix(boolean allowInterleaved) {
         if (!allowInterleaved && interleaved) {
-            throw new IllegalStateException("Cannot convert the tile to unpacked matrix, because it is interleaved");
+            throw new IllegalStateException("Cannot convert the tile to an unpacked matrix, because it is interleaved");
         }
         return TiffSamples.asMatrix(getUnpackedJavaArray(), sizeX, sizeY, samplesPerPixel, interleaved);
     }
@@ -1028,9 +1028,9 @@ public final class TiffTile {
      * unpacking is necessary). In this situation, the length of an internal {@code data} array, returned by
      * {@link #getDecodedDataLength()}, may be non-aligned in cases when each pixel contains {@code k > 1} bytes
      * (here <code>{@link #normalizedBitsPerPixel()}&nbsp;==&nbsp;8&nbsp;*&nbsp;k</code>): it is possible that</p>
-     * 
+     *
      * <pre>{@code data.length % k != 0}</pre>
-     * 
+     *
      * <p>This condition is always checked inside the {@link #setDecodedData(byte[])} method.
      * You may also check this directly via the {@link #checkDataLengthAlignment()} method.</p>
      *

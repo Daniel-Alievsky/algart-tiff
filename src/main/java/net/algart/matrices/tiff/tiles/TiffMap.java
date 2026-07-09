@@ -1202,7 +1202,7 @@ public sealed class TiffMap permits TiffIOMap {
             throw new IllegalArgumentException("Illegal number of matrix dimensions " + matrix.dimCount() +
                     ": it must be 3-dimensional dimX*dimY*C, " +
                     "where C is the number of channels (z-dimension), " +
-                    "or 2-dimensional in the case of monochrome TIFF image");
+                    "or 2-dimensional in the case of a monochrome TIFF image");
         }
         final long matrixNumberOfChannels = matrix.dim(2);
         // - will be 1 for 2-dimensional matrix
@@ -1218,13 +1218,13 @@ public sealed class TiffMap permits TiffIOMap {
         }
         if ((requiredSizeX != null && matrix.dimX() != requiredSizeX) ||
                 (requiredSizeY != null && matrix.dimY() != requiredSizeY)) {
-            throw new IllegalArgumentException("Matrix sizes do not match the required: " +
+            throw new IllegalArgumentException("Matrix sizes do not match the required sizes: " +
                     matrix.dimX() + "*" + matrix.dimY() + " instead of " + requiredSizeX + "*" + requiredSizeY);
         }
         PArray array = matrix.array();
         if (array.length() > maxNumberOfSamplesInArray()) {
-            throw new IllegalArgumentException("Too large matrix for updating TIFF in a single operation: " + matrix
-                    + " (number of elements " + array.length() + " exceed the limit " +
+            throw new IllegalArgumentException("Matrix is too large for updating TIFF in a single operation: " + matrix
+                    + " (number of elements " + array.length() + " exceeds the limit " +
                     maxNumberOfSamplesInArray() + ")");
         }
         return TiffSamples.toBytes(array, byteOrder());
