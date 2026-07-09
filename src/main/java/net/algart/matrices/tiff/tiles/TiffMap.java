@@ -1182,10 +1182,14 @@ public sealed class TiffMap permits TiffIOMap {
     }
 
     public byte[] matrixToBytes(Matrix<? extends PArray> matrix) {
-        return matrixToBytes(matrix, numberOfChannels);
+        return matrixToBytes(matrix, null, null, numberOfChannels);
     }
 
-    byte[] matrixToBytes(Matrix<? extends PArray> matrix, int numberOfChannels) {
+    byte[] matrixToBytes(
+            Matrix<? extends PArray> matrix,
+            Integer requiredSizeX,
+            Integer requiredSizeY,
+            int numberOfChannels) {
         Objects.requireNonNull(matrix, "Null matrix");
         final Class<?> elementType = matrix.elementType();
         if (elementType != elementType()) {
@@ -1211,6 +1215,11 @@ public sealed class TiffMap permits TiffIOMap {
                             "probably because of incorrect interleaving: the matrix should " +
                             "NOT be interleaved before updating the TIFF map" :
                             "because the specified TIFF map stores " + numberOfChannels + " channels"));
+        }
+        if ((requiredSizeX != null && matrix.dimX() != requiredSizeX) ||
+                (requiredSizeY != null && matrix.dimY() != requiredSizeY)) {
+            throw new IllegalArgumentException("Matrix sizes do not match the required: " +
+                    matrix.dimX() + "*" + matrix.dimY() + " instead of " + requiredSizeX + "*" + requiredSizeY);
         }
         PArray array = matrix.array();
         if (array.length() > maxNumberOfSamplesInArray()) {

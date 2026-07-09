@@ -1288,8 +1288,8 @@ public non-sealed class TiffWriter extends TiffIO {
         Objects.requireNonNull(tile, "Null tile");
         if (AUTO_INTERLEAVE_SOURCE) {
             if (tile.isInterleaved()) {
-                throw new IllegalArgumentException("Tile for encoding and writing to TIFF file must not be " +
-                        "interleaved:: " + tile);
+                throw new IllegalArgumentException("Tile for encoding and writing to TIFF file must be " +
+                        "separated: " + tile);
             }
             tile.interleaveSamples();
         } else {

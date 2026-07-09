@@ -33,7 +33,6 @@ import net.algart.matrices.tiff.samples.TiffSamples;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagPhotometric;
 
-import java.lang.reflect.Array;
 import java.nio.ByteOrder;
 import java.util.*;
 import java.util.Arrays;
@@ -294,7 +293,8 @@ public final class TiffTile {
                     " bits >= 2^31 bits (256 MB) is not supported" + alignedMsg.get());
         }
         final int sizeInPixels = sizeX * sizeY;
-        assert alignedSizeX * (long) normalizedBitsPerPixel <= Integer.MAX_VALUE : "impossible because " + sizeY + " > 0";
+        assert alignedSizeX * (long) normalizedBitsPerPixel <= Integer.MAX_VALUE :
+                "impossible because " + sizeY + " > 0";
         this.sizeX = sizeX;
         this.sizeY = sizeY;
         this.sizeInPixels = sizeInPixels;
@@ -734,12 +734,40 @@ public final class TiffTile {
     }
 
     public Matrix<UpdatablePArray> getUnpackedMatrix() {
+        return getUnpackedMatrix(false);
+    }
+
+    /**
+     * Gets the decoded data in a form of the matrix, similar to {@link TiffReadMap#readMatrix()}.
+     *
+     * <p>If {@code allowInterleaved=false}, this method requires that the tile is
+     * {@link #isSeparated() separated}; otherwise, it throws an {@link IllegalStateException}.
+     * This is a typical usage, as decoded tiles are usually separated.</p>
+     *
+     * <p>If {@code allowInterleaved=true}, this method returns a 3D matrix also for interleaved data,
+     * where the first dimension ({@link Matrix#dim(int) dim(0)}) is the number of channels,
+     * the second ({@link Matrix#dim(int) dim(1)}) is the width, and
+     * the third ({@link Matrix#dim(int) dim(2)}) is the height.</p>
+     *
+     * @param allowInterleaved if {@code false}, interleaved tiles will cause an exception.
+     * @return the unpacked data as a 3D matrix
+     * @throws IllegalStateException if {@code allowInterleaved=false} but the tile is interleaved.
+     */
+    public Matrix<UpdatablePArray> getUnpackedMatrix(boolean allowInterleaved) {
+        if (!allowInterleaved && interleaved) {
+            throw new IllegalStateException("Cannot convert the tile to unpacked matrix, because it is interleaved");
+        }
         return TiffSamples.asMatrix(getUnpackedJavaArray(), sizeX, sizeY, samplesPerPixel, interleaved);
     }
 
     public TiffTile setUnpackedMatrix(Matrix<? extends PArray> matrix) {
-        //TODO!!
-        throw new UnsupportedOperationException();
+        Objects.requireNonNull(matrix, "Null matrix");
+        if (interleaved) {
+            throw new IllegalStateException("Cannot set the tile data from the unpacked matrix, " +
+                    "because the tile is interleaved");
+        }
+        final byte[] samples = map.matrixToBytes(matrix, sizeX, sizeY, samplesPerPixel);
+        return setDecodedData(samples);
     }
 
     public TiffTile copyData(TiffTile source, boolean cloneData) {
@@ -999,10 +1027,11 @@ public final class TiffTile {
      * {@link #setPartiallyDecodedData(byte[])} (when the data is almost decoded, but perhaps some additional
      * unpacking is necessary). In this situation, the length of an internal {@code data} array, returned by
      * {@link #getDecodedDataLength()}, may be non-aligned in cases when each pixel contains {@code k > 1} bytes
-     * (here <code>{@link #normalizedBitsPerPixel()}&nbsp;==&nbsp;8&nbsp;*&nbsp;k</code>): it is possible that
+     * (here <code>{@link #normalizedBitsPerPixel()}&nbsp;==&nbsp;8&nbsp;*&nbsp;k</code>): it is possible that</p>
+     * 
      * <pre>{@code data.length % k != 0}</pre>
-     *
-     * This condition is always checked inside the {@link #setDecodedData(byte[])} method.
+     * 
+     * <p>This condition is always checked inside the {@link #setDecodedData(byte[])} method.
      * You may also check this directly via the {@link #checkDataLengthAlignment()} method.</p>
      *
      * <p><b>Warning:</b> the estimated number of pixels returned by this method may <b>differ</b> from the tile

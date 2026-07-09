@@ -278,6 +278,9 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                         continue;
                     }
                     tile.checkReadyForNewDecodedData(false);
+                    // - Requires that the tile is separated.
+                    // Note that in AUTO_INTERLEAVE_SOURCE mode this is incorrect:
+                    // the tile will be declared as "interleaved" later in prepareEncoding().
                     tile.cropStripToMap();
                     // - In a stripped image, we should correct the height of the last row.
                     // It is important for writing: without this correction, GIMP and other libtiff-based programs
@@ -313,7 +316,8 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                         // - Case A: source data are already interleaved (like RGBRGB...): maybe, external code
                         // prefers to use interleaved form, for example, OpenCV library.
                         // Here tile will be actually interleaved directly after this method;
-                        // we'll need to inform it about this fact (by setInterleaved(true)) later in encode().
+                        // we'll inform it about this fact -
+                        // by direct call to setInterleaved(true) later in prepareEncoding().
                         final long partSizeXInBits = (long) sizeXInTile * bitsPerPixel;
                         long tOffset = (fromYInTile * (long) tileSizeX + fromXInTile) * bitsPerPixel;
                         long sOffset = (yDiff * (long) sizeX + xDiff) * bitsPerPixel;
