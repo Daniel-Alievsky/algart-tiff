@@ -947,7 +947,7 @@ public non-sealed class TiffReader extends TiffIO {
                 }
                 if (subOffsets != null) {
                     for (long subOffset : subOffsets) {
-                        final TiffIFD subIFD = readIFDAt(subOffset, true);
+                        final TiffIFD subIFD = readIFDAt(subOffset, ReadIFDMode.SKIP_NEXT_IFD_OFFSET);
                         subIFD.setSubIFDType(Tags.SUB_IFD);
                         subIFD.setGlobalIndexes(allIFDs.size(), null);
                         allIFDs.add(subIFD);
@@ -991,7 +991,7 @@ public non-sealed class TiffReader extends TiffIO {
         Objects.requireNonNull(ifd, "Null IFD");
         if (ifd.hasTag(linkedIFDTag)) {
             final long ifdOffset = ifd.reqLong(linkedIFDTag);
-            return Optional.of(readIFDAt(ifdOffset, true).setSubIFDType(linkedIFDTag));
+            return Optional.of(readIFDAt(ifdOffset, ReadIFDMode.SKIP_NEXT_IFD_OFFSET).setSubIFDType(linkedIFDTag));
         } else {
             return Optional.empty();
         }

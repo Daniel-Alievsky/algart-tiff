@@ -51,6 +51,59 @@ import java.util.function.Supplier;
 
 public sealed abstract class TiffIO implements Closeable permits TiffReader, TiffWriter {
     /**
+     * What parts of the IFD information should be read.
+     */
+    public enum ReadIFDMode {
+        /**
+         * Reading all IFD information: entries and the offset of the next IFD in the IFDs chain.
+         */
+        NORMAL(true, true),
+        /**
+         * Reading only the next IFD offset and the common information.
+         * The properties {@link TiffIFD#getNextIFDOffset() next IFD offset}
+         * and {@link TiffIFD#getFileOffsetOfNextIFDOffset() offset of the next IFD offset} will be filled,
+         * as well as the common information like
+         * {@link TiffIFD#getFileOffsetOfIFD() IFD start offset}, {@link TiffIFD#isBigTiff() Big-TIFF} flag and
+         * {@link TiffIFD#getByteOrder() byte order}
+         * The {@link TiffIFD#map()} entries map} will stay empty.
+         */
+        SKIP_IFD_ENTRIES(false, true),
+        /**
+         * Reading only the base information.
+         * The {@link TiffIFD#map() entries map} and the common information like
+         * {@link TiffIFD#getFileOffsetOfIFD() IFD start offset}, {@link TiffIFD#isBigTiff() Big-TIFF} flag and
+         * {@link TiffIFD#getByteOrder() byte order} will be filled.
+         * The properties {@link TiffIFD#getNextIFDOffset() next IFD offset}
+         * and {@link TiffIFD#getFileOffsetOfNextIFDOffset() offset of the next IFD offset} will stay empty.
+         *
+         * <p>This mode is used for reading sub-IFDs,
+         * EXIF, GPS, and other possible {@link TiffReader#linkedIFD(TiffIFD, int) linked IFDs}.
+         * Note: the TIFF standard requires that the next offset field is present in any case,
+         * but it does not make sense to try reading it for such IFD types.
+         * Moreover, some "wild" TIFF files may have no this field and can lead to EOFException
+         * while attempt to read it.
+         * (The standard <code>libtiff</code> library silently fills this field by zero in such a case.)
+         */
+        SKIP_NEXT_IFD_OFFSET(true, false);
+
+        private final boolean readingIFDEntries;
+        private final boolean readingNextIFDOffset;
+
+        ReadIFDMode(boolean readingIFDEntries, boolean readingNextIFDOffset) {
+            this.readingIFDEntries = readingIFDEntries;
+            this.readingNextIFDOffset = readingNextIFDOffset;
+        }
+
+        public boolean isReadingIFDEntries() {
+            return readingIFDEntries;
+        }
+
+        public boolean isReadingNextIFDOffset() {
+            return readingNextIFDOffset;
+        }
+    }
+
+    /**
      * Subclasses of this class can be used for storing additional information about encoding or decoding tiles,
      * for example, in some specific TIFF codecs.
      * This additional information is provided via override {@link #toString()} method in the subclasses.
@@ -364,6 +417,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
     /**
      * Reads the IFD stored at the given offset.
+     * Equivalent to
+     * <pre>{@link #readIFDAt(long, ReadIFDMode) readIFDAt}(ifdOffset, {@link ReadIFDMode#NORMAL})</pre>
      *
      * <p>Note that this method <i>does not</i> update the offset tracked by
      * {@link #offsetOfLastScannedIFDOffset()}.</p>
@@ -374,7 +429,98 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @throws IOException              if an I/O error occurs.
      */
     public TiffIFD readIFDAt(long ifdOffset) throws IOException {
-        return readIFDAt(ifdOffset, false);
+        return readIFDAt(ifdOffset, ReadIFDMode.NORMAL);
+    }
+
+    /**
+     * Reads the IFD stored at the given offset.
+     *
+     * <p>The {@code readIFDMode} argument specifies whether this method should skip reading some information.
+     * This can be useful for better performance or robustness for "wild" TIFF while reading sub-IFDs.
+     * Typically should be {@link ReadIFDMode#NORMAL}, that means reading all information.
+     *
+     * <p>Note that this method <i>does not</i> update the offset tracked by
+     * {@link #offsetOfLastScannedIFDOffset()}.</p>
+     *
+     * @param ifdOffset the start offset of the IFD inside the TIFF file.
+     * @param readIFDMode what parts of IFD should be read.
+     * @return the IFD; never {@code null}.
+     * @throws IllegalArgumentException if the offset is negative or too low (less than {@link #sizeOfTiffHeader()}).
+     * @throws IOException              if an I/O error occurs.
+     */
+    public TiffIFD readIFDAt(long ifdOffset, ReadIFDMode readIFDMode) throws IOException {
+        Objects.requireNonNull(readIFDMode, "Null readIFDMode");
+        if (ifdOffset < 0) {
+            throw new IllegalArgumentException("Negative IFD file offset = " + ifdOffset);
+        }
+        if (ifdOffset < sizeOfTiffHeader()) {
+            throw new IllegalArgumentException("Attempt to read IFD from too small start offset " + ifdOffset);
+        }
+        long t1 = debugTime();
+        long timeEntries = 0;
+        long timeArrays = 0;
+        final TiffIFD ifd;
+        final Map<Integer, Object> map = new LinkedHashMap<>();
+        final LinkedHashMap<Integer, TiffIFD.Entry> detailedEntries = new LinkedHashMap<>();
+        synchronized (fileLock) {
+            final IFDCommonInformation info = prepareReadingIFD(ifdOffset, readIFDMode.isReadingNextIFDOffset());
+            final DataHandle<?> ifdStream = getBytesHandle(info.ifdBytes(), info.littleEndian());
+            if (readIFDMode.isReadingIFDEntries()) {
+                for (int i = 0, disp = 0; i < info.n(); i++, disp += info.sizeOfEntry()) {
+                    long tEntry1 = debugTime();
+                    final TiffIFD.Entry entry = readIFDEntry(
+                            ifdStream,
+                            disp,
+                            info.offsetOfFirstEntry(),
+                            info.fileLength());
+                    final int tag = entry.tag();
+                    long tEntry2 = debugTime();
+                    timeEntries += tEntry2 - tEntry1;
+
+                    final Object value = readIFDValueAtEntryOffset(
+                            ifdStream,
+                            stream,
+                            entry.isDataEmbeddedInEntry(),
+                            info.offsetOfFirstEntry(),
+                            entry);
+                    long tEntry3 = debugTime();
+                    timeArrays += tEntry3 - tEntry2;
+//            System.err.printf("%d values from %d: %.6f ms%n", valueCount, valueOffset, (tEntry3 - tEntry2) * 1e-6);
+
+                    if (value != null && !map.containsKey(tag)) {
+                        // - null value should not occur in the current version;
+                        // if this tag is present twice (strange mistake in a TIFF file),
+                        // we do not throw exception and just use the 1st entry
+                        map.put(tag, value);
+                        detailedEntries.put(tag, entry);
+                    }
+                }
+            }
+            stream.seek(info.offsetOfNextIFDOffset());
+            // - this "in.seek" provides maximal compatibility with old code (which did not read next IFD offset)
+            // and also with the behavior of this method when skipReadingNextOffset==true
+
+            ifd = new TiffIFD(map, detailedEntries);
+            ifd.setLoadedFromFile(true);
+            ifd.setLittleEndian(info.littleEndian());
+            ifd.setBigTiff(bigTiff);
+            ifd.setFileOffsetOfIFD(ifdOffset);
+            if (readIFDMode.isReadingNextIFDOffset()) {
+                assert info.nextIFDOffset() != null;
+                final long nextOffset = info.nextIFDOffset();
+                ifd.setFileOffsetOfNextIFDOffset(info.offsetOfNextIFDOffset());
+                ifd.setNextIFDOffset(nextOffset);
+            }
+        }
+
+        if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
+            long t2 = debugTime();
+            LOG.log(System.Logger.Level.TRACE, String.format(Locale.US,
+                    "%s read IFD at offset %d: %.3f ms, including %.6f entries + %.6f arrays",
+                    getClass().getSimpleName(), ifdOffset,
+                    (t2 - t1) * 1e-6, timeEntries * 1e-6, timeArrays * 1e-6));
+        }
+        return ifd;
     }
 
     /**
@@ -687,83 +833,6 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 fileOffsetOfNextIFDOffset,
                 nextIFDOffset,
                 tiffFileLength);
-    }
-
-    // Note: TIFF standard allows reading next offset in any case,
-    // but we prefer to avoid attempt to read it in sub-IFD, EXIF and similar IFDs:
-    // probably some "wild" files has no this field and can lead to EOFException while attempt to read it.
-    // (The standard libtiff library silently returns 0 in such a case.)
-    // For the end-user, the public readIFDAt method should be enough.
-    TiffIFD readIFDAt(long ifdOffset, boolean skipReadingNextOffset) throws IOException {
-        if (ifdOffset < 0) {
-            throw new IllegalArgumentException("Negative IFD file offset = " + ifdOffset);
-        }
-        if (ifdOffset < sizeOfTiffHeader()) {
-            throw new IllegalArgumentException("Attempt to read IFD from too small start offset " + ifdOffset);
-        }
-        long t1 = debugTime();
-        long timeEntries = 0;
-        long timeArrays = 0;
-        final TiffIFD ifd;
-        final Map<Integer, Object> map = new LinkedHashMap<>();
-        final LinkedHashMap<Integer, TiffIFD.Entry> detailedEntries = new LinkedHashMap<>();
-        synchronized (fileLock) {
-            final IFDCommonInformation info = prepareReadingIFD(ifdOffset, !skipReadingNextOffset);
-            final DataHandle<?> ifdStream = getBytesHandle(info.ifdBytes(), info.littleEndian());
-            for (int i = 0, disp = 0; i < info.n(); i++, disp += info.sizeOfEntry()) {
-                long tEntry1 = debugTime();
-                final TiffIFD.Entry entry = readIFDEntry(
-                        ifdStream,
-                        disp,
-                        info.offsetOfFirstEntry(),
-                        info.fileLength());
-                final int tag = entry.tag();
-                long tEntry2 = debugTime();
-                timeEntries += tEntry2 - tEntry1;
-
-                final Object value = readIFDValueAtEntryOffset(
-                        ifdStream,
-                        stream,
-                        entry.isDataEmbeddedInEntry(),
-                        info.offsetOfFirstEntry(),
-                        entry);
-                long tEntry3 = debugTime();
-                timeArrays += tEntry3 - tEntry2;
-//            System.err.printf("%d values from %d: %.6f ms%n", valueCount, valueOffset, (tEntry3 - tEntry2) * 1e-6);
-
-                if (value != null && !map.containsKey(tag)) {
-                    // - null value should not occur in the current version;
-                    // if this tag is present twice (strange mistake in a TIFF file),
-                    // we do not throw exception and just use the 1st entry
-                    map.put(tag, value);
-                    detailedEntries.put(tag, entry);
-                }
-            }
-            stream.seek(info.offsetOfNextIFDOffset());
-            // - this "in.seek" provides maximal compatibility with old code (which did not read next IFD offset)
-            // and also with the behavior of this method when skipReadingNextOffset==true
-
-            ifd = new TiffIFD(map, detailedEntries);
-            ifd.setLoadedFromFile(true);
-            ifd.setLittleEndian(info.littleEndian());
-            ifd.setBigTiff(bigTiff);
-            ifd.setFileOffsetOfIFD(ifdOffset);
-            if (!skipReadingNextOffset) {
-                assert info.nextIFDOffset() != null;
-                final long nextOffset = info.nextIFDOffset();
-                ifd.setFileOffsetOfNextIFDOffset(info.offsetOfNextIFDOffset());
-                ifd.setNextIFDOffset(nextOffset);
-            }
-        }
-
-        if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
-            long t2 = debugTime();
-            LOG.log(System.Logger.Level.TRACE, String.format(Locale.US,
-                    "%s read IFD at offset %d: %.3f ms, including %.6f entries + %.6f arrays",
-                    getClass().getSimpleName(), ifdOffset,
-                    (t2 - t1) * 1e-6, timeEntries * 1e-6, timeArrays * 1e-6));
-        }
-        return ifd;
     }
 
     TiffIFD.Entry readIFDEntry(
