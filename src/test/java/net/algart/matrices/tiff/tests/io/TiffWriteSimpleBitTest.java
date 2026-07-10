@@ -74,9 +74,7 @@ public class TiffWriteSimpleBitTest {
             writer.setLittleEndian(true);
             for (int k = 1; k <= numberOfTests; k++) {
                 writer.create();
-                final TiffIFD ifd = TiffIFD.newStrippedIFD();
-                ifd.putCompression(TagCompression.PACK_BITS);
-                ifd.putMatrixInformation(m);
+                final TiffIFD ifd = TiffIFD.newTiledIFD(TagCompression.PACK_BITS, m);
                 ifd.put(Tags.IMAGE_WIDTH, (int) m.dimX());
                 ifd.put(Tags.IMAGE_LENGTH, (int) m.dimY());
                 // - testing a special check in TiffIO.writeIFDValueAtCurrentOffsets when a single value >0xFFFF

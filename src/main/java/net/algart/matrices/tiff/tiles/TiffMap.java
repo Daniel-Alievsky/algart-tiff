@@ -1108,6 +1108,10 @@ public sealed class TiffMap permits TiffIOMap {
     }
 
     public double[] colorToChannelValues(Color color, boolean scaleToMaxValue) {
+        return colorToChannelValues(color, numberOfChannels(), scaleToMaxValue);
+    }
+
+    public double[] colorToChannelValues(Color color, int numberOfChannels, boolean scaleToMaxValue) {
         Objects.requireNonNull(color, "Null color");
         float[] components = color.getRGBComponents(null);
         final double[] filler = new double[components.length];

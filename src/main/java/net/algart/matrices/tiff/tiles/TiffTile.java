@@ -33,9 +33,11 @@ import net.algart.matrices.tiff.samples.TiffSamples;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagPhotometric;
 
+import java.awt.*;
 import java.nio.ByteOrder;
 import java.util.*;
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -628,7 +630,7 @@ public final class TiffTile {
      *     <li>24-bit integer values (for the case of K-bit samples, 16&le;K&lt;24).</li>
      * </ul>
      *
-     * @return unpacked data.
+     * @return decoded data.
      * @throws IllegalStateException if the tile is {@link #isEmpty() empty} or {@link #isEncoded() encoded}.
      * @see #getUnpackedSampleBytes()
      * @see TiffMap#isRarePrecision()
@@ -655,7 +657,7 @@ public final class TiffTile {
     /**
      * Sets the decoded data.
      *
-     * @param data     decoded (unpacked) data.
+     * @param data     decoded data.
      * @param unfreeze if {@code true}, the {@link #isFrozen() frozen} flag is cleared;
      *                 usually should be {@code false}.
      * @return a reference to this object.
@@ -684,6 +686,10 @@ public final class TiffTile {
         return this;
     }
 
+    public double[] colorToChannelValues(Color color, boolean scaleToMaxValue) {
+        return map.colorToChannelValues(color, samplesPerPixel(), scaleToMaxValue);
+    }
+
     /**
      * Gets the decoded data while unpacking rare precision data: 16/24-bit floating-point data
      * and any 3-byte/sample integer data. The same operations are performed by
@@ -703,7 +709,9 @@ public final class TiffTile {
      * If this flag is {@code true}, 3-byte integer samples will be rescaled as specified
      * in the documentation for the {@link TiffReader#setRescaleWhenIncreasingBitDepth(boolean)} method.
      *
-     * @return unpacked data.
+     * @return unpacked data. Note that for standard precisions, this method may return
+     * a direct reference to the internal data array; for rare precisions,
+     * a newly allocated unpacked array is returned.
      * @see TiffUnpackingPrecisions#unpackRarePrecisions(byte[], TiffIFD, int, long, boolean)
      * @see #normalizedBitDepth()
      * @see TiffMap#bitsPerUnpackedSample()
