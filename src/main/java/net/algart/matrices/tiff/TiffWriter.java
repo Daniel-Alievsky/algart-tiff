@@ -647,15 +647,22 @@ public non-sealed class TiffWriter extends TiffIO {
      * Creates a new "companion" TIFF reader for reading the same file {@link #stream() stream}
      * used by this object.
      *
+     * <p>This method is equivalent to</p>
+     *
+     * <pre>new {@link TiffReader#TiffReader(DataHandle, TiffOpenMode, boolean)
+     * TiffReader}({@link #stream()}, {@link TiffOpenMode#NO_CHECKS}, false)</pre>
+     *
+     * <p>Note that this reader is created in {@link TiffOpenMode#NO_CHECKS} mode.</p>
+     *
      * <p><b>Do not close</b> this reader independently: the shared stream will be closed
      * automatically when closing this writer.</p>
      *
-     * <p>This method is used inside {@link #companionReader()} for creating a new instance.
+     * <p>This method is used inside {@link #companionReader()} for creating a new instance.</p>
      *
-     * @return new TIFF reader.
+     * @return a new TIFF reader.
      */
     public TiffReader newCompanionReader() throws IOException {
-        return new TiffReader(stream, TiffOpenMode.NO_CHECKS, false);
+        return new TiffReader(stream(), TiffOpenMode.NO_CHECKS, false);
     }
 
     /**
