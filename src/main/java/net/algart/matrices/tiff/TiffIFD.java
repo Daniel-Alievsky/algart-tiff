@@ -2069,7 +2069,7 @@ public final class TiffIFD {
      *     is thrown.</li>
      * </ol>
      *
-     * <p>This method requires that the number of bytes, necessary to store each channel, must be
+     * <p>This method requires that the number of <b>bytes</b>, necessary to store each channel, must be
      * equal for all channels. This is also requirement for TIFF files, that can be read by {@link TiffReader} class.
      * However, equality of number of <i>bits</i> is not required; it allows, for example, to process
      * an old HiRes RGB format with 5+6+5 bits/channels.
@@ -2151,6 +2151,9 @@ public final class TiffIFD {
      * @return {@code true} if the image contains 16/24-bit floating point pixels or 24-bit integer values.
      * @see net.algart.matrices.tiff.bits.TiffUnpackingPrecisions#unpackRarePrecisions(
      *byte[], TiffIFD, int, long, boolean)
+     * @throws TiffException in the case of any problems while parsing IFD, in particular,
+     *                       if the same situations as the {@link #normalizedBitDepth()} method
+     *                       (it is called withing this method if {@link #isFloatingPoint()} returns {@code false}).
      */
     public boolean isRarePrecision() throws TiffException {
         if (isFloatingPoint()) {

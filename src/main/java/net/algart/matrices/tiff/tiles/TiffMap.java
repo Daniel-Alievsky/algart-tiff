@@ -318,8 +318,8 @@ public sealed class TiffMap permits TiffIOMap {
             throw new AssertionError(normalizedBitDepth + " bits/sample, but " +
                     combinedNormalizedBitsPerPixel + " bits/pixel for " + numberOfChannels + " channels");
         }
-        final boolean differentPrecision = sampleType.bitsPerSample() != normalizedBitDepth;
-        if (rarePrecision != differentPrecision) {
+        final boolean sampleTypePrecisionIsNotExact = sampleType.bitsPerSample() != normalizedBitDepth;
+        if (rarePrecision != sampleTypePrecisionIsNotExact) {
             throw new ConcurrentModificationException("Corrupted IFD, probably by a parallel thread" +
                     " (sample type is " + sampleType + ", " + sampleType.bitsPerSample() + " bits/sample, " +
                     "the IFD declares " + normalizedBitDepth + " bits/sample, " +
@@ -432,6 +432,11 @@ public sealed class TiffMap permits TiffIOMap {
      * Returns {@code true} for 3 cases of <i>rare precision</i>: the result of
      * <code>{@link #ifd() ifd()}.{@link TiffIFD#isRarePrecision() isRarePrecision()}</code> call.
      *
+     * <p>Note: these 3 cases, when this method returns {@code true}, are the <b>only cases</b>
+     * when the {@link #sampleType()} and its {@link TiffSampleType#bitsPerSample()} method can occur not
+     * exact information about data precision stored in this tile. Namely, in this situation
+     * you need to use {@link #normalizedBitDepth()} method to know the actual data precision.
+     *
      * @return if the tiles in this map contain 16/24-bit floating point pixels or 24-bit integer values.
      * @see TiffUnpackingPrecisions#unpackRarePrecisions(byte[], TiffIFD, int, long, boolean)
      */
@@ -439,10 +444,27 @@ public sealed class TiffMap permits TiffIOMap {
         return rarePrecision;
     }
 
+    /**
+     * The bit depths of each channel actually declared in the IFD in the {@code BitsPerSample} tag (258).
+     * This method returns a clone of the array returned by <code>{@link #ifd()}.{@link TiffIFD#getBitsPerSample()
+     * getBitsPerSample()}</code> method.
+     *
+     * <p>Usually all elements of this array are equal. The {@link TiffReader} can read TIFF files with
+     * different number of bits per channel, if the number of <b>bytes</b>, necessary to store each channel,
+     * is equal for all channels. See {@link #normalizedBitDepth()}</p>
+     *
+     * @return the value of the {@code BitsPerSample} TIFF tag.
+     */
     public int[] bitsPerSample() {
         return bitsPerSample.clone();
     }
 
+    /**
+     * Returns the same result as the <code>{@link #ifd()}.{@link TiffIFD#tryEqualBitDepth()
+     * tryEqualBitDepth()}</code> method.
+     *
+     * @return bits per sample, if this value is the same for all channels, or empty value in another case.
+     */
     public OptionalInt tryEqualBitDepth() {
         return TiffIFD.tryEqualBitDepth(bitsPerSample);
     }
@@ -453,6 +475,9 @@ public sealed class TiffMap permits TiffIOMap {
      * or 1 in the case of a single-channel binary matrix (BitsPerSample=1, SamplesPerPixel=1).
      * This class requires that this value is equal for all channels, even
      * if <code>BitsPerSample</code> tag contain different number of bits per channel (for example, 5+6+5).
+     *
+     * <p>This method returns the same result as the <code>{@link #ifd()}.{@link TiffIFD#normalizedBitDepth()
+     * normalizedBitDepth()}</code> method.
      *
      * <p>Note that the actual number of bits, used for storing the pixel samples in memory
      * after reading data from a TIFF file, may be little greater: see {@link #bitsPerUnpackedSample()}.
@@ -475,7 +500,8 @@ public sealed class TiffMap permits TiffIOMap {
      * that should be written by {@link TiffWriter}.
      *
      * <p>Usually this value is equal to results of {@link #normalizedBitDepth()},
-     * excepting the following rare cases, called <b>unusual precisions</b>:</p>
+     * excepting the following rare cases, called <b>rare precisions</b> and detected
+     * by the {@link #isRarePrecision()} method:</p>
      *
      * <ul>
      *     <li>every channel is encoded as N-bit integer value, where 17&le;N&le;24, and, so, requires 3 bytes:
