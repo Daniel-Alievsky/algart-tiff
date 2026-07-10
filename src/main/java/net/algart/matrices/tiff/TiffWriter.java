@@ -599,6 +599,11 @@ public non-sealed class TiffWriter extends TiffIO {
      * Returns the "companion" TIFF reader for reading the same file {@link #stream() stream}
      * used by this object.
      *
+     * <p>This reader allows the writer to read images for further editing,
+     * for example, in methods such as {@link TiffWriteMap#preloadAndStore} or
+     * {@link TiffWriteMap#readMatrixAndStore}. This reader is returned by the
+     * {@link TiffWriteMap#reader()} method.</p>
+     * 
      * <p><b>Do not close</b> this reader independently: the shared stream will be closed
      * automatically when closing this writer.</p>
      *
