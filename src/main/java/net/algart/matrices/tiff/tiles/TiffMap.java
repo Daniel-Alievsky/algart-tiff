@@ -1179,6 +1179,9 @@ public sealed class TiffMap permits TiffIOMap {
         return javaArrayToBytes(samplesArray, sizeX, sizeY, numberOfChannels());
     }
 
+    // This method is also called from the TiffTile.
+    // Note: this method does not depend on the settings of this map like "rarePrecisionMode",
+    // but only on the final parameters set in the constructor.
     byte[] javaArrayToBytes(Object samplesArray, int sizeX, int sizeY, int numberOfChannels) {
         Objects.requireNonNull(samplesArray, "Null samplesArray");
         final long numberOfPixels = TiffIFD.multiplySizes(sizeX, sizeY);
@@ -1216,6 +1219,9 @@ public sealed class TiffMap permits TiffIOMap {
         return matrixToBytes(matrix, null, null, numberOfChannels);
     }
 
+    // This method is also called from the TiffTile.
+    // Note: this method does not depend on the settings of this map like "rarePrecisionMode",
+    // but only on the final parameters set in the constructor.
     byte[] matrixToBytes(
             Matrix<? extends PArray> matrix,
             Integer requiredSizeX,
