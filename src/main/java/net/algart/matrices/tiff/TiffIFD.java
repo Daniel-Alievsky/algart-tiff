@@ -2063,7 +2063,7 @@ public final class TiffIFD {
      * <ol>
      *     <li>if this array consists of the single element <code>B[0]==1</code>, the result is 1;</li>
      *     <li>in another case, if all the values <code>(B[i]+7)/8</code> (<code>&#8968;(double)B[i]/8&#8969;</code>)
-     *     are equal to the same value <code>b</code>, the result is b*8
+     *     are equal to the same value <code>b</code>, the result is {@code b*8}
      *     (this is the number of whole bytes needed to store each sample);</li>
      *     <li>if some of the values <code>(B[i]+7)/8</code> are different, {@link UnsupportedTiffFormatException}
      *     is thrown.</li>
@@ -2072,7 +2072,7 @@ public final class TiffIFD {
      * <p>This method requires that the number of <b>bytes</b>, necessary to store each channel, must be
      * equal for all channels. This is also requirement for TIFF files, that can be read by {@link TiffReader} class.
      * However, equality of number of <i>bits</i> is not required; it allows, for example, to process
-     * an old HiRes RGB format with 5+6+5 bits/channels.
+     * an old HiRes RGB format with 5+6+5 bits/channels.</p>
      *
      * @return number of bits per each sample, aligned to the integer number of bytes, excepting a case
      * of pure binary 1-bit image, where the result is 1.

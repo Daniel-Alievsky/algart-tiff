@@ -159,7 +159,7 @@ public final class TiffTile {
      * <ol>
      *     <li>fully unpacked, when the number of bits per sample corresponds to one of variants of
      *     {@link TiffSampleType};</li>
-     *     <li>unpacked to <i>unusual precision</i>: 3-byte samples (17..24 bits/sample),
+     *     <li>unpacked to a <i>rare precision</i>: 3-byte samples (17..24 bits/sample),
      *     16- or 24-bit floating-point formats.</li>
      * </ol>
      * <p>Inside this class, you are always dealing with the variant #2 (excepting call of
@@ -620,7 +620,7 @@ public final class TiffTile {
      * they are automatically unpacked into <code>&#8968;K/8&#8969;*8</code> bit integers while decoding.
      *
      * <p>In addition to the standard precisions provided by {@link TiffSampleType}, samples can be represented
-     * in the following rare precisions:</p>
+     * in the following {@link #isRarePrecision() rare precisions}:</p>
      *
      * <ul>
      *     <li>16-bit floating-point values,</li>
@@ -654,10 +654,6 @@ public final class TiffTile {
 
     /**
      * Sets the decoded data.
-     *
-     * <p>Note that we have no a separate method "setUnpackedSamples":
-     * the unpacked samples can be set via this method.
-     * We do not support writing non-standard precision.</p>
      *
      * @param data     decoded (unpacked) data.
      * @param unfreeze if {@code true}, the {@link #isFrozen() frozen} flag is cleared;
@@ -697,6 +693,10 @@ public final class TiffTile {
      *
      * <p>This method is rarely necessary: {@link #getDecodedData()} is enough for most needs.
      *
+     * <p>Note that we have no a separate method "setUnpackedSampleBytes".
+     * The unpacked samples can be set via the {@link #setDecodedData(byte[])} method:
+     * we do not support writing rare precision.</p>
+     *
      * <p>This method uses {@link #isRescaleWhenIncreasingBitDepthRequested()} to detect
      * whether this tile was decoded by a {@link TiffReader} with the
      * {@link TiffReader#setRescaleWhenIncreasingBitDepth(boolean)} flag enabled.
@@ -729,6 +729,7 @@ public final class TiffTile {
 
     public TiffTile setUnpackedJavaArray(Object samplesArray) {
         Objects.requireNonNull(samplesArray, "Null samplesArray");
+        checkRarePrecision("convert Java array to bytes");
         final byte[] samples = map.javaArrayToBytes(samplesArray, sizeX, sizeY, samplesPerPixel);
         return setDecodedData(samples);
     }
@@ -762,6 +763,7 @@ public final class TiffTile {
 
     public TiffTile setUnpackedMatrix(Matrix<? extends PArray> matrix) {
         Objects.requireNonNull(matrix, "Null matrix");
+        checkRarePrecision("convert matrix to bytes");
         if (interleaved) {
             throw new IllegalStateException("Cannot set the tile data from the unpacked matrix, " +
                     "because the tile is interleaved");
@@ -784,6 +786,7 @@ public final class TiffTile {
 
     public TiffTile copyUnpackedSamples(TiffTile source) {
         Objects.requireNonNull(source, "Null source tile");
+        checkRarePrecision("copy unpacked samples");
         if (sampleType() != source.sampleType()) {
             throw new IllegalArgumentException("The specified source tile has incompatible " +
                     "sample type (" + source.elementType().getSimpleName() + ") than this tile: " + this);
@@ -1342,6 +1345,15 @@ public final class TiffTile {
         if (data == null) {
             checkFrozen();
             throw new IllegalStateException("TIFF tile is still not filled by any data: " + this);
+        }
+    }
+
+    private void checkRarePrecision(String action) {
+        if (isRarePrecision()) {
+            throw new IllegalStateException("Cannot " + action + " in the tile because this image has " +
+                    "a rare precision (" +
+                    Arrays.toString(map.bitsPerSample()) + " bits/sample for " +
+                    map.sampleType().prettyName() + " values)");
         }
     }
 

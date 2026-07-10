@@ -88,7 +88,7 @@ public class TiffCopyRectangleDemo {
             // readMap.setBitImageUnpackingMode(TiffMap.BitImageUnpackingMode.UNPACK_TO_0_255);
             // - should not affect the result
             // readMap.setRarePrecisionMode(TiffMap.RarePrecisionMode.KEEP_RAW);
-            // - should lead to exception for non-standard precisions like 16-bit float
+            // - should lead to exception for rare precisions like 16-bit float
 
             if (smart) {
                 writer.setSmartCorrection(true);
