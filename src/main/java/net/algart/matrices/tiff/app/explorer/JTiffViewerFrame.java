@@ -399,9 +399,9 @@ class JTiffViewerFrame extends JFrame {
         addZoomItem(zoomMenu, zoomGroup, "400% (4:1)", 4.0);
         addZoomItem(zoomMenu, zoomGroup, "200% (2:1)", 2.0);
         addZoomItem(zoomMenu, zoomGroup, "100% (1:1)", 1.0);
-        addZoomItem(zoomMenu, zoomGroup, "50% (1:2)", 0.5);
-        addZoomItem(zoomMenu, zoomGroup, "25% (1:4, may be slow)", 0.25, 2);
-        addZoomItem(zoomMenu, zoomGroup, "12.5% (1:8, may be slow)", 0.125, 4);
+        addZoomItem(zoomMenu, zoomGroup, "50% (1:2)", 0.5, 2);
+        addZoomItem(zoomMenu, zoomGroup, "25% (1:4, may be slow)", 0.25, 4);
+        addZoomItem(zoomMenu, zoomGroup, "12.5% (1:8, may be slow)", 0.125, 8);
         viewMenu.addSeparator();
         viewMenu.add(zoomMenu);
 

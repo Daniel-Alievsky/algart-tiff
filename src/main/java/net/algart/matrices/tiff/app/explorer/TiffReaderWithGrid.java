@@ -79,15 +79,16 @@ class TiffReaderWithGrid extends TiffReader {
         if (!tile.isSeparated()) {
             throw new AssertionError("Tile is not separated");
         }
+        final int gap = Math.min(this.tileGridThickness, Math.min(tile.getSizeX(), tile.getSizeY()) / 2);
         if (!tile.isRarePrecision()) {
             final Matrix<UpdatablePArray> m = tile.getUnpackedMatrix();
             final double[] leftTop = tile.colorToChannelValues(GRID_COLOR, true);
             final double[] rightBottom = tile.colorToChannelValues(Color.BLACK, true);
             for (int c = 0; c < tile.samplesPerPixel(); c++) {
-                m.subMatr(0, 0, c, m.dimX(), 1, 1).array().fill(leftTop[c]);
-                m.subMatr(0, 0, c, 1, m.dimY(), 1).array().fill(leftTop[c]);
-                m.subMatr(m.dimX() - 1, 0, c, 1, m.dimY(), 1).array().fill(rightBottom[c]);
-                m.subMatr(0, m.dimY() - 1, c, m.dimX(), 1, 1).array().fill(rightBottom[c]);
+                m.subMatr(0, 0, c, m.dimX(), gap, 1).array().fill(leftTop[c]);
+                m.subMatr(0, 0, c, gap, m.dimY(), 1).array().fill(leftTop[c]);
+                m.subMatr(m.dimX() - gap, 0, c, gap, m.dimY(), 1).array().fill(rightBottom[c]);
+                m.subMatr(0, m.dimY() - gap, c, m.dimX(), gap, 1).array().fill(rightBottom[c]);
             }
             tile.setUnpackedMatrix(m);
         } else {
@@ -97,8 +98,6 @@ class TiffReaderWithGrid extends TiffReader {
             final int sizeX = tile.getSizeX() * bitDepth;
             final int sizeY = tile.getSizeY();
             final int sizeInBits = sizeX * sizeY;
-            final int gap = Math.min(this.tileGridThickness, Math.min(tile.getSizeX(), tile.getSizeY()) / 2);
-            // - just in case
             final int filledSamples = bitDepth * gap;
             final int filledLines = sizeX * gap;
             for (int c = 0; c < Math.min(3, tile.samplesPerPixel()); c++) {
