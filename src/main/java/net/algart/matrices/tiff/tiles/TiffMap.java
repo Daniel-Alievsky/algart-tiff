@@ -438,12 +438,13 @@ public sealed class TiffMap permits TiffIOMap {
      * you need to use the {@link #normalizedBitDepth()} method to find the actual data precision.</p>
      *
      * @return {@code true} if the tiles in this map contain 16/24-bit floating-point pixels
-     *         or 24-bit integer values; {@code false} otherwise.
+     * or 24-bit integer values; {@code false} otherwise.
      * @see TiffUnpackingPrecisions#unpackRarePrecisions(byte[], TiffIFD, int, long, boolean)
      */
     public boolean isRarePrecision() {
         return rarePrecision;
     }
+
     /**
      * Returns the bit depths of each channel actually declared in the IFD in the {@code BitsPerSample} tag (258).
      * This method returns a clone of the array returned by <code>{@link #ifd()}.{@link TiffIFD#getBitsPerSample()
@@ -458,12 +459,13 @@ public sealed class TiffMap permits TiffIOMap {
     public int[] bitsPerSample() {
         return bitsPerSample.clone();
     }
+
     /**
      * Returns the same result as the <code>{@link #ifd()}.{@link TiffIFD#tryEqualBitDepth()
      * tryEqualBitDepth()}</code> method.
      *
      * @return the number of bits per sample if this value is the same for all channels,
-     *         or an empty {@link OptionalInt} otherwise.
+     * or an empty {@link OptionalInt} otherwise.
      */
     public OptionalInt tryEqualBitDepth() {
         return TiffIFD.tryEqualBitDepth(bitsPerSample);
@@ -712,7 +714,7 @@ public sealed class TiffMap permits TiffIOMap {
      * @return a reference to this object.
      * @throws NullPointerException     if the argument is {@code null}.
      * @throws IllegalArgumentException if the argument is {@link RarePrecisionMode#FORBID} and the current
-     * image has {@link #isRarePrecision() rare precision}.
+     *                                  image has {@link #isRarePrecision() rare precision}.
      * @see TiffReader#completeDecoding(TiffTile)
      * @see TiffMap#bitsPerUnpackedSample()
      */
@@ -729,7 +731,7 @@ public sealed class TiffMap permits TiffIOMap {
      * {@link RarePrecisionMode#UNPACK}.
      */
     public void ensureUnpackedRarePrecision() {
-        rarePrecisionMode.throwIfRaw(this,"process non-standard TIFF pixel precision");
+        rarePrecisionMode.throwIfRaw(this, "process non-standard TIFF pixel precision");
     }
 
     public ExtraChannelsMode getExtraChannelsMode() {
@@ -753,7 +755,7 @@ public sealed class TiffMap permits TiffIOMap {
      * similar methods.</p>
      *
      * @param extraChannelsMode the mode specifying whether to drop extra channels to stay compatible
-     * with {@code BufferedImage}.
+     *                          with {@code BufferedImage}.
      * @return a reference to this object.
      */
     public TiffMap setExtraChannelsMode(ExtraChannelsMode extraChannelsMode) {
