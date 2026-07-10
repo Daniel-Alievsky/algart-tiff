@@ -112,7 +112,5 @@ public class TiffOverwritePictureDemo {
         int n = writeMap.flushCompletedTiles(tiles);
         System.out.printf("  Written %d completed tiles, file length %d%n", n, writeMap.fileLength());
     }
-
-
 }
 
