@@ -959,6 +959,10 @@ public sealed class TiffMap permits TiffIOMap {
         return result;
     }
 
+    public TiffTile getByLinear(int linearIndex) {
+        return get(indexFromLinear(linearIndex));
+    }
+
     public TiffTile get(TiffTileIndex tileIndex) {
         checkTileIndexIFD(tileIndex);
         return tileMap.get(tileIndex);

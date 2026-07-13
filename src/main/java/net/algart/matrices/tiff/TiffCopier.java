@@ -549,25 +549,25 @@ public final class TiffCopier {
             final TiffTileIndex readIndex = readMap.copyIndex(targetTile.index());
             // - important to copy index: targetTile.index() refer to the writeIFD instead of some source IFD
             long t1Tile = TiffIO.debugTime(), t2Tile;
-            if (this.actuallyDirectCopy) {
-                final TiffTile sourceTile = readMap.readEncodedTile(readIndex, true);
-                t2Tile = TiffIO.debugTime();
-                if (sourceTile.isDuplicate()) {
-                    TiffTileIndex reference = writeMap.indexFromLinear(sourceTile.getLinkToOriginalOfDuplicate());
-                    TiffTile original = writeMap.get(reference);
-                    if (original == null) {
-                        throw new AssertionError("Original of " + sourceTile.index() +
-                                " has not been written yet!");
-                    }
-                    targetTile.linkAsDuplicateOf(original);
-                } else {
-                    targetTile.copyData(sourceTile, false);
+            final TiffTile sourceTile = actuallyDirectCopy ?
+                    readMap.readEncodedTile(readIndex, true) :
+                    readMap.readTile(readIndex);
+            //TODO!! readTile should support linking
+            t2Tile = TiffIO.debugTime();
+            if (sourceTile.isDuplicate()) {
+                TiffTile original = writeMap.getByLinear(sourceTile.getLinkToOriginalOfDuplicate());
+                if (original == null) {
+                    throw new AssertionError("Original of " + sourceTile.index() +
+                            " has not been written yet!");
                 }
+                targetTile.linkAsDuplicateOf(original);
             } else {
-                final TiffTile sourceTile = readMap.readTile(readIndex);
-                t2Tile = TiffIO.debugTime();
-                targetTile.copyUnpackedSamples(sourceTile);
-                // - this method performs necessary unpacking/packing bytes when the byte order is incompatible
+                if (actuallyDirectCopy) {
+                    targetTile.copyData(sourceTile, false);
+                } else {
+                    targetTile.copyUnpackedSamples(sourceTile);
+                    // - this method performs necessary unpacking/packing bytes when the byte order is incompatible
+                }
             }
             writeMap.put(targetTile);
             long t3Tile = TiffIO.debugTime();
@@ -594,8 +594,9 @@ public final class TiffCopier {
                             "(%.3f read + %.3f copy data + %.3f write) " +
                             "+ %.3f complete, %.3f MB/s",
                     getClass().getSimpleName(),
-                    actuallyDirectCopy ? "directly" : "with repacking" + (this.directCopy ?
-                            " (direct mode rejected)" : ""),
+                    actuallyDirectCopy ?
+                            "directly" :
+                            "with repacking" + (this.directCopy ? " (direct mode rejected)" : ""),
                     writeMap.dimX(), writeMap.dimY(), writeMap.numberOfChannels(),
                     tileCount,
                     sizeInBytes / 1048576.0,
