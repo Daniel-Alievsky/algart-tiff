@@ -728,6 +728,7 @@ public final class TiffTile {
     }
 
     public Object getUnpackedJavaArray() {
+        checkSeparated("convert the tile to an unpacked Java array");
         final byte[] samples = getUnpackedSampleBytes();
         // Note: we SHOULD NOT call map.bytesToJavaArray(samples)!
         // This method checks bitImageUnpackingMode and rarePrecisionMode,
@@ -737,45 +738,31 @@ public final class TiffTile {
 
     public TiffTile setUnpackedJavaArray(Object samplesArray) {
         Objects.requireNonNull(samplesArray, "Null samplesArray");
+        checkSeparated("set the tile data from an unpacked Java array");
         checkRarePrecision("convert Java array to bytes");
         final byte[] samples = map.javaArrayToBytes(samplesArray, sizeX, sizeY, samplesPerPixel);
         return setDecodedData(samples);
     }
 
-    public Matrix<UpdatablePArray> getUnpackedMatrix() {
-        return getUnpackedMatrix(false);
-    }
-
     /**
      * Gets the decoded data in the form of a matrix, similar to {@link TiffReadMap#readMatrix()}.
      *
-     * <p>If {@code allowInterleaved} is {@code false}, this method requires that the tile is
-     * {@link #isSeparated() separated}; otherwise, it throws an {@link IllegalStateException}.
+     * <p>Note: this method requires that the tile is
+     * {@link #isSeparated() separated}, and otherwise throws an {@link IllegalStateException}.
      * This is typical usage, as decoded tiles are usually separated.</p>
      *
-     * <p>If {@code allowInterleaved} is {@code true}, this method returns a 3D matrix also for interleaved data,
-     * where the first dimension ({@link Matrix#dim(int) dim(0)}) is the number of channels,
-     * the second ({@link Matrix#dim(int) dim(1)}) is the width, and
-     * the third ({@link Matrix#dim(int) dim(2)}) is the height.</p>
-     *
-     * @param allowInterleaved if {@code false}, interleaved tiles will cause an exception.
      * @return the unpacked data as a 3D matrix
-     * @throws IllegalStateException if {@code allowInterleaved} is {@code false} but the tile is interleaved.
+     * @throws IllegalStateException if the tile is interleaved.
      */
-    public Matrix<UpdatablePArray> getUnpackedMatrix(boolean allowInterleaved) {
-        if (!allowInterleaved && interleaved) {
-            throw new IllegalStateException("Cannot convert the tile to an unpacked matrix, because it is interleaved");
-        }
-        return TiffSamples.asMatrix(getUnpackedJavaArray(), sizeX, sizeY, samplesPerPixel, interleaved);
+    public Matrix<UpdatablePArray> getUnpackedMatrix() {
+        checkSeparated("convert the tile to an unpacked matrix");
+        return TiffSamples.asMatrix(getUnpackedJavaArray(), sizeX, sizeY, samplesPerPixel, false);
     }
 
     public TiffTile setUnpackedMatrix(Matrix<? extends PArray> matrix) {
         Objects.requireNonNull(matrix, "Null matrix");
+        checkSeparated("set the tile data from an unpacked matrix");
         checkRarePrecision("convert matrix to bytes");
-        if (interleaved) {
-            throw new IllegalStateException("Cannot set the tile data from the unpacked matrix, " +
-                    "because the tile is interleaved");
-        }
         final byte[] samples = map.matrixToBytes(matrix, sizeX, sizeY, samplesPerPixel);
         return setDecodedData(samples);
     }
@@ -1353,6 +1340,12 @@ public final class TiffTile {
         if (data == null) {
             checkFrozen();
             throw new IllegalStateException("TIFF tile is still not filled by any data: " + this);
+        }
+    }
+
+    private void checkSeparated(String action) {
+        if (isInterleaved()) {
+            throw new IllegalStateException("Cannot " + action + " because this tile is interleaved");
         }
     }
 

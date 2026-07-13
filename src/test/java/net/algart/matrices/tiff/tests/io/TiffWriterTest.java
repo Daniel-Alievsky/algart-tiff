@@ -41,6 +41,7 @@ import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
 import org.scijava.Context;
 
+import java.awt.*;
 import java.io.IOException;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -252,6 +253,10 @@ public class TiffWriterTest {
                 customBitsPerSample = null;
             }
         }
+        if (sampleType == TiffSampleType.BIT) {
+            color = false;
+            // - binary color images are not supported: avoiding error message
+        }
         final int numberOfImages = ++startArgIndex < args.length ? Integer.parseInt(args[startArgIndex]) : 1;
         final String compression = ++startArgIndex < args.length ? args[startArgIndex] : null;
         final int x = args.length <= ++startArgIndex ? 0 : Integer.parseInt(args[startArgIndex]);
@@ -414,7 +419,7 @@ public class TiffWriterTest {
                         // overwriteExisting mode in the following iterations
                     }
 
-                    Object samplesArray = makeSamples(ifdIndex, map, customBitsPerSample, w, h);
+                    Object samplesArray = makeSamples(ifdIndex, map, w, h, customBitsPerSample);
                     final boolean interleaved = !AUTO_INTERLEAVE_SOURCE;
                     if (interleaved) {
                         samplesArray = map.toInterleavedSamples(
@@ -498,30 +503,92 @@ public class TiffWriterTest {
     }
 
     private static void customFillEmptyTile(TiffTile tiffTile) {
-        byte[] decoded = tiffTile.getDecodedData();
-        Arrays.fill(decoded, tiffTile.isBinary() ? 0 : tiffTile.normalizedBitDepth() == 8 ? (byte) 0xE0 : (byte) 0xFF);
-        OptionalInt bytesPerPixel = tiffTile.bytesPerPixel();
-        if (bytesPerPixel.isEmpty()) {
-            return;
-        }
-        tiffTile.setInterleaved(true);
-        final int pixel = bytesPerPixel.getAsInt();
-        final int sizeX = tiffTile.getSizeX() * pixel;
-        final int sizeY = tiffTile.getSizeY();
-        Arrays.fill(decoded, 0, sizeX, (byte) 0);
-        Arrays.fill(decoded, decoded.length - sizeX, decoded.length, (byte) 0);
-        for (int k = 0; k < sizeY; k++) {
-            Arrays.fill(decoded, k * sizeX, k * sizeX + pixel, (byte) 0);
-            Arrays.fill(decoded, (k + 1) * sizeX - pixel, (k + 1) * sizeX, (byte) 0);
-        }
-        tiffTile.separateSamples();
+        tiffTile.setUnpackedJavaArray(makeEmptyTile(tiffTile));
     }
 
-    private static Object makeSamples(int ifdIndex, TiffMap map, int[] bitsPerSample, int dimX, int dimY) {
+    private static Object makeEmptyTile(TiffTile tile) {
+        final int samplesPerPixel = tile.samplesPerPixel();
+        final int sizeX = tile.getSizeX();
+        final int sizeY = tile.getSizeY();
+        final Color color = new Color(200, 248, 186);
+        final float[] filler = samplesPerPixel == 1 ?
+                new float[] {0.5f} :
+                Arrays.copyOf(color.getRGBComponents(null), samplesPerPixel);
+        return switch (tile.sampleType()) {
+            case BIT -> {
+                boolean[] channels = new boolean[sizeX * sizeY * samplesPerPixel];
+                for (int c = 0, disp = 0; c < samplesPerPixel; c++) {
+                    for (int y = 0; y < sizeY; y++) {
+                        for (int x = 0; x < sizeX; x++, disp++) {
+                            channels[disp] = x != 0 && y != 0 && ((x + y) & 1) == 1;
+                        }
+                    }
+                }
+                yield channels;
+            }
+            case UINT8, INT8 -> {
+                byte[] channels = new byte[sizeX * sizeY * samplesPerPixel];
+                for (int c = 0, disp = 0; c < samplesPerPixel; c++) {
+                    for (int y = 0; y < sizeY; y++) {
+                        for (int x = 0; x < sizeX; x++, disp++) {
+                            channels[disp] = x == 0 || y == 0 ? 0 : (byte) (filler[c] * 255.0);
+                        }
+                    }
+                }
+                yield channels;
+            }
+            case UINT16, INT16 -> {
+                short[] channels = new short[sizeX * sizeY * samplesPerPixel];
+                for (int c = 0, disp = 0; c < samplesPerPixel; c++) {
+                    for (int y = 0; y < sizeY; y++) {
+                        for (int x = 0; x < sizeX; x++, disp++) {
+                            channels[disp] = x == 0 || y == 0 ? 0 : (short) (filler[c] * 65535.0);
+                        }
+                    }
+                }
+                yield channels;
+            }
+            case UINT32, INT32 -> {
+                int[] channels = new int[sizeX * sizeY * samplesPerPixel];
+                for (int c = 0, disp = 0; c < samplesPerPixel; c++) {
+                    for (int y = 0; y < sizeY; y++) {
+                        for (int x = 0; x < sizeX; x++, disp++) {
+                            channels[disp] = x == 0 || y == 0 ? 0 : (int) (long) (filler[c] * 0xFFFFFFFFL);
+                        }
+                    }
+                }
+                yield channels;
+            }
+            case FLOAT -> {
+                float[] channels = new float[sizeX * sizeY * samplesPerPixel];
+                for (int c = 0, disp = 0; c < samplesPerPixel; c++) {
+                    for (int y = 0; y < sizeY; y++) {
+                        for (int x = 0; x < sizeX; x++, disp++) {
+                            channels[disp] = x == 0 || y == 0 ? 0 : filler[c];
+                        }
+                    }
+                }
+                yield channels;
+            }
+            case DOUBLE -> {
+                double[] channels = new double[sizeX * sizeY * samplesPerPixel];
+                for (int c = 0, disp = 0; c < samplesPerPixel; c++) {
+                    for (int y = 0; y < sizeY; y++) {
+                        for (int x = 0; x < sizeX; x++, disp++) {
+                            channels[disp] = x == 0 || y == 0 ? 0 : filler[c];
+                        }
+                    }
+                }
+                yield channels;
+            }
+        };
+    }
+
+    private static Object makeSamples(int ifdIndex, TiffMap map, int dimX, int dimY, int[] bitsPerSample) {
         final TiffSampleType sampleType = map.sampleType();
         final int matrixSize = dimX * dimY;
         final int samplesPerPixel = bitsPerSample == null ? map.numberOfChannels() : bitsPerSample.length;
-        switch (sampleType) {
+        return switch (sampleType) {
             case BIT -> {
                 boolean[] channels = new boolean[matrixSize * samplesPerPixel];
                 for (int y = 0; y < dimY; y++) {
@@ -537,7 +604,7 @@ public class TiffWriterTest {
                         }
                     }
                 }
-                return PackedBitArrays.packBits(channels, 0, channels.length);
+                yield PackedBitArrays.packBits(channels, 0, channels.length);
             }
             case UINT8, INT8 -> {
                 byte[] channels = new byte[matrixSize * samplesPerPixel];
@@ -574,9 +641,9 @@ public class TiffWriterTest {
                         }
                         packed[i] = (byte) v;
                     }
-                    return packed;
+                    yield packed;
                 } else {
-                    return channels;
+                    yield channels;
                 }
             }
             case UINT16, INT16 -> {
@@ -616,9 +683,9 @@ public class TiffWriterTest {
                         }
                         packed[i] = (short) v;
                     }
-                    return packed;
+                    yield packed;
                 } else {
-                    return channels;
+                    yield channels;
                 }
             }
             case INT32, UINT32 -> {
@@ -632,7 +699,7 @@ public class TiffWriterTest {
                         channels[disp + c * matrixSize] = 157 * 65536 * (50 * ifdIndex + Math.min(x, 500) + y);
                     }
                 }
-                return channels;
+                yield channels;
             }
             case FLOAT -> {
                 float[] channels = new float[matrixSize * samplesPerPixel];
@@ -646,7 +713,7 @@ public class TiffWriterTest {
                         channels[disp + c * matrixSize] = (float) (0.5 + 1.5 * (v / 256.0 - 0.5));
                     }
                 }
-                return channels;
+                yield channels;
             }
             case DOUBLE -> {
                 double[] channels = new double[matrixSize * samplesPerPixel];
@@ -660,9 +727,8 @@ public class TiffWriterTest {
                         channels[disp + c * matrixSize] = (float) (0.5 + 1.5 * (v / 256.0 - 0.5));
                     }
                 }
-                return channels;
+                yield channels;
             }
-        }
-        throw new UnsupportedOperationException("Unsupported sampleType = " + sampleType);
+        };
     }
 }
