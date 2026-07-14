@@ -1512,7 +1512,7 @@ public non-sealed class TiffWriter extends TiffIO {
             // note we can use index k, because buildGrid() method, called above for an empty map,
             //  provided the correct tiles order
             if (indexesOfFirst[k] >= 0) {
-                tile.setLinkToOriginalOfDuplicate(indexesOfFirst[k]);
+                tile.setLinearIndexOfOriginalIfDuplicate(indexesOfFirst[k]);
             }
             tile.markWholeTileAsSet();
             // - we "tell" that each tile has no unset areas

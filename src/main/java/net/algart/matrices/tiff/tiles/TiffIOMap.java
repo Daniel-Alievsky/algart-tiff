@@ -334,20 +334,24 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         return reader().readCachedTile(tileIndex);
     }
 
-    @SuppressWarnings("resource")
     public TiffTile readTile(TiffTileIndex tileIndex) throws IOException {
+        return readTile(tileIndex, TiffTile.DuplicateHandling.COPY_CONTENT);
+    }
+
+    @SuppressWarnings("resource")
+    public TiffTile readTile(TiffTileIndex tileIndex, TiffTile.DuplicateHandling duplicateHandling) throws IOException {
         checkTileIndexIFD(tileIndex);
-        return reader().readTile(tileIndex);
+        return reader().readTile(tileIndex, duplicateHandling);
     }
 
     public TiffTile readEncodedTile(TiffTileIndex tileIndex) throws IOException {
-        return readEncodedTile(tileIndex, false);
+        return readEncodedTile(tileIndex, TiffTile.DuplicateHandling.COPY_CONTENT);
     }
 
     @SuppressWarnings("resource")
-    public TiffTile readEncodedTile(TiffTileIndex tileIndex, boolean linkAndSkipDataIfDuplicate) throws IOException {
+    public TiffTile readEncodedTile(TiffTileIndex tileIndex, TiffTile.DuplicateHandling duplicateHandling) throws IOException {
         checkTileIndexIFD(tileIndex);
-        return reader().readEncodedTile(tileIndex, linkAndSkipDataIfDuplicate);
+        return reader().readEncodedTile(tileIndex, duplicateHandling);
     }
 
     static int divFloor(int a, int b) {

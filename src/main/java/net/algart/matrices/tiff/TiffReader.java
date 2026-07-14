@@ -47,7 +47,6 @@ import java.io.IOException;
 import java.lang.ref.Reference;
 import java.lang.ref.SoftReference;
 import java.lang.reflect.InvocationTargetException;
-import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Consumer;
@@ -1014,18 +1013,47 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     /**
-     * Reads and decodes the tile at the specified position.
-     * <p>Note: the loaded tile is always {@link TiffTile#isSeparated() separated}.
-     * <p>Note: this method does not cache tiles.
+     * Equivalent to <code>{@link #readTile(TiffTileIndex, TiffTile.DuplicateHandling)
+     * readTile}(tileIndex, {@link TiffTile.DuplicateHandling#COPY_CONTENT})</code>.
      *
-     * @param tileIndex coordinates of the tile.
+     * @param tileIndex index of the tile to read, including a reference to the IFD
+     *                  via the {@link TiffTileIndex#map() parent map} reference.
      * @return loaded tile.
-     * @throws IOException in the case of any problems with the input file.
-     * @see #readCachedTile(TiffTileIndex)
+     * @throws IOException if an I/O error occurs.
      */
     public TiffTile readTile(TiffTileIndex tileIndex) throws IOException {
-        final TiffTile tile = readEncodedTile(tileIndex);
-        if (tile.isEmpty()) {
+        return readTile(tileIndex, TiffTile.DuplicateHandling.COPY_CONTENT);
+    }
+
+    /**
+     * Reads and decodes the tile at the specified position.
+     *
+     * <p>If the {@code duplicateHandling} argument is {@link TiffTile.DuplicateHandling#LINK_REFERENCE} and
+     * the tile in the TIFF file is a duplicate of another tile &mdash; its file offset is equal
+     * to the file offset of some previos tile X in the same IFD &mdash;
+     * this method does not try to read and decode it, but simply sets the linear index
+     * of that tile X by the {@link TiffTile#setLinearIndexOfOriginalIfDuplicate(int)} method.
+     * It is supposed that you will detect this situation via {@link TiffTile#isDuplicate()} and
+     * {@link TiffTile#getLinearIndexOfOriginalIfDuplicate()} methods and process this.</p>
+     *
+     * <p>If the {@code duplicateHandling} argument is {@link TiffTile.DuplicateHandling#COPY_CONTENT}
+     * (a typical case), duplicated tiles are processed in a usual way.</p>
+     *
+     * <p>Note: the loaded tile is always {@link TiffTile#isSeparated() separated}.
+     *
+     * <p>Note: this method does not cache tiles.
+     *
+     * @param tileIndex index of the tile to read, including a reference to the IFD
+     *                  via the {@link TiffTileIndex#map() parent map} reference.
+     * @param duplicateHandling specifies whether we need special processing for duplicate tiles.
+     * @return loaded tile.
+     * @throws IOException if an I/O error occurs.
+     * @see #readCachedTile(TiffTileIndex)
+     */
+    public TiffTile readTile(TiffTileIndex tileIndex, TiffTile.DuplicateHandling duplicateHandling)
+            throws IOException {
+        final TiffTile tile = readEncodedTile(tileIndex, duplicateHandling);
+        if (tile.isEmpty() || tile.isDuplicate()) {
             return tile;
         }
         decode(tile);
@@ -1033,11 +1061,13 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     public TiffTile readEncodedTile(TiffTileIndex tileIndex) throws IOException {
-        return readEncodedTile(tileIndex, false);
+        return readEncodedTile(tileIndex, TiffTile.DuplicateHandling.COPY_CONTENT);
     }
 
-    public TiffTile readEncodedTile(TiffTileIndex tileIndex, boolean linkAndSkipDataIfDuplicate) throws IOException {
-        Objects.requireNonNull(tileIndex, "Null tileIndex");
+    public TiffTile readEncodedTile(TiffTileIndex tileIndex, TiffTile.DuplicateHandling duplicateHandling)
+            throws IOException {
+        Objects.requireNonNull(tileIndex, "Null tile index");
+        Objects.requireNonNull(duplicateHandling, "Null duplicate handling");
         long t1 = debugTime();
         final TiffIFD ifd = tileIndex.ifd();
         final int index = tileIndex.linear();
@@ -1052,7 +1082,7 @@ public non-sealed class TiffReader extends TiffIO {
             // without this, we'll read the previously written tile instead of the actual data!
             offset = existingTile.getStoredInFileDataOffset();
             byteCount = existingTile.getStoredInFileDataLength();
-            referenceToSource = existingTile.optReferenceToOriginalOfDuplicate().orElse(-1);
+            referenceToSource = existingTile.optLinearIndexOfOriginalIfDuplicate().orElse(-1);
             assert offset >= 0 && byteCount >= 0;
         } else {
             offset = ifd.cachedTileOrStripOffset(index);
@@ -1083,9 +1113,9 @@ public non-sealed class TiffReader extends TiffIO {
                         tileIndex + ")");
                 // - note: old SCIFIO code allowed such offsets and returned zero-filled tile
             }
-            if (linkAndSkipDataIfDuplicate && referenceToSource != -1) {
+            if (duplicateHandling.isLinkAndSkipDataWhenPossible() && referenceToSource != -1) {
                 result.freeData();
-                result.setLinkToOriginalOfDuplicate(referenceToSource);
+                result.setLinearIndexOfOriginalIfDuplicate(referenceToSource);
             } else {
                 TiffTileIO.readAt(result, stream, offset, byteCount);
                 if (alreadyStored) {

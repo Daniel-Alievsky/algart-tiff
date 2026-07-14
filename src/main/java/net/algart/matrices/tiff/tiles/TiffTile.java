@@ -57,7 +57,11 @@ public final class TiffTile {
 
     public enum DuplicateHandling {
         LINK_REFERENCE,
-        COPY_CONTENT
+        COPY_CONTENT;
+
+        public boolean isLinkAndSkipDataWhenPossible() {
+            return this == LINK_REFERENCE;
+        }
     }
 
     private static final boolean DISABLE_CROPPING = false;
@@ -81,7 +85,7 @@ public final class TiffTile {
     private long storedInFileDataOffset = -1;
     private int storedInFileDataLength = 0;
     private int storedInFileDataCapacity = 0;
-    private int linkToOriginalOfDuplicate = -1;
+    private int linearIndexOfOriginalIfDuplicate = -1;
     private boolean rescaleWhenIncreasingBitDepthRequested = false;
     private boolean colorCorrectionRequested = false;
     private Queue<IRectangularArea> unsetArea = null;
@@ -970,33 +974,34 @@ public final class TiffTile {
     }
 
 
-    public OptionalInt optReferenceToOriginalOfDuplicate() {
-        return linkToOriginalOfDuplicate < 0 ?
+    public OptionalInt optLinearIndexOfOriginalIfDuplicate() {
+        return linearIndexOfOriginalIfDuplicate < 0 ?
                 OptionalInt.empty() :
-                OptionalInt.of(linkToOriginalOfDuplicate);
+                OptionalInt.of(linearIndexOfOriginalIfDuplicate);
     }
 
-    public int getLinkToOriginalOfDuplicate() {
-        if (linkToOriginalOfDuplicate < 0) {
+    public int getLinearIndexOfOriginalIfDuplicate() {
+        if (linearIndexOfOriginalIfDuplicate < 0) {
             throw new IllegalStateException("The TIFF tile is not a duplicate: " + this);
         }
-        return linkToOriginalOfDuplicate;
+        return linearIndexOfOriginalIfDuplicate;
     }
 
-    public TiffTile setLinkToOriginalOfDuplicate(int linkToOriginalOfDuplicate) {
-        if (linkToOriginalOfDuplicate < 0) {
-            throw new IllegalArgumentException("Negative linkToOriginalOfDuplicate = " + linkToOriginalOfDuplicate);
+    public TiffTile setLinearIndexOfOriginalIfDuplicate(int linearIndexOfOriginalIfDuplicate) {
+        if (linearIndexOfOriginalIfDuplicate < 0) {
+            throw new IllegalArgumentException("Negative linearIndexOfOriginalIfDuplicate = " +
+                    linearIndexOfOriginalIfDuplicate);
         }
-        this.linkToOriginalOfDuplicate = linkToOriginalOfDuplicate;
+        this.linearIndexOfOriginalIfDuplicate = linearIndexOfOriginalIfDuplicate;
         return this;
     }
 
     public boolean isDuplicate() {
-        return linkToOriginalOfDuplicate >= 0;
+        return linearIndexOfOriginalIfDuplicate >= 0;
     }
 
     public TiffTile clearDuplicate() {
-        linkToOriginalOfDuplicate = -1;
+        linearIndexOfOriginalIfDuplicate = -1;
         return this;
     }
 
@@ -1013,7 +1018,7 @@ public final class TiffTile {
         if (!isEmpty()) {
             throw new IllegalStateException("Cannot mark a tile as a duplicate when it contains data: " + this);
         }
-        setLinkToOriginalOfDuplicate(other.linearIndex());
+        setLinearIndexOfOriginalIfDuplicate(other.linearIndex());
         copyStoredInFileDataRange(other);
         return this;
     }
