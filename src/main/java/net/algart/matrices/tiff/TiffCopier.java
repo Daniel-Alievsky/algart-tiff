@@ -100,6 +100,7 @@ public final class TiffCopier {
     private boolean directCopy = true;
     private int maxInMemoryTempFileSize = DEFAULT_MAX_IN_MEMORY_TEMP_FILE_SIZE;
     private TemporaryFileCreator temporaryFileCreator = TemporaryFileCreator.DEFAULT;
+    private boolean enforceCompatibleFileFormat = false;
     private TiffIFD.Customizer ifdCustomizer = null;
     private TagCompression compression = null;
     private ProgressUpdater progressUpdater = null;
@@ -192,6 +193,45 @@ public final class TiffCopier {
     public TiffCopier setTemporaryFileCreator(TemporaryFileCreator temporaryFileCreator) {
         this.temporaryFileCreator = Objects.requireNonNull(temporaryFileCreator,
                 "Null temporary file creator");
+        return this;
+    }
+
+    public boolean isEnforceCompatibleFileFormat() {
+        return enforceCompatibleFileFormat;
+    }
+
+    /**
+     * Sets whether newly created TIFF files should automatically use a file format
+     * compatible with the source TIFF file.
+     *
+     * <p>This flag is used by the {@link #copyTiffFile(TiffWriter, TiffReader)}
+     * method. If it is enabled ({@code true}), this method calls
+     * {@link TiffWriter#setCompatibleFileFormat(TiffReader)} before creating
+     * the output TIFF file. As a result, the target file uses the same TIFF variant
+     * (classic TIFF or Big-TIFF) and byte order (little-endian or big-endian)
+     * as the source TIFF. This provides the best performance when
+     * the {@link #setDirectCopy(boolean) direct copying} flag is enabled.</p>
+     *
+     * <p>By default, this flag is disabled ({@code false}).
+     * In this mode, the {@link #copyTiffFile(TiffWriter, TiffReader)} method
+     * will use the current settings of the specified {@link TiffWriter}.
+     * If the source file was written with different settings,
+     * it will be repacked automatically to match the requested format.
+     * However, in {@link #setDirectCopy(boolean) direct copying} mode,
+     * this probably does not involve actual decompression and compression &mdash; in most cases,
+     * such as when the image uses at most 8 bits/sample (for example, 24-bit RGB),
+     * the necessary format changes can be performed very quickly.</p>
+     *
+     * <p>Note that the {@link #copyTiffFile(Path, Path)} and {@link #compact(Path)} method
+     * always work as if this flag is set to {@code true}.
+     *
+     * @param enforceCompatibleFileFormat whether to enforce a file format compatible
+     *        with the source TIFF file when creating a new output file.
+     * @return a reference to this object.
+     * @see #setDirectCopy(boolean)
+     */
+    public TiffCopier setEnforceCompatibleFileFormat(boolean enforceCompatibleFileFormat) {
+        this.enforceCompatibleFileFormat = enforceCompatibleFileFormat;
         return this;
     }
 
@@ -470,7 +510,12 @@ public final class TiffCopier {
         }
     }
 
-    public void copyTiffFile(TiffWriter writer, TiffReader reader, boolean enforceCompatibleFileFormat)
+    public void copyTiffFile(TiffWriter writer, TiffReader reader) throws IOException {
+        copyTiffFile(writer, reader, this.enforceCompatibleFileFormat);
+    }
+
+    // Note: this private method is necessary for internal usage in compact and copyTiffFile method
+    private void copyTiffFile(TiffWriter writer, TiffReader reader, boolean enforceCompatibleFileFormat)
             throws IOException {
         checkDifferentFiles(writer, reader);
         if (enforceCompatibleFileFormat) {
