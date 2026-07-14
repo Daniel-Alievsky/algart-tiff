@@ -364,11 +364,6 @@ public final class TiffCopier {
         return actuallyDirectCopy;
     }
 
-    public static void copyFile(Path targetTiffFile, Path sourceTiffFile)
-            throws IOException {
-        new TiffCopier().copyEntireTiff(targetTiffFile, sourceTiffFile);
-    }
-
     public static void checkDifferentFiles(TiffWriter writer, TiffReader reader) throws IOException {
         Objects.requireNonNull(writer, "Null TIFF writer");
         Objects.requireNonNull(reader, "Null TIFF reader");
@@ -445,7 +440,7 @@ public final class TiffCopier {
             // - not-too-serious optimization: TiffReader automatically uses buffered reading
             try (TiffReader reader = new TiffReader(tiffFile, TiffOpenMode.VALID_TIFF);
                  TiffWriter writer = new TiffWriter(tempBytes)) {
-                copyEntireTiff(writer, reader, true);
+                copyTiffFile(writer, reader, true);
             }
             copyTempFileBackToTiff(tiffFile, tempBytes);
         } else {
@@ -454,7 +449,7 @@ public final class TiffCopier {
                 try (TiffReader reader = new TiffReader(tiffFile)) {
                     tempFile = temporaryFileCreator.createTemporaryFile();
                     try (TiffWriter writer = new TiffWriter(tempFile, TiffCreateMode.NO_ACTIONS)) {
-                        copyEntireTiff(writer, reader, true);
+                        copyTiffFile(writer, reader, true);
                     }
                 }
                 copyTempFileBackToTiff(tiffFile, tempFile);
@@ -466,16 +461,16 @@ public final class TiffCopier {
         }
     }
 
-    public void copyEntireTiff(Path targetTiffFile, Path sourceTiffFile) throws IOException {
+    public void copyTiffFile(Path targetTiffFile, Path sourceTiffFile) throws IOException {
         Objects.requireNonNull(targetTiffFile, "Null target TIFF file");
         Objects.requireNonNull(sourceTiffFile, "Null source TIFF file");
         try (TiffReader reader = new TiffReader(sourceTiffFile);
              TiffWriter writer = new TiffWriter(targetTiffFile, TiffCreateMode.NO_ACTIONS)) {
-            copyEntireTiff(writer, reader, true);
+            copyTiffFile(writer, reader, true);
         }
     }
 
-    public void copyEntireTiff(TiffWriter writer, TiffReader reader, boolean enforceCompatibleFileFormat)
+    public void copyTiffFile(TiffWriter writer, TiffReader reader, boolean enforceCompatibleFileFormat)
             throws IOException {
         checkDifferentFiles(writer, reader);
         if (enforceCompatibleFileFormat) {

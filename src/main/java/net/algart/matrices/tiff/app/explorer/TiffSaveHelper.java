@@ -261,7 +261,7 @@ class TiffSaveHelper {
                 writer.setBigTiff(bigTiffCheckBox.isSelected());
                 final UserByteOrder selected = TinySwing.selectedValue(byteOrderComboBox);
                 writer.setByteOrder(selected.byteOrder());
-                copier.copyEntireTiff(writer, reader, false);
+                copier.copyTiffFile(writer, reader, false);
             }
         }, "copying", false);
     }
