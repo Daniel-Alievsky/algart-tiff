@@ -59,7 +59,7 @@ public final class TiffTile {
         LINK_REFERENCE,
         COPY_CONTENT;
 
-        public boolean isLinkAndSkipDataWhenPossible() {
+        public boolean isLinkToOriginalIfPossible() {
             return this == LINK_REFERENCE;
         }
     }
@@ -972,7 +972,6 @@ public final class TiffTile {
         }
         return this;
     }
-
 
     public OptionalInt optLinearIndexOfOriginalIfDuplicate() {
         return linearIndexOfOriginalIfDuplicate < 0 ?

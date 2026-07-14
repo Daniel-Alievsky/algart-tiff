@@ -1029,19 +1029,19 @@ public non-sealed class TiffReader extends TiffIO {
      * Reads and decodes the tile at the specified position.
      *
      * <p>If the {@code duplicateHandling} argument is {@link TiffTile.DuplicateHandling#LINK_REFERENCE} and
-     * the tile in the TIFF file is a duplicate of another tile &mdash; its file offset is equal
-     * to the file offset of some previos tile X in the same IFD &mdash;
-     * this method does not try to read and decode it, but simply sets the linear index
-     * of that tile X by the {@link TiffTile#setLinearIndexOfOriginalIfDuplicate(int)} method.
-     * It is supposed that you will detect this situation via {@link TiffTile#isDuplicate()} and
-     * {@link TiffTile#getLinearIndexOfOriginalIfDuplicate()} methods and process this.</p>
+     * the tile in the TIFF file is a duplicate of another tile &mdash; i.e., its file offset is equal
+     * to the file offset of some previous tile X in the same IFD &mdash; this method does not try to read
+     * and decode it. Instead, it simply sets the linear index of that tile X using the
+     * {@link TiffTile#setLinearIndexOfOriginalIfDuplicate(int)} method.
+     * It is expected that you will detect this situation via the {@link TiffTile#isDuplicate()} and
+     * {@link TiffTile#getLinearIndexOfOriginalIfDuplicate()} methods and process it accordingly.</p>
      *
      * <p>If the {@code duplicateHandling} argument is {@link TiffTile.DuplicateHandling#COPY_CONTENT}
-     * (a typical case), duplicated tiles are processed in a usual way.</p>
+     * (the typical case), duplicated tiles are read and processed in the usual way.</p>
      *
-     * <p>Note: the loaded tile is always {@link TiffTile#isSeparated() separated}.
+     * <p>Note: the loaded tile is always {@link TiffTile#isSeparated() separated}.</p>
      *
-     * <p>Note: this method does not cache tiles.
+     * <p>Note: this method does not cache tiles.</p>
      *
      * @param tileIndex index of the tile to read, including a reference to the IFD
      *                  via the {@link TiffTileIndex#map() parent map} reference.
@@ -1113,7 +1113,7 @@ public non-sealed class TiffReader extends TiffIO {
                         tileIndex + ")");
                 // - note: old SCIFIO code allowed such offsets and returned zero-filled tile
             }
-            if (duplicateHandling.isLinkAndSkipDataWhenPossible() && referenceToSource != -1) {
+            if (duplicateHandling.isLinkToOriginalIfPossible() && referenceToSource != -1) {
                 result.freeData();
                 result.setLinearIndexOfOriginalIfDuplicate(referenceToSource);
             } else {
