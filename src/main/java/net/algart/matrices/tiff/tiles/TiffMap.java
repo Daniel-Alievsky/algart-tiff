@@ -1100,8 +1100,9 @@ public sealed class TiffMap permits TiffIOMap {
         }
     }
 
-    public void copyAllData(TiffMap source, boolean cloneData) {
+    public void copyAllData(TiffMap source, TiffTile.CopyMode copyMode) {
         Objects.requireNonNull(source, "Null source TIFF map");
+        Objects.requireNonNull(copyMode, "Null copy mode");
         if (source.numberOfSeparatedPlanes != this.numberOfSeparatedPlanes) {
             throw new IllegalArgumentException("Number of separated planes in the source (" +
                     source.numberOfSeparatedPlanes + ") and this map (" + this.numberOfSeparatedPlanes +
@@ -1113,7 +1114,7 @@ public sealed class TiffMap permits TiffIOMap {
                     this.gridCountX + "x" + source.gridCountY + " tiles) do not match");
         }
         for (TiffTile tile : source.tiles()) {
-            this.getOrNew(copyIndex(tile.index())).copyData(tile, cloneData);
+            this.getOrNew(copyIndex(tile.index())).copyData(tile, copyMode);
         }
     }
 

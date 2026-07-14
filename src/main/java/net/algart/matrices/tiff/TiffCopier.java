@@ -602,11 +602,11 @@ public final class TiffCopier {
                 targetTile.linkAsDuplicateOf(original);
             } else {
                 if (actuallyDirectCopy) {
-                    targetTile.copyData(sourceTile, false);
+                    targetTile.copyData(sourceTile, TiffTile.CopyMode.COPY_REFERENCE);
                 } else {
-                    targetTile.copyUnpackedSamples(sourceTile);
-                    // - this method performs necessary unpacking/packing bytes when the byte order is incompatible
+                    targetTile.copyData(sourceTile, TiffTile.CopyMode.COPY_UNPACKED_SAMPLES);
                 }
+                // - this method performs necessary unpacking/packing bytes when the byte order is incompatible
             }
             writeMap.put(targetTile);
             long t3Tile = TiffIO.debugTime();
@@ -888,7 +888,7 @@ public final class TiffCopier {
         for (int p = 0; p < numberOfSeparatedPlanes; p++) {
             TiffTile targetTile = writeMap.getOrNew(writeXIndex, writeYIndex, p);
             final TiffTile sourceTile = readMap.readEncodedTile(readMap.index(readXIndex, readYIndex, p));
-            targetTile.copyData(sourceTile, false);
+            targetTile.copyData(sourceTile, TiffTile.CopyMode.COPY_REFERENCE);
             writeMap.put(targetTile);
             writeMap.writeTile(targetTile, true);
         }

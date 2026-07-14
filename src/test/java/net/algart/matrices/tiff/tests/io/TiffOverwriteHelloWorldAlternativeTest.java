@@ -94,7 +94,7 @@ public class TiffOverwriteHelloWorldAlternativeTest {
         final BufferedImage bufferedImage = readMap.readBufferedImage(x, y, sizeX, sizeY, true);
         // - the last argument "true" leads to preserving all tiles in the map:
         // this is necessary for boundary tiles that are partially covered by the image
-        writeMap.copyAllData(readMap, false);
+        writeMap.copyAllData(readMap, TiffTile.CopyMode.COPY_REFERENCE);
         // - TiffReadMap-style processing: using a separate TiffReadMap
         System.out.printf("%nOverwriting %d..%dx%d..%d in %s...%n", x, x + sizeX - 1, y, y + sizeY - 1, writeMap);
         drawTextOnImage(bufferedImage, "Hello, world!");

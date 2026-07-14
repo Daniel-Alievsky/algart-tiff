@@ -45,7 +45,20 @@ import java.util.function.Supplier;
  * TIFF tile: container for samples (encoded or decoded) with given {@link TiffTileIndex index}.
  */
 public final class TiffTile {
-    
+    public enum CopyMode {
+        COPY_REFERENCE,
+        COPY_CONTENT,
+        COPY_UNPACKED_SAMPLES;
+
+        public boolean isSamePixelFormatRequired() {
+            return this == COPY_UNPACKED_SAMPLES;
+        }
+    }
+
+    public enum DuplicateHandling {
+        LINK_REFERENCE,
+        COPY_CONTENT
+    }
 
     private static final boolean DISABLE_CROPPING = false;
     // - You may set this to true for creating little invalid stripped TIFF, where the last strip is not cropped.
@@ -450,7 +463,7 @@ public final class TiffTile {
      * Note that initially the unset area consists from a single rectangle equal to {@link #actualRectangle()}.
      *
      * <p>Note that this information is <i>independent</i> on data: this area is not changed by the methods
-     * like {@link #setDecodedData(byte[])} or {@link #copyData(TiffTile, boolean)}.
+     * like {@link #setDecodedData(byte[])} or {@link #copyData(TiffTile, CopyMode)}.
      * However, this area is set to empty ({@link #markWholeTileAsSet()}) when loading the tile from the file
      * by {@link TiffTileIO#readAt} method.
      *
@@ -769,50 +782,47 @@ public final class TiffTile {
         return setDecodedData(samples);
     }
 
-    public TiffTile copyData(TiffTile source, boolean cloneData) {
+    public TiffTile copyData(TiffTile source, CopyMode copyMode) {
         Objects.requireNonNull(source, "Null source tile");
+        Objects.requireNonNull(copyMode, "Null copy mode");
+        if (copyMode.isSamePixelFormatRequired()) {
+            if (sampleType() != source.sampleType()) {
+                throw new IllegalArgumentException("The specified source tile has incompatible " +
+                        "sample type (" + source.elementType().getSimpleName() + ") than this tile: " + this);
+            }
+            if (samplesPerPixel != source.samplesPerPixel) {
+                throw new IllegalArgumentException("The specified source tile has incompatible " +
+                        "samples per pixel (" + source.samplesPerPixel + ") than this tile: " + this);
+            }
+            checkRarePrecision("copy unpacked samples");
+            // - for a rare precision 24-bit, we have no simple way to change byte order and prefer to disable it
+        }
         if (source.isEmpty()) {
             freeData();
         } else {
-            final byte[] data = cloneData ? source.data.clone() : source.data;
-            setData(data, source.encoded, false, true);
+            switch (copyMode) {
+                case COPY_REFERENCE -> {
+                    setData(source.data, source.encoded, false, true);
+                }
+                case COPY_CONTENT -> {
+                    setData(source.data.clone(), source.encoded, false, true);
+                }
+                case COPY_UNPACKED_SAMPLES ->  {
+                    source.checkDecodedData();
+                    if (map.isByteOrderCompatible(source.byteOrder())) {
+                        final byte[] decodedData = source.getUnpackedSampleBytes();
+                        setDecodedData(decodedData, true);
+                    } else {
+                        assert byteOrder() != source.byteOrder();
+                        assert elementType() != boolean.class;
+                        final byte[] decodedData = source.getUnpackedSampleBytes();
+                        final byte[] swapped = JArrays.copyAndSwapByteOrder(decodedData, elementType());
+                        setDecodedData(swapped, true);
+                    }
+                }
+            }
         }
         frozen = source.frozen;
-        return this;
-    }
-
-    public TiffTile copyUnpackedSamples(TiffTile source) {
-        Objects.requireNonNull(source, "Null source tile");
-        checkRarePrecision("copy unpacked samples");
-        if (sampleType() != source.sampleType()) {
-            throw new IllegalArgumentException("The specified source tile has incompatible " +
-                    "sample type (" + source.elementType().getSimpleName() + ") than this tile: " + this);
-        }
-        if (samplesPerPixel != source.samplesPerPixel) {
-            throw new IllegalArgumentException("The specified source tile has incompatible " +
-                    "samples per pixel (" + source.samplesPerPixel + ") than this tile: " + this);
-        }
-        // Note: map.normalizedBitDepth() MAY BE != source.map.normalizedBitDepth()
-        // This situation occurs when we need to copy unusual precisions,
-        // for example, 16-bit float into 32-bit floats
-        if (source.isEmpty()) {
-            freeData();
-            frozen = source.frozen;
-            return this;
-        }
-        source.checkDecodedData();
-        if (map.isByteOrderCompatible(source.byteOrder())) {
-            final byte[] decodedData = source.getUnpackedSampleBytes();
-            setDecodedData(decodedData, true);
-        } else {
-            assert byteOrder() != source.byteOrder();
-            assert elementType() != boolean.class;
-            final byte[] decodedData = source.getUnpackedSampleBytes();
-            final byte[] swapped = JArrays.copyAndSwapByteOrder(decodedData, elementType());
-            setDecodedData(swapped, true);
-        }
-        frozen = source.frozen;
-        // - actually is usually false
         return this;
     }
 
@@ -870,7 +880,7 @@ public final class TiffTile {
      * {@link #setDecodedData(byte[], boolean)} and {@link #setEncodedData(byte[], boolean)}
      * with additional {@code boolean} argument "unfreeze".
      * Also, the <i>frozen</i> status is copied from the source tile by
-     * {@link #copyData(TiffTile, boolean)} and {@link #copyUnpackedSamples(TiffTile)} methods.</p>
+     * the {@link #copyData(TiffTile, CopyMode)} method.</p>
      */
     public void freeAndFreeze() {
         freeData();

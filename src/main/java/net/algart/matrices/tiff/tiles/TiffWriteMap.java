@@ -179,7 +179,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                 if (tile.actualRectangle().intersects(areaToWrite)) {
                     if (loadTilesFullyInsideRectangle || !areaToWrite.contains(tile.actualRectangle())) {
                         final TiffTile existing = tileSupplier.getTile(tile.index());
-                        tile.copyData(existing, false);
+                        tile.copyData(existing, TiffTile.CopyMode.COPY_REFERENCE);
                     } else {
                         tile.unfreeze();
                         // - we declare that this tile should be rewritten by further overwriting data
