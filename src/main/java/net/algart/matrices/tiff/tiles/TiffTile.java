@@ -45,6 +45,8 @@ import java.util.function.Supplier;
  * TIFF tile: container for samples (encoded or decoded) with given {@link TiffTileIndex index}.
  */
 public final class TiffTile {
+    
+
     private static final boolean DISABLE_CROPPING = false;
     // - You may set this to true for creating little invalid stripped TIFF, where the last strip is not cropped.
     // Normal value is false.

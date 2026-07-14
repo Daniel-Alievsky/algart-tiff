@@ -934,7 +934,17 @@ public sealed class TiffMap permits TiffIOMap {
             // - Checking references, not content!
             // Checking IFD, not reference to map ("this"): there is no sense to disable creating a new map
             // and copying the tiles from the given map there.
-            throw new IllegalArgumentException("Illegal tile index: tile map cannot process tiles from different IFD");
+            throw new IllegalArgumentException(("Illegal tile index: this tile map " +
+                    "cannot process tiles from another IFD; " +
+                    "probably you should create an index copy via the TiffMap.copyIndex method%n" +
+                    "This tile map is %s, IFD hash 0x%X:%n  %s%n" +
+                    "The parent map of the tile index is %s, IFD hash 0x%X:%n  %s").formatted(
+                    this.getClass().getSimpleName(),
+                    System.identityHashCode(this.ifd),
+                    this,
+                    tileIndex.map().getClass().getSimpleName(),
+                    System.identityHashCode(tileIndex.ifd()),
+                    tileIndex.map()));
         }
     }
 

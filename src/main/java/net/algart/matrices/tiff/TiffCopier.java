@@ -201,11 +201,10 @@ public final class TiffCopier {
     }
 
     /**
-     * Sets whether newly created TIFF files should automatically use a file format
-     * compatible with the source TIFF file.
+     * Sets whether the {@link #copyTiffFile(TiffWriter, TiffReader)} method
+     * should force the output TIFF file format to be compatible with the source TIFF file.
      *
-     * <p>This flag is used by the {@link #copyTiffFile(TiffWriter, TiffReader)}
-     * method. If it is enabled ({@code true}), this method calls
+     * <p>If it is enabled ({@code true}), this method calls
      * {@link TiffWriter#setCompatibleFileFormat(TiffReader)} before creating
      * the output TIFF file. As a result, the target file uses the same TIFF variant
      * (classic TIFF or Big-TIFF) and byte order (little-endian or big-endian)
@@ -222,8 +221,8 @@ public final class TiffCopier {
      * such as when the image uses at most 8 bits/sample (for example, 24-bit RGB),
      * the necessary format changes can be performed very quickly.</p>
      *
-     * <p>Note that the {@link #copyTiffFile(Path, Path)} and {@link #compact(Path)} method
-     * always work as if this flag is set to {@code true}.
+     * <p>Note that the {@link #copyTiffFile(Path, Path)} and {@link #compact(Path)} methods
+     * always work as if this flag is set to {@code true}.</p>
      *
      * @param enforceCompatibleFileFormat whether to enforce a file format compatible
      *        with the source TIFF file when creating a new output file.

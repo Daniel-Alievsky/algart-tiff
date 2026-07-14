@@ -330,11 +330,13 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
 
     @SuppressWarnings("resource")
     public TiffTile readCachedTile(TiffTileIndex tileIndex) throws IOException {
+        checkTileIndexIFD(tileIndex);
         return reader().readCachedTile(tileIndex);
     }
 
     @SuppressWarnings("resource")
     public TiffTile readTile(TiffTileIndex tileIndex) throws IOException {
+        checkTileIndexIFD(tileIndex);
         return reader().readTile(tileIndex);
     }
 
@@ -344,6 +346,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
 
     @SuppressWarnings("resource")
     public TiffTile readEncodedTile(TiffTileIndex tileIndex, boolean linkAndSkipDataIfDuplicate) throws IOException {
+        checkTileIndexIFD(tileIndex);
         return reader().readEncodedTile(tileIndex, linkAndSkipDataIfDuplicate);
     }
 
