@@ -1645,6 +1645,22 @@ public final class TiffIFD {
         return result;
     }
 
+    /**
+     * Returns an index of the first possible duplicate of the tile or strip with the specified index.
+     * The possible cases:
+     * <ol>
+     *     <li>{@code result==-1}, if this tile/strip has not duplicates (other tiles/strips with identical
+     *     {@code TileOffsets}/{@code StripOffsets});</li>
+     *     <li>{@code result==index}, if this tile/strip is the first from several duplicates;</li>
+     *     <li>{@code result<index}, if this tile/strip is one of the consequent duplicates, then
+     *     the returned result is the index of the first from the duplicates.</li>
+     * </ol>
+     *
+     * @param index the index of a tile or strip.
+     * @return index of the first tile/strip with the same offset or {@code -1} if this offset is unique for this IFD.
+     * @throws IllegalArgumentException in the index is negative.
+     * @throws TiffException in the case of incorrect IFD or too big index.
+     */
     public int cachedIndexOfFirstSameOffset(int index) throws TiffException {
         int[] indexesOfFirst = cachedIndexesOfFirstSameOffset();
         if (index < 0) {
@@ -3019,10 +3035,15 @@ public final class TiffIFD {
         Objects.requireNonNull(tileOrStripOffsets, "Null tileOrStripOffsets");
         final HashMap<Long, Integer> firstIndexes = new HashMap<>();
         final int[] result = new int[tileOrStripOffsets.length];
+        Arrays.fill(result, -1);
         for (int k = 0; k < result.length; k++) {
             final long offset = tileOrStripOffsets[k];
-            Integer previous = firstIndexes.putIfAbsent(offset, k);
-            result[k] = previous == null ? -1 : previous;
+            Integer p = firstIndexes.putIfAbsent(offset, k);
+            if (p != null) {
+                result[p] = p;
+                // - marks that the tile #p HAS at least one duplicate k > p
+                result[k] = p;
+            }
         }
         return result;
     }

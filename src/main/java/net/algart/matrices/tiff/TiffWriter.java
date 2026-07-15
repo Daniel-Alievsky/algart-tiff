@@ -1511,7 +1511,8 @@ public non-sealed class TiffWriter extends TiffIO {
             // - we "tell" that all tiles already exist in the file;
             // note we can use index k, because buildGrid() method, called above for an empty map,
             //  provided the correct tiles order
-            if (indexesOfFirst[k] >= 0) {
+            if (indexesOfFirst[k] >= 0 && indexesOfFirst[k] != k) {
+                //TODO!!
                 tile.setLinearIndexOfOriginalIfDuplicate(indexesOfFirst[k]);
             }
             tile.markWholeTileAsSet();

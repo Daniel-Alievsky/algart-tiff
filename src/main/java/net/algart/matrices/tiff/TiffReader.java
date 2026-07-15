@@ -1095,6 +1095,10 @@ public non-sealed class TiffReader extends TiffIO {
             byteCount = cachedByteCountWithCompatibilityTrick(ifd, index);
             byteCount = correctZeroByteCount(tileIndex, byteCount, offset);
             referenceToSource = ifd.cachedIndexOfFirstSameOffset(index);
+            if (referenceToSource == index) {
+                referenceToSource = -1;
+                //TODO!!
+            }
         }
 
         final TiffTile result = new TiffTile(tileIndex);
