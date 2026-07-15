@@ -527,7 +527,7 @@ public final class TiffCopier {
      *      try ({@link TiffReader} reader = new {@link TiffReader#TiffReader(Path) TiffReader}(sourceTiffFile);
      *           {@link TiffWriter} writer = new {@link TiffWriter#TiffWriter(Path, TiffCreateMode)
      *           TiffWriter}(targetTiffFile, {@link TiffCreateMode#NO_ACTIONS})) {
-     *          thisObject.{@link #copyTiffFile(TiffWriter, TiffReader) copyTiffFile}(writer, reader);
+     *          copier.{@link #copyTiffFile(TiffWriter, TiffReader) copyTiffFile}(writer, reader);
      *      }
      * </pre>
      *
@@ -562,13 +562,13 @@ public final class TiffCopier {
      * <pre>
      *      {@link #checkDifferentFiles(TiffWriter, TiffReader) checkDifferentFiles}(writer, reader);
      *      // - exception if this is the same file
-     *      if (thisObject.isEnforceCompatibleFileFormat()) {
+     *      if (copier.{@link #isEnforceCompatibleFileFormat isEnforceCompatibleFileFormat()}) {
      *          writer.{@link TiffWriter#setCompatibleFileFormat setCompatibleFileFormat}(reader);
      *          // - sets identical {@link TiffWriter#setBigTiff
      *          BigTIFF} flag and {@link TiffWriter#getByteOrder() byte order}
      *      }
      *      writer.{@link TiffWriter#create() create()};
-     *      thisObject.{@link #copyImages(TiffWriter, TiffReader) copyImages}(writer, reader);
+     *      copier.{@link #copyImages(TiffWriter, TiffReader) copyImages}(writer, reader);
      * </pre>
      *
      * <p>Note: if you do not set {@link #setEnforceCompatibleFileFormat(boolean)

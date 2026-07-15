@@ -1316,8 +1316,8 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Equivalent to <code>{@link #correctForEncoding(TiffIFD, boolean)
-     * correctForEncoding}(ifd, thisObject.{@link #isSmartCorrection() isSmartCorrection()})</code>.
+     * Equivalent to <code>writer.{@link #correctForEncoding(TiffIFD, boolean)
+     * correctForEncoding}(ifd, writer.{@link #isSmartCorrection() isSmartCorrection()})</code>.
      *
      * @param ifd IFD to be corrected.
      * @throws TiffException in the case of some problems, in particular, if IFD settings are not supported.
