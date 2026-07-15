@@ -216,10 +216,13 @@ public final class TiffCopier {
      * will use the current settings of the specified {@link TiffWriter}.
      * If the source file was written with different settings,
      * it will be repacked automatically to match the requested format.
-     * However, in {@link #setDirectCopy(boolean) direct copying} mode,
+     * In {@link #setDirectCopy(boolean) direct copying} mode,
      * this probably does not involve actual decompression and compression &mdash; in most cases,
      * such as when the image uses at most 8 bits/sample (for example, 24-bit RGB),
-     * the necessary format changes can be performed very quickly.</p>
+     * the necessary format changes can be performed very quickly.
+     * However, be careful: if the recompression is necessary
+     * (usually for 16-bit, 32-bit or {@code float} samples),
+     * it can take significant time.</p>
      *
      * <p>Note that the {@link #copyTiffFile(Path, Path)} and {@link #compact(Path)} methods
      * always work as if this flag is set to {@code true}.</p>
@@ -483,6 +486,7 @@ public final class TiffCopier {
      *
      * @param tiffFile file to be compacted.
      * @throws IOException if an I/O error occurs.
+     * @see #copyTiffFile(Path, Path)  
      */
     public void compact(Path tiffFile) throws IOException {
         Objects.requireNonNull(tiffFile, "Null TIFF file");
@@ -515,6 +519,34 @@ public final class TiffCopier {
         }
     }
 
+
+    /**
+     * Copies the entire source TIFF file to the target TIFF file.
+     * Equivalent to the following code:
+     * <pre>
+     *      try ({@link TiffReader} reader = new {@link TiffReader#TiffReader(Path) TiffReader}(sourceTiffFile);
+     *           {@link TiffWriter} writer = new {@link TiffWriter#TiffWriter(Path, TiffCreateMode)
+     *           TiffWriter}(targetTiffFile, {@link TiffCreateMode#NO_ACTIONS})) {
+     *          thisObject.{@link #copyTiffFile(TiffWriter, TiffReader) copyTiffFile}(writer, reader);
+     *      }
+     * </pre>
+     * <p>with the only difference that the compatible file format mode is <b>ignored</b>,
+     * as if your set {@link #setEnforceCompatibleFileFormat(boolean)
+     * setEnforceCompatibleFileFormat(false)}
+     * (even if you actually set this flag to {@code true}).
+     * This difference is important: no sense to repack a TIFF file with different
+     * format settings (BigTIFF mode and byte order)
+     * if you have no ability to specify them.
+     * If you need to actually change these format settings, please use the method
+     * {@link #copyTiffFile(TiffWriter, TiffReader)} in the mode
+     * {@link #setEnforceCompatibleFileFormat(boolean)
+     * setEnforceCompatibleFileFormat(true)}.</p>
+     *
+     * @param targetTiffFile the target TIFF file.
+     * @param sourceTiffFile the source TIFF file.
+     * @throws IOException          if an I/O error occurs.
+     * @throws NullPointerException if one of the arguments is {@code null}.
+     */
     public void copyTiffFile(Path targetTiffFile, Path sourceTiffFile) throws IOException {
         Objects.requireNonNull(targetTiffFile, "Null target TIFF file");
         Objects.requireNonNull(sourceTiffFile, "Null source TIFF file");
@@ -539,13 +571,14 @@ public final class TiffCopier {
      *      thisObject.{@link #copyImages(TiffWriter, TiffReader) copyImages}(writer, reader);
      * </pre>
      *
-     * <p>Note: if you do not set the mode {@link #setEnforceCompatibleFileFormat(boolean)} to the {@code true}
-     * value, this method will use the format settings (BigTIFF and byte order)
+     * <p>Note: if you do not set {@link #setEnforceCompatibleFileFormat(boolean)
+     * setEnforceCompatibleFileFormat(true)},
+     * this method will use the format settings (BigTIFF and byte order)
      * which are currently set in the writer. This can be useful, for example, if you want to change the byte order
      * or to reformat a standard TIFF file to BigTIFF.</p>
      *
      * <p>Of course, you can easily implement an analogous code yourself.
-     * You may consider this method as an illustration how does this copier work.</p>
+     * You may consider this method as an illustration of how this copier works.</p>
      *
      * @param writer the TIFF writer.
      * @param reader the TIFF reader.
