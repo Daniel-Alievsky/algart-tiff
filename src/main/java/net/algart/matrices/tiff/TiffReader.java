@@ -1029,20 +1029,19 @@ public non-sealed class TiffReader extends TiffIO {
      * Reads and decodes the tile at the specified position.
      *
      * <p>Note: if the tile in the TIFF file is a duplicate of another tile <b>X</b> &mdash;
-     * i.e., its file offset is equal
-     * to the file offset of some previous tile <b>X</b> in the same IFD &mdash; this method
-     * sets the linear index of that tile <b>X</b> using the
-     * {@link TiffTile#setLinearIndexOfOriginalIfDuplicate(int)} method.
+     * i.e., its file offset is equal to the file offset of some previous tile <b>X</b> in the same IFD &mdash;
+     * this method registers this fact by storing the linear index of that original tile <b>X</b> in the returned tile
+     * using the {@link TiffTile#setLinearIndexOfOriginalIfDuplicate(int)} method.
      * You can detect this situation via the {@link TiffTile#isDuplicate()} method.</p>
      *
      * <p>If the {@code duplicateHandling} argument is {@link TiffTile.DuplicateHandling#LINK_REFERENCE} and
-     * the tile is a duplicate of another tile, this method does not try to read
-     * and decode it: the tiles stays {@link TiffTile#isEmpty() empty}.
+     * the tile is a duplicate of another tile, this method does not read and decode it;
+     * the tile stays {@link TiffTile#isEmpty() empty}.
      * It is expected that you will detect this situation via the {@link TiffTile#isDuplicate()} and
      * {@link TiffTile#getLinearIndexOfOriginalIfDuplicate()} methods and process it accordingly.</p>
      *
      * <p>If the {@code duplicateHandling} argument is {@link TiffTile.DuplicateHandling#COPY_CONTENT}
-     * (the typical case), duplicated tiles are read and processed in the usual way.</p>
+     * (the typical case), the duplicated tile is read and processed in the usual way.</p>
      *
      * <p>Note: the loaded tile is always {@link TiffTile#isSeparated() separated}.</p>
      *

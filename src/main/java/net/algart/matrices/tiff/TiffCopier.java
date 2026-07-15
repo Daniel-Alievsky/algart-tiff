@@ -703,16 +703,14 @@ public final class TiffCopier {
                     readMap.readTile(readIndex, TiffTile.DuplicateHandling.LINK_REFERENCE);
             t2Tile = TiffIO.debugTime();
             if (sourceTile.isDuplicate()) {
+                assert sourceTile.isEmpty() : "duplicate should not be read";
                 final int indexOfOriginal = sourceTile.getLinearIndexOfOriginalIfDuplicate();
                 if (indexOfOriginal >= linear) {
                     throw new AssertionError("Index of original must be less, but " +
                             indexOfOriginal + " >= " + linear);
                 }
                 final TiffTile original = writeMap.getByLinear(indexOfOriginal);
-                if (original == null) {
-                    throw new AssertionError("Original of " + sourceTile.index() +
-                            " has not been written yet!");
-                }
+                assert original != null: "original of " + sourceTile.index() + " has not been written yet";
                 targetTile.linkAsDuplicateOf(original);
             } else {
                 targetTile.copyData(sourceTile, tileCopyMode);
