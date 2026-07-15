@@ -681,12 +681,20 @@ public final class TiffCopier {
         writeMap.prewrite();
         final Collection<TiffTile> targetTiles = writeMap.tiles();
         progressInformation.tileCount = targetTiles.size();
-        int tileCount = 0;
+        int linear = 0;
         long t2 = TiffIO.debugTime();
         long timeReading = 0;
         long timeCopying = 0;
         long timeWriting = 0;
+        final TiffTile.CopyMode tileCopyMode = actuallyDirectCopy ?
+                TiffTile.CopyMode.COPY_REFERENCE :
+                TiffTile.CopyMode.COPY_UNPACKED_SAMPLES;
         for (TiffTile targetTile : targetTiles) {
+            if (targetTile.linearIndex() != linear) {
+                throw new AssertionError("Newly created map is not full or correctly ordered: \"" +
+                    targetTile + "\", its linear index is not " + linear +
+                        "; this is impossible: newMap must call buildTileGrid");
+            }
             final TiffTileIndex readIndex = readMap.copyIndex(targetTile.index());
             // - important to copy index: targetTile.index() refer to the writeIFD instead of some source IFD
             long t1Tile = TiffIO.debugTime(), t2Tile;
@@ -695,18 +703,19 @@ public final class TiffCopier {
                     readMap.readTile(readIndex, TiffTile.DuplicateHandling.LINK_REFERENCE);
             t2Tile = TiffIO.debugTime();
             if (sourceTile.isDuplicate()) {
-                TiffTile original = writeMap.getByLinear(sourceTile.getLinearIndexOfOriginalIfDuplicate());
+                final int indexOfOriginal = sourceTile.getLinearIndexOfOriginalIfDuplicate();
+                if (indexOfOriginal >= linear) {
+                    throw new AssertionError("Index of original must be less, but " +
+                            indexOfOriginal + " >= " + linear);
+                }
+                final TiffTile original = writeMap.getByLinear(indexOfOriginal);
                 if (original == null) {
                     throw new AssertionError("Original of " + sourceTile.index() +
                             " has not been written yet!");
                 }
                 targetTile.linkAsDuplicateOf(original);
             } else {
-                if (actuallyDirectCopy) {
-                    targetTile.copyData(sourceTile, TiffTile.CopyMode.COPY_REFERENCE);
-                } else {
-                    targetTile.copyData(sourceTile, TiffTile.CopyMode.COPY_UNPACKED_SAMPLES);
-                }
+                targetTile.copyData(sourceTile, tileCopyMode);
                 // - this method performs necessary unpacking/packing bytes when the byte order is incompatible
             }
             writeMap.put(targetTile);
@@ -716,11 +725,11 @@ public final class TiffCopier {
             timeReading += t2Tile - t1Tile;
             timeCopying += t3Tile - t2Tile;
             timeWriting += t4Tile - t3Tile;
-            progressInformation.tileIndex = tileCount;
+            progressInformation.tileIndex = linear;
             if (shouldBreak()) {
                 break;
             }
-            tileCount++;
+            linear++;
         }
         long t3 = TiffIO.debugTime();
         writeMap.completeWriting();
@@ -738,7 +747,7 @@ public final class TiffCopier {
                             "directly" :
                             "with repacking" + (this.directCopy ? " (direct mode rejected)" : ""),
                     writeMap.dimX(), writeMap.dimY(), writeMap.numberOfChannels(),
-                    tileCount,
+                    linear,
                     sizeInBytes / 1048576.0,
                     (t4 - t1) * 1e-6,
                     (t2 - t1) * 1e-6,
