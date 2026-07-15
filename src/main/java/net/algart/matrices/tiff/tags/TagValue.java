@@ -51,7 +51,7 @@ import java.util.Objects;
  * (unsigned 16-bit, 0..65535). Note: a single {@code Integer} value
  * greater than 0xFFFF is written as {@link TagType#LONG} / {@link TagType#LONG8}.</li>
  * <li><b>{@code Long} or {@code long[]}</b>: mapped to {@link TagType#LONG}
- * (unsigned 32-bit) or {@link TagType#LONG8} (unsigned 64-bit) for Big-TIFF files.</li>
+ * (unsigned 32-bit) or {@link TagType#LONG8} (unsigned 64-bit) for BigTIFF files.</li>
  * <li><b>{@link TagValue.SByte TagValue.SByte} or <code>{@link TagValue.SByte}[]</code></b>:
  * mapped to {@link TagType#SBYTE} (signed 8-bit integers, -128..127).</li>
  * <li><b>{@link TagValue.SShort TagValue.SShort} or <code>{@link TagValue.SShort}[]</code></b>:
@@ -60,10 +60,10 @@ import java.util.Objects;
  * mapped to {@link TagType#SLONG} (signed 32-bit integers).</li>
  * <li><b>{@link TagValue.SLong8 TagValue.SLong8} or <code>{@link TagValue.SLong8}[]</code></b>:
  * mapped to {@link TagType#SLONG8} (signed 64-bit integers). Supported only in
- * Big-TIFF mode; attempting to write it into a classic TIFF file causes an exception.</li>
+ * BigTIFF mode; attempting to write it into a classic TIFF file causes an exception.</li>
  * <li><b>{@link TagValue.IFD TagValue.IFD} or <code>{@link TagValue.IFD}[]</code></b>:
  * mapped to {@link TagType#IFD} (32-bit unsigned offset) or {@link TagType#IFD8}
- * (64-bit unsigned offset) for Big-TIFF files.</li>
+ * (64-bit unsigned offset) for BigTIFF files.</li>
  * <li><b>{@link TagValue.Rational TagValue.Rational} or
  * <code>{@link TagValue.Rational TagValue.Rational}[]</code></b>: mapped to
  * {@link TagType#RATIONAL} (pairs of unsigned 32-bit integers).</li>
@@ -118,10 +118,10 @@ import java.util.Objects;
  * when attempting to write the IFD to a TIFF file.
  * However, there are exceptions to this rule:</p>
  * <ul>
- *     <li>For Big-TIFF files, all {@code long} values are mapped to {@link TagType#LONG8}.</li>
+ *     <li>For BigTIFF files, all {@code long} values are mapped to {@link TagType#LONG8}.</li>
  *     <li>A <b>single</b> {@code int} value ({@code Integer} or {@code int[1]})
  *     that is greater than 0xFFFF is automatically promoted to {@link TagType#LONG}
- *     (or {@link TagType#LONG8} for Big-TIFF files) instead of {@link TagType#SHORT}.</li>
+ *     (or {@link TagType#LONG8} for BigTIFF files) instead of {@link TagType#SHORT}.</li>
  * </ul>
  *
  * <p>Note: all classes implementing this interface extend {@link Number}.
@@ -255,7 +255,7 @@ public sealed interface TagValue permits RawInteger, RawRational {
                 stream.writeLong(longValue());
             } else {
                 throw new TiffException("Cannot write 64-bit signed integer (SLONG8) = " + longValue() +
-                        " to a classic (not Big-TIFF) file: this type is supported only in Big-TIFF");
+                        " to a classic (not BigTIFF) file: this type is supported only in BigTIFF");
             }
         }
     }

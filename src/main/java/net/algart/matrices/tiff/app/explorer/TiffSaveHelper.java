@@ -151,7 +151,7 @@ class TiffSaveHelper {
         settingsPanel.add(oneRowPanel);
         settingsPanel.add(Box.createVerticalStrut(5));
 
-        bigTiffCheckBox = new JCheckBox("Big-TIFF (necessary for large files >4 GB)");
+        bigTiffCheckBox = new JCheckBox("BigTIFF (necessary for large files >4 GB)");
         bigTiffCheckBox.setAlignmentX(Component.LEFT_ALIGNMENT);
         bigTiffCheckBox.setSelected(info.isBigTiff());
         settingsPanel.add(bigTiffCheckBox);
@@ -161,7 +161,7 @@ class TiffSaveHelper {
                     String.format(Locale.US,
                             TinySwing.smartHtmlLines(
                                     "The TIFF file is very large (<b>%.3f GB</b>, &gt;1 GB)!<br>" +
-                                            "We recommend using Big-TIFF, allowing to store &gt;4 GB of data."),
+                                            "We recommend using BigTIFF, allowing to store &gt;4 GB of data."),
                             (double) info.tiffFileLength() / (double) (1024L * 1024L * 1024L))));
         }
         mainPanel.add(settingsPanel);

@@ -265,9 +265,9 @@ public final class TiffIFD {
     }
 
     /**
-     * An IFD with the number of entries, greater than this limit, is not allowed even in Big-TIFF:
+     * An IFD with the number of entries, greater than this limit, is not allowed even in BigTIFF:
      * it is mostly probable that it is a corrupted file.
-     * Note that in regular files (not Big-TIFF) the limit is 65536 (2^16).
+     * Note that in classic TIFF files (not BigTIFF) the limit is 65536 (2^16).
      */
     public static final int MAX_NUMBER_OF_IFD_ENTRIES = 1_000_000;
 
@@ -3044,15 +3044,15 @@ public final class TiffIFD {
 
     /**
      * Checks that the specified number of IFD entries is a valid non-negative value and returns it.
-     * Note: values exceeding {@link #MAX_NUMBER_OF_IFD_ENTRIES} are considered invalid for Big-TIFF;
-     * values exceeding 65535 are invalid for standard TIFF.
+     * Note: values exceeding {@link #MAX_NUMBER_OF_IFD_ENTRIES} are considered invalid for BigTIFF;
+     * values exceeding 65535 are invalid for classic TIFF.
      *
      * <p>Note: the result of this method can be safely multiplied by the IFD entry length
      * ({@link #BYTES_PER_ENTRY} or {@link #BIG_TIFF_BYTES_PER_ENTRY}) without a risk of 32-bit overflow.
      * The product (total length of the IFD table) is guaranteed to be much less than {@code Integer.MAX_VALUE}.</p>
      *
      * @param numberOfEntries the number of entries to check (usually read from the file).
-     * @param bigTiff         {@code true} if the file is Big-TIFF.
+     * @param bigTiff         {@code true} if the file is BigTIFF.
      * @return the validated {@code numberOfEntries} as an integer.
      * @throws TiffException if the value is negative or exceeds the applicable limit.
      */
@@ -3063,7 +3063,7 @@ public final class TiffIFD {
         final int numberOfEntriesLimit = bigTiff ? MAX_NUMBER_OF_IFD_ENTRIES : 65535;
         if (numberOfEntries > numberOfEntriesLimit) {
             throw new TiffException("Too many IFD entries: " + numberOfEntries + " > " + numberOfEntriesLimit);
-            // - theoretically Big-TIFF allows having more entries, but we prefer to make some restriction;
+            // - theoretically BigTIFF allows having more entries, but we prefer to make some restriction;
             // in any case, billions if entries probably lead to OutOfMemoryError or integer overflow;
             // also we guarantee that the result can be multiplied by bytesPerEntry without overflow
         }

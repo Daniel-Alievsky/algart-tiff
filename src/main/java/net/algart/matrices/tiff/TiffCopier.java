@@ -207,7 +207,7 @@ public final class TiffCopier {
      * <p>If it is enabled ({@code true}), this method calls
      * {@link TiffWriter#setCompatibleFileFormat(TiffReader)} before creating
      * the output TIFF file. As a result, the target file uses the same TIFF variant
-     * (classic TIFF or Big-TIFF) and byte order (little-endian or big-endian)
+     * (classic TIFF or BigTIFF) and byte order (little-endian or big-endian)
      * as the source TIFF. This provides the best performance when
      * the {@link #setDirectCopy(boolean) direct copying} flag is enabled.</p>
      *
@@ -575,7 +575,7 @@ public final class TiffCopier {
      * setEnforceCompatibleFileFormat(true)},
      * this method will use the format settings (BigTIFF and byte order)
      * which are currently set in the writer. This can be useful, for example, if you want to change the byte order
-     * or to reformat a standard TIFF file to BigTIFF.</p>
+     * or to reformat a classic TIFF file to BigTIFF.</p>
      *
      * <p>Of course, you can easily implement an analogous code yourself.
      * You may consider this method as an illustration of how this copier works.</p>

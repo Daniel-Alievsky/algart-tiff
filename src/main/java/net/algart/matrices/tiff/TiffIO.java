@@ -64,7 +64,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
          * The properties {@link TiffIFD#getNextIFDOffset() next IFD offset}
          * and {@link TiffIFD#getFileOffsetOfNextIFDOffset() offset of the next IFD offset} will be filled,
          * along with other common information like
-         * {@link TiffIFD#getFileOffsetOfIFD() IFD start offset}, {@link TiffIFD#isBigTiff() Big-TIFF} flag, and
+         * {@link TiffIFD#getFileOffsetOfIFD() IFD start offset}, {@link TiffIFD#isBigTiff() BigTIFF} flag, and
          * {@link TiffIFD#getByteOrder() byte order}.
          * The {@link TiffIFD#map() entries map} will remain empty.
          */
@@ -73,7 +73,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         /**
          * Reads the entries and common information, skipping the next IFD offset.
          * The {@link TiffIFD#map() entries map} and common information (such as
-         * {@link TiffIFD#getFileOffsetOfIFD() IFD start offset}, {@link TiffIFD#isBigTiff() Big-TIFF} flag,
+         * {@link TiffIFD#getFileOffsetOfIFD() IFD start offset}, {@link TiffIFD#isBigTiff() BigTIFF} flag,
          * and {@link TiffIFD#getByteOrder() byte order}) will be parsed,
          * but the properties {@link TiffIFD#getNextIFDOffset() next IFD offset}
          * and {@link TiffIFD#getFileOffsetOfNextIFDOffset() offset of the next IFD offset} will remain unset.
@@ -295,7 +295,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     /**
      * Returns the byte length of fields containing file offsets, in particular, IFD offsets.
      *
-     * @return 8 for Big-TIFF (long), 4 for standard TIFF (unsigned int).
+     * @return 8 for BigTIFF (long), 4 for classic TIFF (unsigned int).
      */
     public int sizeOfOffset() {
         return bigTiff ? 8 : 4;
@@ -305,7 +305,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * Returns the byte length of the field containing the number of IFD entries.
      * This corresponds to the size of the value read by {@link #readNumberOfIFDEntriesAt(long)}.
      *
-     * @return 8 for Big-TIFF (long), 2 for standard TIFF (unsigned short).
+     * @return 8 for BigTIFF (long), 2 for classic TIFF (unsigned short).
      */
     public int sizeOfNumberOfIFDEntries() {
         return bigTiff ? 8 : 2;
@@ -315,7 +315,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * Returns the byte length of a single IFD entry based on the TIFF format version,
      * depending on {@link #isBigTiff()} flag.
      *
-     * @return 12 for standard TIFF, 20 for Big-TIFF.
+     * @return 12 for classic TIFF, 20 for BigTIFF.
      */
     public int sizeOfIFDEntry() {
         return TiffIFD.Entry.sizeOfEntry(bigTiff);
@@ -531,7 +531,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * The value is validated using {@link TiffIFD#checkNumberOfEntries(long, boolean)}.
      *
      * <p>After a successful call, the stream position is set immediately after
-     * the count field (2 bytes for standard TIFF, 8 bytes for Big-TIFF).</p>
+     * the count field (2 bytes for classic TIFF, 8 bytes for BigTIFF).</p>
      *
      * @param ifdOffset the absolute offset of the IFD structure inside the TIFF file.
      * @return the validated number of IFD entries.
@@ -571,7 +571,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * and the "next IFD offset" field <b>o2</b> inside this IFD at file position:<br>
      * &nbsp;&nbsp;&nbsp;&nbsp;<b>p2</b> = <b>o1</b> + 2 + <i>n1</i> * 12<br>
      * (where <i>n1</i> is the number of entries in the first IFD #0; assuming this is
-     * a standard TIFF, not a Big-TIFF).
+     * a classic TIFF, not a BigTIFF).
      * The value returned by {@link #offsetOfLastScannedIFDOffset()} will be set to <b>p2</b>.
      * The result of this method will be <b>o2</b>.
      * The total number of offsets read is 2: <b>o1</b> and <b>o2</b>.</p>
@@ -1166,7 +1166,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * @param ifdStream                   the main stream where IFD entries should be written.
      * @param extraBuffer                 the buffer where "extra" IFD information should be written.
-     * @param bigTiff                     Big-TIFF flag.
+     * @param bigTiff                     BigTIFF flag.
      * @param additionToExtraBufferOffset the position of "extra" data in the result TIFF file =
      *                                    {@code additionToExtraBufferOffset} +
      *                                    offset of the written "extra" data inside {@code extraBuffer};
@@ -1312,7 +1312,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                             return;
                         }
                         // - for other (non "special") tags we use standard selection:
-                        // LONG8 for Big-Tiff, LONG for non-Big-TIFF
+                        // LONG8 for BigTIFF, LONG for non-BigTIFF
                         writeTagType(ifdStream, bigTiff ? TagType.LONG8 : TagType.LONG, null);
                         TagValue.writeUnsigned(ifdStream, bigTiff, v.length);
                         TagValue.writeUnsigned(ifdStream, bigTiff, v0);
@@ -1337,7 +1337,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 }
             }
             case long[] v -> {
-                // suppose LONG (unsigned 32-bit) or LONG8 for Big-TIFF
+                // suppose LONG (unsigned 32-bit) or LONG8 for BigTIFF
                 if (v.length == 1 && writeSpecialTag(ifdStream, bigTiff, tag, v[0])) {
                     return;
                 }
@@ -1387,7 +1387,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                         ifdStream.writeDouble(doubleValue);
                     }
                     writeZeroPadding(ifdStream, paddingSize);
-                    // - possible special case: v.length=0, not Big-TIFF, but we still need to fill 4 (not 8) bytes!
+                    // - possible special case: v.length=0, not BigTIFF, but we still need to fill 4 (not 8) bytes!
                 } else {
                     appendUntilEvenOffset(extraBuffer);
                     writeOffsetWithAddition(ifdStream, bigTiff, additionToExtraBufferOffset, extraBuffer.offset());

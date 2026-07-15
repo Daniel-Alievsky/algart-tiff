@@ -198,7 +198,7 @@ class TiffNewBlankHelper {
         byteOrderComboBox.setSelectedItem(byteOrder);
         addGridBugRowLabelled(gridPanel, gbc, new JLabel("Byte order:"), byteOrderComboBox, row++);
 
-        bigTiffCheckBox = new JCheckBox("Big-TIFF (necessary for large files >4 GB)");
+        bigTiffCheckBox = new JCheckBox("BigTIFF (necessary for large files >4 GB)");
         bigTiffCheckBox.setSelected(bigTiff);
         bigTiffCheckBox.setAlignmentX(Component.LEFT_ALIGNMENT);
         addGridBugRowSingle(gridPanel, gbc, bigTiffCheckBox, row++);

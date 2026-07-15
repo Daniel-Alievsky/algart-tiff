@@ -62,7 +62,7 @@ import java.util.stream.Collectors;
  */
 public non-sealed class TiffWriter extends TiffIO {
     /**
-     * If the file grows to about this limit and {@link #setBigTiff(boolean) big-TIFF} mode is not set,
+     * If the file grows to about this limit and {@link #setBigTiff(boolean) BigTIFF} mode is not set,
      * attempt to write new IFD at the file end by methods of this class throw IO exception.
      * While writing tiles, an exception will be thrown only while exceeding the limit <code>2^32-1</code>
      * (~280 MB greater than this value {@value}).
@@ -1155,8 +1155,8 @@ public non-sealed class TiffWriter extends TiffIO {
     /**
      * Writes the specified offset value into the TIFF file at the given {@code fileOffsetToWrite}.
      *
-     * <p>For {@link #isBigTiff() Big-TIFF} files, this method writes an 8-byte value via
-     * {@link DataHandle#writeLong(long)}. For standard TIFF files, it writes a 4-byte value via
+     * <p>For {@link #isBigTiff() BigTIFF} files, this method writes an 8-byte value via
+     * {@link DataHandle#writeLong(long)}. For classic TIFF files, it writes a 4-byte value via
      * {@link DataHandle#writeInt(int)}; in this case, the offset must be a valid 32-bit unsigned value
      * (more exactly, not exceeding {@code 0xFFFFFFF0L = 2^32-16}).
      * Note that this method <i>does not change</i> the current file position ({@link DataHandle#offset()}).</p>
@@ -2037,7 +2037,7 @@ public non-sealed class TiffWriter extends TiffIO {
         final byte[] newIFDBytes = oldIFDBytes.clone();
         // setBigTiff(!isBigTiff()); // - leads to ConcurrentModificationException
         if (oldIFDBytes.length != info.sizeOfAllEntries() + sizeOfOffset()) {
-            throw new ConcurrentModificationException("Strange Big-TIFF flag change: current size of offsets " +
+            throw new ConcurrentModificationException("Strange BigTIFF flag change: current size of offsets " +
                     sizeOfOffset() + ", but it was " +
                     (oldIFDBytes.length - info.sizeOfAllEntries()) + " before access to this IFD" +
                     ", probably this occurred due to operations in a parallel thread");
@@ -2567,7 +2567,7 @@ public non-sealed class TiffWriter extends TiffIO {
         assert (fileOffsetOfIFD & 0x1) == 0 :
                 "Odd IFD file offset " + fileOffsetOfIFD + " from assignedFileOffsetOfIFDForWriting";
         if (!bigTiff && fileOffsetOfIFD > MAXIMAL_ALLOWED_32BIT_IFD_OFFSET) {
-            throw new TiffException("Attempt to write too large TIFF file without big-TIFF mode: " +
+            throw new TiffException("Attempt to write too large TIFF file without BigTIFF mode: " +
                     "offset of new IFD will be " + fileOffsetOfIFD + " > " + MAXIMAL_ALLOWED_32BIT_IFD_OFFSET);
         }
     }

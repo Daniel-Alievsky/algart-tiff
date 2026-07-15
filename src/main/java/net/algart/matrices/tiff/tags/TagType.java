@@ -109,7 +109,7 @@ public enum TagType {
      * 64-bit unsigned integer, used for storing IFD offsets (BigTIFF only).
      */
     IFD8(18, 8, false, TagValue.IFD.class, TagValue.IFD[].class);
-    // Important: in the list above, Big-TIFF types MUST be after non-Big-TIFF analogs!
+    // Important: in the list above, BigTIFF types MUST be after non-BigTIFF analogs!
 
     private static final Map<Class<?>, TagType> CLASS_LOOKUP = new HashMap<>();
 
@@ -175,11 +175,11 @@ public enum TagType {
      * <p>When {@link net.algart.matrices.tiff.TiffWriter} writes an IFD value of these types,
      * it automatically selects between the 32-bit and 64-bit representations
      * ({@link #LONG} vs {@link #LONG8}, or {@link #IFD} vs {@link #IFD8}).
-     * This selection is strictly driven by the Big-TIFF state: a standard Classic TIFF
+     * This selection is strictly driven by the BigTIFF state: a standard classic TIFF
      * forces 32-bit types, while BigTIFF mode switches them to 64-bit variants.
      * There are exceptions for some the specific tags, for example,
      * {@code ImageWidth} / {@code ImageLength} are usually written as 32-bit {@link #LONG} type
-     * even for Big-TIFF files.
+     * even for BigTIFF files.
      * In any case, the actual type of the value returned by {@link net.algart.matrices.tiff.TiffIFD#get(int)}
      * does not influence this selection.</p>
      *
@@ -265,7 +265,7 @@ public enum TagType {
 
     /**
      * Finds the corresponding {@link TagType} for the given Java class.
-     * The second argument should be {@code false} for Classic TIFF or {@code true} for Big-TIFF files.
+     * The second argument should be {@code false} for Classic TIFF or {@code true} for BigTIFF files.
      *
      * <p>This method performs the reverse lookup of the mapping provided by {@link #javaType()} method,
      * as specified in the {@link TagValue} interface documentation.
@@ -275,7 +275,7 @@ public enum TagType {
      *   <tr>
      *     <th>Supported Java Input Classes ({@code javaType})</th>
      *     <th>Classic TIFF</th>
-     *     <th>Big-TIFF</th>
+     *     <th>BigTIFF</th>
      *   </tr>
      *   <tr><td>{@code byte.class}, {@code byte[].class}, {@code Byte.class}</td><td>{@link #UNDEFINED}</td><td
      *   >{@link #UNDEFINED}</td></tr>
@@ -311,7 +311,7 @@ public enum TagType {
      *
      * @param javaType                          the Java class to lookup (scalar, wrapper, or array).
      * @param smartSelectDependingOnBigTiffMode if {@code true}, automatically upgrades {@link #LONG}
-     *                                          and {@link #IFD} to their 64-bit Big-TIFF variants.
+     *                                          and {@link #IFD} to their 64-bit BigTIFF variants.
      * @return an {@link Optional} containing the matching tag type, or empty if the class is not supported.
      * @see #javaType()
      * @see TagValue
