@@ -225,7 +225,7 @@ public final class TiffCopier {
      * always work as if this flag is set to {@code true}.</p>
      *
      * @param enforceCompatibleFileFormat whether to enforce a file format compatible
-     *        with the source TIFF file when creating a new output file.
+     *                                    with the source TIFF file when creating a new output file.
      * @return a reference to this object.
      * @see #setDirectCopy(boolean)
      */
@@ -414,7 +414,7 @@ public final class TiffCopier {
      *
      * @param writer the TIFF writer.
      * @param reader the TIFF reader.
-     * @throws IOException if both reader and writer point to the same existing file.
+     * @throws IOException          if both reader and writer point to the same existing file.
      * @throws NullPointerException if one of the arguments is {@code null}.
      */
     public static void checkDifferentFiles(TiffWriter writer, TiffReader reader) throws IOException {
@@ -429,15 +429,15 @@ public final class TiffCopier {
      * Checks that the two specified paths do not point to the same existing file
      * and throws an {@link IOException} if this is true.
      *
-     * <p>This method checks:
+     * <p>This method checks:</p>
      * <ul>
      *     <li>whether both paths are non-{@code null} and point to existing files;</li>
      *     <li>{@link Files#isSameFile(Path, Path)} returns {@code true} for them.</li>
      * </ul>
-     * <p>In this case this method throws an {@link IOException}.
+     * <p>In this case, this method throws an {@link IOException}.</p>
      *
-     * <p>If either {@code source} or {@code target} is {@code null}, this method
-     * does nothing.
+     * <p>If either {@code source} or {@code target} is {@code null}, or if either path points to
+     * a non-existing file, this method does nothing.</p>
      *
      * @param source the path to the source file; can be {@code null}.
      * @param target the path to the target file; can be {@code null}.
@@ -528,17 +528,29 @@ public final class TiffCopier {
      * Copies the entire TIFF file from the reader to the target file associated with the writer.
      * Equivalent to the following code:
      * <pre>
-     *      {@link #checkDifferentFiles checkDifferentFiles}(writer, reader);
-     if (enforceCompatibleFileFormat) {
-     writer.setCompatibleFileFormat(reader);
-     }
-     writer.create();
-     copyImages(writer, reader);
+     *      {@link #checkDifferentFiles(TiffWriter, TiffReader) checkDifferentFiles}(writer, reader);
+     *      // - exception if this is the same file
+     *      if (thisObject.isEnforceCompatibleFileFormat()) {
+     *          writer.{@link TiffWriter#setCompatibleFileFormat setCompatibleFileFormat}(reader);
+     *          // - sets identical {@link TiffWriter#setBigTiff
+     *          BigTIFF} flag and {@link TiffWriter#getByteOrder() byte order}
+     *      }
+     *      writer.{@link TiffWriter#create() create()};
+     *      thisObject.{@link #copyImages(TiffWriter, TiffReader) copyImages}(writer, reader);
      * </pre>
      *
-     * @param writer
-     * @param reader
-     * @throws IOException
+     * <p>Note: if you do not set the mode {@link #setEnforceCompatibleFileFormat(boolean)} to the {@code true}
+     * value, this method will use the format settings (BigTIFF and byte order)
+     * which are currently set in the writer. This can be useful, for example, if you want to change the byte order
+     * or to reformat a standard TIFF file to BigTIFF.</p>
+     *
+     * <p>Of course, you can easily implement an analogous code yourself.
+     * You may consider this method as an illustration how does this copier work.</p>
+     *
+     * @param writer the TIFF writer.
+     * @param reader the TIFF reader.
+     * @throws IOException          if an I/O error occurs.
+     * @throws NullPointerException if {@code writer} or {@code reader} is {@code null}.
      */
     public void copyTiffFile(TiffWriter writer, TiffReader reader) throws IOException {
         copyTiffFile(writer, reader, this.enforceCompatibleFileFormat);
@@ -550,15 +562,41 @@ public final class TiffCopier {
         checkDifferentFiles(writer, reader);
         if (enforceCompatibleFileFormat) {
             writer.setCompatibleFileFormat(reader);
+            // - sets identical BigTIFF flag and byte order
         }
         writer.create();
         copyImages(writer, reader);
     }
 
+    /**
+     * Copies all TIFF images from the reader to the end of the TIFF file associated with the writer.
+     * Equivalent to
+     * <pre>{@link #copyImages(TiffWriter, TiffReader, int, int)
+     * copyImages}(writer, reader, 0, reader.{@link TiffReader#numberOfImages() numberOfImages()})</pre>
+     *
+     * @param writer the TIFF writer.
+     * @param reader the TIFF reader.
+     * @throws IOException          if an I/O error occurs.
+     * @throws NullPointerException if {@code writer} or {@code reader} is {@code null}.
+     */
     public void copyImages(TiffWriter writer, TiffReader reader) throws IOException {
         copyImages(writer, reader, 0, reader.numberOfImages());
     }
 
+    /**
+     * Copies all TIFF images from {@code fromIndex} (inclusive) to {@code toIndex} (exclusive)
+     * from the reader to the end of the TIFF file associated with the writer.
+     *
+     * @param writer    the TIFF writer.
+     * @param reader    the TIFF reader.
+     * @param fromIndex the starting image (IFD) index (inclusive);
+     *                  corresponds to the argument of the {@link TiffReader#map(int)} method.
+     * @param toIndex   the ending image (IFD) index (exclusive).
+     * @throws IOException               if an I/O error occurs.
+     * @throws NullPointerException      if {@code writer} or {@code reader} is {@code null}.
+     * @throws IllegalArgumentException  if {@code fromIndex < 0} or {@code toIndex < fromIndex}.
+     * @throws IndexOutOfBoundsException if {@code toIndex} is greater than the total number of images in the reader.
+     */
     public void copyImages(TiffWriter writer, TiffReader reader, int fromIndex, int toIndex) throws IOException {
         Objects.requireNonNull(writer, "Null TIFF writer");
         Objects.requireNonNull(reader, "Null TIFF reader");
