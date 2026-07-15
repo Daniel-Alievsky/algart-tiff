@@ -45,6 +45,39 @@ import java.util.function.Supplier;
  * TIFF tile: container for samples (encoded or decoded) with given {@link TiffTileIndex index}.
  */
 public final class TiffTile {
+    public enum DuplicateStatus {
+        /**
+         * Unique tile. Its {@link #getStoredInFileDataOffset() file offset} is unique within this IFD.
+         */
+        UNIQUE,
+
+        /**
+         * The first (original) tile in a group of duplicates.
+         * It has subsequent duplicates pointing to its {@link #getStoredInFileDataOffset() file offset}.
+         */
+        FIRST_DUPLICATE,
+
+        /**
+         * A subsequent duplicate. It does not contain its own physical data on disk
+         * and references a previous {@link #FIRST_DUPLICATE} tile.
+         */
+        SUBSEQUENT_DUPLICATE;
+
+        /**
+         * Returns {@code true} if this status represents a first or subsequent duplicate.
+         */
+        public boolean isShared() {
+            return this != UNIQUE;
+        }
+
+        /**
+         * Returns {@code true} if this status represents a subsequent duplicate.
+         */
+        public boolean isSubsequentDuplicate() {
+            return this == SUBSEQUENT_DUPLICATE;
+        }
+    }
+
     public enum CopyMode {
         COPY_REFERENCE,
         COPY_CONTENT,
@@ -85,6 +118,7 @@ public final class TiffTile {
     private long storedInFileDataOffset = -1;
     private int storedInFileDataLength = 0;
     private int storedInFileDataCapacity = 0;
+    private DuplicateStatus duplicateStatus = DuplicateStatus.UNIQUE;
     private int linearIndexOfOriginalIfDuplicate = -1;
     private boolean rescaleWhenIncreasingBitDepthRequested = false;
     private boolean colorCorrectionRequested = false;

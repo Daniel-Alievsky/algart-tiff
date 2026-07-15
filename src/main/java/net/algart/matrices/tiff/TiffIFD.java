@@ -1646,20 +1646,22 @@ public final class TiffIFD {
     }
 
     /**
-     * Returns an index of the first possible duplicate of the tile or strip with the specified index.
-     * The possible cases:
+     * Returns the index of the first tile or strip sharing the same file offset as the specified one.
+     *
+     * <p>The possible return values are:</p>
      * <ol>
-     *     <li>{@code result==-1}, if this tile/strip has not duplicates (other tiles/strips with identical
-     *     {@code TileOffsets}/{@code StripOffsets});</li>
-     *     <li>{@code result==index}, if this tile/strip is the first from several duplicates;</li>
-     *     <li>{@code result<index}, if this tile/strip is one of the consequent duplicates, then
-     *     the returned result is the index of the first from the duplicates.</li>
+     *     <li>{@code result == -1}: this tile/strip has no duplicates (its file offset is unique
+     *     within this IFD).</li>
+     *     <li>{@code result == index}: this tile/strip has duplicates, and this is the first (original)
+     *     tile/strip among them.</li>
+     *     <li>{@code result < index}: this tile/strip is a subsequent duplicate of a previous tile/strip;
+     *     the returned value is the index of that original (first) tile/strip.</li>
      * </ol>
      *
-     * @param index the index of a tile or strip.
-     * @return index of the first tile/strip with the same offset or {@code -1} if this offset is unique for this IFD.
-     * @throws IllegalArgumentException in the index is negative.
-     * @throws TiffException in the case of incorrect IFD or too big index.
+     * @param index the linear index of the tile or strip.
+     * @return the index of the first tile/strip sharing the same offset, or {@code -1} if the offset is unique.
+     * @throws IllegalArgumentException if the index is negative.
+     * @throws TiffException if the TIFF structures are invalid or the index is out of bounds.
      */
     public int cachedIndexOfFirstSameOffset(int index) throws TiffException {
         int[] indexesOfFirst = cachedIndexesOfFirstSameOffset();
