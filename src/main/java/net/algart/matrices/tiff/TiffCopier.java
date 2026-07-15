@@ -403,6 +403,20 @@ public final class TiffCopier {
         return actuallyDirectCopy;
     }
 
+    /**
+     * Checks that the specified writer and reader do not point to the same existing file
+     * and throws an {@link IOException} if this is true.
+     *
+     * <p>This method calls {@link #checkDifferentFiles(Path, Path)} with the file paths
+     * returned by the {@code path()} method of the reader and writer.
+     * If the path cannot be determined for either the reader or the writer (i.e., the method
+     * returns {@link Optional#empty()}), no check is performed.</p>
+     *
+     * @param writer the TIFF writer.
+     * @param reader the TIFF reader.
+     * @throws IOException if both reader and writer point to the same existing file.
+     * @throws NullPointerException if one of the arguments is {@code null}.
+     */
     public static void checkDifferentFiles(TiffWriter writer, TiffReader reader) throws IOException {
         Objects.requireNonNull(writer, "Null TIFF writer");
         Objects.requireNonNull(reader, "Null TIFF reader");
@@ -412,7 +426,8 @@ public final class TiffCopier {
     }
 
     /**
-     * Checks that the two specified paths do not point to the same existing file.
+     * Checks that the two specified paths do not point to the same existing file
+     * and throws an {@link IOException} if this is true.
      *
      * <p>This method checks:
      * <ul>
@@ -426,7 +441,7 @@ public final class TiffCopier {
      *
      * @param source the path to the source file; can be {@code null}.
      * @param target the path to the target file; can be {@code null}.
-     * @throws IOException if both paths are non-{@code null} and point to the same file.
+     * @throws IOException if both paths are non-{@code null}, exist, and point to the same file.
      */
     public static void checkDifferentFiles(Path source, Path target) throws IOException {
         if (source != null && target != null &&
@@ -509,6 +524,22 @@ public final class TiffCopier {
         }
     }
 
+    /**
+     * Copies the entire TIFF file from the reader to the target file associated with the writer.
+     * Equivalent to the following code:
+     * <pre>
+     *      {@link #checkDifferentFiles checkDifferentFiles}(writer, reader);
+     if (enforceCompatibleFileFormat) {
+     writer.setCompatibleFileFormat(reader);
+     }
+     writer.create();
+     copyImages(writer, reader);
+     * </pre>
+     *
+     * @param writer
+     * @param reader
+     * @throws IOException
+     */
     public void copyTiffFile(TiffWriter writer, TiffReader reader) throws IOException {
         copyTiffFile(writer, reader, this.enforceCompatibleFileFormat);
     }
