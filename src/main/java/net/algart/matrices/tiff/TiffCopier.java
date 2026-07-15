@@ -530,17 +530,19 @@ public final class TiffCopier {
      *          thisObject.{@link #copyTiffFile(TiffWriter, TiffReader) copyTiffFile}(writer, reader);
      *      }
      * </pre>
+     *
      * <p>with the only difference that the compatible file format mode is <b>ignored</b>,
      * as if your set {@link #setEnforceCompatibleFileFormat(boolean)
-     * setEnforceCompatibleFileFormat(false)}
-     * (even if you actually set this flag to {@code true}).
+     * setEnforceCompatibleFileFormat(true)}
+     * (even if you actually set this flag to {@code false}).
      * This difference is important: no sense to repack a TIFF file with different
      * format settings (BigTIFF mode and byte order)
      * if you have no ability to specify them.
      * If you need to actually change these format settings, please use the method
      * {@link #copyTiffFile(TiffWriter, TiffReader)} in the mode
      * {@link #setEnforceCompatibleFileFormat(boolean)
-     * setEnforceCompatibleFileFormat(true)}.</p>
+     * setEnforceCompatibleFileFormat(false)} or without calling that method
+     * ({@code false} is the default state).</p>
      *
      * @param targetTiffFile the target TIFF file.
      * @param sourceTiffFile the source TIFF file.
