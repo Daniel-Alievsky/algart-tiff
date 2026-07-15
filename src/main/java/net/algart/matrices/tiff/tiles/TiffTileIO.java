@@ -88,6 +88,11 @@ public class TiffTileIO {
         if (!tile.isStoredInFile()) {
             return false;
         }
+        //if (tile.isDuplicate()) {
+            // - if we have several duplicate, we can modify in-place only the original, not its duplicates
+        // return false;
+        //}
+        //TODO!!
         final long fileOffset = tile.getStoredInFileDataOffset();
         if (SMART_WRITING_TO_FILE_END && fileOffset + tile.getStoredInFileDataLength() == outputStream.length()) {
             writeAt(tile, outputStream, fileOffset, true);

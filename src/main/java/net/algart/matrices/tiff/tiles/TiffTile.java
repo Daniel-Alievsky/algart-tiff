@@ -116,6 +116,7 @@ public final class TiffTile {
         assert this.normalizedBitsPerPixel == samplesPerPixel * normalizedBitDepth;
         assert index.ifd() == map.ifd() : "index retrieved ifd from its tile map!";
         setSizes(map.tileSizeX(), map.tileSizeY());
+        assert this.data == null;
     }
 
     public TiffMap map() {
@@ -1265,7 +1266,8 @@ public final class TiffTile {
                         " at file region " + storedInFileDataOffset + ".." + storedInFileDataOffset +
                         "+" + (storedInFileDataLength - 1) +
                         "/" + (storedInFileDataCapacity - 1) :
-                        ", no file position");
+                        ", no file position") +
+                (isDuplicate() ? ", duplicate of " + linearIndexOfOriginalIfDuplicate : "");
     }
 
     @Override

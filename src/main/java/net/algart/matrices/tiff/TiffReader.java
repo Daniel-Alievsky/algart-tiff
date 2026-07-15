@@ -1028,11 +1028,16 @@ public non-sealed class TiffReader extends TiffIO {
     /**
      * Reads and decodes the tile at the specified position.
      *
-     * <p>If the {@code duplicateHandling} argument is {@link TiffTile.DuplicateHandling#LINK_REFERENCE} and
-     * the tile in the TIFF file is a duplicate of another tile &mdash; i.e., its file offset is equal
-     * to the file offset of some previous tile X in the same IFD &mdash; this method does not try to read
-     * and decode it. Instead, it simply sets the linear index of that tile X using the
+     * <p>Note: if the tile in the TIFF file is a duplicate of another tile <b>X</b> &mdash;
+     * i.e., its file offset is equal
+     * to the file offset of some previous tile <b>X</b> in the same IFD &mdash; this method
+     * sets the linear index of that tile <b>X</b> using the
      * {@link TiffTile#setLinearIndexOfOriginalIfDuplicate(int)} method.
+     * You can detect this situation via the {@link TiffTile#isDuplicate()} method.</p>
+     *
+     * <p>If the {@code duplicateHandling} argument is {@link TiffTile.DuplicateHandling#LINK_REFERENCE} and
+     * the tile is a duplicate of another tile, this method does not try to read
+     * and decode it: the tiles stays {@link TiffTile#isEmpty() empty}.
      * It is expected that you will detect this situation via the {@link TiffTile#isDuplicate()} and
      * {@link TiffTile#getLinearIndexOfOriginalIfDuplicate()} methods and process it accordingly.</p>
      *
@@ -1053,7 +1058,8 @@ public non-sealed class TiffReader extends TiffIO {
     public TiffTile readTile(TiffTileIndex tileIndex, TiffTile.DuplicateHandling duplicateHandling)
             throws IOException {
         final TiffTile tile = readEncodedTile(tileIndex, duplicateHandling);
-        if (tile.isEmpty() || tile.isDuplicate()) {
+        if (tile.isEmpty()) {
+            // - in particular, because it is recognized as a duplicate in the LINK_REFERENCE mode
             return tile;
         }
         decode(tile);
@@ -1094,6 +1100,7 @@ public non-sealed class TiffReader extends TiffIO {
 
         final TiffTile result = new TiffTile(tileIndex);
         // - No reasons to put it into the map: this class does not provide access to a temporarily created map.
+        assert result.isEmpty();
 
         if (cropTilesToImageBoundaries) {
             result.cropStripToMap();
@@ -1107,16 +1114,19 @@ public non-sealed class TiffReader extends TiffIO {
             return result;
         }
 
+        if (referenceToSource != -1) {
+            result.setLinearIndexOfOriginalIfDuplicate(referenceToSource);
+        }
         synchronized (fileLock) {
             if (offset >= stream.length()) {
                 throw new TiffException("Offset of TIFF tile/strip " + offset + " is out of file length (tile " +
                         tileIndex + ")");
                 // - note: old SCIFIO code allowed such offsets and returned zero-filled tile
             }
-            if (duplicateHandling.isLinkToOriginalIfPossible() && referenceToSource != -1) {
-                result.freeData();
-                result.setLinearIndexOfOriginalIfDuplicate(referenceToSource);
-            } else {
+            if (referenceToSource == -1 || !duplicateHandling.isLinkToOriginalIfPossible()) {
+                // if referenceToSource == -1 and duplicateHandling=COPY_CONTENT,
+                // we will read the same portion of the file and then will decompress it;
+                // we do not try to optimize this (but the stream is usually cached)
                 TiffTileIO.readAt(result, stream, offset, byteCount);
                 if (alreadyStored) {
                     result.expandStoredInFileDataCapacity(existingTile.getStoredInFileDataCapacity());
