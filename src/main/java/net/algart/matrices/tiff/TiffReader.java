@@ -646,16 +646,24 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     /**
-     * Sets the special mode, when a TIFF file is allowed to contain "missing" tiles or strips,
-     * for which the offset (<code>TileOffsets</code> or <code>StripOffsets</code> tag) and/or
-     * byte count (<code>TileByteCounts</code> or <code>StripByteCounts</code> tag) contains zero value.
-     * In this mode, such tiles/strips will be successfully read as empty rectangles, filled by
-     * the {@link #setByteFiller(byte) default filler}.
+     * Configures a special mode allowing the reader to handle "missing" tiles or strips
+     * where the offset (the {@code TileOffsets} or {@code StripOffsets} tag) and/or
+     * the byte count (the {@code TileByteCounts} or {@code StripByteCounts} tag) is zero.
+     * In this mode, such tiles or strips are treated as "missing" and will be successfully read as empty
+     * rectangles filled with the {@link #setByteFiller(byte) default filler}.</p>
      *
-     * <p>Default value is <code>false</code>. In this case, such tiles/strips are not allowed,
-     * as the standard TIFF format requires.
+     * <p>The default value is {@code false}. When {@code false}, encountering a zero offset
+     * or byte count throws an exception.</p>
      *
-     * @param missingTilesAllowed whether "missing" tiles/strips are allowed.
+     * <p>The TIFF specification does not officially allow zero values for these fields
+     * (tile/strip offset or byte count). So, the default behavior corresponds to the TIFF standard.</p>
+     * However, certain specific TIFF formats &mdash; such as
+     * <b>Philips TIFF</b> and <b>ARGOS TIFF</b> &mdash; use this "sparse tiling" convention
+     * to represent empty regions. You should set this mode to {@code true} value
+     * for correctly processing these files.</p>
+     *
+     * @param missingTilesAllowed {@code true} to allow missing tiles/strips, identified by zero tile/strip
+     *                                        offset and/or length (byte count); {@code false} otherwise.
      * @return a reference to this object.
      */
     public TiffReader setMissingTilesAllowed(boolean missingTilesAllowed) {
