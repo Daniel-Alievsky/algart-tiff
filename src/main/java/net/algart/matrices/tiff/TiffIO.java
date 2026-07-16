@@ -216,7 +216,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * <p>A value of {@code 0} typically represents black; {@code 0xFF} represents
      * white in most 8-bit sample formats.</p>
      *
-     * <p><b>Warning:</b> When working with non-8-bit TIFFs (especially floating-point data),
+     * <p><b>Warning:</b> when working with non-8-bit TIFFs (especially floating-point data),
      * it is recommended to preserve the default {@code 0} value. Otherwise, interpreting
      * the raw filled bytes under non-8-bit data types can lead to unexpected results.
      * To configure more complex backgrounds or multibyte default values, use
@@ -249,7 +249,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * automatically invoked for each empty tile. You can use this, for example, to fill missing tiles with a
      * custom background color.</p>
      *
-     * <p>If the <i>tile initializer</i> is {@code null}, such empty tiles, if occurred, are ignored during reading, and the corresponding
+     * <p>If the <i>tile initializer</i> is {@code null}, such empty tiles,
+     * if any, are ignored during reading, and the corresponding
      * regions remain filled with the {@link #setByteFiller(byte) byte filler}.</p>
      *
      * <p>During writing:
