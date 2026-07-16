@@ -725,14 +725,18 @@ public final class TiffTile {
     }
 
     public TiffTile fillWhenEmpty() {
-        return fillWhenEmpty(null);
+        return fillWhenEmpty(null, (byte) 0);
     }
 
-    public TiffTile fillWhenEmpty(Consumer<TiffTile> initializer) {
+    public TiffTile fillWhenEmpty(Consumer<TiffTile> initializer, byte byteFiller) {
         checkFrozen();
         // - if frozen, then isEmpty() below returns true
         if (isEmpty()) {
-            setDecodedData(new byte[sizeInBytes]);
+            byte[] newData = new byte[sizeInBytes];
+            if (byteFiller != 0) {
+                Arrays.fill(newData, byteFiller);
+            }
+            setDecodedData(newData);
             if (initializer != null) {
                 initializer.accept(this);
             }

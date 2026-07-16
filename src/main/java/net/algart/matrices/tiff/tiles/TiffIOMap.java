@@ -189,6 +189,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
                     if (storeTilesInMap) {
                         put(tile);
                     }
+                    tile.fillWhenEmpty(reader.getTileInitializer(), reader.getByteFiller());
                     if (tile.isEmpty()) {
                         continue;
                     }

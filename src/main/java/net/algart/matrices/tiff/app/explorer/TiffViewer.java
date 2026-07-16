@@ -33,6 +33,7 @@ import net.algart.matrices.tiff.samples.TiffSamples;
 import net.algart.matrices.tiff.samples.TiffSamplesFormatter;
 import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
+import net.algart.matrices.tiff.tiles.TiffTile;
 
 import javax.swing.*;
 import java.awt.*;
@@ -54,6 +55,8 @@ class TiffViewer {
     // - 256MB = 16 * 16M is enough to store several user screens even with the zoom 1:4
     private static final boolean PRELOAD_LITTLE_AREA_WHILE_OPENING = true;
     // - should be true; you may clear this flag to debug possible I/O errors during the drawing process
+    private static final Color EMPTY_TILE_COLOR = new Color(200, 248, 186);
+    private static final Color EMPTY_TILE_BORDER = new Color(186, 213, 248);
 
     private static final System.Logger LOG = System.getLogger(TiffViewer.class.getName());
 
@@ -86,6 +89,7 @@ class TiffViewer {
         this.reader = new TiffReaderWithGrid(path);
         this.reader.setColorCorrection(DEFAULT_COLOR_CORRECTION);
         this.reader.setMaxCacheMemory(CACHING_MEMORY);
+        this.reader.setTileInitializer(TiffViewer::customFillEmptyTile);
         this.ifdIndex = ifdIndex;
         LOG.log(System.Logger.Level.INFO, "Viewer opened " + reader.streamName());
     }
@@ -630,5 +634,22 @@ class TiffViewer {
         double k = getRescaleFactor();
         double b = getBlackOffset();
         return TiffSamples.applyLinearFunction(matrix, k, -b * k);
+    }
+
+    private static void customFillEmptyTile(TiffTile tile) {
+        if (!tile.isRarePrecision()) {
+            final Matrix<UpdatablePArray> m = tile.getUnpackedMatrix();
+            final double[] filler = tile.colorToChannelValues(EMPTY_TILE_COLOR, true);
+            final double[] border = tile.colorToChannelValues(EMPTY_TILE_BORDER, true);
+            int gap = 2;
+            for (int c = 0; c < tile.samplesPerPixel(); c++) {
+                m.subMatr(0, 0, c, m.dimX(), m.dimY(), 1).array().fill(filler[c]);
+                m.subMatr(0, 0, c, m.dimX(), gap, 1).array().fill(border[c]);
+                m.subMatr(0, 0, c, gap, m.dimY(), 1).array().fill(border[c]);
+                m.subMatr(m.dimX() - gap, 0, c, gap, m.dimY(), 1).array().fill(border[c]);
+                m.subMatr(0, m.dimY() - gap, c, m.dimX(), gap, 1).array().fill(border[c]);
+            }
+            tile.setUnpackedMatrix(m);
+        }
     }
 }

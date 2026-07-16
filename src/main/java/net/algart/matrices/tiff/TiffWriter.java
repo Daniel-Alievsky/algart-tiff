@@ -464,14 +464,13 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Sets the special mode, when a TIFF file is allowed to contain "missing" tiles or strips,
+     * Configures the special mode, when a TIFF file is allowed to contain "missing" tiles or strips,
      * for which the offset (<code>TileOffsets</code> or <code>StripOffsets</code> tag) and/or
      * byte count (<code>TileByteCounts</code> or <code>StripByteCounts</code> tag) contains zero value.
      * In this mode, this writer will use zero offset and byte-count if
      * the written tile is actually empty &mdash; no pixels were written in it via
      * {@link TiffWriteMap#updateSampleBytes(byte[], int, int, int, int)} or other methods.
-     * In another case, this writer will create a normal tile, filled by
-     * the {@link #setByteFiller(byte) default filler}.
+     * In another case, this writer will create a normal tile, filled by zeros.
      *
      * <p>Default value is <code>false</code>. Note that <code>true</code> value violates requirement of
      * the standard TIFF format (but may be used by some non-standard software, which needs to
@@ -479,6 +478,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @param missingTilesAllowed whether "missing" tiles/strips are allowed.
      * @return a reference to this object.
+     * @see TiffReader#setMissingTilesAllowed(boolean)
      */
     public TiffWriter setMissingTilesAllowed(boolean missingTilesAllowed) {
         this.missingTilesAllowed = missingTilesAllowed;
@@ -499,16 +499,16 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Sets the function to initialize an empty tile before it is filled with data by
-     * {@link TiffWriteMap#updateMatrix} or similar methods.
+     * Sets the <i>tile initializer</i>: the function initializing an empty tile
+     * before it is filled with data by {@link TiffWriteMap#updateMatrix} or similar methods.
      * This function is also invoked before writing a TIFF tile to the file if the tile
      * has not been filled with any data.
      *
-     * <p>By default, the tile initializer is {@code null}. In this case, a newly created
+     * <p>By default, the <i>tile initializer</i> is {@code null}. In this case, a newly created
      * data array in the tile is filled with zeros (the default Java array initialization),
      * which typically represents the black color.</p>
      *
-     * @param tileInitializer the tile initializer; may be {@code null}
+     * @param tileInitializer the <i>tile initializer</i>; may be {@code null}.
      * @return a reference to this object.
      */
     public TiffWriter setTileInitializer(Consumer<TiffTile> tileInitializer) {
@@ -603,7 +603,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * for example, in methods such as {@link TiffWriteMap#preloadAndStore} or
      * {@link TiffWriteMap#readMatrixAndStore}. This reader is returned by the
      * {@link TiffWriteMap#reader()} method.</p>
-     * 
+     *
      * <p><b>Do not close</b> this reader independently: the shared stream will be closed
      * automatically when closing this writer.</p>
      *
@@ -2448,7 +2448,7 @@ public non-sealed class TiffWriter extends TiffIO {
                                 // smaller height)
                                 // or even 2 * numberOfSeparatedPlanes times for plane-separated tiles
                                 filler = new TiffTile(tileIndex).setEqualSizes(tile);
-                                filler.fillWhenEmpty(tileInitializer);
+                                filler.fillWhenEmpty(tileInitializer, getByteFiller());
                                 encode(filler);
                                 writeEncodedTile(filler, false);
                                 // - note: unlike usual tiles, the filler tile is written once,

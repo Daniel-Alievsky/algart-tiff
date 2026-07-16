@@ -286,7 +286,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                     // It is important for writing: without this correction, GIMP and other libtiff-based programs
                     // will report about an error (see libtiff, tif_jpeg.c, assigning segment_width/segment_height)
                     // However, if tiling is requested via TILE_WIDTH/TILE_LENGTH tags, we SHOULD NOT do this.
-                    tile.fillWhenEmpty(owner.getTileInitializer());
+                    tile.fillWhenEmpty(owner.getTileInitializer(), owner.getByteFiller());
                     final byte[] data = tile.getDecodedData();
 
                     final int tileSizeX = tile.getSizeX();
