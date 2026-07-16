@@ -1649,32 +1649,32 @@ public final class TiffIFD {
 
     /**
      * Returns the index of the previous duplicate: a tile or strip sharing the same file offset as the specified one,
-     * or {@code -1} if there is no previous duplicates.
+     * or {@code -1} if there are no previous duplicates.
      *
      * @param index the linear index of the tile or strip.
      * @return the index of the nearest previous tile/strip sharing the same offset,
-     * or {@code -1} if this offset is unique or the first.
+     *         or {@code -1} if this offset is unique or this is the first occurrence.
      * @throws IllegalArgumentException if the index is negative.
      * @throws TiffException            if the TIFF structures are invalid or the index is out of bounds.
      */
     public int cachedLinkToPreviousSameOffset(int index) throws TiffException {
-        int[] indexesOfFirst = cachedLinksToPreviousSameOffset();
-        return indexesOfFirst[checkIndexOfOffset(index, indexesOfFirst.length)];
+        int[] links = cachedLinksToPreviousSameOffset();
+        return links[checkIndexOfOffset(index, links.length)];
     }
 
     /**
      * Returns the index of the next duplicate: a tile or strip sharing the same file offset as the specified one,
-     * or {@code -1} if there is no following duplicates.
+     * or {@code -1} if there are no following duplicates.
      *
      * @param index the linear index of the tile or strip.
      * @return the index of the nearest following tile/strip sharing the same offset,
-     * or {@code -1} if this offset is unique or the first.
+     *         or {@code -1} if this offset is unique or this is the last occurrence.
      * @throws IllegalArgumentException if the index is negative.
      * @throws TiffException            if the TIFF structures are invalid or the index is out of bounds.
      */
     public int cachedLinkToNextSameOffset(int index) throws TiffException {
-        int[] indexesOfFirst = cachedLinksToNextSameOffset();
-        return indexesOfFirst[checkIndexOfOffset(index, indexesOfFirst.length)];
+        int[] links = cachedLinksToNextSameOffset();
+        return links[checkIndexOfOffset(index, links.length)];
     }
 
     public Optional<String> optDescription() {

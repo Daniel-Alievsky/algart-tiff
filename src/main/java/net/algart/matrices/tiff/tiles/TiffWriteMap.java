@@ -582,7 +582,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                         ",%nprobably because of growing the map by a parallel thread:%n%s".formatted(this));
             }
             if (index > 0) {
-                tile.linkAsDuplicateOf(first);
+                tile.linkWithPreviousDuplicate(first);
             }
             index++;
         }

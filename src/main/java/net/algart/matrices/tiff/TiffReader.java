@@ -1030,14 +1030,14 @@ public non-sealed class TiffReader extends TiffIO {
      * <p>Note: if the tile in the TIFF file is a duplicate of another tile <b>X</b> &mdash;
      * i.e., its file offset is equal to the file offset of some previous tile <b>X</b> in the same IFD &mdash;
      * this method registers this fact by storing the linear index of that original tile <b>X</b> in the returned tile
-     * using the {@link TiffTile#setLinearIndexOfOriginalIfDuplicate(int)} method.
-     * You can detect this situation via the {@link TiffTile#isDuplicate()} method.</p>
+     * using the {@link TiffTile#setLinearIndexOfPreviousDuplicate(int)} method.
+     * You can detect this situation via the {@link TiffTile#hasPreviousDuplicate()} method.</p>
      *
      * <p>If the {@code duplicateHandling} argument is {@link TiffTile.DuplicateHandling#LINK_REFERENCE} and
      * the tile is a duplicate of another tile, this method does not read and decode it;
      * the tile stays {@link TiffTile#isEmpty() empty}.
-     * It is expected that you will detect this situation via the {@link TiffTile#isDuplicate()} and
-     * {@link TiffTile#getLinearIndexOfOriginalIfDuplicate()} methods and process it accordingly.</p>
+     * It is expected that you will detect this situation via the {@link TiffTile#hasPreviousDuplicate()} and
+     * {@link TiffTile#getLinearIndexOfPreviousDuplicate()} methods and process it accordingly.</p>
      *
      * <p>If the {@code duplicateHandling} argument is {@link TiffTile.DuplicateHandling#COPY_CONTENT}
      * (the typical case), the duplicated tile is read and processed in the usual way.</p>
@@ -1078,7 +1078,7 @@ public non-sealed class TiffReader extends TiffIO {
         // - also checks that the tile index is not out of image bounds
         long offset;
         int byteCount;
-        int referenceToSource;
+        int previousDuplicate;
         final TiffTile existingTile = tileIndex.existingTile();
         final boolean alreadyStored = existingTile != null && existingTile.isStoredInFile();
         if (alreadyStored) {
@@ -1086,18 +1086,14 @@ public non-sealed class TiffReader extends TiffIO {
             // without this, we'll read the previously written tile instead of the actual data!
             offset = existingTile.getStoredInFileDataOffset();
             byteCount = existingTile.getStoredInFileDataLength();
-            referenceToSource = existingTile.optLinearIndexOfOriginalIfDuplicate().orElse(-1);
+            previousDuplicate = existingTile.optLinearIndexOfPreviousDuplicate().orElse(-1);
             assert offset >= 0 && byteCount >= 0;
         } else {
             offset = ifd.cachedTileOrStripOffset(index);
             assert offset >= 0 : "offset " + offset + " was not checked in TiffIFD";
             byteCount = cachedByteCountWithCompatibilityTrick(ifd, index);
             byteCount = correctZeroByteCount(tileIndex, byteCount, offset);
-            referenceToSource = ifd.cachedLinkToPreviousSameOffset(index);
-            if (referenceToSource == index) {
-                referenceToSource = -1;
-                //TODO!!
-            }
+            previousDuplicate = ifd.cachedLinkToPreviousSameOffset(index);
         }
 
         final TiffTile result = new TiffTile(tileIndex);
@@ -1116,8 +1112,8 @@ public non-sealed class TiffReader extends TiffIO {
             return result;
         }
 
-        if (referenceToSource != -1) {
-            result.setLinearIndexOfOriginalIfDuplicate(referenceToSource);
+        if (previousDuplicate != -1) {
+            result.setLinearIndexOfPreviousDuplicate(previousDuplicate);
         }
         synchronized (fileLock) {
             if (offset >= stream.length()) {
@@ -1125,8 +1121,8 @@ public non-sealed class TiffReader extends TiffIO {
                         tileIndex + ")");
                 // - note: old SCIFIO code allowed such offsets and returned zero-filled tile
             }
-            if (referenceToSource == -1 || !duplicateHandling.isLinkToOriginalIfPossible()) {
-                // if referenceToSource == -1 and duplicateHandling=COPY_CONTENT,
+            if (previousDuplicate == -1 || !duplicateHandling.isLinkingToDuplicateIfPossible()) {
+                // if previousDuplicate == -1 and duplicateHandling=COPY_CONTENT,
                 // we will read the same portion of the file and then will decompress it;
                 // we do not try to optimize this (but the stream is usually cached)
                 TiffTileIO.readAt(result, stream, offset, byteCount);

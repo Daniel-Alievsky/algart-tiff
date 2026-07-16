@@ -1477,17 +1477,17 @@ public non-sealed class TiffWriter extends TiffIO {
         final TiffWriteMap map = new TiffWriteMap(this, ifd, false, true);
         final long[] offsets = ifd.cachedTileOrStripOffsets();
         final long[] byteCounts = ifd.cachedTileOrStripByteCounts();
-        final int[] indexesOfFirst = ifd.cachedLinksToPreviousSameOffset();
+        final int[] linksToPrevious = ifd.cachedLinksToPreviousSameOffset();
         assert offsets != null;
         assert byteCounts != null;
-        assert indexesOfFirst != null;
+        assert linksToPrevious != null;
         map.buildTileGrid();
         final int numberOfTiles = map.numberOfTiles();
         if (offsets.length < numberOfTiles || byteCounts.length < numberOfTiles ||
-                indexesOfFirst.length < numberOfTiles) {
+                linksToPrevious.length < numberOfTiles) {
             throw new ConcurrentModificationException("Strange length of tile offsets " + offsets.length +
                     ", or byte counts " + byteCounts.length +
-                    ", or indexes of first same offset " + indexesOfFirst.length);
+                    ", or indexes of first same offset " + linksToPrevious.length);
             // - should not occur: it is checked in getTileOrStripOffsets/getTileOrStripByteCounts methods
             // (the only possible way is modification from parallel thread)
         }
@@ -1499,9 +1499,9 @@ public non-sealed class TiffWriter extends TiffIO {
             // - we "tell" that all tiles already exist in the file;
             // note we can use index k, because buildGrid() method, called above for an empty map,
             //  provided the correct tiles order
-            if (indexesOfFirst[k] >= 0 && indexesOfFirst[k] != k) {
+            if (linksToPrevious[k] >= 0) {
                 //TODO!!
-                tile.setLinearIndexOfOriginalIfDuplicate(indexesOfFirst[k]);
+                tile.setLinearIndexOfPreviousDuplicate(linksToPrevious[k]);
             }
             tile.markWholeTileAsSet();
             // - we "tell" that each tile has no unset areas
@@ -2444,7 +2444,7 @@ public non-sealed class TiffWriter extends TiffIO {
                             }
                             offsets[k] = filler.getStoredInFileDataOffset();
                             byteCounts[k] = filler.getStoredInFileDataLength();
-                            tile.linkAsDuplicateOf(filler);
+                            tile.linkWithPreviousDuplicate(filler);
                         }
                         // else (if missingTilesAllowed) offsets[k]/byteCounts[k] stay to be zero
                     }

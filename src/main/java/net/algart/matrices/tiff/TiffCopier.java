@@ -702,16 +702,16 @@ public final class TiffCopier {
                     readMap.readEncodedTile(readIndex, TiffTile.DuplicateHandling.LINK_REFERENCE) :
                     readMap.readTile(readIndex, TiffTile.DuplicateHandling.LINK_REFERENCE);
             t2Tile = TiffIO.debugTime();
-            if (sourceTile.isDuplicate()) {
+            if (sourceTile.hasPreviousDuplicate()) {
                 assert sourceTile.isEmpty() : "duplicate should not be read";
-                final int indexOfOriginal = sourceTile.getLinearIndexOfOriginalIfDuplicate();
-                if (indexOfOriginal >= linear) {
-                    throw new AssertionError("Index of original must be less, but " +
-                            indexOfOriginal + " >= " + linear);
+                final int indexOfPrevious = sourceTile.getLinearIndexOfPreviousDuplicate();
+                if (indexOfPrevious >= linear) {
+                    throw new AssertionError("Index of the previous duplicate must be less, but " +
+                            indexOfPrevious + " >= " + linear);
                 }
-                final TiffTile original = writeMap.getByLinear(indexOfOriginal);
-                assert original != null: "original of " + sourceTile.index() + " has not been written yet";
-                targetTile.linkAsDuplicateOf(original);
+                final TiffTile previous = writeMap.getByLinear(indexOfPrevious);
+                assert previous != null: "previous duplicate of " + sourceTile.index() + " has not been written yet";
+                targetTile.linkWithPreviousDuplicate(previous);
             } else {
                 targetTile.copyData(sourceTile, tileCopyMode);
                 // - this method performs necessary unpacking/packing bytes when the byte order is incompatible
