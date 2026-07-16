@@ -29,6 +29,7 @@ import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagType;
 import net.algart.matrices.tiff.tags.TagValue;
 import net.algart.matrices.tiff.tags.Tags;
+import net.algart.matrices.tiff.tiles.*;
 import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.FileHandle;
@@ -47,6 +48,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public sealed abstract class TiffIO implements Closeable permits TiffReader, TiffWriter {
@@ -148,6 +150,9 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
     volatile boolean bigTiff = false;
     private volatile Object context = null;
+    private volatile byte byteFiller = 0;
+    private volatile Consumer<TiffTile> tileInitializer = null;
+
     private volatile long offsetOfLastScannedIFDOffset = -1;
     volatile boolean fileOpen = false;
 
@@ -199,6 +204,65 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     public void setContext(Object context) {
         this.scifio = null;
         this.context = context;
+    }
+
+    public byte getByteFiller() {
+        return byteFiller;
+    }
+
+    /**
+     * Sets the filler byte for tiles, lying completely outside the image.
+     * Value 0 means black color, 0xFF in most samples format means white color.
+     *
+     * <p><b>Warning!</b> If you want to work with non-8-bit TIFF, especially float precision, you should
+     * preserve the default 0 value; in another case, results could be very strange.
+     * You may use {@link #setTileInitializer(Consumer)} method to configure another possible background.
+     *
+     * @param byteFiller new filler.
+     * @return a reference to this object.
+     */
+    public TiffIO setByteFiller(byte byteFiller) {
+        this.byteFiller = byteFiller;
+        return this;
+    }
+
+    public Consumer<TiffTile> getTileInitializer() {
+        return tileInitializer;
+    }
+
+    /**
+     * Sets the <i>tile initializer</i>: the function initializing empty tiles.
+     * By default, it is {@code null} (not specified).
+     *
+     * <p>While reading an image, the {@link TiffReader} class reads the tiles or strips via the current
+     * {@link TiffIOMap#setTileSupplier(TileSupplier) tile supplier},
+     * i.e. (in most cases) via the {@link TiffReader#readCachedTile(TiffTileIndex)} method.
+     * Usually the loaded tile are not {@link TiffTile#isEmpty() empty}.
+     * However, empty tiles may occur in some formats such as <b>Philips TIFF</b> and <b>ARGOS TIFF</b>,
+     * if the {@link TiffReader#setMissingTilesAllowed(boolean)} mode is enabled ({@code true}).
+     * In such a situation, if this <i>tile initializer</i> is set to some non-null value,
+     * it is automatically called for an empty tile.
+     * You can use this feature to fill the tile with some "background" color.</p>
+     *
+     * <p>If the <i>tile initializer</i> is {@code null}, such an empty tile will be simply ignored,
+     * and the corresponding part of the data stays to be filled
+     * with the {@link #setByteFiller(byte) byte filler}.</p>
+     *
+     * <p>While writing an image, the {@link TiffWriteMap TiffWriteMap} class
+     * calls this initializer for a new tile before it is will be filled with data by
+     * {@link TiffWriteMap#updateMatrix} or similar methods.
+     * This initializer is also invoked before writing a TIFF tile to the file if the tile
+     * has not been filled with any data.</p>
+
+     * <p>If the <i>tile initializer</i> is {@code null}, a newly created data array in the tile is filled
+     * with the {@link #setByteFiller(byte) byte filler}.</p>
+     *
+     * @param tileInitializer the <i>tile initializer</i>; {@code null} by default.
+     * @return a reference to this object.
+     */
+    public TiffIO setTileInitializer(Consumer<TiffTile> tileInitializer) {
+        this.tileInitializer = tileInitializer;
+        return this;
     }
 
     /**

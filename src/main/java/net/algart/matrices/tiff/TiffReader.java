@@ -90,8 +90,6 @@ public non-sealed class TiffReader extends TiffIO {
     private boolean cropTilesToImageBoundaries = true;
     private boolean cachingIFDs = true;
     private boolean missingTilesAllowed = true;
-    private byte byteFiller = 0;
-    private Consumer<TiffTile> tileInitializer = null;
 
     private final IOException openingException;
     private volatile boolean existingFile;
@@ -655,13 +653,13 @@ public non-sealed class TiffReader extends TiffIO {
      *
      * <p>The default value is {@code true} (this mode is enabled).
      * When {@code false}, encountering a zero offset or byte count throws an exception
-     * while attemp to read a rectangular fragment where such tile or strip is present.</p>
+     * while attempting to read a rectangular fragment where such a tile or strip is present.</p>
      *
      * <p>The TIFF specification does not officially allow zero values for these fields (tile/strip
      * offsets or byte counts). Therefore, the strict behavior ({@code false})
      * formally complies with the official TIFF standard.
      * However, certain specific TIFF formats &mdash; such as <b>Philips TIFF</b> and <b>ARGOS TIFF</b> &mdash;
-     * use this "sparse tiling" convention to represent empty regions.</p>
+     * use this "sparse tiling" convention to represent regions of interest.</p>
      *
      * @param missingTilesAllowed {@code true} (default) allows missing tiles/strips, identified by zero tile/strip
      *                            offset and/or length (byte count); {@code false} otherwise.
@@ -672,51 +670,13 @@ public non-sealed class TiffReader extends TiffIO {
         return this;
     }
 
-    public byte getByteFiller() {
-        return byteFiller;
-    }
-
-    /**
-     * Sets the filler byte for tiles, lying completely outside the image.
-     * Value 0 means black color, 0xFF usually means white color.
-     *
-     * <p><b>Warning!</b> If you want to work with non-8-bit TIFF, especially float precision, you should
-     * preserve the default 0 value; in another case, results could be very strange.
-     * You may use {@link #setTileInitializer(Consumer)} method to configure another possible background.
-     *
-     * @param byteFiller new filler.
-     * @return a reference to this object.
-     */
     public TiffReader setByteFiller(byte byteFiller) {
-        this.byteFiller = byteFiller;
+        super.setByteFiller(byteFiller);
         return this;
     }
 
-    public Consumer<TiffTile> getTileInitializer() {
-        return tileInitializer;
-    }
-
-    /**
-     * Sets the <i>tile initializer</i>: the function initializing empty tiles.
-     *
-     * <p>While reading image, the reader reads the tiles or strips via the current
-     * {@link TiffIOMap#setTileSupplier(TileSupplier) tile supplier},
-     * i.e. (in most cases) via the {@link #readCachedTile(TiffTileIndex)} method.
-     * Usually the loaded tile are not {@link TiffTile#isEmpty() empty}.
-     * However, empty tiles may occur in some formats such as <b>Philips TIFF</b> and <b>ARGOS TIFF</b>,
-     * if the {@link #setMissingTilesAllowed(boolean)} mode is enabled ({@code true}).
-     * In such a situation, if this <i>tile initializer</i> is set to some non-null value,
-     * it is automatically called for an empty tile.
-     * You can use this feature to fill the tile with some "background" color.
-     *
-     * <p>By default, the <i>tile initializer</i> is {@code null}. In this case, the tile will be simply ignored,
-     * and the corresponding part of the data stays to be filled by the {@link #setByteFiller(byte) byte filler}.</p>
-     *
-     * @param tileInitializer the <i>tile initializer</i>; may be {@code null}.
-     * @return a reference to this object.
-     */
     public TiffReader setTileInitializer(Consumer<TiffTile> tileInitializer) {
-        this.tileInitializer = tileInitializer;
+        super.setTileInitializer(tileInitializer);
         return this;
     }
 

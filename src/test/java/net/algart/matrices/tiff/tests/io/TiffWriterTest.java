@@ -510,7 +510,7 @@ public class TiffWriterTest {
         final int samplesPerPixel = tile.samplesPerPixel();
         final int sizeX = tile.getSizeX();
         final int sizeY = tile.getSizeY();
-        final Color color = new Color(200, 248, 186);
+        final Color color = new Color(248, 247, 186);
         final float[] filler = samplesPerPixel == 1 ?
                 new float[] {0.8f} :
                 Arrays.copyOf(color.getRGBComponents(null), samplesPerPixel);

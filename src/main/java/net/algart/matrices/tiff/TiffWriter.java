@@ -90,8 +90,6 @@ public non-sealed class TiffWriter extends TiffIO {
     private Double losslessCompressionLevel = null;
     private boolean alwaysWriteToFileEnd = false;
     private boolean missingTilesAllowed = false;
-    private byte byteFiller = 0;
-    private Consumer<TiffTile> tileInitializer = null;
 
     private volatile TiffReader reader = null;
     private volatile Linkage linkage = null;
@@ -485,34 +483,13 @@ public non-sealed class TiffWriter extends TiffIO {
         return this;
     }
 
-    public byte getByteFiller() {
-        return byteFiller;
-    }
-
     public TiffWriter setByteFiller(byte byteFiller) {
-        this.byteFiller = byteFiller;
+        super.setByteFiller(byteFiller);
         return this;
     }
 
-    public Consumer<TiffTile> getTileInitializer() {
-        return tileInitializer;
-    }
-
-    /**
-     * Sets the <i>tile initializer</i>: the function initializing an empty tile
-     * before it is filled with data by {@link TiffWriteMap#updateMatrix} or similar methods.
-     * This function is also invoked before writing a TIFF tile to the file if the tile
-     * has not been filled with any data.
-     *
-     * <p>By default, the <i>tile initializer</i> is {@code null}. In this case, a newly created
-     * data array in the tile is filled with zeros (the default Java array initialization),
-     * which typically represents the black color.</p>
-     *
-     * @param tileInitializer the <i>tile initializer</i>; may be {@code null}.
-     * @return a reference to this object.
-     */
     public TiffWriter setTileInitializer(Consumer<TiffTile> tileInitializer) {
-        this.tileInitializer = tileInitializer;
+        super.setTileInitializer(tileInitializer);
         return this;
     }
 
@@ -2448,7 +2425,7 @@ public non-sealed class TiffWriter extends TiffIO {
                                 // smaller height)
                                 // or even 2 * numberOfSeparatedPlanes times for plane-separated tiles
                                 filler = new TiffTile(tileIndex).setEqualSizes(tile);
-                                filler.fillWhenEmpty(tileInitializer, getByteFiller());
+                                filler.fillWhenEmpty(getTileInitializer(), getByteFiller());
                                 encode(filler);
                                 writeEncodedTile(filler, false);
                                 // - note: unlike usual tiles, the filler tile is written once,

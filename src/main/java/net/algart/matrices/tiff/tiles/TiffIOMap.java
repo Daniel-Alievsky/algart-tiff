@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits TiffReadMap, TiffWriteMap {
     static final boolean AUTO_INTERLEAVE_SOURCE = true;
@@ -136,7 +137,10 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
 
         @SuppressWarnings("resource") final TiffReader reader = reader();
         final boolean rescaleInt24 = reader.isRescaleWhenIncreasingBitDepth();
-        final byte byteFiller = reader.getByteFiller();
+        final boolean cropTilesToImageBoundaries = reader.isCropTilesToImageBoundaries();
+
+        final Consumer<TiffTile> tileInitializer = owner.getTileInitializer();
+        final byte byteFiller = owner.getByteFiller();
         if (byteFiller != 0) {
             // - Java already zero-fills sampleBytes array
             Arrays.fill(sampleBytes, 0, sizeInBytes, byteFiller);
@@ -153,7 +157,6 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         final int numberOfSeparatedPlanes = numberOfSeparatedPlanes();
         final int samplesPerPixel = tileSamplesPerPixel();
 
-        final boolean cropTilesToImageBoundaries = reader.isCropTilesToImageBoundaries();
         final int toX = Math.min(fromX + sizeX, cropTilesToImageBoundaries ? dimX() : Integer.MAX_VALUE);
         final int toY = Math.min(fromY + sizeY, cropTilesToImageBoundaries ? dimY() : Integer.MAX_VALUE);
         // - crop by image sizes to avoid reading unpredictable content of the boundary tiles outside the image
@@ -189,7 +192,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
                     if (storeTilesInMap) {
                         put(tile);
                     }
-                    tile.fillWhenEmpty(reader.getTileInitializer(), reader.getByteFiller());
+                    tile.fillWhenEmpty(tileInitializer, byteFiller);
                     if (tile.isEmpty()) {
                         continue;
                     }
