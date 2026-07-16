@@ -1093,7 +1093,7 @@ public non-sealed class TiffReader extends TiffIO {
             assert offset >= 0 : "offset " + offset + " was not checked in TiffIFD";
             byteCount = cachedByteCountWithCompatibilityTrick(ifd, index);
             byteCount = correctZeroByteCount(tileIndex, byteCount, offset);
-            referenceToSource = ifd.cachedIndexOfFirstSameOffset(index);
+            referenceToSource = ifd.cachedLinkToPreviousSameOffset(index);
             if (referenceToSource == index) {
                 referenceToSource = -1;
                 //TODO!!

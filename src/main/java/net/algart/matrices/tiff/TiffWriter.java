@@ -1477,7 +1477,7 @@ public non-sealed class TiffWriter extends TiffIO {
         final TiffWriteMap map = new TiffWriteMap(this, ifd, false, true);
         final long[] offsets = ifd.cachedTileOrStripOffsets();
         final long[] byteCounts = ifd.cachedTileOrStripByteCounts();
-        final int[] indexesOfFirst = ifd.cachedIndexesOfFirstSameOffset();
+        final int[] indexesOfFirst = ifd.cachedLinksToPreviousSameOffset();
         assert offsets != null;
         assert byteCounts != null;
         assert indexesOfFirst != null;

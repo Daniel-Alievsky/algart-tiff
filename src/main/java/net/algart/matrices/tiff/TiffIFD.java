@@ -510,7 +510,8 @@ public final class TiffIFD {
 
     private volatile long[] cachedTileOrStripByteCounts = null;
     private volatile long[] cachedTileOrStripOffsets = null;
-    private volatile int[] cachedIndexesOfFirstSameOffset = null;
+    private volatile int[] cachedLinksToPreviousSameOffset = null;
+    private volatile int[] cachedLinksToNextSameOffset = null;
     private volatile TagDescription description = null;
 
     private TiffIFD(Map<Integer, Object> ifdEntries) {
@@ -1118,7 +1119,7 @@ public final class TiffIFD {
     }
 
     public String nextIFDOffsetToString() {
-        return nextIFDOffset < 0 ? "n/a" :  "@%d=0x%X".formatted(nextIFDOffset, nextIFDOffset);
+        return nextIFDOffset < 0 ? "n/a" : "@%d=0x%X".formatted(nextIFDOffset, nextIFDOffset);
     }
 
     /**
@@ -1619,15 +1620,7 @@ public final class TiffIFD {
 
     public long cachedTileOrStripOffset(int index) throws TiffException {
         long[] offsets = cachedTileOrStripOffsets();
-        if (index < 0) {
-            throw new IllegalArgumentException("Negative index = " + index);
-        }
-        if (index >= offsets.length) {
-            throw new TiffException((hasTileInformation() ?
-                    "Tile index is too big for TileOffsets" :
-                    "Strip index is too big for StripOffsets") +
-                    "array: it contains only " + offsets.length + " elements");
-        }
+        checkIndexOfOffset(index, offsets.length);
         final long result = offsets[index];
         if (result < 0) {
             throw new TiffException("Negative value " + result + " in " +
@@ -1636,45 +1629,52 @@ public final class TiffIFD {
         return result;
     }
 
-    public int[] cachedIndexesOfFirstSameOffset() throws TiffException {
-        int[] result = this.cachedIndexesOfFirstSameOffset;
+    public int[] cachedLinksToPreviousSameOffset() throws TiffException {
+        int[] result = this.cachedLinksToPreviousSameOffset;
         if (result == null) {
             final long[] tileOrStripOffsets = cachedTileOrStripOffsets();
-            this.cachedIndexesOfFirstSameOffset = result = findIndexesOfFirstSameOffset(tileOrStripOffsets);
+            this.cachedLinksToPreviousSameOffset = result = findLinksToPreviousSameOffset(tileOrStripOffsets);
+        }
+        return result;
+    }
+
+    public int[] cachedLinksToNextSameOffset() throws TiffException {
+        int[] result = this.cachedLinksToNextSameOffset;
+        if (result == null) {
+            final long[] tileOrStripOffsets = cachedTileOrStripOffsets();
+            this.cachedLinksToNextSameOffset = result = findLinksToNextSameOffset(tileOrStripOffsets);
         }
         return result;
     }
 
     /**
-     * Returns the index of the first tile or strip sharing the same file offset as the specified one.
-     *
-     * <p>The possible return values are:</p>
-     * <ol>
-     *     <li>{@code result == -1}: this tile/strip has no duplicates (its file offset is unique
-     *     within this IFD).</li>
-     *     <li>{@code result == index}: this tile/strip has duplicates, and this is the first (original)
-     *     tile/strip among them.</li>
-     *     <li>{@code result < index}: this tile/strip is a subsequent duplicate of a previous tile/strip;
-     *     the returned value is the index of that original (first) tile/strip.</li>
-     * </ol>
+     * Returns the index of the previous duplicate: a tile or strip sharing the same file offset as the specified one,
+     * or {@code -1} if there is no previous duplicates.
      *
      * @param index the linear index of the tile or strip.
-     * @return the index of the first tile/strip sharing the same offset, or {@code -1} if the offset is unique.
+     * @return the index of the nearest previous tile/strip sharing the same offset,
+     * or {@code -1} if this offset is unique or the first.
      * @throws IllegalArgumentException if the index is negative.
-     * @throws TiffException if the TIFF structures are invalid or the index is out of bounds.
+     * @throws TiffException            if the TIFF structures are invalid or the index is out of bounds.
      */
-    public int cachedIndexOfFirstSameOffset(int index) throws TiffException {
-        int[] indexesOfFirst = cachedIndexesOfFirstSameOffset();
-        if (index < 0) {
-            throw new IllegalArgumentException("Negative index = " + index);
-        }
-        if (index >= indexesOfFirst.length) {
-            throw new TiffException((hasTileInformation() ?
-                    "Tile index is too big for TileOffsets" :
-                    "Strip index is too big for StripOffsets") +
-                    "array: it contains only " + indexesOfFirst.length + " elements");
-        }
-        return indexesOfFirst[index];
+    public int cachedLinkToPreviousSameOffset(int index) throws TiffException {
+        int[] indexesOfFirst = cachedLinksToPreviousSameOffset();
+        return indexesOfFirst[checkIndexOfOffset(index, indexesOfFirst.length)];
+    }
+
+    /**
+     * Returns the index of the next duplicate: a tile or strip sharing the same file offset as the specified one,
+     * or {@code -1} if there is no following duplicates.
+     *
+     * @param index the linear index of the tile or strip.
+     * @return the index of the nearest following tile/strip sharing the same offset,
+     * or {@code -1} if this offset is unique or the first.
+     * @throws IllegalArgumentException if the index is negative.
+     * @throws TiffException            if the TIFF structures are invalid or the index is out of bounds.
+     */
+    public int cachedLinkToNextSameOffset(int index) throws TiffException {
+        int[] indexesOfFirst = cachedLinksToNextSameOffset();
+        return indexesOfFirst[checkIndexOfOffset(index, indexesOfFirst.length)];
     }
 
     public Optional<String> optDescription() {
@@ -2167,11 +2167,11 @@ public final class TiffIFD {
      * if this method returns {@code false}, you may be sure that both values are equal.</p>
      *
      * @return {@code true} if the image contains 16/24-bit floating point pixels or 24-bit integer values.
-     * @see net.algart.matrices.tiff.bits.TiffUnpackingPrecisions#unpackRarePrecisions(
-     *byte[], TiffIFD, int, long, boolean)
      * @throws TiffException in the case of any problems while parsing IFD, in particular,
      *                       if the same situations as the {@link #normalizedBitDepth()} method
      *                       (it is called withing this method if {@link #isFloatingPoint()} returns {@code false}).
+     * @see net.algart.matrices.tiff.bits.TiffUnpackingPrecisions#unpackRarePrecisions(
+     *byte[], TiffIFD, int, long, boolean)
      */
     public boolean isRarePrecision() throws TiffException {
         if (isFloatingPoint()) {
@@ -3033,19 +3033,26 @@ public final class TiffIFD {
         return sb.toString();
     }
 
-    public static int[] findIndexesOfFirstSameOffset(long[] tileOrStripOffsets) {
+    public static int[] findLinksToPreviousSameOffset(long[] tileOrStripOffsets) {
         Objects.requireNonNull(tileOrStripOffsets, "Null tileOrStripOffsets");
-        final HashMap<Long, Integer> firstIndexes = new HashMap<>();
+        final HashMap<Long, Integer> map = new HashMap<>();
         final int[] result = new int[tileOrStripOffsets.length];
-        Arrays.fill(result, -1);
         for (int k = 0; k < result.length; k++) {
             final long offset = tileOrStripOffsets[k];
-            Integer p = firstIndexes.putIfAbsent(offset, k);
-            if (p != null) {
-                result[p] = p;
-                // - marks that the tile #p HAS at least one duplicate k > p
-                result[k] = p;
-            }
+            Integer p = map.put(offset, k);
+            result[k] = p != null ? p : -1;
+        }
+        return result;
+    }
+
+    public static int[] findLinksToNextSameOffset(long[] tileOrStripOffsets) {
+        Objects.requireNonNull(tileOrStripOffsets, "Null tileOrStripOffsets");
+        final HashMap<Long, Integer> map = new HashMap<>();
+        final int[] result = new int[tileOrStripOffsets.length];
+        for (int k = result.length - 1; k >= 0; k--) {
+            final long offset = tileOrStripOffsets[k];
+            Integer p = map.put(offset, k);
+            result[k] = p != null ? p : -1;
         }
         return result;
     }
@@ -3284,7 +3291,7 @@ public final class TiffIFD {
     private void clearCache() {
         cachedTileOrStripByteCounts = null;
         cachedTileOrStripOffsets = null;
-        cachedIndexesOfFirstSameOffset = null;
+        cachedLinksToPreviousSameOffset = null;
     }
 
     private void clearSpecificCache(int key) {
@@ -3338,6 +3345,19 @@ public final class TiffIFD {
             }
         }
         return false;
+    }
+
+    private int checkIndexOfOffset(int index, int arrayLength) throws TiffException {
+        if (index < 0) {
+            throw new IllegalArgumentException("Negative index = " + index);
+        }
+        if (index >= arrayLength) {
+            throw new TiffException((hasTileInformation() ?
+                    "Tile index is too big for TileOffsets" :
+                    "Strip index is too big for StripOffsets") +
+                    "array: it contains only " + arrayLength + " elements");
+        }
+        return index;
     }
 
     private void addBriefInfo(StringBuilder sb, boolean json) {
