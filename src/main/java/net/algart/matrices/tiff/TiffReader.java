@@ -649,7 +649,8 @@ public non-sealed class TiffReader extends TiffIO {
      * where the offset (the {@code TileOffsets} or {@code StripOffsets} tag) and/or
      * the byte count (the {@code TileByteCounts} or {@code StripByteCounts} tag) is zero.
      * In this mode, such tiles or strips are treated as missing and will be successfully
-     * read as empty rectangles filled with the {@link #setByteFiller(byte) default filler}.
+     * read as empty rectangles filled with the {@link #setByteFiller(byte) default filler}
+     * or via the {@link #setTileInitializer(Consumer) tile initializer}.
      *
      * <p>The default value is {@code true} (this mode is enabled).
      * When {@code false}, encountering a zero offset or byte count throws an exception

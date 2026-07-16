@@ -462,19 +462,30 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Configures the special mode, when a TIFF file is allowed to contain "missing" tiles or strips,
-     * for which the offset (<code>TileOffsets</code> or <code>StripOffsets</code> tag) and/or
-     * byte count (<code>TileByteCounts</code> or <code>StripByteCounts</code> tag) contains zero value.
-     * In this mode, this writer will use zero offset and byte-count if
-     * the written tile is actually empty &mdash; no pixels were written in it via
-     * {@link TiffWriteMap#updateSampleBytes(byte[], int, int, int, int)} or other methods.
-     * In another case, this writer will create a normal tile, filled by zeros.
+     * Configures the special mode allowing the writer to mark "missing" tiles or strips
+     * by setting their offset (the {@code TileOffsets} or {@code StripOffsets} tag) and/or
+     * the byte count (the {@code TileByteCounts} or {@code StripByteCounts} tag) to zero.
+     * In this mode, if a tile or strip is left empty (no pixels were written to it via
+     * {@link TiffWriteMap#updateSampleBytes(byte[], int, int, int, int)} or other updating methods),
+     * this class writes zero for its offset and byte count. Otherwise,
+     * this writer will create a normal tile, filled by zeros or
+     * with some other values specified via {@link #setByteFiller(byte)} or
+     * {@link #setTileInitializer(Consumer)}.
      *
-     * <p>Default value is <code>false</code>. Note that <code>true</code> value violates requirement of
-     * the standard TIFF format (but may be used by some non-standard software, which needs to
-     * detect areas, not containing any actual data).
+     * <p>The default value is {@code false} (this mode is disabled). When {@code false}, all tiles or strips
+     * are physically written and allocated, ensuring compliance with the TIFF specification
+     * which does not allow zero values for these fields.</p>
      *
-     * @param missingTilesAllowed whether "missing" tiles/strips are allowed.
+     * <p>Enabling this mode ({@code true}) allows generating TIFF files that follow the "sparse tiling"
+     * convention, such as <b>Philips TIFF</b> or <b>ARGOS TIFF</b>, where "missing" tiles are used
+     * to represent regions of interests.
+     * Note that it does not make sense to use this mode for saving disk space:
+     * when this flag is disabled, an empty tile is usually compressed very well,
+     * and the writer reuses this tile many times if necessary (all "backgroynd" tiles will have
+     * the same file offset).</p>
+     *
+     * @param missingTilesAllowed {@code true} to produce missing tiles/strips with zero offsets and byte counts;
+     *                            {@code false} (default) to always physically write and fill all tiles/strips.
      * @return a reference to this object.
      * @see TiffReader#setMissingTilesAllowed(boolean)
      */
