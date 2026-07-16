@@ -211,14 +211,18 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     }
 
     /**
-     * Sets the filler byte for tiles, lying completely outside the image.
-     * Value 0 means black color, 0xFF in most samples format means white color.
+     * Sets the filler byte for tiles that lie completely outside the image boundaries.
      *
-     * <p><b>Warning!</b> If you want to work with non-8-bit TIFF, especially float precision, you should
-     * preserve the default 0 value; in another case, results could be very strange.
-     * You may use {@link #setTileInitializer(Consumer)} method to configure another possible background.
+     * <p>A value of {@code 0} typically represents black; {@code 0xFF} represents
+     * white in most 8-bit sample formats.</p>
      *
-     * @param byteFiller new filler.
+     * <p><b>Warning:</b> When working with non-8-bit TIFFs (especially floating-point data),
+     * it is recommended to preserve the default {@code 0} value. Otherwise, interpreting
+     * the raw filled bytes under non-8-bit data types can lead to unexpected results.
+     * To configure more complex backgrounds or multibyte default values, use
+     * {@link #setTileInitializer(Consumer)}.</p>
+     *
+     * @param byteFiller the new filler byte.
      * @return a reference to this object.
      */
     public TiffIO setByteFiller(byte byteFiller) {
@@ -231,33 +235,32 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     }
 
     /**
-     * Sets the <i>tile initializer</i>: the function initializing empty tiles.
-     * By default, it is {@code null} (not specified).
+     * Sets the <i>tile initializer</i>: a callback function used to initialize empty tiles.
+     * By default, this is {@code null} (not specified).
      *
-     * <p>While reading an image, the {@link TiffReader} class reads the tiles or strips via the current
-     * {@link TiffIOMap#setTileSupplier(TileSupplier) tile supplier},
-     * i.e. (in most cases) via the {@link TiffReader#readCachedTile(TiffTileIndex)} method.
-     * Usually the loaded tile are not {@link TiffTile#isEmpty() empty}.
-     * However, empty tiles may occur in some formats such as <b>Philips TIFF</b> and <b>ARGOS TIFF</b>,
-     * if the {@link TiffReader#setMissingTilesAllowed(boolean)} mode is enabled ({@code true}).
-     * In such a situation, if this <i>tile initializer</i> is set to some non-null value,
-     * it is automatically called for an empty tile.
-     * You can use this feature to fill the tile with some "background" color.</p>
+     * <p>During reading:
+     * the {@link TiffReader} class reads tiles or strips via the current
+     * {@link TiffIOMap#setTileSupplier(TileSupplier) tile supplier} (typically
+     * via {@link TiffReader#readCachedTile(TiffTileIndex)}). Usually, loaded tiles are
+     * not {@link TiffTile#isEmpty() empty}. However, empty tiles can occur in
+     * some "sparse" formats such as <b>Philips TIFF</b> and <b>ARGOS TIFF</b> when
+     * {@link TiffReader#setMissingTilesAllowed(boolean)}
+     * is enabled. In such situations, if a non-null <i>tile initializer</i> is specified, it is
+     * automatically invoked for each empty tile. You can use this, for example, to fill missing tiles with a
+     * custom background color.</p>
      *
-     * <p>If the <i>tile initializer</i> is {@code null}, such an empty tile will be simply ignored,
-     * and the corresponding part of the data stays to be filled
+     * <p>If the <i>tile initializer</i> is {@code null}, such empty tiles, if occurred, are ignored during reading, and the corresponding
+     * regions remain filled with the {@link #setByteFiller(byte) byte filler}.</p>
+     *
+     * <p>During writing:
+     * the {@link TiffWriteMap} class invokes this initializer for any new tile before
+     * filling it with data via {@link TiffWriteMap#updateMatrix} or similar methods.
+     * It is also invoked right before writing a tile to the file if the tile has not been filled with any data.</p>
+     *
+     * <p>If the <i>tile initializer</i> is {@code null}, newly allocated tile data arrays are automatically filled
      * with the {@link #setByteFiller(byte) byte filler}.</p>
      *
-     * <p>While writing an image, the {@link TiffWriteMap TiffWriteMap} class
-     * calls this initializer for a new tile before it is will be filled with data by
-     * {@link TiffWriteMap#updateMatrix} or similar methods.
-     * This initializer is also invoked before writing a TIFF tile to the file if the tile
-     * has not been filled with any data.</p>
-
-     * <p>If the <i>tile initializer</i> is {@code null}, a newly created data array in the tile is filled
-     * with the {@link #setByteFiller(byte) byte filler}.</p>
-     *
-     * @param tileInitializer the <i>tile initializer</i>; {@code null} by default.
+     * @param tileInitializer the <i>tile initializer</i>, or {@code null} to disable custom initialization.
      * @return a reference to this object.
      */
     public TiffIO setTileInitializer(Consumer<TiffTile> tileInitializer) {

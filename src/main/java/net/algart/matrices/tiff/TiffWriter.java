@@ -468,8 +468,8 @@ public non-sealed class TiffWriter extends TiffIO {
      * In this mode, if a tile or strip is left empty (no pixels were written to it via
      * {@link TiffWriteMap#updateSampleBytes(byte[], int, int, int, int)} or other updating methods),
      * this class writes zero for its offset and byte count. Otherwise,
-     * this writer will create a normal tile, filled by zeros or
-     * with some other values specified via {@link #setByteFiller(byte)} or
+`     * this writer will create a normal tile, filled with zeros or
+     * with other values specified via {@link #setByteFiller(byte)} or
      * {@link #setTileInitializer(Consumer)}.
      *
      * <p>The default value is {@code false} (this mode is disabled). When {@code false}, all tiles or strips
@@ -478,10 +478,10 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * <p>Enabling this mode ({@code true}) allows generating TIFF files that follow the "sparse tiling"
      * convention, such as <b>Philips TIFF</b> or <b>ARGOS TIFF</b>, where "missing" tiles are used
-     * to represent regions of interests.
+     * to represent regions of interest.
      * Note that it does not make sense to use this mode for saving disk space:
      * when this flag is disabled, an empty tile is usually compressed very well,
-     * and the writer reuses this tile many times if necessary (all "backgroynd" tiles will have
+     * and the writer reuses this tile many times if necessary (all empty background tiles will share
      * the same file offset).</p>
      *
      * @param missingTilesAllowed {@code true} to produce missing tiles/strips with zero offsets and byte counts;
@@ -489,7 +489,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @return a reference to this object.
      * @see TiffReader#setMissingTilesAllowed(boolean)
      */
-    public TiffWriter setMissingTilesAllowed(boolean missingTilesAllowed) {
+     public TiffWriter setMissingTilesAllowed(boolean missingTilesAllowed) {
         this.missingTilesAllowed = missingTilesAllowed;
         return this;
     }
