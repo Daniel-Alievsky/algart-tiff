@@ -649,21 +649,20 @@ public non-sealed class TiffReader extends TiffIO {
      * Configures a special mode allowing the reader to handle "missing" tiles or strips
      * where the offset (the {@code TileOffsets} or {@code StripOffsets} tag) and/or
      * the byte count (the {@code TileByteCounts} or {@code StripByteCounts} tag) is zero.
-     * In this mode, such tiles or strips are treated as "missing" and will be successfully read as empty
-     * rectangles filled with the {@link #setByteFiller(byte) default filler}.</p>
+     * In this mode, such tiles or strips are treated as missing and will be successfully
+     * read as empty rectangles filled with the {@link #setByteFiller(byte) default filler}.
      *
      * <p>The default value is {@code false}. When {@code false}, encountering a zero offset
      * or byte count throws an exception.</p>
      *
-     * <p>The TIFF specification does not officially allow zero values for these fields
-     * (tile/strip offset or byte count). So, the default behavior corresponds to the TIFF standard.</p>
-     * However, certain specific TIFF formats &mdash; such as
-     * <b>Philips TIFF</b> and <b>ARGOS TIFF</b> &mdash; use this "sparse tiling" convention
-     * to represent empty regions. You should set this mode to {@code true} value
-     * for correctly processing these files.</p>
+     * <p>The TIFF specification does not officially allow zero values for these fields (tile/strip
+     * offsets or byte counts). Therefore, the default strict behavior complies with the official TIFF standard.
+     * However, certain specific TIFF formats &mdash; such as <b>Philips TIFF</b> and <b>ARGOS TIFF</b> &mdash;
+     * use this "sparse tiling" convention to represent empty regions. You should enable this mode
+     * to correctly process these files.</p>
      *
      * @param missingTilesAllowed {@code true} to allow missing tiles/strips, identified by zero tile/strip
-     *                                        offset and/or length (byte count); {@code false} otherwise.
+     *                            offset and/or length (byte count); {@code false} otherwise.
      * @return a reference to this object.
      */
     public TiffReader setMissingTilesAllowed(boolean missingTilesAllowed) {
