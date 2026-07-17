@@ -3292,6 +3292,7 @@ public final class TiffIFD {
         cachedTileOrStripByteCounts = null;
         cachedTileOrStripOffsets = null;
         cachedLinksToPreviousSameOffset = null;
+        cachedLinksToNextSameOffset = null;
     }
 
     private void clearSpecificCache(int key) {
