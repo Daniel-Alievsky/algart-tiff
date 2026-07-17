@@ -239,9 +239,10 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * By default, this is {@code null} (not specified).
      *
      * <p>During reading:
-     * the {@link TiffReader} class reads tiles or strips via the current
+     * the {@link TiffReader} class (and {@link TiffWriteMap} when loading an existing image prior to
+     * rewriting the TIFF) reads tiles or strips via the current
      * {@link TiffIOMap#setTileSupplier(TileSupplier) tile supplier} (typically
-     * via {@link TiffReader#readCachedTile(TiffTileIndex)}). Usually, loaded tiles are
+     * via {@link TiffReader#readCachedTile(TiffTileIndex)}), and, usually, loaded tiles are
      * not {@link TiffTile#isEmpty() empty}. However, empty tiles can occur in
      * some "sparse" formats such as <b>Philips TIFF</b> and <b>ARGOS TIFF</b> when
      * {@link TiffReader#setMissingTilesAllowed(boolean)}
@@ -256,7 +257,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * <p>During writing:
      * the {@link TiffWriteMap} class invokes this initializer for any new tile before
      * filling it with data via {@link TiffWriteMap#updateMatrix} or similar methods.
-     * It is also invoked right before writing a tile to the file if the tile has not been filled with any data.</p>
+     * It is also invoked right before writing a tile to the file if the tile remains unfilled.</p>
      *
      * <p>If the <i>tile initializer</i> is {@code null}, newly allocated tile data arrays are automatically filled
      * with the {@link #setByteFiller(byte) byte filler}.</p>
