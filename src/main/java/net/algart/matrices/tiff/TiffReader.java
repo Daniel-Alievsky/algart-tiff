@@ -1655,7 +1655,7 @@ public non-sealed class TiffReader extends TiffIO {
 
     private int correctZeroByteCount(TiffTileIndex tileIndex, int byteCount, long offset) throws IOException {
         if (byteCount == 0 || offset == 0) {
-            if (missingTilesAllowed) {
+            if ((byteCount == 0 && offset == 0) && missingTilesAllowed) {
                 return -1;
             }
             final TiffIFD ifd = tileIndex.ifd();
