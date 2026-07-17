@@ -590,7 +590,8 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                         ",%nprobably because of growing the map by a parallel thread:%n%s".formatted(this));
             }
             if (index > 0) {
-                tile.linkWithPreviousDuplicate(first);
+                tile.copyStoredInFileDataRange(first);
+                // - no needs to use linkWithPreviousDuplicate: we just need to make copies and write an image
             }
             index++;
         }

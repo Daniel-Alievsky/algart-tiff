@@ -45,39 +45,6 @@ import java.util.function.Supplier;
  * TIFF tile: container for samples (encoded or decoded) with given {@link TiffTileIndex index}.
  */
 public final class TiffTile {
-    public enum DuplicateStatus {
-        /**
-         * Unique tile. Its {@link #getStoredInFileDataOffset() file offset} is unique within this IFD.
-         */
-        UNIQUE,
-
-        /**
-         * The first (original) tile in a group of duplicates.
-         * It has subsequent duplicates pointing to its {@link #getStoredInFileDataOffset() file offset}.
-         */
-        FIRST_DUPLICATE,
-
-        /**
-         * A subsequent duplicate. It does not contain its own physical data on disk
-         * and references a previous {@link #FIRST_DUPLICATE} tile.
-         */
-        SUBSEQUENT_DUPLICATE;
-
-        /**
-         * Returns {@code true} if this status represents a first or subsequent duplicate.
-         */
-        public boolean isShared() {
-            return this != UNIQUE;
-        }
-
-        /**
-         * Returns {@code true} if this status represents a subsequent duplicate.
-         */
-        public boolean isSubsequentDuplicate() {
-            return this == SUBSEQUENT_DUPLICATE;
-        }
-    }
-
     public enum CopyMode {
         COPY_REFERENCE,
         COPY_CONTENT,
@@ -119,6 +86,8 @@ public final class TiffTile {
     private int storedInFileDataLength = 0;
     private int storedInFileDataCapacity = 0;
     private int linearIndexOfPreviousDuplicate = -1;
+    private int linearIndexOfNextDuplicate = -1;
+    private boolean duplicate = false;
     private boolean rescaleWhenIncreasingBitDepthRequested = false;
     private boolean colorCorrectionRequested = false;
     private Queue<IRectangularArea> unsetArea = null;
@@ -1011,6 +980,15 @@ public final class TiffTile {
         return this;
     }
 
+    public boolean hasPreviousDuplicate() {
+        return linearIndexOfPreviousDuplicate >= 0;
+    }
+
+    public TiffTile clearPreviousDuplicate() {
+        linearIndexOfPreviousDuplicate = -1;
+        return this;
+    }
+
     public OptionalInt optLinearIndexOfPreviousDuplicate() {
         return linearIndexOfPreviousDuplicate < 0 ?
                 OptionalInt.empty() :
@@ -1019,27 +997,72 @@ public final class TiffTile {
 
     public int getLinearIndexOfPreviousDuplicate() {
         if (linearIndexOfPreviousDuplicate < 0) {
-            throw new IllegalStateException("The TIFF tile is not a duplicate: " + this);
+            throw new IllegalStateException("The TIFF tile has no previous duplicate: " + this);
         }
         return linearIndexOfPreviousDuplicate;
     }
 
+    public TiffTile setOrClearLinearIndexOfPreviousDuplicate(int linearIndexOfPreviousDuplicate) {
+        this.linearIndexOfPreviousDuplicate = linearIndexOfPreviousDuplicate < 0 ? -1 : linearIndexOfPreviousDuplicate;
+        return this;
+    }
+
     public TiffTile setLinearIndexOfPreviousDuplicate(int linearIndexOfPreviousDuplicate) {
         if (linearIndexOfPreviousDuplicate < 0) {
-            throw new IllegalArgumentException("Negative linearIndexOfOriginalIfDuplicate = " +
+            throw new IllegalArgumentException("Negative linearIndexOfPreviousDuplicate = " +
                     linearIndexOfPreviousDuplicate);
         }
         this.linearIndexOfPreviousDuplicate = linearIndexOfPreviousDuplicate;
         return this;
     }
 
-    public boolean hasPreviousDuplicate() {
-        return linearIndexOfPreviousDuplicate >= 0;
+    public boolean hasNextDuplicate() {
+        return linearIndexOfNextDuplicate >= 0;
     }
 
-    public TiffTile clearDuplicate() {
-        linearIndexOfPreviousDuplicate = -1;
+    public TiffTile clearNextDuplicate() {
+        linearIndexOfNextDuplicate = -1;
         return this;
+    }
+
+    public OptionalInt optLinearIndexOfNextDuplicate() {
+        return linearIndexOfNextDuplicate < 0 ?
+                OptionalInt.empty() :
+                OptionalInt.of(linearIndexOfNextDuplicate);
+    }
+
+    public int getLinearIndexOfNextDuplicate() {
+        if (linearIndexOfNextDuplicate < 0) {
+            throw new IllegalStateException("The TIFF tile has no next duplicate: " + this);
+        }
+        return linearIndexOfNextDuplicate;
+    }
+
+    public TiffTile setOrClearLinearIndexOfNextDuplicate(int linearIndexOfNextDuplicate) {
+        this.linearIndexOfNextDuplicate = linearIndexOfNextDuplicate < 0 ? -1 : linearIndexOfNextDuplicate;
+        return this;
+    }
+
+    public TiffTile setLinearIndexOfNextDuplicate(int linearIndexOfNextDuplicate) {
+        if (linearIndexOfNextDuplicate < 0) {
+            throw new IllegalArgumentException("Negative linearIndexOfNextDuplicate = " +
+                    linearIndexOfNextDuplicate);
+        }
+        this.linearIndexOfNextDuplicate = linearIndexOfNextDuplicate;
+        return this;
+    }
+
+    public boolean isDuplicate() {
+        return duplicate;
+    }
+
+    public TiffTile setDuplicate(boolean duplicate) {
+        this.duplicate = duplicate;
+        return this;
+    }
+
+    public TiffTile setDuplicateAutomatically() {
+        return setDuplicate(linearIndexOfPreviousDuplicate >= 0 || linearIndexOfNextDuplicate >= 0);
     }
 
     public TiffTile copyStoredInFileDataRange(TiffTile other) {
@@ -1056,7 +1079,7 @@ public final class TiffTile {
             throw new IllegalStateException("Cannot mark a tile as a duplicate when it contains data: " + this);
         }
         setLinearIndexOfPreviousDuplicate(other.linearIndex());
-        //TODO!! other.setLinearIndexOfNextDuplicate
+        other.setLinearIndexOfNextDuplicate(this.linearIndex());
         copyStoredInFileDataRange(other);
         return this;
     }

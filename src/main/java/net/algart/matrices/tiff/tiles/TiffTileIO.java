@@ -80,6 +80,10 @@ public class TiffTileIO {
         Objects.requireNonNull(outputStream, "Null output stream");
         final byte[] encodedData = tile.getEncodedData();
         tile.setStoredInFileDataRange(fileOffset, encodedData.length, resetCapacity);
+        tile.setDuplicate(false);
+        // Strictly speaking, we could update the doubly-linked list of duplicates here.
+        // If only one duplicate remains in the chain, we could clear its 'duplicate' flag too.
+        // However, this provides very minor savings and increases architectural complexity.
         outputStream.seek(fileOffset);
         outputStream.write(encodedData);
     }
@@ -88,11 +92,10 @@ public class TiffTileIO {
         if (!tile.isStoredInFile()) {
             return false;
         }
-        //if (tile.isDuplicate()) {
-            // - if we have several duplicate, we can modify in-place only the original, not its duplicates
-        // return false;
-        //}
-        //TODO!!
+        if (tile.isDuplicate()) {
+            // - if we have several duplicate, we cannot modify them in-place
+            return false;
+        }
         final long fileOffset = tile.getStoredInFileDataOffset();
         if (SMART_WRITING_TO_FILE_END && fileOffset + tile.getStoredInFileDataLength() == outputStream.length()) {
             writeAt(tile, outputStream, fileOffset, true);

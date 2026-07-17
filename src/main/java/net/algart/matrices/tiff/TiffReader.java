@@ -1078,7 +1078,7 @@ public non-sealed class TiffReader extends TiffIO {
         // - also checks that the tile index is not out of image bounds
         long offset;
         int byteCount;
-        int previousDuplicate;
+        int previousDuplicate, nextDuplicate;
         final TiffTile existingTile = tileIndex.existingTile();
         final boolean alreadyStored = existingTile != null && existingTile.isStoredInFile();
         if (alreadyStored) {
@@ -1087,6 +1087,7 @@ public non-sealed class TiffReader extends TiffIO {
             offset = existingTile.getStoredInFileDataOffset();
             byteCount = existingTile.getStoredInFileDataLength();
             previousDuplicate = existingTile.optLinearIndexOfPreviousDuplicate().orElse(-1);
+            nextDuplicate = existingTile.optLinearIndexOfNextDuplicate().orElse(-1);
             assert offset >= 0 && byteCount >= 0;
         } else {
             offset = ifd.cachedTileOrStripOffset(index);
@@ -1094,6 +1095,7 @@ public non-sealed class TiffReader extends TiffIO {
             byteCount = cachedByteCountWithCompatibilityTrick(ifd, index);
             byteCount = correctZeroByteCount(tileIndex, byteCount, offset);
             previousDuplicate = ifd.cachedLinkToPreviousSameOffset(index);
+            nextDuplicate = ifd.cachedLinkToNextSameOffset(index);
         }
 
         final TiffTile result = new TiffTile(tileIndex);
@@ -1112,9 +1114,9 @@ public non-sealed class TiffReader extends TiffIO {
             return result;
         }
 
-        if (previousDuplicate != -1) {
-            result.setLinearIndexOfPreviousDuplicate(previousDuplicate);
-        }
+        result.setOrClearLinearIndexOfPreviousDuplicate(previousDuplicate);
+        result.setOrClearLinearIndexOfNextDuplicate(nextDuplicate);
+        result.setDuplicateAutomatically();
         synchronized (fileLock) {
             if (offset >= stream.length()) {
                 throw new TiffException("Offset of TIFF tile/strip " + offset + " is out of file length (tile " +
