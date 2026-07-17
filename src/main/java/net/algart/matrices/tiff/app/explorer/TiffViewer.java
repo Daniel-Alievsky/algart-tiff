@@ -639,8 +639,8 @@ class TiffViewer {
     private static void customFillEmptyTile(TiffTile tile) {
         if (!tile.isRarePrecision()) {
             final Matrix<UpdatablePArray> m = tile.getUnpackedMatrix();
-            final double[] filler = tile.colorToChannelValues(EMPTY_TILE_COLOR, true);
-            final double[] border = tile.colorToChannelValues(EMPTY_TILE_BORDER, true);
+            final double[] filler = tile.channelValues(EMPTY_TILE_COLOR, true);
+            final double[] border = tile.channelValues(EMPTY_TILE_BORDER, true);
             int gap = 2;
             for (int c = 0; c < tile.samplesPerPixel(); c++) {
                 m.subMatr(0, 0, c, m.dimX(), m.dimY(), 1).array().fill(filler[c]);

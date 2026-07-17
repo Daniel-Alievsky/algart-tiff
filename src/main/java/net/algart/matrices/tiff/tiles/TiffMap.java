@@ -1124,25 +1124,6 @@ public sealed class TiffMap permits TiffIOMap {
         // - most typical cases; we do not try to optimize "strange" bit numbers like 4-bit samples
     }
 
-    public double[] colorToChannelValues(Color color, boolean scaleToMaxValue) {
-        return colorToChannelValues(color, numberOfChannels(), scaleToMaxValue);
-    }
-
-    public double[] colorToChannelValues(Color color, int numberOfChannels, boolean scaleToMaxValue) {
-        Objects.requireNonNull(color, "Null color");
-        float[] components = color.getRGBComponents(null);
-        final double[] filler = new double[components.length];
-        for (int i = 0; i < components.length; i++) {
-            filler[i] = scaleToMaxValue ? components[i] * sampleType().maxUnsignedValue() : components[i];
-            // - note: for signed types as INT8, the value 255 still corresponds to WHITE;
-            // this is not too correct, but it is better than too "smart" solution when 0xFFFFFF
-            // will be translated to 0x7F7F7F
-        }
-        return numberOfChannels == 1 ?
-                new double[]{intensity(filler[0], filler[1], filler[2])} :
-                Arrays.copyOf(filler, numberOfChannels);
-    }
-
     public byte[] toInterleavedSamples(byte[] sampleBytes, int numberOfChannels, long numberOfPixels) {
         return toInterleaveOrSeparatedSamples(sampleBytes, numberOfChannels, numberOfPixels, true);
     }
@@ -1284,7 +1265,9 @@ public sealed class TiffMap permits TiffIOMap {
 
     public <T extends PArray> List<Matrix<T>> matrixAsChannels(Matrix<T> mergedChannels) {
         Objects.requireNonNull(mergedChannels, "Null merged channels");
-        return Matrices.asLayers(mergedChannels, TiffIFD.MAX_NUMBER_OF_CHANNELS);
+        return mergedChannels.dimCount() == 2 ?
+                List.of(mergedChannels) :
+                Matrices.asLayers(mergedChannels, TiffIFD.MAX_NUMBER_OF_CHANNELS);
     }
 
     public <T extends PArray> Matrix<T> channelsToMatrix(List<? extends Matrix<? extends T>> channels) {
@@ -1323,6 +1306,43 @@ public sealed class TiffMap permits TiffIOMap {
         return getExtraChannelsMode().isDropping() && channels.size() > 4 ?
                 channels.subList(0, 4) :
                 channels;
+    }
+
+    public double[] channelValues(Color color, boolean scaleToMaxValue) {
+        return channelValues(color, numberOfChannels(), scaleToMaxValue);
+    }
+
+    public double[] channelValues(Color color, int numberOfChannels, boolean scaleToMaxValue) {
+        return channelValues(color, numberOfChannels, sampleType(), scaleToMaxValue);
+    }
+
+    public static double[] channelValues(Color color, int numberOfChannels) {
+        return channelValues(color, numberOfChannels, 1.0, false);
+    }
+
+    public static double[] channelValues(
+            Color color,
+            int numberOfChannels,
+            TiffSampleType sampleType,
+            boolean scaleToMaxValue) {
+        Objects.requireNonNull(sampleType, "Null sampleType");
+        return channelValues(color, numberOfChannels, sampleType.maxUnsignedValue(), scaleToMaxValue);
+    }
+
+    public static void fillByColor(Matrix<UpdatablePArray> matrix, double[] values) {
+
+        final List<Matrix<UpdatablePArray>> layers = matrix.asLayers();
+        for (int i = 0; i < layers.size(); i++) {
+            final Matrix<UpdatablePArray> layer = layers.get(i);
+            if (i < values.length) {
+                if (layer.isFloatingPoint()) {
+                    layer.array().fill(values[i]);
+                } else {
+                    layer.array().fill((long) values[i]);
+                    // - override standard AlgART behavior: using long instead of (int) cast (important for 0xFFFFFFFF)
+                }
+            }
+        }
     }
 
     @Override
@@ -1468,6 +1488,26 @@ public sealed class TiffMap permits TiffIOMap {
 
     static long debugTime() {
         return BUILT_IN_TIMING && LOGGABLE_DEBUG ? System.nanoTime() : 0;
+    }
+
+    private static double[] channelValues(
+            Color color,
+            int numberOfChannels,
+            double maxUnsignedValue,
+            boolean scaleToMaxValue) {
+        Objects.requireNonNull(color, "Null color");
+        float[] components = color.getRGBComponents(null);
+        // - components[3] will be 1.0 for usual colors without alpha-channel
+        final double[] filler = new double[components.length];
+        for (int i = 0; i < components.length; i++) {
+            filler[i] = scaleToMaxValue ? components[i] * maxUnsignedValue : components[i];
+            // - note: for signed types as INT8, the value 255 still corresponds to WHITE;
+            // this is not too correct, but it is better than too "smart" solution when 0xFFFFFF
+            // will be translated to 0x7F7F7F
+        }
+        return numberOfChannels == 1 ?
+                new double[]{intensity(filler[0], filler[1], filler[2])} :
+                Arrays.copyOf(filler, numberOfChannels);
     }
 
     private static double intensity(double r, double g, double b) {

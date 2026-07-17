@@ -723,11 +723,11 @@ public final class TiffTile {
         return setData(data, false, false, false);
     }
 
-    public TiffTile fillWhenEmpty() {
-        return fillWhenEmpty(null, (byte) 0);
+    public TiffTile fillIfEmpty() {
+        return fillIfEmpty(null, (byte) 0);
     }
 
-    public TiffTile fillWhenEmpty(Consumer<TiffTile> initializer, byte byteFiller) {
+    public TiffTile fillIfEmpty(Consumer<TiffTile> initializer, byte byteFiller) {
         checkFrozen();
         // - if frozen, then isEmpty() below returns true
         if (isEmpty()) {
@@ -743,8 +743,8 @@ public final class TiffTile {
         return this;
     }
 
-    public double[] colorToChannelValues(Color color, boolean scaleToMaxValue) {
-        return map.colorToChannelValues(color, samplesPerPixel(), scaleToMaxValue);
+    public double[] channelValues(Color color, boolean scaleToMaxValue) {
+        return map.channelValues(color, samplesPerPixel(), scaleToMaxValue);
     }
 
     /**
@@ -905,11 +905,11 @@ public final class TiffTile {
      *
      * <p>After {@link #freeData()} method, the tile becomes {@link #isEmpty() empty},
      * but can be filled with some data again, for example, using {@link #setDecodedData(byte[])}
-     * or {@link #fillWhenEmpty()}.
+     * or {@link #fillIfEmpty()}.
      * Unlike this, after this method,
      * the tile usually cannot be modified: any attempt to get or set data
      * ({@link #getDecodedData()}, {@link #getEncodedData()}, {@link  #setDecodedData(byte[])},
-     * {@link #setEncodedData(byte[])}, {@link #fillWhenEmpty()} etc.) will result in an exception.</p>
+     * {@link #setEncodedData(byte[])}, {@link #fillIfEmpty()} etc.) will result in an exception.</p>
      *
      * <p>{@link TiffWriter} class checks {@link #isFrozen()} method and does not attempt to update
      * <i>frozen</i> tiles.</p>

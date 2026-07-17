@@ -2436,7 +2436,7 @@ public non-sealed class TiffWriter extends TiffIO {
                                 // smaller height)
                                 // or even 2 * numberOfSeparatedPlanes times for plane-separated tiles
                                 filler = new TiffTile(tileIndex).setEqualSizes(tile);
-                                filler.fillWhenEmpty(getTileInitializer(), getByteFiller());
+                                filler.fillIfEmpty(getTileInitializer(), getByteFiller());
                                 encode(filler);
                                 writeEncodedTile(filler, false);
                                 // - note: unlike usual tiles, the filler tile is written once,

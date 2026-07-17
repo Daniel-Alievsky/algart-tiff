@@ -192,7 +192,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
                     if (storeTilesInMap) {
                         put(tile);
                     }
-                    tile.fillWhenEmpty(tileInitializer, byteFiller);
+                    tile.fillIfEmpty(tileInitializer, byteFiller);
                     if (tile.isEmpty()) {
                         continue;
                     }
@@ -328,8 +328,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             int sizeY,
             boolean storeTilesInMap)
             throws IOException {
-        final Matrix<UpdatablePArray> mergedChannels = readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap);
-        return channelsToBufferedImage(matrixAsChannels(mergedChannels));
+        return channelsToBufferedImage(readChannels(fromX, fromY, sizeX, sizeY, storeTilesInMap));
     }
 
     @SuppressWarnings("resource")

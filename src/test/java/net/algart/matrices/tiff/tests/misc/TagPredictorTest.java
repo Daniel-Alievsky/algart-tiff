@@ -45,7 +45,7 @@ public class TagPredictorTest {
         String diagnostic = "O'k";
         try {
             TiffPrediction.subtractPredictionIfRequested(
-                    new TiffMap(ifd, true).getOrNew(0, 0).fillWhenEmpty());
+                    new TiffMap(ifd, true).getOrNew(0, 0).fillIfEmpty());
         } catch (TiffException e) {
             diagnostic = e.getMessage();
         }

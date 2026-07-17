@@ -82,8 +82,8 @@ class TiffReaderWithGrid extends TiffReader {
         final int gap = Math.min(this.tileGridThickness, Math.min(tile.getSizeX(), tile.getSizeY()) / 2);
         if (!tile.isRarePrecision()) {
             final Matrix<UpdatablePArray> m = tile.getUnpackedMatrix();
-            final double[] leftTop = tile.colorToChannelValues(GRID_COLOR, true);
-            final double[] rightBottom = tile.colorToChannelValues(Color.BLACK, true);
+            final double[] leftTop = tile.channelValues(GRID_COLOR, true);
+            final double[] rightBottom = tile.channelValues(Color.BLACK, true);
             for (int c = 0; c < tile.samplesPerPixel(); c++) {
                 m.subMatr(0, 0, c, m.dimX(), gap, 1).array().fill(leftTop[c]);
                 m.subMatr(0, 0, c, gap, m.dimY(), 1).array().fill(leftTop[c]);

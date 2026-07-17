@@ -50,7 +50,6 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.OptionalInt;
 
 public class TiffWriterTest {
     private static final boolean AUTO_INTERLEAVE_SOURCE = true;
@@ -511,9 +510,7 @@ public class TiffWriterTest {
         final int sizeX = tile.getSizeX();
         final int sizeY = tile.getSizeY();
         final Color color = new Color(248, 247, 186);
-        final float[] filler = samplesPerPixel == 1 ?
-                new float[] {0.8f} :
-                Arrays.copyOf(color.getRGBComponents(null), samplesPerPixel);
+        final double[] filler = TiffMap.channelValues(color, samplesPerPixel);
         return switch (tile.sampleType()) {
             case BIT -> {
                 boolean[] channels = new boolean[sizeX * sizeY * samplesPerPixel];
@@ -564,7 +561,7 @@ public class TiffWriterTest {
                 for (int c = 0, disp = 0; c < samplesPerPixel; c++) {
                     for (int y = 0; y < sizeY; y++) {
                         for (int x = 0; x < sizeX; x++, disp++) {
-                            channels[disp] = x == 0 || y == 0 ? 0 : filler[c];
+                            channels[disp] = x == 0 || y == 0 ? 0 : (float) filler[c];
                         }
                     }
                 }

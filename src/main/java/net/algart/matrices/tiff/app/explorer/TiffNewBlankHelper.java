@@ -393,7 +393,7 @@ class TiffNewBlankHelper {
             this.map = map;
             this.result = result;
             this.numberOfChannels = result.dim32(2);
-            double[] channelValues = map.colorToChannelValues(color, false);
+            double[] channelValues = map.channelValues(color, false);
             this.filler = Arrays.copyOf(channelValues, numberOfChannels);
             if (numberOfChannels > channelValues.length) {
                 Arrays.fill(filler, channelValues.length, numberOfChannels, 1.0);

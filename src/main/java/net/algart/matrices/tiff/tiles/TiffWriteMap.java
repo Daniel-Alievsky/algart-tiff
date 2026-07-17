@@ -288,8 +288,6 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                     // It is important for writing: without this correction, GIMP and other libtiff-based programs
                     // will report about an error (see libtiff, tif_jpeg.c, assigning segment_width/segment_height)
                     // However, if tiling is requested via TILE_WIDTH/TILE_LENGTH tags, we SHOULD NOT do this.
-                    tile.fillWhenEmpty(tileInitializer, byteFiller);
-                    final byte[] data = tile.getDecodedData();
 
                     final int tileSizeX = tile.getSizeX();
                     final int tileSizeY = tile.getSizeY();
@@ -301,6 +299,16 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                     if (sizeYInTile <= 0) {
                         throw new AssertionError("sizeYInTile=" + sizeYInTile);
                     }
+                    if (fromXInTile == 0 && fromYInTile == 0 &&
+                            sizeXInTile == tileSizeX && sizeYInTile == tileSizeY) {
+                        tile.fillIfEmpty();
+                        // - more quick analog: no reasons to fill an empty tile with the background
+                        // if it will be fully overwritten by the following loop
+                    } else {
+                        tile.fillIfEmpty(tileInitializer, byteFiller);
+                    }
+                    final byte[] data = tile.getDecodedData();
+
                     tile.markNewRectangleAsSet(fromXInTile, fromYInTile, sizeXInTile, sizeYInTile);
 
                     // Tile must be interleaved always (RGBRGB...).
@@ -552,7 +560,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
 
     public void writeBlank(Color fillColor) throws IOException {
         Objects.requireNonNull(fillColor, "Null fillColor");
-        writeBlank(colorToChannelValues(fillColor, true));
+        writeBlank(channelValues(fillColor, true));
     }
 
     public void writeBlank(double[] filler) throws IOException {
@@ -764,21 +772,6 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
         if (sizeX * sizeY > arrayBits || sizeX * sizeY * (long) bitsPerPixel > arrayBits) {
             throw new IllegalArgumentException("Requested area " + sizeX + "x" + sizeY +
                     " is too large for array of " + array.length + " bytes, " + bitsPerPixel + " per pixel");
-        }
-    }
-
-    private static void fillByColor(Matrix<UpdatablePArray> matrix, double[] values) {
-        final List<Matrix<UpdatablePArray>> layers = matrix.asLayers();
-        for (int i = 0; i < layers.size(); i++) {
-            final Matrix<UpdatablePArray> layer = layers.get(i);
-            if (i < values.length) {
-                if (layer.isFloatingPoint()) {
-                    layer.array().fill(values[i]);
-                } else {
-                    layer.array().fill((long) values[i]);
-                    // - override standard AlgART behavior: using long instead of (int) cast (important for 0xFFFFFFFF)
-                }
-            }
         }
     }
 }
