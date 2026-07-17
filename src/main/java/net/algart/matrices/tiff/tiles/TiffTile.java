@@ -1078,8 +1078,12 @@ public final class TiffTile {
         if (!isEmpty()) {
             throw new IllegalStateException("Cannot mark a tile as a duplicate when it contains data: " + this);
         }
-        setLinearIndexOfPreviousDuplicate(other.linearIndex());
-        other.setLinearIndexOfNextDuplicate(this.linearIndex());
+        final int thisIndex = this.linearIndex();
+        final int otherIndex = other.linearIndex();
+        if (thisIndex != otherIndex) {
+            setLinearIndexOfPreviousDuplicate(otherIndex).setDuplicateAutomatically();
+            other.setLinearIndexOfNextDuplicate(thisIndex).setDuplicateAutomatically();
+        }
         copyStoredInFileDataRange(other);
         return this;
     }
