@@ -1263,14 +1263,14 @@ public sealed class TiffMap permits TiffIOMap {
         return TiffSamples.toBytes(array, byteOrder());
     }
 
-    public <T extends PArray> List<Matrix<T>> matrixAsChannels(Matrix<T> mergedChannels) {
+    public static <T extends PArray> List<Matrix<T>> matrixAsChannels(Matrix<T> mergedChannels) {
         Objects.requireNonNull(mergedChannels, "Null merged channels");
         return mergedChannels.dimCount() == 2 ?
                 List.of(mergedChannels) :
                 Matrices.asLayers(mergedChannels, TiffIFD.MAX_NUMBER_OF_CHANNELS);
     }
 
-    public <T extends PArray> Matrix<T> channelsToMatrix(List<? extends Matrix<? extends T>> channels) {
+    public static <T extends PArray> Matrix<T> channelsToMatrix(List<? extends Matrix<? extends T>> channels) {
         Objects.requireNonNull(channels, "Null channels");
         return Matrices.mergeLayers(net.algart.arrays.Arrays.SMM, channels);
     }
@@ -1329,17 +1329,44 @@ public sealed class TiffMap permits TiffIOMap {
         return channelValues(color, numberOfChannels, sampleType.maxUnsignedValue(), scaleToMaxValue);
     }
 
-    public static void fillByColor(Matrix<UpdatablePArray> matrix, double[] values) {
+    public static void fillColor(Matrix<UpdatablePArray> matrix, Color color) {
+        Objects.requireNonNull(matrix, "Null matrix");
+        fillColor(matrixAsChannels(matrix), color);
+    }
 
-        final List<Matrix<UpdatablePArray>> layers = matrix.asLayers();
-        for (int i = 0; i < layers.size(); i++) {
-            final Matrix<UpdatablePArray> layer = layers.get(i);
+    public static void fillColor(List<? extends Matrix<? extends UpdatablePArray>> channels, Color color) {
+        Objects.requireNonNull(channels, "Null channels");
+        Objects.requireNonNull(color, "Null color");
+        fillColor(channels, channelValues(color, channels.size()), true);
+    }
+
+    public static void fillColor(Matrix<UpdatablePArray> matrix, double[] values, boolean scaleToMaxValue) {
+        Objects.requireNonNull(matrix, "Null matrix");
+        fillColor(matrixAsChannels(matrix), values, scaleToMaxValue);
+    }
+
+    public static void fillColor(
+            List<? extends Matrix<? extends UpdatablePArray>> channels,
+            double[] values,
+            boolean scaleToMaxValue) {
+        Objects.requireNonNull(channels, "Null channels");
+        Objects.requireNonNull(values, "Null values");
+        for (int i = 0; i < channels.size(); i++) {
+            final Matrix<? extends UpdatablePArray> channel = channels.get(i);
+            Objects.requireNonNull(channel, "Null channel #" + i);
+            final double maxUnsignedValue = channel.elementType() == int.class ?
+                    TiffSampleType.INT32.maxUnsignedValue() :
+                    channel.maxPossibleValue();
+            // - IntArray is the only case when the AlgART convention differs from TiffSampleType;
+            // LongArray is impossible for TiffMap - let's stay AlgART standard Long.MAX_VALUE
             if (i < values.length) {
-                if (layer.isFloatingPoint()) {
-                    layer.array().fill(values[i]);
+                final double value = scaleToMaxValue ? values[i] * maxUnsignedValue :  values[i];
+                if (channel.isFloatingPoint()) {
+                    channel.array().fill(value);
                 } else {
-                    layer.array().fill((long) values[i]);
-                    // - override standard AlgART behavior: using long instead of (int) cast (important for 0xFFFFFFFF)
+                    channel.array().fill((long) value);
+                    // - override standard AlgART behavior: using long instead of (int) (double) cast
+                    // (for example, important for 0xFFFFFFFF)
                 }
             }
         }

@@ -565,7 +565,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
 
     public void writeBlank(double[] filler) throws IOException {
         Objects.requireNonNull(filler, "Null filler");
-        writeBlankRepeatingTile(m -> fillByColor(m, filler));
+        writeBlankRepeatingTile(m -> fillColor(m, filler, false));
     }
 
     public void writeBlankRepeatingTile(Consumer<Matrix<UpdatablePArray>> tileFiller) throws IOException {

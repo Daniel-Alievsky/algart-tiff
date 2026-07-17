@@ -639,16 +639,12 @@ class TiffViewer {
     private static void customFillEmptyTile(TiffTile tile) {
         if (!tile.isRarePrecision()) {
             final Matrix<UpdatablePArray> m = tile.getUnpackedMatrix();
-            final double[] filler = tile.channelValues(EMPTY_TILE_COLOR, true);
-            final double[] border = tile.channelValues(EMPTY_TILE_BORDER, true);
+            TiffMap.fillColor(m, EMPTY_TILE_COLOR);
             int gap = 2;
-            for (int c = 0; c < tile.samplesPerPixel(); c++) {
-                m.subMatr(0, 0, c, m.dimX(), m.dimY(), 1).array().fill(filler[c]);
-                m.subMatr(0, 0, c, m.dimX(), gap, 1).array().fill(border[c]);
-                m.subMatr(0, 0, c, gap, m.dimY(), 1).array().fill(border[c]);
-                m.subMatr(m.dimX() - gap, 0, c, gap, m.dimY(), 1).array().fill(border[c]);
-                m.subMatr(0, m.dimY() - gap, c, m.dimX(), gap, 1).array().fill(border[c]);
-            }
+            TiffMap.fillColor(m.subMatr(0, 0, 0, m.dimX(), gap, m.dimZ()), EMPTY_TILE_BORDER);
+            TiffMap.fillColor(m.subMatr(0, 0, 0, gap, m.dimY(), m.dimZ()), EMPTY_TILE_BORDER);
+            TiffMap.fillColor(m.subMatr(m.dimX() - gap, 0, 0, gap, m.dimY(), m.dimZ()), EMPTY_TILE_BORDER);
+            TiffMap.fillColor(m.subMatr(0, m.dimY() - gap, 0, m.dimX(), gap, m.dimZ()), EMPTY_TILE_BORDER);
             tile.setUnpackedMatrix(m);
         }
     }
