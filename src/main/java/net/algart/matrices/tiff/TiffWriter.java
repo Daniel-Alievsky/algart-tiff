@@ -500,6 +500,16 @@ public non-sealed class TiffWriter extends TiffIO {
         return companionReaderFactory;
     }
 
+    /**
+     * Sets the factory used by {@link #companionReader()} and {@link #newCompanionReader()} methods.
+     * Can be helpful if you want to change or customize a companion reader created internally in some
+     * high-level methods such as {@link TiffWriteMap#readMatrixAndStore}.
+     *
+     * <p>By default, this factory is set to the {@link #defaultCompanionReader(DataHandle)} method.</p>
+     *
+     * @param companionReaderFactory new factory for the companion reader.
+     * @return a reference to this object.
+     */
     public TiffWriter setCompanionReaderFactory(TiffReaderFactory companionReaderFactory) {
         Objects.requireNonNull(companionReaderFactory, "Null companionReaderFactory");
         this.companionReaderFactory = companionReaderFactory;
