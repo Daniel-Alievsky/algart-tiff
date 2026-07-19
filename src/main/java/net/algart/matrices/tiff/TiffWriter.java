@@ -618,6 +618,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @return the companion TIFF reader.
      */
     public TiffReader companionReader() {
+        final TiffReader result;
         synchronized (fileLock) {
             if (this.reader == null) {
                 try {
@@ -627,8 +628,11 @@ public non-sealed class TiffWriter extends TiffIO {
                 }
                 this.reader.setCaching(false);
             }
-            return this.reader;
+            result = this.reader;
         }
+        assert result != null : "all assignments to this.reader are synchronized! null impossible";
+        LOG.log(System.Logger.Level.DEBUG, () -> "Reloading companion reader: " + result);
+        return result;
     }
 
     /**
@@ -649,7 +653,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @return a new TIFF reader.
      */
-    public TiffReader newCompanionReader() throws IOException {
+    public final TiffReader newCompanionReader() throws IOException {
         return new TiffReader(stream(), TiffOpenMode.NO_CHECKS, false);
     }
 
@@ -701,18 +705,17 @@ public non-sealed class TiffWriter extends TiffIO {
                 }
                 // In this branch, we MUST NOT try to analyze the file: it is not a correct TIFF!
             } else {
-                this.reader = newReader(TiffOpenMode.VALID_TIFF);
+                final TiffReader reader = newReader(TiffOpenMode.VALID_TIFF);
                 // - The first opening TIFF is the only place when we MUST use VALID_TIFF mode
                 // instead of the usual NO_CHECKS used inside reader() method
                 // Note: we should NOT close the reader in the case of any problem,
-                // because it uses the same stream with this writer
-                this.reader.setCaching(false);
-                // - disable caching: this.reader MUST be compatible with the companionReader() method contract
+                // because it uses the same stream with this writer.
+                // Note: no sense here to use companionReader(), we just need to initialize file format
                 this.setCompatibleFileFormat(reader);
                 fileOpen = true;
                 invalidateLinkage(false, null);
                 // - forcing the following refresh (just in case)
-                linkage("Initial loaging linkage for existing file");
+                linkage("Initial loading linkage for existing file");
                 seekToEnd();
                 // - ready to write after the end of the file
                 // (not necessary, but can help to avoid accidental bugs)
@@ -1725,14 +1728,14 @@ public non-sealed class TiffWriter extends TiffIO {
             throw new IllegalArgumentException("Negative IFD index: " + mainIFDIndex);
         }
         LOG.log(System.Logger.Level.DEBUG,
-                () -> "IFD #%d/%d %s".formatted(
+                () -> "IFD #%d %s".formatted(
                         mainIFDIndex,
-                        this.numberOfExistingImages(),
                         switch (placement) {
                             case UNCHANGED -> "unchanged";
                             case OVERWRITE_IN_PLACE -> "updated in place";
                             case CHANGED -> "updated with relocation at the file end";
                         }));
+        // - note: we do not try to access numberOfExistingImages to avoid unnecessary loading companionReader()
         if (placement.isUnchanged()) {
             return;
         }
