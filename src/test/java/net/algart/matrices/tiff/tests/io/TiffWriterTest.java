@@ -40,6 +40,7 @@ import net.algart.matrices.tiff.tiles.TiffMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
 import org.scijava.Context;
+import org.scijava.io.handle.DataHandle;
 
 import java.awt.*;
 import java.io.IOException;
@@ -308,6 +309,7 @@ public class TiffWriterTest {
                 writer.setTileInitializer(TiffWriterTest::customFillEmptyTile);
                 writer.setAlwaysWriteToFileEnd(alwaysToEnd);
                 writer.setMissingTilesAllowed(allowMissing);
+                writer.setCompanionReaderFactory(TiffWriterTest::demoCompanionReader);
                 System.out.printf("%nTest #%d/%d: %s %s%s by %s...%n",
                         test, numberOfTests,
                         existingFile ? "writing to" : "creating",
@@ -727,5 +729,11 @@ public class TiffWriterTest {
                 yield channels;
             }
         };
+    }
+
+    public static TiffReader demoCompanionReader(DataHandle<?> stream) throws IOException {
+        System.out.println("~~~ TiffWriterTest creates a new companion reader for " + stream + "...");
+        return new TiffReader(stream, TiffOpenMode.VALID_TIFF, false);
+        // - why not?
     }
 }

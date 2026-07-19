@@ -90,6 +90,7 @@ public non-sealed class TiffWriter extends TiffIO {
     private Double losslessCompressionLevel = null;
     private boolean alwaysWriteToFileEnd = false;
     private boolean missingTilesAllowed = false;
+    private TiffReaderFactory companionReaderFactory = TiffWriter::defaultCompanionReader;
 
     private volatile TiffReader reader = null;
     private volatile Linkage linkage = null;
@@ -443,11 +444,12 @@ public non-sealed class TiffWriter extends TiffIO {
 
     /**
      * If <code>true</code>, any new pixel data will always be written to the end of the TIFF file.
-     * If <code>false</code>, a tile loaded from this file and modified will possibly be written
-     * to the same position if it does not destroy other data (in particular, if the new encoded data size
-     * is the same or smaller than the length of data written in the file).
+     * If <code>false</code>, a tile loaded from this file and modified may potentially be written
+     * to the same position, if it does not destroy other data. (For example, the tile can
+     * be overwritten in-place if the new encoded data size is the same or smaller than the length
+     * of data written in the file.)
      *
-     * <p>Default value is <code>false</code> (more "smart" mode).
+     * <p>Default value is <code>false</code> (a more intelligent "smart" mode).
      *
      * @param alwaysWriteToFileEnd whether the new data are always added to the file end.
      * @return a reference to this object.
@@ -468,7 +470,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * In this mode, if a tile or strip is left empty (no pixels were written to it via
      * {@link TiffWriteMap#updateSampleBytes(byte[], int, int, int, int)} or other updating methods),
      * this class writes zero for its offset and byte count. Otherwise,
-`     * this writer will create a normal tile, filled with zeros or
+     * this writer will create a normal tile, filled with zeros or
      * with other values specified via {@link #setByteFiller(byte)} or
      * {@link #setTileInitializer(Consumer)}.
      *
@@ -489,8 +491,18 @@ public non-sealed class TiffWriter extends TiffIO {
      * @return a reference to this object.
      * @see TiffReader#setMissingTilesAllowed(boolean)
      */
-     public TiffWriter setMissingTilesAllowed(boolean missingTilesAllowed) {
+    public TiffWriter setMissingTilesAllowed(boolean missingTilesAllowed) {
         this.missingTilesAllowed = missingTilesAllowed;
+        return this;
+    }
+
+    public TiffReaderFactory getCompanionReaderFactory() {
+        return companionReaderFactory;
+    }
+
+    public TiffWriter setCompanionReaderFactory(TiffReaderFactory companionReaderFactory) {
+        Objects.requireNonNull(companionReaderFactory, "Null companionReaderFactory");
+        this.companionReaderFactory = companionReaderFactory;
         return this;
     }
 
@@ -607,31 +619,36 @@ public non-sealed class TiffWriter extends TiffIO {
      *     {@link #rewriteLastIFDOffset(long)} method.</li>
      * </ul>
      *
-     * <p>This reader is created in {@link TiffOpenMode#NO_CHECKS} mode.
-     * Caching in the reader is disabled by
-     * {@link TiffReader#setCaching(boolean) setCaching(false)}: usually this reader
-     * should be used while you are modifying the TIFF, so the caching has no sense.
-     * (As noted above, any writing to the TIFF will destroy the stored reader together with
+     * <p>This reader is created by {@link #newCompanionReader()} method.
+     * By default, this means {@link TiffOpenMode#NO_CHECKS} creation mode and
+     * disabled cache.
+     * (The caching usually makes no sense, because,
+     * As noted above, any writing to the TIFF will destroy the stored reader together with
      * all cached tiles.)
-     * But you can enable caching when you finish the writing.
+     *
+     * <p>You may change the default behavior with help of
+     * {@link #setCompanionReaderFactory(TiffReaderFactory)} method.
      *
      * @return the companion TIFF reader.
      */
     public TiffReader companionReader() {
         final TiffReader result;
+        boolean needToCreate = false;
         synchronized (fileLock) {
             if (this.reader == null) {
                 try {
+                    needToCreate = true;
                     this.reader = newCompanionReader();
                 } catch (IOException e) {
                     throw new AssertionError("Impossible in NO_CHECKS mode", e);
                 }
-                this.reader.setCaching(false);
             }
             result = this.reader;
         }
         assert result != null : "all assignments to this.reader are synchronized! null impossible";
-        LOG.log(System.Logger.Level.DEBUG, () -> "Reloading companion reader: " + result);
+        if (needToCreate) {
+            LOG.log(System.Logger.Level.DEBUG, () -> "Reloading companion reader: " + result);
+        }
         return result;
     }
 
@@ -639,12 +656,13 @@ public non-sealed class TiffWriter extends TiffIO {
      * Creates a new "companion" TIFF reader for reading the same file {@link #stream() stream}
      * used by this object.
      *
-     * <p>This method is equivalent to</p>
      *
-     * <pre>new {@link TiffReader#TiffReader(DataHandle, TiffOpenMode, boolean)
-     * TiffReader}({@link #stream()}, {@link TiffOpenMode#NO_CHECKS}, false)</pre>
      *
      * <p>Note that this reader is created in {@link TiffOpenMode#NO_CHECKS} mode.</p>
+     * Caching in the reader is disabled by
+     * {@link TiffReader#setCaching(boolean) setCaching(false)}: usually this reader
+     * should be used while you are modifying the TIFF, so the caching has no sense.
+     * But you can enable caching by the {@link TiffReader#setCaching(boolean) setCaching(true)} call.
      *
      * <p><b>Do not close</b> this reader independently: the shared stream will be closed
      * automatically when closing this writer.</p>
@@ -654,7 +672,23 @@ public non-sealed class TiffWriter extends TiffIO {
      * @return a new TIFF reader.
      */
     public final TiffReader newCompanionReader() throws IOException {
-        return new TiffReader(stream(), TiffOpenMode.NO_CHECKS, false);
+        return companionReaderFactory.newReader(stream());
+    }
+
+    /**
+     * The default implementation of the {@link #setCompanionReaderFactory(TiffReaderFactory)
+     * companion reader factory}. This method is equivalent to:</p>
+     *
+     * <pre>new {@link TiffReader#TiffReader(DataHandle, TiffOpenMode, boolean)
+     * TiffReader}({@link #stream()}, {@link TiffOpenMode#NO_CHECKS}, false).{@link TiffReader#setCaching(boolean)
+     * setCaching(false)}</pre>
+     *
+     * @param stream input stream.
+     * @return a new TIFF reader.
+     * @throws IOException in the case of any problems with the input file.
+     */
+    public static TiffReader defaultCompanionReader(DataHandle<?> stream) throws IOException {
+        return new TiffReader(stream, TiffOpenMode.NO_CHECKS, false).setCaching(false);
     }
 
     /**
@@ -1492,7 +1526,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 linksToPrevious.length < numberOfTiles || linksToNext.length < numberOfTiles) {
             throw new ConcurrentModificationException("Strange length of tile offsets " + offsets.length +
                     ", or byte counts " + byteCounts.length +
-                    ", or links to previous/next duplicates " + linksToPrevious.length + "/" +  linksToNext.length);
+                    ", or links to previous/next duplicates " + linksToPrevious.length + "/" + linksToNext.length);
             // - should not occur: it is checked in getTileOrStripOffsets/getTileOrStripByteCounts methods
             // (the only possible way is modification from parallel thread)
         }
