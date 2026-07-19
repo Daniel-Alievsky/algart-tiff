@@ -33,7 +33,8 @@ import java.io.IOException;
  *
  * @see TiffWriter#setCompanionReaderFactory(TiffReaderFactory)
  * @see TiffWriter#companionReader()
- */@FunctionalInterface
+ */
+@FunctionalInterface
 public interface TiffReaderFactory {
     /**
      * Creates a new {@link TiffReader} instance for the specified input stream.

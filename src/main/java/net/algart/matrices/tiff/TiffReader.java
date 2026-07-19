@@ -247,7 +247,8 @@ public non-sealed class TiffReader extends TiffIO {
      * @param closeStreamOnException if <code>true</code>, the input stream is closed in the case of any exception;
      *                               ignored if <code>openMode</code> is {@link TiffOpenMode#NO_CHECKS}.
      * @throws TiffException if the file is not a correct TIFF file.
-     * @throws IOException   in the case of any problems with the input file.
+     * @throws IOException   in the case of any problems with the input file;
+     * impossible in {@link TiffOpenMode#NO_CHECKS} mode.
      */
     public TiffReader(
             DataHandle<?> inputStream,

@@ -60,7 +60,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
     }
 
     @Override
-    public TiffReader reader() {
+    public TiffReader reader() throws IOException {
         return owner.companionReader();
     }
 

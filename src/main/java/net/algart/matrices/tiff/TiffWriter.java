@@ -621,7 +621,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * <p>This reader is created by {@link #newCompanionReader()} method.
      * By default, this means {@link TiffOpenMode#NO_CHECKS} creation mode and
-     * disabled cache.
+     * disabled caching.
      * (The caching usually makes no sense, because,
      * as noted above, any writing to the TIFF will destroy the stored reader together with
      * all cached tiles.)
@@ -630,18 +630,15 @@ public non-sealed class TiffWriter extends TiffIO {
      * {@link #setCompanionReaderFactory(TiffReaderFactory)} method.
      *
      * @return the companion TIFF reader.
+     * @throws IOException if an I/O error occurs while creating a new reader.
      */
-    public TiffReader companionReader() {
+    public TiffReader companionReader() throws IOException {
         final TiffReader result;
         boolean needToCreate = false;
         synchronized (fileLock) {
             if (this.reader == null) {
-                try {
-                    needToCreate = true;
-                    this.reader = newCompanionReader();
-                } catch (IOException e) {
-                    throw new AssertionError("Impossible in NO_CHECKS mode", e);
-                }
+                needToCreate = true;
+                this.reader = newCompanionReader();
             }
             result = this.reader;
         }
@@ -655,14 +652,14 @@ public non-sealed class TiffWriter extends TiffIO {
     /**
      * Creates a new "companion" TIFF reader for reading the same file {@link #stream() stream}
      * used by this object.
-     * This reader is created with help of the {@link #setCompanionReaderFactory(TiffReaderFactory)
+     * This reader is created using the {@link #setCompanionReaderFactory(TiffReaderFactory)
      * companion reader factory}:
      *
      * <pre>writer.{@link #getCompanionReaderFactory()}.{@link TiffReaderFactory#newReader(DataHandle)
      * newReader}(writer.{@link #stream()})</pre>
      *
      * <p>By default, this means {@link TiffOpenMode#NO_CHECKS} creation mode and
-     * disabled cache.</p>
+     * disabled caching.</p>
      *
      * <p><b>Do not close</b> this reader independently: the shared stream will be closed
      * automatically when closing this writer.</p>
@@ -670,6 +667,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * <p>This method is used inside {@link #companionReader()} for creating a new instance.</p>
      *
      * @return a new TIFF reader.
+     * @throws IOException if an I/O error occurs.
      */
     public final TiffReader newCompanionReader() throws IOException {
         return getCompanionReaderFactory().newReader(stream());
@@ -677,11 +675,14 @@ public non-sealed class TiffWriter extends TiffIO {
 
     /**
      * The default implementation of the {@link #setCompanionReaderFactory(TiffReaderFactory)
-     * companion reader factory}. This method is equivalent to:
+     * companion reader factory}. This method is almost equivalent to:
      *
      * <pre>new {@link TiffReader#TiffReader(DataHandle, TiffOpenMode, boolean)
      * TiffReader}(stream, {@link TiffOpenMode#NO_CHECKS}, false).{@link TiffReader#setCaching(boolean)
      * setCaching(false)}</pre>
+     *
+     * <p>However, this method catches and suppressed {@link IOException}: such exceptions are impossible
+     * in {@link {@link TiffOpenMode#NO_CHECKS} mode.</p>
      *
      * <p>Caching in the reader is disabled: usually this reader
      * should be used while you are modifying the TIFF, so the caching makes no sense.
@@ -689,10 +690,15 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @param stream input stream.
      * @return a new TIFF reader.
-     * @throws IOException in the case of any problems with the input file.
      */
-    public static TiffReader defaultCompanionReader(DataHandle<?> stream) throws IOException {
-        return new TiffReader(stream, TiffOpenMode.NO_CHECKS, false).setCaching(false);
+    public static TiffReader defaultCompanionReader(DataHandle<?> stream) {
+        TiffReader result;
+        try {
+            result = new TiffReader(stream, TiffOpenMode.NO_CHECKS, false);
+        } catch (IOException e) {
+            throw new AssertionError("Impossible in NO_CHECKS mode", e);
+        }
+        return result.setCaching(false);
     }
 
     /**
@@ -827,8 +833,9 @@ public non-sealed class TiffWriter extends TiffIO {
      * This is the number of existing regular IFDs that can be read by {@link #existingIFD(int, boolean)} method.
      *
      * @return the number of existing main IFDs (not sub-IFDs).
+     * @throws IOException if an I/O error occurs.
      */
-    public int numberOfExistingImages() {
+    public int numberOfExistingImages() throws IOException {
         //noinspection resource
         return companionReader().numberOfMainIFDs();
     }

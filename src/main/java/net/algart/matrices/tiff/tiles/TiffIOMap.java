@@ -49,7 +49,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         this.owner = Objects.requireNonNull(owner, "Null owner");
     }
 
-    public abstract TiffReader reader();
+    public abstract TiffReader reader() throws IOException;
 
     /**
      * Returns the associated owning reader or writer, passed to the constructor.
@@ -352,7 +352,8 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
     }
 
     @SuppressWarnings("resource")
-    public TiffTile readEncodedTile(TiffTileIndex tileIndex, TiffTile.DuplicateHandling duplicateHandling) throws IOException {
+    public TiffTile readEncodedTile(TiffTileIndex tileIndex, TiffTile.DuplicateHandling duplicateHandling)
+            throws IOException {
         checkTileIndexIFD(tileIndex);
         return reader().readEncodedTile(tileIndex, duplicateHandling);
     }
