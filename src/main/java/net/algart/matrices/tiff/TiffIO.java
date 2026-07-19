@@ -314,6 +314,15 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         if (filePath != null) {
             return prefix + filePath;
         }
+        return streamName(stream, prefix);
+    }
+
+    public static String streamName(DataHandle<?> stream) {
+        return streamName(stream, "");
+    }
+
+    public static String streamName(DataHandle<?> stream, String prefix) {
+        Objects.requireNonNull(stream, "Null stream");
         Location location = stream.get();
         if (location == null) {
             return "";

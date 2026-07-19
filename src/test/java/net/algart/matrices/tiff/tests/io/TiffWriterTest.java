@@ -732,8 +732,8 @@ public class TiffWriterTest {
     }
 
     public static TiffReader demoCompanionReader(DataHandle<?> stream) throws IOException {
-        System.out.println("~~~ TiffWriterTest creates a new companion reader for " + stream + "...");
+        System.out.printf("~~~ TiffWriterTest creates a new companion reader for %s...%n", TiffIO.streamName(stream));
         return new TiffReader(stream, TiffOpenMode.VALID_TIFF, false);
-        // - why not?
+        // - why not? Exception is possible, but very improbable
     }
 }
