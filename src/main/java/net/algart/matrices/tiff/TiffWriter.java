@@ -619,15 +619,15 @@ public non-sealed class TiffWriter extends TiffIO {
      *     {@link #rewriteLastIFDOffset(long)} method.</li>
      * </ul>
      *
-     * <p>This reader is created by {@link #newCompanionReader()} method.
+     * <p>This reader is created by the {@link #newCompanionReader()} method.
      * By default, this means {@link TiffOpenMode#NO_CHECKS} creation mode and
      * disabled caching.
      * (The caching usually makes no sense, because,
      * as noted above, any writing to the TIFF will destroy the stored reader together with
-     * all cached tiles.)
+     * all cached tiles.)</p>
      *
-     * <p>You may change the default behavior with help of
-     * {@link #setCompanionReaderFactory(TiffReaderFactory)} method.
+     * <p>You may change the default behavior using the
+     * {@link #setCompanionReaderFactory(TiffReaderFactory)} method.</p>
      *
      * @return the companion TIFF reader.
      * @throws IOException if an I/O error occurs while creating a new reader.
@@ -681,8 +681,8 @@ public non-sealed class TiffWriter extends TiffIO {
      * TiffReader}(stream, {@link TiffOpenMode#NO_CHECKS}, false).{@link TiffReader#setCaching(boolean)
      * setCaching(false)}</pre>
      *
-     * <p>However, this method catches and suppressed {@link IOException}: such exceptions are impossible
-     * in {@link {@link TiffOpenMode#NO_CHECKS} mode.</p>
+     * <p>However, this method catches and suppresses {@link IOException}: such exceptions are impossible
+     * in {@link TiffOpenMode#NO_CHECKS} mode.</p>
      *
      * <p>Caching in the reader is disabled: usually this reader
      * should be used while you are modifying the TIFF, so the caching makes no sense.
