@@ -623,7 +623,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * By default, this means {@link TiffOpenMode#NO_CHECKS} creation mode and
      * disabled cache.
      * (The caching usually makes no sense, because,
-     * As noted above, any writing to the TIFF will destroy the stored reader together with
+     * as noted above, any writing to the TIFF will destroy the stored reader together with
      * all cached tiles.)
      *
      * <p>You may change the default behavior with help of
@@ -655,14 +655,14 @@ public non-sealed class TiffWriter extends TiffIO {
     /**
      * Creates a new "companion" TIFF reader for reading the same file {@link #stream() stream}
      * used by this object.
+     * This reader is created with help of the {@link #setCompanionReaderFactory(TiffReaderFactory)
+     * companion reader factory}:
      *
+     * <pre>writer.{@link #getCompanionReaderFactory()}.{@link TiffReaderFactory#newReader(DataHandle)
+     * newReader}(writer.{@link #stream()})</pre>
      *
-     *
-     * <p>Note that this reader is created in {@link TiffOpenMode#NO_CHECKS} mode.</p>
-     * Caching in the reader is disabled by
-     * {@link TiffReader#setCaching(boolean) setCaching(false)}: usually this reader
-     * should be used while you are modifying the TIFF, so the caching has no sense.
-     * But you can enable caching by the {@link TiffReader#setCaching(boolean) setCaching(true)} call.
+     * <p>By default, this means {@link TiffOpenMode#NO_CHECKS} creation mode and
+     * disabled cache.</p>
      *
      * <p><b>Do not close</b> this reader independently: the shared stream will be closed
      * automatically when closing this writer.</p>
@@ -672,16 +672,20 @@ public non-sealed class TiffWriter extends TiffIO {
      * @return a new TIFF reader.
      */
     public final TiffReader newCompanionReader() throws IOException {
-        return companionReaderFactory.newReader(stream());
+        return getCompanionReaderFactory().newReader(stream());
     }
 
     /**
      * The default implementation of the {@link #setCompanionReaderFactory(TiffReaderFactory)
-     * companion reader factory}. This method is equivalent to:</p>
+     * companion reader factory}. This method is equivalent to:
      *
      * <pre>new {@link TiffReader#TiffReader(DataHandle, TiffOpenMode, boolean)
-     * TiffReader}({@link #stream()}, {@link TiffOpenMode#NO_CHECKS}, false).{@link TiffReader#setCaching(boolean)
+     * TiffReader}(stream, {@link TiffOpenMode#NO_CHECKS}, false).{@link TiffReader#setCaching(boolean)
      * setCaching(false)}</pre>
+     *
+     * <p>Caching in the reader is disabled: usually this reader
+     * should be used while you are modifying the TIFF, so the caching makes no sense.
+     * If you want, you can enable caching by calling {@link TiffReader#setCaching(boolean) setCaching(true)}.
      *
      * @param stream input stream.
      * @return a new TIFF reader.
