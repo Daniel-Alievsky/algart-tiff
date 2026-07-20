@@ -39,9 +39,9 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
-class TiffSaveHelper {
+class TiffCopyHelper {
 
-    private static final String PREF_LAST_SAVE_TIFF_DIR = "viewer.copier.lastSaveTiffDirectory";
+    private static final String PREF_LAST_COPY_TIFF_DIR = "viewer.copier.lastCopyTiffDirectory";
 
     private final JFrame frame;
     private final TiffExplorer explorer;
@@ -56,22 +56,22 @@ class TiffSaveHelper {
     private JButton startCopyButton;
     private JButton cancelCopyButton;
 
-    public TiffSaveHelper(JTiffExplorerFrame frame) {
+    public TiffCopyHelper(JTiffExplorerFrame frame) {
         this.frame = Objects.requireNonNull(frame);
         this.explorer = frame.explorer();
     }
 
-    public Path chooseTiffFileToSave() {
+    public Path chooseTiffFileCopy() {
         if (!explorer.isInitialized()) {
             return null;
         }
         JFileChooser chooser = TinySwing.newFileChooser();
-        String last = TiffExplorer.PREFERENCES.get(PREF_LAST_SAVE_TIFF_DIR, null);
+        String last = TiffExplorer.PREFERENCES.get(PREF_LAST_COPY_TIFF_DIR, null);
         File dir = new File(last == null ? "." : last);
         if (dir.isDirectory()) {
             chooser.setCurrentDirectory(dir);
         }
-        chooser.setDialogTitle("Save the entire TIFF");
+        chooser.setDialogTitle("Copy the entire TIFF");
         chooser.setSelectedFile(new File("copy.tiff"));
         chooser.setDialogType(JFileChooser.SAVE_DIALOG);
         chooser.addChoosableFileFilter(TiffExplorer.TIFF_FILTER);
@@ -81,11 +81,11 @@ class TiffSaveHelper {
         if (file == null) {
             return null;
         }
-        TiffExplorer.PREFERENCES.put(PREF_LAST_SAVE_TIFF_DIR, file.getParent());
+        TiffExplorer.PREFERENCES.put(PREF_LAST_COPY_TIFF_DIR, file.getParent());
         return file.toPath();
     }
 
-    public void showSaveTiffDialog(Path targetFile) throws IOException {
+    public void showCopyTiffDialog(Path targetFile) throws IOException {
         Objects.requireNonNull(targetFile, "Null targetFile");
         final Path tiffFile = explorer.getTiffFile();
         TiffInfo info = explorer.getInfo();
@@ -96,7 +96,7 @@ class TiffSaveHelper {
 
         settingsDialog = new JDialog(frame, true);
         settingsDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-        settingsDialog.setTitle("Save a copy of the entire TIFF");
+        settingsDialog.setTitle("Make a copy of the entire TIFF");
         settingsDialog.setLayout(new BorderLayout(10, 10));
         settingsDialog.setResizable(false);
 
@@ -123,7 +123,7 @@ class TiffSaveHelper {
                 &nbsp;<br>
                 The copying helps to eliminate unused space and fragmentation, similarly to:<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;File \u25B8 Compact TIFF...<br>
-                To save only the current image, click "Show image" and use<br>
+                To copy only the current image, click "Show image" and use<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;File \u25B8 Save image as TIFF...<br>
                 in the opened window.
                 """.formatted(
@@ -161,7 +161,7 @@ class TiffSaveHelper {
                     String.format(Locale.US,
                             TinySwing.smartHtmlLines(
                                     "The TIFF file is very large (<b>%.3f GB</b>, &gt;1 GB)!<br>" +
-                                            "We recommend using BigTIFF, allowing to store &gt;4 GB of data."),
+                                            "We recommend using BigTIFF, which allows storing &gt;4 GB of data."),
                             (double) info.tiffFileLength() / (double) (1024L * 1024L * 1024L))));
         }
         mainPanel.add(settingsPanel);

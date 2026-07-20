@@ -235,13 +235,14 @@ public class JTiffExplorerFrame extends JFrame {
         openItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
         openItem.addActionListener(e -> explorer.chooseFileAndOpen());
         fileMenu.add(openItem);
-        final JMenuItem saveAsItem = new JMenuItem("Save TIFF as...");
-        saveAsItem.setMnemonic(KeyEvent.VK_S);
-        saveAsItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
-        saveAsItem.addActionListener(e -> explorer.chooseFileAndShowSaveDialog());
-        fileMenu.add(saveAsItem);
+        final JMenuItem copyToItem = new JMenuItem("Copy TIFF to...");
+        copyToItem.setMnemonic(KeyEvent.VK_C);
+        copyToItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C,
+                InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
+        copyToItem.addActionListener(e -> explorer.chooseFileAndShowCopyDialog());
+        fileMenu.add(copyToItem);
         final JMenuItem compactItem = new JMenuItem("Compact TIFF...");
-        compactItem.setMnemonic(KeyEvent.VK_C);
+        compactItem.setMnemonic(KeyEvent.VK_P);
         compactItem.addActionListener(e -> explorer.showCompactDialog());
         fileMenu.add(compactItem);
         reloadItem = new JMenuItem("Reload TIFF");
@@ -363,7 +364,7 @@ public class JTiffExplorerFrame extends JFrame {
 
         final MenuUpdater menuUpdater = new MenuUpdater(() -> {
             boolean initialized = explorer.isInitialized();
-            saveAsItem.setEnabled(initialized);
+            copyToItem.setEnabled(initialized);
             compactItem.setEnabled(initialized);
             reloadItem.setEnabled(initialized);
             copyItem.setEnabled(initialized);

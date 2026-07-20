@@ -178,12 +178,12 @@ public class TiffExplorer {
         }
     }
 
-    void chooseFileAndShowSaveDialog() {
-        TiffSaveHelper helper = new TiffSaveHelper(frame);
-        Path file = helper.chooseTiffFileToSave();
+    void chooseFileAndShowCopyDialog() {
+        TiffCopyHelper helper = new TiffCopyHelper(frame);
+        Path file = helper.chooseTiffFileCopy();
         if (file != null) {
             try {
-                helper.showSaveTiffDialog(file);
+                helper.showCopyTiffDialog(file);
             } catch (Exception ex) {
                 TinySwing.showErrorMessage(frame, ex, "Error copying TIFF");
             }
@@ -191,7 +191,7 @@ public class TiffExplorer {
     }
 
     void showCompactDialog() {
-        new TiffSaveHelper(frame).showCompactDialog();
+        new TiffCopyHelper(frame).showCompactDialog();
     }
 
     void reload() {
