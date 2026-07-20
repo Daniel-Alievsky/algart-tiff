@@ -486,7 +486,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * <p>After this call, the {@link #readIFDAt(long)} method is used to read the IFD.</p>
      *
      * <p>This method works only with {@link TiffIFD#isMainIFD() regular IFDs} (not sub-IFDs).
-     * Therefore, this index must be in the range {@code 0..}{@link TiffReader#numberOfMainIFDs()}{@code -1}.</p>
+     * Therefore, this index must be in the range {@code 0..}{@link TiffReader#numberOfMainImages()}{@code -1}.</p>
      *
      * @param mainIFDIndex index of the regular IFD (0, 1, ...).
      * @return the selected IFD.
@@ -674,7 +674,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * an exception instead of returning this trailing zero offset (as you might think).</p>
      *
      * <p>This method works only with {@link TiffIFD#isMainIFD() regular IFDs} (main, not sub-IFDs).
-     * Therefore, the index must be in the range <code>0..{@link TiffReader#numberOfMainIFDs()}-1</code>.</p>
+     * Therefore, the index must be in the range <code>0..{@link TiffReader#numberOfMainImages()}-1</code>.</p>
      *
      * @param mainIFDIndex index of the regular IFD (0, 1, ...).
      * @return the offset of this IFD in the file.
@@ -781,7 +781,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * Reads the linkage information: the offsets of all main IFDs in the file (excluding child sub-IFDs)
      * and the offset of the chain terminator (the zero value stored within the last IFD structure in the file).
      * For a non-empty valid TIFF file, the size of the {@link TiffIFD.Linkage#mainIFDOffsetPairs()} set
-     * in the result is equal to {@link TiffReader#numberOfMainIFDs()}.
+     * in the result is equal to {@link TiffReader#numberOfMainImages()}.
      *
      * <p>Note that this method
      * <b>does not</b> update the position tracked by {@link #offsetOfLastScannedIFDOffset()},

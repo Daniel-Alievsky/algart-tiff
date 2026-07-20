@@ -266,7 +266,7 @@ public non-sealed class TiffReader extends TiffIO {
      *                               ignored if <code>openMode</code> is {@link TiffOpenMode#NO_CHECKS}.
      * @throws TiffException if the file is not a correct TIFF file.
      * @throws IOException   in the case of any problems with the input file;
-     * impossible in {@link TiffOpenMode#NO_CHECKS} mode.
+     *                       impossible in {@link TiffOpenMode#NO_CHECKS} mode.
      */
     public TiffReader(
             DataHandle<?> inputStream,
@@ -760,10 +760,11 @@ public non-sealed class TiffReader extends TiffIO {
         return existingFile;
     }
 
-     /**
+    /**
      * Returns <code>{@link #allIFDs()}.size()</code>.
      *
      * @return number of existing IFDs.
+     * @throws IOException in the case of any problems with the input file.
      */
     public int numberOfImages() throws IOException {
         return allIFDs().size();
@@ -798,13 +799,10 @@ public non-sealed class TiffReader extends TiffIO {
      * attempt to read IFDs, for example, when calling {@link #mainIFDs()}.
      *
      * @return number of existing IFDs, excluding child IFDs.
+     * @throws IOException in the case of any problems with the input file.
      */
-    public int numberOfMainIFDs() {
-        try {
-            return mainIFDs().size();
-        } catch (IOException e) {
-            return 0;
-        }
+    public int numberOfMainImages() throws IOException {
+        return mainIFDs().size();
     }
 
     /**
@@ -1065,8 +1063,8 @@ public non-sealed class TiffReader extends TiffIO {
      *
      * <p>Note: this method does not cache tiles.</p>
      *
-     * @param tileIndex index of the tile to read, including a reference to the IFD
-     *                  via the {@link TiffTileIndex#map() parent map} reference.
+     * @param tileIndex         index of the tile to read, including a reference to the IFD
+     *                          via the {@link TiffTileIndex#map() parent map} reference.
      * @param duplicateHandling specifies whether we need special processing for duplicate tiles.
      * @return loaded tile.
      * @throws IOException if an I/O error occurs.

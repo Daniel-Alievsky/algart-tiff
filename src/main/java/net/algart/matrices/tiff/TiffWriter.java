@@ -840,15 +840,15 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Returns <code>{@link #companionReader()}.{@link TiffReader#numberOfMainIFDs() numberOfMainIFDs()}</code>.
+     * Returns <code>{@link #companionReader()}.{@link TiffReader#numberOfMainImages() numberOfMainIFDs()}</code>.
      * This is the number of existing regular IFDs that can be read by {@link #existingIFD(int, boolean)} method.
      *
      * @return the number of existing main IFDs (not sub-IFDs).
      * @throws IOException if an I/O error occurs.
      */
-    public int numberOfMainIFDs() throws IOException {
+    public int numberOfMainImages() throws IOException {
         //noinspection resource
-        return companionReader().numberOfMainIFDs();
+        return companionReader().numberOfMainImages();
     }
 
     /**
@@ -1414,7 +1414,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param assignFileOffsetForWriting whether to assign the <i>for-writing</i> file offset.
      * @return the IFD with the specified index.
      * @throws TiffException if <code>mainIFDIndex</code> is too large
-     *                       ( &ge;{@link #numberOfMainIFDs()} ),
+     *                       ( &ge;{@link #numberOfMainImages()} ),
      *                       or if the file is not a correct TIFF file,
      *                       and this was not detected while opening it.
      */

@@ -206,7 +206,7 @@ public class TiffInfo {
                 }
                 this.metadata = TiffPyramidMetadata.ofIFDs(allIFDs);
                 final int ifdCount = reader.numberOfImages();
-                final int mainCount = reader.numberOfMainIFDs();
+                final int mainCount = reader.numberOfMainImages();
                 final int firstIndex = Math.max(this.firstIFDIndex, 0);
                 final int lastIndex = Math.min(this.lastIFDIndex, ifdCount - 1);
                 prefixInfo = "File %s: %d images%s, %s, %s-endian, %s%s".formatted(
