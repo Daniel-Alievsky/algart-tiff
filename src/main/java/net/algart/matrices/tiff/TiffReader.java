@@ -60,6 +60,24 @@ import java.util.function.Consumer;
  * The same is true for the result of {@link #stream()} method.</p>
  */
 public non-sealed class TiffReader extends TiffIO {
+    /**
+     * A factory for creating {@link TiffReader} instances.
+     *
+     * @see TiffWriter#setCompanionReaderFactory(Factory)
+     * @see TiffWriter#companionReader()
+     */
+    @FunctionalInterface
+    public interface Factory {
+        /**
+         * Creates a new {@link TiffReader} instance for the specified input stream.
+         *
+         * @param inputStream input stream.
+         * @return a new TIFF reader.
+         * @throws IOException in the case of any problems with the input file.
+         */
+        TiffReader newReader(DataHandle<?> inputStream) throws IOException;
+    }
+
     public static final boolean DEFAULT_RESCALE_WHEN_INCREASING_BIT_DEPTH = true;
     public static final boolean DEFAULT_COLOR_CORRECTION = false;
     public static final long DEFAULT_MAX_CACHING_MEMORY = Math.max(0,

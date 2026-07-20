@@ -90,7 +90,7 @@ public non-sealed class TiffWriter extends TiffIO {
     private Double losslessCompressionLevel = null;
     private boolean alwaysWriteToFileEnd = false;
     private boolean missingTilesAllowed = false;
-    private TiffReaderFactory companionReaderFactory = TiffWriter::defaultCompanionReader;
+    private TiffReader.Factory companionReaderFactory = TiffWriter::defaultCompanionReader;
 
     private volatile TiffReader reader = null;
     private volatile Linkage linkage = null;
@@ -496,7 +496,7 @@ public non-sealed class TiffWriter extends TiffIO {
         return this;
     }
 
-    public TiffReaderFactory getCompanionReaderFactory() {
+    public TiffReader.Factory getCompanionReaderFactory() {
         return companionReaderFactory;
     }
 
@@ -510,7 +510,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param companionReaderFactory new factory for the companion reader.
      * @return a reference to this object.
      */
-    public TiffWriter setCompanionReaderFactory(TiffReaderFactory companionReaderFactory) {
+    public TiffWriter setCompanionReaderFactory(TiffReader.Factory companionReaderFactory) {
         Objects.requireNonNull(companionReaderFactory, "Null companionReaderFactory");
         this.companionReaderFactory = companionReaderFactory;
         return this;
@@ -637,7 +637,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * all cached tiles.)</p>
      *
      * <p>You may change the default behavior using the
-     * {@link #setCompanionReaderFactory(TiffReaderFactory)} method.</p>
+     * {@link #setCompanionReaderFactory(TiffReader.Factory)} method.</p>
      *
      * @return the companion TIFF reader.
      * @throws IOException if an I/O error occurs while creating a new reader.
@@ -662,10 +662,10 @@ public non-sealed class TiffWriter extends TiffIO {
     /**
      * Creates a new "companion" TIFF reader for reading the same file {@link #stream() stream}
      * used by this object.
-     * This reader is created using the {@link #setCompanionReaderFactory(TiffReaderFactory)
+     * This reader is created using the {@link #setCompanionReaderFactory(TiffReader.Factory)
      * companion reader factory}:
      *
-     * <pre>writer.{@link #getCompanionReaderFactory()}.{@link TiffReaderFactory#newReader(DataHandle)
+     * <pre>writer.{@link #getCompanionReaderFactory()}.{@link TiffReader.Factory#newReader(DataHandle)
      * newReader}(writer.{@link #stream()})</pre>
      *
      * <p>By default, this means {@link TiffOpenMode#NO_CHECKS} creation mode and
@@ -684,7 +684,7 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * The default implementation of the {@link #setCompanionReaderFactory(TiffReaderFactory)
+     * The default implementation of the {@link #setCompanionReaderFactory(TiffReader.Factory)
      * companion reader factory}. This method is almost equivalent to:
      *
      * <pre>new {@link TiffReader#TiffReader(DataHandle, TiffOpenMode, boolean)
