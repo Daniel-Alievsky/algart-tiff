@@ -793,6 +793,29 @@ public final class TiffTile {
         return setDecodedData(samples);
     }
 
+    /**
+     * Fills the tile content with the specified color.
+     *
+     * <p>Note: if this tile is empty, this method allocates new unpacked data via
+     * the {@link #fillIfEmpty()} method.</p>
+     *
+     * <p>Note: this method <b>does not fill the content</b> in the case of
+     * {@link #isRarePrecision() rare precision}: the pixel values stay zero (usually black).</p>
+     *
+     * @param color color to fill.
+     * @return a reference to this object.
+     */
+    public TiffTile fillColor(Color color) {
+        checkSeparated("fill the tile data with a color");
+        fillIfEmpty();
+        if (!isRarePrecision()) {
+            final Matrix<UpdatablePArray> m = getUnpackedMatrix();
+            TiffMap.fillColor(m, color);
+            setUnpackedMatrix(m);
+        }
+        return this;
+    }
+
     public TiffTile copyData(TiffTile source, CopyMode copyMode) {
         Objects.requireNonNull(source, "Null source tile");
         Objects.requireNonNull(copyMode, "Null copy mode");
@@ -818,7 +841,7 @@ public final class TiffTile {
                 case COPY_CONTENT -> {
                     setData(source.data.clone(), source.encoded, false, true);
                 }
-                case COPY_UNPACKED_SAMPLES ->  {
+                case COPY_UNPACKED_SAMPLES -> {
                     source.checkDecodedData();
                     if (map.isByteOrderCompatible(source.byteOrder())) {
                         final byte[] decodedData = source.getUnpackedSampleBytes();

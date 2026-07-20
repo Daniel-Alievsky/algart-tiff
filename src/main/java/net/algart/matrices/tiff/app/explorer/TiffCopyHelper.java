@@ -256,12 +256,15 @@ class TiffCopyHelper {
 
     private void startCopy(Path sourceFile, Path targetFile) {
         startCopyOperation(copier -> {
+            TiffCopier.checkDifferentFiles(sourceFile,targetFile);
             try (TiffReader reader = new TiffReader(sourceFile);
                  TiffWriter writer = new TiffWriter(targetFile)) {
+                writer.setTileInitializer(tile -> tile.fillColor(Color.WHITE));
                 writer.setBigTiff(bigTiffCheckBox.isSelected());
                 final UserByteOrder selected = TinySwing.selectedValue(byteOrderComboBox);
                 writer.setByteOrder(selected.byteOrder());
-                copier.copyTiffFile(writer, reader);
+                writer.create();
+                copier.copyImages(writer, reader, 0, reader.numberOfImages());
             }
         }, "copying", false);
     }

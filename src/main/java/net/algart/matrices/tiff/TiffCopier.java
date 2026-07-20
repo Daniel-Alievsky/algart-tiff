@@ -38,6 +38,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 
 @SuppressWarnings("UnusedReturnValue")
 public final class TiffCopier {
@@ -619,6 +620,12 @@ public final class TiffCopier {
     /**
      * Copies all TIFF images from {@code fromIndex} (inclusive) to {@code toIndex} (exclusive)
      * from the reader to the end of the TIFF file associated with the writer.
+     *
+     * <p>Note: if the source image contains some missing tiles (Philips-like formats,
+     * see {@link TiffReader#setMissingTilesAllowed(boolean)}), such tiles are not copied and stays
+     * zero (usually black) in the target TIFF. But you can fill them by some background
+     * with help of {@link TiffWriter#setTileInitializer(Consumer)} method. Note: this method should
+     * be called for the <b>writer</b>, not for the reader.</p>
      *
      * @param writer    the TIFF writer.
      * @param reader    the TIFF reader.

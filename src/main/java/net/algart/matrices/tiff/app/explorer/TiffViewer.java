@@ -129,7 +129,7 @@ class TiffViewer {
     }
 
     public double getRescaleFactor() {
-        return rescaleFactor == null ? 1.0 :  rescaleFactor;
+        return rescaleFactor == null ? 1.0 : rescaleFactor;
     }
 
     public TiffViewer setRescaleFactor(double rescaleFactor) {
@@ -294,9 +294,12 @@ class TiffViewer {
                 // if (true) throw new IOException();
                 scaled = zoom == 1.0 || original == null ?
                         original :
-                        new BufferedImage(zoomedSizeX, zoomedSizeY, original.getColorModel().hasAlpha() ?
-                                                                    BufferedImage.TYPE_INT_ARGB :
-                                                                    BufferedImage.TYPE_INT_RGB);
+                        new BufferedImage(
+                                zoomedSizeX,
+                                zoomedSizeY,
+                                original.getColorModel().hasAlpha() ?
+                                BufferedImage.TYPE_INT_ARGB :
+                                BufferedImage.TYPE_INT_RGB);
                 exception = null;
             } catch (Throwable e) {
                 // - including possible too large rectangles (IllegalArgumentException)
@@ -332,7 +335,7 @@ class TiffViewer {
             LOG.log(System.Logger.Level.DEBUG, "Viewer loaded the image region %dx%d starting at (%d,%d)%s"
                     .formatted(r.width, r.height, r.x, r.y,
                             zoom == 1.0 ? "" : " and scaled it to %dx%d (zoom %s)"
-                                               .formatted(zoomedSizeX, zoomedSizeY, zoom)));
+                                    .formatted(zoomedSizeX, zoomedSizeY, zoom)));
             resetSelectionStatus();
         }
         return lastImage;
@@ -458,23 +461,23 @@ class TiffViewer {
 
         final double contrastRescaleFactor = maxVisibleValue == 0.0 ? 1.0 : maxPossibleValue / maxVisibleValue;
         mainPanel.add(TinySwing.leftLabel(TinySwing.smartHtmlLines(String.format(Locale.US, """
-            Specify the intensity transformation parameters: the multiplier (<b>k</b>)
-            and the black offset (<b>b</b>)<br>
-            for pixel sample values before visualization,
-            according to the formula <b>k</b>(<i>x</i>&minus;<b>b</b>).<br>
-            &nbsp;<br>
-            This is useful to contrast low-intensity images. For example, for grayscale matrices<br>
-            of 32-bit integers containing object labels or particle indexes recognized during<br>
-            image analysis, or for floating-point matrices containing gradients or boundaries.<br>
-            &nbsp;<br>
-            For the current visible area, we can recommend the factor <b>k</b>:<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;<b>%.3f</b> = %.1f / %.1f<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;(maximal possible value / maximum in the visible area)<br>
-            &nbsp;<br>
-            You may set this value by the "Auto contrast" button<br>
-            or reset the value to 1.0 by the "Disable" button.<br>
-            The black offset (<b>b</b>) can be set manually; its default value is 0.
-            """, contrastRescaleFactor, maxPossibleValue, maxVisibleValue))));
+                Specify the intensity transformation parameters: the multiplier (<b>k</b>)
+                and the black offset (<b>b</b>)<br>
+                for pixel sample values before visualization,
+                according to the formula <b>k</b>(<i>x</i>&minus;<b>b</b>).<br>
+                &nbsp;<br>
+                This is useful to contrast low-intensity images. For example, for grayscale matrices<br>
+                of 32-bit integers containing object labels or particle indexes recognized during<br>
+                image analysis, or for floating-point matrices containing gradients or boundaries.<br>
+                &nbsp;<br>
+                For the current visible area, we can recommend the factor <b>k</b>:<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<b>%.3f</b> = %.1f / %.1f<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;(maximal possible value / maximum in the visible area)<br>
+                &nbsp;<br>
+                You may set this value by the "Auto contrast" button<br>
+                or reset the value to 1.0 by the "Disable" button.<br>
+                The black offset (<b>b</b>) can be set manually; its default value is 0.
+                """, contrastRescaleFactor, maxPossibleValue, maxVisibleValue))));
         mainPanel.add(Box.createVerticalStrut(15));
 
         final JPanel settingsPanel = new JPanel();
@@ -487,16 +490,23 @@ class TiffViewer {
         c.fill = GridBagConstraints.HORIZONTAL;
         c.insets = new Insets(2, 5, 2, 5);
 
-        c.gridx = 0; c.gridy = 0;
+        c.gridx = 0;
+        c.gridy = 0;
         gridPanel.add(new JLabel("<html>Rescale factor (<b>k</b>): "), c);
-        c.gridx = 1; c.gridy = 0; c.weightx = 1.0;
+        c.gridx = 1;
+        c.gridy = 0;
+        c.weightx = 1.0;
         final JTextField factorField = new JTextField(24);
         gridPanel.add(factorField, c);
         factorField.setText(Double.toString(rescaleFactor == null ? contrastRescaleFactor : rescaleFactor));
 
-        c.gridx = 0; c.gridy = 1; c.weightx = 0.0;
+        c.gridx = 0;
+        c.gridy = 1;
+        c.weightx = 0.0;
         gridPanel.add(new JLabel("<html>Black offset (<b>b</b>): "), c);
-        c.gridx = 1; c.gridy = 1; c.weightx = 1.0;
+        c.gridx = 1;
+        c.gridy = 1;
+        c.weightx = 1.0;
         final JTextField blackOffsetField = new JTextField(24);
         blackOffsetField.setText(Double.toString(blackOffset));
         gridPanel.add(blackOffsetField, c);

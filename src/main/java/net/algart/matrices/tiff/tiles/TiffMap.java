@@ -1331,6 +1331,7 @@ public sealed class TiffMap permits TiffIOMap {
 
     public static void fillColor(Matrix<UpdatablePArray> matrix, Color color) {
         Objects.requireNonNull(matrix, "Null matrix");
+        Objects.requireNonNull(color, "Null color");
         fillColor(matrixAsChannels(matrix), color);
     }
 
@@ -1342,6 +1343,7 @@ public sealed class TiffMap permits TiffIOMap {
 
     public static void fillColor(Matrix<UpdatablePArray> matrix, double[] values, boolean scaleToMaxValue) {
         Objects.requireNonNull(matrix, "Null matrix");
+        Objects.requireNonNull(values, "Null values");
         fillColor(matrixAsChannels(matrix), values, scaleToMaxValue);
     }
 
