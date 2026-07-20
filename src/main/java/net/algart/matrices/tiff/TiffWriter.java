@@ -251,6 +251,7 @@ public non-sealed class TiffWriter extends TiffIO {
         Objects.requireNonNull(reader, "Null TIFF reader");
         this.setBigTiff(reader.isBigTiff());
         this.setLittleEndian(reader.isLittleEndian());
+        this.setMissingTilesAllowed(reader.isMissingTilesAllowed());
         return this;
     }
 

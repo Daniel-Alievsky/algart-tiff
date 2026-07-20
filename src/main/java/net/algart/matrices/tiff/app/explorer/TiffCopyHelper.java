@@ -38,6 +38,7 @@ import java.nio.file.Path;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.IntStream;
 
 class TiffCopyHelper {
 
@@ -50,8 +51,11 @@ class TiffCopyHelper {
     private volatile boolean stopRequested = false;
 
     private JDialog settingsDialog;
+    private JComboBox<Integer> firstIfdComboBox;
+    private JComboBox<Integer> lastIfdComboBox;
     private JComboBox<UserByteOrder> byteOrderComboBox;
     private JCheckBox bigTiffCheckBox;
+    private JCheckBox missingTilesCheckBox;
     private JLabel copyProgressLabel;
     private JButton startCopyButton;
     private JButton cancelCopyButton;
@@ -94,9 +98,10 @@ class TiffCopyHelper {
         }
         TiffCopier.checkDifferentFiles(tiffFile, targetFile);
 
+        final int numberOfImages = info.numberOfImages();
         settingsDialog = new JDialog(frame, true);
         settingsDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-        settingsDialog.setTitle("Make a copy of the entire TIFF");
+        settingsDialog.setTitle("Make a copy of the TIFF");
         settingsDialog.setLayout(new BorderLayout(10, 10));
         settingsDialog.setResizable(false);
 
@@ -105,30 +110,52 @@ class TiffCopyHelper {
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         mainPanel.add(TinySwing.leftLabel(TinySwing.smartHtmlLines("""
-                The entire TIFF from the file:<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
-                will be copied to a new TIFF file:<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
-                &nbsp;<br>
-                This operation copies all IFD structures and all images of this TIFF file &mdash;
-                image by image, tile by tile<br>
-                (for tiled images) &mdash; into a new file.<br>
-                Warning:<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&bull;&nbsp;Sub-IFDs (if present) are converted to ordinary IFDs;
-                Sub-IFD hierarchy is not preserved.<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&bull;&nbsp;Non-standard linked IFD structures (such as Exif or GPS)
-                are <b>not</b> copied.<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;&bull;&nbsp;Structural changes may render specific vendor-dependent
-                metadata inaccessible.<br>
-                &nbsp;<br>
-                The copying helps to eliminate unused space and fragmentation, similarly to:<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;File \u25B8 Compact TIFF...<br>
-                To copy only the current image, click "Show image" and use<br>
-                &nbsp;&nbsp;&nbsp;&nbsp;File \u25B8 Save image as TIFF...<br>
-                in the opened window.
-                """.formatted(
+            The TIFF images from the file:<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
+            will be copied to a new TIFF file:<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
+            &nbsp;<br>
+            This operation copies IFD structures and the images of this TIFF file &mdash;
+            image by image, tile by tile<br>
+            (for tiled images) &mdash; into a new file.<br>
+            Warning:<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&bull;&nbsp;Sub-IFDs (if present) are converted to ordinary IFDs;
+            Sub-IFD hierarchy is not preserved.<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&bull;&nbsp;Non-standard linked IFD structures (such as Exif or GPS)
+            are <b>not</b> copied.<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&bull;&nbsp;Structural changes may render specific vendor-dependent
+            metadata inaccessible.<br>
+            &nbsp;<br>
+            The copying helps to eliminate unused space and fragmentation, similarly to:<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;File \u25B8 Compact TIFF...<br>
+            To copy only the current image, click "Show image" and use<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;File \u25B8 Save image as TIFF...<br>
+            in the opened window.
+            """.formatted(
                 tiffFile.toAbsolutePath(), targetFile.toAbsolutePath()
         ))));
+        mainPanel.add(Box.createVerticalStrut(10));
+
+        mainPanel.add(TinySwing.leftLabel("Select range of image indexes to copy:"));
+        mainPanel.add(Box.createVerticalStrut(5));
+        final Integer[] ifdIndices = IntStream.range(0, numberOfImages).boxed().toArray(Integer[]::new);
+        firstIfdComboBox = new JComboBox<>(ifdIndices);
+        firstIfdComboBox.setMaximumRowCount(32);
+        firstIfdComboBox.setPrototypeDisplayValue(9999);
+        firstIfdComboBox.setSelectedIndex(0);
+        lastIfdComboBox = new JComboBox<>(ifdIndices);
+        lastIfdComboBox.setMaximumRowCount(32);
+        lastIfdComboBox.setPrototypeDisplayValue(9999);
+        lastIfdComboBox.setSelectedIndex(numberOfImages - 1);
+        final JPanel ifdRangePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        ifdRangePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        ifdRangePanel.add(new JLabel("<html>&nbsp;&nbsp;&nbsp;&nbsp;from "));
+        ifdRangePanel.add(firstIfdComboBox);
+        ifdRangePanel.add(new JLabel("<html>&nbsp;&nbsp;to "));
+        ifdRangePanel.add(lastIfdComboBox);
+        ifdRangePanel.add(new JLabel("<html>&nbsp;&nbsp;(%d images total)".formatted(numberOfImages)));
+        ifdRangePanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, ifdRangePanel.getPreferredSize().height));
+        mainPanel.add(ifdRangePanel);
         mainPanel.add(Box.createVerticalStrut(10));
 
         final JPanel settingsPanel = new JPanel();
@@ -164,6 +191,14 @@ class TiffCopyHelper {
                                             "We recommend using BigTIFF, which allows storing &gt;4 GB of data."),
                             (double) info.tiffFileLength() / (double) (1024L * 1024L * 1024L))));
         }
+        settingsPanel.add(Box.createVerticalStrut(5));
+        missingTilesCheckBox = new JCheckBox(
+                "Preserve unallocated (missing) tiles (used in sparse TIFFs like Philips or ARGOS)");
+        missingTilesCheckBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+        missingTilesCheckBox.setSelected(true);
+        settingsPanel.add(missingTilesCheckBox);
+        settingsPanel.add(TinySwing.leftLabel(
+                "If unchecked, missing tiles in the new TIFF are allocated and zero-filled (black)."));
         mainPanel.add(settingsPanel);
 
         mainPanel.add(Box.createVerticalStrut(10));
@@ -255,15 +290,28 @@ class TiffCopyHelper {
     }
 
     private void startCopy(Path sourceFile, Path targetFile) {
+        final int firstIndex = TinySwing.selectedValue(firstIfdComboBox);
+        final int lastIndex = TinySwing.selectedValue(lastIfdComboBox);
+        if (firstIndex > lastIndex) {
+            JOptionPane.showMessageDialog(
+                    frame,
+                    "The \"to\" image index (%d) cannot be less than the \"from\" index (%d)"
+                            .formatted(lastIndex, firstIndex),
+                    "Invalid selection values",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         startCopyOperation(copier -> {
             TiffCopier.checkDifferentFiles(sourceFile,targetFile);
+            // - just in case (we already checked this)
             try (TiffReader reader = new TiffReader(sourceFile);
                  TiffWriter writer = new TiffWriter(targetFile)) {
                 writer.setBigTiff(bigTiffCheckBox.isSelected());
+                writer.setMissingTilesAllowed(missingTilesCheckBox.isSelected());
                 final UserByteOrder selected = TinySwing.selectedValue(byteOrderComboBox);
                 writer.setByteOrder(selected.byteOrder());
                 writer.create();
-                copier.copyImages(writer, reader, 0, reader.numberOfImages());
+                copier.copyImages(writer, reader, firstIndex, lastIndex + 1);
             }
         }, "copying", false);
     }

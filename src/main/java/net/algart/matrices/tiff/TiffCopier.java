@@ -566,7 +566,8 @@ public final class TiffCopier {
      *      if (copier.{@link #isEnforceCompatibleFileFormat isEnforceCompatibleFileFormat()}) {
      *          writer.{@link TiffWriter#setCompatibleFileFormat setCompatibleFileFormat}(reader);
      *          // - sets identical {@link TiffWriter#setBigTiff
-     *          BigTIFF} flag and {@link TiffWriter#getByteOrder() byte order}
+     *          BigTIFF} flag, {@link TiffWriter#getByteOrder() byte order}
+     *          // and {@link TiffWriter#setMissingTilesAllowed missing-tile-allowed} flag
      *      }
      *      writer.{@link TiffWriter#create() create()};
      *      copier.{@link #copyImages(TiffWriter, TiffReader) copyImages}(writer, reader);
@@ -596,7 +597,7 @@ public final class TiffCopier {
         checkDifferentFiles(writer, reader);
         if (enforceCompatibleFileFormat) {
             writer.setCompatibleFileFormat(reader);
-            // - sets identical BigTIFF flag and byte order
+            // - sets identical BigTIFF flag, byte order and missing-tile-allowed flag
         }
         writer.create();
         copyImages(writer, reader);
