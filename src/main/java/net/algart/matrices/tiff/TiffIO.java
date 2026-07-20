@@ -159,7 +159,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     volatile Object scifio = null;
     private volatile CodecReport lastCodecReport = null;
 
-    final Object fileLock;
+    final Object fileLock = new Object();
 
     public TiffIO(DataHandle<?> stream) {
         this(stream, null);
@@ -168,7 +168,6 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     TiffIO(DataHandle<?> stream, Path filePath) {
         this.stream = Objects.requireNonNull(stream, "Null data handle (input/output stream)");
         this.filePath = filePath;
-        this.fileLock = this.stream;
     }
 
     /**
@@ -275,16 +274,15 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * Returns the object used to synchronize access to the underlying file {@link #stream() stream}.
      * Clients must synchronize on this object when performing manual I/O operations to ensure thread safety.
      *
-     * <p>All {@link TiffReader} and {@link TiffWriter} instances that share the same underlying stream
-     * must also share the exact same lock object. For instance, a companion reader created via
-     * {@link TiffWriter#companionReader()} shares this lock object with its parent writer.</p>
-     *
-     * @implNote In the current implementation, the returned object is simply a reference
-     * to the underlying {@link #stream() stream} itself.
+     * <p>Note that a companion reader created via {@link TiffWriter#companionReader()}
+     * <b>does not</b> share this lock object with its parent writer. You should not try using
+     * the writer and its companion reader together from parallel threads.</p>
      *
      * @return the lock object for synchronizing access to the stream.
      */
     public Object fileLock() {
+        // We do not try using here this.stream object: TiffReader uses a cached version of the stream
+        // (ReadBufferDataHandle) instead of the constuctor's argument
         return fileLock;
     }
 
