@@ -47,6 +47,8 @@ public class TiffCopyTest {
     ByteOrder byteOrder = null;
     boolean uncompress = false;
     boolean copyRectangle = false;
+    boolean allowMissing = false;
+    boolean fillMissing = false;
 
     public static void main(String... args) throws IOException {
         TiffCopyTest copyTest = new TiffCopyTest();
@@ -70,10 +72,18 @@ public class TiffCopyTest {
             copyTest.copyRectangle = true;
             startArgIndex++;
         }
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-allowMissing")) {
+            copyTest.allowMissing = true;
+            startArgIndex++;
+        }
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-fillMissing")) {
+            copyTest.fillMissing = true;
+            startArgIndex++;
+        }
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
             System.out.println("    " + TiffCopyTest.class.getName()
-                    + " [-repack] [-smart] [-le|-be] " +
+                    + " [-repack] [-smart] [-le|-be] [-fillMissing] " +
                     "source.tif target.tif [firstIFDIndex lastIFDIndex [numberOfTests]]");
             return;
         }
@@ -112,8 +122,10 @@ public class TiffCopyTest {
                 return;
             }
             System.out.printf("Copying %s to %s...%n", sourceFile, targetFile);
-            reader.setTileInitializer(tile -> tile.fillColor(Color.GREEN));
-            // - for Philips-like sparse formats, it will be used while repacking rectangles
+            if (fillMissing) {
+                reader.setTileInitializer(tile -> tile.fillColor(Color.GREEN));
+                // - for Philips-like sparse formats, it will be used while repacking rectangles
+            }
             boolean ok = false;
             try (TiffWriter writer = new TiffWriter(targetFile)) {
                 if (useContext) {
@@ -122,8 +134,13 @@ public class TiffCopyTest {
                 writer.setSmartCorrection(smart);
                 writer.setBigTiff(bigTiff || reader.isBigTiff());
                 writer.setByteOrder(byteOrder != null ? byteOrder : reader.getByteOrder());
-                writer.setTileInitializer(tile -> tile.fillColor(Color.YELLOW));
-                // - for Philips-like sparse formats, it will be used while copying images
+                if (allowMissing) {
+                    writer.setMissingTilesAllowed(true);
+                }
+                if (fillMissing) {
+                    writer.setTileInitializer(tile -> tile.fillColor(Color.YELLOW));
+                    // - for Philips-like sparse formats, it will be used while copying images
+                }
 
                 // writer.setJpegInPhotometricRGB(true);
                 // - should not be important for copying, when PhotometricInterpretation is already specified
