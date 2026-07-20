@@ -83,7 +83,7 @@ public class TiffCopyTest {
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
             System.out.println("    " + TiffCopyTest.class.getName()
-                    + " [-repack] [-smart] [-le|-be] [-fillMissing] " +
+                    + " [-repack] [-smart] [-le|-be] [-allowMissing] [-fillMissing] " +
                     "source.tif target.tif [firstIFDIndex lastIFDIndex [numberOfTests]]");
             return;
         }
