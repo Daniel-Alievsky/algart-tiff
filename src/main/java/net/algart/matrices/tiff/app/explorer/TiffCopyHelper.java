@@ -259,7 +259,6 @@ class TiffCopyHelper {
             TiffCopier.checkDifferentFiles(sourceFile,targetFile);
             try (TiffReader reader = new TiffReader(sourceFile);
                  TiffWriter writer = new TiffWriter(targetFile)) {
-                writer.setTileInitializer(tile -> tile.fillColor(Color.WHITE));
                 writer.setBigTiff(bigTiffCheckBox.isSelected());
                 final UserByteOrder selected = TinySwing.selectedValue(byteOrderComboBox);
                 writer.setByteOrder(selected.byteOrder());

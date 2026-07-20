@@ -31,6 +31,7 @@ import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 
+import java.awt.*;
 import java.io.IOException;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
@@ -111,7 +112,8 @@ public class TiffCopyTest {
                 return;
             }
             System.out.printf("Copying %s to %s...%n", sourceFile, targetFile);
-            reader.setByteFiller((byte) 0xC0);
+            reader.setTileInitializer(tile -> tile.fillColor(Color.GREEN));
+            // - for Philips-like sparse formats, it will be used while repacking rectangles
             boolean ok = false;
             try (TiffWriter writer = new TiffWriter(targetFile)) {
                 if (useContext) {
@@ -120,6 +122,8 @@ public class TiffCopyTest {
                 writer.setSmartCorrection(smart);
                 writer.setBigTiff(bigTiff || reader.isBigTiff());
                 writer.setByteOrder(byteOrder != null ? byteOrder : reader.getByteOrder());
+                writer.setTileInitializer(tile -> tile.fillColor(Color.YELLOW));
+                // - for Philips-like sparse formats, it will be used while copying images
 
                 // writer.setJpegInPhotometricRGB(true);
                 // - should not be important for copying, when PhotometricInterpretation is already specified
