@@ -71,11 +71,9 @@ public class TiffOverwriteHelloWorldDemo {
             int m = writeMap.completeWriting();
 //            writer.updateDescription(ifdIndex, "Overwritten"); // - will lead to rewring IFD to a new place
             System.out.printf("Completed %d tile, file length: %d%n", m, writeMap.fileLength());
+            // - should be 0, because all tiles were preloaded
             if (m != 0) {
-                // - usually should be 0, because all tiles were preloaded
-                System.out.printf("&&&&&%n    Note: not all tiles were written inside overwrite!%n" +
-                        "    Probably the source TIFF contained missing tile (\"sparse\" format)%n" +
-                        "&&&&&%n");
+                throw new AssertionError("Not all tiles were written inside overwrite");
             }
         }
         System.out.println("Done");
