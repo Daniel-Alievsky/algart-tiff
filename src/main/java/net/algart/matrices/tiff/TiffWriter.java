@@ -569,6 +569,12 @@ public non-sealed class TiffWriter extends TiffIO {
      * whenever it requires up-to-date linkage information. The only situation when you might use it
      * is if you want to inspect this information for your own purposes, for example, for logging.</p>
      *
+     * <p>Also note: the returned linkage is a live object owned by this {@link TiffWriter}.
+     * It is not immutable: {@link TiffWriter} modifies it while adding new images to the TIFF file.
+     * Of course, all modifications are synchronized with help of the {@link #fileLock()} object.
+     * So, if you decided to use it for reading some information, please synchronize
+     * accessing it by the same {@link #fileLock()} object.</p>
+     *
      * @return the linkage information.
      * @throws IOException if an I/O error occurs while reading the linkage.
      */
@@ -840,7 +846,9 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     public int numberOfMainImages() throws IOException {
-        return linkage().numberOfMainIFDs();
+        synchronized (fileLock) {
+            return linkage("Reading number of main images").numberOfMainIFDs();
+        }
     }
 
     /**

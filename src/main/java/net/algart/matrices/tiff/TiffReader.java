@@ -977,7 +977,7 @@ public non-sealed class TiffReader extends TiffIO {
     public List<TiffIFD> mainIFDs() throws IOException {
         synchronized (fileLock) {
             allIFDs();
-            return Collections.unmodifiableList(mainIFDs);
+            return mainIFDs;
         }
     }
 
