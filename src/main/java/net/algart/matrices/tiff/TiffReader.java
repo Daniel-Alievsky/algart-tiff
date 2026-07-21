@@ -1649,7 +1649,7 @@ public non-sealed class TiffReader extends TiffIO {
     private static int cachedByteCountWithCompatibilityTrick(TiffIFD ifd, int index) throws TiffException {
         final boolean tiled = ifd.hasTileInformation();
         final int tag = tiled ? Tags.TILE_BYTE_COUNTS : Tags.STRIP_BYTE_COUNTS;
-        Object value = ifd.get(tag);
+        final Object value = ifd.get(tag);
         if (value instanceof long[] byteCounts && byteCounts.length == 1) {
             // - Here we process a rare case of using TiffParser compatibility class:
             // we call TiffParser.getIFD to read this IFD,
