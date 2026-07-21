@@ -688,6 +688,9 @@ public non-sealed class TiffReader extends TiffIO {
      * @param missingTilesAllowed {@code true} (default) allows missing tiles/strips, identified by zero tile/strip
      *                            offset and/or length (byte count); {@code false} otherwise.
      * @return a reference to this object.
+     * @see <a href="https://openslide.org/formats/argos/">OpenSlide: ARGOS Format</a>
+     * @see <a href="https://openslide.org/formats/philips/">OpenSlide: Philips format</a>
+     * @see <a href="https://openslide.org/formats/generic-tiff/">OpenSlide: Generic tiled TIFF format</a>
      */
     public TiffReader setMissingTilesAllowed(boolean missingTilesAllowed) {
         this.missingTilesAllowed = missingTilesAllowed;
@@ -1087,15 +1090,16 @@ public non-sealed class TiffReader extends TiffIO {
         long offset;
         int byteCount;
         int previousDuplicate, nextDuplicate;
-        final TiffTile existingTile = tileIndex.existingTile();
-        final boolean alreadyStored = existingTile != null && existingTile.isStoredInFile();
+        final TiffTile existing = tileIndex.existingTile();
+        final boolean alreadyStored = existing != null && existing.isStoredInFile() && !existing.isEmpty();
+        // - usually empty tiles cannot be stored in file, but
         if (alreadyStored) {
             // - can be true when using TiffWriteMap for re-reading already written tiles;
             // without this, we'll read the previously written tile instead of the actual data!
-            offset = existingTile.getStoredInFileDataOffset();
-            byteCount = existingTile.getStoredInFileDataLength();
-            previousDuplicate = existingTile.optLinearIndexOfPreviousDuplicate().orElse(-1);
-            nextDuplicate = existingTile.optLinearIndexOfNextDuplicate().orElse(-1);
+            offset = existing.getStoredInFileDataOffset();
+            byteCount = existing.getStoredInFileDataLength();
+            previousDuplicate = existing.optLinearIndexOfPreviousDuplicate().orElse(-1);
+            nextDuplicate = existing.optLinearIndexOfNextDuplicate().orElse(-1);
             assert offset >= 0 && byteCount >= 0;
         } else {
             offset = ifd.cachedTileOrStripOffset(index);
@@ -1137,7 +1141,7 @@ public non-sealed class TiffReader extends TiffIO {
                 // we do not try to optimize this (but the stream is usually cached)
                 TiffTileIO.readAt(result, stream, offset, byteCount);
                 if (alreadyStored) {
-                    result.expandStoredInFileDataCapacity(existingTile.getStoredInFileDataCapacity());
+                    result.expandStoredInFileDataCapacity(existing.getStoredInFileDataCapacity());
                 }
             }
         }
