@@ -1122,7 +1122,7 @@ public non-sealed class TiffReader extends TiffIO {
         // Note the last encoded strip can have actually full strip sizes,
         // i.e., larger than necessary; this situation is quite possible.
 
-        if (checkMissingTile(tileIndex, byteCount, offset, missingTilesAllowed)) {
+        if (tileIndex.checkMissingTile(byteCount, offset, missingTilesAllowed)) {
             return result;
         }
 
@@ -1664,27 +1664,6 @@ public non-sealed class TiffReader extends TiffIO {
             }
         }
         return ifd.cachedTileOrStripByteCount(index);
-    }
-
-    static boolean checkMissingTile(TiffTileIndex tileIndex, int byteCount, long offset, boolean missingTilesAllowed)
-            throws TiffException {
-        Objects.requireNonNull(tileIndex, "Null tileIndex");
-        final boolean tiled = tileIndex.isTiled();
-        if (byteCount == 0 && tiled && missingTilesAllowed) {
-            return true;
-        }
-        if (byteCount == 0 || offset == 0) {
-            final String tileOrStrip = tiled ? "tile" : "strip";
-            throw new TiffException("Zero " +
-                    tileOrStrip +
-                    (byteCount == 0 ? " byte-count" : " offset") +
-                    " is not allowed " +
-                    (tiled && missingTilesAllowed ?
-                            "together with non-zero byte-count = " + byteCount :
-                            (tiled ? "unless missingTilesAllowed flag is set" : "")) +
-                    " (" + tileOrStrip + " " + tileIndex + ")");
-        }
-        return false;
     }
 
     private int correctZeroByteCount(TiffTileIndex tileIndex, int byteCount, long offset) throws IOException {

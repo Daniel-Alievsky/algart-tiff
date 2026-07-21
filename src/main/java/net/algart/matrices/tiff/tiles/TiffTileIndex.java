@@ -24,7 +24,9 @@
 
 package net.algart.matrices.tiff.tiles;
 
+import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.TiffReader;
 
 import java.util.Objects;
 
@@ -114,7 +116,7 @@ public final class TiffTileIndex {
     }
 
     public boolean isTiled() {
-        return map().isTiled();
+        return map.isTiled();
     }
 
     public TiffIFD ifd() {
@@ -160,6 +162,51 @@ public final class TiffTileIndex {
     public boolean isInBounds() {
         assert separatedPlaneIndex < map.numberOfSeparatedPlanes() : "must be checked in the constructor!";
         return xIndex < map.gridCountX() && yIndex < map.gridCountY();
+    }
+
+    /**
+     * Checks whether a tile or strip with the specified byte count and file offset should be treated
+     * as a "missing" (empty) tile, or if these combination of byte count and offset (one of which is zero)
+     * is not allowed.
+     *
+     * <p>For tiled images (when {@link #isTiled()} returns {@code true}),
+     * zero value of the {@code byteCount} argument
+     * (considered to be a value of the {@code TileByteCounts} tag) may indicate a missing tile.
+     * This is possible in "sparse" formats such as <b>Philips TIFF</b> and <b>ARGOS TIFF</b>.
+     * In this case, if {@code missingTilesAllowed} is {@code true},
+     * this method returns {@code true}, indicating the tile should be treated as empty.</p>
+
+     * <p>If {@code byteCount} or {@code offset} argument is zero in any other cases (for example,
+     * when {@link #isTiled()} returns {@code false},
+     * or when {@code missingTilesAllowed} is {@code false}), this method
+     * throws a {@link TiffException} with a detailed diagnostic message.</p>
+     *
+     * @param byteCount           the length of the tile or strip data in bytes.
+     * @param offset              the offset of the tile or strip data in the stream.
+     * @param missingTilesAllowed {@code true} if missing tiles are allowed; {@code false} otherwise.
+     * @return {@code true} if this tile or strip is a valid missing tile that should be treated as empty;
+     *         {@code false} if it contains valid data to be read from the file.
+     * @throws TiffException if a zero byte count or offset is encountered in an invalid context.
+     * @see TiffReader#setMissingTilesAllowed(boolean)
+     * @see <a href="https://openslide.org/formats/generic-tiff/">OpenSlide: Generic tiled TIFF format</a>
+     */
+    public boolean checkMissingTile(int byteCount, long offset, boolean missingTilesAllowed) throws TiffException {
+        final boolean tiled = isTiled();
+        if (byteCount == 0 && tiled && missingTilesAllowed) {
+            return true;
+        }
+        if (byteCount == 0 || offset == 0) {
+            final String tileOrStrip = tiled ? "tile" : "strip";
+            throw new TiffException("Zero " +
+                    tileOrStrip +
+                    (byteCount == 0 ? " byte-count" : " offset") +
+                    " is not allowed " +
+                    (tiled && missingTilesAllowed ?
+                            "together with non-zero byte-count = " + byteCount :
+                            (tiled ? "unless missingTilesAllowed flag is set" : "")) +
+                    " (" + tileOrStrip + " " + this + ")");
+        }
+        return false;
     }
 
     public void checkInBounds() {
