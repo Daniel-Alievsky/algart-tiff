@@ -113,6 +113,10 @@ public final class TiffTileIndex {
         return map;
     }
 
+    public boolean isTiled() {
+        return map().isTiled();
+    }
+
     public TiffIFD ifd() {
         return ifd;
     }

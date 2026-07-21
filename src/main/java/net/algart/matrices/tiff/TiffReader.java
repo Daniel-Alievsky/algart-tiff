@@ -1091,11 +1091,12 @@ public non-sealed class TiffReader extends TiffIO {
         int byteCount;
         int previousDuplicate, nextDuplicate;
         final TiffTile existing = tileIndex.existingTile();
-        final boolean alreadyStored = existing != null && existing.isStoredInFile() && !existing.isEmpty();
-        // - usually empty tiles cannot be stored in file, but
+        final boolean alreadyStored = existing != null && existing.isStoredInFile();
         if (alreadyStored) {
-            // - can be true when using TiffWriteMap for re-reading already written tiles;
+            // - Can be true when using TiffWriteMap for re-reading already written tiles;
             // without this, we'll read the previously written tile instead of the actual data!
+            // Note: the tile can be empty in this case, for example, immediately after
+            // the TiffWriteMap.existingMap method.
             offset = existing.getStoredInFileDataOffset();
             byteCount = existing.getStoredInFileDataLength();
             previousDuplicate = existing.optLinearIndexOfPreviousDuplicate().orElse(-1);
@@ -1121,8 +1122,7 @@ public non-sealed class TiffReader extends TiffIO {
         // Note the last encoded strip can have actually full strip sizes,
         // i.e., larger than necessary; this situation is quite possible.
 
-        if (byteCount == -1) {
-            // - possible when the missingTilesAllowed flag is set
+        if (checkMissingTile(tileIndex, byteCount, offset, missingTilesAllowed)) {
             return result;
         }
 
@@ -1666,18 +1666,41 @@ public non-sealed class TiffReader extends TiffIO {
         return ifd.cachedTileOrStripByteCount(index);
     }
 
-    private int correctZeroByteCount(TiffTileIndex tileIndex, int byteCount, long offset) throws IOException {
+    static boolean checkMissingTile(TiffTileIndex tileIndex, int byteCount, long offset, boolean missingTilesAllowed)
+            throws TiffException {
+        Objects.requireNonNull(tileIndex, "Null tileIndex");
+        final boolean tiled = tileIndex.isTiled();
+        if (byteCount == 0 && tiled && missingTilesAllowed) {
+            return true;
+        }
         if (byteCount == 0 || offset == 0) {
-            if ((byteCount == 0 && offset == 0) && missingTilesAllowed) {
-                return -1;
-            }
-            final TiffIFD ifd = tileIndex.ifd();
-            if (offset > 0 && ifd.cachedTileOrStripByteCountLength() == 1 && ifd.isMarkedAsChainTerminator()) {
+            final String tileOrStrip = tiled ? "tile" : "strip";
+            throw new TiffException("Zero " +
+                    tileOrStrip +
+                    (byteCount == 0 ? " byte-count" : " offset") +
+                    " is not allowed " +
+                    (tiled && missingTilesAllowed ?
+                            "together with non-zero byte-count = " + byteCount :
+                            (tiled ? "unless missingTilesAllowed flag is set" : "")) +
+                    " (" + tileOrStrip + " " + tileIndex + ")");
+        }
+        return false;
+    }
+
+    private int correctZeroByteCount(TiffTileIndex tileIndex, int byteCount, long offset) throws IOException {
+        final TiffIFD ifd = tileIndex.ifd();
+        final TiffMap map = tileIndex.map();
+        final boolean tiled = tileIndex.isTiled();
+        if (byteCount == 0 || offset == 0) {
+            if (!tiled
+                    && offset > 0
+                    && ifd.cachedTileOrStripByteCountLength() == 1
+                    && ifd.isMarkedAsChainTerminator()) {
                 // (so, byteCount == 0): a rare case:
-                // some TIFF files have only one IFD with one tile with zero StripByteCounts,
-                // that means that we must use all space in the file
+                // some TIFF files have only one IFD with a single strip with zero StripByteCounts,
+                // then we try to use all remaining bytes in the file as this strip data
                 final long left = stream.length() - offset;
-                if (left <= Math.min(Integer.MAX_VALUE, 2L * tileIndex.map().tileSizeInBytes() + 1000L)) {
+                if (left <= Math.min(Integer.MAX_VALUE, 2L * map.tileSizeInBytes() + 1000L)) {
                     // - Additional check that we are really not too far from the file end
                     // (it is improbable that a compressed tile requires > 2*N+1000 bytes,
                     // where N is the length of unpacked tile in bytes).
@@ -1685,13 +1708,8 @@ public non-sealed class TiffReader extends TiffIO {
                 }
             }
         }
-        if (byteCount == 0 || offset == 0) {
-            throw new TiffException("Zero tile/strip " + (byteCount == 0 ? "byte-count" : "offset")
-                    + " is not allowed in a valid TIFF file (tile " + tileIndex + ")");
-        }
         return byteCount;
     }
-
     private static DataHandle<?> checkNonNull(DataHandle<?> inputStream, TiffOpenMode openMode) {
         Objects.requireNonNull(inputStream, "Null input stream");
         Objects.requireNonNull(openMode, "Null open mode");

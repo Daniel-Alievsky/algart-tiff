@@ -967,9 +967,8 @@ public final class TiffTile {
         if (storedInFileDataOffset < 0) {
             throw new IllegalArgumentException("Negative data offset in the file: " + storedInFileDataOffset);
         }
-        if (storedInFileDataOffset == 0) {
-            throw new IllegalArgumentException("Zero data offset in the file is not allowed for TIFF format");
-        }
+        // Note: storedInFileDataOffset == 0 is possible for "sparse" format
+        // (see comments to TiffReader.setMissingTilesAllowed(boolean))
         if (storedInFileDataLength < 0) {
             throw new IllegalArgumentException("Negative length of data in the file: " + storedInFileDataLength);
         }
