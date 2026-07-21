@@ -965,12 +965,20 @@ public final class TiffTile {
             long storedInFileDataLength,
             boolean resetCapacity) {
         if (storedInFileDataOffset < 0) {
-            throw new IllegalArgumentException("Negative data offset in the file: " + storedInFileDataOffset);
+            throw new IllegalArgumentException("Negative tile data offset in the TIFF file: " +
+                    storedInFileDataOffset);
         }
-        // Note: storedInFileDataOffset == 0 is possible for "sparse" format
-        // (see comments to TiffReader.setMissingTilesAllowed(boolean))
+        if (storedInFileDataOffset == 0) {
+            // - though it is possible in "sparse" formats
+            // (see comments to TiffReader.setMissingTilesAllowed(boolean),
+            // we must not set such values in a tile: this is senseless and dangerous
+            // (can lead to damaging the file while inaccurate usage)
+            throw new IllegalArgumentException("Zero tile data offset in the TIFF file " +
+                    "is not allowed for a valid tile");
+        }
         if (storedInFileDataLength < 0) {
-            throw new IllegalArgumentException("Negative length of data in the file: " + storedInFileDataLength);
+            throw new IllegalArgumentException("Negative length of the tile data in the TIFF file is not allowed: " +
+                    storedInFileDataLength);
         }
         if (storedInFileDataLength > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("Too large storedInFileDataLength = " +

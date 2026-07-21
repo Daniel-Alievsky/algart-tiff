@@ -166,31 +166,30 @@ public final class TiffTileIndex {
 
     /**
      * Checks whether a tile or strip with the specified byte count and file offset should be treated
-     * as a "missing" (empty) tile, or if these combination of byte count and offset (one of which is zero)
-     * is not allowed.
+     * as a "missing" (empty) tile, or if this combination of byte count and offset
+     * (where one of them is zero) is invalid.
      *
      * <p>For tiled images (when {@link #isTiled()} returns {@code true}),
-     * zero value of the {@code byteCount} argument
-     * (considered to be a value of the {@code TileByteCounts} tag) may indicate a missing tile.
+     * a zero value of the {@code byteCount} argument
+     * (representing the value of the {@code TileByteCounts} tag) may indicate a missing tile.
      * This is possible in "sparse" formats such as <b>Philips TIFF</b> and <b>ARGOS TIFF</b>.
      * In this case, if {@code missingTilesAllowed} is {@code true},
-     * this method returns {@code true}, indicating the tile should be treated as empty.</p>
-
-     * <p>If {@code byteCount} or {@code offset} argument is zero in any other cases (for example,
+     * this method returns {@code true}, indicating that the tile should be treated as empty.</p>
+     *
+     * <p>If the {@code byteCount} or {@code offset} argument is zero in any other case (for example,
      * when {@link #isTiled()} returns {@code false},
      * or when {@code missingTilesAllowed} is {@code false}), this method
      * throws a {@link TiffException} with a detailed diagnostic message.</p>
      *
-     * @param byteCount           the length of the tile or strip data in bytes.
      * @param offset              the offset of the tile or strip data in the stream.
+     * @param byteCount           the length of the tile or strip data in bytes.
      * @param missingTilesAllowed {@code true} if missing tiles are allowed; {@code false} otherwise.
      * @return {@code true} if this tile or strip is a valid missing tile that should be treated as empty;
-     *         {@code false} if it contains valid data to be read from the file.
+     * {@code false} if it contains valid data to be read from the file.
      * @throws TiffException if a zero byte count or offset is encountered in an invalid context.
      * @see TiffReader#setMissingTilesAllowed(boolean)
-     * @see <a href="https://openslide.org/formats/generic-tiff/">OpenSlide: Generic tiled TIFF format</a>
      */
-    public boolean checkMissingTile(int byteCount, long offset, boolean missingTilesAllowed) throws TiffException {
+    public boolean checkMissingTile(long offset, long byteCount, boolean missingTilesAllowed) throws TiffException {
         final boolean tiled = isTiled();
         if (byteCount == 0 && tiled && missingTilesAllowed) {
             return true;

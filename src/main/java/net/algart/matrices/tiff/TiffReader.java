@@ -1122,7 +1122,7 @@ public non-sealed class TiffReader extends TiffIO {
         // Note the last encoded strip can have actually full strip sizes,
         // i.e., larger than necessary; this situation is quite possible.
 
-        if (tileIndex.checkMissingTile(byteCount, offset, missingTilesAllowed)) {
+        if (tileIndex.checkMissingTile(offset, byteCount, missingTilesAllowed)) {
             return result;
         }
 
