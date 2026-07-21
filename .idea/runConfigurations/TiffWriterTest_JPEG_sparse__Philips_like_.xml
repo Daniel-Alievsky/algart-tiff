@@ -2,7 +2,7 @@
   <configuration default="false" name="TiffWriterTest JPEG sparse (Philips-like)" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.tests.io.TiffWriterTest" />
     <module name="algart-tiff" />
-    <option name="PROGRAM_PARAMETERS" value="-allowMissing -color -tiled /tmp/test.tiff uint8 5 JPEG_RGB 300 100 500 800 5" />
+    <option name="PROGRAM_PARAMETERS" value="-allowMissing -color -tiled /tmp/test.tiff uint8 5 JPEG_RGB 300 100 500 400 5" />
     <option name="VM_PARAMETERS" value="-ea -esa -Dnet.algart.matrices.tiff.timing=true -Djava.util.logging.config.file=additional/logging.properties" />
     <method v="2">
       <option name="Make" enabled="true" />

@@ -108,8 +108,10 @@ public class TiffOverwriteNaturalNumbersDemo {
             System.out.printf(Locale.US, "Writing time: %.3f ms + %.3f ms for completion%n",
                     (t2 - t1) * 1e-6, (t3 - t2) * 1e-6);
             if (WRITE_IMMEDIATELY && m != 0) {
-                // - should be 0, because all tiles were preloaded
-                throw new AssertionError("Not all tiles were written inside overwrite");
+                // - usually should be 0, because all tiles were preloaded
+                System.out.printf("&&&&&%n    Note: not all tiles were written inside overwrite!%n" +
+                        "    Probably the source TIFF contained missing tile (\"sparse\" format)%n" +
+                        "&&&&&%n");
             }
         }
         System.out.println("Done");

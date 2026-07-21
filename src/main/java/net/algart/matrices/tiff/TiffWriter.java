@@ -1556,21 +1556,19 @@ public non-sealed class TiffWriter extends TiffIO {
         // - actually not necessary, but helps to avoid possible bugs
         int k = 0;
         for (TiffTile tile : map.tiles()) {
-            long offset = offsets[k];
-            long byteCount = byteCounts[k];
-//            if (!tile.index().checkMissingTile(offset, byteCount, true)) {
+            if (!tile.index().checkMissingTile(offsets[k], byteCounts[k], true)) {
                 // - here missingTilesAllowed=true always: the analogous flag of the TiffWriter
                 // has another sense and used in completeWriting()
                 // In other words, if a missing tile occurred, there is no sense to throw an exception
                 // even if missingTilesAllowed=false (default state)
-//            }
-            tile.setStoredInFileDataRange(offset, byteCount, true);
-            // - we "tell" that all tiles already exist in the file;
-            // note we can use index k, because buildGrid() method, called above for an empty map,
-            //  provided the correct tiles order
-            tile.setOrClearLinearIndexOfPreviousDuplicate(linksToPrevious[k]);
-            tile.setOrClearLinearIndexOfNextDuplicate(linksToNext[k]);
-            tile.setDuplicateAutomatically();
+                tile.setStoredInFileDataRange(offsets[k], byteCounts[k], true);
+                // - we "tell" that all tiles already exist in the file;
+                // note we can use index k, because buildGrid() method, called above for an empty map,
+                //  provided the correct tiles order
+                tile.setOrClearLinearIndexOfPreviousDuplicate(linksToPrevious[k]);
+                tile.setOrClearLinearIndexOfNextDuplicate(linksToNext[k]);
+                tile.setDuplicateAutomatically();
+            }
             tile.markWholeTileAsSet();
             // - we "tell" that each tile has no unset areas
             k++;
