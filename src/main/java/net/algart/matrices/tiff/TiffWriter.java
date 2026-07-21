@@ -839,16 +839,8 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    /**
-     * Returns <code>{@link #companionReader()}.{@link TiffReader#numberOfMainImages() numberOfMainIFDs()}</code>.
-     * This is the number of existing regular IFDs that can be read by {@link #existingIFD(int, boolean)} method.
-     *
-     * @return the number of existing main IFDs (not sub-IFDs).
-     * @throws IOException if an I/O error occurs.
-     */
     public int numberOfMainImages() throws IOException {
-        //noinspection resource
-        return companionReader().numberOfMainImages();
+        return linkage().numberOfMainIFDs();
     }
 
     /**

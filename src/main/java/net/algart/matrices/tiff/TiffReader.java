@@ -426,14 +426,7 @@ public non-sealed class TiffReader extends TiffIO {
         synchronized (tileCacheLock) {
             synchronized (fileLock) {
                 // Lock order: tileCacheLock -> fileLock; we should use the same order in all places!
-                clearTileCache();
-                this.allIFDs = null;
-                this.mainIFDs = null;
-                if (!(stream instanceof ReadBufferDataHandle<?>)) {
-                    throw new AssertionError(
-                            "Input stream was not correctly replaced in the constructor");
-                }
-                ((ReadBufferDataHandle<?>) stream).clearCache();
+                clearAllCache();
                 final IOException exception = startReading(TiffOpenMode.VALID_TIFF);
                 if (exception != null) {
                     throw exception;
@@ -441,6 +434,17 @@ public non-sealed class TiffReader extends TiffIO {
             }
         }
         return this;
+    }
+
+    private void clearAllCache() {
+        clearTileCache();
+        this.allIFDs = null;
+        this.mainIFDs = null;
+        if (!(stream instanceof ReadBufferDataHandle<?>)) {
+            throw new AssertionError(
+                    "Input stream was not correctly replaced in the constructor");
+        }
+        ((ReadBufferDataHandle<?>) stream).clearCache();
     }
 
     private void clearTileCache() {
@@ -788,19 +792,6 @@ public non-sealed class TiffReader extends TiffIO {
         }
     }
 
-    /**
-     * Returns <code>{@link #mainIFDs()}.size()</code>.
-     * Note that this is the length of the array returned by
-     * {@link #readMainIFDOffsets()} method.
-     *
-     * <p>Note: for maximum usability, this method returns 0 instead of throwing an exception
-     * if there are any problems with the input file.
-     * But you will get the same exception when any
-     * attempt to read IFDs, for example, when calling {@link #mainIFDs()}.
-     *
-     * @return number of existing IFDs, excluding child IFDs.
-     * @throws IOException in the case of any problems with the input file.
-     */
     public int numberOfMainImages() throws IOException {
         return mainIFDs().size();
     }
@@ -1458,6 +1449,7 @@ public non-sealed class TiffReader extends TiffIO {
     @Override
     public void close() throws IOException {
         lastMap = null;
+        clearAllCache();
         super.close();
     }
 

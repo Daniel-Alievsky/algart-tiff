@@ -475,6 +475,29 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     }
 
     /**
+     * Returns the number of regular IFDs currently present in this TIFF file.
+     *
+     * <p>Note: this method counts only the {@link TiffIFD#isMainIFD() main} (regular) TIFF images.
+     * The child sub-IFDs (if any), as well as associated EXIF, GPS, and other possible linked IFDs
+     * are not included into this number.</p>
+     *
+     * <p>On the {@link TiffReader}, this method is equivalent to
+     * <code>{@link TiffReader#mainIFDs() mainIFDs()}.size()</code>.</p>
+     *
+     * <p>On the {@link TiffWriter}, it is equivalent to
+     * <code>{@link TiffWriter#linkage() linkage()}.{@link TiffIFD.Linkage#numberOfMainIFDs()
+     * numberOfMainIFDs()}</code>.</p>
+     *
+     * <p>In both cases, this information is cached and quickly available while the next call.
+     * If this information is not yet available, all necessary reading the file is synchronized
+     * based on the {@link #fileLock()}.</p>
+     *
+     * @return the number of existing main images (IFDs).
+     * @throws IOException if an I/O error occurs while reading necessary information.
+     */
+    public abstract int numberOfMainImages() throws IOException;
+
+    /**
      * Reads the IFD with the given index from the file or throws an exception if the index is out of bounds.
      *
      * <p>This method
