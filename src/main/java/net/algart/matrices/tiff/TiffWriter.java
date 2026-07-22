@@ -40,6 +40,7 @@ import net.algart.matrices.tiff.tiles.*;
 import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
 
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -49,6 +50,7 @@ import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.List;
 import java.util.function.*;
 import java.util.stream.Collectors;
 
@@ -524,6 +526,11 @@ public non-sealed class TiffWriter extends TiffIO {
 
     public TiffWriter setTileInitializer(Consumer<TiffTile> tileInitializer) {
         super.setTileInitializer(tileInitializer);
+        return this;
+    }
+
+    public TiffWriter setTileInitializer(Color color) {
+        super.setTileInitializer(color);
         return this;
     }
 

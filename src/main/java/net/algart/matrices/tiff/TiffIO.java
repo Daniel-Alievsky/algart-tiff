@@ -37,6 +37,7 @@ import org.scijava.io.location.BytesLocation;
 import org.scijava.io.location.FileLocation;
 import org.scijava.io.location.Location;
 
+import java.awt.*;
 import java.io.Closeable;
 import java.io.EOFException;
 import java.io.FileNotFoundException;
@@ -268,6 +269,20 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     public TiffIO setTileInitializer(Consumer<TiffTile> tileInitializer) {
         this.tileInitializer = tileInitializer;
         return this;
+    }
+
+    /**
+     * Equivalent to
+     * <pre>{@link #setTileInitializer(Consumer)
+     * setTileInitializer}(tile -> tile.{@link TiffTile#fillColor(Color) fillColor}(color))</pre>
+     *
+     * @param color color to fill empty tiles.
+     * @return a reference to this object.
+     * @throws NullPointerException if the argument is {@code null}.
+     */
+    public TiffIO setTileInitializer(Color color) {
+        Objects.requireNonNull(color, "Null color");
+        return setTileInitializer(tile -> tile.fillColor(color));
     }
 
     /**

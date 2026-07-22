@@ -123,7 +123,7 @@ public class TiffCopyTest {
             }
             System.out.printf("Copying %s to %s...%n", sourceFile, targetFile);
             if (fillMissing) {
-                reader.setTileInitializer(tile -> tile.fillColor(Color.GREEN));
+                reader.setTileInitializer(Color.GREEN);
                 // - for Philips-like sparse formats, it will be used while repacking rectangles
             }
             boolean ok = false;
@@ -138,7 +138,7 @@ public class TiffCopyTest {
                     writer.setMissingTilesAllowed(true);
                 }
                 if (fillMissing) {
-                    writer.setTileInitializer(tile -> tile.fillColor(Color.YELLOW));
+                    writer.setTileInitializer(Color.YELLOW);
                     // - for Philips-like sparse formats, it will be used while copying images
                 }
 

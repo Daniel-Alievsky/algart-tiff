@@ -40,6 +40,7 @@ import org.scijava.io.handle.DataHandle;
 import org.scijava.io.handle.FileHandle;
 import org.scijava.io.location.FileLocation;
 
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -49,6 +50,7 @@ import java.lang.ref.SoftReference;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -704,6 +706,11 @@ public non-sealed class TiffReader extends TiffIO {
 
     public TiffReader setTileInitializer(Consumer<TiffTile> tileInitializer) {
         super.setTileInitializer(tileInitializer);
+        return this;
+    }
+
+    public TiffReader setTileInitializer(Color color) {
+        super.setTileInitializer(color);
         return this;
     }
 
