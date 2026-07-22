@@ -1106,7 +1106,7 @@ public non-sealed class TiffReader extends TiffIO {
             offset = ifd.cachedTileOrStripOffset(index);
             assert offset >= 0 : "offset " + offset + " was not checked in TiffIFD";
             byteCount = cachedByteCountWithCompatibilityTrick(ifd, index);
-            byteCount = correctZeroByteCount(tileIndex, byteCount, offset);
+            byteCount = applySingleStripZeroByteCountTrick(tileIndex, byteCount, offset);
             previousDuplicate = ifd.cachedLinkToPreviousSameOffset(index);
             nextDuplicate = ifd.cachedLinkToNextSameOffset(index);
         }
@@ -1646,6 +1646,7 @@ public non-sealed class TiffReader extends TiffIO {
         }
     }
 
+    // Compatibility with SCIFIO TiffParser
     private static int cachedByteCountWithCompatibilityTrick(TiffIFD ifd, int index) throws TiffException {
         final boolean tiled = ifd.hasTileInformation();
         final int tag = tiled ? Tags.TILE_BYTE_COUNTS : Tags.STRIP_BYTE_COUNTS;
@@ -1666,29 +1667,30 @@ public non-sealed class TiffReader extends TiffIO {
         return ifd.cachedTileOrStripByteCount(index);
     }
 
-    private int correctZeroByteCount(TiffTileIndex tileIndex, int byteCount, long offset) throws IOException {
+    // Compatibility with some old TIFF files
+    private int applySingleStripZeroByteCountTrick(TiffTileIndex tileIndex, int byteCount, long offset)
+            throws IOException {
         final TiffIFD ifd = tileIndex.ifd();
         final TiffMap map = tileIndex.map();
         final boolean tiled = tileIndex.isTiled();
-        if (byteCount == 0 || offset == 0) {
-            if (!tiled
-                    && offset > 0
-                    && ifd.cachedTileOrStripByteCountLength() == 1
-                    && ifd.isMarkedAsChainTerminator()) {
-                // (so, byteCount == 0): a rare case:
-                // some TIFF files have only one IFD with a single strip with zero StripByteCounts,
-                // then we try to use all remaining bytes in the file as this strip data
-                final long left = stream.length() - offset;
-                if (left <= Math.min(Integer.MAX_VALUE, 2L * map.tileSizeInBytes() + 1000L)) {
-                    // - Additional check that we are really not too far from the file end
-                    // (it is improbable that a compressed tile requires > 2*N+1000 bytes,
-                    // where N is the length of unpacked tile in bytes).
-                    byteCount = (int) left;
-                }
+        if (byteCount == 0
+                && offset > 0
+                && !tiled
+                && ifd.cachedTileOrStripByteCountLength() == 1
+                && ifd.isMarkedAsChainTerminator()) {
+            // Rare case: some TIFF files have only one IFD with a single strip with StripByteCounts=0,
+            // then we try to use all remaining bytes in the file as this strip data
+            final long left = stream.length() - offset;
+            if (left <= Math.min(Integer.MAX_VALUE, 2L * map.tileSizeInBytes() + 1000L)) {
+                // - Additional check that we are really not too far from the file end
+                // (it is improbable that a compressed tile requires > 2*N+1000 bytes,
+                // where N is the length of unpacked tile in bytes).
+                byteCount = (int) left;
             }
         }
         return byteCount;
     }
+
     private static DataHandle<?> checkNonNull(DataHandle<?> inputStream, TiffOpenMode openMode) {
         Objects.requireNonNull(inputStream, "Null input stream");
         Objects.requireNonNull(openMode, "Null open mode");
