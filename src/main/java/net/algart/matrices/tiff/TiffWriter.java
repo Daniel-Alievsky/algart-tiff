@@ -519,6 +519,21 @@ public non-sealed class TiffWriter extends TiffIO {
         return this;
     }
 
+    public TiffWriter setDefaultCompanionReaderFactory() {
+        return setDefaultCompanionReaderFactory(null);
+    }
+
+    public TiffWriter setDefaultCompanionReaderFactory(Consumer<? super TiffReader> customizerAfterCreation) {
+        final TiffReader.Factory factory = customizerAfterCreation == null ?
+                TiffWriter::defaultCompanionReader :
+                stream -> {
+                    TiffReader reader = defaultCompanionReader(stream);
+                    customizerAfterCreation.accept(reader);
+                    return reader;
+                };
+        return setCompanionReaderFactory(factory);
+    }
+
     public TiffWriter setByteFiller(byte byteFiller) {
         super.setByteFiller(byteFiller);
         return this;
