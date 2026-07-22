@@ -1113,6 +1113,7 @@ public non-sealed class TiffReader extends TiffIO {
             offset = ifd.cachedTileOrStripOffset(index);
             assert offset >= 0 : "offset " + offset + " was not checked in TiffIFD";
             byteCount = cachedByteCountWithCompatibilityTrick(ifd, index);
+            assert byteCount >= 0 : "byte-count " + byteCount + " was not checked in TiffIFD";
             byteCount = applySingleStripZeroByteCountTrick(tileIndex, byteCount, offset);
             previousDuplicate = ifd.cachedLinkToPreviousSameOffset(index);
             nextDuplicate = ifd.cachedLinkToNextSameOffset(index);
@@ -1129,9 +1130,17 @@ public non-sealed class TiffReader extends TiffIO {
         // Note the last encoded strip can have actually full strip sizes,
         // i.e., larger than necessary; this situation is quite possible.
 
-        if (tileIndex.checkMissingTile(offset, byteCount, missingTilesAllowed)) {
+        if (tileIndex.checkMissingTileInSparseTIFF(offset, byteCount, missingTilesAllowed)) {
+            if (existing != null) {
+                result.copyStoredInFileDataRange(existing);
+                result.copyUnsetArea(existing);
+                // - but information about duplicates remains null: no sense to support
+                // the chain of duplicates for missing tiles
+            }
             return result;
         }
+        assert offset > 0 && byteCount > 0 : "zero or negative offset=" + offset +
+                " or byteCount=" + byteCount + " (must be checked in checkMissingTile)";
 
         result.setOrClearLinearIndexOfPreviousDuplicate(previousDuplicate);
         result.setOrClearLinearIndexOfNextDuplicate(nextDuplicate);

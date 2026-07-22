@@ -69,9 +69,11 @@ public class TiffOverwriteNaturalNumbersDemo {
         // - estimated sizes sufficient for integer number like "151"
         try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
             // writer.setAlwaysWriteToFileEnd(true); // - should not affect the results
+             writer.setDefaultCompanionReaderFactory(reader -> reader.setTileInitializer(Color.CYAN));
+            // - incorrect way (has no effect): writeMap.readBufferedImageAndStore uses the tile initializer
+            // provided by the writer, not by the companion reader!
             writer.setTileInitializer(new Color(186, 213, 248));
-            // - for "sparse" formats with missing tiles
-            writer.setDefaultCompanionReaderFactory(reader -> reader.setTileInitializer(Color.CYAN));
+            // - correct way (for "sparse" formats with missing tiles)
             final TiffWriteMap writeMap = writer.existingMap(ifdIndex);
             System.out.printf("Overwriting %s...%n", writeMap);
             long t1 = System.nanoTime();

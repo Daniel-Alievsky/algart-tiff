@@ -178,32 +178,49 @@ public final class TiffTileIndex {
      *
      * <p>If the {@code offset} or {@code byteCount} argument is zero in any other case (for example,
      * when {@link #isTiled()} returns {@code false},
-     * or when {@code missingTilesAllowed} is {@code false}), this method
-     * throws a {@link TiffException} with a detailed diagnostic message.</p>
+     * or when {@code missingTilesAllowed} is {@code false}), as well as if one of them is negative,
+     * this method throws a {@link TiffException} with a detailed diagnostic message.</p>
      *
      * @param offset              the offset of the tile or strip data in the stream.
      * @param byteCount           the length of the tile or strip data in bytes.
      * @param missingTilesAllowed {@code true} if missing tiles are allowed; {@code false} otherwise.
      * @return {@code true} if this tile or strip is a valid missing tile that should be treated as empty;
      * {@code false} if it contains valid data to be read from the file.
-     * @throws TiffException if a zero byte count or offset is encountered in an invalid context.
+     * @throws TiffException if a zero byte count or offset is encountered in an invalid context,
+     *                       or if {@code offset} or {@code byteCount} is negative.
      * @see TiffReader#setMissingTilesAllowed(boolean)
      * @see <a href="https://openslide.org/formats/generic-tiff/">OpenSlide: Generic tiled TIFF format</a>
      */
-    public boolean checkMissingTile(long offset, long byteCount, boolean missingTilesAllowed) throws TiffException {
+    public boolean checkMissingTileInSparseTIFF(long offset, long byteCount, boolean missingTilesAllowed)
+            throws TiffException {
         final boolean tiled = isTiled();
+        final String tileOrStrip = tiled ? "tile" : "strip";
+        if (offset < 0) {
+            throw new TiffException("Negative " + tileOrStrip + " data offset (" + offset +
+                    ") is not allowed in the TIFF file" +
+                    " (" + tileOrStrip + " " + this + ")");
+        }
+        if (byteCount < 0) {
+            throw new TiffException("Negative " + tileOrStrip + " data byte-count (" + byteCount +
+                    ") is not allowed in the TIFF file" +
+                    " (" + tileOrStrip + " " + this + ")");
+        }
         if (byteCount == 0 && tiled && missingTilesAllowed) {
             return true;
         }
+        if (byteCount > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Too large " + tileOrStrip + " data byte-count (" + byteCount +
+                    " > 2^31-1) is not allowed in the TIFF file" +
+                    " (" + tileOrStrip + " " + this + ")");
+        }
         if (byteCount == 0 || offset == 0) {
-            final String tileOrStrip = tiled ? "tile" : "strip";
             throw new TiffException("Zero " +
                     tileOrStrip +
                     (byteCount == 0 ? " byte-count" : " offset") +
-                    " is not allowed " +
+                    " is not allowed in the TIFF file" +
                     (tiled && missingTilesAllowed ?
-                            "together with non-zero byte-count = " + byteCount :
-                            (tiled ? "unless missingTilesAllowed flag is set" : "")) +
+                            " together with non-zero byte-count = " + byteCount :
+                            (tiled ? " unless missingTilesAllowed flag is set" : "")) +
                     " (" + tileOrStrip + " " + this + ")");
         }
         return false;

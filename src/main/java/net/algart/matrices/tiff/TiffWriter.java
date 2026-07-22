@@ -1578,19 +1578,18 @@ public non-sealed class TiffWriter extends TiffIO {
         // - actually not necessary, but helps to avoid possible bugs
         int k = 0;
         for (TiffTile tile : map.tiles()) {
-            if (!tile.index().checkMissingTile(offsets[k], byteCounts[k], true)) {
-                // - here missingTilesAllowed=true always: the analogous flag of the TiffWriter
-                // has another sense and used in completeWriting()
-                // In other words, if a missing tile occurred, there is no sense to throw an exception
-                // even if missingTilesAllowed=false (default state)
-                tile.setStoredInFileDataRange(offsets[k], byteCounts[k], true);
-                // - we "tell" that all tiles already exist in the file;
-                // note we can use index k, because buildGrid() method, called above for an empty map,
-                //  provided the correct tiles order
-                tile.setOrClearLinearIndexOfPreviousDuplicate(linksToPrevious[k]);
-                tile.setOrClearLinearIndexOfNextDuplicate(linksToNext[k]);
-                tile.setDuplicateAutomatically();
+            // -  note that missing tiles is possible here (offset = 0 and byte-count = 0);
+            // it will be checked later while an attempt to re-read the tile in TiffReader.readEncodedTile
+            tile.setStoredInFileDataRange(offsets[k], byteCounts[k], true);
+            // - we "tell" that all tiles already exist in the file;
+            // note we can use index k, because buildGrid() method, called above for an empty map,
+            // provided the correct tiles order
+            if (tile.isMissingInSparseTIFF() && tile.getStoredInFileDataCapacity() != 0) {
+                throw new AssertionError("For missing tiles, capacity must be zero");
             }
+            tile.setOrClearLinearIndexOfPreviousDuplicate(linksToPrevious[k]);
+            tile.setOrClearLinearIndexOfNextDuplicate(linksToNext[k]);
+            tile.setDuplicateAutomatically();
             tile.markWholeTileAsSet();
             // - we "tell" that each tile has no unset areas
             k++;

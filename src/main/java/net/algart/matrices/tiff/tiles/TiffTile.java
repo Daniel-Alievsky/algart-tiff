@@ -84,6 +84,8 @@ public final class TiffTile {
     private byte[] data = null;
     private long storedInFileDataOffset = -1;
     private int storedInFileDataLength = 0;
+    // - note: storedInFileDataOffset = 0 && storedInFileDataLength = 0 is allowed case
+    // for "sparse" formats (when missingTilesAllowed=true)
     private int storedInFileDataCapacity = 0;
     private int linearIndexOfPreviousDuplicate = -1;
     private int linearIndexOfNextDuplicate = -1;
@@ -478,6 +480,12 @@ public final class TiffTile {
      */
     public Collection<IRectangularArea> getUnsetArea() {
         return unsetArea == null ? List.of(actualRectangle()) : Collections.unmodifiableCollection(unsetArea);
+    }
+
+    public TiffTile copyUnsetArea(TiffTile other) {
+        Objects.requireNonNull(other, "Null other tile");
+        this.unsetArea = other.unsetArea == null ? null : new LinkedList<>(other.unsetArea);
+        return this;
     }
 
     public TiffTile markWholeTileAsUnset() {
@@ -968,17 +976,13 @@ public final class TiffTile {
             throw new IllegalArgumentException("Negative tile data offset in the TIFF file: " +
                     storedInFileDataOffset);
         }
-        if (storedInFileDataOffset == 0) {
-            // - though it is possible in "sparse" formats
-            // (see comments to TiffReader.setMissingTilesAllowed(boolean),
-            // we must not set such values in a tile: this is senseless and dangerous
-            // (can lead to damaging the file while inaccurate usage)
-            throw new IllegalArgumentException("Zero tile data offset in the TIFF file " +
-                    "is not allowed for a valid tile");
-        }
         if (storedInFileDataLength < 0) {
             throw new IllegalArgumentException("Negative length of the tile data in the TIFF file is not allowed: " +
                     storedInFileDataLength);
+        }
+        if (storedInFileDataOffset == 0 && storedInFileDataLength != 0) {
+            throw new IllegalArgumentException("Zero tile data offset in the TIFF file " +
+                    "is not allowed together with non-zero byte count (data length)");
         }
         if (storedInFileDataLength > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("Too large storedInFileDataLength = " +
@@ -997,7 +1001,8 @@ public final class TiffTile {
     }
 
     public TiffTile resetStoredInFileDataCapacity() {
-        this.storedInFileDataCapacity = this.storedInFileDataLength;
+        this.storedInFileDataCapacity = isMissingInSparseTIFF() ? 0 : this.storedInFileDataLength;
+        // - actually always =this.storedInFileDataLength
         return this;
     }
 
@@ -1008,6 +1013,10 @@ public final class TiffTile {
             this.storedInFileDataCapacity = Math.max(this.storedInFileDataCapacity, newStoredInFileDataCapacity);
         }
         return this;
+    }
+
+    public boolean isMissingInSparseTIFF() {
+        return isStoredInFile() && storedInFileDataLength == 0;
     }
 
     public boolean hasPreviousDuplicate() {

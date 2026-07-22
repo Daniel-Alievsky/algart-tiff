@@ -96,6 +96,12 @@ public class TiffTileIO {
             // - if we have several duplicate, we cannot modify them in-place
             return false;
         }
+        if (tile.isMissingInSparseTIFF()) {
+            // - this check is usually redundant: encoding data length will be greater than capacity below;
+            // but it must to checked explicitly to ensure that edge cases (as zero data length) are handled correctly
+            // System.out.printf("!!! Cannot write in-place: %s is missing tile%n", tile.index());
+            return false;
+        }
         final long fileOffset = tile.getStoredInFileDataOffset();
         if (SMART_WRITING_TO_FILE_END && fileOffset + tile.getStoredInFileDataLength() == outputStream.length()) {
             writeAt(tile, outputStream, fileOffset, true);
