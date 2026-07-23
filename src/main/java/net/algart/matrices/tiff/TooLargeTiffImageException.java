@@ -31,6 +31,7 @@ public class TooLargeTiffImageException extends TiffException {
     private static final long serialVersionUID = -1470346816602006491L;
 
     public TooLargeTiffImageException() {
+        super("Too Large image requested");
     }
 
     public TooLargeTiffImageException(String s) {

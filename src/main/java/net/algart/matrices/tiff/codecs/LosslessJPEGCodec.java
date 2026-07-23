@@ -89,9 +89,20 @@ public class LosslessJPEGCodec implements TiffCodec {
     }
 
     /**
-     * The Options parameter should have the following fields set:
+     * Decompresses a block of data.
+     *
+     * <p>Note: if this data is not lossless JPEG, in particular, when it is a usual JPEG data,
+     * this method returns an empty array {@code byte[0]}.</p>
+     *
+     * The {@code options} parameter should have the following fields set:
      * {@link Options#isInterleaved()}
      * {@link Options#isLittleEndian()}
+     *
+     * @param data    the data to be decompressed
+     * @param options options to be used during decompression.
+     * @return the decompressed data.
+     * @throws TiffException        if data is not valid.
+     * @throws NullPointerException if one of the arguments is {@code null}.
      */
     @Override
     public byte[] decompress(byte[] data, Options options) throws TiffException {
@@ -143,41 +154,46 @@ public class LosslessJPEGCodec implements TiffCodec {
                     if (length == 0) {
                         continue;
                     }
-                    if (code == EOI) {
-                        // nothing to do
-                    } else if (code == SOF3) {
-                        // lossless w/Huffman coding
-                        bitsPerSample = readUByte();
-                        if (bitsPerSample < 2 || bitsPerSample > 16) {
-                            throw new UnsupportedTiffFormatException("Lossless JPEG: " + bitsPerSample +
-                                    " bits/sample is not supported (only 2..16 values are allowed)");
+                    switch (code) {
+                        case EOI -> {
+                            // nothing to do
                         }
-                        height = readUInt16();
-                        width = readUInt16();
-                        samplesPerPixel = readUByte();
-                        for (int i = 0; i < samplesPerPixel; i++) {
-                            readUByte(); // skipping component ID
-                            final int s = readUByte();
-                            final int hSampling = (s & 0xf0) >> 4;
-                            final int vSampling = s & 0x0f;
-                            if (hSampling != 1 || vSampling != 1) {
-                                throw new UnsupportedTiffFormatException(
-                                        "Lossless JPEG with subsampling is not supported (channel #" +
-                                                i + " has sampling " + hSampling + "x" + vSampling + ")");
+                        case SOF0, SOF1, SOF2, SOF5, SOF6, SOF9, SOF10, SOF13, SOF14 -> {
+                            return new byte[0];
+                        }
+                        // - not lossless
+                        case SOF3 -> {
+                            // lossless w/Huffman coding
+                            bitsPerSample = readUByte();
+                            if (bitsPerSample < 2 || bitsPerSample > 16) {
+                                throw new UnsupportedTiffFormatException("Lossless JPEG: " + bitsPerSample +
+                                        " bits/sample is not supported (only 2..16 values are allowed)");
                             }
-                            readUByte(); // QTable is not used in lossless JPEG
+                            height = readUInt16();
+                            width = readUInt16();
+                            samplesPerPixel = readUByte();
+                            for (int i = 0; i < samplesPerPixel; i++) {
+                                readUByte(); // skipping component ID
+                                final int s = readUByte();
+                                final int hSampling = (s & 0xf0) >> 4;
+                                final int vSampling = s & 0x0f;
+                                if (hSampling != 1 || vSampling != 1) {
+                                    throw new UnsupportedTiffFormatException(
+                                            "Lossless JPEG with subsampling is not supported (channel #" +
+                                                    i + " has sampling " + hSampling + "x" + vSampling + ")");
+                                }
+                                readUByte(); // QTable is not used in lossless JPEG
+                            }
+                            bytesPerSample = (bitsPerSample + 7) >>> 3;
+                            final int sizeInBytes = TiffIFD.sizeOfRegionInBytes(
+                                    width, height, samplesPerPixel, 8 * bytesPerSample);
+                            numberOfPixels = width * height;
+                            // - after overflow checks made by sizeOfRegionInBytes
+                            unpacked = new byte[sizeInBytes];
                         }
-                        bytesPerSample = (bitsPerSample + 7) >>> 3;
-                        final int sizeInBytes = TiffIFD.sizeOfRegionInBytes(
-                                width, height, samplesPerPixel, 8 * bytesPerSample);
-                        numberOfPixels = width * height;
-                        // - after overflow checks made by sizeOfRegionInBytes
-                        unpacked = new byte[sizeInBytes];
-                    } else if (code == SOF11) {
-                        throw new UnsupportedTiffFormatException(
-                                "Cannot decode lossless JPEG: arithmetic coding is not yet supported");
-                    } else if (code == DHT) {
-                        readHuffmanTables();
+                        case SOF7, SOF11, SOF15 -> throw new UnsupportedTiffFormatException(
+                                "Cannot decode lossless JPEG: arithmetic/differential coding is not supported");
+                        case DHT -> readHuffmanTables();
                     }
                     setPosition(savedPosition + (long) length);
                 }
@@ -321,7 +337,7 @@ public class LosslessJPEGCodec implements TiffCodec {
 
         private void setPosition(long position) throws TiffException {
             if (position < 0) {
-                throw new IllegalArgumentException("Position is negative: "  + position);
+                throw new IllegalArgumentException("Position is negative: " + position);
             }
             if (position > stream.length) {
                 throw new TiffException("Cannot decode lossless JPEG: position " + position + " outside the stream");

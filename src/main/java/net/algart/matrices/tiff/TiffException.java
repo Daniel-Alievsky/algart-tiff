@@ -36,9 +36,6 @@ public class TiffException extends IOException {
     @Serial
     private static final long serialVersionUID = -1948418211763453705L;
 
-    public TiffException() {
-    }
-
     public TiffException(String s) {
         super(s);
     }

@@ -30,9 +30,6 @@ public class TiffIFDMismatchException extends TiffException {
     @Serial
     private static final long serialVersionUID = 7875082046775141056L;
 
-    public TiffIFDMismatchException() {
-    }
-
     public TiffIFDMismatchException(String s) {
         super(s);
     }

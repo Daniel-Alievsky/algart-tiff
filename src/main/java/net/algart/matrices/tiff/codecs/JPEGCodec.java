@@ -187,16 +187,28 @@ public class JPEGCodec implements TiffCodec, TiffCodec.Timing {
             LOG.log(System.Logger.Level.TRACE, "TIFF JPEG image decoded using standard AWT codec");
         } catch (IOException jpegException) {
             // probably a lossless JPEG; delegate to LosslessJPEGCodec
-            byte[] tryLossless = (new LosslessJPEGCodec()).decompress(data, options);
-            assert tryLossless != null;
-            if (tryLossless.length > 0) {
+            byte[] tryLossless = null;
+            TiffException losslessException = null;
+            try {
+                tryLossless = (new LosslessJPEGCodec()).decompress(data, options);
+                assert tryLossless != null;
+            } catch (TiffException e) {
+                String s = jpegException.getMessage();
+                losslessException = new TiffException("Attempt to decode lossless JPEG failed: \"" +
+                        e.getMessage() + "\"; " +
+                        "the previous attempt to decode via the standard JPEG codec also failed " +
+                        "with exception" + (s == null ? "" : " \"" + s + "\""), e);
+                losslessException.addSuppressed(jpegException);
+            }
+            if (tryLossless != null && tryLossless.length > 0) {
                 report.setLosslessJPEG(true);
                 LOG.log(TiffIO.BUILT_IN_TIMING ? System.Logger.Level.DEBUG : System.Logger.Level.TRACE,
                         "TIFF JPEG image decoded using lossless-JPEG codec");
                 return tryLossless;
             }
             // zero length usually means that SOF3 (lossless JPEG) was not found
-            throw jpegException instanceof TiffException e ? e : new TiffException(jpegException);
+            throw losslessException != null ? losslessException :
+                    jpegException instanceof TiffException e ? e : new TiffException(jpegException);
         }
         if (imageData == null) {
             throw new TiffException("Cannot read JPEG image: unknown format");

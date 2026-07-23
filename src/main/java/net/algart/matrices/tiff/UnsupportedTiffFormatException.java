@@ -31,7 +31,7 @@ public class UnsupportedTiffFormatException extends TiffException {
     private static final long serialVersionUID = -7512224420930943208L;
 
     public UnsupportedTiffFormatException() {
-        super();
+        super("Unsupported Tiff Format");
     }
 
     public UnsupportedTiffFormatException(final String s) {
