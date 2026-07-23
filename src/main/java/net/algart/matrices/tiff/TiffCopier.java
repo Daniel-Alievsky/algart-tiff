@@ -686,6 +686,10 @@ public final class TiffCopier {
         final TiffWriteMap writeMap = writer.newMap(writeIFD, false, correctForEncoding);
         checkImageCompatibility(writeMap, readMap);
         this.actuallyDirectCopy = actuallyDirectCopy;
+        if (!actuallyDirectCopy) {
+            writeIFD.removeJPEGTablesIgnoringFreeze();
+            // - should be called before prewrite()
+        }
         writeMap.prewrite();
         final Collection<TiffTile> targetTiles = writeMap.tiles();
         progressInformation.tileCount = targetTiles.size();
@@ -810,7 +814,6 @@ public final class TiffCopier {
         // correctForEncoding(), in particular, corrects PhotometricInterpretation, and this may be necessary
         // if we need to encode tiles.
         checkImageCompatibility(writeMap, readMap);
-        writeMap.prewrite();
         progressInformation.tileCount = writeMap.numberOfGridTiles();
         final int readDimX = readMap.dimX();
         final int readDimY = readMap.dimY();
@@ -834,6 +837,11 @@ public final class TiffCopier {
             throw new AssertionError("If we use swapOrder branch, " +
                     "we must be sure that no tiles will be coped directly");
         }
+        if (!directCopy) {
+            writeIFD.removeJPEGTablesIgnoringFreeze();
+            // - should be called before prewrite()
+        }
+        writeMap.prewrite();
         if (swapOrder) {
             assert readMap.byteOrder() != writeMap.byteOrder();
             assert readMap.elementType() != boolean.class;

@@ -2826,6 +2826,11 @@ public final class TiffIFD {
      * embedded into each tile/strip. Removing this tag prevents duplication and
      * potential conflicts during decoding.</p>
      *
+     * <p>However, <b>be careful</b>: you may call this method <b>only</b> if you are sure that
+     * <b>all</b> tiles / strips in the new TIFF image will be written via {@link TiffWriter}.
+     * If at least one of them retains previously encoded data, written via another software
+     * dependent on the {@code JPEGTables} tag, it will not be read correctly without this tag.</p>
+     *
      * <p>Note: this method works even when IFD is frozen by {@link #freeze()} method,
      * bypassing immutability checks.
      *
