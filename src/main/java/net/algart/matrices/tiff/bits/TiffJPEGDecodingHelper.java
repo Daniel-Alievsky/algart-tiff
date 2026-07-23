@@ -27,6 +27,7 @@ package net.algart.matrices.tiff.bits;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.awt.JPEGDecoding;
+import net.algart.matrices.tiff.awt.JPEGMarkerInspector;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagType;
 import net.algart.matrices.tiff.tags.Tags;
@@ -62,7 +63,8 @@ public class TiffJPEGDecodingHelper {
         //      When the JPEGTables field is present, it shall contain a valid JPEG
         //      "abbreviated table specification" data stream. This data stream shall begin
         //      with SOI and end with EOI.
-        if (data.length < 2 || data[0] != (byte) 0xFF || data[1] != (byte) JPEGDecoding.SOI_BYTE) {
+        final JPEGMarkerInspector inspector = JPEGMarkerInspector.of(data);
+        if (!inspector.hasSOI()) {
             // - the same check is performed inside Java API ImageIO (JPEGImageReaderSpi),
             // and we prefer to repeat it here for better diagnostics
             throw new TiffException(
@@ -70,6 +72,13 @@ public class TiffJPEGDecodingHelper {
                             "no starting Start-Of-Image (SOI) marker");
         }
         if (jpegTable != null) {
+            // If the tile already contains a complete JPEG stream (has both DQT and DHT),
+            // embedding JPEGTables is redundant and can be skipped.
+            if (!inspector.isAbbreviatedStream() && inspector.hasDQT() && inspector.hasDHT()) {
+                // System.out.printf("Skipping embedding tables into %s...%n", tile);
+                return;
+            }
+
             // We need to include JPEG table into JPEG data stream
             if (jpegTable.length <= 4) {
                 throw new TiffException("Too short JPEGTables tag: only " + jpegTable.length + " bytes");
@@ -91,6 +100,10 @@ public class TiffJPEGDecodingHelper {
             System.arraycopy(data, 2, appended, jpegTable.length - 2, data.length - 2);
             // - skipping SOI (2 first bytes) from main data
             tile.setEncodedData(appended);
+        } else if (inspector.isAbbreviatedStream()) {
+            throw new TiffException(
+                    "Cannot decode JPEG tile " + tile.index() +
+                            ": stream is abbreviated (missing DQT/DHT tables), but JPEGTables tag is missing in IFD");
         }
     }
 }

@@ -93,7 +93,7 @@ public class OldJPEGCodec implements TiffCodec {
                             "") +
                     (basedOnTables ?
                             "%n    Decoded using tables (JPEGQTables, JPEGDCTables, JPEGACTables tags)"
-                            .formatted() :
+                                    .formatted() :
                             "") +
                     (syntheticSOS ?
                             "%n    Synthetic SOS (start-of-scan) marker added to JPEG interchange data".formatted() :
@@ -209,6 +209,10 @@ public class OldJPEGCodec implements TiffCodec {
                 report.setBasedOnInterchange(true);
                 // Scan interchange for existing markers to avoid duplication (heuristic)
                 final JPEGMarkerInspector markers = JPEGMarkerInspector.of(interchange);
+                if (markers.tooLargeNumberOfChannels()) {
+                    throw new TiffException("Invalid JPEG stream: Start-Of-Frame (SOF) marker specifies " +
+                            "too many components/channels (" + markers.sofNumberOfChannels() + " > 16)");
+                }
                 final int startOffset = markers.hasSOI() ? 2 : 0;
                 // - if interchange data does not start with SOI, but start with another marker (like DHT),
                 // we will still use these data without skipping first 2 bytes

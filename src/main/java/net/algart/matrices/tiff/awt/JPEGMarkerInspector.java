@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.awt;
 
-import java.io.IOException;
 import java.util.Objects;
 
 /**
@@ -38,10 +37,11 @@ public class JPEGMarkerInspector {
     private boolean hasSOS = false;
     private int sofMarker = -1;
     private int sofNumberOfChannels = 0;
+    private boolean tooLargeNumberOfChannels = false;
     private int[] sofComponentId = null;
     private int[] sofDQTIndexes = null;
 
-    private JPEGMarkerInspector(byte[] data) throws IOException {
+    private JPEGMarkerInspector(byte[] data) {
         Objects.requireNonNull(data, "Null data");
         if (data.length < 2) {
             return;
@@ -103,15 +103,15 @@ public class JPEGMarkerInspector {
                     if (p < data.length - 10) {
                         // - in other case, this SOF is invalid
                         final int n = data[p + 9] & 0xFF;
+                        sofNumberOfChannels = n;
                         if (n > 16) {
-                            throw new IOException("Invalid JPEG stream: Start-Of-Frame (SOF) marker specifies " +
-                                    "too many components/channels (" + n + " > 16)");
+                            tooLargeNumberOfChannels = true;
+                            return;
                         }
                         if (p + 10 < data.length - 3 * n) {
                             // - in other case, this SOF is invalid
                             hasSOF = true;
                             sofMarker = marker;
-                            sofNumberOfChannels = n;
                             sofDQTIndexes = new int[sofNumberOfChannels];
                             sofComponentId = new int[sofNumberOfChannels];
                             for (int i = 0; i < sofNumberOfChannels; i++) {
@@ -136,7 +136,7 @@ public class JPEGMarkerInspector {
         }
     }
 
-    public static JPEGMarkerInspector of(byte[] data) throws IOException {
+    public static JPEGMarkerInspector of(byte[] data) {
         return new JPEGMarkerInspector(data);
     }
 
@@ -168,6 +168,10 @@ public class JPEGMarkerInspector {
         return sofNumberOfChannels;
     }
 
+    public boolean tooLargeNumberOfChannels() {
+        return tooLargeNumberOfChannels;
+    }
+
     public int sofComponentId(int index) {
         if (sofComponentId == null) {
             throw new IllegalStateException("SOF marker was not parsed");
@@ -180,5 +184,9 @@ public class JPEGMarkerInspector {
             throw new IllegalStateException("SOF marker was not parsed");
         }
         return sofDQTIndexes[index];
+    }
+
+    public boolean isAbbreviatedStream() {
+        return hasSOF && !(hasDQT && hasDHT);
     }
 }
