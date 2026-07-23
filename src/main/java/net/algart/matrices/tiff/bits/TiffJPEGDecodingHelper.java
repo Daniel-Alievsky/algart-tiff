@@ -74,11 +74,10 @@ public class TiffJPEGDecodingHelper {
         if (jpegTable != null) {
             // If the tile already contains a complete JPEG stream (has both DQT and DHT),
             // embedding JPEGTables is redundant and can be skipped.
-            if (!inspector.isAbbreviatedStream() && inspector.hasDQT() && inspector.hasDHT()) {
+            if (!inspector.isAbbreviatedStream()) {
                 // System.out.printf("Skipping embedding tables into %s...%n", tile);
                 return;
             }
-
             // We need to include JPEG table into JPEG data stream
             if (jpegTable.length <= 4) {
                 throw new TiffException("Too short JPEGTables tag: only " + jpegTable.length + " bytes");
@@ -86,7 +85,7 @@ public class TiffJPEGDecodingHelper {
             if ((long) jpegTable.length + (long) data.length - 4 >= Integer.MAX_VALUE) {
                 // - very improbable
                 throw new TiffException(
-                        "Too large tile/strip at " + tile.index() + ": JPEG table length " +
+                        "Too large tile/strip at " + tile.index() + ": JPEGTables length " +
                                 (jpegTable.length - 2) + " + number of bytes " +
                                 (data.length - 2) + " > 2^31-1");
 
@@ -103,7 +102,7 @@ public class TiffJPEGDecodingHelper {
         } else if (inspector.isAbbreviatedStream()) {
             throw new TiffException(
                     "Cannot decode JPEG tile " + tile.index() +
-                            ": stream is abbreviated (missing DQT/DHT tables), but JPEGTables tag is missing in IFD");
+                            ": JPEG stream is abbreviated (no DQT/DHT tables), but JPEGTables tag is missing in IFD");
         }
     }
 }
