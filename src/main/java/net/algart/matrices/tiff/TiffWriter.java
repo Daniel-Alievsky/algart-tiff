@@ -1404,9 +1404,6 @@ public non-sealed class TiffWriter extends TiffIO {
      *     <li><code>Compression</code> (259) &mdash; if it is not specified,
      *     it is set to {@link TiffIFD#COMPRESSION_NONE} (1);</li>
      *     <li><code>PhotometricInterpretation</code> (262) &mdash; if it is not specified or in the smart mode;</li>
-     *     <li><code>JPEGTables</code> (347) &mdash; this tag is removed for standard JPEG compression (code 7),
-     *     because we do not support "abbreviated" JPEG streams: all JPEG tables are always
-     *     embedded into each tile/strip;</li>
      *     <li><code>SubIFD</code> (330), <code>Exif IFD</code> (34665), <code>GPSInfo</code> (34853) &mdash;
      *     these tags are always removed (both by this method and by {@link #correctForEntireTiff(TiffIFD)}),
      *     because this writer does not support writing the corresponding IFD inside the TIFF.
@@ -2454,9 +2451,14 @@ public non-sealed class TiffWriter extends TiffIO {
         if (newPhotometric != suggestedPhotometric) {
             ifd.putPhotometric(newPhotometric);
         }
-        if (compression.isStandardJpeg()) {
-            ifd.removeJPEGTables();
-        }
+        // Note: in some old versions, between 13.Apr.2026 and 23.Jul.2026,
+        // the following code was executed here.
+        // But this is a mistake: we call this method also for rewriting existing IFDs,
+        // and then it is possible that some tiles will be rewritten, but another will remain unchanged
+        // and will not be properly read without JPEGTables tag
+        // if (compression.isStandardJpeg()) {
+        //    ifd.removeJPEGTables();
+        // }
         correctForEntireTiff(ifd, enableOldJpeg);
     }
 

@@ -41,6 +41,9 @@ public class TiffTileIO {
             throws IOException {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(inputStream, "Null input stream");
+        if (tile.index().checkMissingTileInSparseTIFF(fileOffset, dataLength, true)) {
+            throw new IllegalArgumentException("Zero data length indicates a missing tile: such tiles cannot be read");
+        }
         tile.setStoredInFileDataRange(fileOffset, dataLength);
         final byte[] data = new byte[dataLength];
         inputStream.seek(fileOffset);
@@ -79,6 +82,10 @@ public class TiffTileIO {
         Objects.requireNonNull(tile, "Null tile");
         Objects.requireNonNull(outputStream, "Null output stream");
         final byte[] encodedData = tile.getEncodedData();
+        if (tile.index().checkMissingTileInSparseTIFF(fileOffset, encodedData.length, true)) {
+            throw new IllegalArgumentException("Zero data length indicates a missing tile: " +
+                    "such tiles cannot be written");
+        }
         tile.setStoredInFileDataRange(fileOffset, encodedData.length, resetCapacity);
         tile.setDuplicate(false);
         // Strictly speaking, we could update the doubly-linked list of duplicates here.

@@ -2539,21 +2539,6 @@ public final class TiffIFD {
     }
 
     /**
-     * Removes the tag {@code JPEGTables} (347).
-     *
-     * <p>This is a good idea for TIFF images written by {@link TiffWriter} (standard JPEG, code 7),
-     * because it does not support "abbreviated" JPEG streams: all JPEG tables are always
-     * embedded into each tile/strip. Removing this tag prevents duplication and
-     * potential conflicts during decoding.</p>
-     *
-     * @return a reference to this object.
-     */
-    public TiffIFD removeJPEGTables() {
-        remove(Tags.JPEG_TABLES);
-        return this;
-    }
-
-    /**
      * Puts TIFF Predictor tag.
      * Note that only {@link TagPredictor#HORIZONTAL} case is supported by this library
      * (besides {@link TagPredictor#NONE}).
@@ -2829,6 +2814,29 @@ public final class TiffIFD {
         // Just in case, let's also remove extra tags:
         map.remove(tiled ? Tags.STRIP_OFFSETS : Tags.TILE_OFFSETS);
         map.remove(tiled ? Tags.STRIP_BYTE_COUNTS : Tags.TILE_BYTE_COUNTS);
+    }
+
+    /**
+     * Removes the tag {@code JPEGTables} (347), if the current compression code
+     * ({@code Compression} tag) contains {@link #COMPRESSION_JPEG} value.
+     *
+     * <p>This is a good idea while copying TIFF images (standard JPEG, code 7) with
+     * recompression via {@link TiffWriter} class, because {@link TiffWriter}
+     * does not support "reduced" JPEG streams: all JPEG tables are always
+     * embedded into each tile/strip. Removing this tag prevents duplication and
+     * potential conflicts during decoding.</p>
+     *
+     * <p>Note: this method works even when IFD is frozen by {@link #freeze()} method,
+     * bypassing immutability checks.
+     *
+     * @return a reference to this object.
+     */
+    public TiffIFD removeJPEGTablesIgnoringFreeze() {
+        if (optCompressionCode(-1) == COMPRESSION_JPEG) {
+            removeDetailedEntries(Tags.JPEG_TABLES);
+            map.remove(Tags.JPEG_TABLES);
+        }
+        return this;
     }
 
     public static boolean isImageLayoutTag(int tag) {
