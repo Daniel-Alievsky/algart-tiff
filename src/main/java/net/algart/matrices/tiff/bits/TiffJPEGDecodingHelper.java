@@ -100,11 +100,11 @@ public class TiffJPEGDecodingHelper {
             // - skipping SOI (2 first bytes) from main data
             tile.setEncodedData(appended);
         }
-        // Below is a bad idea: lossless JPEG also has no DQT/DHT tables
-//        else if (inspector.isAbbreviatedStream()) {
-//            throw new TiffException(
-//                    "Cannot decode JPEG tile " + tile.index() +
-//                            ": JPEG stream is abbreviated (no DQT/DHT tables), but JPEGTables tag is missing in IFD");
-//        }
+        // The idea implemented below is incorrect! Lossless JPEG also has no DQT/DHT tables
+        // else if (inspector.isAbbreviatedStream()) {
+        //     throw new TiffException(
+        //             "Cannot decode JPEG tile " + tile.index() +
+        //                     ": JPEG stream is abbreviated (no DQT/DHT tables), but JPEGTables tag is missing in IFD");
+        // }
     }
 }

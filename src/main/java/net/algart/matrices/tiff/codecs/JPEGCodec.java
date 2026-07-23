@@ -172,6 +172,9 @@ public class JPEGCodec implements TiffCodec, TiffCodec.Timing {
         long t1 = timing ? System.nanoTime() : 0;
         JPEGDecoding.ImageData imageData;
         try (InputStream input = new ByteArrayInputStream(data)) {
+            // First of all, we SHOULD try using the standard ImageReader from ImageIO.getImageReaders().
+            // Depending on installed libraries, it may be much more intelligent than our codecs,
+            // such as LosslessJPEGCodec. And only if it fails, we will try something else.
             imageData = JPEGDecoding.readJPEG(
                     input,
                     RESTRICT_READING_TOO_LARGE_STRIPS && !options.isTiled() ?
