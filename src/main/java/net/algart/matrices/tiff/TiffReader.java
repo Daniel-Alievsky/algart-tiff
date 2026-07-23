@@ -1099,6 +1099,8 @@ public non-sealed class TiffReader extends TiffIO {
         int previousDuplicate, nextDuplicate;
         final TiffTile existing = tileIndex.existingTile();
         final boolean alreadyStored = existing != null && existing.isStoredInFile();
+        // Note: this is very probable that existing != null, but it is an absent tile
+        // created in the map as a result of calling map.buildTileGrid()
         if (alreadyStored) {
             // - Can be true when using TiffWriteMap for re-reading already written tiles;
             // without this, we'll read the previously written tile instead of the actual data!
@@ -1131,12 +1133,8 @@ public non-sealed class TiffReader extends TiffIO {
         // i.e., larger than necessary; this situation is quite possible.
 
         if (tileIndex.checkMissingTileInSparseTIFF(offset, byteCount, missingTilesAllowed)) {
-            if (existing != null) {
-                result.copyStoredInFileDataRange(existing);
-                result.copyUnsetArea(existing);
-                // - but information about duplicates remains null: no sense to support
-                // the chain of duplicates for missing tiles
-            }
+            result.setMissingInSparseTIFF();
+            result.markWholeTileAsSet();
             return result;
         }
         assert offset > 0 && byteCount > 0 : "zero or negative offset=" + offset +

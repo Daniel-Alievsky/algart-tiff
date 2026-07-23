@@ -959,9 +959,17 @@ public final class TiffTile {
         return storedInFileDataOffset >= 0;
     }
 
+    public boolean isMissingInSparseTIFF() {
+        return isStoredInFile() && storedInFileDataLength == 0;
+    }
+
     public TiffTile clearStoredInFile() {
         storedInFileDataOffset = -1;
         return this;
+    }
+
+    public TiffTile setMissingInSparseTIFF() {
+        return setStoredInFileDataRange(0, 0);
     }
 
     public TiffTile setStoredInFileDataRange(long storedInFileDataOffset, int storedInFileDataLength) {
@@ -1013,10 +1021,6 @@ public final class TiffTile {
             this.storedInFileDataCapacity = Math.max(this.storedInFileDataCapacity, newStoredInFileDataCapacity);
         }
         return this;
-    }
-
-    public boolean isMissingInSparseTIFF() {
-        return isStoredInFile() && storedInFileDataLength == 0;
     }
 
     public boolean hasPreviousDuplicate() {
@@ -1366,11 +1370,11 @@ public final class TiffTile {
                 (isCompleted() ? ", completed" : isCompletelyUnset() ? ", completely unset" : ", partial") +
                 ", " + normalizedBitDepth + " bits/sample" +
                 ", index " + index +
-                (isStoredInFile() ?
+                (!isStoredInFile() ? ", no file position" :
+                        isMissingInSparseTIFF() ? ", missing tile (sparse TIFF)" :
                         " at file region " + storedInFileDataOffset + ".." + storedInFileDataOffset +
                         "+" + (storedInFileDataLength - 1) +
-                        "/" + (storedInFileDataCapacity - 1) :
-                        ", no file position") +
+                        "/" + (storedInFileDataCapacity - 1)) +
                 (hasPreviousDuplicate() ? ", duplicate of " + linearIndexOfPreviousDuplicate : "");
     }
 

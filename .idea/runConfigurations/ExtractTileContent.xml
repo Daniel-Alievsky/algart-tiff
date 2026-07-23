@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="TiffExtractTileContent" type="Application" factoryName="Application">
+  <configuration default="false" name="ExtractTileContent" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.demo.misc.ExtractTileContent" />
     <module name="algart-tiff" />
     <option name="PROGRAM_PARAMETERS" value="/tmp/test.tiff /tmp/tile.jpg 0 0 0" />
