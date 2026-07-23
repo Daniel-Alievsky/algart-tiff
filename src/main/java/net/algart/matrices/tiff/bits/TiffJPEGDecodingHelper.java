@@ -73,7 +73,7 @@ public class TiffJPEGDecodingHelper {
         }
         if (jpegTable != null) {
             // If the tile already contains a complete JPEG stream (has both DQT and DHT),
-            // embedding JPEGTables is redundant and can be skipped.
+            // or if it is not a valid JPEG (without SOF), we don't embed JPEGTables.
             if (!inspector.isAbbreviatedStream()) {
                 // System.out.printf("Skipping embedding tables into %s...%n", tile);
                 return;
