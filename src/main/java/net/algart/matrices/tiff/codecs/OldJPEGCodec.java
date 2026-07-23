@@ -28,7 +28,7 @@ import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffIO;
 import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import net.algart.matrices.tiff.awt.JPEGDecoding;
-import net.algart.matrices.tiff.awt.TinyJPEGMarkers;
+import net.algart.matrices.tiff.awt.JPEGMarkerInspector;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.Tags;
 import org.scijava.io.handle.DataHandle;
@@ -208,7 +208,7 @@ public class OldJPEGCodec implements TiffCodec {
             if (interchange != null) {
                 report.setBasedOnInterchange(true);
                 // Scan interchange for existing markers to avoid duplication (heuristic)
-                final TinyJPEGMarkers markers = new TinyJPEGMarkers(interchange, "interchange");
+                final JPEGMarkerInspector markers = JPEGMarkerInspector.of(interchange);
                 final int startOffset = markers.hasSOI() ? 2 : 0;
                 // - if interchange data does not start with SOI, but start with another marker (like DHT),
                 // we will still use these data without skipping first 2 bytes
@@ -369,7 +369,7 @@ public class OldJPEGCodec implements TiffCodec {
         return tables;
     }
 
-    private static void writeSOS(ByteArrayOutputStream stream, int samplesPerPixel, TinyJPEGMarkers markers) {
+    private static void writeSOS(ByteArrayOutputStream stream, int samplesPerPixel, JPEGMarkerInspector markers) {
         final boolean useMarkers = markers != null && markers.hasSOF();
         if (useMarkers) {
             samplesPerPixel = markers.sofNumberOfChannels();
@@ -461,5 +461,4 @@ public class OldJPEGCodec implements TiffCodec {
         // Note: due to byte stuffing (every 0xFF in raw data is replaced with 0xFF-0x00),
         // raw JPEG data in a strip/tile cannot start from these 2 bytes
     }
-
 }

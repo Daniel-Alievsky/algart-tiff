@@ -24,15 +24,13 @@
 
 package net.algart.matrices.tiff.awt;
 
-import net.algart.matrices.tiff.TiffException;
-
+import java.io.IOException;
 import java.util.Objects;
-
 
 /**
  * Simple parser of JPEG stream markers.
  */
-public class TinyJPEGMarkers {
+public class JPEGMarkerInspector {
     private boolean hasSOI = false;
     private boolean hasSOF = false;
     private boolean hasDQT = false;
@@ -43,7 +41,7 @@ public class TinyJPEGMarkers {
     private int[] sofComponentId = null;
     private int[] sofDQTIndexes = null;
 
-    public TinyJPEGMarkers(byte[] data, String dataName) throws TiffException {
+    private JPEGMarkerInspector(byte[] data) throws IOException {
         Objects.requireNonNull(data, "Null data");
         if (data.length < 2) {
             return;
@@ -74,10 +72,10 @@ public class TinyJPEGMarkers {
                     p += 2;
                     continue;
                 }
-                case JPEGDecoding.DQT_BYTE-> {
+                case JPEGDecoding.DQT_BYTE -> {
                     hasDQT = true;
                 }
-                case JPEGDecoding.DHT_BYTE-> {
+                case JPEGDecoding.DHT_BYTE -> {
                     hasDHT = true;
                 }
                 case JPEGDecoding.SOI_BYTE -> {
@@ -106,9 +104,8 @@ public class TinyJPEGMarkers {
                         // - in other case, this SOF is invalid
                         final int n = data[p + 9] & 0xFF;
                         if (n > 16) {
-                            throw new TiffException("Cannot decode old-style JPEG: " +
-                                    dataName + " contains an invalid Start-Of-Frame (SOF) marker with " +
-                                    "too many number of channels = " + n);
+                            throw new IOException("Invalid JPEG stream: Start-Of-Frame (SOF) marker specifies " +
+                                    "too many components/channels (" + n + " > 16)");
                         }
                         if (p + 10 < data.length - 3 * n) {
                             // - in other case, this SOF is invalid
@@ -137,6 +134,10 @@ public class TinyJPEGMarkers {
                 return;
             }
         }
+    }
+
+    public static JPEGMarkerInspector of(byte[] data) throws IOException {
+        return new JPEGMarkerInspector(data);
     }
 
     public boolean hasSOI() {
@@ -168,11 +169,16 @@ public class TinyJPEGMarkers {
     }
 
     public int sofComponentId(int index) {
+        if (sofComponentId == null) {
+            throw new IllegalStateException("SOF marker was not parsed");
+        }
         return sofComponentId[index];
     }
 
     public int sofDQTIndexes(int index) {
+        if (sofDQTIndexes == null) {
+            throw new IllegalStateException("SOF marker was not parsed");
+        }
         return sofDQTIndexes[index];
     }
-
 }
