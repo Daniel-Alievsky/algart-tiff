@@ -99,10 +99,12 @@ public class TiffJPEGDecodingHelper {
             System.arraycopy(data, 2, appended, jpegTable.length - 2, data.length - 2);
             // - skipping SOI (2 first bytes) from main data
             tile.setEncodedData(appended);
-        } else if (inspector.isAbbreviatedStream()) {
-            throw new TiffException(
-                    "Cannot decode JPEG tile " + tile.index() +
-                            ": JPEG stream is abbreviated (no DQT/DHT tables), but JPEGTables tag is missing in IFD");
         }
+        // Below is a bad idea: lossless JPEG also has no DQT/DHT tables
+//        else if (inspector.isAbbreviatedStream()) {
+//            throw new TiffException(
+//                    "Cannot decode JPEG tile " + tile.index() +
+//                            ": JPEG stream is abbreviated (no DQT/DHT tables), but JPEGTables tag is missing in IFD");
+//        }
     }
 }
