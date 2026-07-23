@@ -2,7 +2,7 @@
   <configuration default="false" name="TiffOverwriteNaturalNumbersDemo" type="Application" factoryName="Application" nameIsGenerated="true">
     <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.demo.io.TiffOverwriteNaturalNumbersDemo" />
     <module name="algart-tiff" />
-    <option name="PROGRAM_PARAMETERS" value="/tmp/test.tiff 0 50 50 15 20 126 1 1" />
+    <option name="PROGRAM_PARAMETERS" value="/tmp/test.tiff 0 50 50 15 20 400 1 1" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="net.algart.matrices.tiff.app.explorer.*" />
