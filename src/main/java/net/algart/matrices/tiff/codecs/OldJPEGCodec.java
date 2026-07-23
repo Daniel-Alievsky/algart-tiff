@@ -28,6 +28,7 @@ import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffIO;
 import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import net.algart.matrices.tiff.awt.JPEGDecoding;
+import net.algart.matrices.tiff.awt.TinyJPEGMarkers;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.Tags;
 import org.scijava.io.handle.DataHandle;
@@ -208,7 +209,7 @@ public class OldJPEGCodec implements TiffCodec {
                 report.setBasedOnInterchange(true);
                 // Scan interchange for existing markers to avoid duplication (heuristic)
                 final TinyJPEGMarkers markers = new TinyJPEGMarkers(interchange, "interchange");
-                final int startOffset = markers.hasSOI ? 2 : 0;
+                final int startOffset = markers.hasSOI() ? 2 : 0;
                 // - if interchange data does not start with SOI, but start with another marker (like DHT),
                 // we will still use these data without skipping first 2 bytes
 
@@ -232,17 +233,17 @@ public class OldJPEGCodec implements TiffCodec {
                     }
                 }
                 */
-                if (!markers.hasSOF) {
+                if (!markers.hasSOF()) {
                     throw new TiffException(
                             "Cannot decode old-style JPEG: JPEGInterchangeFormat does not contain " +
                                     "necessary Start-Of-Frame (SOF) marker");
                 }
                 out.write(interchange, startOffset, interchange.length - startOffset);
-                if (!markers.hasSOS) {
+                if (!markers.hasSOS()) {
                     // - this is possible in Wang TIFF files, containing SOS in another place
                     // (the beginning of the 1st strip);
                     // in this case, we will try to synthesize SOS on the base on SOF
-                    if (markers.sofMarker != JPEGDecoding.SOF0_BASELINE) {
+                    if (markers.sofMarker() != JPEGDecoding.SOF0_BASELINE) {
                         throw new TiffException("Cannot decode old-style JPEG: " +
                                 "JPEGInterchangeFormat does not contain Start-Of-Scan (SOS) marker and " +
                                 "uses non-baseline format");
@@ -369,9 +370,9 @@ public class OldJPEGCodec implements TiffCodec {
     }
 
     private static void writeSOS(ByteArrayOutputStream stream, int samplesPerPixel, TinyJPEGMarkers markers) {
-        final boolean useMarkers = markers != null && markers.hasSOF;
+        final boolean useMarkers = markers != null && markers.hasSOF();
         if (useMarkers) {
-            samplesPerPixel = markers.sofNumberOfChannels;
+            samplesPerPixel = markers.sofNumberOfChannels();
         }
         stream.write(0xFF);
         stream.write(JPEGDecoding.SOS_BYTE); // SOS marker
@@ -380,9 +381,9 @@ public class OldJPEGCodec implements TiffCodec {
         stream.write(sosLen & 0xFF);
         stream.write(samplesPerPixel);
         for (int i = 0; i < samplesPerPixel; i++) {
-            stream.write(useMarkers ? markers.sofComponentId[i] : i + 1);
+            stream.write(useMarkers ? markers.sofComponentId(i) : i + 1);
             // - component ID must match SOF
-            int tableId = useMarkers ? markers.sofDQTIndexes[i] : i;
+            int tableId = useMarkers ? markers.sofDQTIndexes(i) : i;
             // - we synthesize absent SOS on the base of existing SOF,
             // assuming that the table IDs are the same for DQT and DHT
             stream.write((tableId << 4) | tableId);
@@ -461,103 +462,4 @@ public class OldJPEGCodec implements TiffCodec {
         // raw JPEG data in a strip/tile cannot start from these 2 bytes
     }
 
-    private static class TinyJPEGMarkers {
-        boolean hasSOI = false;
-        boolean hasSOF = false;
-        int sofMarker = -1;
-        boolean hasSOS = false;
-        int sofNumberOfChannels = 0;
-        int[] sofComponentId = null;
-        int[] sofDQTIndexes = null;
-
-        TinyJPEGMarkers(byte[] data, String dataName) throws TiffException {
-            Objects.requireNonNull(data, "Null data");
-            if (data.length < 2) {
-                return;
-            }
-            int p = 0;
-            if (data[0] == (byte) 0xFF && data[1] == (byte) JPEGDecoding.SOI_BYTE) {
-                hasSOI = true;
-                p = 2;
-            }
-            while (p < data.length - 1) {
-                if (data[p] != (byte) 0xFF) {
-                    p++;
-                    continue;
-                    // strange stream: let's search for the next 0xFF
-                }
-                while (p + 1 < data.length && data[p + 1] == (byte) 0xFF) {
-                    // skipping several 0xFF
-                    p++;
-                }
-                if (p + 1 >= data.length) {
-                    return;
-                }
-                final int marker = data[p + 1] & 0xFF;
-                switch (marker) {
-                    case 0 -> {
-                        // stuffed byte
-                        // (not too important for OldJPEGCodec: it should not occur in JPEGInterchangeFormat)
-                        p += 2;
-                        continue;
-                    }
-                    case JPEGDecoding.SOI_BYTE -> {
-                        // strange stream: several SOI
-                        p += 2;
-                        continue;
-                    }
-                    case JPEGDecoding.SOS_BYTE -> {
-                        hasSOS = true;
-                        // entropy data start here: we don't need the following markers
-                        // (entropy data are not included into JPEGInterchangeFormat)
-                        return;
-                    }
-                    case JPEGDecoding.EOI_BYTE -> {
-                        return;
-                    }
-                    case JPEGDecoding.SOF0_BASELINE,
-                         0xC1, 0xC2, 0xC3,
-                         // not 0xC4 (DHT)
-                         0xC5, 0xC6, 0xC7,
-                         // not 0xC8 (JPG)
-                         0xC9, 0xCA, 0xCB,
-                         // not 0xCC (DAC)
-                         0xCD, 0xCE, 0xCF -> {
-                        if (p < data.length - 10) {
-                            // - in other case, this SOF is invalid
-                            final int n = data[p + 9] & 0xFF;
-                            if (n > 16) {
-                                throw new TiffException("Cannot decode old-style JPEG: " +
-                                        dataName + " contains an invalid Start-Of-Frame (SOF) marker with " +
-                                        "too many number of channels = " + n);
-                            }
-                            if (p + 10 < data.length - 3 * n) {
-                                // - in other case, this SOF is invalid
-                                hasSOF = true;
-                                sofMarker = marker;
-                                sofNumberOfChannels = n;
-                                sofDQTIndexes = new int[sofNumberOfChannels];
-                                sofComponentId = new int[sofNumberOfChannels];
-                                for (int i = 0; i < sofNumberOfChannels; i++) {
-                                    sofComponentId[i] = data[p + 10 + 3 * i] & 0xFF;
-                                    sofDQTIndexes[i] = data[p + 12 + 3 * i] & 0xF;
-                                    // - cannot be >15
-                                }
-                            }
-                        }
-                    }
-                }
-                boolean hasLength = marker != JPEGDecoding.TEM_BYTE &&
-                        !(marker >= JPEGDecoding.RST_FIRST && marker <= JPEGDecoding.RST_LAST);
-                if (!hasLength) {
-                    p += 2;
-                } else if (p < data.length - 3) {
-                    final int segmentLength = ((data[p + 2] & 0xFF) << 8) | (data[p + 3] & 0xFF);
-                    p += 2 + segmentLength;
-                } else {
-                    return;
-                }
-            }
-        }
-    }
 }
