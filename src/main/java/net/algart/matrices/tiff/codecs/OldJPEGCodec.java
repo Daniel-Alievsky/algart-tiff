@@ -247,7 +247,7 @@ public class OldJPEGCodec implements TiffCodec {
                     // - this is possible in Wang TIFF files, containing SOS in another place
                     // (the beginning of the 1st strip);
                     // in this case, we will try to synthesize SOS on the base on SOF
-                    if (markers.sofMarker() != JPEGDecoding.SOF0_BASELINE) {
+                    if (markers.sofMarker() != JPEGDecoding.SOF0_BASELINE_DCT) {
                         throw new TiffException("Cannot decode old-style JPEG: " +
                                 "JPEGInterchangeFormat does not contain Start-Of-Scan (SOS) marker and " +
                                 "uses non-baseline format");
@@ -409,7 +409,7 @@ public class OldJPEGCodec implements TiffCodec {
         int subY = samplesPerPixel == 1 ? 1 : subsampling != null ? subsampling[1] : 2;
 
         stream.write(0xFF);
-        stream.write(JPEGDecoding.SOF0_BASELINE); // SOF0 marker
+        stream.write(JPEGDecoding.SOF0_BASELINE_DCT); // SOF0 marker
         int sofLen = 8 + 3 * samplesPerPixel;
         stream.write((sofLen >>> 8) & 0xFF);
         stream.write(sofLen & 0xFF);

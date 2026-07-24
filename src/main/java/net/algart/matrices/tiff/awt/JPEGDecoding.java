@@ -74,7 +74,12 @@ public class JPEGDecoding {
     /**
      * Baseline DCT (Start of Frame 0) marker byte.
      */
-    public static final int SOF0_BASELINE = 0xC0;
+    public static final int SOF0_BASELINE_DCT = 0xC0;
+
+    /**
+     * Define arithmetic coding conditions (DAC) marker byte.
+     */
+    public static final int DAC_BYTE = 0xCC;
 
     /**
      * Temporary marker byte.

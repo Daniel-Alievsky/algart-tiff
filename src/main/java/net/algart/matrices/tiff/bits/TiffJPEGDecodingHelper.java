@@ -71,40 +71,45 @@ public class TiffJPEGDecodingHelper {
                     "Invalid TIFF image: it is declared as JPEG, but the data are not actually JPEG: " +
                             "no starting Start-Of-Image (SOI) marker");
         }
+        assert data[0] == (byte) 0xFF && data[1] == (byte) JPEGDecoding.SOI_BYTE : "but JPEGMarkerInspector.hasSOI!";
         if (jpegTable != null) {
             // If the tile already contains a complete JPEG stream (has both DQT and DHT),
             // or if it is not a valid JPEG (without SOF), we don't embed JPEGTables.
-            if (!inspector.isAbbreviatedStream()) {
-                // System.out.printf("Skipping embedding tables into %s...%n", tile);
+            if (!inspector.isProbablyAbbreviatedStream()) {
+//                System.out.printf("Skipping embedding tables into %s...%n", tile);
                 return;
             }
+            assert !inspector.hasDQT() || !inspector.hasDHT() : "invalid isAbbreviatedStream";
             // We need to include JPEG table into JPEG data stream
-            if (jpegTable.length <= 4) {
-                throw new TiffException("Too short JPEGTables tag: only " + jpegTable.length + " bytes");
+            final int m = jpegTable.length;
+//            System.out.printf("Embedding tables into %s...%n", tile);
+            if (m <= 4) {
+                throw new TiffException("Too short JPEGTables tag: only " + m + " bytes");
             }
-            if ((long) jpegTable.length + (long) data.length - 4 >= Integer.MAX_VALUE) {
+            if (jpegTable[0] != (byte) 0xFF || jpegTable[1] != (byte) JPEGDecoding.SOI_BYTE) {
+                throw new TiffException("Invalid JPEGTables: expected SOI marker in first two bytes");
+
+            }
+            if (jpegTable[m - 2] != (byte) 0xFF || jpegTable[m - 1] != (byte) JPEGDecoding.EOI_BYTE) {
+                throw new TiffException("Invalid JPEGTables: expected EOI marker in last two bytes");
+            }
+            if ((long) m + (long) data.length - 4 >= Integer.MAX_VALUE) {
                 // - very improbable
                 throw new TiffException(
                         "Too large tile/strip at " + tile.index() + ": JPEGTables length " +
-                                (jpegTable.length - 2) + " + number of bytes " +
-                                (data.length - 2) + " > 2^31-1");
-
+                                (m - 2) + " + number of bytes " + (data.length - 2) + " > 2^31-1");
             }
-            final byte[] appended = new byte[jpegTable.length + data.length - 4];
-            appended[0] = (byte) 0xFF;
-            appended[1] = (byte) JPEGDecoding.SOI_BYTE;
-            // - writing SOI
-            System.arraycopy(jpegTable, 2, appended, 2, jpegTable.length - 4);
-            // - skipping both SOI and EOI (2 first and 2 last bytes) from jpegTable
-            System.arraycopy(data, 2, appended, jpegTable.length - 2, data.length - 2);
-            // - skipping SOI (2 first bytes) from main data
-            tile.setEncodedData(appended);
+            final byte[] newData = new byte[m + data.length - 4];
+            newData[0] = (byte) 0xFF;
+            newData[1] = (byte) JPEGDecoding.SOI_BYTE;
+            // - writing SOI, as in data[0..1]
+            System.arraycopy(jpegTable, 2, newData, 2, m - 4);
+            // - excluding both SOI and EOI (2 first and 2 last bytes) from jpegTable
+            System.arraycopy(data, 2, newData, m - 2, data.length - 2);
+            // - excluding SOI data[0..1], but including EOI in the end of data
+            tile.setEncodedData(newData);
         }
-        // The idea implemented below is incorrect! Lossless JPEG also has no DQT/DHT tables
-        // else if (inspector.isAbbreviatedStream()) {
-        //     throw new TiffException(
-        //             "Cannot decode JPEG tile " + tile.index() +
-        //                     ": JPEG stream is abbreviated (no DQT/DHT tables), but JPEGTables tag is missing in IFD");
-        // }
+        // However, if inspector.isProbablyAbbreviatedStream() and JPEGTables is ABSENT,
+        // this is not necessarily an error: for example, lossless JPEG also has no DQT/DHT tables
     }
 }

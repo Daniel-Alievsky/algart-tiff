@@ -27,13 +27,17 @@ package net.algart.matrices.tiff.awt;
 import java.util.Objects;
 
 /**
- * Simple parser of JPEG stream markers.
+ * Simple parser of JPEG stream markers preceding the first scan
+ * (the {@code SOS} marker in JPEG terminology).
+ * <p>(Some JPEG images, such as progressive JPEG, may contain multiple scans;
+ * this parser returns information about the first scan only.)</p>
  */
 public class JPEGMarkerInspector {
     private boolean hasSOI = false;
     private boolean hasSOF = false;
     private boolean hasDQT = false;
     private boolean hasDHT = false;
+    private boolean hasDAC = false;
     private boolean hasSOS = false;
     private int sofMarker = -1;
     private int sofNumberOfChannels = 0;
@@ -78,6 +82,9 @@ public class JPEGMarkerInspector {
                 case JPEGDecoding.DHT_BYTE -> {
                     hasDHT = true;
                 }
+                case JPEGDecoding.DAC_BYTE -> {
+                    hasDAC = true;
+                }
                 case JPEGDecoding.SOI_BYTE -> {
                     // strange stream: several SOI
                     p += 2;
@@ -85,14 +92,15 @@ public class JPEGMarkerInspector {
                 }
                 case JPEGDecoding.SOS_BYTE -> {
                     hasSOS = true;
-                    // entropy data start here: we don't need the following markers
-                    // (entropy data are not included into JPEGInterchangeFormat)
+                    // entropy-coded data start here: we don't scan beyond the first SOS because this class
+                    // only checks the tables and other markers relevant to the first scan
+                    // (JPEG may contain additional scans, each with its own tables.)
                     return;
                 }
                 case JPEGDecoding.EOI_BYTE -> {
                     return;
                 }
-                case JPEGDecoding.SOF0_BASELINE,
+                case JPEGDecoding.SOF0_BASELINE_DCT,
                      0xC1, 0xC2, 0xC3,
                      // not 0xC4 (DHT)
                      0xC5, 0xC6, 0xC7,
@@ -156,6 +164,10 @@ public class JPEGMarkerInspector {
         return hasDHT;
     }
 
+    public boolean hasDAC() {
+        return hasDAC;
+    }
+
     public boolean hasSOS() {
         return hasSOS;
     }
@@ -186,7 +198,7 @@ public class JPEGMarkerInspector {
         return sofDQTIndexes[index];
     }
 
-    public boolean isAbbreviatedStream() {
+    public boolean isProbablyAbbreviatedStream() {
         return hasSOF && !(hasDQT && hasDHT);
     }
 }
