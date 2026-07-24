@@ -55,8 +55,8 @@ class TiffViewer {
     // - 256MB = 16 * 16M is enough to store several user screens even with the zoom 1:4
     private static final boolean PRELOAD_LITTLE_AREA_WHILE_OPENING = true;
     // - should be true; you may clear this flag to debug possible I/O errors during the drawing process
-    private static final Color EMPTY_TILE_COLOR = new Color(200, 248, 186);
-    private static final Color EMPTY_TILE_BORDER = new Color(186, 213, 248);
+    private static final Color EMPTY_TILE_COLOR = new Color(235, 243, 230);
+    private static final Color EMPTY_TILE_BORDER = new Color(206, 209, 223);
 
     private static final System.Logger LOG = System.getLogger(TiffViewer.class.getName());
 
@@ -649,12 +649,27 @@ class TiffViewer {
     private static void customFillEmptyTile(TiffTile tile) {
         if (!tile.isRarePrecision()) {
             final Matrix<UpdatablePArray> m = tile.getUnpackedMatrix();
+            final int gap = 2;
+            final long dimX = m.dimX();
+            final long dimY = m.dimY();
+            final long dimZ = m.dimZ();
+            if (dimX <= gap || dimY <= gap) {
+                return;
+            }
             TiffMap.fillColor(m, EMPTY_TILE_COLOR);
-            int gap = 2;
-            TiffMap.fillColor(m.subMatr(0, 0, 0, m.dimX(), gap, m.dimZ()), EMPTY_TILE_BORDER);
-            TiffMap.fillColor(m.subMatr(0, 0, 0, gap, m.dimY(), m.dimZ()), EMPTY_TILE_BORDER);
-            TiffMap.fillColor(m.subMatr(m.dimX() - gap, 0, 0, gap, m.dimY(), m.dimZ()), EMPTY_TILE_BORDER);
-            TiffMap.fillColor(m.subMatr(0, m.dimY() - gap, 0, m.dimX(), gap, m.dimZ()), EMPTY_TILE_BORDER);
+            TiffMap.fillColor(m.subMatr(0, 0, 0, dimX, gap, dimZ), EMPTY_TILE_BORDER);
+            TiffMap.fillColor(m.subMatr(0, 0, 0, gap, dimY, dimZ), EMPTY_TILE_BORDER);
+            TiffMap.fillColor(m.subMatr(dimX - gap, 0, 0, gap, dimY, dimZ), EMPTY_TILE_BORDER);
+            TiffMap.fillColor(m.subMatr(0, dimY - gap, 0, dimX, gap, dimZ), EMPTY_TILE_BORDER);
+            final long max = Math.max(dimX - gap, dimY - gap);
+            final double relX = (double) (dimX - gap) / (double) max;
+            final double relY = (double) (dimY - gap) / (double) max;
+            for (int i = 0; i <= max; i++) {
+                final long x = Math.round(i * relX);
+                final long y = Math.round(i * relY);
+                TiffMap.fillColor(m.subMatr(x, y, 0, gap, gap, dimZ), EMPTY_TILE_BORDER);
+                TiffMap.fillColor(m.subMatr(x, dimY - gap - y, 0, gap, gap, dimZ), EMPTY_TILE_BORDER);
+            }
             tile.setUnpackedMatrix(m);
         }
     }
