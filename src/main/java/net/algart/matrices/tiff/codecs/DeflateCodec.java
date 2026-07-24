@@ -78,7 +78,10 @@ public class DeflateCodec implements TiffCodec {
             while (!inflater.finished()) {
                 final int decompressedSize = inflater.inflate(buffer);
                 if (decompressedSize == 0) {
-                    throw new TiffException("Invalid TIFF format: truncated or corrupt ZIP (Deflate) block");
+                    throw new TiffException("Invalid TIFF format: Deflate (ZIP) block of " + data.length +
+                            " bytes is corrupted" +
+                            (inflater.needsDictionary() ? " (missing dictionary)" :
+                                    inflater.needsInput() ? " (unexpected end of stream)" : ""));
                 }
                 outputStream.write(buffer, 0, decompressedSize);
             }

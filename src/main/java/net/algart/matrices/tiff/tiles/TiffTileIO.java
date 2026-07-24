@@ -100,8 +100,11 @@ public class TiffTileIO {
             return false;
         }
         if (tile.isDuplicate()) {
-            // - if we have several duplicate, we cannot modify them in-place
-//            return false;
+            // - if we have several duplicates, we cannot modify them in-place;
+            // without this check, we have a risk that we will increase the length of the tile (0,0),
+            // say from 68888 to 68974 bytes, but the tile (0,1) placed at the same offset will have
+            // the old length 68888 - and the reader (say, Deflate codec) will fail reading this tile
+            return false;
         }
         if (tile.isMissingInSparseTIFF()) {
             // - this check is usually redundant: encoding data length will be greater than capacity below;
