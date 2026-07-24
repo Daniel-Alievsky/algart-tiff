@@ -101,7 +101,7 @@ public class TiffTileIO {
         }
         if (tile.isDuplicate()) {
             // - if we have several duplicate, we cannot modify them in-place
-            return false;
+//            return false;
         }
         if (tile.isMissingInSparseTIFF()) {
             // - this check is usually redundant: encoding data length will be greater than capacity below;

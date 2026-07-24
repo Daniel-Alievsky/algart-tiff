@@ -71,8 +71,8 @@ public class JPEGMarkerInspector {
             final int marker = data[p + 1] & 0xFF;
             switch (marker) {
                 case 0 -> {
-                    // stuffed byte
-                    // (not too important for OldJPEGCodec: it should not occur in JPEGInterchangeFormat)
+                    // Stuffed byte (0xFF 0x00): occurs in entropy data after SOS,
+                    // but if present here due to stream corruption, simply skip this pair
                     p += 2;
                     continue;
                 }

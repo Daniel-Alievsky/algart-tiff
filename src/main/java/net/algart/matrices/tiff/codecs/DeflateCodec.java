@@ -41,6 +41,8 @@ public class DeflateCodec implements TiffCodec {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
         final Double compressionLevel = options.getLosslessCompressionLevel();
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final byte[] buffer = new byte[65536];
         final Deflater deflater;
         if (compressionLevel != null) {
             final int level = compressionLevel <= 0.0 ? 0 :
@@ -50,14 +52,15 @@ public class DeflateCodec implements TiffCodec {
         } else {
             deflater = new Deflater();
         }
-        deflater.setInput(data);
-        deflater.finish();
-
-        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        final byte[] buffer = new byte[65536];
-        while (!deflater.finished()) {
-            final int compressedSize = deflater.deflate(buffer);
-            outputStream.write(buffer, 0, compressedSize);
+        try {
+            deflater.setInput(data);
+            deflater.finish();
+            while (!deflater.finished()) {
+                final int compressedSize = deflater.deflate(buffer);
+                outputStream.write(buffer, 0, compressedSize);
+            }
+        } finally {
+            deflater.end();
         }
         return outputStream.toByteArray();
     }
@@ -67,18 +70,22 @@ public class DeflateCodec implements TiffCodec {
     public byte[] decompress(byte[] data, Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
-        Inflater inflater = new Inflater();
-        inflater.setInput(data);
-
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         final byte[] buffer = new byte[65536];
+        Inflater inflater = new Inflater();
         try {
+            inflater.setInput(data);
             while (!inflater.finished()) {
                 final int decompressedSize = inflater.inflate(buffer);
+                if (decompressedSize == 0) {
+                    throw new TiffException("Invalid TIFF format: truncated or corrupt ZIP (Deflate) block");
+                }
                 outputStream.write(buffer, 0, decompressedSize);
             }
         } catch (DataFormatException e) {
             throw new TiffException("Invalid TIFF format: broken compressed data in ZIP (Deflate) block", e);
+        } finally {
+            inflater.end();
         }
         return outputStream.toByteArray();
     }

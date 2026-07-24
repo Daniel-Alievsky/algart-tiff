@@ -1495,8 +1495,7 @@ public non-sealed class TiffReader extends TiffIO {
      */
     public String internalTimingReport() {
         return String.format(Locale.US,
-                "%.3f read; %.3f customize/bit-order, %.3f decode%s, " +
-                        "%.3f completing)",
+                "%.3f read; %.3f customize/bit-order, %.3f decode%s, %.3f completing",
                 timeReading * 1e-6,
                 timeCustomizingDecoding * 1e-6,
                 timeDecoding * 1e-6,
