@@ -57,6 +57,8 @@ public class DeflateCodec implements TiffCodec {
             deflater.finish();
             while (!deflater.finished()) {
                 final int compressedSize = deflater.deflate(buffer);
+                // - compressedSize == 0 only occurs when the deflater has finished producing output,
+                // so this loop cannot become infinite
                 outputStream.write(buffer, 0, compressedSize);
             }
         } finally {
@@ -64,7 +66,6 @@ public class DeflateCodec implements TiffCodec {
         }
         return outputStream.toByteArray();
     }
-
 
     @Override
     public byte[] decompress(byte[] data, Options options) throws TiffException {
