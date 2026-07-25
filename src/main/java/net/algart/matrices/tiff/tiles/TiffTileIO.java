@@ -30,6 +30,11 @@ import java.io.IOException;
 import java.util.Objects;
 
 public class TiffTileIO {
+    private static final boolean ALWAYS_REALLOCATE_DUPLICATES = true;
+    // - Must be true for correct work. But the false value allows running a stress test
+    // for codecs: the same tile will be written with different Strip/TileByteCount values,
+    // sometimes larger, sometimes smaller than the true data length.
+
     private static final boolean SMART_WRITING_TO_FILE_END = true;
     // - Should be true. Allows reducing file size if the tile is located at the file end, and
     // it is smaller than the previously written one.
@@ -99,7 +104,7 @@ public class TiffTileIO {
         if (!tile.isStoredInFile()) {
             return false;
         }
-        if (tile.isDuplicate()) {
+        if (ALWAYS_REALLOCATE_DUPLICATES && tile.isDuplicate()) {
             // - if we have several duplicates, we cannot modify them in-place;
             // without this check, we have a risk that we will increase the length of the tile (0,0),
             // say from 68888 to 68974 bytes, but the tile (0,1) placed at the same offset will have
@@ -108,7 +113,8 @@ public class TiffTileIO {
         }
         if (tile.isMissingInSparseTIFF()) {
             // - this check is usually redundant: encoding data length will be greater than capacity below;
-            // but it must to checked explicitly to ensure that edge cases (as zero data length) are handled correctly
+            // but it must be checked explicitly to ensure that edge cases (such as zero data length)
+            // are handled correctly
             // System.out.printf("!!! Cannot write in-place: %s is missing tile%n", tile.index());
             return false;
         }
