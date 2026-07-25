@@ -75,7 +75,8 @@ public class TiffOverwriteNaturalNumbersDemo {
             writer.setTileInitializer(new Color(186, 213, 248));
             // - correct way (for "sparse" formats with missing tiles)
             final TiffWriteMap writeMap = writer.existingMap(ifdIndex);
-            System.out.printf("Overwriting %s...%n", writeMap);
+            System.out.printf("Overwriting %s%n", writeMap);
+            System.out.printf("Writing compression: %s%n", writeMap.compression().orElse(null));
             long t1 = System.nanoTime();
             for (int repeat = 0; repeat < numberOfRepeats; repeat++) {
                 final long initialFileLength = writeMap.fileLength();

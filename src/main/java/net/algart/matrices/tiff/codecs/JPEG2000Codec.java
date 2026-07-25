@@ -363,12 +363,13 @@ public class JPEG2000Codec implements TiffCodec {
             }
         }
 
+        //noinspection removal
         try {
             writeImage(out, img, jpeg2000Options);
-        } catch (final IOException e) {
-            throw new TiffException("Could not compress JPEG-2000 data.", e);
+        } catch (ThreadDeath | IOException e) {
+            // - ThreadDeath is still used in jai-imageio-jpeg2000 1.4.0
+            throw new TiffException("Cannot compress JPEG-2000 data", e);
         }
-
         return out.toByteArray();
     }
 
@@ -389,6 +390,7 @@ public class JPEG2000Codec implements TiffCodec {
         Raster raster;
         int bpp;
 
+        //noinspection removal
         try {
             final ByteArrayInputStream bis = new ByteArrayInputStream(data);
             raster = readRaster(bis, jpeg2000Options);
@@ -399,8 +401,12 @@ public class JPEG2000Codec implements TiffCodec {
             bpp = single[0].length / (raster.getWidth() * raster.getHeight());
 
             bis.close();
+        } catch (ThreadDeath e) {
+            // - still used in jai-imageio-jpeg2000 1.4.0
+            throw new TiffException("Cannot decompress JPEG-2000 image: " +
+                    "the thread has been terminated, see the log", e);
         } catch (IOException e) {
-            throw new TiffException("Could not decompress JPEG2000 image. Please " +
+            throw new TiffException("Cannot decompress JPEG2000 image. Please " +
                     "make sure that jai_imageio.jar is installed.", e);
         }
 //        catch (final ServiceException e) {
@@ -460,7 +466,12 @@ public class JPEG2000Codec implements TiffCodec {
         if (options.numberOfDecompositionLevels != null) {
             param.setNumDecompositionLevels(options.numberOfDecompositionLevels);
         }
-        writer.write(null, iioImage, param);
+        //noinspection removal
+        try {
+            writer.write(null, iioImage, param);
+        } catch (ThreadDeath e) {
+            throw new TiffException("Cannot write JPEG-2000 image", e);
+        }
         ios.close();
     }
 
@@ -472,7 +483,7 @@ public class JPEG2000Codec implements TiffCodec {
         if (options.resolution != null) {
             param.setResolution(options.resolution);
         }
-        return reader.readRaster(0, param);
+            return reader.readRaster(0, param);
     }
 
     private static short toShort(final byte[] src, int srcPos, final boolean little) {

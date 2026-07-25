@@ -128,24 +128,24 @@ public enum TagCompression {
 
     /**
      * JPEG-2000 standard compression (type 34712).
-     * Default quality is chosen as for lossy JPEG-2000 formats
-     * (see {@link JPEG2000Codec.JPEG2000Options#DEFAULT_NORMAL_QUALITY}).
+     * Default quality is chosen as for lossless JPEG-2000 formats.
      *
      * <p>For writing, the <code>PhotometricInterpretation</code> will be automatically set
      * to RGB (default value).</p>
      */
-    JPEG_2000(TiffIFD.COMPRESSION_JPEG_2000, "JPEG-2000",
-            JPEG2000Codec::new, null, false),
+    JPEG_2000_LOSSLESS(TiffIFD.COMPRESSION_JPEG_2000, "JPEG-2000 lossless",
+            JPEG2000Codec::new, null, true),
 
     /**
-     * The same compression code as in {@link #JPEG_2000},
-     * but the default quality is chosen as for lossless JPEG-2000 formats.
+     * The same compression code as in {@link #JPEG_2000_LOSSLESS},
+     * but the default quality is chosen as for lossy JPEG-2000 formats
+     * (see {@link JPEG2000Codec.JPEG2000Options#DEFAULT_NORMAL_QUALITY}).
      *
      * <p>This compression never appears while reading TIFF by {@link net.algart.matrices.tiff.TiffReader},
      * but can be useful while writing by {@link net.algart.matrices.tiff.TiffWriter}.</p>
      */
-    JPEG_2000_LOSSLESS(TiffIFD.COMPRESSION_JPEG_2000, "JPEG-2000 lossless",
-            JPEG2000Codec::new, null, true),
+    JPEG_2000(TiffIFD.COMPRESSION_JPEG_2000, "JPEG-2000",
+            JPEG2000Codec::new, null, false),
     // - Note: this variant has the same code as the previous one;
     // it must be specified AFTER: it can only be a result of setting compression for writing
     // and cannot appear when parsing an existing TIFF.
