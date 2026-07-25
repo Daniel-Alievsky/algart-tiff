@@ -466,12 +466,7 @@ public class JPEG2000Codec implements TiffCodec {
         if (options.numberOfDecompositionLevels != null) {
             param.setNumDecompositionLevels(options.numberOfDecompositionLevels);
         }
-        //noinspection removal
-        try {
-            writer.write(null, iioImage, param);
-        } catch (ThreadDeath e) {
-            throw new TiffException("Cannot write JPEG-2000 image", e);
-        }
+        writer.write(null, iioImage, param);
         ios.close();
     }
 
