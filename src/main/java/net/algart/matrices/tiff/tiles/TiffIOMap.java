@@ -41,18 +41,20 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
     // IF YOU CHANGE IT, YOU MUST CORRECT ALSO TiffWriter.AUTO_INTERLEAVE_SOURCE.
 
     /**
-     * The mode specifying how to get (fetch) tiles from the image while loading samples
-     * in such methods as {@link #loadSampleBytes(int, int, int, int, boolean)}.
+     * The mode specifying how to fetch tiles from the image while loading samples
+     * in methods such as {@link #loadSampleBytes(int, int, int, int, boolean)}.
      */
     public enum TileFetchMode {
         /**
-         * Default mode: if tile already exists in the map, it is reused.
+         * Default mode: if a non-empty tile already exists in the map, it is reused;
+         * otherwise, it is fetched via the current {@link TileSupplier}.
          * This is the best choice for most situations.
          */
         REUSE_EXISTING,
+
         /**
-         * The tile is always loaded from the source image via the current {@link TileSupplier}.
-         * If the tile with the same index already exists in the map, it is replaced with the new one.
+         * The tile is always reloaded from the source image via the current {@link TileSupplier}.
+         * If a tile with the same index already exists in the map, it is replaced with the newly loaded one.
          */
         ALWAYS_RELOAD;
 
