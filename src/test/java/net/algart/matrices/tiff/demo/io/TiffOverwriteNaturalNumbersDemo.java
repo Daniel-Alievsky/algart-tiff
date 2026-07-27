@@ -26,6 +26,7 @@ package net.algart.matrices.tiff.demo.io;
 
 import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffWriter;
+import net.algart.matrices.tiff.tiles.TiffIOMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
@@ -75,6 +76,7 @@ public class TiffOverwriteNaturalNumbersDemo {
             writer.setTileInitializer(new Color(186, 213, 248));
             // - correct way (for "sparse" formats with missing tiles)
             final TiffWriteMap writeMap = writer.existingMap(ifdIndex);
+            writeMap.setLoadExistingTileMode(TiffIOMap.LoadExistingTileMode.RELOAD);
             System.out.printf("Overwriting %s%n", writeMap);
             System.out.printf("Writing compression: %s%n", writeMap.compression().orElse(null));
             long t1 = System.nanoTime();

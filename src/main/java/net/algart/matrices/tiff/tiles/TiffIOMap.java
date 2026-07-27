@@ -40,9 +40,19 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
     // - Must be true. See TiffWriter.AUTO_INTERLEAVE_SOURCE.
     // IF YOU CHANGE IT, YOU MUST CORRECT ALSO TiffWriter.AUTO_INTERLEAVE_SOURCE.
 
+    public enum LoadExistingTileMode {
+        LOAD_IF_EMPTY,
+        RELOAD;
+
+        public boolean isAlwaysLoading() {
+            return this == RELOAD;
+        }
+    }
+
     private final T owner;
 
     private volatile TileSupplier tileSupplier = this::readCachedTile;
+    private volatile LoadExistingTileMode loadExistingTileMode = LoadExistingTileMode.RELOAD;
 
     public TiffIOMap(T owner, TiffIFD ifd, boolean resizable) throws TiffException {
         super(ifd, resizable);
@@ -92,6 +102,16 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
 
     public TiffIOMap<T> setUncachedTileSupplier() {
         return setTileSupplier(this::readTile);
+    }
+
+    public LoadExistingTileMode loadExistingTileMode() {
+        return loadExistingTileMode;
+    }
+
+    public TiffIOMap<T> setLoadExistingTileMode(LoadExistingTileMode loadExistingTileMode) {
+        this.loadExistingTileMode = Objects.requireNonNull(
+                loadExistingTileMode, "Null  loadExistingTileMode");
+        return this;
     }
 
     @Override
@@ -188,19 +208,29 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
                     final int xDiff = tileStartX - fromX;
 
                     final TiffTileIndex tileIndex = index(xIndex, yIndex, p);
-                    final TiffTile tile = tileSupplier.getTile(tileIndex);
-                    if (storeTilesInMap) {
-                        put(tile);
+                    TiffTile tile = get(tileIndex);
+                    if (tile != null && !tile.isSeparated()) {
+                        throw new IllegalStateException("Tile map already contains invalid tile (" + tile +
+                                "): it is interleaved, but the tile map should contain only separated tiles");
                     }
-                    tile.fillIfEmpty(tileInitializer, byteFiller);
+                    if (tile == null || loadExistingTileMode.isAlwaysLoading()) {
+                        tile = tileSupplier.getTile(tileIndex);
+                        if (!tile.isSeparated()) {
+                            throw new IllegalStateException("Illegal behavior of the tile supplier (" + tileSupplier +
+                                    "): it returned interleaved tile!");
+                        }
+                        tile.fillIfEmpty(tileInitializer, byteFiller);
+                        // - necessary for "sparse" formats (when missingTilesAllowed=true)
+                        assert !tile.isEmpty() : "empty tile after fillIfEmpty";
+                        if (storeTilesInMap) {
+                            put(tile);
+                        }
+                    }
                     if (tile.isEmpty()) {
+                        // - for example, frozen tile already existing in the map
                         continue;
                     }
-                    if (!tile.isSeparated()) {
-                        throw new AssertionError(
-                                "Illegal behavior of readTile: it returned interleaved tile!");
-                        // - theoretically possible in subclasses
-                    }
+                    assert tile.isSeparated() : "it was already checked";
                     byte[] data = tile.getDecodedData();
 
                     final int tileSizeX = tile.getSizeX();

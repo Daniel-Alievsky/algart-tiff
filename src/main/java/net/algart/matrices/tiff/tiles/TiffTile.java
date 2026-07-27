@@ -706,7 +706,7 @@ public final class TiffTile {
 
     public TiffTile fillIfEmpty(Consumer<TiffTile> initializer, byte byteFiller) {
         checkFrozen();
-        // - if frozen, then isEmpty() below returns true
+        // - if frozen, then isEmpty() below returns true: we must check it and not fill such a tile
         if (isEmpty()) {
             byte[] newData = new byte[sizeInBytes];
             if (byteFiller != 0) {
