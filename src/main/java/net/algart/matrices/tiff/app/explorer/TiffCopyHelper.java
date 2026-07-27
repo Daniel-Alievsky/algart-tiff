@@ -110,64 +110,68 @@ class TiffCopyHelper {
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         mainPanel.add(TinySwing.leftLabel(TinySwing.smartHtmlLines("""
-            The TIFF images from the file:<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
-            will be copied to a new TIFF file:<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
-            &nbsp;<br>
-            This operation copies IFD structures and the images of this TIFF file &mdash;
-            image by image, tile by tile<br>
-            (for tiled images) &mdash; into a new file.<br>
-            Warning:<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&bull;&nbsp;Sub-IFDs (if present) are converted to ordinary IFDs;
-            Sub-IFD hierarchy is not preserved.<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&bull;&nbsp;Non-standard linked IFD structures (such as Exif or GPS)
-            are <b>not</b> copied.<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&bull;&nbsp;Structural changes may render specific vendor-dependent
-            metadata inaccessible.<br>
-            &nbsp;<br>
-            The copying helps to eliminate unused space and fragmentation, similarly to:<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;File \u25B8 Compact TIFF...<br>
-            To copy only the current image, click "Show image" and use<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;File \u25B8 Save image as TIFF...<br>
-            in the opened window.
-            """.formatted(
+                The TIFF images from the file:<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
+                will be copied to a new TIFF file:<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
+                &nbsp;<br>
+                This operation copies IFD structures and the images of this TIFF file &mdash;
+                image by image, tile by tile<br>
+                (for tiled images) &mdash; into a new file.<br>
+                Warning:<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&bull;&nbsp;Sub-IFDs (if present) are converted to ordinary IFDs;
+                Sub-IFD hierarchy is not preserved.<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&bull;&nbsp;Non-standard linked IFD structures (such as Exif or GPS)
+                are <b>not</b> copied.<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&bull;&nbsp;Structural changes may render specific vendor-dependent
+                metadata inaccessible.<br>
+                &nbsp;<br>
+                The copying helps to eliminate unused space and fragmentation, similarly to:<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;File \u25B8 Compact TIFF...<br>
+                To copy only the current image, click "Show image" and use<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;File \u25B8 Save image as TIFF...<br>
+                in the opened window.
+                """.formatted(
                 tiffFile.toAbsolutePath(), targetFile.toAbsolutePath()
         ))));
         mainPanel.add(Box.createVerticalStrut(10));
 
-        mainPanel.add(TinySwing.leftLabel("Select range of image indexes to copy (%d images total):"
-                .formatted(numberOfImages)));
-        mainPanel.add(Box.createVerticalStrut(5));
-        firstIfdComboBox = JTiffExplorerFrame.newIFDComboBox();
-        JTiffExplorerFrame.fillIFDComboBox(firstIfdComboBox, info);
-        firstIfdComboBox.setSelectedIndex(0);
-        lastIfdComboBox = JTiffExplorerFrame.newIFDComboBox();
-        JTiffExplorerFrame.fillIFDComboBox(lastIfdComboBox, info);
-        lastIfdComboBox.setSelectedIndex(numberOfImages - 1);
+        firstIfdComboBox = null;
+        lastIfdComboBox = null;
+        if (numberOfImages > 1) {
+            mainPanel.add(TinySwing.leftLabel("Select range of image indexes to copy (%d images total):"
+                    .formatted(numberOfImages)));
+            mainPanel.add(Box.createVerticalStrut(5));
+            firstIfdComboBox = JTiffExplorerFrame.newIFDComboBox();
+            JTiffExplorerFrame.fillIFDComboBox(firstIfdComboBox, info);
+            firstIfdComboBox.setSelectedIndex(0);
+            lastIfdComboBox = JTiffExplorerFrame.newIFDComboBox();
+            JTiffExplorerFrame.fillIFDComboBox(lastIfdComboBox, info);
+            lastIfdComboBox.setSelectedIndex(numberOfImages - 1);
 
-        final JPanel ifdRangePanel = new JPanel(new GridBagLayout());
-        ifdRangePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(2, 0, 2, 8);
-        gbc.anchor = GridBagConstraints.WEST;
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.weightx = 0.0;
-        ifdRangePanel.add(new JLabel("<html>&nbsp;&nbsp;&nbsp;&nbsp;from "), gbc);
-        gbc.gridx = 1;
-        gbc.weightx = 0.0;
-        ifdRangePanel.add(firstIfdComboBox, gbc);
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        gbc.weightx = 0.0;
-        ifdRangePanel.add(new JLabel("<html>&nbsp;&nbsp;&nbsp;&nbsp;to "), gbc);
-        gbc.gridx = 1;
-        gbc.weightx = 0.0;
-        ifdRangePanel.add(lastIfdComboBox, gbc);
-        ifdRangePanel.setMaximumSize(ifdRangePanel.getPreferredSize());
-        mainPanel.add(ifdRangePanel);
-        mainPanel.add(Box.createVerticalStrut(10));
+            final JPanel ifdRangePanel = new JPanel(new GridBagLayout());
+            ifdRangePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(2, 0, 2, 8);
+            gbc.anchor = GridBagConstraints.WEST;
+            gbc.gridx = 0;
+            gbc.gridy = 0;
+            gbc.weightx = 0.0;
+            ifdRangePanel.add(new JLabel("<html>&nbsp;&nbsp;&nbsp;&nbsp;from "), gbc);
+            gbc.gridx = 1;
+            gbc.weightx = 0.0;
+            ifdRangePanel.add(firstIfdComboBox, gbc);
+            gbc.gridx = 0;
+            gbc.gridy = 1;
+            gbc.weightx = 0.0;
+            ifdRangePanel.add(new JLabel("<html>&nbsp;&nbsp;&nbsp;&nbsp;to "), gbc);
+            gbc.gridx = 1;
+            gbc.weightx = 0.0;
+            ifdRangePanel.add(lastIfdComboBox, gbc);
+            ifdRangePanel.setMaximumSize(ifdRangePanel.getPreferredSize());
+            mainPanel.add(ifdRangePanel);
+            mainPanel.add(Box.createVerticalStrut(10));
+        }
 
         final JPanel settingsPanel = new JPanel();
         settingsPanel.setLayout(new BoxLayout(settingsPanel, BoxLayout.Y_AXIS));
@@ -301,8 +305,8 @@ class TiffCopyHelper {
     }
 
     private void startCopy(Path sourceFile, Path targetFile) {
-        final int firstIndex = firstIfdComboBox.getSelectedIndex();
-        final int lastIndex = lastIfdComboBox.getSelectedIndex();
+        final int firstIndex = firstIfdComboBox == null ? 0 : firstIfdComboBox.getSelectedIndex();
+        final int lastIndex = lastIfdComboBox == null ? 0 : lastIfdComboBox.getSelectedIndex();
         if (firstIndex > lastIndex) {
             JOptionPane.showMessageDialog(
                     frame,
@@ -313,7 +317,7 @@ class TiffCopyHelper {
             return;
         }
         startCopyOperation(copier -> {
-            TiffCopier.checkDifferentFiles(sourceFile,targetFile);
+            TiffCopier.checkDifferentFiles(sourceFile, targetFile);
             // - just in case (we already checked this)
             try (TiffReader reader = new TiffReader(sourceFile);
                  TiffWriter writer = new TiffWriter(targetFile)) {
