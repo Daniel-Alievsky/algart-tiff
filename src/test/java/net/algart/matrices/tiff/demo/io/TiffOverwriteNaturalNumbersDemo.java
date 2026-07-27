@@ -41,6 +41,7 @@ import java.util.Locale;
 public class TiffOverwriteNaturalNumbersDemo {
     private static final boolean ACCURATE_MEMORY_MEASURING = true;
     private static final TiffIOMap.TileFetchMode FETCH_MODE = TiffIOMap.TileFetchMode.REUSE_EXISTING;
+    // - ALWAYS_RELOAD will NOT correctly work when flush=false
 
     public static void main(String... args) throws IOException {
         int startArgIndex = 0;
