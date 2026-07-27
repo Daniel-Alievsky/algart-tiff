@@ -40,6 +40,7 @@ import java.util.Locale;
 
 public class TiffOverwriteNaturalNumbersDemo {
     private static final boolean ACCURATE_MEMORY_MEASURING = true;
+    private static final TiffIOMap.LoadExistingTileMode LOADING_MODE = TiffIOMap.LoadExistingTileMode.LOAD_IF_EMPTY;
 
     public static void main(String... args) throws IOException {
         int startArgIndex = 0;
@@ -81,7 +82,7 @@ public class TiffOverwriteNaturalNumbersDemo {
             writer.setTileInitializer(new Color(186, 213, 248));
             // - correct way (for "sparse" formats with missing tiles)
             final TiffWriteMap writeMap = writer.existingMap(ifdIndex);
-            writeMap.setLoadExistingTileMode(TiffIOMap.LoadExistingTileMode.LOAD_IF_EMPTY);
+            writeMap.setLoadExistingTileMode(LOADING_MODE);
             System.out.printf("Overwriting %s%n", writeMap);
             System.out.printf("Writing compression: %s%n", writeMap.compression().orElse(null));
             long t1 = System.nanoTime();

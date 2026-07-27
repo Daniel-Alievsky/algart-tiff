@@ -912,20 +912,20 @@ public final class TiffTile {
      * or {@link #fillIfEmpty()}.
      * Unlike this, after this method,
      * the tile usually cannot be modified: any attempt to get or set data
-     * ({@link #getDecodedData()}, {@link #getEncodedData()}, {@link  #setDecodedData(byte[])},
-     * {@link #setEncodedData(byte[])}, {@link #fillIfEmpty()} etc.) will result in an exception.
+     * ({@link #getDecodedData()}, {@link #getEncodedData()}, {@link #setDecodedData(byte[])},
+     * {@link #setEncodedData(byte[])}, {@link #fillIfEmpty()} etc.) will result in an exception.</p>
      *
      * <p>{@link TiffWriter} class checks {@link #isFrozenEmpty()} method and does not attempt to update
      * <i>frozen-empty</i> tiles.</p>
      *
      * <p>This method is automatically called by {@link TiffWriter#writeTile(TiffTile, boolean)} method
      * when its second argument is <code>true</code>:
-     * usually there is no any sense to work with a tile after once it has been written into the TIFF file.</p>
+     * usually there is no sense to work with a tile after once it has been written into the TIFF file.</p>
      *
      * <p>This mode is especially useful for incremental image writing with overlapping
      * incoming data chunks (like streaming tiles/scans). Once a completed tile is flushed
      * to disk and frozen as an empty tile, subsequent overlapping chunks will safely ignore this tile
-     * instead of re-initializing it with zeroes and corrupting already written area.</p>
+     * instead of re-initializing it with zeroes and corrupting the already written area.</p>
      *
      * <p>The <i>frozen-empty</i> status may be cleared ("unfreezing") by the methods
      * {@link #setDecodedData(byte[], boolean)} and {@link #setEncodedData(byte[], boolean)}

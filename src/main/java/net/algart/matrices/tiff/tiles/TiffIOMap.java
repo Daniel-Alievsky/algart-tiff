@@ -54,7 +54,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
     private final T owner;
 
     private volatile TileSupplier tileSupplier = this::readCachedTile;
-    private volatile LoadExistingTileMode loadExistingTileMode = LoadExistingTileMode.RELOAD;
+    private volatile LoadExistingTileMode loadExistingTileMode = LoadExistingTileMode.LOAD_IF_EMPTY;
 
     public TiffIOMap(T owner, TiffIFD ifd, boolean resizable) throws TiffException {
         super(ifd, resizable);
