@@ -212,11 +212,8 @@ public class JTiffExplorerFrame extends JFrame {
     }
 
     private void addIFDComboBox(JPanel toolboxPanel) {
-        ifdComboBox = new JComboBox<>();
-        ifdComboBox.setFont(new Font(Font.MONOSPACED, Font.PLAIN, DEFAULT_FONT_SIZE));
-        ifdComboBox.setMaximumRowCount(32);
-        ifdComboBox.addActionListener(e -> updateTextArea());
-        ifdComboBox.setPrototypeDisplayValue("Image #999");
+        this.ifdComboBox = newIFDComboBox();
+        this.ifdComboBox.addActionListener(e -> updateTextArea());
         toolboxPanel.add(Box.createHorizontalStrut(10));
         toolboxPanel.add(new JLabel("Select TIFF image (IFD):"));
         toolboxPanel.add(ifdComboBox);
@@ -449,59 +446,13 @@ public class JTiffExplorerFrame extends JFrame {
         svsInfoTextArea.setText(info.svsInfo());
         svsInfoTextArea.setVisible(info.metadata().isNonTrivial());
         svsInfoTextArea.setCaretPosition(0);
-        TiffPyramidMetadata metadata = info.metadata();
-        assert metadata != null;
-        String longest = "";
-        assert info.getFirstIFDIndex() == 0;
-        // - so, the index below is equal to the index in the ifds list
-        String[] captions = new String[info.numberOfImages()];
-        for (int i = 0; i < info.numberOfImages(); i++) {
-            final TiffIFD ifd = metadata.ifd(i);
-            if (!ifd.hasGlobalIndex() || ifd.getGlobalIndex() != i) {
-                throw new AssertionError("Invalid global index "+ ifd.getGlobalIndex());
-            }
-            String caption;
-            try {
-                caption = (ifd.isMainIFD() ? "" : "  ") +
-                        "#" + i + " [" + ifd.getImageDimX() + "x" + ifd.getImageDimY() +
-                        (ifd.hasTileInformation() ? " tiled" : "") + "]";
-            } catch (TiffException e) {
-                caption = "#" + i + " [error]";
-                LOG.log(System.Logger.Level.ERROR, "Error parsing IFD", e);
-            }
-            if (caption.length() > longest.length()) {
-                longest = caption;
-            }
-            captions[i] = caption;
-        }
-        final int maxLength = longest.length();
-        for (int i = 0; i < captions.length; i++) {
-            String caption = captions[i];
-            final StringBuilder sb = new StringBuilder(caption + " ".repeat(maxLength - caption.length()));
-            final int layer = metadata.imageToLayer(i);
-            if (metadata.isPyramid()) {
-                if (layer >= 0) {
-                    sb.append(" (layer ").append(layer).append(")");
-                }
-                for (var kind : TiffImageKind.values()) {
-                    if (metadata.specialKindIndex(kind) == i) {
-                        sb.append(" (").append(kind.kindName().toUpperCase()).append(")");
-                    }
-                }
-            }
-            caption = sb.toString();
-            ifdComboBox.addItem(caption);
-            if (caption.length() > longest.length()) {
-                longest = caption;
-            }
-        }
+        fillIFDComboBox(ifdComboBox, info);
         if (info.numberOfImages() == 0) {
             ifdTextArea.setText("");
         } else {
             ifdComboBox.setSelectedIndex(0);
             updateTextArea();
         }
-        ifdComboBox.setPrototypeDisplayValue(longest);
         this.setTitle(APPLICATION_TITLE + ": " + explorer.getTiffFile().toString());
     }
 
@@ -563,6 +514,66 @@ public class JTiffExplorerFrame extends JFrame {
 
     Font getCurrentPreferredMonoFont() {
         return getPreferredMonoFont(fontFamily, fontSize);
+    }
+
+    static JComboBox<String> newIFDComboBox() {
+        JComboBox<String> ifdComboBox = new JComboBox<>();
+        ifdComboBox.setFont(new Font(Font.MONOSPACED, Font.PLAIN, DEFAULT_FONT_SIZE));
+        ifdComboBox.setMaximumRowCount(32);
+        ifdComboBox.setPrototypeDisplayValue("Image #999");
+        return ifdComboBox;
+    }
+
+    static void fillIFDComboBox(JComboBox<String> ifdComboBox, TiffInfo info) {
+        Objects.requireNonNull(ifdComboBox);
+        Objects.requireNonNull(info);
+        TiffPyramidMetadata metadata = info.metadata();
+        assert metadata != null;
+        String longest = "";
+        assert info.getFirstIFDIndex() == 0;
+        // - so, the index below is equal to the index in the ifds list
+        String[] captions = new String[info.numberOfImages()];
+        for (int i = 0; i < info.numberOfImages(); i++) {
+            final TiffIFD ifd = metadata.ifd(i);
+            if (!ifd.hasGlobalIndex() || ifd.getGlobalIndex() != i) {
+                throw new AssertionError("Invalid global index "+ ifd.getGlobalIndex());
+            }
+            String caption;
+            try {
+                caption = (ifd.isMainIFD() ? "" : "  ") +
+                        "#" + i + " [" + ifd.getImageDimX() + "x" + ifd.getImageDimY() +
+                        (ifd.hasTileInformation() ? " tiled" : "") + "]";
+            } catch (TiffException e) {
+                caption = "#" + i + " [error]";
+                LOG.log(System.Logger.Level.ERROR, "Error parsing IFD", e);
+            }
+            if (caption.length() > longest.length()) {
+                longest = caption;
+            }
+            captions[i] = caption;
+        }
+        final int maxLength = longest.length();
+        for (int i = 0; i < captions.length; i++) {
+            String caption = captions[i];
+            final StringBuilder sb = new StringBuilder(caption + " ".repeat(maxLength - caption.length()));
+            final int layer = metadata.imageToLayer(i);
+            if (metadata.isPyramid()) {
+                if (layer >= 0) {
+                    sb.append(" (layer ").append(layer).append(")");
+                }
+                for (var kind : TiffImageKind.values()) {
+                    if (metadata.specialKindIndex(kind) == i) {
+                        sb.append(" (").append(kind.kindName().toUpperCase()).append(")");
+                    }
+                }
+            }
+            caption = sb.toString();
+            ifdComboBox.addItem(caption);
+            if (caption.length() > longest.length()) {
+                longest = caption;
+            }
+        }
+        ifdComboBox.setPrototypeDisplayValue(longest);
     }
 
     static Font getPreferredMonoFont(FontFamily family, int size) {

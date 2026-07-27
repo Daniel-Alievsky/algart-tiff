@@ -51,8 +51,8 @@ class TiffCopyHelper {
     private volatile boolean stopRequested = false;
 
     private JDialog settingsDialog;
-    private JComboBox<Integer> firstIfdComboBox;
-    private JComboBox<Integer> lastIfdComboBox;
+    private JComboBox<String> firstIfdComboBox;
+    private JComboBox<String> lastIfdComboBox;
     private JComboBox<UserByteOrder> byteOrderComboBox;
     private JCheckBox bigTiffCheckBox;
     private JCheckBox missingTilesCheckBox;
@@ -136,25 +136,36 @@ class TiffCopyHelper {
         ))));
         mainPanel.add(Box.createVerticalStrut(10));
 
-        mainPanel.add(TinySwing.leftLabel("Select range of image indexes to copy:"));
+        mainPanel.add(TinySwing.leftLabel("Select range of image indexes to copy (%d images total):"
+                .formatted(numberOfImages)));
         mainPanel.add(Box.createVerticalStrut(5));
-        final Integer[] ifdIndices = IntStream.range(0, numberOfImages).boxed().toArray(Integer[]::new);
-        firstIfdComboBox = new JComboBox<>(ifdIndices);
-        firstIfdComboBox.setMaximumRowCount(32);
-        firstIfdComboBox.setPrototypeDisplayValue(9999);
+        firstIfdComboBox = JTiffExplorerFrame.newIFDComboBox();
+        JTiffExplorerFrame.fillIFDComboBox(firstIfdComboBox, info);
         firstIfdComboBox.setSelectedIndex(0);
-        lastIfdComboBox = new JComboBox<>(ifdIndices);
-        lastIfdComboBox.setMaximumRowCount(32);
-        lastIfdComboBox.setPrototypeDisplayValue(9999);
+        lastIfdComboBox = JTiffExplorerFrame.newIFDComboBox();
+        JTiffExplorerFrame.fillIFDComboBox(lastIfdComboBox, info);
         lastIfdComboBox.setSelectedIndex(numberOfImages - 1);
-        final JPanel ifdRangePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+
+        final JPanel ifdRangePanel = new JPanel(new GridBagLayout());
         ifdRangePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        ifdRangePanel.add(new JLabel("<html>&nbsp;&nbsp;&nbsp;&nbsp;from "));
-        ifdRangePanel.add(firstIfdComboBox);
-        ifdRangePanel.add(new JLabel("<html>&nbsp;&nbsp;to "));
-        ifdRangePanel.add(lastIfdComboBox);
-        ifdRangePanel.add(new JLabel("<html>&nbsp;&nbsp;(%d images total)".formatted(numberOfImages)));
-        ifdRangePanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, ifdRangePanel.getPreferredSize().height));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(2, 0, 2, 8);
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 0.0;
+        ifdRangePanel.add(new JLabel("<html>&nbsp;&nbsp;&nbsp;&nbsp;from "), gbc);
+        gbc.gridx = 1;
+        gbc.weightx = 0.0;
+        ifdRangePanel.add(firstIfdComboBox, gbc);
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.weightx = 0.0;
+        ifdRangePanel.add(new JLabel("<html>&nbsp;&nbsp;&nbsp;&nbsp;to "), gbc);
+        gbc.gridx = 1;
+        gbc.weightx = 0.0;
+        ifdRangePanel.add(lastIfdComboBox, gbc);
+        ifdRangePanel.setMaximumSize(ifdRangePanel.getPreferredSize());
         mainPanel.add(ifdRangePanel);
         mainPanel.add(Box.createVerticalStrut(10));
 
@@ -290,8 +301,8 @@ class TiffCopyHelper {
     }
 
     private void startCopy(Path sourceFile, Path targetFile) {
-        final int firstIndex = TinySwing.selectedValue(firstIfdComboBox);
-        final int lastIndex = TinySwing.selectedValue(lastIfdComboBox);
+        final int firstIndex = firstIfdComboBox.getSelectedIndex();
+        final int lastIndex = lastIfdComboBox.getSelectedIndex();
         if (firstIndex > lastIndex) {
             JOptionPane.showMessageDialog(
                     frame,
