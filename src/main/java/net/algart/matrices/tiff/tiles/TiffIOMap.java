@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits TiffReadMap, TiffWriteMap {
     static final boolean AUTO_INTERLEAVE_SOURCE = true;
@@ -378,13 +379,17 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             throw new IllegalStateException("Illegal behavior of the tile supplier (" + tileSupplier +
                     "): it returned " + (tile == null ? "null" : "interleaved") + " tile");
         }
-        tile.fillIfEmpty(owner.getTileInitializer(), owner.getByteFiller());
+        final Consumer<TiffTile> tileInitializer = owner.getTileInitializer();
+        tile.fillIfEmpty(tileInitializer, owner.getByteFiller());
         // - necessary for "sparse" formats (when missingTilesAllowed=true)
-        assert !tile.isEmpty() : "empty tile after fillIfEmpty";
+        if (tile.isEmpty() || !tile.isSeparated()) {
+            assert tileInitializer != null : "tile can become empty or interleaved only becase of tileInitializer";
+            throw new IllegalStateException("Illegal behavior of the tile initializer (" + tileInitializer +
+                    "): it returned " + (tile.isEmpty() ? "empty" : "interleaved") + " tile");
+        }
         if (storeTilesInMap) {
             put(tile);
         }
-        assert tile.isSeparated() : "it was already checked";
         return tile;
     }
 
