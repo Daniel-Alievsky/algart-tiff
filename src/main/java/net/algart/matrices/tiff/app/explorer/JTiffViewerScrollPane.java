@@ -63,7 +63,6 @@ class JTiffViewerScrollPane extends JScrollPane {
         viewport.doLayout();
         // - important for correct work of setViewPosition
 
-        // - IllegalArgumentException possible
         final Dimension newCanvasSize = tiffPanel.getPreferredSize();
 
         int newViewX = (int) Math.round(worldCenterX * newZoom - extentSize.width / 2.0);

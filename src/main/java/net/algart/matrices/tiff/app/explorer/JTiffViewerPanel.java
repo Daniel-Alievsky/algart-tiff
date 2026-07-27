@@ -133,17 +133,25 @@ class JTiffViewerPanel extends JComponent {
     }
 
     public void reset() {
+        boolean sizesChanged;
         try {
-            resetSizes();
+            sizesChanged = resetSizes();
         } catch (TooBigZoomException e) {
             zoom = 1.0;
             try {
-                resetSizes();
+                sizesChanged = resetSizes();
             } catch (TooBigZoomException ex) {
                 throw new AssertionError("Should not occur for zoom=1.0!", ex);
             }
         }
-
+        if (sizesChanged) {
+            setPreferredSize(new Dimension(canvasDimX, canvasDimY));
+            revalidate();
+            repaint();
+            if (getParent() instanceof JViewport viewport) {
+                viewport.setViewPosition(new Point(0, 0));
+            }
+        }
     }
 
     public double getZoom() {
@@ -165,7 +173,7 @@ class JTiffViewerPanel extends JComponent {
         return this;
     }
 
-    private void resetSizes() throws TooBigZoomException {
+    private boolean resetSizes() throws TooBigZoomException {
         final TiffReadMap map = viewer.map();
         long canvasDimX = Math.round(map.dimX() * zoom);
         long canvasDimY = Math.round(map.dimY() * zoom);
@@ -173,8 +181,12 @@ class JTiffViewerPanel extends JComponent {
             throw new TooBigZoomException(
                     "Too big zoom: the zoomed image will be " + canvasDimX + "x" + canvasDimY);
         }
-        this.canvasDimX = (int) canvasDimX;
-        this.canvasDimY = (int) canvasDimY;
+        if (this.canvasDimX != canvasDimX || this.canvasDimY != canvasDimY) {
+            this.canvasDimX = (int) canvasDimX;
+            this.canvasDimY = (int) canvasDimY;
+            return true;
+        }
+        return false;
     }
 
     public int getCanvasDimX() {

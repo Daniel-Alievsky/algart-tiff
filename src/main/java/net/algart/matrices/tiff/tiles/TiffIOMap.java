@@ -39,22 +39,19 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
     // - Must be true. See TiffWriter.AUTO_INTERLEAVE_SOURCE.
     // IF YOU CHANGE IT, YOU MUST CORRECT ALSO TiffWriter.AUTO_INTERLEAVE_SOURCE.
 
-    public enum LoadExistingTileMode {
-        LOAD_IF_EMPTY,
-        RELOAD;
+    public enum TileFetchMode {
+        REUSE_EXISTING,
+        ALWAYS_RELOAD;
 
-        public boolean isReusingExisting() {
-            return this == LOAD_IF_EMPTY;
-        }
-        public boolean isAlwaysLoading() {
-            return this == RELOAD;
+        public boolean isReusing() {
+            return this == REUSE_EXISTING;
         }
     }
 
     private final T owner;
 
     private volatile TileSupplier tileSupplier = this::readCachedTile;
-    private volatile LoadExistingTileMode loadExistingTileMode = LoadExistingTileMode.LOAD_IF_EMPTY;
+    private volatile TileFetchMode tileFetchMode = TileFetchMode.REUSE_EXISTING;
 
     public TiffIOMap(T owner, TiffIFD ifd, boolean resizable) throws TiffException {
         super(ifd, resizable);
@@ -106,13 +103,12 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         return setTileSupplier(this::readTile);
     }
 
-    public LoadExistingTileMode loadExistingTileMode() {
-        return loadExistingTileMode;
+    public TileFetchMode tileFetchMode() {
+        return tileFetchMode;
     }
 
-    public TiffIOMap<T> setLoadExistingTileMode(LoadExistingTileMode loadExistingTileMode) {
-        this.loadExistingTileMode = Objects.requireNonNull(
-                loadExistingTileMode, "Null  loadExistingTileMode");
+    public TiffIOMap<T> setTileFetchMode(TileFetchMode tileFetchMode) {
+        this.tileFetchMode = Objects.requireNonNull(tileFetchMode, "Null tileFetchMode");
         return this;
     }
 
@@ -208,9 +204,8 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
                     final int xDiff = tileStartX - fromX;
 
                     final TiffTileIndex tileIndex = index(xIndex, yIndex, p);
-                    TiffTile tile = retrieveTile(tileIndex, storeTilesInMap);
-                    if (tile == null) continue;
-                    byte[] data = tile.getDecodedData();
+                    final TiffTile tile = fetchTile(tileIndex, storeTilesInMap);
+                    final byte[] data = tile.getDecodedData();
 
                     final int tileSizeX = tile.getSizeX();
                     final int tileSizeY = tile.getSizeY();
@@ -367,15 +362,14 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         return reader().readEncodedTile(tileIndex, duplicateHandling);
     }
 
-    private TiffTile retrieveTile(TiffTileIndex tileIndex, boolean storeTilesInMap) throws IOException {
-        if (loadExistingTileMode.isReusingExisting()) {
+    private TiffTile fetchTile(TiffTileIndex tileIndex, boolean storeTilesInMap) throws IOException {
+        if (tileFetchMode.isReusing()) {
             final TiffTile tile = get(tileIndex);
             if (tile != null && !tile.isEmpty()) {
                 if (!tile.isSeparated()) {
                     throw new IllegalStateException("Tile map already contains invalid tile (" + tile +
                             "): it is interleaved, but the tile map should contain only separated tiles");
                 }
-                // tile.unfreeze();
                 return tile;
             }
         }
