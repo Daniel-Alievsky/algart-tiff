@@ -36,6 +36,10 @@ import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
@@ -78,6 +82,7 @@ public class JTiffExplorerFrame extends JFrame {
     private static final FontFamily DEFAULT_FONT_FAMILY = FontFamily.CONSOLAS;
     private static final Color COMMON_BACKGROUND = new Color(240, 240, 240);
     private static final Color ERROR_BACKGROUND = new Color(255, 255, 155);
+    private static final int MAX_RECENT_FILES = 20;
 
     private static final String APPLICATION_TITLE = "TIFF Explorer";
 
@@ -89,6 +94,7 @@ public class JTiffExplorerFrame extends JFrame {
     private static final String PREF_FONT_FAMILY = "main.font.family";
     private static final String PREF_FONT_SIZE = "main.font.size";
     private static final String PREF_WORD_WRAP = "main.wordWrap";
+    private static final String PREF_RECENT_FILES = "main.recentFiles";
 
     private static final System.Logger LOG = System.getLogger(JTiffExplorerFrame.class.getName());
 
@@ -100,6 +106,7 @@ public class JTiffExplorerFrame extends JFrame {
     private JMenuItem openItem;
     private JMenuItem reloadItem;
     private JMenuItem showImageItem;
+    private JMenu recentFilesMenu = null;
     private JComboBox<String> ifdComboBox;
     private JTextArea ifdTextArea;
     private JTextArea summaryInfoTextArea;
@@ -153,6 +160,21 @@ public class JTiffExplorerFrame extends JFrame {
 
     public TiffExplorer explorer() {
         return explorer;
+    }
+
+    public void addRecentFile(Path file) {
+        if (file == null) {
+            return;
+        }
+        String pathStr = file.toAbsolutePath().toString();
+        java.util.List<String> files = loadRecentFiles();
+        files.remove(pathStr);
+        files.addFirst(pathStr);
+        while (files.size() > MAX_RECENT_FILES) {
+            files.removeLast();
+        }
+        saveRecentFiles(files);
+        updateRecentFilesMenu();
     }
 
     private void addIFDTextArea() {
@@ -223,7 +245,7 @@ public class JTiffExplorerFrame extends JFrame {
         JMenuBar menuBar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
         newBlankItem = new JMenuItem("New blank TIFF...");
-        newBlankItem.setMnemonic(KeyEvent.VK_S);
+        newBlankItem.setMnemonic(KeyEvent.VK_N);
         newBlankItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK));
         newBlankItem.addActionListener(e -> explorer.chooseFileAndShowNewBlankDialog());
         fileMenu.add(newBlankItem);
@@ -232,6 +254,11 @@ public class JTiffExplorerFrame extends JFrame {
         openItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
         openItem.addActionListener(e -> explorer.chooseFileAndOpen());
         fileMenu.add(openItem);
+        recentFilesMenu = new JMenu("Open recent");
+        recentFilesMenu.setMnemonic(KeyEvent.VK_R);
+        updateRecentFilesMenu();
+        fileMenu.add(recentFilesMenu);
+        fileMenu.addSeparator();
         final JMenuItem copyToItem = new JMenuItem("Copy TIFF to...");
         copyToItem.setMnemonic(KeyEvent.VK_C);
         copyToItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C,
@@ -243,7 +270,7 @@ public class JTiffExplorerFrame extends JFrame {
         compactItem.addActionListener(e -> explorer.showCompactDialog());
         fileMenu.add(compactItem);
         reloadItem = new JMenuItem("Reload TIFF");
-        reloadItem.setMnemonic(KeyEvent.VK_R);
+        reloadItem.setMnemonic(KeyEvent.VK_L);
         reloadItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
         reloadItem.addActionListener(e -> reload());
         fileMenu.add(reloadItem);
@@ -501,6 +528,9 @@ public class JTiffExplorerFrame extends JFrame {
         newBlankItem.setEnabled(!inProgress);
         openItem.setEnabled(!inProgress);
         reloadItem.setEnabled(!inProgress);
+        if (recentFilesMenu != null) {
+            recentFilesMenu.setEnabled(!inProgress);
+        }
         showImageButton.setEnabled(loadingOk);
         showImageItem.setEnabled(loadingOk);
         loadingInProgress = inProgress;
@@ -626,6 +656,14 @@ public class JTiffExplorerFrame extends JFrame {
         wordWrap = TiffExplorer.PREFERENCES.getBoolean(PREF_WORD_WRAP, DEFAULT_WORD_WRAP);
     }
 
+    private java.util.List<String> loadRecentFiles() {
+        String data = TiffExplorer.PREFERENCES.get(PREF_RECENT_FILES, "");
+        if (data.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return new ArrayList<>(Arrays.asList(data.split("\n")));
+    }
+
     private void savePreferences() {
         Rectangle bounds = getBounds();
         TiffExplorer.PREFERENCES.putInt(PREF_WINDOW_X, bounds.x);
@@ -637,4 +675,33 @@ public class JTiffExplorerFrame extends JFrame {
         TiffExplorer.PREFERENCES.putBoolean(PREF_WORD_WRAP, wordWrap);
     }
 
+    private void saveRecentFiles(java.util.List<String> files) {
+        TiffExplorer.PREFERENCES.put(PREF_RECENT_FILES, String.join("\n", files));
+    }
+
+    private void updateRecentFilesMenu() {
+        if (recentFilesMenu == null) {
+            return;
+        }
+        recentFilesMenu.removeAll();
+        java.util.List<String> files = loadRecentFiles();
+        if (files.isEmpty()) {
+            recentFilesMenu.setEnabled(false);
+            return;
+        }
+        recentFilesMenu.setEnabled(true);
+        for (String filePath : files) {
+            Path path = Paths.get(filePath);
+            JMenuItem item = new JMenuItem(filePath);
+            item.addActionListener(e -> explorer.openFile(path));
+            recentFilesMenu.add(item);
+        }
+        recentFilesMenu.addSeparator();
+        JMenuItem clearItem = new JMenuItem("Clear recent files");
+        clearItem.addActionListener(e -> {
+            saveRecentFiles(new ArrayList<>());
+            updateRecentFilesMenu();
+        });
+        recentFilesMenu.add(clearItem);
+    }
 }

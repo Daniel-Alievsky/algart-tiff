@@ -137,7 +137,7 @@ public class TiffExplorer {
         this.frame = new JTiffExplorerFrame(this);
         this.tiffNewBlankHelper = new TiffNewBlankHelper(frame);
         if (args.length >= 1) {
-            loadTiff(Path.of(args[0]));
+            openFile(Path.of(args[0]));
         }
     }
 
@@ -173,7 +173,7 @@ public class TiffExplorer {
                 if (lastFileFilter == chooser.getAcceptAllFileFilter()) {
                     lastFileFilter = null;
                 }
-                loadTiff(file.toPath());
+                openFile(file.toPath());
             }
         }
     }
@@ -198,9 +198,10 @@ public class TiffExplorer {
         frame.reload();
     }
 
-    void loadTiff(Path file) {
+    void openFile(Path file) {
         this.tiffFile = file;
         reload();
+        frame.addRecentFile(file);
     }
 
     void loadTiffInfo() throws IOException {

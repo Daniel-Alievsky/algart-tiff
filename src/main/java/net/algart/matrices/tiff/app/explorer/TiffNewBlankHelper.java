@@ -224,7 +224,7 @@ class TiffNewBlankHelper {
                 return;
             }
             dialog.dispose();
-            explorer.loadTiff(targetFile);
+            explorer.openFile(targetFile);
         });
 
         dialog.pack();
