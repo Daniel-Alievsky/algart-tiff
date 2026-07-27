@@ -95,7 +95,7 @@ public final class TiffTile {
     private Queue<IRectangularArea> unsetArea = null;
     // - null value marks that all is empty;
     // it helps to defer actual subtracting until the moment when we know the correct tile sizes
-    private boolean frozen = false;
+    private boolean frozenEmpty = false;
     private TiffIO.CodecReport report = null;
 
     /**
@@ -688,7 +688,7 @@ public final class TiffTile {
      * Sets the decoded data.
      *
      * @param data     decoded data.
-     * @param unfreeze if {@code true}, the {@link #isFrozen() frozen} flag is cleared;
+     * @param unfreeze if {@code true}, the {@link #isFrozenEmpty() frozen-empty} flag is cleared;
      *                 usually should be {@code false}.
      * @return a reference to this object.
      */
@@ -705,8 +705,8 @@ public final class TiffTile {
     }
 
     public TiffTile fillIfEmpty(Consumer<TiffTile> initializer, byte byteFiller) {
-        checkFrozen();
-        // - if frozen, then isEmpty() below returns true: we must check it and not fill such a tile
+        checkFrozenEmpty();
+        // - if frozen empty, then isEmpty() below returns true: we must check it and not fill such a tile
         if (isEmpty()) {
             byte[] newData = new byte[sizeInBytes];
             if (byteFiller != 0) {
@@ -864,7 +864,7 @@ public final class TiffTile {
                 }
             }
         }
-        frozen = source.frozen;
+        frozenEmpty = source.frozenEmpty;
         return this;
     }
 
@@ -873,12 +873,16 @@ public final class TiffTile {
     }
 
     /**
-     * Returns {@code true} if this tile was <i>frozen</i> by {@link #freeAndFreeze()} method.
+     * Returns {@code true} if this tile was emptied and locked against modifications
+     * by {@link #freeAndFreeze()} method.
+     *
+     * <p>Note that such a tile is always {@link #isEmpty() empty}, so
+     * it is called <i>frozen-empty</i>.
      *
      * @return whether the tile is empty and frozen.
      */
-    public boolean isFrozen() {
-        return frozen;
+    public boolean isFrozenEmpty() {
+        return frozenEmpty;
     }
 
     public TiffIO.CodecReport getReport() {
@@ -901,7 +905,7 @@ public final class TiffTile {
     }
 
     /**
-     * Calls {@link #freeData()} and marks this tile as <i>frozen</i>.
+     * Calls {@link #freeData()} and marks this tile as <i>frozen-empty</i>.
      *
      * <p>After {@link #freeData()} method, the tile becomes {@link #isEmpty() empty},
      * but can be filled with some data again, for example, using {@link #setDecodedData(byte[])}
@@ -909,28 +913,35 @@ public final class TiffTile {
      * Unlike this, after this method,
      * the tile usually cannot be modified: any attempt to get or set data
      * ({@link #getDecodedData()}, {@link #getEncodedData()}, {@link  #setDecodedData(byte[])},
-     * {@link #setEncodedData(byte[])}, {@link #fillIfEmpty()} etc.) will result in an exception.</p>
+     * {@link #setEncodedData(byte[])}, {@link #fillIfEmpty()} etc.) will result in an exception.
      *
-     * <p>{@link TiffWriter} class checks {@link #isFrozen()} method and does not attempt to update
-     * <i>frozen</i> tiles.</p>
+     * <p>{@link TiffWriter} class checks {@link #isFrozenEmpty()} method and does not attempt to update
+     * <i>frozen-empty</i> tiles.</p>
      *
      * <p>This method is automatically called by {@link TiffWriter#writeTile(TiffTile, boolean)} method
      * when its second argument is <code>true</code>:
      * usually there is no any sense to work with a tile after once it has been written into the TIFF file.</p>
      *
-     * <p>The <i>frozen</i> status may be cleared ("unfreezing") by the methods
+     * <p>This mode is especially useful for incremental image writing with overlapping
+     * incoming data chunks (like streaming tiles/scans). Once a completed tile is flushed
+     * to disk and frozen as an empty tile, subsequent overlapping chunks will safely ignore this tile
+     * instead of re-initializing it with zeroes and corrupting already written area.</p>
+     *
+     * <p>The <i>frozen-empty</i> status may be cleared ("unfreezing") by the methods
      * {@link #setDecodedData(byte[], boolean)} and {@link #setEncodedData(byte[], boolean)}
      * with additional {@code boolean} argument "unfreeze".
-     * Also, the <i>frozen</i> status is copied from the source tile by
+     * Also, the <i>frozen-empty</i> status is copied from the source tile by
      * the {@link #copyData(TiffTile, CopyMode)} method.</p>
+     *
+     * @see #isFrozenEmpty()
      */
     public void freeAndFreeze() {
         freeData();
-        this.frozen = true;
+        this.frozenEmpty = true;
     }
 
     public void unfreeze() {
-        this.frozen = false;
+        this.frozenEmpty = false;
     }
 
     public long getStoredInFileDataOffset() {
@@ -1361,7 +1372,7 @@ public final class TiffTile {
         final byte[] data = this.data;
         // - unlike the field, this variable cannot be changed from a parallel thread
         return "TIFF " +
-                (frozen ? "(FROZEN) " : isEmpty() ? "(empty) " : "") +
+                (frozenEmpty ? "(FROZEN empty) " : isEmpty() ? "(empty) " : "") +
                 (encoded ? "encoded" : "non-encoded") +
                 (interleaved ? " interleaved" : " separated") +
                 " tile" +
@@ -1410,7 +1421,7 @@ public final class TiffTile {
     private TiffTile setData(byte[] data, boolean encoded, boolean checkAligned, boolean unfreeze) {
         Objects.requireNonNull(data, "Null " + (encoded ? "encoded" : "decoded") + " data");
         if (!unfreeze) {
-            checkFrozen();
+            checkFrozenEmpty();
         }
         final long numberOfBits = 8L * (long) data.length;
         final long numberOfPixels = numberOfBits / normalizedBitsPerPixel;
@@ -1450,7 +1461,7 @@ public final class TiffTile {
         // - this is a deprecated solution; now storedInFileDataLength has an independent sense
         // and used to detect whether new data can be overwritten at the same position in the file
         if (unfreeze) {
-            this.frozen = false;
+            this.frozenEmpty = false;
         }
         return this;
     }
@@ -1464,7 +1475,7 @@ public final class TiffTile {
 
     private void checkEmpty() {
         if (data == null) {
-            checkFrozen();
+            checkFrozenEmpty();
             throw new IllegalStateException("TIFF tile is still not filled by any data: " + this);
         }
     }
@@ -1484,8 +1495,8 @@ public final class TiffTile {
         }
     }
 
-    private void checkFrozen() {
-        if (frozen) {
+    private void checkFrozenEmpty() {
+        if (frozenEmpty) {
             assert isEmpty() : "frozen tile must be empty";
             throw new IllegalStateException("TIFF tile is frozen, access to its data is prohibited: " + this);
         }

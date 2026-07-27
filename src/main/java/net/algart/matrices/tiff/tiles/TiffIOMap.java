@@ -33,7 +33,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits TiffReadMap, TiffWriteMap {
     static final boolean AUTO_INTERLEAVE_SOURCE = true;
@@ -44,6 +43,9 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         LOAD_IF_EMPTY,
         RELOAD;
 
+        public boolean isReusingExisting() {
+            return this == LOAD_IF_EMPTY;
+        }
         public boolean isAlwaysLoading() {
             return this == RELOAD;
         }
@@ -159,7 +161,6 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         final boolean rescaleInt24 = reader.isRescaleWhenIncreasingBitDepth();
         final boolean cropTilesToImageBoundaries = reader.isCropTilesToImageBoundaries();
 
-        final Consumer<TiffTile> tileInitializer = owner.getTileInitializer();
         final byte byteFiller = owner.getByteFiller();
         if (byteFiller != 0) {
             // - Java already zero-fills sampleBytes array
@@ -194,7 +195,6 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         final long tileOneChannelRowSizeInBits = (long) mapTileSizeX * bitsPerSample;
         final long samplesOneChannelRowSizeInBits = (long) sizeX * bitsPerSample;
 
-        final TileSupplier tileSupplier = getTileSupplier();
         for (int p = 0; p < numberOfSeparatedPlanes; p++) {
             // - for a rare case PlanarConfiguration=2 (RRR...GGG...BBB...)
             for (int yIndex = minYIndex; yIndex <= maxYIndex; yIndex++) {
@@ -208,29 +208,8 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
                     final int xDiff = tileStartX - fromX;
 
                     final TiffTileIndex tileIndex = index(xIndex, yIndex, p);
-                    TiffTile tile = get(tileIndex);
-                    if (tile != null && !tile.isSeparated()) {
-                        throw new IllegalStateException("Tile map already contains invalid tile (" + tile +
-                                "): it is interleaved, but the tile map should contain only separated tiles");
-                    }
-                    if (tile == null || loadExistingTileMode.isAlwaysLoading()) {
-                        tile = tileSupplier.getTile(tileIndex);
-                        if (!tile.isSeparated()) {
-                            throw new IllegalStateException("Illegal behavior of the tile supplier (" + tileSupplier +
-                                    "): it returned interleaved tile!");
-                        }
-                        tile.fillIfEmpty(tileInitializer, byteFiller);
-                        // - necessary for "sparse" formats (when missingTilesAllowed=true)
-                        assert !tile.isEmpty() : "empty tile after fillIfEmpty";
-                        if (storeTilesInMap) {
-                            put(tile);
-                        }
-                    }
-                    if (tile.isEmpty()) {
-                        // - for example, frozen tile already existing in the map
-                        continue;
-                    }
-                    assert tile.isSeparated() : "it was already checked";
+                    TiffTile tile = retrieveTile(tileIndex, storeTilesInMap);
+                    if (tile == null) continue;
                     byte[] data = tile.getDecodedData();
 
                     final int tileSizeX = tile.getSizeX();
@@ -386,6 +365,33 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             throws IOException {
         checkTileIndexIFD(tileIndex);
         return reader().readEncodedTile(tileIndex, duplicateHandling);
+    }
+
+    private TiffTile retrieveTile(TiffTileIndex tileIndex, boolean storeTilesInMap) throws IOException {
+        if (loadExistingTileMode.isReusingExisting()) {
+            final TiffTile tile = get(tileIndex);
+            if (tile != null && !tile.isEmpty()) {
+                if (!tile.isSeparated()) {
+                    throw new IllegalStateException("Tile map already contains invalid tile (" + tile +
+                            "): it is interleaved, but the tile map should contain only separated tiles");
+                }
+                // tile.unfreeze();
+                return tile;
+            }
+        }
+        final TiffTile tile = tileSupplier.getTile(tileIndex);
+        if (tile == null || !tile.isSeparated()) {
+            throw new IllegalStateException("Illegal behavior of the tile supplier (" + tileSupplier +
+                    "): it returned " + (tile == null ? "null" : "interleaved") + " tile");
+        }
+        tile.fillIfEmpty(owner.getTileInitializer(), owner.getByteFiller());
+        // - necessary for "sparse" formats (when missingTilesAllowed=true)
+        assert !tile.isEmpty() : "empty tile after fillIfEmpty";
+        if (storeTilesInMap) {
+            put(tile);
+        }
+        assert tile.isSeparated() : "it was already checked";
+        return tile;
     }
 
     static int divFloor(int a, int b) {

@@ -275,7 +275,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                     final int xDiff = tileStartX - fromX;
 
                     final TiffTile tile = getOrNew(xIndex, yIndex, p);
-                    if (tile.isFrozen()) {
+                    if (tile.isFrozenEmpty()) {
                         // - we cannot write to an already frozen tile: it will result in an exception
                         continue;
                     }

@@ -39,16 +39,21 @@ import java.util.List;
 import java.util.Locale;
 
 public class TiffOverwriteNaturalNumbersDemo {
-    private static final boolean WRITE_IMMEDIATELY = true;
     private static final boolean ACCURATE_MEMORY_MEASURING = true;
 
     public static void main(String... args) throws IOException {
         int startArgIndex = 0;
+        boolean flush = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-flush")) {
+            flush = true;
+            startArgIndex++;
+        }
         if (args.length < startArgIndex + 7) {
             System.out.println("Usage:");
-            System.out.printf("    %s target.tiff ifdIndex " +
+            System.out.printf("    %s [-flush] target.tiff ifdIndex " +
                             "start-x start-y dx dy number-of-values [increment] [number-of-repeats]%n",
                     TiffOverwriteNaturalNumbersDemo.class.getName());
+            System.out.println("-flush flag enforces freeing memory after writing each number");
             System.out.println("Note that target.tiff will be modified!");
             System.out.println("Try running this test with a very large TIFF file, like SVS 50000x50000: " +
                     "you will see that it works very quickly.");
@@ -76,7 +81,7 @@ public class TiffOverwriteNaturalNumbersDemo {
             writer.setTileInitializer(new Color(186, 213, 248));
             // - correct way (for "sparse" formats with missing tiles)
             final TiffWriteMap writeMap = writer.existingMap(ifdIndex);
-            writeMap.setLoadExistingTileMode(TiffIOMap.LoadExistingTileMode.RELOAD);
+            writeMap.setLoadExistingTileMode(TiffIOMap.LoadExistingTileMode.LOAD_IF_EMPTY);
             System.out.printf("Overwriting %s%n", writeMap);
             System.out.printf("Writing compression: %s%n", writeMap.compression().orElse(null));
             long t1 = System.nanoTime();
@@ -88,7 +93,7 @@ public class TiffOverwriteNaturalNumbersDemo {
                 int y = y0;
                 for (int k = 0, value = 0; k < numberOfValues; k++) {
                     System.out.printf("Writing %d at %d..%dx%d..%d...  ", value, x, x + sizeX - 1, y, y + sizeY - 1);
-                    int m = overwrite(writeMap, x, y, sizeX, sizeY, value);
+                    int m = overwrite(writeMap, x, y, sizeX, sizeY, value, flush);
                     if (m >= 0) {
                         System.out.printf("written %d completed tiles ", m);
                     }
@@ -115,7 +120,7 @@ public class TiffOverwriteNaturalNumbersDemo {
             System.out.printf("Completed %d tile, file length: %d%n", m, writeMap.fileLength());
             System.out.printf(Locale.US, "Writing time: %.3f ms + %.3f ms for completion%n",
                     (t2 - t1) * 1e-6, (t3 - t2) * 1e-6);
-            if (WRITE_IMMEDIATELY && m != 0) {
+            if (flush && m != 0) {
                 // - should be 0, because all tiles were preloaded
                 throw new AssertionError("Not all tiles were written inside overwrite");
             }
@@ -123,12 +128,19 @@ public class TiffOverwriteNaturalNumbersDemo {
         System.out.println("Done");
     }
 
-    private static int overwrite(TiffWriteMap writeMap, int x, int y, int sizeX, int sizeY, int value)
+    private static int overwrite(
+            TiffWriteMap writeMap,
+            int x,
+            int y,
+            int sizeX,
+            int sizeY,
+            int value,
+            boolean flush)
             throws IOException {
         final BufferedImage bufferedImage = writeMap.readBufferedImageAndStore(x, y, sizeX, sizeY);
         drawNumberOnImage(bufferedImage, value);
         final List<TiffTile> tiles = writeMap.updateBufferedImage(bufferedImage, x, y);
-        if (WRITE_IMMEDIATELY) {
+        if (flush) {
             return writeMap.flushCompletedTiles(tiles);
         } else {
             return -1;
