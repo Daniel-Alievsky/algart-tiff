@@ -697,7 +697,7 @@ public class JTiffExplorerFrame extends JFrame {
             recentFilesMenu.add(item);
         }
         recentFilesMenu.addSeparator();
-        JMenuItem clearItem = new JMenuItem("Clear recent files");
+        JMenuItem clearItem = new JMenuItem("Clear list");
         clearItem.addActionListener(e -> {
             saveRecentFiles(new ArrayList<>());
             updateRecentFilesMenu();
