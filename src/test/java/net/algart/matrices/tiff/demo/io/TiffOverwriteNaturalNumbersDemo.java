@@ -26,9 +26,9 @@ package net.algart.matrices.tiff.demo.io;
 
 import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffWriter;
-import net.algart.matrices.tiff.tiles.TiffIOMap;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
+import net.algart.matrices.tiff.tiles.TileSupplyMode;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -40,7 +40,7 @@ import java.util.Locale;
 
 public class TiffOverwriteNaturalNumbersDemo {
     private static final boolean ACCURATE_MEMORY_MEASURING = true;
-    private static final TiffIOMap.TileFetchMode FETCH_MODE = TiffIOMap.TileFetchMode.REUSE_EXISTING;
+    private static final TileSupplyMode SUPPLY_MODE = TileSupplyMode.IF_ABSENT;
     // - ALWAYS_RELOAD will NOT correctly work when flush=false
 
     public static void main(String... args) throws IOException {
@@ -83,7 +83,7 @@ public class TiffOverwriteNaturalNumbersDemo {
             writer.setTileInitializer(new Color(186, 213, 248));
             // - correct way (for "sparse" formats with missing tiles)
             final TiffWriteMap writeMap = writer.existingMap(ifdIndex);
-            writeMap.setTileFetchMode(FETCH_MODE);
+            writeMap.setTileSupplyMode(SUPPLY_MODE);
             System.out.printf("Overwriting %s%n", writeMap);
             System.out.printf("Writing compression: %s%n", writeMap.compression().orElse(null));
             long t1 = System.nanoTime();

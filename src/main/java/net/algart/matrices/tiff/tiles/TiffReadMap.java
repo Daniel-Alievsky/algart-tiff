@@ -87,6 +87,18 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
         return this;
     }
 
+    @Override
+    public TiffReadMap setTileSupplier(TileSupplier tileSupplier) {
+        super.setTileSupplier(tileSupplier);
+        return this;
+    }
+
+    @Override
+    public TiffReadMap setTileSupplyMode(TileSupplyMode tileSupplyMode) {
+        super.setTileSupplyMode(tileSupplyMode);
+        return this;
+    }
+
     public byte[] loadSampleBytes() throws IOException {
         return loadSampleBytes(0, 0, dimX(), dimY());
     }

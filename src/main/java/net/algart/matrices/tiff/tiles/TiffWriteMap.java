@@ -88,6 +88,18 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
         return this;
     }
 
+    @Override
+    public TiffWriteMap setTileSupplier(TileSupplier tileSupplier) {
+        super.setTileSupplier(tileSupplier);
+        return this;
+    }
+
+    @Override
+    public TiffWriteMap setTileSupplyMode(TileSupplyMode tileSupplyMode) {
+        super.setTileSupplyMode(tileSupplyMode);
+        return this;
+    }
+
     public byte[] readSampleBytesAndStore(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
         return readSampleBytes(fromX, fromY, sizeX, sizeY, true);
     }

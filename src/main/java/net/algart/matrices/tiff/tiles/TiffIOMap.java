@@ -40,33 +40,10 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
     // - Must be true. See TiffWriter.AUTO_INTERLEAVE_SOURCE.
     // IF YOU CHANGE IT, YOU MUST CORRECT ALSO TiffWriter.AUTO_INTERLEAVE_SOURCE.
 
-    /**
-     * The mode specifying how to fetch tiles from the image while loading samples
-     * in methods such as {@link #loadSampleBytes(int, int, int, int, boolean)}.
-     */
-    public enum TileFetchMode {
-        /**
-         * Default mode: if a non-empty tile already exists in the map, it is reused;
-         * otherwise, it is fetched via the current {@link TileSupplier}.
-         * This is the best choice for most situations.
-         */
-        REUSE_EXISTING,
-
-        /**
-         * The tile is always reloaded from the source image via the current {@link TileSupplier}.
-         * If a tile with the same index already exists in the map, it is replaced with the newly loaded one.
-         */
-        ALWAYS_RELOAD;
-
-        public boolean isReusing() {
-            return this == REUSE_EXISTING;
-        }
-    }
-
     private final T owner;
 
     private volatile TileSupplier tileSupplier = this::readCachedTile;
-    private volatile TileFetchMode tileFetchMode = TileFetchMode.REUSE_EXISTING;
+    private volatile TileSupplyMode tileSupplyMode = TileSupplyMode.IF_ABSENT;
 
     public TiffIOMap(T owner, TiffIFD ifd, boolean resizable) throws TiffException {
         super(ifd, resizable);
@@ -118,12 +95,12 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         return setTileSupplier(this::readTile);
     }
 
-    public TileFetchMode tileFetchMode() {
-        return tileFetchMode;
+    public TileSupplyMode getTileSupplyMode() {
+        return tileSupplyMode;
     }
 
-    public TiffIOMap<T> setTileFetchMode(TileFetchMode tileFetchMode) {
-        this.tileFetchMode = Objects.requireNonNull(tileFetchMode, "Null tileFetchMode");
+    public TiffIOMap<T> setTileSupplyMode(TileSupplyMode tileSupplyMode) {
+        this.tileSupplyMode = Objects.requireNonNull(tileSupplyMode, "Null tileSupplyMode");
         return this;
     }
 
@@ -219,7 +196,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
                     final int xDiff = tileStartX - fromX;
 
                     final TiffTileIndex tileIndex = index(xIndex, yIndex, p);
-                    final TiffTile tile = fetchTile(tileIndex, storeTilesInMap);
+                    final TiffTile tile = supplyTile(tileIndex, storeTilesInMap);
                     final byte[] data = tile.getDecodedData();
 
                     final int tileSizeX = tile.getSizeX();
@@ -377,8 +354,8 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         return reader().readEncodedTile(tileIndex, duplicateHandling);
     }
 
-    private TiffTile fetchTile(TiffTileIndex tileIndex, boolean storeTilesInMap) throws IOException {
-        if (tileFetchMode.isReusing()) {
+    private TiffTile supplyTile(TiffTileIndex tileIndex, boolean storeTilesInMap) throws IOException {
+        if (tileSupplyMode.isReusingExisting()) {
             final TiffTile tile = get(tileIndex);
             if (tile != null && !tile.isEmpty()) {
                 if (!tile.isSeparated()) {
@@ -393,7 +370,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
             throw new IllegalStateException("Illegal behavior of the tile supplier (" + tileSupplier +
                     "): it returned " + (tile == null ? "null" : "interleaved") + " tile");
         }
-        final Consumer<TiffTile> tileInitializer = owner.getTileInitializer();
+        final var tileInitializer = owner.getTileInitializer();
         tile.fillIfEmpty(tileInitializer, owner.getByteFiller());
         // - necessary for "sparse" formats (when missingTilesAllowed=true)
         if (tile.isEmpty() || !tile.isSeparated()) {
