@@ -1045,11 +1045,17 @@ public non-sealed class TiffReader extends TiffIO {
     /**
      * Reads and decodes the tile at the specified position.
      *
-     * <p>Note: if the tile in the TIFF file is a duplicate of another tile <b>X</b> &mdash;
-     * i.e., its file offset is equal to the file offset of some previous tile <b>X</b> in the same IFD &mdash;
-     * this method registers this fact by storing the linear index of that original tile <b>X</b> in the returned tile
-     * using the {@link TiffTile#setLinearIndexOfPreviousDuplicate(int)} method.
-     * You can detect this situation via the {@link TiffTile#hasPreviousDuplicate()} method.</p>
+     * <p>Note: if TIFF file contains several duplicates of the same tile &mdash;
+     * i.e., they have identical file offsets &mdash;
+     * this method registers this fact by storing the linear index of the next and the previous tile with
+     * the same offset using the
+     * {@link TiffTile#setLinearIndexOfPreviousDuplicate(int)} and
+     * {@link TiffTile#setLinearIndexOfNextDuplicate(int)}
+     * methods.
+     * Also, each such tile is marked as a duplicate via the
+     * {@link TiffTile#setDuplicateAutomatically()} method:
+     * if there is at least one duplicate of this tile, {@link TiffTile#isDuplicate()} will return {@code true},
+     * if there are no duplicates, it will return {@code false}.
      *
      * <p>If the {@code duplicateHandling} argument is {@link TiffTile.DuplicateHandling#LINK_REFERENCE} and
      * the tile is a duplicate of another tile, this method performs reading and decoding
