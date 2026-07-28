@@ -267,9 +267,16 @@ public final class TiffIFD {
     /**
      * An IFD with the number of entries, greater than this limit, is not allowed even in BigTIFF:
      * it is mostly probable that it is a corrupted file.
-     * Note that in classic TIFF files (not BigTIFF) the limit is 65536 (2^16).
+     *
+     * <p>Note that in classic TIFF files (not BigTIFF) the limit is 65536 (2^16).</p>
      */
     public static final int MAX_NUMBER_OF_IFD_ENTRIES = 1_000_000;
+
+    /**
+     * An IFD with the number of strips or tiles, greater than this limit, is not allowed:
+     * it is mostly probable that it is a corrupted file.
+     */
+    public static final int MAX_NUMBER_OF_TILES = 10_000_000;
 
     /**
      * The number of bytes in the TIFF file header.
@@ -1525,10 +1532,15 @@ public final class TiffIFD {
         if (counts == null) {
             throw new TiffException("Invalid IFD: no required StripByteCounts/TileByteCounts tag");
         }
-        final long numberOfTiles = (long) getTileCountX() * (long) getTileCountY();
-        if (counts.length < numberOfTiles) {
+        final long numberOfTilesInChunkedMode = (long) getTileCountX() * (long) getTileCountY();
+        if (counts.length < numberOfTilesInChunkedMode) {
             throw new TiffException("StripByteCounts/TileByteCounts length (" + counts.length +
-                    ") does not match expected number of strips/tiles (" + numberOfTiles + ")");
+                    ") does not match expected number of strips/tiles (" + numberOfTilesInChunkedMode + ")");
+        }
+        // but counts.length > numberOfTilesInChunkedMode is possible for PLANAR_CONFIGURATION_SEPARATE
+        if (counts.length > MAX_NUMBER_OF_TILES) {
+            throw new TiffException("Too large StripByteCounts/TileByteCounts length: " + counts.length +
+                    " > " + MAX_NUMBER_OF_TILES + " (maximal supported number of tiles)");
         }
         for (int i = 0; i < counts.length; i++) {
             if (counts[i] < 0) {
@@ -1589,10 +1601,15 @@ public final class TiffIFD {
         if (offsets == null) {
             throw new TiffException("Invalid IFD: no required StripOffsets/TileOffsets tag");
         }
-        final long numberOfTiles = (long) getTileCountX() * (long) getTileCountY();
-        if (offsets.length < numberOfTiles) {
-            throw new TiffException("StripByteCounts/TileByteCounts length (" + offsets.length +
-                    ") does not match expected number of strips/tiles (" + numberOfTiles + ")");
+        final long numberOfTilesInChunkedMode = (long) getTileCountX() * (long) getTileCountY();
+        if (offsets.length < numberOfTilesInChunkedMode) {
+            throw new TiffException("StripOffsets/TileOffsets length (" + offsets.length +
+                    ") does not match expected number of strips/tiles (" + numberOfTilesInChunkedMode + ")");
+        }
+        // but offsets.length > numberOfTilesInChunkedMode is possible for PLANAR_CONFIGURATION_SEPARATE
+        if (offsets.length > MAX_NUMBER_OF_TILES) {
+            throw new TiffException("Too large StripOffsets/TileOffsets length: " + offsets.length +
+                    " > " + MAX_NUMBER_OF_TILES + " (maximal supported number of tiles)");
         }
         for (int i = 0; i < offsets.length; i++) {
             if (offsets[i] < 0) {
@@ -1653,7 +1670,7 @@ public final class TiffIFD {
      *
      * @param index the linear index of the tile or strip.
      * @return the index of the nearest previous tile/strip sharing the same offset,
-     *         or {@code -1} if this offset is unique or this is the first occurrence.
+     * or {@code -1} if this offset is unique or this is the first occurrence.
      * @throws IllegalArgumentException if the index is negative.
      * @throws TiffException            if the TIFF structures are invalid or the index is out of bounds.
      */
@@ -1668,7 +1685,7 @@ public final class TiffIFD {
      *
      * @param index the linear index of the tile or strip.
      * @return the index of the nearest following tile/strip sharing the same offset,
-     *         or {@code -1} if this offset is unique or this is the last occurrence.
+     * or {@code -1} if this offset is unique or this is the last occurrence.
      * @throws IllegalArgumentException if the index is negative.
      * @throws TiffException            if the TIFF structures are invalid or the index is out of bounds.
      */

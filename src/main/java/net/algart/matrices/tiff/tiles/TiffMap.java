@@ -282,7 +282,7 @@ public sealed class TiffMap permits TiffIOMap {
         }
         this.planarSeparated = ifd.isPlanarSeparated();
         this.numberOfChannels = ifd.getSamplesPerPixel();
-        assert numberOfChannels <= TiffIFD.MAX_NUMBER_OF_CHANNELS;
+        assert numberOfChannels <= TiffIFD.MAX_NUMBER_OF_CHANNELS : "getSamplesPerPixel did not check result";
         this.numberOfSeparatedPlanes = planarSeparated ? numberOfChannels : 1;
         this.tileSamplesPerPixel = planarSeparated ? 1 : numberOfChannels;
         this.bitsPerSample = ifd.getBitsPerSample().clone();
@@ -1505,10 +1505,12 @@ public sealed class TiffMap permits TiffIOMap {
         }
         final int gridCountX = Math.max(this.gridCountX, newMinimalGridCountX);
         final int gridCountY = Math.max(this.gridCountY, newMinimalGridCountY);
-        if ((long) gridCountX * (long) gridCountY > Integer.MAX_VALUE / numberOfSeparatedPlanes) {
-            throw new IllegalArgumentException("Too large number of tiles/strips: " +
+        if ((long) gridCountX * (long) gridCountY > TiffIFD.MAX_NUMBER_OF_TILES / numberOfSeparatedPlanes) {
+            throw new IllegalArgumentException("Too large number of " + (isTiled() ? "tiles" : "strips") + ": " +
                     (numberOfSeparatedPlanes > 1 ? numberOfSeparatedPlanes + " separated planes * " : "") +
-                    gridCountX + " * " + gridCountY + " > 2^31-1");
+                    String.format(Locale.ROOT, "%,d * %,d > %,d",
+                            gridCountX, gridCountY, TiffIFD.MAX_NUMBER_OF_TILES).replace(',', ' ') +
+                    " (maximal allowed number of tiles)");
         }
         this.gridCountX = gridCountX;
         this.gridCountY = gridCountY;

@@ -135,6 +135,14 @@ class TiffNewBlankHelper {
         addGridBugRowLabelled(gridPanel, gbc, new JLabel("Width (pixels):"), dimXField, row++);
         addGridBugRowLabelled(gridPanel, gbc, new JLabel("Height (pixels):"), dimYField, row++);
 
+        final JLabel dimHintLabel = TinySwing.leftLabel(TinySwing.smartHtmlLines(
+                """
+                        Feel free to specify huge dimensions (e.g., 200000 \u00D7 200000):<br>
+                        the file will be small and created instantly. For very large sizes,<br>
+                        we recommend increasing the tile size (2048 \u00D7 2048 or more).
+                        """));
+        addGridBugRowSingle(gridPanel, gbc, dimHintLabel, row++);
+
         tiledCheckBox = new JCheckBox("Tiled TIFF image");
         tiledCheckBox.setAlignmentX(Component.LEFT_ALIGNMENT);
         tiledCheckBox.setSelected(tiled);
