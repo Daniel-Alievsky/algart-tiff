@@ -1055,15 +1055,15 @@ public non-sealed class TiffReader extends TiffIO {
      * Also, each such tile is marked as a duplicate via the
      * {@link TiffTile#setDuplicateAutomatically()} method:
      * if there is at least one duplicate of this tile, {@link TiffTile#isDuplicate()} will return {@code true},
-     * if there are no duplicates, it will return {@code false}.
+     * if there are no duplicates, it will return {@code false}.</p>
      *
      * <p>If the {@code duplicateHandling} argument is {@link TiffTile.DuplicateHandling#LINK_REFERENCE} and
      * the tile is a duplicate of another tile, this method performs reading and decoding
      * only if this is the first of all duplicates.
      * In this case, the {@link TiffTile#hasPreviousDuplicate()} method in the returned tile will
      * return {@code false} (but {@link TiffTile#isDuplicate()} will be {@code true}).
-     * For all other duplicates, the tile returned tile remains {@link TiffTile#isEmpty() empty}.
-     * In any case, uou can analyze the full chain of duplicates &mdash; tiles with identical file offset &mdash;
+     * For all other duplicates, the returned tile remains {@link TiffTile#isEmpty() empty}.
+     * In any case, you can analyze the full chain of duplicates &mdash; tiles with identical file offset &mdash;
      * using the methods
      * {@link TiffTile#hasPreviousDuplicate()}, {@link TiffTile#getLinearIndexOfPreviousDuplicate()},
      * {@link TiffTile#hasNextDuplicate()}, {@link TiffTile#getLinearIndexOfNextDuplicate()}.</p>
