@@ -1052,10 +1052,15 @@ public non-sealed class TiffReader extends TiffIO {
      * You can detect this situation via the {@link TiffTile#hasPreviousDuplicate()} method.</p>
      *
      * <p>If the {@code duplicateHandling} argument is {@link TiffTile.DuplicateHandling#LINK_REFERENCE} and
-     * the tile is a duplicate of another tile, this method does not read and decode it;
-     * the tile stays {@link TiffTile#isEmpty() empty}.
-     * It is expected that you will detect this situation via the {@link TiffTile#hasPreviousDuplicate()} and
-     * {@link TiffTile#getLinearIndexOfPreviousDuplicate()} methods and process it accordingly.</p>
+     * the tile is a duplicate of another tile, this method performs reading and decoding
+     * only if this is the first of all duplicates.
+     * In this case, the {@link TiffTile#hasPreviousDuplicate()} method in the returned tile will
+     * return {@code false} (but {@link TiffTile#isDuplicate()} will be {@code true}).
+     * For all other duplicates, the tile returned tile remains {@link TiffTile#isEmpty() empty}.
+     * In any case, uou can analyze the full chain of duplicates &mdash; tiles with identical file offset &mdash;
+     * using the methods
+     * {@link TiffTile#hasPreviousDuplicate()}, {@link TiffTile#getLinearIndexOfPreviousDuplicate()},
+     * {@link TiffTile#hasNextDuplicate()}, {@link TiffTile#getLinearIndexOfNextDuplicate()}.</p>
      *
      * <p>If the {@code duplicateHandling} argument is {@link TiffTile.DuplicateHandling#COPY_CONTENT}
      * (the typical case), the duplicated tile is read and processed in the usual way.</p>

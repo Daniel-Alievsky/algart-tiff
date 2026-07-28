@@ -1386,7 +1386,9 @@ public final class TiffTile {
                         " at file region " + storedInFileDataOffset + ".." + storedInFileDataOffset +
                         "+" + (storedInFileDataLength - 1) +
                         "/" + (storedInFileDataCapacity - 1)) +
-                (hasPreviousDuplicate() ? ", duplicate of " + linearIndexOfPreviousDuplicate : "");
+                (isDuplicate() ? ", duplicate" : "") +
+                (hasPreviousDuplicate() ? ", previous duplicate #" + linearIndexOfPreviousDuplicate : "") +
+                (hasNextDuplicate() ? ", next duplicate #" + linearIndexOfNextDuplicate : "");
     }
 
     @Override
