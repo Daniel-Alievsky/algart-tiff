@@ -30,6 +30,7 @@ import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
+import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
 import java.awt.*;
 import java.io.IOException;
@@ -49,6 +50,7 @@ public class TiffCopyTest {
     boolean copyRectangle = false;
     boolean allowMissing = false;
     boolean fillMissing = false;
+    boolean doubleCopy = false;
 
     public static void main(String... args) throws IOException {
         TiffCopyTest copyTest = new TiffCopyTest();
@@ -78,6 +80,11 @@ public class TiffCopyTest {
         }
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-fillMissing")) {
             copyTest.fillMissing = true;
+            startArgIndex++;
+        }
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-doubleCopy")) {
+            copyTest.doubleCopy = true;
+            // - specific testing, in particular, for duplicate logic in readEncodedTile
             startArgIndex++;
         }
         if (args.length < startArgIndex + 2) {
@@ -159,7 +166,7 @@ public class TiffCopyTest {
                         final TiffCopier copier = getCopier();
                         copier.setDirectCopy(!repack);
                         copier.copyRectangle(writer, readMap, 0, 0, readMap.dimX(), readMap.dimY());
-                    } else if (!repack && byteOrder == null && !uncompress) {
+                    } else if (!doubleCopy && !repack && byteOrder == null && !uncompress) {
                         System.out.printf("\r  Direct copying #%d/%d: %s%n", ifdIndex, maps.size(), readMap.ifd());
                         // - below is an example of the simplest usage for a single IFD image:
                         new TiffCopier().copyImage(writer, readMap);
@@ -169,7 +176,10 @@ public class TiffCopyTest {
                                 ifdIndex, maps.size(), readMap.ifd());
                         final TiffCopier copier = getCopier();
                         copier.setDirectCopy(!repack);
-                        copier.copyImage(writer, readMap);
+                        TiffWriteMap writeMap = copier.copyImage(writer, readMap);
+                        if (doubleCopy) {
+                            copier.copyImage(writer, writeMap);
+                        }
                     }
                 }
                 ok = true;

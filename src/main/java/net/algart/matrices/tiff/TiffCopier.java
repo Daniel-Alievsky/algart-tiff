@@ -466,7 +466,7 @@ public final class TiffCopier {
      *
      * <p>This allows ensuring that the starting position is aligned with tile boundaries
      * is useful when calling
-     * {@link #copyRectangle(TiffWriter, TiffReadMap, int, int, int, int)}
+     * {@link #copyRectangle(TiffWriter, TiffIOMap, int, int, int, int)}
      * with {@code fromX} and {@code fromY} equal to the checked coordinates.
      * In most cases, such alignment allows significantly faster data transfer
      * because whole tiles can be copied directly in their compressed form,
@@ -487,7 +487,7 @@ public final class TiffCopier {
      *
      * @param tiffFile file to be compacted.
      * @throws IOException if an I/O error occurs.
-     * @see #copyTiffFile(Path, Path)  
+     * @see #copyTiffFile(Path, Path)
      */
     public void compact(Path tiffFile) throws IOException {
         Objects.requireNonNull(tiffFile, "Null TIFF file");
@@ -666,7 +666,7 @@ public final class TiffCopier {
         return copyImage(writer, readMap);
     }
 
-    public TiffWriteMap copyImage(TiffWriter writer, TiffReadMap readMap) throws IOException {
+    public TiffWriteMap copyImage(TiffWriter writer, TiffIOMap<?> readMap) throws IOException {
         Objects.requireNonNull(writer, "Null TIFF writer");
         Objects.requireNonNull(readMap, "Null TIFF read map");
         long t1 = TiffIO.debugTime();
@@ -704,7 +704,7 @@ public final class TiffCopier {
         for (TiffTile targetTile : targetTiles) {
             if (targetTile.linearIndex() != linear) {
                 throw new AssertionError("Newly created map is not full or correctly ordered: \"" +
-                    targetTile + "\", its linear index is not " + linear +
+                        targetTile + "\", its linear index is not " + linear +
                         "; this is impossible: newMap must call buildTileGrid");
             }
             final TiffTileIndex readIndex = readMap.copyIndex(targetTile.index());
@@ -722,7 +722,7 @@ public final class TiffCopier {
                             indexOfPrevious + " >= " + linear);
                 }
                 final TiffTile previous = writeMap.getByLinear(indexOfPrevious);
-                assert previous != null: "previous duplicate of " + sourceTile.index() + " has not been written yet";
+                assert previous != null : "previous duplicate of " + sourceTile.index() + " has not been written yet";
                 targetTile.linkWithPreviousDuplicate(previous);
             } else {
                 targetTile.copyData(sourceTile, tileCopyMode);
@@ -785,7 +785,7 @@ public final class TiffCopier {
 
     public TiffWriteMap copyRectangle(
             TiffWriter writer,
-            TiffReadMap readMap,
+            TiffIOMap<?> readMap,
             int fromX,
             int fromY,
             int sizeX,
@@ -913,7 +913,7 @@ public final class TiffCopier {
         return writeMap;
     }
 
-    private static void checkImageCompatibility(TiffWriteMap writeMap, TiffReadMap readMap) {
+    private static void checkImageCompatibility(TiffMap writeMap, TiffMap readMap) {
         // Note: this method does not check ANY possible incompatibilities.
         // On the other hand, incompatibilities are improbable here;
         // they can appear only as a result of using ifdCustomizer.
@@ -934,7 +934,7 @@ public final class TiffCopier {
         }
     }
 
-    private boolean canCopyImageDirectly(TiffIFD writeIFD, ByteOrder writeByteOrder, TiffReadMap readMap)
+    private boolean canCopyImageDirectly(TiffIFD writeIFD, ByteOrder writeByteOrder, TiffIOMap<?> readMap)
             throws TiffException {
         if (!this.directCopy) {
             return false;
@@ -967,11 +967,11 @@ public final class TiffCopier {
 
     }
 
-    private static boolean isByteOrBinary(TiffReadMap readMap) {
+    private static boolean isByteOrBinary(TiffMap readMap) {
         return readMap.isBinary() || readMap.sampleType().bitsPerSample() == 8;
     }
 
-    private boolean canCopyRectangleDirectly(TiffWriteMap writeMap, TiffReadMap readMap, int fromX, int fromY)
+    private boolean canCopyRectangleDirectly(TiffWriteMap writeMap, TiffIOMap<?> readMap, int fromX, int fromY)
             throws TiffException {
         final boolean equalTiles =
                 readMap.tileSizeX() == writeMap.tileSizeX() && readMap.tileSizeY() == writeMap.tileSizeY();
@@ -984,7 +984,7 @@ public final class TiffCopier {
 
     private static int copyRectangle(
             TiffWriteMap writeMap,
-            TiffReadMap readMap,
+            TiffIOMap<?> readMap,
             int writeX,
             int writeY,
             int readX,
@@ -993,7 +993,7 @@ public final class TiffCopier {
             int sizeY,
             boolean swapOrder) throws IOException {
         List<TiffTile> tiles;
-        byte[] samples = readMap.loadSampleBytes(readX, readY, sizeX, sizeY);
+        byte[] samples = readMap.loadSampleBytes(readX, readY, sizeX, sizeY, false);
         if (swapOrder) {
             samples = JArrays.copyAndSwapByteOrder(samples, readMap.elementType());
         }
@@ -1003,7 +1003,7 @@ public final class TiffCopier {
 
     private static void copyEncodedTile(
             TiffWriteMap writeMap,
-            TiffReadMap readMap,
+            TiffIOMap<?> readMap,
             int writeXIndex,
             int writeYIndex,
             int readXIndex,
