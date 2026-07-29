@@ -612,10 +612,9 @@ public final class TiffWriteMap extends TiffIOMap {
         final ArrayList<TiffTile> initial = new ArrayList<>(updateMatrix(matrix, 0, 0));
         // - actually a single tile, but probably in numberOfSeparatedPlanes()
         // separate TiffTile objects (a rare case of plane-separated IFD)
-        final int initialCount = numberOfSeparatedPlanes();
-        if (initial.size() != initialCount) {
+        if (initial.size() != numberOfSeparatedPlanes()) {
             throw new AssertionError("Invalid tile count after updating 1 tile: " +
-                    initial.size() + " instead of " + initialCount);
+                    initial.size() + " instead of " + numberOfSeparatedPlanes());
         }
         flushCompletedTiles(initial);
         // - writing 1st tile: now it has the offset in the file
