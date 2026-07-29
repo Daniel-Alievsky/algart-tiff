@@ -683,7 +683,10 @@ public final class TiffCopier {
         // - There is no sense to call correctForEncoding() method if we use tile-per-tile direct copying.
         // We could use smartCorrection mode always by explicitly calling TiffWriter.correctForEncoding(ifd, true),
         // but we prefer not to do this.
-        final TiffWriteMap writeMap = writer.newMap(writeIFD, false, correctForEncoding);
+        final TiffWriteMap writeMap = writer.newMap(
+                writeIFD,
+                false,
+                TiffIO.MapOption.ofCorrection(correctForEncoding));
         checkImageCompatibility(writeMap, readMap);
         this.actuallyDirectCopy = actuallyDirectCopy;
         if (!actuallyDirectCopy) {
@@ -808,7 +811,7 @@ public final class TiffCopier {
         // - creating a clone of IFD: we must not modify the reader IFD
         writeIFD.putImageDimensions(sizeX, sizeY, false);
         correctIFD(writeIFD);
-        final TiffWriteMap writeMap = writer.newMap(writeIFD, false, true);
+        final TiffWriteMap writeMap = writer.newMap(writeIFD, false, TiffIO.MapOption.CORRECTION_SET);
         // - Unlike copying the entire image, here we MUST call correctForEncoding() even for direct copying:
         // the direct mode will be disabled for some fromX/fromY, and this behavior should not depend on it.
         // correctForEncoding(), in particular, corrects PhotometricInterpretation, and this may be necessary

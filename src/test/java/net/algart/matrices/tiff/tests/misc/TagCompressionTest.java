@@ -92,7 +92,7 @@ public class TagCompressionTest {
         check(ifd, TagCompression.NONE, 1, true);
 
         ifd.put(Tags.COMPRESSION, TagCompression.JPEG_2000.code());
-        check(ifd, TagCompression.JPEG_2000, TagCompression.JPEG_2000.code(), true);
+        check(ifd, TagCompression.JPEG_2000_LOSSLESS, TagCompression.JPEG_2000.code(), true);
 
         ifd.putCompression(TagCompression.JPEG_RGB);
         ifd.putCompressionCode(TagCompression.JPEG_RGB.code());

@@ -1556,19 +1556,18 @@ public non-sealed class TiffWriter extends TiffIO {
      *                           passed to {@link
      *                           TiffWriteMap#TiffWriteMap(TiffWriter, TiffIFD, boolean, boolean)}
      *                           constructor for creating the new map.
-     * @param correctForEncoding whether {@link #correctForEncoding(TiffIFD)} should be called;
-     *                           usually <code>true</code>.
+     * @param options additional options; usually {@link MapOption#CORRECTION_SET}.
      * @return map for writing further data.
      * @throws TiffException in the case of some problems.
      */
-    public TiffWriteMap newMap(TiffIFD ifd, boolean resizable, boolean correctForEncoding)
+    public TiffWriteMap newMap(TiffIFD ifd, boolean resizable, Set<MapOption> options)
             throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         if (ifd.isFrozen()) {
             throw new IllegalStateException("IFD is already frozen for usage while writing TIFF; " +
                     "probably you called this method twice");
         }
-        if (correctForEncoding) {
+        if (options.contains(MapOption.CORRECT_FOR_ENCODING)) {
             correctForEncoding(ifd);
         } else {
             correctForEntireTiff(ifd);
@@ -1591,7 +1590,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @throws TiffException in the case of some problems.
      */
     public TiffWriteMap newMap(TiffIFD ifd, boolean resizable) throws TiffException {
-        return newMap(ifd, resizable, true);
+        return newMap(ifd, resizable, MapOption.CORRECTION_SET);
     }
 
     public TiffWriteMap newFixedMap(TiffIFD ifd) throws TiffException {

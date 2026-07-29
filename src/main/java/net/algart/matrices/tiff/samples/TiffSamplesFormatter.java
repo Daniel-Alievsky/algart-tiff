@@ -43,7 +43,7 @@ public final class TiffSamplesFormatter {
     private String separator = ", ";
     private int maxArrayLength = Integer.MAX_VALUE;
     private int maxStringLength = 10000;
-    private Locale locale = Locale.US;
+    private Locale locale = Locale.ROOT;
 
     public TiffSamplesFormatter(TiffSampleType sampleType) {
         this.sampleType = Objects.requireNonNull(sampleType, "Null sample type");

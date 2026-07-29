@@ -582,6 +582,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
 
     public void writeBlankRepeatingTile(Consumer<Matrix<UpdatablePArray>> tileFiller) throws IOException {
         Objects.requireNonNull(tileFiller, "Null tileFiller");
+        long t1 = debugTime();
         buildTileGrid();
         // - just in case: should be already called in TiffWriter.newMap
         final Matrix<UpdatablePArray> matrix = Matrix.newMatrix(
@@ -594,6 +595,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
         }
         flushCompletedTiles(tiffTiles);
         // - writing 1st tile: now it has the offset in the file
+        long t2 = debugTime();
         final TiffTile first = tiffTiles.getFirst();
         int index = 0;
         for (TiffTile tile : tiles()) {
@@ -607,7 +609,19 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
             }
             index++;
         }
+        long t3 = debugTime();
         completeWriting();
+        long t4 = debugTime();
+        if (BUILT_IN_TIMING) {
+            LOG.log(System.Logger.Level.DEBUG, () -> String.format(Locale.ROOT,
+                        "%s wrote repeating-tile image %dx%dx%d (%,.3f MB) in %.3f ms = " +
+                                "%.3f making 1st tile + %.3f repeating + %.3f completing",
+                        getClass().getSimpleName(),
+                        dimX(), dimY(), numberOfChannels(),
+                        totalSizeInBytes() / 1048576.0,
+                        (t4 - t1) * 1e-6,
+                        (t2 - t1) * 1e-6, (t3 - t2) * 1e-6, (t4 - t3) * 1e-6));
+        }
     }
 
     public void writeTile(TiffTile tile, boolean freeAndFreezeAfterWriting) throws IOException {
