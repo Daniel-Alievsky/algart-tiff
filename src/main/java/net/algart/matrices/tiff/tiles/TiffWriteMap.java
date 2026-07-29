@@ -632,7 +632,8 @@ public final class TiffWriteMap extends TiffIOMap {
                     tile.copyStoredInFileDataRange(initial.get(tile.separatedPlaneIndex()));
                     // - no needs to use linkWithPreviousDuplicate: we just need to make copies and write an image
                 } else {
-                    // - may occur for stripped image for the last strip, if it has smaller height
+                    // - may occur for stripped image for the last strip, if it has smaller height;
+                    // note that for tiled image buildTileGrid() does not perform cropping edge tiles
                     if (tile.separatedPlaneIndex() == 0) {
                         updateMatrix(matrix, tile.fromX(), tile.fromY());
                         // - it is enough to call only once for all numberOfSeparatedPlanes tiles
