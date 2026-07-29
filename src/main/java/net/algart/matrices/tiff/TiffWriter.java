@@ -1976,7 +1976,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * Returns detailed internal timing statistics for TIFF encoding and writing.
      */
     public String internalTimingReport() {
-        return String.format(Locale.US,
+        return String.format(Locale.ROOT,
                 "%.3f prepare, " +
                         "%.3f customize, " +
                         "%.3f encode [%.3f main%s], " +
@@ -1986,7 +1986,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 timeEncoding * 1e-6,
                 timeEncodingMain * 1e-6,
                 timeEncodingBridge + timeEncodingAdditional > 0 ?
-                        String.format(Locale.US, " + %.3f encode-bridge + %.3f encode-additional",
+                        String.format(Locale.ROOT, " + %.3f encode-bridge + %.3f encode-additional",
                                 timeEncodingBridge * 1e-6,
                                 timeEncodingAdditional * 1e-6) :
                         "",
@@ -2673,7 +2673,7 @@ public non-sealed class TiffWriter extends TiffIO {
             LOG.log(System.Logger.Level.DEBUG, () -> {
                 final long totalTime = updatingTime + prewriteTime + encodingTime + completingTime;
                 final long sizeInBytes = map.totalSizeInBytes();
-                return String.format(Locale.US,
+                return String.format(Locale.ROOT,
                         "%s wrote %s %dx%dx%d (%.3f MB) in %.3f ms = " +
                                 "%.3f conversion/copying data%s" +
                                 " + %.3f/%.3f encoding/completing " +
@@ -2685,7 +2685,7 @@ public non-sealed class TiffWriter extends TiffIO {
                         totalTime * 1e-6,
                         updatingTime * 1e-6,
                         (isLastMapPrewritten() ?
-                                String.format(Locale.US, " + %.4f prewriting IFD", prewriteTime * 1e-6) :
+                                String.format(Locale.ROOT, " + %.4f prewriting IFD", prewriteTime * 1e-6) :
                                 ""),
                         encodingTime * 1e-6, completingTime * 1e-6,
                         internalTimingReport(),
@@ -2700,13 +2700,13 @@ public non-sealed class TiffWriter extends TiffIO {
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             LOG.log(System.Logger.Level.TRACE, () ->
                     count == 0 ?
-                            String.format(Locale.US,
+                            String.format(Locale.ROOT,
                                     "%s%s %s no tiles in %.3f ms",
                                     TiffWriter.class.getSimpleName(),
                                     stage == null ? "" : " (" + stage + " stage)",
                                     action,
                                     (t2 - t1) * 1e-6) :
-                            String.format(Locale.US,
+                            String.format(Locale.ROOT,
                                     "%s%s %s %d tiles %dx%dx%d (%.3f MB) in %.3f ms, %.3f MB/s",
                                     TiffWriter.class.getSimpleName(),
                                     stage == null ? "" : " (" + stage + " stage)",

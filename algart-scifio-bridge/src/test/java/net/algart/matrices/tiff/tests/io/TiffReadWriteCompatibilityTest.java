@@ -157,7 +157,7 @@ public class TiffReadWriteCompatibilityTest {
                     final TiffReadMap map = reader.map(readerIFD);
                     final byte[] bytes = map.readSampleBytes(START_X, START_Y, w, h);
                     long t2 = System.nanoTime();
-                    System.out.printf(Locale.US,
+                    System.out.printf(Locale.ROOT,
                             "%dx%d (%.3f MB) read in %.3f ms (%.3f MB/s) %n",
                             w, h, bytes.length / 1048576.0,
                             (t2 - t1) * 1e-6, bytes.length / 1048576.0 / ((t2 - t1) * 1e-9));
@@ -231,7 +231,7 @@ public class TiffReadWriteCompatibilityTest {
                     final var writeMap = writer.newMap(writerIFD, false);
                     writeSampleBytes(writeMap, bytes, START_X, START_Y, w, h);
                     t2 = System.nanoTime();
-                    System.out.printf(Locale.US,
+                    System.out.printf(Locale.ROOT,
                             "%dx%d (%.3f MB) written in %.3f ms (%.3f MB/s)%n",
                             w, h, bytes.length / 1048576.0,
                             (t2 - t1) * 1e-6, bytes.length / 1048576.0 / ((t2 - t1) * 1e-9));

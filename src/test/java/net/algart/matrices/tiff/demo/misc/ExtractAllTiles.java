@@ -81,7 +81,7 @@ public class ExtractAllTiles {
                 long t1 = System.nanoTime();
                 matrix = map.readMatrix(x, y, w, h, true);
                 long t2 = System.nanoTime();
-                System.out.printf(Locale.US, "Test #%d: %dx%d loaded in %.3f ms%n",
+                System.out.printf(Locale.ROOT, "Test #%d: %dx%d loaded in %.3f ms%n",
                         test, w, h, (t2 - t1) * 1e-6);
                 System.gc();
             }

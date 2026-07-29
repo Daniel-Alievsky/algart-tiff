@@ -640,7 +640,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t2 = debugTime();
-            LOG.log(System.Logger.Level.TRACE, String.format(Locale.US,
+            LOG.log(System.Logger.Level.TRACE, String.format(Locale.ROOT,
                     "%s read IFD at offset %d: %.3f ms, including %.6f entries + %.6f arrays",
                     getClass().getSimpleName(), ifdOffset,
                     (t2 - t1) * 1e-6, timeEntries * 1e-6, timeArrays * 1e-6));

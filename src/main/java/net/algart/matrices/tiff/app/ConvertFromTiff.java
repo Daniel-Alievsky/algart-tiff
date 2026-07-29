@@ -66,7 +66,7 @@ public class ConvertFromTiff {
         MatrixIO.writeImage(targetFile, image);
         long t3 = System.nanoTime();
 
-        System.out.printf(Locale.US,
+        System.out.printf(Locale.ROOT,
                 "Conversion from TIFF finished: %.3f seconds reading TIFF, %.3f seconds writing.%n",
                 (t2 - t1) * 1e-9, (t3 - t2) * 1e-9);
         return true;

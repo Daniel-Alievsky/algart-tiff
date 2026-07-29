@@ -52,10 +52,10 @@ public class DataHandleReadArraySpeed {
             b[k] = inBuffer.readInt();
         }
         long t3 = System.nanoTime();
-        System.out.printf(Locale.US, "Reading %d 32-bit integers, %s: %.3f ms, %.3f MB/s (%s)%n",
+        System.out.printf(Locale.ROOT, "Reading %d 32-bit integers, %s: %.3f ms, %.3f MB/s (%s)%n",
                 size, in.getClass(),
                 (t2 - t1) * 1e-6, (size * elementSize) / 1048576.0 / ((t2 - t1) * 1e-9), a);
-        System.out.printf(Locale.US, "Reading %d 32-bit integers, %s: %.3f ms, %.3f MB/s (%s)%n",
+        System.out.printf(Locale.ROOT, "Reading %d 32-bit integers, %s: %.3f ms, %.3f MB/s (%s)%n",
                 size, inBuffer.getClass(),
                 (t3 - t2) * 1e-6, (size * elementSize) / 1048576.0 / ((t3 - t2) * 1e-9), b);
     }
@@ -77,10 +77,10 @@ public class DataHandleReadArraySpeed {
             b[k] = inBuffer.readByte();
         }
         long t3 = System.nanoTime();
-        System.out.printf(Locale.US, "Reading %d bytes, %s: %.3f ms, %.3f MB/s%n",
+        System.out.printf(Locale.ROOT, "Reading %d bytes, %s: %.3f ms, %.3f MB/s%n",
                 size, in.getClass(),
                 (t2 - t1) * 1e-6, (size * elementSize) / 1048576.0 / ((t2 - t1) * 1e-9));
-        System.out.printf(Locale.US, "Reading %d bytes, %s: %.3f ms, %.3f MB/s%n",
+        System.out.printf(Locale.ROOT, "Reading %d bytes, %s: %.3f ms, %.3f MB/s%n",
                 size, inBuffer.getClass(),
                 (t3 - t2) * 1e-6, (size * elementSize) / 1048576.0 / ((t3 - t2) * 1e-9));
     }

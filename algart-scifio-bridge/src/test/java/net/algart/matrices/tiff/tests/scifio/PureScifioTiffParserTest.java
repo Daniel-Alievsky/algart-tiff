@@ -80,7 +80,7 @@ public class PureScifioTiffParserTest {
             long t1 = System.nanoTime();
             parser.getSamples(ifd, bytes, START_X, START_Y, w, h);
             long t2 = System.nanoTime();
-            System.out.printf(Locale.US, "Test (SCIFIO original) #%d: %dx%d (%.3f MB) loaded in %.3f ms, " +
+            System.out.printf(Locale.ROOT, "Test (SCIFIO original) #%d: %dx%d (%.3f MB) loaded in %.3f ms, " +
                             "%.3f MB/sec%n",
                     test, w, h, bytes.length / 1048576.0,
                     (t2 - t1) * 1e-6,

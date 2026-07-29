@@ -184,7 +184,7 @@ public class TiffCopy {
             copier.copyImages(writer, reader, firstIndex, lastIndex + 1);
         }
         final long t2 = System.nanoTime();
-        System.out.printf(Locale.US, "Copying finished in %.3f seconds.%n",  (t2 - t1) * 1e-9);
+        System.out.printf(Locale.ROOT, "Copying finished in %.3f seconds.%n",  (t2 - t1) * 1e-9);
     }
 
     private void updateProgress(TiffCopier.ProgressInformation p) {

@@ -97,7 +97,7 @@ public class TiffCropAllToRectangleDemo {
             }
         }
         long t2 = System.nanoTime();
-        System.out.printf(Locale.US, "Done in %.3f seconds%n", (t2 - t1) * 1e-9);
+        System.out.printf(Locale.ROOT, "Done in %.3f seconds%n", (t2 - t1) * 1e-9);
     }
 
     private static int alignDown(int value, int step) {

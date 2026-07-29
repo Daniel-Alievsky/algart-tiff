@@ -91,7 +91,7 @@ public class TiffWriteSimpleBitTest {
                     // - has no effect without previous map.clear(): map is already written and frozen!
                 }
                 long t2 = System.nanoTime();
-                System.out.printf(Locale.US, "Test #%d/%d: bit matrix %dx%d (%,d elements) " +
+                System.out.printf(Locale.ROOT, "Test #%d/%d: bit matrix %dx%d (%,d elements) " +
                                 "written in %.3f ms, %.3f MB/sec%n",
                         k, numberOfTests, m.dimX(), m.dimY(), m.size(),
                         (t2 - t1) * 1e-6, Matrices.sizeOf(m) / 1048576.0 / ((t2 - t1) * 1e-9));

@@ -746,7 +746,7 @@ public final class TiffCopier {
         if (TiffIO.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             final long sizeInBytes = writeMap.totalSizeInBytes();
             long t4 = TiffIO.debugTime();
-            LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
+            LOG.log(System.Logger.Level.DEBUG, String.format(Locale.ROOT,
                     "%s copied entire image %s %dx%dx%d (%d tiles, %.3f MB) in %.3f ms = " +
                             "%.3f prepare " +
                             "+ %.3f copy " +
@@ -896,7 +896,7 @@ public final class TiffCopier {
         if (TiffIO.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             final long sizeInBytes = writeMap.totalSizeInBytes();
             long t4 = TiffIO.debugTime();
-            LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
+            LOG.log(System.Logger.Level.DEBUG, String.format(Locale.ROOT,
                     "%s copied %s%s %dx%dx%d samples in %d tiles%s (%.3f MB) in %.3f ms = " +
                             "%.3f prepare + %.3f copy + %.3f complete, %.3f MB/s",
                     getClass().getSimpleName(),
@@ -1059,7 +1059,7 @@ public final class TiffCopier {
             }
             if (TiffIO.BUILT_IN_TIMING && LOGGABLE_DEBUG) {
                 long t2 = TiffIO.debugTime();
-                LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
+                LOG.log(System.Logger.Level.DEBUG, String.format(Locale.ROOT,
                         "%s copied %d bytes%s (%.3f MB) in %.3f ms, %.3f MB/s",
                         getClass().getSimpleName(),
                         sizeInBytes,

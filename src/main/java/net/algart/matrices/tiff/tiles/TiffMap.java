@@ -1157,7 +1157,7 @@ public sealed class TiffMap permits TiffIOMap {
         final Object samplesArray = sampleType().javaArray(sampleBytes, byteOrder());
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t2 = debugTime();
-            LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
+            LOG.log(System.Logger.Level.DEBUG, String.format(Locale.ROOT,
                     "%s converted %d bytes (%.3f MB) to %s[] in %.3f ms%s",
                     getClass().getSimpleName(),
                     sampleBytes.length, sampleBytes.length / 1048576.0,
@@ -1165,7 +1165,7 @@ public sealed class TiffMap permits TiffIOMap {
                     (t2 - t1) * 1e-6,
                     sampleBytes == samplesArray ?
                             "" :
-                            String.format(Locale.US, " %.3f MB/s",
+                            String.format(Locale.ROOT, " %.3f MB/s",
                                     sampleBytes.length / 1048576.0 / ((t2 - t1) * 1e-9))));
         }
         return samplesArray;

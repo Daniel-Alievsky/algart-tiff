@@ -76,7 +76,7 @@ public class AWTImageConversionsSpeed {
             long t3 = System.nanoTime();
             bytesPerSample = data[0].length / (dimX * dimY);
             final int size = data.length * data[0].length;
-            System.out.printf(Locale.US,
+            System.out.printf(Locale.ROOT,
                     "AWTImages decoding image %dx%dx%d, %d samples per %d bytes: %.3f ms (%.3f MB/sec)%n" +
                             "AlgART decoding %s: %.3f ms%n",
                     dimX, dimY, data.length, size / bytesPerSample, bytesPerSample,

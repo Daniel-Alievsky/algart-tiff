@@ -1032,7 +1032,7 @@ public non-sealed class TiffReader extends TiffIO {
         }
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t2 = debugTime();
-            LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
+            LOG.log(System.Logger.Level.DEBUG, String.format(Locale.ROOT,
                     "%s read %d IFDs: %.3f ms",
                     getClass().getSimpleName(), allIFDs.size(),
                     (t2 - t1) * 1e-6));
@@ -1561,16 +1561,16 @@ public non-sealed class TiffReader extends TiffIO {
      * Returns detailed internal timing statistics for TIFF decoding and reading.
      */
     public String internalTimingReport() {
-        return String.format(Locale.US,
+        return String.format(Locale.ROOT,
                 "%.3f read; %.3f customize/bit-order, %.3f decode%s, %.3f completing",
                 timeReading * 1e-6,
                 timeCustomizingDecoding * 1e-6,
                 timeDecoding * 1e-6,
                 timeDecoding != timeDecodingMain || timeDecodingBridge + timeDecodingAdditional > 0 ?
-                        String.format(Locale.US, " [= %.3f main%s]",
+                        String.format(Locale.ROOT, " [= %.3f main%s]",
                                 timeDecodingMain * 1e-6,
                                 timeDecodingBridge + timeDecodingAdditional > 0 ?
-                                        String.format(Locale.US,
+                                        String.format(Locale.ROOT,
                                                 " + %.3f decode-bridge + %.3f decode-additional",
                                                 timeDecodingBridge * 1e-6,
                                                 timeDecodingAdditional * 1e-6) :
@@ -1836,7 +1836,7 @@ public non-sealed class TiffReader extends TiffIO {
                         currentCacheMemory -= cached.cachedDataLength;
                         cached.cachedTile = null;
                         Runtime runtime = Runtime.getRuntime();
-                        LOG.log(System.Logger.Level.TRACE, () -> String.format(Locale.US,
+                        LOG.log(System.Logger.Level.TRACE, () -> String.format(Locale.ROOT,
                                 "REMOVING tile from cache (limit %.1f MB exceeded, used memory %.1f MB): %s",
                                 maxCacheMemory / 1048576.0,
                                 (runtime.totalMemory() - runtime.freeMemory()) / 1048576.0,

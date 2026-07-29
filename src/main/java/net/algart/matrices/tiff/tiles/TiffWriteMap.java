@@ -728,11 +728,11 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             LOG.log(System.Logger.Level.TRACE, () ->
                     count == 0 ?
-                            String.format(Locale.US,
+                            String.format(Locale.ROOT,
                                     "%s encoded no tiles in %.3f ms",
                                     getClass().getSimpleName(),
                                     (t2 - t1) * 1e-6) :
-                            String.format(Locale.US,
+                            String.format(Locale.ROOT,
                                     "%s encoded %d tiles %dx%dx%d (%.3f MB) in %.3f ms, %.3f MB/s",
                                     getClass().getSimpleName(),
                                     count, numberOfChannels(), tileSizeX(), tileSizeY(),
@@ -754,7 +754,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
             LOG.log(System.Logger.Level.DEBUG, () -> {
                 final long totalTime = updatingTime + prewriteTime + encodingTime + completingTime;
                 final long sizeInBytes = map.totalSizeInBytes();
-                return String.format(Locale.US,
+                return String.format(Locale.ROOT,
                         "%s wrote %s %dx%dx%d (%.3f MB) in %.3f ms = " +
                                 "%.3f conversion/copying data%s" +
                                 " + %.3f/%.3f encoding/completing " +
@@ -766,7 +766,7 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                         totalTime * 1e-6,
                         updatingTime * 1e-6,
                         (owner.isLastMapPrewritten() ?
-                                String.format(Locale.US, " + %.4f prewriting IFD", prewriteTime * 1e-6) :
+                                String.format(Locale.ROOT, " + %.4f prewriting IFD", prewriteTime * 1e-6) :
                                 ""),
                         encodingTime * 1e-6, completingTime * 1e-6,
                         owner.internalTimingReport(),

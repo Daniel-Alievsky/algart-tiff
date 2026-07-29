@@ -119,7 +119,7 @@ public class TiffOverwriteNaturalNumbersDemo {
             int m = writeMap.completeWriting();
             long t3 = System.nanoTime();
             System.out.printf("Completed %d tile, file length: %d%n", m, writeMap.fileLength());
-            System.out.printf(Locale.US, "Writing time: %.3f ms + %.3f ms for completion%n",
+            System.out.printf(Locale.ROOT, "Writing time: %.3f ms + %.3f ms for completion%n",
                     (t2 - t1) * 1e-6, (t3 - t2) * 1e-6);
             if (flush && m != 0) {
                 // - should be 0, because all tiles were preloaded

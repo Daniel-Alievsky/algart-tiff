@@ -71,7 +71,7 @@ public class TiffCompactDemo {
             long t1 = System.nanoTime();
             copier.compact(tiffFile);
             long t2 = System.nanoTime();
-            System.out.printf(Locale.US, "%nDone in %.3f seconds%n", (t2 - t1) * 1e-9);
+            System.out.printf(Locale.ROOT, "%nDone in %.3f seconds%n", (t2 - t1) * 1e-9);
         }
     }
 }

@@ -265,7 +265,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
                     (t2 - t1) * 1e-6,
                     reader.internalTimingReport(),
                     unpackingBits ?
-                            String.format(Locale.US, " + %.3f unpacking %d-bit",
+                            String.format(Locale.ROOT, " + %.3f unpacking %d-bit",
                                     (t3 - t2) * 1e-6, normalizedBitDepth()) :
                             "",
                     sizeInBytes / 1048576.0 / ((t3 - t1) * 1e-9)));

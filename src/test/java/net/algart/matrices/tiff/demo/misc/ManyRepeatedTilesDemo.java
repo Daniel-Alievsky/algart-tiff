@@ -100,7 +100,7 @@ public class ManyRepeatedTilesDemo {
                 map.writeBlank(colorValue);
             }
             long t2 = System.nanoTime();
-            System.out.printf(Locale.US, "All tiles (duplicates) written in %.3f ms%n",
+            System.out.printf(Locale.ROOT, "All tiles (duplicates) written in %.3f ms%n",
                     (t2 - t1) * 1e-6);
         }
         System.out.println("Done");

@@ -172,7 +172,7 @@ public class MakeSvs {
             }
         }
         long t3 = System.nanoTime();
-        System.out.printf(Locale.US,
+        System.out.printf(Locale.ROOT,
                 "Building SVS finished: %.3f seconds reading, %.3f seconds writing TIFF.%n",
                 (t2 - t1) * 1e-9, (t3 - t2) * 1e-9);
     }

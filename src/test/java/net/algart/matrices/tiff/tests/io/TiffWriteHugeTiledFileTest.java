@@ -72,7 +72,7 @@ public class TiffWriteHugeTiledFileTest {
 
                 map.writeSampleBytes(samples);
                 long t2 = System.nanoTime();
-                System.out.printf(Locale.US, "Image #%d/%d: %dx%d written in %.3f ms, %.3f MB/sec%n",
+                System.out.printf(Locale.ROOT, "Image #%d/%d: %dx%d written in %.3f ms, %.3f MB/sec%n",
                         k, numberOfImages, IMAGE_WIDTH, IMAGE_HEIGHT,
                         (t2 - t1) * 1e-6, samples.length / 1048576.0 / ((t2 - t1) * 1e-9));
 
