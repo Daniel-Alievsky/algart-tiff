@@ -586,6 +586,19 @@ public final class TiffWriteMap extends TiffIOMap {
         writeBlankRepeatingTile(m -> fillColor(m, filler, false));
     }
 
+    /**
+     * Writes a blank image {@link #dimX()}&nbsp;x&nbsp;{@link #dimY()}
+     * (full dimensions of this map) by repeating the first tile over the whole image.
+     *
+     * <p>The first tile is filled by calling
+     * {@link #updateMatrix(Matrix, int, int)} for the matrix
+     * {@link #tileSizeX()}&nbsp;x&nbsp;{@link #tileSizeY()} at the position (0,&nbsp;0).
+     * All other tiles will be identical to the first one.</p>
+     *
+     * @param tileFiller the filler used for filling the matrix
+     *                   {@link #tileSizeX()}&nbsp;x&nbsp;{@link #tileSizeY()}.
+     * @throws IOException in the case of any I/O errors.
+     */
     public void writeBlankRepeatingTile(Consumer<Matrix<UpdatablePArray>> tileFiller) throws IOException {
         Objects.requireNonNull(tileFiller, "Null tileFiller");
         long t1 = debugTime();
@@ -596,23 +609,35 @@ public final class TiffWriteMap extends TiffIOMap {
                 elementType(), tileSizeX(), tileSizeY(), numberOfChannels());
         tileFiller.accept(matrix);
         prewrite();
-        List<TiffTile> tiffTiles = updateMatrix(matrix, 0, 0);
-        if (tiffTiles.size() != 1) {
-            throw new AssertionError("Invalid tile count after updating 1 tile: " + tiffTiles.size());
+        final ArrayList<TiffTile> initial = new ArrayList<>(updateMatrix(matrix, 0, 0));
+        // - actually a single tile, but probably in numberOfSeparatedPlanes()
+        // separate TiffTile objects (a rare case of plane-separated IFD)
+        final int initialCount = numberOfSeparatedPlanes();
+        if (initial.size() != initialCount) {
+            throw new AssertionError("Invalid tile count after updating 1 tile: " +
+                    initial.size() + " instead of " + initialCount);
         }
-        flushCompletedTiles(tiffTiles);
+        flushCompletedTiles(initial);
         // - writing 1st tile: now it has the offset in the file
         long t3 = debugTime();
-        final TiffTile first = tiffTiles.getFirst();
+        final TiffTile first = initial.getFirst();
         int index = 0;
         for (TiffTile tile : tiles()) {
             if (tile.linearIndex() != index) {
                 throw new ConcurrentModificationException("Invalid linear index of the tile " + tile +
                         ",%nprobably because of growing the map by a parallel thread:%n%s".formatted(this));
             }
-            if (index > 0) {
-                tile.copyStoredInFileDataRange(first);
-                // - no needs to use linkWithPreviousDuplicate: we just need to make copies and write an image
+            if (tile.xIndex() != 0 || tile.yIndex() != 0) {
+                if (tile.equalSizes(first)) {
+                    tile.copyStoredInFileDataRange(initial.get(tile.separatedPlaneIndex()));
+                    // - no needs to use linkWithPreviousDuplicate: we just need to make copies and write an image
+                } else {
+                    // - may occur for stripped image for the last strip, if it has smaller height
+                    if (tile.separatedPlaneIndex() == 0) {
+                        updateMatrix(matrix, tile.fromX(), tile.fromY());
+                        // - it is enough to call only once for all numberOfSeparatedPlanes tiles
+                    }
+                }
             }
             index++;
         }
@@ -621,13 +646,13 @@ public final class TiffWriteMap extends TiffIOMap {
         long t5 = debugTime();
         if (BUILT_IN_TIMING) {
             LOG.log(System.Logger.Level.DEBUG, () -> String.format(Locale.ROOT,
-                        "%s wrote repeating-tile image %dx%dx%d (%,.3f MB) in %.3f ms = " +
-                                "%.3f grid + %.3f making 1st tile + %.3f repeating + %.3f completing",
-                        getClass().getSimpleName(),
-                        dimX(), dimY(), numberOfChannels(),
-                        totalSizeInBytes() / 1048576.0,
-                        (t5 - t1) * 1e-6,
-                        (t2 - t1) * 1e-6, (t3 - t2) * 1e-6, (t4 - t3) * 1e-6, (t5 - t4) * 1e-6));
+                    "%s wrote repeating-tile image %dx%dx%d (%,.3f MB) in %.3f ms = " +
+                            "%.3f grid + %.3f making 1st tile + %.3f repeating + %.3f completing",
+                    getClass().getSimpleName(),
+                    dimX(), dimY(), numberOfChannels(),
+                    totalSizeInBytes() / 1048576.0,
+                    (t5 - t1) * 1e-6,
+                    (t2 - t1) * 1e-6, (t3 - t2) * 1e-6, (t4 - t3) * 1e-6, (t5 - t4) * 1e-6));
         }
     }
 

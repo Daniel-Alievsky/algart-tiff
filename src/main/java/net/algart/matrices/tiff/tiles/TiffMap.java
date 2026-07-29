@@ -282,6 +282,7 @@ public sealed class TiffMap permits TiffIOMap {
         }
         this.planarSeparated = ifd.isPlanarSeparated();
         this.numberOfChannels = ifd.getSamplesPerPixel();
+        assert numberOfChannels > 0;
         assert numberOfChannels <= TiffIFD.MAX_NUMBER_OF_CHANNELS : "getSamplesPerPixel did not check result";
         this.numberOfSeparatedPlanes = planarSeparated ? numberOfChannels : 1;
         this.tileSamplesPerPixel = planarSeparated ? 1 : numberOfChannels;

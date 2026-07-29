@@ -2606,8 +2606,8 @@ public non-sealed class TiffWriter extends TiffIO {
                         assert tile.isEmpty() : "writeEncodedTile() call above did not store data file offset!";
                         if (!missingTilesAllowed) {
                             if (!tile.equalSizes(filler)) {
-                                // - usually performed once, maybe twice for stripped image (where the last strip has
-                                // smaller height)
+                                // - usually performed once, maybe twice for stripped image
+                                // (where the last strip has smaller height)
                                 // or even 2 * numberOfSeparatedPlanes times for plane-separated tiles
                                 filler = new TiffTile(tileIndex).setEqualSizes(tile);
                                 filler.fillIfEmpty(getTileInitializer(), getByteFiller());

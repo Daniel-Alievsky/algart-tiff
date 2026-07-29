@@ -28,8 +28,8 @@ import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffIO;
-import net.algart.matrices.tiff.samples.TiffSampleType;
 import net.algart.matrices.tiff.TiffWriter;
+import net.algart.matrices.tiff.samples.TiffSampleType;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
@@ -62,9 +62,14 @@ public class ManyRepeatedTilesDemo {
             gradient = true;
             startArgIndex++;
         }
+        boolean planarSeparated = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-planarSeparated")) {
+            planarSeparated = true;
+            startArgIndex++;
+        }
         if (args.length < startArgIndex + 4) {
             System.out.println("Usage:");
-            System.out.printf("    %s [-append] [-bigTiff] [-color] [-gradient] " +
+            System.out.printf("    %s [-append] [-bigTiff] [-color] [-gradient] [-planarSeparated] " +
                             "target.tiff x-repetitions y-repetitions 0xXXXXXX " +
                             "bit|unit8|int8|uint16|int16|uint32|int32|float|double [compression]%n",
                     ManyRepeatedTilesDemo.class.getName());
@@ -85,6 +90,10 @@ public class ManyRepeatedTilesDemo {
             final TiffIFD ifd = TiffIFD.newTiledIFD(compression)
                     .putTileSizes(256, 256)
                     .putPixelInformation(numberOfChannels, sampleType);
+            if (planarSeparated) {
+                ifd.putPlanarSeparated(true);
+                // - more complex test
+            }
             final int tileSizeX = ifd.getTileSizeX();
             final int tileSizeY = ifd.getTileSizeY();
             ifd.putImageDimensions((long) tileSizeX * xCount, (long) tileSizeY * yCount);

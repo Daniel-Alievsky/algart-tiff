@@ -135,6 +135,18 @@ public final class TiffTile {
         return index;
     }
 
+    public int xIndex() {
+        return index.xIndex();
+    }
+
+    public int yIndex() {
+        return index.yIndex();
+    }
+
+    public int separatedPlaneIndex() {
+        return index.separatedPlaneIndex();
+    }
+
     public int linearIndex() {
         return index.linear();
     }

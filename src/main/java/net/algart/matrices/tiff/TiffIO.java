@@ -153,7 +153,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         public static final Set<MapOption> DEFAULT = CORRECTION_SET;
 
         /**
-         * Returns the {@link #DEFAULT} set of options with the specified options excluded.
+         * Returns a copy of {@link #DEFAULT} with the specified options removed.
          *
          * @param options options to be excluded from the default set.
          * @return the reduced set of options.
