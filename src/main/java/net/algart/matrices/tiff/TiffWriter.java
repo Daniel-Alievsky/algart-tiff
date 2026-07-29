@@ -1368,7 +1368,7 @@ public non-sealed class TiffWriter extends TiffIO {
         long t1 = debugTime();
         synchronized (fileLock) {
             checkVirginFile();
-            invalidateCompanionReader();
+            // but no reasons to invalidate companion reader: the TIFF structure is not changed yet
             TiffTileIO.write(tile, stream, alwaysWriteToFileEnd, !bigTiff);
             if (freeAndFreezeAfterWriting) {
                 tile.freeAndFreeze();
@@ -1531,9 +1531,6 @@ public non-sealed class TiffWriter extends TiffIO {
      * automatically while {@link #completeWriting(TiffWriteMap) completion} of the image.
      * See also the constructor {@link TiffMap#TiffMap(TiffIFD, boolean)}.</p>
      *
-     * <p>Note: this method calls {@link TiffIFD#freeze() freeze} for
-     * the passed <code>ifd</code>. So you should use this method after completely building IFD.</p>
-     *
      * <p>Note: this method forcibly <b>removes</b> tags
      * {@link Tags#SUB_IFD SubIFD} = {@value Tags#SUB_IFD},
      * {@link Tags#EXIF_IFD Exif IFD} = {@value Tags#EXIF_IFD},
@@ -1542,6 +1539,12 @@ public non-sealed class TiffWriter extends TiffIO {
      * because this class does not support writing sub-IFDs or linked IFDs.
      * If you still need to construct TIFF with such tags, you should use more low-level call of
      * {@link TiffWriteMap} constructor.
+     *
+     * <p>Note: this method calls {@link TiffIFD#removeFileOffsetOfIFDForWriting()} for
+     * the passed <code>ifd</code>. So, this IFD will be written to the new position at the file end.</p>
+     *
+     * <p>Note: this method calls {@link TiffIFD#freeze() freeze} for
+     * the passed <code>ifd</code>. So you should use this method after completely building IFD.</p>
      *
      * @param ifd                newly created and probably customized IFD.
      * @param resizable          if <code>true</code>, IFD dimensions may not be specified yet: this argument is
@@ -1565,6 +1568,8 @@ public non-sealed class TiffWriter extends TiffIO {
             correctForEntireTiff(ifd);
             // - this is still necessary: ifd and TiffWriteMap must "know" about the actual file format
         }
+        ifd.removeFileOffsetOfIFDForWriting();
+        // - this map is intended for writing to the file end
         final TiffWriteMap map = new TiffWriteMap(this, ifd, resizable, false);
         prepareNewMap(map, options.contains(MapOption.BUILD_GRID));
         this.lastMap = map;
