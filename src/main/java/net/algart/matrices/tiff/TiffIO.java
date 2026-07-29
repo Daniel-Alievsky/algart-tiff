@@ -152,6 +152,21 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
          */
         public static final Set<MapOption> DEFAULT = CORRECTION_SET;
 
+        /**
+         * Returns the {@link #DEFAULT} set of options with the specified options excluded.
+         *
+         * @param options options to be excluded from the default set.
+         * @return the reduced set of options.
+         */
+        public static Set<MapOption> without(MapOption... options) {
+            Objects.requireNonNull(options, "Null options array");
+            final EnumSet<MapOption> result = EnumSet.copyOf(DEFAULT);
+            for (MapOption option : options) {
+                result.remove(option);
+            }
+            return Collections.unmodifiableSet(result);
+        }
+
         public static Set<MapOption> ofCorrection(boolean correctForEncoding) {
             return correctForEncoding ? CORRECTION_SET : NO_CORRECTION_SET;
         }

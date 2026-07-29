@@ -27,6 +27,7 @@ package net.algart.matrices.tiff.demo.misc;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.TiffIO;
 import net.algart.matrices.tiff.samples.TiffSampleType;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
@@ -81,14 +82,14 @@ public class ManyRepeatedTilesDemo {
         try (TiffWriter writer = new TiffWriter(targetFile)) {
             writer.setBigTiff(bigTiff);
             writer.create(append);
-            final TiffIFD ifd = TiffIFD.newTiledIFD()
+            final TiffIFD ifd = TiffIFD.newTiledIFD(compression)
                     .putTileSizes(256, 256)
-                    .putPixelInformation(numberOfChannels, sampleType)
-                    .putCompression(compression);
+                    .putPixelInformation(numberOfChannels, sampleType);
             final int tileSizeX = ifd.getTileSizeX();
             final int tileSizeY = ifd.getTileSizeY();
             ifd.putImageDimensions((long) tileSizeX * xCount, (long) tileSizeY * yCount);
-            final TiffWriteMap map = writer.newFixedMap(ifd);
+            final TiffWriteMap map = writer.newFixedMap(ifd,
+                    TiffIO.MapOption.without(TiffIO.MapOption.BUILD_GRID));
             System.out.printf("%s TIFF %s %dx%d: %d tiles %dx%d...%n",
                     append ? "Appending" : "Writing", targetFile, map.dimX(), map.dimY(),
                     (long) xCount * (long) yCount, tileSizeX, tileSizeY);

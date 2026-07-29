@@ -27,6 +27,7 @@ package net.algart.matrices.tiff.app.explorer;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.TiffIFD;
+import net.algart.matrices.tiff.TiffIO;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.samples.TiffSampleType;
 import net.algart.matrices.tiff.tags.TagCompression;
@@ -379,7 +380,7 @@ class TiffNewBlankHelper {
             ifd.putPixelInformation(numberOfChannels.numberOfChannels(), sampleType);
             ifd.putCompression(compression);
             long t1 = System.nanoTime();
-            final TiffWriteMap map = writer.newFixedMap(ifd);
+            final TiffWriteMap map = writer.newFixedMap(ifd, TiffIO.MapOption.without(TiffIO.MapOption.BUILD_GRID));
             long t2 = System.nanoTime();
             if (pattern) {
                 map.writeBlankRepeatingTile(m -> makePatternSamples(m, map, selectedColor));

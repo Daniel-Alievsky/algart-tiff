@@ -1586,8 +1586,16 @@ public non-sealed class TiffWriter extends TiffIO {
         return newMap(ifd, resizable, MapOption.DEFAULT);
     }
 
+    public TiffWriteMap newFixedMap(TiffIFD ifd, Set<MapOption> options) throws TiffException {
+        return newMap(ifd, false, options);
+    }
+
     public TiffWriteMap newFixedMap(TiffIFD ifd) throws TiffException {
         return newMap(ifd, false);
+    }
+
+    public TiffWriteMap newResizableMap(TiffIFD ifd, Set<MapOption> options) throws TiffException {
+        return newMap(ifd, true, options);
     }
 
     public TiffWriteMap newResizableMap(TiffIFD ifd) throws TiffException {
