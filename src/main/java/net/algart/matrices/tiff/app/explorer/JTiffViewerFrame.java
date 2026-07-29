@@ -151,8 +151,8 @@ class JTiffViewerFrame extends JFrame {
         double rescaleFactor = viewer.getRescaleFactor();
         double blackOffset = viewer.getBlackOffset();
         final String rescaleTitle = !viewer.isRescaled() ? "" :
-                String.format(Locale.US, ", scaled by %.3f", rescaleFactor) +
-                (blackOffset == 0.0 ? "" : String.format(Locale.US, " with black=%.3f", blackOffset));
+                String.format(Locale.ROOT, ", scaled by %.3f", rescaleFactor) +
+                (blackOffset == 0.0 ? "" : String.format(Locale.ROOT, " with black=%.3f", blackOffset));
         setTitle("TIFF Image #%d/%d (%dx%d, %d channel%s, %s%s bits/channel)  %s%s%s  [%s]".formatted(
                 viewer.ifdIndex(), map.numberOfImagesUnchecked(),
                 map.dimX(), map.dimY(),

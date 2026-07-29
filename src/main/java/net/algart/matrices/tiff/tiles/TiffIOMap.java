@@ -255,7 +255,7 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
 
         if (BUILT_IN_TIMING && LOGGABLE_DEBUG) {
             long t3 = debugTime();
-            LOG.log(System.Logger.Level.DEBUG, String.format(Locale.US,
+            LOG.log(System.Logger.Level.DEBUG, String.format(Locale.ROOT,
                     "%s read %dx%dx%d samples (%.3f MB) in %.3f ms = " +
                             "%.3f read/decode " +
                             "(%s) %s, %.3f MB/s",

@@ -200,7 +200,7 @@ class TiffCopyHelper {
         if (info.tiffFileLength() > 1024L * 1024L * 1024L) {
             settingsPanel.add(Box.createVerticalStrut(5));
             settingsPanel.add(TinySwing.leftLabel(
-                    String.format(Locale.US,
+                    String.format(Locale.ROOT,
                             TinySwing.smartHtmlLines(
                                     "The TIFF file is very large (<b>%.3f GB</b>, &gt;1 GB)!<br>" +
                                             "We recommend using BigTIFF, which allows storing &gt;4 GB of data."),

@@ -276,7 +276,7 @@ public final class TiffIFD {
      * An IFD with the number of strips or tiles, greater than this limit, is not allowed:
      * it is mostly probable that it is a corrupted file.
      */
-    public static final int MAX_NUMBER_OF_TILES = 10_000_000;
+    public static final int MAX_NUMBER_OF_TILES = 200_000_000;
 
     /**
      * The number of bytes in the TIFF file header.

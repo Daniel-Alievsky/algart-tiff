@@ -460,7 +460,7 @@ class TiffViewer {
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         final double contrastRescaleFactor = maxVisibleValue == 0.0 ? 1.0 : maxPossibleValue / maxVisibleValue;
-        mainPanel.add(TinySwing.leftLabel(TinySwing.smartHtmlLines(String.format(Locale.US, """
+        mainPanel.add(TinySwing.leftLabel(TinySwing.smartHtmlLines(String.format(Locale.ROOT, """
                 Specify the intensity transformation parameters: the multiplier (<b>k</b>)
                 and the black offset (<b>b</b>)<br>
                 for pixel sample values before visualization,

@@ -39,10 +39,13 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Objects;
 
 class TiffNewBlankHelper {
     private static final String PREF_LAST_NEW_TIFF_DIR = "viewer.copier.lastNewTiffDirectory";
+
+    private static final System.Logger LOG = System.getLogger(TiffNewBlankHelper.class.getName());
 
     private final JFrame frame;
     private final TiffExplorer explorer;
@@ -375,12 +378,18 @@ class TiffNewBlankHelper {
             }
             ifd.putPixelInformation(numberOfChannels.numberOfChannels(), sampleType);
             ifd.putCompression(compression);
+            long t1 = System.nanoTime();
             final TiffWriteMap map = writer.newFixedMap(ifd);
+            long t2 = System.nanoTime();
             if (pattern) {
                 map.writeBlankRepeatingTile(m -> makePatternSamples(m, map, selectedColor));
             } else {
                 map.writeBlank(selectedColor);
             }
+            long t3 = System.nanoTime();
+            LOG.log(System.Logger.Level.INFO, String.format(Locale.ROOT,
+                    "Blank image created in %.3f ms: %.3f ms preparing map + %.3f ms writing to file",
+                    (t3 - t1) * 1e-6, (t2 - t1) * 1e-6, (t3 - t2) * 1e-6));
         }
     }
 
