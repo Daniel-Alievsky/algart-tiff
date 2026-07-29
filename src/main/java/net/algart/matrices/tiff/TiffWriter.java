@@ -1531,15 +1531,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * automatically while {@link #completeWriting(TiffWriteMap) completion} of the image.
      * See also the constructor {@link TiffMap#TiffMap(TiffIFD, boolean)}.</p>
      *
-     * <p>If <code>correctForEncoding</code> is <code>true</code>,
-     * this method automatically calls {@link #correctForEncoding(TiffIFD)} method for
-     * the specified <code>ifd</code> argument.
-     * While typical usage, this argument should be <code>true</code>.
-     * But you may set it to <code>false</code> if you want to control all IFD settings yourself,
-     * in particular if you prefer to call the method {@link #correctForEncoding(TiffIFD, boolean)}
-     * with non-standard {@link #setSmartCorrection smartCorrection} flag.
-     *
-     * <p>Note: this method calls {@link TiffMap#buildTileGrid()} and {@link TiffIFD#freeze() freeze}
+     * <p>Note: this method calls {@link TiffIFD#freeze() freeze} for
      * the passed <code>ifd</code>. So you should use this method after completely building IFD.</p>
      *
      * <p>Note: this method forcibly <b>removes</b> tags
@@ -1560,9 +1552,9 @@ public non-sealed class TiffWriter extends TiffIO {
      * @return map for writing further data.
      * @throws TiffException in the case of some problems.
      */
-    public TiffWriteMap newMap(TiffIFD ifd, boolean resizable, Set<MapOption> options)
-            throws TiffException {
+    public TiffWriteMap newMap(TiffIFD ifd, boolean resizable, Set<MapOption> options) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
+        Objects.requireNonNull(options, "Null options");
         if (ifd.isFrozen()) {
             throw new IllegalStateException("IFD is already frozen for usage while writing TIFF; " +
                     "probably you called this method twice");
@@ -1574,7 +1566,7 @@ public non-sealed class TiffWriter extends TiffIO {
             // - this is still necessary: ifd and TiffWriteMap must "know" about the actual file format
         }
         final TiffWriteMap map = new TiffWriteMap(this, ifd, resizable, false);
-        prepareNewMap(map);
+        prepareNewMap(map, options.contains(MapOption.BUILD_GRID));
         this.lastMap = map;
         return map;
     }
@@ -1582,7 +1574,8 @@ public non-sealed class TiffWriter extends TiffIO {
     /**
      * Creates a new TIFF map for further writing data into the TIFF file by <code>writeXxx</code> methods.
      *
-     * <p>Equivalent to <code>{@link #newMap(TiffIFD, boolean, boolean) newMap}(ifd, resizable, true)</code>.
+     * <p>Equivalent to <code>{@link #newMap(TiffIFD, boolean, Set)
+     * newMap}(ifd, resizable, {@link MapOption#DEFAULT})</code>.
      *
      * @param ifd       newly created and probably customized IFD.
      * @param resizable if <code>true</code>, IFD dimensions may not be specified yet.
@@ -1590,7 +1583,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @throws TiffException in the case of some problems.
      */
     public TiffWriteMap newMap(TiffIFD ifd, boolean resizable) throws TiffException {
-        return newMap(ifd, resizable, MapOption.CORRECTION_SET);
+        return newMap(ifd, resizable, MapOption.DEFAULT);
     }
 
     public TiffWriteMap newFixedMap(TiffIFD ifd) throws TiffException {
@@ -1673,7 +1666,8 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Returns a reference to the map, created by last call of {@link #newMap(TiffIFD, boolean, boolean)}
+     * Returns a reference to the map, created by last call of
+     * {@link #newMap(TiffIFD, boolean, Set)}
      * or {@link #existingMap(TiffIFD)} methods.
      * Returns <code>null</code> if no maps were created yet or after {@link #close()} method.
      *
@@ -2054,10 +2048,11 @@ public non-sealed class TiffWriter extends TiffIO {
         return currentLinkage;
     }
 
-    private void prepareNewMap(TiffWriteMap map) {
+    private void prepareNewMap(TiffWriteMap map, boolean buildGrid) {
         Objects.requireNonNull(map, "Null TIFF map");
-        map.buildTileGrid();
-        // - useful to perform loops on all tiles, especially in non-resizable case
+        if (buildGrid) {
+            map.buildTileGrid();
+        }
         TiffIFD ifd = map.ifd();
         ifd.removeNextIFDOffset();
         ifd.removeDataPlacementInFile();

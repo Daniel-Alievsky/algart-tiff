@@ -110,32 +110,35 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     }
 
     /**
-     * Options for customizing the {@link TiffWriter#newMap(TiffIFD, boolean, Set)} method.
+     * Options for customizing {@link TiffMap} creation, such as in
+     * {@link TiffReader#map(TiffIFD, Set)} and {@link TiffWriter#newMap(TiffIFD, boolean, Set)}.
      */
     public enum MapOption {
         /**
          * If this option is set,
-         * the method {@link TiffWriter#newMap(TiffIFD, boolean, Set)} automatically calls
+         * the method {@link TiffWriter#newMap(TiffIFD, boolean, Set)} automatically calls the
          * {@link TiffWriter#correctForEncoding(TiffIFD)} method for
          * the specified <code>ifd</code> argument.
-         * While typical usage, this option should be set.
-         * But you may remove this option  if you want to control all IFD settings yourself,
+         * In typical usage, this option should be set.
+         * But you may remove this option if you want to control all IFD settings yourself,
          * in particular if you prefer to call the method {@link TiffWriter#correctForEncoding(TiffIFD, boolean)}
          * with non-standard {@link TiffWriter#setSmartCorrection smartCorrection} flag.
+         *
+         * <p>Note: this option is ignored by {@link TiffReader}.</p>
          */
         CORRECT_FOR_ENCODING,
         /**
          * If this option is set,
-         * the method {@link TiffWriter#newMap(TiffIFD, boolean, Set)} automatically calls
-         * {@link TiffMap#buildTileGrid()} for the created map.
-         * It is useful to perform loops on all tiles, especially in non-resizable case.
+         * the methods creating a new map automatically call the
+         * {@link TiffMap#buildTileGrid()} method for the created map.
+         * It is useful to perform loops on all tiles.
          * However, you may freely remove this option if you are not going to work with the map yourself:
-         * usually this method is called again inside all methods which needs the grid.
+         * usually this method is called again inside all methods that need the grid.
          */
         BUILD_GRID;
 
         /**
-         * Default set of options for normal map creation (includes IFD correction and tile grid building).
+         * Set of options with IFD correction and tile grid building.
          */
         public static final Set<MapOption> CORRECTION_SET = Set.of(BUILD_GRID, CORRECT_FOR_ENCODING);
 
@@ -143,6 +146,11 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
          * Options set without IFD correction.
          */
         public static final Set<MapOption> NO_CORRECTION_SET = Set.of(BUILD_GRID);
+
+        /**
+         * Default set of options for general map creation. Identical to {@link #CORRECTION_SET}.
+         */
+        public static final Set<MapOption> DEFAULT = CORRECTION_SET;
 
         public static Set<MapOption> ofCorrection(boolean correctForEncoding) {
             return correctForEncoding ? CORRECTION_SET : NO_CORRECTION_SET;

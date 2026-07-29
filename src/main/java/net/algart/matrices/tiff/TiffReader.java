@@ -1453,13 +1453,14 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     public TiffReadMap map(TiffIFD ifd) throws TiffException {
-        return map(ifd, true);
+        return map(ifd, MapOption.DEFAULT);
     }
 
-    public TiffReadMap map(TiffIFD ifd, boolean builtTileGrid) throws TiffException {
+    public TiffReadMap map(TiffIFD ifd, Set<MapOption> options) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
+        Objects.requireNonNull(options, "Null options");
         final TiffReadMap map = new TiffReadMap(this, ifd);
-        if (builtTileGrid) {
+        if (options.contains(MapOption.BUILD_GRID)) {
             map.buildTileGrid();
         }
         // - building grid is necessary, for example, to perform loops in TiffWriter.copyImage

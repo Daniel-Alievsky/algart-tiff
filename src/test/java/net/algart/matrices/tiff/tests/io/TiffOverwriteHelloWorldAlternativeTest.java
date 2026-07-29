@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Set;
 
 public class TiffOverwriteHelloWorldAlternativeTest {
     public static void main(String... args) throws IOException {
@@ -58,7 +59,7 @@ public class TiffOverwriteHelloWorldAlternativeTest {
         try (TiffWriter writer = new TiffWriter(targetFile, TiffWriter.Mode.OPEN_EXISTING)) {
             TiffIFD ifd = writer.existingIFD(ifdIndex, true);
             TiffWriteMap writeMap = writer.existingMap(ifd);
-            TiffReadMap readMap = writer.companionReader().map(ifd, false);
+            TiffReadMap readMap = writer.companionReader().map(ifd, Set.of());
             readMap.setUncachedTileSupplier();
             // - disable caching (no sense in this case)
             overwriteUsingReadMap(writeMap, readMap, x, y, sizeX, sizeY);
@@ -66,7 +67,7 @@ public class TiffOverwriteHelloWorldAlternativeTest {
             writeMap.putDataPlacementInFileToUnderlyingIFD();
             // 1) necessary to save new tile positions in the IFD (more lightweight call than completeWriting())
 
-            readMap = writer.companionReader().map(ifd, false);
+            readMap = writer.companionReader().map(ifd, Set.of());
             // 2) re-initialize readMap: necessary to switch to new reader() without any cached information
 
             // - Note: without these 2 calls we will use the previous reader and previous IFD,
