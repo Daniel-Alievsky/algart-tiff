@@ -1368,6 +1368,7 @@ public non-sealed class TiffWriter extends TiffIO {
         long t1 = debugTime();
         synchronized (fileLock) {
             checkVirginFile();
+            invalidateCompanionReader();
             // but no reasons to invalidate companion reader: the TIFF structure is not changed yet
             TiffTileIO.write(tile, stream, alwaysWriteToFileEnd, !bigTiff);
             if (freeAndFreezeAfterWriting) {
