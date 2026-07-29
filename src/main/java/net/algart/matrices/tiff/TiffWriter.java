@@ -1369,7 +1369,9 @@ public non-sealed class TiffWriter extends TiffIO {
         synchronized (fileLock) {
             checkVirginFile();
             invalidateCompanionReader();
-            // but no reasons to invalidate companion reader: the TIFF structure is not changed yet
+            // - it can be necessary when we are editing the image:
+            // for example, writing a new tile will increase the file,
+            // but the existing companion reader does not know about it
             TiffTileIO.write(tile, stream, alwaysWriteToFileEnd, !bigTiff);
             if (freeAndFreezeAfterWriting) {
                 tile.freeAndFreeze();

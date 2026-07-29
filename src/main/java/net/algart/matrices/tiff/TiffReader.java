@@ -1212,8 +1212,8 @@ public non-sealed class TiffReader extends TiffIO {
         result.setDuplicateAutomatically();
         synchronized (fileLock) {
             if (offset >= stream.length()) {
-                throw new TiffException("Offset of TIFF tile/strip " + offset + " is out of file length (tile " +
-                        tileIndex + ")");
+                throw new TiffException("Offset of TIFF tile/strip " + offset + " is out of file length " +
+                        stream.length() + " (tile " + tileIndex + ")");
                 // - note: old SCIFIO code allowed such offsets and returned zero-filled tile
             }
             if (previousDuplicate == -1 || !duplicateHandling.isLinkingToDuplicateIfPossible()) {
