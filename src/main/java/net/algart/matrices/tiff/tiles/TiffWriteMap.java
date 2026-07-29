@@ -38,11 +38,12 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
+public final class TiffWriteMap extends TiffIOMap {
     private static final boolean IGNORE_WRITING_OUTSIDE_MAP = true;
     // - Should be true. The false value simulates the early versions, but this is inconvenient for using.
 
     private final TiffWriter owner;
+    // - identical to super.owner
     private final boolean existing;
 
     public TiffWriteMap(TiffWriter owner, TiffIFD ifd, boolean resizable, boolean existing) throws TiffException {
@@ -55,13 +56,18 @@ public final class TiffWriteMap extends TiffIOMap<TiffWriter> {
                 throw new IllegalArgumentException("Existing TIFF write map must not be resizable");
             }
         }
-        this.owner = Objects.requireNonNull(owner, "Null owning writer");
+        assert owner != null : "checked in the super constructor";
+        this.owner = owner;
         this.existing = existing;
     }
 
     @Override
     public TiffReader reader() throws IOException {
         return owner.companionReader();
+    }
+
+    public TiffWriter owner() {
+        return owner;
     }
 
     @Override

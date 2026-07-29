@@ -666,7 +666,7 @@ public final class TiffCopier {
         return copyImage(writer, readMap);
     }
 
-    public TiffWriteMap copyImage(TiffWriter writer, TiffIOMap<?> readMap) throws IOException {
+    public TiffWriteMap copyImage(TiffWriter writer, TiffIOMap readMap) throws IOException {
         Objects.requireNonNull(writer, "Null TIFF writer");
         Objects.requireNonNull(readMap, "Null TIFF read map");
         long t1 = TiffIO.debugTime();
@@ -788,7 +788,7 @@ public final class TiffCopier {
 
     public TiffWriteMap copyRectangle(
             TiffWriter writer,
-            TiffIOMap<?> readMap,
+            TiffIOMap readMap,
             int fromX,
             int fromY,
             int sizeX,
@@ -937,7 +937,7 @@ public final class TiffCopier {
         }
     }
 
-    private boolean canCopyImageDirectly(TiffIFD writeIFD, ByteOrder writeByteOrder, TiffIOMap<?> readMap)
+    private boolean canCopyImageDirectly(TiffIFD writeIFD, ByteOrder writeByteOrder, TiffIOMap readMap)
             throws TiffException {
         if (!this.directCopy) {
             return false;
@@ -974,7 +974,7 @@ public final class TiffCopier {
         return readMap.isBinary() || readMap.sampleType().bitsPerSample() == 8;
     }
 
-    private boolean canCopyRectangleDirectly(TiffWriteMap writeMap, TiffIOMap<?> readMap, int fromX, int fromY)
+    private boolean canCopyRectangleDirectly(TiffWriteMap writeMap, TiffIOMap readMap, int fromX, int fromY)
             throws TiffException {
         final boolean equalTiles =
                 readMap.tileSizeX() == writeMap.tileSizeX() && readMap.tileSizeY() == writeMap.tileSizeY();
@@ -987,7 +987,7 @@ public final class TiffCopier {
 
     private static int copyRectangle(
             TiffWriteMap writeMap,
-            TiffIOMap<?> readMap,
+            TiffIOMap readMap,
             int writeX,
             int writeY,
             int readX,
@@ -1006,7 +1006,7 @@ public final class TiffCopier {
 
     private static void copyEncodedTile(
             TiffWriteMap writeMap,
-            TiffIOMap<?> readMap,
+            TiffIOMap readMap,
             int writeXIndex,
             int writeYIndex,
             int readXIndex,

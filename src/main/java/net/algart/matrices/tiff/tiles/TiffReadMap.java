@@ -35,7 +35,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.List;
 
-public final class TiffReadMap extends TiffIOMap<TiffReader> {
+public final class TiffReadMap extends TiffIOMap {
     private final TiffReader reader;
     // - identical to super.owner
 
@@ -44,12 +44,18 @@ public final class TiffReadMap extends TiffIOMap<TiffReader> {
         if (!ifd.isLoadedFromFile()) {
             throw new IllegalArgumentException("IFD must be read from TIFF file");
         }
+        assert owner != null : "checked in the super constructor";
         this.reader = owner;
     }
 
     @Override
     public TiffReader reader() {
-        return owner();
+        return reader;
+    }
+
+    @Override
+    public TiffReader owner() {
+        return reader;
     }
 
     @Override

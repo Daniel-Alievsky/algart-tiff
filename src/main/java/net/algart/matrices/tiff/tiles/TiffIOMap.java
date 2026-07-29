@@ -33,19 +33,18 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.function.Consumer;
 
-public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits TiffReadMap, TiffWriteMap {
+public abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, TiffWriteMap {
     static final boolean AUTO_INTERLEAVE_SOURCE = true;
     // - Must be true. See TiffWriter.AUTO_INTERLEAVE_SOURCE.
     // IF YOU CHANGE IT, YOU MUST CORRECT ALSO TiffWriter.AUTO_INTERLEAVE_SOURCE.
 
-    private final T owner;
+    private final TiffIO owner;
 
     private volatile TileSupplier tileSupplier = this::readCachedTile;
     private volatile TileSupplyMode tileSupplyMode = TileSupplyMode.IF_ABSENT;
 
-    public TiffIOMap(T owner, TiffIFD ifd, boolean resizable) throws TiffException {
+    public TiffIOMap(TiffIO owner, TiffIFD ifd, boolean resizable) throws TiffException {
         super(ifd, resizable);
         this.owner = Objects.requireNonNull(owner, "Null owner");
     }
@@ -58,13 +57,12 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
      *
      * @return the reader-owner.
      */
-    public final T owner() {
+    public TiffIO owner() {
         return owner;
     }
 
-    @SuppressWarnings("resource")
     public String streamName() {
-        return owner().streamName();
+        return owner.streamName();
     }
 
     public abstract boolean isExistingInFile();
@@ -74,24 +72,23 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
     }
 
     public long fileLength() {
-        //noinspection resource
-        return owner().fileLength();
+        return owner.fileLength();
     }
 
     public TileSupplier getTileSupplier() {
         return tileSupplier;
     }
 
-    public TiffIOMap<T> setTileSupplier(TileSupplier tileSupplier) {
+    public TiffIOMap setTileSupplier(TileSupplier tileSupplier) {
         this.tileSupplier = Objects.requireNonNull(tileSupplier,  "Null tileSupplier");
         return this;
     }
 
-    public TiffIOMap<T> setDefaultTileSupplier() {
+    public TiffIOMap setDefaultTileSupplier() {
         return setTileSupplier(this::readCachedTile);
     }
 
-    public TiffIOMap<T> setUncachedTileSupplier() {
+    public TiffIOMap setUncachedTileSupplier() {
         return setTileSupplier(this::readTile);
     }
 
@@ -99,25 +96,25 @@ public abstract sealed class TiffIOMap<T extends TiffIO> extends TiffMap permits
         return tileSupplyMode;
     }
 
-    public TiffIOMap<T> setTileSupplyMode(TileSupplyMode tileSupplyMode) {
+    public TiffIOMap setTileSupplyMode(TileSupplyMode tileSupplyMode) {
         this.tileSupplyMode = Objects.requireNonNull(tileSupplyMode, "Null tileSupplyMode");
         return this;
     }
 
     @Override
-    public TiffIOMap<T> setBitImageUnpackingMode(BitImageUnpackingMode bitImageUnpackingMode) {
+    public TiffIOMap setBitImageUnpackingMode(BitImageUnpackingMode bitImageUnpackingMode) {
         super.setBitImageUnpackingMode(bitImageUnpackingMode);
         return this;
     }
 
     @Override
-    public TiffIOMap<T> setRarePrecisionMode(RarePrecisionMode rarePrecisionMode) {
+    public TiffIOMap setRarePrecisionMode(RarePrecisionMode rarePrecisionMode) {
         super.setRarePrecisionMode(rarePrecisionMode);
         return this;
     }
 
     @Override
-    public TiffIOMap<T> setExtraChannelsMode(ExtraChannelsMode extraChannelsMode) {
+    public TiffIOMap setExtraChannelsMode(ExtraChannelsMode extraChannelsMode) {
         super.setExtraChannelsMode(extraChannelsMode);
         return this;
     }
