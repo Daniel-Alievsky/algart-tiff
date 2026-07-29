@@ -47,7 +47,7 @@ public class TiffWriteMixedTest {
         System.out.print("Checking file by the reader: ");
         final TiffReader reader;
         try {
-            reader = writer.newReader(TiffOpenMode.NO_CHECKS);
+            reader = writer.newReader(TiffReader.Mode.NO_CHECKS);
         } catch (IOException e) {
             throw new AssertionError("Impossible in NO_CHECKS mode", e);
         }

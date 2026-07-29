@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
-import net.algart.matrices.tiff.TiffOpenMode;
 import net.algart.matrices.tiff.TiffReader;
 import org.scijava.io.handle.FileHandle;
 import org.scijava.io.location.FileLocation;
@@ -42,11 +41,11 @@ public class TiffStreamNameTest {
 
         final Path file = Paths.get(args[0]);
         FileHandle handle = new FileHandle(new FileLocation(file.toFile()));
-        TiffReader reader = new TiffReader(handle, TiffOpenMode.ALLOW_NON_TIFF);
+        TiffReader reader = new TiffReader(handle, TiffReader.Mode.ALLOW_NON_TIFF);
         System.out.printf("Reader: %s%n", reader);
         System.out.printf("Stream name: %s%n", reader.streamName());
         reader.close();
-        reader = new TiffReader(file, TiffOpenMode.ALLOW_NON_TIFF);
+        reader = new TiffReader(file, TiffReader.Mode.ALLOW_NON_TIFF);
         System.out.printf("Reader: %s%n", reader);
         System.out.printf("Stream name: %s%n", reader.streamName());
         reader.close();

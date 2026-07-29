@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.demo.io;
 
-import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 
@@ -47,7 +46,7 @@ public class TiffEditDescriptionDemo {
         final Path targetFile = Paths.get(args[startArgIndex]);
         final int ifdIndex = Integer.parseInt(args[startArgIndex + 1]);
         final String description = args[startArgIndex + 2];
-        try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
+        try (TiffWriter writer = new TiffWriter(targetFile, TiffWriter.Mode.OPEN_EXISTING)) {
             final TiffIFD ifd = writer.updateDescription(ifdIndex, description);
             System.out.printf("Corrected IFD:%n%s%n", ifd.toString(TiffIFD.StringFormat.NORMAL));
         }

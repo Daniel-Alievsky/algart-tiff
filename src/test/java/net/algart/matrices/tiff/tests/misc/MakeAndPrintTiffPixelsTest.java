@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
-import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.samples.TiffSampleType;
@@ -52,7 +51,7 @@ public class MakeAndPrintTiffPixelsTest {
         final int dimY = Integer.parseInt(args[startArgIndex++]);
         final double filler = Double.parseDouble(args[startArgIndex]);
         Object values = makeCircleSamples(sampleType, dimX, dimY, filler);
-        try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.CREATE)) {
+        try (TiffWriter writer = new TiffWriter(targetFile, TiffWriter.Mode.CREATE)) {
             final TiffWriteMap map = writer.newFixedMap(TiffIFD.newStrippedIFD()
                     .putImageInformation(dimX, dimY, 1, sampleType));
             map.writeJavaArray(values);

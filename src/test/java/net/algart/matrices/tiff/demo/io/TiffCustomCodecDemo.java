@@ -65,7 +65,7 @@ public class TiffCustomCodecDemo {
         System.out.printf("%nReading %s...%n", sourceFile);
         List<Matrix<UpdatablePArray>> image = MatrixIO.readImage(sourceFile);
         System.out.printf("Writing TIFF %s...%n%n", tiffFile);
-        try (TiffWriter writer = new TiffWriter(tiffFile, TiffCreateMode.CREATE) {
+        try (TiffWriter writer = new TiffWriter(tiffFile, TiffWriter.Mode.CREATE) {
             @Override
             protected Optional<byte[]> encodeByExternalCodec(
                     TiffTile tile, byte[] decodedData, TiffCodec.Options options) throws TiffException {

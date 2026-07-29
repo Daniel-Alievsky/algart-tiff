@@ -25,7 +25,6 @@
 package net.algart.matrices.tiff.demo.misc;
 
 import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.TiffOpenMode;
 import net.algart.matrices.tiff.TiffReader;
 
 import java.io.IOException;
@@ -48,7 +47,7 @@ public class ReadIFDDemo {
         final Path sourceFile = Paths.get(args[startArgIndex]);
 
         System.out.printf("Reading TIFF %s...%n", sourceFile);
-        try (TiffReader reader = new TiffReader(sourceFile, TiffOpenMode.ALLOW_NON_TIFF)) {
+        try (TiffReader reader = new TiffReader(sourceFile, TiffReader.Mode.ALLOW_NON_TIFF)) {
             // - "false" argument helps to test also non-TIFF files
             if (reader.isValidTiff()) {
                 for (int i = 0, n = reader.numberOfImages(); i < n; i++) {

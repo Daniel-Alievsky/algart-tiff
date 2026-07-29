@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.tests.io;
 
-import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tiles.*;
@@ -56,7 +55,7 @@ public class TiffOverwriteHelloWorldAlternativeTest {
         final int sizeX = 250;
         final int sizeY = 50;
         // - estimated sizes sufficient for "Hello, world!"
-        try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
+        try (TiffWriter writer = new TiffWriter(targetFile, TiffWriter.Mode.OPEN_EXISTING)) {
             TiffIFD ifd = writer.existingIFD(ifdIndex, true);
             TiffWriteMap writeMap = writer.existingMap(ifd);
             TiffReadMap readMap = writer.companionReader().map(ifd, false);

@@ -77,7 +77,7 @@ public class TiffOverwritePictureDemo {
         System.out.printf("Opening and rewriting TIFF %s...%n", targetFile);
         try (TiffWriter writer = new TiffWriter(targetFile)) {
             writer.openExisting();
-            // - possible solution instead of using TiffCreateMode.OPEN_EXISTING
+            // - possible solution instead of using TiffWriter.Mode.OPEN_EXISTING
             final TiffWriteMap writeMap = writer.existingMap(ifdIndex);
             imageToDraw = tryToAdjust(imageToDraw, writeMap);
             for (int repeat = 1; repeat <= numberOfRepeats; repeat++) {

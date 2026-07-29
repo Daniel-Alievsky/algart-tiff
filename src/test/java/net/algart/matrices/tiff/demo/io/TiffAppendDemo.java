@@ -28,7 +28,6 @@ import net.algart.arrays.ColorMatrices;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
 import net.algart.io.MatrixIO;
-import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
@@ -68,8 +67,8 @@ public class TiffAppendDemo {
         }
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
-        try (var writer = new TiffWriter(targetFile, TiffCreateMode.ofAppendOptions(bigTiff, true))) {
-            // - for comparison, TiffCreateMode.CREATE always creates a new file
+        try (var writer = new TiffWriter(targetFile, TiffWriter.Mode.ofAppendOptions(bigTiff, true))) {
+            // - for comparison, TiffWriter.Mode.CREATE always creates a new file
             final TiffWriteMap map = writer.writeNewChannels(image, TagCompression.DEFLATE);
             System.out.printf("Image appended to %s...%n", map);
         }

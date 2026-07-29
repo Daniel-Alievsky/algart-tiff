@@ -29,7 +29,6 @@ import net.algart.io.MatrixIO;
 import net.algart.math.functions.RectangularFunc;
 import net.algart.matrices.scanning.ConnectedObjectScanner;
 import net.algart.matrices.scanning.ConnectivityType;
-import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
@@ -106,7 +105,7 @@ public class LabelSmallObjectsDemo {
         System.out.printf("Scanning image to label objects...%n");
         Matrix<? extends PArray> labels = buildLabels(filtered);
         System.out.printf("Writing TIFF %s...%n", targetFile);
-        try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.CREATE)) {
+        try (TiffWriter writer = new TiffWriter(targetFile, TiffWriter.Mode.CREATE)) {
             writer.setCompressionQuality(0.5);
             writer.newFixedMap(TiffIFD.newTiledIFD(TagCompression.JPEG, source)
                             .putDescription("Source image"))

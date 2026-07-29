@@ -464,7 +464,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * <p>Immediately after creating a new {@link TiffReader} object, as well as
      * immediately after creating a new {@link TiffWriter} object without opening a file
-     * ({@link TiffCreateMode#NO_ACTIONS} mode), this method returns {@code OptionalLong.empty()}.
+     * ({@link TiffWriter.Mode#NO_ACTIONS} mode), this method returns {@code OptionalLong.empty()}.
      * Immediately after opening an existing TIFF file via {@link TiffWriter}
      * (for example, via {@link TiffWriter#openExisting()} or {@link TiffWriter#openForAppend()}),
      * this position is set to the file offset of the last IFD offset in the TIFF file,
@@ -485,7 +485,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         }
     }
 
-    public TiffReader newReader(TiffOpenMode openMode) throws IOException {
+    public TiffReader newReader(TiffReader.Mode openMode) throws IOException {
         return new TiffReader(stream, openMode, false);
     }
 

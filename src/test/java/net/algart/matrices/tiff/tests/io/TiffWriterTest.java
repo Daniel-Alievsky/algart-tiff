@@ -62,7 +62,7 @@ public class TiffWriterTest {
         System.out.print("Checking file by the reader: ");
         final TiffReader reader;
         try {
-            reader = writer.newReader(TiffOpenMode.NO_CHECKS);
+            reader = writer.newReader(TiffReader.Mode.NO_CHECKS);
         } catch (IOException e) {
             throw new AssertionError("Impossible in NO_CHECKS mode", e);
         }
@@ -492,7 +492,7 @@ public class TiffWriterTest {
             TiffWriter writer,
             int fromX, int fromY, int sizeX, int sizeY)
             throws IOException {
-        final TiffReader reader = writer.newReader(TiffOpenMode.VALID_TIFF);
+        final TiffReader reader = writer.newReader(TiffReader.Mode.VALID_TIFF);
         final IRectangularArea areaToWrite = IRectangularArea.of(
                 fromX, fromY, fromX + sizeX - 1, fromY + sizeY - 1);
         for (TiffTile tile : writer.lastMap().tiles()) {
@@ -733,7 +733,7 @@ public class TiffWriterTest {
 
     public static TiffReader demoCompanionReader(DataHandle<?> stream) throws IOException {
         System.out.printf("~~~ TiffWriterTest creates a new companion reader for %s...%n", TiffIO.streamName(stream));
-        return new TiffReader(stream, TiffOpenMode.VALID_TIFF, false);
+        return new TiffReader(stream, TiffReader.Mode.VALID_TIFF, false);
         // - why not? Exception is possible, but very improbable
     }
 }

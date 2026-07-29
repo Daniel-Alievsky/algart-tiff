@@ -27,7 +27,6 @@ package net.algart.matrices.tiff.demo.io;
 import net.algart.arrays.Matrix;
 import net.algart.arrays.PArray;
 import net.algart.io.MatrixIO;
-import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
@@ -59,7 +58,7 @@ public class TiffWriteSimpleDemo {
         final List<? extends Matrix<? extends PArray>> image = MatrixIO.readImage(sourceFile);
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
-        try (var writer = new TiffWriter(targetFile, TiffCreateMode.ofCreateOptions(bigTiff, false))) {
+        try (var writer = new TiffWriter(targetFile, TiffWriter.Mode.ofCreateOptions(bigTiff, false))) {
             final TiffWriteMap map = writer.writeNewChannels(image, TagCompression.JPEG);
             System.out.printf("Image written: %s...%n", map);
         }

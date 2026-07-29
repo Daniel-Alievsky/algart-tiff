@@ -26,7 +26,6 @@ package net.algart.matrices.tiff.app;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.TiffOpenMode;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.pyramids.TiffPyramidMetadata;
 import net.algart.matrices.tiff.tags.Tags;
@@ -175,7 +174,7 @@ public class TiffInfo {
         prefixInfo = "";
         summaryInfo = "";
         svsInfo = "";
-        try (TiffReader reader = new TiffReader(tiffFile, TiffOpenMode.ALLOW_NON_TIFF)) {
+        try (TiffReader reader = new TiffReader(tiffFile, TiffReader.Mode.ALLOW_NON_TIFF)) {
             if (reader.isTiff() != reader.isValidTiff()) {
                 // - impossible with this form of the constructor
                 throw new AssertionError();

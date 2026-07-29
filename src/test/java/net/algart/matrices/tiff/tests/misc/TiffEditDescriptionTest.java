@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.tests.misc;
 
-import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
 
@@ -44,7 +43,7 @@ public class TiffEditDescriptionTest {
         final Path targetFile = Paths.get(args[0]);
         final int numberOfTests = Integer.parseInt(args[1]);
         final Random rnd = new Random(157);
-        try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
+        try (TiffWriter writer = new TiffWriter(targetFile, TiffWriter.Mode.OPEN_EXISTING)) {
             final int numberOfExisting = writer.numberOfMainImages();
             for (int test = 1; test <= numberOfTests; test++) {
                 final int n = writer.numberOfMainImages();

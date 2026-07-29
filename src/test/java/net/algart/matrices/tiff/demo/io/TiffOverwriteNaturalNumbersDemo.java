@@ -24,7 +24,6 @@
 
 package net.algart.matrices.tiff.demo.io;
 
-import net.algart.matrices.tiff.TiffCreateMode;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tiles.TiffTile;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
@@ -75,7 +74,7 @@ public class TiffOverwriteNaturalNumbersDemo {
         final int sizeX = 50;
         final int sizeY = 30;
         // - estimated sizes sufficient for integer number like "151"
-        try (TiffWriter writer = new TiffWriter(targetFile, TiffCreateMode.OPEN_EXISTING)) {
+        try (TiffWriter writer = new TiffWriter(targetFile, TiffWriter.Mode.OPEN_EXISTING)) {
             // writer.setAlwaysWriteToFileEnd(true); // - should not affect the results
              writer.setDefaultCompanionReaderFactory(reader -> reader.setTileInitializer(Color.CYAN));
             // - incorrect way (has no effect): writeMap.readBufferedImageAndStore uses the tile initializer
