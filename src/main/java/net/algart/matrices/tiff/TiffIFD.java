@@ -1150,7 +1150,7 @@ public final class TiffIFD {
      * <p>This field is set automatically by the {@link TiffReader} class.
      *
      * <p>Note that {@link TiffWriter} cannot write sub-IFD or linked IFD (such as EXIF): the corresponding tags
-     * are automatically removed by {@link TiffWriter#newMap(TiffIFD, boolean, boolean)} method.
+     * are automatically removed by {@link TiffWriter#newMap(TiffIFD, boolean, Set)} method.
      *
      * @param subIFDType new IFD type, probably <code>null</code> for regular IFD,
      *                   {@link Tags#SUB_IFD} for sub-IFD,
