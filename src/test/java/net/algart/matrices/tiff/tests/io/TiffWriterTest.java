@@ -511,7 +511,9 @@ public class TiffWriterTest {
         final int samplesPerPixel = tile.samplesPerPixel();
         final int sizeX = tile.getSizeX();
         final int sizeY = tile.getSizeY();
-        final Color color = new Color(248, 247, 186);
+        final Color color = samplesPerPixel == 1 ?
+                Color.GRAY :
+                new Color(248, 247, 186);
         final double[] filler = TiffMap.channelValues(color, samplesPerPixel);
         return switch (tile.sampleType()) {
             case BIT -> {
