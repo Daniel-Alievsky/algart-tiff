@@ -641,16 +641,17 @@ public final class TiffWriteMap extends TiffIOMap {
             }
             index++;
         }
+        final int count = index;
         long t4 = debugTime();
         completeWriting();
         long t5 = debugTime();
         if (BUILT_IN_TIMING) {
             LOG.log(System.Logger.Level.DEBUG, () -> String.format(Locale.ROOT,
-                    "%s wrote repeating-tile image %dx%dx%d (%,.3f MB) in %.3f ms = " +
+                    "%s wrote repeating-tile image %dx%dx%d (%,.1f MB, %d tiles) in %.3f ms = " +
                             "%.3f grid + %.3f making 1st tile + %.3f repeating + %.3f completing",
                     getClass().getSimpleName(),
                     dimX(), dimY(), numberOfChannels(),
-                    totalSizeInBytes() / 1048576.0,
+                    totalSizeInBytes() / 1048576.0, count,
                     (t5 - t1) * 1e-6,
                     (t2 - t1) * 1e-6, (t3 - t2) * 1e-6, (t4 - t3) * 1e-6, (t5 - t4) * 1e-6));
         }

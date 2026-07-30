@@ -1016,7 +1016,7 @@ public sealed class TiffMap permits TiffIOMap {
      * the tile {@link TiffTileIndex#linear() linear index}.
      */
     public void buildTileGrid() {
-        final Map<TiffTileIndex, TiffTile> newMap = new LinkedHashMap<>();
+        final Map<TiffTileIndex, TiffTile> newMap = new LinkedHashMap<>(this.numberOfGridTiles);
         final int numberOfSeparatedPlanes = this.numberOfSeparatedPlanes;
         final int gridCountY = this.gridCountY;
         final int gridCountX = this.gridCountX;
@@ -1032,7 +1032,10 @@ public sealed class TiffMap permits TiffIOMap {
                                         .formatted(this));
 
                     }
-                    final TiffTile tile = getOrNew(index);
+                    TiffTile tile = get(index);
+                    if (tile == null) {
+                        tile = new TiffTile(index);
+                    }
                     tile.cropStripToMap();
                     newMap.put(index, tile);
                 }

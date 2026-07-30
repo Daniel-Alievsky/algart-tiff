@@ -247,11 +247,12 @@ public final class TiffTileIndex {
         if (this == o) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (!(o instanceof TiffTileIndex that)) {
             return false;
         }
-        final TiffTileIndex that = (TiffTileIndex) o;
-        return separatedPlaneIndex == that.separatedPlaneIndex && xIndex == that.xIndex && yIndex == that.yIndex && ifd == that.ifd;
+        return separatedPlaneIndex == that.separatedPlaneIndex &&
+                xIndex == that.xIndex && yIndex == that.yIndex &&
+                ifd == that.ifd;
         // - Important! Comparing references to IFD, not content and not tile map!
         // Different tile maps may refer to the same IFD;
         // on the other hand, we usually do not need to create identical IFDs.
