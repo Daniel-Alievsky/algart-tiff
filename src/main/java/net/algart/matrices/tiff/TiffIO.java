@@ -340,12 +340,13 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * <pre>{@link #setTileInitializer(Consumer)
      * setTileInitializer}(tile -> tile.{@link TiffTile#fillColor(Color) fillColor}(color))</pre>
      *
-     * <p>Note: if the image is written in a rarely used {@link TiffMap#isPlanarSeparated() planar-separated}
-     * mode, the specified color will be replaced with some gray-scale color with nearest brightness.
-     * The reason is that the tiles, in this mode, are stored separately for each color channel,
-     * so, RGB image is stored in three groups of tiles, where each tile contains a grayscale image.
-     * The tile initialized passed to {@link #setTileInitializer(Consumer)} method will process
-     * each grayscale tile separatlely.</p>
+     * <p>Note: if the image uses {@link TiffMap#isPlanarSeparated() planar-separated} mode,
+     * tiles are stored per color channel (for example, an RGB image is split into three separate groups of tiles),
+     * and the tile initializer passed to the {@link #setTileInitializer(Consumer)} method
+     * processes each channel plane separately.
+     * Because each tile represents a single-channel (grayscale) image plane,
+     * the specified {@code color} is mapped to a grayscale value with a close intensity,
+     * and the resulting background color will be grayscale.</p>
      *
      * @param color color to fill empty tiles.
      * @return a reference to this object.
