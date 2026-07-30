@@ -701,6 +701,9 @@ public final class TiffCopier {
         long timeReading = 0;
         long timeCopying = 0;
         long timeWriting = 0;
+        @SuppressWarnings("resource") final TiffReader reader = readMap.reader();
+        // - helps to avoid extra re-initializing the companion reader inside the loop
+        // if readMap is actually TiffWriteMap which belongs to the same TiffWriter
         final TiffTile.CopyMode tileCopyMode = actuallyDirectCopy ?
                 TiffTile.CopyMode.COPY_REFERENCE :
                 TiffTile.CopyMode.COPY_UNPACKED_SAMPLES;
@@ -714,8 +717,8 @@ public final class TiffCopier {
             // - important to copy index: targetTile.index() refer to the writeIFD instead of some source IFD
             long t1Tile = TiffIO.debugTime(), t2Tile;
             final TiffTile sourceTile = actuallyDirectCopy ?
-                    readMap.readEncodedTile(readIndex, TiffTile.DuplicateHandling.LINK_REFERENCE) :
-                    readMap.readTile(readIndex, TiffTile.DuplicateHandling.LINK_REFERENCE);
+                    reader.readEncodedTile(readIndex, TiffTile.DuplicateHandling.LINK_REFERENCE) :
+                    reader.readTile(readIndex, TiffTile.DuplicateHandling.LINK_REFERENCE);
             t2Tile = TiffIO.debugTime();
             if (sourceTile.hasPreviousDuplicate()) {
                 assert sourceTile.isEmpty() : "duplicate should not be read";
@@ -852,6 +855,9 @@ public final class TiffCopier {
         final int fromXIndex = directCopy ? fromX / mapTileSizeX : Integer.MIN_VALUE;
         final int fromYIndex = directCopy ? fromY / mapTileSizeY : Integer.MIN_VALUE;
         long t2 = TiffIO.debugTime();
+        @SuppressWarnings("resource") final TiffReader reader = directCopy ? readMap.reader() : null;
+        // - helps to avoid extra re-initializing the companion reader inside the loop
+        // if readMap is actually TiffWriteMap which belongs to the same TiffWriter
         int repackCount = 0;
         int tileCount = 0;
         for (int toYIndex = 0, y = 0; toYIndex < gridCountY; toYIndex++, y += mapTileSizeY) {
@@ -871,7 +877,7 @@ public final class TiffCopier {
                 if (this.actuallyDirectCopy) {
                     final int readXIndex = fromXIndex + toXIndex;
                     final int readYIndex = fromYIndex + toYIndex;
-                    copyEncodedTile(writeMap, readMap, toXIndex, toYIndex, readXIndex, readYIndex);
+                    copyEncodedTile(writeMap, readMap, reader, toXIndex, toYIndex, readXIndex, readYIndex);
                 } else {
                     final int written = copyRectangle(
                             writeMap, readMap, x, y, readX, readY, writeSizeXInTile, writeSizeYInTile, swapOrder);
@@ -1007,6 +1013,7 @@ public final class TiffCopier {
     private static void copyEncodedTile(
             TiffWriteMap writeMap,
             TiffIOMap readMap,
+            TiffReader reader,
             int writeXIndex,
             int writeYIndex,
             int readXIndex,
@@ -1014,7 +1021,7 @@ public final class TiffCopier {
         final int numberOfSeparatedPlanes = writeMap.numberOfSeparatedPlanes();
         for (int p = 0; p < numberOfSeparatedPlanes; p++) {
             TiffTile targetTile = writeMap.getOrNew(writeXIndex, writeYIndex, p);
-            final TiffTile sourceTile = readMap.readEncodedTile(readMap.index(readXIndex, readYIndex, p));
+            final TiffTile sourceTile = reader.readEncodedTile(readMap.index(readXIndex, readYIndex, p));
             targetTile.copyData(sourceTile, TiffTile.CopyMode.COPY_REFERENCE);
             writeMap.put(targetTile);
             writeMap.writeTile(targetTile, true);

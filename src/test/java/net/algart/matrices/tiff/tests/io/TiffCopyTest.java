@@ -164,7 +164,15 @@ public class TiffCopyTest {
                                 ifdIndex, maps.size(), readMap.ifd());
                         final TiffCopier copier = getCopier();
                         copier.setDirectCopy(!repack);
-                        copier.copyRectangle(writer, readMap, 0, 0, readMap.dimX(), readMap.dimY());
+                        var map = copier.copyRectangle(writer, readMap, 0, 0, readMap.dimX(), readMap.dimY());
+                        if (doubleCopy) {
+                            // copying from the result of the previous copyRectangle is impossible
+                            // (unless direct copy is active and there is no any rectangles besides the full tiles):
+                            // loadSampleBytes requires a result of existingMap, not newMap
+                            TiffWriteMap existingMap = map; //writer.existingMap(writer.numberOfMainImages() - 1);
+                            copier.copyRectangle(
+                                    writer, existingMap, 0, 0, readMap.dimX(), readMap.dimY());
+                        }
                     } else if (!doubleCopy && !repack && byteOrder == null && !uncompress) {
                         System.out.printf("\r  Direct copying #%d/%d: %s%n", ifdIndex, maps.size(), readMap.ifd());
                         // - below is an example of the simplest usage for a single IFD image:
@@ -175,9 +183,11 @@ public class TiffCopyTest {
                                 ifdIndex, maps.size(), readMap.ifd());
                         final TiffCopier copier = getCopier();
                         copier.setDirectCopy(!repack);
-                        TiffWriteMap writeMap = copier.copyImage(writer, readMap);
+                        final TiffWriteMap writeMap = copier.copyImage(writer, readMap);
                         if (doubleCopy) {
                             copier.copyImage(writer, writeMap);
+                            // - note: we copy from the writer to the same writer, this is not a normal usage;
+                            // it can lead to extra invalidation of companion reader, but must work correctly
                         }
                     }
                 }

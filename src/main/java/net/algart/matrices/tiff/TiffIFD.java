@@ -3828,7 +3828,7 @@ public final class TiffIFD {
                 throw new UnsupportedTiffFormatException("The number of " +
                         "bits per samples is unequal for different channels: " +
                         Arrays.toString(bitsPerSample) +
-                        " (this variant is not supported, in particular for writing)");
+                        " (this variant is not supported for writing)");
             }
         }
         // - see normalizedBitDepth()

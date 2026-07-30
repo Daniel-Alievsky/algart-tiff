@@ -29,10 +29,8 @@ import net.algart.matrices.tiff.*;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.util.*;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
 
 public abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, TiffWriteMap {
     static final boolean AUTO_INTERLEAVE_SOURCE = true;
@@ -65,7 +63,36 @@ public abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, Tiff
         return owner.streamName();
     }
 
+    /**
+     * Returns {@code true} if this map represents an existing image in an existing TIFF file.
+     * This is necessary if you need to call {@link #loadSampleBytes(int, int, int, int, boolean)} or other
+     * methods reading the pixel data.
+     *
+     * <p>More precisely, the result is {@code true} on two situations:</p>
+     * <ul>
+     *     <li>this is a {@link TiffReadMap}</li>;
+     *     <li>this is a {@link TiffWriteMap} created by {@link TiffWriter#existingMap(TiffIFD)}
+     *     or equivalent method.</li>
+     * </ul>
+     *
+     * @return whether this map allows loading pixel data.
+     */
     public abstract boolean isExistingInFile();
+
+    /**
+     * Ensures that this map represents an existing image in the TIFF file that can be loaded:
+     * {@link #isExistingInFile()} returns {@code true}.
+     *
+     * @throws IllegalStateException if {@link #isExistingInFile()} returns {@code false}
+     *         (i.e., if this map is a newly created {@link TiffWriteMap}
+     *         created by {@link TiffWriter#newMap(TiffIFD, boolean, Set)} or similar methods).
+     */
+    public void requireExistingForLoading() {
+        if (!isExistingInFile()) {
+            throw new IllegalStateException("Image data can only be read from a TIFF map for an existing IFD, " +
+                    "not for a newly created map for writing new image");
+        }
+    }
 
     public TiffIO.CodecReport lastCodecReport() {
         return owner.lastCodecReport();
@@ -129,10 +156,7 @@ public abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, Tiff
         checkRequestedArea(fromX, fromY, sizeX, sizeY);
         final int sizeInBytes = sizeOfRegionWithPossibleNonStandardPrecisions(sizeX, sizeY);
         final long sizeInPixels = (long) sizeX * (long) sizeY;
-        if (!isExistingInFile()) {
-            throw new IllegalStateException("Image data can only be read from a TIFF map for an existing IFD, " +
-                    "not for a newly created map for writing new image");
-        }
+        requireExistingForLoading();
         final RarePrecisionMode rarePrecisionMode = getRarePrecisionMode();
         rarePrecisionMode.throwIfForbidden(this);
         // - just in case (should not be allowed for getRarePrecisionMode());
