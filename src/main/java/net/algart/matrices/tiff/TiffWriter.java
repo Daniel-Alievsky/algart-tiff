@@ -1371,7 +1371,7 @@ public non-sealed class TiffWriter extends TiffIO {
             invalidateCompanionReader();
             // - it can be necessary when we are editing the image:
             // for example, writing a new tile will increase the file,
-            // but the existing companion reader does not know about it
+            // but the existing companion reader ReadBufferDataHandle does not know about it
             TiffTileIO.write(tile, stream, alwaysWriteToFileEnd, !bigTiff);
             if (freeAndFreezeAfterWriting) {
                 tile.freeAndFreeze();
