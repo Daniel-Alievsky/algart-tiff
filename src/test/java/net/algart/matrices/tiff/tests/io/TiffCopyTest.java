@@ -50,6 +50,7 @@ public class TiffCopyTest {
     boolean allowMissing = false;
     boolean fillMissing = false;
     boolean doubleCopy = false;
+    boolean copyAgain = false;
 
     public static void main(String... args) throws IOException {
         TiffCopyTest copyTest = new TiffCopyTest();
@@ -83,6 +84,10 @@ public class TiffCopyTest {
         }
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-doubleCopy")) {
             copyTest.doubleCopy = true;
+            startArgIndex++;
+        }
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-copyAgain")) {
+            copyTest.copyAgain = true;
             // - specific testing, in particular, for duplicate logic in readEncodedTile
             startArgIndex++;
         }
@@ -173,7 +178,7 @@ public class TiffCopyTest {
                             copier.copyRectangle(
                                     writer, existingMap, 0, 0, readMap.dimX(), readMap.dimY());
                         }
-                    } else if (!doubleCopy && !repack && byteOrder == null && !uncompress) {
+                    } else if (!doubleCopy && !copyAgain && !repack && byteOrder == null && !uncompress) {
                         System.out.printf("\r  Direct copying #%d/%d: %s%n", ifdIndex, maps.size(), readMap.ifd());
                         // - below is an example of the simplest usage for a single IFD image:
                         new TiffCopier().copyImage(writer, readMap);
@@ -184,10 +189,12 @@ public class TiffCopyTest {
                         final TiffCopier copier = getCopier();
                         copier.setDirectCopy(!repack);
                         final TiffWriteMap writeMap = copier.copyImage(writer, readMap);
-                        if (doubleCopy) {
+                        if (copyAgain) {
                             copier.copyImage(writer, writeMap);
                             // - note: we copy from the writer to the same writer, this is not a normal usage;
                             // it can lead to extra invalidation of companion reader, but must work correctly
+                        } else if (doubleCopy) {
+                            copier.copyImage(writer, writer.existingMap(writer.numberOfMainImages() - 1));
                         }
                     }
                 }

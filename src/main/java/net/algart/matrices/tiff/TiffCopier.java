@@ -730,6 +730,7 @@ public final class TiffCopier {
                 final TiffTile previous = writeMap.getByLinear(indexOfPrevious);
                 assert previous != null : "previous duplicate of " + sourceTile.index() + " has not been written yet";
                 targetTile.linkWithPreviousDuplicate(previous);
+                // - note: this linkage is necessary if we are going to read something from the returned map
             } else {
                 targetTile.copyData(sourceTile, tileCopyMode);
                 // - this method performs necessary unpacking/packing bytes when the byte order is incompatible

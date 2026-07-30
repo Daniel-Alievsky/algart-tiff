@@ -235,7 +235,8 @@ public class TiffInfo {
                     }
                 }
                 if (totalSize.get() == tiffFileLength) {
-                    summaryInfo = "Total file length %d bytes, it is fully used".formatted(tiffFileLength);
+                    summaryInfo = String.format(Locale.ROOT, "Total file length %,d bytes",
+                            tiffFileLength).replace(',', ' ') + ", it is fully used";
                 } else if (totalSize.get() > tiffFileLength) {
                     summaryInfo = ("%d bytes in file used, but the file length is only %d bytes, " +
                             "%d \"extra\" bytes: probably TIFF is not valid?").formatted(
