@@ -807,7 +807,10 @@ public final class TiffCopier {
         if (fromY < 0) {
             throw new IllegalArgumentException("Negative fromY: " + fromY);
         }
-        readMap.ensureUnpackedRarePrecision();
+        readMap.requireUnpackModeIfRarePrecision();
+        readMap.requireExistingForLoading();
+        // - even if directCopy will be true, some rectangles may require loading data,
+        // and it is better to check existence of readMap in any case
         long t1 = TiffIO.debugTime();
         resetImageCounters();
         final TiffIFD writeIFD = readMap.ifd().copy();

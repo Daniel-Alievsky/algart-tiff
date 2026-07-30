@@ -164,12 +164,12 @@ public class TiffCopyTest {
                                 ifdIndex, maps.size(), readMap.ifd());
                         final TiffCopier copier = getCopier();
                         copier.setDirectCopy(!repack);
-                        var map = copier.copyRectangle(writer, readMap, 0, 0, readMap.dimX(), readMap.dimY());
+                        copier.copyRectangle(writer, readMap, 0, 0, readMap.dimX(), readMap.dimY());
                         if (doubleCopy) {
                             // copying from the result of the previous copyRectangle is impossible
                             // (unless direct copy is active and there is no any rectangles besides the full tiles):
                             // loadSampleBytes requires a result of existingMap, not newMap
-                            TiffWriteMap existingMap = map; //writer.existingMap(writer.numberOfMainImages() - 1);
+                            TiffWriteMap existingMap = writer.existingMap(writer.numberOfMainImages() - 1);
                             copier.copyRectangle(
                                     writer, existingMap, 0, 0, readMap.dimX(), readMap.dimY());
                         }

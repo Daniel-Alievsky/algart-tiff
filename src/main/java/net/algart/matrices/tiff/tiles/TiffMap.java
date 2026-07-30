@@ -728,10 +728,14 @@ public sealed class TiffMap permits TiffIOMap {
 
     /**
      * Throws {@link IllegalStateException} if this image has a {@link #isRarePrecision() rare precision}
-     * and if the current {@link #setRarePrecisionMode(RarePrecisionMode) rare precision mode} is not
+     * and the current {@link #setRarePrecisionMode(RarePrecisionMode) rare precision mode} is not
      * {@link RarePrecisionMode#UNPACK}.
+     *
+     * <p>If {@link #isRarePrecision()} returns {@code false}, this method does nothing.</p>
+     *
+     * @throws IllegalStateException if rare precision processing is required but disabled
      */
-    public void ensureUnpackedRarePrecision() {
+    public void requireUnpackModeIfRarePrecision() {
         rarePrecisionMode.throwIfRaw(this, "process non-standard TIFF pixel precision");
     }
 

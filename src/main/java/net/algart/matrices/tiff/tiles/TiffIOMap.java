@@ -68,11 +68,11 @@ public abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, Tiff
      * This is necessary if you need to call {@link #loadSampleBytes(int, int, int, int, boolean)} or other
      * methods reading the pixel data.
      *
-     * <p>More precisely, the result is {@code true} on two situations:</p>
+     * <p>More precisely, the result is {@code true} in two situations:</p>
      * <ul>
-     *     <li>this is a {@link TiffReadMap}</li>;
+     *     <li>this is a {@link TiffReadMap};</li>
      *     <li>this is a {@link TiffWriteMap} created by {@link TiffWriter#existingMap(TiffIFD)}
-     *     or equivalent method.</li>
+     *     or an equivalent method.</li>
      * </ul>
      *
      * @return whether this map allows loading pixel data.
@@ -80,8 +80,8 @@ public abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, Tiff
     public abstract boolean isExistingInFile();
 
     /**
-     * Ensures that this map represents an existing image in the TIFF file that can be loaded:
-     * {@link #isExistingInFile()} returns {@code true}.
+     * Ensures that this map represents an existing image in the TIFF file that can be loaded
+     * (i.e. {@link #isExistingInFile()} returns {@code true}).
      *
      * @throws IllegalStateException if {@link #isExistingInFile()} returns {@code false}
      *         (i.e., if this map is a newly created {@link TiffWriteMap}
@@ -301,7 +301,7 @@ public abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, Tiff
             int sizeY,
             boolean storeTilesInMap)
             throws IOException {
-        ensureUnpackedRarePrecision();
+        requireUnpackModeIfRarePrecision();
         final byte[] sampleBytes = readSampleBytes(fromX, fromY, sizeX, sizeY, storeTilesInMap);
         return bytesToJavaArray(sampleBytes);
     }
