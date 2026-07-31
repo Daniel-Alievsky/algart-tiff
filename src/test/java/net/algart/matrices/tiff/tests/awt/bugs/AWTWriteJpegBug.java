@@ -112,7 +112,7 @@ public class AWTWriteJpegBug {
 
         // metadata = writer.getDefaultImageMetadata(null, null);
         // !!!!!! BUG #3!
-        // If you will uncomment operator above, it will also lead to InternalError
+        // If you uncomment operator above, it will also lead to InternalError
         // instead of more suitable NullPointerException or something like this.
         // !!!!!!
 

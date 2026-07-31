@@ -64,7 +64,7 @@ public class AWTImageConversionsSpeed {
         final int dimY = bi.getHeight();
         final int tt = bi.getRaster().getTransferType();
         final boolean floatingPoint = tt == DataBuffer.TYPE_FLOAT || tt == DataBuffer.TYPE_DOUBLE;
-        int bytesPerSample = -1;
+        int bytesPerSample;
 
         for (int test = 1; test <= numberOfTests; test++) {
             System.out.printf("%nDecoding test %d%n", test);

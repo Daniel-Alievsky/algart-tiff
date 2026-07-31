@@ -859,7 +859,7 @@ public final class TiffCopier {
         final int fromXIndex = directCopy ? fromX / mapTileSizeX : Integer.MIN_VALUE;
         final int fromYIndex = directCopy ? fromY / mapTileSizeY : Integer.MIN_VALUE;
         long t2 = TiffIO.debugTime();
-        @SuppressWarnings("resource") final TiffReader reader = directCopy ? readMap.reader() : null;
+        final TiffReader reader = directCopy ? readMap.reader() : null;
         // - helps to avoid extra re-initializing the companion reader inside the loop
         // if readMap is actually TiffWriteMap which belongs to the same TiffWriter
         int repackCount = 0;

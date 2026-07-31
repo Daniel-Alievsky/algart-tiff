@@ -62,7 +62,6 @@ class TiffNewBlankHelper {
     private JComboBox<UserNumberOfChannels> numberOfChannelsComboBox;
     private JComboBox<String> sampleTypeComboBox;
     private JComboBox<String> compressionMethodComboBox;
-    private JButton colorButton;
     private JTextField colorHexField;
     private JPanel colorPreviewPanel;
     private JCheckBox patternCheckBox;
@@ -184,7 +183,7 @@ class TiffNewBlankHelper {
         colorPreviewPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY));
         colorPreviewPanel.setBackground(selectedColor);
         colorPreviewPanel.setPreferredSize(new Dimension(30, 20));
-        colorButton = new JButton("...");
+        JButton colorButton = new JButton("...");
         colorButton.setMargin(new Insets(2, 4, 2, 4));
         colorChooserPanel.add(colorHexField, BorderLayout.CENTER);
         colorChooserPanel.add(colorPreviewPanel, BorderLayout.WEST);

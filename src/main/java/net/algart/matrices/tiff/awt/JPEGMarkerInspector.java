@@ -76,15 +76,9 @@ public class JPEGMarkerInspector {
                     p += 2;
                     continue;
                 }
-                case JPEGDecoding.DQT_BYTE -> {
-                    hasDQT = true;
-                }
-                case JPEGDecoding.DHT_BYTE -> {
-                    hasDHT = true;
-                }
-                case JPEGDecoding.DAC_BYTE -> {
-                    hasDAC = true;
-                }
+                case JPEGDecoding.DQT_BYTE -> hasDQT = true;
+                case JPEGDecoding.DHT_BYTE -> hasDHT = true;
+                case JPEGDecoding.DAC_BYTE -> hasDAC = true;
                 case JPEGDecoding.SOI_BYTE -> {
                     // strange stream: several SOI
                     p += 2;

@@ -211,15 +211,16 @@ public class ReadBufferDataHandle<L extends Location> extends AbstractHigherOrde
 		}
 
 		final long startOfPage = pageID * (long) pageSize;
-		if (handle().offset() != startOfPage) {
-			handle().seek(startOfPage);
+		@SuppressWarnings("resource") DataHandle<L> handle = handle();
+		if (handle.offset() != startOfPage) {
+			handle.seek(startOfPage);
 		}
 
 		// NB: we read repeatedly until the page is full or EOF is reached
 		// handle().read(..) might read less bytes than requested
 		int off = 0;
 		while (off < pageSize) {
-			final int read = handle().read(page, off, pageSize - off);
+			final int read = handle.read(page, off, pageSize - off);
 			if (read == -1) { // EOF
 				break;
 			}
@@ -326,7 +327,7 @@ public class ReadBufferDataHandle<L extends Location> extends AbstractHigherOrde
 
 
 	/**
-	 * Simple strategy to pick the slot that get's evicted from the cache. This
+	 * Simple strategy to pick the slot that gets evicted from the cache. This
 	 * strategy always picks the least recently used slot.
 	 */
 	@SuppressWarnings("ClassCanBeRecord")

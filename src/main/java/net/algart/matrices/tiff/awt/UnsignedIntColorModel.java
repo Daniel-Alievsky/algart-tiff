@@ -29,7 +29,7 @@ import java.awt.image.*;
 import java.util.Arrays;
 
 /**
- * ColorModel that handles unsigned 32 bit data.
+ * ColorModel that handles unsigned 32-bit data.
  */
 class UnsignedIntColorModel extends ColorModel {
     // (It is placed here to avoid autocorrection by IntelliJ IDEA)

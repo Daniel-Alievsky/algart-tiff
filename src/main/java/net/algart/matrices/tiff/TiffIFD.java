@@ -150,7 +150,7 @@ public final class TiffIFD {
             }
         }
 
-        private long offsetOfIFDChainTerminator = -1;
+        private long offsetOfIFDChainTerminator;
         private final Set<Long> offsetSet;
         private final List<OffsetPair> offsetPairs;
 

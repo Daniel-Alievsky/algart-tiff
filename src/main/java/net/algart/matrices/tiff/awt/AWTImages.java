@@ -872,7 +872,7 @@ public final class AWTImages {
         if (directBytes != null) {
             return directBytes;
         }
-        byte[][] pixelBytes = null;
+        byte[][] pixelBytes;
         final ByteOrder byteOrder = little ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
         switch (pixels) {
             case short[][] s -> {

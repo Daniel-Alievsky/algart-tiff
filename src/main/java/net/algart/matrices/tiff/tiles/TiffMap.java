@@ -345,8 +345,7 @@ public sealed class TiffMap permits TiffIOMap {
         this.compressionOrNoneIfMissing = hasCompression ? compression : Optional.of(TagCompression.NONE);
         if (!hasCompression && compressionCode != -1) {
             throw new ConcurrentModificationException("Corrupted IFD, probably by a parallel thread" +
-                    " (hasCompression = " + hasCompression +
-                    ", but we have compressionCode=" + compressionCode + ")");
+                    " (hasCompression = false, but we have compressionCode=" + compressionCode + ")");
         }
         this.photometricCode = ifd.getPhotometricCode();
         this.photometric = ifd.optPhotometric();

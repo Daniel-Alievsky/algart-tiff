@@ -855,12 +855,8 @@ public final class TiffTile {
             freeData();
         } else {
             switch (copyMode) {
-                case COPY_REFERENCE -> {
-                    setData(source.data, source.encoded, false, true);
-                }
-                case COPY_CONTENT -> {
-                    setData(source.data.clone(), source.encoded, false, true);
-                }
+                case COPY_REFERENCE -> setData(source.data, source.encoded, false, true);
+                case COPY_CONTENT -> setData(source.data.clone(), source.encoded, false, true);
                 case COPY_UNPACKED_SAMPLES -> {
                     source.checkDecodedData();
                     if (map.isByteOrderCompatible(source.byteOrder())) {

@@ -291,7 +291,7 @@ public class TiffInfo {
                 totalSize.addAndGet(sizeOfIFD);
                 totalSize.addAndGet(sizeOfLinkedIFDs);
             }
-            long sizeOfData = -1;
+            long sizeOfData;
             try {
                 sizeOfData = ifd.sizeOfImageData(tiffFileLength, imageDataAligned);
                 final long sizeOfIFDTable = ifd.sizeOfIFDTable();
