@@ -59,6 +59,11 @@ public class TiffReaderTest {
             external = true;
             startArgIndex++;
         }
+        boolean noCropTiles = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-noCropTiles")) {
+            noCropTiles = true;
+            startArgIndex++;
+        }
         boolean interleave = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-interleave")) {
             interleave = true;
@@ -69,15 +74,15 @@ public class TiffReaderTest {
             cache = true;
             startArgIndex++;
         }
-        boolean tiny = false;
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-tiny")) {
-            tiny = true;
+        boolean tinyCache = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-tinyCache")) {
+            tinyCache = true;
             startArgIndex++;
         }
 
         if (args.length < startArgIndex + 3) {
             System.out.println("Usage:");
-            System.out.println("    " + TiffReaderTest.class.getName() + " [-cache [-tiny]] " +
+            System.out.println("    " + TiffReaderTest.class.getName() + " [-cache [-tinyCache]] " +
                     "some_tiff_file result.png ifdIndex " +
                     "[x y width height [number_of_tests] [number_of_complete_repeats]]");
             return;
@@ -100,7 +105,7 @@ public class TiffReaderTest {
                 final TiffReader reader = new TiffReader(tiffFile);
                 if (cache) {
                     reader.setCaching(true)
-                            .setMaxCacheMemory(tiny ? 1000000 : TiffReader.DEFAULT_MAX_CACHING_MEMORY);
+                            .setMaxCacheMemory(tinyCache ? 1000000 : TiffReader.DEFAULT_MAX_CACHING_MEMORY);
                 } else {
                     reader.setCaching(false);
                 }
@@ -113,11 +118,11 @@ public class TiffReaderTest {
                 // reader.setCachingIFDs(false);
                 // reader.setRescaleWhenIncreasingBitDepth(false);
                 reader.setColorCorrection(true);
-                // reader.setMissingTilesAllowed(true);
+                // reader.setMissingTilesAllowed(false);
                 reader.setByteFiller((byte) 0x80);
 
 //                ((TiffParser) reader).setAssumeEqualStrips(true);
-//                reader.setCropTilesToImageBoundaries(false);
+                reader.setCropTilesToImageBoundaries(!noCropTiles);
                 final var offsetOfLastScannedIFDOffset = reader.offsetOfLastScannedIFDOffset();
                 assert offsetOfLastScannedIFDOffset.isEmpty() :
                         "constructor should not set offsetOfLastScannedIFDOffset";
