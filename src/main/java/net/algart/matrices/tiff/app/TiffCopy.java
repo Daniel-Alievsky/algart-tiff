@@ -86,11 +86,6 @@ public class TiffCopy {
             copy.smart = true;
             startArgIndex++;
         }
-        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase(
-                "-expandDuplicateTiles")) {
-            copy.expandDuplicateTiles = true;
-            startArgIndex++;
-        }
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-le")) {
             copy.byteOrder = ByteOrder.LITTLE_ENDIAN;
             startArgIndex++;
@@ -103,6 +98,11 @@ public class TiffCopy {
             startArgIndex++;
         } else if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-noBigTiff")) {
             copy.bigTiff = false;
+            startArgIndex++;
+        }
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase(
+                "-expandDuplicateTiles")) {
+            copy.expandDuplicateTiles = true;
             startArgIndex++;
         }
         if (args.length > startArgIndex && args[startArgIndex].toLowerCase().startsWith("-compression=")) {
@@ -123,27 +123,32 @@ public class TiffCopy {
             startArgIndex++;
         }
         if (callConvertFromTiff || callConvertToTiff || args.length < startArgIndex + 2) {
-            System.out.printf("Usage:%n    %s [-append] [-repack] [-smart] [-le|-be] " +
-                            "[-bigTIFF|-noBigTIFF] [-compression=xxx] [-quality=xxx] [-compressionLevel=1.0] " +
-                            "source.tiff target.tiff [firstIFDIndex [lastIFDIndex]]%n",
+            System.out.printf("""
+                            Usage:%n\
+                                %s [-append] [-repack] [-smart] [-le|-be] \
+                            [-bigTIFF|-noBigTIFF] [-expandDuplicateTiles]%n\
+                                    [-compression=xxx] [-quality=xxx] [-compressionLevel=1.0]%n\
+                                    source.tiff target.tiff [firstIFDIndex [lastIFDIndex]]%n""",
                     TiffCopy.class.getSimpleName());
-            System.out.printf("or%n    %s -toTiff [-bigTIFF] [-littleEndian] [-compression=xxx] " +
-                            "[-quality=xxx] [-compressionLevel=1.0] " +
-                            "source.jpg/png/bmp target.tiff%n",
+            System.out.printf("""
+                            or%n\
+                                %s -toTiff [-bigTIFF] [-littleEndian]%n\
+                                    [-compression=xxx] [-quality=xxx] [-compressionLevel=1.0]%n\
+                                    source.jpg/png/bmp target.tiff%n""",
                     TiffCopy.class.getSimpleName());
             System.out.printf("or%n    %s -fromTiff source.tiff target.jpg/png/bmp IFDIndex%n",
                     TiffCopy.class.getSimpleName());
             System.out.println("""
                     In the first case, the source TIFF file is completely parsed, and its content is copied
                     to the target file in the optimal way: IFD table first, then image data.
-                    -repack option forces decompression and compression of TIFF image data even in the case
+                        -repack option forces decompression and compression of TIFF image data even in the case
                     when direct tile-per-tile (or strip-per-strip) copying is possible.
-                    -le and -be options allows specifying the target file byte order; by default, \
+                        -le and -be options allows specifying the target file byte order; by default, \
                     the source byte order is preserved.
-                    -smart option allows copying some file formats that are not supported for writing \
+                        -smart option allows copying some file formats that are not supported for writing \
                     (like 16-bit float values);
                     they will be repacked into the "closest" supported format.
-                    -expandDuplicateTiles option (rarely used) allows materializing duplicate tiles \
+                        -expandDuplicateTiles option (rarely used) allows materializing duplicate tiles \
                     if they exist (for example,
                     in a large "blank" TIFF filled with the same color by repeating the same tile offset in the IFD).
                     Possible "compression" is: NONE, LZW, DEFLATE, JPEG, JPEG_2000, ..."
