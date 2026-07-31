@@ -244,20 +244,22 @@ public final class TiffCopier {
     }
 
     /**
-     * Sets whether duplicate tiles (if any) should be copied as-is or expanded (resolved).
+     * Sets whether duplicate tiles (if any) should be preserved as-is or expanded into separate copies.
      *
      * <p>By default, this parameter is {@link TiffTile.DuplicateHandling#LINK_REFERENCE}, meaning
      * that the copier should try to reproduce duplicate tiles &mdash; having identical file offsets &mdash;
-     * it the source IFD contains such duplicates. It relies on to ethods copying the entire image
+     * if the source IFD contains such duplicates. This applies to methods copying the entire image
      * such as {@link #copyImage(TiffWriter, TiffReader, int)},
-     * {@link #copyTiffFile(TiffWriter, TiffReader)}, {@link #compact(Path)}.</p>
+     * {@link #copyTiffFile(TiffWriter, TiffReader)}, and {@link #compact(Path)}.</p>
+
+     * <p>If you set this parameter to {@link TiffTile.DuplicateHandling#COPY_CONTENT}, this
+     * feature (designed to optimize disk space) will be turned off.
+     * Duplicate tiles (if any) will be written as separate
+     * copies of the same tile, thereby increasing the resulting file size.</p>
      *
-     * <p>If you set this parameter to {@link TiffTile.DuplicateHandling#COPY_CONTENT}, this optimization
-     * of the disk space will be turned off, and duplicate tiles (if any) will be transformed to many copies
-     * of the same tile with resulting increasing file size.</p>
-     *
-     * @param duplicateHandling specifies how to process duplcate tiles in the source TIFF.
+     * @param duplicateHandling specifies how to process duplicate tiles in the source TIFF.
      * @return a reference to this object.
+     * @see TiffReader#readTile(TiffTileIndex, TiffTile.DuplicateHandling)
      */
     public TiffCopier setDuplicateHandling(TiffTile.DuplicateHandling duplicateHandling) {
         this.duplicateHandling = Objects.requireNonNull(duplicateHandling, "Null duplicateHandling");
