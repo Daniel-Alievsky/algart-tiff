@@ -1216,7 +1216,7 @@ public non-sealed class TiffReader extends TiffIO {
                         stream.length() + " (tile " + tileIndex + ")");
                 // - note: old SCIFIO code allowed such offsets and returned zero-filled tile
             }
-            if (previousDuplicate == -1 || !duplicateHandling.isLinkingToDuplicateIfPossible()) {
+            if (previousDuplicate == -1 || !duplicateHandling.isLinking()) {
                 // if previousDuplicate == -1 and duplicateHandling=COPY_CONTENT,
                 // we will read the same portion of the file and then will decompress it;
                 // we do not try to optimize this (but the stream is usually cached)

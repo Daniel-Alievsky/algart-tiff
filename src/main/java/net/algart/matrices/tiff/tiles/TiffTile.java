@@ -59,7 +59,7 @@ public final class TiffTile {
         LINK_REFERENCE,
         COPY_CONTENT;
 
-        public boolean isLinkingToDuplicateIfPossible() {
+        public boolean isLinking() {
             return this == LINK_REFERENCE;
         }
     }

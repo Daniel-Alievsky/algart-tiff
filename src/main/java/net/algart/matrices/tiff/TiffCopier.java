@@ -102,6 +102,7 @@ public final class TiffCopier {
     private int maxInMemoryTempFileSize = DEFAULT_MAX_IN_MEMORY_TEMP_FILE_SIZE;
     private TemporaryFileCreator temporaryFileCreator = TemporaryFileCreator.DEFAULT;
     private boolean enforceCompatibleFileFormat = false;
+    private TiffTile.DuplicateHandling duplicateHandling = TiffTile.DuplicateHandling.LINK_REFERENCE;
     private TiffIFD.Customizer ifdCustomizer = null;
     private TagCompression compression = null;
     private ProgressUpdater progressUpdater = null;
@@ -235,6 +236,15 @@ public final class TiffCopier {
      */
     public TiffCopier setEnforceCompatibleFileFormat(boolean enforceCompatibleFileFormat) {
         this.enforceCompatibleFileFormat = enforceCompatibleFileFormat;
+        return this;
+    }
+
+    public TiffTile.DuplicateHandling duplicateHandling() {
+        return duplicateHandling;
+    }
+
+    public TiffCopier setDuplicateHandling(TiffTile.DuplicateHandling duplicateHandling) {
+        this.duplicateHandling = Objects.requireNonNull(duplicateHandling, "Null duplicateHandling");
         return this;
     }
 
@@ -717,10 +727,10 @@ public final class TiffCopier {
             // - important to copy index: targetTile.index() refer to the writeIFD instead of some source IFD
             long t1Tile = TiffIO.debugTime(), t2Tile;
             final TiffTile sourceTile = actuallyDirectCopy ?
-                    reader.readEncodedTile(readIndex, TiffTile.DuplicateHandling.LINK_REFERENCE) :
-                    reader.readTile(readIndex, TiffTile.DuplicateHandling.LINK_REFERENCE);
+                    reader.readEncodedTile(readIndex, duplicateHandling) :
+                    reader.readTile(readIndex, duplicateHandling);
             t2Tile = TiffIO.debugTime();
-            if (sourceTile.hasPreviousDuplicate()) {
+            if (duplicateHandling.isLinking() && sourceTile.hasPreviousDuplicate()) {
                 assert sourceTile.isEmpty() : "duplicate should not be read";
                 final int indexOfPrevious = sourceTile.getLinearIndexOfPreviousDuplicate();
                 if (indexOfPrevious >= linear) {

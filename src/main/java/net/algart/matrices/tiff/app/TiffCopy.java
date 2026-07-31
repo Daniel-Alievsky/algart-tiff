@@ -28,6 +28,7 @@ import net.algart.matrices.tiff.TiffCopier;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
 import net.algart.matrices.tiff.tags.TagCompression;
+import net.algart.matrices.tiff.tiles.TiffTile;
 
 import java.io.IOException;
 import java.nio.ByteOrder;
@@ -40,6 +41,7 @@ public class TiffCopy {
     boolean append = false;
     boolean repack = false;
     boolean smart = false;
+    boolean expandDuplicateTiles = false;
     ByteOrder byteOrder = null;
     Boolean bigTiff = null;
     TagCompression compression = null;
@@ -84,6 +86,11 @@ public class TiffCopy {
             copy.smart = true;
             startArgIndex++;
         }
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase(
+                "-expandDuplicateTiles")) {
+            copy.expandDuplicateTiles = true;
+            startArgIndex++;
+        }
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-le")) {
             copy.byteOrder = ByteOrder.LITTLE_ENDIAN;
             startArgIndex++;
@@ -117,10 +124,10 @@ public class TiffCopy {
         }
         if (callConvertFromTiff || callConvertToTiff || args.length < startArgIndex + 2) {
             System.out.printf("Usage:%n    %s [-append] [-repack] [-smart] [-le|-be] " +
-                            "[-bigTiff|-noBigTIFF] [-compression=xxx] [-quality=xxx] [-compressionLevel=1.0] " +
+                            "[-bigTIFF|-noBigTIFF] [-compression=xxx] [-quality=xxx] [-compressionLevel=1.0] " +
                             "source.tiff target.tiff [firstIFDIndex [lastIFDIndex]]%n",
                     TiffCopy.class.getSimpleName());
-            System.out.printf("or%n    %s -toTiff [-bigTiff] [-littleEndian] [-compression=xxx] " +
+            System.out.printf("or%n    %s -toTiff [-bigTIFF] [-littleEndian] [-compression=xxx] " +
                             "[-quality=xxx] [-compressionLevel=1.0] " +
                             "source.jpg/png/bmp target.tiff%n",
                     TiffCopy.class.getSimpleName());
@@ -136,6 +143,9 @@ public class TiffCopy {
                     -smart option allows copying some file formats that are not supported for writing \
                     (like 16-bit float values);
                     they will be repacked into the "closest" supported format.
+                    -expandDuplicateTiles option (rarely used) allows materializing duplicate tiles \
+                    if they exist (for example,
+                    in a large "blank" TIFF filled with the same color by repeating the same tile offset in the IFD).
                     Possible "compression" is: NONE, LZW, DEFLATE, JPEG, JPEG_2000, ..."
                     """);
             return;
@@ -154,6 +164,9 @@ public class TiffCopy {
     public void copy(Path sourceFile, Path targetFile) throws IOException {
         final TiffCopier copier = new TiffCopier();
         copier.setDirectCopy(!repack);
+        if (expandDuplicateTiles) {
+            copier.setDuplicateHandling(TiffTile.DuplicateHandling.COPY_CONTENT);
+        }
         copier.setCompression(compression);
         copier.setProgressUpdater(this::updateProgress, 500);
 
