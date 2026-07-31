@@ -239,10 +239,26 @@ public final class TiffCopier {
         return this;
     }
 
-    public TiffTile.DuplicateHandling duplicateHandling() {
+    public TiffTile.DuplicateHandling getDuplicateHandling() {
         return duplicateHandling;
     }
 
+    /**
+     * Sets whether duplicate tiles (if any) should be copied as-is or expanded (resolved).
+     *
+     * <p>By default, this parameter is {@link TiffTile.DuplicateHandling#LINK_REFERENCE}, meaning
+     * that the copier should try to reproduce duplicate tiles &mdash; having identical file offsets &mdash;
+     * it the source IFD contains such duplicates. It relies on to ethods copying the entire image
+     * such as {@link #copyImage(TiffWriter, TiffReader, int)},
+     * {@link #copyTiffFile(TiffWriter, TiffReader)}, {@link #compact(Path)}.</p>
+     *
+     * <p>If you set this parameter to {@link TiffTile.DuplicateHandling#COPY_CONTENT}, this optimization
+     * of the disk space will be turned off, and duplicate tiles (if any) will be transformed to many copies
+     * of the same tile with resulting increasing file size.</p>
+     *
+     * @param duplicateHandling specifies how to process duplcate tiles in the source TIFF.
+     * @return a reference to this object.
+     */
     public TiffCopier setDuplicateHandling(TiffTile.DuplicateHandling duplicateHandling) {
         this.duplicateHandling = Objects.requireNonNull(duplicateHandling, "Null duplicateHandling");
         return this;
@@ -529,7 +545,6 @@ public final class TiffCopier {
             }
         }
     }
-
 
     /**
      * Copies the entire source TIFF file to the target TIFF file.
