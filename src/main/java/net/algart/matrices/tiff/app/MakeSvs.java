@@ -95,10 +95,12 @@ public class MakeSvs {
             startArgIndex++;
         }
         if (args.length < startArgIndex + 3) {
-            System.out.printf("Usage:%n    %s [-le|-be] " +
-                            "[-bigTiff] [-compression=JPEG|JPEG_RGB|JPEG_2000_APERIO] [-quality=xxx] [=ratio=2|4] " +
-                            "[-pixel=xxx] " +
-                            "target.svs number-of-layers source.jpg/png/bmp/tif [label.png macro.png] %n",
+            System.out.printf("""
+                            Usage:%n\
+                                %s [-le|-be] \
+                            [-bigTiff] [-compression=JPEG|JPEG_RGB|JPEG_2000_APERIO]%n\
+                                    [-quality=xxx] [=ratio=2|4] [-pixel=xxx]%n\
+                                    target.svs number-of-layers source.jpg/png/bmp/tif [label.png macro.png] %n""",
                     MakeSvs.class.getSimpleName());
             return;
         }
