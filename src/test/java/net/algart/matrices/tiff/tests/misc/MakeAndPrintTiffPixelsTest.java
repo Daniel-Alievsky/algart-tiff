@@ -51,7 +51,7 @@ public class MakeAndPrintTiffPixelsTest {
         final int dimY = Integer.parseInt(args[startArgIndex++]);
         final double filler = Double.parseDouble(args[startArgIndex]);
         Object values = makeCircleSamples(sampleType, dimX, dimY, filler);
-        try (TiffWriter writer = new TiffWriter(targetFile, TiffWriter.Mode.CREATE)) {
+        try (TiffWriter writer = new TiffWriter(targetFile, TiffWriter.OpenMode.CREATE)) {
             final TiffWriteMap map = writer.newFixedMap(TiffIFD.newStrippedIFD()
                     .putImageInformation(dimX, dimY, 1, sampleType));
             map.writeJavaArray(values);

@@ -64,9 +64,9 @@ import java.util.function.Consumer;
 public non-sealed class TiffReader extends TiffIO {
     /**
      * Mode of opening a TIFF file by {@link TiffReader}.
-     * See comments to {@link TiffReader#TiffReader(DataHandle, Mode, boolean)} constructor.
+     * See comments to {@link TiffReader#TiffReader(DataHandle, OpenMode, boolean)} constructor.
      */
-    public enum Mode {
+    public enum OpenMode {
         /**
          * All exceptions are caught and not thrown, but can be retrieved using {@link TiffReader#openingException()}.
          * Usually not recommended.
@@ -93,7 +93,7 @@ public non-sealed class TiffReader extends TiffIO {
 
         private final boolean tiffRequired;
 
-        Mode(boolean tiffRequired) {
+        OpenMode(boolean tiffRequired) {
             this.tiffRequired = tiffRequired;
         }
 
@@ -104,7 +104,7 @@ public non-sealed class TiffReader extends TiffIO {
          * @return {@link #VALID_TIFF} if <code>tiffRequired</code> is <code>true</code>,
          * otherwise {@link #ALLOW_NON_TIFF}.
          */
-        public static Mode ofTiffRequired(boolean tiffRequired) {
+        public static OpenMode ofTiffRequired(boolean tiffRequired) {
             return tiffRequired ? VALID_TIFF : ALLOW_NON_TIFF;
         }
 
@@ -214,7 +214,7 @@ public non-sealed class TiffReader extends TiffIO {
      * @see MatrixIO#readImage(Path)
      */
     public static List<Matrix<UpdatablePArray>> readImage(Path file) throws IOException {
-        try (TiffReader reader = new TiffReader(file, Mode.ALLOW_EXISTING_NON_TIFF)) {
+        try (TiffReader reader = new TiffReader(file, OpenMode.ALLOW_EXISTING_NON_TIFF)) {
             if (reader.isTiff()) {
                 return reader.readChannels(0);
             }
@@ -235,7 +235,7 @@ public non-sealed class TiffReader extends TiffIO {
      * @see MatrixIO#readBufferedImage(Path)
      */
     public static BufferedImage readBufferedImage(Path file) throws IOException {
-        try (TiffReader reader = new TiffReader(file, Mode.ALLOW_EXISTING_NON_TIFF)) {
+        try (TiffReader reader = new TiffReader(file, OpenMode.ALLOW_EXISTING_NON_TIFF)) {
             if (reader.isTiff()) {
                 return reader.readBufferedImage(0);
             }
@@ -244,18 +244,18 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     /**
-     * Equivalent to <code>{@link #TiffReader(Path, Mode)
-     * TiffReader}(file, {@link Mode#VALID_TIFF})</code>.
+     * Equivalent to <code>{@link #TiffReader(Path, OpenMode)
+     * TiffReader}(file, {@link OpenMode#VALID_TIFF})</code>.
      *
      * @param file input TIFF file.
      * @throws IOException if an I/O error occurs, including a non-TIFF file or non-existing file.
      */
     public TiffReader(Path file) throws IOException {
-        this(file, Mode.VALID_TIFF);
+        this(file, OpenMode.VALID_TIFF);
     }
 
     /**
-     * Equivalent to {@link #TiffReader(DataHandle, Mode, boolean)
+     * Equivalent to {@link #TiffReader(DataHandle, OpenMode, boolean)
      * TiffReader(inputStream, openMode, true)}, where the <code>inputStream</code> argument is<br>
      * <code>new {@link FileHandle#FileHandle(FileLocation)
      * FileHandle}(new {@link FileLocation#FileLocation(File)
@@ -265,14 +265,14 @@ public non-sealed class TiffReader extends TiffIO {
      * @param openMode what should be checked while opening?
      * @throws IOException if an I/O error occurs, including a non-TIFF file or non-existing file.
      */
-    public TiffReader(Path file, Mode openMode) throws IOException {
+    public TiffReader(Path file, OpenMode openMode) throws IOException {
         // We should not use getExistingFileHandle() here: if the file does not exist,
         // the exception should be suppressed when openMode=TiffOpenMode.NO_CHECKS
         this(getFileHandle(file), file, openMode, true);
     }
 
     /**
-     * Equivalent to {@link #TiffReader(DataHandle, Mode, boolean)} with the <code>false</code> last argument.
+     * Equivalent to {@link #TiffReader(DataHandle, OpenMode, boolean)} with the <code>false</code> last argument.
      * Note that you <b>should not</b> call this constructor from another constructor, creating this
      * <code>DataHandle</code>: in this case, the handle will never be closed!
      *
@@ -283,17 +283,17 @@ public non-sealed class TiffReader extends TiffIO {
      * @throws TiffException if the file is not a correct TIFF file
      * @throws IOException   in the case of any problems with the input file
      */
-    public TiffReader(DataHandle<?> inputStream, Mode openMode) throws IOException {
+    public TiffReader(DataHandle<?> inputStream, OpenMode openMode) throws IOException {
         this(inputStream, openMode, false);
     }
 
     /**
      * Constructs a new TIFF reader.
      *
-     * <p>If <code>openMode</code> is {@link Mode#VALID_TIFF} (standard variant), the constructor throws
+     * <p>If <code>openMode</code> is {@link OpenMode#VALID_TIFF} (standard variant), the constructor throws
      * an exception in case of an incorrect TIFF header (non-TIFF file) or any other problems including I/O errors.
      *
-     * <p>If <code>openMode</code> is {@link Mode#ALLOW_NON_TIFF}, the constructor
+     * <p>If <code>openMode</code> is {@link OpenMode#ALLOW_NON_TIFF}, the constructor
      * allows opening non-TIFF files, but the list of IFDs returned by {@link #allIFDs()} will be empty.
      * You can detect whether the opened file is TIFF using {@link #isTiff()} method.
      * Non-existing file is also successfully "opened", but {@link #isTiff()} will return <code>false</code>.
@@ -303,10 +303,10 @@ public non-sealed class TiffReader extends TiffIO {
      * All other errors including a non-existing file do not result in exceptions (they are caught),
      * and you can know the occurred exception by {@link #openingException()} method.
      *
-     * <p>If <code>openMode</code> is {@link Mode#ALLOW_EXISTING_NON_TIFF}, the behavior is similar,
+     * <p>If <code>openMode</code> is {@link OpenMode#ALLOW_EXISTING_NON_TIFF}, the behavior is similar,
      * but non-existing file leads to throwing an exception.</p>
      *
-     * <p>If <code>openMode</code> is {@link Mode#NO_CHECKS}, the constructor catches
+     * <p>If <code>openMode</code> is {@link OpenMode#NO_CHECKS}, the constructor catches
      * all possible exceptions. In the case of any exception, {@link #isValidTiff()} method will return
      * <code>false</code> and you can know the occurred exception by {@link #openingException()} method.
      *
@@ -324,19 +324,19 @@ public non-sealed class TiffReader extends TiffIO {
      * @param inputStream            input stream.
      * @param openMode               specifies what should be checked while opening file.
      * @param closeStreamOnException if <code>true</code>, the input stream is closed in the case of any exception;
-     *                               ignored if <code>openMode</code> is {@link Mode#NO_CHECKS}.
+     *                               ignored if <code>openMode</code> is {@link OpenMode#NO_CHECKS}.
      * @throws TiffException if the file is not a correct TIFF file.
      * @throws IOException   in the case of any problems with the input file;
-     *                       impossible in {@link Mode#NO_CHECKS} mode.
+     *                       impossible in {@link OpenMode#NO_CHECKS} mode.
      */
-    public TiffReader(DataHandle<?> inputStream, Mode openMode, boolean closeStreamOnException) throws IOException {
+    public TiffReader(DataHandle<?> inputStream, OpenMode openMode, boolean closeStreamOnException) throws IOException {
         this(inputStream, (Path) null, openMode, closeStreamOnException);
     }
 
     /**
      * Universal constructor, called from other constructors.
      * Its behavior is equivalent to the constructor
-     * {@link #TiffReader(DataHandle, Mode)} with the argument {@link Mode#NO_CHECKS}.
+     * {@link #TiffReader(DataHandle, OpenMode)} with the argument {@link OpenMode#NO_CHECKS}.
      *
      * <p>Unlike other constructors, this one never throws an exception.
      * This is helpful because it allows
@@ -350,7 +350,7 @@ public non-sealed class TiffReader extends TiffIO {
      * But the main goal of adding this argument is to avoid calling this constructor by a mistake.
      * If we instead provided a constructor with a single inputStream argument,
      * you might think it would be a good idea to use it by default, but it is not so:
-     * typically you need {@link Mode#VALID_TIFF} variant of behavior.
+     * typically you need {@link OpenMode#VALID_TIFF} variant of behavior.
      *
      * <p>The specified input stream is automatically replaced (wrapped) with {@link ReadBufferDataHandle}
      * if this stream is still not an instance of this class.
@@ -359,24 +359,24 @@ public non-sealed class TiffReader extends TiffIO {
      * @param inputStream      input stream.
      * @param exceptionHandler if not {@code null}, it will be called in the case of some checked exception;
      *                         for example, it may log it. But usually it is better idea to use the main
-     *                         constructor {@link #TiffReader(DataHandle, Mode, boolean)}
+     *                         constructor {@link #TiffReader(DataHandle, OpenMode, boolean)}
      *                         with catching exception.
      */
     public TiffReader(DataHandle<?> inputStream, Consumer<Exception> exceptionHandler) {
         //noinspection RedundantCast
-        this(inputStream, (Path) null, Mode.NO_CHECKS, exceptionHandler);
+        this(inputStream, (Path) null, OpenMode.NO_CHECKS, exceptionHandler);
     }
 
     private TiffReader(
             DataHandle<?> inputStream,
             Path file,
-            Mode openMode,
+            OpenMode openMode,
             boolean closeStreamOnException) throws IOException {
         this(checkNonNull(inputStream, openMode), file, openMode, (Consumer<Exception>) null);
         assert this.tiff || !this.validTiff;
         // - in other words, if validTiff, then tiff
         if (!openMode.isAnythingChecked()) {
-            assert openMode == Mode.NO_CHECKS;
+            assert openMode == OpenMode.NO_CHECKS;
             return;
         }
         boolean tiffButInvalid = this.tiff && !this.validTiff;
@@ -409,7 +409,7 @@ public non-sealed class TiffReader extends TiffIO {
     private TiffReader(
             DataHandle<?> inputStream,
             Path file,
-            Mode openMode,
+            OpenMode openMode,
             Consumer<Exception> exceptionHandler) {
         super(inputStream instanceof ReadBufferDataHandle || !AUTO_BUFFERING_INPUT_STREAM ?
                         inputStream :
@@ -466,7 +466,7 @@ public non-sealed class TiffReader extends TiffIO {
      * the same initialization logic that is used in the constructor.</p>
      *
      * <p>Unlike the constructor, this method is stricter, as when using
-     * {@link Mode#VALID_TIFF} mode. If the underlying stream does
+     * {@link OpenMode#VALID_TIFF} mode. If the underlying stream does
      * not represent a valid TIFF file or if any I/O error occurs while re-reading the
      * header, an {@link IOException} is thrown.</p>
      *
@@ -485,7 +485,7 @@ public non-sealed class TiffReader extends TiffIO {
             synchronized (fileLock) {
                 // Lock order: tileCacheLock -> fileLock; we should use the same order in all places!
                 clearAllCache();
-                final IOException exception = startReading(Mode.VALID_TIFF);
+                final IOException exception = startReading(OpenMode.VALID_TIFF);
                 if (exception != null) {
                     throw exception;
                 }
@@ -778,11 +778,11 @@ public non-sealed class TiffReader extends TiffIO {
      * Returns whether this file is a TIFF file, both ordinary or BigTIFF
      * (i.e., whether it contains the correct TIFF or BigTIFF file header).
      *
-     * <p>Note: if the constructor with {@link Mode#VALID_TIFF} mode
+     * <p>Note: if the constructor with {@link OpenMode#VALID_TIFF} mode
      * completed successfully, this method is guaranteed to return {@code true}.
      *
      * <p>Note: if this method returns <code>true</code>, the file can be still invalid.
-     * If the problem was detected while opening the file in the mode {@link Mode#NO_CHECKS},
+     * If the problem was detected while opening the file in the mode {@link OpenMode#NO_CHECKS},
      * you can know about this by <code>false</code> result of {@link #isValidTiff()} method.
      *
      * @return whether this is a TIFF.
@@ -800,9 +800,9 @@ public non-sealed class TiffReader extends TiffIO {
      * <p>In most cases, this method returns the same value as {@link #isTiff()}.
      * It may return {@code false} while {@link #isTiff()} is {@code true} only
      * if the TIFF header is present but corrupted (e.g., the file is truncated),
-     * and the reader was opened in the {@link Mode#NO_CHECKS} mode.
+     * and the reader was opened in the {@link OpenMode#NO_CHECKS} mode.
      *
-     * <p>Note: if the constructor with {@link Mode#VALID_TIFF} mode
+     * <p>Note: if the constructor with {@link OpenMode#VALID_TIFF} mode
      * completed successfully, this method is guaranteed to return {@code true}.
      *
      * <p>Note: this method is equivalent to the check <code>{@link #openingException()} == null</code>.
@@ -820,8 +820,8 @@ public non-sealed class TiffReader extends TiffIO {
      * regular files and directories: if there is an existing subdirectory
      * with the name specified by the constructor, this method returns {@code true}.
      *
-     * <p>Note: if the constructor was called with {@link Mode#VALID_TIFF}
-     * or {@link Mode#ALLOW_EXISTING_NON_TIFF} mode and
+     * <p>Note: if the constructor was called with {@link OpenMode#VALID_TIFF}
+     * or {@link OpenMode#ALLOW_EXISTING_NON_TIFF} mode and
      * completed successfully, this method is guaranteed to return {@code true}.
      *
      * @return whether this file or directory exists.
@@ -1592,7 +1592,7 @@ public non-sealed class TiffReader extends TiffIO {
         return Optional.of(decodedData);
     }
 
-    private IOException startReading(Mode openMode) {
+    private IOException startReading(OpenMode openMode) {
         synchronized (fileLock) {
             try {
                 this.tiff = false;
@@ -1612,7 +1612,7 @@ public non-sealed class TiffReader extends TiffIO {
         }
     }
 
-    private void testHeader(Mode openMode) throws IOException {
+    private void testHeader(OpenMode openMode) throws IOException {
         // TIFF file header:
         //  16 bits - TIFF byte-order identifier:
         //                  4949h ("II", little-endian, Intel format)
@@ -1772,7 +1772,7 @@ public non-sealed class TiffReader extends TiffIO {
         return byteCount;
     }
 
-    private static DataHandle<?> checkNonNull(DataHandle<?> inputStream, Mode openMode) {
+    private static DataHandle<?> checkNonNull(DataHandle<?> inputStream, OpenMode openMode) {
         Objects.requireNonNull(inputStream, "Null input stream");
         Objects.requireNonNull(openMode, "Null open mode");
         return inputStream;

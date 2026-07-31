@@ -65,9 +65,9 @@ import java.util.stream.Collectors;
 public non-sealed class TiffWriter extends TiffIO {
     /**
      * Mode of creating/opening a TIFF file by {@link TiffWriter}.
-     * See comments to {@link TiffWriter#TiffWriter(Path, Mode)} constructor.
+     * See comments to {@link TiffWriter#TiffWriter(Path, OpenMode)} constructor.
      */
-    public enum Mode {
+    public enum OpenMode {
         NO_ACTIONS(false, false, false) {
             @Override
             public void configureWriter(TiffWriter writer) {
@@ -92,7 +92,7 @@ public non-sealed class TiffWriter extends TiffIO {
         private final boolean bigTiff;
         private final boolean littleEndian;
 
-        Mode(boolean forceCreateNewFile, boolean bigTiff, boolean littleEndian) {
+        OpenMode(boolean forceCreateNewFile, boolean bigTiff, boolean littleEndian) {
             this.forceCreateNewFile = forceCreateNewFile;
             this.bigTiff = bigTiff;
             this.littleEndian = littleEndian;
@@ -110,13 +110,13 @@ public non-sealed class TiffWriter extends TiffIO {
             return littleEndian;
         }
 
-        public static Mode ofCreateOptions(boolean bigTiff, boolean littleEndian) {
+        public static OpenMode ofCreateOptions(boolean bigTiff, boolean littleEndian) {
             return bigTiff ?
                     (littleEndian ? CREATE_LE_BIG : CREATE_BIG) :
                     (littleEndian ? CREATE_LE : CREATE);
         }
 
-        public static Mode ofAppendOptions(boolean bigTiff, boolean littleEndian) {
+        public static OpenMode ofAppendOptions(boolean bigTiff, boolean littleEndian) {
             return bigTiff ?
                     (littleEndian ? APPEND_LE_BIG : APPEND_BIG) :
                     (littleEndian ? APPEND_LE : APPEND);
@@ -187,15 +187,15 @@ public non-sealed class TiffWriter extends TiffIO {
     private long timeEncodingAdditional = 0;
 
     /**
-     * Equivalent to <code>new {@link #TiffWriter(Path, Mode)
-     * TiffWriter}(file, {@link Mode#NO_ACTIONS})</code>.
+     * Equivalent to <code>new {@link #TiffWriter(Path, OpenMode)
+     * TiffWriter}(file, {@link OpenMode#NO_ACTIONS})</code>.
      *
      * <p>Note: unlike classes like {@link java.io.FileWriter},
      * this constructor <b>does not try to open or create file</b>.
-     * If you need, you can use another constructor with the argument {@link Mode}, for example:</p>
+     * If you need, you can use another constructor with the argument {@link OpenMode}, for example:</p>
      * <pre>
-     *     {@link TiffWriter} writer = new {@link #TiffWriter(Path, Mode)
-     *     TiffWriter}(path, {@link Mode#CREATE});
+     *     {@link TiffWriter} writer = new {@link #TiffWriter(Path, OpenMode)
+     *     TiffWriter}(path, {@link OpenMode#CREATE});
      * </pre>
      *
      * @param file output TIFF file.
@@ -207,7 +207,7 @@ public non-sealed class TiffWriter extends TiffIO {
     /**
      * Creates a new TIFF writer.
      *
-     * <p>If the argument <code>openMode</code> is {@link Mode#NO_ACTIONS},
+     * <p>If the argument <code>openMode</code> is {@link OpenMode#NO_ACTIONS},
      * the constructor does not try to open or create a file and, so, never
      * throw {@link IOException}.
      * This behavior <b>differs</b> from the constructor of {@link java.io.FileWriter#FileWriter(File) FileWriter}
@@ -218,33 +218,33 @@ public non-sealed class TiffWriter extends TiffIO {
      * {@link #setBigTiff(boolean)}, {@link #setLittleEndian(boolean)} and other methods.
      *
      * <p>If the argument <code>openMode</code> is one of the values
-     * {@link Mode#CREATE},
-     * {@link Mode#CREATE_BIG},
-     * {@link Mode#CREATE_LE},
-     * {@link Mode#CREATE_LE_BIG},
+     * {@link OpenMode#CREATE},
+     * {@link OpenMode#CREATE_BIG},
+     * {@link OpenMode#CREATE_LE},
+     * {@link OpenMode#CREATE_LE_BIG},
      * the constructor automatically removes the file at the specified path, if it exists,
      * and calls {@link #create()} method.
-     * The variants {@link Mode#CREATE_BIG}, {@link Mode#CREATE_LE_BIG}
+     * The variants {@link OpenMode#CREATE_BIG}, {@link OpenMode#CREATE_LE_BIG}
      * create a file written in BigTIFF format (allowing to store &ge;4GB data).
-     * The variants {@link Mode#CREATE_LE}, {@link Mode#CREATE_LE_BIG}
+     * The variants {@link OpenMode#CREATE_LE}, {@link OpenMode#CREATE_LE_BIG}
      * create a file with little-endian byte order (the default is big-endian).
      *
      * <p>The other options allow you to open an existing file using the {@link #openForAppend()}
      * or {@link #openExisting()} methods.
-     * The variants {@link Mode#APPEND}, {@link Mode#APPEND_BIG},
-     * {@link Mode#APPEND_LE}, {@link Mode#APPEND_LE_BIG} call the
+     * The variants {@link OpenMode#APPEND}, {@link OpenMode#APPEND_BIG},
+     * {@link OpenMode#APPEND_LE}, {@link OpenMode#APPEND_LE_BIG} call the
      * {@link #openForAppend()} method.
      * The difference is what to do if the file does not exist:
      * whether the new TIFF file should be BigTIFF or not, little-endian or big-endian,
-     * as in the cases of {@link Mode#CREATE}, {@link Mode#CREATE_BIG},
-     * {@link Mode#CREATE_LE}, {@link Mode#CREATE_LE_BIG}.
+     * as in the cases of {@link OpenMode#CREATE}, {@link OpenMode#CREATE_BIG},
+     * {@link OpenMode#CREATE_LE}, {@link OpenMode#CREATE_LE_BIG}.
      *
-     * <p>The variant {@link Mode#OPEN_EXISTING} calls {@link #openExisting()} method;
+     * <p>The variant {@link OpenMode#OPEN_EXISTING} calls {@link #openExisting()} method;
      * in this case, the BigTIFF mode and the byte order are determined automatically from the existing file.
      *
      * <p>In the case of the I/O exception, the file is automatically closed.
      *
-     * <p>In all cases excepting {@link Mode#NO_ACTIONS},
+     * <p>In all cases excepting {@link OpenMode#NO_ACTIONS},
      * the behavior is alike {@link java.io.FileWriter#FileWriter(File) FileWriter constructor}.
      *
      * <p>This constructor is the simplest way to create a new TIFF file and automatically open
@@ -256,7 +256,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param openMode specifies how the file should be opened or initialized (creating, appending, etc.).
      * @throws IOException if an I/O error occurs.
      */
-    public TiffWriter(Path file, Mode openMode) throws IOException {
+    public TiffWriter(Path file, OpenMode openMode) throws IOException {
         this(openWithDeletingPreviousFileIfRequested(file, openMode), file);
         try {
             openMode.configureWriter(this);
@@ -737,7 +737,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * </ul>
      *
      * <p>This reader is created by the {@link #newCompanionReader()} method.
-     * By default, this means {@link TiffReader.Mode#NO_CHECKS} creation mode and
+     * By default, this means {@link TiffReader.OpenMode#NO_CHECKS} creation mode and
      * disabled caching.
      * (The caching usually makes no sense, because,
      * as noted above, any writing to the TIFF will destroy the stored reader together with
@@ -775,7 +775,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * <pre>writer.{@link #getCompanionReaderFactory()}.{@link TiffReader.Factory#newReader(DataHandle)
      * newReader}(writer.{@link #stream()})</pre>
      *
-     * <p>By default, this means {@link TiffReader.Mode#NO_CHECKS} creation mode and
+     * <p>By default, this means {@link TiffReader.OpenMode#NO_CHECKS} creation mode and
      * disabled caching.</p>
      *
      * <p><b>Do not close</b> this reader independently: the shared stream will be closed
@@ -794,12 +794,12 @@ public non-sealed class TiffWriter extends TiffIO {
      * The default implementation of the {@link #setCompanionReaderFactory(TiffReader.Factory)
      * companion reader factory}. This method is almost equivalent to:
      *
-     * <pre>new {@link TiffReader#TiffReader(DataHandle, TiffReader.Mode, boolean)
-     * TiffReader}(stream, {@link TiffReader.Mode#NO_CHECKS}, false).{@link TiffReader#setCaching(boolean)
+     * <pre>new {@link TiffReader#TiffReader(DataHandle, TiffReader.OpenMode, boolean)
+     * TiffReader}(stream, {@link TiffReader.OpenMode#NO_CHECKS}, false).{@link TiffReader#setCaching(boolean)
      * setCaching(false)}</pre>
      *
      * <p>However, this method catches and suppresses {@link IOException}: such exceptions are impossible
-     * in {@link TiffReader.Mode#NO_CHECKS} mode.</p>
+     * in {@link TiffReader.OpenMode#NO_CHECKS} mode.</p>
      *
      * <p>Caching in the reader is disabled: usually this reader
      * should be used while you are modifying the TIFF, so the caching makes no sense.
@@ -811,7 +811,7 @@ public non-sealed class TiffWriter extends TiffIO {
     public static TiffReader defaultCompanionReader(DataHandle<?> stream) {
         TiffReader result;
         try {
-            result = new TiffReader(stream, TiffReader.Mode.NO_CHECKS, false);
+            result = new TiffReader(stream, TiffReader.OpenMode.NO_CHECKS, false);
         } catch (IOException e) {
             throw new AssertionError("Impossible in NO_CHECKS mode", e);
         }
@@ -836,7 +836,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * {@link Files#createTempFile(Path, String, String, java.nio.file.attribute.FileAttribute[])
      * Files.createTempFile} or similar methods.
      * In this case, we should not delete this file and create it again
-     * (the behavior of the constructor called with the mode {@link Mode#CREATE} or similar parameter):
+     * (the behavior of the constructor called with the mode {@link OpenMode#CREATE} or similar parameter):
      * there is a chance that some other process will create the same temporary file
      * between removing and re-creating by this class.</p>
      *
@@ -866,7 +866,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 }
                 // In this branch, we MUST NOT try to analyze the file: it is not a correct TIFF!
             } else {
-                final TiffReader reader = newReader(TiffReader.Mode.VALID_TIFF);
+                final TiffReader reader = newReader(TiffReader.OpenMode.VALID_TIFF);
                 // - The first opening TIFF is the only place when we MUST use VALID_TIFF mode
                 // instead of the usual NO_CHECKS used inside reader() method
                 // Note: we should NOT close the reader in the case of any problem,
@@ -2754,9 +2754,7 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    private static DataHandle<?> openWithDeletingPreviousFileIfRequested(
-            Path file,
-            Mode openMode)
+    private static DataHandle<?> openWithDeletingPreviousFileIfRequested(Path file, OpenMode openMode)
             throws IOException {
         Objects.requireNonNull(file, "Null file");
         Objects.requireNonNull(openMode, "Null openMode");

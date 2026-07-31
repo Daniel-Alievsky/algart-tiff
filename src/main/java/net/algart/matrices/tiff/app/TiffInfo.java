@@ -174,7 +174,7 @@ public class TiffInfo {
         prefixInfo = "";
         summaryInfo = "";
         svsInfo = "";
-        try (TiffReader reader = new TiffReader(tiffFile, TiffReader.Mode.ALLOW_NON_TIFF)) {
+        try (TiffReader reader = new TiffReader(tiffFile, TiffReader.OpenMode.ALLOW_NON_TIFF)) {
             if (reader.isTiff() != reader.isValidTiff()) {
                 // - impossible with this form of the constructor
                 throw new AssertionError();

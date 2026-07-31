@@ -43,7 +43,7 @@ public class TiffEditDescriptionTest {
         final Path targetFile = Paths.get(args[0]);
         final int numberOfTests = Integer.parseInt(args[1]);
         final Random rnd = new Random(157);
-        try (TiffWriter writer = new TiffWriter(targetFile, TiffWriter.Mode.OPEN_EXISTING)) {
+        try (TiffWriter writer = new TiffWriter(targetFile, TiffWriter.OpenMode.OPEN_EXISTING)) {
             final int numberOfExisting = writer.numberOfMainImages();
             for (int test = 1; test <= numberOfTests; test++) {
                 final int n = writer.numberOfMainImages();

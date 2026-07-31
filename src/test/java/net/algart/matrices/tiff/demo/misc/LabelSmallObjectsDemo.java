@@ -105,7 +105,7 @@ public class LabelSmallObjectsDemo {
         System.out.printf("Scanning image to label objects...%n");
         Matrix<? extends PArray> labels = buildLabels(filtered);
         System.out.printf("Writing TIFF %s...%n", targetFile);
-        try (TiffWriter writer = new TiffWriter(targetFile, TiffWriter.Mode.CREATE)) {
+        try (TiffWriter writer = new TiffWriter(targetFile, TiffWriter.OpenMode.CREATE)) {
             writer.setCompressionQuality(0.5);
             writer.newFixedMap(TiffIFD.newTiledIFD(TagCompression.JPEG, source)
                             .putDescription("Source image"))

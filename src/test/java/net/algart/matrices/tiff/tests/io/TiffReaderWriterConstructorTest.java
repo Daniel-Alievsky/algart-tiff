@@ -40,7 +40,7 @@ public class TiffReaderWriterConstructorTest {
         System.out.println("Closing " + fileToRead + "...");
         tiffReader.close();
         System.out.println("Creating " + fileToWrite + "...");
-        TiffWriter tiffWriter = new TiffWriter(fileToWrite, TiffWriter.Mode.CREATE);
+        TiffWriter tiffWriter = new TiffWriter(fileToWrite, TiffWriter.OpenMode.CREATE);
         // - in the case of exception, the file must be closed! (But this is a very improbable situation.)
         System.out.println("Closing " + fileToWrite + "...");
         tiffWriter.close();

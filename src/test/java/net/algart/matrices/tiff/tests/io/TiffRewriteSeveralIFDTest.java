@@ -62,7 +62,7 @@ public class TiffRewriteSeveralIFDTest {
         final int numberOfImages = args.length < startArgIndex + 2 ? 5 : Integer.parseInt(args[startArgIndex + 1]);
 
         System.out.println("Writing TIFF " + targetFile + "...");
-        try (final TiffWriter writer = new TiffWriter(targetFile, TiffWriter.Mode.CREATE)) {
+        try (final TiffWriter writer = new TiffWriter(targetFile, TiffWriter.OpenMode.CREATE)) {
             System.out.printf("Linkage after creating: %s%n", writer.linkageIfPresent());
 
             TiffIFD[] ifds = new TiffIFD[numberOfImages];

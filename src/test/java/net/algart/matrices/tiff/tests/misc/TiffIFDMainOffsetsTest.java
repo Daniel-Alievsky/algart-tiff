@@ -98,7 +98,7 @@ public class TiffIFDMainOffsetsTest {
         final int numberOfTests = startArgIndex + 2 < args.length ? Integer.parseInt(args[startArgIndex + 2]) : 16;
         System.out.printf("Reading IFD #%d from %s...%n", ifdIndex, file);
 
-        TiffReader reader = new TiffReader(file, TiffReader.Mode.NO_CHECKS).setCachingIFDs(cache);
+        TiffReader reader = new TiffReader(file, TiffReader.OpenMode.NO_CHECKS).setCachingIFDs(cache);
         final int numberOfMain = reader.readMainIFDOffsets(true).length;
         final int m = numberOfMain == 0 ? 0 : reader.allMaps().size();
         final int n2 = numberOfMain == 0 ? 0 : reader.mainIFDs().size();
@@ -111,7 +111,7 @@ public class TiffIFDMainOffsetsTest {
         // reader.allMaps().set(0, null); // - should not be possible (result must be immutable)
         // reader.allIFDs().clear(); // - should not be possible (result must be immutable)
         reader.close();
-        reader = new TiffReader(file, TiffReader.Mode.NO_CHECKS).setCachingIFDs(cache);
+        reader = new TiffReader(file, TiffReader.OpenMode.NO_CHECKS).setCachingIFDs(cache);
 
         System.out.println("Analysing...");
         System.out.printf("isTiff: %s%n", reader.isTiff());

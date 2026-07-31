@@ -511,7 +511,7 @@ public class TiffExplorer {
     }
 
     private void changeDescription(int mainIndex, String newDescription) throws IOException {
-        try (TiffWriter writer = new TiffWriter(tiffFile, TiffWriter.Mode.OPEN_EXISTING)) {
+        try (TiffWriter writer = new TiffWriter(tiffFile, TiffWriter.OpenMode.OPEN_EXISTING)) {
             writer.updateDescription(mainIndex, newDescription);
         }
         frame.reload();
@@ -548,7 +548,7 @@ public class TiffExplorer {
         if (choice != JOptionPane.YES_OPTION) {
             return false;
         }
-        try (TiffWriter writer = new TiffWriter(tiffFile, TiffWriter.Mode.OPEN_EXISTING)) {
+        try (TiffWriter writer = new TiffWriter(tiffFile, TiffWriter.OpenMode.OPEN_EXISTING)) {
             writer.updateIFD(mainIndex, ifd -> {
                 for (int tag : tags) {
                     ifd.remove(tag);
@@ -588,7 +588,7 @@ public class TiffExplorer {
         } else {
             addYCbCrSubSampling = false;
         }
-        try (TiffWriter writer = new TiffWriter(tiffFile, TiffWriter.Mode.OPEN_EXISTING)) {
+        try (TiffWriter writer = new TiffWriter(tiffFile, TiffWriter.OpenMode.OPEN_EXISTING)) {
             writer.updateIFD(mainIndex, ifd -> {
                 final Integer existing = ifd.hasPhotometric() ? ifd.optPhotometricCode(-1) : null;
                 if (Objects.equals(existing, photometricCode)) {

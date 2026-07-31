@@ -124,7 +124,7 @@ public class TiffCopyTest {
             int firstIFDIndex,
             int lastIFDIndex)
             throws IOException {
-        try (TiffReader reader = new TiffReader(sourceFile, TiffReader.Mode.ALLOW_NON_TIFF)) {
+        try (TiffReader reader = new TiffReader(sourceFile, TiffReader.OpenMode.ALLOW_NON_TIFF)) {
             if (useContext) {
                 reader.setContext(TiffReader.newSCIFIOContext());
             }

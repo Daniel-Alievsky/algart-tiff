@@ -58,7 +58,7 @@ public class TiffWriteSimpleDemo {
         final List<? extends Matrix<? extends PArray>> image = MatrixIO.readImage(sourceFile);
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
-        try (var writer = new TiffWriter(targetFile, TiffWriter.Mode.ofCreateOptions(bigTiff, false))) {
+        try (var writer = new TiffWriter(targetFile, TiffWriter.OpenMode.ofCreateOptions(bigTiff, false))) {
             final TiffWriteMap map = writer.writeNewChannels(image, TagCompression.JPEG);
             System.out.printf("Image written: %s...%n", map);
         }

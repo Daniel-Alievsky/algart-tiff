@@ -67,7 +67,7 @@ public class TiffAppendDemo {
         }
 
         System.out.printf("Writing TIFF %s...%n", targetFile);
-        try (var writer = new TiffWriter(targetFile, TiffWriter.Mode.ofAppendOptions(bigTiff, true))) {
+        try (var writer = new TiffWriter(targetFile, TiffWriter.OpenMode.ofAppendOptions(bigTiff, true))) {
             // - for comparison, TiffWriter.Mode.CREATE always creates a new file
             final TiffWriteMap map = writer.writeNewChannels(image, TagCompression.DEFLATE);
             System.out.printf("Image appended to %s...%n", map);

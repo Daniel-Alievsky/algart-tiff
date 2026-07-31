@@ -497,7 +497,7 @@ public final class TiffCopier {
             final BytesHandle tempBytes = new BytesHandle(new BytesLocation(0));
             // final BytesHandle sourceBytes = TiffIO.getBytesHandle(Files.readAllBytes(tiffFile));
             // - not-too-serious optimization: TiffReader automatically uses buffered reading
-            try (TiffReader reader = new TiffReader(tiffFile, TiffReader.Mode.VALID_TIFF);
+            try (TiffReader reader = new TiffReader(tiffFile, TiffReader.OpenMode.VALID_TIFF);
                  TiffWriter writer = new TiffWriter(tempBytes)) {
                 copyTiffFile(writer, reader, true);
             }
@@ -507,7 +507,7 @@ public final class TiffCopier {
             try {
                 try (TiffReader reader = new TiffReader(tiffFile)) {
                     tempFile = temporaryFileCreator.createTemporaryFile();
-                    try (TiffWriter writer = new TiffWriter(tempFile, TiffWriter.Mode.NO_ACTIONS)) {
+                    try (TiffWriter writer = new TiffWriter(tempFile, TiffWriter.OpenMode.NO_ACTIONS)) {
                         copyTiffFile(writer, reader, true);
                     }
                 }
@@ -526,8 +526,8 @@ public final class TiffCopier {
      * Equivalent to the following code:
      * <pre>
      *      try ({@link TiffReader} reader = new {@link TiffReader#TiffReader(Path) TiffReader}(sourceTiffFile);
-     *           {@link TiffWriter} writer = new {@link TiffWriter#TiffWriter(Path, TiffWriter.Mode)
-     *           TiffWriter}(targetTiffFile, {@link TiffWriter.Mode#NO_ACTIONS})) {
+     *           {@link TiffWriter} writer = new {@link TiffWriter#TiffWriter(Path, TiffWriter.OpenMode)
+     *           TiffWriter}(targetTiffFile, {@link TiffWriter.OpenMode#NO_ACTIONS})) {
      *          copier.{@link #copyTiffFile(TiffWriter, TiffReader) copyTiffFile}(writer, reader);
      *      }
      * </pre>
@@ -552,7 +552,7 @@ public final class TiffCopier {
         Objects.requireNonNull(targetTiffFile, "Null target TIFF file");
         Objects.requireNonNull(sourceTiffFile, "Null source TIFF file");
         try (TiffReader reader = new TiffReader(sourceTiffFile);
-             TiffWriter writer = new TiffWriter(targetTiffFile, TiffWriter.Mode.NO_ACTIONS)) {
+             TiffWriter writer = new TiffWriter(targetTiffFile, TiffWriter.OpenMode.NO_ACTIONS)) {
             copyTiffFile(writer, reader, true);
         }
     }

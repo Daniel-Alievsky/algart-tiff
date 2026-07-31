@@ -44,7 +44,7 @@ public class TiffIFDTileOffsetsTest {
         final Path file = Paths.get(args[0]);
         final int ifdIndex = Integer.parseInt(args[1]);
 
-        TiffReader reader = new TiffReader(file, TiffReader.Mode.VALID_TIFF);
+        TiffReader reader = new TiffReader(file, TiffReader.OpenMode.VALID_TIFF);
         long t1 = System.nanoTime();
         TiffIFD ifd = reader.readMainIFD(ifdIndex);
         long t2 = System.nanoTime();
