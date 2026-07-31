@@ -244,11 +244,13 @@ public final class TiffCopier {
     }
 
     /**
-     * Sets whether duplicate tiles (if any) should be preserved as-is or expanded into separate copies.
+     * Sets whether duplicate tiles (if any) should be preserved as-is (when possible)
+     * or expanded (materialized) into separate copies.
      *
      * <p>By default, this parameter is {@link TiffTile.DuplicateHandling#LINK_REFERENCE}, meaning
-     * that the copier should try to reproduce duplicate tiles &mdash; having identical file offsets &mdash;
-     * if the source IFD contains such duplicates. This applies to methods copying the entire image
+     * that the copier will should try to reproduce "as-is" all duplicate tiles &mdash;
+     * having identical file offsets &mdash; if the source IFD contains such duplicates.
+     * This applies to methods copying the entire image
      * such as {@link #copyImage(TiffWriter, TiffReader, int)},
      * {@link #copyTiffFile(TiffWriter, TiffReader)}, and {@link #compact(Path)}.</p>
 
