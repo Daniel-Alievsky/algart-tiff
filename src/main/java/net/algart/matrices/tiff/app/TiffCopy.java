@@ -96,7 +96,7 @@ public class TiffCopy {
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-bigTiff")) {
             copy.bigTiff = true;
             startArgIndex++;
-        } else if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-noBigTiff")) {
+        } else if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-classicTiff")) {
             copy.bigTiff = false;
             startArgIndex++;
         }
@@ -126,7 +126,7 @@ public class TiffCopy {
             System.out.printf("""
                             Usage:%n\
                                 %s [-append] [-repack] [-smart] [-le|-be] \
-                            [-bigTIFF|-noBigTIFF] [-expandDuplicateTiles]%n\
+                            [-bigTIFF|-classicTIFF] [-expandDuplicateTiles]%n\
                                     [-compression=xxx] [-quality=xxx] [-compressionLevel=1.0]%n\
                                     source.tiff target.tiff [firstIFDIndex [lastIFDIndex]]%n""",
                     TiffCopy.class.getSimpleName());

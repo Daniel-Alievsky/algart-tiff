@@ -35,7 +35,7 @@ public class TagTypeTest {
                 type.isSigned() ? "signed" : "unsigned",
                 type.isBigTiffOnly() ? ", BigTIFF only" : "",
                 type.bigTiffVersion() == type ? "" : ", BigTIFF version: " + type.bigTiffVersion(),
-                type.nonBigTiffVersion() == type ? "" : ", non-BigTIFF version: " + type.nonBigTiffVersion());
+                type.classicTiffVersion() == type ? "" : ", classic TIFF version: " + type.classicTiffVersion());
         Class<?> javaType = type.javaType();
         Object javaArray = java.lang.reflect.Array.newInstance(javaType, 4);
         System.out.printf("  mapped to Java type: %s, array: %s%n",

@@ -206,7 +206,7 @@ public enum TagType {
         };
     }
 
-    public TagType nonBigTiffVersion() {
+    public TagType classicTiffVersion() {
         return switch (this) {
             case LONG8 -> LONG;
             case SLONG8 -> SLONG;
