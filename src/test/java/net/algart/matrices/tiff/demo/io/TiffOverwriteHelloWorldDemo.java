@@ -41,8 +41,8 @@ public class TiffOverwriteHelloWorldDemo {
         boolean allowSubIFD = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-allowSubIFD")) {
             allowSubIFD = true;
-            startArgIndex++;        }
-
+            startArgIndex++;
+        }
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
             System.out.printf("    %s target.tiff ifdIndex [x y [quality]]%n",
@@ -61,7 +61,7 @@ public class TiffOverwriteHelloWorldDemo {
 
         System.out.printf("Opening and rewriting TIFF %s%s...%n",
                 targetFile,
-                quality == null ? "": " with quality " + quality);
+                quality == null ? "" : " with quality " + quality);
         final int sizeX = 250;
         final int sizeY = 50;
         // - estimated sizes sufficient for "Hello, world!"
