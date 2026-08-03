@@ -196,6 +196,12 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     static final System.Logger LOG = System.getLogger(TiffIO.class.getName());
     static final boolean LOGGABLE_DEBUG = LOG.isLoggable(System.Logger.Level.DEBUG);
 
+    private static final int MINIMAL_ALLOWED_TIFF_FILE_LENGTH =
+            TiffIFD.TIFF_FILE_HEADER_LENGTH + 2 + TiffIFD.BYTES_PER_ENTRY + 4;
+    // - 8 bytes header and at least 1 IFD entry (usually at least 2 entries required: ImageWidth + ImageLength):
+    // see TiffIFD.lengthInFileExcludingEntries;
+    // note that this constant should be > 16 to detect a "fake" BigTIFF file, containing header only
+
     private static final boolean OPTIMIZE_READING_IFD_ARRAYS = true;
     // - Note: this optimization allows speeding up reading a large array of offsets.
     // If we use simple FileHandle for reading files (based on RandomAccessFile),
@@ -212,6 +218,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     final DataHandle<?> stream;
     private final Path filePath;
 
+    volatile boolean tiff = false;
     volatile boolean bigTiff = false;
     private volatile Object context = null;
     private volatile byte byteFiller = 0;
@@ -989,6 +996,86 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     " is not supported without external codecs");
         }
         return scifio;
+    }
+
+    void analyzeFileHeader(TiffReader.OpenMode openMode) throws IOException {
+        this.tiff = false;
+        this.bigTiff = false;
+        // TIFF file header:
+        //  16 bits - TIFF byte-order identifier:
+        //                  4949h ("II", little-endian, Intel format)
+        //                  4D4Dh ("MM", big-endian, Motorola format)
+        //                  any other means non-TIFF
+        //  16 bits - TIFF version (this and following information is written in little-endian or big-endian format):
+        //                  002Ah usual TIFF
+        //                  002Bh BigTIFF
+        //                  any other means non-TIFF
+        //  TIFF:
+        //      32 bits - the offset of the first IFD
+        //  BigTIFF:
+        //      16 bits - always 8 (means the number of bytes in BigTIFF offsets)
+        //      16 bits - always 0
+        //      64 bits - the offset of the first IFD
+        final long savedOffset = stream.offset();
+        try {
+            stream.seek(0);
+            final long length = stream.length();
+            if (length < 8) {
+                throw new TiffException("The file" + spacedStreamName() + " is not TIFF (only " + length +
+                        " bytes, but a valid TIFF cannot be shorter than 8 bytes)");
+            }
+            final int endianOne = stream.readByte() & 0xff;
+            final int endianTwo = stream.readByte() & 0xff;
+            final boolean littleEndian = endianOne == FILE_PREFIX_LITTLE_ENDIAN &&
+                    endianTwo == FILE_PREFIX_LITTLE_ENDIAN;
+            final boolean bigEndian = endianOne == FILE_PREFIX_BIG_ENDIAN &&
+                    endianTwo == FILE_PREFIX_BIG_ENDIAN;
+            if (!littleEndian && !bigEndian) {
+                throw new TiffException("The file" + spacedStreamName() + " is not TIFF");
+            }
+            stream.setLittleEndian(littleEndian);
+            final short magic = stream.readShort();
+            // - not readByte()! the result depends on the previous in.setLittleEndian()
+            final boolean bigTiff = magic == FILE_BIG_TIFF_MAGIC_NUMBER;
+            if (magic != FILE_USUAL_MAGIC_NUMBER && magic != FILE_BIG_TIFF_MAGIC_NUMBER) {
+                throw new TiffException("The file" + spacedStreamName() + " is not TIFF");
+            }
+            this.tiff = true;
+            this.bigTiff = bigTiff;
+            // - this is definitely TIFF, but, probably, non-valid; in the latter case we will throw exceptions
+            if (length < MINIMAL_ALLOWED_TIFF_FILE_LENGTH) {
+                // - sometimes we can meet 8-byte "TIFF files" (or 16-byte "BigTIFF") that contain only header
+                // and no actual data: possible results of debugging writing algorithm or bugs while writing
+                // (forgotten completeWriting() call).
+                throw new TiffException("Too short TIFF file" + spacedStreamName() + ": only " + length +
+                        " bytes (a valid TIFF must contain at least " + MINIMAL_ALLOWED_TIFF_FILE_LENGTH +
+                        " bytes); probably the TIFF writing process was not completed normally");
+            }
+            this.fileOpen = true;
+            if (openMode.isTiffRequired()) {
+                checkFirstOffset();
+                // - additional check of zero or extremely large offset
+            }
+
+            // Note: in old versions, before 13.Nov.2025, the following code was executed here always:
+            //
+            // readFirstOffsetFromCurrentPosition(false, bigTiff);
+            // - an additional check for a zero offset, updating fileOffsetOfLastIFDOffset
+            //
+            // As a result, an exception was thrown for an empty TIFF file (no IFDs), and the
+            // validTiff flag was set to false.
+            // After that, the readMainIFDOffsets() and allIFDs() methods did not throw exceptions
+            // and returned empty results.
+            // In the current version, the validTiff flag remains true in this situation
+            // (if the file is not too short), but readMainIFDOffsets() will throw an exception.
+            // However, you can now process a TIFF file with an unset (zero) first IFD offset
+            // via explicit calls: readMainIFDOffsetIfPresent(0) or readMainIFDOffsets(true).
+        } finally {
+            stream.seek(savedOffset);
+            // - for maximal compatibility: in old versions, the constructor of this class
+            // guaranteed that file position in the input stream will not change
+            // (that is illogical, because "little-endian" mode was still changed)
+        }
     }
 
     IFDCommonInformation prepareReadingIFD(long ifdOffset, boolean includeNextOffset) throws IOException {
