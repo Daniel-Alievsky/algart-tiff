@@ -1650,6 +1650,8 @@ public non-sealed class TiffWriter extends TiffIO {
             throw new IllegalArgumentException("IFD must be read from TIFF file");
         }
         correctForEncoding(ifd, false, true);
+        ifd.assignFileOffsetOfIFDForWriting(ifd.getFileOffsetOfIFD());
+        //TODO!! remove this from existingIFD
         final TiffWriteMap map = new TiffWriteMap(this, ifd, false, true);
         final long[] offsets = ifd.cachedTileOrStripOffsets();
         final long[] byteCounts = ifd.cachedTileOrStripByteCounts();

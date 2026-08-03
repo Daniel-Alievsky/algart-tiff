@@ -38,6 +38,11 @@ import java.util.List;
 public class TiffOverwriteHelloWorldDemo {
     public static void main(String... args) throws IOException {
         int startArgIndex = 0;
+        boolean allowSubIFD = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-allowSubIFD")) {
+            allowSubIFD = true;
+            startArgIndex++;        }
+
         if (args.length < startArgIndex + 2) {
             System.out.println("Usage:");
             System.out.printf("    %s target.tiff ifdIndex [x y [quality]]%n",
@@ -63,7 +68,9 @@ public class TiffOverwriteHelloWorldDemo {
         try (TiffWriter writer = new TiffWriter(targetFile, TiffWriter.OpenMode.OPEN_EXISTING)) {
 //             writer.setAlwaysWriteToFileEnd(true); // - should not affect the results
             writer.setCompressionQuality(quality);
-            final TiffWriteMap writeMap = writer.existingMap(ifdIndex);
+            final TiffWriteMap writeMap = allowSubIFD ?
+                    writer.existingMap(writer.companionReader().ifd(ifdIndex)) :
+                    writer.existingMap(ifdIndex);
             overwrite(writeMap, x, y, sizeX, sizeY);
             overwrite(writeMap, x + sizeX / 2, y + sizeY / 2, sizeX, sizeY);
             overwrite(writeMap, x + sizeX / 2, y - sizeY / 2, sizeX, sizeY);
