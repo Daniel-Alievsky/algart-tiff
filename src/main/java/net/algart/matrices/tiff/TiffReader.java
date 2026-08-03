@@ -181,14 +181,9 @@ public non-sealed class TiffReader extends TiffIO {
     private volatile List<TiffIFD> allIFDs;
     private volatile List<TiffIFD> mainIFDs;
 
-    /**
-     * Cached first IFD in the current file.
-     */
-    private volatile TiffIFD firstIFD;
-
     private final Map<TiffTileIndex, CachedTile> tileCacheMap = new HashMap<>();
     private final Queue<CachedTile> tileCache = new LinkedList<>();
-    private long currentCacheMemory = 0;
+    private volatile long cacheMemoryUsage = 0;
     private final Object tileCacheLock = new Object();
 
     private volatile TiffReadMap lastMap = null;
@@ -445,6 +440,14 @@ public non-sealed class TiffReader extends TiffIO {
         return this;
     }
 
+    public TiffReader enableCaching() {
+        return setCaching(true);
+    }
+
+    public TiffReader disableCaching() {
+        return setCaching(false);
+    }
+
     public long getMaxCacheMemory() {
         return maxCacheMemory;
     }
@@ -494,6 +497,22 @@ public non-sealed class TiffReader extends TiffIO {
         return this;
     }
 
+    /**
+     * Returns the estimated memory size in bytes currently occupied by cached tiles.
+     *
+     * <p>This value is updated dynamically as tiles are stored in or removed from the internal cache.
+     * When this value exceeds {@link #getMaxCacheMemory()}, the reader automatically removes
+     * some cached tiles from memory.</p>
+     *
+     * @return the current size of cached tile data in bytes.
+     * @see #getMaxCacheMemory()
+     * @see #setMaxCacheMemory(long)
+     * @see #clearCache()
+     */
+    public long cacheMemoryUsage() {
+        return cacheMemoryUsage;
+    }
+
     private void clearAllCache() {
         clearTileCache();
         this.allIFDs = null;
@@ -510,7 +529,7 @@ public non-sealed class TiffReader extends TiffIO {
             synchronized (fileLock) {
                 this.tileCacheMap.clear();
                 this.tileCache.clear();
-                this.currentCacheMemory = 0;
+                this.cacheMemoryUsage = 0;
             }
         }
     }
@@ -1072,7 +1091,7 @@ public non-sealed class TiffReader extends TiffIO {
 
     /**
      * Calls {@link #readTile(TiffTileIndex)} with the same argument with caching, if this was enabled
-     * by {@link #setCaching(boolean)} method.
+     * by {@link #setCaching(boolean)} or {@link #enableCaching()} method.
      *
      * @param tileIndex coordinates of the tile.
      * @return loaded tile.
@@ -1828,13 +1847,13 @@ public non-sealed class TiffReader extends TiffIO {
                 if (caching && maxCacheMemory > 0) {
                     this.cachedTile = new SoftReference<>(tile);
                     this.cachedDataLength = tile.getDecodedDataLength();
-                    currentCacheMemory += this.cachedDataLength;
+                    cacheMemoryUsage += this.cachedDataLength;
                     tileCache.add(this);
                     LOG.log(System.Logger.Level.TRACE, () -> "STORING tile in cache: " + tileIndex);
-                    while (currentCacheMemory > maxCacheMemory) {
+                    while (cacheMemoryUsage > maxCacheMemory) {
                         final CachedTile cached = tileCache.remove();
                         assert cached != null;
-                        currentCacheMemory -= cached.cachedDataLength;
+                        cacheMemoryUsage -= cached.cachedDataLength;
                         cached.cachedTile = null;
                         Runtime runtime = Runtime.getRuntime();
                         LOG.log(System.Logger.Level.TRACE, () -> String.format(Locale.ROOT,

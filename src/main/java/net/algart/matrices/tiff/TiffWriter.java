@@ -800,13 +800,13 @@ public non-sealed class TiffWriter extends TiffIO {
      * <p>However, this method catches and suppresses {@link IOException}: such exceptions are impossible
      * in {@link TiffReader.OpenMode#NO_CHECKS} mode.</p>
      *
-     * <p>Caching in the reader is enabled (default setting), therefore, you may use the {@link TiffWriteMap}
-     * served by this companion reader for usual access to the TIFF image, for example, in some viewer.
-     * If of the only goal of the {@link TiffWriteMap} is to change something in the TIFF and then to commit changes
-     * via the {@link TiffWriteMap#flushCompletedTiles(Collection)} or {@link TiffWriteMap#completeWriting()} methods,
-     * you may disable caching by explicit calling {@link TiffReader#setCaching(boolean) setCaching(false)}
-     * in the reader returned by the {@link #companionReader()} method.
-     * Note that the cache usually does not spend memory when used once: read and forget.
+     * <p>Caching in the reader is enabled (this is the default setting). Therefore, you may use the {@link TiffWriteMap}
+     * served by this companion reader for usual access to the TIFF image, for example, in an image viewer
+     * or editor. If the only goal of the {@link TiffWriteMap} is to modify the TIFF and then commit changes
+     * via {@link TiffWriteMap#flushCompletedTiles(Collection)} or {@link TiffWriteMap#completeWriting()},
+     * you may disable caching by explicit calling {@link TiffReader#disableCaching()} on the reader returned by
+     * {@link #companionReader()}. Note that single-use operations (read, write, and flush) generally
+     * do not spend memory even with caching enabled.</p>
      *
      * @param stream input stream.
      * @return a new TIFF reader.
@@ -1372,7 +1372,8 @@ public non-sealed class TiffWriter extends TiffIO {
             invalidateCompanionReader();
             // - it can be necessary when we are editing the image:
             // for example, writing a new tile will increase the file,
-            // but the existing companion reader ReadBufferDataHandle does not know about it
+            // but the existing companion reader ReadBufferDataHandle does not know about it;
+            // another advantage: this call frees the memory occupied by the cache in this reader
             TiffTileIO.write(tile, stream, alwaysWriteToFileEnd, !bigTiff);
             if (freeAndFreezeAfterWriting) {
                 tile.freeAndFreeze();

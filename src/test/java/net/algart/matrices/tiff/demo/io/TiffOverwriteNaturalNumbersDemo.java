@@ -39,6 +39,7 @@ import java.util.Locale;
 
 public class TiffOverwriteNaturalNumbersDemo {
     private static final boolean ACCURATE_MEMORY_MEASURING = true;
+    private static final boolean SHOW_CACHE_USAGE = true;
     private static final TileSupplyMode SUPPLY_MODE = TileSupplyMode.IF_ABSENT;
     // - ALWAYS_RELOAD will NOT correctly work when flush=false
 
@@ -76,11 +77,16 @@ public class TiffOverwriteNaturalNumbersDemo {
         // - estimated sizes sufficient for integer number like "151"
         try (TiffWriter writer = new TiffWriter(targetFile, TiffWriter.OpenMode.OPEN_EXISTING)) {
             // writer.setAlwaysWriteToFileEnd(true); // - should not affect the results
-             writer.setDefaultCompanionReaderFactory(reader -> reader.setTileInitializer(Color.CYAN));
-            // - incorrect way (has no effect): writeMap.readBufferedImageAndStore uses the tile initializer
-            // provided by the writer, not by the companion reader!
-            writer.setTileInitializer(new Color(186, 213, 248));
-            // - correct way (for "sparse" formats with missing tiles)
+
+            // writer.setDefaultCompanionReaderFactory(TiffReader::disableCaching);
+            // - no necessity: every writing a flushed tile invalidates the companion reader together with its cache
+
+            writer.setTileInitializer(new Color(244, 194, 218));
+            // - correct way (for "sparse" formats with missing tiles);
+            // for comparison, reader.setTileInitializer(...) in setDefaultCompanionReaderFactory has no effect!
+            // writeMap.readBufferedImageAndStore uses the tile initializer
+            // provided by the writer, not by the companion reader.
+
             final TiffWriteMap writeMap = writer.existingMap(ifdIndex);
             writeMap.setTileSupplyMode(SUPPLY_MODE);
             System.out.printf("Overwriting %s%n", writeMap);
@@ -139,6 +145,10 @@ public class TiffOverwriteNaturalNumbersDemo {
             boolean flush)
             throws IOException {
         final BufferedImage bufferedImage = writeMap.readBufferedImageAndStore(x, y, sizeX, sizeY);
+        if (SHOW_CACHE_USAGE) {
+            //noinspection resource
+            System.out.printf("(cache usage: %.2f MB) ", writeMap.reader().cacheMemoryUsage() / 1048576.0);
+        }
         drawNumberOnImage(bufferedImage, value);
         final List<TiffTile> tiles = writeMap.updateBufferedImage(bufferedImage, x, y);
         if (flush) {
@@ -146,6 +156,7 @@ public class TiffOverwriteNaturalNumbersDemo {
         } else {
             return -1;
         }
+        // - note: no necessity to clear cache, because the entire companion reader is invalidated while writing tiles
     }
 
     private static void drawNumberOnImage(BufferedImage bufferedImage, int value) {
