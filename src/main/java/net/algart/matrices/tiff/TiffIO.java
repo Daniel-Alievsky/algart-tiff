@@ -216,7 +216,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     // In any case, real BigTIFF files usually store most tags in standard LONG type (32 bits), not in LONG8.
 
     final DataHandle<?> stream;
-    private final Path filePath;
+    final Path filePath;
 
     volatile boolean tiff = false;
     volatile boolean bigTiff = false;
@@ -998,7 +998,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return scifio;
     }
 
-    void analyzeFileHeader(TiffReader.OpenMode openMode) throws IOException {
+    void analyzeFileHeader(boolean additionalTiffValidation) throws IOException {
         this.tiff = false;
         this.bigTiff = false;
         // TIFF file header:
@@ -1052,7 +1052,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                         " bytes); probably the TIFF writing process was not completed normally");
             }
             this.fileOpen = true;
-            if (openMode.isTiffRequired()) {
+            if (additionalTiffValidation) {
                 checkFirstOffset();
                 // - additional check of zero or extremely large offset
             }

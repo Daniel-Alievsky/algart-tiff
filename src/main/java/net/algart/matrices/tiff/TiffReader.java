@@ -1611,7 +1611,7 @@ public non-sealed class TiffReader extends TiffIO {
                 if (!existingFile) {
                     return new FileNotFoundException("File not found:" + spacedStreamName());
                 }
-                analyzeFileHeader(openMode);
+                analyzeFileHeader(openMode.isTiffRequired());
                 assert this.tiff;
                 this.validTiff = true;
                 return null;

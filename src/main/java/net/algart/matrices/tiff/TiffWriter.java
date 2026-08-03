@@ -170,7 +170,7 @@ public non-sealed class TiffWriter extends TiffIO {
     private Double losslessCompressionLevel = null;
     private boolean alwaysWriteToFileEnd = false;
     private boolean missingTilesAllowed = false;
-    private TiffReader.Factory companionReaderFactory = TiffWriter::defaultCompanionReader;
+    private TiffReader.Factory companionReaderFactory = this::defaultCompanionReader;
 
     private volatile TiffReader reader = null;
     private volatile Linkage linkage = null;
@@ -285,7 +285,7 @@ public non-sealed class TiffWriter extends TiffIO {
         this(outputStream, null);
     }
 
-    private TiffWriter(DataHandle<?> outputStream, Path file) {
+    TiffWriter(DataHandle<?> outputStream, Path file) {
         super(outputStream, file);
         // - we do not use WriteBufferDataHandle here: this is not too important for efficiency
     }
@@ -619,7 +619,7 @@ public non-sealed class TiffWriter extends TiffIO {
 
     public TiffWriter setDefaultCompanionReaderFactory(Consumer<? super TiffReader> customizerAfterCreation) {
         final TiffReader.Factory factory = customizerAfterCreation == null ?
-                TiffWriter::defaultCompanionReader :
+                this::defaultCompanionReader :
                 stream -> {
                     TiffReader reader = defaultCompanionReader(stream);
                     customizerAfterCreation.accept(reader);
@@ -825,7 +825,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param stream input stream.
      * @return a new TIFF reader.
      */
-    public static TiffReader defaultCompanionReader(DataHandle<?> stream) {
+    public TiffReader defaultCompanionReader(DataHandle<?> stream) {
         try {
             return new TiffReader(stream, TiffReader.OpenMode.NO_CHECKS, false);
         } catch (IOException e) {
@@ -881,7 +881,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 }
                 // In this branch, we MUST NOT try to analyze the file: it is not a correct TIFF!
             } else {
-                analyzeFileHeader(TiffReader.OpenMode.VALID_TIFF);
+                analyzeFileHeader(true);
                 // - The first opening TIFF is the only place when we MUST use VALID_TIFF mode
                 // instead of the usual NO_CHECKS used inside reader() method
                 // Note: no sense here to use companionReader(), we just need to initialize file format
