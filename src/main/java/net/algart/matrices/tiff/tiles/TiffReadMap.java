@@ -118,7 +118,7 @@ public final class TiffReadMap extends TiffIOMap {
     }
 
     public byte[] readSampleBytes() throws IOException {
-        return readSampleBytes(0, 0, dimX(), dimY());
+        return readSampleBytes(false);
     }
 
     public byte[] readSampleBytes(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
@@ -126,7 +126,7 @@ public final class TiffReadMap extends TiffIOMap {
     }
 
     public Object readJavaArray() throws IOException {
-        return readJavaArray(0, 0, dimX(), dimY());
+        return readJavaArray(false);
     }
 
     public Object readJavaArray(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
@@ -145,7 +145,7 @@ public final class TiffReadMap extends TiffIOMap {
      * @throws IOException              in the case of any problems with the input file.
      */
     public Matrix<UpdatablePArray> readMatrix() throws IOException {
-        return readMatrix(0, 0, dimX(), dimY());
+        return readMatrix(false);
     }
 
     public Matrix<UpdatablePArray> readMatrix(int fromX, int fromY, int sizeX, int sizeY)
@@ -154,7 +154,7 @@ public final class TiffReadMap extends TiffIOMap {
     }
 
     public Matrix<UpdatablePArray> readInterleavedMatrix() throws IOException {
-        return readInterleavedMatrix(0, 0, dimX(), dimY());
+        return readInterleavedMatrix(false);
     }
 
     public Matrix<UpdatablePArray> readInterleavedMatrix(int fromX, int fromY, int sizeX, int sizeY)
@@ -172,7 +172,7 @@ public final class TiffReadMap extends TiffIOMap {
      * @throws IOException   in the case of any other problems with the input file.
      */
     public List<Matrix<UpdatablePArray>> readChannels() throws IOException {
-        return readChannels(0, 0, dimX(), dimY());
+        return readChannels(false);
     }
 
     public List<Matrix<UpdatablePArray>> readChannels(int fromX, int fromY, int sizeX, int sizeY) throws IOException {
@@ -188,7 +188,7 @@ public final class TiffReadMap extends TiffIOMap {
      * @throws IOException   in the case of any other problems with the input file.
      */
     public BufferedImage readBufferedImage() throws IOException {
-        return readBufferedImage(0, 0, dimX(), dimY());
+        return readBufferedImage(false);
     }
 
     public BufferedImage readBufferedImage(int fromX, int fromY, int sizeX, int sizeY) throws IOException {

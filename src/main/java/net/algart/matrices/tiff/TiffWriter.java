@@ -297,6 +297,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @param littleEndian new byte while writing the file: big-endian (<code>false</code>) or
      *                     little-endian (<code>true</code>); default is <code>false</code>.
+     * @return a reference to this object.
      */
     public TiffWriter setLittleEndian(final boolean littleEndian) {
         synchronized (fileLock) {
@@ -311,6 +312,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @param byteOrder desired byte order.
      * @throws NullPointerException if the argument is <code>null</code>.
+     * @return a reference to this object.
      */
     public TiffWriter setByteOrder(ByteOrder byteOrder) {
         Objects.requireNonNull(byteOrder);
@@ -321,12 +323,26 @@ public non-sealed class TiffWriter extends TiffIO {
      * Sets whether a BigTIFF file should be created.
      * This flag must be set before creating the file by {@link #create()} method.
      * Default value is <code>false</code>.
+     *
+     * @param bigTiff BigTIFF mode.
+     * @return a reference to this object.
      */
     public TiffIO setBigTiff(boolean bigTiff) {
         this.bigTiff = bigTiff;
         return this;
     }
 
+    /**
+     * Configures this writer to produce TIFF files compatible with the specified reader
+     * by copying file-format-related settings:
+     * {@link #setBigTiff(boolean) BigTIFF mode},
+     * {@link #setByteOrder(ByteOrder) byte order}, and the
+     * {@link #setMissingTilesAllowed(boolean) missing-tiles convention}.
+     *
+     * @param reader TIFF reader.
+     * @return a reference to this object.
+     * @throws NullPointerException if {@code reader} is {@code null}.
+     */
     public TiffWriter setCompatibleFileFormat(TiffReader reader) {
         Objects.requireNonNull(reader, "Null TIFF reader");
         this.setBigTiff(reader.isBigTiff());
@@ -865,14 +881,10 @@ public non-sealed class TiffWriter extends TiffIO {
                 }
                 // In this branch, we MUST NOT try to analyze the file: it is not a correct TIFF!
             } else {
-                final TiffReader reader = newReader(TiffReader.OpenMode.VALID_TIFF);
+                analyzeFileHeader(TiffReader.OpenMode.VALID_TIFF);
                 // - The first opening TIFF is the only place when we MUST use VALID_TIFF mode
                 // instead of the usual NO_CHECKS used inside reader() method
-                // Note: we should NOT close the reader in the case of any problem,
-                // because it uses the same stream with this writer.
                 // Note: no sense here to use companionReader(), we just need to initialize file format
-                this.setCompatibleFileFormat(reader);
-                fileOpen = true;
                 invalidateLinkage(false, null);
                 // - forcing the following refresh (just in case)
                 linkage("Initial loading linkage for existing file");

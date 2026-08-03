@@ -28,41 +28,66 @@ import net.algart.arrays.Matrix;
 import net.algart.arrays.UpdatablePArray;
 import net.algart.io.MatrixIO;
 import net.algart.matrices.tiff.TiffIFD;
-import net.algart.matrices.tiff.TiffReader;
-import net.algart.matrices.tiff.tiles.TiffReadMap;
+import net.algart.matrices.tiff.TiffWriter;
+import net.algart.matrices.tiff.tiles.TiffIOMap;
+import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
-public class TiffReadSimpleDemo {
+public class TiffWriterAsReaderDemo {
     public static void main(String... args) throws IOException {
-        if (args.length < 3) {
+        int startArgIndex = 0;
+        boolean writeToEnd = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-writeToEnd")) {
+            writeToEnd = true;
+            startArgIndex++;
+        }
+        boolean allowMissing = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-allowMissing")) {
+            allowMissing = true;
+            startArgIndex++;
+        }
+        if (args.length < startArgIndex + 3) {
             System.out.println("Usage:");
-            System.out.printf("    %s source.tiff target.jpg/png/bmp ifdIndex%n",
-                    TiffReadSimpleDemo.class.getName());
+            System.out.printf("    %s [-writeToEnd [-allowMissing]] image.tiff target.jpg/png/bmp ifdIndex%n",
+                    TiffWriterAsReaderDemo.class.getName());
+            System.out.println("""
+                    -writeToEnd
+                        append a shifted copy of the image #ifdIndex as a new TIFF image to the end of image.tiff.
+                    -allowMissing
+                        write empty tiles in the appended image as missing ("sparse", Philips TIFF style).
+                    """);
             return;
         }
-        final Path sourceFile = Paths.get(args[0]);
-        final Path targetFile = Paths.get(args[1]);
-        final int ifdIndex = Integer.parseInt(args[2]);
+        final Path sourceFile = Paths.get(args[startArgIndex]);
+        final Path targetFile = Paths.get(args[startArgIndex + 1]);
+        final int ifdIndex = Integer.parseInt(args[startArgIndex + 2]);
 
-        System.out.printf("Reading TIFF %s, image %d...%n", sourceFile, ifdIndex);
+        System.out.printf("Reading TIFF %s via TiffWriter, image %d...%n", sourceFile, ifdIndex);
         List<Matrix<UpdatablePArray>> image;
-        try (TiffReader reader = new TiffReader(sourceFile)) {
-            // reader.setEnforceUseExternalCodec(true); // - throws exception: no SCIFIO or other external codecs
-            // reader.setContext(TiffTools.newSCIFIOContext()); // - throws exception without dependence on SCIFIO
-            // reader.setInterleaveResults(true); // - slows down reading (unnecessary interleaving+separating)
-            final TiffReadMap map = reader.map(ifdIndex);
+        try (TiffWriter writer = new TiffWriter(sourceFile, TiffWriter.OpenMode.OPEN_EXISTING)) {
+            final TiffIOMap map = writer.existingMap(ifdIndex);
+            if (allowMissing) {
+                writer.setMissingTilesAllowed(true);
+            }
             System.out.printf("Reading %s...%n", map);
             System.out.printf("Detailed TIFF tags:%n%s%n", map.ifd().toString(TiffIFD.StringFormat.DETAILED));
             // - print detailed information stored in TIFF tags
-            image = map.readChannels();
+            image = map.readChannels(false);
             final var report = map.lastCodecReport();
             if (report != null) {
                 System.out.printf("Last decoding report:%n  %s%n", report);
                 // - if applicable, print any additional information collected while decoding
+            }
+            if (writeToEnd) {
+                final TiffIFD ifd = TiffIFD.newTiledIFD(map.compressionOrNone(), image);
+                // - note
+                final TiffWriteMap newMap = writer.newFixedMap(ifd);
+                newMap.updateChannels(image, newMap.dimX() / 2, newMap.dimY() / 2);
+                newMap.completeWriting();
             }
         }
         System.out.printf("Writing %s...%n", targetFile);

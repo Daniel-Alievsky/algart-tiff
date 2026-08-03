@@ -604,6 +604,10 @@ public sealed class TiffMap permits TiffIOMap {
         return compressionOrNoneIfMissing;
     }
 
+    public TagCompression compressionOrNone() {
+        return compression.orElse(TagCompression.NONE);
+    }
+
     public int photometricCode() {
         return photometricCode;
     }

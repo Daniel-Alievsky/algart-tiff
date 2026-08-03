@@ -246,6 +246,10 @@ public abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, Tiff
         return rarePrecisionMode.unpackIfNecessary(this, sampleBytes, sizeInPixels, rescaleInt24);
     }
 
+    public byte[] readSampleBytes(boolean storeTilesInMap) throws IOException {
+        return readSampleBytes(0, 0, dimX(), dimY(), storeTilesInMap);
+    }
+
     public byte[] readSampleBytes(
             int fromX,
             int fromY,
@@ -294,6 +298,10 @@ public abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, Tiff
         return sampleBytes;
     }
 
+    public Object readJavaArray(boolean storeTilesInMap) throws IOException {
+        return readJavaArray(0, 0, dimX(), dimY(), storeTilesInMap);
+    }
+
     public Object readJavaArray(
             int fromX,
             int fromY,
@@ -304,6 +312,10 @@ public abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, Tiff
         requireUnpackModeIfRarePrecision();
         final byte[] sampleBytes = readSampleBytes(fromX, fromY, sizeX, sizeY, storeTilesInMap);
         return bytesToJavaArray(sampleBytes);
+    }
+
+    public Matrix<UpdatablePArray> readMatrix(boolean storeTilesInMap) throws IOException {
+        return readMatrix(0, 0, dimX(), dimY(), storeTilesInMap);
     }
 
     public Matrix<UpdatablePArray> readMatrix(
@@ -317,6 +329,10 @@ public abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, Tiff
         return javaArrayAsMatrix(samplesArray, sizeX, sizeY);
     }
 
+    public Matrix<UpdatablePArray> readInterleavedMatrix(boolean storeTilesInMap) throws IOException {
+        return readInterleavedMatrix(0, 0, dimX(), dimY(), storeTilesInMap);
+    }
+
     public Matrix<UpdatablePArray> readInterleavedMatrix(
             int fromX,
             int fromY,
@@ -325,6 +341,10 @@ public abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, Tiff
             boolean storeTilesInMap)
             throws IOException {
         return Matrices.interleave(readChannels(fromX, fromY, sizeX, sizeY, storeTilesInMap));
+    }
+
+    public List<Matrix<UpdatablePArray>> readChannels(boolean storeTilesInMap) throws IOException {
+        return readChannels(0, 0, dimX(), dimY(), storeTilesInMap);
     }
 
     public List<Matrix<UpdatablePArray>> readChannels(
@@ -336,6 +356,10 @@ public abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, Tiff
             throws IOException {
         final Matrix<UpdatablePArray> mergedChannels = readMatrix(fromX, fromY, sizeX, sizeY, storeTilesInMap);
         return matrixAsChannels(mergedChannels);
+    }
+
+    public BufferedImage readBufferedImage(boolean storeTilesInMap) throws IOException {
+        return readBufferedImage(0, 0, dimX(), dimY(), storeTilesInMap);
     }
 
     public BufferedImage readBufferedImage(
