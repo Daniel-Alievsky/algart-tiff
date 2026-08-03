@@ -716,7 +716,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * Returns the "companion" TIFF reader for reading the same file {@link #stream() stream}
      * used by this object.
      *
-     * <p>This reader allows the writer to read images for further editing,
+     * <p>This reader allows the write map to read images for further editing,
      * for example, in methods such as {@link TiffWriteMap#preloadAndStore} or
      * {@link TiffWriteMap#readMatrixAndStore}. This reader is returned by the
      * {@link TiffWriteMap#reader()} method.</p>
@@ -737,11 +737,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * </ul>
      *
      * <p>This reader is created by the {@link #newCompanionReader()} method.
-     * By default, this means {@link TiffReader.OpenMode#NO_CHECKS} creation mode and
-     * disabled caching.
-     * (The caching usually makes no sense, because,
-     * as noted above, any writing to the TIFF will destroy the stored reader together with
-     * all cached tiles.)</p>
+     * By default, this means {@link TiffReader.OpenMode#NO_CHECKS} creation mode.</p>
      *
      * <p>You may change the default behavior using the
      * {@link #setCompanionReaderFactory(TiffReader.Factory)} method.</p>
@@ -785,6 +781,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @return a new TIFF reader.
      * @throws IOException if an I/O error occurs.
+     * @see #companionReader()
      */
     public final TiffReader newCompanionReader() throws IOException {
         return getCompanionReaderFactory().newReader(stream());
@@ -795,27 +792,31 @@ public non-sealed class TiffWriter extends TiffIO {
      * companion reader factory}. This method is almost equivalent to:
      *
      * <pre>new {@link TiffReader#TiffReader(DataHandle, TiffReader.OpenMode, boolean)
-     * TiffReader}(stream, {@link TiffReader.OpenMode#NO_CHECKS}, false).{@link TiffReader#setCaching(boolean)
-     * setCaching(false)}</pre>
+     * TiffReader}(stream, {@link TiffReader.OpenMode#NO_CHECKS}, false)</pre>
+     *
+     * <p>with catching {@code IOException}, which is impossible for
+     * the {@link TiffReader.OpenMode#NO_CHECKS} mode.</p>
      *
      * <p>However, this method catches and suppresses {@link IOException}: such exceptions are impossible
      * in {@link TiffReader.OpenMode#NO_CHECKS} mode.</p>
      *
-     * <p>Caching in the reader is disabled: usually this reader
-     * should be used while you are modifying the TIFF, so the caching makes no sense.
-     * If you want, you can enable caching by calling {@link TiffReader#setCaching(boolean) setCaching(true)}.
+     * <p>Caching in the reader is enabled (default setting), therefore, you may use the {@link TiffWriteMap}
+     * served by this companion reader for usual access to the TIFF image, for example, in some viewer.
+     * If of the only goal of the {@link TiffWriteMap} is to change something in the TIFF and then to commit changes
+     * via the {@link TiffWriteMap#flushCompletedTiles(Collection)} or {@link TiffWriteMap#completeWriting()} methods,
+     * you may disable caching by explicit calling {@link TiffReader#setCaching(boolean) setCaching(false)}
+     * in the reader returned by the {@link #companionReader()} method.
+     * Note that the cache usually does not spend memory when used once: read and forget.
      *
      * @param stream input stream.
      * @return a new TIFF reader.
      */
     public static TiffReader defaultCompanionReader(DataHandle<?> stream) {
-        TiffReader result;
         try {
-            result = new TiffReader(stream, TiffReader.OpenMode.NO_CHECKS, false);
+            return new TiffReader(stream, TiffReader.OpenMode.NO_CHECKS, false);
         } catch (IOException e) {
             throw new AssertionError("Impossible in NO_CHECKS mode", e);
         }
-        return result.setCaching(false);
     }
 
     /**
