@@ -254,6 +254,9 @@ public class TiffInfo {
                     svsInfo = (metadata.isSvs() ? "%s%n".formatted(metadata.svsDescription()) : "") + metadata;
                 }
             }
+        } catch (IOException e) {
+            prefixInfo = "%nError while opening file %s".formatted(tiffFile);
+            throw e;
         }
     }
 
