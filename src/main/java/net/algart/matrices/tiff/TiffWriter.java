@@ -794,17 +794,15 @@ public non-sealed class TiffWriter extends TiffIO {
      * <pre>new {@link TiffReader#TiffReader(DataHandle, TiffReader.OpenMode, boolean)
      * TiffReader}(stream, {@link TiffReader.OpenMode#NO_CHECKS}, false)</pre>
      *
-     * <p>with catching {@code IOException}, which is impossible for
-     * the {@link TiffReader.OpenMode#NO_CHECKS} mode.</p>
-     *
      * <p>However, this method catches and suppresses {@link IOException}: such exceptions are impossible
      * in {@link TiffReader.OpenMode#NO_CHECKS} mode.</p>
      *
-     * <p>Caching in the reader is enabled (this is the default setting). Therefore, you may use the {@link TiffWriteMap}
-     * served by this companion reader for usual access to the TIFF image, for example, in an image viewer
-     * or editor. If the only goal of the {@link TiffWriteMap} is to modify the TIFF and then commit changes
+     * <p>Caching in the reader is enabled (this is the default setting).
+     * Therefore, you may use the {@link TiffWriteMap} served by this companion reader
+     * for usual access to the TIFF image, for example, in an image viewer or editor.
+     * If the only goal of the {@link TiffWriteMap} is to modify the TIFF and then commit changes
      * via {@link TiffWriteMap#flushCompletedTiles(Collection)} or {@link TiffWriteMap#completeWriting()},
-     * you may disable caching by explicit calling {@link TiffReader#disableCaching()} on the reader returned by
+     * you may disable caching by explicitly calling {@link TiffReader#disableCaching()} on the reader returned by
      * {@link #companionReader()}. Note that single-use operations (read, write, and flush) generally
      * do not spend memory even with caching enabled.</p>
      *
