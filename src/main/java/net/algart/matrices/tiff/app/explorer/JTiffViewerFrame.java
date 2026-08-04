@@ -159,11 +159,11 @@ class JTiffViewerFrame extends JFrame {
                 map.numberOfChannels(), map.numberOfChannels() == 1 ? "" : "s",
                 map.sampleType().isSignedInteger() ? "signed " : "",
                 bitDepth.isPresent() ? bitDepth.getAsInt() : Arrays.toString(map.bitsPerSample()),
-                map.compressionOrNoneForMissing().orElse(TagCompression.NONE).prettyName(),
+                map.compression().prettyName(),
                 zoomTitle,
                 rescaleTitle,
                 viewer.path().getFileName()));
-        final TagPhotometric photometric = map.photometric().orElse(null);
+        final TagPhotometric photometric = map.optPhotometric().orElse(null);
         final boolean problematicPhotometric = photometric == null || !photometric.isSimplyRenderable();
         final boolean problematicPrecision = map.sampleType().isSignedInteger();
         if (problematicPhotometric) {

@@ -340,9 +340,9 @@ public interface TiffCodec {
             // (For comparison, LZW or DECOMPRESSED work with data "as-is" and suppose
             // that data are interleaved according to TIFF format specification).
             // For JPEG, TagCompression overrides this value to false because it works faster in this mode.
-            tile.compressionOrNoneForMissing().ifPresent(this::setCompression);
+            tile.optCompressionOrNoneForMissing().ifPresent(this::setCompression);
             // - default value can be not-null
-            tile.photometric().ifPresent(this::setPhotometric);
+            tile.optPhotometric().ifPresent(this::setPhotometric);
             // - default value can be not-null
             this.setYCbCrSubsampling(tile.getYCbCrSubsampling());
             this.setIfd(tile.ifd());

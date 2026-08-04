@@ -830,6 +830,8 @@ public non-sealed class TiffWriter extends TiffIO {
      * do not spend memory even with caching enabled.</p>
      *
      * @return a new TIFF reader.
+     * @see #companionReader()
+     * @see TiffReader#newSharedWriter()
      */
     public final TiffReader newSharedReader() {
         try {
@@ -1410,7 +1412,7 @@ public non-sealed class TiffWriter extends TiffIO {
         prepareEncoding(tile);
         long t2 = debugTime();
 
-        final TagCompression compression = tile.compressionOrNoneForMissing().orElse(null);
+        final TagCompression compression = tile.optCompressionOrNoneForMissing().orElse(null);
         // - tile.compressionOrNoneForMissing() returns Optional.of(TagCompression.NONE) if this tag is absent!
         // Note: compression tag is also set to NONE in correctForEncoding() if it was not set before
         TiffCodec codec = null;

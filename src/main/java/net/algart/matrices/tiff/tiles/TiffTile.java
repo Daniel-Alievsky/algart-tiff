@@ -247,16 +247,16 @@ public final class TiffTile {
         return map.compressionCode();
     }
 
-    public Optional<TagCompression> compressionOrNoneForMissing() {
-        return map.compressionOrNoneForMissing();
+    public Optional<TagCompression> optCompressionOrNoneForMissing() {
+        return map.optCompressionOrNoneForMissing();
     }
 
     public int photometricCode() {
         return map.photometricCode();
     }
 
-    public Optional<TagPhotometric> photometric() {
-        return map.photometric();
+    public Optional<TagPhotometric> optPhotometric() {
+        return map.optPhotometric();
     }
 
     public int[] getYCbCrSubsampling() {

@@ -79,10 +79,15 @@ public class TiffReaderTest {
             tinyCache = true;
             startArgIndex++;
         }
+        boolean writeToEnd = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-writeToEnd")) {
+            writeToEnd = true;
+            startArgIndex++;
+        }
 
         if (args.length < startArgIndex + 3) {
             System.out.println("Usage:");
-            System.out.println("    " + TiffReaderTest.class.getName() + " [-cache [-tinyCache]] " +
+            System.out.println("    " + TiffReaderTest.class.getName() + " [-cache [-tinyCache]] [-writeToEnd] " +
                     "some_tiff_file result.png ifdIndex " +
                     "[x y width height [number_of_tests] [number_of_complete_repeats]]");
             return;
@@ -155,7 +160,7 @@ public class TiffReaderTest {
                 final int bandCount = map.numberOfChannels();
                 reader.setCodecCustomizer(options -> {
                     // System.out.printf("Customizing %s...%n", options.getClass());
-                    if (map.compression().orElse(TagCompression.NONE).isJpeg2000()) {
+                    if (map.optCompression().orElse(TagCompression.NONE).isJpeg2000()) {
                         if (!(options instanceof JPEG2000Codec.JPEG2000Options jpeg2000Options)) {
                             throw new AssertionError("JPEG-2000 format must use JPEG2000Options");
                         }
@@ -194,6 +199,9 @@ public class TiffReaderTest {
 
                 System.out.printf("Saving result image into %s - %s...%n", resultFile, matrix);
                 writeImageFile(resultFile, matrix, interleave);
+                if (writeToEnd) {
+                    reader.newSharedWriter().writeNewMatrix(matrix, map.compression());
+                }
                 reader.close();
             }
             System.out.printf("Done repeat %d/%d%n%n", repeat, numberOfCompleteRepeats);

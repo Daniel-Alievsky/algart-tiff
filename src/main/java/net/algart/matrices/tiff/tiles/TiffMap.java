@@ -588,7 +588,7 @@ public sealed class TiffMap permits TiffIOMap {
         return compressionCode;
     }
 
-    public Optional<TagCompression> compression() {
+    public Optional<TagCompression> optCompression() {
         return compression;
     }
 
@@ -600,11 +600,11 @@ public sealed class TiffMap permits TiffIOMap {
      *
      * @return TIFF compression or <code>Optional.empty()</code> for unknown compression.
      */
-    public Optional<TagCompression> compressionOrNoneForMissing() {
+    public Optional<TagCompression> optCompressionOrNoneForMissing() {
         return compressionOrNoneIfMissing;
     }
 
-    public TagCompression compressionOrNone() {
+    public TagCompression compression() {
         return compression.orElse(TagCompression.NONE);
     }
 
@@ -612,7 +612,7 @@ public sealed class TiffMap permits TiffIOMap {
         return photometricCode;
     }
 
-    public Optional<TagPhotometric> photometric() {
+    public Optional<TagPhotometric> optPhotometric() {
         return photometric;
     }
 

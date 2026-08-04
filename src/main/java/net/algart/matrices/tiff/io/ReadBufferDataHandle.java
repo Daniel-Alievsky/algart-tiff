@@ -139,6 +139,10 @@ public class ReadBufferDataHandle<L extends Location> extends AbstractHigherOrde
 		replacementStrategy = new LRUReplacementStrategy(numPages);
 	}
 
+	public DataHandle<L> handle() {
+		return super.handle();
+	}
+
 	/**
 	 * Removes the cached data and seeks to the zero position.
 	 */

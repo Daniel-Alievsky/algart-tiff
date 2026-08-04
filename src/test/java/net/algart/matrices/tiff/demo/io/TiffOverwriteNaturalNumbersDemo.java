@@ -90,7 +90,7 @@ public class TiffOverwriteNaturalNumbersDemo {
             final TiffWriteMap writeMap = writer.existingMap(ifdIndex);
             writeMap.setTileSupplyMode(SUPPLY_MODE);
             System.out.printf("Overwriting %s%n", writeMap);
-            System.out.printf("Writing compression: %s%n", writeMap.compression().orElse(null));
+            System.out.printf("Writing compression: %s%n", writeMap.optCompression().orElse(null));
             long t1 = System.nanoTime();
             for (int repeat = 0; repeat < numberOfRepeats; repeat++) {
                 final long initialFileLength = writeMap.fileLength();

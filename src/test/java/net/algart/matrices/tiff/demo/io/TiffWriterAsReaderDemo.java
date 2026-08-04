@@ -86,8 +86,8 @@ public class TiffWriterAsReaderDemo {
                 // - if applicable, print any additional information collected while decoding
             }
             if (writeToEnd) {
-                final TiffIFD ifd = TiffIFD.newTiledIFD(map.compressionOrNone(), image);
-                // - note
+                final TiffIFD ifd = TiffIFD.newTiledIFD(map.compression(), image);
+                // - note: tiles before the image will have zero offset if allowMissing is true
                 final TiffWriteMap newMap = writer.newFixedMap(ifd);
                 newMap.updateChannels(image, newMap.dimX() / 2, newMap.dimY() / 2);
                 newMap.completeWriting();

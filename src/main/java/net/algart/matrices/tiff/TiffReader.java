@@ -152,6 +152,7 @@ public non-sealed class TiffReader extends TiffIO {
     private static final boolean AUTO_BUFFERING_INPUT_STREAM = true;
     // - should be true for good performance
 
+    private final DataHandle<?> unwrappedStream;
     private volatile boolean caching = true;
     private volatile long maxCacheMemory = DEFAULT_MAX_CACHING_MEMORY;
     private boolean rescaleWhenIncreasingBitDepth = DEFAULT_RESCALE_WHEN_INCREASING_BIT_DEPTH;
@@ -403,6 +404,7 @@ public non-sealed class TiffReader extends TiffIO {
                 file);
         // - Note: the argument inputStream cannot be ReadBufferDataHandle if we use TiffWriter.newReader method.
         // ReadBufferDataHandle is read-only (cannot write anything), so it cannot be used in TiffWriter.
+        this.unwrappedStream = inputStream;
         this.openingException = startReading(openMode);
         // - in the current version, a TIFF but invalid can be detected when
         // its length < MINIMAL_ALLOWED_TIFF_FILE_LENGTH (see testHeader())
@@ -740,7 +742,7 @@ public non-sealed class TiffReader extends TiffIO {
      * where the offset (the {@code TileOffsets} or {@code StripOffsets} tag) and/or
      * the byte count (the {@code TileByteCounts} or {@code StripByteCounts} tag) is zero.
      * In this mode, such tiles or strips are treated as missing and will be successfully
-     * read as empty rectangles filled with the {@link #3(byte) default filler}
+     * read as empty rectangles filled with the {@link #setByteFiller(byte) default filler}
      * or via the {@link #setTileInitializer(Consumer) tile initializer}.
      *
      * <p>The default value is {@code true} (this mode is enabled).
@@ -784,23 +786,31 @@ public non-sealed class TiffReader extends TiffIO {
         return openingException;
     }
 
+    @Override
+    public DataHandle<?> unwrappedStream() {
+        return unwrappedStream;
+    }
+
     /**
-     * Creates a new "companion" TIFF writer for rewriting or appending this TIFF,
+     * Creates a new "companion" TIFF writer for rewriting or appending to this TIFF,
      * which shares the same file {@link #stream() stream} with this reader.
      *
      * <p>This method is equivalent to:</p>
      * <pre>
-     * {@link TiffWriter} result = new {@link TiffWriter#TiffWriter(DataHandle) TiffWriter})(stream);
+     * {@link TiffWriter} result = new {@link TiffWriter#TiffWriter(DataHandle)
+     * TiffWriter}({@link #unwrappedStream()});
      * result.{@link TiffWriter#openExisting() openExisting()};
      * </pre>
      *
      * <p><b>Do not close</b> the returned writer independently: the shared stream will be closed
      * automatically when closing this reader.</p>
      *
-     * @return a new TIFF reader.
+     * @return a new TIFF writer.
+     * @throws IOException if an I/O error occurs.
+     * @see TiffWriter#newSharedReader()
      */
     public final TiffWriter newSharedWriter() throws IOException {
-        final TiffWriter result = new TiffWriter(stream, filePath);
+        final TiffWriter result = new TiffWriter(unwrappedStream(), filePath);
         result.openExisting();
         return result;
     }
@@ -1255,7 +1265,7 @@ public non-sealed class TiffReader extends TiffIO {
         prepareDecoding(tile);
 
         final byte[] encodedData = tile.getEncodedData();
-        final TagCompression compression = tile.compressionOrNoneForMissing().orElse(null);
+        final TagCompression compression = tile.optCompressionOrNoneForMissing().orElse(null);
         // - tile.compressionOrNoneForMissing() returns Optional.of(TagCompression.NONE) if this tag is absent!
         TiffCodec codec = null;
         if (!enforceUseExternalCodec && compression != null) {
@@ -1291,8 +1301,8 @@ public non-sealed class TiffReader extends TiffIO {
             if (decodedData.isEmpty()) {
                 throw new UnsupportedTiffFormatException("TIFF compression with code " +
                         tile.compressionCode() +
-                        (tile.compressionOrNoneForMissing().isPresent() ?
-                                " (" + tile.compressionOrNoneForMissing().get().prettyName() + ")" :
+                        (tile.optCompressionOrNoneForMissing().isPresent() ?
+                                " (" + tile.optCompressionOrNoneForMissing().get().prettyName() + ")" :
                                 "") +
                         " is not supported and cannot be decoded (even by an external codec)");
             }
