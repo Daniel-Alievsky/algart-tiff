@@ -806,42 +806,6 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Creates a new "companion" TIFF reader for reading this TIFF,
-     * which shares the same file {@link #stream() stream} with this writer.
-     *
-     * <p>This method is almost equivalent to:
-     *
-     * <pre>new {@link TiffReader#TiffReader(DataHandle, TiffReader.OpenMode, boolean)
-     *       TiffReader}({@link #stream()}, {@link TiffReader.OpenMode#NO_CHECKS}, false)</pre>
-     *
-     * <p>The only difference is that this method catches and suppresses {@link IOException}:
-     * such exceptions are impossible when using {@link TiffReader.OpenMode#NO_CHECKS} mode.</p>
-     *
-     * <p><b>Do not close</b> the returned reader independently: the shared stream will be closed
-     * automatically when closing this writer.</p>
-     *
-     * <p>Note that the cache in the returned reader is enabled by default.
-     * Therefore, you may use the {@link TiffWriteMap} served by this companion reader
-     * for usual access to the TIFF image, for example, in an image viewer or editor.
-     * If the only goal of the {@link TiffWriteMap} is to modify the TIFF and then commit changes
-     * via {@link TiffWriteMap#flushCompletedTiles(Collection)} or {@link TiffWriteMap#completeWriting()},
-     * you may disable caching by explicitly calling {@link TiffReader#disableCaching()} on the reader returned by
-     * {@link #companionReader()}. Note that single-use operations (read, write, and flush) generally
-     * do not spend memory even with caching enabled.</p>
-     *
-     * @return a new TIFF reader.
-     * @see #companionReader()
-     * @see TiffReader#newSharedWriter()
-     */
-    public final TiffReader newSharedReader() {
-        try {
-            return new TiffReader(stream, filePath, TiffReader.OpenMode.NO_CHECKS, false);
-        } catch (IOException e) {
-            throw new AssertionError("IOException is impossible in NO_CHECKS mode", e);
-        }
-    }
-
-    /**
      * Opens an existing TIFF file for appending new images.
      *
      * @throws IOException if an I/O error occurs.

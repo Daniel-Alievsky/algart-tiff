@@ -794,30 +794,6 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     /**
-     * Creates a new "companion" TIFF writer for rewriting or appending to this TIFF,
-     * which shares the same file {@link #stream() stream} with this reader.
-     *
-     * <p>This method is equivalent to:</p>
-     * <pre>
-     * {@link TiffWriter} result = new {@link TiffWriter#TiffWriter(DataHandle)
-     * TiffWriter}({@link #originalStream()});
-     * result.{@link TiffWriter#openExisting() openExisting()};
-     * </pre>
-     *
-     * <p><b>Do not close</b> the returned writer independently: the shared stream will be closed
-     * automatically when closing this reader.</p>
-     *
-     * @return a new TIFF writer.
-     * @throws IOException if an I/O error occurs.
-     * @see TiffWriter#newSharedReader()
-     */
-    public final TiffWriter newSharedWriter() throws IOException {
-        final TiffWriter result = new TiffWriter(originalStream(), filePath);
-        result.openExisting();
-        return result;
-    }
-
-    /**
      * Returns <code>true</code> if the file is a TIFF file and if the constructor did not detect
      * any problems while opening the file.
      * However, this is not a guarantee that problems
