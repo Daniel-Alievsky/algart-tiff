@@ -316,6 +316,7 @@ public class TiffWriterTest {
                         targetFile,
                         context == null ? "" : " (SCIFIO context " + context + ")",
                         writer);
+                assert writer.isTiff() : "This is not TIFF?!";
                 for (int k = 0; k < numberOfImages; k++) {
                     printReaderInfo(writer); // - may show an invalid file
                     final int ifdIndex = firstIfdIndex + k;
@@ -386,11 +387,17 @@ public class TiffWriterTest {
                     final boolean overwriteExisting = overwrite && (!breakChain || k == 0);
                     if (k == 0) {
                         if (existingFile) {
-                            writer.open(!overwrite);
+                            try {
+                                writer.open(!overwrite);
+                            } catch (IOException e) {
+                                System.out.printf("Error writing existing file; isTiff() = %s%n", writer.isTiff());
+                                throw e;
+                            }
                         } else {
                             writer.create();
                         }
                     }
+                    assert writer.isTiff() : "This is not TIFF?!";
                     final TiffWriteMap map;
                     if (overwriteExisting) {
                         // - Ignoring previous IFD. It has no sense for k > 0:

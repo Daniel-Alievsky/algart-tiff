@@ -69,6 +69,9 @@ public class TiffWriterAsReaderDemo {
         System.out.printf("Reading TIFF %s via TiffWriter, image %d...%n", sourceFile, ifdIndex);
         List<Matrix<UpdatablePArray>> image;
         try (TiffWriter writer = new TiffWriter(sourceFile, TiffWriter.OpenMode.OPEN_EXISTING)) {
+            if (!writer.isTiff()) {
+                throw new AssertionError();
+            }
             final TiffIOMap map = writer.existingMap(ifdIndex);
             if (allowMissing) {
                 writer.setMissingTilesAllowed(true);

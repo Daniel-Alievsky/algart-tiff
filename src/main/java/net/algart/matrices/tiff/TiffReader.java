@@ -412,7 +412,7 @@ public non-sealed class TiffReader extends TiffIO {
         }
     }
 
-    public boolean isCaching() {
+    public final boolean isCaching() {
         return caching;
     }
 
@@ -439,7 +439,7 @@ public non-sealed class TiffReader extends TiffIO {
         return setCaching(false);
     }
 
-    public long getMaxCacheMemory() {
+    public final long getMaxCacheMemory() {
         return maxCacheMemory;
     }
 
@@ -500,7 +500,7 @@ public non-sealed class TiffReader extends TiffIO {
      * @see #setMaxCacheMemory(long)
      * @see #clearCache()
      */
-    public long cacheMemoryUsage() {
+    public final long cacheMemoryUsage() {
         return cacheMemoryUsage;
     }
 
@@ -525,7 +525,7 @@ public non-sealed class TiffReader extends TiffIO {
         }
     }
 
-    public boolean isRescaleWhenIncreasingBitDepth() {
+    public final boolean isRescaleWhenIncreasingBitDepth() {
         return rescaleWhenIncreasingBitDepth;
     }
 
@@ -609,7 +609,7 @@ public non-sealed class TiffReader extends TiffIO {
         }
     }
 
-    public boolean isColorCorrection() {
+    public final boolean isColorCorrection() {
         return colorCorrection;
     }
 
@@ -684,7 +684,7 @@ public non-sealed class TiffReader extends TiffIO {
         return ifd.isLowLevelInvertedBrightness();
     }
 
-    public TiffCodec.Customizer getCodecCustomizer() {
+    public final TiffCodec.Customizer getCodecCustomizer() {
         return codecCustomizer;
     }
 
@@ -693,7 +693,7 @@ public non-sealed class TiffReader extends TiffIO {
         return this;
     }
 
-    public boolean isEnforceUseExternalCodec() {
+    public final boolean isEnforceUseExternalCodec() {
         return enforceUseExternalCodec;
     }
 
@@ -702,7 +702,7 @@ public non-sealed class TiffReader extends TiffIO {
         return this;
     }
 
-    public boolean isCropTilesToImageBoundaries() {
+    public final boolean isCropTilesToImageBoundaries() {
         return cropTilesToImageBoundaries;
     }
 
@@ -711,7 +711,7 @@ public non-sealed class TiffReader extends TiffIO {
         return this;
     }
 
-    public boolean isCachingIFDs() {
+    public final boolean isCachingIFDs() {
         return cachingIFDs;
     }
 
@@ -731,7 +731,7 @@ public non-sealed class TiffReader extends TiffIO {
         return this;
     }
 
-    public boolean isMissingTilesAllowed() {
+    public final boolean isMissingTilesAllowed() {
         return missingTilesAllowed;
     }
 
@@ -780,25 +780,8 @@ public non-sealed class TiffReader extends TiffIO {
         return this;
     }
 
-    public Exception openingException() {
+    public final Exception openingException() {
         return openingException;
-    }
-
-    /**
-     * Returns whether this file is a TIFF file, both ordinary or BigTIFF
-     * (i.e., whether it contains the correct TIFF or BigTIFF file header).
-     *
-     * <p>Note: if the constructor with {@link OpenMode#VALID_TIFF} mode
-     * completed successfully, this method is guaranteed to return {@code true}.
-     *
-     * <p>Note: if this method returns <code>true</code>, the file can be still invalid.
-     * If the problem was detected while opening the file in the mode {@link OpenMode#NO_CHECKS},
-     * you can know about this by <code>false</code> result of {@link #isValidTiff()} method.
-     *
-     * @return whether this is a TIFF.
-     */
-    public boolean isTiff() {
-        return tiff;
     }
 
     /**
@@ -819,7 +802,7 @@ public non-sealed class TiffReader extends TiffIO {
      *
      * @return whether this is a probably correct TIFF/BigTIFF file.
      */
-    public boolean isValidTiff() {
+    public final boolean isValidTiff() {
         return validTiff;
     }
 

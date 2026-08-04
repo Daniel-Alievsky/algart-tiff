@@ -218,7 +218,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     final DataHandle<?> stream;
     final Path filePath;
 
-    volatile boolean tiff = false;
+    volatile boolean tiff;
     volatile boolean bigTiff = false;
     private volatile Object context = null;
     private volatile byte byteFiller = 0;
@@ -239,12 +239,41 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     TiffIO(DataHandle<?> stream, Path filePath) {
         this.stream = Objects.requireNonNull(stream, "Null data handle (input/output stream)");
         this.filePath = filePath;
+        this.tiff = this instanceof TiffWriter;
+        // - TiffWriter is usually created without any file, but analyzeFileHeader() is not called always;
+        // we MUST suppose that it is TIFF for all other cases
     }
 
     /**
-     * Returns whether we are writing BigTIFF data.
+     * Returns whether this file is a TIFF file, either classic TIFF or BigTIFF
+     * (i.e., whether it contains the correct TIFF or BigTIFF file header).
+     *
+     * <p>For a {@link TiffReader}, this flag is set according to the actual
+     * file header analyzed by the constructor. If the constructor with
+     * {@link TiffReader.OpenMode#VALID_TIFF} mode completed successfully,
+     * this method is guaranteed to return {@code true}.
+     *
+     * <p>Note: a {@code true} result does not guarantee that the TIFF file is
+     * completely valid. In particular, when a reader is opened in
+     * {@link TiffReader.OpenMode#NO_CHECKS} mode, a {@code true} result may
+     * coexist with {@code false} returned by {@link TiffReader#isValidTiff()}.
+     *
+     * <p>For a {@link TiffWriter}, the flag is initially {@code true}, since
+     * a writer is assumed to operate on a TIFF file even before the file is
+     * opened or created. However, if you try to open an existing non-TIFF file,
+     * for example, via the {@link TiffWriter#openExisting()} method,
+     * an exception will be thrown, and this flag will be cleared to {@code false}.
+     *
+     * @return whether the underlying file is a TIFF.
      */
-    public boolean isBigTiff() {
+    public final boolean isTiff() {
+        return tiff;
+    }
+
+    /**
+     * Returns whether this file is a BigTIFF file.
+     */
+    public final boolean isBigTiff() {
         return bigTiff;
     }
 
@@ -253,7 +282,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * @return whether this is a little-endian TIFF.
      */
-    public boolean isLittleEndian() {
+    public final boolean isLittleEndian() {
         synchronized (fileLock) {
             return stream.isLittleEndian();
         }
@@ -264,7 +293,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * @return byte order in the TIFF file.
      */
-    public ByteOrder getByteOrder() {
+    public final ByteOrder getByteOrder() {
         return isLittleEndian() ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
     }
 
@@ -277,7 +306,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         this.context = context;
     }
 
-    public byte getByteFiller() {
+    public final byte getByteFiller() {
         return byteFiller;
     }
 
@@ -301,7 +330,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return this;
     }
 
-    public Consumer<TiffTile> getTileInitializer() {
+    public final Consumer<TiffTile> getTileInitializer() {
         return tileInitializer;
     }
 
@@ -372,7 +401,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * @return the lock object for synchronizing access to the stream.
      */
-    public Object fileLock() {
+    public final Object fileLock() {
         // We do not try using here this.stream object: TiffReader uses a cached version of the stream
         // (ReadBufferDataHandle) instead of the constuctor's argument
         return fileLock;
@@ -386,7 +415,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * @return the path to the TIFF file, or an empty {@code Optional} if there is no associated file path.
      */
-    public Optional<Path> path() {
+    public final Optional<Path> path() {
         return Optional.ofNullable(filePath);
     }
 
@@ -396,18 +425,18 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @return the {@link DataHandle} for this TIFF file; never {@code null}.
      * @see #fileLock()
      */
-    public DataHandle<?> stream() {
+    public final DataHandle<?> stream() {
         synchronized (fileLock) {
             // - we prefer not to return this stream in the middle of I/O operations
             return stream;
         }
     }
 
-    public String streamName() {
+    public final String streamName() {
         return streamName("");
     }
 
-    public String streamName(String prefix) {
+    public final String streamName(String prefix) {
         Objects.requireNonNull(prefix, "Null prefix");
         if (filePath != null) {
             return prefix + filePath;
@@ -439,7 +468,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * @return the length of this file.
      */
-    public long fileLength() {
+    public final long fileLength() {
         try {
             return stream.length();
         } catch (IOException e) {
@@ -450,7 +479,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         }
     }
 
-    public int sizeOfTiffHeader() {
+    public final int sizeOfTiffHeader() {
         return TiffIFD.sizeOfFileHeader(bigTiff);
     }
 
@@ -460,7 +489,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * @return position in the file of the first IFD offset.
      */
-    public long offsetOfFirstIFDOffset() {
+    public final long offsetOfFirstIFDOffset() {
         return offsetOfFirstIFDOffset(this.bigTiff);
     }
 
@@ -473,7 +502,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * @return 8 for BigTIFF (long), 4 for classic TIFF (unsigned int).
      */
-    public int sizeOfOffset() {
+    public final int sizeOfOffset() {
         return bigTiff ? 8 : 4;
     }
 
@@ -483,7 +512,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * @return 8 for BigTIFF (long), 2 for classic TIFF (unsigned short).
      */
-    public int sizeOfNumberOfIFDEntries() {
+    public final int sizeOfNumberOfIFDEntries() {
         return bigTiff ? 8 : 2;
     }
 
@@ -493,7 +522,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * @return 12 for classic TIFF, 20 for BigTIFF.
      */
-    public int sizeOfIFDEntry() {
+    public final int sizeOfIFDEntry() {
         return TiffIFD.Entry.sizeOfEntry(bigTiff);
     }
 
@@ -505,7 +534,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @return the total size of all IFD entries in bytes.
      * @throws IllegalArgumentException if {@code numberOfEntries} is invalid or too large.
      */
-    public int sizeOfAllIFDEntries(int numberOfEntries) {
+    public final int sizeOfAllIFDEntries(int numberOfEntries) {
         if (numberOfEntries < 0) {
             throw new IllegalArgumentException("Negative number of IFD entries: " + numberOfEntries);
         }
@@ -550,11 +579,11 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @return the file offset of the last scanned IFD offset, wrapped in {@link OptionalLong},
      * or {@code OptionalLong.empty()} if it has not been read.
      */
-    public OptionalLong offsetOfLastScannedIFDOffset() {
+    public final OptionalLong offsetOfLastScannedIFDOffset() {
         return offsetOfLastScannedIFDOffset < 0 ? OptionalLong.empty() : OptionalLong.of(offsetOfLastScannedIFDOffset);
     }
 
-    public void checkFileOpen() {
+    public final void checkFileOpen() {
         if (!fileOpen) {
             throw new IllegalStateException(getClass().getSimpleName() + " is " +
                     (this instanceof TiffWriter ? "not yet created / opened for writing, or it is " : "") +
@@ -562,7 +591,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         }
     }
 
-    public TiffReader newReader(TiffReader.OpenMode openMode) throws IOException {
+    public final TiffReader newReader(TiffReader.OpenMode openMode) throws IOException {
         return new TiffReader(stream, openMode, false);
     }
 
@@ -609,7 +638,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @throws TiffException            if the index is too high.
      * @throws IOException              if an I/O error occurs.
      */
-    public TiffIFD readMainIFD(int mainIFDIndex) throws IOException {
+    public final TiffIFD readMainIFD(int mainIFDIndex) throws IOException {
         long ifdOffset = readMainIFDOffset(mainIFDIndex);
         assert ifdOffset >= 0;
         // - note: we do not call setIndexInList(mainIFDIndex),
@@ -630,7 +659,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @throws IllegalArgumentException if the offset is negative or too low (less than {@link #sizeOfTiffHeader()}).
      * @throws IOException              if an I/O error occurs.
      */
-    public TiffIFD readIFDAt(long ifdOffset) throws IOException {
+    public final TiffIFD readIFDAt(long ifdOffset) throws IOException {
         return readIFDAt(ifdOffset, ReadIFDMode.NORMAL);
     }
 
@@ -650,7 +679,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @throws IllegalArgumentException if the offset is negative or less than {@link #sizeOfTiffHeader()}.
      * @throws IOException              if an I/O error occurs.
      */
-    public TiffIFD readIFDAt(long ifdOffset, ReadIFDMode readIFDMode) throws IOException {
+    public final TiffIFD readIFDAt(long ifdOffset, ReadIFDMode readIFDMode) throws IOException {
         Objects.requireNonNull(readIFDMode, "Null readIFDMode");
         if (ifdOffset < 0) {
             throw new IllegalArgumentException("Negative IFD file offset = " + ifdOffset);
@@ -737,7 +766,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @throws TiffException if the number of entries is invalid or exceeds limits.
      * @throws IOException   if an I/O error occurs.
      */
-    public int readNumberOfIFDEntriesAt(long ifdOffset) throws IOException {
+    public final int readNumberOfIFDEntriesAt(long ifdOffset) throws IOException {
         synchronized (fileLock) {
             if (ifdOffset < 0) {
                 throw new IllegalArgumentException("Negative IFD file offset = " + ifdOffset);
@@ -798,7 +827,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *                                  or if a corrupted structure or infinite loop is detected.
      * @throws IOException              if an I/O error occurs.
      */
-    public long readMainIFDOffset(int mainIFDIndex) throws IOException {
+    public final long readMainIFDOffset(int mainIFDIndex) throws IOException {
         if (mainIFDIndex == 0) {
             return readFirstIFDOffset(true);
             // - another error message when the TIFF file is empty
@@ -822,7 +851,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @throws TiffException            if a corrupted structure or infinite loop is detected.
      * @throws IOException              if an I/O error occurs.
      */
-    public OptionalLong readMainIFDOffsetIfPresent(int mainIFDIndex) throws IOException {
+    public final OptionalLong readMainIFDOffsetIfPresent(int mainIFDIndex) throws IOException {
         if (mainIFDIndex < 0) {
             throw new IllegalArgumentException("Negative IFD index = " + mainIFDIndex);
         }
@@ -848,7 +877,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @throws TiffException if the TIFF file is empty, or if a corrupted structure or infinite loop is detected.
      * @throws IOException   if an I/O error occurs.
      */
-    public long[] readMainIFDOffsets() throws IOException {
+    public final long[] readMainIFDOffsets() throws IOException {
         return readMainIFDOffsets(false);
     }
 
@@ -876,7 +905,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *                       or if a corrupted structure or infinite loop is detected.
      * @throws IOException   if an I/O error occurs.
      */
-    public long[] readMainIFDOffsets(boolean allowNoIFDs) throws IOException {
+    public final long[] readMainIFDOffsets(boolean allowNoIFDs) throws IOException {
         return readLinkage(allowNoIFDs, Long.MAX_VALUE, true).mainIFDOffsetsArray();
     }
 
@@ -888,7 +917,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * @return a new linkage instance for an empty TIFF file.
      */
-    public TiffIFD.Linkage newEmptyLinkage() {
+    public final TiffIFD.Linkage newEmptyLinkage() {
         return new TiffIFD.Linkage(isBigTiff());
     }
 
@@ -908,11 +937,11 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @throws IOException   if an I/O error occurs.
      * @see #readMainIFDOffsets(boolean)
      */
-    public TiffIFD.Linkage readLinkage() throws IOException {
+    public final TiffIFD.Linkage readLinkage() throws IOException {
         return readLinkage(true, Long.MAX_VALUE, false);
     }
 
-    public CodecReport lastCodecReport() {
+    public final CodecReport lastCodecReport() {
         return lastCodecReport;
     }
 

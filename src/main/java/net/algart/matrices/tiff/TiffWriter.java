@@ -794,10 +794,10 @@ public non-sealed class TiffWriter extends TiffIO {
      * Creates a new "companion" TIFF reader for reading the same TIFF,
      * which shares the same file {@link #stream() stream} with this writer.
      *
-     * <p>TThis method is almost equivalent to:
+     * <p>This method is almost equivalent to:
      *
      * <pre>new {@link TiffReader#TiffReader(DataHandle, TiffReader.OpenMode, boolean)
-     *       TiffReader}(stream, {@link TiffReader.OpenMode#NO_CHECKS}, false)</pre>
+     *       TiffReader}({@link #stream()}, {@link TiffReader.OpenMode#NO_CHECKS}, false)</pre>
      *
      * <p>The only difference is that this method catches and suppresses {@link IOException}:
      * such exceptions are impossible when using {@link TiffReader.OpenMode#NO_CHECKS} mode.</p>
