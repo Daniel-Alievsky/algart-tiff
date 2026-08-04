@@ -957,6 +957,27 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return SCIFIOBridge.getDefaultScifioContext();
     }
 
+    /**
+     * Returns a new stream (file handle) associated with the specified file.
+     * Equivalent to:
+     * <pre>
+     * new {@link org.scijava.io.handle.FileHandle#FileHandle(org.scijava.io.location.FileLocation)
+     * FileHandle}(new {@link org.scijava.io.location.FileLocation#FileLocation(java.io.File)
+     * FileLocation}(file.toFile()))
+     * </pre>
+     *
+     * @param file a file.
+     * @return a {@link FileHandle} instance associated with this file.
+     */
+    public static FileHandle getFileHandle(Path file) {
+        Objects.requireNonNull(file, "Null file");
+        FileHandle fileHandle = new FileHandle(new FileLocation(file.toFile()));
+        fileHandle.setLittleEndian(false);
+        // - in the current implementation it is an extra operator: BigEndian is defaulted in scijava;
+        // but we want to be sure that this behavior will be the same in all future versions
+        return fileHandle;
+    }
+
     @SuppressWarnings("UnusedReturnValue")
     public static long copyFile(DataHandle<?> inputStream, DataHandle<?> outputStream) throws IOException {
         Objects.requireNonNull(inputStream, "Null input stream");
@@ -1956,15 +1977,6 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             stream.writeByte(0);
             // - Well-formed IFD requires even offsets
         }
-    }
-
-    static DataHandle<?> getFileHandle(Path file) {
-        Objects.requireNonNull(file, "Null file");
-        FileHandle fileHandle = new FileHandle(new FileLocation(file.toFile()));
-        fileHandle.setLittleEndian(false);
-        // - in the current implementation it is an extra operator: BigEndian is defaulted in scijava;
-        // but we want to be sure that this behavior will be the same in all future versions
-        return fileHandle;
     }
 
     static BytesHandle getBytesHandle(byte[] data, boolean littleEndian) {

@@ -198,6 +198,10 @@ public non-sealed class TiffWriter extends TiffIO {
      *     TiffWriter}(path, {@link OpenMode#CREATE});
      * </pre>
      *
+     * <p>Note: this method is equivalent to calling the universal constructor
+     * {@link #TiffWriter(DataHandle)} for the stream created by the call
+     * {@link TiffIO#getFileHandle(Path) TiffIO.getFileHandle}(file).
+     *
      * @param file output TIFF file.
      */
     public TiffWriter(Path file) {
@@ -248,12 +252,8 @@ public non-sealed class TiffWriter extends TiffIO {
      * the behavior is similar to the {@link java.io.FileWriter#FileWriter(File) FileWriter constructor}.</p>
      *
      * <p>In the case of {@link OpenMode#NO_ACTIONS}, this method is equivalent to calling the universal constructor
-     * {@link #TiffWriter(DataHandle)} for the stream created by the call:</p>
-     * <pre>
-     * new {@link org.scijava.io.handle.FileHandle#FileHandle(org.scijava.io.location.FileLocation)
-     * FileHandle}(new {@link org.scijava.io.location.FileLocation#FileLocation(java.io.File)
-     * FileLocation}(file.toFile()))
-     * </pre>
+     * {@link #TiffWriter(DataHandle)} for the stream created by the call
+     * {@link TiffIO#getFileHandle(Path) TiffIO.getFileHandle}(file).
      *
      * <p>This constructor is the simplest way to create a new TIFF file and automatically open
      * it by writing the standard TIFF header. After that, this object is ready for adding new TIFF images.
