@@ -1857,7 +1857,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 final boolean wasPresent = result.containsIFDOffset(offset);
                 if (wasPresent) {
                     throw new TiffException("TIFF file is broken - infinite loop of IFD offsets is detected " +
-                            "for offset %d;%nthe stored offset pairs are:%n%s".formatted(offset, result));
+                            "for offset %d; the stored offset pairs are:%n%s"
+                                    .formatted(offset, result.toString(1)));
                 }
                 ++count;
                 if (count > MAX_NUMBER_OF_IFDS) {

@@ -212,8 +212,12 @@ public final class TiffIFD {
         }
 
         public String toString() {
-            return numberOfMainIFDs() + " main IFDs found at [" +
-                    JArrays.toString(offsetPairs, " ", 500) +
+            return toString(500);
+        }
+
+        public String toString(int maxPairsListStringLength) {
+            return numberOfMainIFDs() + " main IFDs [" +
+                    JArrays.toString(offsetPairs, " ", maxPairsListStringLength) +
                     "], offset of the IFD terminator: " + offsetOfIFDChainTerminator;
             // " " instead of more typical ", ": OffsetPair.toString has an ending "->"
         }

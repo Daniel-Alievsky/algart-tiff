@@ -68,6 +68,8 @@ public class TiffOverwriteHelloWorldDemo {
         try (TiffWriter writer = new TiffWriter(targetFile, TiffWriter.OpenMode.OPEN_EXISTING)) {
 //             writer.setAlwaysWriteToFileEnd(true); // - should not affect the results
             writer.setCompressionQuality(quality);
+            writer.setTileInitializer(new Color(78, 220, 150));
+            // - some filler for a case of empty ("sparse") tiles
             final TiffWriteMap writeMap = allowSubIFD ?
                     writer.existingMap(writer.companionReader().ifd(ifdIndex)) :
                     writer.existingMap(ifdIndex);
