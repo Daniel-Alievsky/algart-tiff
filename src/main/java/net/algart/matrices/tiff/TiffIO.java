@@ -514,7 +514,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * @return a new TIFF writer.
      * @throws IOException if an I/O error occurs.
-     * @see TiffWriter#newSharedReader()
+     * @see #newSharedReader()
      */
     public final TiffWriter newSharedWriter() throws IOException {
         final TiffWriter result = new TiffWriter(originalStream(), filePath);
@@ -543,12 +543,12 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * If the only goal of the {@link TiffWriteMap} is to modify the TIFF and then commit changes
      * via {@link TiffWriteMap#flushCompletedTiles(Collection)} or {@link TiffWriteMap#completeWriting()},
      * you may disable caching by explicitly calling {@link TiffReader#disableCaching()} on the reader returned by
-     * {@link TiffWriter#companionReader()}. Note that single-use operations (read, write, and flush) generally
+     * this method. Note that single-use operations (read, write, and flush) generally
      * do not spend memory even with caching enabled.</p>
      *
      * @return a new TIFF reader.
+     * @see #newSharedWriter()
      * @see TiffWriter#companionReader()
-     * @see TiffReader#newSharedWriter()
      */
     public final TiffReader newSharedReader() {
         try {
