@@ -713,7 +713,7 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Clears the reference to the "companion" TIFF reader stored inside this object
+     * Clears the reference to the <i>current companion reader</i> stored inside this object
      * and returned by {@link #companionReader()} method.
      * Ensures that the next call of {@link #companionReader()} will create a new reader.
      * Usually you don't need to call this method because it is called automatically.
@@ -729,10 +729,10 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Returns the "companion" TIFF reader for reading the same file {@link #stream() stream}
-     * used by this object.
+     * Returns the <i>current companion reader</i> for reading the same TIFF,
+     * which shares the same file {@link #stream() stream} with this writer.
      *
-     * <p>This reader allows the write map to read images for further editing,
+     * <p>This companion allows {@link TiffWriteMap} objects to read images for further editing,
      * for example, in methods such as {@link TiffWriteMap#preloadAndStore} or
      * {@link TiffWriteMap#readMatrixAndStore}. This reader is returned by the
      * {@link TiffWriteMap#reader()} method.</p>
@@ -741,7 +741,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * automatically when closing this writer.</p>
      *
      * <p>The returned instance is cached inside this object.
-     * However, the cached reference is cleared to {@code null} by the {@link #invalidateCompanionReader()}
+     * The cached reference is cleared to {@code null} by the {@link #invalidateCompanionReader()}
      * method (triggering re-creation on the next call) in the following cases:</p>
      * <ul>
      *     <li>opening/creating the TIFF file via {@link #create()}, {@link #open(boolean)}
@@ -755,7 +755,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * <p>This reader is created by the following call:</p>
      * <pre>{@link #getCompanionReaderFactory()}.{@link TiffReader.Factory#newReader()
      * newReader()}</pre>
-     * <p>By default, this means calling the {@link #newSharedReader()} method
+     * <p>By default, it means calling the {@link #newSharedReader()} method
      * which use {@link TiffReader.OpenMode#NO_CHECKS} creation mode.</p>
      *
      * <p>Note that the cache in the returned reader is enabled by default.
@@ -779,7 +779,7 @@ public non-sealed class TiffWriter extends TiffIO {
         synchronized (fileLock) {
             if (this.reader == null) {
                 needToCreate = true;
-                this.reader = getCompanionReaderFactory().newReader();
+                this.reader = companionReaderFactory.newReader();
             }
             result = this.reader;
         }
@@ -818,7 +818,7 @@ public non-sealed class TiffWriter extends TiffIO {
      */
     public final TiffReader newSharedReader() {
         try {
-            return new TiffReader(this.stream, TiffReader.OpenMode.NO_CHECKS, false);
+            return new TiffReader(stream, TiffReader.OpenMode.NO_CHECKS, false);
         } catch (IOException e) {
             throw new AssertionError("IOException is impossible in NO_CHECKS mode", e);
         }
