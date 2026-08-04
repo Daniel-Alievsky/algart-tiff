@@ -327,7 +327,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param bigTiff BigTIFF mode.
      * @return a reference to this object.
      */
-    public TiffIO setBigTiff(boolean bigTiff) {
+    public TiffWriter setBigTiff(boolean bigTiff) {
         this.bigTiff = bigTiff;
         return this;
     }
@@ -351,7 +351,7 @@ public non-sealed class TiffWriter extends TiffIO {
         return this;
     }
 
-    public boolean isPrewritingAllowed() {
+    public final boolean isPrewritingAllowed() {
         return prewritingAllowed;
     }
 
@@ -360,7 +360,7 @@ public non-sealed class TiffWriter extends TiffIO {
         return this;
     }
 
-    public boolean isSmartCorrection() {
+    public final boolean isSmartCorrection() {
         return smartCorrection;
     }
 
@@ -405,7 +405,7 @@ public non-sealed class TiffWriter extends TiffIO {
         return this;
     }
 
-    public TiffCodec.Customizer getCodecCustomizer() {
+    public final TiffCodec.Customizer getCodecCustomizer() {
         return codecCustomizer;
     }
 
@@ -414,7 +414,7 @@ public non-sealed class TiffWriter extends TiffIO {
         return this;
     }
 
-    public boolean isEnforceUseExternalCodec() {
+    public final boolean isEnforceUseExternalCodec() {
         return enforceUseExternalCodec;
     }
 
@@ -436,11 +436,11 @@ public non-sealed class TiffWriter extends TiffIO {
         return this;
     }
 
-    public boolean hasCompressionQuality() {
+    public final boolean hasCompressionQuality() {
         return compressionQuality != null;
     }
 
-    public Double getCompressionQuality() {
+    public final Double getCompressionQuality() {
         return compressionQuality;
     }
 
@@ -487,11 +487,11 @@ public non-sealed class TiffWriter extends TiffIO {
         return this;
     }
 
-    public boolean hasLosslessCompressionLevel() {
+    public final boolean hasLosslessCompressionLevel() {
         return losslessCompressionLevel != null;
     }
 
-    public Double getLosslessCompressionLevel() {
+    public final Double getLosslessCompressionLevel() {
         return losslessCompressionLevel;
     }
 
@@ -535,7 +535,7 @@ public non-sealed class TiffWriter extends TiffIO {
         return this;
     }
 
-    public boolean isAlwaysWriteToFileEnd() {
+    public final boolean isAlwaysWriteToFileEnd() {
         return alwaysWriteToFileEnd;
     }
 
@@ -556,7 +556,7 @@ public non-sealed class TiffWriter extends TiffIO {
         return this;
     }
 
-    public boolean isMissingTilesAllowed() {
+    public final boolean isMissingTilesAllowed() {
         return missingTilesAllowed;
     }
 
@@ -593,7 +593,7 @@ public non-sealed class TiffWriter extends TiffIO {
         return this;
     }
 
-    public TiffReader.Factory getCompanionReaderFactory() {
+    public final TiffReader.Factory getCompanionReaderFactory() {
         return companionReaderFactory;
     }
 
@@ -665,7 +665,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @see #writeIFD(TiffIFD, Linkage.UpdateMode)
      * @see #rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, Linkage.UpdateMode)
      */
-    public void invalidateLinkage() {
+    public final void invalidateLinkage() {
         invalidateLinkage(true, null);
     }
 
@@ -694,7 +694,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @return the linkage information.
      * @throws IOException if an I/O error occurs while reading the linkage.
      */
-    public Linkage linkage() throws IOException {
+    public final Linkage linkage() throws IOException {
         return linkage("Reloading linkage");
     }
 
@@ -708,7 +708,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @return the linkage information, wrapped in {@link Optional},
      * or {@link Optional#empty()} if it has not been read or if it was invalidated.
      */
-    public Optional<Linkage> linkageIfPresent() {
+    public final Optional<Linkage> linkageIfPresent() {
         return Optional.ofNullable(linkage);
     }
 
@@ -722,7 +722,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * These offsets are used only for automatic IFD linkage by {@link #writeIFD(TiffIFD, Linkage.UpdateMode)}
      * method and are not important if you perform the linkage manually.</p>
      */
-    public void invalidateCompanionReader() {
+    public final void invalidateCompanionReader() {
         synchronized (fileLock) {
             this.reader = null;
         }
@@ -773,7 +773,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @return the companion TIFF reader.
      * @throws IOException if an I/O error occurs while creating a new reader.
      */
-    public TiffReader companionReader() throws IOException {
+    public final TiffReader companionReader() throws IOException {
         final TiffReader result;
         boolean needToCreate = false;
         synchronized (fileLock) {
@@ -816,7 +816,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @return a new TIFF reader.
      */
-    public TiffReader newSharedReader() {
+    public final TiffReader newSharedReader() {
         try {
             return new TiffReader(this.stream, TiffReader.OpenMode.NO_CHECKS, false);
         } catch (IOException e) {
@@ -829,7 +829,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @throws IOException if an I/O error occurs.
      */
-    public void openExisting() throws IOException {
+    public final void openExisting() throws IOException {
         open(false);
     }
 
@@ -848,7 +848,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @throws IOException if an I/O error occurs.
      */
-    public void openForAppend() throws IOException {
+    public final void openForAppend() throws IOException {
         open(true);
     }
 
@@ -859,7 +859,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param createIfNotExists whether you need to create a new TIFF file when there is no existing file.
      * @throws IOException if an I/O error occurs.
      */
-    public void open(boolean createIfNotExists) throws IOException {
+    public final void open(boolean createIfNotExists) throws IOException {
         synchronized (fileLock) {
             invalidateCompanionReader();
             if (!stream.exists() || stream.length() == 0L) {
@@ -897,7 +897,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @throws IOException if an I/O error occurs.
      */
-    public void create(boolean appendToExistingFile) throws IOException {
+    public final void create(boolean appendToExistingFile) throws IOException {
         if (appendToExistingFile) {
             openForAppend();
         } else {
@@ -912,7 +912,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @throws IOException if an I/O error occurs.
      */
-    public void create() throws IOException {
+    public final void create() throws IOException {
         synchronized (fileLock) {
             invalidateCompanionReader();
             invalidateLinkage(false, null);
@@ -947,7 +947,7 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    public int numberOfMainImages() throws IOException {
+    public final int numberOfMainImages() throws IOException {
         synchronized (fileLock) {
             return linkage("Reading number of main images").numberOfMainIFDs();
         }
@@ -976,7 +976,7 @@ public non-sealed class TiffWriter extends TiffIO {
      */
 
     @SuppressWarnings("UnusedReturnValue")
-    public long writeIFDToAssignedOffset(TiffIFD ifd) throws IOException {
+    public final long writeIFDToAssignedOffset(TiffIFD ifd) throws IOException {
         Objects.requireNonNull(ifd, "Null IFD");
         if (!ifd.isFileOffsetOfIFDForWritingAssigned()) {
             throw new IllegalStateException("Offset for writing IFD has not been assigned");
@@ -996,7 +996,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @return the offset where this IFD was actually written.
      * @throws IOException if an I/O error occurs.
      */
-    public long writeIFDAtFileEnd(TiffIFD ifd) throws IOException {
+    public final long writeIFDAtFileEnd(TiffIFD ifd) throws IOException {
         ifd.removeFileOffsetOfIFDForWriting();
         return writeIFD(ifd, Linkage.UpdateMode.NONE);
         // Note: writeIFD will call invalidateLinkage() if this IFD is not actually "virgin"
@@ -1323,7 +1323,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @see #writeIFD(TiffIFD, Linkage.UpdateMode)
      * @see #rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, Linkage.UpdateMode)
      */
-    public void writeOffsetAt(long offsetValue, long fileOffsetToWrite) throws IOException {
+    public final void writeOffsetAt(long offsetValue, long fileOffsetToWrite) throws IOException {
         synchronized (fileLock) {
             final long savedFileOffset = stream.offset();
             try {
@@ -1340,7 +1340,7 @@ public non-sealed class TiffWriter extends TiffIO {
         writeEncodedTile(tile, freeAndFreezeAfterWriting);
     }
 
-    public int writeTiles(
+    public final int writeTiles(
             Collection<TiffTile> tiles,
             Predicate<TiffTile> needToWrite,
             boolean freeAndFreezeAfterWriting)
@@ -1449,7 +1449,7 @@ public non-sealed class TiffWriter extends TiffIO {
         return true;
     }
 
-    public void prepareEncoding(TiffTile tile) throws TiffException {
+    public final void prepareEncoding(TiffTile tile) throws TiffException {
         Objects.requireNonNull(tile, "Null tile");
         if (AUTO_INTERLEAVE_SOURCE) {
             if (tile.isInterleaved()) {
@@ -1475,7 +1475,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param ifd IFD to be corrected.
      * @throws TiffException in the case of some problems, in particular, if IFD settings are not supported.
      */
-    public void correctForEncoding(TiffIFD ifd) throws TiffException {
+    public final void correctForEncoding(TiffIFD ifd) throws TiffException {
         correctForEncoding(ifd, isSmartCorrection());
     }
 
@@ -1521,7 +1521,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *                       or if the file is not a correct TIFF file,
      *                       and this was not detected while opening it.
      */
-    public TiffIFD existingIFD(int mainIFDIndex, boolean assignFileOffsetForWriting) throws IOException {
+    public final TiffIFD existingIFD(int mainIFDIndex, boolean assignFileOffsetForWriting) throws IOException {
         final TiffIFD ifd = readMainIFD(mainIFDIndex);
         if (assignFileOffsetForWriting) {
             ifd.assignFileOffsetOfIFDForWriting(ifd.getFileOffsetOfIFD());
@@ -1561,7 +1561,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @return map for writing further data.
      * @throws TiffException in the case of some problems.
      */
-    public TiffWriteMap newMap(TiffIFD ifd, boolean resizable, Set<MapOption> options) throws TiffException {
+    public final TiffWriteMap newMap(TiffIFD ifd, boolean resizable, Set<MapOption> options) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         Objects.requireNonNull(options, "Null options");
         if (ifd.isFrozen()) {
@@ -1593,27 +1593,27 @@ public non-sealed class TiffWriter extends TiffIO {
      * @return map for writing further data.
      * @throws TiffException in the case of some problems.
      */
-    public TiffWriteMap newMap(TiffIFD ifd, boolean resizable) throws TiffException {
+    public final TiffWriteMap newMap(TiffIFD ifd, boolean resizable) throws TiffException {
         return newMap(ifd, resizable, MapOption.DEFAULT);
     }
 
-    public TiffWriteMap newFixedMap(TiffIFD ifd, Set<MapOption> options) throws TiffException {
+    public final TiffWriteMap newFixedMap(TiffIFD ifd, Set<MapOption> options) throws TiffException {
         return newMap(ifd, false, options);
     }
 
-    public TiffWriteMap newFixedMap(TiffIFD ifd) throws TiffException {
+    public final TiffWriteMap newFixedMap(TiffIFD ifd) throws TiffException {
         return newMap(ifd, false);
     }
 
-    public TiffWriteMap newResizableMap(TiffIFD ifd, Set<MapOption> options) throws TiffException {
+    public final TiffWriteMap newResizableMap(TiffIFD ifd, Set<MapOption> options) throws TiffException {
         return newMap(ifd, true, options);
     }
 
-    public TiffWriteMap newResizableMap(TiffIFD ifd) throws TiffException {
+    public final TiffWriteMap newResizableMap(TiffIFD ifd) throws TiffException {
         return newMap(ifd, true);
     }
 
-    public TiffWriteMap existingMap(int ifdIndex) throws IOException {
+    public final TiffWriteMap existingMap(int ifdIndex) throws IOException {
         return existingMap(existingIFD(ifdIndex, true));
     }
 
@@ -1635,7 +1635,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param ifd IFD of some existing image, probably loaded from the current TIFF file.
      * @return map for writing further data.
      */
-    public TiffWriteMap existingMap(TiffIFD ifd) throws TiffException {
+    public final TiffWriteMap existingMap(TiffIFD ifd) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         if (!ifd.isLoadedFromFile()) {
             throw new IllegalArgumentException("IFD must be read from TIFF file");
@@ -1694,11 +1694,11 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @return last map, created by this object.
      */
-    public TiffWriteMap lastMap() {
+    public final TiffWriteMap lastMap() {
         return lastMap;
     }
 
-    public boolean isLastMapPrewritten() {
+    public final boolean isLastMapPrewritten() {
         return lastMapPrewritten;
     }
 
@@ -1722,7 +1722,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * @param map map describing the image.
      */
-    public void prewrite(TiffWriteMap map) throws IOException {
+    public final void prewrite(TiffWriteMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         lastMapPrewritten = false;
         if (!prewritingAllowed || map.isResizable()) {
@@ -1740,7 +1740,7 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    public int completeWriting(TiffWriteMap map) throws IOException {
+    public final int completeWriting(TiffWriteMap map) throws IOException {
         Objects.requireNonNull(map, "Null TIFF map");
         final boolean resizable = map.isResizable();
         map.checkTooSmallDimensionsForCurrentGrid();
@@ -1798,7 +1798,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @throws IOException if an I/O error occurs.
      * @see TiffWriteMap
      */
-    public TiffWriteMap writeNewMatrix(Matrix<? extends PArray> matrix, TagCompression compression)
+    public final TiffWriteMap writeNewMatrix(Matrix<? extends PArray> matrix, TagCompression compression)
             throws IOException {
         Objects.requireNonNull(matrix, "Null matrix");
         Objects.requireNonNull(compression, "Null compression");
@@ -1835,7 +1835,9 @@ public non-sealed class TiffWriter extends TiffIO {
      * @throws IOException if an I/O error occurs.
      * @see TiffWriteMap
      */
-    public TiffWriteMap writeNewChannels(List<? extends Matrix<? extends PArray>> channels, TagCompression compression)
+    public final TiffWriteMap writeNewChannels(
+            List<? extends Matrix<? extends PArray>> channels,
+            TagCompression compression)
             throws IOException {
         Objects.requireNonNull(channels, "Null channels");
         Objects.requireNonNull(compression, "Null compression");
@@ -1870,7 +1872,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @throws IOException if an I/O error occurs.
      * @see TiffWriteMap
      */
-    public TiffWriteMap writeNewBufferedImage(BufferedImage bufferedImage, TagCompression compression)
+    public final TiffWriteMap writeNewBufferedImage(BufferedImage bufferedImage, TagCompression compression)
             throws IOException {
         Objects.requireNonNull(bufferedImage, "Null bufferedImage");
         Objects.requireNonNull(compression, "Null compression");
@@ -1880,11 +1882,12 @@ public non-sealed class TiffWriter extends TiffIO {
         return map;
     }
 
-    public TiffIFD updateDescription(int mainIFDIndex, String description) throws IOException {
+    public final TiffIFD updateDescription(int mainIFDIndex, String description) throws IOException {
         return updateIFD(mainIFDIndex, ifd -> ifd.updateDescription(description));
     }
 
-    public TiffIFD updateIFD(int mainIFDIndex, Function<TiffIFD, TiffIFD.UpdateResult> updater) throws IOException {
+    public final TiffIFD updateIFD(int mainIFDIndex, Function<TiffIFD, TiffIFD.UpdateResult> updater)
+            throws IOException {
         Objects.requireNonNull(updater, "Null updater");
         final TiffIFD ifd = existingIFD(mainIFDIndex, true);
         final TiffIFD changedIFD = ifd.copy();
@@ -1893,7 +1896,8 @@ public non-sealed class TiffWriter extends TiffIO {
         return changedIFD;
     }
 
-    public void updateIFD(int mainIFDIndex, TiffIFD changedIFD, TiffIFD.UpdateResult placement) throws IOException {
+    public final void updateIFD(int mainIFDIndex, TiffIFD changedIFD, TiffIFD.UpdateResult placement)
+            throws IOException {
         Objects.requireNonNull(changedIFD, "Null changed IFD");
         Objects.requireNonNull(placement, "Null IFD placement");
         if (mainIFDIndex < 0) {
@@ -1930,7 +1934,7 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    public void deleteIFD(int mainIFDIndex) throws IOException {
+    public final void deleteIFD(int mainIFDIndex) throws IOException {
         if (mainIFDIndex < 0) {
             throw new IllegalArgumentException("Negative IFD index: " + mainIFDIndex);
         }
@@ -1976,7 +1980,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * Resets all accumulated internal timing statistics used for the
      * {@link #internalTimingReport() timing report}.
      */
-    public void resetTiming() {
+    public final void resetTiming() {
         timeWriting = 0;
         timeCustomizingEncoding = 0;
         timePreparingEncoding = 0;
@@ -1989,7 +1993,7 @@ public non-sealed class TiffWriter extends TiffIO {
     /**
      * Returns detailed internal timing statistics for TIFF encoding and writing.
      */
-    public String internalTimingReport() {
+    public final String internalTimingReport() {
         return String.format(Locale.ROOT,
                 "%.3f prepare, " +
                         "%.3f customize, " +

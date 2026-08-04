@@ -67,8 +67,9 @@ class TiffReaderWithGrid extends TiffReader {
     }
 
     @Override
-    public TiffTile readTile(TiffTileIndex tileIndex) throws IOException {
-        final TiffTile tile = super.readTile(tileIndex);
+    public TiffTile readTile(TiffTileIndex tileIndex, TiffTile.DuplicateHandling duplicateHandling)
+            throws IOException {
+        final TiffTile tile = super.readTile(tileIndex, duplicateHandling);
         if (viewTileGrid && tileGridThickness > 0) {
             addTileBorder(tile);
         }

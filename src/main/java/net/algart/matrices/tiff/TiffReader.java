@@ -740,7 +740,7 @@ public non-sealed class TiffReader extends TiffIO {
      * where the offset (the {@code TileOffsets} or {@code StripOffsets} tag) and/or
      * the byte count (the {@code TileByteCounts} or {@code StripByteCounts} tag) is zero.
      * In this mode, such tiles or strips are treated as missing and will be successfully
-     * read as empty rectangles filled with the {@link #setByteFiller(byte) default filler}
+     * read as empty rectangles filled with the {@link #3(byte) default filler}
      * or via the {@link #setTileInitializer(Consumer) tile initializer}.
      *
      * <p>The default value is {@code true} (this mode is enabled).
@@ -819,7 +819,7 @@ public non-sealed class TiffReader extends TiffIO {
      *
      * @return whether this file or directory exists.
      */
-    public boolean isExistingFile() {
+    public final boolean isExistingFile() {
         return existingFile;
     }
 
@@ -829,7 +829,7 @@ public non-sealed class TiffReader extends TiffIO {
      * @return number of existing IFDs.
      * @throws IOException in the case of any problems with the input file.
      */
-    public int numberOfImages() throws IOException {
+    public final int numberOfImages() throws IOException {
         return allIFDs().size();
     }
 
@@ -843,7 +843,7 @@ public non-sealed class TiffReader extends TiffIO {
      *
      * @return number of existing IFDs.
      */
-    public int numberOfImagesUnchecked() {
+    public final int numberOfImagesUnchecked() {
         try {
             return allIFDs().size();
         } catch (IOException e) {
@@ -851,7 +851,7 @@ public non-sealed class TiffReader extends TiffIO {
         }
     }
 
-    public int numberOfMainImages() throws IOException {
+    public final int numberOfMainImages() throws IOException {
         return mainIFDs().size();
     }
 
@@ -868,7 +868,7 @@ public non-sealed class TiffReader extends TiffIO {
      * @throws IOException              in the case of any problems with the input file.
      * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
      */
-    public TiffIFD ifd(int ifdIndex) throws IOException {
+    public final TiffIFD ifd(int ifdIndex) throws IOException {
         List<TiffIFD> allIFDs = allIFDs();
         if (ifdIndex < 0) {
             throw new IllegalArgumentException("Negative IFD index " + ifdIndex);
@@ -891,7 +891,7 @@ public non-sealed class TiffReader extends TiffIO {
      * @return width of this image.
      * @throws IOException in the case of any problems with the input file.
      */
-    public int dimX(int ifdIndex) throws IOException {
+    public final int dimX(int ifdIndex) throws IOException {
         return ifd(ifdIndex).getImageDimX();
     }
 
@@ -907,7 +907,7 @@ public non-sealed class TiffReader extends TiffIO {
      * @return height of this image.
      * @throws IOException in the case of any problems with the input file.
      */
-    public int dimY(int ifdIndex) throws IOException {
+    public final int dimY(int ifdIndex) throws IOException {
         return ifd(ifdIndex).getImageDimY();
     }
 
@@ -924,7 +924,7 @@ public non-sealed class TiffReader extends TiffIO {
      * @return number of channels in this image.
      * @throws IOException in the case of any problems with the input file.
      */
-    public int numberOfChannels(int ifdIndex) throws IOException {
+    public final int numberOfChannels(int ifdIndex) throws IOException {
         return ifd(ifdIndex).getSamplesPerPixel();
     }
 
@@ -939,11 +939,11 @@ public non-sealed class TiffReader extends TiffIO {
      * @throws IOException              in the case of any problems with the input file.
      * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
      */
-    public TiffReadMap map(int ifdIndex) throws IOException {
+    public final TiffReadMap map(int ifdIndex) throws IOException {
         return map(ifd(ifdIndex));
     }
 
-    public List<TiffReadMap> allMaps() throws IOException {
+    public final List<TiffReadMap> allMaps() throws IOException {
         final List<TiffReadMap> result = new ArrayList<>();
         for (TiffIFD tiffIFD : allIFDs()) {
             result.add(map(tiffIFD));
@@ -978,7 +978,7 @@ public non-sealed class TiffReader extends TiffIO {
      * @throws IOException   in the case of any problems with the input file.
      * @see #mainIFDs()
      */
-    public List<TiffIFD> allIFDs() throws IOException {
+    public final List<TiffIFD> allIFDs() throws IOException {
         long t1 = debugTime();
         List<TiffIFD> allIFDs;
         synchronized (fileLock) {
@@ -1033,26 +1033,26 @@ public non-sealed class TiffReader extends TiffIO {
         return allIFDs;
     }
 
-    public List<TiffIFD> mainIFDs() throws IOException {
+    public final List<TiffIFD> mainIFDs() throws IOException {
         synchronized (fileLock) {
             allIFDs();
             return mainIFDs;
         }
     }
 
-    public Optional<TiffIFD> exifIFD(TiffIFD ifd) throws IOException {
+    public final Optional<TiffIFD> exifIFD(TiffIFD ifd) throws IOException {
         return linkedIFD(ifd, Tags.EXIF_IFD);
     }
 
-    public Optional<TiffIFD> gpsIFD(TiffIFD ifd) throws IOException {
+    public final Optional<TiffIFD> gpsIFD(TiffIFD ifd) throws IOException {
         return linkedIFD(ifd, Tags.GPS_IFD);
     }
 
-    public Optional<TiffIFD> interoperabilityIFD(TiffIFD ifd) throws IOException {
+    public final Optional<TiffIFD> interoperabilityIFD(TiffIFD ifd) throws IOException {
         return linkedIFD(ifd, Tags.INTEROPERABILITY_IFD);
     }
 
-    public Optional<TiffIFD> linkedIFD(TiffIFD ifd, int linkedIFDTag) throws IOException {
+    public final Optional<TiffIFD> linkedIFD(TiffIFD ifd, int linkedIFDTag) throws IOException {
         Objects.requireNonNull(ifd, "Null IFD");
         if (ifd.hasTag(linkedIFDTag)) {
             final long ifdOffset = ifd.reqLong(linkedIFDTag);
@@ -1445,11 +1445,11 @@ public non-sealed class TiffReader extends TiffIO {
         */
     }
 
-    public TiffReadMap map(TiffIFD ifd) throws TiffException {
+    public final TiffReadMap map(TiffIFD ifd) throws TiffException {
         return map(ifd, MapOption.DEFAULT);
     }
 
-    public TiffReadMap map(TiffIFD ifd, Set<MapOption> options) throws TiffException {
+    public final TiffReadMap map(TiffIFD ifd, Set<MapOption> options) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         Objects.requireNonNull(options, "Null options");
         final TiffReadMap map = new TiffReadMap(this, ifd);
@@ -1468,7 +1468,7 @@ public non-sealed class TiffReader extends TiffIO {
      *
      * @return last map, created by this object.
      */
-    public TiffReadMap lastMap() {
+    public final TiffReadMap lastMap() {
         return lastMap;
     }
 
@@ -1483,31 +1483,31 @@ public non-sealed class TiffReader extends TiffIO {
      * @throws IOException              in the case of any problems with the input file.
      * @throws IllegalArgumentException if <code>ifdIndex&lt;0</code>.
      */
-    public byte[] readSampleBytes(int ifdIndex) throws IOException {
+    public final byte[] readSampleBytes(int ifdIndex) throws IOException {
         return map(ifdIndex).readSampleBytes();
     }
 
-    public Object readJavaArray(int ifdIndex) throws IOException {
+    public final Object readJavaArray(int ifdIndex) throws IOException {
         return map(ifdIndex).readJavaArray();
     }
 
-    public Matrix<UpdatablePArray> readMatrix(int ifdIndex) throws IOException {
+    public final Matrix<UpdatablePArray> readMatrix(int ifdIndex) throws IOException {
         return map(ifdIndex).readMatrix();
     }
 
-    public Matrix<UpdatablePArray> readInterleavedMatrix(int ifdIndex) throws IOException {
+    public final Matrix<UpdatablePArray> readInterleavedMatrix(int ifdIndex) throws IOException {
         return map(ifdIndex).readInterleavedMatrix();
     }
 
-    public List<Matrix<UpdatablePArray>> readChannels(int ifdIndex) throws IOException {
+    public final List<Matrix<UpdatablePArray>> readChannels(int ifdIndex) throws IOException {
         return map(ifdIndex).readChannels();
     }
 
-    public BufferedImage readBufferedImage(int ifdIndex) throws IOException {
+    public final BufferedImage readBufferedImage(int ifdIndex) throws IOException {
         return map(ifdIndex).readBufferedImage();
     }
 
-    public byte[] decompressBySCIFIOCodec(TiffIFD ifd, byte[] encodedData, Object scifioCodecOptions)
+    public final byte[] decompressBySCIFIOCodec(TiffIFD ifd, byte[] encodedData, Object scifioCodecOptions)
             throws TiffException {
         final Object scifio = requireScifio(ifd);
         final int compressionCode = ifd.getCompressionCode();
@@ -1541,7 +1541,7 @@ public non-sealed class TiffReader extends TiffIO {
      * Resets all accumulated internal timing statistics used for the
      * {@link #internalTimingReport() timing report}.
      */
-    public void resetTiming() {
+    public final void resetTiming() {
         timeReading = 0;
         timeCustomizingDecoding = 0;
         timeDecoding = 0;
@@ -1554,7 +1554,7 @@ public non-sealed class TiffReader extends TiffIO {
     /**
      * Returns detailed internal timing statistics for TIFF decoding and reading.
      */
-    public String internalTimingReport() {
+    public final String internalTimingReport() {
         return String.format(Locale.ROOT,
                 "%.3f read; %.3f customize/bit-order, %.3f decode%s, %.3f completing",
                 timeReading * 1e-6,
