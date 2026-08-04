@@ -281,13 +281,14 @@ public non-sealed class TiffWriter extends TiffIO {
      * Universal constructor, called from other constructors.
      *
      * <p>Note: this method does not do anything with the file stream, in particular, does not call
-     * {@link #create()} method. You can do this later.
+     * the {@link #create()} method. You can do this later.
      *
-     * <p>This constructor works
+     * <p>This constructor works similarly to the {@link #TiffWriter(Path, OpenMode)} constructor with
+     * the {@link OpenMode#NO_ACTIONS} mode, but the argument is a file stream instead of a {@link Path}.
      *
      * <p>This constructor never throws an exception.
-     * This is helpful because it allows making constructors in subclasses,
-     * which do not declare any exceptions to be thrown.
+     * This is helpful because it allows creating constructors in subclasses
+     * that do not declare any checked exceptions.
      *
      * @param outputStream output stream.
      * @see #TiffWriter(Path, OpenMode)
