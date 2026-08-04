@@ -245,7 +245,15 @@ public non-sealed class TiffWriter extends TiffIO {
      * <p>In the case of the I/O exception, the file is automatically closed.
      *
      * <p>In all cases excepting {@link OpenMode#NO_ACTIONS},
-     * the behavior is alike {@link java.io.FileWriter#FileWriter(File) FileWriter constructor}.
+     * the behavior is alike {@link java.io.FileWriter#FileWriter(File) FileWriter constructor}.</p>
+     *
+     * <p>In the case {@link OpenMode#NO_ACTIONS}, this method is equivalent to calling the universal constructor
+     * {@link #TiffWriter(DataHandle)} for the stream, created by the call
+     * <pre>
+     * new {@link org.scijava.io.handle.FileHandle#FileHandle(org.scijava.io.location.FileLocation)
+     * FileHandle}(new {@link org.scijava.io.location.FileLocation#FileLocation(java.io.File)
+     * FileLocation}(file.toFile()))
+     * </pre>
      *
      * <p>This constructor is the simplest way to create a new TIFF file and automatically open
      * it by writing the standard TIFF header. After that, this object is ready for adding new TIFF images.
@@ -714,13 +722,15 @@ public non-sealed class TiffWriter extends TiffIO {
 
     /**
      * Clears the reference to the <i>current companion reader</i> stored inside this object
-     * and returned by {@link #companionReader()} method.
-     * Ensures that the next call of {@link #companionReader()} will create a new reader.
-     * Usually you don't need to call this method because it is called automatically.
+     * and returned by the {@link #companionReader()} method.
+     * Ensures that the next call to {@link #companionReader()} will create a new reader.
+     * Usually, you do not need to call this method manually because it is called automatically.
      *
-     * <p>Note: this method <i>does not</i> clear the information, returned by {@link #readLinkage()}.
-     * These offsets are used only for automatic IFD linkage by {@link #writeIFD(TiffIFD, Linkage.UpdateMode)}
-     * method and are not important if you perform the linkage manually.</p>
+     * <p>Note: this method <i>does not</i> clear the information returned by {@link #linkage()}
+     * (which can be cleared by {@link #invalidateLinkage()}).
+     * These offsets are used only for automatic IFD linkage by the
+     * {@link #writeIFD(TiffIFD, TiffIFD.Linkage.UpdateMode)} method
+     * and are not important if you perform the linkage manually.</p>
      */
     public final void invalidateCompanionReader() {
         synchronized (fileLock) {
@@ -749,14 +759,14 @@ public non-sealed class TiffWriter extends TiffIO {
      *     <li>writing an IFD into the file;</li>
      *     <li>writing a tile into the file ({@link #writeEncodedTile(TiffTile, boolean)} method);</li>
      *     <li>correction of the IFD offset by {@link #rewriteIFDOffset(int, long)} or
-     *     {@link #rewriteLastIFDOffset(long)} method.</li>
+     *     {@link #rewriteLastIFDOffset(long)} methods.</li>
      * </ul>
      *
      * <p>This reader is created by the following call:</p>
      * <pre>{@link #getCompanionReaderFactory()}.{@link TiffReader.Factory#newReader()
      * newReader()}</pre>
-     * <p>By default, it means calling the {@link #newSharedReader()} method
-     * which use {@link TiffReader.OpenMode#NO_CHECKS} creation mode.</p>
+     * <p>By default, it means calling the {@link #newSharedReader()} method,
+     * which uses {@link TiffReader.OpenMode#NO_CHECKS} creation mode.</p>
      *
      * <p>Note that the cache in the returned reader is enabled by default.
      * Therefore, you may use the {@link TiffWriteMap} served by this companion reader
@@ -764,9 +774,9 @@ public non-sealed class TiffWriter extends TiffIO {
      * If the only goal of the {@link TiffWriteMap} is to modify the TIFF and then commit changes
      * via {@link TiffWriteMap#flushCompletedTiles(Collection)} or {@link TiffWriteMap#completeWriting()},
      * you may disable caching by explicitly calling {@link TiffReader#disableCaching()} on the reader returned by
-     * {@link #companionReader()}. Note that single-use operations (read, write, and flush) generally
+     * this method. Note that single-use operations (read, write, and flush) generally
      * do not spend memory even with caching enabled.</p>
-
+     *
      * <p>You may change the default behavior using the
      * {@link #setCompanionReaderFactory(TiffReader.Factory)} method.</p>
      *
@@ -791,7 +801,7 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Creates a new "companion" TIFF reader for reading the same TIFF,
+     * Creates a new "companion" TIFF reader for reading this TIFF,
      * which shares the same file {@link #stream() stream} with this writer.
      *
      * <p>This method is almost equivalent to:
@@ -818,7 +828,7 @@ public non-sealed class TiffWriter extends TiffIO {
      */
     public final TiffReader newSharedReader() {
         try {
-            return new TiffReader(stream, TiffReader.OpenMode.NO_CHECKS, false);
+            return new TiffReader(stream, filePath, TiffReader.OpenMode.NO_CHECKS, false);
         } catch (IOException e) {
             throw new AssertionError("IOException is impossible in NO_CHECKS mode", e);
         }
@@ -2772,5 +2782,4 @@ public non-sealed class TiffWriter extends TiffIO {
         }
         return getFileHandle(file);
     }
-
 }

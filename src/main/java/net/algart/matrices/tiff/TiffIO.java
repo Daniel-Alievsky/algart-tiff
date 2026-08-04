@@ -415,7 +415,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * @return the path to the TIFF file, or an empty {@code Optional} if there is no associated file path.
      */
-    public final Optional<Path> path() {
+    public final Optional<Path> filePath() {
         return Optional.ofNullable(filePath);
     }
 

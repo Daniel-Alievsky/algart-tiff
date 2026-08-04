@@ -454,8 +454,8 @@ public final class TiffCopier {
     public static void checkDifferentFiles(TiffWriter writer, TiffReader reader) throws IOException {
         Objects.requireNonNull(writer, "Null TIFF writer");
         Objects.requireNonNull(reader, "Null TIFF reader");
-        final Path source = reader.path().orElse(null);
-        final Path target = writer.path().orElse(null);
+        final Path source = reader.filePath().orElse(null);
+        final Path target = writer.filePath().orElse(null);
         checkDifferentFiles(source, target);
     }
 
