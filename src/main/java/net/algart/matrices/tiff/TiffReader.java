@@ -130,13 +130,12 @@ public non-sealed class TiffReader extends TiffIO {
     @FunctionalInterface
     public interface Factory {
         /**
-         * Creates a new {@link TiffReader} instance for the specified input stream.
+         * Creates a new {@link TiffReader} instance.
          *
-         * @param inputStream input stream.
          * @return a new TIFF reader.
          * @throws IOException in the case of any problems with the input file.
          */
-        TiffReader newReader(DataHandle<?> inputStream) throws IOException;
+        TiffReader newReader() throws IOException;
     }
 
     public static final boolean DEFAULT_RESCALE_WHEN_INCREASING_BIT_DEPTH = true;

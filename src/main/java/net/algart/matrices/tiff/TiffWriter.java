@@ -170,7 +170,7 @@ public non-sealed class TiffWriter extends TiffIO {
     private Double losslessCompressionLevel = null;
     private boolean alwaysWriteToFileEnd = false;
     private boolean missingTilesAllowed = false;
-    private TiffReader.Factory companionReaderFactory = this::defaultCompanionReader;
+    private TiffReader.Factory companionReaderFactory = this::newSharedReader;
 
     private volatile TiffReader reader = null;
     private volatile Linkage linkage = null;
@@ -311,8 +311,8 @@ public non-sealed class TiffWriter extends TiffIO {
      * The default order is <b>big-endian</b>.
      *
      * @param byteOrder desired byte order.
-     * @throws NullPointerException if the argument is <code>null</code>.
      * @return a reference to this object.
+     * @throws NullPointerException if the argument is <code>null</code>.
      */
     public TiffWriter setByteOrder(ByteOrder byteOrder) {
         Objects.requireNonNull(byteOrder);
@@ -598,11 +598,11 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Sets the factory used by {@link #companionReader()} and {@link #newCompanionReader()} methods.
+     * Sets the factory used by the {@link #companionReader()} method.
      * Can be helpful if you want to change or customize a companion reader created internally in some
      * high-level methods such as {@link TiffWriteMap#readMatrixAndStore}.
      *
-     * <p>By default, this factory is set to the {@link #defaultCompanionReader(DataHandle)} method.</p>
+     * <p>By default, this factory is set to the {@link #newSharedReader()} method.</p>
      *
      * @param companionReaderFactory new factory for the companion reader.
      * @return a reference to this object.
@@ -619,9 +619,9 @@ public non-sealed class TiffWriter extends TiffIO {
 
     public TiffWriter setDefaultCompanionReaderFactory(Consumer<? super TiffReader> customizerAfterCreation) {
         final TiffReader.Factory factory = customizerAfterCreation == null ?
-                this::defaultCompanionReader :
-                stream -> {
-                    TiffReader reader = defaultCompanionReader(stream);
+                this::newSharedReader :
+                () -> {
+                    TiffReader reader = newSharedReader();
                     customizerAfterCreation.accept(reader);
                     return reader;
                 };
@@ -752,9 +752,21 @@ public non-sealed class TiffWriter extends TiffIO {
      *     {@link #rewriteLastIFDOffset(long)} method.</li>
      * </ul>
      *
-     * <p>This reader is created by the {@link #newCompanionReader()} method.
-     * By default, this means {@link TiffReader.OpenMode#NO_CHECKS} creation mode.</p>
+     * <p>This reader is created by the following call:</p>
+     * <pre>{@link #getCompanionReaderFactory()}.{@link TiffReader.Factory#newReader()
+     * newReader()}</pre>
+     * <p>By default, this means calling the {@link #newSharedReader()} method
+     * which use {@link TiffReader.OpenMode#NO_CHECKS} creation mode.</p>
      *
+     * <p>Note that the cache in the returned reader is enabled by default.
+     * Therefore, you may use the {@link TiffWriteMap} served by this companion reader
+     * for usual access to the TIFF image, for example, in an image viewer or editor.
+     * If the only goal of the {@link TiffWriteMap} is to modify the TIFF and then commit changes
+     * via {@link TiffWriteMap#flushCompletedTiles(Collection)} or {@link TiffWriteMap#completeWriting()},
+     * you may disable caching by explicitly calling {@link TiffReader#disableCaching()} on the reader returned by
+     * {@link #companionReader()}. Note that single-use operations (read, write, and flush) generally
+     * do not spend memory even with caching enabled.</p>
+
      * <p>You may change the default behavior using the
      * {@link #setCompanionReaderFactory(TiffReader.Factory)} method.</p>
      *
@@ -767,7 +779,7 @@ public non-sealed class TiffWriter extends TiffIO {
         synchronized (fileLock) {
             if (this.reader == null) {
                 needToCreate = true;
-                this.reader = newCompanionReader();
+                this.reader = getCompanionReaderFactory().newReader();
             }
             result = this.reader;
         }
@@ -779,41 +791,21 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Creates a new "companion" TIFF reader for reading the same file {@link #stream() stream}
-     * used by this object.
-     * This reader is created using the {@link #setCompanionReaderFactory(TiffReader.Factory)
-     * companion reader factory}:
+     * Creates a new "companion" TIFF reader for reading the same TIFF,
+     * which shares the same file {@link #stream() stream} with this writer.
      *
-     * <pre>writer.{@link #getCompanionReaderFactory()}.{@link TiffReader.Factory#newReader(DataHandle)
-     * newReader}(writer.{@link #stream()})</pre>
+     * <p>TThis method is almost equivalent to:
      *
-     * <p>By default, this means {@link TiffReader.OpenMode#NO_CHECKS} creation mode and
-     * disabled caching.</p>
+     * <pre>new {@link TiffReader#TiffReader(DataHandle, TiffReader.OpenMode, boolean)
+     *       TiffReader}(stream, {@link TiffReader.OpenMode#NO_CHECKS}, false)</pre>
+     *
+     * <p>The only difference is that this method catches and suppresses {@link IOException}:
+     * such exceptions are impossible when using {@link TiffReader.OpenMode#NO_CHECKS} mode.</p>
      *
      * <p><b>Do not close</b> this reader independently: the shared stream will be closed
      * automatically when closing this writer.</p>
      *
-     * <p>This method is used inside {@link #companionReader()} for creating a new instance.</p>
-     *
-     * @return a new TIFF reader.
-     * @throws IOException if an I/O error occurs.
-     * @see #companionReader()
-     */
-    public final TiffReader newCompanionReader() throws IOException {
-        return getCompanionReaderFactory().newReader(stream());
-    }
-
-    /**
-     * The default implementation of the {@link #setCompanionReaderFactory(TiffReader.Factory)
-     * companion reader factory}. This method is almost equivalent to:
-     *
-     * <pre>new {@link TiffReader#TiffReader(DataHandle, TiffReader.OpenMode, boolean)
-     * TiffReader}(stream, {@link TiffReader.OpenMode#NO_CHECKS}, false)</pre>
-     *
-     * <p>However, this method catches and suppresses {@link IOException}: such exceptions are impossible
-     * in {@link TiffReader.OpenMode#NO_CHECKS} mode.</p>
-     *
-     * <p>Caching in the reader is enabled (this is the default setting).
+     * <p>Note that the cache in the returned reader is enabled by default.
      * Therefore, you may use the {@link TiffWriteMap} served by this companion reader
      * for usual access to the TIFF image, for example, in an image viewer or editor.
      * If the only goal of the {@link TiffWriteMap} is to modify the TIFF and then commit changes
@@ -822,14 +814,13 @@ public non-sealed class TiffWriter extends TiffIO {
      * {@link #companionReader()}. Note that single-use operations (read, write, and flush) generally
      * do not spend memory even with caching enabled.</p>
      *
-     * @param stream input stream.
      * @return a new TIFF reader.
      */
-    public TiffReader defaultCompanionReader(DataHandle<?> stream) {
+    public TiffReader newSharedReader() {
         try {
-            return new TiffReader(stream, TiffReader.OpenMode.NO_CHECKS, false);
+            return new TiffReader(this.stream, TiffReader.OpenMode.NO_CHECKS, false);
         } catch (IOException e) {
-            throw new AssertionError("Impossible in NO_CHECKS mode", e);
+            throw new AssertionError("IOException is impossible in NO_CHECKS mode", e);
         }
     }
 
@@ -1561,12 +1552,12 @@ public non-sealed class TiffWriter extends TiffIO {
      * <p>Note: this method calls {@link TiffIFD#freeze() freeze} for
      * the passed <code>ifd</code>. So you should use this method after completely building IFD.</p>
      *
-     * @param ifd                newly created and probably customized IFD.
-     * @param resizable          if <code>true</code>, IFD dimensions may not be specified yet: this argument is
-     *                           passed to {@link
-     *                           TiffWriteMap#TiffWriteMap(TiffWriter, TiffIFD, boolean, boolean)}
-     *                           constructor for creating the new map.
-     * @param options additional options; usually {@link MapOption#CORRECTION_SET}.
+     * @param ifd       newly created and probably customized IFD.
+     * @param resizable if <code>true</code>, IFD dimensions may not be specified yet: this argument is
+     *                  passed to {@link
+     *                  TiffWriteMap#TiffWriteMap(TiffWriter, TiffIFD, boolean, boolean)}
+     *                  constructor for creating the new map.
+     * @param options   additional options; usually {@link MapOption#CORRECTION_SET}.
      * @return map for writing further data.
      * @throws TiffException in the case of some problems.
      */

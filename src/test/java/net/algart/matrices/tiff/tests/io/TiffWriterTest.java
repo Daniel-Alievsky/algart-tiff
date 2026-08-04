@@ -309,7 +309,7 @@ public class TiffWriterTest {
                 writer.setTileInitializer(TiffWriterTest::customFillEmptyTile);
                 writer.setAlwaysWriteToFileEnd(alwaysToEnd);
                 writer.setMissingTilesAllowed(allowMissing);
-                writer.setCompanionReaderFactory(TiffWriterTest::demoCompanionReader);
+                writer.setCompanionReaderFactory(() -> demoCompanionReader(writer));
                 System.out.printf("%nTest #%d/%d: %s %s%s by %s...%n",
                         test, numberOfTests,
                         existingFile ? "writing to" : "creating",
@@ -733,9 +733,9 @@ public class TiffWriterTest {
         };
     }
 
-    public static TiffReader demoCompanionReader(DataHandle<?> stream) throws IOException {
-        System.out.printf("~~~ TiffWriterTest creates a new companion reader for %s...%n", TiffIO.streamName(stream));
-        return new TiffReader(stream, TiffReader.OpenMode.VALID_TIFF, false);
+    public static TiffReader demoCompanionReader(TiffWriter writer) throws IOException {
+        System.out.printf("~~~ TiffWriterTest creates a new companion reader for %s...%n", writer.streamName());
+        return new TiffReader(writer.stream(), TiffReader.OpenMode.VALID_TIFF, false);
         // - why not? Exception is possible, but very improbable
     }
 }
