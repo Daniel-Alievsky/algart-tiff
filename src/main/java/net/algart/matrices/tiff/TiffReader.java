@@ -152,7 +152,7 @@ public non-sealed class TiffReader extends TiffIO {
     private static final boolean AUTO_BUFFERING_INPUT_STREAM = true;
     // - should be true for good performance
 
-    private final DataHandle<?> unwrappedStream;
+    private final DataHandle<?> originalStream;
     private volatile boolean caching = true;
     private volatile long maxCacheMemory = DEFAULT_MAX_CACHING_MEMORY;
     private boolean rescaleWhenIncreasingBitDepth = DEFAULT_RESCALE_WHEN_INCREASING_BIT_DEPTH;
@@ -404,7 +404,7 @@ public non-sealed class TiffReader extends TiffIO {
                 file);
         // - Note: the argument inputStream cannot be ReadBufferDataHandle if we use TiffWriter.newReader method.
         // ReadBufferDataHandle is read-only (cannot write anything), so it cannot be used in TiffWriter.
-        this.unwrappedStream = inputStream;
+        this.originalStream = inputStream;
         this.openingException = startReading(openMode);
         // - in the current version, a TIFF but invalid can be detected when
         // its length < MINIMAL_ALLOWED_TIFF_FILE_LENGTH (see testHeader())
@@ -787,8 +787,10 @@ public non-sealed class TiffReader extends TiffIO {
     }
 
     @Override
-    public DataHandle<?> unwrappedStream() {
-        return unwrappedStream;
+    public DataHandle<?> originalStream() {
+        synchronized (fileLock) {
+            return originalStream;
+        }
     }
 
     /**
@@ -798,7 +800,7 @@ public non-sealed class TiffReader extends TiffIO {
      * <p>This method is equivalent to:</p>
      * <pre>
      * {@link TiffWriter} result = new {@link TiffWriter#TiffWriter(DataHandle)
-     * TiffWriter}({@link #unwrappedStream()});
+     * TiffWriter}({@link #originalStream()});
      * result.{@link TiffWriter#openExisting() openExisting()};
      * </pre>
      *
@@ -810,7 +812,7 @@ public non-sealed class TiffReader extends TiffIO {
      * @see TiffWriter#newSharedReader()
      */
     public final TiffWriter newSharedWriter() throws IOException {
-        final TiffWriter result = new TiffWriter(unwrappedStream(), filePath);
+        final TiffWriter result = new TiffWriter(originalStream(), filePath);
         result.openExisting();
         return result;
     }

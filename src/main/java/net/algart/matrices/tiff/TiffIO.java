@@ -421,7 +421,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     }
 
     /**
-     * Returns the input/output stream used for operation with this TIFF file.
+     * Returns the input/output stream used for operations with this TIFF file.
      *
      * @return the {@link DataHandle} for this TIFF file; never {@code null}.
      * @see #fileLock()
@@ -434,20 +434,20 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     }
 
     /**
-     * Returns the original stream which has been used while creating this object.
+     * Returns the original stream that was passed when creating this object.
      *
-     * <p>Note that the {@link TiffReader} automatically wraps the stream
-     * with {@link ReadBufferDataHandle} if the stream, specified in the constructor while creating
-     * the reader, is not an instance of that class. This method returns the original (unwrapped) stream.
-     * Unlike {@link ReadBufferDataHandle} (read-only stream), the result of this method can be passed
-     * to a {@link TiffWriter} constructor.</p>
+     * <p>Note that {@link TiffReader} automatically wraps the stream
+     * with {@link ReadBufferDataHandle} if the stream specified in the constructor
+     * is not an instance of that class. This method returns the original (unwrapped) stream.
+     * Unlike {@link ReadBufferDataHandle} (which is a read-only stream), the result of this method
+     * can be passed to a {@link TiffWriter} constructor.</p>
      *
-     * <p>In the {@link TiffWriter} class, this method is equivalent to {@link #stream()}</p>
+     * <p>In the {@link TiffWriter} class, this method is equivalent to {@link #stream()}.</p>
      *
-     * @return the original {@link DataHandle} for this TIFF file without possible buffering; never {@code null}.
+     * @return the original {@link DataHandle} for this TIFF file without buffering wrappers; never {@code null}.
      * @see #fileLock()
      */
-    public DataHandle<?> unwrappedStream() {
+    public DataHandle<?> originalStream() {
         return stream();
     }
 
