@@ -788,30 +788,19 @@ public non-sealed class TiffReader extends TiffIO {
      * Creates a new "companion" TIFF writer for rewriting or appending this TIFF,
      * which shares the same file {@link #stream() stream} with this reader.
      *
-     * <p>This method is equivalent to:
+     * <p>This method is equivalent to:</p>
+     * <pre>
+     * {@link TiffWriter} result = new {@link TiffWriter#TiffWriter(DataHandle) TiffWriter})(stream);
+     * result.{@link TiffWriter#openExisting() openExisting()};
+     * </pre>
      *
-     * <pre>new {@link TiffReader#TiffReader(DataHandle, TiffReader.OpenMode, boolean)
-     *       TiffReader}({@link #stream()}, {@link TiffReader.OpenMode#NO_CHECKS}, false)</pre>
-     *
-     * <p>The only difference is that this method catches and suppresses {@link IOException}:
-     * such exceptions are impossible when using {@link TiffReader.OpenMode#NO_CHECKS} mode.</p>
-     *
-     * <p><b>Do not close</b> this reader independently: the shared stream will be closed
-     * automatically when closing this writer.</p>
-     *
-     * <p>Note that the cache in the returned reader is enabled by default.
-     * Therefore, you may use the {@link TiffWriteMap} served by this companion reader
-     * for usual access to the TIFF image, for example, in an image viewer or editor.
-     * If the only goal of the {@link TiffWriteMap} is to modify the TIFF and then commit changes
-     * via {@link TiffWriteMap#flushCompletedTiles(Collection)} or {@link TiffWriteMap#completeWriting()},
-     * you may disable caching by explicitly calling {@link TiffReader#disableCaching()} on the reader returned by
-     * {@link #companionReader()}. Note that single-use operations (read, write, and flush) generally
-     * do not spend memory even with caching enabled.</p>
+     * <p><b>Do not close</b> the returned writer independently: the shared stream will be closed
+     * automatically when closing this reader.</p>
      *
      * @return a new TIFF reader.
      */
     public final TiffWriter newSharedWriter() throws IOException {
-        final TiffWriter result = new TiffWriter(stream);
+        final TiffWriter result = new TiffWriter(stream, filePath);
         result.openExisting();
         return result;
     }

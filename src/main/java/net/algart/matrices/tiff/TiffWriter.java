@@ -190,17 +190,17 @@ public non-sealed class TiffWriter extends TiffIO {
      * Equivalent to <code>new {@link #TiffWriter(Path, OpenMode)
      * TiffWriter}(file, {@link OpenMode#NO_ACTIONS})</code>.
      *
-     * <p>Note: unlike classes like {@link java.io.FileWriter},
-     * this constructor <b>does not try to open or create file</b>.
-     * If you need, you can use another constructor with the argument {@link OpenMode}, for example:</p>
+     * <p>Note: unlike classes such as {@link java.io.FileWriter},
+     * this constructor <b>does not try to open or create a file</b> on disk.
+     * If needed, you can use another constructor that takes an {@link OpenMode} argument, for example:</p>
      * <pre>
      *     {@link TiffWriter} writer = new {@link #TiffWriter(Path, OpenMode)
      *     TiffWriter}(path, {@link OpenMode#CREATE});
      * </pre>
      *
-     * <p>Note: this method is equivalent to calling the universal constructor
-     * {@link #TiffWriter(DataHandle)} for the stream created by the call
-     * {@link TiffIO#getFileHandle(Path) TiffIO.getFileHandle}(file).
+     * <p>This constructor is equivalent to calling the universal constructor
+     * {@link #TiffWriter(DataHandle)} for the stream created by
+     * {@link TiffIO#getFileHandle(Path) TiffIO.getFileHandle(file)}.</p>
      *
      * @param file output TIFF file.
      */
@@ -253,7 +253,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * <p>In the case of {@link OpenMode#NO_ACTIONS}, this method is equivalent to calling the universal constructor
      * {@link #TiffWriter(DataHandle)} for the stream created by the call
-     * {@link TiffIO#getFileHandle(Path) TiffIO.getFileHandle}(file).
+     * {@link TiffIO#getFileHandle(Path) TiffIO.getFileHandle(file)}.
      *
      * <p>This constructor is the simplest way to create a new TIFF file and automatically open
      * it by writing the standard TIFF header. After that, this object is ready for adding new TIFF images.
@@ -751,7 +751,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * {@link TiffWriteMap#readMatrixAndStore}. This reader is returned by the
      * {@link TiffWriteMap#reader()} method.</p>
      *
-     * <p><b>Do not close</b> this reader independently: the shared stream will be closed
+     * <p><b>Do not close</b> the returned reader independently: the shared stream will be closed
      * automatically when closing this writer.</p>
      *
      * <p>The returned instance is cached inside this object.
@@ -769,6 +769,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * <p>This reader is created by the following call:</p>
      * <pre>{@link #getCompanionReaderFactory()}.{@link TiffReader.Factory#newReader()
      * newReader()}</pre>
+     *
      * <p>By default, it means calling the {@link #newSharedReader()} method,
      * which uses {@link TiffReader.OpenMode#NO_CHECKS} creation mode.</p>
      *
@@ -816,7 +817,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * <p>The only difference is that this method catches and suppresses {@link IOException}:
      * such exceptions are impossible when using {@link TiffReader.OpenMode#NO_CHECKS} mode.</p>
      *
-     * <p><b>Do not close</b> this reader independently: the shared stream will be closed
+     * <p><b>Do not close</b> the returned reader independently: the shared stream will be closed
      * automatically when closing this writer.</p>
      *
      * <p>Note that the cache in the returned reader is enabled by default.
