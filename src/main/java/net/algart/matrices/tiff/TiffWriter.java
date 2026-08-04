@@ -209,12 +209,12 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * <p>If the argument <code>openMode</code> is {@link OpenMode#NO_ACTIONS},
      * the constructor does not try to open or create a file and, so, never
-     * throw {@link IOException}.
+     * throws an {@link IOException}.
      * This behavior <b>differs</b> from the constructor of {@link java.io.FileWriter#FileWriter(File) FileWriter}
      * and similar classes, which create and open a file.
      * In this case, you may create the file&nbsp;&mdash; or open an existing TIFF file&nbsp;&mdash; later via
-     * one of methods {@link #create()} or {@link #open(boolean)}.
-     * Before doing so, you can customize this object, for example, with help of
+     * one of the methods {@link #create()} or {@link #open(boolean)}.
+     * Before doing so, you can customize this object, for example, with the help of
      * {@link #setBigTiff(boolean)}, {@link #setLittleEndian(boolean)} and other methods.
      *
      * <p>If the argument <code>openMode</code> is one of the values
@@ -223,9 +223,9 @@ public non-sealed class TiffWriter extends TiffIO {
      * {@link OpenMode#CREATE_LE},
      * {@link OpenMode#CREATE_LE_BIG},
      * the constructor automatically removes the file at the specified path, if it exists,
-     * and calls {@link #create()} method.
+     * and calls the {@link #create()} method.
      * The variants {@link OpenMode#CREATE_BIG}, {@link OpenMode#CREATE_LE_BIG}
-     * create a file written in BigTIFF format (allowing to store &ge;4GB data).
+     * create a file written in BigTIFF format (allowing storage of &ge;4GB of data).
      * The variants {@link OpenMode#CREATE_LE}, {@link OpenMode#CREATE_LE_BIG}
      * create a file with little-endian byte order (the default is big-endian).
      *
@@ -239,16 +239,16 @@ public non-sealed class TiffWriter extends TiffIO {
      * as in the cases of {@link OpenMode#CREATE}, {@link OpenMode#CREATE_BIG},
      * {@link OpenMode#CREATE_LE}, {@link OpenMode#CREATE_LE_BIG}.
      *
-     * <p>The variant {@link OpenMode#OPEN_EXISTING} calls {@link #openExisting()} method;
+     * <p>The variant {@link OpenMode#OPEN_EXISTING} calls the {@link #openExisting()} method;
      * in this case, the BigTIFF mode and the byte order are determined automatically from the existing file.
      *
-     * <p>In the case of the I/O exception, the file is automatically closed.
+     * <p>In case of an I/O exception, the file is automatically closed.
      *
-     * <p>In all cases excepting {@link OpenMode#NO_ACTIONS},
-     * the behavior is alike {@link java.io.FileWriter#FileWriter(File) FileWriter constructor}.</p>
+     * <p>In all cases except {@link OpenMode#NO_ACTIONS},
+     * the behavior is similar to the {@link java.io.FileWriter#FileWriter(File) FileWriter constructor}.</p>
      *
-     * <p>In the case {@link OpenMode#NO_ACTIONS}, this method is equivalent to calling the universal constructor
-     * {@link #TiffWriter(DataHandle)} for the stream, created by the call
+     * <p>In the case of {@link OpenMode#NO_ACTIONS}, this method is equivalent to calling the universal constructor
+     * {@link #TiffWriter(DataHandle)} for the stream created by the call:</p>
      * <pre>
      * new {@link org.scijava.io.handle.FileHandle#FileHandle(org.scijava.io.location.FileLocation)
      * FileHandle}(new {@link org.scijava.io.location.FileLocation#FileLocation(java.io.File)
@@ -258,7 +258,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * <p>This constructor is the simplest way to create a new TIFF file and automatically open
      * it by writing the standard TIFF header. After that, this object is ready for adding new TIFF images.
      * Instead, you may use the single-argument constructor {@link #TiffWriter(Path)},
-     * perform necessary customizing, and then call {@link #create()} or {@link #open(boolean)} method.
+     * perform necessary customizing, and then call the {@link #create()} or {@link #open(boolean)} method.
      *
      * @param file     output TIFF file.
      * @param openMode specifies how the file should be opened or initialized (creating, appending, etc.).
@@ -283,11 +283,14 @@ public non-sealed class TiffWriter extends TiffIO {
      * <p>Note: this method does not do anything with the file stream, in particular, does not call
      * {@link #create()} method. You can do this later.
      *
+     * <p>This constructor works
+     *
      * <p>This constructor never throws an exception.
      * This is helpful because it allows making constructors in subclasses,
      * which do not declare any exceptions to be thrown.
      *
      * @param outputStream output stream.
+     * @see #TiffWriter(Path, OpenMode)
      */
     public TiffWriter(DataHandle<?> outputStream) {
         this(outputStream, null);
