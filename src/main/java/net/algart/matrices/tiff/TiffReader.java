@@ -405,7 +405,7 @@ public non-sealed class TiffReader extends TiffIO {
         // - Note: the argument inputStream cannot be ReadBufferDataHandle if we use TiffWriter.newReader method.
         // ReadBufferDataHandle is read-only (cannot write anything), so it cannot be used in TiffWriter.
         this.originalStream = inputStream;
-        this.openingException = startReading(openMode);
+        this.openingException = initializeReader(openMode);
         // - in the current version, a TIFF but invalid can be detected when
         // its length < MINIMAL_ALLOWED_TIFF_FILE_LENGTH (see testHeader())
         assert !(this.validTiff && !this.tiff);
@@ -481,7 +481,7 @@ public non-sealed class TiffReader extends TiffIO {
             synchronized (fileLock) {
                 // Lock order: tileCacheLock -> fileLock; we should use the same order in all places!
                 clearAllCache();
-                final IOException exception = startReading(OpenMode.VALID_TIFF);
+                final IOException exception = initializeReader(OpenMode.VALID_TIFF);
                 if (exception != null) {
                     throw exception;
                 }
@@ -1594,7 +1594,7 @@ public non-sealed class TiffReader extends TiffIO {
         return Optional.of(decodedData);
     }
 
-    private IOException startReading(OpenMode openMode) {
+    private IOException initializeReader(OpenMode openMode) {
         synchronized (fileLock) {
             try {
                 this.validTiff = false;
