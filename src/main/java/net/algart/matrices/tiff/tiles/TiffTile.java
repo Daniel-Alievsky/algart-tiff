@@ -69,6 +69,7 @@ public final class TiffTile {
     // Normal value is false.
 
     private final TiffMap map;
+    private final TiffSampleType sampleType;
     private final int samplesPerPixel;
     private final int normalizedBitDepth;
     private final int normalizedBitsPerPixel;
@@ -110,6 +111,7 @@ public final class TiffTile {
         this.index = Objects.requireNonNull(index, "Null tile index");
         this.map = index.map();
         assert this.map != null : "Null map for tile index " + index;
+        this.sampleType = map.sampleType();
         this.samplesPerPixel = map.tileSamplesPerPixel();
         this.normalizedBitDepth = map.normalizedBitDepth();
         this.normalizedBitsPerPixel = map.tileNormalizedBitsPerPixel();
@@ -170,18 +172,6 @@ public final class TiffTile {
         return samplesPerPixel;
     }
 
-    public boolean isBinary() {
-        return map.isBinary();
-    }
-
-    public boolean isWholeBytes() {
-        return map.isWholeBytes();
-    }
-
-    public boolean isRarePrecision() {
-        return map.isRarePrecision();
-    }
-
     /**
      * Returns the number of bits per each sample of this tile.
      * Always equal to {@link #map()}.{@link TiffMap#normalizedBitDepth() bitsPerSample()}.
@@ -228,7 +218,15 @@ public final class TiffTile {
     }
 
     public TiffSampleType sampleType() {
-        return map.sampleType();
+        return sampleType;
+    }
+
+    public boolean isBinary() {
+        return map.isBinary();
+    }
+
+    public boolean isRarePrecision() {
+        return map.isRarePrecision();
     }
 
     public Class<?> elementType() {

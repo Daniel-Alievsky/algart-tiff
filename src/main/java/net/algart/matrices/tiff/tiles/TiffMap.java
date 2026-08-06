@@ -209,7 +209,6 @@ public sealed class TiffMap permits TiffIOMap {
     private final int tileNormalizedBitsPerPixel;
     private final int combinedNormalizedBitsPerPixel;
     private final TiffSampleType sampleType;
-    private final boolean wholeBytes;
     private final boolean rarePrecision;
     private final Class<?> elementType;
     private final ByteOrder byteOrder;
@@ -298,12 +297,11 @@ public sealed class TiffMap permits TiffIOMap {
         this.tileNormalizedBitsPerPixel = tileSamplesPerPixel * normalizedBitDepth;
         this.combinedNormalizedBitsPerPixel = numberOfChannels * normalizedBitDepth;
         this.sampleType = ifd.sampleType();
-        this.wholeBytes = sampleType.isWholeBytes();
         this.rarePrecision = ifd.isRarePrecision();
-        if (this.wholeBytes != ((normalizedBitDepth & 7) == 0)) {
+        if (sampleType.isWholeBytes() != ((normalizedBitDepth & 7) == 0)) {
             throw new ConcurrentModificationException("Corrupted IFD, probably by a parallel thread" +
                     " (sample type " + sampleType + " is" +
-                    (wholeBytes ? "" : " NOT") +
+                    (sampleType.isWholeBytes() ? "" : " NOT") +
                     " whole-bytes, but we have " + normalizedBitDepth + " bits/sample)");
         }
         if (sampleType.isBinary() != (normalizedBitDepth == 1)) {
@@ -424,10 +422,6 @@ public sealed class TiffMap permits TiffIOMap {
         return sampleType.isBinary();
     }
 
-    public boolean isWholeBytes() {
-        return wholeBytes;
-    }
-
     /**
      * Returns {@code true} for the three cases of <i>rare precision</i>: the result of a
      * <code>{@link #ifd() ifd()}.{@link TiffIFD#isRarePrecision() isRarePrecision()}</code> call.
@@ -491,6 +485,7 @@ public sealed class TiffMap permits TiffIOMap {
     }
 
     public OptionalInt bytesPerSample() {
+        final boolean wholeBytes = sampleType.isWholeBytes();
         assert wholeBytes == ((normalizedBitDepth & 7) == 0) : "must be checked ins the constructor";
         return wholeBytes ? OptionalInt.of(normalizedBitDepth >>> 3) : OptionalInt.empty();
     }
@@ -1456,7 +1451,7 @@ public sealed class TiffMap permits TiffIOMap {
         if (numberOfChannels == 1) {
             return sampleBytes;
         }
-        if (!isWholeBytes()) {
+        if (!sampleType.isWholeBytes()) {
             throw new AssertionError("Non-whole bytes are impossible in valid TiffMap with 1 channel");
         }
         final int bytesPerSample = normalizedBitDepth >>> 3;

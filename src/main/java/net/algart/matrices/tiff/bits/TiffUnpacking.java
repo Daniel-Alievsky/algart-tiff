@@ -301,7 +301,7 @@ public class TiffUnpacking {
         final byte[] source = tile.getDecodedData();
         final byte[] result = new byte[tile.getSizeInBytes()];
         OptionalInt bytesPerSample = tile.bytesPerSample();
-        if (tile.isWholeBytes()) {
+        if (tile.sampleType().isWholeBytes()) {
             unpackWholeBytesAndInvertValues(
                     ifd,
                     result,
