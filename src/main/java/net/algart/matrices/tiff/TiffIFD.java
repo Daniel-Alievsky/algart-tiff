@@ -977,16 +977,6 @@ public final class TiffIFD {
      * should write this IFD at the end of the TIFF file.
      * When {@link TiffWriter} writes the IFD, it automatically sets this file offset.</p>
      *
-     * <p>You may set this file offset manually, for example, if you are going to overwrite an existing IFD
-     * without changing its location in the file:</p>
-     * <pre>
-     * ifd.{@link #assignFileOffsetOfIFDForWriting
-     * assignFileOffsetOfIFDForWriting}(ifd.{@link #getFileOffsetOfIFD()});
-     * </pre>
-     *
-     * <p>Such a correction is performed automatically
-     * by the {@link TiffWriter#existingIFD(int, boolean)} method.</p>
-     *
      * @param fileOffsetOfIFDForWriting the target file offset (must be even).
      * @return a reference to this IFD object.
      * @throws IllegalArgumentException if the offset is negative or odd.
@@ -1006,6 +996,27 @@ public final class TiffIFD {
         }
         this.fileOffsetOfIFDForWriting = fileOffsetOfIFDForWriting;
         return this;
+    }
+
+    /**
+     * Sets the <i>for-writing</i> file offset to be equal to original IFD offset where this IFD was read.
+     * Equivalent to:</p>
+     * <pre>
+     * ifd.{@link #assignFileOffsetOfIFDForWriting
+     * assignFileOffsetOfIFDForWriting}(ifd.{@link #getFileOffsetOfIFD()});
+     * </pre>
+     *
+     * <p>This call is needed if you are going to overwrite an existing IFD
+     * without changing its location in the file. Such a correction is performed automatically
+     * by the {@link TiffWriter#existingMap(TiffIFD)} method.</p>
+     *
+     * @return a reference to this IFD object.
+     * @throws IllegalStateException if the original IFD offset is not set.
+     * @see TiffWriter#writeIFD(TiffIFD, Linkage.UpdateMode)
+     * @see TiffWriter#completeWriting(TiffWriteMap)
+     */
+    public TiffIFD assignOriginalFileOffsetForWriting() {
+        return assignFileOffsetOfIFDForWriting(getFileOffsetOfIFD());
     }
 
     /**

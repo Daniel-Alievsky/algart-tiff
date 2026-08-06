@@ -1556,7 +1556,9 @@ public non-sealed class TiffWriter extends TiffIO {
             // - this is still necessary: ifd and TiffWriteMap must "know" about the actual file format
         }
         ifd.removeFileOffsetOfIFDForWriting();
-        // - this map is intended for writing to the file end
+        // - this map is intended for writing to the file end;
+        // this is important, for example, when we have written some TiffWriteMap and then
+        // try to write the result IFD again (2nd time)
         final TiffWriteMap map = new TiffWriteMap(this, ifd, resizable, false);
         prepareNewMap(map, options.contains(MapOption.BUILD_GRID));
         this.lastMap = map;
@@ -1623,7 +1625,8 @@ public non-sealed class TiffWriter extends TiffIO {
         }
         correctForEncoding(ifd, false, true);
         ifd.assignFileOffsetOfIFDForWriting(ifd.getFileOffsetOfIFD());
-        //TODO!! remove this from existingIFD
+        // - instruct the writer to write this IFD back to its place, for example,
+        // in the subsequent rewriteImageLayoutStrictlyInPlace
         final TiffWriteMap map = new TiffWriteMap(this, ifd, false, true);
         final long[] offsets = ifd.cachedTileOrStripOffsets();
         final long[] byteCounts = ifd.cachedTileOrStripByteCounts();
