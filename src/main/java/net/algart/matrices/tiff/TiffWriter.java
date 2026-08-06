@@ -942,7 +942,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * <code>ifd.{@link TiffIFD#isFileOffsetOfIFDForWritingAssigned() isFileOffsetOfIFDForWritingAssigned()}</code>,
      * throws {@code IllegalStateException} if not,
      * and then calls <code>{@link #writeIFD(TiffIFD, Linkage.UpdateMode)
-     * writeIFD}(ifd, {@link Linkage.UpdateMode#NONE})}</code>.
+     * writeIFD}(ifd, {@link Linkage.UpdateMode#NONE})</code>.
      *
      * <p><b>Be accurate</b>: this method can destroy an existing IFD or other data.
      * We recommend using it <b>only</b> when:
@@ -955,11 +955,11 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param ifd the IFD with an assigned <i>for-writing</i> file offset.
      * @return the offset where the IFD was written.
      * @throws IOException           if an I/O error occurs.
-     * @throws IllegalStateException if no offset was assigned to the IFD.
+     * @throws IllegalStateException if no <i>for-writing</i> file offset was assigned to the IFD.
      * @see TiffIFD#assignFileOffsetOfIFDForWriting(long)
      */
     @SuppressWarnings("UnusedReturnValue")
-    public final long writeIFDToAssignedOffset(TiffIFD ifd) throws IOException {
+    public final long writeIFDAtAssignedOffset(TiffIFD ifd) throws IOException {
         Objects.requireNonNull(ifd, "Null IFD");
         if (!ifd.isFileOffsetOfIFDForWritingAssigned()) {
             throw new IllegalStateException("Offset for writing IFD has not been assigned");
@@ -973,18 +973,17 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * <pre>
      * ifd.{@link TiffIFD#assignOriginalFileOffsetOfIFDForWriting() assignOriginalFileOffsetOfIFDForWriting()};
-     * {@link #writeIFD(TiffIFD, Linkage.UpdateMode) writeIFD}(ifd, {@link Linkage.UpdateMode#NONE})}
+     * {@link #writeIFD(TiffIFD, Linkage.UpdateMode) writeIFD}(ifd, {@link Linkage.UpdateMode#NONE})
      * </pre>
-     *
-     * <code>ifd.{@link TiffIFD#removeFileOffsetOfIFDForWriting() removeFileOffsetOfIFDForWriting()}</code>,
-     * and then calls <code></code>.
      *
      * @param ifd the IFD to write to the output stream.
      * @return the offset where this IFD was actually written.
      * @throws IllegalStateException if the {@link TiffIFD#getFileOffsetOfIFD() original IFD offset} is not set.
      * @throws IOException if an I/O error occurs.
      */
+    @SuppressWarnings("UnusedReturnValue")
     public final long writeIFDAtOriginalOffset(TiffIFD ifd) throws IOException {
+        Objects.requireNonNull(ifd, "Null IFD");
         ifd.assignOriginalFileOffsetOfIFDForWriting();
         return writeIFD(ifd, Linkage.UpdateMode.NONE);
         // Note: writeIFD will call invalidateLinkage() if this IFD is not actually "virgin"
@@ -996,7 +995,7 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * <pre>
      * ifd.{@link TiffIFD#removeFileOffsetOfIFDForWriting() removeFileOffsetOfIFDForWriting()};
-     * {@link #writeIFD(TiffIFD, Linkage.UpdateMode) writeIFD}(ifd, {@link Linkage.UpdateMode#NONE})}
+     * {@link #writeIFD(TiffIFD, Linkage.UpdateMode) writeIFD}(ifd, {@link Linkage.UpdateMode#NONE})
      * </pre>
      *
      * @param ifd the IFD to write to the output stream.
@@ -1004,6 +1003,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @throws IOException if an I/O error occurs.
      */
     public final long writeIFDAtFileEnd(TiffIFD ifd) throws IOException {
+        Objects.requireNonNull(ifd, "Null IFD");
         ifd.removeFileOffsetOfIFDForWriting();
         return writeIFD(ifd, Linkage.UpdateMode.NONE);
         // Note: writeIFD will call invalidateLinkage() if this IFD is not actually "virgin"
@@ -1926,7 +1926,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 // - restoring the IFD sequence
             } else {
                 // System.out.println("In place!");
-                this.writeIFDToAssignedOffset(changedIFD);
+                this.writeIFDAtOriginalOffset(changedIFD);
             }
         }
     }

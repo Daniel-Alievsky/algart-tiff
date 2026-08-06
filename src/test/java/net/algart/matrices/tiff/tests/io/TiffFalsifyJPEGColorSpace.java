@@ -88,7 +88,7 @@ public class TiffFalsifyJPEGColorSpace {
                 final TiffIFD cloneIFD = writeMap.ifd().copy();
                 // - writeMap is frozen and cannot be modified
                 cloneIFD.putPhotometric(after);
-                writer.writeIFDToAssignedOffset(cloneIFD);
+                writer.writeIFDAtAssignedOffset(cloneIFD);
                 // - replacing photometric interpretation in the already written IFD
             }
         }
