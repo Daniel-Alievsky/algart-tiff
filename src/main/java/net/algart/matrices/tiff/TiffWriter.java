@@ -1524,14 +1524,14 @@ public non-sealed class TiffWriter extends TiffIO {
      * {@link Tags#GPS_IFD GPS information} = {@value Tags#GPS_IFD GPS} and
      * {@link Tags#INTEROPERABILITY_IFD interoperability IFD} = {@value Tags#INTEROPERABILITY_IFD},
      * because this class does not support writing sub-IFDs or linked IFDs.
-     * If you still need to construct TIFF with such tags, you should use more low-level call of
-     * {@link TiffWriteMap} constructor.
+     * If you still need to construct a TIFF with such tags, you should use
+     * a more low-level call of the {@link TiffWriteMap} constructor.
      *
      * <p>Note: this method calls {@link TiffIFD#removeFileOffsetOfIFDForWriting()} for
      * the passed <code>ifd</code>. So, this IFD will be written to the new position at the file end.</p>
      *
      * <p>Note: this method calls {@link TiffIFD#freeze() freeze} for
-     * the passed <code>ifd</code>. So you should use this method after completely building IFD.</p>
+     * the passed <code>ifd</code>. So you should use this method after completely building the IFD.</p>
      *
      * @param ifd       newly created and probably customized IFD.
      * @param resizable if <code>true</code>, IFD dimensions may not be specified yet: this argument is
@@ -1574,7 +1574,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param ifd       newly created and probably customized IFD.
      * @param resizable if <code>true</code>, IFD dimensions may not be specified yet.
      * @return map for writing further data.
-     * @throws TiffException in the case of some problems.
+     * @throws TiffException in the case of some problems with this IFD.
      */
     public final TiffWriteMap newMap(TiffIFD ifd, boolean resizable) throws TiffException {
         return newMap(ifd, resizable, MapOption.DEFAULT);
@@ -1615,18 +1615,27 @@ public non-sealed class TiffWriter extends TiffIO {
      * <p>Note: this method never performs {@link #setSmartCorrection(boolean) "smart correction"}
      * of the specified IFD.</p>
      *
+     * <p>Note: this method calls {@link TiffIFD#assignOriginalFileOffsetOfIFDForWriting()} for
+     * the passed <code>ifd</code>. So, this IFD will be written to the same position at which it was read.</p>
+     *
+     * <p>Note: this method calls {@link TiffIFD#freeze() freeze} for
+     * the passed <code>ifd</code>. So you should use this method after completely building the IFD.</p>
+     *
      * @param ifd IFD of some existing image, probably loaded from the current TIFF file.
      * @return map for writing further data.
+     * @throws IllegalStateException if the {@link TiffIFD#getFileOffsetOfIFD() original IFD offset} is not set.
+     * @throws TiffException in the case of some problems with this IFD.
      */
     public final TiffWriteMap existingMap(TiffIFD ifd) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
         if (!ifd.isLoadedFromFile()) {
             throw new IllegalArgumentException("IFD must be read from TIFF file");
         }
-        correctForEncoding(ifd, false, true);
-        ifd.assignFileOffsetOfIFDForWriting(ifd.getFileOffsetOfIFD());
+        ifd.assignOriginalFileOffsetOfIFDForWriting();
         // - instruct the writer to write this IFD back to its place, for example,
-        // in the subsequent rewriteImageLayoutStrictlyInPlace
+        // in the subsequent rewriteImageLayoutStrictlyInPlace;
+        // should be called first to throw IllegalStateException if this IFD was not read
+        correctForEncoding(ifd, false, true);
         final TiffWriteMap map = new TiffWriteMap(this, ifd, false, true);
         final long[] offsets = ifd.cachedTileOrStripOffsets();
         final long[] byteCounts = ifd.cachedTileOrStripByteCounts();

@@ -983,7 +983,6 @@ public final class TiffIFD {
      * @see TiffWriter#writeIFD(TiffIFD, Linkage.UpdateMode)
      * @see TiffWriter#completeWriting(TiffWriteMap)
      */
-    @SuppressWarnings("JavadocDeclaration")
     public TiffIFD assignFileOffsetOfIFDForWriting(long fileOffsetOfIFDForWriting) {
         if (fileOffsetOfIFDForWriting < 0) {
             throw new IllegalArgumentException("Negative IFD file offset: " + fileOffsetOfIFDForWriting);
@@ -999,8 +998,9 @@ public final class TiffIFD {
     }
 
     /**
-     * Sets the <i>for-writing</i> file offset to be equal to original IFD offset where this IFD was read.
-     * Equivalent to:</p>
+     * Sets the <i>for-writing</i> file offset to be equal to the original IFD offset at which this IFD was read.
+     * Equivalent to:
+     *
      * <pre>
      * ifd.{@link #assignFileOffsetOfIFDForWriting
      * assignFileOffsetOfIFDForWriting}(ifd.{@link #getFileOffsetOfIFD()});
@@ -1011,11 +1011,11 @@ public final class TiffIFD {
      * by the {@link TiffWriter#existingMap(TiffIFD)} method.</p>
      *
      * @return a reference to this IFD object.
-     * @throws IllegalStateException if the original IFD offset is not set.
+     * @throws IllegalStateException if the {@link TiffIFD#getFileOffsetOfIFD() original IFD offset} is not set.
      * @see TiffWriter#writeIFD(TiffIFD, Linkage.UpdateMode)
      * @see TiffWriter#completeWriting(TiffWriteMap)
      */
-    public TiffIFD assignOriginalFileOffsetForWriting() {
+    public TiffIFD assignOriginalFileOffsetOfIFDForWriting() {
         return assignFileOffsetOfIFDForWriting(getFileOffsetOfIFD());
     }
 
