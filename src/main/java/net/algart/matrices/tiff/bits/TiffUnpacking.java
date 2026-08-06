@@ -389,9 +389,12 @@ public class TiffUnpacking {
                     "it is possible only for OLD_JPEG, that was already checked)");
         // - but samplesPerPixel can be =1 for planar-separated tiles
 
-        if (!actuallyInvertedBrightness && !TiffReader.isRescaleWhenIncreasingBitDepthApplicable(ifd)) {
+        if (!actuallyInvertedBrightness && scaleWhenIncreasingBitDepth &&
+                !TiffReader.isRescaleWhenIncreasingBitDepthApplicable(ifd)) {
             throw new AssertionError("Invalid isRescaleWhenIncreasingBitDepthApplicable: must be true");
         }
+        // - possible situation when both actuallyInvertedBrightness=false and scaleWhenIncreasingBitDepth=false:
+        // 4-bit image with palette
 
         final ByteOrder byteOrder = ifd.getByteOrder();
         final long[] multipliers = new long[bitsPerSample.length];
