@@ -945,9 +945,12 @@ public non-sealed class TiffWriter extends TiffIO {
      * writeIFD}(ifd, {@link Linkage.UpdateMode#NONE})}</code>.
      *
      * <p><b>Be accurate</b>: this method can destroy an existing IFD or other data.
-     * We recommend using it <b>only</b> in the case when you are sure that the TIFF was created by {@link TiffWriter}
-     * and you are sure that the new IFD is not larger than an IFD which is already written in the file
-     * at the same place.
+     * We recommend using it <b>only</b> when:
+     * <ul>
+     *     <li>you are sure that the TIFF was created by {@link TiffWriter}</li>
+     *     <li>and you are sure that the new IFD is not larger than an IFD which is already written in the file
+     * at the same place.</li>
+     * </ul>
      *
      * @param ifd the IFD with an assigned <i>for-writing</i> file offset.
      * @return the offset where the IFD was written.
@@ -955,7 +958,6 @@ public non-sealed class TiffWriter extends TiffIO {
      * @throws IllegalStateException if no offset was assigned to the IFD.
      * @see TiffIFD#assignFileOffsetOfIFDForWriting(long)
      */
-
     @SuppressWarnings("UnusedReturnValue")
     public final long writeIFDToAssignedOffset(TiffIFD ifd) throws IOException {
         Objects.requireNonNull(ifd, "Null IFD");
@@ -966,12 +968,36 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Writes the IFD to the end of the file.
+     * Writes the IFD to the {@link TiffIFD#getFileOffsetOfIFD() original IFD offset} at which this IFD was read.
+     * Equivalent to:
      *
-     * <p>This method simply removes the <i>for-writing</i> file offset via
+     * <pre>
+     * ifd.{@link TiffIFD#assignOriginalFileOffsetOfIFDForWriting() assignOriginalFileOffsetOfIFDForWriting()};
+     * {@link #writeIFD(TiffIFD, Linkage.UpdateMode) writeIFD}(ifd, {@link Linkage.UpdateMode#NONE})}
+     * </pre>
+     *
      * <code>ifd.{@link TiffIFD#removeFileOffsetOfIFDForWriting() removeFileOffsetOfIFDForWriting()}</code>,
-     * and then calls <code>{@link #writeIFD(TiffIFD, Linkage.UpdateMode)
-     * writeIFD}(ifd, {@link Linkage.UpdateMode#NONE})}</code>.
+     * and then calls <code></code>.
+     *
+     * @param ifd the IFD to write to the output stream.
+     * @return the offset where this IFD was actually written.
+     * @throws IllegalStateException if the {@link TiffIFD#getFileOffsetOfIFD() original IFD offset} is not set.
+     * @throws IOException if an I/O error occurs.
+     */
+    public final long writeIFDAtOriginalOffset(TiffIFD ifd) throws IOException {
+        ifd.assignOriginalFileOffsetOfIFDForWriting();
+        return writeIFD(ifd, Linkage.UpdateMode.NONE);
+        // Note: writeIFD will call invalidateLinkage() if this IFD is not actually "virgin"
+    }
+
+    /**
+     * Writes the IFD to the end of the file.
+     * Equivalent to:
+     *
+     * <pre>
+     * ifd.{@link TiffIFD#removeFileOffsetOfIFDForWriting() removeFileOffsetOfIFDForWriting()};
+     * {@link #writeIFD(TiffIFD, Linkage.UpdateMode) writeIFD}(ifd, {@link Linkage.UpdateMode#NONE})}
+     * </pre>
      *
      * @param ifd the IFD to write to the output stream.
      * @return the offset where this IFD was actually written.
@@ -1487,28 +1513,6 @@ public non-sealed class TiffWriter extends TiffIO {
         correctForEntireTiff(ifd, false);
     }
 
-    /**
-     * Reads IFD by
-     * <code>{@link TiffReader#readMainIFD(int) readMainIFD}(mainIFDIndex)</code>,
-     * and, if the second argument is {@code true},
-     * assigns its {@link TiffIFD#assignFileOffsetOfIFDForWriting(long) offset-for-writing}
-     * to be equal to the {@link TiffIFD#getFileOffsetOfIFD()}.
-     *
-     * @param mainIFDIndex               index of the {@link TiffIFD#isMainIFD() main IFD} in the TIFF image.
-     * @param assignFileOffsetForWriting whether to assign the <i>for-writing</i> file offset.
-     * @return the IFD with the specified index.
-     * @throws TiffException if <code>mainIFDIndex</code> is too large
-     *                       ( &ge;{@link #numberOfMainImages()} ),
-     *                       or if the file is not a correct TIFF file,
-     *                       and this was not detected while opening it.
-     */
-    public final TiffIFD existingIFD(int mainIFDIndex, boolean assignFileOffsetForWriting) throws IOException {
-        final TiffIFD ifd = readMainIFD(mainIFDIndex);
-        if (assignFileOffsetForWriting) {
-            ifd.assignFileOffsetOfIFDForWriting(ifd.getFileOffsetOfIFD());
-        }
-        return ifd;
-    }
 
     /**
      * Creates a new TIFF map for further writing data to the TIFF file by <code>writeXxx</code> methods.
@@ -1597,7 +1601,7 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     public final TiffWriteMap existingMap(int ifdIndex) throws IOException {
-        return existingMap(existingIFD(ifdIndex, true));
+        return existingMap(readMainIFD(ifdIndex));
     }
 
     /**
@@ -1882,7 +1886,7 @@ public non-sealed class TiffWriter extends TiffIO {
     public final TiffIFD updateIFD(int mainIFDIndex, Function<TiffIFD, TiffIFD.UpdateResult> updater)
             throws IOException {
         Objects.requireNonNull(updater, "Null updater");
-        final TiffIFD ifd = existingIFD(mainIFDIndex, true);
+        final TiffIFD ifd = readMainIFD(mainIFDIndex);
         final TiffIFD changedIFD = ifd.copy();
         final TiffIFD.UpdateResult placement = updater.apply(changedIFD);
         updateIFD(mainIFDIndex, changedIFD, placement);
@@ -1912,14 +1916,14 @@ public non-sealed class TiffWriter extends TiffIO {
             if (placement.isRelocationNecessary()) {
                 // We must relocate IFD: overwriting in the same place will damage the further image
                 // or other embedded data (like Huffman tables in Old-style JPEG).
-                // Theoretically, we could provide additional special branch for a case when we REDUCE
+                // Theoretically, we could provide a special branch for cases when we REDUCE
                 // the size of IFD and DO NOT write anything else (for example, removing a tag);
                 // in this case, we could overwrite IFD WITHOUT rewriting any arrays references from IFD tags.
                 // But there is no sense to optimize this exotic situation.
                 final long p = this.writeIFDAtFileEnd(changedIFD);
                 // Note: we ignore sub-IFDs here. So, this method is not absolutely universal.
                 this.rewriteIFDOffset(mainIFDIndex, p);
-                // - restoring IFD sequence
+                // - restoring the IFD sequence
             } else {
                 // System.out.println("In place!");
                 this.writeIFDToAssignedOffset(changedIFD);

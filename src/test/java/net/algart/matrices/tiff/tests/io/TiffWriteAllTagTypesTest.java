@@ -136,7 +136,7 @@ public class TiffWriteAllTagTypesTest {
 
             final String savedString = stripExtra(ifd).toString(TiffIFD.StringFormat.DETAILED);
             System.out.printf("Actually saved IFD (sorted):%n%s%n%n", savedString);
-            final TiffIFD back = writer.existingIFD(0, false);
+            final TiffIFD back = writer.readMainIFD(0);
             String backString = back.toString(TiffIFD.StringFormat.DETAILED);
             System.out.printf("IFD loaded back from the file:%n%s%n", backString);
             backString = stripExtra(back).toString(TiffIFD.StringFormat.DETAILED);

@@ -53,11 +53,11 @@ public class TiffOverwriteHelloWorldAlternativeTest {
         final int y = startArgIndex + 3 < args.length ? Integer.parseInt(args[startArgIndex + 3]) : 0;
 
         System.out.printf("Opening and rewriting TIFF %s...%n", targetFile);
-        final int sizeX = 250;
+        final int sizeX = 450;
         final int sizeY = 50;
         // - estimated sizes sufficient for "Hello, world!"
         try (TiffWriter writer = new TiffWriter(targetFile, TiffWriter.OpenMode.OPEN_EXISTING)) {
-            TiffIFD ifd = writer.existingIFD(ifdIndex, true);
+            TiffIFD ifd = writer.readMainIFD(ifdIndex);
             TiffWriteMap writeMap = writer.existingMap(ifd);
             TiffReadMap readMap = writer.companionReader().map(ifd, Set.of());
             readMap.setUncachedTileSupplier();
@@ -97,7 +97,7 @@ public class TiffOverwriteHelloWorldAlternativeTest {
         writeMap.copyAllData(readMap, TiffTile.CopyMode.COPY_REFERENCE);
         // - TiffReadMap-style processing: using a separate TiffReadMap
         System.out.printf("%nOverwriting %d..%dx%d..%d in %s...%n", x, x + sizeX - 1, y, y + sizeY - 1, writeMap);
-        drawTextOnImage(bufferedImage, "Hello, world!");
+        drawTextOnImage(bufferedImage, "Hello, alternative!");
         // MatrixIO.writeBufferedImage(Path.of("/tmp/test.bmp"), bufferedImage);
         final List<TiffTile> tiles = writeMap.updateBufferedImage(bufferedImage, x, y);
         int m = writeMap.flushCompletedTiles(tiles);

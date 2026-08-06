@@ -63,7 +63,7 @@ public class TiffFalsifyTags {
             writer.openExisting();
 
             System.out.printf("Transforming %s...%n", targetFile);
-            final TiffIFD ifd = writer.existingIFD(ifdIndex, true);
+            final TiffIFD ifd = writer.readMainIFD(ifdIndex);
             if (newDimX > 0 && newDimY > 0) {
                 ifd.putImageDimensions(newDimX, newDimY);
             }
