@@ -949,7 +949,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     /**
      * Equivalent to {@link #readMainIFDOffsets(boolean) readMainIFDOffsets(false)}.
      *
-     * <p>Note: unlike the {@link #readLinkage()} method, an empty TIFF file is not allowed.
+     * <p>Note: an empty TIFF file without IFDs is not allowed.
      * You may use the {@link #readMainIFDOffsets(boolean)} method with the {@code true} argument
      * to process such TIFF files.</p>
      *
@@ -965,19 +965,12 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * Reads the offsets of all main IFDs in the file (excluding child sub-IFDs).
      *
      * <p>This method is almost equivalent to the following call:</p>
-     * <pre>{@link #readLinkage() readLinkage()}.{@link TiffIFD.Linkage#mainIFDOffsetsArray()
+     * <pre>{@link #readLinkage(boolean) readLinkage(allowNoIFDs)}.{@link TiffIFD.Linkage#mainIFDOffsetsArray()
      * mainIFDOffsetsArray()}</pre>
      *
-     * <p>There are two key differences:</p>
-     * <ul>
-     *     <li>If {@code allowNoIFDs} is {@code false} and the file contains no IFDs
-     *     ({@link TiffIFD#IFD_CHAIN_TERMINATOR} is written at {@link #offsetOfFirstIFDOffset()}),
-     *     this method throws a {@link TiffException}. In contrast, {@link #readLinkage()} handles
-     *     this state silently, as it may be a valid intermediate state during TIFF creation.</li>
-     *     <li>This method updates the position tracked by
-     *     {@link #offsetOfLastScannedIFDOffset()} to the file position where the terminating zero marker
-     *     {@link TiffIFD#IFD_CHAIN_TERMINATOR} is stored.</li>
-     * </ul>
+     * <p>There is only  difference: this method updates the position tracked by
+     * {@link #offsetOfLastScannedIFDOffset()} to the file position where the terminating zero marker
+     * {@link TiffIFD#IFD_CHAIN_TERMINATOR} is stored.</p>
      *
      * @param allowNoIFDs {@code true} to allow an empty TIFF file without throwing an exception.
      * @return an array of all main IFD offsets.
@@ -1009,15 +1002,17 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * <p>If the {@code allowNoIFDs} argument is {@code false} and the file contains no IFDs
      * (i.e., {@link TiffIFD#IFD_CHAIN_TERMINATOR} is written at {@link #offsetOfFirstIFDOffset()}),
-     * this method throws a {@link TiffException}. In the argument is {@code true},
-     * this method handles
-     * this state silently. This can be useful to process an intermediate state during TIFF creation.</p>
+     * this method throws a {@link TiffException}.</p>
+     *
+     * <p>If the argument is {@code true}, this method handles this state silently.
+     * This can be useful to process an intermediate state during TIFF creation.</p>
      *
      * <p>Note that this method
      * <b>does not</b> update the position tracked by {@link #offsetOfLastScannedIFDOffset()},
      * as well as any other internal fields stored by this class. The only state that is changed by this method
      * is the current file position in the {@link #stream()}.</p>
      *
+     * @param allowNoIFDs {@code true} to allow an empty TIFF file without throwing an exception.
      * @return the linkage information.
      * @throws TiffException if a corrupted structure or infinite loop is detected.
      * @throws IOException   if an I/O error occurs.
