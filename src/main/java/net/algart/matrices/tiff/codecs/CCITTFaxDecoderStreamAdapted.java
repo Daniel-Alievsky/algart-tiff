@@ -501,11 +501,12 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
 
         while (true) {
             boolean bit = readBit();
-            n = n.walk(bit);
+            Node newNode = n.walk(bit);
 
-            if (n == null) {
-                throw new IOException("Unknown code in Huffman RLE stream");
+            if (newNode == null) {
+                throw new IOException("Unknown code in Huffman RLE stream: " + n);
             }
+            n = newNode;
 
             if (n.isLeaf) {
                 total += n.value;

@@ -175,7 +175,7 @@ public class TiffIFDMainOffsetsTest {
             }
 
             t1 = System.nanoTime();
-            TiffIFD.Linkage linkage = reader.readLinkage();
+            TiffIFD.Linkage linkage = reader.readLinkage(true);
             t2 = System.nanoTime();
             System.out.printf(Locale.ROOT, "readLinkage(): %s (%.6f mcs)%n", linkage, (t2 - t1) * 1e-3);
             printLinkage(reader);

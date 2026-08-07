@@ -1007,6 +1007,12 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * For a non-empty valid TIFF file, the size of the {@link TiffIFD.Linkage#mainIFDOffsetPairs()} set
      * in the result is equal to {@link TiffReader#numberOfMainImages()}.
      *
+     * <p>If the {@code allowNoIFDs} argument is {@code false} and the file contains no IFDs
+     * (i.e., {@link TiffIFD#IFD_CHAIN_TERMINATOR} is written at {@link #offsetOfFirstIFDOffset()}),
+     * this method throws a {@link TiffException}. In the argument is {@code true},
+     * this method handles
+     * this state silently. This can be useful to process an intermediate state during TIFF creation.</p>
+     *
      * <p>Note that this method
      * <b>does not</b> update the position tracked by {@link #offsetOfLastScannedIFDOffset()},
      * as well as any other internal fields stored by this class. The only state that is changed by this method
@@ -1017,8 +1023,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @throws IOException   if an I/O error occurs.
      * @see #readMainIFDOffsets(boolean)
      */
-    public final TiffIFD.Linkage readLinkage() throws IOException {
-        return readLinkage(true, Long.MAX_VALUE, false);
+    public final TiffIFD.Linkage readLinkage(boolean allowNoIFDs) throws IOException {
+        return readLinkage(allowNoIFDs, Long.MAX_VALUE, false);
     }
 
     public final CodecReport lastCodecReport() {
