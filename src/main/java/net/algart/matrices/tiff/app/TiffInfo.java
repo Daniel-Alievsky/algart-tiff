@@ -253,6 +253,9 @@ public class TiffInfo {
                 if (metadata.isNonTrivial()) {
                     svsInfo = (metadata.isSvs() ? "%s%n".formatted(metadata.svsDescription()) : "") + metadata;
                 }
+                if (reader.isInfiniteIFDLoopDetected()) {
+                    summaryInfo += "%nWARNING! Infinite IFD loop detected!".formatted();
+                }
             }
         } catch (IOException e) {
             prefixInfo = "%nError while opening file %s".formatted(tiffFile);

@@ -226,6 +226,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     private volatile Consumer<TiffTile> tileInitializer = null;
 
     private volatile long offsetOfLastScannedIFDOffset = -1;
+    private volatile boolean infiniteIFDLoopDetected = false;
     volatile boolean fileOpen = false;
 
     volatile Object scifio = null;
@@ -637,7 +638,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *     <li>{@link #readMainIFDOffsets(boolean)}.</li>
      * </ul>
      *
-     * <p>Note that the {@link #readLinkage()} method does not change this value.</p>
+     * <p>Note that the {@link #readLinkage(boolean)} method does not change this value.</p>
      *
      * <p>The {@link TiffReader} class calls {@link #readMainIFDOffsets()} internally
      * during high-level operations like {@link TiffReader#allIFDs()} or {@link TiffReader#numberOfImages()}.
@@ -658,9 +659,32 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * @return the file offset of the last scanned IFD offset, wrapped in {@link OptionalLong},
      * or {@code OptionalLong.empty()} if it has not been read.
+     * @see #isInfiniteIFDLoopDetected()
      */
     public final OptionalLong offsetOfLastScannedIFDOffset() {
         return offsetOfLastScannedIFDOffset < 0 ? OptionalLong.empty() : OptionalLong.of(offsetOfLastScannedIFDOffset);
+    }
+
+    /**
+     * Returns {@code true} if an infinite loop of IFD offsets was detected.
+     *
+     * <p>This flag is updated in the same situations as the value returned by
+     * {@link #offsetOfLastScannedIFDOffset()} &mdash; namely, by the following methods:</p>
+     *
+     * <ul>
+     *     <li>{@link #readMainIFD(int)},</li>
+     *     <li>{@link #readMainIFDOffset(int)},</li>
+     *     <li>{@link #readMainIFDOffsetIfPresent(int)},</li>
+     *     <li>{@link #readMainIFDOffsets()},</li>
+     *     <li>{@link #readMainIFDOffsets(boolean)}.</li>
+     * </ul>
+     *
+     * <p>The {@link #readLinkage(boolean)} method does not change this value.</p>
+     *
+     * @return {@code true} if an infinite loop of IFD offsets was detected while scanning the IFD chain.
+     */
+    public boolean isInfiniteIFDLoopDetected() {
+        return infiniteIFDLoopDetected;
     }
 
     public final void checkFileOpen() {
@@ -968,7 +992,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * <pre>{@link #readLinkage(boolean) readLinkage(allowNoIFDs)}.{@link TiffIFD.Linkage#mainIFDOffsetsArray()
      * mainIFDOffsetsArray()}</pre>
      *
-     * <p>There is only  difference: this method updates the position tracked by
+     * <p>There is only one difference: this method updates the position tracked by
      * {@link #offsetOfLastScannedIFDOffset()} to the file position where the terminating zero marker
      * {@link TiffIFD#IFD_CHAIN_TERMINATOR} is stored.</p>
      *
@@ -1838,7 +1862,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         }
     }
 
-    private TiffIFD.Linkage readLinkage(
+    TiffIFD.Linkage readLinkage(
             boolean allowNoIFDs,
             long maxNumberOfIFDs,
             boolean updateOffsetOfLastScannedIFDOffset) throws IOException {
@@ -1848,18 +1872,30 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         synchronized (fileLock) {
             final TiffIFD.Linkage result = new TiffIFD.Linkage(bigTiff);
             final long fileLength = stream.length();
+            if (updateOffsetOfLastScannedIFDOffset) {
+                this.infiniteIFDLoopDetected = false;
+            }
+            // - no needs to assign offsetOfLastScannedIFDOffset: it will be rewritten by the following operator
             long offset = allowNoIFDs ?
                     readFirstIFDOffsetIfPresent(true).orElse(0L) :
                     readFirstIFDOffset(true);
             assert allowNoIFDs || offset != 0 : "readFirstIFDOffset returned 0";
             long count = 0;
-            while (offset != 0) {
-                // - negative and too high offsets are checked inside low-level readOffset() method
+            while (offset != TiffIFD.IFD_CHAIN_TERMINATOR) {
+                // - actually "!= 0"; negative and too high offsets are checked inside low-level readOffset() method
                 final boolean wasPresent = result.containsIFDOffset(offset);
                 if (wasPresent) {
-                    throw new TiffException("TIFF file is broken - infinite loop of IFD offsets is detected " +
-                            "for offset %d; the stored offset pairs are:%n%s"
-                                    .formatted(offset, result.toString(1)));
+                    result.setChainTerminator(offset);
+                    if (updateOffsetOfLastScannedIFDOffset) {
+                        infiniteIFDLoopDetected = true;
+                    }
+                    break;
+                    // - throwing exception (the code below) is not the best idea: for example,
+                    // GIMP allows reading such a TIFF
+                    // throw new TiffException("TIFF file is broken - infinite loop of IFD offsets is detected " +
+                    //         "for offset %d; the stored offset pairs are:%n%s"
+                    //                .formatted(offset, result.toString(1)));
+
                 }
                 ++count;
                 if (count > MAX_NUMBER_OF_IFDS) {
@@ -1871,6 +1907,9 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 final long nextOffset = readIFDOffset();
                 result.addOffsetPair(new TiffIFD.Linkage.OffsetPair(offset, offsetOfNextOffset));
                 result.setOffsetOfIFDChainTerminator(offsetOfNextOffset);
+                // - Note: we DO NOT call setChainTerminator here!
+                // This method is intended only for detection of invalid (infinite) chain loop,
+                // not for detection of breaking due to the maxNumberOfIFDs limit.
                 if (count >= maxNumberOfIFDs) {
                     break;
                 }

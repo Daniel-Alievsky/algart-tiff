@@ -684,13 +684,14 @@ public non-sealed class TiffWriter extends TiffIO {
     /**
      * Returns the linkage information for the TIFF file.
      *
-     * <p>This method reads the information via {@link #readLinkage()} on the first call,
+     * <p>This method reads the information via {@link #readLinkage(boolean) readLinkage(true)} on the first call,
      * stores the reference inside this object, and returns it for subsequent calls.
      * However, the stored reference is cleared to {@code null} by the {@link #invalidateLinkage()} method
      * (triggering a reload on the next call).</p>
      *
      * <p>Note: this method does not modify the environment, including the current file position in the
-     * {@link #stream()}. (It saves the current position before calling {@link #readLinkage()}
+     * {@link #stream()}. (It saves the current position before calling
+     * {@link #readLinkage(boolean) readLinkage(true)}
      * and restores it after the call, ensuring all exceptions are handled correctly.)</p>
      *
      * <p>Usually, you do not need to use this method manually: it is called automatically by {@link TiffWriter}

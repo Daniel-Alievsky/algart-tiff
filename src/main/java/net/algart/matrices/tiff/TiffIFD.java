@@ -151,6 +151,7 @@ public final class TiffIFD {
         }
 
         private long offsetOfIFDChainTerminator;
+        private long chainTerminator;
         private final Set<Long> offsetSet;
         private final List<OffsetPair> offsetPairs;
 
@@ -164,6 +165,9 @@ public final class TiffIFD {
                         offsetOfIFDChainTerminator);
             }
             this.offsetOfIFDChainTerminator = offsetOfIFDChainTerminator;
+            this.chainTerminator = IFD_CHAIN_TERMINATOR;
+            // - there are no public ways to create Linkage with illegal chainTerminatorOffset,
+            // though such Linkage can be read from TIFF containing infinite loop of IFD offsets.
             this.offsetSet = new HashSet<>();
             // - order is not important: there is no public access to this set
             this.offsetPairs = new ArrayList<>();
@@ -172,6 +176,22 @@ public final class TiffIFD {
                     addOffsetPair(offsetPair);
                 }
             }
+        }
+
+        public boolean isCorrectlyTerminated() {
+            return chainTerminator == IFD_CHAIN_TERMINATOR;
+        }
+
+        /**
+         * Normally, this method returns {@link #IFD_CHAIN_TERMINATOR} = {@value #IFD_CHAIN_TERMINATOR}.
+         * However, if the linkage was read from an invalid TIFF file containing an infinite loop of IFD offsets,
+         * this method returns the last offset which was read and which is already present among the offsets
+         * that were already read.
+         *
+         * @return the value of {@code IFD offset} field which actually terminates the chain.
+         */
+        public long chainTerminator() {
+            return chainTerminator;
         }
 
         public long offsetOfIFDChainTerminator() {
@@ -218,7 +238,8 @@ public final class TiffIFD {
         public String toString(int maxPairsListStringLength) {
             return numberOfMainIFDs() + " main IFDs [" +
                     JArrays.toString(offsetPairs, " ", maxPairsListStringLength) +
-                    "], offset of the IFD terminator: " + offsetOfIFDChainTerminator;
+                    "], offset of the IFD terminator: " + offsetOfIFDChainTerminator +
+                    (isCorrectlyTerminated() ? "" : ", invalid last offset: " + chainTerminator);
             // " " instead of more typical ", ": OffsetPair.toString has an ending "->"
         }
 
@@ -229,12 +250,13 @@ public final class TiffIFD {
             }
             Linkage linkage = (Linkage) o;
             return offsetOfIFDChainTerminator == linkage.offsetOfIFDChainTerminator &&
+                    chainTerminator == linkage.chainTerminator &&
                     Objects.equals(offsetPairs, linkage.offsetPairs);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(offsetOfIFDChainTerminator, offsetPairs);
+            return Objects.hash(offsetOfIFDChainTerminator, chainTerminator, offsetPairs);
         }
 
         // Note: there are no public ways to change the state of an existing Linkage object
@@ -244,6 +266,7 @@ public final class TiffIFD {
             }
             addOffsetPair(new OffsetPair(fileOffsetOfThisIFDStart, fileOffsetOfNextIFDOffset));
             setOffsetOfIFDChainTerminator(fileOffsetOfNextIFDOffset);
+            setChainTerminator(IFD_CHAIN_TERMINATOR);
         }
 
         void addOffsetPair(OffsetPair offsetPair) {
@@ -260,6 +283,13 @@ public final class TiffIFD {
                         offsetOfIFDChainTerminator);
             }
             this.offsetOfIFDChainTerminator = offsetOfIFDChainTerminator;
+        }
+
+       void setChainTerminator(long chainTerminator) {
+            if (chainTerminator < 0) {
+                throw new IllegalArgumentException("Negative chainTerminator " + chainTerminator);
+            }
+            this.chainTerminator = chainTerminator;
         }
 
         // Necessary for legacy code
