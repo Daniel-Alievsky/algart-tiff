@@ -175,6 +175,9 @@ public class TiffReaderTest {
                         System.out.printf("Reading data %dx%dx%d from %s%n",
                                 w, h, bandCount,
                                 new TiffInfo().ifdInformation(reader, map.ifd(), ifdIndex));
+                        if (reader.isInfiniteIFDLoopDetected()) {
+                            System.out.println("Infinite IFD loop detected!");
+                        }
                     }
                     t1 = System.nanoTime();
 //                    map.ifd().put(258, new double[] {3}); // - should lead to exception
