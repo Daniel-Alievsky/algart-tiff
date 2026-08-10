@@ -1097,6 +1097,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     public final void invalidateLinkage() {
         invalidateLinkage(true, null);
     }
+
     /**
      * Returns the linkage information for the TIFF file.
      *
@@ -1109,11 +1110,12 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * {@link #stream()}. (It saves the current position before calling {@link #readLinkage()}
      * and restores it after the call, ensuring all exceptions are handled correctly.)</p>
      *
-     * <p>Usually, you do not need to use this method manually: it is called automatically by {@link TiffWriter}
+     * <p>Usually, you do not need to use this method manually: it is called automatically by
+     * {@link TiffReader} or {@link TiffWriter}
      * whenever it requires up-to-date linkage information. The only situation when you might use it
      * is if you want to inspect this information for your own purposes, for example, for logging.</p>
      *
-     * <p>Also note: the returned linkage is a live object owned by this {@link TiffWriter}.
+     * <p>Also note: the returned linkage is a live object owned by this {@link TiffReader} or {@link TiffWriter}.
      * It is not immutable: {@link TiffWriter} modifies it while adding new images to the TIFF file.
      * Of course, all modifications are synchronized with the help of the {@link #fileLock()} object.
      * So, if you decide to use it for reading some information, you should synchronize
@@ -1121,6 +1123,9 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * @return the linkage information.
      * @throws IOException if an I/O error occurs while reading the linkage.
+     * @see #readLinkage()
+     * @see #readLinkage(boolean)
+     * @see #invalidateLinkage()
      */
     public final TiffIFD.Linkage linkage() throws IOException {
         return linkage("Reloading linkage");
