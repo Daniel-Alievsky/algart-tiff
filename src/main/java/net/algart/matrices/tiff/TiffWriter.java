@@ -1268,10 +1268,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 fileOffset = offsetOfFirstIFDOffset();
                 // - no reasons to read anything
             } else {
-                readMainIFDOffset(mainIFDIndex);
-                // - sets offsetOfLastScannedIFDOffset and also checks that mainIFDIndex is not too high;
-                // a separate call of linkage() is not necessary
-                fileOffset = offsetOfLastScannedIFDOffset().orElseThrow(AssertionError::new);
+                fileOffset = linkage().offsetOfNextIFDOffset(mainIFDIndex - 1);
             }
             writeOffsetAt(newIFDOffset, fileOffset);
             // - last argument is not important: the offsetOfLastScannedIFDOffset will not change in any case
@@ -1300,9 +1297,7 @@ public non-sealed class TiffWriter extends TiffIO {
             }
             checkFileOpen();
             invalidateCompanionReader();
-            final Linkage linkage = linkage();
-            // - necessary for using offsetOfIFDChainTerminator
-            writeOffsetAt(newLastIFDOffset, linkage.offsetOfIFDChainTerminator());
+            writeOffsetAt(newLastIFDOffset, linkage().offsetOfIFDChainTerminator());
             // - last argument is not important: the offsetOfLastScannedIFDOffset will not change in any case
             invalidateLinkage();
             // - this is low-level correction, we cannot be sure that the IFD chain is still correct
