@@ -456,9 +456,11 @@ public non-sealed class TiffReader extends TiffIO {
     /**
      * Invalidates all internal caches and initializes the reader by re-reading the TIFF header.
      *
-     * <p>This method clears all cached tiles and cached IFD structures, resets an internal cache in
-     * the {@link ReadBufferDataHandle} input stream and seeks it to zero position,
-     * and then reads the TIFF header again by calling
+     * <p>This method clears all cached tiles and cached IFD structures,
+     * {@link #invalidateLinkage() invalidaes the linkage},
+     * resets an internal cache in
+     * the {@link ReadBufferDataHandle} input stream and seeks it to zero position.
+     * Then this method reads the TIFF header again by calling
      * the same initialization logic that is used in the constructor.</p>
      *
      * <p>Unlike the constructor, this method is stricter, as when using
@@ -481,6 +483,7 @@ public non-sealed class TiffReader extends TiffIO {
             synchronized (fileLock) {
                 // Lock order: tileCacheLock -> fileLock; we should use the same order in all places!
                 clearAllCache();
+                invalidateLinkage();
                 final IOException exception = initializeReader(OpenMode.VALID_TIFF);
                 if (exception != null) {
                     throw exception;

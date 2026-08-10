@@ -173,7 +173,6 @@ public non-sealed class TiffWriter extends TiffIO {
     private TiffReader.Factory companionReaderFactory = this::newSharedReader;
 
     private volatile TiffReader reader = null;
-    private volatile Linkage linkage = null;
 
     private volatile TiffWriteMap lastMap = null;
     private volatile boolean lastMapPrewritten = false;
@@ -653,76 +652,6 @@ public non-sealed class TiffWriter extends TiffIO {
     public TiffWriter setTileInitializer(Color color) {
         super.setTileInitializer(color);
         return this;
-    }
-
-    /**
-     * Clears the reference to the IFD linkage information stored inside this object
-     * and returned by the {@link #linkage()} method.
-     * Ensures that the next call to {@link #linkage()} will reload this information from the file.
-     *
-     * <p>Usually, you do not need to use this method directly: it is called automatically by {@link TiffWriter}
-     * whenever there is a risk that this linkage information may become incorrect.
-     * <b>The exception</b>: you should use this method if you call the low-level
-     * {@link #writeOffsetAt(long, long)} method or perform direct modifications in the file
-     * via the {@link #stream()} object or other external means.</p>
-     *
-     * <p>Performance note: sometimes this library <b>skips</b> calling this method
-     * if we are certain the IFD linkage structure remains correct,
-     * even if other method documentation states that &ldquo;they invalidate linkage&rdquo;.
-     * We are free to add such cases in future versions as part of our ongoing library optimization.
-     * In any case, the only way to detect such changes in behavior is to use the
-     * {@link #linkageIfPresent()} method: it's possible that it will return a non-empty result
-     * more often than the documentation implies.</p>
-     *
-     * @see #writeIFD(TiffIFD, Linkage.UpdateMode)
-     * @see #rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, Linkage.UpdateMode)
-     */
-    public final void invalidateLinkage() {
-        invalidateLinkage(true, null);
-    }
-
-    /**
-     * Returns the linkage information for the TIFF file.
-     *
-     * <p>This method reads the information via {@link #readLinkage(boolean) readLinkage(true)} on the first call,
-     * stores the reference inside this object, and returns it for subsequent calls.
-     * However, the stored reference is cleared to {@code null} by the {@link #invalidateLinkage()} method
-     * (triggering a reload on the next call).</p>
-     *
-     * <p>Note: this method does not modify the environment, including the current file position in the
-     * {@link #stream()}. (It saves the current position before calling
-     * {@link #readLinkage(boolean) readLinkage(true)}
-     * and restores it after the call, ensuring all exceptions are handled correctly.)</p>
-     *
-     * <p>Usually, you do not need to use this method manually: it is called automatically by {@link TiffWriter}
-     * whenever it requires up-to-date linkage information. The only situation when you might use it
-     * is if you want to inspect this information for your own purposes, for example, for logging.</p>
-     *
-     * <p>Also note: the returned linkage is a live object owned by this {@link TiffWriter}.
-     * It is not immutable: {@link TiffWriter} modifies it while adding new images to the TIFF file.
-     * Of course, all modifications are synchronized with the help of the {@link #fileLock()} object.
-     * So, if you decide to use it for reading some information, you should synchronize
-     * access to it using the same {@link #fileLock()} object.</p>
-     *
-     * @return the linkage information.
-     * @throws IOException if an I/O error occurs while reading the linkage.
-     */
-    public final Linkage linkage() throws IOException {
-        return linkage("Reloading linkage");
-    }
-
-    /**
-     * Returns the linkage information (see {@link #linkage()}) if it has already been loaded,
-     * or {@link Optional#empty()} otherwise.
-     *
-     * <p>Unlike {@link #linkage()}, this method does not attempt to reload the linkage
-     * information from the file if the stored reference is {@code null}.</p>
-     *
-     * @return the linkage information, wrapped in {@link Optional},
-     * or {@link Optional#empty()} if it has not been read or if it was invalidated.
-     */
-    public final Optional<Linkage> linkageIfPresent() {
-        return Optional.ofNullable(linkage);
     }
 
     /**
@@ -2017,52 +1946,6 @@ public non-sealed class TiffWriter extends TiffIO {
         final int height = tile.getSizeY();
         final byte[] encodedData = compressByScifioCodec(tile.ifd(), decodedData, width, height, scifioCodecOptions);
         return Optional.of(encodedData);
-    }
-
-    private void invalidateLinkage(boolean logging, Supplier<String> comment) {
-        final Linkage linkage = this.linkage;
-        this.linkage = null;
-        if (logging) {
-            LOG.log(System.Logger.Level.DEBUG, () -> "Invalidating linkage" +
-                    (comment == null ? "" : comment.get()) +
-                    (linkage == null ? " (no linkage)" : ": " + linkage));
-        }
-    }
-
-    private Linkage linkage(String comment) throws IOException {
-        Linkage currentLinkage = this.linkage;
-        boolean needToReload = currentLinkage == null;
-        if (needToReload) {
-            synchronized (fileLock) {
-                // double-checked locking idiom
-                currentLinkage = this.linkage;
-                needToReload = currentLinkage == null;
-                if (needToReload) {
-                    boolean success = false;
-                    final long savedOffset = stream.offset();
-                    try {
-                        this.linkage = currentLinkage = readLinkage(true);
-                        stream.seek(savedOffset);
-                        success = true;
-                    } finally {
-                        if (!success) {
-                            this.linkage = null;
-                            // - the next call to this method will try to refresh the linkage again
-                            // (this is necessary only if "stream.seek(savedOffset)" thrown an exception)
-                            try {
-                                stream.seek(savedOffset);
-                            } catch (Exception ignored) {
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        if (needToReload) {
-            final var newLinkage = currentLinkage;
-            LOG.log(System.Logger.Level.DEBUG, () -> comment + ": " + newLinkage);
-        }
-        return currentLinkage;
     }
 
     private void prepareNewMap(TiffWriteMap map, boolean buildGrid) {
