@@ -128,18 +128,16 @@ public class TiffReaderTest {
 
 //                ((TiffParser) reader).setAssumeEqualStrips(true);
                 reader.setCropTilesToImageBoundaries(!noCropTiles);
-                final var offsetOfLastScannedIFDOffset = reader.offsetOfLastScannedIFDOffset();
-                assert offsetOfLastScannedIFDOffset.isEmpty() :
-                        "constructor should not set offsetOfLastScannedIFDOffset";
+                assert reader.linkageIfPresent().isEmpty() :
+                        "constructor should not set linkage";
                 final int numberOfIFDS = reader.numberOfImages();
                 long t3 = System.nanoTime();
                 System.out.printf(
-                        "Reading %s by %s: %.3f ms opening, %.3f ms reading IFDs " +
-                                "(position of last scanned IFD offset: %s)%n",
+                        "Reading %s by %s: %.3f ms opening, %.3f ms reading IFDs%n    Linkage: %s%n",
                         tiffFile, reader,
                         (t2 - t1) * 1e-6,
                         (t3 - t2) * 1e-6,
-                        offsetOfLastScannedIFDOffset);
+                        reader.linkageIfPresent().orElseThrow());
                 if (numberOfIFDS == 0) {
                     System.out.println("No IFDs");
                     return;
@@ -175,7 +173,7 @@ public class TiffReaderTest {
                         System.out.printf("Reading data %dx%dx%d from %s%n",
                                 w, h, bandCount,
                                 new TiffInfo().ifdInformation(reader, map.ifd(), ifdIndex));
-                        if (reader.isInfiniteIFDLoopDetected()) {
+                        if (reader.linkage().isInfiniteLoopDetected()) {
                             System.out.println("Infinite IFD loop detected!");
                         }
                     }

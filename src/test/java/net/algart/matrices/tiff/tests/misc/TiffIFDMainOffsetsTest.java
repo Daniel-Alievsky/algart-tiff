@@ -36,7 +36,7 @@ import java.util.OptionalLong;
 
 public class TiffIFDMainOffsetsTest {
     private static void printLinkage(TiffReader reader) {
-        System.out.printf("  Position of last scanned IFD offset: %s%n", reader.offsetOfLastScannedIFDOffset());
+        System.out.printf("  Current linkage: %s%n", reader.linkageIfPresent().orElse(null));
     }
 
     private static void checkEqual(TiffIFD ifd1, TiffIFD ifd2) {
@@ -136,9 +136,6 @@ public class TiffIFDMainOffsetsTest {
             System.out.printf(Locale.ROOT,
                     "readMainIFDOffsetIfPresent(%d): %s (%.6f mcs)%n",
                     ifdIndex, offset, (t2 - t1) * 1e-3);
-            if (reader.offsetOfLastScannedIFDOffset().isEmpty()) {
-                throw new AssertionError("offsetOfLastScannedIFDOffset is not initialized");
-            }
             printLinkage(reader);
 
             t1 = System.nanoTime();
@@ -159,20 +156,7 @@ public class TiffIFDMainOffsetsTest {
             if (offset0.isPresent() && offset0.getAsLong() != offsets[0]) {
                 throw new AssertionError(offset0 + ", " + offset0.getAsLong());
             }
-            if (offset0.isPresent() != reader.offsetOfLastScannedIFDOffset().isPresent()) {
-                System.out.printf("Empty TIFF: first offset %s, but offset of the last scanned IFD offset %s%n",
-                        offset, reader.offsetOfLastScannedIFDOffset());
-                // - O'k:  readMainIFDOffsets() filled offsetOfLastScannedIFDOffset even in an empty TIFF
-            }
-            if (reader.offsetOfLastScannedIFDOffset().getAsLong() != reader.offsetOfFirstIFDOffset()) {
-                throw new AssertionError(reader.offsetOfLastScannedIFDOffset() + ", " +
-                        reader.offsetOfFirstIFDOffset());
-            }
             printLinkage(reader);
-            final long lastScannedOffset = reader.offsetOfLastScannedIFDOffset().orElseThrow();
-            if (lastScannedOffset != (reader.isBigTiff() ? 8 : 4)) {
-                throw new AssertionError();
-            }
 
             t1 = System.nanoTime();
             TiffIFD.Linkage linkage = reader.readLinkage(true);
@@ -180,9 +164,6 @@ public class TiffIFDMainOffsetsTest {
             System.out.printf(Locale.ROOT, "readLinkage(true): %s (%.6f mcs)%n",
                     linkage, (t2 - t1) * 1e-3);
             printLinkage(reader);
-            if (lastScannedOffset != reader.offsetOfLastScannedIFDOffset().orElseThrow()) {
-                throw new AssertionError("offsetOfLastScannedIFDOffset must not change by readLinkage");
-            }
 
             var linkageCopy = new TiffIFD.Linkage(linkage.offsetOfIFDChainTerminator(), linkage.mainIFDOffsetPairs());
             if (!linkageCopy.equals(linkage)) {
@@ -206,6 +187,9 @@ public class TiffIFDMainOffsetsTest {
                 if (allIFDs.size() != m) {
                     throw new AssertionError();
                 }
+                if (reader.linkageIfPresent().isEmpty()) {
+                    throw new AssertionError("linkage is not initialized");
+                }
                 System.out.printf(Locale.ROOT, "allIFDs(): %d (%.6f mcs)%n",
                         allIFDs.size(), (t2 - t1) * 1e-3);
                 printLinkage(reader);
@@ -219,10 +203,7 @@ public class TiffIFDMainOffsetsTest {
                 System.out.printf(Locale.ROOT, "mainIFDs(): %d (%.6f mcs)%n",
                         mainIFDS.size(), (t2 - t1) * 1e-3);
                 printLinkage(reader);
-                if (reader.offsetOfLastScannedIFDOffset().getAsLong() != linkage.offsetOfIFDChainTerminator()) {
-                    throw new AssertionError(reader.offsetOfLastScannedIFDOffset() + ", " +
-                            linkage.offsetOfIFDChainTerminator());
-                }
+
 
                 t1 = System.nanoTime();
                 TiffIFD firstIFD = reader.readMainIFD(0);
@@ -247,11 +228,6 @@ public class TiffIFDMainOffsetsTest {
                 System.out.printf(Locale.ROOT,
                         "readIFDAt for %d, no entries: %s (%.6f mcs)%n", ifdIndex, ifd, (t2 - t1) * 1e-3);
                 printLinkage(reader);
-                if (ifdIndex > 0 && reader.offsetOfLastScannedIFDOffset().orElseThrow() !=
-                        mainIFDS.get(ifdIndex - 1).getFileOffsetOfNextIFDOffset()) {
-                    throw new AssertionError("TiffIFD.getFileOffsetOfNextIFDOffset() and " +
-                            "offsetOfLastScannedIFDOffset() mismatch");
-                }
                 System.out.printf("Mini-IFD: ''''%s'''%n", ifd.toString(TiffIFD.StringFormat.DETAILED));
                 if (ifd.numberOfEntries() > 0 || !ifd.map().isEmpty()) {
                     throw new AssertionError("Entries map must be empty");
@@ -264,11 +240,6 @@ public class TiffIFDMainOffsetsTest {
                 System.out.printf(Locale.ROOT,
                         "readIFDA for %d, no next IFD: %s (%.6f mcs)%n", ifdIndex, ifd, (t2 - t1) * 1e-3);
                 printLinkage(reader);
-                if (ifdIndex > 0 && reader.offsetOfLastScannedIFDOffset().orElseThrow() !=
-                        mainIFDS.get(ifdIndex - 1).getFileOffsetOfNextIFDOffset()) {
-                    throw new AssertionError("TiffIFD.getFileOffsetOfNextIFDOffset() and " +
-                            "offsetOfLastScannedIFDOffset() mismatch");
-                }
                 if (ifd.hasNextIFDOffset() || ifd.hasFileOffsetOfNextIFDOffset()) {
                     throw new AssertionError();
                 }

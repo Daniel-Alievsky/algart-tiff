@@ -178,8 +178,8 @@ public final class TiffIFD {
             }
         }
 
-        public boolean isCorrectlyTerminated() {
-            return chainTerminator == IFD_CHAIN_TERMINATOR;
+        public boolean isInfiniteLoopDetected() {
+            return chainTerminator != IFD_CHAIN_TERMINATOR;
         }
 
         /**
@@ -239,7 +239,7 @@ public final class TiffIFD {
             return numberOfMainIFDs() + " main IFDs [" +
                     JArrays.toString(offsetPairs, " ", maxPairsListStringLength) +
                     "], offset of the IFD terminator: " + offsetOfIFDChainTerminator +
-                    (isCorrectlyTerminated() ? "" : ", invalid last offset: " + chainTerminator);
+                    (isInfiniteLoopDetected() ? ", invalid last offset: " + chainTerminator : "");
             // " " instead of more typical ", ": OffsetPair.toString has an ending "->"
         }
 

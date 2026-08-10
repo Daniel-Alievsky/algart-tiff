@@ -80,8 +80,6 @@ public class TiffWriteMixedTest {
             // writer.setSmartCorrection(true);
             assert writer.linkageIfPresent().isEmpty() :
                     "constructor should not set linkage";
-            assert writer.offsetOfLastScannedIFDOffset().isEmpty() :
-                    "constructor should not set offsetOfIFDChainTerminator";
 
             writer.create();
             writer.create(); // - not a problem to call twice
