@@ -178,6 +178,14 @@ public final class TiffIFD {
             }
         }
 
+        /**
+         * Returns {@code true} if the linkage read from a TIFF file contains an infinite loop of IFD offsets.
+         *
+         * <p>This is equivalent to <code>{@link #chainTerminator()}!={@link #IFD_CHAIN_TERMINATOR}</code>.
+         * Note that this is a very rare situation.</p>
+         *
+         * @return whether this linkage is invalid: contains an infinite loop.
+         */
         public boolean isInfiniteLoopDetected() {
             return chainTerminator != IFD_CHAIN_TERMINATOR;
         }
@@ -285,7 +293,7 @@ public final class TiffIFD {
             this.offsetOfIFDChainTerminator = offsetOfIFDChainTerminator;
         }
 
-       void setChainTerminator(long chainTerminator) {
+        void setChainTerminator(long chainTerminator) {
             if (chainTerminator < 0) {
                 throw new IllegalArgumentException("Negative chainTerminator " + chainTerminator);
             }

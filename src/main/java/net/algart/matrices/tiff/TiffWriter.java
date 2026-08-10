@@ -909,7 +909,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param ifd the IFD to write to the output stream.
      * @return the offset where this IFD was actually written.
      * @throws IllegalStateException if the {@link TiffIFD#getFileOffsetOfIFD() original IFD offset} is not set.
-     * @throws IOException if an I/O error occurs.
+     * @throws IOException           if an I/O error occurs.
      */
     @SuppressWarnings("UnusedReturnValue")
     public final long writeIFDAtOriginalOffset(TiffIFD ifd) throws IOException {
@@ -1019,6 +1019,8 @@ public non-sealed class TiffWriter extends TiffIO {
         synchronized (fileLock) {
             checkVirginFile();
             invalidateCompanionReader();
+            // - but we do not call fixInvalidLinkage(): if there is an infinite loop,
+            // and we perform appending, the problem will be fixed automatically
             final long ifdOffset;
             if (ifd.isFileOffsetOfIFDForWritingAssigned()) {
                 ifdOffset = ifd.assignedFileOffsetOfIFDForWriting();
@@ -1192,12 +1194,12 @@ public non-sealed class TiffWriter extends TiffIO {
             }
             checkFileOpen();
             invalidateCompanionReader();
+            final Linkage linkage = fixInvalidLinkage();
             long fileOffset;
             if (mainIFDIndex == 0) {
                 fileOffset = offsetOfFirstIFDOffset();
-                // - no reasons to read anything
             } else {
-                fileOffset = linkage().offsetOfNextIFDOffset(mainIFDIndex - 1);
+                fileOffset = linkage.offsetOfNextIFDOffset(mainIFDIndex - 1);
             }
             writeOffsetAt(newIFDOffset, fileOffset);
             // - last argument is not important: the offsetOfLastScannedIFDOffset will not change in any case
@@ -1553,7 +1555,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param ifd IFD of some existing image, probably loaded from the current TIFF file.
      * @return map for writing further data.
      * @throws IllegalStateException if the {@link TiffIFD#getFileOffsetOfIFD() original IFD offset} is not set.
-     * @throws TiffException in the case of some problems with this IFD.
+     * @throws TiffException         in the case of some problems with this IFD.
      */
     public final TiffWriteMap existingMap(TiffIFD ifd) throws TiffException {
         Objects.requireNonNull(ifd, "Null IFD");
@@ -1862,7 +1864,7 @@ public non-sealed class TiffWriter extends TiffIO {
         }
         synchronized (fileLock) {
             checkFileOpen();
-            Linkage linkage = linkage();
+            Linkage linkage = fixInvalidLinkage();
             final int numberOfImages = linkage.numberOfMainIFDs();
             if (mainIFDIndex >= numberOfImages) {
                 throw new TiffException("No main IFD #" + mainIFDIndex + " in TIFF" + spacedStreamName()
@@ -1881,6 +1883,34 @@ public non-sealed class TiffWriter extends TiffIO {
             invalidateLinkage();
             writeOffsetAt(nextIFDOffset, fileOffsetToWrite);
         }
+    }
+
+    /**
+     * If the existing file contains an infinite loop of IFD offsets (see {@link Linkage#isInfiniteLoopDetected()}),
+     * this method fixes the problem by replacing the looping IFD offset in the file with zero
+     * ({@link TiffIFD#IFD_CHAIN_TERMINATOR}).
+     *
+     * <p>This method is called automatically before any file modification that could result in
+     * an invalid IFD linkage structure.</p>
+     *
+     * @return the {@link #linkage()} object (updated in place if the fix was performed).
+     * @throws IOException if an I/O error occurs.
+     */
+    public final Linkage fixInvalidLinkage() throws IOException {
+        boolean fixed = false;
+        final Linkage linkage;
+        synchronized (fileLock) {
+            linkage = linkage();
+            if (linkage.isInfiniteLoopDetected()) {
+                writeOffsetAt(TiffIFD.IFD_CHAIN_TERMINATOR, linkage.offsetOfIFDChainTerminator());
+                linkage.setChainTerminator(TiffIFD.IFD_CHAIN_TERMINATOR);
+                fixed = true;
+            }
+        }
+        if (fixed) {
+            LOG.log(System.Logger.Level.DEBUG, () -> "Fixing infinite loop in the file: " + linkage);
+        }
+        return linkage;
     }
 
     @Override
