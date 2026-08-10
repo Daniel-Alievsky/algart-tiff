@@ -457,7 +457,7 @@ public non-sealed class TiffReader extends TiffIO {
      * Invalidates all internal caches and initializes the reader by re-reading the TIFF header.
      *
      * <p>This method clears all cached tiles and cached IFD structures,
-     * {@link #invalidateLinkage() invalidaes the linkage},
+     * {@link #invalidateLinkage() invalidates the linkage},
      * resets an internal cache in
      * the {@link ReadBufferDataHandle} input stream and seeks it to zero position.
      * Then this method reads the TIFF header again by calling
@@ -986,6 +986,9 @@ public non-sealed class TiffReader extends TiffIO {
      * returns an empty list and does not throw an exception.
      * For a valid TIFF, the result is never empty.</p>
      *
+     * <p>Note: on the first call, this method invokes the {@link #linkage()} method to retrieve
+     * IFD offsets. Since {@link #linkage()} caches its result, subsequent calls to it will work very quickly.</p>
+     *
      * @throws TiffException if the file is not a correct TIFF file, but this was not detected while opening it.
      * @throws IOException   in the case of any problems with the input file.
      * @see #mainIFDs()
@@ -1002,7 +1005,7 @@ public non-sealed class TiffReader extends TiffIO {
                 return allIFDs;
             }
 
-            final long[] offsets = validTiff ? readMainIFDOffsets() : new long[0];
+            final long[] offsets = validTiff ? linkage().mainIFDOffsetsArray() : new long[0];
             // - even if !validTiff, we MUST correctly fill allIFDs/mainIFDs fields
             allIFDs = new ArrayList<>();
             final ArrayList<TiffIFD> mainIFDs = new ArrayList<>();
