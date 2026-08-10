@@ -1887,7 +1887,6 @@ public non-sealed class TiffWriter extends TiffIO {
     public void close() throws IOException {
         synchronized (fileLock) {
             this.lastMap = null;
-            this.linkage = null;
             this.reader = null;
             super.close();
         }

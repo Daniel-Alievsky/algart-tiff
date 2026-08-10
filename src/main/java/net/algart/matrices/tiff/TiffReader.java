@@ -483,7 +483,6 @@ public non-sealed class TiffReader extends TiffIO {
             synchronized (fileLock) {
                 // Lock order: tileCacheLock -> fileLock; we should use the same order in all places!
                 clearAllCache();
-                invalidateLinkage();
                 final IOException exception = initializeReader(OpenMode.VALID_TIFF);
                 if (exception != null) {
                     throw exception;
@@ -513,6 +512,9 @@ public non-sealed class TiffReader extends TiffIO {
         clearTileCache();
         this.allIFDs = null;
         this.mainIFDs = null;
+        invalidateLinkage(false, null);
+        // - theoretically, this is not necessary while calling from close(),
+        // but it is necessary while calling from clearCache()
         if (!(stream instanceof ReadBufferDataHandle<?>)) {
             throw new AssertionError(
                     "Input stream was not correctly replaced in the constructor");
@@ -1005,7 +1007,9 @@ public non-sealed class TiffReader extends TiffIO {
                 return allIFDs;
             }
 
-            final long[] offsets = validTiff ? linkage().mainIFDOffsetsArray() : new long[0];
+            final long[] offsets = validTiff ?
+                    linkage("Initial loading all IFDs").mainIFDOffsetsArray() :
+                    new long[0];
             // - even if !validTiff, we MUST correctly fill allIFDs/mainIFDs fields
             allIFDs = new ArrayList<>();
             final ArrayList<TiffIFD> mainIFDs = new ArrayList<>();

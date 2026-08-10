@@ -1085,10 +1085,10 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * <p>Performance note: sometimes this library <b>skips</b> calling this method
      * if we are certain the IFD linkage structure remains correct,
-     * even if other method documentation states that &ldquo;they invalidate linkage&rdquo;.
+     * even if documentation of other methods states that &ldquo;they invalidate linkage&rdquo;.
      * We are free to add such cases in future versions as part of our ongoing library optimization.
      * In any case, the only way to detect such changes in behavior is to use the
-     * {@link #linkageIfPresent()} method: it's possible that it will return a non-empty result
+     * {@link #linkageIfPresent()} method: it is possible that it will return a non-empty result
      * more often than the documentation implies.</p>
      *
      * @see TiffWriter#writeIFD(TiffIFD, TiffIFD.Linkage.UpdateMode)
@@ -1097,18 +1097,16 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     public final void invalidateLinkage() {
         invalidateLinkage(true, null);
     }
-
     /**
      * Returns the linkage information for the TIFF file.
      *
-     * <p>This method reads the information via {@link #readLinkage(boolean) readLinkage(true)} on the first call,
+     * <p>This method reads the information via {@link #readLinkage()} on the first call,
      * stores the reference inside this object, and returns it for subsequent calls.
      * However, the stored reference is cleared to {@code null} by the {@link #invalidateLinkage()} method
      * (triggering a reload on the next call).</p>
      *
      * <p>Note: this method does not modify the environment, including the current file position in the
-     * {@link #stream()}. (It saves the current position before calling
-     * {@link #readLinkage(boolean) readLinkage(true)}
+     * {@link #stream()}. (It saves the current position before calling {@link #readLinkage()}
      * and restores it after the call, ensuring all exceptions are handled correctly.)</p>
      *
      * <p>Usually, you do not need to use this method manually: it is called automatically by {@link TiffWriter}
@@ -1151,6 +1149,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         synchronized (fileLock) {
             stream.close();
             fileOpen = false;
+            linkage = null;
         }
     }
 
