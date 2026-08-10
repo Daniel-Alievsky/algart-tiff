@@ -965,13 +965,16 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * <p>If the argument is {@code true}, this method handles this state silently.
      * This can be useful to process an intermediate state during TIFF creation.</p>
      *
-     * <p>Note that this method
-     * <b>does not</b> update the position tracked by {@link #offsetOfLastScannedIFDOffset()},
-     * as well as any other internal fields stored by this class. The only state that is changed by this method
+     * <p>Note that this method <b>does not</b> update any internal fields stored by this class.
+     * The only state that is changed by this method
      * is the current file position in the {@link #stream()}.</p>
      *
+     * <p>This method is used inside the {@link #linkage()} method. In most situations, you should
+     * prefer the {@link #linkage()} method &mdash; it caches the loaded linkage in an internal field
+     * of this object and does not change the current file position.</p>
+     *
      * @param allowNoIFDs {@code true} to allow an empty TIFF file without throwing an exception.
-     * @return the linkage information.
+     * @return the linkage information read from the file.
      * @throws TiffException if a corrupted structure is detected.
      * @throws IOException   if an I/O error occurs.
      * @see #readMainIFDOffsets(boolean)
