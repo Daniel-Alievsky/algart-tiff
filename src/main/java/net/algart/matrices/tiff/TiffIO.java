@@ -1023,10 +1023,20 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
     /**
      * Equivalent to <code>{@link #readLinkage(boolean) readLinkage(allowNoIFDs)}</code>,
-     * where the {@code allowNoIFDs} is chosen automatically: it is {@code true} in {@link TiffWriter}
-     * and {@code false} in {@link TiffReader}
-     * @return
-     * @throws IOException
+     * where {@code allowNoIFDs} is chosen automatically: it is {@code true} in {@link TiffWriter}
+     * and {@code false} in {@link TiffReader}.
+     *
+     * <p>Note that {@link TiffReader} cannot do anything useful when the TIFF does not contain
+     * any IFD (invalid TIFF). So, {@code allowNoIFDs=false} is usually the right choice: it will lead
+     * to an exception for such an invalid TIFF.</p>
+     *
+     * <p>In contrast, {@link TiffWriter} usually builds a new TIFF, and this method can be useful
+     * at the stage when the first image is not completely written yet. So, {@code allowNoIFDs=true} is a better
+     * choice.</p>
+     *
+     * @return the linkage information.
+     * @throws TiffException if a corrupted structure is detected.
+     * @throws IOException   if an I/O error occurs.
      */
     public final TiffIFD.Linkage readLinkage() throws IOException {
         return readLinkage(this instanceof TiffWriter);
@@ -1052,9 +1062,10 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * @param allowNoIFDs {@code true} to allow an empty TIFF file without throwing an exception.
      * @return the linkage information.
-     * @throws TiffException if a corrupted structure or infinite loop is detected.
+     * @throws TiffException if a corrupted structure is detected.
      * @throws IOException   if an I/O error occurs.
      * @see #readMainIFDOffsets(boolean)
+     * @see #readLinkage()
      */
     public final TiffIFD.Linkage readLinkage(boolean allowNoIFDs) throws IOException {
         return readLinkage(allowNoIFDs, Long.MAX_VALUE, false);
@@ -2035,7 +2046,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                     boolean success = false;
                     final long savedOffset = stream.offset();
                     try {
-                        this.linkage = currentLinkage = readLinkage(true);
+                        this.linkage = currentLinkage = readLinkage();
                         stream.seek(savedOffset);
                         success = true;
                     } finally {
