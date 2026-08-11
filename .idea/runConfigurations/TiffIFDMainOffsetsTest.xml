@@ -3,6 +3,7 @@
     <option name="MAIN_CLASS_NAME" value="net.algart.matrices.tiff.tests.misc.TiffIFDMainOffsetsTest" />
     <module name="algart-tiff" />
     <option name="PROGRAM_PARAMETERS" value="src/test/resources/demo/images/tiff/openslide/CMU-1-Small-Region.svs 0" />
+    <option name="VM_PARAMETERS" value="-ea -esa" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="net.algart.matrices.tiff.tests.misc.*" />

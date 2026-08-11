@@ -178,6 +178,16 @@ public final class TiffIFD {
         }
 
         /**
+         * Returns {@code true} if this linkage is valid.
+         * In the current version, this is equivalent to <code>!{@link #isInfiniteLoopDetected()}</code>.
+         *
+         * @return {@code true} if this linkage is valid; {@code false} otherwise.
+         */
+        public boolean isValid() {
+            return !isInfiniteLoopDetected();
+        }
+
+        /**
          * Returns {@code true} if the linkage read from a TIFF file contains an infinite loop of IFD offsets.
          *
          * <p>This is equivalent to <code>{@link #chainTerminator()}!={@link #IFD_CHAIN_TERMINATOR}</code>.
@@ -253,7 +263,7 @@ public final class TiffIFD {
          *
          * @param ifd IFD to correct.
          */
-        public void correctInvalidChainTerminator(TiffIFD ifd) {
+        public void correctInvalidLinkage(TiffIFD ifd) {
             Objects.requireNonNull(ifd, "Null IFD");
             if (isInfiniteLoopDetected() &&
                     ifd.fileOffsetOfNextIFDOffset == offsetOfChainTerminator &&

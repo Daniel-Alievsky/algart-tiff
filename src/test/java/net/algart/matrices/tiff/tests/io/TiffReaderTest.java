@@ -49,6 +49,11 @@ public class TiffReaderTest {
 
     public static void main(String... args) throws IOException {
         int startArgIndex = 0;
+        boolean noChecks = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-noChecks")) {
+            noChecks = true;
+            startArgIndex++;
+        }
         boolean useContext = false;
         if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-useContext")) {
             useContext = true;
@@ -107,7 +112,9 @@ public class TiffReaderTest {
         for (int repeat = 1; repeat <= numberOfCompleteRepeats; repeat++) {
             try (final Context context = !useContext ? null : (Context) TiffReader.newSCIFIOContext()) {
                 long t1 = System.nanoTime();
-                final TiffReader reader = new TiffReader(tiffFile);
+                final TiffReader reader = new TiffReader(
+                        tiffFile,
+                        noChecks ? TiffReader.OpenMode.NO_CHECKS : TiffReader.OpenMode.VALID_TIFF);
                 if (cache) {
                     reader.setCaching(true)
                             .setMaxCacheMemory(tinyCache ? 1000000 : TiffReader.DEFAULT_MAX_CACHING_MEMORY);

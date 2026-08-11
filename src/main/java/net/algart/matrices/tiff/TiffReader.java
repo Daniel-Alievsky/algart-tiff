@@ -1007,8 +1007,9 @@ public non-sealed class TiffReader extends TiffIO {
                 return allIFDs;
             }
 
+            TiffIFD.Linkage linkage = linkage("Initial loading all IFDs");
             final long[] offsets = validTiff ?
-                    linkage("Initial loading all IFDs").mainIFDOffsetsArray() :
+                    linkage.mainIFDOffsetsArray() :
                     new long[0];
             // - even if !validTiff, we MUST correctly fill allIFDs/mainIFDs fields
             allIFDs = new ArrayList<>();
@@ -1017,6 +1018,7 @@ public non-sealed class TiffReader extends TiffIO {
             for (int i = 0; i < offsets.length; i++) {
                 final TiffIFD ifd = readIFDAt(offsets[i]);
                 assert ifd != null;
+                linkage.correctInvalidLinkage(ifd);
                 ifd.setGlobalIndexes(allIFDs.size(), i);
                 allIFDs.add(ifd);
                 mainIFDs.add(ifd);

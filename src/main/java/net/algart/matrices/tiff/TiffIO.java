@@ -680,13 +680,12 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     public final TiffIFD readMainIFD(int mainIFDIndex) throws IOException {
         final LinkageHolder holder = new LinkageHolder();
         long ifdOffset = readMainIFDOffset(mainIFDIndex, holder);
-        assert ifdOffset >= 0;
+        assert ifdOffset >= 0;  
+        assert holder.linkage != null : "linkage is not filled";
         // - note: we do not call setIndexInList(mainIFDIndex),
         // because this index will DIFFER from the index inside the allIFDs() list
         final TiffIFD result = readIFDAt(ifdOffset);
-        if (holder.linkage != null) {
-            holder.linkage.correctInvalidChainTerminator(result);
-        }
+        holder.linkage.correctInvalidLinkage(result);
         return result;
     }
 
@@ -873,7 +872,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @throws IOException              if an I/O error occurs.
      */
     public final OptionalLong readMainIFDOffsetIfPresent(int mainIFDIndex) throws IOException {
-        return readMainIFDOffsetIfPresent(mainIFDIndex, null);
+        return readMainIFDOffsetIfPresent(true, mainIFDIndex, null);
     }
 
     /**
@@ -1878,17 +1877,6 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             long count = 0;
             while (offset != TiffIFD.IFD_CHAIN_TERMINATOR) {
                 // - actually "!= 0"; negative and too high offsets are checked inside low-level readOffset() method
-                final boolean wasPresent = result.containsIFDOffset(offset);
-                if (wasPresent) {
-                    result.setChainTerminator(offset);
-                    break;
-                    // - throwing exception (the code below) is not the best idea: for example,
-                    // GIMP allows reading such a TIFF
-                    // throw new TiffException("TIFF file is broken - infinite loop of IFD offsets is detected " +
-                    //         "for offset %d; the stored offset pairs are:%n%s"
-                    //                .formatted(offset, result.toString(1)));
-
-                }
                 ++count;
                 if (count > MAX_NUMBER_OF_IFDS) {
                     throw new TiffException("Too many IFDs: more than " + MAX_NUMBER_OF_IFDS +
@@ -1899,9 +1887,23 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 final long nextOffset = readIFDOffset();
                 result.addOffsetPair(new TiffIFD.Linkage.OffsetPair(offset, offsetOfNextOffset));
                 result.setOffsetOfChainTerminator(offsetOfNextOffset);
-                // - Note: we DO NOT call setChainTerminator here!
-                // This method is intended only for detection of invalid (infinite) chain loop,
+                // - Note: we DO NOT call setChainTerminator here without checks!
+                // setChainTerminator method is intended only for detection of invalid (infinite) chain loop,
                 // not for detection of breaking due to the maxNumberOfIFDs limit.
+                final boolean wasPresent = result.containsIFDOffset(nextOffset);
+                if (wasPresent) {
+                    result.setChainTerminator(nextOffset);
+                    // - we must set it BEFORE exiting the loop due to count==maxNumberOfIFDs;
+                    // for example, maxNumberOfIFDs=1 (we read mainIFDIndex=0),
+                    // and the only IFD refers to itself
+                    break;
+                    // - throwing exception (the code below) is not the best idea: for example,
+                    // GIMP allows reading such a TIFF
+                    // throw new TiffException("TIFF file is broken - infinite loop of IFD offsets is detected " +
+                    //         "for offset %d; the stored offset pairs are:%n%s"
+                    //                .formatted(offset, result.toString(1)));
+
+                }
                 if (count >= maxNumberOfIFDs) {
                     break;
                 }
@@ -1960,7 +1962,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     private long readFirstIFDOffset() throws IOException {
         synchronized (fileLock) {
             return readFirstIFDOffsetIfPresent()
-                    .orElseThrow(() -> new TiffException("Uncompleted TIFF" + spacedStreamName() +
+                    .orElseThrow(() -> new UncompletedTiffException("Uncompleted TIFF" + spacedStreamName() +
                             ": the file does not contain any images; " +
                             "probably the TIFF writing process was not completed normally"));
         }
@@ -1978,14 +1980,16 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     private long readMainIFDOffset(int mainIFDIndex, LinkageHolder holder) throws IOException {
         if (mainIFDIndex == 0 && holder == null) {
             return readFirstIFDOffset();
-            // - another error message when the TIFF file is empty
+            // - UncompletedTiffException when the TIFF file is empty
         }
-        return readMainIFDOffsetIfPresent(mainIFDIndex, holder)
+        return readMainIFDOffsetIfPresent(false, mainIFDIndex, holder)
                 .orElseThrow(() -> new TiffException("No main IFD #" +
                         mainIFDIndex + " in TIFF" + spacedStreamName() + ": too large index"));
+        // alloNoIFDs=false leads to correct UncompletedTiffException while reading mainIFDIndex=0
     }
 
-    private OptionalLong readMainIFDOffsetIfPresent(int mainIFDIndex, LinkageHolder holder) throws IOException {
+    private OptionalLong readMainIFDOffsetIfPresent(boolean allowNoIFDs, int mainIFDIndex, LinkageHolder holder)
+            throws IOException {
         if (mainIFDIndex < 0) {
             throw new IllegalArgumentException("Negative IFD index = " + mainIFDIndex);
         }
@@ -1993,7 +1997,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             // - micro-optimization
             return readFirstIFDOffsetIfPresent();
         }
-        final TiffIFD.Linkage linkage = readLinkage(true, (long) mainIFDIndex + 1L);
+        final TiffIFD.Linkage linkage = readLinkage(allowNoIFDs, (long) mainIFDIndex + 1L);
+        // allowNoIFDs affects only the situation when mainIFDIndex==0
         if (holder != null) {
             holder.linkage = linkage;
         }

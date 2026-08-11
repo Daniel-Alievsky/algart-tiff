@@ -26,20 +26,19 @@ package net.algart.matrices.tiff;
 
 import java.io.Serial;
 
-public class UnsupportedTiffFormatException extends TiffException {
+public class UncompletedTiffException extends TiffException {
     @Serial
     private static final long serialVersionUID = -7512224420930943208L;
 
-    public UnsupportedTiffFormatException() {
-        super("Unsupported TIFF format");
+    public UncompletedTiffException() {
+        super("Uncompleted TIFF file (no images)");
     }
 
-    public UnsupportedTiffFormatException(final String s) {
+    public UncompletedTiffException(final String s) {
         super(s);
     }
 
-    public UnsupportedTiffFormatException(final String s, final Throwable cause) {
+    public UncompletedTiffException(final String s, final Throwable cause) {
         super(s, cause);
     }
-
 }
