@@ -586,6 +586,7 @@ public final class TiffIFD {
     private long fileOffsetOfNextIFDOffset = -1;
     private long fileOffsetOfIFDForWriting = -1;
     private long nextIFDOffset = -1;
+    private long nextIFDOffsetUncorrected = -1;
     private Integer subIFDType = null;
     private volatile boolean frozen = false;
 
@@ -632,6 +633,7 @@ public final class TiffIFD {
             // - this is important that copy() has an identical fileOffsetOfIFDForWriting:
             // usually we create a copy after TiffWriter.existing() call, for example, in TiffWriter.updateIFD()
             nextIFDOffset = ifd.nextIFDOffset;
+            nextIFDOffsetUncorrected = ifd.nextIFDOffsetUncorrected;
         }
         subIFDType = ifd.subIFDType;
         description = ifd.description;
@@ -1153,7 +1155,7 @@ public final class TiffIFD {
      * This is an analog of {@link #getNextIFDOffset()}, which returns an empty value instead of
      * throwing {@link IllegalStateException}.
      *
-     * @return the assigned <i>next IFD offset</i>, or an empty value if it is not set.
+     * @return the <i>next IFD offset</i>, or an empty value if it is not set.
      */
     public OptionalLong optNextIFDOffset() {
         return nextIFDOffset < 0 ? OptionalLong.empty() : OptionalLong.of(nextIFDOffset);
@@ -1173,6 +1175,18 @@ public final class TiffIFD {
     }
 
     /**
+     * Returns the same result as {@link #optNextIFDOffset()} with the only difference that
+     * if this offset was automatically corrected by {@link Linkage#correctInvalidLinkage(TiffIFD)},
+     * this method returns the original uncorrected (invalid) value.
+     *
+     * @return the <i>next IFD offset</i> before possible correction of the linkage,
+     * or an empty value if it is not set.
+     */
+    public OptionalLong optNextIFDOffsetUncorrected() {
+        return nextIFDOffsetUncorrected < 0 ? OptionalLong.empty() : OptionalLong.of(nextIFDOffsetUncorrected);
+    }
+
+    /**
      * Sets the <i>next IFD offset</i> field of this IFD. Usually this method is called while
      * reading the IFD from the file by {@link TiffReader} or while writing it by {@link TiffWriter}.
      * By default, the internal field for storing this value is unset: an attempt to read this
@@ -1187,6 +1201,7 @@ public final class TiffIFD {
             throw new IllegalArgumentException("Negative next IFD offset: " + nextIFDOffset);
         }
         this.nextIFDOffset = nextIFDOffset;
+        this.nextIFDOffsetUncorrected = nextIFDOffset;
         return this;
     }
 
@@ -1207,6 +1222,7 @@ public final class TiffIFD {
      */
     public TiffIFD removeNextIFDOffset() {
         this.nextIFDOffset = -1;
+        this.nextIFDOffsetUncorrected = -1;
         return this;
     }
 
@@ -3607,6 +3623,10 @@ public final class TiffIFD {
             }
             sb.append(!hasNextIFDOffset() ? "" : isMarkedAsChainTerminator() ? " END" : " @%d=0x%X".formatted(
                     nextIFDOffset, nextIFDOffset));
+            if (nextIFDOffsetUncorrected != nextIFDOffset) {
+                sb.append(" (autocorrected invalid value @%d=0x%X)".formatted(
+                        nextIFDOffsetUncorrected, nextIFDOffsetUncorrected));
+            }
         }
     }
 
