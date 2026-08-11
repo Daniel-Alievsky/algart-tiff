@@ -112,10 +112,12 @@ public class TiffIFDMainOffsetsTest {
         final int numberOfMain = reader.readMainIFDOffsets(true).length;
         final int numberOfAll = numberOfMain == 0 ? 0 : reader.allMaps().size();
         final int numberOfMain2 = numberOfMain == 0 ? 0 : reader.mainIFDs().size();
+        final int numberOfMain3 = numberOfMain == 0 ? 0 : reader.numberOfMainImages();
         // - should not throw exception for an invalid file, for example, too short
         // (but error for not long non-completed file with zero first IFD offset)
-        if (numberOfMain != numberOfMain2 || numberOfMain > numberOfAll) {
-            throw new AssertionError(numberOfMain + ", " + numberOfMain2 + ", " + numberOfAll);
+        if (numberOfMain != numberOfMain2 || numberOfMain != numberOfMain3 || numberOfMain > numberOfAll) {
+            throw new AssertionError(numberOfMain + ", " + numberOfMain2 + ", " +
+                    numberOfMain3 + ", " + numberOfAll);
         }
         System.out.printf("Number of IFDs: %d%n", numberOfMain);
         // reader.allMaps().set(0, null); // - should not be possible (result must be immutable)

@@ -462,7 +462,7 @@ public class TiffWriterTest {
                         }
                     }
                     if (customBitsPerSample != null) {
-                        writer.updateIFD(writer.linkage().numberOfMainIFDs() - 1,
+                        writer.updateIFD(writer.numberOfMainImages() - 1,
                                 falsified -> {
                                     falsified.put(Tags.SAMPLES_PER_PIXEL, customBitsPerSample.length);
                                     falsified.put(Tags.BITS_PER_SAMPLE, customBitsPerSample);

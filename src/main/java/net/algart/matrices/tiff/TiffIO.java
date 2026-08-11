@@ -655,6 +655,11 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * If this information is not yet available, any necessary reading of the file is synchronized
      * on {@link #fileLock()}.</p>
      *
+     * <p>Note: the only difference between these two implementations arises when
+     * {@link TiffReader#isValidTiff()} is {@code false} (non-TIFF or invalid TIFF):
+     * in such a situation, the implementation in {@link TiffReader} silently returns {@code 0},
+     * whereas using the {@link #linkage()} method throws {@link UncompletedTiffException}.
+     *
      * @return the number of existing main images (IFDs).
      * @throws IOException if an I/O error occurs while reading necessary information.
      */
@@ -663,10 +668,15 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     /**
      * Reads the IFD with the given index from the file or throws an exception if the index is out of bounds.
      *
-     * <p>This method is equivalent to:</p>
+     * <p>This method is almost equivalent to:</p>
      * <pre>
      *     {@link #readIFDAt(long) readIFDAt}({@link #readMainIFDOffset(int)
      *     readMainIFDOffset}(mainIFDIndex))</pre>
+     *
+     * <p>The only difference is that the returned IFD is automatically corrected by the
+     * {@link TiffIFD.Linkage#correctInvalidLinkage(TiffIFD)} method in a very improbable case
+     * when this IFD is the last in the TIFF and its {@link TiffIFD#getNextIFDOffset() next IFD offset}
+     * field refers to one of previous IFDs.</p>
      *
      * <p>Note: this method works only with {@link TiffIFD#isMainIFD() regular IFDs} (not sub-IFDs).
      * Therefore, this index must be in the range {@code 0..}{@link TiffReader#numberOfMainImages()}{@code -1}.</p>

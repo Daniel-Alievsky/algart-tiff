@@ -991,6 +991,11 @@ public non-sealed class TiffReader extends TiffIO {
      * <p>Note: on the first call, this method invokes the {@link #linkage()} method to retrieve
      * IFD offsets. Since {@link #linkage()} caches its result, subsequent calls to it will work very quickly.</p>
      *
+     * <p>Note: the last main IFD is automatically corrected by the
+     * {@link TiffIFD.Linkage#correctInvalidLinkage(TiffIFD)} method in a very improbable case
+     * when its {@link TiffIFD#getNextIFDOffset() next IFD offset} field refers to one of previous IFDs
+     * (an infinite loop).</p></p>
+     *
      * @throws TiffException if the file is not a correct TIFF file, but this was not detected while opening it.
      * @throws IOException   in the case of any problems with the input file.
      * @see #mainIFDs()
@@ -1007,14 +1012,17 @@ public non-sealed class TiffReader extends TiffIO {
                 return allIFDs;
             }
 
-            TiffIFD.Linkage linkage = linkage("Initial loading all IFDs");
-            final long[] offsets = validTiff ?
-                    linkage.mainIFDOffsetsArray() :
-                    new long[0];
+            TiffIFD.Linkage linkage = null;
+            final long[] offsets;
+            if (validTiff) {
+                linkage = linkage("Initial loading all IFDs");
+                offsets = linkage.mainIFDOffsetsArray();
+            } else {
+                offsets = new long[0];
+            }
             // - even if !validTiff, we MUST correctly fill allIFDs/mainIFDs fields
             allIFDs = new ArrayList<>();
             final ArrayList<TiffIFD> mainIFDs = new ArrayList<>();
-
             for (int i = 0; i < offsets.length; i++) {
                 final TiffIFD ifd = readIFDAt(offsets[i]);
                 assert ifd != null;
