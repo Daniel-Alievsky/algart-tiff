@@ -968,12 +968,12 @@ public non-sealed class TiffReader extends TiffIO {
     /**
      * Returns all IFDs in the file in an unmodifiable list.
      * On the first call, this method reads all IFDs from the file,
-     * then the result is cached and quickly returned by all further calls.
-     * (But caching can be disabled using the {@link #setCachingIFDs(boolean)} method).
+     * then the result is cached and quickly returned on subsequent calls.
+     * (Caching can be disabled using the {@link #setCachingIFDs(boolean)} method).
      *
      * <p>Note: this method also returns the child sub-IFDs of a regular IFD
      * (they are inserted into the resulting list immediately after the parent IFD).
-     * To retrieve only main IFDs without the child ones, please use {@link #mainIFDs()}.</p>
+     * To retrieve only main IFDs without child ones, use {@link #mainIFDs()}.</p>
      *
      * <p>Note: this method does not process sub-IFDs recursively
      * (nested sub-IFDs of sub-IFDs are extremely rare in typical TIFF files).</p>
@@ -982,20 +982,21 @@ public non-sealed class TiffReader extends TiffIO {
      * Thus, even if a TIFF file contains malformed or corrupted EXIF data,
      * it will not throw any exceptions in this method.
      * You can retrieve linked data explicitly using the {@link #exifIFD(TiffIFD)}, {@link #gpsIFD(TiffIFD)},
-     * {@link #interoperabilityIFD(TiffIFD)} or common {@link #linkedIFD(TiffIFD, int)} method.</p>
+     * {@link #interoperabilityIFD(TiffIFD)}, or the general {@link #linkedIFD(TiffIFD, int)} method.</p>
      *
-     * <p>Note: if this TIFF file is not valid ({@link #isValidTiff()} returns <code>false</code>), this method
+     * <p>Note: if this TIFF file is not valid ({@link #isValidTiff()} returns {@code false}), this method
      * returns an empty list and does not throw an exception.
      * For a valid TIFF, the result is never empty.</p>
-     *
+
      * <p>Note: on the first call, this method invokes the {@link #linkage()} method to retrieve
      * IFD offsets. Since {@link #linkage()} caches its result, subsequent calls to it will work very quickly.</p>
      *
      * <p>Note: the last main IFD is automatically corrected by the
-     * {@link TiffIFD.Linkage#correctInvalidLinkage(TiffIFD)} method in a very improbable case
-     * when its {@link TiffIFD#getNextIFDOffset() next IFD offset} field refers to one of previous IFDs
-     * (an infinite loop).</p></p>
+     * {@link TiffIFD.Linkage#correctInvalidLinkage(TiffIFD)} method in the very rare case
+     * when its {@link TiffIFD#getNextIFDOffset() next IFD offset} field refers to one of the previous IFDs
+     * (an infinite loop).</p>
      *
+     * @return an unmodifiable list of all IFDs in the file.
      * @throws TiffException if the file is not a correct TIFF file, but this was not detected while opening it.
      * @throws IOException   in the case of any problems with the input file.
      * @see #mainIFDs()
