@@ -1194,12 +1194,12 @@ public non-sealed class TiffWriter extends TiffIO {
             }
             checkFileOpen();
             invalidateCompanionReader();
-            final Linkage linkage = correctInvalidLinkage();
+            correctInvalidLinkage();
             long fileOffset;
             if (mainIFDIndex == 0) {
                 fileOffset = offsetOfFirstIFDOffset();
             } else {
-                fileOffset = linkage.offsetOfNextIFDOffset(mainIFDIndex - 1);
+                fileOffset = linkage().offsetOfNextIFDOffset(mainIFDIndex - 1);
             }
             writeOffsetAt(newIFDOffset, fileOffset);
             // - last argument is not important: the offsetOfLastScannedIFDOffset will not change in any case
@@ -1864,7 +1864,8 @@ public non-sealed class TiffWriter extends TiffIO {
         }
         synchronized (fileLock) {
             checkFileOpen();
-            Linkage linkage = correctInvalidLinkage();
+            correctInvalidLinkage();
+            Linkage linkage = linkage();
             final int numberOfImages = linkage.numberOfMainIFDs();
             if (mainIFDIndex >= numberOfImages) {
                 throw new TiffException("No main IFD #" + mainIFDIndex + " in TIFF" + spacedStreamName()
@@ -1893,10 +1894,9 @@ public non-sealed class TiffWriter extends TiffIO {
      * <p>This method is called automatically before any file modification that could result in
      * an invalid IFD linkage structure.</p>
      *
-     * @return the {@link #linkage()} object (updated in place if the fix was performed).
      * @throws IOException if an I/O error occurs.
      */
-    public final Linkage correctInvalidLinkage() throws IOException {
+    public final void correctInvalidLinkage() throws IOException {
         boolean fixed = false;
         final Linkage linkage;
         synchronized (fileLock) {
@@ -1911,7 +1911,6 @@ public non-sealed class TiffWriter extends TiffIO {
         if (fixed) {
             LOG.log(System.Logger.Level.DEBUG, () -> "Fixing infinite loop in the file: " + linkage);
         }
-        return linkage;
     }
 
     @Override
