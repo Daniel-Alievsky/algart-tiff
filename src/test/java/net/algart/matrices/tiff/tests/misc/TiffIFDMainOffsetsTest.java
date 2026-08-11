@@ -163,9 +163,13 @@ public class TiffIFDMainOffsetsTest {
             t2 = System.nanoTime();
             System.out.printf(Locale.ROOT, "readLinkage(true): %s (%.6f mcs)%n",
                     linkage, (t2 - t1) * 1e-3);
+            if (offset0.isPresent() == linkage.isEmpty() ||
+                    (offset0.isPresent() && offset0.getAsLong() != linkage.mainIFDOffset(0))) {
+                throw new AssertionError(offset0 + ", " + linkage);
+            }
             printLinkage(reader);
 
-            var linkageCopy = new TiffIFD.Linkage(linkage.offsetOfIFDChainTerminator(), linkage.mainIFDOffsetPairs());
+            var linkageCopy = new TiffIFD.Linkage(linkage.offsetOfChainTerminator(), linkage.mainIFDOffsetPairs());
             if (!linkageCopy.equals(linkage)) {
                 throw new AssertionError("linkageCopy must equal linkage");
             }

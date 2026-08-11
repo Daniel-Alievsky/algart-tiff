@@ -134,10 +134,10 @@ public final class TiffIFD {
             }
         }
 
-        public record OffsetPair(long offsetOfIFDStart, long offsetOfNextIFDOffset) {
+        public record OffsetPair(long offsetOfThisIFDStart, long offsetOfNextIFDOffset) {
             public OffsetPair {
-                if (offsetOfIFDStart < 0) {
-                    throw new IllegalArgumentException("Negative offsetOfIFDStart = " + offsetOfIFDStart);
+                if (offsetOfThisIFDStart < 0) {
+                    throw new IllegalArgumentException("Negative offsetOfThisIFDStart = " + offsetOfThisIFDStart);
                 }
                 if (offsetOfNextIFDOffset < 0) {
                     throw new IllegalArgumentException("Negative offsetOfNextIFDOffset = " + offsetOfNextIFDOffset);
@@ -146,11 +146,11 @@ public final class TiffIFD {
 
             @Override
             public String toString() {
-                return "starts at @%d, next link at @%d ->".formatted(offsetOfIFDStart, offsetOfNextIFDOffset);
+                return "starts at @%d, next link at @%d ->".formatted(offsetOfThisIFDStart, offsetOfNextIFDOffset);
             }
         }
 
-        private long offsetOfIFDChainTerminator;
+        private long offsetOfChainTerminator;
         private long chainTerminator;
         private final Set<Long> offsetSet;
         private final List<OffsetPair> offsetPairs;
@@ -159,14 +159,13 @@ public final class TiffIFD {
             this(TiffIO.offsetOfFirstIFDOffset(bigTiff), null);
         }
 
-        public Linkage(long offsetOfIFDChainTerminator, Collection<OffsetPair> offsetPairs) {
-            if (offsetOfIFDChainTerminator < 0) {
-                throw new IllegalArgumentException("Negative offsetOfIFDChainTerminator = " +
-                        offsetOfIFDChainTerminator);
+        public Linkage(long offsetOfChainTerminator, Collection<OffsetPair> offsetPairs) {
+            if (offsetOfChainTerminator < 0) {
+                throw new IllegalArgumentException("Negative offsetOfChainTerminator = " + offsetOfChainTerminator);
             }
-            this.offsetOfIFDChainTerminator = offsetOfIFDChainTerminator;
+            this.offsetOfChainTerminator = offsetOfChainTerminator;
             this.chainTerminator = IFD_CHAIN_TERMINATOR;
-            // - there are no public ways to create Linkage with illegal chainTerminatorOffset,
+            // - there are no public ways to create Linkage with illegal offsetOfChainTerminator,
             // though such Linkage can be read from TIFF containing infinite loop of IFD offsets.
             this.offsetSet = new HashSet<>();
             // - order is not important: there is no public access to this set
@@ -202,10 +201,14 @@ public final class TiffIFD {
             return chainTerminator;
         }
 
-        public long offsetOfIFDChainTerminator() {
-            assert offsetOfIFDChainTerminator >= 0;
+        public long offsetOfChainTerminator() {
+            assert offsetOfChainTerminator >= 0;
             // - note: when using the second constructor, ifdChainTerminatorOffset can have any value
-            return offsetOfIFDChainTerminator;
+            return offsetOfChainTerminator;
+        }
+
+        public boolean isEmpty() {
+            return offsetSet.isEmpty();
         }
 
         public int numberOfMainIFDs() {
@@ -218,11 +221,11 @@ public final class TiffIFD {
         }
 
         public long[] mainIFDOffsetsArray() {
-            return offsetPairs.stream().mapToLong(v -> v.offsetOfIFDStart).toArray();
+            return offsetPairs.stream().mapToLong(v -> v.offsetOfThisIFDStart).toArray();
         }
 
         public long mainIFDOffset(int ifdIndex) {
-            return offsetPairs.get(ifdIndex).offsetOfIFDStart;
+            return offsetPairs.get(ifdIndex).offsetOfThisIFDStart;
         }
 
         public long offsetOfNextIFDOffset(int ifdIndex) {
@@ -232,11 +235,31 @@ public final class TiffIFD {
         public OptionalLong lastIFDOffset() {
             return offsetPairs.isEmpty() ?
                     OptionalLong.empty() :
-                    OptionalLong.of(offsetPairs.getLast().offsetOfIFDStart());
+                    OptionalLong.of(offsetPairs.getLast().offsetOfThisIFDStart());
         }
 
         public boolean containsIFDOffset(long offset) {
             return offsetSet.contains(offset);
+        }
+
+        /**
+         * Corrects the possible invalid chain terminator in the specified IFD.
+         * <p>More precisely, if this linkage has an {@link #isInfiniteLoopDetected() invalid chain terminator},
+         * and this terminator is exactly the next IFD offset in the specified IFD:
+         * <pre>
+         *     ifd.{@link #getFileOffsetOfNextIFDOffset()} == {@link #offsetOfChainTerminator()}
+         *     &amp;&amp; ifd.{@link #getNextIFDOffset()} == {@link #chainTerminator()}</pre>
+         * this method replaced the next IFD offset field in the IFD with {@link #IFD_CHAIN_TERMINATOR}.
+         *
+         * @param ifd IFD to correct.
+         */
+        public void correctInvalidChainTerminator(TiffIFD ifd) {
+            Objects.requireNonNull(ifd, "Null IFD");
+            if (isInfiniteLoopDetected() &&
+                    ifd.fileOffsetOfNextIFDOffset == offsetOfChainTerminator &&
+                    ifd.nextIFDOffset == chainTerminator) {
+                ifd.nextIFDOffset = IFD_CHAIN_TERMINATOR;
+            }
         }
 
         public String toString() {
@@ -246,7 +269,7 @@ public final class TiffIFD {
         public String toString(int maxPairsListStringLength) {
             return numberOfMainIFDs() + " main IFDs [" +
                     JArrays.toString(offsetPairs, " ", maxPairsListStringLength) +
-                    "], offset of the IFD terminator: " + offsetOfIFDChainTerminator +
+                    "], offset of the IFD terminator: " + offsetOfChainTerminator +
                     (isInfiniteLoopDetected() ? ", invalid last offset: " + chainTerminator : "");
             // " " instead of more typical ", ": OffsetPair.toString has an ending "->"
         }
@@ -257,14 +280,14 @@ public final class TiffIFD {
                 return false;
             }
             Linkage linkage = (Linkage) o;
-            return offsetOfIFDChainTerminator == linkage.offsetOfIFDChainTerminator &&
+            return offsetOfChainTerminator == linkage.offsetOfChainTerminator &&
                     chainTerminator == linkage.chainTerminator &&
                     Objects.equals(offsetPairs, linkage.offsetPairs);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(offsetOfIFDChainTerminator, chainTerminator, offsetPairs);
+            return Objects.hash(offsetOfChainTerminator, chainTerminator, offsetPairs);
         }
 
         // Note: there are no public ways to change the state of an existing Linkage object
@@ -273,24 +296,23 @@ public final class TiffIFD {
                 throw new IllegalArgumentException("Negative fileOffsetOfThisIFDStart = " + fileOffsetOfThisIFDStart);
             }
             addOffsetPair(new OffsetPair(fileOffsetOfThisIFDStart, fileOffsetOfNextIFDOffset));
-            setOffsetOfIFDChainTerminator(fileOffsetOfNextIFDOffset);
+            setOffsetOfChainTerminator(fileOffsetOfNextIFDOffset);
             setChainTerminator(IFD_CHAIN_TERMINATOR);
         }
 
         void addOffsetPair(OffsetPair offsetPair) {
             Objects.requireNonNull(offsetPair, "Null offsetPair");
-            if (!addOffsetToSet(offsetPair.offsetOfIFDStart)) {
+            if (!addOffsetToSet(offsetPair.offsetOfThisIFDStart)) {
                 throw new IllegalArgumentException("Duplicate offsetPair: " + offsetPair);
             }
             offsetPairs.add(offsetPair);
         }
 
-        void setOffsetOfIFDChainTerminator(long offsetOfIFDChainTerminator) {
-            if (offsetOfIFDChainTerminator < 0) {
-                throw new IllegalArgumentException("Negative offsetOfIFDChainTerminator = " +
-                        offsetOfIFDChainTerminator);
+        void setOffsetOfChainTerminator(long offsetOfChainTerminator) {
+            if (offsetOfChainTerminator < 0) {
+                throw new IllegalArgumentException("Negative offsetOfChainTerminator = " + offsetOfChainTerminator);
             }
-            this.offsetOfIFDChainTerminator = offsetOfIFDChainTerminator;
+            this.offsetOfChainTerminator = offsetOfChainTerminator;
         }
 
         void setChainTerminator(long chainTerminator) {

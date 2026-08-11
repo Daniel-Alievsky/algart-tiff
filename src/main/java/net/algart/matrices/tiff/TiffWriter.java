@@ -971,8 +971,8 @@ public non-sealed class TiffWriter extends TiffIO {
      *
      * <ol>
      *     <li>rewrites 'next IFD offset' stored <b>in the file</b> at the position
-     *     <code>{@link #linkage()}.{@link Linkage#offsetOfIFDChainTerminator()
-     *     offsetOfIFDChainTerminator()}</code> with the offset of this newly written IFD;
+     *     <code>{@link #linkage()}.{@link Linkage#offsetOfChainTerminator()
+     *     offsetOfChainTerminator()}</code> with the offset of this newly written IFD;
      *     actually, this means that this IFD is appended to the end of the IFDs chain;</li>
      *     <li>performs the necessary corrections in the existing {@link #linkage()} object
      *     (the {@link #invalidateLinkage()} method is not called).</li>
@@ -1194,7 +1194,7 @@ public non-sealed class TiffWriter extends TiffIO {
             }
             checkFileOpen();
             invalidateCompanionReader();
-            final Linkage linkage = fixInvalidLinkage();
+            final Linkage linkage = correctInvalidLinkage();
             long fileOffset;
             if (mainIFDIndex == 0) {
                 fileOffset = offsetOfFirstIFDOffset();
@@ -1210,7 +1210,7 @@ public non-sealed class TiffWriter extends TiffIO {
     }
 
     /**
-     * Rewrites the offset, stored in the file at the {@link Linkage#offsetOfIFDChainTerminator()},
+     * Rewrites the offset, stored in the file at the {@link Linkage#offsetOfChainTerminator()},
      * with the specified value.
      *
      * <p>This is a low-level operation for manual adjustment of the IFD chain sequence
@@ -1228,7 +1228,7 @@ public non-sealed class TiffWriter extends TiffIO {
             }
             checkFileOpen();
             invalidateCompanionReader();
-            writeOffsetAt(newLastIFDOffset, linkage().offsetOfIFDChainTerminator());
+            writeOffsetAt(newLastIFDOffset, linkage().offsetOfChainTerminator());
             // - last argument is not important: the offsetOfLastScannedIFDOffset will not change in any case
             invalidateLinkage();
             // - this is low-level correction, we cannot be sure that the IFD chain is still correct
@@ -1864,7 +1864,7 @@ public non-sealed class TiffWriter extends TiffIO {
         }
         synchronized (fileLock) {
             checkFileOpen();
-            Linkage linkage = fixInvalidLinkage();
+            Linkage linkage = correctInvalidLinkage();
             final int numberOfImages = linkage.numberOfMainIFDs();
             if (mainIFDIndex >= numberOfImages) {
                 throw new TiffException("No main IFD #" + mainIFDIndex + " in TIFF" + spacedStreamName()
@@ -1896,13 +1896,13 @@ public non-sealed class TiffWriter extends TiffIO {
      * @return the {@link #linkage()} object (updated in place if the fix was performed).
      * @throws IOException if an I/O error occurs.
      */
-    public final Linkage fixInvalidLinkage() throws IOException {
+    public final Linkage correctInvalidLinkage() throws IOException {
         boolean fixed = false;
         final Linkage linkage;
         synchronized (fileLock) {
             linkage = linkage();
             if (linkage.isInfiniteLoopDetected()) {
-                writeOffsetAt(TiffIFD.IFD_CHAIN_TERMINATOR, linkage.offsetOfIFDChainTerminator());
+                writeOffsetAt(TiffIFD.IFD_CHAIN_TERMINATOR, linkage.offsetOfChainTerminator());
                 linkage.setChainTerminator(TiffIFD.IFD_CHAIN_TERMINATOR);
                 fixed = true;
             }
@@ -2214,7 +2214,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 // - This is the only case when we can safely add new IFD to the chain end:
                 // A) newIndependentTrailingIFD - its start is not equal to any of existing IFD offsets;
                 // B) isEffectivelyChainTerminator() - it will actually become the chain end.
-                writeOffsetAt(ifdOffset, linkage.offsetOfIFDChainTerminator());
+                writeOffsetAt(ifdOffset, linkage.offsetOfChainTerminator());
                 linkage.updateAfterAppendingNewIFD(ifdOffset, fileOffsetOfNextIFDOffset);
                 return;
             }
@@ -2254,21 +2254,21 @@ public non-sealed class TiffWriter extends TiffIO {
         final long ifdOffset = ifd.assignedFileOffsetOfIFDForWriting();
         final long fileOffsetOfNextOffset = ifd.getFileOffsetOfNextIFDOffset();
         final boolean update = updateModeForNewIFD.isAppend();
-        final long previousOffsetOfIFDChainTerminator;
+        final long previousOffsetOfChainTerminator;
         final Linkage linkage;
         if (update) {
             linkage = linkage();
-            previousOffsetOfIFDChainTerminator = linkage.offsetOfIFDChainTerminator();
+            previousOffsetOfChainTerminator = linkage.offsetOfChainTerminator();
         } else {
             linkage = linkageIfPresent().orElse(null);
-            previousOffsetOfIFDChainTerminator = -1;
+            previousOffsetOfChainTerminator = -1;
         }
         // - save it, because it will be updated in writeIFDOffsetAt
         final boolean knownIFDOffset = linkage != null && linkage.containsIFDOffset(ifdOffset);
         boolean virginIFDForAppendingNewImages = !ifd.hasNextIFDOffset();
         // - Optimization for writing sequential images.
         // If this IFD is a terminator (either newly created for appending or explicitly marked),
-        // we can safely skip invalidateLinkage(): correcting the offsetOfIFDChainTerminator
+        // we can safely skip invalidateLinkage(): correcting the offsetOfChainTerminator
         // field inside writeIFDOffsetAt() is sufficient to maintain a valid chain state.
         final long nextIFDOffsetIfPresent = virginIFDForAppendingNewImages ? -1 : ifd.getNextIFDOffset();
         // - Used for logging only
@@ -2289,18 +2289,18 @@ public non-sealed class TiffWriter extends TiffIO {
             // will probably lead to an infinite loop of IFDs.
             // This check is necessary, for example, for overwriting an existing image:
             // without it, the completeWriting method will create an infinite loop.
-            writeOffsetAt(ifdOffset, previousOffsetOfIFDChainTerminator);
+            writeOffsetAt(ifdOffset, previousOffsetOfChainTerminator);
             // *** However, here is A LITTLE PROBLEM of the old version (before 1.07.2026) ***
-            // We are writing ifdOffset at previousOffsetOfIFDChainTerminator even it the case
+            // We are writing ifdOffset at previousOffsetOfChainTerminator even it the case
             // when the new IFD is NOT a terminal IFD.
             // It makes possible to join two series: A1->A2-A3, B1-B2-B3, and we are writing
             // A4 referring to B1.
             // In a new version, this is impossible - manual correction of A3 in the file is necessary.
-            updateAfterAppendingNewIFDLegacy(linkage, ifdOffset, previousOffsetOfIFDChainTerminator);
+            updateAfterAppendingNewIFDLegacy(linkage, ifdOffset, previousOffsetOfChainTerminator);
             // - This method adds ifdOffset to allIFDOffsets in UPDATE mode.
             // (In old versions, we passed here an equivalent of the NONE mode, but now
             // UPDATE is necessary for correcting allIFDOffsets and, vice versa,
-            // offsetOfIFDChainTerminator will not be changed for offset other than the terminator.)
+            // offsetOfChainTerminator will not be changed for offset other than the terminator.)
         }
         if (!virginIFDForAppendingNewImages) {
             invalidateLinkage(true, () -> " for IFD with specified next-IFD-offset=" +
@@ -2313,7 +2313,7 @@ public non-sealed class TiffWriter extends TiffIO {
         if (newIFDOffsetValue != TiffIFD.IFD_CHAIN_TERMINATOR) {
             linkage.addOffsetToSet(newIFDOffsetValue);
         } else {
-            linkage.setOffsetOfIFDChainTerminator(fileOffsetOfNewIFDOffset);
+            linkage.setOffsetOfChainTerminator(fileOffsetOfNewIFDOffset);
         }
     }
 

@@ -678,11 +678,16 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @throws IOException              if an I/O error occurs.
      */
     public final TiffIFD readMainIFD(int mainIFDIndex) throws IOException {
-        long ifdOffset = readMainIFDOffset(mainIFDIndex);
+        final LinkageHolder holder = new LinkageHolder();
+        long ifdOffset = readMainIFDOffset(mainIFDIndex, holder);
         assert ifdOffset >= 0;
         // - note: we do not call setIndexInList(mainIFDIndex),
         // because this index will DIFFER from the index inside the allIFDs() list
-        return readIFDAt(ifdOffset);
+        final TiffIFD result = readIFDAt(ifdOffset);
+        if (holder.linkage != null) {
+            holder.linkage.correctInvalidChainTerminator(result);
+        }
+        return result;
     }
 
     /**
@@ -853,13 +858,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @throws IOException              if an I/O error occurs.
      */
     public final long readMainIFDOffset(int mainIFDIndex) throws IOException {
-        if (mainIFDIndex == 0) {
-            return readFirstIFDOffset();
-            // - another error message when the TIFF file is empty
-        }
-        return readMainIFDOffsetIfPresent(mainIFDIndex)
-                .orElseThrow(() -> new TiffException("No main IFD #" +
-                        mainIFDIndex + " in TIFF" + spacedStreamName() + ": too large index"));
+        return readMainIFDOffset(mainIFDIndex, null);
     }
 
     /**
@@ -874,17 +873,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * @throws IOException              if an I/O error occurs.
      */
     public final OptionalLong readMainIFDOffsetIfPresent(int mainIFDIndex) throws IOException {
-        if (mainIFDIndex < 0) {
-            throw new IllegalArgumentException("Negative IFD index = " + mainIFDIndex);
-        }
-        if (mainIFDIndex == 0) {
-            return readFirstIFDOffsetIfPresent();
-        }
-        final TiffIFD.Linkage linkage = readLinkage(true, (long) mainIFDIndex + 1L);
-        final int subchainLength = linkage.numberOfMainIFDs();
-        final OptionalLong lastOffset = linkage.lastIFDOffset();
-        assert subchainLength == 0 || lastOffset.isPresent() : "Unset ifdLastOffset";
-        return mainIFDIndex < subchainLength ? lastOffset : OptionalLong.empty();
+        return readMainIFDOffsetIfPresent(mainIFDIndex, null);
     }
 
     /**
@@ -1909,7 +1898,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                 final long offsetOfNextOffset = stream.offset();
                 final long nextOffset = readIFDOffset();
                 result.addOffsetPair(new TiffIFD.Linkage.OffsetPair(offset, offsetOfNextOffset));
-                result.setOffsetOfIFDChainTerminator(offsetOfNextOffset);
+                result.setOffsetOfChainTerminator(offsetOfNextOffset);
                 // - Note: we DO NOT call setChainTerminator here!
                 // This method is intended only for detection of invalid (infinite) chain loop,
                 // not for detection of breaking due to the maxNumberOfIFDs limit.
@@ -1984,6 +1973,34 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             final long result = readIFDOffset();
             return result == 0 ? OptionalLong.empty() : OptionalLong.of(result);
         }
+    }
+
+    private long readMainIFDOffset(int mainIFDIndex, LinkageHolder holder) throws IOException {
+        if (mainIFDIndex == 0 && holder == null) {
+            return readFirstIFDOffset();
+            // - another error message when the TIFF file is empty
+        }
+        return readMainIFDOffsetIfPresent(mainIFDIndex, holder)
+                .orElseThrow(() -> new TiffException("No main IFD #" +
+                        mainIFDIndex + " in TIFF" + spacedStreamName() + ": too large index"));
+    }
+
+    private OptionalLong readMainIFDOffsetIfPresent(int mainIFDIndex, LinkageHolder holder) throws IOException {
+        if (mainIFDIndex < 0) {
+            throw new IllegalArgumentException("Negative IFD index = " + mainIFDIndex);
+        }
+        if (mainIFDIndex == 0 && holder == null) {
+            // - micro-optimization
+            return readFirstIFDOffsetIfPresent();
+        }
+        final TiffIFD.Linkage linkage = readLinkage(true, (long) mainIFDIndex + 1L);
+        if (holder != null) {
+            holder.linkage = linkage;
+        }
+        final int subchainLength = linkage.numberOfMainIFDs();
+        final OptionalLong lastOffset = linkage.lastIFDOffset();
+        assert subchainLength == 0 || lastOffset.isPresent() : "Unset ifdLastOffset";
+        return mainIFDIndex < subchainLength ? lastOffset : OptionalLong.empty();
     }
 
     private long readIFDOffset() throws IOException {
@@ -2280,6 +2297,10 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return new TiffException("Cannot write IFD tag " +
                 Tags.prettyName(tag) + ": its value type \"" +
                 value.getClass().getTypeName() + "\" is not supported");
+    }
+
+    static class LinkageHolder {
+        TiffIFD.Linkage linkage;
     }
 
     record IFDCommonInformation(
