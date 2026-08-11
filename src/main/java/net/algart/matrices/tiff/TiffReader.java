@@ -987,9 +987,10 @@ public non-sealed class TiffReader extends TiffIO {
      * <p>Note: if this TIFF file is not valid ({@link #isValidTiff()} returns {@code false}), this method
      * returns an empty list and does not throw an exception.
      * For a valid TIFF, the result is never empty.</p>
-
+     *
      * <p>Note: on the first call, this method invokes the {@link #linkage()} method to retrieve
-     * IFD offsets. Since {@link #linkage()} caches its result, subsequent calls to it will work very quickly.</p>
+     * IFD offsets (except when {@link #isValidTiff()} returns {@code false}).
+     * Since {@link #linkage()} caches its result, subsequent calls to it will work very quickly.</p>
      *
      * <p>Note: the last main IFD is automatically corrected by the
      * {@link TiffIFD.Linkage#correctInvalidLinkage(TiffIFD)} method in the very rare case

@@ -658,7 +658,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * <p>Note: the only difference between these two implementations arises when
      * {@link TiffReader#isValidTiff()} is {@code false} (non-TIFF or invalid TIFF):
      * in such a situation, the implementation in {@link TiffReader} silently returns {@code 0},
-     * whereas using the {@link #linkage()} method throws {@link UncompletedTiffException}.
+     * whereas using the {@link #linkage()} method throws an {@link UncompletedTiffException}.
      *
      * @return the number of existing main images (IFDs).
      * @throws IOException if an I/O error occurs while reading necessary information.
@@ -935,8 +935,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * and {@code false} in {@link TiffReader}.
      *
      * <p>Note that {@link TiffReader} cannot do anything useful when the TIFF does not contain
-     * any IFD (invalid TIFF). So, {@code allowNoIFDs=false} is usually the right choice: it will lead
-     * to an exception for such an invalid TIFF.</p>
+     * any IFDs (invalid TIFF). So, {@code allowNoIFDs=false} is usually the right choice: it will lead
+     * to an {@link UncompletedTiffException} for such an invalid TIFF.</p>
      *
      * <p>In contrast, {@link TiffWriter} usually builds a new TIFF, and this method can be useful
      * at the stage when the first image is not completely written yet. So, {@code allowNoIFDs=true} is a better
@@ -958,7 +958,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * <p>If the {@code allowNoIFDs} argument is {@code false} and the file contains no IFDs
      * (i.e., {@link TiffIFD#IFD_CHAIN_TERMINATOR} is written at {@link #offsetOfFirstIFDOffset()}),
-     * this method throws a {@link TiffException}.</p>
+     * this method throws an {@link UncompletedTiffException}.</p>
      *
      * <p>If the argument is {@code true}, this method handles this state silently.
      * This can be useful to process an intermediate state during TIFF creation.</p>
