@@ -674,9 +674,9 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *     readMainIFDOffset}(mainIFDIndex))</pre>
      *
      * <p>The only difference is that the returned IFD is automatically corrected by the
-     * {@link TiffIFD.Linkage#correctInvalidLinkage(TiffIFD)} method in a very improbable case
+     * {@link TiffIFD.Linkage#correctInvalidLinkage(TiffIFD)} method in the very rare case
      * when this IFD is the last in the TIFF and its {@link TiffIFD#getNextIFDOffset() next IFD offset}
-     * field refers to one of previous IFDs.</p>
+     * field refers to one of the previous IFDs (an infinite loop).</p>
      *
      * <p>Note: this method works only with {@link TiffIFD#isMainIFD() regular IFDs} (not sub-IFDs).
      * Therefore, this index must be in the range {@code 0..}{@link TiffReader#numberOfMainImages()}{@code -1}.</p>

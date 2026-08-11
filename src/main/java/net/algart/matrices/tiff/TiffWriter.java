@@ -1903,7 +1903,8 @@ public non-sealed class TiffWriter extends TiffIO {
             linkage = linkage();
             if (linkage.isInfiniteLoopDetected()) {
                 writeOffsetAt(TiffIFD.IFD_CHAIN_TERMINATOR, linkage.offsetOfChainTerminator());
-                linkage.setChainTerminator(TiffIFD.IFD_CHAIN_TERMINATOR);
+                invalidateLinkage(false, null);
+                invalidateCompanionReader();
                 fixed = true;
             }
         }
