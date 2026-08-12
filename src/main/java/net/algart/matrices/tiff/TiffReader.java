@@ -805,7 +805,7 @@ public non-sealed class TiffReader extends TiffIO {
      *
      * <p>In most cases, this method returns the same value as {@link #isTiff()}.
      * It may return {@code false} while {@link #isTiff()} is {@code true} only
-     * if the TIFF header is present but corrupted (e.g., the file is truncated),
+     * if the TIFF header is present but the file is corrupted (e.g., too short)
      * and the reader was opened in the {@link OpenMode#NO_CHECKS} mode.
      *
      * <p>Note: if the constructor with {@link OpenMode#VALID_TIFF} mode
