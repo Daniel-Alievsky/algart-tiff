@@ -221,8 +221,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     final Path filePath;
 
     volatile boolean tiff;
-    volatile boolean bigTiff = false;
     volatile boolean validTiff;
+    volatile boolean bigTiff = false;
     private volatile Object context = null;
     private volatile byte byteFiller = 0;
     private volatile Consumer<TiffTile> tileInitializer = null;
@@ -1167,6 +1167,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
     void analyzeFileHeader(boolean additionalTiffValidation) throws IOException {
         this.tiff = false;
+        this.validTiff = false;
         this.bigTiff = false;
         // TIFF file header:
         //  16 bits - TIFF byte-order identifier:
@@ -1221,8 +1222,13 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             this.fileOpen = true;
             if (additionalTiffValidation) {
                 checkFirstOffset();
-                // - additional check of zero or extremely large offset
+                // - additional check of zero or extremely large offset;
+                // TiffReader checks this for VALID_TIFF only, when this
+                // leads to an exception and isValidTiff() method cannot be used:
+                // usually, isValidTiff() is true if the file is large enough and
+                // the ONLY problem is detected by checkFirstOffset()
             }
+            this.validTiff = true;
 
             // Note: in old versions, before 13.Nov.2025, the following code was executed here always:
             //

@@ -1618,14 +1618,13 @@ public non-sealed class TiffReader extends TiffIO {
     private IOException initializeReader(OpenMode openMode) {
         synchronized (fileLock) {
             try {
-                this.validTiff = false;
                 this.existingFile = stream.exists();
                 if (!existingFile) {
                     return new FileNotFoundException("File not found:" + spacedStreamName());
                 }
                 analyzeFileHeader(openMode.isTiffRequired());
                 assert this.tiff;
-                this.validTiff = true;
+                assert this.validTiff;
                 return null;
             } catch (IOException e) {
                 return e;
