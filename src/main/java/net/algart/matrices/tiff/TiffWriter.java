@@ -2230,39 +2230,46 @@ public non-sealed class TiffWriter extends TiffIO {
         final boolean nextIFDOffsetChanged =
                 nextIFDOffsetWrittenInFile == null || nextIFDOffset != nextIFDOffsetWrittenInFile;
         final boolean appending = appendRequested && ifd.isEffectivelyChainTerminator();
+        if (!appending && !nextIFDOffsetChanged) {
+            // - optimization: we are sure that will not change anything, so, we can skip linkage() call
+            return;
+        }
+        final Linkage linkage = linkage();
+        // - loading linkage BEFORE any other operations, including the following writeOffsetAt
+        final boolean appendingIndependentTrailingIFD = appending && !linkage.containsIFDOffset(ifdOffset);
+
         if (nextIFDOffsetChanged) {
             writeOffsetAt(nextIFDOffset, fileOffsetOfNextIFDOffset);
+            // Usually this writeOffsetAt does not change the linkage, because this IFD is not linked yet.
+            // But it's theoretically possible that it is already a part of the linkage,
+            // and, so, this writeOffsetAt will change it.
+            // So, we MUST call linkage() before this call to provide stable behavior:
+            // after this call, linkage() may read the new state or may return the previous.
         }
-        if (appending) {
-            final Linkage linkage = linkage();
-            final boolean newIndependentTrailingIFD = !linkage.containsIFDOffset(ifdOffset);
-            if (newIndependentTrailingIFD) {
-                // - We can safely add new IFD to the chain end only if these conditions are met:
-                // A) newIndependentTrailingIFD - its start is not equal to any of existing IFD offsets;
-                // B) isEffectivelyChainTerminator() - it will actually become the chain end.
-                // Note that there is no need to call correctInvalidLinkage():
-                // if the chain terminator written in the file is invalid, it will be rewritten with ifdOffset.
-                writeOffsetAt(ifdOffset, linkage.offsetOfChainTerminator());
-                linkage.updateAfterAppendingNewIFD(ifdOffset, fileOffsetOfNextIFDOffset);
-                return;
-            }
+        if (appendingIndependentTrailingIFD) {
+            // - We can safely add new IFD to the chain end only if these conditions are met:
+            // A) newIndependentTrailingIFD - its start is not equal to any of existing IFD offsets;
+            // B) isEffectivelyChainTerminator() - it will actually become the chain end.
+            // Note that there is no need to call correctInvalidLinkage():
+            // if the chain terminator written in the file is invalid, it will be rewritten with ifdOffset.
+            writeOffsetAt(ifdOffset, linkage.offsetOfChainTerminator());
+            linkage.updateAfterAppendingNewIFD(ifdOffset, fileOffsetOfNextIFDOffset);
+            return;
         }
         if (!nextIFDOffsetChanged) {
             // - we didn't change anything in the file
             return;
         }
-        // correctInvalidLinkageInFile(); //TODO!!
-        final Linkage linkage = linkage();
         // The "performance trick" has no sense after adding correctInvalidLinkageInFile() 12.Aug.2026
         // final Linkage linkage = this.linkage;
         // if (linkage == null) {
-            // - Performance trick! Usually, if there is no linkage (after invalidation), we need to reload it,
-            // as the linkage() method does. However, the only goal of the code below is possible INVALIDATION,
-            // i.e., clearing to null.
-            // So, it makes no sense to use linkage(): if linkage is null, let it stay to be null.
-            // LOG.log(System.Logger.Level.DEBUG, () ->
-            //         "Invalidating linkage skipped for IFD with next-IFD-offset " + ifd.nextIFDOffsetToString());
-            // return;
+        // - Performance trick! Usually, if there is no linkage (after invalidation), we need to reload it,
+        // as the linkage() method does. However, the only goal of the code below is possible INVALIDATION,
+        // i.e., clearing to null.
+        // So, it makes no sense to use linkage(): if linkage is null, let it stay to be null.
+        // LOG.log(System.Logger.Level.DEBUG, () ->
+        //         "Invalidating linkage skipped for IFD with next-IFD-offset " + ifd.nextIFDOffsetToString());
+        // return;
         // }
         if (linkage.containsIFDOffset(ifdOffset)) {
             // - This IFD already exists in the linkage. Rewriting its effectiveNextIFDOffset() above
