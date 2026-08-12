@@ -165,7 +165,6 @@ public non-sealed class TiffReader extends TiffIO {
 
     private final IOException openingException;
     private volatile boolean existingFile;
-    private volatile boolean validTiff;
 
     /**
      * Cached list of IFDs in the current file.

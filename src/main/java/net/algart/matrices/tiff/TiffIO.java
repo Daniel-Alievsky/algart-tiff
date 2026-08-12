@@ -222,6 +222,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
     volatile boolean tiff;
     volatile boolean bigTiff = false;
+    volatile boolean validTiff;
     private volatile Object context = null;
     private volatile byte byteFiller = 0;
     private volatile Consumer<TiffTile> tileInitializer = null;
@@ -241,9 +242,9 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     TiffIO(DataHandle<?> stream, Path filePath) {
         this.stream = Objects.requireNonNull(stream, "Null data handle (input/output stream)");
         this.filePath = filePath;
-        this.tiff = this instanceof TiffWriter;
+        this.tiff = this.validTiff = this instanceof TiffWriter;
         // - TiffWriter is usually created without any file, but analyzeFileHeader() is not called always;
-        // we MUST suppose that it is TIFF for all other cases
+        // we MUST suppose that it is a valid TIFF for all other cases
     }
 
     /**
