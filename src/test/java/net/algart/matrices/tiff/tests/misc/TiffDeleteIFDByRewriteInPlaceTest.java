@@ -31,11 +31,15 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Set;
+import java.util.function.IntPredicate;
 
 /**
  * This test is recommended to be called for a new copy of
  * {@code src/test/resources/demo/images/tiff/libtiff/test/images/test_ifd_loop_subifd.tif}
  * to remove main IFD #2.
+ * It checks whether {@link TiffWriter#writeIFD(TiffIFD, TiffIFD.Linkage.UpdateMode)},
+ * {@link TiffWriter#rewriteIFDStrictlyInPlace(TiffIFD, IntPredicate, TiffIFD.Linkage.UpdateMode)}
+ * and similar methods correctly call {@link TiffWriter#correctInvalidLinkageInFile()}.
  */
 public class TiffDeleteIFDByRewriteInPlaceTest {
     public static void main(String[] args) throws IOException {
