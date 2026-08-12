@@ -253,8 +253,10 @@ public class TiffInfo {
                 if (metadata.isNonTrivial()) {
                     svsInfo = (metadata.isSvs() ? "%s%n".formatted(metadata.svsDescription()) : "") + metadata;
                 }
-                if (reader.linkage().isInfiniteLoopDetected()) {
-                    summaryInfo += "%nWARNING! Infinite IFD loop detected!".formatted();
+                TiffIFD.Linkage linkage = reader.linkage();
+                if (linkage.isInfiniteLoopDetected()) {
+                    summaryInfo += "%nWARNING! Infinite IFD loop detected (last IFD refers to existing main IFD #%d)!"
+                            .formatted(linkage.indexOfIFDOffset(linkage.chainTerminator()).orElseThrow());
                 }
             }
         } catch (IOException e) {

@@ -238,6 +238,15 @@ public final class TiffIFD {
             return offsetPairs.get(ifdIndex).offsetOfThisIFDStart;
         }
 
+        public OptionalInt indexOfIFDOffset(long ifdOffset) {
+            for (int i = 0; i < offsetPairs.size(); i++) {
+                if (offsetPairs.get(i).offsetOfThisIFDStart == ifdOffset) {
+                    return OptionalInt.of(i);
+                }
+            }
+            return OptionalInt.empty();
+        }
+
         public long offsetOfNextIFDOffset(int ifdIndex) {
             return offsetPairs.get(ifdIndex).offsetOfNextIFDOffset;
         }
