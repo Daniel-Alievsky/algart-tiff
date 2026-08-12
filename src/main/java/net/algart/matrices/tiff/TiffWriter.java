@@ -1219,12 +1219,12 @@ public non-sealed class TiffWriter extends TiffIO {
             }
             checkFileOpen();
             invalidateCompanionReader();
-            correctInvalidLinkageInFile();
+            final Linkage linkage = correctInvalidLinkageInFile();
             long fileOffset;
             if (mainIFDIndex == 0) {
                 fileOffset = offsetOfFirstIFDOffset();
             } else {
-                fileOffset = linkage().offsetOfNextIFDOffset(mainIFDIndex - 1);
+                fileOffset = linkage.offsetOfNextIFDOffset(mainIFDIndex - 1);
             }
             writeOffsetAt(newIFDOffset, fileOffset);
             // - last argument is not important: the offsetOfLastScannedIFDOffset will not change in any case
@@ -1889,8 +1889,7 @@ public non-sealed class TiffWriter extends TiffIO {
         }
         synchronized (fileLock) {
             checkFileOpen();
-            correctInvalidLinkageInFile();
-            Linkage linkage = linkage();
+            Linkage linkage = correctInvalidLinkageInFile();
             final int numberOfImages = linkage.numberOfMainIFDs();
             if (mainIFDIndex >= numberOfImages) {
                 throw new TiffException("No main IFD #" + mainIFDIndex + " in TIFF" + spacedStreamName()
@@ -1919,16 +1918,18 @@ public non-sealed class TiffWriter extends TiffIO {
      * <p>This method is called automatically before any file modification that could result in
      * an invalid IFD linkage structure.</p>
      *
+     * @return the current {@link #linkage()}; if an invalid loop was detected,
+     * the returned linkage is updated to reflect the correction.
      * @throws IOException if an I/O error occurs.
      */
-    public final void correctInvalidLinkageInFile() throws IOException {
+    public final Linkage correctInvalidLinkageInFile() throws IOException {
         boolean fixed = false;
         final Linkage linkage;
         synchronized (fileLock) {
             linkage = linkage();
             if (linkage.isInfiniteLoopDetected()) {
                 writeOffsetAt(TiffIFD.IFD_CHAIN_TERMINATOR, linkage.offsetOfChainTerminator());
-                invalidateLinkage(false, null);
+                linkage.setChainTerminator(TiffIFD.IFD_CHAIN_TERMINATOR);
                 invalidateCompanionReader();
                 fixed = true;
             }
@@ -1936,6 +1937,7 @@ public non-sealed class TiffWriter extends TiffIO {
         if (fixed) {
             LOG.log(System.Logger.Level.DEBUG, () -> "Fixing infinite loop in the file: " + linkage);
         }
+        return linkage;
     }
 
     @Override
@@ -2230,13 +2232,20 @@ public non-sealed class TiffWriter extends TiffIO {
         final boolean nextIFDOffsetChanged =
                 nextIFDOffsetWrittenInFile == null || nextIFDOffset != nextIFDOffsetWrittenInFile;
         final boolean appending = appendRequested && ifd.isEffectivelyChainTerminator();
-        if (!appending && !nextIFDOffsetChanged) {
-            // - optimization: we are sure that will not change anything, so, we can skip linkage() call
+        if (!nextIFDOffsetChanged && !appending) {
+            // - optimization: we are sure that will not change anything
             return;
         }
-        final Linkage linkage = linkage();
+        Linkage linkage = linkage();
         // - loading linkage BEFORE any other operations, including the following writeOffsetAt
         final boolean appendingIndependentTrailingIFD = appending && !linkage.containsIFDOffset(ifdOffset);
+        if (!nextIFDOffsetChanged && !appendingIndependentTrailingIFD) {
+            // - optimization: we are sure that will not change anything
+            return;
+        }
+        if (!appendingIndependentTrailingIFD) {
+            linkage = correctInvalidLinkageInFile();
+        }
 
         if (nextIFDOffsetChanged) {
             writeOffsetAt(nextIFDOffset, fileOffsetOfNextIFDOffset);
@@ -2256,10 +2265,7 @@ public non-sealed class TiffWriter extends TiffIO {
             linkage.updateAfterAppendingNewIFD(ifdOffset, fileOffsetOfNextIFDOffset);
             return;
         }
-        if (!nextIFDOffsetChanged) {
-            // - we didn't change anything in the file
-            return;
-        }
+
         // The "performance trick" has no sense after adding correctInvalidLinkageInFile() 12.Aug.2026
         // final Linkage linkage = this.linkage;
         // if (linkage == null) {
@@ -2271,6 +2277,7 @@ public non-sealed class TiffWriter extends TiffIO {
         //         "Invalidating linkage skipped for IFD with next-IFD-offset " + ifd.nextIFDOffsetToString());
         // return;
         // }
+
         if (linkage.containsIFDOffset(ifdOffset)) {
             // - This IFD already exists in the linkage. Rewriting its effectiveNextIFDOffset() above
             // could probably change the chain structure, so the cached linkage cannot be trusted anymore.
@@ -2282,8 +2289,6 @@ public non-sealed class TiffWriter extends TiffIO {
         // Thus, invalidating linkage does not make sense:
         // reloading linkage later would simply reconstruct the same chain (without this IFD).
         // This situation is typical while using prewrite(TiffWriteMap map) method
-        // We prefer not to call correctInvalidLinkage(): it is possible, but there is no need to do this,
-        // because the actual IFD chain has not been changed.
     }
 
     // The algorithm below was used before 1.07.2026. Note that it does not support all functionality
