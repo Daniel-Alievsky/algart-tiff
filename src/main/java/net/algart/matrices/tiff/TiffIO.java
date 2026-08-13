@@ -256,10 +256,10 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * {@link TiffReader.OpenMode#VALID_TIFF} mode completed successfully,
      * this method is guaranteed to return {@code true}.
      *
-     * <p>Note: a {@code true} result does not guarantee that the TIFF file is
+     * <p>Note that a {@code true} result does not guarantee that the TIFF file is
      * completely valid. In particular, when a reader is opened in
      * {@link TiffReader.OpenMode#NO_CHECKS} mode, a {@code true} result may
-     * coexist with {@code false} returned by {@link TiffReader#isValidTiff()}.
+     * coexist with {@code false} returned by {@link #isValidTiff()}.
      *
      * <p>For a {@link TiffWriter}, the flag is initially {@code true}, since
      * a writer is assumed to operate on a TIFF file even before the file is
@@ -267,14 +267,14 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * for example, via the {@link TiffWriter#openExisting()} method,
      * an exception will be thrown, and this flag will be cleared to {@code false}.
      *
-     * @return whether the underlying file is a TIFF.
+     * @return whether the file is a TIFF.
      */
     public final boolean isTiff() {
         return tiff;
     }
 
     /**
-     * Returns <code>true</code> if the file is a TIFF file and if no any problems
+     * Returns {@code true} if the file is a TIFF file and no problems
      * were found while analyzing the file header.
      * However, this is not a guarantee that problems
      * (like format errors) will not be found later while reading IFDs or image data.
@@ -282,14 +282,16 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * <p>In most cases, this method returns the same value as {@link #isTiff()}.
      * It may return {@code false} while {@link #isTiff()} is {@code true} only
      * if the TIFF header is present but the file is corrupted (e.g., too short,
-     * or the first image is not already written but the first offest was not written yet).
-     * It is possible in the {@link TiffReader}, when it was opened in the {@link TiffReader.OpenMode#NO_CHECKS} mode.
+     * or the writing an image into a file was interrupted before the first IFD offset was written).
+     * This can happen in a {@link TiffReader} opened in
+     * {@link TiffReader.OpenMode#NO_CHECKS} mode.
      *
-     * <p>Note: if the {@link TiffReader} constructor with {@link TiffReader.OpenMode#VALID_TIFF} mode
-     * was completed successfully, this method is guaranteed to return {@code true}.
+     * <p>Note: if a {@link TiffReader} was successfully created in
+     * {@link TiffReader.OpenMode#VALID_TIFF} mode, this method is guaranteed
+     * to return {@code true}.
      *
      * <p>Note: for a {@link TiffReader}, this method is equivalent to the check
-     * <code>{@link TiffReader#openingException()} == null</code>.
+     * <code>{@link TiffReader#openingException() reader.openingException()} == null</code>.
      *
      * <p>For a {@link TiffWriter}, the flag is initially {@code true}, since
      * a writer is assumed to operate on a valid TIFF file even before the file is
@@ -297,7 +299,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * for example, via the {@link TiffWriter#openExisting()} method,
      * an exception will be thrown, and this flag will be cleared to {@code false}.
      *
-     * @return whether this is a probably correct TIFF/BigTIFF file.
+     * @return whether the file is a valid TIFF/BigTIFF file.
      */
     public final boolean isValidTiff() {
         return validTiff;
