@@ -158,11 +158,8 @@ public class ReadBufferDataHandle<L extends Location> extends AbstractHigherOrde
 		offset = 0;
 		pageToSlot = new HashMap<>();
 		replacementStrategy = new LRUReplacementStrategy(numPages);
-		try {
-            //noinspection resource
-            handle().seek(0);
-		} catch (IOException ignored) {
-		}
+		// note: we MUST NOT try to work with the handle() here, for example, seek to zero position:
+		// it can create an empty file when this file does not actually exist
 	}
 
 	/**

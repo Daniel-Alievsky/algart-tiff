@@ -1078,13 +1078,14 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * Returns a new stream (file handle) associated with the specified file.
      * Equivalent to:
      * <pre>
-     * new {@link org.scijava.io.handle.FileHandle#FileHandle(org.scijava.io.location.FileLocation)
+     * new {@link FileHandle#FileHandle(FileLocation)
      * FileHandle}(new {@link org.scijava.io.location.FileLocation#FileLocation(java.io.File)
      * FileLocation}(file.toFile()))
      * </pre>
      *
      * @param file a file.
      * @return a {@link FileHandle} instance associated with this file.
+     * @throws NullPointerException if the argument is {@code null}.
      */
     public static FileHandle getFileHandle(Path file) {
         Objects.requireNonNull(file, "Null file");
@@ -1241,7 +1242,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             // and returned empty results.
             // In the current version, the validTiff flag remains true in this situation
             // (if the file is not too short), but readMainIFDOffsets() will throw an exception.
-            // However, you can now process a TIFF file with an unset (zero) first IFD offset
+            // However, we can now process a TIFF file with an unset (zero) first IFD offset
             // via explicit calls: readMainIFDOffsetIfPresent(0) or readMainIFDOffsets(true).
         } finally {
             stream.seek(savedOffset);

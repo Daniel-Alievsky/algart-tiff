@@ -110,9 +110,9 @@ public class TiffIFDMainOffsetsTest {
 
         TiffReader reader = new TiffReader(file, TiffReader.OpenMode.NO_CHECKS).setCachingIFDs(cache);
         final int numberOfMain = reader.readMainIFDOffsets(true).length;
-        final int numberOfAll = numberOfMain == 0 ? 0 : reader.allMaps().size();
-        final int numberOfMain2 = numberOfMain == 0 ? 0 : reader.mainIFDs().size();
-        final int numberOfMain3 = numberOfMain == 0 ? 0 : reader.numberOfMainImages();
+        final int numberOfAll = reader.allMaps().size();
+        final int numberOfMain2 = reader.mainIFDs().size();
+        final int numberOfMain3 = reader.numberOfMainImages();
         // - should not throw exception for an invalid file, for example, too short
         // (but error for not long non-completed file with zero first IFD offset)
         if (numberOfMain != numberOfMain2 || numberOfMain != numberOfMain3 || numberOfMain > numberOfAll) {

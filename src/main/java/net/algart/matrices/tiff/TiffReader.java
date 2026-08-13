@@ -243,9 +243,7 @@ public non-sealed class TiffReader extends TiffIO {
     /**
      * Equivalent to {@link #TiffReader(DataHandle, OpenMode, boolean)
      * TiffReader(inputStream, openMode, true)}, where the <code>inputStream</code> argument is<br>
-     * <code>new {@link FileHandle#FileHandle(FileLocation)
-     * FileHandle}(new {@link FileLocation#FileLocation(File)
-     * FileLocation}(file.toFile()))</code>
+     * <code>{@link #getFileHandle(Path) getFileHandle(file)}</code>.
      *
      * @param file     input TIFF file.
      * @param openMode what should be checked while opening?
@@ -456,9 +454,10 @@ public non-sealed class TiffReader extends TiffIO {
      * Invalidates all internal caches and initializes the reader by re-reading the TIFF header.
      *
      * <p>This method clears all cached tiles and cached IFD structures,
-     * {@link #invalidateLinkage() invalidates the linkage},
-     * resets an internal cache in
-     * the {@link ReadBufferDataHandle} input stream and seeks it to zero position.
+     * {@link #invalidateLinkage() invalidates the linkage}, and
+     * resets the internal cache in the {@link ReadBufferDataHandle} input stream.
+     * (However, this operation <b>does not perform</b> any operations on the stream itself,
+     * such as seeking to zero position &mdash; which is important, for example, when the file does not exist.)
      * Then this method reads the TIFF header again by calling
      * the same initialization logic that is used in the constructor.</p>
      *
