@@ -307,7 +307,8 @@ public non-sealed class TiffReader extends TiffIO {
      * @param openMode               specifies what should be checked while opening the file.
      * @param closeStreamOnException if {@code true}, the input stream is closed in the case of any thrown exception;
      *                               ignored if {@code openMode} is {@link OpenMode#NO_CHECKS}.
-     * @throws TiffException if the file is corrupted, or if it is not a TIFF file when opened in {@link OpenMode#VALID_TIFF} mode.
+     * @throws TiffException if the file is corrupted, or if it is not a TIFF file when opened
+     *                       in {@link OpenMode#VALID_TIFF} mode.
      * @throws IOException   in the case of any problems with the input file;
      *                       impossible in {@link OpenMode#NO_CHECKS} mode.
      */
@@ -837,10 +838,6 @@ public non-sealed class TiffReader extends TiffIO {
         } catch (IOException e) {
             return 0;
         }
-    }
-
-    public final int numberOfMainImages() throws IOException {
-        return mainIFDs().size();
     }
 
     /**

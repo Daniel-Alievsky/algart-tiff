@@ -858,12 +858,6 @@ public non-sealed class TiffWriter extends TiffIO {
         }
     }
 
-    public final int numberOfMainImages() throws IOException {
-        synchronized (fileLock) {
-            return linkage("Reading number of main images").numberOfMainIFDs();
-        }
-    }
-
     /**
      * Writes the IFD to the file at the exact offset previously assigned by
      * {@link TiffIFD#assignFileOffsetOfIFDForWriting(long)} method.

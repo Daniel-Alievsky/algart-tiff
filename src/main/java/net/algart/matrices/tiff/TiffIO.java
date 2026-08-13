@@ -679,26 +679,28 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * The child sub-IFDs (if any), as well as associated EXIF, GPS, and other possible linked IFDs
      * are not included in this number.</p>
      *
-     * <p>On the {@link TiffReader}, this method is equivalent to
-     * <code>{@link TiffReader#mainIFDs() mainIFDs()}.size()</code>.</p>
+     * <p>This method is equivalent to:</p>
+     * <pre>{@link #isValidTiff()} ? {@link TiffWriter#linkage()
+     * linkage()}.{@link TiffIFD.Linkage#numberOfMainIFDs()
+     * numberOfMainIFDs()} : 0</pre>
      *
-     * <p>On the {@link TiffWriter}, it is equivalent to
-     * <code>{@link TiffWriter#linkage() linkage()}.{@link TiffIFD.Linkage#numberOfMainIFDs()
-     * numberOfMainIFDs()}</code>.</p>
-     *
-     * <p>In both cases, this information is cached and quickly available on subsequent calls.
+     * <p>This information is cached and quickly available on subsequent calls.
      * If this information is not yet available, any necessary reading of the file is synchronized
      * on {@link #fileLock()}.</p>
      *
-     * <p>Note: the only difference between these two implementations arises when
-     * {@link #isValidTiff()} is {@code false} (non-TIFF or invalid TIFF):
-     * in such a situation, the implementation in {@link TiffReader} silently returns {@code 0},
-     * whereas using the {@link #linkage()} method throws an {@link UncompletedTiffException}.
+     * <p>Additional check of {@link #isValidTiff()} allows to silently return 0 when {@link TiffReader}
+     * was opened in the {@link TiffReader.OpenMode#NO_CHECKS} mode and the file is is not a valid TIFF.
+     * It matches to the behavior of {@link TiffReader#allIFDs()} and {@link TiffReader#mainIFDs()}
+     * in such a situation (when these methods silently return empty lists).</p>
      *
      * @return the number of existing main images (IFDs).
      * @throws IOException if an I/O error occurs while reading necessary information.
      */
-    public abstract int numberOfMainImages() throws IOException;
+    public final int numberOfMainImages() throws IOException {
+        synchronized (fileLock) {
+            return validTiff ? linkage("Reading number of main images").numberOfMainIFDs() : 0;
+        }
+    }
 
     /**
      * Reads the IFD with the given index from the file or throws an exception if the index is out of bounds.
