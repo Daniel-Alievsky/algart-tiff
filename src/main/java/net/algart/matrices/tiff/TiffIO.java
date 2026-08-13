@@ -689,9 +689,16 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * on {@link #fileLock()}.</p>
      *
      * <p>An additional check of {@link #isValidTiff()} allows silently returning 0 when {@link TiffReader}
-     * was opened in {@link TiffReader.OpenMode#NO_CHECKS} mode and the file is not a valid TIFF.
+     * was opened in {@link TiffReader.OpenMode#NO_CHECKS} mode and the file is not a valid TIFF &mdash;
+     * for example, the TIFF header contains zero offset of the first IFD
+     * (writing an image to a file was interrupted before the first IFD offset was written).
      * It matches the behavior of {@link TiffReader#allIFDs()} and {@link TiffReader#mainIFDs()}
      * in such a situation (when these methods silently return empty lists).</p>
+     *
+     * <p>For comparison, on a {@link TiffWriter}, a partially written file
+     * with zero offset of the first IFD never leads to an exception, because
+     * the {@link #readLinkage()} method (called from {@link #linkage()} works in another mode:
+     * it allows empty TIFF without IFDs.</p>
      *
      * @return the number of existing main images (IFDs).
      * @throws IOException if an I/O error occurs while reading necessary information.
