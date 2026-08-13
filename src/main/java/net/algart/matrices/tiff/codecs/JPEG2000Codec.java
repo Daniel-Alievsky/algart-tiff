@@ -363,14 +363,21 @@ public class JPEG2000Codec implements TiffCodec {
             }
         }
 
-        //noinspection removal
+        writeImageWithCorrectExceptions(out, img, jpeg2000Options);
+        return out.toByteArray();
+    }
+
+    @SuppressWarnings("removal")
+    private static void writeImageWithCorrectExceptions(
+            ByteArrayOutputStream out,
+            BufferedImage img,
+            JPEG2000Options jpeg2000Options) throws TiffException {
         try {
             writeImage(out, img, jpeg2000Options);
         } catch (ThreadDeath | IOException e) {
             // - ThreadDeath is still used in jai-imageio-jpeg2000 1.4.0
             throw new TiffException("Cannot compress JPEG-2000 data", e);
         }
-        return out.toByteArray();
     }
 
     // Note: SCIFIO codec also overrides the method decompress(DataHandle) of AbstractCodec,
@@ -379,6 +386,7 @@ public class JPEG2000Codec implements TiffCodec {
     // 2) the implementation used options.maxSizeInBytes for reading COMPRESSED data.
 
     // Below is a copy of equivalent SCIFIO method, not using jaiIIOService field
+    @SuppressWarnings("removal")
     @Override
     public byte[] decompress(byte[] data, Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
@@ -390,7 +398,6 @@ public class JPEG2000Codec implements TiffCodec {
         Raster raster;
         int bpp;
 
-        //noinspection removal
         try {
             final ByteArrayInputStream bis = new ByteArrayInputStream(data);
             raster = readRaster(bis, jpeg2000Options);
@@ -434,9 +441,7 @@ public class JPEG2000Codec implements TiffCodec {
         return rtn;
     }
 
-    private static void writeImage(
-            final OutputStream out, final BufferedImage img,
-            final JPEG2000Options options) throws IOException {
+    private static void writeImage(OutputStream out, BufferedImage img, JPEG2000Options options) throws IOException {
         final ImageOutputStream ios = new MemoryCacheImageOutputStream(out);
         // - Important: this codec is implemented for writing separate tiles, which SHOULD be not too large
         // to be located in memory. For comparison, other codecs like DeflateCodec always work in memory.
