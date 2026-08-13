@@ -282,7 +282,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * <p>In most cases, this method returns the same value as {@link #isTiff()}.
      * It may return {@code false} while {@link #isTiff()} is {@code true} only
      * if the TIFF header is present but the file is corrupted (e.g., too short,
-     * or the writing an image into a file was interrupted before the first IFD offset was written).
+     * or writing an image to a file was interrupted before the first IFD offset was written).
      * This can happen in a {@link TiffReader} opened in
      * {@link TiffReader.OpenMode#NO_CHECKS} mode.
      *
@@ -307,6 +307,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
 
     /**
      * Returns whether this file is a BigTIFF file.
+     *
+     * @return whether the file is a BigTIFF.
      */
     public final boolean isBigTiff() {
         return bigTiff;

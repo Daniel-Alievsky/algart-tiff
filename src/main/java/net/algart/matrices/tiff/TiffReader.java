@@ -271,42 +271,43 @@ public non-sealed class TiffReader extends TiffIO {
     /**
      * Constructs a new TIFF reader.
      *
-     * <p>If <code>openMode</code> is {@link OpenMode#VALID_TIFF} (standard variant), the constructor throws
+     * <p>If {@code openMode} is {@link OpenMode#VALID_TIFF} (standard variant), the constructor throws
      * an exception in case of an incorrect TIFF header (non-TIFF file) or any other problems including I/O errors.
      *
-     * <p>If <code>openMode</code> is {@link OpenMode#ALLOW_NON_TIFF}, the constructor
+     * <p>If {@code openMode} is {@link OpenMode#ALLOW_NON_TIFF}, the constructor
      * allows opening non-TIFF files, but the list of IFDs returned by {@link #allIFDs()} will be empty.
-     * You can detect whether the opened file is TIFF using {@link #isTiff()} method.
-     * Non-existing file is also successfully "opened", but {@link #isTiff()} will return <code>false</code>.
-     * However, the constructor throws an exception if it has successfully read the 8-byte file header
-     * and found that it is indeed a TIFF file header, but then something went wrong.
-     * (Example of a possible problem: the file is too short for a valid TIFF).
-     * All other errors including a non-existing file do not result in exceptions (they are caught),
-     * and you can know the occurred exception by {@link #openingException()} method.
+     * You can detect whether the opened file is a TIFF using the {@link #isTiff()} method.
+     * A non-existing file is also successfully "opened", but {@link #isTiff()} will return {@code false}.
+     * However, the constructor throws an exception if it has successfully read the file header
+     * and found that it is indeed a TIFF/BigTIFF header, but then something went wrong
+     * (for example, the file is too short for a valid TIFF).
+     * All other errors, including a non-existing file, do not result in exceptions (they are caught),
+     * and you can obtain the occurred exception using the {@link #openingException()} method.
      *
-     * <p>If <code>openMode</code> is {@link OpenMode#ALLOW_EXISTING_NON_TIFF}, the behavior is similar,
-     * but non-existing file leads to throwing an exception.</p>
+     * <p>If {@code openMode} is {@link OpenMode#ALLOW_EXISTING_NON_TIFF}, the behavior is similar,
+     * but a non-existing file leads to throwing an exception.
      *
-     * <p>If <code>openMode</code> is {@link OpenMode#NO_CHECKS}, the constructor catches
-     * all possible exceptions. In the case of any exception, {@link #isValidTiff()} method will return
-     * <code>false</code> and you can know the occurred exception by {@link #openingException()} method.
+     * <p>If {@code openMode} is {@link OpenMode#NO_CHECKS}, the constructor catches
+     * all possible exceptions. In the case of any exception, the {@link #isValidTiff()} method will return
+     * {@code false}, and you can obtain the occurred exception using the {@link #openingException()} method.
      *
-     * <p>In the case where an exception is thrown (not caught),
-     * <code>closeStreamOnException</code> argument specifies whether this function
-     * must close the input stream or not. It <b>should</b> be true when you call this constructor
-     * from another constructor, which creates <code>DataHandle</code>: it is the only way to close
-     * an invalid file. In other situations this flag may be <code>false</code>, then you must close
+     * <p>In the case where an exception is thrown (not caught), the {@code closeStreamOnException}
+     * argument specifies whether this function must close the input stream or not.
+     * It <b>should</b> be {@code true} when you call this constructor from another constructor
+     * that creates a {@link DataHandle}: it is the only way to close an invalid file.
+     * In other situations, this flag may be {@code false}, in which case you must close
      * the input stream yourself.
      *
-     * <p>The specified input stream is automatically replaced (wrapped) with {@link ReadBufferDataHandle}
-     * if this stream is still not an instance of this class.
-     * Note: as a result, you cannot use the stream returned by {@link #stream()} method to modify the file.
+     * <p>The specified input stream is automatically wrapped into a {@link ReadBufferDataHandle}
+     * if it is not already an instance of this class.
+     * Note: as a result, you cannot use the stream returned by the {@link #stream()} method to modify the file
+     * (but you may use {@link #originalStream()} instead).
      *
      * @param inputStream            input stream.
-     * @param openMode               specifies what should be checked while opening file.
-     * @param closeStreamOnException if <code>true</code>, the input stream is closed in the case of any exception;
-     *                               ignored if <code>openMode</code> is {@link OpenMode#NO_CHECKS}.
-     * @throws TiffException if the file is not a correct TIFF file.
+     * @param openMode               specifies what should be checked while opening the file.
+     * @param closeStreamOnException if {@code true}, the input stream is closed in the case of any thrown exception;
+     *                               ignored if {@code openMode} is {@link OpenMode#NO_CHECKS}.
+     * @throws TiffException if the file is corrupted, or if it is not a TIFF file when opened in {@link OpenMode#VALID_TIFF} mode.
      * @throws IOException   in the case of any problems with the input file;
      *                       impossible in {@link OpenMode#NO_CHECKS} mode.
      */
