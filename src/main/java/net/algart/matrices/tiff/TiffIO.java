@@ -680,7 +680,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * are not included in this number.</p>
      *
      * <p>This method is equivalent to:</p>
-     * <pre>{@link #isValidTiff()} ? {@link TiffWriter#linkage()
+     * <pre>{@link #isValidTiff()} ? {@link #linkage()
      * linkage()}.{@link TiffIFD.Linkage#numberOfMainIFDs()
      * numberOfMainIFDs()} : 0</pre>
      *
@@ -688,9 +688,9 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * If this information is not yet available, any necessary reading of the file is synchronized
      * on {@link #fileLock()}.</p>
      *
-     * <p>Additional check of {@link #isValidTiff()} allows to silently return 0 when {@link TiffReader}
-     * was opened in the {@link TiffReader.OpenMode#NO_CHECKS} mode and the file is is not a valid TIFF.
-     * It matches to the behavior of {@link TiffReader#allIFDs()} and {@link TiffReader#mainIFDs()}
+     * <p>An additional check of {@link #isValidTiff()} allows silently returning 0 when {@link TiffReader}
+     * was opened in {@link TiffReader.OpenMode#NO_CHECKS} mode and the file is not a valid TIFF.
+     * It matches the behavior of {@link TiffReader#allIFDs()} and {@link TiffReader#mainIFDs()}
      * in such a situation (when these methods silently return empty lists).</p>
      *
      * @return the number of existing main images (IFDs).
