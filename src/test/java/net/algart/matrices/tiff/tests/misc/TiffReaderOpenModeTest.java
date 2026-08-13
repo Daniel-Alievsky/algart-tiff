@@ -32,22 +32,30 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class TiffReaderOpenModeTest {
-    private static void showFile(Path file, TiffReader.OpenMode mode) throws IOException {
+    private static void printOpening(Path file, TiffReader.OpenMode mode) throws IOException {
         inspectFile(file, mode, null, null, null);
     }
 
-    private static void checkFile(Path file, boolean invalidTiff) throws IOException {
+    private static void check(String path, boolean invalidTiff) throws IOException {
+        final Path file = Paths.get(path);
         boolean exists = Files.exists(file);
-        final String fileName = file.toString().toLowerCase();
-        boolean tiff = exists && (fileName.endsWith(".tif") || fileName.endsWith(".tiff") || fileName.endsWith(".svs"));
+        String fileName = file.getFileName().toString().toLowerCase();
+        boolean tiff = exists &&
+                (fileName.endsWith(".tif") || fileName.endsWith(".tiff") || fileName.endsWith(".svs")) &&
+                !(fileName.startsWith("nontiff"));
+        // - special example from our resource folder: nontiff_too_short.tiff
         boolean validTiff = tiff && !invalidTiff;
-        System.out.printf("Testing file %s: exists %s, tiff %s, invalidTiff %s...%n",
-                file, exists, tiff, invalidTiff);
+        System.out.printf("Testing file %s: %s, %s, %s...%n",
+                file,
+                exists ? "exists" : "not exists",
+                tiff ? "tiff" : "non-tiff",
+                invalidTiff ? "invalid TIFF" : "");
         inspectFile(file, TiffReader.OpenMode.NO_CHECKS, tiff, validTiff, false);
         inspectFile(file, TiffReader.OpenMode.ALLOW_NON_TIFF, tiff, validTiff, invalidTiff);
         inspectFile(file, TiffReader.OpenMode.ALLOW_EXISTING_NON_TIFF, tiff, validTiff,
                 invalidTiff || !exists);
         inspectFile(file, TiffReader.OpenMode.VALID_TIFF, tiff, validTiff, !validTiff);
+        System.out.println();
     }
 
     private static void inspectFile(
@@ -67,10 +75,10 @@ public class TiffReaderOpenModeTest {
             if (exceptionExpected != null && !exceptionExpected) {
                 throw new AssertionError("Unexpected exception: " + e.getMessage(), e);
             }
-            System.out.println("  Exception: " + e.getMessage());
+            System.out.println("  " + e);
             return;
         }
-        System.out.printf("  %d main IFDs found; ", reader.numberOfMainImages());
+//        System.out.printf("  %d main IFDs found; ", reader.numberOfMainImages());
         System.out.printf("isTiff: %s; isValidTiff: %s; isBigTiff: %s%n",
                 reader.isTiff(), reader.isValidTiff(), reader.isBigTiff());
         if (requiredTiff != null && reader.isTiff() != requiredTiff) {
@@ -83,6 +91,16 @@ public class TiffReaderOpenModeTest {
     }
 
     public void test() throws IOException {
+        check("src/test/resources/demo/images/tiff/openslide/CMU-1-Small-Region.svs", false);
+        check("src/test/resources/demo/images/tiff/libtiff/test/images/test_ifd_loop_subifd.tif", false);
+        check("src/test/resources/demo/images/tiff/invalid/error_non_completed.tiff", true);
+        check("src/test/resources/demo/images/tiff/invalid/error_only_header.tiff", true);
+        check("src/test/resources/demo/images/tiff/invalid/error_non_completed.tiff", true);
+        check("src/test/resources/demo/images/tiff/invalid/error_too_short.tiff", true);
+        check("src/test/resources/demo/images/tiff/invalid/nontiff_too_short.tiff", false);
+        check("src/test/resources/demo/images/tiff/invalid/nofile", false);
+        check("src/test/resources/demo/images/tiff/invalid/nontiff.dat", false);
+        check("src/test/resources/demo/images/tiff/algart/readme.txt", false);
     }
 
     public static void main(String[] args) throws IOException {
@@ -98,11 +116,11 @@ public class TiffReaderOpenModeTest {
             return;
         }
         final Path file = Paths.get(args[startArgIndex]);
-        showFile(file, TiffReader.OpenMode.NO_CHECKS);
-        showFile(file, TiffReader.OpenMode.ALLOW_NON_TIFF);
-        showFile(file, TiffReader.OpenMode.ALLOW_EXISTING_NON_TIFF);
-        showFile(file, TiffReader.OpenMode.VALID_TIFF);
+        printOpening(file, TiffReader.OpenMode.NO_CHECKS);
+        printOpening(file, TiffReader.OpenMode.ALLOW_NON_TIFF);
+        printOpening(file, TiffReader.OpenMode.ALLOW_EXISTING_NON_TIFF);
+        printOpening(file, TiffReader.OpenMode.VALID_TIFF);
         System.out.println();
-        checkFile(file, invalid);
+        check(file.toString(), invalid);
     }
 }

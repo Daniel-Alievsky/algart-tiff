@@ -37,12 +37,9 @@ import net.algart.matrices.tiff.tags.TagPhotometric;
 import net.algart.matrices.tiff.tags.Tags;
 import net.algart.matrices.tiff.tiles.*;
 import org.scijava.io.handle.DataHandle;
-import org.scijava.io.handle.FileHandle;
-import org.scijava.io.location.FileLocation;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.ref.Reference;
@@ -794,28 +791,6 @@ public non-sealed class TiffReader extends TiffIO {
         synchronized (fileLock) {
             return originalStream;
         }
-    }
-
-    /**
-     * Returns <code>true</code> if the file is a TIFF file and if the constructor did not detect
-     * any problems while opening the file.
-     * However, this is not a guarantee that problems
-     * (like format errors) will not be found later while reading IFDs or image data.
-     *
-     * <p>In most cases, this method returns the same value as {@link #isTiff()}.
-     * It may return {@code false} while {@link #isTiff()} is {@code true} only
-     * if the TIFF header is present but the file is corrupted (e.g., too short)
-     * and the reader was opened in the {@link OpenMode#NO_CHECKS} mode.
-     *
-     * <p>Note: if the constructor with {@link OpenMode#VALID_TIFF} mode
-     * completed successfully, this method is guaranteed to return {@code true}.
-     *
-     * <p>Note: this method is equivalent to the check <code>{@link #openingException()} == null</code>.
-     *
-     * @return whether this is a probably correct TIFF/BigTIFF file.
-     */
-    public final boolean isValidTiff() {
-        return validTiff;
     }
 
     /**
@@ -1621,7 +1596,7 @@ public non-sealed class TiffReader extends TiffIO {
                 if (!existingFile) {
                     return new FileNotFoundException("File not found:" + spacedStreamName());
                 }
-                analyzeFileHeader(openMode.isTiffRequired());
+                analyzeFileHeader();
                 assert this.tiff;
                 assert this.validTiff;
                 return null;

@@ -783,7 +783,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 }
                 // In this branch, we MUST NOT try to analyze the file: it is not a correct TIFF!
             } else {
-                analyzeFileHeader(true);
+                analyzeFileHeader();
                 // - The first opening TIFF is the only place when we MUST use VALID_TIFF mode
                 // instead of the usual NO_CHECKS used inside reader() method
                 // Note: no sense here to use companionReader(), we just need to initialize file format

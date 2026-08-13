@@ -274,6 +274,36 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     }
 
     /**
+     * Returns <code>true</code> if the file is a TIFF file and if no any problems
+     * were found while analyzing the file header.
+     * However, this is not a guarantee that problems
+     * (like format errors) will not be found later while reading IFDs or image data.
+     *
+     * <p>In most cases, this method returns the same value as {@link #isTiff()}.
+     * It may return {@code false} while {@link #isTiff()} is {@code true} only
+     * if the TIFF header is present but the file is corrupted (e.g., too short,
+     * or the first image is not already written but the first offest was not written yet).
+     * It is possible in the {@link TiffReader}, when it was opened in the {@link TiffReader.OpenMode#NO_CHECKS} mode.
+     *
+     * <p>Note: if the {@link TiffReader} constructor with {@link TiffReader.OpenMode#VALID_TIFF} mode
+     * was completed successfully, this method is guaranteed to return {@code true}.
+     *
+     * <p>Note: for a {@link TiffReader}, this method is equivalent to the check
+     * <code>{@link TiffReader#openingException()} == null</code>.
+     *
+     * <p>For a {@link TiffWriter}, the flag is initially {@code true}, since
+     * a writer is assumed to operate on a valid TIFF file even before the file is
+     * opened or created. However, if you try to open an existing corrupted file,
+     * for example, via the {@link TiffWriter#openExisting()} method,
+     * an exception will be thrown, and this flag will be cleared to {@code false}.
+     *
+     * @return whether this is a probably correct TIFF/BigTIFF file.
+     */
+    public final boolean isValidTiff() {
+        return validTiff;
+    }
+
+    /**
      * Returns whether this file is a BigTIFF file.
      */
     public final boolean isBigTiff() {
@@ -657,7 +687,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      * on {@link #fileLock()}.</p>
      *
      * <p>Note: the only difference between these two implementations arises when
-     * {@link TiffReader#isValidTiff()} is {@code false} (non-TIFF or invalid TIFF):
+     * {@link #isValidTiff()} is {@code false} (non-TIFF or invalid TIFF):
      * in such a situation, the implementation in {@link TiffReader} silently returns {@code 0},
      * whereas using the {@link #linkage()} method throws an {@link UncompletedTiffException}.
      *
@@ -1166,7 +1196,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         return scifio;
     }
 
-    void analyzeFileHeader(boolean additionalTiffValidation) throws IOException {
+    void analyzeFileHeader() throws IOException {
         this.tiff = false;
         this.validTiff = false;
         this.bigTiff = false;
@@ -1221,17 +1251,13 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
                         " bytes); probably the TIFF writing process was not completed normally");
             }
             this.fileOpen = true;
-            if (additionalTiffValidation) {
-                checkFirstOffset();
-                // - additional check of zero or extremely large offset;
-                // TiffReader checks this for VALID_TIFF only, when this
-                // leads to an exception and isValidTiff() method cannot be used:
-                // usually, isValidTiff() is true if the file is large enough and
-                // the ONLY problem is detected by checkFirstOffset()
-            }
+            checkFirstOffset();
+            // - Additional check of zero or extremely large offset and throws an exception.
+            // In TiffReader, this exception is caught in NO_CHECKS mode,
+            // isValidTiff() will be false, and allIFDs() will return an empty result.
             this.validTiff = true;
 
-            // Note: in old versions, before 13.Nov.2025, the following code was executed here always:
+            // Note: in old versions, before 13.Nov.2025, the analogous code was executed here:
             //
             // readFirstOffsetFromCurrentPosition(false, bigTiff);
             // - an additional check for a zero offset, updating fileOffsetOfLastIFDOffset
@@ -1240,10 +1266,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
             // validTiff flag was set to false.
             // After that, the readMainIFDOffsets() and allIFDs() methods did not throw exceptions
             // and returned empty results.
-            // In the current version, the validTiff flag remains true in this situation
-            // (if the file is not too short), but readMainIFDOffsets() will throw an exception.
-            // However, we can now process a TIFF file with an unset (zero) first IFD offset
-            // via explicit calls: readMainIFDOffsetIfPresent(0) or readMainIFDOffsets(true).
+            // Now readMainIFDOffsets() does not check validTiff: its behavior depends on the boolean argument.
         } finally {
             stream.seek(savedOffset);
             // - for maximal compatibility: in old versions, the constructor of this class
@@ -2189,15 +2212,6 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
         final BytesHandle result = new BytesHandle(bytesLocation);
         result.setLittleEndian(littleEndian);
         return result;
-    }
-
-    static DataHandle<?> getFileHandle(FileLocation fileLocation) {
-        Objects.requireNonNull(fileLocation, "Null fileLocation");
-        FileHandle fileHandle = new FileHandle(fileLocation);
-        fileHandle.setLittleEndian(false);
-        // - in the current implementation it is an extra operator: BigEndian is defaulted in scijava;
-        // but we want to be sure that this behavior will be the same in all future versions
-        return fileHandle;
     }
 
     static long debugTime() {
