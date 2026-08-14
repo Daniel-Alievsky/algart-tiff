@@ -551,7 +551,21 @@ public final class TiffIFD {
      * Photometric interpretation code for {@link TagPhotometric#ICC_LAB}.
      */
     public static final int PHOTOMETRIC_INTERPRETATION_ICC_LAB = 9;
+
+    /**
+     * Photometric interpretation code for {@link TagPhotometric#ITU_LAB}.
+     */
     public static final int PHOTOMETRIC_INTERPRETATION_ITU_LAB = 10;
+
+    /**
+     * Photometric interpretation code for {@link TagPhotometric#LOG_L}.
+     */
+    public static final int PHOTOMETRIC_INTERPRETATION_LOG_L = 32844;
+
+    /**
+     * Photometric interpretation code for {@link TagPhotometric#LOG_LUV}.
+     */
+    public static final int PHOTOMETRIC_INTERPRETATION_LOG_LUV = 32845;
 
     /**
      * Contiguous (chunked) samples format (PlanarConfiguration), for example, RGBRGBRGB....

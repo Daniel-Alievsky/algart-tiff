@@ -42,9 +42,9 @@ public enum TagPhotometric {
     CIE_LAB(TiffIFD.PHOTOMETRIC_INTERPRETATION_CIE_LAB, "CIELAB"),
     ICC_LAB(TiffIFD.PHOTOMETRIC_INTERPRETATION_ICC_LAB, "ICC L*a*b*"),
     ITU_LAB(TiffIFD.PHOTOMETRIC_INTERPRETATION_ITU_LAB, "ITU L*a*b*"),
+    LOG_L(TiffIFD.PHOTOMETRIC_INTERPRETATION_LOG_L, "CIE Log2(L)"),
+    LOG_LUV(TiffIFD.PHOTOMETRIC_INTERPRETATION_LOG_LUV, "CIE Log2(L) (u',v')"),
     CFA_ARRAY(32803, "Color filter array"),
-    LOG_L(32844, "CIE Log2(L)"),
-    LOG_LUV(32845, "CIE Log2(L) (u',v')"),
     LINEAR_RAW(34892, "Linear raw");
 
     private final int code;
@@ -91,20 +91,24 @@ public enum TagPhotometric {
      * <p>This includes grayscale ({@link #WHITE_IS_ZERO} and {@link #BLACK_IS_ZERO}), {@link #RGB},
      * {@link #TRANSPARENCY_MASK} for bit masks and {@link #Y_CB_CR} for YCbCr color space.</p>
      *
-     * <p>Note: YCbCr is included because {@link net.algart.matrices.tiff.TiffReader} usually converts
-     * such TIFF images into a standard RGB form automatically.</p>
-     * * <p>Note: {@link #WHITE_IS_ZERO} will be rendered correctly only if you set
+     * <p>Note: {@link #Y_CB_CR}, {@link #LOG_L}, {@link #LOG_LUV} are included because
+     * {@link net.algart.matrices.tiff.TiffReader} usually converts
+     * such TIFF images into standard RGB or grayscale form automatically.</p>
+     *
+     * <p>Note: {@link #WHITE_IS_ZERO} will be rendered correctly only if you set
      * {@link net.algart.matrices.tiff.TiffReader#setColorCorrection(boolean)} flag.</p>
      *
      * @return true if the image is ready for simple rendering.
      */
     public boolean isSimplyRenderable() {
-        return switch (code) {
-            case TiffIFD.PHOTOMETRIC_INTERPRETATION_WHITE_IS_ZERO,
-                 TiffIFD.PHOTOMETRIC_INTERPRETATION_BLACK_IS_ZERO,
-                 TiffIFD.PHOTOMETRIC_INTERPRETATION_RGB,
-                 TiffIFD.PHOTOMETRIC_INTERPRETATION_TRANSPARENCY_MASK,
-                 TiffIFD.PHOTOMETRIC_INTERPRETATION_Y_CB_CR -> true;
+        return switch (this) {
+            case WHITE_IS_ZERO,
+                 BLACK_IS_ZERO,
+                 RGB,
+                 TRANSPARENCY_MASK,
+                 Y_CB_CR,
+                 LOG_L,
+                 LOG_LUV -> true;
             default -> false;
         };
     }

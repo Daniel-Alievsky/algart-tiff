@@ -255,13 +255,13 @@ public enum TagCompression {
      * SGI LogL (CIE Log Luminance) compression (type 34676).
      * Not supported in the current version.
      */
-    SGI_LOG(34676, "SGI Log Luminance", null),
+    SGI_LOG(34676, "SGI Log Luminance", LogLuvCodec::new, DEFLATE),
 
     /**
      * SGI LogLuv (CIE Log Luminance/Chroma) compression (type 34677).
      * Not supported in the current version.
      */
-    SGI_LOG24(34677, "SGI Log Luminance 24-bit", null),
+    SGI_LOG24(34677, "SGI Log Luminance 24-bit", LogLuvCodec::new, DEFLATE),
 
     /**
      * Nikon NEF (Lossy Huffman) or SGI LogLuv  (type 34713).
@@ -307,6 +307,7 @@ public enum TagCompression {
         this(code, name, codec, nearestWriteable, null);
     }
 
+    // If writing is not supported at all, nearestWriteable is usually DEFLATE or NONE
     TagCompression(
             int code,
             String name,
