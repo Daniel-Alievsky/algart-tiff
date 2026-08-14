@@ -1112,9 +1112,10 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     @Override
     public void close() throws IOException {
         synchronized (fileLock) {
-            stream.close();
             fileOpen = false;
             linkage = null;
+            // - assigning before possible exceptions in stream.close()
+            stream.close();
         }
     }
 
