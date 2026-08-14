@@ -50,42 +50,14 @@ public class LogLuvCodec implements TiffCodec {
     /*
      * Portions of this class are derived from MIPAV (NIH CIT) and LibTIFF.
      *
-     * =========================================================================
-     * MIPAV (Medical Image Processing, Analysis, and Visualization) License
-     * =========================================================================
-     * Developed and funded in part by the National Institutes of Health Center
-     * for Information Technology (CIT).
+     * MIPAV License (NIH CIT): Permission is granted free of charge to use, copy,
+     * modify, and distribute this software. Designed for research purposes only;
+     * clinical applications are neither recommended nor advised.
+     * Provided "AS IS", without warranty of any kind.
      *
-     * Permission is hereby granted to Recipient, free of charge, to use, copy,
-     * modify, make derivatives, merge, publish, display or distribute the Software
-     * and to permit others to do so, subject to the conditions herein.
-     *
-     * The Software has been designed for research purposes only and has not been
-     * reviewed or approved by the Food and Drug Administration or by any other agency.
-     * YOU ACKNOWLEDGE AND AGREE THAT CLINICAL APPLICATIONS ARE NEITHER RECOMMENDED
-     * NOR ADVISED.
-     *
-     * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-     * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-     * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL CIT
-     * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY OF ANY KIND.
-     *
-     * =========================================================================
-     * LibTIFF (tif_luv.c, tif_luv.h, uvcode.h) License
-     * =========================================================================
-     * Copyright (c) 1988-1997 Sam Leffler
-     * Copyright (c) 1991-1997 Silicon Graphics, Inc.
-     *
-     * Permission to use, copy, modify, distribute, and sell this software and
-     * its documentation for any purpose is hereby granted without fee, provided
-     * that (i) the above copyright notices and this permission notice appear in
-     * all copies of the software and related documentation, and (ii) the names of
-     * Sam Leffler and Silicon Graphics may not be used in any advertising or
-     * publicity relating to the software without specific, prior written permission.
-     *
-     * THE SOFTWARE IS PROVIDED "AS-IS" AND WITHOUT WARRANTY OF ANY KIND,
-     * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
-     * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+     * LibTIFF License: Copyright (c) 1988-1997 Sam Leffler, 1991-1997 SGI.
+     * Permission to use, copy, modify, and distribute for any purpose is granted
+     * provided that copyright notices and this permission notice appear in all copies.
      */
 
     private static final double M_LN2 = 0.69314718055994530942;
