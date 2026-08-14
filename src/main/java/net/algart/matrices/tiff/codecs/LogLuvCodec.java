@@ -63,7 +63,7 @@ public class LogLuvCodec implements TiffCodec {
     private static final double M_LN2 = 0.69314718055994530942;
     private static final double U_NEU = 0.210526316;
     private static final double V_NEU = 0.473684211;
-    private static final float[] LOG_LUV24_USTART = new float[] {
+    private static final float[] LOG_LUV_24_USTART = new float[] {
             0.247663f, 0.243779f, 0.241684f, 0.237874f, 0.235906f, 0.232153f,
             0.228352f, 0.226259f, 0.222371f, 0.220410f, 0.214710f, 0.212714f, 0.210721f, 0.204976f, 0.202986f,
             0.199245f, 0.195525f, 0.193560f, 0.189878f, 0.186216f, 0.186216f, 0.182592f, 0.179003f, 0.175466f,
@@ -83,7 +83,7 @@ public class LogLuvCodec implements TiffCodec {
             0.002389f, 0.001068f, 0.001653f, 0.000717f, 0.001614f, 0.000270f, 0.000484f, 0.001103f, 0.001242f,
             0.001188f, 0.001011f, 0.000709f, 0.000301f, 0.002416f, 0.003251f, 0.003246f, 0.004141f, 0.005963f,
             0.008839f, 0.010490f, 0.016994f, 0.023659f};
-    private static final int[] LOG_LUV24_NCUM = new int[] {
+    private static final int[] LOG_LUV_24_NCUM = new int[] {
             0, 4, 10, 17, 26, 36, 48, 62, 77, 94, 112, 133, 155, 178, 204, 231, 260, 291,
             323, 357, 393, 429, 467, 507, 549, 593, 637, 683, 729, 778, 830, 882, 934, 989, 1044, 1102, 1160, 1222,
             1284, 1346, 1411, 1476, 1541, 1610, 1679, 1752, 1825, 1898, 1975, 2052, 2129, 2206, 2288, 2370, 2452,
@@ -288,7 +288,7 @@ public class LogLuvCodec implements TiffCodec {
                             upper = UV_NVS;
                             while (upper - lower > 1) {
                                 vi = (lower + upper) >> 1;
-                                ui = Ce - LOG_LUV24_NCUM[vi];
+                                ui = Ce - LOG_LUV_24_NCUM[vi];
                                 if (ui > 0) {
                                     lower = vi;
                                 } else if (ui < 0) {
@@ -299,8 +299,8 @@ public class LogLuvCodec implements TiffCodec {
                                 }
                             } // while (upper - lower > 1)
                             vi = lower;
-                            ui = Ce - LOG_LUV24_NCUM[vi];
-                            u = LOG_LUV24_USTART[vi] + (ui + 0.5) * UV_SQSIZ;
+                            ui = Ce - LOG_LUV_24_NCUM[vi];
+                            u = LOG_LUV_24_USTART[vi] + (ui + 0.5) * UV_SQSIZ;
                             v = UV_VSTART + (vi + .5) * UV_SQSIZ;
                         } // else binary search
                         s = 1.0 / (6.0 * u - 16.0 * v + 12.0);
