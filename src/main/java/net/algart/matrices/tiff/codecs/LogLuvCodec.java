@@ -25,9 +25,7 @@
 package net.algart.matrices.tiff.codecs;
 
 import net.algart.arrays.Arrays;
-import net.algart.arrays.JArrays;
 import net.algart.arrays.PArray;
-import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import net.algart.matrices.tiff.samples.TiffSampleType;
@@ -35,11 +33,65 @@ import net.algart.matrices.tiff.tags.TagCompression;
 
 import java.util.Objects;
 
+/**
+ * Codec for SGI LogL and LogLuv compressed TIFF images (Compression 34676 and 34677).
+ *
+ * <p>Decompression algorithms and lookup tables in this class are ported and adapted from:</p>
+ * <ul>
+ *   <li><b>MIPAV</b> (Medical Image Processing, Analysis and Visualization),
+ *       developed by NIH CIT (authors: Matthew J. McAuliffe, Ph.D., William Gandler).</li>
+ *   <li><b>LibTIFF</b> ({@code tif_luv.c}, {@code tif_luv.h}, {@code uvcode.h}),
+ *       originally created by Sam Leffler, Silicon Graphics, Inc., and Greg Ward.</li>
+ * </ul>
+ */
+
 public class LogLuvCodec implements TiffCodec {
+    // (It is placed here to avoid autocorrection by IntelliJ IDEA)
+    /*
+     * Portions of this class are derived from MIPAV (NIH CIT) and LibTIFF.
+     *
+     * =========================================================================
+     * MIPAV (Medical Image Processing, Analysis, and Visualization) License
+     * =========================================================================
+     * Developed and funded in part by the National Institutes of Health Center
+     * for Information Technology (CIT).
+     *
+     * Permission is hereby granted to Recipient, free of charge, to use, copy,
+     * modify, make derivatives, merge, publish, display or distribute the Software
+     * and to permit others to do so, subject to the conditions herein.
+     *
+     * The Software has been designed for research purposes only and has not been
+     * reviewed or approved by the Food and Drug Administration or by any other agency.
+     * YOU ACKNOWLEDGE AND AGREE THAT CLINICAL APPLICATIONS ARE NEITHER RECOMMENDED
+     * NOR ADVISED.
+     *
+     * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+     * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+     * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL CIT
+     * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY OF ANY KIND.
+     *
+     * =========================================================================
+     * LibTIFF (tif_luv.c, tif_luv.h, uvcode.h) License
+     * =========================================================================
+     * Copyright (c) 1988-1997 Sam Leffler
+     * Copyright (c) 1991-1997 Silicon Graphics, Inc.
+     *
+     * Permission to use, copy, modify, distribute, and sell this software and
+     * its documentation for any purpose is hereby granted without fee, provided
+     * that (i) the above copyright notices and this permission notice appear in
+     * all copies of the software and related documentation, and (ii) the names of
+     * Sam Leffler and Silicon Graphics may not be used in any advertising or
+     * publicity relating to the software without specific, prior written permission.
+     *
+     * THE SOFTWARE IS PROVIDED "AS-IS" AND WITHOUT WARRANTY OF ANY KIND,
+     * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
+     * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+     */
+
     private static final double M_LN2 = 0.69314718055994530942;
     private static final double U_NEU = 0.210526316;
     private static final double V_NEU = 0.473684211;
-    private static final float[] ustart = new float[] {
+    private static final float[] LOG_LUV_USTART = new float[] {
             0.247663f, 0.243779f, 0.241684f, 0.237874f, 0.235906f, 0.232153f,
             0.228352f, 0.226259f, 0.222371f, 0.220410f, 0.214710f, 0.212714f, 0.210721f, 0.204976f, 0.202986f,
             0.199245f, 0.195525f, 0.193560f, 0.189878f, 0.186216f, 0.186216f, 0.182592f, 0.179003f, 0.175466f,
@@ -59,7 +111,8 @@ public class LogLuvCodec implements TiffCodec {
             0.002389f, 0.001068f, 0.001653f, 0.000717f, 0.001614f, 0.000270f, 0.000484f, 0.001103f, 0.001242f,
             0.001188f, 0.001011f, 0.000709f, 0.000301f, 0.002416f, 0.003251f, 0.003246f, 0.004141f, 0.005963f,
             0.008839f, 0.010490f, 0.016994f, 0.023659f};
-    private static final int[] ncum = new int[] {0, 4, 10, 17, 26, 36, 48, 62, 77, 94, 112, 133, 155, 178, 204, 231, 260, 291,
+    private static final int[] LOG_LUV_NCUM = new int[] {
+            0, 4, 10, 17, 26, 36, 48, 62, 77, 94, 112, 133, 155, 178, 204, 231, 260, 291,
             323, 357, 393, 429, 467, 507, 549, 593, 637, 683, 729, 778, 830, 882, 934, 989, 1044, 1102, 1160, 1222,
             1284, 1346, 1411, 1476, 1541, 1610, 1679, 1752, 1825, 1898, 1975, 2052, 2129, 2206, 2288, 2370, 2452,
             2538, 2624, 2710, 2796, 2887, 2978, 3069, 3164, 3259, 3354, 3449, 3549, 3649, 3749, 3849, 3954, 4059,
@@ -263,7 +316,7 @@ public class LogLuvCodec implements TiffCodec {
                             upper = UV_NVS;
                             while (upper - lower > 1) {
                                 vi = (lower + upper) >> 1;
-                                ui = Ce - ncum[vi];
+                                ui = Ce - LOG_LUV_NCUM[vi];
                                 if (ui > 0) {
                                     lower = vi;
                                 } else if (ui < 0) {
@@ -274,8 +327,8 @@ public class LogLuvCodec implements TiffCodec {
                                 }
                             } // while (upper - lower > 1)
                             vi = lower;
-                            ui = Ce - ncum[vi];
-                            u = ustart[vi] + (ui + 0.5) * UV_SQSIZ;
+                            ui = Ce - LOG_LUV_NCUM[vi];
+                            u = LOG_LUV_USTART[vi] + (ui + 0.5) * UV_SQSIZ;
                             v = UV_VSTART + (vi + .5) * UV_SQSIZ;
                         } // else binary search
                         s = 1.0 / (6.0 * u - 16.0 * v + 12.0);
