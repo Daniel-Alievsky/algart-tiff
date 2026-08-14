@@ -255,13 +255,13 @@ public enum TagCompression {
      * SGI LogL (CIE Log Luminance) compression (type 34676).
      * Not supported in the current version.
      */
-    SGI_LOG_L(34676, "SGI LogL", null),
+    SGI_LOG(34676, "SGI Log Luminance", null),
 
     /**
      * SGI LogLuv (CIE Log Luminance/Chroma) compression (type 34677).
      * Not supported in the current version.
      */
-    SGI_LOG_LUV(34677, "SGI LogLuv", null),
+    SGI_LOG24(34677, "SGI Log Luminance 24-bit", null),
 
     /**
      * Nikon NEF (Lossy Huffman) or SGI LogLuv  (type 34713).

@@ -27,6 +27,7 @@ package net.algart.matrices.tiff.codecs;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffIO;
+import net.algart.matrices.tiff.samples.TiffSampleType;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagPhotometric;
 import net.algart.matrices.tiff.tiles.TiffTile;
@@ -68,6 +69,7 @@ public interface TiffCodec {
     class Options implements Cloneable {
         private int width = 0;
         private int height = 0;
+        private TiffSampleType sampleType = null;
         private int samplesPerPixel = 0;
         private int bitsPerSample = 0;
         private boolean planarSeparated = false;
@@ -120,6 +122,15 @@ public interface TiffCodec {
 
         public Options setSizes(int width, int height) {
             return setWidth(width).setHeight(height);
+        }
+
+        public TiffSampleType getSampleType() {
+            return sampleType;
+        }
+
+        public Options setSampleType(TiffSampleType sampleType) {
+            this.sampleType = sampleType;
+            return this;
         }
 
         /**
@@ -196,6 +207,10 @@ public interface TiffCodec {
         public Options setLittleEndian(boolean littleEndian) {
             this.littleEndian = littleEndian;
             return this;
+        }
+
+        public ByteOrder getByteOrder() {
+            return isLittleEndian() ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
         }
 
         public Options setByteOrder(ByteOrder byteOrder) {
@@ -328,6 +343,7 @@ public interface TiffCodec {
         public Options setMainOptions(TiffTile tile) {
             this.setSizes(tile.getSizeX(), tile.getSizeY());
             this.setBitsPerSample(tile.normalizedBitDepth());
+            this.setSampleType(tile.sampleType());
             this.setSamplesPerPixel(tile.samplesPerPixel());
             this.setPlanarSeparated(tile.isPlanarSeparated());
             this.setTiled(tile.tilingMode().isTileGrid());
@@ -353,6 +369,7 @@ public interface TiffCodec {
             Objects.requireNonNull(options, "Null options");
             this.width = options.width;
             this.height = options.height;
+            this.sampleType = options.sampleType;
             this.samplesPerPixel = options.samplesPerPixel;
             this.bitsPerSample = options.bitsPerSample;
             this.planarSeparated = options.planarSeparated;
@@ -427,6 +444,7 @@ public interface TiffCodec {
             return "Options: " +
                     "width=" + width +
                     ", height=" + height +
+                    ", sampleType=" + sampleType +
                     ", samplesPerPixel=" + samplesPerPixel +
                     ", bitsPerSample=" + bitsPerSample +
                     ", planarSeparated=" + planarSeparated +
