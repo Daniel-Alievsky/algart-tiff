@@ -1919,7 +1919,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @throws IOException if an I/O error occurs.
      */
     public final Linkage correctInvalidLinkageInFile() throws IOException {
-        boolean fixed = false;
+        boolean corrected = false;
         final Linkage linkage;
         synchronized (fileLock) {
             linkage = linkage();
@@ -1927,10 +1927,10 @@ public non-sealed class TiffWriter extends TiffIO {
                 writeOffsetAt(TiffIFD.IFD_CHAIN_TERMINATOR, linkage.offsetOfChainTerminator());
                 linkage.setChainTerminator(TiffIFD.IFD_CHAIN_TERMINATOR);
                 invalidateCompanionReader();
-                fixed = true;
+                corrected = true;
             }
         }
-        if (fixed) {
+        if (corrected) {
             LOG.log(System.Logger.Level.DEBUG, () -> "Fixing infinite loop in the file: " + linkage);
         }
         return linkage;
@@ -2229,30 +2229,35 @@ public non-sealed class TiffWriter extends TiffIO {
                 nextIFDOffsetWrittenInFile == null || nextIFDOffset != nextIFDOffsetWrittenInFile;
         final boolean appending = appendRequested && ifd.isEffectivelyChainTerminator();
         if (!nextIFDOffsetChanged && !appending) {
-            // - optimization: we are sure that will not change anything
+            // - Optimization: we are sure that this will not change anything, so there is no reason to reload linkage.
+            // This can be important if we edit an image in a TIFF containing thousands of IFDs.
             return;
         }
-        Linkage linkage = linkage();
-        // - loading linkage BEFORE any other operations, including the following writeOffsetAt
+        final Linkage linkage = correctInvalidLinkageInFile();
+        // - We should load linkage and fix illegal chain terminator BEFORE any other operations,
+        // including the following writeOffsetAt.
+        // Correcting linkage is necessary, when appendingIndependentTrailingIFD (below) is false,
+        // but nextIFDOffsetChanged is true.
+        // For example, in the file
+        //      src/test/resources/demo/images/tiff/libtiff/test/images/test_ifd_loop_subifd.tif
+        // we have an infinite loop:
+        //      A -> B -> C -> D -> E -> C (loop!)
+        // Let this ifd be B, and we changed its nextIFDOffset to refer to D.
+        // Normally, rewriting B should remove C.
+        // However, without correctInvalidLinkageInFile() we will build a new infinite loop:
+        //      A -> B ->      D -> E -> C (became alive!) -> D (loop!)
+        // TiffDeleteIFDByRewriteInPlaceTest helps to test this situation.
+        // If appendingIndependentTrailingIFD is true, correcting the linkage is (strictly speaking)
+        // not necessary: if the chain terminator written in the file is invalid,
+        // it will be rewritten with ifdOffset.
+        // If !nextIFDOffsetChanged && !appendingIndependentTrailingIFD, correction is also unnecessary.
+        // However, there are no reasons to optimize these situations:
+        // invalid linkage is a very rare case and fixed only once for the TIFF file.
         final boolean appendingIndependentTrailingIFD = appending && !linkage.containsIFDOffset(ifdOffset);
         if (!nextIFDOffsetChanged && !appendingIndependentTrailingIFD) {
             // - optimization: we are sure that will not change anything
             return;
         }
-        if (!appendingIndependentTrailingIFD) {
-            linkage = correctInvalidLinkageInFile();
-            // For example, in the file
-            //      src/test/resources/demo/images/tiff/libtiff/test/images/test_ifd_loop_subifd.tif
-            // we have an infinite loop:
-            //      A -> B -> C -> D -> E -> C (loop!)
-            // Let this ifd is B, and we changed its nextIFDOffset to refer to D.
-            // Normally, rewriting B should remove C.
-            // However, without correctInvalidLinkageInFile() we will build a new infinite loop:
-            //      A -> B ->      D -> E -> C (became alive!) -> D (loop!)
-            // TiffDeleteIFDByRewriteInPlaceTest helps to test this situation.
-            // If appendingIndependentTrailingIFD, this is not necessary: see below.
-        }
-
         if (nextIFDOffsetChanged) {
             writeOffsetAt(nextIFDOffset, fileOffsetOfNextIFDOffset);
             // Usually this writeOffsetAt does not change the linkage, because this IFD is not linked yet.
@@ -2265,8 +2270,6 @@ public non-sealed class TiffWriter extends TiffIO {
             // - We can safely add new IFD to the chain end only if these conditions are met:
             // A) !linkage.containsIFDOffset(ifdOffset) - its start is not equal to any of the existing IFD offsets;
             // B) isEffectivelyChainTerminator() - it will actually become the chain end.
-            // Note that there is no need to call correctInvalidLinkageInFile():
-            // if the chain terminator written in the file is invalid, it will be rewritten with ifdOffset.
             writeOffsetAt(ifdOffset, linkage.offsetOfChainTerminator());
             linkage.updateAfterAppendingNewIFD(ifdOffset, fileOffsetOfNextIFDOffset);
             // It is very important to avoid invalidation here: with invalidation,
