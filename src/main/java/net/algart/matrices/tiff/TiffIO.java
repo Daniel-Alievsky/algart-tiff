@@ -242,7 +242,8 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
     TiffIO(DataHandle<?> stream, Path filePath) {
         this.stream = Objects.requireNonNull(stream, "Null data handle (input/output stream)");
         this.filePath = filePath;
-        this.tiff = this.validTiff = this instanceof TiffWriter;
+        this.tiff = this instanceof TiffWriter;
+        this.validTiff = this instanceof TiffWriter;
         // - TiffWriter is usually created without any file, but analyzeFileHeader() is not called always;
         // we MUST suppose that it is a valid TIFF for all other cases
     }
@@ -263,7 +264,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * <p>For a {@link TiffWriter}, the flag is initially {@code true}, since
      * a writer is assumed to operate on a TIFF file even before the file is
-     * opened or created. However, if you try to open an existing non-TIFF file,
+     * opened or created. However, if you try to open a non-existing or an existing non-TIFF file,
      * for example, via the {@link TiffWriter#openExisting()} method,
      * an exception will be thrown, and this flag will be cleared to {@code false}.
      *
@@ -295,7 +296,7 @@ public sealed abstract class TiffIO implements Closeable permits TiffReader, Tif
      *
      * <p>For a {@link TiffWriter}, the flag is initially {@code true}, since
      * a writer is assumed to operate on a valid TIFF file even before the file is
-     * opened or created. However, if you try to open an existing corrupted file,
+     * opened or created. However, if you try to open a non-existing or an existing corrupted file,
      * for example, via the {@link TiffWriter#openExisting()} method,
      * an exception will be thrown, and this flag will be cleared to {@code false}.
      *

@@ -772,6 +772,8 @@ public non-sealed class TiffWriter extends TiffIO {
      */
     public final void open(boolean createIfNotExists) throws IOException {
         synchronized (fileLock) {
+            this.tiff = false;
+            this.validTiff = false;
             invalidateCompanionReader();
             if (!stream.exists() || stream.length() == 0L) {
                 // - Important: we ALLOW appending to zero-length files.
@@ -800,12 +802,15 @@ public non-sealed class TiffWriter extends TiffIO {
     /**
      * Equivalent to {@link #openForAppend()} if the argument is <code>true</code>,
      * or {@link #create()} if the argument is <code>false</code>.
-     * <p>If the file does not exist, the argument has no effect: this method
-     * creates a new empty TIFF file.
-     * </p>If the file already exists, this method opens it for possible appending new images
-     * when <code>appendToExistingFile</code> is <code>true</code>,
-     * or truncates it to a zero length and writes the TIFF header otherwise.
      *
+     * <p>If the file does not exist, the argument has no effect: this method
+     * creates a new empty TIFF file.</p>
+     *
+     * <p>If the file already exists, this method opens it for possible appending new images
+     * when <code>appendToExistingFile</code> is <code>true</code>,
+     * or truncates it to a zero length and writes the TIFF header otherwise.</p>
+     *
+     * @param appendToExistingFile whether to append to an existing file or overwrite it.
      * @throws IOException if an I/O error occurs.
      */
     public final void create(boolean appendToExistingFile) throws IOException {
@@ -827,6 +832,9 @@ public non-sealed class TiffWriter extends TiffIO {
         synchronized (fileLock) {
             invalidateCompanionReader();
             invalidateLinkage(false, null);
+            this.tiff = false;
+            this.validTiff = false;
+            // - but not this.bigTiff: it should be set before calling create()
             stream.seek(0);
             // - this call actually creates and opens the file if it was not opened before
             if (isLittleEndian()) {
@@ -854,7 +862,11 @@ public non-sealed class TiffWriter extends TiffIO {
             // it is necessary because this class writes all new information
             // to the file end (to avoid damaging existing content)
             stream.setLength(stream.offset());
-            fileOpen = true;
+            this.tiff = true;
+            this.validTiff = true;
+            // - validTiff = true is slightly incorrect, but good for TiffWriter:
+            // usually we create a TIFF for writing something
+            this.fileOpen = true;
         }
     }
 
