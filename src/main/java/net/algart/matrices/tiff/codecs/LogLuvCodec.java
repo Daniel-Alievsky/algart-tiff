@@ -179,11 +179,11 @@ public class LogLuvCodec implements TiffCodec {
         double s;
         double x;
         double y;
-        final double xyz[] = new double[3];
+        final double[] xyz = new double[3];
         double r;
         double g;
         double b;
-        final byte dataTemp[] = new byte[4 * dimY * dimX];
+        final byte[] dataTemp = new byte[4 * dimY * dimX];
 
         /* get each byte string */
         for (row = 0; row < dimY; row++) {
@@ -205,9 +205,9 @@ public class LogLuvCodec implements TiffCodec {
                             i++;
                         }
                     } // else non-run
-                } // for (i = 0; i < nPixels && bytesToRead > 0; )
-            } // for (m = 0; m < 4; m++)
-        } // for (row = 0; row < rowsToDo; row++)
+                }
+            }
+        }
         for (i = 0; i < dimX * dimY; i++) {
             LogL = ( ( (dataTemp[4 * i] << 8) & 0xff00) | (dataTemp[4 * i + 1] & 0xff));
             if ( ( (LogL & 0x8000) != 0) || (LogL == 0)) {
@@ -255,7 +255,7 @@ public class LogLuvCodec implements TiffCodec {
         double s;
         double x;
         double y;
-        final double xyz[] = new double[3];
+        final double[] xyz = new double[3];
         double r;
         double g;
         double b;
@@ -321,7 +321,7 @@ public class LogLuvCodec implements TiffCodec {
                         dataOut[3 * row * dimX + 3 * i + 2] = (float) Math.sqrt(b);
                     }
                 }
-            } // for (i = 0; i < nPixels && bytesToRead > 0; i++)
-        } // for (row = 0; row < rowsToDo; row++)
+            }
+        }
     }
 }

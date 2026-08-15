@@ -174,7 +174,7 @@ public final class TiffTile {
 
     /**
      * Returns the number of bits per each sample of this tile.
-     * Always equal to {@link #map()}.{@link TiffMap#normalizedBitDepth() bitsPerSample()}.
+     * Always equal to {@link #map()}.{@link TiffMap#normalizedBitDepth() normalizedBitDepth()}.
      * Note that this number is always the same for all channels and is always divided by 8,
      * excepting the only case 1-channel 1-bit pixels.
      *
