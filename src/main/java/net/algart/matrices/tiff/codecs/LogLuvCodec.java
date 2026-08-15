@@ -60,6 +60,7 @@ public class LogLuvCodec implements TiffCodec {
      * provided that copyright notices and this permission notice appear in all copies.
      */
 
+    private static final double UVSCALE = 410.0;
     private static final double M_LN2 = 0.69314718055994530942;
     private static final double U_NEU = 0.210526316;
     private static final double V_NEU = 0.473684211;
@@ -119,7 +120,7 @@ public class LogLuvCodec implements TiffCodec {
         final int bytesPerSample = sampleType.bytesPerSample().orElseThrow(() ->
                 new UnsupportedTiffFormatException("Sample type " + sampleType +
                         " is not supported for LogL/LogLuv compression"));
-        float[] floats = unpackLogLFloats(data, options);
+        float[] floats = decodeLogLuvFloats(data, options);
         final int resultLength = floats.length * bytesPerSample;
         final PArray array = Arrays.asPrecision(PArray.as(floats), sampleType.elementType());
         byte[] result = new byte[resultLength];
@@ -127,7 +128,7 @@ public class LogLuvCodec implements TiffCodec {
         return result;
     }
 
-    private static float[] unpackLogLFloats(byte[] data, Options options) throws UnsupportedTiffFormatException {
+    private static float[] decodeLogLuvFloats(byte[] data, Options options) throws UnsupportedTiffFormatException {
         final int dimX = options.getWidth();
         final int dimY = options.getHeight();
         final int samplesPerPixel = options.getSamplesPerPixel();
@@ -137,18 +138,18 @@ public class LogLuvCodec implements TiffCodec {
             case SGI_LOG -> {
                 switch (samplesPerPixel) {
                     case 1 -> {
-                        unpackLogL(result, data, dimX, dimY);
+                        decodeLogL16(result, data, dimX, dimY);
                         return result;
                     }
                     case 3 -> {
-                        unpackLogLuv(result, data, dimX, dimY);
+                        decodeLogLuv32(result, data, dimX, dimY);
                         return result;
                     }
                 }
             }
             case SGI_LOG24 ->  {
                 if (samplesPerPixel == 3) {
-                    unpackLogLuv24(result, data, dimX, dimY);
+                    decodeLogLuv24(result, data, dimX, dimY);
                     return result;
                 }
             }
@@ -157,11 +158,11 @@ public class LogLuvCodec implements TiffCodec {
                 "\" for " + samplesPerPixel + " channels is not supported for LogL/LogLuv compression");
     }
 
-    public static void unpackLogL(float[] dataOut, byte[] dataIn, int dimX, int dimY) {
+    public static void decodeLogL16(float[] dataOut, byte[] dataIn, int dimX, int dimY) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
-    public static void unpackLogLuv(float[] dataOut, byte[] dataIn, int dimX, int dimY) {
+    public static void decodeLogLuv32(float[] dataOut, byte[] dataIn, int dimX, int dimY) {
         int bytesToRead = dataIn.length;
         int inPosition = 0;
         int i;
@@ -169,11 +170,9 @@ public class LogLuvCodec implements TiffCodec {
         byte by;
         int row;
         int m;
-        int LogL;
-        int Le;
-        final double M_LN2 = 0.69314718055994530942;
-        final double UVSCALE = 410.0;
-        double L;
+        int logLum;
+        int le;
+        double lum;
         double u;
         double v;
         double s;
@@ -209,23 +208,23 @@ public class LogLuvCodec implements TiffCodec {
             }
         }
         for (i = 0; i < dimX * dimY; i++) {
-            LogL = ( ( (dataTemp[4 * i] << 8) & 0xff00) | (dataTemp[4 * i + 1] & 0xff));
-            if ( ( (LogL & 0x8000) != 0) || (LogL == 0)) {
+            logLum = ( ( (dataTemp[4 * i] << 8) & 0xff00) | (dataTemp[4 * i + 1] & 0xff));
+            if ( ( (logLum & 0x8000) != 0) || (logLum == 0)) {
                 // Don't allow negative luminance
                 dataOut[3 * i] = 0;
                 dataOut[3 * i + 1] = 0;
                 dataOut[3 * i + 2] = 0;
             } else {
-                Le = LogL & 0x7fff;
-                L = Math.exp(M_LN2 / 256.0 * (Le + 0.5) - M_LN2 * 64.0);
+                le = logLum & 0x7fff;
+                lum = Math.exp(M_LN2 / 256.0 * (le + 0.5) - M_LN2 * 64.0);
                 u = 1. / UVSCALE * ( (dataTemp[4 * i + 2] & 0xff) + 0.5);
                 v = 1. / UVSCALE * ( (dataTemp[4 * i + 3] & 0xff) + 0.5);
                 s = 1. / (6.0 * u - 16.0 * v + 12.0);
                 x = 9.0 * u * s;
                 y = 4.0 * v * s;
-                xyz[0] = x / y * L;
-                xyz[1] = L;
-                xyz[2] = (1.0 - x - y) / y * L;
+                xyz[0] = x / y * lum;
+                xyz[1] = lum;
+                xyz[2] = (1.0 - x - y) / y * lum;
                 /* assume CCIR-709 primaries */
                 r = 2.690 * xyz[0] + -1.276 * xyz[1] + -0.414 * xyz[2];
                 g = -1.022 * xyz[0] + 1.978 * xyz[1] + 0.044 * xyz[2];
@@ -239,13 +238,13 @@ public class LogLuvCodec implements TiffCodec {
         }
     }
 
-    public static void unpackLogLuv24(float[] dataOut, byte[] dataIn, int dimX, int dimY) {
+    public static void decodeLogLuv24(float[] dataOut, byte[] dataIn, int dimX, int dimY) {
         int row;
         int i;
         int tp;
         int p10;
-        double L;
-        int Ce;
+        double lum;
+        int ce;
         double u;
         double v;
         int lower;
@@ -271,15 +270,15 @@ public class LogLuvCodec implements TiffCodec {
                     dataOut[3 * row * dimX + 3 * i + 1] = 0;
                     dataOut[3 * row * dimX + 3 * i + 2] = 0;
                 } else {
-                    L = Math.exp(M_LN2 / 64.0 * (p10 + 0.5) - M_LN2 * 12.0);
-                    if (L <= 0.0) {
+                    lum = Math.exp(M_LN2 / 64.0 * (p10 + 0.5) - M_LN2 * 12.0);
+                    if (lum <= 0.0) {
                         dataOut[3 * row * dimX + 3 * i] = 0;
                         dataOut[3 * row * dimX + 3 * i + 1] = 0;
                         dataOut[3 * row * dimX + 3 * i + 2] = 0;
                     } else {
                         // Decode color
-                        Ce = tp & 0x3fff;
-                        if ( (Ce < 0) || (Ce >= UV_NDIVS)) {
+                        ce = tp & 0x3fff;
+                        if ((ce < 0) || (ce >= UV_NDIVS)) {
                             u = U_NEU;
                             v = V_NEU;
                         } else {
@@ -288,7 +287,7 @@ public class LogLuvCodec implements TiffCodec {
                             upper = UV_NVS;
                             while (upper - lower > 1) {
                                 vi = (lower + upper) >> 1;
-                                ui = Ce - LOG_LUV_24_NCUM[vi];
+                                ui = ce - LOG_LUV_24_NCUM[vi];
                                 if (ui > 0) {
                                     lower = vi;
                                 } else if (ui < 0) {
@@ -299,7 +298,7 @@ public class LogLuvCodec implements TiffCodec {
                                 }
                             } // while (upper - lower > 1)
                             vi = lower;
-                            ui = Ce - LOG_LUV_24_NCUM[vi];
+                            ui = ce - LOG_LUV_24_NCUM[vi];
                             u = LOG_LUV_24_USTART[vi] + (ui + 0.5) * UV_SQSIZ;
                             v = UV_VSTART + (vi + .5) * UV_SQSIZ;
                         } // else binary search
@@ -307,9 +306,9 @@ public class LogLuvCodec implements TiffCodec {
                         x = 9.0 * u * s;
                         y = 4.0 * v * s;
                         // Convert to XYZ
-                        xyz[0] = x / y * L;
-                        xyz[1] = L;
-                        xyz[2] = (1.0 - x - y) / y * L;
+                        xyz[0] = x / y * lum;
+                        xyz[1] = lum;
+                        xyz[2] = (1.0 - x - y) / y * lum;
                         /* assume CCIR-709 primaries */
                         r = 2.690 * xyz[0] + -1.276 * xyz[1] + -0.414 * xyz[2];
                         g = -1.022 * xyz[0] + 1.978 * xyz[1] + 0.044 * xyz[2];
