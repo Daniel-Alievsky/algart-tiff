@@ -3,21 +3,17 @@ import imagecodecs
 import tifffile
 
 
-def list_supported_formats() -> None:
-    """Prints all supported compressions, photometrics, and active imagecodecs."""
-    print("=== Supported TIFF Compressions (tifffile) ===")
-    for name in sorted(tifffile.COMPRESSION.__members__.keys()):
-        tag_code = tifffile.COMPRESSION[name].value
-        print(f"  - {name} (Tag: {tag_code})")
+def list_supported_formats():
+    print("=== TIFF Compressions (tifffile) ===")
+    for name, member in sorted(tifffile.COMPRESSION.__members__.items()):
+        print(f"  - {name} (Tag: {member.value})")
 
-    print("\n=== Supported Photometric Interpretations (tifffile) ===")
-    for name in sorted(tifffile.PHOTOMETRIC.__members__.keys()):
-        tag_code = tifffile.PHOTOMETRIC[name].value
-        print(f"  - {name} (Tag: {tag_code})")
+    print("\n=== Photometric Interpretations ===")
+    for name, member in sorted(tifffile.PHOTOMETRIC.__members__.items()):
+        print(f"  - {name} (Tag: {member.value})")
 
-    print("\n=== Active C Codecs (imagecodecs) ===")
-    for codec in sorted(imagecodecs.codecs()):
-        print(f"  - {codec}")
+    print("\n=== imagecodecs ===")
+    print(f"  - Version: {imagecodecs.__version__}")
 
 
 def convert_tiff(input_path: str, output_path: str, compression: str = "lzw") -> None:
