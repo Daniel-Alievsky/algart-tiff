@@ -262,7 +262,7 @@ public enum TagCompression {
     SGI_LOG24(34677, "SGI Log Luminance 24-bit", LogLuvCodec::new, DEFLATE),
 
     /**
-     * Nikon NEF (Lossy Huffman) or SGI LogLuv  (type 34713).
+     * Nikon NEF (Lossy Huffman) (type 34713).
      * Used in Nikon Digital Camera raw files. Not supported.
      */
     NIKON_NEF(34713, "Nikon NEF / SGI LogLuv", null);
