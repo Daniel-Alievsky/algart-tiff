@@ -178,6 +178,24 @@ public enum TagCompression {
             JPEG2000Codec::new, JPEG_2000_APERIO, true),
 
     /**
+     * NeXT RLE compression (type 32766).
+     * Not supported in the current version.
+     */
+    NEXT(32766, "NeXT RLE (unsupported)", null),
+
+    /**
+     * CCITT RLEW: CCITT Modified Huffman RLE with word alignment (type 32771).
+     * Not supported in the current version.
+     */
+    CCITT_RLEW(32771, "CCITT Modified Huffman RLE, Word Aligned (unsupported)", null),
+
+    /**
+     * Macintosh Binary Image (MBI) / Apple VideoView RLE (type 32775).
+     * Not supported in the current version.
+     */
+    MBI_RLE(32775, "MBI RLE / Apple VideoView (unsupported)", null),
+
+    /**
      * Apple ThunderScan RLE compression (type 32809).
      *
      * <p>Note {@link net.algart.matrices.tiff.TiffWriter} does not support this compression.
@@ -186,70 +204,52 @@ public enum TagCompression {
             ThunderScanCodec::new, DEFLATE),
 
     /**
-     * NeXT RLE compression (type 32766).
-     * Not supported in the current version.
-     */
-    NEXT(32766, "NeXT RLE", null),
-
-    /**
-     * CCITT RLEW: CCITT Modified Huffman RLE with word alignment (type 32771).
-     * Not supported in the current version.
-     */
-    CCITT_RLEW(32771, "CCITT Modified Huffman RLE (Word Aligned)", null),
-
-    /**
-     * Macintosh Binary Image (MBI) / Apple VideoView RLE (type 32775).
-     * Not supported in the current version.
-     */
-    MBI_RLE(32775, "MBI RLE / Apple VideoView", null),
-
-    /**
      * IT8 CT Pad: Prepress data exchange (type 32895).
      * Not supported in the current version.
      */
-    IT8_CT_PAD(32895, "IT8 CT Pad", null),
+    IT8_CT_PAD(32895, "IT8 CT Pad (unsupported)", null),
 
     /**
      * IT8 Linework (type 32896).
      * Not supported in the current version.
      */
-    IT8_LW(32896, "IT8 Linework", null),
+    IT8_LW(32896, "IT8 Linework (unsupported)", null),
 
     /**
      * IT8 Monochrome Picture (type 32897).
      * Not supported in the current version.
      */
-    IT8_MP(32897, "IT8 Monochrome Picture", null),
+    IT8_MP(32897, "IT8 Monochrome Picture (unsupported)", null),
 
     /**
      * IT8 Binary Linework (type 32898).
      * Not supported in the current version.
      */
-    IT8_BL(32898, "IT8 Binary Linework", null),
+    IT8_BL(32898, "IT8 Binary Linework (unsupported)", null),
 
     /**
      * Pixar Film RLE compression (type 32908).
      * Not supported in the current version.
      */
-    PIXAR_FILM(32908, "Pixar Film RLE", null),
+    PIXAR_FILM(32908, "Pixar Film RLE (unsupported)", null),
 
     /**
      * Pixar Logarithmic compression (type 32909).
      * Not supported in the current version.
      */
-    PIXAR_LOG(32909, "Pixar Logarithmic", null),
+    PIXAR_LOG(32909, "Pixar Logarithmic (unsupported)", null),
 
     /**
      * Kodak DCS (Digital Camera System) compression (type 32947).
      * Not supported in the current version.
      */
-    KODAK_DCS(32947, "Kodak DCS", null),
+    KODAK_DCS(32947, "Kodak DCS (unsupported)", null),
 
     /**
      * JBIG: ISO/IEC 11544 bi-level image compression (type 34661).
      * Not supported in the current version.
      */
-    JBIG(34661, "JBIG", null),
+    JBIG(34661, "JBIG (unsupported)", null),
 
     /**
      * SGI LogL (CIE Log Luminance) compression (type 34676).
