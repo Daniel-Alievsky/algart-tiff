@@ -4,12 +4,14 @@ import tifffile
 
 
 def list_supported_formats():
-    print("=== TIFF Compressions (tifffile) ===")
-    for member in sorted(tifffile.COMPRESSION, key=lambda m: m.value):
+    compressions = sorted(tifffile.COMPRESSION, key=lambda m: m.value)
+    print(f"=== {len(compressions)} TIFF Compressions ===")
+    for member in compressions:
         print(f"  - {member.name} (Tag: {member.value})")
 
-    print("\n=== Photometric Interpretations ===")
-    for member in sorted(tifffile.PHOTOMETRIC, key=lambda m: m.value):
+    photometrics = sorted(tifffile.PHOTOMETRIC, key=lambda m: m.value)
+    print(f"\n=== {len(photometrics)} Photometric Interpretations ===")
+    for member in photometrics:
         print(f"  - {member.name} (Tag: {member.value})")
 
     print("\n=== imagecodecs ===")
