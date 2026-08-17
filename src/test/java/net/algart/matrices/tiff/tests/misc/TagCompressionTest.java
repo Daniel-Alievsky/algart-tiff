@@ -46,14 +46,14 @@ public class TagCompressionTest {
             throw new AssertionError("Invalid containsKey() = " + ifd.hasTag(Tags.COMPRESSION));
         }
         //noinspection OptionalIsPresent
-        System.out.printf("Compression:%n    %s%n    code: %d%n    \"%s\"%n    writing: %s%n",
+        System.out.printf("Compression: %-25s  Code: %-5d  %-50s  writing: %s%n",
                 compression.isEmpty() ? "unknown" : compression.get().name(),
                 ifd.getCompressionCode(),
-                ifd.compressionPrettyName(),
+                "\"" + ifd.compressionPrettyName() + "\"",
                 compression.isEmpty() ? "n/a" :
                         compression.get().isWritingSupported() ?
                         "supported" :
-                        "not supported, nearest with support: " + compression.get().nearestWriteable());
+                        "not supported, nearest with support: " + compression.get().nearestWritable());
     }
 
     public void test() throws Exception {
@@ -65,13 +65,16 @@ public class TagCompressionTest {
         check(ifd, null, TiffIFD.COMPRESSION_NONE, false);
         System.out.println();
 
-        System.out.println("Checking all compression types:");
-        for (TagCompression compression : TagCompression.values()) {
+        final TagCompression[] compressions = TagCompression.values();
+        System.out.printf("Checking all %d compression types%n:", compressions.length);
+        for (TagCompression compression : compressions) {
             ifd.putCompression(compression);
             check(ifd, compression, compression.code(), true);
         }
         System.out.println();
+        System.out.println();
 
+        System.out.println("**************");
         System.out.println("Custom checks:");
         ifd.putCompression(null);
         check(ifd, null, TiffIFD.COMPRESSION_NONE, false);
@@ -79,8 +82,8 @@ public class TagCompressionTest {
         ifd.putCompression(null, true);
         check(ifd, TagCompression.NONE, TiffIFD.COMPRESSION_NONE, true);
 
-        ifd.put(Tags.COMPRESSION, 157000);
-        check(ifd, null, 157000, true);
+        ifd.put(Tags.COMPRESSION, 15728);
+        check(ifd, null, 15728, true);
 
         if (TagCompression.JPEG_2000.code() != TagCompression.JPEG_2000_LOSSLESS.code()) throw new AssertionError();
         ifd.putCompression(TagCompression.JPEG_2000_LOSSLESS);

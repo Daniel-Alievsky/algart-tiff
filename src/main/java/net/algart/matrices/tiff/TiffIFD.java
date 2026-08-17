@@ -448,9 +448,9 @@ public final class TiffIFD {
     public static final int COMPRESSION_NONE = 1;
 
     /**
-     * Compression code for {@link TagCompression#CCITT_MODIFIED_HUFFMAN_RLE}.
+     * Compression code for {@link TagCompression#CCITT_MODIFIED_HUFFMAN}.
      */
-    public static final int COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE = 2;
+    public static final int COMPRESSION_CCITT_MODIFIED_HUFFMAN = 2;
 
     /**
      * Compression code for {@link TagCompression#CCITT_T4}.
@@ -1945,8 +1945,10 @@ public final class TiffIFD {
         if (code == -1) {
             return "unspecified compression";
         }
-        final Optional<TagCompression> compression = optCompression();
-        return compression.isEmpty() ? "unsupported compression " + code : compression.get().prettyName();
+        final TagCompression compression = optCompression().orElse(null);
+        return compression == null ?
+                "unknown compression " + code :
+                compression.prettyName() + (compression.codec() == null ? " (UNSUPPORTED)" : "");
     }
 
     public int optPredictorCode() {

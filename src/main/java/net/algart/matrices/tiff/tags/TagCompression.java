@@ -47,7 +47,7 @@ public enum TagCompression {
      * CCITT RLE: Modified Huffman compression (type 2).
      * For binary images only (1 sample/pixel, 1 bit/sample).
      */
-    CCITT_MODIFIED_HUFFMAN_RLE(TiffIFD.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE,
+    CCITT_MODIFIED_HUFFMAN(TiffIFD.COMPRESSION_CCITT_MODIFIED_HUFFMAN,
             "CCITT Modified Huffman RLE", CCITTFaxCodec::new),
 
     /**
@@ -66,6 +66,12 @@ public enum TagCompression {
      * LZW compression (type 5).
      */
     LZW(TiffIFD.COMPRESSION_LZW, "LZW", LZWCodec::new),
+
+    /**
+     * "Old-style" (obsolete) JPEG compression (type 6).
+     */
+    OLD_JPEG(TiffIFD.COMPRESSION_OLD_JPEG, "Old-style JPEG", OldJPEGCodec::new),
+    // - Note: actually nearestWritable() returns JPEG!
 
     /**
      * JPEG compression (type 7).
@@ -97,15 +103,40 @@ public enum TagCompression {
     // - Note: this variant has the same code as the previous one; it must be specified AFTER
 
     /**
-     * "Old-style" (obsolete) JPEG compression (type 6).
-     * Not supported in the current version.
-     */
-    OLD_JPEG(TiffIFD.COMPRESSION_OLD_JPEG, "Old-style JPEG", OldJPEGCodec::new, JPEG),
-
-    /**
      * Zlib deflate compression (ZIP), compatible with ZLib and {@link java.util.zip.DeflaterOutputStream} (type 8).
      */
     DEFLATE(TiffIFD.COMPRESSION_DEFLATE, "ZLib-Deflate", DeflateCodec::new),
+
+
+    /**
+     * JBIG B&W bi-level compression (type 9).
+     * Not supported in the current version.
+     */
+    JBIG_BW(9, "JBIG B&W", null),
+
+    /**
+     * JBIG Color compression (type 10).
+     * Not supported in the current version.
+     */
+    JBIG_COLOR(10, "JBIG Color", null),
+
+    /**
+     * Lossless JPEG / JPEG 99 compression (type 99).
+     * Not supported in the current version.
+     */
+    JPEG_99(99, "JPEG 99", null),
+
+    /**
+     * IMPACJ compression (type 103).
+     * Not supported in the current version.
+     */
+    IMPACJ(103, "IMPACJ", null),
+
+    /**
+     * Kodak 262 RAW compression (type 262).
+     * Not supported in the current version.
+     */
+    KODAK_262(262, "Kodak 262", null),
 
     /**
      * Deflate compression, equivalent to "{@link #DEFLATE Zlib deflate}"
@@ -176,24 +207,53 @@ public enum TagCompression {
      */
     JPEG_2000_APERIO_33004(33004, "JPEG-2000 Aperio 33004 lossless",
             JPEG2000Codec::new, JPEG_2000_APERIO, true),
+    /**
+     * JPEG XR Hamamatsu NDPI compression (type 22610).
+     * Not supported in the current version.
+     */
+    JPEGXR_NDPI(22610, "JPEG XR NDPI", null),
 
     /**
      * NeXT RLE compression (type 32766).
      * Not supported in the current version.
      */
-    NEXT(32766, "NeXT RLE (unsupported)", null),
+    NEXT(32766, "NeXT RLE", null),
 
     /**
      * CCITT RLEW: CCITT Modified Huffman RLE with word alignment (type 32771).
      * Not supported in the current version.
      */
-    CCITT_RLEW(32771, "CCITT Modified Huffman RLE, Word Aligned (unsupported)", null),
+    CCITT_RLEW(32771, "CCITT Modified Huffman RLE, Word Aligned", null),
 
     /**
      * Macintosh Binary Image (MBI) / Apple VideoView RLE (type 32775).
      * Not supported in the current version.
      */
-    MBI_RLE(32775, "MBI RLE / Apple VideoView (unsupported)", null),
+    MBI_RLE(32775, "MBI RLE / Apple VideoView", null),
+
+    /**
+     * Sony ARW Digital Camera RAW compression (type 32767).
+     * Not supported in the current version.
+     */
+    SONY_ARW(32767, "Sony ARW RAW", null),
+
+    /**
+     * Packed RAW compression (type 32769).
+     * Not supported in the current version.
+     */
+    PACKED_RAW(32769, "Packed RAW", null),
+
+    /**
+     * Samsung SRW Digital Camera RAW compression (type 32770).
+     * Not supported in the current version.
+     */
+    SAMSUNG_SRW(32770, "Samsung SRW RAW", null),
+
+    /**
+     * Samsung SRW2 Digital Camera RAW compression (type 32772).
+     * Not supported in the current version.
+     */
+    SAMSUNG_SRW2(32772, "Samsung SRW2 RAW", null),
 
     /**
      * Apple ThunderScan RLE compression (type 32809).
@@ -207,49 +267,49 @@ public enum TagCompression {
      * IT8 CT Pad: Prepress data exchange (type 32895).
      * Not supported in the current version.
      */
-    IT8_CT_PAD(32895, "IT8 CT Pad (unsupported)", null),
+    IT8_CT_PAD(32895, "IT8 CT Pad", null),
 
     /**
      * IT8 Linework (type 32896).
      * Not supported in the current version.
      */
-    IT8_LW(32896, "IT8 Linework (unsupported)", null),
+    IT8_LW(32896, "IT8 Linework", null),
 
     /**
      * IT8 Monochrome Picture (type 32897).
      * Not supported in the current version.
      */
-    IT8_MP(32897, "IT8 Monochrome Picture (unsupported)", null),
+    IT8_MP(32897, "IT8 Monochrome Picture", null),
 
     /**
      * IT8 Binary Linework (type 32898).
      * Not supported in the current version.
      */
-    IT8_BL(32898, "IT8 Binary Linework (unsupported)", null),
+    IT8_BL(32898, "IT8 Binary Linework", null),
 
     /**
      * Pixar Film RLE compression (type 32908).
      * Not supported in the current version.
      */
-    PIXAR_FILM(32908, "Pixar Film RLE (unsupported)", null),
+    PIXAR_FILM(32908, "Pixar Film RLE", null),
 
     /**
      * Pixar Logarithmic compression (type 32909).
      * Not supported in the current version.
      */
-    PIXAR_LOG(32909, "Pixar Logarithmic (unsupported)", null),
+    PIXAR_LOG(32909, "Pixar Logarithmic", null),
 
     /**
      * Kodak DCS (Digital Camera System) compression (type 32947).
      * Not supported in the current version.
      */
-    KODAK_DCS(32947, "Kodak DCS (unsupported)", null),
+    KODAK_DCS(32947, "Kodak DCS", null),
 
     /**
      * JBIG: ISO/IEC 11544 bi-level image compression (type 34661).
      * Not supported in the current version.
      */
-    JBIG(34661, "JBIG (unsupported)", null),
+    JBIG(34661, "JBIG", null),
 
     /**
      * SGI LogL (CIE Log Luminance) compression (type 34676).
@@ -265,7 +325,139 @@ public enum TagCompression {
      * Nikon NEF (Lossy Huffman) (type 34713).
      * Used in Nikon Digital Camera raw files. Not supported.
      */
-    NIKON_NEF(34713, "Nikon NEF / SGI LogLuv", null);
+    NIKON_NEF(34713, "Nikon NEF / SGI LogLuv", null),
+
+    /**
+     * Alternate JPEG compression (type 33007).
+     * Not supported in the current version.
+     */
+    ALT_JPEG(33007, "Alt JPEG", null),
+
+    /**
+     * LuraDocument LURACODE compression (type 34692).
+     * Not supported in the current version.
+     */
+    LURA_DOC(34692, "LuraDocument", null),
+
+    /**
+     * JBIG2 bi-level image compression (type 34715).
+     * Not supported in the current version.
+     */
+    JBIG2(34715, "JBIG2", null),
+
+    /**
+     * Microsoft Document Imaging (MDI) Binary (type 34718).
+     * Not supported in the current version.
+     */
+    MDI_BINARY(34718, "MDI Binary", null),
+
+    /**
+     * Microsoft Document Imaging (MDI) Progressive (type 34719).
+     * Not supported in the current version.
+     */
+    MDI_PROGRESSIVE(34719, "MDI Progressive", null),
+
+    /**
+     * Microsoft Document Imaging (MDI) Vector (type 34720).
+     * Not supported in the current version.
+     */
+    MDI_VECTOR(34720, "MDI Vector", null),
+
+    /**
+     * ESRI LERC (Limited Error Raster Compression) (type 34887).
+     * Not supported in the current version.
+     */
+    LERC(34887, "LERC", null),
+
+    /**
+     * JPEG Lossy compression (type 34892).
+     * Not supported in the current version.
+     */
+    JPEG_LOSSY(34892, "JPEG Lossy", null),
+
+    /**
+     * LZMA compression (type 34925).
+     * Not supported in the current version.
+     */
+    LZMA(34925, "LZMA", null),
+
+    /**
+     * Deprecated Zstandard compression tag (type 34926).
+     * Not supported in the current version.
+     */
+    ZSTD_DEPRECATED(34926, "Zstandard Deprecated", null),
+
+    /**
+     * Deprecated WebP compression tag (type 34927).
+     * Not supported in the current version.
+     */
+    WEBP_DEPRECATED(34927, "WebP Deprecated", null),
+
+    /**
+     * PNG compression (type 34933).
+     * Not supported in the current version.
+     */
+    PNG(34933, "PNG", null),
+
+    /**
+     * JPEG XR compression (type 34934).
+     * Not supported in the current version.
+     */
+    JPEG_XR(34934, "JPEG XR", null),
+
+    /**
+     * Dotphoton JetRAW compression (type 48124).
+     * Not supported in the current version.
+     */
+    JETRAW(48124, "JetRAW", null),
+
+    /**
+     * Zstandard (ZSTD) compression (type 50000).
+     * Not supported in the current version.
+     */
+    ZSTD(50000, "Zstandard", null),
+
+    /**
+     * WebP compression (type 50001).
+     * Not supported in the current version.
+     */
+    WEBP(50001, "WebP", null),
+
+    /**
+     * JPEG XL compression (type 50002).
+     * Not supported in the current version.
+     */
+    JPEG_XL(50002, "JPEG XL", null),
+
+    /**
+     * PixTIFF compression (type 50013).
+     * Not supported in the current version.
+     */
+    PIXTIFF(50013, "PixTIFF", null),
+
+    /**
+     * JPEG XL DNG compression (type 52546).
+     * Not supported in the current version.
+     */
+    JPEG_XL_DNG(52546, "JPEG XL DNG", null),
+
+    /**
+     * Electron Event Representation v0 compression (type 65000).
+     * Not supported in the current version.
+     */
+    EER_V0(65000, "EER v0", null),
+
+    /**
+     * Electron Event Representation v1 compression (type 65001).
+     * Not supported in the current version.
+     */
+    EER_V1(65001, "EER v1", null),
+
+    /**
+     * Electron Event Representation v2 compression (type 65002).
+     * Not supported in the current version.
+     */
+    EER_V2(65002, "EER v2", null);
 
     private static final Map<Integer, TagCompression> CODE_LOOKUP = new HashMap<>();
     private static final Map<String, TagCompression> NAME_LOOKUP = new HashMap<>();
@@ -295,29 +487,29 @@ public enum TagCompression {
     private final String name;
     private final Supplier<TiffCodec> codec;
     private final Boolean jpeg2000Lossless;
-    private final TagCompression nearestWriteable;
+    private final TagCompression nearestWritable;
 
     TagCompression(int code, String name, Supplier<TiffCodec> codec) {
         this(code, name, codec, null);
     }
 
-    TagCompression(int code, String name, Supplier<TiffCodec> codec, TagCompression nearestWriteable) {
-        this(code, name, codec, nearestWriteable, null);
+    TagCompression(int code, String name, Supplier<TiffCodec> codec, TagCompression nearestWritable) {
+        this(code, name, codec, nearestWritable, null);
     }
 
-    // If writing is not supported at all, nearestWriteable is usually DEFLATE or NONE
+    // If writing is not supported at all, nearestWritable is usually DEFLATE or NONE
     TagCompression(
             int code,
             String name,
             Supplier<TiffCodec> codec,
-            TagCompression nearestWriteable,
+            TagCompression nearestWritable,
             Boolean jpeg2000Lossless) {
         this.code = code;
         this.name = Objects.requireNonNull(name);
         this.codec = codec;
-        this.nearestWriteable = ALWAYS_ALLOW_WRITING || nearestWriteable == null ?
+        this.nearestWritable = ALWAYS_ALLOW_WRITING || nearestWritable == null ?
                 null :
-                nearestWriteable;
+                nearestWritable;
         this.jpeg2000Lossless = jpeg2000Lossless;
     }
 
@@ -399,7 +591,7 @@ public enum TagCompression {
     public boolean isOldFormat() {
         return code == TiffIFD.COMPRESSION_CCITT_T4 ||
                 code == TiffIFD.COMPRESSION_CCITT_T6 ||
-                code == TiffIFD.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE ||
+                code == TiffIFD.COMPRESSION_CCITT_MODIFIED_HUFFMAN ||
                 code == TiffIFD.COMPRESSION_OLD_JPEG ||
                 code == TiffIFD.COMPRESSION_THUNDER_SCAN;
     }
@@ -478,11 +670,21 @@ public enum TagCompression {
      * returning {@code true}. If no specific related type is defined for an
      * unsupported format, {@link #NONE} is returned as a safe fallback.
      *
-     * @return the nearest writeable compression type; never {@code null}.
+     * @return the nearest writable compression type; never {@code null}.
      * @see #isWritingSupported()
      */
-    public TagCompression nearestWriteable() {
-        return nearestWriteable != null ? nearestWriteable : codec != null ? this : NONE;
+    public TagCompression nearestWritable() {
+        switch (this) {
+            case OLD_JPEG -> {
+                return JPEG;
+            }
+            case JPEG_2000_APERIO_33003, JPEG_2000_APERIO_33004 -> {
+                return JPEG_2000_APERIO;
+            }
+        }
+        // - these special cases allows to place JPEG and JPEG_2000_APERIO enum constants
+        // BEFORE the replaced OLD_JPEG, JPEG_2000_APERIO_33003, JPEG_2000_APERIO_33004
+        return nearestWritable != null ? nearestWritable : codec != null ? this : NONE;
     }
 
     /**
@@ -503,7 +705,7 @@ public enum TagCompression {
      * @return whether this compression type can be read and written.
      */
     public boolean isWritingSupported() {
-        return nearestWriteable == null && codec != null;
+        return nearestWritable == null && codec != null;
     }
 
     public boolean isCompressionQualitySupported() {
@@ -516,7 +718,7 @@ public enum TagCompression {
      * expanded to a whole number of bytes (e.g., 4 bits to 8, 12 bits to 16), etc.
      * This is {@code true} for the following codecs:
      * {@link #NONE}, {@link #CCITT_T4}, {@link #CCITT_T6},
-     * {@link #CCITT_MODIFIED_HUFFMAN_RLE},
+     * {@link #CCITT_MODIFIED_HUFFMAN},
      * {@link #LZW}, {@link #DEFLATE}, {@link #DEFLATE_PROPRIETARY},
      * {@link #PACK_BITS}, {@link #THUNDER_SCAN}.
      *
@@ -531,7 +733,7 @@ public enum TagCompression {
     public boolean isLowLevelBitsProcessing() {
         return switch (code) {
             case TiffIFD.COMPRESSION_NONE,
-                 TiffIFD.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE,
+                 TiffIFD.COMPRESSION_CCITT_MODIFIED_HUFFMAN,
                  TiffIFD.COMPRESSION_CCITT_T4,
                  TiffIFD.COMPRESSION_CCITT_T6,
                  TiffIFD.COMPRESSION_LZW,
