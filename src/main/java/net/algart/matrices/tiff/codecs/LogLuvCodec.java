@@ -194,14 +194,14 @@ public class LogLuvCodec implements TiffCodec {
         /* Convert 16-bit LogL integers to luminance floats */
         for (int i = 0; i < size; i++) {
             int logLum = (((dataTemp[2 * i] << 8) & 0xff00) | (dataTemp[2 * i + 1] & 0xff));
-            if (((logLum & 0x8000) != 0) || (logLum == 0)) {
-                // Don't allow negative or zero luminance
+            int le = logLum & 0x7fff;
+            if (le == 0) {
                 dataOut[i] = 0.0f;
             } else {
-                int le = logLum & 0x7fff;
+                boolean negative = (logLum & 0x8000) != 0;
                 double lum = Math.exp(M_LN2 / 256.0 * (le + 0.5) - M_LN2 * 64.0);
                 float value = lum <= 0.0 ? 0.0f : (float) Math.sqrt(lum);
-                dataOut[i] = value;
+                dataOut[i] = negative ? -value : value;
             }
         }
     }
