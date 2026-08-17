@@ -45,7 +45,9 @@ public enum TagPhotometric {
     LOG_L(TiffIFD.PHOTOMETRIC_INTERPRETATION_LOG_L, "CIE Log2(L)"),
     LOG_LUV(TiffIFD.PHOTOMETRIC_INTERPRETATION_LOG_LUV, "CIE Log2(L) (u',v')"),
     CFA_ARRAY(32803, "Color filter array"),
-    LINEAR_RAW(34892, "Linear raw");
+    LINEAR_RAW(34892, "Linear raw"),
+    DEPTH_MAP(51177, "Depth map"),
+    SEMANTIC_MASK(52527, "Semantic mask");
 
     private final int code;
     private final String name;
