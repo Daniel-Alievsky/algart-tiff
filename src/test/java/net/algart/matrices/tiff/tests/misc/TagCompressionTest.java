@@ -35,8 +35,8 @@ public class TagCompressionTest {
             TagCompression requiredCompression,
             int requiredCode,
             boolean requiredContains) throws TiffException {
-        final var compression = ifd.optCompression();
-        if (compression.orElse(null) != requiredCompression) {
+        final var compression = ifd.optCompression().orElse(null);
+        if (compression != requiredCompression) {
             throw new AssertionError("Invalid compression " + compression);
         }
         if (ifd.getCompressionCode() != requiredCode) {
@@ -45,15 +45,19 @@ public class TagCompressionTest {
         if (ifd.hasTag(Tags.COMPRESSION) != requiredContains) {
             throw new AssertionError("Invalid containsKey() = " + ifd.hasTag(Tags.COMPRESSION));
         }
-        //noinspection OptionalIsPresent
-        System.out.printf("Compression: %-25s  Code: %-5d  %-50s  writing: %s%n",
-                compression.isEmpty() ? "unknown" : compression.get().name(),
+        if (compression != null && compression.isSupported() == (compression.codec() == null)) {
+            throw new AssertionError("isSupported: " + compression.isSupported() +
+                    ", but codec(): " + compression.codec());
+        }
+        System.out.printf("Compression: %-25s  Code: %-5d  %-50s  %s%n",
+                compression == null ? "unknown" : compression.name(),
                 ifd.getCompressionCode(),
                 "\"" + ifd.compressionPrettyName() + "\"",
-                compression.isEmpty() ? "n/a" :
-                        compression.get().isWritingSupported() ?
-                        "supported" :
-                        "not supported, nearest with support: " + compression.get().nearestWritable());
+                compression == null ? "n/a" :
+                        !compression.isSupported() ? "NOT supported" :
+                        compression.isWritingSupported() ?
+                        "writing supported" :
+                        "writing not supported, nearest with full support: " + compression.nearestWritable());
     }
 
     public void test() throws Exception {
@@ -66,10 +70,15 @@ public class TagCompressionTest {
         System.out.println();
 
         final TagCompression[] compressions = TagCompression.values();
-        System.out.printf("Checking all %d compression types%n:", compressions.length);
+        System.out.printf("Checking all %d compression types:%n", compressions.length);
+        int lastCode = 0;
         for (TagCompression compression : compressions) {
             ifd.putCompression(compression);
             check(ifd, compression, compression.code(), true);
+            if (compression.code() < lastCode) {
+                System.out.printf("Violating ascending order: %d < %d%n", compression.code(), lastCode);
+            }
+            lastCode = compression.code();
         }
         System.out.println();
         System.out.println();

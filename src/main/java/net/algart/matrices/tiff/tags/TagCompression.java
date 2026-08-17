@@ -71,7 +71,7 @@ public enum TagCompression {
      * "Old-style" (obsolete) JPEG compression (type 6).
      */
     OLD_JPEG(TiffIFD.COMPRESSION_OLD_JPEG, "Old-style JPEG", OldJPEGCodec::new),
-    // - Note: actually nearestWritable() returns JPEG!
+    // - Note: however, nearestWritable() returns JPEG!
 
     /**
      * JPEG compression (type 7).
@@ -139,75 +139,6 @@ public enum TagCompression {
     KODAK_262(262, "Kodak 262", null),
 
     /**
-     * Deflate compression, equivalent to "{@link #DEFLATE Zlib deflate}"
-     * but with another value 32946 in the Compression tag (type 32946).
-     * See Oracle's document "TIFF Metadata Format Specification and Usage Notes":
-     *
-     * <blockquote>
-     * ZLib and Deflate compression are identical except for the value of the TIFF Compression field:
-     * for ZLib the Compression field has value 8 whereas for Deflate it has value 32946 (0x80b2).
-     * In both cases each image segment (strip or tile) is written as a single complete zlib data stream.
-     * </blockquote>
-     */
-    DEFLATE_PROPRIETARY(TiffIFD.COMPRESSION_DEFLATE_PROPRIETARY, "ZLib-Deflate 32946", DeflateCodec::new),
-
-    /**
-     * PackBits run-length compression (type 32773).
-     * Oriented for binary or byte images, but can be used for any bit depth.
-     */
-    PACK_BITS(TiffIFD.COMPRESSION_PACK_BITS, "PackBits", PackBitsCodec::new),
-
-    /**
-     * JPEG-2000 standard compression (type 34712).
-     * Default quality is chosen as for lossless JPEG-2000 formats.
-     *
-     * <p>For writing, the <code>PhotometricInterpretation</code> will be automatically set
-     * to RGB (default value).</p>
-     */
-    JPEG_2000_LOSSLESS(TiffIFD.COMPRESSION_JPEG_2000, "JPEG-2000 lossless",
-            JPEG2000Codec::new, null, true),
-
-    /**
-     * The same compression code as in {@link #JPEG_2000_LOSSLESS},
-     * but the default quality is chosen as for lossy JPEG-2000 formats
-     * (see {@link JPEG2000Codec.JPEG2000Options#DEFAULT_NORMAL_QUALITY}).
-     *
-     * <p>This compression never appears while reading TIFF by {@link net.algart.matrices.tiff.TiffReader},
-     * but can be useful while writing by {@link net.algart.matrices.tiff.TiffWriter}.</p>
-     */
-    JPEG_2000(TiffIFD.COMPRESSION_JPEG_2000, "JPEG-2000",
-            JPEG2000Codec::new, null, false),
-    // - Note: this variant has the same code as the previous one;
-    // it must be specified AFTER: it can only be a result of setting compression for writing
-    // and cannot appear when parsing an existing TIFF.
-
-    /**
-     * JPEG-2000 Aperio compression for RGB (type 33005).
-     *
-     * <p>For writing, the <code>PhotometricInterpretation</code> will be automatically set
-     * to RGB (default value).</p>
-     */
-    JPEG_2000_APERIO(TiffIFD.COMPRESSION_JPEG_2000_APERIO, "JPEG-2000 Aperio 33005",
-            JPEG2000Codec::new, null, false),
-
-    /**
-     * JPEG-2000 Aperio proprietary compression (type 33003).
-     *
-     * <p>Note {@link net.algart.matrices.tiff.TiffWriter} does not support this compression:
-     * the current version of JAI ImageIO (jai-imageio-jpeg2000) cannot write JPEG-2000 in YCbCr color space,
-     * as Aperio requires for type 33003.
-     */
-    JPEG_2000_APERIO_33003(33003, "JPEG-2000 Aperio proprietary 33003",
-            JPEG2000Codec::new, JPEG_2000_APERIO, false),
-
-    /**
-     * JPEG-2000 Aperio compression (type 33004, probably lossless).
-     *
-     * <p>Note {@link net.algart.matrices.tiff.TiffWriter} does not support this compression.</p>
-     */
-    JPEG_2000_APERIO_33004(33004, "JPEG-2000 Aperio 33004 lossless",
-            JPEG2000Codec::new, JPEG_2000_APERIO, true),
-    /**
      * JPEG XR Hamamatsu NDPI compression (type 22610).
      * Not supported in the current version.
      */
@@ -218,18 +149,6 @@ public enum TagCompression {
      * Not supported in the current version.
      */
     NEXT(32766, "NeXT RLE", null),
-
-    /**
-     * CCITT RLEW: CCITT Modified Huffman RLE with word alignment (type 32771).
-     * Not supported in the current version.
-     */
-    CCITT_RLEW(32771, "CCITT Modified Huffman RLE, Word Aligned", null),
-
-    /**
-     * Macintosh Binary Image (MBI) / Apple VideoView RLE (type 32775).
-     * Not supported in the current version.
-     */
-    MBI_RLE(32775, "MBI RLE / Apple VideoView", null),
 
     /**
      * Sony ARW Digital Camera RAW compression (type 32767).
@@ -250,10 +169,28 @@ public enum TagCompression {
     SAMSUNG_SRW(32770, "Samsung SRW RAW", null),
 
     /**
+     * CCITT RLEW: CCITT Modified Huffman RLE with word alignment (type 32771).
+     * Not supported in the current version.
+     */
+    CCITT_RLEW(32771, "CCITT Modified Huffman RLE, Word Aligned", null),
+
+    /**
      * Samsung SRW2 Digital Camera RAW compression (type 32772).
      * Not supported in the current version.
      */
     SAMSUNG_SRW2(32772, "Samsung SRW2 RAW", null),
+
+    /**
+     * PackBits run-length compression (type 32773).
+     * Oriented for binary or byte images, but can be used for any bit depth.
+     */
+    PACK_BITS(TiffIFD.COMPRESSION_PACK_BITS, "PackBits", PackBitsCodec::new),
+
+    /**
+     * Macintosh Binary Image (MBI) / Apple VideoView RLE (type 32775).
+     * Not supported in the current version.
+     */
+    MBI_RLE(32775, "MBI RLE / Apple VideoView", null),
 
     /**
      * Apple ThunderScan RLE compression (type 32809).
@@ -300,10 +237,58 @@ public enum TagCompression {
     PIXAR_LOG(32909, "Pixar Logarithmic", null),
 
     /**
+     * Deflate compression, equivalent to "{@link #DEFLATE Zlib deflate}"
+     * but with another value 32946 in the Compression tag (type 32946).
+     * See Oracle's document "TIFF Metadata Format Specification and Usage Notes":
+     *
+     * <blockquote>
+     * ZLib and Deflate compression are identical except for the value of the TIFF Compression field:
+     * for ZLib the Compression field has value 8 whereas for Deflate it has value 32946 (0x80b2).
+     * In both cases each image segment (strip or tile) is written as a single complete zlib data stream.
+     * </blockquote>
+     */
+    DEFLATE_PROPRIETARY(TiffIFD.COMPRESSION_DEFLATE_PROPRIETARY, "ZLib-Deflate 32946", DeflateCodec::new),
+
+    /**
      * Kodak DCS (Digital Camera System) compression (type 32947).
      * Not supported in the current version.
      */
     KODAK_DCS(32947, "Kodak DCS", null),
+
+    /**
+     * JPEG-2000 Aperio proprietary compression (type 33003).
+     *
+     * <p>Note {@link net.algart.matrices.tiff.TiffWriter} does not support this compression:
+     * the current version of JAI ImageIO (jai-imageio-jpeg2000) cannot write JPEG-2000 in YCbCr color space,
+     * as Aperio requires for type 33003.
+     */
+    JPEG_2000_APERIO_33003(33003, "JPEG-2000 Aperio proprietary 33003",
+            JPEG2000Codec::new, null, false),
+    // - Note: however, nearestWritable() returns JPEG_2000_APERIO!
+
+    /**
+     * JPEG-2000 Aperio compression (type 33004, probably lossless).
+     *
+     * <p>Note {@link net.algart.matrices.tiff.TiffWriter} does not support this compression.</p>
+     */
+    JPEG_2000_APERIO_33004(33004, "JPEG-2000 Aperio 33004 lossless",
+            JPEG2000Codec::new, null, true),
+    // - Note: however, nearestWritable() returns JPEG_2000_APERIO!
+
+    /**
+     * JPEG-2000 Aperio compression for RGB (type 33005).
+     *
+     * <p>For writing, the <code>PhotometricInterpretation</code> will be automatically set
+     * to RGB (default value).</p>
+     */
+    JPEG_2000_APERIO(TiffIFD.COMPRESSION_JPEG_2000_APERIO, "JPEG-2000 Aperio 33005",
+            JPEG2000Codec::new, null, false),
+
+    /**
+     * Alternate JPEG compression (type 33007).
+     * Not supported in the current version.
+     */
+    ALT_JPEG(33007, "Alt JPEG", null),
 
     /**
      * JBIG: ISO/IEC 11544 bi-level image compression (type 34661).
@@ -322,22 +307,40 @@ public enum TagCompression {
     SGI_LOG24(34677, "SGI Log Luminance 24-bit", LogLuvCodec::new, DEFLATE),
 
     /**
-     * Nikon NEF (Lossy Huffman) (type 34713).
-     * Used in Nikon Digital Camera raw files. Not supported.
-     */
-    NIKON_NEF(34713, "Nikon NEF / SGI LogLuv", null),
-
-    /**
-     * Alternate JPEG compression (type 33007).
-     * Not supported in the current version.
-     */
-    ALT_JPEG(33007, "Alt JPEG", null),
-
-    /**
      * LuraDocument LURACODE compression (type 34692).
      * Not supported in the current version.
      */
     LURA_DOC(34692, "LuraDocument", null),
+
+    /**
+     * JPEG-2000 standard compression (type 34712).
+     * Default quality is chosen as for lossless JPEG-2000 formats.
+     *
+     * <p>For writing, the <code>PhotometricInterpretation</code> will be automatically set
+     * to RGB (default value).</p>
+     */
+    JPEG_2000_LOSSLESS(TiffIFD.COMPRESSION_JPEG_2000, "JPEG-2000 lossless",
+            JPEG2000Codec::new, null, true),
+
+    /**
+     * The same compression code as in {@link #JPEG_2000_LOSSLESS},
+     * but the default quality is chosen as for lossy JPEG-2000 formats
+     * (see {@link JPEG2000Codec.JPEG2000Options#DEFAULT_NORMAL_QUALITY}).
+     *
+     * <p>This compression never appears while reading TIFF by {@link net.algart.matrices.tiff.TiffReader},
+     * but can be useful while writing by {@link net.algart.matrices.tiff.TiffWriter}.</p>
+     */
+    JPEG_2000(TiffIFD.COMPRESSION_JPEG_2000, "JPEG-2000",
+            JPEG2000Codec::new, null, false),
+    // - Note: this variant has the same code as the previous one;
+    // it must be specified AFTER: it can only be a result of setting compression for writing
+    // and cannot appear when parsing an existing TIFF.
+
+    /**
+     * Nikon NEF (Lossy Huffman) (type 34713).
+     * Used in Nikon Digital Camera raw files. Not supported.
+     */
+    NIKON_NEF(34713, "Nikon NEF", null),
 
     /**
      * JBIG2 bi-level image compression (type 34715).
@@ -497,7 +500,8 @@ public enum TagCompression {
         this(code, name, codec, nearestWritable, null);
     }
 
-    // If writing is not supported at all, nearestWritable is usually DEFLATE or NONE
+    // If writing is not supported at all, nearestWritable is usually DEFLATE or NONE;
+    // codec must be either null or a supplier returning non-null
     TagCompression(
             int code,
             String name,
@@ -674,17 +678,10 @@ public enum TagCompression {
      * @see #isWritingSupported()
      */
     public TagCompression nearestWritable() {
-        switch (this) {
-            case OLD_JPEG -> {
-                return JPEG;
-            }
-            case JPEG_2000_APERIO_33003, JPEG_2000_APERIO_33004 -> {
-                return JPEG_2000_APERIO;
-            }
-        }
-        // - these special cases allows to place JPEG and JPEG_2000_APERIO enum constants
-        // BEFORE the replaced OLD_JPEG, JPEG_2000_APERIO_33003, JPEG_2000_APERIO_33004
-        return nearestWritable != null ? nearestWritable : codec != null ? this : NONE;
+        TagCompression predefined = predefinedNearestWritable();
+        return predefined != null ? predefined :
+                nearestWritable != null ? nearestWritable :
+                codec != null ? this : NONE;
     }
 
     /**
@@ -705,7 +702,7 @@ public enum TagCompression {
      * @return whether this compression type can be read and written.
      */
     public boolean isWritingSupported() {
-        return nearestWritable == null && codec != null;
+        return predefinedNearestWritable() == null && nearestWritable == null && codec != null;
     }
 
     public boolean isCompressionQualitySupported() {
@@ -795,6 +792,16 @@ public enum TagCompression {
             return customizeWritingJpeg2000(tile, options, !isJpeg2000Lossy(), isWritingSupported());
         }
         return options;
+    }
+
+    private TagCompression predefinedNearestWritable() {
+        return switch (this) {
+            case OLD_JPEG -> JPEG;
+            case JPEG_2000_APERIO_33003, JPEG_2000_APERIO_33004 -> JPEG_2000_APERIO;
+            default -> null;
+        };
+        // - these special cases allows to place JPEG and JPEG_2000_APERIO enum constants
+        // BEFORE the replaced OLD_JPEG, JPEG_2000_APERIO_33003, JPEG_2000_APERIO_33004
     }
 
     private static TiffCodec.Options customizeReadingJpeg(TiffTile tile, TiffCodec.Options options) {

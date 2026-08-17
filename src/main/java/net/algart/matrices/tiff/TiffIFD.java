@@ -1941,6 +1941,11 @@ public final class TiffIFD {
     }
 
     public String compressionPrettyName() {
+        return compressionPrettyName("");
+    }
+
+    public String compressionPrettyName(String postfixForUnsupported) {
+        Objects.requireNonNull(postfixForUnsupported, "Null postfixForUnsupported");
         final int code = optCompressionCode(-1);
         if (code == -1) {
             return "unspecified compression";
@@ -1948,7 +1953,7 @@ public final class TiffIFD {
         final TagCompression compression = optCompression().orElse(null);
         return compression == null ?
                 "unknown compression " + code :
-                compression.prettyName() + (compression.codec() == null ? " (UNSUPPORTED)" : "");
+                compression.prettyName() + (compression.isSupported() ? "" : postfixForUnsupported);
     }
 
     public int optPredictorCode() {
@@ -3585,7 +3590,9 @@ public final class TiffIFD {
                             "precision " + sampleType.prettyName() :
                             hasImageDimensions ? "precision ???" : "no samples",
                             isBigTiff() ? " [BigTIFF]" : "",
-                            hasImageDimensions ? ", " + compressionPrettyName() : ""));
+                            hasImageDimensions ?
+                            ", " +  compressionPrettyName(" (unsupported)") :
+                            ""));
             if (hasTileInformation()) {
                 sb.append(
                         json ?
@@ -3678,7 +3685,7 @@ public final class TiffIFD {
         try {
             switch (tag) {
                 case Tags.PHOTOMETRIC_INTERPRETATION -> additional = photometricPrettyName();
-                case Tags.COMPRESSION -> additional = compressionPrettyName();
+                case Tags.COMPRESSION -> additional = compressionPrettyName(" (UNSUPPORTED)");
                 case Tags.PLANAR_CONFIGURATION -> {
                     if (tagValue instanceof Number number) {
                         switch (number.intValue()) {
