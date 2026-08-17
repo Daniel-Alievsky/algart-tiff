@@ -208,6 +208,10 @@ public final class TiffTile {
         return map.bytesPerSample();
     }
 
+    public OptionalInt rawEqualBitDepth() {
+        return map.rawEqualBitDepth();
+    }
+
     public int normalizedBitsPerPixel() {
         return normalizedBitsPerPixel;
     }

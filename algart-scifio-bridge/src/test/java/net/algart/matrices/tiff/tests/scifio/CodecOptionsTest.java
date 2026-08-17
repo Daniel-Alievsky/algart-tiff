@@ -35,7 +35,7 @@ public class CodecOptionsTest {
         TiffCodec.Options options = new JPEG2000Codec.JPEG2000Options()
                 .setColorModel(ColorModel.getRGBdefault())
                 .setLossless(false)
-                .setBitsPerSample(1)
+                .setNormalizedBitsPerSample(1)
                 .setHeight(2048)
                 .setSigned(true)
                 .setInterleaved(true);

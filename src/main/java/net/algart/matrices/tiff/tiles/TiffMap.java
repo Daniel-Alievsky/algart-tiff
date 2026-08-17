@@ -204,6 +204,7 @@ public sealed class TiffMap permits TiffIOMap {
     private final int numberOfSeparatedPlanes;
     private final int tileSamplesPerPixel;
     private final int[] bitsPerSample;
+    private final int rawEqualBitDepth;
     private final int normalizedBitDepth;
     private final int bitsPerUnpackedSample;
     private final int tileNormalizedBitsPerPixel;
@@ -286,6 +287,7 @@ public sealed class TiffMap permits TiffIOMap {
         this.numberOfSeparatedPlanes = planarSeparated ? numberOfChannels : 1;
         this.tileSamplesPerPixel = planarSeparated ? 1 : numberOfChannels;
         this.bitsPerSample = ifd.getBitsPerSample().clone();
+        this.rawEqualBitDepth = TiffIFD.tryEqualBitDepth(bitsPerSample).orElse(-1);
         this.normalizedBitDepth = TiffIFD.normalizedBitDepth(bitsPerSample);
         // - we allow only EQUAL number of bytes/sample (but the number if bits/sample can be different)
         if (normalizedBitDepth != 1 && ((normalizedBitDepth & 7) != 0)) {
@@ -461,8 +463,8 @@ public sealed class TiffMap permits TiffIOMap {
      * @return the number of bits per sample if this value is the same for all channels,
      * or an empty {@link OptionalInt} otherwise.
      */
-    public OptionalInt tryEqualBitDepth() {
-        return TiffIFD.tryEqualBitDepth(bitsPerSample);
+    public OptionalInt rawEqualBitDepth() {
+        return rawEqualBitDepth == -1 ? OptionalInt.empty() : OptionalInt.of(rawEqualBitDepth);
     }
 
     /**

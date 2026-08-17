@@ -39,7 +39,6 @@ import java.nio.file.Paths;
 import java.util.List;
 
 public class LabelSmallObjectsDemo {
-
     private static Matrix<? extends BitArray> removeTooSmall(Matrix<? extends BitArray> objects, long minArea) {
         final Matrix<UpdatableBitArray> result = Matrices.clone(Arrays.SMM, objects).cast(UpdatableBitArray.class);
         ConnectedObjectScanner scanner = ConnectedObjectScanner.getStacklessDepthFirstScanner(
@@ -107,6 +106,10 @@ public class LabelSmallObjectsDemo {
         System.out.printf("Writing TIFF %s...%n", targetFile);
         try (TiffWriter writer = new TiffWriter(targetFile, TiffWriter.OpenMode.CREATE)) {
             writer.setCompressionQuality(0.5);
+            writer.newFixedMap(TiffIFD.newTiledIFD(TagCompression.DEFLATE, labels)
+                            .putDescription("Filtered image after removing objects < %d pixels"
+                                    .formatted(minArea)))
+                    .writeMatrix(labels);
             writer.newFixedMap(TiffIFD.newTiledIFD(TagCompression.JPEG, source)
                             .putDescription("Source image"))
                     .writeChannels(source);
@@ -122,10 +125,6 @@ public class LabelSmallObjectsDemo {
                                         .formatted(minArea)))
                         .writeMatrix(filtered);
             }
-            writer.newFixedMap(TiffIFD.newTiledIFD(TagCompression.DEFLATE, labels)
-                            .putDescription("Filtered image after removing objects < %d pixels"
-                                    .formatted(minArea)))
-                    .writeMatrix(labels);
         }
         System.out.println("Done");
     }

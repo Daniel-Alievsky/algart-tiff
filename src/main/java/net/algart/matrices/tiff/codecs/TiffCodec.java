@@ -36,6 +36,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.OptionalInt;
 
 /**
  * This class is an analog of SCIFIO Codec interface, simplifying to use for TIFF encoding inside this library
@@ -71,7 +72,8 @@ public interface TiffCodec {
         private int height = 0;
         private TiffSampleType sampleType = null;
         private int samplesPerPixel = 0;
-        private int bitsPerSample = 0;
+        private int normalizedBitsPerSample = 0;
+        private Integer rawEqualBitsPerSample = null;
         private boolean planarSeparated = false;
         private boolean tiled = false;
         private boolean signed = false;
@@ -152,15 +154,28 @@ public interface TiffCodec {
             return this;
         }
 
-        public int getBitsPerSample() {
-            return bitsPerSample;
+        public int getNormalizedBitsPerSample() {
+            return normalizedBitsPerSample;
         }
 
-        public Options setBitsPerSample(int bitsPerSample) {
-            if (bitsPerSample < 0) {
-                throw new IllegalArgumentException("Negative bitsPerSample = " + bitsPerSample);
+        public Options setNormalizedBitsPerSample(int normalizedBitsPerSample) {
+            if (normalizedBitsPerSample < 0) {
+                throw new IllegalArgumentException("Negative normalizedBitsPerSample = " + normalizedBitsPerSample);
             }
-            this.bitsPerSample = bitsPerSample;
+            this.normalizedBitsPerSample = normalizedBitsPerSample;
+            return this;
+        }
+
+        public OptionalInt optRawEqualBitsPerSample() {
+            return rawEqualBitsPerSample == null ? OptionalInt.empty() : OptionalInt.of(rawEqualBitsPerSample);
+        }
+
+        public Integer getRawEqualBitsPerSample() {
+            return rawEqualBitsPerSample;
+        }
+
+        public Options setRawEqualBitsPerSample(Integer rawEqualBitsPerSample) {
+            this.rawEqualBitsPerSample = rawEqualBitsPerSample;
             return this;
         }
 
@@ -342,7 +357,9 @@ public interface TiffCodec {
 
         public Options setMainOptions(TiffTile tile) {
             this.setSizes(tile.getSizeX(), tile.getSizeY());
-            this.setBitsPerSample(tile.normalizedBitDepth());
+            this.setNormalizedBitsPerSample(tile.normalizedBitDepth());
+            OptionalInt rawEqualBitDepth = tile.rawEqualBitDepth();
+            this.setRawEqualBitsPerSample(rawEqualBitDepth.isPresent() ? rawEqualBitDepth.getAsInt() : null);
             this.setSampleType(tile.sampleType());
             this.setSamplesPerPixel(tile.samplesPerPixel());
             this.setPlanarSeparated(tile.isPlanarSeparated());
@@ -371,7 +388,8 @@ public interface TiffCodec {
             this.height = options.height;
             this.sampleType = options.sampleType;
             this.samplesPerPixel = options.samplesPerPixel;
-            this.bitsPerSample = options.bitsPerSample;
+            this.normalizedBitsPerSample = options.normalizedBitsPerSample;
+            this.rawEqualBitsPerSample = options.rawEqualBitsPerSample;
             this.planarSeparated = options.planarSeparated;
             this.tiled = options.tiled;
             this.signed = options.signed;
@@ -414,7 +432,7 @@ public interface TiffCodec {
             setField(scifioStyleClass, result, "width", width);
             setField(scifioStyleClass, result, "height", height);
             setField(scifioStyleClass, result, "channels", samplesPerPixel);
-            setField(scifioStyleClass, result, "bitsPerSample", bitsPerSample);
+            setField(scifioStyleClass, result, "bitsPerSample", normalizedBitsPerSample);
             setField(scifioStyleClass, result, "littleEndian", littleEndian);
             setField(scifioStyleClass, result, "interleaved", interleaved);
             setField(scifioStyleClass, result, "signed", signed);
@@ -430,7 +448,7 @@ public interface TiffCodec {
             setWidth(getField(scifioStyleOptions, Integer.class, "width"));
             setHeight(getField(scifioStyleOptions, Integer.class, "height"));
             setSamplesPerPixel(getField(scifioStyleOptions, Integer.class, "channels"));
-            setBitsPerSample(getField(scifioStyleOptions, Integer.class, "bitsPerSample"));
+            setNormalizedBitsPerSample(getField(scifioStyleOptions, Integer.class, "bitsPerSample"));
             setSigned(getField(scifioStyleOptions, Boolean.class, "signed"));
             setFloatingPoint(false);
             setLittleEndian(getField(scifioStyleOptions, Boolean.class, "littleEndian"));
@@ -446,7 +464,8 @@ public interface TiffCodec {
                     ", height=" + height +
                     ", sampleType=" + sampleType +
                     ", samplesPerPixel=" + samplesPerPixel +
-                    ", bitsPerSample=" + bitsPerSample +
+                    ", normalizedBitsPerSample=" + normalizedBitsPerSample +
+                    ", rawEqualBitsPerSample=" + rawEqualBitsPerSample +
                     ", planarSeparated=" + planarSeparated +
                     ", tiled=" + tiled +
                     ", signed=" + signed +

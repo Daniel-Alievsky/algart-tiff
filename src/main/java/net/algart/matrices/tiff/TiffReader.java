@@ -1623,6 +1623,8 @@ public non-sealed class TiffReader extends TiffIO {
         // If it is invalid (too large value), the returned decoded data will be too large,
         // and that is not too good: this class could throw an exception "data may be lost" in further
         // tile.adjustNumberOfPixels() call if it called it without allowDecreasing=true argument.
+        // Also note: if the number of bits per sample in the source TIFF is not 8k,
+        // this value will be GREATER than necessary.
         return options;
     }
 

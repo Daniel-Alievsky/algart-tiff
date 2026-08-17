@@ -35,7 +35,7 @@ public class TiffCodecOptionsTest {
     public static void main(String... args) {
         TiffCodec.Options options = new JPEG2000Codec.JPEG2000Options()
 //                .setCodeBlockSize(new int[] {16, 16})
-                .setBitsPerSample(1)
+                .setNormalizedBitsPerSample(1)
 //                .setQuality(null)
                 .setSizes(2048, 1024)
                 .setLosslessCompressionLevel(0.5);

@@ -27,6 +27,7 @@ package net.algart.matrices.tiff.codecs;
 import net.algart.arrays.Arrays;
 import net.algart.arrays.PArray;
 import net.algart.matrices.tiff.TiffException;
+import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import net.algart.matrices.tiff.samples.TiffSampleType;
 import net.algart.matrices.tiff.tags.TagCompression;
@@ -64,7 +65,7 @@ public class LogLuvCodec implements TiffCodec {
     private static final double M_LN2 = 0.69314718055994530942;
     private static final double U_NEU = 0.210526316;
     private static final double V_NEU = 0.473684211;
-    private static final float[] LOG_LUV_24_USTART = new float[] {
+    private static final float[] LOG_LUV_24_USTART = new float[]{
             0.247663f, 0.243779f, 0.241684f, 0.237874f, 0.235906f, 0.232153f,
             0.228352f, 0.226259f, 0.222371f, 0.220410f, 0.214710f, 0.212714f, 0.210721f, 0.204976f, 0.202986f,
             0.199245f, 0.195525f, 0.193560f, 0.189878f, 0.186216f, 0.186216f, 0.182592f, 0.179003f, 0.175466f,
@@ -84,7 +85,7 @@ public class LogLuvCodec implements TiffCodec {
             0.002389f, 0.001068f, 0.001653f, 0.000717f, 0.001614f, 0.000270f, 0.000484f, 0.001103f, 0.001242f,
             0.001188f, 0.001011f, 0.000709f, 0.000301f, 0.002416f, 0.003251f, 0.003246f, 0.004141f, 0.005963f,
             0.008839f, 0.010490f, 0.016994f, 0.023659f};
-    private static final int[] LOG_LUV_24_NCUM = new int[] {
+    private static final int[] LOG_LUV_24_NCUM = new int[]{
             0, 4, 10, 17, 26, 36, 48, 62, 77, 94, 112, 133, 155, 178, 204, 231, 260, 291,
             323, 357, 393, 429, 467, 507, 549, 593, 637, 683, 729, 778, 830, 882, 934, 989, 1044, 1102, 1160, 1222,
             1284, 1346, 1411, 1476, 1541, 1610, 1679, 1752, 1825, 1898, 1975, 2052, 2129, 2206, 2288, 2370, 2452,
@@ -105,17 +106,20 @@ public class LogLuvCodec implements TiffCodec {
         throw new UnsupportedTiffFormatException("SGI LogL / LogLuv compression is not supported");
     }
 
-    /**
-     * The Options parameter should have the following fields set:
-     * {@link Options#getMaxSizeInBytes()}.
-     */
     @Override
     public byte[] decompress(byte[] data, Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
-        // - zero-filled by Java
+        final TiffIFD ifd = options.getIfd();
+        Objects.requireNonNull(ifd, "IFD is not set in the options");
 
 //         System.out.println("!!! " + options.getPhotometric());
+        final int bitsPerSample = options.optRawEqualBitsPerSample().orElse(-1);
+        if (bitsPerSample != 8 && bitsPerSample != 16 && bitsPerSample != 32) {
+            throw new UnsupportedTiffFormatException("Non-standard " +
+                    java.util.Arrays.toString(ifd.getBitsPerSample()) + " bits per sample" +
+                            " is not supported for LogL/LogLuv compression: must be 8, 16 or 32 bits per sample");
+        }
         final TiffSampleType sampleType = options.getSampleType();
         final int bytesPerSample = sampleType.bytesPerSample().orElseThrow(() ->
                 new UnsupportedTiffFormatException("Sample type " + sampleType +
@@ -147,7 +151,7 @@ public class LogLuvCodec implements TiffCodec {
                     }
                 }
             }
-            case SGI_LOG24 ->  {
+            case SGI_LOG24 -> {
                 if (samplesPerPixel == 3) {
                     decodeLogLuv24(result, data, dimX, dimY);
                     return result;
@@ -187,19 +191,19 @@ public class LogLuvCodec implements TiffCodec {
         /* get each byte string */
         for (row = 0; row < dimY; row++) {
             for (m = 0; m < 4; m++) {
-                for (i = 0; i < dimX && bytesToRead > 0;) {
-                    if ( (dataIn[inPosition] & 0xff) >= 128) { // run
+                for (i = 0; i < dimX && bytesToRead > 0; ) {
+                    if ((dataIn[inPosition] & 0xff) >= 128) { // run
                         rc = (dataIn[inPosition++] & 0xff) + (2 - 128);
                         by = dataIn[inPosition++];
                         bytesToRead -= 2;
-                        while ( (rc-- > 0) && (i < dimX)) {
+                        while ((rc-- > 0) && (i < dimX)) {
                             dataTemp[4 * row * dimX + 4 * i + m] = by;
                             i++;
                         }
                     } // if (dataIn[inPosition] >= 128)
                     else { // non-run
                         rc = dataIn[inPosition++] & 0xff;
-                        while ( ( --bytesToRead > 0) && (rc-- > 0) && (i < dimX)) {
+                        while ((--bytesToRead > 0) && (rc-- > 0) && (i < dimX)) {
                             dataTemp[4 * row * dimX + 4 * i + m] = dataIn[inPosition++];
                             i++;
                         }
@@ -208,8 +212,8 @@ public class LogLuvCodec implements TiffCodec {
             }
         }
         for (i = 0; i < dimX * dimY; i++) {
-            logLum = ( ( (dataTemp[4 * i] << 8) & 0xff00) | (dataTemp[4 * i + 1] & 0xff));
-            if ( ( (logLum & 0x8000) != 0) || (logLum == 0)) {
+            logLum = (((dataTemp[4 * i] << 8) & 0xff00) | (dataTemp[4 * i + 1] & 0xff));
+            if (((logLum & 0x8000) != 0) || (logLum == 0)) {
                 // Don't allow negative luminance
                 dataOut[3 * i] = 0;
                 dataOut[3 * i + 1] = 0;
@@ -217,8 +221,8 @@ public class LogLuvCodec implements TiffCodec {
             } else {
                 le = logLum & 0x7fff;
                 lum = Math.exp(M_LN2 / 256.0 * (le + 0.5) - M_LN2 * 64.0);
-                u = 1. / UVSCALE * ( (dataTemp[4 * i + 2] & 0xff) + 0.5);
-                v = 1. / UVSCALE * ( (dataTemp[4 * i + 3] & 0xff) + 0.5);
+                u = 1. / UVSCALE * ((dataTemp[4 * i + 2] & 0xff) + 0.5);
+                v = 1. / UVSCALE * ((dataTemp[4 * i + 3] & 0xff) + 0.5);
                 s = 1. / (6.0 * u - 16.0 * v + 12.0);
                 x = 9.0 * u * s;
                 y = 4.0 * v * s;
@@ -260,8 +264,8 @@ public class LogLuvCodec implements TiffCodec {
         double b;
         for (row = 0; row < dimY; row++) {
             for (i = 0; i < dimX; i++) {
-                tp = ( (dataIn[3 * row * dimX + 3 * i] << 16) & 0xff0000)
-                        | ( (dataIn[3 * row * dimX + 3 * i + 1] << 8) & 0xff00)
+                tp = ((dataIn[3 * row * dimX + 3 * i] << 16) & 0xff0000)
+                        | ((dataIn[3 * row * dimX + 3 * i + 1] << 8) & 0xff00)
                         | (dataIn[3 * row * dimX + 3 * i + 2] & 0xff);
                 p10 = (tp >> 14 & 0x3ff);
                 // Compute luminance from 10-bit LogL

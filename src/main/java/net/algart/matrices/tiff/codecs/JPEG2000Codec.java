@@ -286,7 +286,7 @@ public class JPEG2000Codec implements TiffCodec {
 
         final int plane = Math.multiplyExact(jpeg2000Options.getWidth(), jpeg2000Options.getHeight());
 
-        final int bitsPerSample = jpeg2000Options.getBitsPerSample();
+        final int bitsPerSample = jpeg2000Options.getNormalizedBitsPerSample();
         final int samplesPerPixel = jpeg2000Options.getSamplesPerPixel();
         final boolean interleaved = jpeg2000Options.isInterleaved();
         if (bitsPerSample == 8) {

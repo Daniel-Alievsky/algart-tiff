@@ -121,7 +121,7 @@ public class JPEGCodec implements TiffCodec, TiffCodec.Timing {
             throw new TiffException("JPEG compression for " + samplesPerPixel + " channels for " +
                     "photometric interpretation " + photometric + " is not supported");
         }
-        final int bitsPerSample = options.getBitsPerSample();
+        final int bitsPerSample = options.getNormalizedBitsPerSample();
         if (bitsPerSample != 8) {
             throw new TiffException("JPEG compression for " + bitsPerSample +
                     "-bit samples is not supported (only unsigned 8-bit samples allowed)");

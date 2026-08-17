@@ -25,7 +25,6 @@
 package net.algart.matrices.tiff.app.explorer;
 
 import net.algart.matrices.tiff.TiffIO;
-import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tags.TagPhotometric;
 import net.algart.matrices.tiff.tiles.TiffReadMap;
 
@@ -138,7 +137,7 @@ class JTiffViewerFrame extends JFrame {
 
     void resetImageInformation() {
         final TiffReadMap map = viewer.map();
-        final OptionalInt bitDepth = map.tryEqualBitDepth();
+        final OptionalInt bitDepth = map.rawEqualBitDepth();
         final double zoom = viewerPanel.getZoom();
         final int intZoom100 = (int) (zoom * 100.0);
         final String zoom100 = zoom * 100.0 == intZoom100 ?
@@ -456,7 +455,7 @@ class JTiffViewerFrame extends JFrame {
             saveSelectionAsTiffItem.setEnabled(viewerPanel.hasNonEmptySelection());
             appendSelectionToTiffItem.setEnabled(viewerPanel.hasNonEmptySelection());
 
-            final int rawBitDepth = map.tryEqualBitDepth().orElse(-1);
+            final int rawBitDepth = map.rawEqualBitDepth().orElse(-1);
             final int actualBitDepth = map.sampleType().bitsPerSample();
             boolean rescaleApplicable = map.isRescaleWhenIncreasingBitDepthApplicable();
             boolean rescale = map.isRescaleWhenIncreasingBitDepth();
