@@ -16,15 +16,29 @@ def list_supported_formats():
     print(f"  - Version: {imagecodecs.__version__}")
 
 
-def convert_tiff(input_path: str, output_path: str, compression: str = "lzw") -> None:
-    """Reads a TIFF file and writes it with the specified compression using tifffile."""
+def convert_tiff(
+        input_path: str,
+        output_path: str,
+        compression: str = "deflate",
+        bitspersample: int | None = None,
+) -> None:
+    """Reads a TIFF file and writes it with the specified compression and bit depth."""
     data = tifffile.imread(input_path)
 
     comp_param = (
         None if str(compression).lower() in ("none", "0") else compression
     )
-    tifffile.imwrite(output_path, data, compression=comp_param)
-    print(f"Saved: {output_path} [Compression: {compression}]")
+
+    kwargs = {}
+    if comp_param is not None:
+        kwargs["compression"] = comp_param
+    if bitspersample is not None:
+        kwargs["bitspersample"] = bitspersample
+
+    tifffile.imwrite(output_path, data, **kwargs)
+
+    bps_info = f", BitsPerSample: {bitspersample}" if bitspersample else ""
+    print(f"Saved: {output_path} [Compression: {compression}{bps_info}]")
 
 
 if __name__ == "__main__":
@@ -35,13 +49,18 @@ if __name__ == "__main__":
     if len(sys.argv) < 3:
         print(
             "Usage:\n"
-            "  python convert_tiff.py <input.tif> <output.tif> [compression]\n"
-            "  python convert_tiff.py --list"
+            "  python convert_tiff.py <input.tif> <output.tif> [compression] [bits_per_sample]\n"
+            "  python convert_tiff.py --list\n\n"
+            "Examples:\n"
+            "  python convert_tiff.py lenna.tif lenna-12bit.tif zstd\n"
+            "  python convert_tiff.py lenna.tif lenna-4bit.tif none 4\n"
+            "Note the bits_per_sample should be used with compression \"none\""
         )
         sys.exit(1)
 
     in_file = sys.argv[1]
     out_file = sys.argv[2]
-    comp = sys.argv[3] if len(sys.argv) > 3 else "lzw"
+    comp = sys.argv[3] if len(sys.argv) > 3 else "deflate"
+    bps = int(sys.argv[4]) if len(sys.argv) > 4 else None
 
-    convert_tiff(in_file, out_file, comp)
+    convert_tiff(in_file, out_file, comp, bps)
