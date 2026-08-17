@@ -163,8 +163,55 @@ public class LogLuvCodec implements TiffCodec {
     }
 
     public static void decodeLogL16(float[] dataOut, byte[] dataIn, int dimX, int dimY) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        int bytesToRead = dataIn.length;
+        int inPosition = 0;
+        int i;
+        int rc;
+        byte by;
+        int row;
+        int m;
+        int logLum;
+        int le;
+        double lum;
+        final byte[] dataTemp = new byte[2 * dimY * dimX];
+
+        /* RLE decompression into 2 byte planes (high byte m=0, low byte m=1) */
+        for (row = 0; row < dimY; row++) {
+            for (m = 0; m < 2; m++) {
+                for (i = 0; i < dimX && bytesToRead > 0; ) {
+                    if ((dataIn[inPosition] & 0xff) >= 128) { // run
+                        rc = (dataIn[inPosition++] & 0xff) + (2 - 128);
+                        by = dataIn[inPosition++];
+                        bytesToRead -= 2;
+                        while ((rc-- > 0) && (i < dimX)) {
+                            dataTemp[2 * row * dimX + 2 * i + m] = by;
+                            i++;
+                        }
+                    } else { // non-run
+                        rc = dataIn[inPosition++] & 0xff;
+                        while ((--bytesToRead > 0) && (rc-- > 0) && (i < dimX)) {
+                            dataTemp[2 * row * dimX + 2 * i + m] = dataIn[inPosition++];
+                            i++;
+                        }
+                    }
+                }
+            }
+        }
+
+        /* Convert 16-bit LogL integers to luminance floats */
+        for (i = 0; i < dimX * dimY; i++) {
+            logLum = (((dataTemp[2 * i] << 8) & 0xff00) | (dataTemp[2 * i + 1] & 0xff));
+            if (((logLum & 0x8000) != 0) || (logLum == 0)) {
+                // Don't allow negative or zero luminance
+                dataOut[i] = 0.0f;
+            } else {
+                le = logLum & 0x7fff;
+                lum = Math.exp(M_LN2 / 256.0 * (le + 0.5) - M_LN2 * 64.0);
+                dataOut[i] = lum <= 0.0 ? 0.0f : (float) Math.sqrt(lum);
+            }
+        }
     }
+
 
     public static void decodeLogLuv32(float[] dataOut, byte[] dataIn, int dimX, int dimY) {
         int bytesToRead = dataIn.length;
