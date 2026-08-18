@@ -194,14 +194,13 @@ public class LogLuvCodec implements TiffCodec {
         final int size = dimX * dimY;
         for (int i = 0; i < size; i++) {
             int logLum = (((dataTemp[2 * i] << 8) & 0xff00) | (dataTemp[2 * i + 1] & 0xff));
+            boolean negative = (logLum & 0x8000) != 0;
             int le = logLum & 0x7fff;
-            if (le == 0) {
+            if (le == 0 || negative) {
                 dataOut[i] = 0.0f;
             } else {
-                boolean negative = (logLum & 0x8000) != 0;
                 double lum = Math.exp(M_LN2 / 256.0 * (le + 0.5) - M_LN2 * 64.0);
-                float value = lum <= 0.0 ? 0.0f : (float) Math.sqrt(lum);
-                dataOut[i] = negative ? -value : value;
+                dataOut[i] = lum <= 0.0 ? 0.0f : (float) Math.sqrt(lum);
             }
         }
     }
@@ -239,11 +238,12 @@ public class LogLuvCodec implements TiffCodec {
         final int size = dimX * dimY;
         for (int i = 0; i < size; i++) {
             int logLum = (((dataTemp[4 * i] << 8) & 0xff00) | (dataTemp[4 * i + 1] & 0xff));
+            final int disp = 3 * i;
             if (((logLum & 0x8000) != 0) || (logLum == 0)) {
                 // Don't allow negative luminance
-                dataOut[3 * i] = 0;
-                dataOut[3 * i + 1] = 0;
-                dataOut[3 * i + 2] = 0;
+                dataOut[disp] = 0;
+                dataOut[disp + 1] = 0;
+                dataOut[disp + 2] = 0;
             } else {
                 int le = logLum & 0x7fff;
                 double lum = Math.exp(M_LN2 / 256.0 * (le + 0.5) - M_LN2 * 64.0);
@@ -261,9 +261,9 @@ public class LogLuvCodec implements TiffCodec {
                 double b = 0.061 * xyz[0] + -0.224 * xyz[1] + 1.163 * xyz[2];
                 /* assume 2.0 gamma for speed */
                 /* could use integer sqrt approx., but this is probably faster */
-                dataOut[3 * i] = (float) Math.sqrt(r);
-                dataOut[3 * i + 1] = (float) Math.sqrt(g);
-                dataOut[3 * i + 2] = (float) Math.sqrt(b);
+                dataOut[disp]     = r <= 0.0 ? 0.0f : (float) Math.sqrt(r);
+                dataOut[disp + 1] = g <= 0.0 ? 0.0f : (float) Math.sqrt(g);
+                dataOut[disp + 2] = b <= 0.0 ? 0.0f : (float) Math.sqrt(b);
             }
         }
     }
@@ -272,27 +272,28 @@ public class LogLuvCodec implements TiffCodec {
         final double[] xyz = new double[3];
         for (int row = 0; row < dimY; row++) {
             for (int i = 0; i < dimX; i++) {
-                int tp = ((dataIn[3 * row * dimX + 3 * i] << 16) & 0xff0000)
-                        | ((dataIn[3 * row * dimX + 3 * i + 1] << 8) & 0xff00)
-                        | (dataIn[3 * row * dimX + 3 * i + 2] & 0xff);
+                final int disp = 3 * row * dimX + 3 * i;
+                int tp = ((dataIn[disp] << 16) & 0xff0000)
+                        | ((dataIn[disp + 1] << 8) & 0xff00)
+                        | (dataIn[disp + 2] & 0xff);
                 int p10 = (tp >> 14 & 0x3ff);
                 // Compute luminance from 10-bit LogL
                 if (p10 == 0) {
-                    dataOut[3 * row * dimX + 3 * i] = 0;
-                    dataOut[3 * row * dimX + 3 * i + 1] = 0;
-                    dataOut[3 * row * dimX + 3 * i + 2] = 0;
+                    dataOut[disp] = 0;
+                    dataOut[disp + 1] = 0;
+                    dataOut[disp + 2] = 0;
                 } else {
                     double lum = Math.exp(M_LN2 / 64.0 * (p10 + 0.5) - M_LN2 * 12.0);
                     if (lum <= 0.0) {
-                        dataOut[3 * row * dimX + 3 * i] = 0;
-                        dataOut[3 * row * dimX + 3 * i + 1] = 0;
-                        dataOut[3 * row * dimX + 3 * i + 2] = 0;
+                        dataOut[disp] = 0;
+                        dataOut[disp + 1] = 0;
+                        dataOut[disp + 2] = 0;
                     } else {
                         // Decode color
                         int ce = tp & 0x3fff;
                         double v;
                         double u;
-                        if ((ce < 0) || (ce >= UV_NDIVS)) {
+                        if (ce >= UV_NDIVS) {
                             u = U_NEU;
                             v = V_NEU;
                         } else {
@@ -331,9 +332,9 @@ public class LogLuvCodec implements TiffCodec {
                         double b = 0.061 * xyz[0] + -0.224 * xyz[1] + 1.163 * xyz[2];
                         /* assume 2.0 gamma for speed */
                         /* could use integer sqrt approx., but this is probably faster */
-                        dataOut[3 * row * dimX + 3 * i] = (float) Math.sqrt(r);
-                        dataOut[3 * row * dimX + 3 * i + 1] = (float) Math.sqrt(g);
-                        dataOut[3 * row * dimX + 3 * i + 2] = (float) Math.sqrt(b);
+                        dataOut[disp]     = r <= 0.0 ? 0.0f : (float) Math.sqrt(r);
+                        dataOut[disp + 1] = g <= 0.0 ? 0.0f : (float) Math.sqrt(g);
+                        dataOut[disp + 2] = b <= 0.0 ? 0.0f : (float) Math.sqrt(b);
                     }
                 }
             }
