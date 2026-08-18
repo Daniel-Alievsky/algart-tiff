@@ -485,9 +485,9 @@ public final class TiffIFD {
     public static final int COMPRESSION_DEFLATE = 8;
 
     /**
-     * Compression code for {@link TagCompression#DEFLATE_PROPRIETARY}.
+     * Compression code for {@link TagCompression#DEFLATE_DEPRECATED}.
      */
-    public static final int COMPRESSION_DEFLATE_PROPRIETARY = 32946;
+    public static final int COMPRESSION_DEFLATE_DEPRECATED = 32946;
 
     /**
      * Compression code for {@link TagCompression#PACK_BITS}.
@@ -508,6 +508,16 @@ public final class TiffIFD {
      * Compression code for {@link TagCompression#THUNDER_SCAN}.
      */
     public static final int COMPRESSION_THUNDER_SCAN = 32809;
+
+    /**
+     * Compression code for {@link TagCompression#ZSTD}.
+     */
+    public static final int COMPRESSION_ZSTD = 50000;
+
+    /**
+     * Compression code for {@link TagCompression#WEBP}.
+     */
+    public static final int COMPRESSION_WEBP = 50001;
 
     /**
      * Photometric interpretation code for {@link TagPhotometric#WHITE_IS_ZERO}.

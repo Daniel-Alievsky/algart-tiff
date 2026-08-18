@@ -24,6 +24,7 @@
 
 package net.algart.matrices.tiff.tags;
 
+import net.algart.arrays.Arrays;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.codecs.*;
 import net.algart.matrices.tiff.tiles.TiffTile;
@@ -105,7 +106,7 @@ public enum TagCompression {
     /**
      * Zlib deflate compression (ZIP), compatible with ZLib and {@link java.util.zip.DeflaterOutputStream} (type 8).
      */
-    DEFLATE(TiffIFD.COMPRESSION_DEFLATE, "ZLib-Deflate", DeflateCodec::new),
+    DEFLATE(TiffIFD.COMPRESSION_DEFLATE, "Deflate (ZIP)", DeflateCodec::new),
 
 
     /**
@@ -247,7 +248,8 @@ public enum TagCompression {
      * In both cases each image segment (strip or tile) is written as a single complete zlib data stream.
      * </blockquote>
      */
-    DEFLATE_PROPRIETARY(TiffIFD.COMPRESSION_DEFLATE_PROPRIETARY, "ZLib-Deflate 32946", DeflateCodec::new),
+    DEFLATE_DEPRECATED(TiffIFD.COMPRESSION_DEFLATE_DEPRECATED, "Deflate (ZIP) deprecated 32946",
+            DeflateCodec::new),
 
     /**
      * Kodak DCS (Digital Camera System) compression (type 32947).
@@ -388,13 +390,13 @@ public enum TagCompression {
      * Deprecated Zstandard compression tag (type 34926).
      * Not supported in the current version.
      */
-    ZSTD_DEPRECATED(34926, "Zstandard Deprecated", null),
+    ZSTD_DEPRECATED(34926, "Zstandard deprecated 34926", null),
 
     /**
      * Deprecated WebP compression tag (type 34927).
      * Not supported in the current version.
      */
-    WEBP_DEPRECATED(34927, "WebP Deprecated", null),
+    WEBP_DEPRECATED(34927, "WebP deprecated 34927", null),
 
     /**
      * PNG compression (type 34933).
@@ -416,15 +418,14 @@ public enum TagCompression {
 
     /**
      * Zstandard (ZSTD) compression (type 50000).
-     * Not supported in the current version.
      */
-    ZSTD(50000, "Zstandard", null),
+    ZSTD(TiffIFD.COMPRESSION_ZSTD, "Zstandard (ZSTD)", ZstdCodec::new),
 
     /**
      * WebP compression (type 50001).
      * Not supported in the current version.
      */
-    WEBP(50001, "WebP", null),
+    WEBP(TiffIFD.COMPRESSION_WEBP, "WebP", null),
 
     /**
      * JPEG XL compression (type 50002).
@@ -462,6 +463,11 @@ public enum TagCompression {
      */
     EER_V2(65002, "EER v2", null);
 
+    private static final boolean ALWAYS_ALLOW_WRITING = false;
+    // - should be false; true value allows testing writing even for compressions that are not really supported
+    private static final boolean DEFLATE_DEPRECATED_WRITING = Arrays.SystemSettings.getBooleanProperty(
+            "net.algart.matrices.tiff.deflateDeprecatedWriting", false);
+
     private static final Map<Integer, TagCompression> CODE_LOOKUP = new HashMap<>();
     private static final Map<String, TagCompression> NAME_LOOKUP = new HashMap<>();
     private static final Map<String, TagCompression> PRETTY_NAME_LOOKUP = new HashMap<>();
@@ -482,9 +488,6 @@ public enum TagCompression {
             PRETTY_NAME_LOOKUP.put(pretty, v);
         }
     }
-
-    private static final boolean ALWAYS_ALLOW_WRITING = false;
-    // - should be false; true value allows testing writing even for compressions that are not really supported
 
     private final int code;
     private final String name;
@@ -716,8 +719,8 @@ public enum TagCompression {
      * This is {@code true} for the following codecs:
      * {@link #NONE}, {@link #CCITT_T4}, {@link #CCITT_T6},
      * {@link #CCITT_MODIFIED_HUFFMAN},
-     * {@link #LZW}, {@link #DEFLATE}, {@link #DEFLATE_PROPRIETARY},
-     * {@link #PACK_BITS}, {@link #THUNDER_SCAN}.
+     * {@link #LZW}, {@link #DEFLATE}, {@link #DEFLATE_DEPRECATED},
+     * {@link #PACK_BITS}, {@link #THUNDER_SCAN}, {@link #ZSTD}.
      *
      * <p>For high-level compressions like JPEG, this method returns {@code false}.
      * Such codecs typically return a ready-to-use image, similar to the result of reading from a file.
@@ -735,9 +738,10 @@ public enum TagCompression {
                  TiffIFD.COMPRESSION_CCITT_T6,
                  TiffIFD.COMPRESSION_LZW,
                  TiffIFD.COMPRESSION_DEFLATE,
-                 TiffIFD.COMPRESSION_DEFLATE_PROPRIETARY,
+                 TiffIFD.COMPRESSION_DEFLATE_DEPRECATED,
                  TiffIFD.COMPRESSION_PACK_BITS,
-                 TiffIFD.COMPRESSION_THUNDER_SCAN -> true;
+                 TiffIFD.COMPRESSION_THUNDER_SCAN,
+                 TiffIFD.COMPRESSION_ZSTD -> true;
             default -> false;
         };
     }
@@ -798,6 +802,7 @@ public enum TagCompression {
         return switch (this) {
             case OLD_JPEG -> JPEG;
             case JPEG_2000_APERIO_33003, JPEG_2000_APERIO_33004 -> JPEG_2000_APERIO;
+            case DEFLATE_DEPRECATED -> DEFLATE_DEPRECATED_WRITING ? null : DEFLATE;
             default -> null;
         };
         // - these special cases allows to place JPEG and JPEG_2000_APERIO enum constants

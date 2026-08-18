@@ -45,16 +45,16 @@
             <artifactId>algart</artifactId>
             <version>1.5.2</version>
         </dependency>
-
-        <dependency>
-            <groupId>com.github.jai-imageio</groupId>
-            <artifactId>jai-imageio-jpeg2000</artifactId>
-            <version>1.4.0</version>
-        </dependency>
         <dependency>
             <groupId>org.scijava</groupId>
             <artifactId>scijava-common</artifactId>
             <version>2.100.0</version>
+        </dependency>
+        <dependency>
+            <!-- Support of JPEG-2000 compression: -->
+            <groupId>com.github.jai-imageio</groupId>
+            <artifactId>jai-imageio-jpeg2000</artifactId>
+            <version>1.4.0</version>
         </dependency>
         <!-- Note: the following TwelveMonkey dependencies MUST NOT affect the correct reading/writing JPEG -->
         <!-- See JPEGDecoding.DISABLE_THIRD_PARTY_IMAGE_READER constant -->
@@ -70,9 +70,16 @@
 <!--            <version>3.14.0</version>-->
 <!--        </dependency>-->
         <dependency>
+            <!-- Support of WebP compression: -->
             <groupId>com.twelvemonkeys.imageio</groupId>
             <artifactId>imageio-webp</artifactId>
             <version>3.14.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.airlift</groupId>
+            <artifactId>aircompressor</artifactId>
+            <version>2.0.3</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 
