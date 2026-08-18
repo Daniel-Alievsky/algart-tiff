@@ -79,9 +79,8 @@ public class TiffWriteRepeatedPictureDemo {
         try (TiffWriter writer = new TiffWriter(targetFile)) {
             writer.setBigTiff(bigTiff);
             writer.create(append);
-            final TiffIFD ifd = TiffIFD.newTiledIFD(compression)
-                    .putPixelInformation(pattern.size(), pattern.getFirst().elementType());
-            final TiffWriteMap map = writer.newResizableMap(ifd);
+            final TiffWriteMap map = writer.newResizableMap(
+                    pattern.size(), pattern.getFirst().elementType(), compression);
             System.out.printf("Creating new resizable map: %s%n", map);
             for (int y = 0; y < yCount; y++) {
                 for (int x = 0; x < xCount; x++) {

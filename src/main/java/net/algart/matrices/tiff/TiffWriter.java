@@ -1560,6 +1560,21 @@ public non-sealed class TiffWriter extends TiffIO {
         return newMap(ifd, true);
     }
 
+    public final TiffWriteMap newResizableMap(
+            int numberOfChannels,
+            TiffSampleType sampleType,
+            TagCompression compression) throws TiffException {
+        final TiffIFD ifd = TiffIFD.newTiledIFD(compression).putPixelInformation(numberOfChannels, sampleType);
+        return newResizableMap(ifd);
+    }
+
+    public final TiffWriteMap newResizableMap(
+            int numberOfChannels,
+            Class<?> elementType,
+            TagCompression compression) throws TiffException {
+        return newResizableMap(numberOfChannels, TiffSampleType.of(elementType, false), compression);
+    }
+
     public final TiffWriteMap existingMap(int ifdIndex) throws IOException {
         return existingMap(readMainIFD(ifdIndex));
     }
