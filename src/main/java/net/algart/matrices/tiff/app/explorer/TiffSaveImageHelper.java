@@ -312,6 +312,7 @@ class TiffSaveImageHelper {
         compressionMethodLabel = new JLabel("Compression method:");
         settingsGrid.add(compressionMethodLabel);
         compressionMethodComboBox = new JComboBox<>(makeCompressionNames(compression));
+        compressionMethodComboBox.setMaximumRowCount(32);
         compressionMethodComboBox.setSelectedItem(compression.prettyName());
         compressionMethodComboBox.addActionListener(e -> correctCompressionControls());
         settingsGrid.add(compressionMethodComboBox);
