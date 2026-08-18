@@ -26,6 +26,7 @@ package net.algart.matrices.tiff.tests.io;
 
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffWriter;
+import net.algart.matrices.tiff.samples.TiffSampleType;
 import net.algart.matrices.tiff.tags.TagPhotometric;
 import net.algart.matrices.tiff.tags.Tags;
 
@@ -45,30 +46,32 @@ public class TiffFalsifyTags {
         if (args.length < startArgIndex + 4) {
             System.out.println("Usage:");
             System.out.println("    " + TiffFalsifyTags.class.getName()
-                    + " [-addReferenceBlackWhite] target.tif ifdIndex newWidth newLength [colorSpace]");
+                    + " [-addReferenceBlackWhite] target.tif ifdIndex newWidth newLength " +
+                    "[sampleType [photometricInterpretation]]");
             System.out.println("newWidth/newLength are (0,0) (to avoid changing) or " +
                     "new sizes of this IFD (but you should not try to increase total number of pixels)");
             return;
         }
-        final Path targetFile = Paths.get(args[startArgIndex++]);
-        final int ifdIndex = Integer.parseInt(args[startArgIndex++]);
-        final int newDimX = Integer.parseInt(args[startArgIndex++]);
-        final int newDimY = Integer.parseInt(args[startArgIndex++]);
-        TagPhotometric photometric = null;
-        if (startArgIndex < args.length) {
-            photometric = TagPhotometric.valueOf(args[startArgIndex]);
-        }
+        final Path targetFile = Paths.get(args[startArgIndex]);
+        final int ifdIndex = Integer.parseInt(args[startArgIndex + 1]);
+        final int newDimX = Integer.parseInt(args[startArgIndex + 2]);
+        final int newDimY = Integer.parseInt(args[startArgIndex + 3]);
+        final TiffSampleType newSampleType = startArgIndex + 4 < args.length ?
+                TiffSampleType.valueOf(args[startArgIndex + 4]) : null;
+        final TagPhotometric newPhotometric = startArgIndex + 5 < args.length ?
+                TagPhotometric.valueOf(args[startArgIndex + 5]) : null;
 
-        try (var writer = new TiffWriter(targetFile)) {
-            writer.openExisting();
-
+        try (TiffWriter writer = new TiffWriter(targetFile, TiffWriter.OpenMode.OPEN_EXISTING)) {
             System.out.printf("Transforming %s...%n", targetFile);
             final TiffIFD ifd = writer.readMainIFD(ifdIndex);
             if (newDimX > 0 && newDimY > 0) {
                 ifd.putImageDimensions(newDimX, newDimY);
             }
-            if (photometric != null) {
-                ifd.putPhotometric(photometric);
+            if (newSampleType != null) {
+                ifd.putSampleType(newSampleType);
+            }
+            if (newPhotometric != null) {
+                ifd.putPhotometric(newPhotometric);
             }
             if (addReferenceBlackWhite) {
                 ifd.put(Tags.REFERENCE_BLACK_WHITE, new int[]{0, 100, 100, 200, 50, 100});

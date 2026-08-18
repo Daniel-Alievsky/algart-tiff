@@ -41,6 +41,8 @@ import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
+import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 
 public final class TiffIFD {
     @FunctionalInterface
@@ -3591,7 +3593,7 @@ public final class TiffIFD {
                             hasImageDimensions ? "precision ???" : "no samples",
                             isBigTiff() ? " [BigTIFF]" : "",
                             hasImageDimensions ?
-                            ", " +  compressionPrettyName(" (unsupported)") :
+                            ", " + compressionPrettyName(" (unsupported)") :
                             ""));
             if (hasTileInformation()) {
                 sb.append(
@@ -3695,15 +3697,21 @@ public final class TiffIFD {
                     }
                 }
                 case Tags.SAMPLE_FORMAT -> {
+                    long v = -1;
                     if (tagValue instanceof Number number) {
-                        switch (number.intValue()) {
-                            case SAMPLE_FORMAT_UINT -> additional = "unsigned integer";
-                            case SAMPLE_FORMAT_INT -> additional = "signed integer";
-                            case SAMPLE_FORMAT_IEEEFP -> additional = "IEEE float";
-                            case SAMPLE_FORMAT_VOID -> additional = "undefined";
-                            case SAMPLE_FORMAT_COMPLEX_INT -> additional = "complex integer";
-                            case SAMPLE_FORMAT_COMPLEX_IEEEFP -> additional = "complex float";
-                        }
+                        v = number.intValue();
+                    } else if (tagValue instanceof int[] numbers) {
+                        v = IntStream.of(numbers).distinct().count() == 1 ? numbers[0] : -1;
+                    } else if (tagValue instanceof long[] numbers) {
+                        v = LongStream.of(numbers).distinct().count() == 1 ? numbers[0] : -1;
+                    }
+                    switch (Math.clamp(v, 0, Integer.MAX_VALUE)) {
+                        case SAMPLE_FORMAT_UINT -> additional = "unsigned integer";
+                        case SAMPLE_FORMAT_INT -> additional = "signed integer";
+                        case SAMPLE_FORMAT_IEEEFP -> additional = "IEEE float";
+                        case SAMPLE_FORMAT_VOID -> additional = "undefined";
+                        case SAMPLE_FORMAT_COMPLEX_INT -> additional = "complex integer";
+                        case SAMPLE_FORMAT_COMPLEX_IEEEFP -> additional = "complex float";
                     }
                 }
                 case Tags.FILL_ORDER -> additional = !isReversedFillOrder() ?

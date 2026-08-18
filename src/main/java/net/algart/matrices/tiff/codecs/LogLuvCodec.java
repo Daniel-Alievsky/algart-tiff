@@ -114,16 +114,17 @@ public class LogLuvCodec implements TiffCodec {
         Objects.requireNonNull(ifd, "IFD is not set in the options");
 
 //         System.out.println("!!! " + options.getPhotometric());
-        final int bitsPerSample = options.optRawEqualBitsPerSample().orElse(-1);
-        if (bitsPerSample != 8 && bitsPerSample != 16 && bitsPerSample != 32) {
-            throw new UnsupportedTiffFormatException("Non-standard " +
-                    java.util.Arrays.toString(ifd.getBitsPerSample()) + " bits per sample" +
-                    " is not supported for LogL/LogLuv compression: must be 8, 16 or 32 bits per sample");
-        }
         final TiffSampleType sampleType = options.getSampleType();
         final int bytesPerSample = sampleType.bytesPerSample().orElseThrow(() ->
-                new UnsupportedTiffFormatException("Sample type " + sampleType +
+                new UnsupportedTiffFormatException("Sample type " + sampleType.prettyName() +
                         " is not supported for LogL/LogLuv compression"));
+        final int bitsPerSample = options.optRawEqualBitsPerSample().orElse(-1);
+        if (!(bitsPerSample == 8 || bitsPerSample == 16 || (sampleType.isFloatingPoint() && bitsPerSample == 32))) {
+            throw new UnsupportedTiffFormatException("Non-standard " +
+                    java.util.Arrays.toString(ifd.getBitsPerSample()) + " bits per sample (" +
+                    sampleType.prettyName() +
+                    ") is not supported for LogL/LogLuv compression: must be 8-bit, 16-bit or 32-bit float");
+        }
         float[] floats = decodeLogLuvFloats(data, options);
         final int resultLength = floats.length * bytesPerSample;
         final PArray array = Arrays.asPrecision(PArray.as(floats), sampleType.elementType());
