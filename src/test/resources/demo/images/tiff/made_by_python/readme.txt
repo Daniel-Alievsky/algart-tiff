@@ -1,3 +1,3 @@
 Please install necessary codecs:
 
-pip install tifffile imagecodecs
+pip install tifffile imagecodecs opencv-python
