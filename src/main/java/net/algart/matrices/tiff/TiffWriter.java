@@ -1875,14 +1875,16 @@ public non-sealed class TiffWriter extends TiffIO {
      * It automatically creates a {@link TiffIFD#newStrippedIFD() new stripped IFD},
      * fills it with image information via {@link TiffIFD#putMatrixInformation(Matrix)},
      * sets the specified compression via {@link TiffIFD#putCompression(TagCompression)}
-     * and writes the image into the TIFF file by calling:</p>
+     * and writes the image into the TIFF file.
+     * The operation is equivalent to the following calls:</p>
      * <pre>
-     *     {@link TiffWriteMap} map = thisWriter.{@link #newFixedMap newFixedMap}(ifd);
+     *     {@link TiffWriteMap} map = thisWriter.{@link #newFixedStrippedMap(TagCompression, Matrix)
+     *     newFixedStrippedMap}(compression, matrix);
      *     map.{@link TiffWriteMap#writeMatrix(Matrix) writeMatrix}(matrix)</pre>
      * <p>This method is designed for writing the entire image at once.
      * For tiled TIFF images, incremental writing, partial updates,
      * explicit tile flushing or advanced TIFF customization,
-     * consider using {@link #newMap(TiffIFD, boolean)} and the returned {@link TiffWriteMap}.</p>
+     * consider using {@link #newResizableMap} overloads and the returned {@link TiffWriteMap}.</p>
      *
      * @param matrix      3D-matrix of pixels (or 2D-matrix for 1-channel image).
      * @param compression TIFF compression method.
@@ -1894,7 +1896,7 @@ public non-sealed class TiffWriter extends TiffIO {
             throws IOException {
         Objects.requireNonNull(matrix, "Null matrix");
         Objects.requireNonNull(compression, "Null compression");
-        final TiffWriteMap map = newFixedMap(TiffIFD.newStrippedIFD(compression, matrix));
+        final TiffWriteMap map = newFixedStrippedMap(compression, matrix);
         map.writeMatrix(matrix);
         return map;
     }
@@ -1910,15 +1912,17 @@ public non-sealed class TiffWriter extends TiffIO {
      * It automatically creates a {@link TiffIFD#newStrippedIFD() new stripped IFD},
      * fills it with image information via {@link TiffIFD#putChannelsInformation(List)},
      * sets the specified compression via {@link TiffIFD#putCompression(TagCompression)}
-     * and writes the image into the TIFF file by calling:</p>
+     * and writes the image into the TIFF file.
+     * The operation is equivalent to the following calls:</p>
      * <pre>
-     *     {@link TiffWriteMap} map = thisWriter.{@link #newFixedMap newFixedMap}(ifd);
+     *     {@link TiffWriteMap} map = thisWriter.{@link #newFixedStrippedMap(TagCompression, List)
+     *     newFixedStrippedMap}(compression, channels);
      *     map.{@link TiffWriteMap#writeChannels(List) writeChannels}(channels)</pre>
      *
      * <p>This method is designed for writing the entire image at once.
      * For tiled TIFF images, incremental writing, partial updates,
      * explicit tile flushing or advanced TIFF customization,
-     * consider using {@link #newMap(TiffIFD, boolean)} and the returned {@link TiffWriteMap}.</p>
+     * consider using {@link #newResizableMap} overloads and the returned {@link TiffWriteMap}.</p>
      *
      * @param channels    color channels of the image (2-dimensional matrices).
      * @param compression TIFF compression method.
@@ -1932,7 +1936,7 @@ public non-sealed class TiffWriter extends TiffIO {
             throws IOException {
         Objects.requireNonNull(channels, "Null channels");
         Objects.requireNonNull(compression, "Null compression");
-        final TiffWriteMap map = newFixedMap(TiffIFD.newStrippedIFD(compression, channels));
+        final TiffWriteMap map = newFixedStrippedMap(compression, channels);
         map.writeChannels(channels);
         return map;
     }
@@ -1946,15 +1950,17 @@ public non-sealed class TiffWriter extends TiffIO {
      * It automatically creates a {@link TiffIFD#newStrippedIFD() new stripped IFD},
      * fills it with image information via {@link TiffIFD#putBufferedImageInformation(BufferedImage)},
      * sets the specified compression via {@link TiffIFD#putCompression(TagCompression)}
-     * and writes the image into the TIFF file by calling:</p>
+     * and writes the image into the TIFF file.
+     * The operation is equivalent to the following calls:</p>
      * <pre>
-     *     {@link TiffWriteMap} map = thisWriter.{@link #newFixedMap newFixedMap}(ifd);
+     *     {@link TiffWriteMap} map = thisWriter.{@link #newFixedStrippedMap(TagCompression, BufferedImage)
+     *     newFixedStrippedMap}(compression, bufferedImage);
      *     map.{@link TiffWriteMap#writeBufferedImage(BufferedImage) writeBufferedImage}(bufferedImage)</pre>
      *
      * <p>This method is designed for writing the entire image at once.
      * For tiled TIFF images, incremental writing, partial updates,
      * explicit tile flushing or advanced TIFF customization,
-     * consider using {@link #newMap(TiffIFD, boolean)} and the returned {@link TiffWriteMap}.</p>
+     * consider using {@link #newResizableMap} overloads and the returned {@link TiffWriteMap}.</p>
      *
      * @param bufferedImage the image to be written.
      * @param compression   TIFF compression method.
@@ -1966,7 +1972,7 @@ public non-sealed class TiffWriter extends TiffIO {
             throws IOException {
         Objects.requireNonNull(bufferedImage, "Null bufferedImage");
         Objects.requireNonNull(compression, "Null compression");
-        final TiffWriteMap map = newFixedMap(TiffIFD.newStrippedIFD(compression, bufferedImage));
+        final TiffWriteMap map = newFixedStrippedMap(compression, bufferedImage);
         map.writeBufferedImage(bufferedImage);
         return map;
     }
