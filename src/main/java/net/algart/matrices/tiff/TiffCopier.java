@@ -719,7 +719,7 @@ public final class TiffCopier {
         checkImageCompatibility(writeMap, readMap);
         this.actuallyDirectCopy = actuallyDirectCopy;
         if (!actuallyDirectCopy) {
-            writeIFD.removeJPEGTablesIgnoringFreeze();
+            writeIFD.removeJPEGTables();
             // - should be called before prewrite()
         }
         writeMap.prewrite();
@@ -877,7 +877,7 @@ public final class TiffCopier {
                     "we must be sure that no tiles will be coped directly");
         }
         if (!directCopy) {
-            writeIFD.removeJPEGTablesIgnoringFreeze();
+            writeIFD.removeJPEGTables();
             // - should be called before prewrite()
         }
         writeMap.prewrite();

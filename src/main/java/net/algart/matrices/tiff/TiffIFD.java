@@ -2992,15 +2992,14 @@ public final class TiffIFD {
      * If at least one of them retains previously encoded data, written via another software
      * dependent on the {@code JPEGTables} tag, it will not be read correctly without this tag.</p>
      *
-     * <p>Note: this method works even when IFD is frozen by {@link #freeze()} method,
+     * <p>Note: this method works <b>even when IFD is frozen</b> by {@link #freeze()} method,
      * bypassing immutability checks.
      *
      * @return a reference to this object.
      */
-    public TiffIFD removeJPEGTablesIgnoringFreeze() {
+    public TiffIFD removeJPEGTables() {
         if (optCompressionCode(-1) == COMPRESSION_JPEG) {
-            removeDetailedEntries(Tags.JPEG_TABLES);
-            map.remove(Tags.JPEG_TABLES);
+            remove(Tags.JPEG_TABLES, true);
         }
         return this;
     }
@@ -3025,13 +3024,7 @@ public final class TiffIFD {
      * @see TagValue
      */
     public void put(int tag, Object value) {
-        Objects.requireNonNull(value, "Null value is not allowed in IFD");
-        checkImmutable();
-        removeDetailedEntries(tag);
-        // - necessary to avoid possible bugs with detection of the type
-        clearSpecificCache(tag);
-        clearCache();
-        map.put(tag, value);
+        put(tag, value, false);
     }
 
     /**
@@ -3040,11 +3033,7 @@ public final class TiffIFD {
      * @param tag tag whose mapping is to be removed from the map.
      */
     public void remove(int tag) {
-        checkImmutable();
-        removeDetailedEntries(tag);
-        clearSpecificCache(tag);
-        clearCache();
-        map.remove(tag);
+        remove(tag, false);
     }
 
     /**
@@ -3492,6 +3481,28 @@ public final class TiffIFD {
         if (frozen) {
             throw new IllegalStateException(nameOfPart + ": it is frozen for future writing TIFF");
         }
+    }
+
+    private void put(int tag, Object value, boolean ignoringFreeze) {
+        Objects.requireNonNull(value, "Null value is not allowed in IFD");
+        if (!ignoringFreeze) {
+            checkImmutable();
+        }
+        removeDetailedEntries(tag);
+        // - necessary to avoid possible bugs with detection of the type
+        clearSpecificCache(tag);
+        clearCache();
+        map.put(tag, value);
+    }
+
+    private void remove(int tag, boolean ignoringFreeze) {
+        if (!ignoringFreeze) {
+            checkImmutable();
+        }
+        removeDetailedEntries(tag);
+        clearSpecificCache(tag);
+        clearCache();
+        map.remove(tag);
     }
 
     private void removeDetailedEntries(int... tags) {

@@ -1552,6 +1552,79 @@ public non-sealed class TiffWriter extends TiffIO {
         return newMap(ifd, false);
     }
 
+    /**
+     * Creates a new writable tiled map with fixed predefined dimensions {@code dimX*dimY}
+     * for writing image fragments with the specified number of channels, sample type and compression.
+     * Equivalent to:
+     *
+     * <pre>
+     *
+     *     {@link TiffIFD} ifd = {@link TiffIFD#newTiledIFD(TagCompression)
+     *     TiffIFD.newTiledIFD}().{@link TiffIFD#putImageInformation(long, long, int, TiffSampleType)
+     *     putImageInformation}(dimX, dimY, numberOfChannels, sampleType);
+     *     {@link TiffWriteMap} result = {@link #newFixedMap(TiffIFD) newFixedMap}(ifd);
+     * </pre>
+     *
+     * @param dimX             new TIFF image width (<code>ImageWidth</code> tag);
+     *                         must be in the range <code>1..Integer.MAX_VALUE</code>.
+     * @param dimY             new TIFF image height (<code>ImageLength</code> tag);
+     *                         must be in the range <code>1..Integer.MAX_VALUE</code>.
+     * @param numberOfChannels number of channels (in other words, number of samples per every pixel);
+     *                         must be not &le;{@link TiffIFD#MAX_NUMBER_OF_CHANNELS}.
+     * @param sampleType       type of pixel samples.
+     * @param compression      the compression algorithm used for this TIFF image.
+     * @return the created writable map.
+     */
+    public final TiffWriteMap newFixedMap(
+            long dimX,
+            long dimY,
+            int numberOfChannels,
+            TiffSampleType sampleType,
+            TagCompression compression) throws TiffException {
+        final TiffIFD ifd = TiffIFD.newTiledIFD(compression)
+                .putImageInformation(dimX, dimY, numberOfChannels, sampleType);
+        return newFixedMap(ifd);
+    }
+
+    public final TiffWriteMap newFixedMap(
+            long dimX,
+            long dimY,
+            int numberOfChannels,
+            Class<?> elementType,
+            TagCompression compression) throws TiffException {
+        return newFixedMap(
+                dimX,
+                dimY,
+                numberOfChannels,
+                TiffSampleType.of(elementType, false),
+                compression);
+    }
+
+    public final TiffWriteMap newFixedStrippedMap(
+            long dimX,
+            long dimY,
+            int numberOfChannels,
+            TiffSampleType sampleType,
+            TagCompression compression) throws TiffException {
+        final TiffIFD ifd = TiffIFD.newStrippedIFD(compression)
+                .putImageInformation(dimX, dimY, numberOfChannels, sampleType);
+        return newFixedMap(ifd);
+    }
+
+    public final TiffWriteMap newFixedStrippedMap(
+            long dimX,
+            long dimY,
+            int numberOfChannels,
+            Class<?> elementType,
+            TagCompression compression) throws TiffException {
+        return newFixedStrippedMap(
+                dimX,
+                dimY,
+                numberOfChannels,
+                TiffSampleType.of(elementType, false),
+                compression);
+    }
+
     public final TiffWriteMap newResizableMap(TiffIFD ifd, Set<MapOption> options) throws TiffException {
         return newMap(ifd, true, options);
     }
