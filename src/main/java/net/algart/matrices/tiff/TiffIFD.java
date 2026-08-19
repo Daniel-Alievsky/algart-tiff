@@ -1848,6 +1848,9 @@ public final class TiffIFD {
      * this method returns {@link TagDescription#EMPTY}.</p>
      *
      * @return the image description; cannot be {@code null}.
+     * @see #optDescription()
+     * @see #putDescription(String)
+     * @see #putDescription(TagDescription)
      */
     public TagDescription getDescription() {
         TagDescription result = this.description;
@@ -2837,22 +2840,81 @@ public final class TiffIFD {
         return this;
     }
 
+    /**
+     * Sets the {@link Tags#IMAGE_DESCRIPTION ImageDescription} tag (270) to the specified array of text strings.
+     *
+     * <p>According to the TIFF specification, multiple ASCII strings within a single tag are separated
+     * by null characters ({@code \0}). When written to the TIFF file, the elements of the specified array
+     * will be joined with {@code \0} byte delimiters.</p>
+     *
+     * <p>Note: for descriptions that use line-feed characters ({@code \n}) within
+     * a single string (such as SVS, OME-TIFF, or JSON/XML metadata), use {@link #putDescription(String)} instead.</p>
+     *
+     * <p>Note: this method works <b>even when IFD is frozen</b> by {@link #freeze()} method,
+     * bypassing immutability checks.</p>
+     *
+     * @param imageDescriptionLines array of strings forming the multi-string image description
+     *                              (must not be {@code null}).
+     * @return a reference to this object.
+     * @throws NullPointerException if {@code imageDescriptionLines} is {@code null}.
+     * @see #putDescription(String)
+     * @see #getDescription()
+     * @see #removeDescription()
+     */
     public TiffIFD putMultilineDescription(String... imageDescriptionLines) {
         Objects.requireNonNull(imageDescriptionLines, "Null imageDescriptionLines");
-        put(Tags.IMAGE_DESCRIPTION, imageDescriptionLines);
+        put(Tags.IMAGE_DESCRIPTION, imageDescriptionLines, true);
         // - note: storing String[] here!
         return this;
     }
 
+    /**
+     * Sets or removes the {@link Tags#IMAGE_DESCRIPTION ImageDescription} tag (270).
+     *
+     * <p>If the specified {@code imageDescription} is {@code null}, this method removes the tag
+     * by calling {@link #removeDescription()}. Otherwise, it sets the tag to the specified string.</p>
+     *
+     * <p>Note: this method works <b>even when IFD is frozen</b> by {@link #freeze()} method,
+     * bypassing immutability checks.</p>
+     *
+     * @param imageDescription new image description text, or {@code null} to remove the tag.
+     * @return a reference to this object.
+     * @see #putMultilineDescription(String...)
+     * @see #putDescription(TagDescription)
+     * @see #getDescription()
+     * @see #removeDescription()
+     */
     public TiffIFD putDescription(String imageDescription) {
         if (imageDescription == null) {
-            remove(Tags.IMAGE_DESCRIPTION);
+            remove(Tags.IMAGE_DESCRIPTION, true);
         } else {
-            put(Tags.IMAGE_DESCRIPTION, imageDescription);
+            put(Tags.IMAGE_DESCRIPTION, imageDescription, true);
         }
         return this;
     }
 
+    /**
+     * Sets the {@link Tags#IMAGE_DESCRIPTION ImageDescription} tag (270) and caches the specified
+     * parsed {@link TagDescription} object.
+     *
+     * <p>Equivalent to:
+     * <pre>
+     *     {@link #putDescription(String) putDescription}(description.{@link TagDescription#description()
+     *     description}());
+     * </pre>
+     * followed by caching the {@code description} reference so that subsequent calls to
+     * {@link #getDescription()} will return it immediately without reparsing.</p>
+     *
+     * <p>Note: this method works <b>even when IFD is frozen</b> by {@link #freeze()} method,
+     * bypassing immutability checks.</p>
+     *
+     * @param description structured description object (must not be {@code null}).
+     * @return a reference to this object.
+     * @throws NullPointerException if {@code description} is {@code null}.
+     * @see TagDescription
+     * @see #getDescription()
+     * @see #removeDescription()
+     */
     public TiffIFD putDescription(TagDescription description) {
         Objects.requireNonNull(description, "Null description");
         putDescription(description.description(null));
@@ -2861,8 +2923,19 @@ public final class TiffIFD {
         return this;
     }
 
+    /**
+     * Removes the {@link Tags#IMAGE_DESCRIPTION ImageDescription} tag (270) from this IFD.
+     *
+     * <p>Note: this method works <b>even when IFD is frozen</b> by {@link #freeze()} method,
+     * bypassing immutability checks.</p>
+     *
+     * @return a reference to this object.
+     * @see #putDescription(String)
+     * @see #putDescription(TagDescription)
+     * @see #getDescription()
+     */
     public TiffIFD removeDescription() {
-        remove(Tags.IMAGE_DESCRIPTION);
+        remove(Tags.IMAGE_DESCRIPTION, true);
         return this;
     }
 
