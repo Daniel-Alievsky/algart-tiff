@@ -39,8 +39,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
 
-public class JPEGCodec implements TiffCodec, TiffCodec.Timing {
-    private static final boolean RESTRICT_READING_TOO_LARGE_STRIPS = true;
+public class JPEGCodec extends AWTCodec implements TiffCodec.Timing {
     // - should be true for normal processing some old-style JPEG files
     private static final System.Logger LOG = System.getLogger(JPEGCodec.class.getName());
 
@@ -229,25 +228,7 @@ public class JPEGCodec implements TiffCodec, TiffCodec.Timing {
         long t3 = timing ? System.nanoTime() : 0;
         timeBridge += t3 - t2;
 
-        final byte[] result;
-        int bandSize = channels[0].length;
-        if (channels.length == 1) {
-            result = channels[0];
-        } else {
-            result = new byte[Math.multiplyExact(channels.length, bandSize)];
-            if (options.isInterleaved()) {
-                int next = 0;
-                for (int i = 0; i < bandSize; i++) {
-                    for (byte[] bytes : channels) {
-                        result[next++] = bytes[i];
-                    }
-                }
-            } else {
-                for (int i = 0; i < channels.length; i++) {
-                    System.arraycopy(channels[i], 0, result, i * bandSize, bandSize);
-                }
-            }
-        }
+        final byte[] result = AWTCodec.mergeChannels(channels, imageData.raster(), options.isInterleaved());
         long t4 = timing ? System.nanoTime() : 0;
         timeAdditional += t4 - t3;
         return result;

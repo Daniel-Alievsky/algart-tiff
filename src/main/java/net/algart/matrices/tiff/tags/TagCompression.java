@@ -423,9 +423,8 @@ public enum TagCompression {
 
     /**
      * WebP compression (type 50001).
-     * Not supported in the current version.
      */
-    WEBP(TiffIFD.COMPRESSION_WEBP, "WebP", null),
+    WEBP(TiffIFD.COMPRESSION_WEBP, "WebP", WebPCodec::new, JPEG),
 
     /**
      * JPEG XL compression (type 50002).
@@ -612,6 +611,10 @@ public enum TagCompression {
         return code == TiffIFD.COMPRESSION_JPEG;
     }
 
+    public boolean isAWTBasedCodec() {
+        return isStandardJpeg() || isJpeg2000() || this == WEBP;
+    }
+
     /**
      * Returns {@code true} if this compression method relies on additional metadata
      * embedded directly in the TIFF file, separate from IFD tags, TIFF tiles or strips.
@@ -777,11 +780,11 @@ public enum TagCompression {
     public TiffCodec.Options customizeReading(TiffTile tile, TiffCodec.Options options) {
         // Note: this method does not damage customization already performed in the options;
         // so, it uses clone() or Options.setTo() method
-        if (isStandardJpeg()) {
-            return customizeReadingJpeg(tile, options);
+        if (isAWTBasedCodec()) {
+            options = customizeAWTReading(tile, options);
         }
         if (isJpeg2000()) {
-            return customizeReadingJpeg2000(tile, options);
+            options = customizeReadingJpeg2000(tile, options);
             // - does nothing in the current implementation, but we MUST provide the correct class JPEG2000Options
             // for possible future implementations or usage of TiffCodec.Customizer
             // (this is checked in TiffReaderTest)
@@ -809,9 +812,9 @@ public enum TagCompression {
         // BEFORE the replaced OLD_JPEG, JPEG_2000_APERIO_33003, JPEG_2000_APERIO_33004
     }
 
-    private static TiffCodec.Options customizeReadingJpeg(TiffTile tile, TiffCodec.Options options) {
+    private static TiffCodec.Options customizeAWTReading(TiffTile tile, TiffCodec.Options options) {
         return options.clone().setInterleaved(false);
-        // JPEGCodec and LosslessJPEGCodec work faster in with non-interleaved data, and in any case,
+        // AWT-based codecs, as well as LosslessJPEGCodec work faster in with non-interleaved data, and in any case,
         // it is better because TiffReader needs non-interleaved results.
     }
 

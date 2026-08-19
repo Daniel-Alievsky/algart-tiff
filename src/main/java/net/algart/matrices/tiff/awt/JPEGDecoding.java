@@ -98,6 +98,7 @@ public class JPEGDecoding {
 
     static final boolean USE_MEMORY_CACHE = true;
     // - Must be true for normal performance.
+    // Otherwise, createImageInputStream will create temporary files on disk!
     // Important: our codec is implemented for reading separate tiles, which SHOULD be not too large
     // to be located in memory. For comparison, other codecs like DeflateCodec always work in memory.
     private static final boolean IGNORE_EXCEPTION_WHILE_ATTEMPT_TO_READ_METADATA = true;
@@ -152,7 +153,7 @@ public class JPEGDecoding {
         final ImageInputStream stream = USE_MEMORY_CACHE ?
                 new MemoryCacheImageInputStream(in) :
                 ImageIO.createImageInputStream(in);
-        final ImageReader reader = getImageReaderOrNull(stream);
+        final ImageReader reader = tryToFindImageReader(stream);
         if (reader == null) {
             return null;
         }
@@ -384,7 +385,7 @@ public class JPEGDecoding {
     }
     */
 
-    public static ImageReader getImageReaderOrNull(Object inputStream) {
+    public static ImageReader tryToFindImageReader(Object inputStream) {
         Iterator<ImageReader> readers = ImageIO.getImageReaders(inputStream);
         return findAWTCodec(readers);
     }

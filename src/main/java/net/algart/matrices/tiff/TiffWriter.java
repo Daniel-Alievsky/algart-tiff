@@ -1880,7 +1880,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * <pre>
      *     {@link TiffWriteMap} map = thisWriter.{@link #newFixedStrippedMap(TagCompression, Matrix)
      *     newFixedStrippedMap}(compression, matrix);
-     *     map.{@link TiffWriteMap#writeMatrix(Matrix) writeMatrix}(matrix)</pre>
+     *     map.{@link TiffWriteMap#writeMatrix(Matrix) writeMatrix}(matrix);</pre>
      * <p>This method is designed for writing the entire image at once.
      * For tiled TIFF images, incremental writing, partial updates,
      * explicit tile flushing or advanced TIFF customization,
@@ -1917,7 +1917,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * <pre>
      *     {@link TiffWriteMap} map = thisWriter.{@link #newFixedStrippedMap(TagCompression, List)
      *     newFixedStrippedMap}(compression, channels);
-     *     map.{@link TiffWriteMap#writeChannels(List) writeChannels}(channels)</pre>
+     *     map.{@link TiffWriteMap#writeChannels(List) writeChannels}(channels);</pre>
      *
      * <p>This method is designed for writing the entire image at once.
      * For tiled TIFF images, incremental writing, partial updates,
@@ -1955,7 +1955,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * <pre>
      *     {@link TiffWriteMap} map = thisWriter.{@link #newFixedStrippedMap(TagCompression, BufferedImage)
      *     newFixedStrippedMap}(compression, bufferedImage);
-     *     map.{@link TiffWriteMap#writeBufferedImage(BufferedImage) writeBufferedImage}(bufferedImage)</pre>
+     *     map.{@link TiffWriteMap#writeBufferedImage(BufferedImage) writeBufferedImage}(bufferedImage);</pre>
      *
      * <p>This method is designed for writing the entire image at once.
      * For tiled TIFF images, incremental writing, partial updates,
