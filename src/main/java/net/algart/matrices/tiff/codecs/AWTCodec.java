@@ -42,7 +42,7 @@ import java.io.InputStream;
 import java.util.Iterator;
 import java.util.Objects;
 
-public abstract class AWTCodec implements TiffCodec {
+public class AWTCodec implements TiffCodec {
     static final boolean RESTRICT_READING_TOO_LARGE_STRIPS = true;
     // - should be true for normal processing some old-style JPEG files
 

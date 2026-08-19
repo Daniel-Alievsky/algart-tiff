@@ -400,9 +400,8 @@ public enum TagCompression {
 
     /**
      * PNG compression (type 34933).
-     * Not supported in the current version.
      */
-    PNG(34933, "PNG", null),
+    PNG(34933, "PNG", AWTCodec::new, DEFLATE),
 
     /**
      * JPEG XR compression (type 34934).
