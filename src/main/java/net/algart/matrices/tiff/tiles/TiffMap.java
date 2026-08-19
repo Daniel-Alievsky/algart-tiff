@@ -553,6 +553,21 @@ public sealed class TiffMap permits TiffIOMap {
         return ifd.getDescription();
     }
 
+    public TiffMap setDescription(TagDescription description) {
+        ifd.putDescription(description);
+        return this;
+    }
+
+    public TiffMap setDescription(String description) {
+        ifd.putDescription(description);
+        return this;
+    }
+
+    public TiffMap removeDescription() {
+        ifd.removeDescription();
+        return this;
+    }
+
     public TilingMode tilingMode() {
         return tilingMode;
     }

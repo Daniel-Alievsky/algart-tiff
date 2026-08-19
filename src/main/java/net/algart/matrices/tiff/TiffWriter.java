@@ -1554,11 +1554,10 @@ public non-sealed class TiffWriter extends TiffIO {
 
     /**
      * Creates a new writable tiled map with fixed predefined dimensions {@code dimX*dimY}
-     * for writing image fragments with the specified number of channels, sample type and compression.
+     * for writing image data with the specified number of channels, sample type and compression.
      * Equivalent to:
      *
      * <pre>
-     *
      *     {@link TiffIFD} ifd = {@link TiffIFD#newTiledIFD(TagCompression)
      *     TiffIFD.newTiledIFD}().{@link TiffIFD#putImageInformation(long, long, int, TiffSampleType)
      *     putImageInformation}(dimX, dimY, numberOfChannels, sampleType);
@@ -1570,7 +1569,7 @@ public non-sealed class TiffWriter extends TiffIO {
      * @param dimY             new TIFF image height (<code>ImageLength</code> tag);
      *                         must be in the range <code>1..Integer.MAX_VALUE</code>.
      * @param numberOfChannels number of channels (in other words, number of samples per every pixel);
-     *                         must be not &le;{@link TiffIFD#MAX_NUMBER_OF_CHANNELS}.
+     *                         must be in the range <code>1..{@link TiffIFD#MAX_NUMBER_OF_CHANNELS}</code>.
      * @param sampleType       type of pixel samples.
      * @param compression      the compression algorithm used for this TIFF image.
      * @return the created writable map.
@@ -1600,15 +1599,30 @@ public non-sealed class TiffWriter extends TiffIO {
                 compression);
     }
 
+    public final TiffWriteMap newFixedMap(TagCompression compression, Matrix<? extends PArray> matrix)
+            throws TiffException {
+        return newFixedMap(TiffIFD.newTiledIFD(compression, matrix));
+    }
+
+    public final TiffWriteMap newFixedMap(
+            TagCompression compression, List<? extends Matrix<? extends PArray>> channels)
+            throws TiffException {
+        return newFixedMap(TiffIFD.newTiledIFD(compression, channels));
+    }
+
+    public final TiffWriteMap newFixedMap(TagCompression compression, BufferedImage bufferedImage)
+            throws TiffException {
+        return newFixedMap(TiffIFD.newTiledIFD(compression, bufferedImage));
+    }
+
     public final TiffWriteMap newFixedStrippedMap(
             long dimX,
             long dimY,
             int numberOfChannels,
             TiffSampleType sampleType,
             TagCompression compression) throws TiffException {
-        final TiffIFD ifd = TiffIFD.newStrippedIFD(compression)
-                .putImageInformation(dimX, dimY, numberOfChannels, sampleType);
-        return newFixedMap(ifd);
+        return newFixedMap(TiffIFD.newStrippedIFD(compression)
+                .putImageInformation(dimX, dimY, numberOfChannels, sampleType));
     }
 
     public final TiffWriteMap newFixedStrippedMap(
@@ -1625,6 +1639,22 @@ public non-sealed class TiffWriter extends TiffIO {
                 compression);
     }
 
+    public final TiffWriteMap newFixedStrippedMap(TagCompression compression, Matrix<? extends PArray> matrix)
+            throws TiffException {
+        return newFixedMap(TiffIFD.newStrippedIFD(compression, matrix));
+    }
+
+    public final TiffWriteMap newFixedStrippedMap(
+            TagCompression compression, List<? extends Matrix<? extends PArray>> channels)
+            throws TiffException {
+        return newFixedMap(TiffIFD.newStrippedIFD(compression, channels));
+    }
+
+    public final TiffWriteMap newFixedStrippedMap(TagCompression compression, BufferedImage bufferedImage)
+            throws TiffException {
+        return newFixedMap(TiffIFD.newStrippedIFD(compression, bufferedImage));
+    }
+
     public final TiffWriteMap newResizableMap(TiffIFD ifd, Set<MapOption> options) throws TiffException {
         return newMap(ifd, true, options);
     }
@@ -1637,8 +1667,7 @@ public non-sealed class TiffWriter extends TiffIO {
             int numberOfChannels,
             TiffSampleType sampleType,
             TagCompression compression) throws TiffException {
-        final TiffIFD ifd = TiffIFD.newTiledIFD(compression).putPixelInformation(numberOfChannels, sampleType);
-        return newResizableMap(ifd);
+        return newResizableMap(TiffIFD.newTiledIFD(compression).putPixelInformation(numberOfChannels, sampleType));
     }
 
     public final TiffWriteMap newResizableMap(
@@ -1646,6 +1675,24 @@ public non-sealed class TiffWriter extends TiffIO {
             Class<?> elementType,
             TagCompression compression) throws TiffException {
         return newResizableMap(numberOfChannels, TiffSampleType.of(elementType, false), compression);
+    }
+
+    public final TiffWriteMap newResizableMap(
+            TagCompression compression, Matrix<? extends PArray> exampleMatrix)
+            throws TiffException {
+        return newResizableMap(TiffIFD.newTiledIFD(compression, exampleMatrix));
+    }
+
+    public final TiffWriteMap newResizableMap(
+            TagCompression compression, List<? extends Matrix<? extends PArray>> exampleChannels)
+            throws TiffException {
+        return newResizableMap(TiffIFD.newTiledIFD(compression, exampleChannels));
+    }
+
+    public final TiffWriteMap newResizableMap(
+            TagCompression compression, BufferedImage exampleBufferedImage)
+            throws TiffException {
+        return newResizableMap(TiffIFD.newTiledIFD(compression, exampleBufferedImage));
     }
 
     public final TiffWriteMap existingMap(int ifdIndex) throws IOException {
@@ -1847,8 +1894,7 @@ public non-sealed class TiffWriter extends TiffIO {
             throws IOException {
         Objects.requireNonNull(matrix, "Null matrix");
         Objects.requireNonNull(compression, "Null compression");
-        final TiffIFD ifd = TiffIFD.newStrippedIFD(compression, matrix);
-        final TiffWriteMap map = newFixedMap(ifd);
+        final TiffWriteMap map = newFixedMap(TiffIFD.newStrippedIFD(compression, matrix));
         map.writeMatrix(matrix);
         return map;
     }
@@ -1886,8 +1932,7 @@ public non-sealed class TiffWriter extends TiffIO {
             throws IOException {
         Objects.requireNonNull(channels, "Null channels");
         Objects.requireNonNull(compression, "Null compression");
-        final TiffIFD ifd = TiffIFD.newStrippedIFD(compression, channels);
-        final TiffWriteMap map = newFixedMap(ifd);
+        final TiffWriteMap map = newFixedMap(TiffIFD.newStrippedIFD(compression, channels));
         map.writeChannels(channels);
         return map;
     }
@@ -1921,8 +1966,7 @@ public non-sealed class TiffWriter extends TiffIO {
             throws IOException {
         Objects.requireNonNull(bufferedImage, "Null bufferedImage");
         Objects.requireNonNull(compression, "Null compression");
-        final TiffIFD ifd = TiffIFD.newStrippedIFD(compression, bufferedImage);
-        final TiffWriteMap map = newFixedMap(ifd);
+        final TiffWriteMap map = newFixedMap(TiffIFD.newStrippedIFD(compression, bufferedImage));
         map.writeBufferedImage(bufferedImage);
         return map;
     }

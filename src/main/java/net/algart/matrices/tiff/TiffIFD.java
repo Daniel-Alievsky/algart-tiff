@@ -2575,7 +2575,7 @@ public final class TiffIFD {
      * Puts base pixel type and channels information: BitsPerSample, SampleFormat, SamplesPerPixel.
      *
      * @param numberOfChannels number of channels (in other words, number of samples per every pixel);
-     *                         must be not &le;{@link TiffIFD#MAX_NUMBER_OF_CHANNELS}.
+     *                         must be in the range <code>1..{@link TiffIFD#MAX_NUMBER_OF_CHANNELS}</code>.
      * @param sampleType       type of pixel samples.
      * @return a reference to this object.
      */

@@ -26,6 +26,7 @@ package net.algart.matrices.tiff.tiles;
 
 import net.algart.arrays.*;
 import net.algart.matrices.tiff.*;
+import net.algart.matrices.tiff.tags.TagDescription;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -143,6 +144,24 @@ public abstract sealed class TiffIOMap extends TiffMap permits TiffReadMap, Tiff
     @Override
     public TiffIOMap setExtraChannelsMode(ExtraChannelsMode extraChannelsMode) {
         super.setExtraChannelsMode(extraChannelsMode);
+        return this;
+    }
+
+    @Override
+    public TiffIOMap setDescription(TagDescription description) {
+        super.setDescription(description);
+        return this;
+    }
+
+    @Override
+    public TiffIOMap setDescription(String description) {
+        super.setDescription(description);
+        return this;
+    }
+
+    @Override
+    public TiffIOMap removeDescription() {
+        super.removeDescription();
         return this;
     }
 

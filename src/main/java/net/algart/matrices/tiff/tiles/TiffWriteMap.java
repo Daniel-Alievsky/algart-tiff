@@ -28,6 +28,7 @@ import net.algart.arrays.*;
 import net.algart.io.awt.ImageToMatrix;
 import net.algart.math.IRectangularArea;
 import net.algart.matrices.tiff.*;
+import net.algart.matrices.tiff.tags.TagDescription;
 import net.algart.matrices.tiff.tags.Tags;
 
 import java.awt.*;
@@ -103,6 +104,24 @@ public final class TiffWriteMap extends TiffIOMap {
     @Override
     public TiffWriteMap setTileSupplyMode(TileSupplyMode tileSupplyMode) {
         super.setTileSupplyMode(tileSupplyMode);
+        return this;
+    }
+
+    @Override
+    public TiffWriteMap setDescription(TagDescription description) {
+        super.setDescription(description);
+        return this;
+    }
+
+    @Override
+    public TiffWriteMap setDescription(String description) {
+        super.setDescription(description);
+        return this;
+    }
+
+    @Override
+    public TiffWriteMap removeDescription() {
+        super.removeDescription();
         return this;
     }
 

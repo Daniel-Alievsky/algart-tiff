@@ -106,23 +106,20 @@ public class LabelSmallObjectsDemo {
         System.out.printf("Writing TIFF %s...%n", targetFile);
         try (TiffWriter writer = new TiffWriter(targetFile, TiffWriter.OpenMode.CREATE)) {
             writer.setCompressionQuality(0.5);
-            writer.newFixedMap(TiffIFD.newTiledIFD(TagCompression.DEFLATE, labels)
-                            .putDescription("Filtered image after removing objects < %d pixels"
-                                    .formatted(minArea)))
+            writer.newFixedMap(TagCompression.DEFLATE, labels)
+                    .setDescription("Filtered image after removing objects < %d pixels".formatted(minArea))
                     .writeMatrix(labels);
-            writer.newFixedMap(TiffIFD.newTiledIFD(TagCompression.JPEG, source)
-                            .putDescription("Source image"))
+            writer.newFixedMap(TagCompression.JPEG, source)
+                    .setDescription("Source image")
                     .writeChannels(source);
-            writer.newFixedMap(TiffIFD.newTiledIFD(TagCompression.DEFLATE, binary)
-                            .putCompression(TagCompression.DEFLATE)
-                            .putDescription("Binary image after thresholding by %s (%.3f)"
-                                    .formatted(scaledThreshold, threshold)))
+            writer.newFixedMap(TagCompression.DEFLATE, binary)
+                    .setDescription("Binary image after thresholding by %s (%.3f)"
+                            .formatted(scaledThreshold, threshold))
                     .writeMatrix(binary);
             // - for 1-channel matrix, we can freely use writeMatrix as well as writeChannels
             if (filtered != binary) {
-                writer.newFixedMap(TiffIFD.newTiledIFD(TagCompression.DEFLATE, filtered)
-                                .putDescription("Filtered image after removing objects < %d pixels"
-                                        .formatted(minArea)))
+                writer.newFixedMap(TagCompression.DEFLATE, filtered)
+                        .setDescription("Filtered image after removing objects < %d pixels".formatted(minArea))
                         .writeMatrix(filtered);
             }
         }

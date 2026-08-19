@@ -30,6 +30,7 @@ import net.algart.arrays.UpdatablePArray;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffReader;
+import net.algart.matrices.tiff.tags.TagDescription;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -102,6 +103,24 @@ public final class TiffReadMap extends TiffIOMap {
     @Override
     public TiffReadMap setTileSupplyMode(TileSupplyMode tileSupplyMode) {
         super.setTileSupplyMode(tileSupplyMode);
+        return this;
+    }
+
+    @Override
+    public TiffReadMap setDescription(TagDescription description) {
+        super.setDescription(description);
+        return this;
+    }
+
+    @Override
+    public TiffReadMap setDescription(String description) {
+        super.setDescription(description);
+        return this;
+    }
+
+    @Override
+    public TiffReadMap removeDescription() {
+        super.removeDescription();
         return this;
     }
 
