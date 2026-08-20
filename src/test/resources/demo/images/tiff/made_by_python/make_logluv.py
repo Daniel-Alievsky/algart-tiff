@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+
 """
 Create SGI LogLuv / LogL TIFF files using OpenCV.
 
