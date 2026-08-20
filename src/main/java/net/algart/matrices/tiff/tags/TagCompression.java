@@ -299,14 +299,14 @@ public enum TagCompression {
     JBIG(34661, "JBIG", null),
 
     /**
-     * SGI LogL (CIE Log Luminance) compression (type 34676).
+     * SGI LogL / LogLuv (CIE Log Luminance/Chroma) compression (type 34676).
      */
-    SGI_LOG(34676, "SGI Log Luminance", LogLuvCodec::new, DEFLATE),
+    SGI_LOGL(34676, "SGI LogL / LogLuv", LogLuvCodec::new, DEFLATE),
 
     /**
-     * SGI LogLuv (CIE Log Luminance/Chroma) compression (type 34677).
+     * SGI LogLuv 24-bit (CIE Log Luminance/Chroma) compression (type 34677).
      */
-    SGI_LOG24(34677, "SGI Log Luminance 24-bit", LogLuvCodec::new, DEFLATE),
+    SGI_LOG24(34677, "SGI LogLuv 24-bit", LogLuvCodec::new, DEFLATE),
 
     /**
      * LuraDocument LURACODE compression (type 34692).

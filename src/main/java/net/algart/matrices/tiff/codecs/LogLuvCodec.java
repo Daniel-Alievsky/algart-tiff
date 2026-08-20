@@ -44,6 +44,11 @@ import java.util.Objects;
  *   <li><b>LibTIFF</b> ({@code tif_luv.c}, {@code tif_luv.h}, {@code uvcode.h}),
  *       originally created by Sam Leffler, Silicon Graphics, Inc., and Greg Ward.</li>
  * </ul>
+ *
+ * <p>In terms of {@code libtiff} C library, decompression follows conventions of the
+ * {@code SGILOGDATAFMT_8BIT} mode (8-bit default RGB gamma-corrected values),
+ * but with the difference that we calculate results in {@code float} precision to preserve
+ * accuracy for 16-bit or {@code float} target arrays.</p>
  */
 
 public class LogLuvCodec implements TiffCodec {
@@ -140,7 +145,7 @@ public class LogLuvCodec implements TiffCodec {
         float[] result = new float[dimX * dimY * samplesPerPixel];
         final TagCompression compression = options.getCompression();
         switch (compression) {
-            case SGI_LOG -> {
+            case SGI_LOGL -> {
                 switch (samplesPerPixel) {
                     case 1 -> {
                         decodeLogL16(result, data, dimX, dimY);
