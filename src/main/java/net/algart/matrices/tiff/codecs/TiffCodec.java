@@ -248,12 +248,13 @@ public interface TiffCodec {
         }
 
         /**
-         * Sets the maximal size of resulting decoded data. Used for reading only.
+         * Sets the maximum expected size (in bytes) of decompressed data. Used for reading only.
          *
-         * <p>This limit is used in some codecs such as {@link LZWCodec}, {@link PackBitsCodec},
-         * {@link ThunderScanCodec}, and {@link ZstdCodec}.
-         * This limit <b>may be</b> greater than required for completely decoding data,
-         * but must not be less.</p>
+         * <p>This limit is used by some codecs (such as {@link LZWCodec}, {@link PackBitsCodec},
+         * {@link ThunderScanCodec}, and {@link ZstdCodec})
+         * to allocate memory buffers or limit decoding size.
+         * It serves as a <b>safe upper bound</b>: it must be sufficient
+         * to hold all decompressed bytes, but <b>may</b>> be larger.</p>
          *
          * <p>Note that this value should contain the maximal number of bytes in the fully decoded tile
          * <i>after</i> possible unpacking of bits when the number of bits per sample is not a multiple of 8,
@@ -265,9 +266,12 @@ public interface TiffCodec {
          * In the case when the number of bits per sample is not a multiple of 8, some other codecs (such as {@link LZWCodec})
          * may use only part of the requested memory, but this is usually not a problem.</p>
          *
-         * <p>More exactly, this value should be set to {@link TiffTile#getSizeInBytesInsideTIFF()}:
-         * the unpacked tile size concerning possible alignment of each line when the number of bits
-         * per sample is not a multiple of 8, even in unpacked data ({@link TiffSampleType#BIT}).</p>
+         * <p>More exactly, this value should be set to {@link TiffTile#getSizeInBytesInsideTIFF()}.
+         * This provides a universally safe limit across all codecs, including the case
+         * when the number of bits per sample is not a multiple of 8 in
+         * completely <i>unpacked</i> data ({@link TiffSampleType#BIT}):
+         * this method takes into account the alignment of each line by an integer number
+         * of bytes within the TIFF file.</p>
          *
          * @param maxUnpackedSizeInBytes new maximal data size to be uncompressed.
          * @return a reference to this object.
