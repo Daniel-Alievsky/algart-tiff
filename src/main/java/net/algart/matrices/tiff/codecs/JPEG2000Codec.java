@@ -31,7 +31,6 @@ import com.github.jaiimageio.jpeg2000.impl.J2KImageWriter;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import net.algart.matrices.tiff.awt.AWTImages;
-import net.algart.matrices.tiff.awt.UnsignedIntBuffer;
 
 import javax.imageio.IIOImage;
 import javax.imageio.ImageWriteParam;
@@ -251,12 +250,18 @@ public class JPEG2000Codec implements TiffCodec {
         }
     }
 
-    // Copy of the equivalent SCIFIO method, not using jaiIIOService field
     public byte[] compress(byte[] data, Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
         if (options.isFloatingPoint()) {
             throw new TiffException("JPEG-2000 compression cannot be used for floating-point values");
+        }
+        final int bitsPerSample = options.getNormalizedBitsPerSample();
+        if (bitsPerSample != 8 && bitsPerSample != 16) {
+            throw new TiffException("JPEG-2000 compression for " + bitsPerSample +
+                    "-bit samples is not supported (only unsigned 8/16-bit samples allowed)");
+            // Note: jai-imageio.jpeg2000 1.4.0 does not work correctly with 32-bit samples
+            // due to integer bit-shift overflow (1 << ntdepth[0]) in calcMixedBitDepths and other jai-imageio methods
         }
         if (options.isSigned()) {
             throw new TiffException("JPEG compression for signed samples is not supported " +
@@ -277,8 +282,7 @@ public class JPEG2000Codec implements TiffCodec {
         int next = 0;
 
         // NB: Construct BufferedImages manually, rather than using
-        // AWTImages.makeImage. The AWTImages.makeImage methods
-        // construct
+        // AWTImages.makeImage. The AWTImages.makeImage methods construct
         // images that are not properly handled by the JPEG2000 writer.
         // Specifically, 8-bit multichannel images are constructed with type
         // DataBuffer.TYPE_INT (so a single int is used to store all the
@@ -286,9 +290,9 @@ public class JPEG2000Codec implements TiffCodec {
 
         final int plane = Math.multiplyExact(jpeg2000Options.getWidth(), jpeg2000Options.getHeight());
 
-        final int bitsPerSample = jpeg2000Options.getNormalizedBitsPerSample();
         final int samplesPerPixel = jpeg2000Options.getSamplesPerPixel();
         final boolean interleaved = jpeg2000Options.isInterleaved();
+        final boolean littleEndian = jpeg2000Options.isLittleEndian();
         if (bitsPerSample == 8) {
             final byte[][] b = new byte[samplesPerPixel][plane];
             if (interleaved) {
@@ -307,60 +311,30 @@ public class JPEG2000Codec implements TiffCodec {
                     jpeg2000Options.getWidth(), jpeg2000Options.getHeight(), false, true, buffer,
                     jpeg2000Options.colorModel);
         } else {
-            final boolean littleEndian = jpeg2000Options.isLittleEndian();
-            if (bitsPerSample == 16) {
-                final short[][] s = new short[samplesPerPixel][plane];
-                if (interleaved) {
-                    for (int q = 0; q < plane; q++) {
-                        for (int c = 0; c < samplesPerPixel; c++) {
-                            // assert toShort(data, next, false) == Bytes.toShort(data, next, 2, false);
-                            // assert toShort(data, next, true) == Bytes.toShort(data, next, 2, true);
-                            s[c][q] = toShort(data, next, littleEndian);
-                            next += 2;
-                        }
-                    }
-                } else {
+            final short[][] s = new short[samplesPerPixel][plane];
+            if (interleaved) {
+                for (int q = 0; q < plane; q++) {
                     for (int c = 0; c < samplesPerPixel; c++) {
-                        for (int q = 0; q < plane; q++) {
-                            s[c][q] = toShort(data, next, littleEndian);
-                            next += 2;
-                        }
+                        // assert toShort(data, next, false) == Bytes.toShort(data, next, 2, false);
+                        // assert toShort(data, next, true) == Bytes.toShort(data, next, 2, true);
+                        s[c][q] = toShort(data, next, littleEndian);
+                        next += 2;
                     }
                 }
-                final DataBuffer buffer = new DataBufferUShort(s, plane);
-                img = AWTImages.makeImage(s.length, DataBuffer.TYPE_USHORT,
-                        jpeg2000Options.getWidth(), jpeg2000Options.getHeight(),
-                        false, true,
-                        buffer,
-                        jpeg2000Options.getColorModel());
-            } else if (bitsPerSample == 32) {
-                final int[][] s = new int[samplesPerPixel][plane];
-                if (interleaved) {
-                    for (int q = 0; q < plane; q++) {
-                        for (int c = 0; c < samplesPerPixel; c++) {
-    //                        assert toInt(data, next, true) == Bytes.toInt(data, next, 4, true);
-    //                        assert toInt(data, next, false) == Bytes.toInt(data, next, 4, false);
-                            s[c][q] = toInt(data, next, littleEndian);
-                            next += 4;
-                        }
-                    }
-                } else {
-                    for (int c = 0; c < samplesPerPixel; c++) {
-                        for (int q = 0; q < plane; q++) {
-                            s[c][q] = toInt(data, next, littleEndian);
-                            next += 4;
-                        }
-                    }
-                }
-
-                final DataBuffer buffer = new UnsignedIntBuffer(s, plane);
-                img = AWTImages.makeImage(s.length, DataBuffer.TYPE_INT,
-                        jpeg2000Options.getWidth(), jpeg2000Options.getHeight(), false, true, buffer,
-                        jpeg2000Options.getColorModel());
             } else {
-                throw new TiffException("JPEG-2000 compression for " + bitsPerSample +
-                        "-bit samples is not supported (only 8-bit, 16-bit and 32-bit samples allowed)");
+                for (int c = 0; c < samplesPerPixel; c++) {
+                    for (int q = 0; q < plane; q++) {
+                        s[c][q] = toShort(data, next, littleEndian);
+                        next += 2;
+                    }
+                }
             }
+            final DataBuffer buffer = new DataBufferUShort(s, plane);
+            img = AWTImages.makeImage(s.length, DataBuffer.TYPE_USHORT,
+                    jpeg2000Options.getWidth(), jpeg2000Options.getHeight(),
+                    false, true,
+                    buffer,
+                    jpeg2000Options.getColorModel());
         }
 
         writeImageWithCorrectExceptions(out, img, jpeg2000Options);
@@ -421,24 +395,27 @@ public class JPEG2000Codec implements TiffCodec {
 //                "make sure that jai_imageio.jar is installed.", e);
 //        }
 
-        if (single.length == 1) return single[0];
-        final byte[] rtn = new byte[single.length * single[0].length];
-        if (jpeg2000Options.isInterleaved()) {
-            int next = 0;
-            for (int i = 0; i < single[0].length / bpp; i++) {
-                for (byte[] bytes : single) {
-                    for (int j = 0; j < bpp; j++) {
-                        rtn[next++] = bytes[i * bpp + j];
-                    }
-                }
-            }
-        } else {
-            for (int i = 0; i < single.length; i++) {
-                System.arraycopy(single[i], 0, rtn, i * single[0].length,
-                        single[i].length);
-            }
-        }
-        return rtn;
+        return AWTCodec.mergeChannels(single, raster, jpeg2000Options.isInterleaved());
+
+//        - equivalent to mergeChannels
+//        if (single.length == 1) return single[0];
+//        final byte[] rtn = new byte[single.length * single[0].length];
+//        if (jpeg2000Options.isInterleaved()) {
+//            int next = 0;
+//            for (int i = 0; i < single[0].length / bpp; i++) {
+//                for (byte[] bytes : single) {
+//                    for (int j = 0; j < bpp; j++) {
+//                        rtn[next++] = bytes[i * bpp + j];
+//                    }
+//                }
+//            }
+//        } else {
+//            for (int i = 0; i < single.length; i++) {
+//                System.arraycopy(single[i], 0, rtn, i * single[0].length,
+//                        single[i].length);
+//            }
+//        }
+//        return rtn;
     }
 
     private static void writeImage(OutputStream out, BufferedImage img, JPEG2000Options options) throws IOException {
@@ -483,7 +460,7 @@ public class JPEG2000Codec implements TiffCodec {
         if (options.resolution != null) {
             param.setResolution(options.resolution);
         }
-            return reader.readRaster(0, param);
+        return reader.readRaster(0, param);
     }
 
     private static short toShort(final byte[] src, int srcPos, final boolean little) {
@@ -495,12 +472,12 @@ public class JPEG2000Codec implements TiffCodec {
     private static int toInt(final byte[] src, int srcPos, final boolean little) {
         return little ?
                 (src[srcPos] & 0xFF)
-                        | ((src[srcPos + 1] & 0xFF) << 8)
-                        | ((src[srcPos + 2] & 0xFF) << 16)
-                        | ((src[srcPos + 3] & 0xFF) << 24) :
+                | ((src[srcPos + 1] & 0xFF) << 8)
+                | ((src[srcPos + 2] & 0xFF) << 16)
+                | ((src[srcPos + 3] & 0xFF) << 24) :
                 ((src[srcPos] & 0xFF) << 24)
-                        | ((src[srcPos + 1] & 0xFF) << 16)
-                        | ((src[srcPos + 2] & 0xFF) << 8)
-                        | (src[srcPos + 3] & 0xFF);
+                | ((src[srcPos + 1] & 0xFF) << 16)
+                | ((src[srcPos + 2] & 0xFF) << 8)
+                | (src[srcPos + 3] & 0xFF);
     }
 }
