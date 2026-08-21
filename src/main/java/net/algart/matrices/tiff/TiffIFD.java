@@ -2217,7 +2217,9 @@ public final class TiffIFD {
      */
     public OptionalInt tryEqualBitDepth() throws TiffException {
         final int[] bitsPerSample = getBitsPerSample();
-        return tryEqualBitDepth(bitsPerSample);
+        OptionalInt result = tryEqualBitDepth(bitsPerSample);
+        assert result.isEmpty() || result.getAsInt() > 0;
+        return result;
     }
 
     public static OptionalInt tryEqualBitDepth(int[] bitsPerSample) {
@@ -2230,13 +2232,19 @@ public final class TiffIFD {
         return OptionalInt.of(bits0);
     }
 
-    public OptionalInt tryEqualBitDepthAlignedByBytes() throws TiffException {
+    public OptionalInt tryEqualBitDepthIfWholeBytes() throws TiffException {
         OptionalInt result = tryEqualBitDepth();
-        return result.isPresent() && isBitDepthAlignedByBytes(result.getAsInt()) ? result : OptionalInt.empty();
+        return result.isPresent() && isWholeByteBitDepth(result.getAsInt()) ? result : OptionalInt.empty();
     }
 
-    public static boolean isBitDepthAlignedByBytes(int bitDepth) {
-        return bitDepth >= 0 && (bitDepth & 7) == 0;
+    /**
+     * Returns {@code true} if the argument is positive and multiple of 8.
+     *
+     * @param bitDepth bit depth.
+     * @return whether this bit depth describes one or more whole bytes.
+     */
+    public static boolean isWholeByteBitDepth(int bitDepth) {
+        return bitDepth > 0 && (bitDepth & 7) == 0;
     }
 
     /**

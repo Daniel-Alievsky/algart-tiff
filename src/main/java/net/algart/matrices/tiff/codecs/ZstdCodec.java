@@ -56,7 +56,7 @@ public class ZstdCodec implements TiffCodec {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
         final ZstdDecompressor decompressor = new ZstdDecompressor();
-        final byte[] decompressed = new byte[options.getMaxSizeInBytes()];
+        final byte[] decompressed = new byte[options.getMaxUnpackedSizeInBytes()];
         final int decompressedBytes;
         try {
             decompressedBytes = decompressor.decompress(

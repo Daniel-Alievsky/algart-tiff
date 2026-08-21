@@ -244,7 +244,7 @@ public class LZWCodec implements TiffCodec {
 
     /**
      * The Options parameter should have the following fields set:
-     * {@link Options#getMaxSizeInBytes()}.
+     * {@link Options#getMaxUnpackedSizeInBytes()}.
      */
     @Override
     public byte[] decompress(byte[] data, Options options) throws TiffException {
@@ -268,7 +268,7 @@ public class LZWCodec implements TiffCodec {
         }
 
         // Output buffer
-        final byte[] output = new byte[options.getMaxSizeInBytes()];
+        final byte[] output = new byte[options.getMaxUnpackedSizeInBytes()];
         // Position in the output buffer to write the next byte to
         int currOutPos = 0;
 

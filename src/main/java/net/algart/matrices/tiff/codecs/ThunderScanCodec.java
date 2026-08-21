@@ -48,19 +48,19 @@ public class ThunderScanCodec implements TiffCodec {
 
     /**
      * The Options parameter should have the following fields set:
-     * {@link Options#getMaxSizeInBytes()}.
+     * {@link Options#getMaxUnpackedSizeInBytes()}.
      */
     @Override
     public byte[] decompress(byte[] data, Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
-        final int maxPixels = options.getMaxSizeInBytes();
-        // - maxSizeInBytes relates to unpacked data consisting of whole bytes
-        final byte[] result = new byte[(maxPixels + 1) >>> 1];
+        final int maxUnpackedSizeInBytes = options.getMaxUnpackedSizeInBytes();
+        // - maxUnpackedSizeInBytes relates to unpacked data consisting of whole bytes
+        final byte[] result = new byte[(maxUnpackedSizeInBytes + 1) >>> 1];
         // - zero-filled by Java
 
 //         System.out.println("!!! " + options.getPhotometric());
-        unpackThunderScan(result, data, data.length, maxPixels);
+        unpackThunderScan(result, data, data.length, maxUnpackedSizeInBytes);
         // - note: this format is classified as "low level" in TagCompression.isLowLevelBitsProcessing,
         // so we do not need to check the White-is-zero photometric interpretation
         // and should return 4-bit (not 8-bit) unpacked data

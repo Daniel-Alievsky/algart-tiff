@@ -383,7 +383,7 @@ public class JPEG2000Codec implements TiffCodec {
     // Note: SCIFIO codec also overrides the method decompress(DataHandle) of AbstractCodec,
     // but this is probably a bug:
     // 1) actually we use decompress(byte[] data) method, which is also overridden;
-    // 2) the implementation used options.maxSizeInBytes for reading COMPRESSED data.
+    // 2) the implementation used options.maxUnpackedSizeInBytes for reading COMPRESSED data.
 
     // Below is a copy of equivalent SCIFIO method, not using jaiIIOService field
     @SuppressWarnings("removal")

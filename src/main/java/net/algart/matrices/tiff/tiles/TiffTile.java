@@ -77,6 +77,7 @@ public final class TiffTile {
     private int sizeX;
     private int sizeY;
     private int sizeInPixels;
+    private int sizeInSamples;
     private int sizeInBytes;
     private int sizeInBits;
     private int lineSizeInBytesInsideTIFF;
@@ -338,7 +339,9 @@ public final class TiffTile {
         this.sizeX = sizeX;
         this.sizeY = sizeY;
         this.sizeInPixels = sizeInPixels;
+        this.sizeInSamples = sizeInPixels * samplesPerPixel;
         this.sizeInBits = sizeInPixels * normalizedBitsPerPixel;
+        assert sizeInBits == sizeInSamples * normalizedBitDepth;
         this.sizeInBytes = (sizeInBits + 7) >>> 3;
         this.lineSizeInBytesInsideTIFF = ((sizeX * normalizedBitsPerPixel + 7) >>> 3);
         assert (long) lineSizeInBytesInsideTIFF * (long) sizeY <= Integer.MAX_VALUE :
@@ -364,6 +367,15 @@ public final class TiffTile {
      */
     public int getSizeInPixels() {
         return sizeInPixels;
+    }
+
+    /**
+     * Returns {@link #getSizeX()} * {@link #getSizeY()} * {@link #samplesPerPixel()}.
+     *
+     * @return number of samples in the tile.
+     */
+    public int getSizeInSamples() {
+        return sizeInSamples;
     }
 
     /**

@@ -334,12 +334,13 @@ public class TiffUnpacking {
             // bits unpacking or color corrections (including inverting brightness) themselves
             return true;
         }
-        final int bitDepth = ifd.tryEqualBitDepthAlignedByBytes().orElse(-1);
+        final int bitDepth = ifd.tryEqualBitDepthIfWholeBytes().orElse(-1);
         if (bitDepth == -1) {
             // - including 1 bit/pixel (it is not "aligned by bytes")
             return false;
         }
-        assert bitDepth != 1;
+        assert bitDepth % 8 == 0;
+        assert bitDepth > 1;
         if (bitDepth != 24 && !TiffSamples.isBitsPerSampleSupportedForAnyNumberOfChannels(bitDepth)) {
             // - should not occur: the same check is performed in TiffIFD.sampleType(), called while creating TiffMap
             throw new UnsupportedTiffFormatException("Not supported TIFF format: compression \"" +

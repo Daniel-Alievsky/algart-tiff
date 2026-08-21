@@ -80,7 +80,7 @@ public interface TiffCodec {
         private boolean floatingPoint = false;
         private boolean littleEndian = false;
         private boolean interleaved = false;
-        private int maxSizeInBytes = 0;
+        private int maxUnpackedSizeInBytes = 0;
         private TagCompression compression = null;
         private TagPhotometric photometric = null;
         // - the codec may need this information for "high-level" formats
@@ -243,21 +243,38 @@ public interface TiffCodec {
             return this;
         }
 
-        public int getMaxSizeInBytes() {
-            return maxSizeInBytes;
+        public int getMaxUnpackedSizeInBytes() {
+            return maxUnpackedSizeInBytes;
         }
 
         /**
-         * Sets the size of result unpacked data. Used for reading only.
+         * Sets the maximal size of resulting decoded data. Used for reading only.
          *
-         * @param maxSizeInBytes new maximal data size to be uncompressed.
+         * <p>This limit is used in some codecs as {@link LZWCodec}, {@link PackBitsCodec},
+         * {@link ThunderScanCodec}, {@link ZstdCodec}.</p>
+         *
+         * <p>Note that this value should contain the maximal number of bytes in the fully decoded tile,
+         * <i>after</i> possible unpacking bits when the number bits per sample is not multiple of 8,
+         * when this case is not supported in a normal {@link TiffTile#getDecodedData() decoded data}
+         * (i.e., if this is not {@link TiffSampleType#BIT}).
+         * For example, for the {@link TagCompression#THUNDER_SCAN} format (4 bits/pixel),
+         * this value should be the number of unpacked 8-bit pixels, <b>not</b> the summary size
+         * of raw unpacked 4-bit samples.
+         * In the case when the number bits per sample is not multiple of 8, some other codecs (as {@link LZWCodec})
+         * may use only part of the requested memory, but this is usually not a problem.</p>
+         *
+         * <p>More exactly, this value should be set to {@link TiffTile#getSizeInBytesInsideTIFF()}:
+         * the unpacked tile size concerning possible aligning of each line when the number of bits
+         * per sample is not a multiple 8 even in unpacked data ({@link TiffSampleType#BIT}).</p>
+         *
+         * @param maxUnpackedSizeInBytes new maximal data size to be uncompressed.
          * @return a reference to this object.
          */
-        public Options setMaxSizeInBytes(int maxSizeInBytes) {
-            if (maxSizeInBytes < 0) {
-                throw new IllegalArgumentException("Negative maxSizeInBytes = " + maxSizeInBytes);
+        public Options setMaxUnpackedSizeInBytes(int maxUnpackedSizeInBytes) {
+            if (maxUnpackedSizeInBytes < 0) {
+                throw new IllegalArgumentException("Negative maxUnpackedSizeInBytes = " + maxUnpackedSizeInBytes);
             }
-            this.maxSizeInBytes = maxSizeInBytes;
+            this.maxUnpackedSizeInBytes = maxUnpackedSizeInBytes;
             return this;
         }
 
@@ -396,7 +413,7 @@ public interface TiffCodec {
             this.floatingPoint = options.floatingPoint;
             this.littleEndian = options.littleEndian;
             this.interleaved = options.interleaved;
-            this.maxSizeInBytes = options.maxSizeInBytes;
+            this.maxUnpackedSizeInBytes = options.maxUnpackedSizeInBytes;
             this.compressionQuality = options.compressionQuality;
             this.losslessCompressionLevel = options.losslessCompressionLevel;
             this.compression = options.compression;
@@ -436,7 +453,7 @@ public interface TiffCodec {
             setField(scifioStyleClass, result, "littleEndian", littleEndian);
             setField(scifioStyleClass, result, "interleaved", interleaved);
             setField(scifioStyleClass, result, "signed", signed);
-            setField(scifioStyleClass, result, "maxBytes", maxSizeInBytes);
+            setField(scifioStyleClass, result, "maxBytes", maxUnpackedSizeInBytes);
             if (compressionQuality != null) {
                 setField(scifioStyleClass, result, "quality", compressionQuality);
             }
@@ -453,7 +470,7 @@ public interface TiffCodec {
             setFloatingPoint(false);
             setLittleEndian(getField(scifioStyleOptions, Boolean.class, "littleEndian"));
             setInterleaved(getField(scifioStyleOptions, Boolean.class, "interleaved"));
-            setMaxSizeInBytes(getField(scifioStyleOptions, Integer.class, "maxBytes"));
+            setMaxUnpackedSizeInBytes(getField(scifioStyleOptions, Integer.class, "maxBytes"));
             setCompressionQuality(getField(scifioStyleOptions, Double.class, "quality"));
         }
 
@@ -472,7 +489,7 @@ public interface TiffCodec {
                     ", floatingPoint=" + floatingPoint +
                     ", littleEndian=" + littleEndian +
                     ", interleaved=" + interleaved +
-                    ", maxSizeInBytes=" + maxSizeInBytes +
+                    ", maxUnpackedSizeInBytes=" + maxUnpackedSizeInBytes +
                     ", compression=" + compression +
                     ", photometric=" + photometric +
                     ", yCbCrSubsampling=" + Arrays.toString(yCbCrSubsampling) +

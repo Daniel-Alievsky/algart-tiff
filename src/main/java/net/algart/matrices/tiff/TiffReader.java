@@ -1611,20 +1611,23 @@ public non-sealed class TiffReader extends TiffIO {
         // - Note: codecs in SCIFIO did not use the options above, but some new codes like CCITTFaxCodec need them
         options.setIo(this);
 
-        options.setMaxSizeInBytes(tile.getSizeInBytesInsideTIFF());
+        options.setMaxUnpackedSizeInBytes(tile.getSizeInBytesInsideTIFF());
         // - Note: this may be LESS than the usual number of samples in the tile/strip.
         // Current readEncodedTile() can return full-size tile without cropping
-        // (see comments inside that method), but usually it CROPS the last tile/strip.
+        // (see comments inside that method), but usually it CROPS the last strip.
         // Old SCIFIO code did not detect this situation, in particular, did not distinguish between
         // last and usual strips in stripped image, and its behavior could be described by the following assignment:
         //      final int samplesLength = tile.map().tileSizeInBytes();
         // For many codecs (like DEFLATE or JPEG) this is not important, but at least
-        // LZWCodec creates a result array on the base of options.maxSizeInBytes.
+        // LZWCodec creates a result array on the base of options.getMaxUnpackedSizeInBytes().
         // If it is invalid (too large value), the returned decoded data will be too large,
         // and that is not too good: this class could throw an exception "data may be lost" in further
         // tile.adjustNumberOfPixels() call if it called it without allowDecreasing=true argument.
-        // Also note: if the number of bits per sample in the source TIFF is not 8k,
-        // this value will be GREATER than necessary.
+
+//        int invalidSize = (tile.rawEqualBitDepth().orElse(0) * tile.getSizeInSamples() + 7) / 8;
+//        System.out.printf("!!! Raw tile size: %d, normalized tile size: %.2f, MaxUnpackedSizeInBytes: %d (%s)%n",
+//                invalidSize, tile.getSizeInBits() / 8.0, options.getMaxUnpackedSizeInBytes(), tile);
+//        options.setMaxUnpackedSizeInBytes(invalidSize); // - for example, it is invalid for ThunderScan
         return options;
     }
 
