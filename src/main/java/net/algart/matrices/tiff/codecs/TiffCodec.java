@@ -254,7 +254,7 @@ public interface TiffCodec {
          * {@link ThunderScanCodec}, and {@link ZstdCodec})
          * to allocate memory buffers or limit decoding size.
          * It serves as a <b>safe upper bound</b>: it must be sufficient
-         * to hold all decompressed bytes, but <b>may</b>> be larger.</p>
+         * to hold all decompressed bytes, but <b>may</b> be larger.</p>
          *
          * <p>Note that this value should contain the maximal number of bytes in the fully decoded tile
          * <i>after</i> possible unpacking of bits when the number of bits per sample is not a multiple of 8,
@@ -263,8 +263,14 @@ public interface TiffCodec {
          * For example, for the {@link TagCompression#THUNDER_SCAN} format (4 bits/pixel),
          * this value should be the number of unpacked 8-bit pixels, <b>not</b> the summary size
          * of raw unpacked 4-bit samples.
-         * In the case when the number of bits per sample is not a multiple of 8, some other codecs (such as {@link LZWCodec})
-         * may use only part of the requested memory, but this is usually not a problem.</p>
+         * In the case when the number of bits per sample is not a multiple of 8,
+         * some other codecs (such as {@link LZWCodec})
+         * may use only part of the requested memory, but this is usually not a problem.
+         * (For example, in the case of 1000x1000 pixels and 4 bits/pixel,
+         * the {@link LZWCodec#decompress(byte[], Options)} method
+         * creates a {@code byte[1000000]} array with an extra 500000 trailing zero bytes.
+         * However, the {@link net.algart.matrices.tiff.TiffReader#completeDecoding(TiffTile)} method,
+         * called after {@link LZWCodec}, unpacks the data into the correct array of 1,000,000 8-bit values.)</p>
          *
          * <p>More exactly, this value should be set to {@link TiffTile#getSizeInBytesInsideTIFF()}.
          * This provides a universally safe limit across all codecs, including the case

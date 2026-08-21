@@ -1612,7 +1612,7 @@ public non-sealed class TiffReader extends TiffIO {
         options.setIo(this);
 
         options.setMaxUnpackedSizeInBytes(tile.getSizeInBytesInsideTIFF());
-        // - Note: this may be LESS than the usual number of samples in the tile/strip.
+        // - Note: for the last strip, this may be LESS than the usual number of samples in the tile/strip.
         // Current readEncodedTile() can return full-size tile without cropping
         // (see comments inside that method), but usually it CROPS the last strip.
         // Old SCIFIO code did not detect this situation, in particular, did not distinguish between
