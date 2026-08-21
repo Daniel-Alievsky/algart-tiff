@@ -250,22 +250,24 @@ public interface TiffCodec {
         /**
          * Sets the maximal size of resulting decoded data. Used for reading only.
          *
-         * <p>This limit is used in some codecs as {@link LZWCodec}, {@link PackBitsCodec},
-         * {@link ThunderScanCodec}, {@link ZstdCodec}.</p>
+         * <p>This limit is used in some codecs such as {@link LZWCodec}, {@link PackBitsCodec},
+         * {@link ThunderScanCodec}, and {@link ZstdCodec}.
+         * This limit <b>may be</b> greater than required for completely decoding data,
+         * but must not be less.</p>
          *
-         * <p>Note that this value should contain the maximal number of bytes in the fully decoded tile,
-         * <i>after</i> possible unpacking bits when the number bits per sample is not multiple of 8,
-         * when this case is not supported in a normal {@link TiffTile#getDecodedData() decoded data}
+         * <p>Note that this value should contain the maximal number of bytes in the fully decoded tile
+         * <i>after</i> possible unpacking of bits when the number of bits per sample is not a multiple of 8,
+         * if this case is not supported directly in normal {@link TiffTile#getDecodedData() decoded data}
          * (i.e., if this is not {@link TiffSampleType#BIT}).
          * For example, for the {@link TagCompression#THUNDER_SCAN} format (4 bits/pixel),
          * this value should be the number of unpacked 8-bit pixels, <b>not</b> the summary size
          * of raw unpacked 4-bit samples.
-         * In the case when the number bits per sample is not multiple of 8, some other codecs (as {@link LZWCodec})
+         * In the case when the number of bits per sample is not a multiple of 8, some other codecs (such as {@link LZWCodec})
          * may use only part of the requested memory, but this is usually not a problem.</p>
          *
          * <p>More exactly, this value should be set to {@link TiffTile#getSizeInBytesInsideTIFF()}:
-         * the unpacked tile size concerning possible aligning of each line when the number of bits
-         * per sample is not a multiple 8 even in unpacked data ({@link TiffSampleType#BIT}).</p>
+         * the unpacked tile size concerning possible alignment of each line when the number of bits
+         * per sample is not a multiple of 8, even in unpacked data ({@link TiffSampleType#BIT}).</p>
          *
          * @param maxUnpackedSizeInBytes new maximal data size to be uncompressed.
          * @return a reference to this object.
