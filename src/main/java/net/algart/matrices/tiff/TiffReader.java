@@ -1612,17 +1612,22 @@ public non-sealed class TiffReader extends TiffIO {
         options.setIo(this);
 
         options.setMaxUnpackedSizeInBytes(tile.getSizeInBytesInsideTIFF());
-        // - Note: for the last strip, this may be LESS than the usual number of samples in the tile/strip.
-        // Current readEncodedTile() can return full-size tile without cropping
+        // - Note: for the last strip, this value is usually LESS than for regular strips/tiles.
+        // Currently, readEncodedTile() can return a full-sized tile without cropping
         // (see comments inside that method), but usually it CROPS the last strip.
-        // Old SCIFIO code did not detect this situation, in particular, did not distinguish between
-        // last and usual strips in stripped image, and its behavior could be described by the following assignment:
+        // The old SCIFIO code did not handle this situation; in particular, it did not distinguish
+        // between the last strip and regular strips in a stripped image. Its behavior
+        // could be described by the following assignment:
         //      final int samplesLength = tile.map().tileSizeInBytes();
         // For many codecs (like DEFLATE or JPEG) this is not important, but at least
-        // LZWCodec creates a result array on the base of options.getMaxUnpackedSizeInBytes().
-        // If it is invalid (too large value), the returned decoded data will be too large,
-        // and that is not too good: this class could throw an exception "data may be lost" in further
-        // tile.adjustNumberOfPixels() call if it called it without allowDecreasing=true argument.
+        // LZWCodec creates its result array based on options.getMaxUnpackedSizeInBytes().
+        // If this value is invalid (too large), the returned decoded data will also be too large.
+        // This can cause issues: this class might throw a "data may be lost" exception in a subsequent
+        // tile.adjustNumberOfPixels() call if it is invoked without the allowDecreasing=true argument.
+        // Note that this only applies to the situation with (possibly forgotten) cropping of the last strip.
+        // The scenario where the number of bits per sample is not a multiple of 8 does not cause a problem here:
+        // tile.adjustNumberOfPixels() will be called AFTER completeDecoding(), which
+        // performs the necessary unpacking.
 
 //        int invalidSize = (tile.rawEqualBitDepth().orElse(0) * tile.getSizeInSamples() + 7) / 8;
 //        System.out.printf("!!! Raw tile size: %d, normalized tile size: %.2f, MaxUnpackedSizeInBytes: %d (%s)%n",
