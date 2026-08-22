@@ -2628,7 +2628,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 // Unlike 1 channel/pixel (the case above), we do not prevent the user from
                 // setting non-standard custom photometric interpretations: maybe he wants
                 // to create some LAB or CMYK TIFF, and he prepared all channels correctly.
-                if (ifd.isStandardYCbCrNonJpeg()) {
+                if (ifd.isStandardOrLowLevelYCbCrNonJpeg()) {
                     if (!smartCorrection) {
                         throw new UnsupportedTiffFormatException("Cannot write TIFF: encoding YCbCr " +
                                 "photometric interpretation is not supported for compression \"" +

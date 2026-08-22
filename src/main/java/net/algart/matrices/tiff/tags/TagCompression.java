@@ -755,8 +755,8 @@ public enum TagCompression {
         return isLowLevelBitsProcessing() && TagPhotometric.isInvertedBrightness(photometricCode);
     }
 
-    public boolean isStandard() {
-        return code <= 10 || this == PACK_BITS;
+    public boolean isStandardOrLowLevel() {
+        return code <= 10 || isLowLevelBitsProcessing();
         // - actually, the maximal supported standard compression is DEFLATE=8
     }
 
