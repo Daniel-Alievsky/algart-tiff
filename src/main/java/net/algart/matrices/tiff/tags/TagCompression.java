@@ -122,7 +122,7 @@ public enum TagCompression {
     JBIG_COLOR(10, "JBIG Color", null),
 
     /**
-     * Lossless JPEG / JPEG 99 compression (type 99).
+     * JPEG 99 compression (type 99).
      * Not supported in the current version.
      */
     JPEG_99(99, "JPEG 99", null),
@@ -376,9 +376,8 @@ public enum TagCompression {
 
     /**
      * JPEG Lossy compression (type 34892).
-     * Not supported in the current version.
      */
-    JPEG_LOSSY(34892, "JPEG Lossy", null),
+    JPEG_LOSSY(34892, "JPEG Lossy", JPEGCodec::new, JPEG),
 
     /**
      * LZMA compression (type 34925).

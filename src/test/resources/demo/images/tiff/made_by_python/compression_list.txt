@@ -1,0 +1,82 @@
+=== 60 TIFF Compressions ===
+  - NONE                      (Tag: 1    ) | Supported: YES
+  - CCITTRLE                  (Tag: 2    ) | Supported: NO ('<COMPRESSION.CCITTRLE: 2> not implemented')
+  - CCITTFAX3                 (Tag: 3    ) | Supported: NO ('<COMPRESSION.CCITTFAX3: 3> not implemented')
+  - CCITTFAX4                 (Tag: 4    ) | Supported: NO ('<COMPRESSION.CCITTFAX4: 4> not implemented')
+  - LZW                       (Tag: 5    ) | Supported: YES
+  - OJPEG                     (Tag: 6    ) | Supported: NO ('<COMPRESSION.OJPEG: 6> not implemented')
+  - JPEG                      (Tag: 7    ) | Supported: YES
+  - ADOBE_DEFLATE             (Tag: 8    ) | Supported: YES
+  - JBIG_BW                   (Tag: 9    ) | Supported: NO ('<COMPRESSION.JBIG_BW: 9> not supported')
+  - JBIG_COLOR                (Tag: 10   ) | Supported: NO ('<COMPRESSION.JBIG_COLOR: 10> not supported')
+  - JPEG_99                   (Tag: 99   ) | Supported: NO ('<COMPRESSION.JPEG_99: 99> not supported')
+  - IMPACJ                    (Tag: 103  ) | Supported: NO ('<COMPRESSION.IMPACJ: 103> not supported')
+  - KODAK_262                 (Tag: 262  ) | Supported: NO ('<COMPRESSION.KODAK_262: 262> not supported')
+  - JPEGXR_NDPI               (Tag: 22610) | Supported: YES
+  - NEXT                      (Tag: 32766) | Supported: NO ('<COMPRESSION.NEXT: 32766> not supported')
+  - SONY_ARW                  (Tag: 32767) | Supported: NO ('<COMPRESSION.SONY_ARW: 32767> not supported')
+  - PACKED_RAW                (Tag: 32769) | Supported: NO ('<COMPRESSION.PACKED_RAW: 32769> not supported')
+  - SAMSUNG_SRW               (Tag: 32770) | Supported: NO ('<COMPRESSION.SAMSUNG_SRW: 32770> not supported')
+  - CCIRLEW                   (Tag: 32771) | Supported: NO ('<COMPRESSION.CCIRLEW: 32771> not supported')
+  - SAMSUNG_SRW2              (Tag: 32772) | Supported: NO ('<COMPRESSION.SAMSUNG_SRW2: 32772> not supported')
+  - PACKBITS                  (Tag: 32773) | Supported: YES
+  - THUNDERSCAN               (Tag: 32809) | Supported: NO ('<COMPRESSION.THUNDERSCAN: 32809> not supported')
+  - IT8CTPAD                  (Tag: 32895) | Supported: NO ('<COMPRESSION.IT8CTPAD: 32895> not supported')
+  - IT8LW                     (Tag: 32896) | Supported: NO ('<COMPRESSION.IT8LW: 32896> not supported')
+  - IT8MP                     (Tag: 32897) | Supported: NO ('<COMPRESSION.IT8MP: 32897> not supported')
+  - IT8BL                     (Tag: 32898) | Supported: NO ('<COMPRESSION.IT8BL: 32898> not supported')
+  - PIXARFILM                 (Tag: 32908) | Supported: NO ('<COMPRESSION.PIXARFILM: 32908> not supported')
+  - PIXARLOG                  (Tag: 32909) | Supported: NO ('<COMPRESSION.PIXARLOG: 32909> not supported')
+  - DEFLATE                   (Tag: 32946) | Supported: YES
+  - DCS                       (Tag: 32947) | Supported: NO ('<COMPRESSION.DCS: 32947> not supported')
+  - APERIO_JP2000_YCBC        (Tag: 33003) | Supported: YES
+  - JPEG_2000_LOSSY           (Tag: 33004) | Supported: YES
+  - APERIO_JP2000_RGB         (Tag: 33005) | Supported: YES
+  - ALT_JPEG                  (Tag: 33007) | Supported: NO ('<COMPRESSION.ALT_JPEG: 33007> not implemented')
+  - JBIG                      (Tag: 34661) | Supported: NO ('<COMPRESSION.JBIG: 34661> not supported')
+  - SGILOG                    (Tag: 34676) | Supported: NO ('<COMPRESSION.SGILOG: 34676> not supported')
+  - SGILOG24                  (Tag: 34677) | Supported: NO ('<COMPRESSION.SGILOG24: 34677> not supported')
+  - LURADOC                   (Tag: 34692) | Supported: NO ('<COMPRESSION.LURADOC: 34692> not supported')
+  - JPEG2000                  (Tag: 34712) | Supported: YES
+  - NIKON_NEF                 (Tag: 34713) | Supported: NO ('<COMPRESSION.NIKON_NEF: 34713> not supported')
+  - JBIG2                     (Tag: 34715) | Supported: NO ('<COMPRESSION.JBIG2: 34715> not supported')
+  - MDI_BINARY                (Tag: 34718) | Supported: NO ('<COMPRESSION.MDI_BINARY: 34718> not supported')
+  - MDI_PROGRESSIVE           (Tag: 34719) | Supported: NO ('<COMPRESSION.MDI_PROGRESSIVE: 34719> not supported')
+  - MDI_VECTOR                (Tag: 34720) | Supported: NO ('<COMPRESSION.MDI_VECTOR: 34720> not supported')
+  - LERC                      (Tag: 34887) | Supported: YES
+  - JPEG_LOSSY                (Tag: 34892) | Supported: YES
+  - LZMA                      (Tag: 34925) | Supported: YES
+  - ZSTD_DEPRECATED           (Tag: 34926) | Supported: YES
+  - WEBP_DEPRECATED           (Tag: 34927) | Supported: YES
+  - PNG                       (Tag: 34933) | Supported: YES
+  - JPEGXR                    (Tag: 34934) | Supported: YES
+  - JETRAW                    (Tag: 48124) | Supported: NO (could not import name 'jetraw_encode' from 'imagecodecs')
+  - ZSTD                      (Tag: 50000) | Supported: YES
+  - WEBP                      (Tag: 50001) | Supported: YES
+  - JPEGXL                    (Tag: 50002) | Supported: YES
+  - PIXTIFF                   (Tag: 50013) | Supported: YES
+  - JPEGXL_DNG                (Tag: 52546) | Supported: YES
+  - EER_V0                    (Tag: 65000) | Supported: NO ('<COMPRESSION.EER_V0: 65000> not implemented')
+  - EER_V1                    (Tag: 65001) | Supported: NO ('<COMPRESSION.EER_V1: 65001> not implemented')
+  - EER_V2                    (Tag: 65002) | Supported: NO ('<COMPRESSION.EER_V2: 65002> not implemented')
+
+=== 16 Photometric Interpretations ===
+  - MINISWHITE                (Tag: 0)
+  - MINISBLACK                (Tag: 1)
+  - RGB                       (Tag: 2)
+  - PALETTE                   (Tag: 3)
+  - MASK                      (Tag: 4)
+  - SEPARATED                 (Tag: 5)
+  - YCBCR                     (Tag: 6)
+  - CIELAB                    (Tag: 8)
+  - ICCLAB                    (Tag: 9)
+  - ITULAB                    (Tag: 10)
+  - CFA                       (Tag: 32803)
+  - LOGL                      (Tag: 32844)
+  - LOGLUV                    (Tag: 32845)
+  - LINEAR_RAW                (Tag: 34892)
+  - DEPTH_MAP                 (Tag: 51177)
+  - SEMANTIC_MASK             (Tag: 52527)
+
+=== imagecodecs ===
+  - Version: 2026.3.6
