@@ -382,7 +382,7 @@ public enum TagCompression {
     /**
      * LZMA compression (XZ format, Lempel–Ziv–Markov chain Algorithm) (type 34925).
      */
-    LZMA(34925, "LZMA (XZ)", LZMACodec::new),
+    LZMA(TiffIFD.COMPRESSION_LZMA, "LZMA (XZ)", LZMACodec::new),
 
     /**
      * Deprecated Zstandard compression tag (type 34926).
@@ -720,7 +720,7 @@ public enum TagCompression {
      * {@link #NONE}, {@link #CCITT_T4}, {@link #CCITT_T6},
      * {@link #CCITT_MODIFIED_HUFFMAN},
      * {@link #LZW}, {@link #DEFLATE}, {@link #DEFLATE_DEPRECATED},
-     * {@link #PACK_BITS}, {@link #THUNDER_SCAN}, {@link #ZSTD}.
+     * {@link #PACK_BITS}, {@link #THUNDER_SCAN},  {@link #LZMA}, {@link #ZSTD}.
      *
      * <p>For high-level compressions like JPEG, this method returns {@code false}.
      * Such codecs typically return a ready-to-use image, similar to the result of reading from a file.
@@ -741,6 +741,7 @@ public enum TagCompression {
                  TiffIFD.COMPRESSION_DEFLATE_DEPRECATED,
                  TiffIFD.COMPRESSION_PACK_BITS,
                  TiffIFD.COMPRESSION_THUNDER_SCAN,
+                 TiffIFD.COMPRESSION_LZMA,
                  TiffIFD.COMPRESSION_ZSTD -> true;
             default -> false;
         };

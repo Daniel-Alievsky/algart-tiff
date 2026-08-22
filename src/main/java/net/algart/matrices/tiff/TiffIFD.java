@@ -500,6 +500,11 @@ public final class TiffIFD {
     public static final int COMPRESSION_JPEG_2000 = 34712;
 
     /**
+     * Compression code for {@link TagCompression#LZMA}.
+     */
+    public static final int COMPRESSION_LZMA = 34925;
+
+    /**
      * Compression code for {@link TagCompression#JPEG_2000_APERIO}.
      */
     public static final int COMPRESSION_JPEG_2000_APERIO = 33005;
