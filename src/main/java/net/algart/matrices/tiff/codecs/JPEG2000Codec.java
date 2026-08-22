@@ -31,6 +31,7 @@ import com.github.jaiimageio.jpeg2000.impl.J2KImageWriter;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.UnsupportedTiffFormatException;
 import net.algart.matrices.tiff.awt.AWTImages;
+import net.algart.matrices.tiff.tags.TagPhotometric;
 
 import javax.imageio.IIOImage;
 import javax.imageio.ImageWriteParam;
@@ -264,8 +265,21 @@ public class JPEG2000Codec implements TiffCodec {
             // due to integer bit-shift overflow (1 << ntdepth[0]) in calcMixedBitDepths and other jai-imageio methods
         }
         if (options.isSigned()) {
-            throw new TiffException("JPEG compression for signed samples is not supported " +
+            throw new TiffException("JPEG-2000 compression for signed samples is not supported " +
                     "(only unsigned samples allowed)");
+        }
+        final int samplesPerPixel = options.getSamplesPerPixel();
+        final TagPhotometric photometric = options.getPhotometric();
+        final int expectedChannels = switch (photometric) {
+            case null -> throw new TiffException("Photometric interpretation is not set in the options");
+            case BLACK_IS_ZERO -> 1;
+            case RGB -> options.isPlanarSeparated() ? 1 : 3;
+            default -> throw new TiffException("JPEG-2000 compression for photometric interpretation " + photometric +
+                    " is not supported");
+        };
+        if (samplesPerPixel != expectedChannels) {
+            throw new TiffException("JPEG-2000 compression for " + samplesPerPixel + " channels for " +
+                    "photometric interpretation " + photometric + " is not supported");
         }
         if (data.length == 0) {
             return data;
@@ -290,7 +304,6 @@ public class JPEG2000Codec implements TiffCodec {
 
         final int plane = Math.multiplyExact(jpeg2000Options.getWidth(), jpeg2000Options.getHeight());
 
-        final int samplesPerPixel = jpeg2000Options.getSamplesPerPixel();
         final boolean interleaved = jpeg2000Options.isInterleaved();
         final boolean littleEndian = jpeg2000Options.isLittleEndian();
         if (bitsPerSample == 8) {

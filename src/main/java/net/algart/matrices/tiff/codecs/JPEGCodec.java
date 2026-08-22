@@ -106,8 +106,8 @@ public class JPEGCodec extends AWTCodec implements TiffCodec.Timing {
         if (options.isFloatingPoint()) {
             throw new TiffException("JPEG compression cannot be used for floating-point values");
         }
-        final TagPhotometric photometric = options.getPhotometric();
         final int samplesPerPixel = options.getSamplesPerPixel();
+        final TagPhotometric photometric = options.getPhotometric();
         final int expectedChannels = switch (photometric) {
             case null -> throw new TiffException("Photometric interpretation is not set in the options");
             case BLACK_IS_ZERO -> 1;
