@@ -380,10 +380,9 @@ public enum TagCompression {
     JPEG_LOSSY(34892, "JPEG Lossy", JPEGCodec::new, JPEG),
 
     /**
-     * LZMA compression (type 34925).
-     * Not supported in the current version.
+     * LZMA compression (XZ format, Lempel–Ziv–Markov chain Algorithm) (type 34925).
      */
-    LZMA(34925, "LZMA", null),
+    LZMA(34925, "LZMA (XZ)", LZMACodec::new),
 
     /**
      * Deprecated Zstandard compression tag (type 34926).
