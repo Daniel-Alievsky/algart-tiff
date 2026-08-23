@@ -261,7 +261,7 @@ public class LZWCodecTiff6Only implements TiffCodec {
         }
     }
 
-    public byte[] decompress(DataHandle<?> in, Options options) throws IOException {
+    private byte[] decompress(DataHandle<?> in, Options options) throws IOException {
         Objects.requireNonNull(in, "Null input stream");
         Objects.requireNonNull(options, "Null codec options");
         if (in.length() == 0) {
