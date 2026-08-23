@@ -398,7 +398,7 @@ public class LZWCodec implements TiffCodec {
                     if (currCode == EOI_CODE) break;
                     // write string[curr_code] to output
                     // -- but here we are sure that string consists of a single byte
-                    if (outPosition >= out.length - 1) break;
+                    if (outPosition >= out.length) break;
                     out[outPosition++] = newBytes[currCode];
                     oldCode = currCode;
                 } else if (currCode < nextCode) {
