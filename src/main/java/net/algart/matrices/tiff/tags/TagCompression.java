@@ -377,7 +377,7 @@ public enum TagCompression {
     /**
      * JPEG Lossy compression (type 34892).
      */
-    JPEG_LOSSY(34892, "JPEG Lossy", JPEGCodec::new, JPEG),
+    JPEG_LOSSY(TiffIFD.COMPRESSION_JPEG_LOSSY, "JPEG Lossy", JPEGCodec::new, JPEG),
 
     /**
      * LZMA compression (XZ format, Lempel–Ziv–Markov chain Algorithm) (type 34925).
@@ -600,16 +600,28 @@ public enum TagCompression {
     }
 
     /**
-     * Returns <code>true</code> for {@link #JPEG} and {@link #JPEG_RGB}.
+     * Returns <code>true</code> for {@link #JPEG}, {@link #JPEG_RGB} or {@link #JPEG_LOSSY}.
+     * All these compressions use the same {@link JPEGCodec}, though {@link #JPEG_LOSSY} does not allow compression
+     * (only decompression).
      *
-     * @return whether it is the standard JPEG compression (code {@value TiffIFD#COMPRESSION_JPEG}).
+     * @return whether it is standard JPEG compression (code {@value TiffIFD#COMPRESSION_JPEG} or
+     * a rare equivalent code {@link TiffIFD#COMPRESSION_JPEG_LOSSY}).
      */
     public boolean isStandardJpeg() {
-        return code == TiffIFD.COMPRESSION_JPEG;
+        return code == TiffIFD.COMPRESSION_JPEG || code == TiffIFD.COMPRESSION_JPEG_LOSSY;
     }
 
-    public boolean isAWTBasedCodec() {
-        return isStandardJpeg() || isJpeg2000() || this == WEBP;
+    /**
+     * Returns {@code true} if the codec is based on AWT ImageReader.
+     * In this case, the preferred {@link TiffCodec.Options#setInterleaved(boolean) interleaved} flag in the codec
+     * options is {@code false}: AWT functions can return channels in separated banks, and there is no reason
+     * for the {@link TiffCodec#decompress(byte[], TiffCodec.Options)} method to interleave them back
+     * to the RGBRGB... format &mdash; the TIFF reader needs separated channels.
+     *
+     * @return whether this codec uses AWT functions for decompressing data.
+     */
+    public boolean isAWTBasedReading() {
+        return isStandardJpeg() || isJpegOrOldJpeg() || isJpeg2000() || this == WEBP;
     }
 
     /**
@@ -638,7 +650,7 @@ public enum TagCompression {
     }
 
     public boolean isJpegOrOldJpeg() {
-        return isStandardJpeg() || this == OLD_JPEG;
+        return code == TiffIFD.COMPRESSION_JPEG || code == TiffIFD.COMPRESSION_OLD_JPEG;
     }
 
     public boolean isRGBPreferred() {
@@ -654,9 +666,17 @@ public enum TagCompression {
     }
 
     public boolean isJpegFamily() {
-        return isJpegOrOldJpeg() || isJpeg2000();
+        return isStandardJpeg() || isJpegOrOldJpeg() || isJpeg2000();
     }
 
+    /**
+     * Returns {@code true} if the codec always creates an RGB compressed image and
+     * requires the {@link TagPhotometric#RGB} photometric tag to be correctly viewed.
+     * In the current version, this is true for JPEG-2000 codecs only.
+     *
+     * @return whether the photometric interpretation tag <b>must</b> be {@link TagPhotometric#RGB} while writing
+     * a TIFF image with this compression.
+     */
     public boolean isRGBRequired() {
         return code == TiffIFD.COMPRESSION_JPEG_2000 ||
                 code == TiffIFD.COMPRESSION_JPEG_2000_APERIO;
@@ -778,7 +798,7 @@ public enum TagCompression {
     public TiffCodec.Options customizeReading(TiffTile tile, TiffCodec.Options options) {
         // Note: this method does not damage customization already performed in the options;
         // so, it uses clone() or Options.setTo() method
-        if (isAWTBasedCodec()) {
+        if (isAWTBasedReading()) {
             options = customizeAWTReading(tile, options);
         }
         if (isJpeg2000()) {

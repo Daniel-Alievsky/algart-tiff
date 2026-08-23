@@ -108,6 +108,7 @@ public class AWTCodec implements TiffCodec {
     }
 
     public static byte[] mergeChannels(byte[][] pixelBytes, int dimX, int dimY, boolean interleaved) {
+        // System.out.println("!!! Interleaved: " + interleaved);
         Objects.requireNonNull(pixelBytes, "Null pixelBytes");
         if (dimX < 0 || dimY < 0) {
             throw new IllegalArgumentException("Negative dimensions " + dimX + " " + dimY);
