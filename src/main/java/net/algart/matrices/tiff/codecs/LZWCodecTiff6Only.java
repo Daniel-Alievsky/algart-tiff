@@ -33,7 +33,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
 
-public class LZWCodec implements TiffCodec {
+// Deprecated version: identical to the new version besides that it does not support TIFF 5.0
+class LZWCodecTiff6Only implements TiffCodec {
     // (It is placed here to avoid autocorrection by IntelliJ IDEA)
     /*
      * #%L
@@ -305,53 +306,26 @@ public class LZWCodec implements TiffCodec {
         // Previous code processed by decompressor.
         int oldCode = 0; // without initializer, Java reports error later
 
-        boolean oldStyle = false;
         boolean startDecoding = true;
         try {
             do {
                 // read next code
                 {
-                    if (startDecoding) {
-                        final int firstByte = in.read() & 0xff;
-                        final int nextByte = in.read() & 0xff;
-
-                        if (firstByte == 0x00 && (nextByte & 1) != 0) {
-                            // TIFF 5.0-style LZW: codes are packed LSB-first.
-                            oldStyle = true;
-                            currCode = firstByte | ((nextByte & 1) << 8);
-
-                            // 7 bits of nextByte remain unused.
-                            currRead = nextByte >>> 1;
-                            bitsRead = 7;
-                        } else {
-                            // Normal TIFF LZW: codes are packed MSB-first.
-                            currCode = (firstByte << 1) | (nextByte >> 7);
-                            currRead = nextByte & 0x7f;
-                            bitsRead = 7;
-                        }
-                    } else if (oldStyle) {
-                        // TIFF 5.0-style LZW: codes are packed LSB-first.
-                        while (bitsRead < currCodeLength) {
-                            currRead |= (in.read() & 0xff) << bitsRead;
-                            bitsRead += 8;
-                        }
-
-                        currCode = currRead & ((1 << currCodeLength) - 1);
-                        currRead >>>= currCodeLength;
-                        bitsRead -= currCodeLength;
-                    } else {
-                        // Normal TIFF LZW: codes are packed MSB-first.
-                        int bitsLeft = currCodeLength - bitsRead;
-                        if (bitsLeft > 8) {
-                            currRead = (currRead << 8) | (in.read() & 0xff);
-                            bitsLeft -= 8;
-                        }
-                        bitsRead = 8 - bitsLeft;
-
-                        final int nextByte = in.read() & 0xff;
-                        currCode = (currRead << bitsLeft) | (nextByte >> bitsRead);
-                        currRead = nextByte & DECOMPR_MASKS[bitsRead];
+                    int bitsLeft = currCodeLength - bitsRead;
+                    int firstByte = -1;
+                    if (bitsLeft > 8) {
+                        firstByte = in.read() & 0xff;
+                        currRead = (currRead << 8) | firstByte;
+                        bitsLeft -= 8;
                     }
+                    bitsRead = 8 - bitsLeft;
+                    final int nextByte = in.read() & 0xff;
+                    if (startDecoding && firstByte == 0x00 && nextByte == 0x01) {
+                        throw new TiffException("TIFF 5.0-style LZW compression (very old format) is not " +
+                                "supported");
+                    }
+                    currCode = (currRead << bitsLeft) | (nextByte >> bitsRead);
+                    currRead = nextByte & DECOMPR_MASKS[bitsRead];
                 }
                 startDecoding = false;
 
@@ -363,27 +337,16 @@ public class LZWCodec implements TiffCodec {
                     currCodeLength = 9;
                     // read next code
                     {
-                        if (oldStyle) {
-                            while (bitsRead < currCodeLength) {
-                                currRead |= (in.read() & 0xff) << bitsRead;
-                                bitsRead += 8;
-                            }
-
-                            currCode = currRead & ((1 << currCodeLength) - 1);
-                            currRead >>>= currCodeLength;
-                            bitsRead -= currCodeLength;
-                        } else {
-                            int bitsLeft = currCodeLength - bitsRead;
-                            if (bitsLeft > 8) {
-                                currRead = (currRead << 8) | (in.read() & 0xff);
-                                bitsLeft -= 8;
-                            }
-                            bitsRead = 8 - bitsLeft;
-
-                            final int nextByte = in.read() & 0xff;
-                            currCode = (currRead << bitsLeft) | (nextByte >> bitsRead);
-                            currRead = nextByte & DECOMPR_MASKS[bitsRead];
+                        int bitsLeft = currCodeLength - bitsRead;
+                        if (bitsLeft > 8) {
+                            currRead = (currRead << 8) | (in.read() & 0xff);
+                            bitsLeft -= 8;
                         }
+                        bitsRead = 8 - bitsLeft;
+
+                        final int nextByte = in.read() & 0xff;
+                        currCode = (currRead << bitsLeft) | (nextByte >> bitsRead);
+                        currRead = nextByte & DECOMPR_MASKS[bitsRead];
                     }
                     if (currCode == EOI_CODE) break;
                     // write string[curr_code] to output
@@ -436,13 +399,7 @@ public class LZWCodec implements TiffCodec {
                     nextCode++;
                 }
                 // Increase the length of code if needed
-                if (oldStyle) currCodeLength = switch (nextCode) {
-                    case 512 -> 10;
-                    case 1024 -> 11;
-                    case 2048 -> 12;
-                    default -> currCodeLength;
-                };
-                else currCodeLength = switch (nextCode) {
+                currCodeLength = switch (nextCode) {
                     case 511 -> 10;
                     case 1023 -> 11;
                     case 2047 -> 12;
