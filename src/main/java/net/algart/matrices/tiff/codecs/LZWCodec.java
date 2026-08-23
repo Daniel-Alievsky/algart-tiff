@@ -26,17 +26,12 @@ package net.algart.matrices.tiff.codecs;
 
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIO;
-import org.scijava.io.handle.BytesHandle;
-import org.scijava.io.handle.DataHandle;
-import org.scijava.io.location.BytesLocation;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Objects;
 
 public class LZWCodec implements TiffCodec {
+    // Note: compared to SCIFIO, support for 5.0-style LZW is added. - Daniel Alievsky.
     // (It is placed here to avoid autocorrection by IntelliJ IDEA)
     /*
      * #%L
