@@ -25,11 +25,14 @@
 package net.algart.matrices.tiff.codecs;
 
 import net.algart.matrices.tiff.TiffException;
+import net.algart.matrices.tiff.TiffIO;
 import org.scijava.io.handle.BytesHandle;
 import org.scijava.io.handle.DataHandle;
 import org.scijava.io.location.BytesLocation;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -63,6 +66,26 @@ public class LZWCodec implements TiffCodec {
      * POSSIBILITY OF SUCH DAMAGE.
      * #L%
      */
+    public static class LZWCodecReport extends TiffIO.CodecReport {
+        private boolean tiff50Style = false;
+
+        public boolean isTiff50Style() {
+            return tiff50Style;
+        }
+
+        public LZWCodecReport setTiff50Style(boolean tiff50Style) {
+            this.tiff50Style = tiff50Style;
+            return this;
+        }
+
+        @Override
+        public String toString() {
+            return "LZW decoder report:" +
+                    (tiff50Style ?
+                            "%n    TIFF 5.0-style LZW compression detected (very old format)".formatted() :
+                            "");
+        }
+    }
 
     /**
      * Size of hash table. Must be greater 3837 (the number of possible codes).
@@ -242,11 +265,6 @@ public class LZWCodec implements TiffCodec {
         return result;
     }
 
-    /**
-     * The Options parameter should have the following fields set:
-     * {@link Options#getMaxUnpackedSizeInBytes()}.
-     */
-    @Override
     public byte[] decompress(byte[] data, Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
@@ -260,6 +278,7 @@ public class LZWCodec implements TiffCodec {
         }
     }
 
+    // An attempt to implement TIFF 5.0 LZW decompression; does not still work well (some lines are broken)
     public byte[] decompress(DataHandle<?> in, Options options) throws IOException {
         Objects.requireNonNull(in, "Null input stream");
         Objects.requireNonNull(options, "Null codec options");
@@ -453,6 +472,41 @@ public class LZWCodec implements TiffCodec {
         } catch (final ArrayIndexOutOfBoundsException e) {
             throw new TiffException("Invalid LZW data", e);
         }
+        if (oldStyle) {
+            options.setReport(new LZWCodecReport().setTiff50Style(true));
+        }
         return output;
     }
+
+    // Bad idea: does not work well on many images
+    private byte[] decompressViaTwelveMonkey(byte[] data, Options options) throws TiffException {
+        Objects.requireNonNull(data, "Null data");
+        Objects.requireNonNull(options, "Null codec options");
+        try {
+            final ByteArrayInputStream compressedDataStream = new ByteArrayInputStream(data);
+            final boolean oldStyle = LZWDecoderAdapted.isOldBitReversedStream(compressedDataStream);
+
+            LZWDecoderAdapted decoder = LZWDecoderAdapted.create(oldStyle);
+            if (oldStyle) {
+                options.setReport(new LZWCodecReport().setTiff50Style(true));
+            }
+
+            final byte[] output = new byte[options.getMaxUnpackedSizeInBytes()];
+            final ByteBuffer buffer = ByteBuffer.wrap(output);
+
+            decoder.decode(compressedDataStream, buffer);
+
+//             return buffer.position() == output.length ? output : Arrays.copyOf(output, buffer.position());
+            // - note: the previous "correction" is a bad idea!
+            // For general-cmm-error.tif from TwelveMonkey test set, the output buffer is not completely filled,
+            // and it leads to error in TiffUnpacking.unpackTiffBitsAndInvertValues
+
+            return output;
+
+        } catch (IOException e) {
+            throw e instanceof TiffException tiffException ? tiffException : new TiffException(e);
+            // - last variant is very improbable
+        }
+    }
+
 }

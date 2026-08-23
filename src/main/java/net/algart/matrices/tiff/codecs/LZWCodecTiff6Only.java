@@ -34,7 +34,7 @@ import java.util.Arrays;
 import java.util.Objects;
 
 // Deprecated version: identical to the new version besides that it does not support TIFF 5.0
-class LZWCodecTiff6Only implements TiffCodec {
+public class LZWCodecTiff6Only implements TiffCodec {
     // (It is placed here to avoid autocorrection by IntelliJ IDEA)
     /*
      * #%L
