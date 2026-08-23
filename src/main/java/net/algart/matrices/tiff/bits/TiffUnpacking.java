@@ -121,7 +121,7 @@ public class TiffUnpacking {
         final TiffIFD ifd = tile.ifd();
         final byte[] data = tile.getDecodedData();
 
-        if (!ifd.isStandardOrLowLevelYCbCrNonJpeg()) {
+        if (!ifd.isLowLevelYCbCr()) {
             return false;
         }
         checkInterleaved(tile);
@@ -273,7 +273,7 @@ public class TiffUnpacking {
         if (OPTIMIZE_SEPARATING_WHOLE_BYTES && isSimpleRearrangingBytesEnough(ifd, null)) {
             return false;
         }
-        if (ifd.isStandardOrLowLevelYCbCrNonJpeg()) {
+        if (ifd.isLowLevelYCbCr()) {
             return false;
         }
         checkInterleaved(tile);

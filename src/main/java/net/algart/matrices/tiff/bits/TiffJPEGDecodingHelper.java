@@ -41,7 +41,7 @@ public class TiffJPEGDecodingHelper {
     public static void embedJPEGTableInDataIfRequested(TiffTile tile) throws TiffException {
         final TiffIFD ifd = tile.ifd();
         final TagCompression compression = ifd.optCompression().orElse(null);
-        if (compression == null || !compression.isStandardJpeg()) {
+        if (compression == null || !compression.isJpegCodec()) {
             // This method is designed for standard JPEG only (code 7)!
             // For Old-style JPEG (code 6), using JPEG_TABLES has no sense: we should use
             // JPEG_Q_TABLES, JPEG_DC_TABLES, JPEG_AC_TABLES or JPEG_INTERCHANGE_FORMAT

@@ -2387,11 +2387,8 @@ public final class TiffIFD {
         return bitsPerSample[0];
     }
 
-    public boolean isStandardOrLowLevelYCbCrNonJpeg() {
-        final TagCompression compression = optCompressionOrNone();
-        return compression.isStandardOrLowLevel() &&
-                !compression.isJpegOrOldJpeg() &&
-                isYCbCr();
+    public boolean isLowLevelYCbCr() {
+        return isLowLevelBitsProcessing() && isYCbCr();
     }
 
     public boolean isLowLevelBitsProcessing() {

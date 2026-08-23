@@ -607,7 +607,7 @@ public enum TagCompression {
      * @return whether it is standard JPEG compression (code {@value TiffIFD#COMPRESSION_JPEG} or
      * a rare equivalent code {@link TiffIFD#COMPRESSION_JPEG_LOSSY}).
      */
-    public boolean isStandardJpeg() {
+    public boolean isJpegCodec() {
         return code == TiffIFD.COMPRESSION_JPEG || code == TiffIFD.COMPRESSION_JPEG_LOSSY;
     }
 
@@ -621,7 +621,7 @@ public enum TagCompression {
      * @return whether this codec uses AWT functions for decompressing data.
      */
     public boolean isAWTBasedReading() {
-        return isStandardJpeg() || isJpegOrOldJpeg() || isJpeg2000() || this == WEBP;
+        return isJpegCodec() || isStandardOrOldJpeg() || isJpeg2000() || this == WEBP;
     }
 
     /**
@@ -649,7 +649,7 @@ public enum TagCompression {
         return this == OLD_JPEG;
     }
 
-    public boolean isJpegOrOldJpeg() {
+    public boolean isStandardOrOldJpeg() {
         return code == TiffIFD.COMPRESSION_JPEG || code == TiffIFD.COMPRESSION_OLD_JPEG;
     }
 
@@ -666,7 +666,7 @@ public enum TagCompression {
     }
 
     public boolean isJpegFamily() {
-        return isStandardJpeg() || isJpegOrOldJpeg() || isJpeg2000();
+        return isJpegCodec() || isStandardOrOldJpeg() || isJpeg2000();
     }
 
     /**
@@ -729,7 +729,7 @@ public enum TagCompression {
     }
 
     public boolean isCompressionQualitySupported() {
-        return isJpeg2000() || isStandardJpeg();
+        return isJpeg2000() || isJpegCodec();
     }
 
     /**
@@ -773,11 +773,6 @@ public enum TagCompression {
 
     public boolean isLowLevelInvertedBrightness(int photometricCode) {
         return isLowLevelBitsProcessing() && TagPhotometric.isInvertedBrightness(photometricCode);
-    }
-
-    public boolean isStandardOrLowLevel() {
-        return code <= 10 || isLowLevelBitsProcessing();
-        // - actually, the maximal supported standard compression is DEFLATE=8
     }
 
     /**

@@ -2578,7 +2578,7 @@ public non-sealed class TiffWriter extends TiffIO {
         // - note: it is possible that we DO NOT KNOW this newPhotometric interpretation;
         // in this case, newPhotometric will be UNKNOWN, but we should not prevent writing such an image
         // in simple formats like UNCOMPRESSED or LZW: maybe, the client knows how to process it
-        if (compression.isStandardJpeg()) {
+        if (compression.isJpegCodec()) {
             if (samplesPerPixel != 1 && samplesPerPixel != 3) {
                 throw new TiffException("JPEG compression for " + samplesPerPixel + " channels is not supported");
             }
@@ -2628,7 +2628,7 @@ public non-sealed class TiffWriter extends TiffIO {
                 // Unlike 1 channel/pixel (the case above), we do not prevent the user from
                 // setting non-standard custom photometric interpretations: maybe he wants
                 // to create some LAB or CMYK TIFF, and he prepared all channels correctly.
-                if (ifd.isStandardOrLowLevelYCbCrNonJpeg()) {
+                if (ifd.isLowLevelYCbCr()) {
                     if (!smartCorrection) {
                         throw new UnsupportedTiffFormatException("Cannot write TIFF: encoding YCbCr " +
                                 "photometric interpretation is not supported for compression \"" +

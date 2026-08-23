@@ -110,7 +110,7 @@ public class ExtractAllTiles {
         return resultFolder.resolve("tile_x" + i.xIndex() +
                 "_y" + i.yIndex() +
                 (tile.isPlanarSeparated() ? "_p" + i.separatedPlaneIndex() : "") +
-                "." + ((tile.compression().isJpegOrOldJpeg()) ? "jpg" : "bmp"));
+                "." + ((tile.compression().isStandardOrOldJpeg()) ? "jpg" : "bmp"));
     }
 
     private static void writeImageFile(Path file, Matrix<? extends PArray> matrix) throws IOException {

@@ -35,29 +35,45 @@ public class TagCompressionTest {
             TagCompression requiredCompression,
             int requiredCode,
             boolean requiredContains) throws TiffException {
-        final var compression = ifd.optCompression().orElse(null);
-        if (compression != requiredCompression) {
-            throw new AssertionError("Invalid compression " + compression);
+        final TagCompression c = ifd.optCompression().orElse(null);
+        if (c != requiredCompression) {
+            throw new AssertionError("Invalid compression " + c);
         }
-        if (ifd.getCompressionCode() != requiredCode) {
-            throw new AssertionError("Invalid code = " + ifd.optPredictorCode());
+        final int compressionCode = ifd.getCompressionCode();
+        if (compressionCode != requiredCode) {
+            throw new AssertionError("Invalid code = " + compressionCode);
         }
         if (ifd.hasTag(Tags.COMPRESSION) != requiredContains) {
             throw new AssertionError("Invalid containsKey() = " + ifd.hasTag(Tags.COMPRESSION));
         }
-        if (compression != null && compression.isSupported() == (compression.codec() == null)) {
-            throw new AssertionError("isSupported: " + compression.isSupported() +
-                    ", but codec(): " + compression.codec());
+        if (c != null && c.isSupported() == (c.codec() == null)) {
+            throw new AssertionError("isSupported: " + c.isSupported() +
+                    ", but codec(): " + c.codec());
         }
-        System.out.printf("Compression: %-25s  Code: %-5d  %-50s  %s%n",
-                compression == null ? "unknown" : compression.name(),
-                ifd.getCompressionCode(),
+        if (c != null) {
+            boolean standardOrLowLevel = compressionCode <= 10 || c.isLowLevelBitsProcessing();
+            if (c.isSupported() && standardOrLowLevel != (c.isLowLevelBitsProcessing() || c.isStandardOrOldJpeg())) {
+                throw new AssertionError(c);
+            }
+            if (c.isLowLevelBitsProcessing() && c.isStandardOrOldJpeg()) {
+                throw new AssertionError(c);
+            }
+        }
+        System.out.printf("Compression: %-25s  Code: %-5d  %-45s %s%s%s%s%s%s %s%n",
+                c == null ? "unknown" : c.name(),
+                compressionCode,
                 "\"" + ifd.compressionPrettyName() + "\"",
-                compression == null ? "n/a" :
-                        !compression.isSupported() ? "NOT supported" :
-                        compression.isWritingSupported() ?
+                c != null && c.isAWTBasedReading() ? "AWT " : "    ",
+                c != null && c.isLowLevelBitsProcessing() ? "Low " : "    ",
+                c != null && c.isStandardOrOldJpeg() ? "6|7 " : "    ",
+                c != null && c.isJpegCodec() ? "JPEG " : "     ",
+                c != null && c.isJpeg2000() ? "J2K " : "    ",
+                c != null && c.isOldFormat() ? "old " : "    ",
+                c == null ? "n/a" :
+                        !c.isSupported() ? "NOT supported" :
+                        c.isWritingSupported() ?
                         "writing supported" :
-                        "writing not supported, nearest with full support: " + compression.nearestWritable());
+                        "writing not supported, nearest with full support: " + c.nearestWritable());
     }
 
     public void test() throws Exception {
@@ -110,6 +126,5 @@ public class TagCompressionTest {
         ifd.putCompressionCode(TagCompression.JPEG_RGB.code());
         // - removes the stored JPEG_RGB!
         check(ifd, TagCompression.JPEG, TagCompression.JPEG.code(), true);
-
     }
 }

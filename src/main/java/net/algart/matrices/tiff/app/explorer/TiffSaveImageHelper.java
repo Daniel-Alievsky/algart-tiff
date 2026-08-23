@@ -536,7 +536,7 @@ class TiffSaveImageHelper {
 
     private static String compressionQualityLabel(TagCompression compression) {
         return "Compression quality" +
-                (compression.isStandardJpeg() ? " (from 0 to 1)" :
+                (compression.isJpegCodec() ? " (from 0 to 1)" :
                         compression.isJpeg2000() ? " (from ~0.5 to ~20 or higher)" : "")
                 + ":";
     }
