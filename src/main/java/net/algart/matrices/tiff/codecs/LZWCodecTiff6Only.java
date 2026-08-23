@@ -328,9 +328,9 @@ public class LZWCodecTiff6Only implements TiffCodec {
                     currRead = nextByte & DECOMPR_MASKS[bitsRead];
                 }
                 startDecoding = false;
-
-                if (currCode == EOI_CODE) break;
-
+                if (currCode == EOI_CODE) {
+                    break;
+                }
                 if (currCode == CLEAR_CODE) {
                     // initialize table -- nothing to do
                     nextCode = FIRST_CODE;
@@ -348,11 +348,15 @@ public class LZWCodecTiff6Only implements TiffCodec {
                         currCode = (currRead << bitsLeft) | (nextByte >> bitsRead);
                         currRead = nextByte & DECOMPR_MASKS[bitsRead];
                     }
-                    if (currCode == EOI_CODE) break;
+                    if (currCode == EOI_CODE) {
+                        break;
+                    }
                     // write string[curr_code] to output
                     // -- but here we are sure that string consists of a single
                     // byte
-                    if (currOutPos >= output.length - 1) break;
+                    if (currOutPos >= output.length - 1) {
+                        break;
+                    }
                     output[currOutPos++] = newBytes[currCode];
                     oldCode = currCode;
                 } else if (currCode < nextCode) {
@@ -361,7 +365,9 @@ public class LZWCodecTiff6Only implements TiffCodec {
                     final int outLength = lengths[currCode];
                     int i = currOutPos + outLength;
                     int tablePos = currCode;
-                    if (i > output.length) break;
+                    if (i > output.length) {
+                        break;
+                    }
                     while (i > currOutPos) {
                         output[--i] = newBytes[tablePos];
                         tablePos = anotherCodes[tablePos];
@@ -369,7 +375,9 @@ public class LZWCodecTiff6Only implements TiffCodec {
                     currOutPos += outLength;
                     // 2) Add string[old_code]+firstByte(string[curr_code]) to
                     // the table
-                    if (nextCode >= anotherCodes.length) break;
+                    if (nextCode >= anotherCodes.length) {
+                        break;
+                    }
                     anotherCodes[nextCode] = oldCode;
                     newBytes[nextCode] = output[i];
                     lengths[nextCode] = lengths[oldCode] + 1;
@@ -381,14 +389,18 @@ public class LZWCodecTiff6Only implements TiffCodec {
                     final int outLength = lengths[oldCode];
                     int i = currOutPos + outLength;
                     int tablePos = oldCode;
-                    if (i > output.length) break;
+                    if (i > output.length) {
+                        break;
+                    }
                     while (i > currOutPos) {
                         output[--i] = newBytes[tablePos];
                         tablePos = anotherCodes[tablePos];
                     }
                     currOutPos += outLength;
                     // 2) Write firstByte(string[old_code]) to output
-                    if (currOutPos >= output.length) break;
+                    if (currOutPos >= output.length) {
+                        break;
+                    }
                     output[currOutPos++] = output[i];
                     // 3) Add string[old_code]+firstByte(string[old_code]) to
                     // the table

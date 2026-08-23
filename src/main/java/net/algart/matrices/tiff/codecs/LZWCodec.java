@@ -351,9 +351,9 @@ public class LZWCodec implements TiffCodec {
                     currCode = (currRead << bitsLeft) | (nextByte >> bitsRead);
                     currRead = nextByte & DECOMPR_MASKS[bitsRead];
                 }
-
-                if (currCode == EOI_CODE) break;
-
+                if (currCode == EOI_CODE) {
+                    break;
+                }
                 if (currCode == CLEAR_CODE) {
                     // initialize table -- nothing to do
                     nextCode = FIRST_CODE;
@@ -383,16 +383,22 @@ public class LZWCodec implements TiffCodec {
                             }
                             bitsRead = 8 - bitsLeft;
 
-                            if (inPosition >= data.length) return out;
+                            if (inPosition >= data.length) {
+                                return out;
+                            }
                             final int nextByte = data[inPosition++] & 0xff;
                             currCode = (currRead << bitsLeft) | (nextByte >> bitsRead);
                             currRead = nextByte & DECOMPR_MASKS[bitsRead];
                         }
                     }
-                    if (currCode == EOI_CODE) break;
+                    if (currCode == EOI_CODE) {
+                        break;
+                    }
                     // write string[curr_code] to output
                     // -- but here we are sure that string consists of a single byte
-                    if (outPosition >= out.length) break;
+                    if (outPosition >= out.length) {
+                        break;
+                    }
                     out[outPosition++] = newBytes[currCode];
                     oldCode = currCode;
                 } else if (currCode < nextCode) {
@@ -401,7 +407,9 @@ public class LZWCodec implements TiffCodec {
                     final int outLength = lengths[currCode];
                     int i = outPosition + outLength;
                     int tablePos = currCode;
-                    if (i > out.length) break;
+                    if (i > out.length) {
+                        break;
+                    }
                     while (i > outPosition) {
                         out[--i] = newBytes[tablePos];
                         tablePos = anotherCodes[tablePos];
@@ -409,7 +417,9 @@ public class LZWCodec implements TiffCodec {
                     outPosition += outLength;
                     // 2) Add string[old_code]+firstByte(string[curr_code]) to
                     // the table
-                    if (nextCode >= anotherCodes.length) break;
+                    if (nextCode >= anotherCodes.length) {
+                        break;
+                    }
                     anotherCodes[nextCode] = oldCode;
                     newBytes[nextCode] = out[i];
                     lengths[nextCode] = lengths[oldCode] + 1;
@@ -421,14 +431,18 @@ public class LZWCodec implements TiffCodec {
                     final int outLength = lengths[oldCode];
                     int i = outPosition + outLength;
                     int tablePos = oldCode;
-                    if (i > out.length) break;
+                    if (i > out.length) {
+                        break;
+                    }
                     while (i > outPosition) {
                         out[--i] = newBytes[tablePos];
                         tablePos = anotherCodes[tablePos];
                     }
                     outPosition += outLength;
                     // 2) Write firstByte(string[old_code]) to output
-                    if (outPosition >= out.length) break;
+                    if (outPosition >= out.length) {
+                        break;
+                    }
                     out[outPosition++] = out[i];
                     // 3) Add string[old_code]+firstByte(string[old_code]) to
                     // the table
@@ -439,18 +453,21 @@ public class LZWCodec implements TiffCodec {
                     nextCode++;
                 }
                 // Increase the length of code if needed
-                if (oldStyle) currCodeLength = switch (nextCode) {
-                    case 512 -> 10;
-                    case 1024 -> 11;
-                    case 2048 -> 12;
-                    default -> currCodeLength;
-                };
-                else currCodeLength = switch (nextCode) {
-                    case 511 -> 10;
-                    case 1023 -> 11;
-                    case 2047 -> 12;
-                    default -> currCodeLength;
-                };
+                if (oldStyle) {
+                    currCodeLength = switch (nextCode) {
+                        case 512 -> 10;
+                        case 1024 -> 11;
+                        case 2048 -> 12;
+                        default -> currCodeLength;
+                    };
+                } else {
+                    currCodeLength = switch (nextCode) {
+                        case 511 -> 10;
+                        case 1023 -> 11;
+                        case 2047 -> 12;
+                        default -> currCodeLength;
+                    };
+                }
             }
             while (outPosition < out.length && inPosition < data.length);
         } catch (final ArrayIndexOutOfBoundsException e) {
