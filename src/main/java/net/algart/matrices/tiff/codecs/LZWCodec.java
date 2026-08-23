@@ -358,12 +358,6 @@ public class LZWCodec implements TiffCodec {
                     // initialize table -- nothing to do
                     nextCode = FIRST_CODE;
                     currCodeLength = 9;
-                    if (oldStyle) {
-                        // - just in case
-                        for (int i = FIRST_CODE; i < anotherCodes.length; i++) {
-                            lengths[i] = 0;
-                        }
-                    }
                     // read next code
                     {
                         if (oldStyle) {
@@ -465,5 +459,4 @@ public class LZWCodec implements TiffCodec {
         }
         return out;
     }
-
 }
