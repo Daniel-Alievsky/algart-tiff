@@ -1071,18 +1071,18 @@ public final class TiffCopier {
                 // there is no sense to change anything.
                 if (compression.isJpegFamily()) {
                     writeIFD.removePhotometric();
-                    // - If compression code was changed and new compression is JPEG, we prefer to
-                    // detect photometric interpretation automatically, based on the compression.
-                    // This is not a serious problem: everything will work without removing photometric.
-                    // However, it can be not obvious for the end user due to our concept of
+                    // - If the compression code has changed and the new compression is JPEG, we prefer to
+                    // detect the photometric interpretation automatically, based on the compression.
+                    // This is not a critical issue: everything will still work without removing the photometric.
+                    // However, this might not be obvious to the end user due to our concept of
                     // the "clarified" compression JPEG_RGB (JPEG with RGB photometric interpretation).
-                    // For example: the existing compression is JPEG with RGB photometric interpretation
+                    // For example, the existing compression is JPEG with RGB photometric interpretation
                     // (JPEG_RGB in our terms), and the user selects the new compression JPEG or JPEG_RGB.
-                    // If we do not remove the existing photometric here, the actual type (RGB or YCbCR)
-                    // will stay unchanged, and the difference between JPEG or JPEG_RGB will be ignored.
+                    // Then, without removing the existing photometric here, the actual type (RGB or YCbCr)
+                    // will remain unchanged, and the distinction between JPEG and JPEG_RGB will be ignored.
                     // Note that this operation usually leads to disabling direct copy (see canCopyImageDirectly),
                     // even though the compression code is the same (JPEG).
-                    // Note that this is not the only correction: more serious and deep IFD corrections
+                    // Note also that this is not the only correction: deeper IFD adjustments
                     // are performed inside the writer.newMap method when it calls TiffWriter.correctForEncoding.
                 }
                 writeIFD.putCompression(compression);
