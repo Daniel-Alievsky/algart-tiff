@@ -30,7 +30,6 @@ import net.algart.matrices.tiff.TiffIFD;
 import net.algart.matrices.tiff.TiffIO;
 import net.algart.matrices.tiff.TiffReader;
 import net.algart.matrices.tiff.TiffWriter;
-import net.algart.matrices.tiff.samples.TiffSampleType;
 import net.algart.matrices.tiff.tags.TagCompression;
 import net.algart.matrices.tiff.tiles.TiffWriteMap;
 
@@ -69,7 +68,8 @@ class TiffImportHelper {
 
     private UserByteOrder byteOrder = UserByteOrder.BIG_ENDIAN;
     private boolean bigTiff = false;
-    private boolean tiled = true;
+    private boolean tiled = false;
+    // - unlike new blank image, tiles are usually not necessary while importing an image
     private int tileSizeX = TiffIFD.DEFAULT_TILE_SIZE;
     private int tileSizeY = TiffIFD.DEFAULT_TILE_SIZE;
     private TagCompression compression = TagCompression.DEFLATE;
@@ -189,15 +189,17 @@ class TiffImportHelper {
         TinySwing.addGridBugRowLabelled(gridPanel, gbc, new JLabel("Compression method:"),
                 compressionMethodComboBox, row++);
 
-        TinySwing.addGridBugRowCaption(gridPanel, gbc, "TIFF file settings", true, row++);
-        byteOrderComboBox = new JComboBox<>(UserByteOrder.values());
-        byteOrderComboBox.setSelectedItem(byteOrder);
-        TinySwing.addGridBugRowLabelled(gridPanel, gbc, new JLabel("Byte order:"), byteOrderComboBox, row++);
+        if (!append) {
+            TinySwing.addGridBugRowCaption(gridPanel, gbc, "TIFF file settings", true, row++);
+            byteOrderComboBox = new JComboBox<>(UserByteOrder.values());
+            byteOrderComboBox.setSelectedItem(byteOrder);
+            TinySwing.addGridBugRowLabelled(gridPanel, gbc, new JLabel("Byte order:"), byteOrderComboBox, row++);
 
-        bigTiffCheckBox = new JCheckBox("BigTIFF (necessary for large files >4 GB)");
-        bigTiffCheckBox.setSelected(bigTiff);
-        bigTiffCheckBox.setAlignmentX(Component.LEFT_ALIGNMENT);
-        TinySwing.addGridBugRowSingle(gridPanel, gbc, bigTiffCheckBox, row++);
+            bigTiffCheckBox = new JCheckBox("BigTIFF (necessary for large files >4 GB)");
+            bigTiffCheckBox.setSelected(bigTiff);
+            bigTiffCheckBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+            TinySwing.addGridBugRowSingle(gridPanel, gbc, bigTiffCheckBox, row++);
+        }
 
         mainPanel.add(gridPanel);
         mainPanel.add(Box.createVerticalStrut(10));
@@ -215,7 +217,7 @@ class TiffImportHelper {
         okButton.addActionListener(event -> {
             TinySwing.doLongOperation(dialog, () -> {
                 try {
-                    importToNewTiff(sourceFile, targetFile, append);
+                    importToTiff(sourceFile, targetFile, append);
                 } catch (Exception e) {
                     TinySwing.showErrorMessage(frame, e, "Error writing to TIFF");
                     return;
@@ -237,7 +239,7 @@ class TiffImportHelper {
         tileSizeYField.setEnabled(tiledCheckBox.isSelected());
     }
 
-    private void importToNewTiff(Path sourceFile, Path targetFile, boolean append) throws IOException {
+    private void importToTiff(Path sourceFile, Path targetFile, boolean append) throws IOException {
         final List<? extends Matrix<? extends PArray>> image = TiffReader.readImage(sourceFile);
         try (TiffWriter writer = new TiffWriter(targetFile)) {
             final boolean tiled = tiledCheckBox.isSelected();
@@ -252,12 +254,14 @@ class TiffImportHelper {
                 this.tileSizeX = tileSizeX;
                 this.tileSizeY = tileSizeY;
             }
-            this.bigTiff = bigTiffCheckBox.isSelected();
-            this.byteOrder = TinySwing.selectedValue(byteOrderComboBox);
             final String compressionName = TinySwing.selectedValue(compressionMethodComboBox);
             this.compression = TagCompression.fromPrettyName(compressionName).orElseThrow();
-            writer.setBigTiff(bigTiff);
-            writer.setByteOrder(byteOrder.byteOrder());
+            if (!append) {
+                this.bigTiff = bigTiffCheckBox.isSelected();
+                this.byteOrder = TinySwing.selectedValue(byteOrderComboBox);
+                writer.setBigTiff(bigTiff);
+                writer.setByteOrder(byteOrder.byteOrder());
+            }
             writer.create(append);
             final TiffIFD ifd = TiffIFD.newIFD(this.tiled);
             if (this.tiled) {

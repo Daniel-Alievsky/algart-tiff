@@ -738,6 +738,9 @@ public non-sealed class TiffWriter extends TiffIO {
     /**
      * Opens an existing TIFF file for appending new images.
      *
+     * <p>Note that the {@link #setBigTiff(boolean) BigTIFF mode}
+     * and {@link #setByteOrder(ByteOrder) byte order} will be reassigned according to the existing file header.</p>
+     *
      * @throws IOException if an I/O error occurs.
      */
     public final void openExisting() throws IOException {
@@ -746,7 +749,7 @@ public non-sealed class TiffWriter extends TiffIO {
 
     /**
      * Opens the TIFF file for possible appending new images if it exists, or creates a new TIFF file
-     * if there is not such a file or if exists but has a zero length.
+     * if there is no such file or if it exists but has a zero length.
      *
      * <p>Note that a zero-length file is processed in the same way as a non-existing file.
      * It is important if you want to create a temporary TIFF file using
@@ -756,6 +759,9 @@ public non-sealed class TiffWriter extends TiffIO {
      * (the behavior of the constructor called with the mode {@link OpenMode#CREATE} or similar parameter):
      * there is a chance that some other process will create the same temporary file
      * between removing and re-creating by this class.</p>
+     *
+     * <p>Note that if the file exists, the {@link #setBigTiff(boolean) BigTIFF mode}
+     * and {@link #setByteOrder(ByteOrder) byte order} will be reassigned according to the existing file header.</p>
      *
      * @throws IOException if an I/O error occurs.
      */
