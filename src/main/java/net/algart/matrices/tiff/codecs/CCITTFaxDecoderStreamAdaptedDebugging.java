@@ -24,13 +24,15 @@
 
 package net.algart.matrices.tiff.codecs;
 
+import net.algart.arrays.JArrays;
+
 import java.io.EOFException;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 
-final class CCITTFaxDecoderStreamAdaptedNew extends FilterInputStream {
+final class CCITTFaxDecoderStreamAdaptedDebugging extends FilterInputStream {
     /*
      * This is an adapted copy of com.twelvemonkeys.imageio.plugins.tiff.CCITTFaxDecoderStream class
      * from <a href="https://github.com/haraldk/TwelveMonkeys">TwelveMonkeys 3.11</a>.
@@ -107,7 +109,7 @@ final class CCITTFaxDecoderStreamAdaptedNew extends FilterInputStream {
      *                {@code COMPRESSION_CCITT_T4} or {@code COMPRESSION_CCITT_T6}.
      * @param options CCITT T.4 or T.6 options.
      */
-    public CCITTFaxDecoderStreamAdaptedNew(
+    public CCITTFaxDecoderStreamAdaptedDebugging(
             final InputStream stream, final int columns, final int type,
             final long options) {
         this(stream, columns, -1, type, options, type == TinyTwelveMonkey.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE);
@@ -141,13 +143,13 @@ final class CCITTFaxDecoderStreamAdaptedNew extends FilterInputStream {
      * @param options     CCITT T.4 or T.6 options.
      * @param byteAligned enable byte alignment used in PDF files (EncodedByteAlign).
      */
-    public CCITTFaxDecoderStreamAdaptedNew(
+    public CCITTFaxDecoderStreamAdaptedDebugging(
             final InputStream stream, final int columns, final int type,
             final long options, final boolean byteAligned) {
         this(stream, columns, -1, type, options, byteAligned);
     }
 
-    CCITTFaxDecoderStreamAdaptedNew(
+    CCITTFaxDecoderStreamAdaptedDebugging(
             final InputStream stream, final int columns, final int rows, final int type,
             final long options, final boolean byteAligned) {
         super(TinyTwelveMonkey.notNull(stream, "stream"));
@@ -302,7 +304,7 @@ final class CCITTFaxDecoderStreamAdaptedNew extends FilterInputStream {
         }
     }
 
-    private void decode2DNew() throws IOException {
+    private void decode2D() throws IOException {
         changesReferenceRowCount = changesCurrentRowCount;
         int[] tmp = changesCurrentRow;
         changesCurrentRow = changesReferenceRow;
@@ -344,11 +346,10 @@ final class CCITTFaxDecoderStreamAdaptedNew extends FilterInputStream {
                                 index = changesReferenceRow[pChangingElement];
                             }
                             if (index > columns) index = columns;
-                            // Pass mode НЕ меняет цвет и НЕ записывает changing element
                             break;
                         }
 
-                        default: { // Vertical ±0…±3
+                        default: {
                             int vChangingElement = getNextChangingElement(index, white);
                             if (vChangingElement >= changesReferenceRowCount || vChangingElement == -1) {
                                 index = columns + n.value;
@@ -368,14 +369,13 @@ final class CCITTFaxDecoderStreamAdaptedNew extends FilterInputStream {
             }
         }
 
-        // Гарантируем, что массив заканчивается columns
         if (changesCurrentRowCount == 0 ||
                 changesCurrentRow[changesCurrentRowCount - 1] != columns) {
             changesCurrentRow[changesCurrentRowCount++] = columns;
         }
     }
 
-    private void decode2D() throws IOException {
+    private void decode2DOld() throws IOException {
         changesReferenceRowCount = changesCurrentRowCount;
         int[] tmp = changesCurrentRow;
         changesCurrentRow = changesReferenceRow;
@@ -522,8 +522,16 @@ final class CCITTFaxDecoderStreamAdaptedNew extends FilterInputStream {
         if (optionByteAligned) {
             resetBuffer();
         }
+        if (changesCurrentRowCount == 0) {
+            changesCurrentRow[0] = columns;
+            changesCurrentRow[1] = columns;
+            changesCurrentRowCount = 2;
+        }
 // T.6: first row is coded relative to an imaginary all-white reference line
-        System.out.println("Row: " + rowIndex + "; " + changesReferenceRowCount);
+        if (rowIndex < 600)
+        System.out.println("Row " + rowIndex + ": " + changesCurrentRowCount + ", " +
+                JArrays.toString(changesCurrentRow, ",", 500));
+        else System.out.println("Row " + rowIndex + ", " + rowsLeft);
         rowIndex++;
         decode2D();
     }
@@ -604,7 +612,8 @@ final class CCITTFaxDecoderStreamAdaptedNew extends FilterInputStream {
             Node newNode = n.walk(bit);
 
             if (newNode == null) {
-                throw new IOException("Unknown code in Huffman RLE stream: " + n);
+                throw new IOException("Unknown code in Huffman RLE stream: " + n +
+                        ", rowsLeft=" + rowsLeft);
             }
             n = newNode;
 
