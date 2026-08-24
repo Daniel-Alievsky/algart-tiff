@@ -27,6 +27,9 @@ package net.algart.matrices.tiff.codecs;
 import net.algart.matrices.tiff.TiffException;
 import net.algart.matrices.tiff.TiffIO;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -111,6 +114,9 @@ public class LZWCodec implements TiffCodec {
     // - I prefer to set it to "false" to handle "strange" LZW files that do not contain all the necessary bytes.
     // In such cases, a "true" value would lead to errors during further processing of the returned partial data.
     // Note: I haven't seen such files in practice so far. - Daniel Alievsky
+
+    private static final boolean USE_TWELVE_MONKEY_DECODER = false;
+    // - Should be false: this decoder does not work well while such usage.
 
     /**
      * Size of hash table. Must be greater 3837 (the number of possible codes).
@@ -291,6 +297,9 @@ public class LZWCodec implements TiffCodec {
     }
 
     public byte[] decompress(byte[] data, Options options) throws TiffException {
+        if (USE_TWELVE_MONKEY_DECODER) {
+            return decompressViaTwelveMonkey(data, options);
+        }
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
         final LZWCodecReport report = new LZWCodecReport();
@@ -514,5 +523,37 @@ public class LZWCodec implements TiffCodec {
             throw new TiffException("Invalid LZW data stream");
         }
         return outPosition;
+    }
+
+    // Bad idea: does not work well on many images
+    private byte[] decompressViaTwelveMonkey(byte[] data, Options options) throws TiffException {
+        Objects.requireNonNull(data, "Null data");
+        Objects.requireNonNull(options, "Null codec options");
+        try {
+            final ByteArrayInputStream compressedDataStream = new ByteArrayInputStream(data);
+            final boolean oldStyle = LZWDecoderAdapted.isOldBitReversedStream(compressedDataStream);
+
+            LZWDecoderAdapted decoder = LZWDecoderAdapted.create(oldStyle);
+            if (oldStyle) {
+                options.setReport(new LZWCodecReport().setTiff50Style(true));
+            }
+
+            final byte[] output = new byte[options.getMaxUnpackedSizeInBytes()];
+            final ByteBuffer buffer = ByteBuffer.wrap(output);
+
+            decoder.decode(compressedDataStream, buffer);
+
+            if (RETURN_ONLY_ACTUALLY_DECOMPRESSED_BYTES && buffer.position() != output.length) {
+                return Arrays.copyOf(output, buffer.position());
+                // For general-cmm-error.tif from TwelveMonkey test set, the output buffer is not completely filled,
+                // and it leads to error in TiffUnpacking.unpackTiffBitsAndInvertValues
+            }
+
+            return output;
+
+        } catch (IOException e) {
+            throw e instanceof TiffException tiffException ? tiffException : new TiffException(e);
+            // - last variant is very improbable
+        }
     }
 }
