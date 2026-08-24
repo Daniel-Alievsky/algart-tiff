@@ -30,7 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 
-final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
+final class CCITTFaxDecoderStreamAdaptedNew extends FilterInputStream {
     /*
      * This is an adapted copy of com.twelvemonkeys.imageio.plugins.tiff.CCITTFaxDecoderStream class
      * from <a href="https://github.com/haraldk/TwelveMonkeys">TwelveMonkeys 3.11</a>.
@@ -107,7 +107,7 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
      *                {@code COMPRESSION_CCITT_T4} or {@code COMPRESSION_CCITT_T6}.
      * @param options CCITT T.4 or T.6 options.
      */
-    public CCITTFaxDecoderStreamAdapted(
+    public CCITTFaxDecoderStreamAdaptedNew(
             final InputStream stream, final int columns, final int type,
             final long options) {
         this(stream, columns, -1, type, options, type == TinyTwelveMonkey.COMPRESSION_CCITT_MODIFIED_HUFFMAN_RLE);
@@ -141,13 +141,13 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
      * @param options     CCITT T.4 or T.6 options.
      * @param byteAligned enable byte alignment used in PDF files (EncodedByteAlign).
      */
-    public CCITTFaxDecoderStreamAdapted(
+    public CCITTFaxDecoderStreamAdaptedNew(
             final InputStream stream, final int columns, final int type,
             final long options, final boolean byteAligned) {
         this(stream, columns, -1, type, options, byteAligned);
     }
 
-    CCITTFaxDecoderStreamAdapted(
+    CCITTFaxDecoderStreamAdaptedNew(
             final InputStream stream, final int columns, final int rows, final int type,
             final long options, final boolean byteAligned) {
         super(TinyTwelveMonkey.notNull(stream, "stream"));
@@ -296,6 +296,83 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
             // Flip color for next run
             white = !white;
         } while (index < columns);
+        if (changesCurrentRowCount == 0 || changesCurrentRow[changesCurrentRowCount - 1] != columns) {
+            System.out.println("Sentinel!!!");
+            changesCurrentRow[changesCurrentRowCount++] = columns;
+        }
+    }
+
+    private void decode2DNew() throws IOException {
+        changesReferenceRowCount = changesCurrentRowCount;
+        int[] tmp = changesCurrentRow;
+        changesCurrentRow = changesReferenceRow;
+        changesReferenceRow = tmp;
+
+        boolean white = true;
+        int index = 0;
+        changesCurrentRowCount = 0;
+
+        mode:
+        while (index < columns) {
+            Node n = codeTree.root;
+
+            while (true) {
+                n = n.walk(readBit());
+
+                if (n == null) {
+                    continue mode;
+                } else if (n.isLeaf) {
+                    switch (n.value) {
+                        case VALUE_HMODE: {
+                            int runLength = decodeRun(white ? whiteRunTree : blackRunTree);
+                            index += runLength;
+                            if (index > columns) index = columns;
+                            changesCurrentRow[changesCurrentRowCount++] = index;
+
+                            runLength = decodeRun(white ? blackRunTree : whiteRunTree);
+                            index += runLength;
+                            if (index > columns) index = columns;
+                            changesCurrentRow[changesCurrentRowCount++] = index;
+                            break;
+                        }
+
+                        case VALUE_PASSMODE: {
+                            int pChangingElement = getNextChangingElement(index, white) + 1;
+                            if (pChangingElement >= changesReferenceRowCount || pChangingElement < 0) {
+                                index = columns;
+                            } else {
+                                index = changesReferenceRow[pChangingElement];
+                            }
+                            if (index > columns) index = columns;
+                            // Pass mode НЕ меняет цвет и НЕ записывает changing element
+                            break;
+                        }
+
+                        default: { // Vertical ±0…±3
+                            int vChangingElement = getNextChangingElement(index, white);
+                            if (vChangingElement >= changesReferenceRowCount || vChangingElement == -1) {
+                                index = columns + n.value;
+                            } else {
+                                index = changesReferenceRow[vChangingElement] + n.value;
+                            }
+                            if (index < 0) index = 0;
+                            if (index > columns) index = columns;
+
+                            changesCurrentRow[changesCurrentRowCount++] = index;
+                            white = !white;
+                            break;
+                        }
+                    }
+                    continue mode;
+                }
+            }
+        }
+
+        // Гарантируем, что массив заканчивается columns
+        if (changesCurrentRowCount == 0 ||
+                changesCurrentRow[changesCurrentRowCount - 1] != columns) {
+            changesCurrentRow[changesCurrentRowCount++] = columns;
+        }
     }
 
     private void decode2D() throws IOException {
@@ -365,6 +442,24 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
         }
     }
 
+    private int getNextChangingElementNew(final int a0, final boolean white) {
+        int start = lastChangingElement > 0 ? lastChangingElement - 1 : 0;
+        if (white) {
+            start &= ~1;          // чётные
+        } else {
+            start |= 1;           // нечётные
+        }
+        if (start < 0) start = 0;
+
+        for (int i = start; i < changesReferenceRowCount; i += 2) {
+            if (a0 < changesReferenceRow[i]) {
+                lastChangingElement = i;
+                return i;
+            }
+        }
+        return -1;
+    }
+
     private int getNextChangingElement(final int a0, final boolean white) {
         int start = (lastChangingElement & 0xFFFF_FFFE) + (white ? 0 : 1);
         if (start > 2) {
@@ -384,6 +479,7 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
 
         return -1;
     }
+
 
     private void decodeRowType2() throws IOException {
         if (optionByteAligned) {
@@ -421,10 +517,14 @@ final class CCITTFaxDecoderStreamAdapted extends FilterInputStream {
         }
     }
 
+    private int rowIndex = 0;
     private void decodeRowType6() throws IOException {
         if (optionByteAligned) {
             resetBuffer();
         }
+// T.6: first row is coded relative to an imaginary all-white reference line
+        System.out.println("Row: " + rowIndex + "; " + changesReferenceRowCount);
+        rowIndex++;
         decode2D();
     }
 
