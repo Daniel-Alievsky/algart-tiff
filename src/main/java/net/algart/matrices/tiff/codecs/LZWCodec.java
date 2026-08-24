@@ -63,6 +63,8 @@ public class LZWCodec implements TiffCodec {
      */
     public static class LZWCodecReport extends TiffIO.CodecReport {
         private boolean tiff50Style = false;
+        private int maxUnpackedSize;
+        private int actualUnpackedSize;
 
         public boolean isTiff50Style() {
             return tiff50Style;
@@ -73,14 +75,42 @@ public class LZWCodec implements TiffCodec {
             return this;
         }
 
+        public int getMaxUnpackedSize() {
+            return maxUnpackedSize;
+        }
+
+        public LZWCodecReport setMaxUnpackedSize(int maxUnpackedSize) {
+            this.maxUnpackedSize = maxUnpackedSize;
+            return this;
+        }
+
+        public int getActualUnpackedSize() {
+            return actualUnpackedSize;
+        }
+
+        public LZWCodecReport setActualUnpackedSize(int actualUnpackedSize) {
+            this.actualUnpackedSize = actualUnpackedSize;
+            return this;
+        }
+
         @Override
         public String toString() {
             return "LZW decoder report:" +
+                    (actualUnpackedSize != 0 ?
+                            "%n    Unpacked size = %d bytes".formatted(actualUnpackedSize) +
+                                    (actualUnpackedSize < maxUnpackedSize ?
+                                            ", but allocated size = %d".formatted(maxUnpackedSize) : "") :
+                            "") +
                     (tiff50Style ?
                             "%n    TIFF 5.0-style LZW compression detected (very old format)".formatted() :
                             "");
         }
     }
+
+    private static final boolean RETURN_ONLY_ACTUALLY_DECOMPRESSED_BYTES = false;
+    // - I prefer to set it to "false" to handle "strange" LZW files that do not contain all the necessary bytes.
+    // In such cases, a "true" value would lead to errors during further processing of the returned partial data.
+    // Note: I haven't seen such files in practice so far. - Daniel Alievsky
 
     /**
      * Size of hash table. Must be greater 3837 (the number of possible codes).
@@ -263,20 +293,33 @@ public class LZWCodec implements TiffCodec {
     public byte[] decompress(byte[] data, Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
-        if (data.length < 2) {
-            throw new TiffException("Too short LZW stream (" + data.length + " bytes)");
-        }
-        final boolean oldStyle = data[0] == 0x00 && (data[1] & 1) != 0;
-        // TIFF 5.0-style LZW: codes are packed LSB-first.
-        if (oldStyle) {
-            options.setReport(new LZWCodecReport().setTiff50Style(true));
-        }
+        final LZWCodecReport report = new LZWCodecReport();
+        options.setReport(report);
 
-        // Output buffer
         final byte[] out = new byte[options.getMaxUnpackedSizeInBytes()];
-        // Position in the output buffer to write the next byte to
-        int outPosition = 0;
+        final int unpackedLength = unpackLZW(out, data, options, report);
+        report.setActualUnpackedSize(unpackedLength);
+        report.setMaxUnpackedSize(out.length);
+        if (unpackedLength < out.length) {
+            if (RETURN_ONLY_ACTUALLY_DECOMPRESSED_BYTES) {
+                return Arrays.copyOf(out, unpackedLength);
+            }
+        }
+        return out;
+    }
 
+    public static int unpackLZW(byte[] out, byte[] in, Options options, LZWCodecReport report) throws TiffException {
+        Objects.requireNonNull(out, "Null out");
+        Objects.requireNonNull(in, "Null in");
+        Objects.requireNonNull(options, "Null codec options");
+        if (in.length < 2) {
+            throw new TiffException("Too short LZW stream (" + in.length + " bytes)");
+        }
+        final boolean oldStyle = in[0] == 0x00 && (in[1] & 1) != 0;
+        // TIFF 5.0-style LZW: codes are packed LSB-first.
+        if (report != null) {
+            report.setTiff50Style(oldStyle);
+        }
         // Table mapping codes to strings.
         // Its structure is based on the fact that a string for a code has form:
         // (string for another code) + (new byte).
@@ -313,16 +356,17 @@ public class LZWCodec implements TiffCodec {
         int oldCode = 0; // without initializer, Java reports error later
 
         int inPosition = 0;
+        int outPosition = 0;
         try {
             do {
                 // read next code
                 if (oldStyle) {
                     // TIFF 5.0-style LZW: codes are packed LSB-first.
                     while (bitsRead < currCodeLength) {
-                        if (inPosition >= data.length) {
-                            return out;
+                        if (inPosition >= in.length) {
+                            return outPosition;
                         }
-                        int b = data[inPosition++];
+                        int b = in[inPosition++];
                         currRead |= (b & 0xff) << bitsRead;
                         bitsRead += 8;
                     }
@@ -334,15 +378,15 @@ public class LZWCodec implements TiffCodec {
                     // Normal TIFF LZW: codes are packed MSB-first.
                     int bitsLeft = currCodeLength - bitsRead;
                     if (bitsLeft > 8) {
-                        currRead = (currRead << 8) | (data[inPosition++] & 0xff);
+                        currRead = (currRead << 8) | (in[inPosition++] & 0xff);
                         bitsLeft -= 8;
                     }
                     bitsRead = 8 - bitsLeft;
 
-                    if (inPosition >= data.length) {
-                        return out;
+                    if (inPosition >= in.length) {
+                        return outPosition;
                     }
-                    final int nextByte = data[inPosition++] & 0xff;
+                    final int nextByte = in[inPosition++] & 0xff;
                     currCode = (currRead << bitsLeft) | (nextByte >> bitsRead);
                     currRead = nextByte & DECOMPR_MASKS[bitsRead];
                 }
@@ -357,10 +401,10 @@ public class LZWCodec implements TiffCodec {
                     {
                         if (oldStyle) {
                             while (bitsRead < currCodeLength) {
-                                if (inPosition >= data.length) {
-                                    return out;
+                                if (inPosition >= in.length) {
+                                    return outPosition;
                                 }
-                                currRead |= (data[inPosition++] & 0xff) << bitsRead;
+                                currRead |= (in[inPosition++] & 0xff) << bitsRead;
                                 bitsRead += 8;
                             }
 
@@ -370,18 +414,18 @@ public class LZWCodec implements TiffCodec {
                         } else {
                             int bitsLeft = currCodeLength - bitsRead;
                             if (bitsLeft > 8) {
-                                if (inPosition >= data.length) {
-                                    return out;
+                                if (inPosition >= in.length) {
+                                    return outPosition;
                                 }
-                                currRead = (currRead << 8) | (data[inPosition++] & 0xff);
+                                currRead = (currRead << 8) | (in[inPosition++] & 0xff);
                                 bitsLeft -= 8;
                             }
                             bitsRead = 8 - bitsLeft;
 
-                            if (inPosition >= data.length) {
-                                return out;
+                            if (inPosition >= in.length) {
+                                return outPosition;
                             }
-                            final int nextByte = data[inPosition++] & 0xff;
+                            final int nextByte = in[inPosition++] & 0xff;
                             currCode = (currRead << bitsLeft) | (nextByte >> bitsRead);
                             currRead = nextByte & DECOMPR_MASKS[bitsRead];
                         }
@@ -464,11 +508,11 @@ public class LZWCodec implements TiffCodec {
                     };
                 }
             }
-            while (outPosition < out.length && inPosition < data.length);
+            while (outPosition < out.length && inPosition < in.length);
         } catch (final ArrayIndexOutOfBoundsException e) {
             // - just in case (should not occur)
-            throw new TiffException("Invalid LZW data");
+            throw new TiffException("Invalid LZW data stream");
         }
-        return out;
+        return outPosition;
     }
 }
