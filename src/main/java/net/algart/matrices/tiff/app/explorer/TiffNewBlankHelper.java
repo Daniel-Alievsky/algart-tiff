@@ -93,7 +93,6 @@ class TiffNewBlankHelper {
         }
         chooser.setDialogTitle("Select new TIFF file name");
         chooser.setSelectedFile(new File("blank.tiff"));
-        chooser.setDialogType(JFileChooser.SAVE_DIALOG);
         chooser.addChoosableFileFilter(TiffExplorer.TIFF_FILTER);
         chooser.setFileFilter(TiffExplorer.TIFF_FILTER);
         chooser.setAcceptAllFileFilterUsed(true);

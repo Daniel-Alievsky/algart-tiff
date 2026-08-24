@@ -75,7 +75,6 @@ class TiffCopyHelper {
         }
         chooser.setDialogTitle("Copy the entire TIFF");
         chooser.setSelectedFile(new File("copy.tiff"));
-        chooser.setDialogType(JFileChooser.SAVE_DIALOG);
         chooser.addChoosableFileFilter(TiffExplorer.TIFF_FILTER);
         chooser.setFileFilter(TiffExplorer.TIFF_FILTER);
         chooser.setAcceptAllFileFilterUsed(true);

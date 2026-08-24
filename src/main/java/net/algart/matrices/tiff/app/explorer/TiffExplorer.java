@@ -153,17 +153,17 @@ public class TiffExplorer {
         }
     }
 
-    void chooseFilesAndShowImportDialog() {
+    void chooseFilesAndShowImportDialog(boolean append) {
         Path fileToImport = tiffImportHelper.chooseFileToImport();
         if (fileToImport == null) {
             return;
         }
-        Path fileToSave = tiffImportHelper.chooseTiffFileToSave();
+        Path fileToSave = tiffImportHelper.chooseTiffFileToSave(append);
         if (fileToSave == null) {
             return;
         }
         try {
-            tiffImportHelper.showCustomizeTiffDialog(fileToImport, fileToSave);
+            tiffImportHelper.showCustomizeTiffDialog(fileToImport, fileToSave, append);
         } catch (Exception ex) {
             TinySwing.showErrorMessage(frame, ex, "Error importing TIFF");
         }

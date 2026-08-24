@@ -90,9 +90,14 @@ public class TinySwing {
         settingsPanel.setBorder(BorderFactory.createCompoundBorder(titledBorder, padding));
     }
 
-    static void setWaitCursor(JFrame frame, boolean wait) {
-        Objects.requireNonNull(frame, "Null frame");
-        final Component glassPane = frame.getGlassPane();
+    static void setWaitCursor(Window window, boolean wait) {
+        Objects.requireNonNull(window, "Null frame");
+        final Component glassPane = switch (window) {
+            case JFrame frame -> frame.getGlassPane();
+            case JDialog dialog -> dialog.getGlassPane();
+            default -> throw new IllegalArgumentException("Unsupported window type: " + window.getClass() +
+                    " (must be JFrame or JDialog)");
+        };
         if (wait) {
             glassPane.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
             glassPane.setVisible(true);
@@ -102,8 +107,8 @@ public class TinySwing {
         }
     }
 
-    static void doLongOperation(JFrame frame, Runnable runnable) {
-        TinySwing.setWaitCursor(frame, true);
+    static void doLongOperation(Window window, Runnable runnable) {
+        TinySwing.setWaitCursor(window, true);
         SwingUtilities.invokeLater(() -> {
             // Note: unlike using SwingWorker, this is executed synchronously in EDT after the cursor is updated.
             // It prevents parallel user actions by occupying the event thread.
@@ -111,9 +116,9 @@ public class TinySwing {
                 runnable.run();
             } catch (Throwable e) {
                 // - In case of unexpected error, we still show it
-                showErrorMessage(frame, e, "Unexpected error");
+                showErrorMessage(window, e, "Unexpected error");
             } finally {
-                TinySwing.setWaitCursor(frame, false);
+                TinySwing.setWaitCursor(window, false);
             }
         });
     }
@@ -153,7 +158,17 @@ public class TinySwing {
         return fileChooser;
     }
 
+    static File chooseFileToOpen(JFrame frame, JFileChooser chooser) {
+        chooser.setDialogType(JFileChooser.OPEN_DIALOG);
+        int result = chooser.showOpenDialog(frame);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            return chooser.getSelectedFile();
+        }
+        return null;
+    }
+
     static File chooseFileAndConfirmOverwrite(JFrame frame, JFileChooser chooser) {
+        chooser.setDialogType(JFileChooser.SAVE_DIALOG);
         int result = chooser.showSaveDialog(frame);
         if (result != JFileChooser.APPROVE_OPTION) {
             return null;
@@ -182,7 +197,7 @@ public class TinySwing {
         return color != null ? color : defaultValue;
     }
 
-    static void showErrorMessage(JFrame frame, Throwable e, String title) {
+    static void showErrorMessage(Window window, Throwable e, String title) {
         if (e instanceof ExecutionException && e.getCause() != null) {
             // ExecutionExcepion is a wrapper added by this utility: no sense to show it
             e = e.getCause();
@@ -198,7 +213,7 @@ public class TinySwing {
 //            message += "\n" + e.getCause().getMessage();
 //        }
         JOptionPane.showMessageDialog(
-                frame,
+                window,
                 message,
                 title + " (" + e.getClass().getSimpleName() + ")",
                 JOptionPane.ERROR_MESSAGE);

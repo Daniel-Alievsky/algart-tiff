@@ -104,6 +104,7 @@ public class JTiffExplorerFrame extends JFrame {
     private JButton showImageButton;
     private JMenuItem newBlankItem;
     private JMenuItem importItem;
+    private JMenuItem importAndAppendItem;
     private JMenuItem openItem;
     private JMenuItem reloadItem;
     private JMenuItem showImageItem;
@@ -250,12 +251,17 @@ public class JTiffExplorerFrame extends JFrame {
         newBlankItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK));
         newBlankItem.addActionListener(e -> explorer.chooseFileAndShowNewBlankDialog());
         fileMenu.add(newBlankItem);
-        importItem = new JMenuItem("Import image...");
+        importItem = new JMenuItem("Import image to TIFF...");
         importItem.setMnemonic(KeyEvent.VK_I);
         importItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, InputEvent.CTRL_DOWN_MASK));
-        importItem.addActionListener(e -> explorer.chooseFilesAndShowImportDialog());
+        importItem.addActionListener(e -> explorer.chooseFilesAndShowImportDialog(false));
         fileMenu.add(importItem);
+        importAndAppendItem = new JMenuItem("Import & append image to TIFF...");
+        importAndAppendItem.setMnemonic(KeyEvent.VK_A);
+        importAndAppendItem.addActionListener(e -> explorer.chooseFilesAndShowImportDialog(true));
+        fileMenu.add(importAndAppendItem);
         fileMenu.addSeparator();
+
         openItem = new JMenuItem("Open TIFF...");
         openItem.setMnemonic(KeyEvent.VK_O);
         openItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
@@ -534,6 +540,7 @@ public class JTiffExplorerFrame extends JFrame {
         openFileButton.setEnabled(!inProgress);
         newBlankItem.setEnabled(!inProgress);
         importItem.setEnabled(!inProgress);
+        importAndAppendItem.setEnabled(!inProgress);
         openItem.setEnabled(!inProgress);
         reloadItem.setEnabled(!inProgress);
         if (recentFilesMenu != null) {

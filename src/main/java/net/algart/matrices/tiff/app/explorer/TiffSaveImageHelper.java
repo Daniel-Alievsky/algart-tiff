@@ -96,7 +96,6 @@ class TiffSaveImageHelper {
         }
         chooser.setDialogTitle("Export " + whatToExport);
         chooser.setSelectedFile(new File(selectionOnly ? "selected.png" : "image.png"));
-        chooser.setDialogType(JFileChooser.SAVE_DIALOG);
         chooser.addChoosableFileFilter(ANY_IMAGE_FILTER);
         chooser.setFileFilter(ANY_IMAGE_FILTER);
         chooser.setAcceptAllFileFilterUsed(true);
@@ -118,7 +117,6 @@ class TiffSaveImageHelper {
         }
         chooser.setDialogTitle("Save " + whatToSave);
         chooser.setSelectedFile(new File(selectionOnly ? "selection.tiff" : "image.tiff"));
-        chooser.setDialogType(JFileChooser.SAVE_DIALOG);
         chooser.addChoosableFileFilter(TiffExplorer.TIFF_FILTER);
         chooser.setFileFilter(TiffExplorer.TIFF_FILTER);
         chooser.setAcceptAllFileFilterUsed(true);

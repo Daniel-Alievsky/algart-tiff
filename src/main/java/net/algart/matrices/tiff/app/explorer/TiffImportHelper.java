@@ -100,34 +100,35 @@ class TiffImportHelper {
         return null;
     }
 
-    public Path chooseTiffFileToSave() {
+    public Path chooseTiffFileToSave(boolean append) {
         JFileChooser chooser = TinySwing.newFileChooser();
-        String last = TiffExplorer.PREFERENCES.get(PREF_LAST_IMPORT_DIR, null);
+        String last = TiffExplorer.PREFERENCES.get(PREF_LAST_IMPORT_NEW_TIFF_DIR, null);
         File dir = new File(last == null ? "." : last);
         if (dir.isDirectory()) {
             chooser.setCurrentDirectory(dir);
         }
-        chooser.setDialogTitle("Select new TIFF file name");
+        chooser.setDialogTitle(append ? "Existing TIFF file to append" : "New TIFF file");
         chooser.setSelectedFile(new File("imported.tiff"));
-        chooser.setDialogType(JFileChooser.SAVE_DIALOG);
         chooser.addChoosableFileFilter(TiffExplorer.TIFF_FILTER);
         chooser.setFileFilter(TiffExplorer.TIFF_FILTER);
         chooser.setAcceptAllFileFilterUsed(true);
-        File file = TinySwing.chooseFileAndConfirmOverwrite(frame, chooser);
+        File file = append ?
+                TinySwing.chooseFileToOpen(frame, chooser) :
+                TinySwing.chooseFileAndConfirmOverwrite(frame, chooser);
         if (file == null) {
             return null;
         }
-        TiffExplorer.PREFERENCES.put(PREF_LAST_IMPORT_DIR, file.getParent());
+        TiffExplorer.PREFERENCES.put(PREF_LAST_IMPORT_NEW_TIFF_DIR, file.getParent());
         return file.toPath();
     }
 
-    public void showCustomizeTiffDialog(Path sourceFile, Path targetFile) throws IOException {
+    public void showCustomizeTiffDialog(Path sourceFile, Path targetFile, boolean append) throws IOException {
         Objects.requireNonNull(sourceFile, "Null sourceFile");
         Objects.requireNonNull(targetFile, "Null targetFile");
         dialog = new JDialog(frame, true);
         // dialog.setMinimumSize(new Dimension(500, 20)); // not too good idea
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-        dialog.setTitle("Create new blank TIFF");
+        dialog.setTitle("Import image to TIFF");
         dialog.setLayout(new BorderLayout(10, 10));
         dialog.setResizable(false);
 
@@ -136,9 +137,14 @@ class TiffImportHelper {
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         JLabel headerLabel = TinySwing.leftLabel(TinySwing.smartHtmlLines("""
-                The new blank TIFF file will be created:<br>
+                The selected image:<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
-                """.formatted(targetFile.toAbsolutePath())));
+                will be %s TIFF file:<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<b>%s</b><br>
+                """.formatted(
+                        sourceFile,
+                        append ? "appended to an existing" : "written into a new",
+                        targetFile.toAbsolutePath())));
         headerLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         mainPanel.add(headerLabel);
         mainPanel.add(Box.createVerticalStrut(10));
@@ -149,14 +155,6 @@ class TiffImportHelper {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(4, 5, 4, 5);
         int row = 0;
-
-        final JLabel dimHintLabel = TinySwing.leftLabel(TinySwing.smartHtmlLines(
-                """
-                        Feel free to specify huge dimensions (e.g., 200000 \u00D7 200000):<br>
-                        the file will be small and created instantly. For very large sizes,<br>
-                        we recommend increasing the tile size (2048 \u00D7 2048 or more).
-                        """));
-        TinySwing.addGridBugRowSingle(gridPanel, gbc, dimHintLabel, row++);
 
         tiledCheckBox = new JCheckBox("Tiled TIFF image");
         tiledCheckBox.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -206,7 +204,7 @@ class TiffImportHelper {
         dialog.add(mainPanel, BorderLayout.CENTER);
 
         final JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
-        final JButton okButton = new JButton("Create");
+        final JButton okButton = new JButton(append ? "Append" : "Create");
         final JButton cancelButton = new JButton("Cancel");
         buttonPanel.add(okButton);
         buttonPanel.add(cancelButton);
@@ -215,11 +213,11 @@ class TiffImportHelper {
 
         cancelButton.addActionListener(event -> dialog.dispose());
         okButton.addActionListener(event -> {
-            TinySwing.doLongOperation(frame, () -> {
+            TinySwing.doLongOperation(dialog, () -> {
                 try {
-                    importToNewTiff(sourceFile, targetFile);
+                    importToNewTiff(sourceFile, targetFile, append);
                 } catch (Exception e) {
-                    TinySwing.showErrorMessage(frame, e, "Error creating new TIFF");
+                    TinySwing.showErrorMessage(frame, e, "Error writing to TIFF");
                     return;
                 }
 
@@ -239,7 +237,7 @@ class TiffImportHelper {
         tileSizeYField.setEnabled(tiledCheckBox.isSelected());
     }
 
-    private void importToNewTiff(Path sourceFile, Path targetFile) throws IOException {
+    private void importToNewTiff(Path sourceFile, Path targetFile, boolean append) throws IOException {
         final List<? extends Matrix<? extends PArray>> image = TiffReader.readImage(sourceFile);
         try (TiffWriter writer = new TiffWriter(targetFile)) {
             final boolean tiled = tiledCheckBox.isSelected();
@@ -260,7 +258,7 @@ class TiffImportHelper {
             this.compression = TagCompression.fromPrettyName(compressionName).orElseThrow();
             writer.setBigTiff(bigTiff);
             writer.setByteOrder(byteOrder.byteOrder());
-            writer.create();
+            writer.create(append);
             final TiffIFD ifd = TiffIFD.newIFD(this.tiled);
             if (this.tiled) {
                 ifd.putTileSizes(tileSizeX, tileSizeY);
@@ -273,9 +271,8 @@ class TiffImportHelper {
             map.writeChannels(image);
             long t3 = System.nanoTime();
             LOG.log(System.Logger.Level.INFO, String.format(Locale.ROOT,
-                    "New TIFF created in %.3f ms: %.3f ms preparing map + %.3f ms writing to file",
+                    "Image written in %.3f ms: %.3f ms preparing map + %.3f ms writing to file",
                     (t3 - t1) * 1e-6, (t2 - t1) * 1e-6, (t3 - t2) * 1e-6));
         }
     }
-
 }
