@@ -212,6 +212,7 @@ public class TiffUnpacking {
                 //                |"blockStart" position
 
                 if (chromaIndex + 1 >= data.length || lumaIndex >= data.length) {
+                    // - source data MAY be too short in the case of invalid/strange TIFF
                     break UnpackingLoop;
                 }
 
@@ -420,6 +421,10 @@ public class TiffUnpacking {
                     long value;
                     if (byteAligned) {
                         final int index = (i * samplesPerPixel + s) * bytesPerSample;
+                        if (index + bytesPerSample > source.length) {
+                            // - source data MAY be too short in the case of invalid/strange TIFF
+                            return;
+                        }
                         value = JArrays.getBytes8(source, index, bytesPerSample, byteOrder);
                         // - It is strange, but it is a fact:
                         //      for byte-aligned pixels (for example, 16 or 24 bits/sample),
@@ -432,6 +437,7 @@ public class TiffUnpacking {
                         // even before decoding LZW/Deflate etc.)
                     } else {
                         if (pos >= length) {
+                            // - source data MAY be too short in the case of invalid/strange TIFF
                             return;
                         }
                         value = PackedBitArraysPer8.getBits64InReverseOrder(source, pos, bits) & 0xFFFFFFFFL;

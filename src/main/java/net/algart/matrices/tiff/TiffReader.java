@@ -47,6 +47,7 @@ import java.lang.ref.SoftReference;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -148,6 +149,8 @@ public non-sealed class TiffReader extends TiffIO {
     // (together with uncommenting unpackBytesLegacy call)
     private static final boolean AUTO_BUFFERING_INPUT_STREAM = true;
     // - should be true for good performance
+    private static final boolean TEST_TOO_SHORT_BROKEN_UNCOMPRESSED_DATA = false;
+    // - must be false (used for testing possible exceptions)
 
     private final DataHandle<?> originalStream;
     private volatile boolean caching = true;
@@ -1263,7 +1266,10 @@ public non-sealed class TiffReader extends TiffIO {
                 timing.setTiming(BUILT_IN_TIMING && LOGGABLE_DEBUG);
                 timing.resetTiming();
             }
-            final byte[] decodedData = codec.decompress(encodedData, options);
+            byte[] decodedData = codec.decompress(encodedData, options);
+            if (TEST_TOO_SHORT_BROKEN_UNCOMPRESSED_DATA) {
+                decodedData = Arrays.copyOf(decodedData, new Random().nextInt(decodedData.length / 5));
+            }
             setLastCodecReport(options.getReport());
             tile.setPartiallyDecodedData(decodedData);
             tile.setReport(options.getReport());

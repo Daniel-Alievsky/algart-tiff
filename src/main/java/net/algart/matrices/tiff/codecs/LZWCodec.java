@@ -112,7 +112,8 @@ public class LZWCodec implements TiffCodec {
 
     private static final boolean RETURN_ONLY_ACTUALLY_DECOMPRESSED_BYTES = false;
     // - I prefer to set it to "false" to handle "strange" LZW files that do not contain all the necessary bytes.
-    // In such cases, a "true" value would lead to errors during further processing of the returned partial data.
+    // In such cases, a "true" value would lead to problems during further processing of the returned partial data
+    // (not serious problems: TiffUnpacking should work even with too short buffer).
     // Note: I haven't seen such files in practice so far. - Daniel Alievsky
 
     private static final boolean USE_TWELVE_MONKEY_DECODER = false;
@@ -546,7 +547,7 @@ public class LZWCodec implements TiffCodec {
             if (RETURN_ONLY_ACTUALLY_DECOMPRESSED_BYTES && buffer.position() != output.length) {
                 return Arrays.copyOf(output, buffer.position());
                 // For general-cmm-error.tif from TwelveMonkey test set, the output buffer is not completely filled,
-                // and it leads to error in TiffUnpacking.unpackTiffBitsAndInvertValues
+                // and it leads to partial data in TiffUnpacking.unpackTiffBitsAndInvertValues
             }
 
             return output;
