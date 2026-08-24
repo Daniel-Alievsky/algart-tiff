@@ -103,6 +103,7 @@ public class JTiffExplorerFrame extends JFrame {
     private final JButton openFileButton;
     private JButton showImageButton;
     private JMenuItem newBlankItem;
+    private JMenuItem importItem;
     private JMenuItem openItem;
     private JMenuItem reloadItem;
     private JMenuItem showImageItem;
@@ -249,6 +250,12 @@ public class JTiffExplorerFrame extends JFrame {
         newBlankItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK));
         newBlankItem.addActionListener(e -> explorer.chooseFileAndShowNewBlankDialog());
         fileMenu.add(newBlankItem);
+        importItem = new JMenuItem("Import image...");
+        importItem.setMnemonic(KeyEvent.VK_I);
+        importItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, InputEvent.CTRL_DOWN_MASK));
+        importItem.addActionListener(e -> explorer.chooseFilesAndShowImportDialog());
+        fileMenu.add(importItem);
+        fileMenu.addSeparator();
         openItem = new JMenuItem("Open TIFF...");
         openItem.setMnemonic(KeyEvent.VK_O);
         openItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK));
@@ -526,6 +533,7 @@ public class JTiffExplorerFrame extends JFrame {
     private void setOpenInProgress(boolean inProgress) {
         openFileButton.setEnabled(!inProgress);
         newBlankItem.setEnabled(!inProgress);
+        importItem.setEnabled(!inProgress);
         openItem.setEnabled(!inProgress);
         reloadItem.setEnabled(!inProgress);
         if (recentFilesMenu != null) {

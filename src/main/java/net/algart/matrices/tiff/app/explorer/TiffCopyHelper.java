@@ -40,8 +40,7 @@ import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
 class TiffCopyHelper {
-
-    private static final String PREF_LAST_COPY_TIFF_DIR = "viewer.copier.lastCopyTiffDirectory";
+    private static final String PREF_LAST_COPY_TIFF_DIR = "copier.lastCopyTiffDirectory";
 
     private final JFrame frame;
     private final TiffExplorer explorer;

@@ -44,7 +44,7 @@ import java.util.Locale;
 import java.util.Objects;
 
 class TiffNewBlankHelper {
-    private static final String PREF_LAST_NEW_TIFF_DIR = "viewer.copier.lastNewTiffDirectory";
+    private static final String PREF_LAST_NEW_TIFF_DIR = "main.lastNewTiffDirectory";
 
     private static final System.Logger LOG = System.getLogger(TiffNewBlankHelper.class.getName());
 
@@ -132,11 +132,11 @@ class TiffNewBlankHelper {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(4, 5, 4, 5);
         int row = 0;
-        addGridBugRowCaption(gridPanel, gbc, "Dimensions", false, row++);
+        TinySwing.addGridBugRowCaption(gridPanel, gbc, "Dimensions", false, row++);
         dimXField = new JTextField(String.valueOf(dimX), 10);
         dimYField = new JTextField(String.valueOf(dimY), 10);
-        addGridBugRowLabelled(gridPanel, gbc, new JLabel("Width (pixels):"), dimXField, row++);
-        addGridBugRowLabelled(gridPanel, gbc, new JLabel("Height (pixels):"), dimYField, row++);
+        TinySwing.addGridBugRowLabelled(gridPanel, gbc, new JLabel("Width (pixels):"), dimXField, row++);
+        TinySwing.addGridBugRowLabelled(gridPanel, gbc, new JLabel("Height (pixels):"), dimYField, row++);
 
         final JLabel dimHintLabel = TinySwing.leftLabel(TinySwing.smartHtmlLines(
                 """
@@ -144,7 +144,7 @@ class TiffNewBlankHelper {
                         the file will be small and created instantly. For very large sizes,<br>
                         we recommend increasing the tile size (2048 \u00D7 2048 or more).
                         """));
-        addGridBugRowSingle(gridPanel, gbc, dimHintLabel, row++);
+        TinySwing.addGridBugRowSingle(gridPanel, gbc, dimHintLabel, row++);
 
         tiledCheckBox = new JCheckBox("Tiled TIFF image");
         tiledCheckBox.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -154,11 +154,11 @@ class TiffNewBlankHelper {
         updateTileSizesEnabled();
         tiledCheckBox.addActionListener(e -> updateTileSizesEnabled());
 
-        addGridBugRowSingle(gridPanel, gbc, tiledCheckBox, row++);
-        addGridBugRowLabelled(gridPanel, gbc, new JLabel("Tile width:"), tileSizeXField, row++);
-        addGridBugRowLabelled(gridPanel, gbc, new JLabel("Tile height:"), tileSizeYField, row++);
+        TinySwing.addGridBugRowSingle(gridPanel, gbc, tiledCheckBox, row++);
+        TinySwing.addGridBugRowLabelled(gridPanel, gbc, new JLabel("Tile width:"), tileSizeXField, row++);
+        TinySwing.addGridBugRowLabelled(gridPanel, gbc, new JLabel("Tile height:"), tileSizeYField, row++);
 
-        addGridBugRowCaption(gridPanel, gbc, "Content settings", true, row++);
+        TinySwing.addGridBugRowCaption(gridPanel, gbc, "Content settings", true, row++);
         numberOfChannelsComboBox = new JComboBox<>(UserNumberOfChannels.values());
         numberOfChannelsComboBox.setSelectedItem(numberOfChannels);
 
@@ -168,12 +168,12 @@ class TiffNewBlankHelper {
         sampleTypeComboBox.setMaximumRowCount(64);
         sampleTypeComboBox.setSelectedItem(sampleType.prettyName());
 
-        addGridBugRowLabelled(gridPanel, gbc, new JLabel("Channels:"), numberOfChannelsComboBox, row++);
-        addGridBugRowLabelled(gridPanel, gbc, new JLabel("Sample Type:"), sampleTypeComboBox, row++);
+        TinySwing.addGridBugRowLabelled(gridPanel, gbc, new JLabel("Channels:"), numberOfChannelsComboBox, row++);
+        TinySwing.addGridBugRowLabelled(gridPanel, gbc, new JLabel("Sample Type:"), sampleTypeComboBox, row++);
         compressionMethodComboBox = new JComboBox<>(TiffSaveImageHelper.makeCompressionNames());
         compressionMethodComboBox.setMaximumRowCount(64);
         compressionMethodComboBox.setSelectedItem(compression.prettyName());
-        addGridBugRowLabelled(gridPanel, gbc, new JLabel("Compression method:"),
+        TinySwing.addGridBugRowLabelled(gridPanel, gbc, new JLabel("Compression method:"),
                 compressionMethodComboBox, row++);
 
         JPanel colorChooserPanel = new JPanel(new BorderLayout(5, 0));
@@ -188,7 +188,8 @@ class TiffNewBlankHelper {
         colorChooserPanel.add(colorHexField, BorderLayout.CENTER);
         colorChooserPanel.add(colorPreviewPanel, BorderLayout.WEST);
         colorChooserPanel.add(colorButton, BorderLayout.EAST);
-        addGridBugRowLabelled(gridPanel, gbc, new JLabel("Fill color (hex):"), colorChooserPanel, row++);
+        TinySwing.addGridBugRowLabelled(
+                gridPanel, gbc, new JLabel("Fill color (hex):"), colorChooserPanel, row++);
 
         colorHexField.addActionListener(e -> updateColorFromHex());
         colorHexField.addFocusListener(new java.awt.event.FocusAdapter() {
@@ -202,17 +203,17 @@ class TiffNewBlankHelper {
         patternCheckBox = new JCheckBox("Repeat some figure in each tile");
         patternCheckBox.setSelected(pattern);
         patternCheckBox.setAlignmentX(Component.LEFT_ALIGNMENT);
-        addGridBugRowSingle(gridPanel, gbc, patternCheckBox, row++);
+        TinySwing.addGridBugRowSingle(gridPanel, gbc, patternCheckBox, row++);
 
-        addGridBugRowCaption(gridPanel, gbc, "TIFF file settings", true, row++);
+        TinySwing. addGridBugRowCaption(gridPanel, gbc, "TIFF file settings", true, row++);
         byteOrderComboBox = new JComboBox<>(UserByteOrder.values());
         byteOrderComboBox.setSelectedItem(byteOrder);
-        addGridBugRowLabelled(gridPanel, gbc, new JLabel("Byte order:"), byteOrderComboBox, row++);
+        TinySwing.addGridBugRowLabelled(gridPanel, gbc, new JLabel("Byte order:"), byteOrderComboBox, row++);
 
         bigTiffCheckBox = new JCheckBox("BigTIFF (necessary for large files >4 GB)");
         bigTiffCheckBox.setSelected(bigTiff);
         bigTiffCheckBox.setAlignmentX(Component.LEFT_ALIGNMENT);
-        addGridBugRowSingle(gridPanel, gbc, bigTiffCheckBox, row++);
+        TinySwing.addGridBugRowSingle(gridPanel, gbc, bigTiffCheckBox, row++);
 
         mainPanel.add(gridPanel);
         mainPanel.add(Box.createVerticalStrut(10));
@@ -247,50 +248,6 @@ class TiffNewBlankHelper {
     private void updateTileSizesEnabled() {
         tileSizeXField.setEnabled(tiledCheckBox.isSelected());
         tileSizeYField.setEnabled(tiledCheckBox.isSelected());
-    }
-
-    private static void addGridBugRowCaption(
-            JPanel panel,
-            GridBagConstraints constraints,
-            String caption,
-            boolean verticalGap,
-            int row) {
-        JLabel label = new JLabel(caption);
-        label.setFont(label.getFont().deriveFont(Font.BOLD));
-        label.setEnabled(false);
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
-        Box box = Box.createVerticalBox();
-        box.add(Box.createVerticalStrut(verticalGap ? 15 : 0));
-        box.add(label);
-        box.setAlignmentX(Component.LEFT_ALIGNMENT);
-        addGridBugRowSingle(panel, constraints, box, row);
-    }
-
-    private static void addGridBugRowSingle(
-            JPanel panel,
-            GridBagConstraints constraints,
-            JComponent component,
-            int row) {
-        constraints.gridx = 0;
-        constraints.gridy = row;
-        constraints.gridwidth = 2;
-        panel.add(component, constraints);
-        constraints.gridwidth = 1;
-    }
-
-    private static void addGridBugRowLabelled(
-            JPanel panel,
-            GridBagConstraints constraints,
-            JLabel label,
-            JComponent component,
-            int row) {
-        constraints.gridy = row;
-        constraints.gridx = 0;
-        constraints.weightx = 0.0;
-        panel.add(label, constraints);
-        constraints.gridx = 1;
-        constraints.weightx = 1.0;
-        panel.add(component, constraints);
     }
 
     private void selectColorSimple() {

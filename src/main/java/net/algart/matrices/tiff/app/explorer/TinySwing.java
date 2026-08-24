@@ -219,4 +219,48 @@ public class TinySwing {
             }
         }
     }
+
+    static void addGridBugRowCaption(
+            JPanel panel,
+            GridBagConstraints constraints,
+            String caption,
+            boolean verticalGap,
+            int row) {
+        JLabel label = new JLabel(caption);
+        label.setFont(label.getFont().deriveFont(Font.BOLD));
+        label.setEnabled(false);
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        Box box = Box.createVerticalBox();
+        box.add(Box.createVerticalStrut(verticalGap ? 15 : 0));
+        box.add(label);
+        box.setAlignmentX(Component.LEFT_ALIGNMENT);
+        addGridBugRowSingle(panel, constraints, box, row);
+    }
+
+    static void addGridBugRowSingle(
+            JPanel panel,
+            GridBagConstraints constraints,
+            JComponent component,
+            int row) {
+        constraints.gridx = 0;
+        constraints.gridy = row;
+        constraints.gridwidth = 2;
+        panel.add(component, constraints);
+        constraints.gridwidth = 1;
+    }
+
+    static void addGridBugRowLabelled(
+            JPanel panel,
+            GridBagConstraints constraints,
+            JLabel label,
+            JComponent component,
+            int row) {
+        constraints.gridy = row;
+        constraints.gridx = 0;
+        constraints.weightx = 0.0;
+        panel.add(label, constraints);
+        constraints.gridx = 1;
+        constraints.weightx = 1.0;
+        panel.add(component, constraints);
+    }
 }

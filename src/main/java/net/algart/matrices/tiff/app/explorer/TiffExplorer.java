@@ -67,6 +67,7 @@ public class TiffExplorer {
 
     private JTiffExplorerFrame frame;
     private TiffNewBlankHelper tiffNewBlankHelper;
+    private TiffImportHelper tiffImportHelper;
     private FileFilter lastFileFilter = TIFF_OR_SVS_FILTER;
 
     private TiffInfo info = null;
@@ -135,6 +136,7 @@ public class TiffExplorer {
     private void createGUI(String[] args) {
         this.frame = new JTiffExplorerFrame(this);
         this.tiffNewBlankHelper = new TiffNewBlankHelper(frame);
+        this.tiffImportHelper = new TiffImportHelper(frame);
         if (args.length >= 1) {
             openFile(Path.of(args[0]));
         }
@@ -148,6 +150,22 @@ public class TiffExplorer {
             } catch (Exception ex) {
                 TinySwing.showErrorMessage(frame, ex, "Error creating TIFF");
             }
+        }
+    }
+
+    void chooseFilesAndShowImportDialog() {
+        Path fileToImport = tiffImportHelper.chooseFileToImport();
+        if (fileToImport == null) {
+            return;
+        }
+        Path fileToSave = tiffImportHelper.chooseTiffFileToSave();
+        if (fileToSave == null) {
+            return;
+        }
+        try {
+            tiffImportHelper.showCustomizeTiffDialog(fileToImport, fileToSave);
+        } catch (Exception ex) {
+            TinySwing.showErrorMessage(frame, ex, "Error importing TIFF");
         }
     }
 

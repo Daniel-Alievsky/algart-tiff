@@ -49,9 +49,9 @@ class TiffSaveImageHelper {
     private static final int MAX_SINGLE_IMAGE_SIZE_IN_PIXELS = 25 * 1024 * 1024;
     // - 25 megapixels: even for RGBA with float precision, it is only 4*4*25 MB = 400 MB < 2^31 bytes
 
-    private static final String PREF_LAST_EXPORT__DIR = "viewer.export.lastDirectory";
-    private static final String PREF_LAST_SAVE_IMAGE_DIR = "viewer.copier.lastSaveImageDirectory";
-    private static final String PREF_AUTO_CLOSE = "viewer.copier.autoClose";
+    private static final String PREF_LAST_EXPORT_DIR = "export.lastDirectory";
+    private static final String PREF_LAST_SAVE_IMAGE_DIR = "copier.lastSaveImageDirectory";
+    private static final String PREF_AUTO_CLOSE = "copier.autoClose";
 
     private static final FileFilter ANY_IMAGE_FILTER = new FileNameExtensionFilter(
             "Image files (*.png, *.jpg, *.jpeg, *.bmp, *.gif, *.tif, *.tiff)",
@@ -89,7 +89,7 @@ class TiffSaveImageHelper {
             return null;
         }
         JFileChooser chooser = TinySwing.newFileChooser();
-        String last = TiffExplorer.PREFERENCES.get(PREF_LAST_EXPORT__DIR, null);
+        String last = TiffExplorer.PREFERENCES.get(PREF_LAST_EXPORT_DIR, null);
         File dir = new File(last == null ? "." : last);
         if (dir.isDirectory()) {
             chooser.setCurrentDirectory(dir);
@@ -104,7 +104,7 @@ class TiffSaveImageHelper {
         if (file == null) {
             return null;
         }
-        TiffExplorer.PREFERENCES.put(PREF_LAST_EXPORT__DIR, file.getParent());
+        TiffExplorer.PREFERENCES.put(PREF_LAST_EXPORT_DIR, file.getParent());
         return file.toPath();
     }
 
