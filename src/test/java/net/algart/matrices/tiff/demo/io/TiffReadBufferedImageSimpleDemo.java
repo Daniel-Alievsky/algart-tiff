@@ -51,9 +51,8 @@ public class TiffReadBufferedImageSimpleDemo {
             // reader.setEnforceUseExternalCodec(true); // - throws exception: no SCIFIO or other external codecs
             // reader.setContext(TiffTools.newSCIFIOContext()); // - throws exception without dependence on SCIFIO
             // reader.setInterleaveResults(true); // - slows down reading (unnecessary interleaving+separating)
-            final TiffReadMap map = reader.map(ifdIndex);
-            System.out.printf("Reading %s...%n", map);
-            image = map.readBufferedImage();
+            image = reader.readBufferedImage(ifdIndex);
+            System.out.printf("Reading %s...%n", image);
         }
         System.out.printf("Writing %s...%n", targetFile);
         final String formatName = extension(targetFile.getFileName().toString());
