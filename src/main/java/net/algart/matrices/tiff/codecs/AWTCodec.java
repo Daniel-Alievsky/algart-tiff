@@ -102,7 +102,7 @@ public class AWTCodec implements TiffCodec {
         return param;
     }
 
-    public static DataBuffer toDataBuffer(byte[] data, Options options) throws TiffException {
+    static DataBuffer toDataBuffer(byte[] data, Options options) throws TiffException {
         Objects.requireNonNull(data, "Null data");
         Objects.requireNonNull(options, "Null codec options");
         final int bitsPerSample = options.getNormalizedBitsPerSample();
