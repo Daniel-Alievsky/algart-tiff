@@ -342,7 +342,6 @@ public class JPEG2000Codec implements TiffCodec {
 
         byte[][] single;
         Raster raster;
-        int bpp;
 
         try {
             final ByteArrayInputStream bis = new ByteArrayInputStream(data);
@@ -351,7 +350,6 @@ public class JPEG2000Codec implements TiffCodec {
             // raster = (WritableRaster) this.jaiIIOService.readRaster(bis,
             //        (JPEG2000CodecOptions) options);
             single = AWTImages.getPixelBytes(raster, jpeg2000Options.isLittleEndian());
-            bpp = single[0].length / (raster.getWidth() * raster.getHeight());
 
             bis.close();
         } catch (ThreadDeath e) {
