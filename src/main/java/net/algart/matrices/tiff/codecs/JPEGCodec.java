@@ -228,7 +228,7 @@ public class JPEGCodec extends AWTCodec implements TiffCodec.Timing {
         long t3 = timing ? System.nanoTime() : 0;
         timeBridge += t3 - t2;
 
-        final byte[] result = AWTCodec.mergeChannels(channels, imageData.raster(), options.isInterleaved());
+        final byte[] result = AWTCodec.toDecodedData(channels, imageData.raster(), options.isInterleaved());
         long t4 = timing ? System.nanoTime() : 0;
         timeAdditional += t4 - t3;
         return result;

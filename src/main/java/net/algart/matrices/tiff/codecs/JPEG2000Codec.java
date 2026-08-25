@@ -257,23 +257,18 @@ public class JPEG2000Codec implements TiffCodec {
         if (options.isFloatingPoint()) {
             throw new TiffException("JPEG-2000 compression cannot be used for floating-point values");
         }
-        final int bitsPerSample = options.getNormalizedBitsPerSample();
-        if (bitsPerSample != 8 && bitsPerSample != 16) {
-            throw new TiffException("JPEG-2000 compression for " + bitsPerSample +
-                    "-bit samples is not supported (only unsigned 8/16-bit samples allowed)");
-            // Note: jai-imageio.jpeg2000 1.4.0 does not work correctly with 32-bit samples
-            // due to integer bit-shift overflow (1 << ntdepth[0]) in calcMixedBitDepths and other jai-imageio methods
-        }
         if (options.isSigned()) {
             throw new TiffException("JPEG-2000 compression for signed samples is not supported " +
                     "(only unsigned samples allowed)");
         }
-        final int samplesPerPixel = options.getSamplesPerPixel();
-        final TagPhotometric photometric = options.getPhotometric();
+        JPEG2000Options jpeg2000Options = new JPEG2000Options().setTo(options);
+        final int bitsPerSample = jpeg2000Options.getNormalizedBitsPerSample();
+        final int samplesPerPixel = jpeg2000Options.getSamplesPerPixel();
+        final TagPhotometric photometric = jpeg2000Options.getPhotometric();
         final int expectedChannels = switch (photometric) {
             case null -> throw new TiffException("Photometric interpretation is not set in the options");
             case BLACK_IS_ZERO -> 1;
-            case RGB -> options.isPlanarSeparated() ? 1 : 3;
+            case RGB -> jpeg2000Options.isPlanarSeparated() ? 1 : 3;
             default -> throw new TiffException("JPEG-2000 compression for photometric interpretation " + photometric +
                     " is not supported");
         };
@@ -285,15 +280,11 @@ public class JPEG2000Codec implements TiffCodec {
             return data;
         }
 
-        JPEG2000Options jpeg2000Options = new JPEG2000Options().setTo(options);
         if (!jpeg2000Options.isWritingSupported()) {
             throw new UnsupportedTiffFormatException("JPEG-2000 compression for this format is not supported");
         }
 
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
-        BufferedImage img;
-
-        int next = 0;
 
         // NB: Construct BufferedImages manually, rather than using
         // AWTImages.makeImage. The AWTImages.makeImage methods construct
@@ -302,53 +293,21 @@ public class JPEG2000Codec implements TiffCodec {
         // DataBuffer.TYPE_INT (so a single int is used to store all the
         // channels for a specific pixel).
 
-        final int plane = Math.multiplyExact(jpeg2000Options.getWidth(), jpeg2000Options.getHeight());
-
-        final boolean interleaved = jpeg2000Options.isInterleaved();
-        final boolean littleEndian = jpeg2000Options.isLittleEndian();
-        if (bitsPerSample == 8) {
-            final byte[][] b = new byte[samplesPerPixel][plane];
-            if (interleaved) {
-                for (int q = 0; q < plane; q++) {
-                    for (int c = 0; c < samplesPerPixel; c++) {
-                        b[c][q] = data[next++];
-                    }
-                }
-            } else {
-                for (int c = 0; c < samplesPerPixel; c++) {
-                    System.arraycopy(data, c * plane, b[c], 0, plane);
-                }
-            }
-            final DataBuffer buffer = new DataBufferByte(b, plane);
-            img = AWTImages.makeImage(b.length, DataBuffer.TYPE_BYTE,
+        final DataBuffer buffer = AWTCodec.toDataBuffer(data, jpeg2000Options);
+        final BufferedImage img = switch (bitsPerSample) {
+            case 8 -> AWTImages.makeImage(samplesPerPixel, DataBuffer.TYPE_BYTE,
                     jpeg2000Options.getWidth(), jpeg2000Options.getHeight(), false, true, buffer,
                     jpeg2000Options.colorModel);
-        } else {
-            final short[][] s = new short[samplesPerPixel][plane];
-            if (interleaved) {
-                for (int q = 0; q < plane; q++) {
-                    for (int c = 0; c < samplesPerPixel; c++) {
-                        // assert toShort(data, next, false) == Bytes.toShort(data, next, 2, false);
-                        // assert toShort(data, next, true) == Bytes.toShort(data, next, 2, true);
-                        s[c][q] = toShort(data, next, littleEndian);
-                        next += 2;
-                    }
-                }
-            } else {
-                for (int c = 0; c < samplesPerPixel; c++) {
-                    for (int q = 0; q < plane; q++) {
-                        s[c][q] = toShort(data, next, littleEndian);
-                        next += 2;
-                    }
-                }
-            }
-            final DataBuffer buffer = new DataBufferUShort(s, plane);
-            img = AWTImages.makeImage(s.length, DataBuffer.TYPE_USHORT,
+            case 16 -> AWTImages.makeImage(samplesPerPixel, DataBuffer.TYPE_USHORT,
                     jpeg2000Options.getWidth(), jpeg2000Options.getHeight(),
                     false, true,
                     buffer,
                     jpeg2000Options.getColorModel());
-        }
+            default -> throw new TiffException("Compression for " + bitsPerSample + "-bit samples is not supported");
+            // - Should be checked also in toDataBuffer
+            // Note: jai-imageio.jpeg2000 1.4.0 does not work correctly with 32-bit samples
+            // due to integer bit-shift overflow (1 << ntdepth[0]) in calcMixedBitDepths and other jai-imageio methods
+        };
 
         writeImageWithCorrectExceptions(out, img, jpeg2000Options);
         return out.toByteArray();
@@ -408,7 +367,7 @@ public class JPEG2000Codec implements TiffCodec {
 //                "make sure that jai_imageio.jar is installed.", e);
 //        }
 
-        return AWTCodec.mergeChannels(single, raster, jpeg2000Options.isInterleaved());
+        return AWTCodec.toDecodedData(single, raster, jpeg2000Options.isInterleaved());
 
 //        - equivalent to mergeChannels
 //        if (single.length == 1) return single[0];
@@ -476,21 +435,4 @@ public class JPEG2000Codec implements TiffCodec {
         return reader.readRaster(0, param);
     }
 
-    private static short toShort(final byte[] src, int srcPos, final boolean little) {
-        return (short) (little ?
-                (src[srcPos] & 0xFF) | ((src[srcPos + 1] & 0xFF) << 8) :
-                ((src[srcPos] & 0xFF) << 8) | (src[srcPos + 1] & 0xFF));
-    }
-
-    private static int toInt(final byte[] src, int srcPos, final boolean little) {
-        return little ?
-                (src[srcPos] & 0xFF)
-                | ((src[srcPos + 1] & 0xFF) << 8)
-                | ((src[srcPos + 2] & 0xFF) << 16)
-                | ((src[srcPos + 3] & 0xFF) << 24) :
-                ((src[srcPos] & 0xFF) << 24)
-                | ((src[srcPos + 1] & 0xFF) << 16)
-                | ((src[srcPos + 2] & 0xFF) << 8)
-                | (src[srcPos + 3] & 0xFF);
-    }
 }

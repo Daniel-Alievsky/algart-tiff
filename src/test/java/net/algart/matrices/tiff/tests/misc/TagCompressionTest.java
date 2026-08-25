@@ -81,14 +81,21 @@ public class TagCompressionTest {
     }
 
     public static void main(String... args) throws TiffException {
-        TiffIFD ifd = TiffIFD.newInstance();
-        check(ifd, null, TiffIFD.COMPRESSION_NONE, false);
-        System.out.println();
+        int startArgIndex = 0;
+        boolean onlySupported = false;
+        if (args.length > startArgIndex && args[startArgIndex].equalsIgnoreCase("-onlySupported")) {
+            onlySupported = true;
+            startArgIndex++;
+        }
 
         final TagCompression[] compressions = TagCompression.values();
         System.out.printf("Checking all %d compression types:%n", compressions.length);
         int lastCode = 0;
         for (TagCompression compression : compressions) {
+            if (onlySupported && !compression.isSupported()) {
+                continue;
+            }
+            final TiffIFD ifd = TiffIFD.newInstance();
             ifd.putCompression(compression);
             check(ifd, compression, compression.code(), true);
             if (compression.code() < lastCode) {
@@ -98,14 +105,20 @@ public class TagCompressionTest {
         }
         System.out.println();
         System.out.println();
+        if (onlySupported) {
+            return;
+        }
 
         System.out.println("**************");
         System.out.println("Custom checks:");
-        ifd.putCompression(null);
+        TiffIFD ifd = TiffIFD.newInstance();
         check(ifd, null, TiffIFD.COMPRESSION_NONE, false);
 
         ifd.putCompression(null, true);
         check(ifd, TagCompression.NONE, TiffIFD.COMPRESSION_NONE, true);
+
+        ifd.putCompression(null);
+        check(ifd, null, TiffIFD.COMPRESSION_NONE, false);
 
         ifd.put(Tags.COMPRESSION, 15728);
         check(ifd, null, 15728, true);
@@ -123,6 +136,8 @@ public class TagCompressionTest {
         check(ifd, TagCompression.JPEG_2000_LOSSLESS, TagCompression.JPEG_2000.code(), true);
 
         ifd.putCompression(TagCompression.JPEG_RGB);
+        check(ifd, TagCompression.JPEG_RGB, TagCompression.JPEG.code(), true);
+
         ifd.putCompressionCode(TagCompression.JPEG_RGB.code());
         // - removes the stored JPEG_RGB!
         check(ifd, TagCompression.JPEG, TagCompression.JPEG.code(), true);

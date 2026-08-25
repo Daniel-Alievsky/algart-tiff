@@ -34,8 +34,7 @@ import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.MemoryCacheImageInputStream;
 import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.awt.image.Raster;
+import java.awt.image.*;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -80,7 +79,7 @@ public class AWTCodec implements TiffCodec {
         } finally {
             reader.dispose();
         }
-        return mergeChannels(pixelBytes, imageDimX, imageDimY, options.isInterleaved());
+        return toDecodedData(pixelBytes, imageDimX, imageDimY, options.isInterleaved());
     }
 
     protected ImageReader tryToFindImageReader(ImageInputStream stream) {
@@ -103,11 +102,62 @@ public class AWTCodec implements TiffCodec {
         return param;
     }
 
-    public static byte[] mergeChannels(byte[][] pixelBytes, Raster raster, boolean interleaved) {
-        return mergeChannels(pixelBytes, raster.getWidth(), raster.getHeight(), interleaved);
+    public static DataBuffer toDataBuffer(byte[] data, Options options) throws TiffException {
+        Objects.requireNonNull(data, "Null data");
+        Objects.requireNonNull(options, "Null codec options");
+        final int bitsPerSample = options.getNormalizedBitsPerSample();
+        if (bitsPerSample != 8 && bitsPerSample != 16) {
+            throw new TiffException("Compression for " + bitsPerSample +
+                    "-bit samples is not supported (only unsigned 8/16-bit samples allowed)");
+            // Note: jai-imageio.jpeg2000 1.4.0 does not work correctly with 32-bit samples
+            // due to integer bit-shift overflow (1 << ntdepth[0]) in calcMixedBitDepths and other jai-imageio methods
+        }
+        final int samplesPerPixel = options.getSamplesPerPixel();
+        final boolean interleaved = options.isInterleaved();
+        final boolean littleEndian = options.isLittleEndian();
+        final int numberOfPixels = Math.multiplyExact(options.getWidth(), options.getHeight());
+        if (bitsPerSample == 8) {
+            final byte[][] result = new byte[samplesPerPixel][numberOfPixels];
+            if (interleaved) {
+                for (int next = 0, q = 0; q < numberOfPixels; q++) {
+                    for (int c = 0; c < samplesPerPixel; c++) {
+                        result[c][q] = data[next++];
+                    }
+                }
+            } else {
+                for (int c = 0; c < samplesPerPixel; c++) {
+                    System.arraycopy(data, c * numberOfPixels, result[c], 0, numberOfPixels);
+                }
+            }
+            return new DataBufferByte(result, numberOfPixels);
+        } else {
+            final short[][] result = new short[samplesPerPixel][numberOfPixels];
+            if (interleaved) {
+                for (int next = 0, q = 0; q < numberOfPixels; q++) {
+                    for (int c = 0; c < samplesPerPixel; c++) {
+                        // assert toShort(data, next, false) == Bytes.toShort(data, next, 2, false);
+                        // assert toShort(data, next, true) == Bytes.toShort(data, next, 2, true);
+                        result[c][q] = toShort(data, next, littleEndian);
+                        next += 2;
+                    }
+                }
+            } else {
+                for (int next = 0, c = 0; c < samplesPerPixel; c++) {
+                    for (int q = 0; q < numberOfPixels; q++) {
+                        result[c][q] = toShort(data, next, littleEndian);
+                        next += 2;
+                    }
+                }
+            }
+            return new DataBufferUShort(result, numberOfPixels);
+        }
     }
 
-    public static byte[] mergeChannels(byte[][] pixelBytes, int dimX, int dimY, boolean interleaved) {
+    public static byte[] toDecodedData(byte[][] pixelBytes, Raster raster, boolean interleaved) {
+        return toDecodedData(pixelBytes, raster.getWidth(), raster.getHeight(), interleaved);
+    }
+
+    public static byte[] toDecodedData(byte[][] pixelBytes, int dimX, int dimY, boolean interleaved) {
         // System.out.println("!!! Interleaved: " + interleaved);
         Objects.requireNonNull(pixelBytes, "Null pixelBytes");
         if (dimX < 0 || dimY < 0) {
@@ -137,22 +187,21 @@ public class AWTCodec implements TiffCodec {
                 if (dimX == 0 || dimY == 0) {
                     return new byte[0];
                 }
-                int numberOfPixels = Math.multiplyExact(dimX, dimY);
-                int bytesPerSample = bandSize / numberOfPixels;
+                final int numberOfPixels = Math.multiplyExact(dimX, dimY);
+                final int bytesPerSample = bandSize / numberOfPixels;
                 if (bytesPerSample * numberOfPixels != bandSize) {
                     throw new IllegalArgumentException("Strange length of pixelBytes[0]: " + bandSize
                         + " is not divisible by " + dimX + "*" +  dimY);
                 }
-                byte[] result = new byte[Math.multiplyExact(pixelBytes.length, bandSize)];
-                int next = 0;
+                final byte[] result = new byte[Math.multiplyExact(pixelBytes.length, bandSize)];
                 if (bytesPerSample == 1) {
-                    for (int i = 0; i < bandSize; i++) {
+                    for (int next = 0, i = 0; i < bandSize; i++) {
                         for (byte[] bytes : pixelBytes) {
                             result[next++] = bytes[i];
                         }
                     }
                 } else {
-                    for (int i = 0; i < numberOfPixels; i++) {
+                    for (int next = 0, i = 0; i < numberOfPixels; i++) {
                         final int disp = i * bytesPerSample;
                         for (byte[] bytes : pixelBytes) {
                             for (int j = 0; j < bytesPerSample; j++) {
@@ -170,5 +219,25 @@ public class AWTCodec implements TiffCodec {
                 return result;
             }
         }
+
+    }
+
+    private static short toShort(byte[] src, int srcPos, boolean littleEndian) {
+        return (short) (littleEndian ?
+                (src[srcPos] & 0xFF) | ((src[srcPos + 1] & 0xFF) << 8) :
+                ((src[srcPos] & 0xFF) << 8) | (src[srcPos + 1] & 0xFF));
+    }
+
+    // Deprecated, probably will be replaced with JArrays.arrayToBytes
+    private static int toInt(byte[] src, int srcPos, boolean littleEndian) {
+        return littleEndian ?
+                (src[srcPos] & 0xFF)
+                        | ((src[srcPos + 1] & 0xFF) << 8)
+                        | ((src[srcPos + 2] & 0xFF) << 16)
+                        | ((src[srcPos + 3] & 0xFF) << 24) :
+                ((src[srcPos] & 0xFF) << 24)
+                        | ((src[srcPos + 1] & 0xFF) << 16)
+                        | ((src[srcPos + 2] & 0xFF) << 8)
+                        | (src[srcPos + 3] & 0xFF);
     }
 }
