@@ -67,7 +67,9 @@ class TiffSaveImageHelper {
     private JDialog settingsDialog;
     private JCheckBox directMode;
     private JLabel compressionQualityLabel;
+    private JLabel losslessCompressionLevelLabel;
     private JTextField compressionQualityField;
+    private JTextField losslessCompressionLevelField;
     private JLabel compressionMethodLabel;
     private JComboBox<String> compressionMethodComboBox;
     private JLabel copyProgressLabel;
@@ -300,13 +302,10 @@ class TiffSaveImageHelper {
         final JPanel settingsWithCommentsPanel = new JPanel();
         settingsWithCommentsPanel.setLayout(new BoxLayout(settingsWithCommentsPanel, BoxLayout.Y_AXIS));
         TinySwing.addTitledBorder(settingsWithCommentsPanel, "Compression settings");
-        final JPanel settingsGrid = new JPanel(new GridLayout(2, 2, 5, 5));
+
+        final JPanel settingsGrid = new JPanel(new GridLayout(4, 2, 5, 5));
         settingsGrid.setAlignmentX(Component.LEFT_ALIGNMENT);
-        compressionQualityLabel = new JLabel(compressionQualityLabel(TagCompression.JPEG_2000));
-        // - JPEG_2000 is the maximally long variant for calculating positions
-        settingsGrid.add(compressionQualityLabel);
-        compressionQualityField = new JTextField(6);
-        settingsGrid.add(compressionQualityField);
+
         compressionMethodLabel = new JLabel("Compression method:");
         settingsGrid.add(compressionMethodLabel);
         compressionMethodComboBox = new JComboBox<>(makeCompressionNames(compression));
@@ -314,6 +313,23 @@ class TiffSaveImageHelper {
         compressionMethodComboBox.setSelectedItem(compression.prettyName());
         compressionMethodComboBox.addActionListener(e -> correctCompressionControls());
         settingsGrid.add(compressionMethodComboBox);
+
+        // Lossy Compression Quality (e.g. JPEG, JPEG-2000)
+        compressionQualityLabel = new JLabel(compressionQualityLabel(TagCompression.JPEG_2000));
+        // - JPEG_2000 is the maximally long variant for calculating positions
+        settingsGrid.add(compressionQualityLabel);
+        compressionQualityField = new JTextField(6);
+        compressionQualityField.setToolTipText("Leave empty for default value");
+        settingsGrid.add(compressionQualityField);
+
+        // Lossless Compression Level (e.g. DEFLATE)
+        losslessCompressionLevelLabel = new JLabel("Lossless compression level (0..9):");
+        settingsGrid.add(losslessCompressionLevelLabel);
+        losslessCompressionLevelField = new JTextField(6);
+        losslessCompressionLevelField.setToolTipText(
+                "0 = min compression, 9 = max compression; leave empty for default value");
+        settingsGrid.add(losslessCompressionLevelField);
+
         settingsGrid.setMaximumSize(new Dimension(Integer.MAX_VALUE, settingsGrid.getPreferredSize().height));
         settingsWithCommentsPanel.add(settingsGrid);
         if (!originalCompression.isWritingSupported()) {
@@ -365,9 +381,13 @@ class TiffSaveImageHelper {
     private void startCopyImage(Path sourceFile, Path targetFile, int ifdIndex, Rectangle r, boolean append) {
         final TiffCopier copier;
         final Double compressionQuality;
+        final Double losslessCompressionLevel;
         try {
             copier = buildCopier();
-            compressionQuality = getCompressionQuality();
+            compressionQuality = getDoubleValue(compressionQualityField,
+                    "compression quality", 1.0);
+            losslessCompressionLevel = getDoubleValue(losslessCompressionLevelField,
+                    "lossless compression level", 9.0);
             stopRequested = false;
             startCopyButton.setEnabled(false);
             startCopyButton.setVisible(false);
@@ -389,6 +409,7 @@ class TiffSaveImageHelper {
                     // - without this operator, direct copy will be impossible for LE format
                     // if (true) throw new IOException("Test exception");
                     writer.setCompressionQuality(compressionQuality);
+                    writer.setLosslessCompressionLevel(losslessCompressionLevel);
                     writer.create(append);
                     if (r == null) {
                         copier.copyImage(writer, reader, ifdIndex);
@@ -472,7 +493,7 @@ class TiffSaveImageHelper {
                             Do you want to continue?<br>
                             <br>&nbsp;
                             """
-                            .replace("\n","")
+                            .replace("\n", "")
                             .formatted(actionName, sizeX, sizeY, recommendedAction),
                     // - necessary to remove \n, otherwise showConfirmDialog will use plaintext and show HTML tags
                     "Large Image Warning",
@@ -503,16 +524,16 @@ class TiffSaveImageHelper {
                         p.isLastTileCopied() ? "" : "...")));
     }
 
-    private Double getCompressionQuality() {
-        if (!compressionQualityField.isEnabled()) {
+    private Double getDoubleValue(JTextField field, String name, double divider) {
+        if (!field.isEnabled()) {
             return null;
             // - no sense to throw an exception for invalid text in a disabled field
         }
-        final String text = compressionQualityField.getText().trim();
+        final String text = field.getText().trim();
         try {
-            return text.isEmpty() ? null : Double.valueOf(text);
+            return text.isEmpty() ? null : Double.parseDouble(text) / divider;
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid compression quality: " + text);
+            throw new IllegalArgumentException("Invalid " + name + ": " + text);
         }
     }
 
@@ -525,17 +546,20 @@ class TiffSaveImageHelper {
         final TagCompression compression = getSelectedCompression();
         final boolean directCopy = directMode.isSelected();
         final boolean compressionQualitySupported = compression.isCompressionQualitySupported() && !directCopy;
+        final boolean losslessLevelSupported = compression.isLosslessCompressionLevelSupported() && !directCopy;
         compressionQualityLabel.setText(compressionQualityLabel(compression));
         compressionQualityLabel.setEnabled(compressionQualitySupported);
         compressionQualityField.setEnabled(compressionQualitySupported);
+        losslessCompressionLevelLabel.setEnabled(losslessLevelSupported);
+        losslessCompressionLevelField.setEnabled(losslessLevelSupported);
         compressionMethodLabel.setEnabled(!directCopy);
         compressionMethodComboBox.setEnabled(!directCopy);
     }
 
     private static String compressionQualityLabel(TagCompression compression) {
         return "Compression quality" +
-                (compression.isJpegCodec() ? " (from 0 to 1)" :
-                        compression.isJpeg2000() ? " (from ~0.5 to ~20 or higher)" : "")
+                (compression.isJpegCodec() ? " (0..1)" :
+                        compression.isJpeg2000() ? " (~0.5..~20 or higher)" : "")
                 + ":";
     }
 

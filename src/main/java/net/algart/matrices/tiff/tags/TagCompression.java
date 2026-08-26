@@ -399,7 +399,7 @@ public enum TagCompression {
     /**
      * PNG compression (type 34933).
      */
-    PNG(34933, "PNG", () -> new AWTCodec("png")),
+    PNG(34933, "PNG", () -> new AWTCodec("png", true)),
 
     /**
      * JPEG XR compression (type 34934).
@@ -730,6 +730,10 @@ public enum TagCompression {
 
     public boolean isCompressionQualitySupported() {
         return isJpeg2000() || isJpegCodec();
+    }
+
+    public boolean isLosslessCompressionLevelSupported() {
+        return this == DEFLATE || this == PNG || this == LZMA;
     }
 
     /**

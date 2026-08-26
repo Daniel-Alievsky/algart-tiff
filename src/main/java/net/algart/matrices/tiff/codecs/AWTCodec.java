@@ -47,13 +47,16 @@ public class AWTCodec implements TiffCodec {
     // - should be true for normal processing some old-style JPEG files
 
     private final String formatName;
+    private final boolean lossless;
 
     public AWTCodec() {
         this.formatName = null;
+        this.lossless = false;
     }
 
-    public AWTCodec(String formatName) {
+    public AWTCodec(String formatName, boolean lossless) {
         this.formatName = formatName;
+        this.lossless = lossless;
     }
 
     @Override
@@ -83,15 +86,18 @@ public class AWTCodec implements TiffCodec {
                     (options.getCompression() == null ? "" : " \"" + options.getCompression().prettyName() + "\"") +
                     " is not supported");
         }
-        try (ImageOutputStream ios = new MemoryCacheImageOutputStream(outputStream)) {
-            // - Important: this codec is implemented for writing separate tiles, which SHOULD be not too large
-            // to be located in memory. For comparison, other codecs like DeflateCodec always work in memory.
-            imageWriter.setOutput(ios);
-            try {
-                imageWriter.write(image);
-            } finally {
-                imageWriter.dispose();
+        try {
+            try (ImageOutputStream ios = new MemoryCacheImageOutputStream(outputStream)) {
+                // - Important: this codec is implemented for writing separate tiles, which SHOULD be not too large
+                // to be located in memory. For comparison, other codecs like DeflateCodec always work in memory.
+                imageWriter.setOutput(ios);
+                final ImageWriteParam writeParam = imageWriter.getDefaultWriteParam();
+                customizeWriteParameters(writeParam, options);
+                final IIOImage iioImage = new IIOImage(image, null, null);
+                imageWriter.write(null, iioImage, writeParam);
             }
+        } finally {
+            imageWriter.dispose();
         }
         return outputStream.toByteArray();
     }
@@ -125,6 +131,21 @@ public class AWTCodec implements TiffCodec {
         return toDecodedData(pixelBytes, image, options.isInterleaved());
     }
 
+    /**
+     * Returns the format name specified in the {@link #AWTCodec(String, boolean)} constructor,
+     * or {@code null} when using the no-arguments constructor.
+     *
+     * <p>It will be passed to {@code ImageIO.getImageWritersByFormatName(formatName)};
+     * a {@code null} value means that writing is not supported.
+     *
+     * @param options options to be used during compression.
+     * @return the format name (such as {@code "jpeg"} or {@code "png"}),
+     * or {@code null} if this codec instance does not support writing.
+     */
+    protected String formatName(Options options) {
+        return formatName;
+    }
+
     protected ImageReader tryToFindImageReader(ImageInputStream iis) {
         final Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
         return readers.hasNext() ? readers.next() : null;
@@ -153,19 +174,14 @@ public class AWTCodec implements TiffCodec {
         return iterator.next();
     }
 
-    /**
-     * Returns the format name specified in the {@link #AWTCodec(String)} constructor,
-     * or {@code null} when using the no-arguments constructor.
-     *
-     * <p>It will be passed to {@code ImageIO.getImageWritersByFormatName(formatName)};
-     * a {@code null} value means that writing is not supported.
-     *
-     * @param options options to be used during compression.
-     * @return the format name (such as {@code "jpeg"} or {@code "png"}),
-     * or {@code null} if this codec instance does not support writing.
-     */
-    protected String formatName(Options options) {
-        return formatName;
+    protected void customizeWriteParameters(ImageWriteParam writeParam, Options options) {
+        Objects.requireNonNull(writeParam, "Null writeParam");
+        Objects.requireNonNull(options, "Null options");
+        Double quality = lossless ? options.getLosslessCompressionLevel() : options.getCompressionQuality();
+        if (lossless && quality != null) {
+            quality = 1.0 - quality;
+        }
+        setQuality(writeParam, quality);
     }
 
     public static ImageReadParam buildReadParameters(Options options, ImageReader reader) {
@@ -225,7 +241,7 @@ public class AWTCodec implements TiffCodec {
                 final int bytesPerSample = bandSize / numberOfPixels;
                 if (bytesPerSample * numberOfPixels != bandSize) {
                     throw new IllegalArgumentException("Strange length of pixelBytes[0]: " + bandSize
-                        + " is not divisible by " + dimX + "*" +  dimY);
+                            + " is not divisible by " + dimX + "*" + dimY);
                 }
                 final byte[] result = new byte[Math.multiplyExact(pixelBytes.length, bandSize)];
                 if (bytesPerSample == 1) {
@@ -322,5 +338,27 @@ public class AWTCodec implements TiffCodec {
                         | ((src[srcPos + 1] & 0xFF) << 16)
                         | ((src[srcPos + 2] & 0xFF) << 8)
                         | (src[srcPos + 3] & 0xFF);
+    }
+
+    private void setQuality(ImageWriteParam parameters, Double quality) {
+        final String[] legalTypes;
+        if (quality == null) {
+            return;
+        }
+        if (!parameters.canWriteCompressed()) {
+            return;
+        }
+        parameters.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+        legalTypes = parameters.getCompressionTypes();
+        if (legalTypes != null && parameters.getCompressionType() == null) {
+            if (legalTypes.length == 1) {
+                // - we can help the user a little:
+                // no need to manually set the compression type, if there is only 1 case
+                parameters.setCompressionType(legalTypes[0]);
+            } else {
+                return;
+            }
+        }
+        parameters.setCompressionQuality(quality.floatValue());
     }
 }
